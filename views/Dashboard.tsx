@@ -11,7 +11,6 @@ import type {
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
-import { HeartIcon, NatalChartIcon } from '../components/icons/UiIcons';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import {
@@ -20,10 +19,21 @@ import {
 } from '../services/astrologyService';
 import { scoreColor, scoreLabel, nowHourIn, DayCurve } from './v2/ActionWindows';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
-import { MATRIX_HOME_SUB, MATRIX_TITLE } from '../lib/matrixArcana';
+import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 
 const DAY_HERO_MASCOT = '/stickers/capy_hoodie_peek_happy.webp';
+
+const MOON_SYMBOL: Record<string, string> = {
+  new: '●',
+  'waxing-crescent': '☽',
+  'first-quarter': '◐',
+  'waxing-gibbous': '◑',
+  full: '○',
+  'waning-gibbous': '◒',
+  'last-quarter': '◑',
+  'waning-crescent': '☾',
+};
 
 type DashboardProps = {
   profile: UserProfile;
@@ -112,6 +122,10 @@ export const Dashboard = memo<DashboardProps>(({
   }, [language, today, weekdayLabel]);
 
   const reduce = useReducedMotion();
+  const moonSymbol = MOON_SYMBOL[moon.slot] || '○';
+  const moonTone = language === 'ru'
+    ? 'Сегодня полезно держать день проще: заметить главное, убрать лишнее и не гнать себя там, где нужна ясность.'
+    : 'Today asks for a simpler pace: notice what matters, clear the extra, and do not rush where clarity is needed.';
   const moonExplain = language === 'ru'
     ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
     : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.';
@@ -140,16 +154,29 @@ export const Dashboard = memo<DashboardProps>(({
       : 'A day for honest conversations and steadier choices');
   const dayHeroText = !hasChart
     ? (language === 'ru'
-      ? 'Создай карту, чтобы увидеть личный ритм дня и подсказки по времени.'
-      : 'Create a chart to see your personal day rhythm and timing cues.')
+      ? 'Сначала соберём личную основу: так день станет про тебя, а не про общий фон.'
+      : 'First, build your personal base so the day can feel about you, not a generic mood.')
     : !premium
     ? (language === 'ru'
-      ? 'Полный разбор откроет, где сегодня прибавить, а где оставить себе паузу.'
-      : 'The full reading shows where to move and where to give yourself space.')
+      ? 'Внутри будет больше деталей: где легче двигаться, а где лучше оставить себе паузу.'
+      : 'There is more detail inside: where movement comes easier and where space may help.')
     : (language === 'ru'
-      ? 'Открой полный разбор: ритм дня, сильные стороны и моменты, где лучше бережнее.'
-      : 'Open the full reading: day rhythm, strengths, and moments to handle with care.');
-  const dayHeroCta = language === 'ru' ? 'Полный разбор дня ⌄' : 'Full day reading ⌄';
+      ? 'Внутри больше деталей: сильные стороны дня, аккуратные места и подсказки по времени.'
+      : 'Inside: the day’s stronger points, softer spots, and timing cues.');
+  const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
+  const natalText = hasChart
+    ? (language === 'ru'
+      ? 'Загляни в личный портрет: что в тебе сильное, что включается первым и почему некоторые вещи даются легче.'
+      : 'Step into your personal portrait: what is strong in you, what turns on first, and why some things come easier.')
+    : (language === 'ru'
+      ? 'Собери личный портрет по рождению, чтобы дальше читать себя точнее и без общих фраз.'
+      : 'Build your birth portrait so the rest of the app can read you more precisely, without generic lines.');
+  const matrixText = language === 'ru'
+    ? 'Короткий портрет по числам рождения: что в тебе заметно сразу и какая внутренняя тема часто возвращается.'
+    : 'A compact portrait from your birth numbers: what shows first in you and what inner theme tends to return.';
+  const compatibilityText = language === 'ru'
+    ? 'Посмотри, где вам легко быть рядом, а где лучше говорить бережнее, чтобы понимать друг друга без догадок.'
+    : 'See where being close feels easy, and where softer, clearer words help you understand each other without guessing.';
   const openDayHero = () => {
     lumiaSelectionHaptic();
     if (hasChart && premium) { onOpenPersonalDaily('overview'); }
@@ -195,7 +222,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   return (
     <div
-      className="fresh-page lumia-main-scroll lumia-bottom-tab-scroll"
+      className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
       <section className="home-top" aria-label="LUMIA">
@@ -231,7 +258,7 @@ export const Dashboard = memo<DashboardProps>(({
         type="button"
         className="home-day-hero"
         onClick={openDayHero}
-        aria-label={dayHeroCta}
+        aria-label={dayHeroAria}
       >
         <span className="home-day-hero-date">{dayHeroDateLabel}</span>
         <span className="home-day-hero-glow" aria-hidden />
@@ -240,18 +267,15 @@ export const Dashboard = memo<DashboardProps>(({
           <span className="home-day-hero-title">{dayHeroTitle}</span>
           <span className="home-day-hero-text">{dayHeroText}</span>
         </span>
-        <span className="home-day-hero-cta">{dayHeroCta}</span>
       </button>
 
       <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна и оценка дня' : 'Moon and day score'}>
         <div className="home-soft-card-glow" aria-hidden />
-        <div className="home-soft-card-icon home-soft-card-icon--moon" aria-hidden>
-          <span />
-        </div>
         <div className="home-today-copy">
+          <span className="home-moon-symbol" aria-hidden>{moonSymbol}</span>
           <span className="home-soft-card-kicker">{weekdayLabel}</span>
-          <h2 className="home-soft-card-title">{moon.shortLabel}</h2>
-          <p className="home-soft-card-text">{moon.meaning}</p>
+          <h2 className="home-soft-card-title">{moon.label}</h2>
+          <p className="home-soft-card-text">{moonTone}</p>
           <button
             type="button"
             className="home-soft-card-link"
@@ -284,24 +308,9 @@ export const Dashboard = memo<DashboardProps>(({
           onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
         >
           <span className="home-soft-card-glow" aria-hidden />
-          <span className="home-soft-card-icon home-soft-card-icon--natal" aria-hidden>
-            <NatalChartIcon size={20} />
-          </span>
           <span className="home-soft-card-content">
-            <span className="home-soft-card-kicker">
-              {hasChart ? (language === 'ru' ? 'Карта готова' : 'Chart ready') : (language === 'ru' ? 'Начать с себя' : 'Start with yourself')}
-            </span>
             <span className="home-soft-card-title">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</span>
-            <span className="home-soft-card-text">
-              {hasChart
-                ? (language === 'ru'
-                  ? 'Открой личный портрет без общих фраз: характер, сильные стороны и привычные сценарии.'
-                  : 'Open your personal portrait: traits, strengths, and patterns without generic filler.')
-                : (language === 'ru'
-                  ? 'Собери карту по дате, времени и месту рождения, чтобы личные разборы стали точнее.'
-                  : 'Create a chart from birth date, time, and place to make personal readings sharper.')}
-            </span>
-            <span className="home-soft-card-cta">{language === 'ru' ? 'Открыть карту' : 'Open chart'} →</span>
+            <span className="home-soft-card-text">{natalText}</span>
           </span>
         </button>
 
@@ -312,14 +321,9 @@ export const Dashboard = memo<DashboardProps>(({
             onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
           >
             <span className="home-soft-card-glow" aria-hidden />
-            <span className="home-soft-card-icon home-soft-card-icon--matrix" aria-hidden>22</span>
             <span className="home-soft-card-content">
-              <span className="home-soft-card-kicker">{language === 'ru' ? 'По дате рождения' : 'By birth date'}</span>
               <span className="home-soft-card-title">{language === 'ru' ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</span>
-              <span className="home-soft-card-text">
-                {language === 'ru' ? MATRIX_HOME_SUB.ru : MATRIX_HOME_SUB.en}
-              </span>
-              <span className="home-soft-card-cta">{language === 'ru' ? 'Посмотреть матрицу' : 'View matrix'} →</span>
+              <span className="home-soft-card-text">{matrixText}</span>
             </span>
           </button>
         ) : null}
@@ -330,18 +334,9 @@ export const Dashboard = memo<DashboardProps>(({
           onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
         >
           <span className="home-soft-card-glow" aria-hidden />
-          <span className="home-soft-card-icon home-soft-card-icon--compat" aria-hidden>
-            <HeartIcon size={20} />
-          </span>
           <span className="home-soft-card-content">
-            <span className="home-soft-card-kicker">{language === 'ru' ? 'Отношения' : 'Relationships'}</span>
             <span className="home-soft-card-title">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
-            <span className="home-soft-card-text">
-              {language === 'ru'
-                ? 'Посмотри, где вы легко совпадаете, а где лучше говорить спокойнее и яснее.'
-                : 'See where you naturally match and where a calmer, clearer conversation helps.'}
-            </span>
-            <span className="home-soft-card-cta">{language === 'ru' ? 'Открыть совместимость' : 'Open compatibility'} →</span>
+            <span className="home-soft-card-text">{compatibilityText}</span>
           </span>
         </button>
       </div>
