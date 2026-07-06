@@ -4919,232 +4919,310 @@ a,
   }
 }
 
-/* ══ Сегодня: фазы луны + доска + оценка дня на дневнике ══
-   Арт moon-board-cover.webp (1400×788): сверху ряд из 5 рамок-фаз, слева светлая
-   «доска» под текст, справа девушка с открытым дневником. Сцена зафиксирована по
-   aspect-ratio (7/5) и обрезается по бокам симметрично, поэтому проценты ниже
-   стабильно попадают в нужные зоны на любой ширине экрана. */
-.home-today {
+/* ══ Единая светлая лента ниже главного hero ══ */
+.home-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0 16px 0;
+}
+
+.home-soft-card {
   position: relative;
-  margin: 0 16px 12px;
-  border-radius: var(--fresh-radius-card);
-  background: var(--fresh-surface);
-  box-shadow: 0 16px 34px rgba(17, 24, 39, 0.09);
-  overflow: hidden;
   isolation: isolate;
-}
-
-.home-today-stage {
-  position: relative;
-  aspect-ratio: 7 / 5;
   overflow: hidden;
-}
-/* Фолбэк для старых WebView без aspect-ratio — иначе сцена схлопнется в 0 высоты. */
-@supports not (aspect-ratio: 1 / 1) {
-  .home-today-stage { height: 0; padding-bottom: 71.43%; }
-}
-
-.home-today-stage::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image: var(--home-card-image);
-  background-position: 50% 50%;
-  background-size: cover;
-  filter: saturate(1.06) contrast(1.02);
-}
-
-.home-today-stage::after {
-  /* только лёгкая нижняя тень для глубины — арт НЕ перекрываем */
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(24, 16, 46, 0) 64%, rgba(24, 16, 46, 0.13) 100%);
-}
-
-/* ── Подсветка текущей фазы: гало вокруг нужной рамки (одной из 5) ── */
-.home-moon-mark {
-  position: absolute;
-  z-index: 2;
-  top: 15%;
-  width: 15%;
-  height: 24%;
-  transform: translate(-50%, -50%);
-  border-radius: 13px;
-  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: var(--today-hero-radius);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.66) 0%, rgba(255, 255, 255, 0) 48%),
+    repeating-linear-gradient(0deg, rgba(95, 69, 42, 0.022) 0 1px, rgba(255, 255, 255, 0) 1px 5px),
+    linear-gradient(145deg, #fffaf3 0%, #f7ead9 72%, #f1dfc6 100%);
   box-shadow:
-    0 0 0 2.5px rgba(255, 214, 120, 0.95),
-    0 0 22px 6px rgba(255, 199, 92, 0.55);
-}
-.home-moon-mark::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 16px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+    0 16px 36px rgba(74, 50, 29, 0.09),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+  color: var(--today-hero-ink);
+  font-family: var(--fresh-font);
 }
 
-/* ── Доска: текст фазы (мягкое перо-подсветка вместо жёсткой плашки) ── */
-.home-today-board {
+.home-soft-card-glow {
   position: absolute;
-  z-index: 3;
-  left: 4%;
-  width: 46%;
-  top: 30.5%;
+  right: -3.4rem;
+  bottom: -3.2rem;
+  z-index: 0;
+  width: 11rem;
+  height: 11rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 199, 98, 0.24) 0%, rgba(255, 199, 98, 0) 66%);
+  pointer-events: none;
 }
-.home-today-board::before {
-  content: '';
-  position: absolute;
-  inset: -14% -12% -16% -10%;
-  z-index: -1;
-  border-radius: 22px;
-  background: radial-gradient(118% 122% at 32% 42%,
-    rgba(255, 253, 248, 0.84) 0%,
-    rgba(255, 253, 248, 0.52) 46%,
-    rgba(255, 253, 248, 0) 78%);
+
+.home-soft-card-content,
+.home-today-copy,
+.home-today-score,
+.home-today-panel {
+  position: relative;
+  z-index: 2;
 }
-.home-today-board-kicker {
-  font-family: var(--fresh-font-round);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+
+.home-soft-card-kicker {
+  display: inline-flex;
+  width: fit-content;
+  color: var(--today-hero-accent);
+  font-family: var(--fresh-font);
+  font-size: 0.72rem;
+  font-weight: 820;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
   text-transform: uppercase;
-  color: #6a4a8a;
 }
-.home-today-board-text {
-  margin: 5px 0 0;
+
+.home-soft-card-title {
+  display: block;
+  margin: 0.28rem 0 0;
+  color: var(--today-hero-ink);
+  font-family: var(--fresh-font-round);
+  font-size: 1.24rem;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.home-soft-card-text {
+  display: block;
+  margin: 0.58rem 0 0;
+  max-width: 20.5rem;
+  color: var(--today-hero-muted);
   font-family: var(--fresh-font);
-  font-size: 13.5px;
-  font-weight: 750;
-  line-height: 1.2;
-  color: #1c1633;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-size: 0.91rem;
+  font-weight: 540;
+  letter-spacing: 0;
+  line-height: 1.43;
 }
-.home-today-board-info {
-  margin-top: 7px;
+
+.home-soft-card-cta,
+.home-soft-card-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  margin-top: 0.86rem;
+  color: #155eef;
+  font-family: var(--fresh-font);
+  font-size: 0.84rem;
+  font-weight: 780;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
+.home-soft-card-link {
   padding: 0;
-  background: none;
-  border: none;
-  font-family: var(--fresh-font);
-  font-size: 12px;
-  font-weight: 800;
-  color: #6b3fc4;
+  border: 0;
+  background: transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ── Оценка дня — на дневнике (правая страница) ── */
-.home-day-badge {
+.home-soft-card-icon {
   position: absolute;
-  z-index: 3;
-  left: 53%;
-  right: 10%;
-  top: 47%;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  width: 2.45rem;
+  height: 2.45rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--today-hero-accent);
+  box-shadow: 0 10px 24px rgba(74, 50, 29, 0.08);
+}
+
+.home-soft-card-icon svg {
+  width: 1.18rem;
+  height: 1.18rem;
+}
+
+.home-soft-card-icon--moon span {
+  width: 1.24rem;
+  height: 1.24rem;
+  border-radius: 999px;
+  background: #f8d68a;
+  box-shadow:
+    -0.34rem 0 0 #fffaf3 inset,
+    0 0 0 1px rgba(169, 107, 56, 0.12);
+}
+
+.home-soft-card-icon--matrix {
+  color: #285d56;
+  font-size: 0.86rem;
+  font-weight: 860;
+}
+
+.home-soft-card-icon--compat {
+  color: #b55572;
+}
+
+.home-soft-card--moon {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7.2rem, 34%);
+  gap: 1rem;
+  margin: 0 16px 0.9rem;
+  padding: 1.25rem;
+}
+
+.home-today-copy {
+  min-width: 0;
+  padding-right: 2.4rem;
+}
+
+.home-today-score {
   display: flex;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.home-day-badge {
+  display: flex;
+  width: 100%;
+  min-height: 7.4rem;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
-  padding: 9px 11px;
-  border: none;
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
+  justify-content: center;
+  gap: 0.16rem;
+  padding: 0.88rem;
+  border: 1px solid rgba(17, 31, 58, 0.07);
+  border-radius: 1.08rem;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 12px 24px rgba(74, 50, 29, 0.07);
+  color: var(--today-hero-ink);
   text-align: left;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+
 .home-day-badge--load {
   cursor: default;
-  color: #5a4a6a;
+  color: var(--today-hero-muted);
   font-family: var(--fresh-font);
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 720;
 }
+
 .home-day-badge-k {
-  font-family: var(--fresh-font-round);
-  font-size: 10.5px;
-  font-weight: 800;
+  color: var(--today-hero-accent);
+  font-family: var(--fresh-font);
+  font-size: 0.66rem;
+  font-weight: 820;
   letter-spacing: 0.04em;
+  line-height: 1.1;
   text-transform: uppercase;
-  color: #6a4a8a;
 }
+
 .home-day-badge-score {
   font-family: var(--fresh-font-round);
-  font-size: 30px;
-  font-weight: 900;
+  font-size: 2rem;
+  font-weight: 820;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
+
 .home-day-badge-score i {
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 0.8rem;
+  font-weight: 760;
   font-style: normal;
-  opacity: 0.5;
+  opacity: 0.55;
 }
+
 .home-day-badge-label {
-  margin-top: 1px;
+  margin-top: 0.12rem;
+  color: var(--today-hero-muted);
   font-family: var(--fresh-font);
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #4a3a5e;
+  font-size: 0.78rem;
+  font-weight: 660;
+  line-height: 1.18;
 }
+
 .home-day-badge-cta {
-  margin-top: 1px;
+  margin-top: 0.22rem;
+  color: #155eef;
   font-family: var(--fresh-font);
-  font-size: 12px;
-  font-weight: 800;
-  color: #6b3fc4;
+  font-size: 0.82rem;
+  font-weight: 780;
+  line-height: 1.18;
 }
 
-/* ── Ретроградные планеты (если есть) — компактный чип на столе ── */
-.home-today-retro-chip {
-  position: absolute;
-  z-index: 3;
-  left: 4%;
-  bottom: 5%;
-  max-width: 46%;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.64);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.1);
-  font-family: var(--fresh-font);
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #7a3e12;
-}
-.home-today-retro-chip span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Панель раскрытия под сценой: пояснение фазы + кривая дня ── */
 .home-today-panel {
-  padding: 12px 14px 14px;
-  border-top: 1px solid var(--fresh-border);
+  grid-column: 1 / -1;
+  margin-top: 0.15rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid rgba(17, 31, 58, 0.08);
 }
+
 .home-today-explain {
   margin: 0;
+  color: var(--today-hero-muted);
   font-family: var(--fresh-font);
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--fresh-muted);
+  font-size: 0.82rem;
+  line-height: 1.52;
 }
-.home-day-detail { margin-top: 10px; }
+
+.home-day-detail {
+  margin-top: 0.8rem;
+}
+
+.home-feed-card {
+  display: block;
+  width: 100%;
+  min-height: 10.4rem;
+  padding: 1.25rem 1.2rem;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-feed-card:active,
+.home-soft-card-link:active,
+.home-day-badge:active {
+  transform: translateY(1px);
+}
+
+.home-feed-card--natal {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 52%),
+    repeating-linear-gradient(0deg, rgba(95, 69, 42, 0.022) 0 1px, rgba(255, 255, 255, 0) 1px 5px),
+    linear-gradient(145deg, #fffaf1 0%, #f4eadc 100%);
+}
+
+.home-feed-card--matrix {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0) 52%),
+    repeating-linear-gradient(0deg, rgba(35, 88, 80, 0.025) 0 1px, rgba(255, 255, 255, 0) 1px 5px),
+    linear-gradient(145deg, #f7fbf3 0%, #e9f0df 100%);
+}
+
+.home-feed-card--compat {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 52%),
+    repeating-linear-gradient(0deg, rgba(181, 85, 114, 0.022) 0 1px, rgba(255, 255, 255, 0) 1px 5px),
+    linear-gradient(145deg, #fff8f6 0%, #f4e8e4 100%);
+}
+
+@media (max-width: 380px) {
+  .home-soft-card--moon {
+    grid-template-columns: 1fr;
+    padding: 1.12rem;
+  }
+
+  .home-today-copy {
+    padding-right: 2.2rem;
+  }
+
+  .home-day-badge {
+    min-height: 5.9rem;
+  }
+}
 
 .home-visual-card {
   position: relative;
