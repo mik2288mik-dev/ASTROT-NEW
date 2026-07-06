@@ -675,6 +675,36 @@ export async function computeDailyScores(
   });
 }
 
+export type DayScoreResult = {
+  score: number;
+  layers: TodayPulseLayers;
+  dominant: TodayPulseLayerKey;
+  weakest: TodayPulseLayerKey;
+};
+
+/**
+ * Оценка ДНЯ по одному транзитному срезу — тот же расчёт, что в полном пульсе
+ * (calculateLayers + calculateScore), БЕЗ изменения математики. Нужна генератору
+ * дневного полотна, чтобы число оценки в тексте бралось из того же движка, что и
+ * «оценка дня», а не расходилось с ним.
+ */
+export function computeDayScoreFromTransits(
+  chartData: NatalChartData,
+  transits: CurrentTransits,
+  hour: number,
+  seedDateKey: string,
+): DayScoreResult {
+  const layers = calculateLayers(chartData, transits, hour, seedDateKey);
+  const phase = phaseForHour(hour).phase;
+  const score = calculateScore(layers, phase);
+  const dominant = dominantLayer(layers);
+  const weakest = LAYERS.reduce(
+    (w, k) => (layers[k] < layers[w] ? k : w),
+    'energy' as TodayPulseLayerKey,
+  );
+  return { score, layers, dominant, weakest };
+}
+
 export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<TodayPulse> {
   const startedAt = Date.now();
   const language = options.language === 'en' ? 'en' : 'ru';

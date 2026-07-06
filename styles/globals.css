@@ -96,6 +96,17 @@ body,
   --lumia-brand-wordmark-weight: 700;
   --lumia-brand-wordmark-letter-spacing: 0;
   --lumia-brand-tagline-gap: 0.16rem;
+  --today-hero-bg: #f7ead9;
+  --today-hero-bg-2: #fff8ef;
+  --today-hero-ink: #101f3a;
+  --today-hero-muted: #6f7880;
+  --today-hero-accent: #a96b38;
+  --today-hero-radius: 1.55rem;
+  --today-hero-card-gap: 0.9rem;
+  --today-hero-pad-x: 1.35rem;
+  --today-hero-pad-y: 1.45rem;
+  --today-hero-title-size: 1.9rem;
+  --today-hero-body-size: 0.94rem;
 
   /* LUMIA FRESH 2026 skin — white surfaces, blue accent (synced with tailwind mono.* + --fresh-*) */
   --mono-bg: #ffffff;
@@ -728,20 +739,20 @@ body.theme-lumia-air #__next {
 .lumia-bottom-tab-bar {
   position: relative;
   display: grid;
-  width: min(calc(100vw - 1rem), 27rem);
+  width: min(calc(100vw - 0.75rem), 29rem);
   min-height: var(--lumia-bottom-tab-height);
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   border-radius: 9999px;
   overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.94);
   background: rgba(255, 255, 255, 0.98);
   box-shadow:
-    0 22px 52px rgba(17, 24, 39, 0.15),
-    0 7px 18px rgba(17, 24, 39, 0.08),
+    0 24px 54px rgba(17, 24, 39, 0.16),
+    0 8px 20px rgba(17, 24, 39, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.9) inset;
-  padding: 7px 8px;
+  padding: 6px 7px;
 }
 
 .lumia-bottom-tab-bar::before,
@@ -754,7 +765,7 @@ body.theme-lumia-air #__next {
   z-index: 2;
   display: inline-flex;
   min-width: 0;
-  min-height: 3.34rem;
+  min-height: 3.24rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -762,9 +773,9 @@ body.theme-lumia-air #__next {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #42464f;
+  color: #5d6674;
   font-family: var(--lumia-home-font-sans);
-  font-size: 9.6px;
+  font-size: 9.2px;
   font-weight: 650;
   letter-spacing: 0;
   line-height: 1.05;
@@ -780,7 +791,7 @@ body.theme-lumia-air #__next {
 
 .lumia-bottom-tab-active-pill {
   position: absolute;
-  inset: 2px 1px;
+  inset: 3px 2px;
   z-index: 0;
   border-radius: 999px;
   background: linear-gradient(135deg, #00bfae 0%, #1478ff 52%, #7a4dff 100%);
@@ -796,8 +807,8 @@ body.theme-lumia-air #__next {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.42rem;
-  height: 1.42rem;
+  width: 1.36rem;
+  height: 1.36rem;
   padding: 0;
   border-radius: 9999px;
   background: transparent;
@@ -806,8 +817,8 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-icon svg {
-  width: 1.17rem;
-  height: 1.17rem;
+  width: 1.13rem;
+  height: 1.13rem;
   display: block;
 }
 
@@ -818,7 +829,7 @@ body.theme-lumia-air #__next {
   display: block;
   max-width: 100%;
   color: currentColor;
-  font-size: 9.6px;
+  font-size: 9.2px;
   font-weight: 650;
   line-height: 1.05;
   overflow: hidden;
@@ -828,7 +839,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-label {
-  font-size: 8.1px;
+  font-size: 7.7px;
 }
 
 .lumia-bottom-tab-item.is-active {
@@ -4736,6 +4747,177 @@ a,
 .pw2-cta:disabled { opacity: 0.7; }
 .pw2-free { margin: 12px 20px 0; background: transparent; border: none; color: var(--fresh-muted); font-family: var(--fresh-font); font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .pw2-foot { font-family: var(--fresh-font); font-size: 11.5px; line-height: 1.45; color: var(--fresh-muted); text-align: center; margin: 16px 24px 0; }
+
+/* ══ Первый дневной экран: личная карточка дня ══ */
+.home-day-hero {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: calc(100% - 32px);
+  min-height: min(52dvh, 29.5rem);
+  margin: 0 16px var(--today-hero-card-gap);
+  padding: var(--today-hero-pad-y) var(--today-hero-pad-x);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: var(--today-hero-radius);
+  background:
+    radial-gradient(circle at 86% 31%, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0) 32%),
+    radial-gradient(circle at 20% 88%, rgba(255, 215, 156, 0.34) 0%, rgba(255, 215, 156, 0) 34%),
+    linear-gradient(145deg, var(--today-hero-bg-2) 0%, var(--today-hero-bg) 70%, #f0dcc1 100%);
+  box-shadow:
+    0 18px 44px rgba(74, 50, 29, 0.10),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+  color: var(--today-hero-ink);
+  font-family: var(--fresh-font);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-day-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.56) 0%, rgba(255, 255, 255, 0.34) 46%, rgba(255, 255, 255, 0) 76%),
+    repeating-linear-gradient(0deg, rgba(105, 70, 38, 0.025) 0 1px, rgba(255, 255, 255, 0) 1px 5px);
+}
+
+.home-day-hero:active {
+  transform: translateY(1px);
+}
+
+.home-day-hero-date {
+  position: absolute;
+  top: 2.15rem;
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+  width: calc(100% - 3rem);
+  color: var(--today-hero-muted);
+  font-family: var(--fresh-font);
+  font-size: 1.26rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.home-day-hero-glow {
+  position: absolute;
+  right: -4.4rem;
+  bottom: 1.4rem;
+  z-index: 0;
+  width: 14.5rem;
+  height: 14.5rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 199, 98, 0.34) 0%, rgba(255, 199, 98, 0) 67%);
+  pointer-events: none;
+}
+
+.home-day-hero-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 59%;
+  max-width: 18.4rem;
+  min-height: 18rem;
+  flex-direction: column;
+  gap: 0.95rem;
+  padding-top: 7.5rem;
+}
+
+.home-day-hero-title,
+.home-day-hero-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.home-day-hero-title {
+  color: var(--today-hero-ink);
+  font-family: var(--fresh-font-round);
+  font-size: var(--today-hero-title-size);
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.16;
+  -webkit-line-clamp: 4;
+}
+
+.home-day-hero-text {
+  color: #2c3340;
+  font-family: var(--fresh-font);
+  font-size: var(--today-hero-body-size);
+  font-weight: 520;
+  letter-spacing: 0;
+  line-height: 1.44;
+  -webkit-line-clamp: 3;
+}
+
+.home-day-hero-cta {
+  position: absolute;
+  left: var(--today-hero-pad-x);
+  bottom: 1.35rem;
+  z-index: 3;
+  display: inline-flex;
+  max-width: calc(62% - var(--today-hero-pad-x));
+  align-items: center;
+  color: var(--today-hero-accent);
+  font-family: var(--fresh-font);
+  font-size: 0.93rem;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.home-day-hero-mascot {
+  position: absolute;
+  right: -0.6rem;
+  bottom: 3rem;
+  z-index: 1;
+  width: min(42%, 11.6rem);
+  max-height: 62%;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 24px rgba(69, 43, 21, 0.14));
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 380px) {
+  :root {
+    --today-hero-pad-x: 1.1rem;
+    --today-hero-title-size: 1.68rem;
+    --today-hero-body-size: 0.88rem;
+  }
+
+  .home-day-hero {
+    width: calc(100% - 28px);
+    min-height: 25rem;
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+
+  .home-day-hero-date {
+    top: 1.85rem;
+    font-size: 1.12rem;
+  }
+
+  .home-day-hero-copy {
+    width: 58%;
+    min-height: 16.8rem;
+    padding-top: 6.75rem;
+  }
+
+  .home-day-hero-mascot {
+    right: -1rem;
+    bottom: 3.2rem;
+    width: min(44%, 10rem);
+  }
+}
 
 /* ══ Сегодня: фазы луны + доска + оценка дня на дневнике ══
    Арт moon-board-cover.webp (1400×788): сверху ряд из 5 рамок-фаз, слева светлая

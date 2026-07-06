@@ -41,6 +41,12 @@ export type ReadingCallOptions = {
   cacheSystem?: boolean;
   maxTokens?: number;
   temperature?: number;
+  /**
+   * Explicit model id that bypasses per-content resolution (getOpenAIModelForContent).
+   * Used by the daily-canvas generator, which has its own env-overridable model slot
+   * (getDailyCanvasModel) independent of the shared interpretation tiers.
+   */
+  modelOverride?: string;
 };
 
 function readingMessages(opts: ReadingCallOptions) {
@@ -52,7 +58,7 @@ function readingMessages(opts: ReadingCallOptions) {
 
 export async function llmJson<T = any>(opts: ReadingCallOptions): Promise<T> {
   const client = getClient();
-  const { model } = await getOpenAIModelForContent(opts.model);
+  const model = opts.modelOverride || (await getOpenAIModelForContent(opts.model)).model;
 
   const completion = await client.chat.completions.create(
     buildOpenAIChatParams(model, {

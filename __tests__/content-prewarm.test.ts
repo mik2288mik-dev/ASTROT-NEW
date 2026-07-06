@@ -269,12 +269,14 @@ describe('content prewarm', () => {
 
   it('human-daily endpoint uses lock/cache/fallback behavior for action loads', () => {
     const humanDaily = fs.readFileSync(path.join(ROOT, 'pages/api/content/natal/human-daily.ts'), 'utf8');
+    // Единое дневное полотно: один запрос генерит весь разбор, эндпоинт режет на секции.
     expect(humanDaily).toContain('withContentGenerationLock');
     expect(humanDaily).toContain('readCached');
-    expect(humanDaily).toContain('isUsableDailySectionContent');
-    expect(humanDaily).toContain('buildHumanDailyFallback');
-    expect(humanDaily).toContain('saveReading(ctx, saveOpts, fallback)');
-    expect(humanDaily).toContain("source: 'fallback_unsaved'");
+    expect(humanDaily).toContain('isUsableCanvas');
+    expect(humanDaily).toContain('generateDailyCanvas');
+    expect(humanDaily).toContain('buildDailyCanvasFallback');
+    expect(humanDaily).toContain('saveReading<DailyCanvas>(ctx, canvasSaveOpts, fallbackCanvas)');
+    expect(humanDaily).toContain("'fallback_unsaved'");
     expect(humanDaily).toContain('persistenceStatus');
   });
 

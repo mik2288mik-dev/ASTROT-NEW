@@ -1,39 +1,39 @@
 import React from 'react';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
-import { MoreHorizontal } from 'lucide-react';
+import { Compass, MoreHorizontal } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
 import { cn } from '../../lib/cn';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { ChatIcon, HeartIcon, HoroscopeIcon, NatalChartIcon } from '../icons/UiIcons';
+import { HeartIcon, HoroscopeIcon, NatalChartIcon } from '../icons/UiIcons';
 
 type LumiaBottomTabBarProps = {
   profile: UserProfile;
   view: ViewState;
   onOpenToday: () => void;
+  onOpenZodiac: () => void;
   onOpenNatal: () => void;
   onOpenSynastry: () => void;
-  onOpenAsk: () => void;
   onOpenMore: () => void;
 };
 
-const SHOW_ON: ViewState[] = ['dashboard', 'chart', 'synastry', 'oracle', 'settings'];
+const SHOW_ON: ViewState[] = ['dashboard', 'horoscope', 'chart', 'synastry', 'settings'];
 
 function getBottomNavLabels(language: UserProfile['language']) {
   if (language === 'en') {
     return {
       today: 'Today',
+      zodiac: 'Zodiac',
       chart: 'Map',
       union: 'Compatibility',
-      ask: 'Ask',
       more: 'More',
     };
   }
 
   return {
     today: 'Сегодня',
+    zodiac: 'Зодиак',
     chart: 'Карта',
     union: 'Совместимость',
-    ask: 'Спросить',
     more: 'Ещё',
   };
 }
@@ -42,9 +42,9 @@ export function LumiaBottomTabBar({
   profile,
   view,
   onOpenToday,
+  onOpenZodiac,
   onOpenNatal,
   onOpenSynastry,
-  onOpenAsk,
   onOpenMore,
 }: LumiaBottomTabBarProps) {
   const labels = getBottomNavLabels(profile.language);
@@ -63,15 +63,15 @@ export function LumiaBottomTabBar({
       id: 'today',
       label: labels.today,
       active: view === 'dashboard',
-      icon: <HoroscopeIcon />,
+      icon: <Compass aria-hidden strokeWidth={1.75} />,
       onClick: onOpenToday,
     },
     {
-      id: 'chart',
-      label: labels.chart,
-      active: view === 'chart',
-      icon: <NatalChartIcon />,
-      onClick: onOpenNatal,
+      id: 'zodiac',
+      label: labels.zodiac,
+      active: view === 'horoscope',
+      icon: <HoroscopeIcon />,
+      onClick: onOpenZodiac,
     },
     {
       id: 'union',
@@ -81,11 +81,11 @@ export function LumiaBottomTabBar({
       onClick: onOpenSynastry,
     },
     {
-      id: 'ask',
-      label: labels.ask,
-      active: view === 'oracle',
-      icon: <ChatIcon />,
-      onClick: onOpenAsk,
+      id: 'chart',
+      label: labels.chart,
+      active: view === 'chart',
+      icon: <NatalChartIcon />,
+      onClick: onOpenNatal,
     },
     {
       id: 'more',

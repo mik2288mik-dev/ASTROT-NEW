@@ -1462,6 +1462,10 @@ const App: React.FC = () => {
         navigateTo('dashboard', { replace: true });
     }, [navigateTo]);
 
+    const openBottomZodiac = useCallback(() => {
+        navigateTo('horoscope', { replace: true });
+    }, [navigateTo]);
+
     const openBottomNatal = useCallback(() => {
         navigateTo('chart', { replace: true });
     }, [navigateTo]);
@@ -1721,9 +1725,9 @@ const App: React.FC = () => {
                     profile={profile}
                     view={view}
                     onOpenToday={openBottomToday}
+                    onOpenZodiac={openBottomZodiac}
                     onOpenNatal={openBottomNatal}
                     onOpenSynastry={openSynastryFromHome}
-                    onOpenAsk={() => openOracle()}
                     onOpenMore={openBottomAvatar}
                 />
             )}

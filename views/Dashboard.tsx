@@ -13,7 +13,6 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
-import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { HeartIcon, ChatIcon } from '../components/icons/UiIcons';
 import { getMoonPhase, type MoonPhaseSlot } from '../lib/horoscope/moonPhase';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
@@ -25,7 +24,6 @@ import {
   type SkyToday,
 } from '../services/astrologyService';
 import {
-  FreshHeroCard,
   FreshSectionHeader,
 } from '../components/fresh-ui';
 import { scoreColor, scoreLabel, nowHourIn, DayCurve } from './v2/ActionWindows';
@@ -39,14 +37,6 @@ const SIGN_NAMES_RU: Record<string, string> = {
   cancer: 'Рак', leo: 'Лев', virgo: 'Дева',
   libra: 'Весы', scorpio: 'Скорпион', sagittarius: 'Стрелец',
   capricorn: 'Козерог', aquarius: 'Водолей', pisces: 'Рыбы',
-};
-
-// Родительный падеж («для Овна», «для Рыб») — для тёплого приглашающего текста на карточке гороскопа.
-const SIGN_NAMES_RU_GENITIVE: Record<string, string> = {
-  aries: 'Овна', taurus: 'Тельца', gemini: 'Близнецов',
-  cancer: 'Рака', leo: 'Льва', virgo: 'Девы',
-  libra: 'Весов', scorpio: 'Скорпиона', sagittarius: 'Стрельца',
-  capricorn: 'Козерога', aquarius: 'Водолея', pisces: 'Рыб',
 };
 
 /* Арт moon-board-cover рисует 5 фаз: новолуние · растущий серп · первая четверть ·
@@ -65,10 +55,10 @@ const MOON_SLOT_FRAME: Record<MoonPhaseSlot, number> = {
 /* Центры 5 рамок по X в координатах карточки (сцена 7/5, арт обрезан по бокам симметрично);
    промерено по пикселям фактической cover-обрезки: рамки идут ровно с шагом ~17.8%. */
 const MOON_FRAME_X = [8, 25, 43, 61, 79];
+const DAY_HERO_MASCOT = '/stickers/capy_hoodie_peek_happy.webp';
 
 /* ── Типы пропсов ── */
 const HOME_CARD_IMAGES = {
-  todayHero: '/home/cards/horoscope-main.webp',
   moonFocus: '/home/cards/moon-board-cover.webp',
   natalMap: '/home/cards/natal-drive-cover.webp',
   personalDay: '/home/cards/energy-cover.webp',
@@ -101,7 +91,6 @@ export const Dashboard = memo<DashboardProps>(({
   profile,
   chartData,
   chartId,
-  onOpenHoroscopeLayer,
   onOpenPersonalDaily,
   onCreateNatalChart,
   onOpenOracle,
@@ -164,7 +153,6 @@ export const Dashboard = memo<DashboardProps>(({
   }, [chartData, chartId, hasChart, premium, profile]);
 
   /* Вспомогательные данные */
-  const signNameRu = SIGN_NAMES_RU[selectedSign] || selectedSign;
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
   const periodTabs = language === 'ru'
     ? ['Сегодня', 'Эта неделя', 'Этот месяц', 'Этот год']
@@ -180,6 +168,17 @@ export const Dashboard = memo<DashboardProps>(({
     }).format(d);
     return w.charAt(0).toUpperCase() + w.slice(1);
   }, [today, language]);
+  const dayHeroDateLabel = useMemo(() => {
+    const [yr, mo, da] = today.split('-').map(Number);
+    const d = new Date(Date.UTC(yr, mo - 1, da, 12));
+    const date = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+      timeZone: 'UTC',
+      day: 'numeric',
+      month: 'long',
+    }).format(d);
+    const dayName = language === 'ru' ? weekdayLabel.toLowerCase() : weekdayLabel;
+    return `${date} · ${dayName}`;
+  }, [language, today, weekdayLabel]);
 
   /* Ретроградные планеты сегодня (с сервера) */
   const retro = sky?.retrograde ?? [];
@@ -214,15 +213,6 @@ export const Dashboard = memo<DashboardProps>(({
     return () => window.clearInterval(id);
   }, [dayTimezone]);
 
-  /* Текст hero-карточки — тёплое личное приглашение с упоминанием знака, а не общая фраза. */
-  const signGenitiveRu = SIGN_NAMES_RU_GENITIVE[selectedSign] || signNameRu;
-  const signNameEn = selectedSign ? selectedSign.charAt(0).toUpperCase() + selectedSign.slice(1) : 'you';
-  const heroTitle = language === 'ru'
-    ? `Для ${signGenitiveRu} сегодня в гороскопе много полезного`
-    : `Plenty of useful stuff in today's horoscope for ${signNameEn}`;
-  const heroChipText = signNameRu || (language === 'ru' ? 'Рыбы' : 'Pisces');
-
-
   /* Планеты для списка */
   /* Персональный день: подпись */
   const personalSubtitle = !hasChart
@@ -231,6 +221,28 @@ export const Dashboard = memo<DashboardProps>(({
     ? (language === 'ru' ? 'Доступно в Premium' : 'Available in Premium')
     : (personal && personal.status === 'ready' ? personal.pulse.currentPoint.summary : undefined)
       || (language === 'ru' ? 'Ваш разбор дня готов' : 'Your day breakdown is ready');
+  const dayHeroTitle = (personal && personal.status === 'ready' ? personal.pulse.currentPoint.summary : undefined)
+    || (language === 'ru'
+      ? 'День располагает к важным разговорам и спокойным решениям'
+      : 'A day for honest conversations and steadier choices');
+  const dayHeroText = !hasChart
+    ? (language === 'ru'
+      ? 'Создай карту, чтобы увидеть личный ритм дня и подсказки по времени.'
+      : 'Create a chart to see your personal day rhythm and timing cues.')
+    : !premium
+    ? (language === 'ru'
+      ? 'Полный разбор откроет, где сегодня прибавить, а где оставить себе паузу.'
+      : 'The full reading shows where to move and where to give yourself space.')
+    : (language === 'ru'
+      ? 'Открой полный разбор: ритм дня, сильные стороны и моменты, где лучше бережнее.'
+      : 'Open the full reading: day rhythm, strengths, and moments to handle with care.');
+  const dayHeroCta = language === 'ru' ? 'Полный разбор дня ⌄' : 'Full day reading ⌄';
+  const openDayHero = () => {
+    lumiaSelectionHaptic();
+    if (hasChart && premium) { onOpenPersonalDaily('overview'); }
+    else if (!hasChart) { onCreateNatalChart?.(); }
+    else { onRequestPremium?.('personal_day'); }
+  };
 
   /* Оценка дня — бейдж поверх дневника на арте (со всеми состояниями доступа). */
   const dayBadge = !hasChart ? (
@@ -302,6 +314,22 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
+      <button
+        type="button"
+        className="home-day-hero"
+        onClick={openDayHero}
+        aria-label={dayHeroCta}
+      >
+        <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+        <span className="home-day-hero-glow" aria-hidden />
+        <img className="home-day-hero-mascot" src={DAY_HERO_MASCOT} alt="" aria-hidden />
+        <span className="home-day-hero-copy">
+          <span className="home-day-hero-title">{dayHeroTitle}</span>
+          <span className="home-day-hero-text">{dayHeroText}</span>
+        </span>
+        <span className="home-day-hero-cta">{dayHeroCta}</span>
+      </button>
+
       {/* ── Сегодня: фазы луны + доска (текст фазы) + оценка дня на дневнике ── */}
       <div className="home-today">
         <div className="home-today-stage" style={homeVisualStyle(HOME_CARD_IMAGES.moonFocus)}>
@@ -348,19 +376,6 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         )}
       </div>
-
-      {/* ── Hero-карточка: гороскоп дня ── */}
-      <FreshHeroCard
-        className="home-cover-hero"
-        color="coral"
-        image={HOME_CARD_IMAGES.todayHero}
-        chipText={heroChipText}
-        chipIcon={selectedSign ? <ZodiacIcon sign={selectedSign} size={15} strokeWidth={1.6} /> : undefined}
-        chipPosition="top-right"
-        title={heroTitle}
-        onClick={() => { lumiaSelectionHaptic(); onOpenHoroscopeLayer('sign', { source: 'home_hero' }); }}
-        style={{ cursor: 'pointer' }}
-      />
 
       {/* ── Натальная карта ── */}
       <FreshSectionHeader

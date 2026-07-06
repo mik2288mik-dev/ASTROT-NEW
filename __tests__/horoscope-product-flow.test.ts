@@ -23,13 +23,13 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('lumia:selected-zodiac-sign');
   });
 
-  it('exposes Horoscope and Ask as bottom tabs', () => {
+  it('exposes Zodiac and keeps Ask out of bottom tabs', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
-    expect(tabs).toContain("id: 'horoscope'");
+    expect(tabs).toContain("id: 'zodiac'");
     expect(tabs).toContain("active: view === 'horoscope'");
-    expect(tabs).toContain("id: 'ask'");
-    expect(tabs).toContain("active: view === 'oracle'");
-    expect(tabs).toContain("'dashboard', 'horoscope', 'chart', 'synastry', 'oracle'");
+    expect(tabs).not.toContain("id: 'ask'");
+    expect(tabs).not.toContain("active: view === 'oracle'");
+    expect(tabs).toContain("'dashboard', 'horoscope', 'chart', 'synastry', 'settings'");
   });
 
   it('caches weekly sign content in shared content_cache scope', () => {

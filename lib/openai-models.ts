@@ -42,3 +42,13 @@ export function normalizeInterpretationModelId(raw: string | null | undefined): 
 export function getInterpretationModelFromEnv(): string {
   return normalizeInterpretationModelId(process.env.OPENAI_INTERPRETATION_MODEL) || DEFAULT_INTERPRETATION_MODEL;
 }
+
+// Личный дневной разбор генерится ЕДИНЫМ полотном (длинный связный текст) — под него
+// отдельный, переопределяемый через env слот модели. Дефолт — проверенный mini, чтобы
+// неверный/недоступный id (напр. если gpt-5.4 не подключён на аккаунте) не приводил к
+// 400 → тихий fallback у всех юзеров. Поднять: OPENAI_DAILY_CANVAS_MODEL=gpt-5.4.
+export const DEFAULT_DAILY_CANVAS_MODEL = DEFAULT_PREMIUM_INTERPRETATION_MODEL;
+
+export function getDailyCanvasModel(): string {
+  return normalizeInterpretationModelId(process.env.OPENAI_DAILY_CANVAS_MODEL) || DEFAULT_DAILY_CANVAS_MODEL;
+}

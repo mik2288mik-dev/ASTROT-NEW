@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { HumanDailySectionKey } from '../../lib/natalHumanShared';
-import { ensureFullDaypartForecast } from '../../services/astrologyService';
 import { loadHumanDailySection } from '../../services/natalReadingService';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import { StoriesViewer, type StorySlide } from './StoriesViewer';
 
-type TabDef = { id: string; sectionKey?: HumanDailySectionKey; ru: string; en: string };
+type TabDef = { id: string; sectionKey: HumanDailySectionKey; ru: string; en: string };
 
 // One slide per разбор; the sign horoscope lives in its own set elsewhere.
+// Все слайды режутся из ЕДИНОГО дневного полотна (один запрос к модели на сутки):
+// overview — это summary полотна (free), остальные — сферы (premium).
 const TABS: TabDef[] = [
-  { id: 'overview', ru: 'Главный фокус дня', en: 'Main focus today' },
+  { id: 'overview', sectionKey: 'daily_overview', ru: 'Главный фокус дня', en: 'Main focus today' },
   { id: 'love', sectionKey: 'daily_love', ru: 'Любовь', en: 'Love' },
   { id: 'work', sectionKey: 'daily_work_business', ru: 'Работа и бизнес', en: 'Work & business' },
   { id: 'money', sectionKey: 'daily_money', ru: 'Деньги', en: 'Money' },
@@ -55,20 +56,13 @@ export function PersonalDailyStories({
     requestedRef.current.add(tab.id);
     setStates((s) => ({ ...s, [tab.id]: { loading: true } }));
 
-    const req = tab.sectionKey
-      ? loadHumanDailySection(String(profile.id), tab.sectionKey, chartId ?? undefined, dateKey, {
-          accessTier: 'premium',
-          maxInProgressRetries: 3,
-          profile,
-          chartData,
-        }).then((r) => r.content?.content?.trim() || '')
-      : ensureFullDaypartForecast(profile, chartData, 'day', {
-          accessTier: 'premium',
-          date: dateKey,
-          chartId: chartId ?? null,
-        }).then((r) => r.reading.summary || r.reading.headline || '');
-
-    req
+    loadHumanDailySection(String(profile.id), tab.sectionKey, chartId ?? undefined, dateKey, {
+      accessTier: 'premium',
+      maxInProgressRetries: 3,
+      profile,
+      chartData,
+    })
+      .then((r) => r.content?.content?.trim() || '')
       .then((text) => setStates((s) => ({ ...s, [tab.id]: text ? { content: text } : { error: true } })))
       .catch(() => setStates((s) => ({ ...s, [tab.id]: { error: true } })));
   }, [chartData, chartId, dateKey, profile]);

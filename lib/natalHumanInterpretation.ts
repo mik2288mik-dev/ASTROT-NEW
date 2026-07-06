@@ -11,14 +11,21 @@ import type {
 import { llmJson } from './anthropic';
 import { LUMIA_VOICE_BLOCK_RU } from './lumiaVoice';
 import { getCurrentTransits } from './transits-calculator';
+import { detectTransitAspects, formatTransitAspectsRu } from './transitAspects';
+import { computeDayScoreFromTransits } from './todayPulse';
+import { getDailyCanvasModel } from './openai-models';
 import { getWordRangeInstruction } from './contentMatrix';
 import { buildBlindSpotPrompt, buildNatalSectionPrompt } from './contentPromptBuilders';
 import {
   buildLockedDailySections,
   buildLockedPaidSections,
+  DAILY_CANVAS_SPHERE_KEYS,
+  DAILY_SECTION_TO_CANVAS_FIELD,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
+  type DailyCanvas,
+  type DailyCanvasSphereKey,
   type HumanDailySectionKey,
   type HumanPaidSectionKey,
 } from './natalHumanShared';
@@ -1236,4 +1243,255 @@ export async function generateHumanDailySection(
     default:
       return generateDailySectionWithPrompt(profile, chart, key, dateKey, buildDailyPrompt);
   }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// ЕДИНОЕ ДНЕВНОЕ ПОЛОТНО (canvas)
+// Весь личный разбор дня одним запросом: модель видит день целиком (блоки связны),
+// получает УЖЕ ПОСЧИТАННЫЕ транзит→натал аспекты + оценку дня из того же движка, что
+// и «оценка дня». Эндпоинт режет полотно на секции под текущий контракт фронта.
+// ──────────────────────────────────────────────────────────────────────────
+
+type TransitsSnapshot = Awaited<ReturnType<typeof getCurrentTransits>>;
+
+const LAYER_RU: Record<string, string> = {
+  energy: 'энергия',
+  focus: 'фокус',
+  emotions: 'эмоции',
+  money: 'деньги',
+  relationships: 'отношения',
+};
+
+const CANVAS_SPHERE_TO_DAILY_KEY: Record<DailyCanvasSphereKey, HumanDailySectionKey> = {
+  love: 'daily_love',
+  money: 'daily_money',
+  work: 'daily_work_business',
+  goals: 'daily_goals',
+  family: 'daily_family',
+  social: 'daily_friendship',
+  energy: 'daily_energy',
+};
+
+function compactTransits(transits: TransitsSnapshot) {
+  const one = (t?: { sign?: string; degree?: number } | null) =>
+    t ? `${ruSign(t.sign)} ${Math.round(Number(t.degree) || 0)}°` : null;
+  return {
+    Солнце: one(transits.sun),
+    Луна: one(transits.moon),
+    Меркурий: one(transits.mercury),
+    Венера: one(transits.venus),
+    Марс: one(transits.mars),
+    Юпитер: one(transits.jupiter),
+    Сатурн: one(transits.saturn),
+    фазаЛуны: transits.moonPhase || null,
+  };
+}
+
+function buildDailyCanvasPrompt(
+  summary: ChartSummary,
+  dateKey: string,
+  transitPositions: unknown,
+  aspectLines: string[],
+  score: { value: number; dominant: string; weakest: string } | null,
+): string {
+  const aspectsBlock = aspectLines.length
+    ? aspectLines.map((line) => `- ${line}`).join('\n')
+    : '- Точных аспектов транзитов к натальным планетам сегодня в пределах орбов нет — опирайся на позиции транзитов и натальную карту.';
+  const scoreBlock = score
+    ? `ОЦЕНКА ДНЯ: ${score.value}/100. Сильнее всего сегодня — ${score.dominant}; слабее — ${score.weakest}.`
+    : 'ОЦЕНКА ДНЯ: недоступна — не называй конкретное число, dayScoreExplain оставь пустым.';
+
+  return `Собери ЕДИНЫЙ персональный разбор дня по натальной карте и реальным транзитам. Это один связный день целиком, а не набор независимых кусков: блоки не должны противоречить друг другу (общий тон и число оценки согласованы со сферами).
+
+Дата: ${dateKey}
+
+НАТАЛЬНАЯ КАРТА (расчёт Swiss Ephemeris):
+${JSON.stringify(summary, null, 2)}
+
+ПОЗИЦИИ ТРАНЗИТОВ НА СЕГОДНЯ (Swiss Ephemeris):
+${JSON.stringify(transitPositions || {}, null, 2)}
+
+ПОСЧИТАННЫЕ ВЗАИМОДЕЙСТВИЯ ДНЯ (транзит→натал; УЖЕ вычислено — опирайся именно на это, не пересчитывай и не выдумывай другие):
+${aspectsBlock}
+
+${scoreBlock}
+
+Опирайся СТРОГО на переданные данные: натальную карту, посчитанные аспекты и позиции транзитов. НЕ придумывай положения планет, аспекты и фазы Луны. Точность — из расчёта, живость — из тебя. Пиши через конкретные сегодняшние ситуации (разговор, задача, покупка, договорённость, пауза). Не обещай событий, дохода, здоровья; без медицинских, юридических и финансовых гарантий.
+
+Верни JSON строго такой структуры (без markdown вне JSON):
+{
+  "summary": "80–100 слов: главная выжимка дня — что сегодня важнее всего, коротко и по делу",
+  "dayScoreExplain": "1–2 фразы: живая расшифровка оценки дня, привязанная к числу и раскладу (напр. «74 — крепкий день, хорошо идут дела и разговоры, с деньгами не гони»). Без философии и напутствий; если оценка недоступна — пустая строка",
+  "do": ["3 пункта по 2–4 слова: что сегодня идёт в плюс (из поддержек расклада)"],
+  "dont": ["3 пункта по 2–4 слова: где сегодня аккуратнее (из напряжений расклада)"],
+  "spheres": {
+    "love": "80–120 слов: любовь, близость, разговоры сегодня",
+    "money": "80–120 слов: деньги, траты, решения сегодня",
+    "work": "80–120 слов: работа, задачи, фокус сегодня",
+    "goals": "80–120 слов: дела и цели — один реальный шаг",
+    "family": "80–120 слов: дом, близкие, быт сегодня",
+    "social": "80–120 слов: друзья, окружение, контакты сегодня",
+    "energy": "80–120 слов: нагрузка, ритм, восстановление сегодня (без медицинских обещаний)"
+  }
+}
+
+Длину держи по содержанию, не растягивай ради объёма. Не повторяй одну и ту же мысль между блоками.`;
+}
+
+function canvasAllText(canvas: DailyCanvas): string {
+  return [
+    canvas.summary,
+    canvas.dayScoreExplain,
+    ...canvas.do,
+    ...canvas.dont,
+    ...DAILY_CANVAS_SPHERE_KEYS.map((k) => canvas.spheres[k]),
+  ]
+    .map((v) => String(v || ''))
+    .join('\n');
+}
+
+function normalizeCanvas(raw: Partial<DailyCanvas> | null | undefined, fallback: DailyCanvas): DailyCanvas {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const spheresRaw =
+    r.spheres && typeof r.spheres === 'object' ? (r.spheres as Record<string, unknown>) : {};
+  const spheres = {} as Record<DailyCanvasSphereKey, string>;
+  for (const key of DAILY_CANVAS_SPHERE_KEYS) {
+    spheres[key] = cleanText(spheresRaw[key]) || fallback.spheres[key];
+  }
+  return {
+    summary: cleanText(r.summary) || fallback.summary,
+    dayScoreExplain: cleanText(r.dayScoreExplain) || fallback.dayScoreExplain,
+    do: normalizeBullets(r.do, fallback.do).slice(0, 4),
+    dont: normalizeBullets(r.dont, fallback.dont).slice(0, 4),
+    spheres,
+    dayScore: fallback.dayScore ?? null,
+  };
+}
+
+function validateCanvas(canvas: DailyCanvas): boolean {
+  if (cleanText(canvas.summary).length < 120) return false;
+  for (const key of DAILY_CANVAS_SPHERE_KEYS) {
+    if (cleanText(canvas.spheres[key]).length < 100) return false;
+  }
+  if (hasBadText(canvasAllText(canvas))) return false;
+  return true;
+}
+
+export function buildDailyCanvasFallback(
+  profile: UserProfile,
+  chart: NatalChartData,
+  dateKey: string,
+  score?: number | null,
+): DailyCanvas {
+  const overview = buildHumanDailyFallback(profile, chart, 'daily_overview', dateKey);
+  const spheres = {} as Record<DailyCanvasSphereKey, string>;
+  for (const sphere of DAILY_CANVAS_SPHERE_KEYS) {
+    spheres[sphere] = buildHumanDailyFallback(
+      profile,
+      chart,
+      CANVAS_SPHERE_TO_DAILY_KEY[sphere],
+      dateKey,
+    ).content;
+  }
+  return {
+    summary: overview.content,
+    dayScoreExplain:
+      score != null
+        ? `Оценка дня ${score} — это общий фон, а не приговор. Смотри на конкретные сферы ниже: где-то сегодня легче, где-то стоит быть внимательнее.`
+        : '',
+    do: ['Один главный фокус', 'Довести начатое', 'Спокойный ровный темп'],
+    dont: ['Не хвататься за всё', 'Не решать на эмоциях', 'Не копить недосказанность'],
+    spheres,
+    dayScore: score ?? null,
+  };
+}
+
+/**
+ * Генерит ВСЁ дневное полотно одним запросом: транзиты → посчитанные аспекты + оценка
+ * дня (из todayPulse) → промпт → JSON. При сбое/невалидности — человеко-написанный
+ * fallback-полотно. Число оценки берётся из расчёта, а не из модели.
+ */
+export async function generateDailyCanvas(
+  profile: UserProfile,
+  chart: NatalChartData,
+  dateKey: string,
+): Promise<DailyCanvas> {
+  let transits: TransitsSnapshot | null = null;
+  try {
+    transits = await getCurrentTransits(new Date(`${dateKey}T09:00:00.000Z`));
+  } catch {
+    transits = null;
+  }
+
+  let aspectLines: string[] = [];
+  let scoreForPrompt: { value: number; dominant: string; weakest: string } | null = null;
+  let scoreNum: number | null = null;
+  if (transits) {
+    aspectLines = formatTransitAspectsRu(detectTransitAspects(chart, transits, { limit: 10 }));
+    try {
+      const s = computeDayScoreFromTransits(chart, transits, 12, dateKey);
+      scoreNum = s.score;
+      scoreForPrompt = {
+        value: s.score,
+        dominant: LAYER_RU[s.dominant] || s.dominant,
+        weakest: LAYER_RU[s.weakest] || s.weakest,
+      };
+    } catch {
+      scoreForPrompt = null;
+    }
+  }
+
+  const fallback = buildDailyCanvasFallback(profile, chart, dateKey, scoreNum);
+  const summary = buildChartSummary(profile, chart);
+  const compact = transits ? compactTransits(transits) : null;
+  const prompt = buildDailyCanvasPrompt(summary, dateKey, compact, aspectLines, scoreForPrompt);
+
+  const canvas = await generateWithRetry<DailyCanvas>(
+    async () => {
+      const raw = await llmJson<Partial<DailyCanvas>>({
+        system: HUMAN_SYSTEM_PROMPT,
+        user: prompt,
+        model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
+        // Полотно — длинный связный текст: отдельный, переопределяемый через env слот
+        // модели (OPENAI_DAILY_CANVAS_MODEL), дефолт — проверенный mini.
+        modelOverride: getDailyCanvasModel(),
+        maxTokens: 3200,
+        temperature: 0.6,
+      });
+      return normalizeCanvas(raw, fallback);
+    },
+    validateCanvas,
+    fallback,
+  );
+
+  // Число оценки — из расчёта (todayPulse), не из модели.
+  canvas.dayScore = scoreNum;
+  return canvas;
+}
+
+/**
+ * Режет полотно на секцию под существующий посекционный контракт фронта.
+ * daily_overview → summary (free, буллеты = «сегодня в плюс»); сферы → premium.
+ * Для ключей вне полотна возвращает null (эндпоинт отдаёт курируемый fallback).
+ */
+export function sliceCanvasToSection(
+  canvas: DailyCanvas,
+  sectionKey: HumanDailySectionKey,
+): InterpretationSection | null {
+  const field = DAILY_SECTION_TO_CANVAS_FIELD[sectionKey];
+  if (!field) return null;
+  const meta = HUMAN_DAILY_SECTION_META[sectionKey];
+  const isOverview = field === 'summary';
+  const content = isOverview ? canvas.summary : canvas.spheres[field as DailyCanvasSphereKey];
+  return {
+    key: sectionKey,
+    title: meta.title,
+    subtitle: meta.subtitle,
+    access: isOverview ? 'free' : 'premium',
+    isLocked: false,
+    teaser: meta.teaser,
+    content: cleanText(content),
+    bullets: isOverview ? (canvas.do || []).slice(0, 3) : [],
+    ctaLabel: '',
+  };
 }

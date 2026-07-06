@@ -3,7 +3,10 @@ import type { InterpretationSection, InterpretationSectionKey } from '../types';
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
 export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v5.lean-portrait';
 export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v4.paid-focus';
-export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v4.daily-rich';
+// v5.daily-canvas: личный дневной разбор генерится ЕДИНЫМ полотном за один запрос
+// с прокинутыми транзит→натал аспектами. Бамп версии инвалидирует старый посекционный
+// кеш (ключи human_v2.daily.*), новый код читает только новый ключ human_v2.canvas.*.
+export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v5.daily-canvas';
 
 export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 
@@ -222,6 +225,63 @@ export function humanPaidCacheKey(sectionKey: HumanPaidSectionKey): string {
 
 export function humanDailyCacheKey(dateKey: string, sectionKey: HumanDailySectionKey): string {
   return `human_v2.daily.${dateKey}.${sectionKey}`;
+}
+
+// ── Единое дневное «полотно» ──
+// Весь личный разбор дня одним объектом: генерится ОДНИМ запросом, кешируется ОДНИМ
+// ключом на сутки, режется на секции при отдаче через существующий посекционный
+// контракт фронта. Так модель видит день целиком (блоки связны, не противоречат),
+// а вызовов к OpenAI — один на день вместо N по сферам.
+export type DailyCanvasSphereKey =
+  | 'love'
+  | 'money'
+  | 'work'
+  | 'goals'
+  | 'family'
+  | 'social'
+  | 'energy';
+
+export const DAILY_CANVAS_SPHERE_KEYS = [
+  'love',
+  'money',
+  'work',
+  'goals',
+  'family',
+  'social',
+  'energy',
+] as const satisfies readonly DailyCanvasSphereKey[];
+
+export type DailyCanvas = {
+  summary: string; // главная выжимка дня (overview, free)
+  dayScoreExplain: string; // премиум: живая расшифровка числа оценки
+  do: string[]; // «сегодня в плюс» (2–4 слова на пункт)
+  dont: string[]; // «аккуратнее»
+  spheres: Record<DailyCanvasSphereKey, string>;
+  dayScore?: number | null;
+};
+
+// Соответствие текущих sectionKey (посекционный контракт фронта) полям полотна.
+// Ключи вне этого списка (communication/risks/best_action/advice) полотном не
+// покрыты — эндпоинт отдаёт по ним курируемый fallback без AI (в живом UI не видны).
+export const DAILY_SECTION_TO_CANVAS_FIELD: Partial<
+  Record<HumanDailySectionKey, 'summary' | DailyCanvasSphereKey>
+> = {
+  daily_overview: 'summary',
+  daily_love: 'love',
+  daily_money: 'money',
+  daily_work_business: 'work',
+  daily_goals: 'goals',
+  daily_family: 'family',
+  daily_friendship: 'social',
+  daily_energy: 'energy',
+};
+
+export function isCanvasBackedDailySection(key: HumanDailySectionKey): boolean {
+  return Object.prototype.hasOwnProperty.call(DAILY_SECTION_TO_CANVAS_FIELD, key);
+}
+
+export function humanDailyCanvasCacheKey(dateKey: string): string {
+  return `human_v2.canvas.${dateKey}`;
 }
 
 export function buildLockedPaidSections(): InterpretationSection[] {
