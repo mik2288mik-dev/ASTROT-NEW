@@ -254,7 +254,10 @@ describe('content prewarm', () => {
     const personalDaily = fs.readFileSync(path.join(ROOT, 'views/DailyContentScreens.tsx'), 'utf8');
     expect(personalDaily).toContain('PersonalDailyScreen');
     expect(personalDaily).toContain('loadHumanDailySection');
-    expect(personalDaily).toContain('ensureFullDaypartForecast');
+    // Вкладка «День» теперь читает summary/do/dont из ЕДИНОГО полотна (daily_overview),
+    // а не из старого daypart-генератора — источник personal-текста только canvas.
+    expect(personalDaily).toContain("sectionKey: 'daily_overview'");
+    expect(personalDaily).not.toContain('ensureFullDaypartForecast');
     expect(personalDaily).toContain("sectionKey: 'daily_love'");
     expect(personalDaily).toContain("sectionKey: 'daily_money'");
     expect(personalDaily).toContain("sectionKey: 'daily_work_business'");

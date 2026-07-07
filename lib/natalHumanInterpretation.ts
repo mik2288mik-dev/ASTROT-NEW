@@ -1491,7 +1491,16 @@ export function sliceCanvasToSection(
     isLocked: false,
     teaser: meta.teaser,
     content: cleanText(content),
-    bullets: isOverview ? (canvas.do || []).slice(0, 3) : [],
+    bullets: [],
     ctaLabel: '',
+    // Полотно даёт do/dont/оценку только на обзоре дня — сферы их не несут.
+    ...(isOverview
+      ? {
+          dayDo: (canvas.do || []).slice(0, 3),
+          dayDont: (canvas.dont || []).slice(0, 3),
+          dayScore: canvas.dayScore ?? null,
+          dayScoreExplain: cleanText(canvas.dayScoreExplain),
+        }
+      : {}),
   };
 }

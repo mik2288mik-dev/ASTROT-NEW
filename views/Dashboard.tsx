@@ -1,11 +1,9 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { useReducedMotion } from 'framer-motion';
 import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
   NatalChartData,
   PersonalDailySection,
-  TodayAssistantHomeResult,
   UserProfile,
 } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
@@ -13,11 +11,7 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import {
-  getCachedTodayAssistantHome,
-  getTodayAssistantHome,
-} from '../services/astrologyService';
-import { scoreColor, scoreLabel, nowHourIn, DayCurve } from './v2/ActionWindows';
+import { loadHumanDailySection } from '../services/natalReadingService';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
@@ -71,27 +65,29 @@ export const Dashboard = memo<DashboardProps>(({
   const ownSunSign = String(chartData?.sun?.sign || sunSignFromDate(profile.birthDate) || '').trim().toLowerCase();
   const selectedSign = ownSunSign || String(profile.selectedZodiacSign || '').trim().toLowerCase();
 
-  const [personal, setPersonal] = useState<TodayAssistantHomeResult | null>(
-    () => hasChart && premium ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null,
-  );
-  const [, setPersonalLoading] = useState(hasChart && premium && !personal);
+  // Заголовок карточки-героя = summary дневного полотна (тот же persistent-источник,
+  // что и внутри разбора). Обзор дня — бесплатная секция, грузим при наличии карты.
+  const [dayHeroSummary, setDayHeroSummary] = useState<string | null>(null);
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [moonInfoOpen, setMoonInfoOpen] = useState(false);
-  const [dayOpen, setDayOpen] = useState(false);
 
-  /* Загрузка персонального дня */
+  /* Загрузка полотна дня (summary) для карточки-героя */
   useEffect(() => {
-    if (!hasChart || !premium || !chartData) { setPersonalLoading(false); return; }
-    const cached = getCachedTodayAssistantHome(profile, chartId, undefined, chartData);
-    if (cached) { setPersonal(cached); setPersonalLoading(false); return; }
+    if (!hasChart || !chartData || !profile.id) { setDayHeroSummary(null); return; }
     let alive = true;
-    setPersonalLoading(true);
-    void getTodayAssistantHome(profile, chartData, chartId)
-      .then((result) => { if (alive) setPersonal(result); })
-      .catch(() => { if (alive) setPersonal(null); })
-      .finally(() => { if (alive) setPersonalLoading(false); });
+    void loadHumanDailySection(String(profile.id), 'daily_overview', chartId ?? undefined, today, {
+      accessTier: 'premium',
+      maxInProgressRetries: 3,
+      profile,
+      chartData,
+    })
+      .then((result) => {
+        const text = result.content?.content?.trim();
+        if (alive && text) setDayHeroSummary(text);
+      })
+      .catch(() => { if (alive) setDayHeroSummary(null); });
     return () => { alive = false; };
-  }, [chartData, chartId, hasChart, premium, profile]);
+  }, [chartData, chartId, hasChart, profile, today]);
 
   /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
@@ -121,7 +117,6 @@ export const Dashboard = memo<DashboardProps>(({
     return `${date} · ${dayName}`;
   }, [language, today, weekdayLabel]);
 
-  const reduce = useReducedMotion();
   const moonSymbol = MOON_SYMBOL[moon.slot] || '○';
   const moonTone = language === 'ru'
     ? 'Сегодня полезно держать день проще: заметить главное, убрать лишнее и не гнать себя там, где нужна ясность.'
@@ -130,25 +125,7 @@ export const Dashboard = memo<DashboardProps>(({
     ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
     : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.';
 
-  /* Оценка дня по карте — для бейджа «на дневнике» (данные те же, что у персонального дня). */
-  const dayPulse = personal && personal.status === 'ready' ? personal.pulse : null;
-  const dayPoints = useMemo(
-    () => (dayPulse ? dayPulse.points.map((p) => ({ hour: p.hour, score: p.score })) : []),
-    [dayPulse],
-  );
-  const dayScore = useMemo(
-    () => (dayPoints.length ? Math.round(dayPoints.reduce((s, p) => s + p.score, 0) / dayPoints.length) : null),
-    [dayPoints],
-  );
-  const dayTimezone = dayPulse?.timezone || 'Europe/Moscow';
-  const [nowH, setNowH] = useState(() => nowHourIn('Europe/Moscow'));
-  useEffect(() => {
-    setNowH(nowHourIn(dayTimezone));
-    const id = window.setInterval(() => setNowH(nowHourIn(dayTimezone)), 60000);
-    return () => window.clearInterval(id);
-  }, [dayTimezone]);
-
-  const dayHeroTitle = (personal && personal.status === 'ready' ? personal.pulse.currentPoint.summary : undefined)
+  const dayHeroTitle = dayHeroSummary
     || (language === 'ru'
       ? 'День располагает к важным разговорам и спокойным решениям'
       : 'A day for honest conversations and steadier choices');
@@ -183,42 +160,6 @@ export const Dashboard = memo<DashboardProps>(({
     else if (!hasChart) { onCreateNatalChart?.(); }
     else { onRequestPremium?.('personal_day'); }
   };
-
-  /* Оценка дня — компактный блок внутри системной карточки Луны. */
-  const dayBadge = !hasChart ? (
-    <button
-      type="button"
-      className="home-day-badge home-day-badge--cta"
-      onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
-    >
-      <span className="home-day-badge-k">{language === 'ru' ? 'Оценка дня' : 'Day score'}</span>
-      <span className="home-day-badge-cta">{language === 'ru' ? 'Создать карту' : 'Create chart'}</span>
-    </button>
-  ) : !premium ? (
-    <button
-      type="button"
-      className="home-day-badge home-day-badge--cta"
-      onClick={() => { lumiaSelectionHaptic(); onRequestPremium?.('action_windows'); }}
-    >
-      <span className="home-day-badge-k">{language === 'ru' ? 'Оценка дня' : 'Day score'}</span>
-      <span className="home-day-badge-cta">Premium</span>
-    </button>
-  ) : dayScore == null ? (
-    <div className="home-day-badge home-day-badge--load">{language === 'ru' ? 'Считаю…' : 'Scoring…'}</div>
-  ) : (
-    <button
-      type="button"
-      className="home-day-badge"
-      onClick={() => { lumiaSelectionHaptic(); setDayOpen((v) => !v); }}
-      aria-expanded={dayOpen}
-    >
-      <span className="home-day-badge-k">{language === 'ru' ? 'Оценка дня' : 'Day score'}</span>
-      <span className="home-day-badge-score" style={{ color: scoreColor(dayScore) }}>
-        {dayScore}<i>/100</i>
-      </span>
-      <span className="home-day-badge-label">{scoreLabel(dayScore, language === 'ru')}</span>
-    </button>
-  );
 
   return (
     <div
@@ -269,7 +210,7 @@ export const Dashboard = memo<DashboardProps>(({
         </span>
       </button>
 
-      <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна и оценка дня' : 'Moon and day score'}>
+      <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
         <div className="home-soft-card-glow" aria-hidden />
         <div className="home-today-copy">
           <span className="home-moon-symbol" aria-hidden>{moonSymbol}</span>
@@ -285,18 +226,10 @@ export const Dashboard = memo<DashboardProps>(({
             {language === 'ru' ? 'Что значит эта фаза' : 'What this phase means'}
           </button>
         </div>
-        <div className="home-today-score">
-          {dayBadge}
-        </div>
 
-        {(moonInfoOpen || (dayOpen && dayScore != null && dayPoints.length > 0)) && (
+        {moonInfoOpen && (
           <div className="home-today-panel">
-            {moonInfoOpen ? <p className="home-today-explain">{moonExplain}</p> : null}
-            {dayOpen && dayScore != null && dayPoints.length > 0 ? (
-              <div className="home-day-detail">
-                <DayCurve points={dayPoints} nowH={nowH} color={scoreColor(dayScore)} reduce={reduce} />
-              </div>
-            ) : null}
+            <p className="home-today-explain">{moonExplain}</p>
           </div>
         )}
       </section>

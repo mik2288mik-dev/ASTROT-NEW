@@ -1,15 +1,12 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
-import { canAccessFeature } from '../lib/accessMatrix';
+import { canAccessFeature, hasActivePremium } from '../lib/accessMatrix';
 import type {
-  ForecastDaypartReading,
   InterpretationSection,
   NatalChartData,
   PersonalDailySection,
-  TodayAssistantHomeResult,
   UserProfile,
 } from '../types';
-import { ensureFullDaypartForecast, getCachedTodayAssistantHome, getTodayAssistantHome } from '../services/astrologyService';
 import { loadHumanDailySection } from '../services/natalReadingService';
 import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
@@ -37,7 +34,7 @@ type DailyTabConfig = {
 };
 
 const DAILY_TABS: DailyTabConfig[] = [
-  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#6366F1' },
+  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#6366F1', sectionKey: 'daily_overview' },
   { id: 'love', label: 'Любовь', title: 'Любовь сегодня', subtitle: 'Близость, эмоции и разговоры', accent: '#A98CEC', sectionKey: 'daily_love' },
   { id: 'money', label: 'Деньги', title: 'Деньги сегодня', subtitle: 'Решения, покупки и устойчивость', accent: '#34C39A', sectionKey: 'daily_money' },
   { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#5BB6EC', sectionKey: 'daily_work_business' },
@@ -87,28 +84,53 @@ function Notice({ icon, title, body, cta, onCta }: { icon: 'lock' | 'chart'; tit
   );
 }
 
-function ForecastContent({ reading, accent }: { reading: ForecastDaypartReading; accent: string }) {
-  const items = [
-    { label: 'Главное сегодня', value: reading.focus },
-    { label: 'Люди и отношения', value: reading.relationships },
-    { label: 'Действие дня', value: reading.guidance },
-    { label: 'Что учесть', value: reading.risk },
-    { label: 'Почему так по карте', value: reading.chartReason },
-  ].filter((item) => item.value?.trim());
+const SCORE_COLORS: Array<[number, string]> = [
+  [80, '#34C39A'],
+  [66, '#5BB6EC'],
+  [50, '#6366F1'],
+  [36, '#FF9B6A'],
+  [0, '#E07A5F'],
+];
+function scoreTone(score: number): string {
+  for (const [threshold, color] of SCORE_COLORS) {
+    if (score >= threshold) return color;
+  }
+  return '#6366F1';
+}
 
+// Две колонки «Сегодня в плюс» / «Аккуратнее» — из do[]/dont[] полотна.
+function DoDontColumns({ dayDo, dayDont, ru }: { dayDo?: string[]; dayDont?: string[]; ru: boolean }) {
+  const doItems = (dayDo || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
+  const dontItems = (dayDont || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
+  if (!doItems.length && !dontItems.length) return null;
   return (
-    <div className="pd-body">
-      <div className="pd-hero" style={{ background: `${accent}1a`, borderColor: `${accent}33` }}>
-        <p className="pd-hero-text">{reading.summary || reading.headline}</p>
+    <motion.div className="pd-dd" variants={PD_ITEM}>
+      <div className="pd-dd-col pd-dd-col--do">
+        <div className="pd-dd-head">{ru ? 'Сегодня в плюс' : 'Today helps'}</div>
+        <ul className="pd-dd-list">
+          {doItems.map((item) => <li key={item} className="pd-dd-item">{item}</li>)}
+        </ul>
       </div>
-      <div className="compat-read" style={{ padding: 0, marginTop: 18 }}>
-        {items.map((item) => (
-          <div key={item.label} className="compat-read-block">
-            <div className="compat-read-title" style={{ color: accent }}>{item.label}</div>
-            <p className="compat-read-text">{item.value}</p>
-          </div>
-        ))}
+      <div className="pd-dd-col pd-dd-col--dont">
+        <div className="pd-dd-head">{ru ? 'Аккуратнее' : 'Go gently'}</div>
+        <ul className="pd-dd-list">
+          {dontItems.map((item) => <li key={item} className="pd-dd-item">{item}</li>)}
+        </ul>
       </div>
+    </motion.div>
+  );
+}
+
+// Оценка дня — единственное место показа во всём приложении (низ разбора, premium).
+function DayScorePanel({ score, explain, ru }: { score: number; explain?: string; ru: boolean }) {
+  const tone = scoreTone(score);
+  return (
+    <div className="pd-score" style={{ ['--pd-score-tone' as string]: tone } as React.CSSProperties}>
+      <div className="pd-score-row">
+        <span className="pd-score-k">{ru ? 'Оценка дня' : 'Day score'}</span>
+        <span className="pd-score-val" style={{ color: tone }}>{score}<i>/100</i></span>
+      </div>
+      {explain?.trim() ? <p className="pd-score-explain">{explain.trim()}</p> : null}
     </div>
   );
 }
@@ -122,8 +144,22 @@ const PD_ITEM = {
   show: { opacity: 1, y: 0, transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
 
-function SectionContent({ section, accent }: { section: InterpretationSection; accent: string }) {
+function SectionContent({
+  section,
+  accent,
+  ru,
+  isOverview = false,
+  premium = false,
+}: {
+  section: InterpretationSection;
+  accent: string;
+  ru: boolean;
+  isOverview?: boolean;
+  premium?: boolean;
+}) {
   const paragraphs = splitParagraphs(section.content);
+  // Оценка дня показывается ТОЛЬКО в самом низу обзора дня и только премиуму.
+  const showScore = isOverview && premium && typeof section.dayScore === 'number';
   return (
     <div className="pd-body">
       <motion.div className="natal-sec-body" style={{ marginTop: 0 }} variants={PD_STAGGER} initial="hidden" animate="show">
@@ -131,55 +167,18 @@ function SectionContent({ section, accent }: { section: InterpretationSection; a
           <motion.p key={index} className="natal-sec-p" style={{ marginTop: index ? 12 : 0 }} variants={PD_ITEM}>{paragraph}</motion.p>
         ))}
       </motion.div>
-      {section.bullets?.length ? (
+      {isOverview ? (
+        <motion.div variants={PD_STAGGER} initial="hidden" animate="show">
+          <DoDontColumns dayDo={section.dayDo} dayDont={section.dayDont} ru={ru} />
+        </motion.div>
+      ) : section.bullets?.length ? (
         <motion.ul className="pd-points" style={{ ['--pd-accent' as string]: accent } as React.CSSProperties} variants={PD_STAGGER} initial="hidden" animate="show">
           {section.bullets.slice(0, 4).map((bullet) => (
             <motion.li key={bullet} className="pd-point" variants={PD_ITEM}>{bullet}</motion.li>
           ))}
         </motion.ul>
       ) : null}
-    </div>
-  );
-}
-
-function DayLine({ points, nowHour, accent, ru }: { points: Array<{ hour: number; score: number }>; nowHour: number; accent: string; ru: boolean }) {
-  const W = 320;
-  const H = 84;
-  const pad = 7;
-  const sorted = [...points].filter((p) => Number.isFinite(p.hour) && Number.isFinite(p.score)).sort((a, b) => a.hour - b.hour);
-  if (sorted.length < 2) return null;
-  const x = (h: number) => pad + (Math.max(0, Math.min(24, h)) / 24) * (W - 2 * pad);
-  const y = (s: number) => pad + (1 - Math.max(0, Math.min(100, s)) / 100) * (H - 2 * pad);
-  const line = sorted.map((p, i) => `${i ? 'L' : 'M'} ${x(p.hour).toFixed(1)} ${y(p.score).toFixed(1)}`).join(' ');
-  const area = `${line} L ${x(sorted[sorted.length - 1].hour).toFixed(1)} ${H - pad} L ${x(sorted[0].hour).toFixed(1)} ${H - pad} Z`;
-  const nearestNow = sorted.reduce((best, p) => (Math.abs(p.hour - nowHour) < Math.abs(best.hour - nowHour) ? p : best), sorted[0]);
-  const nx = x(nowHour);
-  const level = nearestNow.score >= 66
-    ? (ru ? 'насыщенно' : 'high')
-    : nearestNow.score >= 40
-      ? (ru ? 'ровно' : 'steady')
-      : (ru ? 'спокойно' : 'calm');
-
-  return (
-    <div className="dl">
-      <div className="dl-head">
-        {ru ? 'Линия дня' : 'Day line'}
-        <span className="dl-now" style={{ color: accent }}>{ru ? 'сейчас' : 'now'}: {level}</span>
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="dl-svg" preserveAspectRatio="none" aria-hidden>
-        <defs>
-          <linearGradient id="dl-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={accent} stopOpacity="0.28" />
-            <stop offset="1" stopColor={accent} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <motion.path d={area} fill="url(#dl-grad)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: 'easeOut' }} />
-        <motion.path d={line} fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.85, ease: 'easeInOut' }} />
-        <line x1={nx} y1={pad} x2={nx} y2={H - pad} stroke="var(--fresh-text)" strokeWidth="1" opacity="0.45" />
-        <motion.circle cx={nx} cy={y(nearestNow.score)} r="4" fill={accent} stroke="#fff" strokeWidth="2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65, duration: 0.3 }} />
-      </svg>
-      <div className="dl-axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
-      <div className="dl-cap">{ru ? 'Чем выше линия — тем больше энергии и удачных окон в этот час. Вертикаль — сейчас.' : 'The higher the line, the more energy and good windows that hour. The vertical marks now.'}</div>
+      {showScore ? <DayScorePanel score={section.dayScore as number} explain={section.dayScoreExplain} ru={ru} /> : null}
     </div>
   );
 }
@@ -200,8 +199,8 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
     () => canAccessFeature('personal_daily', profile, { chartData, primaryChartId: chartId ?? null }),
     [chartData, chartId, profile]
   );
+  const premium = hasActivePremium(profile);
   const [activeSection, setActiveSection] = useState<PersonalDailySection>(initialSection);
-  const [forecast, setForecast] = useState<ForecastDaypartReading | null>(null);
   const [sections, setSections] = useState<Partial<Record<HumanDailySectionKey, InterpretationSection>>>({});
   const [loadingKey, setLoadingKey] = useState<PersonalDailySection | null>(null);
   const [errorKey, setErrorKey] = useState<PersonalDailySection | null>(null);
@@ -210,7 +209,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   const activeTab = resolveTab(activeSection);
   const activeDailySection = activeTab.sectionKey ? sections[activeTab.sectionKey] : null;
-  const hasContent = activeTab.id === 'overview' ? !!forecast : !!activeDailySection?.content?.trim();
+  const hasContent = !!activeDailySection?.content?.trim();
   const isLoading = loadingKey === activeTab.id;
   const hasError = errorKey === activeTab.id && !hasContent;
 
@@ -234,57 +233,31 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
     if (!access.allowed || !profile.id || !chartData) return () => { alive = false; };
 
     const tab = resolveTab(activeSection);
-    if (tab.id === 'overview' && forecast) return () => { alive = false; };
-    if (tab.sectionKey && sections[tab.sectionKey]?.content?.trim()) return () => { alive = false; };
+    if (!tab.sectionKey) return () => { alive = false; };
+    if (sections[tab.sectionKey]?.content?.trim()) return () => { alive = false; };
 
     setLoadingKey(tab.id);
     setErrorKey(null);
 
-    const load = tab.sectionKey
-      ? loadHumanDailySection(String(profile.id), tab.sectionKey, chartId ?? undefined, dateKey, {
-          accessTier: 'premium',
-          maxInProgressRetries: 3,
-          profile,
-          chartData,
-        }).then((result) => {
-          if (!alive) return;
-          if (result.content?.content?.trim()) {
-            setSections((current) => ({ ...current, [tab.sectionKey!]: result.content }));
-            return;
-          }
-          setErrorKey(tab.id);
-        })
-      : ensureFullDaypartForecast(profile, chartData, 'day', {
-          accessTier: 'premium',
-          date: dateKey,
-          chartId: chartId ?? null,
-          maxInProgressRetries: 3,
-        }).then((result) => { if (alive) setForecast(result.reading); });
-
-    load
+    loadHumanDailySection(String(profile.id), tab.sectionKey, chartId ?? undefined, dateKey, {
+      accessTier: 'premium',
+      maxInProgressRetries: 3,
+      profile,
+      chartData,
+    })
+      .then((result) => {
+        if (!alive) return;
+        if (result.content?.content?.trim()) {
+          setSections((current) => ({ ...current, [tab.sectionKey!]: result.content }));
+          return;
+        }
+        setErrorKey(tab.id);
+      })
       .catch(() => { if (alive) setErrorKey(tab.id); })
       .finally(() => { if (alive) setLoadingKey((current) => (current === tab.id ? null : current)); });
 
     return () => { alive = false; };
-  }, [access.allowed, activeSection, chartData, chartId, dateKey, forecast, profile, sections]);
-
-  // Пульс дня (для «Линии дня») — берём из кэша today-assistant (тёплый с главной).
-  const [home, setHome] = useState<TodayAssistantHomeResult | null>(
-    () => (access.allowed && chartData ? getCachedTodayAssistantHome(profile, chartId, undefined, chartData) : null),
-  );
-  useEffect(() => {
-    if (!access.allowed || !chartData || !profile.id) return;
-    const cached = getCachedTodayAssistantHome(profile, chartId, undefined, chartData);
-    if (cached) { setHome(cached); return; }
-    let alive = true;
-    void getTodayAssistantHome(profile, chartData, chartId).then((r) => { if (alive) setHome(r); }).catch(() => undefined);
-    return () => { alive = false; };
-  }, [access.allowed, chartData, chartId, profile]);
-
-  const pulsePoints = home && home.status === 'ready'
-    ? home.pulse.points.map((p) => ({ hour: p.hour, score: p.score }))
-    : null;
-  const nowHour = home && home.status === 'ready' ? home.pulse.currentPoint.hour : new Date().getHours();
+  }, [access.allowed, activeSection, chartData, chartId, dateKey, profile, sections]);
 
   const tabItems = useMemo(() => DAILY_TABS.map((t) => ({ id: t.id, label: t.label })), []);
 
@@ -342,13 +315,14 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
               <Skeleton />
             ) : hasError ? (
               <Notice icon="chart" title={language === 'en' ? 'Could not prepare' : 'Не удалось подготовить'} body={language === 'en' ? 'Try opening this section again.' : 'Открой раздел ещё раз.'} />
-            ) : activeTab.id === 'overview' && forecast ? (
-              <>
-                {pulsePoints ? <DayLine points={pulsePoints} nowHour={nowHour} accent={activeTab.accent} ru={language === 'ru'} /> : null}
-                <ForecastContent reading={forecast} accent={activeTab.accent} />
-              </>
             ) : activeDailySection ? (
-              <SectionContent section={activeDailySection} accent={activeTab.accent} />
+              <SectionContent
+                section={activeDailySection}
+                accent={activeTab.accent}
+                ru={language === 'ru'}
+                isOverview={activeTab.id === 'overview'}
+                premium={premium}
+              />
             ) : (
               <Skeleton />
             )}

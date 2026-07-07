@@ -47,7 +47,9 @@ describe('product daily navigation', () => {
     expect(source).toContain("sectionKey: 'daily_work_business'");
     expect(source).toContain("sectionKey: 'daily_goals'");
     expect(source).toContain('loadHumanDailySection');
-    expect(source).toContain('ensureFullDaypartForecast');
+    // Вкладка «День» = daily_overview из полотна; старый daypart-источник отключён.
+    expect(source).toContain("sectionKey: 'daily_overview'");
+    expect(source).not.toContain('ensureFullDaypartForecast');
     expect(source).not.toContain('export const DailyLoveScreen');
     expect(source).not.toContain('layers.map');
     expect(source).not.toContain('<Horoscope');

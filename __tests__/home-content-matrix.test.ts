@@ -18,9 +18,11 @@ describe('compact content-matrix home', () => {
     const source = read('views/v2/TodayFeed.tsx');
     const dashboard = read('views/Dashboard.tsx');
     expect(source).not.toContain('ensureDailySignHoroscope');
+    // Переработанная главная (Dashboard) не встраивает гороскоп знака — он открывается
+    // на своём экране по карточке, поэтому здесь не должно быть ни его генерации, ни фетча.
     expect(dashboard).not.toContain('ensureDailySignHoroscope');
     expect(source).toContain('getCachedDailySignHoroscope');
-    expect(dashboard).toContain('getCachedDailySignHoroscope');
+    expect(dashboard).not.toContain('getCachedDailySignHoroscope');
     expect(source).toContain('generation starts from the explicit Read button');
     expect(source).toContain('getDailyMotivation');
     expect(source).toContain('getLocalDailyMetrics');

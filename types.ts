@@ -717,6 +717,12 @@ export interface InterpretationSection {
   content: string;
   bullets?: string[];
   ctaLabel?: string;
+  // Дневное полотно (только секция daily_overview): «сегодня в плюс» / «аккуратнее»
+  // и оценка дня из расчёта. На остальных секциях эти поля отсутствуют.
+  dayDo?: string[];
+  dayDont?: string[];
+  dayScore?: number | null;
+  dayScoreExplain?: string;
 }
 
 export interface NatalInterpretationReport {
