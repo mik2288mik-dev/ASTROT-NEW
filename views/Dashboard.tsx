@@ -2,6 +2,7 @@ import React, { memo, useEffect, useMemo, useState } from 'react';
 import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
+  InterpretationSection,
   NatalChartData,
   PersonalDailySection,
   UserProfile,
@@ -16,7 +17,12 @@ import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 
-const DAY_HERO_MASCOT = '/stickers/capy_hoodie_peek_happy.webp';
+const DAY_HERO_MASCOT = '/stickers/cat_hoodie_pawup_happy.webp';
+const DAY_HERO_OBJECTS = {
+  laptop: '/stickers/objects/laptop.webp',
+  notebook: '/stickers/objects/notebook.webp',
+  coffee: '/stickers/objects/coffee.webp',
+} as const;
 
 const MOON_SYMBOL: Record<string, string> = {
   new: '●',
@@ -65,15 +71,16 @@ export const Dashboard = memo<DashboardProps>(({
   const ownSunSign = String(chartData?.sun?.sign || sunSignFromDate(profile.birthDate) || '').trim().toLowerCase();
   const selectedSign = ownSunSign || String(profile.selectedZodiacSign || '').trim().toLowerCase();
 
-  // Заголовок карточки-героя = summary дневного полотна (тот же persistent-источник,
-  // что и внутри разбора). Обзор дня — бесплатная секция, грузим при наличии карты.
-  const [dayHeroSummary, setDayHeroSummary] = useState<string | null>(null);
+  // Карточка-герой берёт обзор дня из дневного полотна (тот же persistent-источник,
+  // что и внутри разбора): summary → заголовок, do/dont → две колонки под текстом.
+  // Обзор дня — бесплатная секция, грузим при наличии карты.
+  const [dayOverview, setDayOverview] = useState<InterpretationSection | null>(null);
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [moonInfoOpen, setMoonInfoOpen] = useState(false);
 
-  /* Загрузка полотна дня (summary) для карточки-героя */
+  /* Загрузка полотна дня (обзор) для карточки-героя */
   useEffect(() => {
-    if (!hasChart || !chartData || !profile.id) { setDayHeroSummary(null); return; }
+    if (!hasChart || !chartData || !profile.id) { setDayOverview(null); return; }
     let alive = true;
     void loadHumanDailySection(String(profile.id), 'daily_overview', chartId ?? undefined, today, {
       accessTier: 'premium',
@@ -82,12 +89,15 @@ export const Dashboard = memo<DashboardProps>(({
       chartData,
     })
       .then((result) => {
-        const text = result.content?.content?.trim();
-        if (alive && text) setDayHeroSummary(text);
+        if (alive && result.content?.content?.trim()) setDayOverview(result.content);
       })
-      .catch(() => { if (alive) setDayHeroSummary(null); });
+      .catch(() => { if (alive) setDayOverview(null); });
     return () => { alive = false; };
   }, [chartData, chartId, hasChart, profile, today]);
+
+  const dayHeroSummary = dayOverview?.content?.trim() || null;
+  const dayDo = (dayOverview?.dayDo || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
+  const dayDont = (dayOverview?.dayDont || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
 
   /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
@@ -201,13 +211,42 @@ export const Dashboard = memo<DashboardProps>(({
         onClick={openDayHero}
         aria-label={dayHeroAria}
       >
-        <span className="home-day-hero-date">{dayHeroDateLabel}</span>
         <span className="home-day-hero-glow" aria-hidden />
-        <img className="home-day-hero-mascot" src={DAY_HERO_MASCOT} alt="" aria-hidden />
+        <span className="home-day-hero-scene" aria-hidden>
+          <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+          <img className="home-day-hero-mascot" src={DAY_HERO_MASCOT} alt="" />
+          <img className="home-day-hero-obj home-day-hero-obj--laptop" src={DAY_HERO_OBJECTS.laptop} alt="" />
+          <img className="home-day-hero-obj home-day-hero-obj--notebook" src={DAY_HERO_OBJECTS.notebook} alt="" />
+          <img className="home-day-hero-obj home-day-hero-obj--coffee" src={DAY_HERO_OBJECTS.coffee} alt="" />
+        </span>
         <span className="home-day-hero-copy">
           <span className="home-day-hero-title">{dayHeroTitle}</span>
           <span className="home-day-hero-text">{dayHeroText}</span>
         </span>
+        {(dayDo.length > 0 || dayDont.length > 0) && (
+          <span className="home-day-hero-dd">
+            <span className="home-day-hero-dd-col">
+              <span className="home-day-hero-dd-head home-day-hero-dd-head--do">
+                {language === 'ru' ? 'Что сегодня пойдёт хорошо' : 'What goes well today'}
+              </span>
+              <span className="home-day-hero-dd-list">
+                {dayDo.map((item) => (
+                  <span key={item} className="home-day-hero-dd-item">{item}</span>
+                ))}
+              </span>
+            </span>
+            <span className="home-day-hero-dd-col">
+              <span className="home-day-hero-dd-head home-day-hero-dd-head--dont">
+                {language === 'ru' ? 'С чем лучше аккуратнее' : 'Where to go gently'}
+              </span>
+              <span className="home-day-hero-dd-list">
+                {dayDont.map((item) => (
+                  <span key={item} className="home-day-hero-dd-item">{item}</span>
+                ))}
+              </span>
+            </span>
+          </span>
+        )}
       </button>
 
       <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
