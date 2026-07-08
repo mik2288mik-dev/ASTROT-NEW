@@ -17,12 +17,17 @@ import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 
-const DAY_HERO_MASCOT = '/stickers/cat_hoodie_pawup_happy.webp';
+const MOON_MASCOT = '/stickers/capy_flashlight_point_thinking.webp';
 const DAY_HERO_OBJECTS = {
-  laptop: '/stickers/objects/laptop.webp',
   notebook: '/stickers/objects/notebook.webp',
   coffee: '/stickers/objects/coffee.webp',
 } as const;
+
+type SphereCard = {
+  section: PersonalDailySection;
+  title: string;
+  hook: string;
+};
 
 const MOON_SYMBOL: Record<string, string> = {
   new: '●',
@@ -129,8 +134,14 @@ export const Dashboard = memo<DashboardProps>(({
 
   const moonSymbol = MOON_SYMBOL[moon.slot] || '○';
   const moonTone = language === 'ru'
-    ? 'Сегодня полезно держать день проще: заметить главное, убрать лишнее и не гнать себя там, где нужна ясность.'
-    : 'Today asks for a simpler pace: notice what matters, clear the extra, and do not rush where clarity is needed.';
+    ? 'Сегодня лучше держать день внятным: меньше шума, больше одного честного шага.'
+    : 'Today works best with a clear pace: less noise, one honest next step.';
+  const mercuryTitle = language === 'ru'
+    ? 'Меркурий сегодня'
+    : 'Mercury today';
+  const mercuryTone = language === 'ru'
+    ? 'Перед важным сообщением перечитай его один раз. Сегодня точность звучит теплее, чем скорость.'
+    : 'Before an important message, read it once more. Precision lands better than speed today.';
   const moonExplain = language === 'ru'
     ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
     : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.';
@@ -164,11 +175,34 @@ export const Dashboard = memo<DashboardProps>(({
   const compatibilityText = language === 'ru'
     ? 'Посмотри, где вам легко быть рядом, а где лучше говорить бережнее, чтобы понимать друг друга без догадок.'
     : 'See where being close feels easy, and where softer, clearer words help you understand each other without guessing.';
+  const sphereCards: SphereCard[] = language === 'ru'
+    ? [
+        { section: 'love', title: 'Любовь', hook: 'Скажи проще, но теплее.' },
+        { section: 'money', title: 'Деньги', hook: 'Одна покупка просит паузу.' },
+        { section: 'work', title: 'Работа', hook: 'Фокус держится на одном деле.' },
+        { section: 'goals', title: 'Цели', hook: 'Выбери шаг, который виден.' },
+        { section: 'family', title: 'Дом', hook: 'Уют начинается с малого.' },
+        { section: 'friends', title: 'Друзья', hook: 'Лучше коротко, но по-настоящему.' },
+      ]
+    : [
+        { section: 'love', title: 'Love', hook: 'Say it simpler, but warmer.' },
+        { section: 'money', title: 'Money', hook: 'One purchase wants a pause.' },
+        { section: 'work', title: 'Work', hook: 'Focus stays with one task.' },
+        { section: 'goals', title: 'Goals', hook: 'Choose the step you can see.' },
+        { section: 'family', title: 'Home', hook: 'Ease starts with one small fix.' },
+        { section: 'friends', title: 'Friends', hook: 'Short and real works best.' },
+      ];
   const openDayHero = () => {
     lumiaSelectionHaptic();
     if (hasChart && premium) { onOpenPersonalDaily('overview'); }
     else if (!hasChart) { onCreateNatalChart?.(); }
     else { onRequestPremium?.('personal_day'); }
+  };
+  const openSphere = (section: PersonalDailySection) => {
+    lumiaSelectionHaptic();
+    if (hasChart && premium) { onOpenPersonalDaily(section); }
+    else if (!hasChart) { onCreateNatalChart?.(); }
+    else { onRequestPremium?.('personal_day_sphere'); }
   };
 
   return (
@@ -214,8 +248,6 @@ export const Dashboard = memo<DashboardProps>(({
         <span className="home-day-hero-glow" aria-hidden />
         <span className="home-day-hero-scene" aria-hidden>
           <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-          <img className="home-day-hero-mascot" src={DAY_HERO_MASCOT} alt="" />
-          <img className="home-day-hero-obj home-day-hero-obj--laptop" src={DAY_HERO_OBJECTS.laptop} alt="" />
           <img className="home-day-hero-obj home-day-hero-obj--notebook" src={DAY_HERO_OBJECTS.notebook} alt="" />
           <img className="home-day-hero-obj home-day-hero-obj--coffee" src={DAY_HERO_OBJECTS.coffee} alt="" />
         </span>
@@ -249,13 +281,43 @@ export const Dashboard = memo<DashboardProps>(({
         )}
       </button>
 
+      <section className="home-spheres" aria-label={language === 'ru' ? 'Сферы дня' : 'Day spheres'}>
+        <div className="home-spheres-track">
+          {sphereCards.map((card) => (
+            <button
+              key={card.section}
+              type="button"
+              className="home-sphere-card"
+              onClick={() => openSphere(card.section)}
+            >
+              <span className="home-sphere-title">{card.title}</span>
+              <span className="home-sphere-hook">{card.hook}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
         <div className="home-soft-card-glow" aria-hidden />
+        <img className="home-sky-mascot" src={MOON_MASCOT} alt="" aria-hidden />
         <div className="home-today-copy">
-          <span className="home-moon-symbol" aria-hidden>{moonSymbol}</span>
           <span className="home-soft-card-kicker">{weekdayLabel}</span>
-          <h2 className="home-soft-card-title">{moon.label}</h2>
-          <p className="home-soft-card-text">{moonTone}</p>
+          <div className="home-sky-grid">
+            <div className="home-sky-item">
+              <span className="home-sky-symbol" aria-hidden>{moonSymbol}</span>
+              <div>
+                <h2 className="home-soft-card-title">{moon.label}</h2>
+                <p className="home-soft-card-text">{moonTone}</p>
+              </div>
+            </div>
+            <div className="home-sky-item">
+              <span className="home-sky-symbol" aria-hidden>☿</span>
+              <div>
+                <h2 className="home-soft-card-title">{mercuryTitle}</h2>
+                <p className="home-soft-card-text">{mercuryTone}</p>
+              </div>
+            </div>
+          </div>
           <button
             type="button"
             className="home-soft-card-link"
