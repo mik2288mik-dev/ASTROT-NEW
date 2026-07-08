@@ -241,6 +241,11 @@ function buildChartSummary(profile: UserProfile, chart: NatalChartData): ChartSu
   };
 }
 
+// Хеш текста голоса: любое изменение LUMIA_VOICE_BLOCK_RU (смена голоса приложения)
+// меняет input-hash → кешированные разборы протухают и перегенерятся новым голосом,
+// без ручного бампа promptVersion при каждой правке голоса.
+const VOICE_HASH = createHash('sha256').update(LUMIA_VOICE_BLOCK_RU).digest('hex').slice(0, 16);
+
 export function buildHumanInputHash(input: {
   profile: UserProfile;
   chartData: NatalChartData;
@@ -261,6 +266,7 @@ export function buildHumanInputHash(input: {
       sectionKey: input.sectionKey || 'base',
       dateKey: input.dateKey || null,
       promptVersion: input.promptVersion,
+      voiceHash: VOICE_HASH,
     }))
     .digest('hex');
 }

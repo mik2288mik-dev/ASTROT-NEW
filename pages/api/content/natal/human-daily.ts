@@ -214,6 +214,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     accessTier: CANVAS_CACHE_TIER,
     contentVariant: 'living' as const,
     cacheKey,
+    // inputHash обязателен и при ЧТЕНИИ: getCachedReading сверяет его и отбрасывает
+    // строки со старым хешем (в т.ч. со старым голосом → voiceHash в inputHash),
+    // иначе кеш прошлого голоса читался бы как валидный.
+    inputHash,
     promptVersion: HUMAN_DAILY_PROMPT_VERSION,
     isPersistent: false,
     validFrom: window.validFrom,
