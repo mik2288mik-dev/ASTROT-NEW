@@ -67,15 +67,24 @@ export type AiPingResult = {
  * Живой сквозной пинг генерации: реально дергает OpenAI выбранной моделью (тем же путём, что и
  * контент — через buildOpenAIChatParams). Доказывает, что ключ/модель/сеть рабочие в проде, и
  * отдаёт дословную ошибку (неверный ключ, нет доступа к модели, rate limit). Стоимость — копейки.
+ *
+ * explicitModel: если задан — пингуется именно этот id (в обход getModelForTier), чтобы можно
+ * было проверить ДОСТУПНОСТЬ произвольной модели (напр. gpt-5.4) ПЕРЕД тем как ставить её в env.
+ * ID намеренно НЕ валидируется по белому списку — весь смысл в проверке ещё не подключённого id;
+ * недоступный id вернёт дословную ошибку OpenAI (model_not_found и т.п.).
  */
-export async function pingAiGeneration(tier: LumiaModelTier = 'main'): Promise<AiPingResult> {
+export async function pingAiGeneration(
+  tier: LumiaModelTier = 'main',
+  explicitModel?: string | null,
+): Promise<AiPingResult> {
   const started = Date.now();
+  const overrideModel = typeof explicitModel === 'string' ? explicitModel.trim().slice(0, 100) : '';
   if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, tier, model: null, latencyMs: 0, error: 'OPENAI_API_KEY не задан — генерация отключена (фолбэк)' };
+    return { ok: false, tier, model: overrideModel || null, latencyMs: 0, error: 'OPENAI_API_KEY не задан — генерация отключена (фолбэк)' };
   }
-  let model: string | null = null;
+  let model: string | null = overrideModel || null;
   try {
-    model = await getModelForTier(tier);
+    model = overrideModel || (await getModelForTier(tier));
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const completion = await client.chat.completions.create(
       buildOpenAIChatParams(model, {

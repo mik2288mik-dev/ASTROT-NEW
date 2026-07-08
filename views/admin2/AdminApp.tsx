@@ -879,15 +879,16 @@ function ContentHealthCard() {
   const [busy, setBusy] = useState(false);
   const [ping, setPing] = useState<{ ok: boolean; msg: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [customModel, setCustomModel] = useState('');
   useEffect(() => { admin2.contentDiagnostics().then(setH).catch((e) => setErr(e.message)); }, []);
-  const runPing = async (tier: 'fast' | 'main' | 'deep') => {
+  const runPing = async (tier: 'fast' | 'main' | 'deep', model?: string) => {
     setBusy(true); setErr(null); setPing(null);
     try {
-      const r = await admin2.pingContentGeneration(tier);
+      const r = await admin2.pingContentGeneration(tier, model);
       const res = r.result || ({} as any);
       setPing(res.ok
         ? { ok: true, msg: `AI отвечает (${res.model || tier}, ${res.latencyMs}мс): «${res.sample || ''}»` }
-        : { ok: false, msg: res.error || 'модель не ответила' });
+        : { ok: false, msg: `${res.model ? res.model + ': ' : ''}${res.error || 'модель не ответила'}` });
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   };
   if (err) return <ErrorNote>{err}</ErrorNote>;
@@ -905,6 +906,19 @@ function ContentHealthCard() {
         ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">{h.problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
         : <p className="mt-1 text-sm text-emerald-700">Ключ задан, модели настроены — разборы персонализируются моделью, а не берутся из фолбэка.</p>}
       {ping ? <div className={`mt-2 rounded-xl border p-2.5 text-sm ${ping.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{ping.msg}</div> : null}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          className={`${inputCls} flex-1 min-w-[180px]`}
+          value={customModel}
+          onChange={(e) => setCustomModel(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && customModel.trim() && !busy) void runPing('main', customModel.trim()); }}
+          placeholder="ID модели для проверки, напр. gpt-5.4"
+        />
+        <button className={btnGhost} disabled={busy || !customModel.trim()} onClick={() => runPing('main', customModel.trim())}>
+          Пинг модели
+        </button>
+      </div>
+      <p className="mt-1 text-[11px] text-slate-400">Проверяет доступность конкретной модели на аккаунте OpenAI, ничего не меняет. Смена модели — через Railway Variables (OPENAI_DAILY_CANVAS_MODEL / OPENAI_MAIN_MODEL и т.д.).</p>
       <div className="mt-3 grid gap-1 text-xs text-slate-500">
         <div>Токен OpenAI: <b className={h.openaiKeyPresent ? 'text-emerald-600' : 'text-rose-600'}>{h.openaiKeyPresent ? 'задан' : 'НЕ задан'}</b></div>
         <div>Модели: fast <b className="text-slate-700">{h.models.fast || '—'}</b> · main <b className="text-slate-700">{h.models.main || '—'}</b> · deep <b className="text-slate-700">{h.models.deep || '—'}</b></div>

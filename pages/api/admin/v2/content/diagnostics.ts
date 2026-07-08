@@ -21,7 +21,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await requireAdminPermission(req, 'analytics.view');
       const tierRaw = String(req.body?.tier || 'main');
       const tier: LumiaModelTier = tierRaw === 'fast' || tierRaw === 'deep' ? tierRaw : 'main';
-      const result = await pingAiGeneration(tier);
+      // Необязательный явный id модели: пинг проверяет доступность именно его (для проверки
+      // ещё не подключённых моделей вроде gpt-5.4 до установки в env). Пустой → пинг по тиру.
+      const explicitModel = typeof req.body?.model === 'string' ? req.body.model.trim() : '';
+      const result = await pingAiGeneration(tier, explicitModel || undefined);
       return res.status(200).json({ ok: true, result });
     }
 

@@ -356,8 +356,11 @@ export const admin2 = {
   disablePromo: (code: string) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'DELETE', body: { code } }),
   // Content generation health
   contentDiagnostics: () => req<AdminContentHealth>('/api/admin/v2/content/diagnostics'),
-  pingContentGeneration: (tier: 'fast' | 'main' | 'deep' = 'main') =>
-    req<AdminContentPingResult>('/api/admin/v2/content/diagnostics', { method: 'POST', body: { tier } }),
+  pingContentGeneration: (tier: 'fast' | 'main' | 'deep' = 'main', model?: string) =>
+    req<AdminContentPingResult>('/api/admin/v2/content/diagnostics', {
+      method: 'POST',
+      body: model ? { tier, model } : { tier },
+    }),
   // AI prompts
   listPrompts: () => req<{ prompts: AdminPromptRow[] }>('/api/admin/v2/ai'),
   getPrompt: (id: number) => req<{ prompt: AdminPromptDetail; versions: any[] }>(`/api/admin/v2/ai/${id}`).then((d) => ({ ...d.prompt, versions: d.versions })),
