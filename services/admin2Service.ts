@@ -192,7 +192,7 @@ export type AdminContentHealth = {
   ok: boolean;
   healthy: boolean;
   openaiKeyPresent: boolean;
-  models: { fast: string | null; main: string | null; deep: string | null };
+  models: { fast: string | null; main: string | null; deep: string | null; dailyCanvas: string | null };
   surfaces: Array<{ surface: string; label: string; tier: string; model: string | null }>;
   problems: string[];
   checkedAt: string;
@@ -360,6 +360,11 @@ export const admin2 = {
     req<AdminContentPingResult>('/api/admin/v2/content/diagnostics', {
       method: 'POST',
       body: model ? { tier, model } : { tier },
+    }),
+  saveContentModel: (slot: 'fast' | 'main' | 'deep' | 'daily_canvas', model: string) =>
+    req<{ ok: boolean; slot: string; model: string }>('/api/admin/v2/content/model', {
+      method: 'POST',
+      body: { slot, model },
     }),
   // AI prompts
   listPrompts: () => req<{ prompts: AdminPromptRow[] }>('/api/admin/v2/ai'),

@@ -13,7 +13,7 @@ import { LUMIA_VOICE_BLOCK_RU } from './lumiaVoice';
 import { getCurrentTransits } from './transits-calculator';
 import { detectTransitAspects, formatTransitAspectsRu } from './transitAspects';
 import { computeDayScoreFromTransits } from './todayPulse';
-import { getDailyCanvasModel } from './openai-models';
+import { getDailyCanvasModelResolved } from './appSettings';
 import { getWordRangeInstruction } from './contentMatrix';
 import { buildBlindSpotPrompt, buildNatalSectionPrompt } from './contentPromptBuilders';
 import {
@@ -1528,9 +1528,9 @@ export async function generateDailyCanvas(
         system: HUMAN_SYSTEM_PROMPT,
         user: prompt,
         model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
-        // Полотно — длинный связный текст: отдельный, переопределяемый через env слот
-        // модели (OPENAI_DAILY_CANVAS_MODEL), дефолт — проверенный mini.
-        modelOverride: getDailyCanvasModel(),
+        // Полотно — длинный связный текст: отдельный слот модели (app_settings → env → дефолт).
+        // Настраивается в админке (слот daily_canvas) или через OPENAI_DAILY_CANVAS_MODEL.
+        modelOverride: await getDailyCanvasModelResolved(),
         maxTokens: 3200,
         temperature: 0.6,
       });

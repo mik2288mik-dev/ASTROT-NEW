@@ -44,11 +44,14 @@ export function getInterpretationModelFromEnv(): string {
 }
 
 // Личный дневной разбор генерится ЕДИНЫМ полотном (длинный связный текст) — под него
-// отдельный, переопределяемый через env слот модели. Дефолт — проверенный mini, чтобы
-// неверный/недоступный id (напр. если gpt-5.4 не подключён на аккаунте) не приводил к
-// 400 → тихий fallback у всех юзеров. Поднять: OPENAI_DAILY_CANVAS_MODEL=gpt-5.4.
+// отдельный слот модели. Приоритет: app_settings (БД, ключ ниже) → env → дефолт.
+// Дефолт — проверенный mini, чтобы неверный/недоступный id (напр. если gpt-5.4 не подключён
+// на аккаунте) не приводил к 400 → тихий fallback у всех юзеров. Поднять: через админку
+// (слот daily_canvas) или env OPENAI_DAILY_CANVAS_MODEL=gpt-5.4.
 export const DEFAULT_DAILY_CANVAS_MODEL = DEFAULT_PREMIUM_INTERPRETATION_MODEL;
+export const DAILY_CANVAS_MODEL_SETTING_KEY = 'openai_model_daily_canvas';
 
-export function getDailyCanvasModel(): string {
+/** env → дефолт для слота полотна. Слой app_settings добавляет getDailyCanvasModelResolved(). */
+export function getDailyCanvasModelFromEnv(): string {
   return normalizeInterpretationModelId(process.env.OPENAI_DAILY_CANVAS_MODEL) || DEFAULT_DAILY_CANVAS_MODEL;
 }

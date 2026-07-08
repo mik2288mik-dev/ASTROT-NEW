@@ -7,7 +7,9 @@ import type {
 import { db } from './db';
 import type { LumiaModelTier } from './contentMatrix';
 import {
+  DAILY_CANVAS_MODEL_SETTING_KEY,
   DEFAULT_PREMIUM_INTERPRETATION_MODEL,
+  getDailyCanvasModelFromEnv,
   getInterpretationModelFromEnv,
   INTERPRETATION_MODEL_SETTING_KEY,
   normalizeInterpretationModelId,
@@ -15,12 +17,21 @@ import {
 
 let cachedInterpretationModel: string | null = null;
 let cacheLoaded = false;
+let dailyCanvasModelCache: string | null = null;
 const tierModelCache = new Map<LumiaModelTier, string>();
 
 export const MODEL_TIER_SETTING_KEYS: Record<LumiaModelTier, string> = {
   fast: 'openai_model_fast',
   main: INTERPRETATION_MODEL_SETTING_KEY,
   deep: 'openai_model_deep',
+};
+
+// Слот полотна (личный разбор дня) не входит в fast/main/deep — у него отдельный ключ.
+// Единая карта слот→ключ для админского редактора моделей.
+export type ModelSlot = LumiaModelTier | 'daily_canvas';
+export const MODEL_SLOT_SETTING_KEYS: Record<ModelSlot, string> = {
+  ...MODEL_TIER_SETTING_KEYS,
+  daily_canvas: DAILY_CANVAS_MODEL_SETTING_KEY,
 };
 
 export async function getOpenAIInterpretationModel(): Promise<string> {
@@ -46,9 +57,41 @@ export async function getOpenAIInterpretationModel(): Promise<string> {
   return fallback;
 }
 
+/**
+ * Модель личного дневного полотна. Приоритет: app_settings (БД) → env → дефолт — тот же
+ * контракт, что и getModelForTier. Асинхронный (в отличие от старого env-only геттера),
+ * поэтому call-site (generateDailyCanvas) должен await'ить.
+ */
+export async function getDailyCanvasModelResolved(): Promise<string> {
+  if (dailyCanvasModelCache) return dailyCanvasModelCache;
+  try {
+    const row = await db.app_settings.get(DAILY_CANVAS_MODEL_SETTING_KEY);
+    const configured = normalizeInterpretationModelId(row?.value);
+    if (configured) {
+      dailyCanvasModelCache = configured;
+      return configured;
+    }
+  } catch {
+    // DB unavailable — env/default fallback.
+  }
+  const model = getDailyCanvasModelFromEnv();
+  dailyCanvasModelCache = model;
+  return model;
+}
+
+/**
+ * Сохраняет модель для слота (fast/main/deep/daily_canvas) в app_settings и сбрасывает кэши,
+ * чтобы новое значение подхватилось на лету (без редеплоя). model уже должен быть валидным id.
+ */
+export async function setModelForSlot(slot: ModelSlot, model: string): Promise<void> {
+  await db.app_settings.set(MODEL_SLOT_SETTING_KEYS[slot], model);
+  invalidateInterpretationModelCache();
+}
+
 export function invalidateInterpretationModelCache(): void {
   cachedInterpretationModel = null;
   cacheLoaded = false;
+  dailyCanvasModelCache = null;
   tierModelCache.clear();
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   admin2,
   admin2Auth,
@@ -880,7 +880,8 @@ function ContentHealthCard() {
   const [ping, setPing] = useState<{ ok: boolean; msg: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [customModel, setCustomModel] = useState('');
-  useEffect(() => { admin2.contentDiagnostics().then(setH).catch((e) => setErr(e.message)); }, []);
+  const reload = useCallback(() => admin2.contentDiagnostics().then(setH).catch((e) => setErr(e.message)), []);
+  useEffect(() => { void reload(); }, [reload]);
   const runPing = async (tier: 'fast' | 'main' | 'deep', model?: string) => {
     setBusy(true); setErr(null); setPing(null);
     try {
@@ -918,10 +919,10 @@ function ContentHealthCard() {
           Пинг модели
         </button>
       </div>
-      <p className="mt-1 text-[11px] text-slate-400">Проверяет доступность конкретной модели на аккаунте OpenAI, ничего не меняет. Смена модели — через Railway Variables (OPENAI_DAILY_CANVAS_MODEL / OPENAI_MAIN_MODEL и т.д.).</p>
+      <p className="mt-1 text-[11px] text-slate-400">Пинг только проверяет доступность модели на аккаунте OpenAI, ничего не меняет. Сменить рабочую модель — в блоке «Модели по слотам» ниже.</p>
       <div className="mt-3 grid gap-1 text-xs text-slate-500">
         <div>Токен OpenAI: <b className={h.openaiKeyPresent ? 'text-emerald-600' : 'text-rose-600'}>{h.openaiKeyPresent ? 'задан' : 'НЕ задан'}</b></div>
-        <div>Модели: fast <b className="text-slate-700">{h.models.fast || '—'}</b> · main <b className="text-slate-700">{h.models.main || '—'}</b> · deep <b className="text-slate-700">{h.models.deep || '—'}</b></div>
+        <div>Модели: fast <b className="text-slate-700">{h.models.fast || '—'}</b> · main <b className="text-slate-700">{h.models.main || '—'}</b> · deep <b className="text-slate-700">{h.models.deep || '—'}</b> · разбор дня <b className="text-slate-700">{h.models.dailyCanvas || '—'}</b></div>
       </div>
       <div className="mt-3 space-y-1">
         {h.surfaces.map((s) => (
@@ -931,6 +932,77 @@ function ContentHealthCard() {
           </div>
         ))}
       </div>
+      <ModelSlotEditor models={h.models} onSaved={reload} />
+    </div>
+  );
+}
+
+const MODEL_SLOTS: Array<{ slot: 'fast' | 'main' | 'deep' | 'daily_canvas'; label: string; hint: string }> = [
+  { slot: 'daily_canvas', label: 'Личный разбор дня', hint: 'полотно дня' },
+  { slot: 'main', label: 'main', hint: 'натал, слепая зона' },
+  { slot: 'fast', label: 'fast', hint: 'гороскопы по знаку, совместимость' },
+  { slot: 'deep', label: 'deep', hint: 'глубокий отчёт' },
+];
+
+// Редактор модели по слотам: пишет в app_settings (через /content/model), подхват на лету.
+function ModelSlotEditor({
+  models,
+  onSaved,
+}: {
+  models: { fast: string | null; main: string | null; deep: string | null; dailyCanvas: string | null };
+  onSaved: () => void | Promise<void>;
+}) {
+  const current: Record<string, string | null> = {
+    fast: models.fast, main: models.main, deep: models.deep, daily_canvas: models.dailyCanvas,
+  };
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [savingSlot, setSavingSlot] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const valueFor = (slot: string) => (draft[slot] ?? current[slot] ?? '');
+  const save = async (slot: 'fast' | 'main' | 'deep' | 'daily_canvas') => {
+    const model = valueFor(slot).trim();
+    if (!model) return;
+    setSavingSlot(slot); setMsg(null);
+    try {
+      const r = await admin2.saveContentModel(slot, model);
+      setMsg({ ok: true, text: `Сохранено: ${r.slot} → ${r.model}` });
+      setDraft((d) => { const n = { ...d }; delete n[slot]; return n; });
+      await onSaved();
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.message || 'не удалось сохранить' });
+    } finally { setSavingSlot(null); }
+  };
+  return (
+    <div className="mt-4 rounded-xl border border-slate-200 bg-white/70 p-3">
+      <p className="text-xs font-semibold text-slate-600">Модели по слотам</p>
+      <p className="mt-0.5 text-[11px] text-slate-400">Пишет в app_settings, подхватывается на лету без редеплоя. Только id из курируемого списка (проверь новый пингом выше). env остаётся запасным вариантом.</p>
+      <div className="mt-2 space-y-2">
+        {MODEL_SLOTS.map(({ slot, label, hint }) => {
+          const changed = valueFor(slot).trim() !== (current[slot] || '').trim();
+          return (
+            <div key={slot} className="flex flex-wrap items-center gap-2">
+              <div className="w-40 shrink-0">
+                <div className="text-xs font-medium text-slate-700">{label}</div>
+                <div className="text-[10px] text-slate-400">{hint}</div>
+              </div>
+              <input
+                className={`${inputCls} flex-1 min-w-[160px]`}
+                value={valueFor(slot)}
+                onChange={(e) => setDraft((d) => ({ ...d, [slot]: e.target.value }))}
+                placeholder="напр. gpt-5.4-mini"
+              />
+              <button
+                className={btnGhost}
+                disabled={savingSlot === slot || !changed || !valueFor(slot).trim()}
+                onClick={() => save(slot)}
+              >
+                {savingSlot === slot ? 'Сохраняю…' : 'Сохранить'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {msg ? <div className={`mt-2 rounded-lg border p-2 text-xs ${msg.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{msg.text}</div> : null}
     </div>
   );
 }
