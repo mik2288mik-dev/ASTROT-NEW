@@ -6,9 +6,15 @@ import {
   balanceSummaryRu,
   ELEMENT_LABEL_RU,
   ELEMENT_LABEL_EN,
-  ELEMENT_COLOR,
   type ElementKey,
 } from '../../lib/natal/chartBalance';
+
+const ELEMENT_TONE: Record<ElementKey, string> = {
+  fire: '#1478FF',
+  earth: '#2563EB',
+  air: '#38BDF8',
+  water: '#64748B',
+};
 
 /**
  * «Стихии в карте» — один аккуратный спектр-бар + легенда. Без крестов/жаргона,
@@ -37,14 +43,14 @@ export function ChartBalance({ chart, language }: { chart: NatalChartData; langu
         {order.map((k) => {
           const pct = (balance.elements[k] / balance.total) * 100;
           if (pct <= 0) return null;
-          return <span key={k} className="cib-seg" style={{ flexGrow: pct, background: ELEMENT_COLOR[k] }} />;
+          return <span key={k} className="cib-seg" style={{ flexGrow: pct, background: ELEMENT_TONE[k] }} />;
         })}
       </motion.div>
 
       <div className="cib-legend">
         {order.map((k) => (
           <div key={k} className="cib-leg">
-            <span className="cib-leg-dot" style={{ background: ELEMENT_COLOR[k] }} />
+            <span className="cib-leg-dot" style={{ background: ELEMENT_TONE[k] }} />
             <span className="cib-leg-name">{labels[k]}</span>
             <span className="cib-leg-val">{balance.elements[k]}</span>
           </div>

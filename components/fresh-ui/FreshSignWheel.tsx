@@ -21,18 +21,18 @@ interface Props {
 }
 
 const SIGN_BG: Record<string, string> = {
-  aries: 'linear-gradient(135deg, #FF4D2E 0%, #FF8A00 54%, #FFE143 100%)',
-  leo: 'linear-gradient(135deg, #FF7A00 0%, #FF3D6E 56%, #FFEA3D 100%)',
-  sagittarius: 'linear-gradient(135deg, #FF3D4F 0%, #A855F7 48%, #27D5FF 100%)',
-  taurus: 'linear-gradient(135deg, #17D45B 0%, #C8FF2E 52%, #00B8FF 100%)',
-  virgo: 'linear-gradient(135deg, #00C853 0%, #FFE044 50%, #FF7A1A 100%)',
-  capricorn: 'linear-gradient(135deg, #1EE88A 0%, #111827 54%, #73F000 100%)',
-  gemini: 'linear-gradient(135deg, #1B7CFF 0%, #00E0FF 48%, #FFE43D 100%)',
-  libra: 'linear-gradient(135deg, #00B8FF 0%, #7C3DFF 52%, #FF4FD8 100%)',
-  aquarius: 'linear-gradient(135deg, #006BFF 0%, #00F0FF 50%, #7CFF4D 100%)',
-  cancer: 'linear-gradient(135deg, #FF4FB8 0%, #8B5CFF 48%, #3DDCFF 100%)',
-  scorpio: 'linear-gradient(135deg, #FF2D55 0%, #7C2DFF 52%, #111827 100%)',
-  pisces: 'linear-gradient(135deg, #19D3FF 0%, #8B5CFF 52%, #FF55C7 100%)',
+  aries: 'linear-gradient(135deg, #FAFAFB 0%, #F3F4F6 56%, #E8EEF7 100%)',
+  leo: 'linear-gradient(135deg, #FFFFFF 0%, #EEF2F7 54%, #DDE7F4 100%)',
+  sagittarius: 'linear-gradient(135deg, #F8FAFC 0%, #E8EEF7 52%, #D7E4F3 100%)',
+  taurus: 'linear-gradient(135deg, #FAFAFB 0%, #F3F4F6 56%, #E8EEF7 100%)',
+  virgo: 'linear-gradient(135deg, #FFFFFF 0%, #EEF2F7 54%, #DDE7F4 100%)',
+  capricorn: 'linear-gradient(135deg, #F8FAFC 0%, #E8EEF7 52%, #D7E4F3 100%)',
+  gemini: 'linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 52%, #DBEAFE 100%)',
+  libra: 'linear-gradient(135deg, #FAFAFB 0%, #EAF2FF 52%, #D7E7FF 100%)',
+  aquarius: 'linear-gradient(135deg, #F8FAFC 0%, #E5EFFB 52%, #D6E6F8 100%)',
+  cancer: 'linear-gradient(135deg, #FFFFFF 0%, #F4F7FB 54%, #E0E7F0 100%)',
+  scorpio: 'linear-gradient(135deg, #FAFAFB 0%, #EDF2F8 52%, #D8E2EE 100%)',
+  pisces: 'linear-gradient(135deg, #F8FAFC 0%, #E8EEF7 52%, #D7E4F3 100%)',
 };
 
 const SIGN_ELEMENT: Record<string, { ru: string; en: string }> = {

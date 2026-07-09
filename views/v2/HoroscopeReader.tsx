@@ -74,12 +74,12 @@ export type HoroscopeReaderProps = {
   onRequestPremium?: () => void;
 };
 
-/* Цвет карточки по стихии знака (без космоса — просто палитра) */
+/* Цвет карточки по стихии знака в единой серо-синей палитре */
 const ELEMENT_COLOR: Record<string, string> = {
-  aries: 'var(--fresh-coral)', leo: 'var(--fresh-coral)', sagittarius: 'var(--fresh-coral)',
-  taurus: 'var(--fresh-mint)', virgo: 'var(--fresh-mint)', capricorn: 'var(--fresh-mint)',
-  gemini: 'var(--fresh-sky)', libra: 'var(--fresh-sky)', aquarius: 'var(--fresh-sky)',
-  cancer: 'var(--fresh-lavender)', scorpio: 'var(--fresh-lavender)', pisces: 'var(--fresh-lavender)',
+  aries: '#F3F4F6', leo: '#EEF2F7', sagittarius: '#E8EEF7',
+  taurus: '#F3F4F6', virgo: '#EEF2F7', capricorn: '#E8EEF7',
+  gemini: '#EFF6FF', libra: '#EAF2FF', aquarius: '#E5EFFB',
+  cancer: '#F4F7FB', scorpio: '#EDF2F8', pisces: '#E8EEF7',
 };
 
 /* Понедельник недели для ключа даты — отдельный ключ вовлечённости для периода «неделя» */

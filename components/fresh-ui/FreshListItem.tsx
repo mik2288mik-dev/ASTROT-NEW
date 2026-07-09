@@ -19,7 +19,7 @@ export const FreshListItem: React.FC<FreshListItemProps> = ({
   subtitle,
   badge,
   progress,
-  progressColor = '#7C3AED',
+  progressColor = '#1478FF',
   onClick,
 }) => {
   return (

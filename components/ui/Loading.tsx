@@ -41,7 +41,7 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
     >
       <div
         style={{
-          fontFamily: 'var(--fresh-font-round, ui-rounded, "SF Pro Rounded", system-ui, sans-serif)',
+          fontFamily: 'var(--fresh-font, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
           fontSize: '27px',
           fontWeight: 800,
           letterSpacing: '-0.01em',

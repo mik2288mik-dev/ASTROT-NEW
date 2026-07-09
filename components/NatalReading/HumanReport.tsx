@@ -124,7 +124,7 @@ const SectionText: React.FC<{ section: InterpretationSection; index?: number }> 
   );
 };
 
-const TOPIC_ACCENTS = ['#FF7E8B', '#A98CEC', '#34C39A', '#5BB6EC', '#FF9B6A', '#6D5BDF', '#E8636F', '#3FA7A0', '#C77DD6', '#F2A65A'];
+const TOPIC_ACCENTS = ['#1478FF', '#2563EB', '#38BDF8', '#475569', '#64748B', '#0F172A'];
 
 /**
  * Премиум-карточка темы как продолжение базового разбора: тап раскрывает реальный
@@ -517,15 +517,15 @@ export const HumanReport: React.FC<Props> = ({
                     onClick={() => handleOpenPaid(key)}
                   />
                 ))}
-                <div className="mt-6 overflow-hidden rounded-[20px] bg-gradient-to-br from-[#6D5BDF] to-[#A855F7] p-5 text-white">
+                <div className="mt-6 overflow-hidden natal-premium-card p-5">
                   <h3 className="font-sans text-[19px] font-semibold leading-tight">Открой все 10 разделов</h3>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-white/85">
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-[#667085]">
                     Любовь, деньги, работа, тень, сила и предназначение — подробно по твоей карте.
                   </p>
                   <button
                     type="button"
                     onClick={requestPremium}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-[#6D3BD0]"
+                    className="mt-4 flex w-full items-center justify-center gap-2 natal-premium-button px-5 py-2.5 text-[14px] font-semibold"
                   >
                     <Crown size={16} strokeWidth={2} />
                     Открыть в Premium

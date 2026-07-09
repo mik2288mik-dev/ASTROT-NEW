@@ -74,12 +74,12 @@ const REL_BACKEND: Record<CompatDimension, string> = {
   love: 'любовь', relationship: 'отношения', friendship: 'дружба', work: 'работа',
 };
 
-/* Цвет на каждую сферу — шкалы становятся красочными и читаемыми */
+/* Цвет на каждую сферу — в общей серо-синей палитре приложения */
 const DIM_COLORS: Record<CompatDimension, string> = {
-  love: '#FF7E8B',          // тёплый коралл
-  relationship: '#A98CEC',  // лаванда
-  friendship: '#5BB6EC',    // небо
-  work: '#34C39A',          // мята
+  love: '#1478FF',
+  relationship: '#2563EB',
+  friendship: '#38BDF8',
+  work: '#64748B',
 };
 
 /* Плавный счёт от 0 к значению (как в кольце-score) */

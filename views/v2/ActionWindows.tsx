@@ -31,7 +31,7 @@ export function nowHourIn(timeZone: string): number {
 }
 
 export function scoreColor(s: number): string {
-  return s >= 70 ? '#34C39A' : s >= 50 ? '#5BB6EC' : s >= 35 ? '#F5A623' : '#9AA0A6';
+  return s >= 70 ? '#1478FF' : s >= 50 ? '#2563EB' : s >= 35 ? '#64748B' : '#9AA0A6';
 }
 export function scoreLabel(s: number, ru: boolean): string {
   if (s >= 78) return ru ? 'отличный день' : 'great day';

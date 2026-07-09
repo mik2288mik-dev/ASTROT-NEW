@@ -310,7 +310,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 type="button"
                 onClick={() => onRequestPremium?.()}
                 className="mb-4 block w-full rounded-mono-card p-4 text-left text-white sm:p-[18px]"
-                style={{ background: 'linear-gradient(135deg, #6D5BDF, #A855F7)' }}
+                style={{ background: 'linear-gradient(135deg, #0F172A, #1478FF)' }}
             >
                 <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">

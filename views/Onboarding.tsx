@@ -21,10 +21,10 @@ const SparkIcon = ({ size = 52 }: { size?: number }) => (
 type Story = { color: string; icon: React.ReactNode; title: string; text: string };
 
 const STORIES: Story[] = [
-  { color: '#85CEAE', icon: <NatalChartIcon size={52} />, title: 'Натальная карта', text: 'Узнай, кто ты на самом деле — характер, сильные стороны и зоны роста по дате рождения.' },
-  { color: '#FF9B8E', icon: <ZodiacIcon sign="leo" size={56} strokeWidth={1.2} />, title: 'Гороскоп каждый день', text: 'Твой день наперёд — на сегодня, завтра и неделю. Коротко и по делу, без эзотерики.' },
-  { color: '#B8A9E8', icon: <HeartIcon size={52} />, title: 'Совместимость и матрица', text: 'Проверь совместимость с любым человеком и рассчитай матрицу судьбы — бесплатно, по дате рождения.' },
-  { color: '#87C5E8', icon: <SparkIcon size={52} />, title: 'Личный гороскоп · Premium', text: 'Твой день по твоей карте: лучшие окна для действий, любовь, деньги и работа — глубоко и точно.' },
+  { color: '#1478FF', icon: <NatalChartIcon size={52} />, title: 'Натальная карта', text: 'Узнай, кто ты на самом деле — характер, сильные стороны и зоны роста по дате рождения.' },
+  { color: '#2563EB', icon: <ZodiacIcon sign="leo" size={56} strokeWidth={1.2} />, title: 'Гороскоп каждый день', text: 'Твой день наперёд — на сегодня, завтра и неделю. Коротко и по делу, без эзотерики.' },
+  { color: '#38BDF8', icon: <HeartIcon size={52} />, title: 'Совместимость и матрица', text: 'Проверь совместимость с любым человеком и рассчитай матрицу судьбы — бесплатно, по дате рождения.' },
+  { color: '#64748B', icon: <SparkIcon size={52} />, title: 'Личный гороскоп · Premium', text: 'Твой день по твоей карте: лучшие окна для действий, любовь, деньги и работа — глубоко и точно.' },
 ];
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {

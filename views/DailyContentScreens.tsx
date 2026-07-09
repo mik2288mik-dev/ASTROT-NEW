@@ -34,13 +34,13 @@ type DailyTabConfig = {
 };
 
 const DAILY_TABS: DailyTabConfig[] = [
-  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#6366F1', sectionKey: 'daily_overview' },
-  { id: 'love', label: 'Любовь', title: 'Любовь сегодня', subtitle: 'Близость, эмоции и разговоры', accent: '#A98CEC', sectionKey: 'daily_love' },
-  { id: 'money', label: 'Деньги', title: 'Деньги сегодня', subtitle: 'Решения, покупки и устойчивость', accent: '#34C39A', sectionKey: 'daily_money' },
-  { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#5BB6EC', sectionKey: 'daily_work_business' },
-  { id: 'goals', label: 'Цели', title: 'Дела и цели', subtitle: 'Один ясный следующий шаг', accent: '#FF9B6A', sectionKey: 'daily_goals' },
-  { id: 'family', label: 'Дом', title: 'Дом и семья', subtitle: 'Опора, близкие и атмосфера дома', accent: '#E07A5F', sectionKey: 'daily_family' },
-  { id: 'friends', label: 'Друзья', title: 'Друзья и общение', subtitle: 'Контакты, поддержка и разговоры', accent: '#56C2B6', sectionKey: 'daily_friendship' },
+  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#1478FF', sectionKey: 'daily_overview' },
+  { id: 'love', label: 'Любовь', title: 'Любовь сегодня', subtitle: 'Близость, эмоции и разговоры', accent: '#2563EB', sectionKey: 'daily_love' },
+  { id: 'money', label: 'Деньги', title: 'Деньги сегодня', subtitle: 'Решения, покупки и устойчивость', accent: '#0F172A', sectionKey: 'daily_money' },
+  { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#38BDF8', sectionKey: 'daily_work_business' },
+  { id: 'goals', label: 'Цели', title: 'Дела и цели', subtitle: 'Один ясный следующий шаг', accent: '#475569', sectionKey: 'daily_goals' },
+  { id: 'family', label: 'Дом', title: 'Дом и семья', subtitle: 'Опора, близкие и атмосфера дома', accent: '#64748B', sectionKey: 'daily_family' },
+  { id: 'friends', label: 'Друзья', title: 'Друзья и общение', subtitle: 'Контакты, поддержка и разговоры', accent: '#0284C7', sectionKey: 'daily_friendship' },
 ];
 
 function splitParagraphs(value?: string | null): string[] {
@@ -85,11 +85,11 @@ function Notice({ icon, title, body, cta, onCta }: { icon: 'lock' | 'chart'; tit
 }
 
 const SCORE_COLORS: Array<[number, string]> = [
-  [80, '#34C39A'],
-  [66, '#5BB6EC'],
-  [50, '#6366F1'],
-  [36, '#FF9B6A'],
-  [0, '#E07A5F'],
+  [80, '#1478FF'],
+  [66, '#2563EB'],
+  [50, '#475569'],
+  [36, '#64748B'],
+  [0, '#0F172A'],
 ];
 function scoreTone(score: number): string {
   for (const [threshold, color] of SCORE_COLORS) {
@@ -289,7 +289,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
             onDragEnd={onDragEnd}
             style={{ touchAction: 'pan-y' }}
           >
-            <div className="pd-areahero" style={{ background: `linear-gradient(135deg, ${activeTab.accent}, ${activeTab.accent}cc)` }}>
+            <div className="pd-areahero" style={{ ['--pd-accent' as string]: activeTab.accent } as React.CSSProperties}>
               <div className="pd-areahero-title">{activeTab.title}</div>
               <div className="pd-areahero-sub">{activeTab.subtitle} · {formatLumiaDate(dateKey, language)}</div>
             </div>
