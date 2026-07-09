@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { createHash } from 'crypto';
 import type { AskLumiaState, AskLumiaTier } from '../types';
-import { SYSTEM_PROMPT_ASTRA, addLanguageInstruction } from './prompts';
+import { getAstraSystem, addLanguageInstruction } from './prompts';
 import { getOpenAIModelForContent } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
 import { resolveActivePrompt } from './admin/contentStore';
@@ -191,7 +191,7 @@ export async function generateAskLumiaAnswer(options: GenerateAskLumiaAnswerOpti
       messages: [
         // Промпт можно переопределить из админки (CMS → AI-промпты, ключ chat_system);
         // если активного override нет — используется код-дефолт (поведение не меняется).
-        { role: 'system', content: await resolveActivePrompt('chat_system', SYSTEM_PROMPT_ASTRA, options.language === 'en' ? 'en' : 'ru') },
+        { role: 'system', content: await resolveActivePrompt('chat_system', getAstraSystem(options.language === 'en' ? 'en' : 'ru'), options.language === 'en' ? 'en' : 'ru') },
         { role: 'user', content: prompt },
       ],
       temperature: options.tier === 'free' ? 0.6 : 0.7,

@@ -12,7 +12,8 @@ describe('Union product flow', () => {
     expect(policy.featureKey).toBe('zodiac_compatibility');
     expect(policy.words).toEqual({ min: 120, max: 180 });
     expect(policy.cacheScope).toBe('shared');
-    expect(policy.promptVersion).toBe('sign_compatibility.v2');
+    // Базовая версия + отпечаток голоса (последний инвалидирует кэш при смене голоса).
+    expect(policy.promptVersion).toMatch(/^sign_compatibility\.v2\+voice\.[0-9a-f]{8}$/);
   });
 
   it('uses an order-independent sign pair cache key with language and prompt version at persistence', () => {

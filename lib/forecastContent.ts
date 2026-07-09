@@ -9,7 +9,7 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  SYSTEM_PROMPT_ASTRA,
+  getAstraSystem,
   addLanguageInstruction,
   createDaypartForecastPrompt,
   createFreeMonthlyForecastPrompt,
@@ -332,7 +332,7 @@ export async function generatePremiumDaypartForecast(
     const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'system', content: getAstraSystem(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.85,
@@ -559,7 +559,7 @@ export async function generateFreeWeeklyForecast(
     const { model } = await getForecastModel('base');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'system', content: getAstraSystem(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.72,
@@ -596,7 +596,7 @@ export async function generatePremiumWeeklyForecast(
     const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'system', content: getAstraSystem(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.82,
@@ -633,7 +633,7 @@ export async function generateFreeMonthlyForecast(
     const { model } = await getForecastModel('base');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'system', content: getAstraSystem(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.72,
@@ -670,7 +670,7 @@ export async function generatePremiumMonthlyForecast(
     const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'system', content: getAstraSystem(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.82,

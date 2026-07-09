@@ -18,7 +18,7 @@ import {
 import { saveProfile } from '../../services/storageService';
 import { shareToTelegram } from '../../lib/botLink';
 import { FreshTabs, FreshSignCarousel, InfoNote } from '../../components/fresh-ui';
-import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
+import { ZodiacIllustration } from '../../components/icons/ZodiacArt';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/horoscope/signDaily';
@@ -337,9 +337,12 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             dragElastic={0.5}
             onDragEnd={onDragEnd}
           >
-            <div className="horo-uni-hero" style={{ backgroundColor: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)' }}>
+            <div
+              className="horo-uni-hero"
+              style={{ backgroundColor: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)', backgroundImage: 'none' }}
+            >
+              <ZodiacIllustration sign={sign} className="horo-hero-illus" />
               <div className="horo-hero-glyph" aria-hidden>
-                <ZodiacIcon sign={sign} size={64} strokeWidth={1.1} />
                 {signState === 'open' ? <div className="horo-hero-date">{periodTag}</div> : null}
               </div>
               <div className="horo-hero-stack">

@@ -132,15 +132,27 @@ export function selectScreenStickers(
       result[req.surface] = [];
       continue;
     }
-    const entry = shuffled(
+    const position = shuffled(positions, rng)[0];
+    const pool = shuffled(
       catalog.entries.filter((e) => !usedIds.has(e.id) && eligible(e, req, 'character')),
       rng,
-    )[0];
+    );
+    // Поза маскота должна СОВПАДАТЬ с позицией (как он нарисован):
+    //  - corner-peek (нижний-правый угол, выступает наружу) — peek-маскоты нарисованы
+    //    именно так (лапы на нижнем крае, тело выглядывает снизу) → предпочитаем pose:peek;
+    //  - hero-scene (верхняя полоса, сидит на верхнем крае) — наоборот, peek-поза смотрелась
+    //    бы «в воздухе», поэтому берём полноростового (сидит/стоит/машет), НЕ peek.
+    // Предпочтение мягкое: если подходящего под позу маскота нет — берём любого (не ломаемся).
+    const preferPeek = position === 'corner-peek';
+    const preferred = preferPeek
+      ? pool.find((e) => e.pose === 'peek')
+      : pool.find((e) => e.pose !== 'peek');
+    const entry = preferred ?? pool[0];
     if (!entry) {
       result[req.surface] = [];
       continue;
     }
-    result[req.surface] = [{ entry, position: shuffled(positions, rng)[0] }];
+    result[req.surface] = [{ entry, position }];
     usedIds.add(entry.id);
     maskotBudget -= 1;
   }

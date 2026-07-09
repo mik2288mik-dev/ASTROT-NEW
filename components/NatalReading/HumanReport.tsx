@@ -445,7 +445,10 @@ export const HumanReport: React.FC<Props> = ({
 
   return (
     <article className="relative bg-white pb-16 pt-1">
-      <div className="relative z-10 mx-auto w-full max-w-reading-wide px-5">
+      {/* Встроенный режим (в NatalMagazine): текст на всю ширину экрана с общими боковыми
+          отступами 16px — как big3/ChartBalance выше, без искусственно узкой колонки.
+          Standalone (!hideIntro) сохраняет читательскую центрированную колонку. */}
+      <div className={`relative z-10 w-full ${hideIntro ? 'px-4' : 'mx-auto max-w-reading-wide px-5'}`}>
         <header className={hideIntro ? 'empty:hidden' : 'pb-6'}>
           {!hideIntro ? (
             <>

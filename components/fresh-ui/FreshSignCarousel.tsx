@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { ZodiacIcon } from '../icons/ZodiacIcon';
+import { ZodiacSymbol } from '../icons/ZodiacArt';
 import { getZodiacSign } from '../../constants';
 import type { Language } from '../../types';
 
@@ -42,7 +42,7 @@ export const FreshSignCarousel: React.FC<FreshSignCarouselProps> = ({
             onClick={() => onPick(sign)}
             aria-pressed={isActive}
           >
-            <ZodiacIcon sign={sign} size={18} strokeWidth={1.6} />
+            <ZodiacSymbol sign={sign} size={isActive ? 24 : 20} className="fresh-sign-chip-art" />
             <span>{getZodiacSign(lang, sign)}</span>
           </button>
         );

@@ -6,6 +6,21 @@ import { buildOpenAIChatParams } from '../openaiChat';
 import { buildSignDailyHoroscopePrompt, parseLumiaJson } from '../contentPromptBuilders';
 import { db } from '../db';
 import { getZodiacSign } from '../../constants';
+import { getMoonPhase } from './moonPhase';
+
+/** Реальный контекст дня для общего гороскопа по знаку — фаза Луны конкретной даты. */
+function dayContext(date: string, language: Language) {
+  const [y, m, d] = date.split('-').map(Number);
+  const dt = Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)
+    ? new Date(Date.UTC(y, (m || 1) - 1, d || 1, 12))
+    : new Date();
+  const moon = getMoonPhase(dt, language === 'en' ? 'en' : 'ru');
+  return {
+    phase: moon.label,
+    illumination: `${Math.round(moon.illumination)}%`,
+    meaning: moon.meaning,
+  };
+}
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -191,7 +206,7 @@ async function generateSignReading(
   }
 
   const signLabel = getZodiacSign(language, sign);
-  const prompt = buildSignDailyHoroscopePrompt({ language, context: { sign: signLabel, date } });
+  const prompt = buildSignDailyHoroscopePrompt({ language, context: { sign: signLabel, date, moon: dayContext(date, language) } });
 
   try {
     const model = await getModelForTier(getContentPolicy('sign_daily_horoscope').modelTier);

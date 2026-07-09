@@ -33,7 +33,8 @@ describe('Lumia content prompt builders', () => {
     for (const build of builders) {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
-      expect(prompt.promptVersion).toMatch(/\.v\d+$/);
+      // promptVersion = базовая версия .vN + отпечаток голоса (инвалидирует кэш при смене голоса)
+      expect(prompt.promptVersion).toMatch(/\.v\d+\+voice\.[0-9a-f]{8}$/);
       expect(prompt.user).toContain('Верни только валидный JSON');
       expect(prompt.user).toContain('Объём: не больше');
       expect(prompt.user).toContain('конкретный жизненный пример');
@@ -49,8 +50,10 @@ describe('Lumia content prompt builders', () => {
   });
 
   it('keeps daily, weekly, natal, compatibility, and relationship prompts focused', () => {
-    expect(buildSignDailyHoroscopePrompt().user).toContain('не больше 80 слов');
+    expect(buildSignDailyHoroscopePrompt().user).toContain('не больше 130 слов');
     expect(buildSignDailyHoroscopePrompt().user).toContain('Не перечисляй подряд любовь');
+    // Гороскоп по знаку опирается на реальный контекст дня (фаза Луны), а не «знак вообще».
+    expect(buildSignDailyHoroscopePrompt().user).toContain('реальная фаза Луны');
     expect(buildSignWeeklyHoroscopePrompt().user).toContain('ровно два коротких практичных совета');
     expect(buildNatalSectionPrompt({ title: 'Как ты любишь' }).user).toContain('не больше 200 слов');
     expect(buildSignCompatibilityPrompt().user).toContain('без счёта совместимости');

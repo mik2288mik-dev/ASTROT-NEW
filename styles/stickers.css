@@ -38,8 +38,8 @@
   .sticker { animation: none; }
 }
 
-/* Размер по типу блока — мельче и аккуратнее. */
-.sticker-layer--hero .sticker { width: 2.7rem; }
+/* Размер по типу блока. Hero — крупный маскот-акцент, выступает за угол карточки. */
+.sticker-layer--hero .sticker { width: 4.6rem; }
 .sticker-layer--moon .sticker { width: 5rem; }
 .sticker-layer--sphere .sticker { width: 3rem; }
 .sticker-layer--feed .sticker { width: 2.9rem; }
@@ -51,7 +51,11 @@
  * помещаться в сцену на ЛЮБОЙ ширине — не срезается краем карточки сверху и не лезет на текст снизу.
  * На узких телефонах текст заполняет карточку, поэтому единственная гарантированно пустая зона —
  * именно сцена (над текстом). */
-.sticker--hero-scene { top: 0; right: -0.1rem; bottom: auto; }
+/* Крупный маскот-акцент: полноростовой кот сидит на ПРАВОМ ВЕРХНЕМ крае карточки и
+ * выступает вверх-вправо за него (карточка overflow:visible через .has-stickers). Дата
+ * слева, заголовок ниже сцены → кот их не задевает и виден целиком.
+ * (peek-маскотов сюда не ставим — они нарисованы под нижний край; см. lib/stickers/select.ts) */
+.sticker--hero-scene { top: -1.4rem; right: -0.7rem; bottom: auto; }
 
 /* moon-gutter / corner-peek — оставлены для возможного повторного использования. */
 .sticker--moon-gutter { right: -0.95rem; bottom: -0.4rem; }
@@ -67,7 +71,8 @@
 
 /* Компактные экраны — ещё меньше. */
 @media (max-width: 380px) {
-  .sticker-layer--hero .sticker { width: 2.5rem; }
+  .sticker-layer--hero .sticker { width: 4rem; }
+  .sticker--hero-scene { top: -1.2rem; right: -0.5rem; }
   .sticker-layer--feed .sticker { width: 2.6rem; }
   .sticker-layer--feed .sticker--comp-2 { width: 2.15rem; }
   .sticker-layer--feed .sticker--comp-3 { width: 1.9rem; }

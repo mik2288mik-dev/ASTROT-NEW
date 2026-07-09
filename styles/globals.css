@@ -4134,7 +4134,31 @@ a,
     linear-gradient(180deg, rgba(255, 247, 224, 0.06) 0%, rgba(90, 33, 24, 0.18) 100%);
 }
 
+/* Крупная тематическая иллюстрация знака — основной образ обложки (справа) */
+.horo-hero-illus {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  height: 126%;
+  width: auto;
+  max-width: 60%;
+  object-fit: contain;
+  object-position: right center;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 16px rgba(31, 43, 69, 0.22));
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .horo-uni-body { background: #fff; padding: 16px 18px 20px; }
+
+/* Объёмный символ знака в ленте выбора */
+.fresh-sign-chip-art {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(31, 43, 69, 0.20));
+}
 
 /* Гейт «другого знака» (квота знаков) */
 .horo-lock { padding: 4px 2px 2px; }
@@ -7784,10 +7808,11 @@ a,
 }
 
 .home-sphere-card {
+  --sphere-accent: #2f6bd6; /* дефолт; каждая секция переопределяет своим оттенком палитры */
   flex: 0 0 min(78vw, 19rem);
   min-height: 7.15rem;
   justify-content: flex-start;
-  gap: 0.9rem;
+  gap: 0.55rem;
   padding: 1.18rem 1.22rem 1.12rem;
   overflow: hidden;
   background:
@@ -7795,9 +7820,23 @@ a,
     var(--app-card-pattern);
 }
 
+/* Акцентная полоска секции — короткая планка сверху у заголовка; цвет = тема карточки.
+   Именно она (а не только текст) отличает карточки друг от друга с первого взгляда. */
 .home-sphere-title {
+  position: relative;
   font-size: 1.16rem;
   line-height: 1.08;
+  padding-top: 0.6rem;
+}
+.home-sphere-title::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1.6rem;
+  height: 0.2rem;
+  border-radius: 999px;
+  background: var(--sphere-accent);
 }
 
 .home-sphere-hook {
@@ -7809,27 +7848,46 @@ a,
   -webkit-line-clamp: 3;
 }
 
+/* ВАРИАТИВНОСТЬ КОМПОЗИЦИИ (не «под копирку»): чётные карточки прижимают контент к низу,
+   а тематический узор — к верху; нечётные — наоборот. Плюс разный якорь узора. Итог: соседние
+   карточки в ленте читаются по-разному, хотя структура (заголовок+хук) одна. */
+.home-spheres-track .home-sphere-card:nth-child(even) {
+  justify-content: flex-end;
+}
+.home-spheres-track .home-sphere-card:nth-child(even)::after {
+  background-position: right -0.5rem top -0.5rem;
+}
+.home-spheres-track .home-sphere-card:nth-child(odd)::after {
+  background-position: left -0.5rem bottom -0.5rem;
+}
+
 .home-sphere-card--love {
+  --sphere-accent: #4a5fd0;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='118' viewBox='0 0 170 118'%3E%3Cpath d='M38 35C30 24 14 29 14 44C14 59 38 72 38 72S62 59 62 44C62 29 46 24 38 35Z' fill='none' stroke='%231478FF' stroke-opacity='.17' stroke-width='1.5'/%3E%3Cpath d='M102 42h28v16a14 14 0 0 1-28 0V42Z' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.4'/%3E%3Cpath d='M130 47h9a8 8 0 0 1 0 16h-9' fill='none' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.4'/%3E%3Cpath d='M92 79h54' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.2'/%3E%3C/svg%3E");
 }
 
 .home-sphere-card--money {
+  --sphere-accent: #2b7fbf;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='120' viewBox='0 0 174 120'%3E%3Crect x='18' y='24' width='56' height='30' rx='6' fill='none' stroke='%231478FF' stroke-opacity='.14' stroke-width='1.4'/%3E%3Ccircle cx='46' cy='39' r='8' fill='none' stroke='%231478FF' stroke-opacity='.12' stroke-width='1.3'/%3E%3Ccircle cx='116' cy='70' r='17' fill='none' stroke='%231478FF' stroke-opacity='.16' stroke-width='1.5'/%3E%3Ccircle cx='132' cy='82' r='12' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3'/%3E%3Cpath d='M110 70h12M116 62v16' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.2'/%3E%3C/svg%3E");
 }
 
 .home-sphere-card--work {
+  --sphere-accent: #3457b8;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='178' height='118' viewBox='0 0 178 118'%3E%3Cpath d='M16 84L46 58l25 16 38-42 48 24' fill='none' stroke='%231478FF' stroke-opacity='.16' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='126' cy='34' r='16' fill='none' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.3'/%3E%3Cpath d='M126 24v10l8 5' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.3' stroke-linecap='round'/%3E%3Cpath d='M54 31c0-10 16-10 16 1v28c0 14-22 14-22 0V36' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.4'/%3E%3C/svg%3E");
 }
 
 .home-sphere-card--goals {
+  --sphere-accent: #2c86d0;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M33 82V27h42l-9 13 9 13H33' fill='none' stroke='%231478FF' stroke-opacity='.15' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M102 72l13 13 34-42' fill='none' stroke='%231478FF' stroke-opacity='.15' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M24 92h36M80 92h24M126 92h28' stroke='%231478FF' stroke-opacity='.09' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 .home-sphere-card--family {
+  --sphere-accent: #5566c8;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='120' viewBox='0 0 174 120'%3E%3Cpath d='M24 66l36-30 36 30v34H34V66' fill='none' stroke='%231478FF' stroke-opacity='.14' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M54 100V78h14v22' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3'/%3E%3Cpath d='M116 45h28v16a14 14 0 0 1-28 0V45Z' fill='none' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.4'/%3E%3Cpath d='M144 50h8a7 7 0 0 1 0 14h-8' fill='none' stroke='%231478FF' stroke-opacity='.09' stroke-width='1.3'/%3E%3C/svg%3E");
 }
 
 .home-sphere-card--friends {
+  --sphere-accent: #3a72cc;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M23 31h66a12 12 0 0 1 12 12v20a12 12 0 0 1-12 12H55L34 92l6-17H23a12 12 0 0 1-12-12V43a12 12 0 0 1 12-12Z' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.5'/%3E%3Cpath d='M89 53h54a11 11 0 0 1 11 11v17a11 11 0 0 1-11 11h-20l-17 12 4-12H89a11 11 0 0 1-11-11V64a11 11 0 0 1 11-11Z' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.4'/%3E%3Ccircle cx='42' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='58' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='74' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3C/svg%3E");
 }
 

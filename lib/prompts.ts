@@ -16,6 +16,14 @@ import { getLumiaSystemVoice } from "./lumiaVoice";
 export const SYSTEM_PROMPT_ASTRA = getLumiaSystemVoice('ru');
 
 /**
+ * Языкозависимый SYSTEM-голос. Предпочтительнее захардкоженной ru-константы
+ * SYSTEM_PROMPT_ASTRA: EN-генерации должны получать англоязычный голос, иначе
+ * модель видит русский system при английском задании. Используй в местах, где
+ * известен язык пользователя.
+ */
+export const getAstraSystem = (language: 'ru' | 'en'): string => getLumiaSystemVoice(language);
+
+/**
  * FREE natal intro — hook, «это про меня», желание читать дальше
  * Максимум 1–2 астрологических термина. Фокус на сильном, читаемом, личном тексте.
  */

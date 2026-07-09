@@ -8,7 +8,7 @@ describe('Lumia content matrix', () => {
       'blind_spot', 'personal_daily', 'natal_section', 'deep_report',
     ]);
     expect(getContentPolicy('sign_daily_horoscope')).toMatchObject({
-      modelTier: 'fast', words: { min: 60, max: 80 }, cacheTtl: '24h', cacheScope: 'shared', batchSize: 12,
+      modelTier: 'fast', words: { min: 100, max: 130 }, cacheTtl: '24h', cacheScope: 'shared', batchSize: 12,
     });
     expect(getContentPolicy('sign_compatibility')).toMatchObject({
       featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },

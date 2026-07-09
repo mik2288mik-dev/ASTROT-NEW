@@ -7,7 +7,7 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  SYSTEM_PROMPT_ASTRA,
+  getAstraSystem,
   addLanguageInstruction,
   createNatalAnchorPromptV3,
   createNatalFullPrompt,
@@ -62,11 +62,13 @@ async function createJsonCompletion<T>({
   prompt,
   maxTokens,
   temperature,
+  language,
 }: {
   model: string;
   prompt: string;
   maxTokens: number;
   temperature: number;
+  language: 'ru' | 'en';
 }): Promise<T> {
   if (!openai) {
     throw new Error('OPENAI_API_KEY is not configured');
@@ -74,7 +76,7 @@ async function createJsonCompletion<T>({
 
   const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+      { role: 'system', content: getAstraSystem(language) },
       { role: 'user', content: prompt },
     ],
     temperature,
@@ -105,6 +107,7 @@ export async function generateNatalAnchorReading(
       prompt,
       maxTokens: 3400,
       temperature: 0.55,
+      language: lang,
     });
     const reading = coerceNatalAnchorReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
     if (
@@ -140,6 +143,7 @@ export async function generateNatalFullReading(
       prompt,
       maxTokens: 5200,
       temperature: 0.5,
+      language: lang,
     });
     const reading = coerceNatalFullReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
     if (
@@ -187,6 +191,7 @@ export async function generateNatalLivingReading(
       prompt,
       maxTokens: 3600,
       temperature: 0.55,
+      language: lang,
     });
     const reading = coerceNatalLivingReading(
       { ...parsed, periodKey, astroEvidence: parsed.astroEvidence || evidence },

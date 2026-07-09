@@ -11,7 +11,7 @@ import {
 } from './natalPlanetMeta';
 import { buildPlanetInsight } from './planetInsightContent';
 import {
-  SYSTEM_PROMPT_ASTRA,
+  getAstraSystem,
   addLanguageInstruction,
   createPlanetInsightPrompt,
   type PlanetInsightAIResponse,
@@ -71,7 +71,7 @@ export async function generatePlanetInsight(
 
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_ASTRA },
+        { role: 'system', content: getAstraSystem(language === 'en' ? 'en' : 'ru') },
         { role: 'user', content: prompt },
       ],
       temperature: 0.8,
