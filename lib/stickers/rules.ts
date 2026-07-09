@@ -30,6 +30,7 @@ const OBJECT_THEME: Record<string, Theme[]> = {
   // уют / дом / тепло
   candle: ['cozy'], plant: ['cozy'], flowers: ['cozy'], lantern: ['cozy'], lights: ['cozy'],
   key: ['cozy'], hoodie: ['cozy'], beanie: ['cozy'], heart: ['cozy', 'gift'],
+  lamp: ['cozy'], alarmclock: ['cozy'], keychain: ['cozy'],
   // подарки
   gift: ['gift'], giftbox: ['gift'], present: ['gift'],
   // техника / гаджеты (для «ночной» темы НЕ подходят — исключаем на луне)

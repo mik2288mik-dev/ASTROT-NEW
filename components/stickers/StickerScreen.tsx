@@ -22,11 +22,11 @@ const StickerCtx = createContext<Ctx>(null);
 
 export type StickerScreenProps = {
   requests: SurfaceRequest[];
-  totalMax?: number;
+  maxMaskots?: number; // максимум маскотов на всю страницу (по умолчанию 1)
   children: React.ReactNode;
 };
 
-export function StickerScreen({ requests, totalMax = 3, children }: StickerScreenProps) {
+export function StickerScreen({ requests, maxMaskots = 1, children }: StickerScreenProps) {
   const [catalog, setCatalog] = useState<StickerCatalog | null>(() => peekStickerCatalog());
   // seed=0 до маунта (ничего не рисуем без каталога); на клиенте — из временно́го ключа.
   const [seed, setSeed] = useState(0);
@@ -39,10 +39,10 @@ export function StickerScreen({ requests, totalMax = 3, children }: StickerScree
   }, []);
 
   // Пересобираем только когда меняется каталог/seed/состав запросов — не на каждый рендер.
-  const reqKey = JSON.stringify(requests) + `|${totalMax}`;
+  const reqKey = JSON.stringify(requests) + `|${maxMaskots}`;
   const value = useMemo<Ctx>(() => {
     if (!catalog || seed === 0) return { placements: {} as Record<Surface, StickerPlacement[]> };
-    return { placements: selectScreenStickers(catalog, { seed, requests, totalMax }) };
+    return { placements: selectScreenStickers(catalog, { seed, requests, maxMaskots }) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalog, seed, reqKey]);
 

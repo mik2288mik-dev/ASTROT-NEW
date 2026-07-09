@@ -1,15 +1,15 @@
 /**
- * Выбор стикеров для экрана по жёстким правилам:
- *  - rule 1: общий лимит на ВЕСЬ экран (totalMax, дефолт 3), один счётчик на все карточки;
- *  - rule 2: не больше ОДНОГО маскота на карточку (здесь — ровно один маскот на блок или ноль);
- *  - rule 3: одиночные предметы не ставим (берём только маскотов — у них предмет уже в кадре);
- *  - rule 5: фильтр и по настроению, и по ТЕМЕ блока;
- *  - rule 6: детерминированный выбор по временно́му ключу (2 раза в сутки), не Math.random.
+ * Выбор стикеров для экрана по правилам пользователя:
+ *  - на ВСЮ страницу максимум ОДИН маскот (kind: 'maskot');
+ *  - плюс одна КОМПОЗИЦИЯ из 2–3 предметов на нижней карточке (kind: 'composition');
+ *  - одиночных предметов нет; тексто-безопасные позиции; фильтр по настроению И теме;
+ *  - детерминированно по временно́му ключу (2 раза в сутки), не Math.random.
  *
- * Пустая карточка (без подходящего маскота) — норма и предпочтительнее случайного стикера.
+ * Пустая карточка (нет подходящего стикера) — норма.
  */
 import { SURFACE_POSITIONS } from './rules';
 import {
+  COMPOSITION_SLOTS,
   type Mood,
   type StickerCatalog,
   type StickerEntry,
@@ -50,8 +50,8 @@ export function hashSeed(str: string): number {
 }
 
 /**
- * Временно́й ключ для смены раскладки 2 раза в сутки (rule 6): московская дата + половина
- * суток (am/pm). Все открытия в одном 12-часовом окне → один ключ → одна раскладка стикеров.
+ * Временно́й ключ для смены раскладки 2 раза в сутки: московская дата + половина суток (am/pm).
+ * Все открытия в одном 12-часовом окне → один ключ → одна раскладка.
  */
 export function getStickerTimeKey(now: Date = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -60,68 +60,87 @@ export function getStickerTimeKey(now: Date = new Date()): string {
   }).formatToParts(now);
   const get = (t: string) => parts.find((p) => p.type === t)?.value || '';
   const hour = Number(get('hour')) % 24;
-  const half = hour < 12 ? 'am' : 'pm';
-  return `${get('year')}-${get('month')}-${get('day')}:${half}`;
+  return `${get('year')}-${get('month')}-${get('day')}:${hour < 12 ? 'am' : 'pm'}`;
 }
 
 export type SurfaceRequest = {
   surface: Surface;
-  moods?: Mood[]; // допустимые настроения блока (rule 5)
-  themes?: Theme[]; // допустимая тематика блока (rule 5)
+  kind?: 'maskot' | 'composition'; // по умолчанию 'maskot'
+  moods?: Mood[]; // допустимые настроения (rule 5)
+  themes?: Theme[]; // допустимая тематика (rule 5)
+  count?: number; // для композиции: сколько предметов (2–3), по умолчанию 2
 };
 
 export type ScreenSelectOptions = {
   seed: number;
   requests: SurfaceRequest[];
-  totalMax?: number; // максимум стикеров на весь экран (rule 1), по умолчанию 3
+  maxMaskots?: number; // максимум маскотов на ВСЮ страницу (по умолчанию 1)
 };
 
-const has = <T,>(list: readonly T[], allowed?: readonly T[]) =>
+const hit = <T,>(list: readonly T[], allowed?: readonly T[]) =>
   !allowed || !allowed.length || list.some((x) => allowed.includes(x));
 
-/** Подходит ли МАСКОТ блоку: тип character + экран + настроение + тема. */
-function eligibleMaskot(entry: StickerEntry, req: SurfaceRequest): boolean {
+function eligible(entry: StickerEntry, req: SurfaceRequest, type: 'character' | 'object'): boolean {
   return (
-    entry.type === 'character' &&
+    entry.type === type &&
     entry.surfaces.includes(req.surface) &&
-    has(entry.moods, req.moods) &&
-    has(entry.themes, req.themes)
+    hit(entry.moods, req.moods) &&
+    hit(entry.themes, req.themes)
   );
 }
 
 /**
- * По одному маскоту на блок (или ноль), общий лимит на экран. Возвращает размещения по блокам.
- * Блоки идут в переданном порядке (приоритет); лимит totalMax режет хвост. Один и тот же маскот
- * не появляется дважды.
+ * Возвращает размещения по блокам. Блоки идут в переданном порядке. Один и тот же стикер не
+ * повторяется. Маскотов на страницу — не больше maxMaskots (по умолчанию 1).
  */
 export function selectScreenStickers(
   catalog: StickerCatalog,
-  { seed, requests, totalMax = 3 }: ScreenSelectOptions,
+  { seed, requests, maxMaskots = 1 }: ScreenSelectOptions,
 ): Record<Surface, StickerPlacement[]> {
   const rng = makeRng(seed);
   const result = {} as Record<Surface, StickerPlacement[]>;
   const usedIds = new Set<string>();
-  let budget = Math.max(0, totalMax);
+  let maskotBudget = Math.max(0, maxMaskots);
 
   for (const req of requests) {
+    const kind = req.kind ?? 'maskot';
+
+    if (kind === 'composition') {
+      const count = Math.min(COMPOSITION_SLOTS.length, Math.max(2, req.count ?? 2));
+      const pool = shuffled(
+        catalog.entries.filter((e) => !usedIds.has(e.id) && eligible(e, req, 'object')),
+        rng,
+      );
+      // Композиция имеет смысл только если набралось хотя бы 2 предмета (не одиночка).
+      if (pool.length < 2) {
+        result[req.surface] = [];
+        continue;
+      }
+      const picks = pool.slice(0, count);
+      result[req.surface] = picks.map((entry, i) => {
+        usedIds.add(entry.id);
+        return { entry, position: COMPOSITION_SLOTS[i] };
+      });
+      continue;
+    }
+
+    // kind === 'maskot'
     const positions = SURFACE_POSITIONS[req.surface] || [];
-    if (budget <= 0 || positions.length === 0) {
+    if (maskotBudget <= 0 || positions.length === 0) {
       result[req.surface] = [];
       continue;
     }
-    const pool = shuffled(
-      catalog.entries.filter((e) => !usedIds.has(e.id) && eligibleMaskot(e, req)),
+    const entry = shuffled(
+      catalog.entries.filter((e) => !usedIds.has(e.id) && eligible(e, req, 'character')),
       rng,
-    );
-    const entry = pool[0];
+    )[0];
     if (!entry) {
-      result[req.surface] = []; // нет подходящего маскота → карточка без стикера (rule 3в)
+      result[req.surface] = [];
       continue;
     }
-    const position = shuffled(positions, rng)[0];
-    result[req.surface] = [{ entry, position }];
+    result[req.surface] = [{ entry, position: shuffled(positions, rng)[0] }];
     usedIds.add(entry.id);
-    budget -= 1;
+    maskotBudget -= 1;
   }
 
   return result;

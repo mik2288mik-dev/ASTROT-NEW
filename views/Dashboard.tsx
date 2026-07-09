@@ -27,10 +27,11 @@ import type { SurfaceRequest } from '../lib/stickers/select';
 // NB (для параллельного дизайн-агента): не возвращать статические <img> стикеров в карточки —
 // их рисует <StickerSlot/>; слой изолирован в styles/stickers.css.
 const STICKER_REQUESTS: SurfaceRequest[] = [
-  // Герой дня: уютный лайфстайл, без гаджетов/спорта (чтобы не «реклама магазина»).
-  { surface: 'hero', moods: ['calm', 'happy', 'chill'], themes: ['drink', 'read', 'cozy', 'study'] },
-  // Луна/ночь: только спокойная «ночная» тематика (напитки/чтение/уют), без техники/актива.
-  { surface: 'moon', moods: ['calm', 'chill', 'thinking'], themes: ['drink', 'read', 'cozy'] },
+  // ОДИН маскот на всю страницу — на герое, выглядывает из угла «сцены».
+  { surface: 'hero', kind: 'maskot', moods: ['calm', 'happy', 'chill'], themes: ['drink', 'read', 'cozy', 'study'] },
+  // Композиция из 2 предметов (уютный натюрморт) на нижней карточке «Совместимость».
+  // На карточке луны стикеров НЕТ.
+  { surface: 'feed', kind: 'composition', count: 2, themes: ['drink', 'read', 'cozy'] },
 ];
 
 type SphereCard = {
@@ -216,7 +217,7 @@ export const Dashboard = memo<DashboardProps>(({
   };
 
   return (
-    <StickerScreen requests={STICKER_REQUESTS} totalMax={3}>
+    <StickerScreen requests={STICKER_REQUESTS} maxMaskots={1}>
     <div
       className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
@@ -307,9 +308,8 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      <section className="home-today home-soft-card home-soft-card--moon has-stickers" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
+      <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
         <div className="home-soft-card-glow" aria-hidden />
-        <StickerSlot surface="moon" />
         <div className="home-today-copy">
           <span className="home-soft-card-kicker">{weekdayLabel}</span>
           <div className="home-sky-grid">
@@ -374,10 +374,11 @@ export const Dashboard = memo<DashboardProps>(({
 
         <button
           type="button"
-          className="home-soft-card home-feed-card home-feed-card--compat"
+          className="home-soft-card home-feed-card home-feed-card--compat has-stickers"
           onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
         >
           <span className="home-soft-card-glow" aria-hidden />
+          <StickerSlot surface="feed" />
           <span className="home-soft-card-content">
             <span className="home-soft-card-title">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
             <span className="home-soft-card-text">{compatibilityText}</span>
