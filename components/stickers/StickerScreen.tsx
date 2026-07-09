@@ -1,0 +1,70 @@
+import React, { createContext, memo, useContext, useEffect, useMemo, useState } from 'react';
+import { fetchStickerCatalog, peekStickerCatalog } from '../../services/stickerService';
+import { selectScreenStickers, type SurfaceRequest } from '../../lib/stickers/select';
+import type { StickerCatalog, StickerPlacement, Surface } from '../../lib/stickers/types';
+
+/**
+ * Экранный провайдер стикеров: делает ОДИН выбор на весь экран (соблюдая лимит max-3),
+ * раздаёт размещения по блокам через <StickerSlot surface=… />. Seed генерится на клиенте
+ * при монтировании — свежий на КАЖДЫЙ заход в приложение (стикеры меняются), стабильный в
+ * пределах сессии (без перетасовки на ре-рендерах) и без SSR-рассинхрона (сервер стикеры
+ * не рисует — только после загрузки каталога на клиенте).
+ */
+
+type Ctx = { placements: Record<Surface, StickerPlacement[]> } | null;
+const StickerCtx = createContext<Ctx>(null);
+
+export type StickerScreenProps = {
+  requests: SurfaceRequest[];
+  totalMax?: number;
+  children: React.ReactNode;
+};
+
+export function StickerScreen({ requests, totalMax = 3, children }: StickerScreenProps) {
+  const [catalog, setCatalog] = useState<StickerCatalog | null>(() => peekStickerCatalog());
+  // seed=0 до маунта (ничего не рисуем без каталога); на клиенте — случайный на заход.
+  const [seed, setSeed] = useState(0);
+
+  useEffect(() => {
+    setSeed(1 + Math.floor(Math.random() * 0x7fffffff));
+    let alive = true;
+    fetchStickerCatalog().then((c) => { if (alive) setCatalog(c); });
+    return () => { alive = false; };
+  }, []);
+
+  // Пересобираем только когда меняется каталог/seed/состав запросов — не на каждый рендер.
+  const reqKey = JSON.stringify(requests) + `|${totalMax}`;
+  const value = useMemo<Ctx>(() => {
+    if (!catalog || seed === 0) return { placements: {} as Record<Surface, StickerPlacement[]> };
+    return { placements: selectScreenStickers(catalog, { seed, requests, totalMax }) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog, seed, reqKey]);
+
+  return <StickerCtx.Provider value={value}>{children}</StickerCtx.Provider>;
+}
+
+/**
+ * Слот стикеров внутри карточки. Рисует декоративный слой поверх карточки; сам слой не
+ * перехватывает клики (pointer-events:none). Карточка-хост должна быть overflow:visible,
+ * чтобы «-peek» позиции не обрезались (см. styles/stickers.css → .has-stickers).
+ */
+export const StickerSlot = memo(function StickerSlot({ surface }: { surface: Surface }) {
+  const ctx = useContext(StickerCtx);
+  const placements = ctx?.placements?.[surface] || [];
+  if (!placements.length) return null;
+  return (
+    <span className={`sticker-layer sticker-layer--${surface}`} aria-hidden>
+      {placements.map((p) => (
+        <img
+          key={p.entry.id}
+          className={`sticker sticker--${p.position}`}
+          src={p.entry.src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      ))}
+    </span>
+  );
+});

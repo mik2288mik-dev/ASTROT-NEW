@@ -16,12 +16,19 @@ import { loadHumanDailySection } from '../services/natalReadingService';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
+import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen';
+import type { SurfaceRequest } from '../lib/stickers/select';
 
-const MOON_MASCOT = '/stickers/capy_flashlight_point_thinking.webp';
-const DAY_HERO_OBJECTS = {
-  notebook: '/stickers/objects/notebook.webp',
-  coffee: '/stickers/objects/coffee.webp',
-} as const;
+// ── Динамическая система стикеров (см. docs/STICKER_SYSTEM.md) ──
+// Стикеры/позиции выбираются случайно из каталога на КАЖДЫЙ заход; это единственное место,
+// где настраиваются блоки и их вайб. Раньше здесь были захардкоженные стикеры (moon-маскот +
+// notebook/coffee) — заменены на <StickerSlot/>. Лимит экрана — 3 стикера суммарно.
+// NB (для параллельного дизайн-агента): не возвращать статические <img> стикеров в карточки —
+// их рисует <StickerSlot/>; стилям карточек это не мешает (слой изолирован в styles/stickers.css).
+const STICKER_REQUESTS: SurfaceRequest[] = [
+  { surface: 'hero', max: 2 },
+  { surface: 'moon', mood: 'calm', max: 1 },
+];
 
 type SphereCard = {
   section: PersonalDailySection;
@@ -206,6 +213,7 @@ export const Dashboard = memo<DashboardProps>(({
   };
 
   return (
+    <StickerScreen requests={STICKER_REQUESTS} totalMax={3}>
     <div
       className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
@@ -241,15 +249,14 @@ export const Dashboard = memo<DashboardProps>(({
 
       <button
         type="button"
-        className="home-day-hero"
+        className="home-day-hero has-stickers"
         onClick={openDayHero}
         aria-label={dayHeroAria}
       >
         <span className="home-day-hero-glow" aria-hidden />
+        <StickerSlot surface="hero" />
         <span className="home-day-hero-scene" aria-hidden>
           <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-          <img className="home-day-hero-obj home-day-hero-obj--notebook" src={DAY_HERO_OBJECTS.notebook} alt="" />
-          <img className="home-day-hero-obj home-day-hero-obj--coffee" src={DAY_HERO_OBJECTS.coffee} alt="" />
         </span>
         <span className="home-day-hero-copy">
           <span className="home-day-hero-title">{dayHeroTitle}</span>
@@ -297,9 +304,9 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
+      <section className="home-today home-soft-card home-soft-card--moon has-stickers" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
         <div className="home-soft-card-glow" aria-hidden />
-        <img className="home-sky-mascot" src={MOON_MASCOT} alt="" aria-hidden />
+        <StickerSlot surface="moon" />
         <div className="home-today-copy">
           <span className="home-soft-card-kicker">{weekdayLabel}</span>
           <div className="home-sky-grid">
@@ -389,6 +396,7 @@ export const Dashboard = memo<DashboardProps>(({
         onRequestPremium={() => onRequestPremium?.('calendar')}
       />
     </div>
+    </StickerScreen>
   );
 });
 
