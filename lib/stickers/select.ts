@@ -77,13 +77,15 @@ export type ScreenSelectOptions = {
   maxMaskots?: number; // максимум маскотов на ВСЮ страницу (по умолчанию 1)
 };
 
-const hit = <T,>(list: readonly T[], allowed?: readonly T[]) =>
-  !allowed || !allowed.length || list.some((x) => allowed.includes(x));
+// list может прийти undefined из УСТАРЕВШЕГО кэша каталога (старая схема без поля) —
+// поэтому защищаемся (|| []), чтобы никогда не падать на .some у устаревших записей.
+const hit = <T,>(list: readonly T[] | undefined, allowed?: readonly T[]) =>
+  !allowed || !allowed.length || (list || []).some((x) => allowed.includes(x));
 
 function eligible(entry: StickerEntry, req: SurfaceRequest, type: 'character' | 'object'): boolean {
   return (
     entry.type === type &&
-    entry.surfaces.includes(req.surface) &&
+    (entry.surfaces || []).includes(req.surface) &&
     hit(entry.moods, req.moods) &&
     hit(entry.themes, req.themes)
   );

@@ -41,8 +41,14 @@ export function StickerScreen({ requests, maxMaskots = 1, children }: StickerScr
   // Пересобираем только когда меняется каталог/seed/состав запросов — не на каждый рендер.
   const reqKey = JSON.stringify(requests) + `|${maxMaskots}`;
   const value = useMemo<Ctx>(() => {
-    if (!catalog || seed === 0) return { placements: {} as Record<Surface, StickerPlacement[]> };
-    return { placements: selectScreenStickers(catalog, { seed, requests, maxMaskots }) };
+    const empty = { placements: {} as Record<Surface, StickerPlacement[]> };
+    if (!catalog || seed === 0) return empty;
+    // Стикеры — декоративны: любая ошибка выбора НЕ должна ронять экран, просто нет стикеров.
+    try {
+      return { placements: selectScreenStickers(catalog, { seed, requests, maxMaskots }) };
+    } catch {
+      return empty;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalog, seed, reqKey]);
 

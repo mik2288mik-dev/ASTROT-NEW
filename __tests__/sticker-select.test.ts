@@ -88,6 +88,18 @@ describe('selection — user rules', () => {
     const b = selectScreenStickers(catalog, { seed: 42, requests: REQUESTS, maxMaskots: 1 });
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
+
+  it('does NOT crash on a stale-cache entry missing themes/moods/surfaces (prod incident)', () => {
+    const stale: StickerCatalog = {
+      version: 'stale',
+      entries: [
+        // запись из старого кэша: нет themes (и др.) — раньше валило .some → краш экрана
+        { id: 'old', src: '/stickers/old.webp', type: 'character', object: 'coffee', pose: null } as any,
+        entry('capy_coffee_sit_calm'),
+      ],
+    };
+    expect(() => selectScreenStickers(stale, { seed: 5, requests: REQUESTS, maxMaskots: 1 })).not.toThrow();
+  });
 });
 
 describe('time-based rotation (twice a day)', () => {

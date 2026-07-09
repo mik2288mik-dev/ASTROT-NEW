@@ -5,16 +5,27 @@
  */
 import type { StickerCatalog } from '../lib/stickers/types';
 
-const LS_KEY = 'lumia.stickers.catalog.v1';
+// v2: у записей появилось поле themes. Ключ поднят, чтобы старый кэш (без themes) НЕ читался
+// и не ронял выбор (entry.themes был undefined). Плюс валидируем схему на всякий случай.
+const LS_KEY = 'lumia.stickers.catalog.v2';
 let inflight: Promise<StickerCatalog> | null = null;
 let memory: StickerCatalog | null = null;
+
+function isValidCatalog(value: unknown): value is StickerCatalog {
+  const c = value as StickerCatalog | null;
+  if (!c || !Array.isArray(c.entries)) return false;
+  // Каждая запись должна нести массивы-теги новой схемы (иначе кэш устарел).
+  return c.entries.every(
+    (e) => e && Array.isArray(e.moods) && Array.isArray(e.themes) && Array.isArray(e.surfaces),
+  );
+}
 
 function readLocal(): StickerCatalog | null {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(LS_KEY) : null;
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as StickerCatalog;
-    return parsed && Array.isArray(parsed.entries) ? parsed : null;
+    const parsed = JSON.parse(raw);
+    return isValidCatalog(parsed) ? parsed : null;
   } catch {
     return null;
   }
