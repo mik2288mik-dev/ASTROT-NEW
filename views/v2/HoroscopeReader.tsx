@@ -261,10 +261,10 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   /* Личный день — доступ по карте + Premium */
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const personalSubtitle = !hasChart
-    ? (language === 'ru' ? 'Создайте натальную карту' : 'Create a natal chart')
+    ? (language === 'ru' ? 'Сначала собери карту — тогда будет про тебя, не про знак вообще.' : 'Build your chart first — then it is about you, not just the sign.')
     : !premium
-      ? (language === 'ru' ? 'Доступно в Premium' : 'Available in Premium')
-      : (language === 'ru' ? 'Разбор вашего дня по карте' : 'Your day, read from your chart');
+      ? (language === 'ru' ? 'Хватит гадать по знаку — личный расклад ждёт в Premium.' : 'Stop guessing by sign — your personal read is in Premium.')
+      : (language === 'ru' ? 'Это про твоё небо, не про знак вообще. Точнее в разы — смотри сам.' : 'This is your sky, not the sign in general. Much sharper — see for yourself.');
   const personalCta = !hasChart
     ? (language === 'ru' ? 'Создать карту' : 'Create chart')
     : !premium

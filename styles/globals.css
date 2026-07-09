@@ -7738,3 +7738,215 @@ a,
 .pw2-cell.is-yes {
   color: #1478FF;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Theme-aware card monograms: faint, gray-blue, below content
+   ═══════════════════════════════════════════════════════════════ */
+.home-day-hero,
+.home-sphere-card,
+.home-feed-card,
+.horo-premium {
+  --card-topic-pattern-size: 176px 124px;
+  --card-topic-pattern-opacity: 0.27;
+  position: relative;
+  isolation: isolate;
+}
+
+.home-day-hero::after,
+.home-sphere-card::after,
+.home-feed-card::after,
+.horo-premium::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: var(--card-topic-pattern);
+  background-repeat: repeat;
+  background-size: var(--card-topic-pattern-size);
+  opacity: var(--card-topic-pattern-opacity);
+  mix-blend-mode: multiply;
+}
+
+.home-day-hero-scene,
+.home-sphere-card > *,
+.home-feed-card > *,
+.horo-premium > * {
+  position: relative;
+  z-index: 1;
+}
+
+.home-day-hero {
+  --card-topic-pattern-size: 190px 126px;
+  --card-topic-pattern-opacity: 0.24;
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='126' viewBox='0 0 190 126'%3E%3Cpath d='M-18 36C18 14 48 58 84 36S146 14 208 38' fill='none' stroke='%231478FF' stroke-opacity='.18' stroke-width='1.4'/%3E%3Cpath d='M-12 88C26 66 58 108 96 86S158 66 204 88' fill='none' stroke='%231478FF' stroke-opacity='.12' stroke-width='1.2'/%3E%3Ccircle cx='34' cy='78' r='2.1' fill='%231478FF' fill-opacity='.15'/%3E%3Ccircle cx='128' cy='28' r='1.8' fill='%231478FF' fill-opacity='.13'/%3E%3Ccircle cx='156' cy='96' r='2.4' fill='%231478FF' fill-opacity='.1'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card {
+  flex: 0 0 min(78vw, 19rem);
+  min-height: 7.15rem;
+  justify-content: flex-start;
+  gap: 0.9rem;
+  padding: 1.18rem 1.22rem 1.12rem;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.14) 58%),
+    var(--app-card-pattern);
+}
+
+.home-sphere-title {
+  font-size: 1.16rem;
+  line-height: 1.08;
+}
+
+.home-sphere-hook {
+  max-width: 14.8rem;
+  margin-top: 0;
+  font-size: 0.98rem;
+  font-weight: 650;
+  line-height: 1.28;
+  -webkit-line-clamp: 3;
+}
+
+.home-sphere-card--love {
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='118' viewBox='0 0 170 118'%3E%3Cpath d='M38 35C30 24 14 29 14 44C14 59 38 72 38 72S62 59 62 44C62 29 46 24 38 35Z' fill='none' stroke='%231478FF' stroke-opacity='.17' stroke-width='1.5'/%3E%3Cpath d='M102 42h28v16a14 14 0 0 1-28 0V42Z' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.4'/%3E%3Cpath d='M130 47h9a8 8 0 0 1 0 16h-9' fill='none' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.4'/%3E%3Cpath d='M92 79h54' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.2'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--money {
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='120' viewBox='0 0 174 120'%3E%3Crect x='18' y='24' width='56' height='30' rx='6' fill='none' stroke='%231478FF' stroke-opacity='.14' stroke-width='1.4'/%3E%3Ccircle cx='46' cy='39' r='8' fill='none' stroke='%231478FF' stroke-opacity='.12' stroke-width='1.3'/%3E%3Ccircle cx='116' cy='70' r='17' fill='none' stroke='%231478FF' stroke-opacity='.16' stroke-width='1.5'/%3E%3Ccircle cx='132' cy='82' r='12' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3'/%3E%3Cpath d='M110 70h12M116 62v16' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.2'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--work {
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='178' height='118' viewBox='0 0 178 118'%3E%3Cpath d='M16 84L46 58l25 16 38-42 48 24' fill='none' stroke='%231478FF' stroke-opacity='.16' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='126' cy='34' r='16' fill='none' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.3'/%3E%3Cpath d='M126 24v10l8 5' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.3' stroke-linecap='round'/%3E%3Cpath d='M54 31c0-10 16-10 16 1v28c0 14-22 14-22 0V36' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.4'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--goals {
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M33 82V27h42l-9 13 9 13H33' fill='none' stroke='%231478FF' stroke-opacity='.15' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M102 72l13 13 34-42' fill='none' stroke='%231478FF' stroke-opacity='.15' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M24 92h36M80 92h24M126 92h28' stroke='%231478FF' stroke-opacity='.09' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--family {
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='120' viewBox='0 0 174 120'%3E%3Cpath d='M24 66l36-30 36 30v34H34V66' fill='none' stroke='%231478FF' stroke-opacity='.14' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M54 100V78h14v22' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3'/%3E%3Cpath d='M116 45h28v16a14 14 0 0 1-28 0V45Z' fill='none' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.4'/%3E%3Cpath d='M144 50h8a7 7 0 0 1 0 14h-8' fill='none' stroke='%231478FF' stroke-opacity='.09' stroke-width='1.3'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--friends {
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M23 31h66a12 12 0 0 1 12 12v20a12 12 0 0 1-12 12H55L34 92l6-17H23a12 12 0 0 1-12-12V43a12 12 0 0 1 12-12Z' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.5'/%3E%3Cpath d='M89 53h54a11 11 0 0 1 11 11v17a11 11 0 0 1-11 11h-20l-17 12 4-12H89a11 11 0 0 1-11-11V64a11 11 0 0 1 11-11Z' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.4'/%3E%3Ccircle cx='42' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='58' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='74' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3C/svg%3E");
+}
+
+.home-feed-card,
+.horo-premium {
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.14) 58%),
+    var(--app-card-pattern);
+}
+
+.home-feed-card--natal,
+.horo-premium {
+  --card-topic-pattern-size: 170px 128px;
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='128' viewBox='0 0 170 128'%3E%3Ccircle cx='61' cy='64' r='34' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.4'/%3E%3Ccircle cx='61' cy='64' r='15' fill='none' stroke='%231478FF' stroke-opacity='.09' stroke-width='1.3'/%3E%3Cpath d='M61 18v92M15 64h92M36 39l50 50M86 39L36 89' stroke='%231478FF' stroke-opacity='.08' stroke-width='1.2'/%3E%3Ccircle cx='126' cy='42' r='9' fill='none' stroke='%231478FF' stroke-opacity='.12' stroke-width='1.3'/%3E%3C/svg%3E");
+}
+
+.home-feed-card--matrix {
+  --card-topic-pattern-size: 168px 118px;
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='118' viewBox='0 0 168 118'%3E%3Cpath d='M28 24h84v66H28zM56 24v66M84 24v66M112 24v66M28 46h84M28 68h84' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.2'/%3E%3Ccircle cx='56' cy='46' r='4' fill='none' stroke='%231478FF' stroke-opacity='.14' stroke-width='1.3'/%3E%3Ccircle cx='84' cy='68' r='4' fill='none' stroke='%231478FF' stroke-opacity='.12' stroke-width='1.3'/%3E%3Ccircle cx='112' cy='46' r='4' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3'/%3E%3Cpath d='M56 46l28 22 28-22' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3'/%3E%3C/svg%3E");
+}
+
+.home-feed-card--compat {
+  --card-topic-pattern-size: 170px 120px;
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='120' viewBox='0 0 170 120'%3E%3Ccircle cx='58' cy='58' r='27' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.5'/%3E%3Ccircle cx='96' cy='58' r='27' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.5'/%3E%3Cpath d='M77 62C70 53 57 57 57 68c0 13 20 23 20 23s20-10 20-23c0-11-13-15-20-6Z' fill='none' stroke='%231478FF' stroke-opacity='.12' stroke-width='1.4'/%3E%3Cpath d='M126 34h24M126 46h16M126 58h22' stroke='%231478FF' stroke-opacity='.08' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.home-soft-card--moon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='128' viewBox='0 0 190 128'%3E%3Cpath d='M44 31c-16 9-22 31-11 47 11 17 34 22 50 12-20 0-36-16-36-36 0-10 4-18 11-25-5 0-10 1-14 2Z' fill='none' stroke='%23FFFFFF' stroke-opacity='.16' stroke-width='1.5'/%3E%3Cpath d='M126 30l2.4 6.2 6.6 1-5 4.5 1.3 6.6-5.7-3.4-5.8 3.2 1.5-6.5-4.8-4.7 6.6-.8L126 30Z' fill='none' stroke='%23FFFFFF' stroke-opacity='.13' stroke-width='1.1'/%3E%3Ccircle cx='145' cy='82' r='1.8' fill='%23FFFFFF' fill-opacity='.14'/%3E%3Ccircle cx='94' cy='26' r='1.5' fill='%23FFFFFF' fill-opacity='.12'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 190px 128px;
+  opacity: 0.55;
+}
+
+.home-today-copy,
+.home-today-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.pd-areahero {
+  --daily-topic-pattern-size: 170px 116px;
+  --daily-topic-pattern:
+    radial-gradient(circle at 24% 34%, rgba(20, 120, 255, 0.045) 0 2px, transparent 2.5px),
+    repeating-linear-gradient(135deg, rgba(20, 120, 255, 0.018) 0 1px, transparent 1px 16px);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.pd-areahero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--daily-topic-pattern);
+  background-size: var(--daily-topic-pattern-size);
+  opacity: 0.7;
+}
+
+.pd-areahero::before,
+.pd-areahero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pd-areahero--love {
+  --daily-topic-pattern:
+    radial-gradient(circle at 24% 30%, transparent 0 13px, rgba(20, 120, 255, 0.055) 13px 14px, transparent 14.5px),
+    radial-gradient(circle at 38% 30%, transparent 0 13px, rgba(20, 120, 255, 0.04) 13px 14px, transparent 14.5px),
+    linear-gradient(45deg, transparent 36%, rgba(20, 120, 255, 0.035) 36% 38%, transparent 38% 100%);
+}
+
+.pd-areahero--money {
+  --daily-topic-pattern:
+    radial-gradient(circle at 26% 36%, transparent 0 15px, rgba(20, 120, 255, 0.06) 15px 16px, transparent 16.5px),
+    radial-gradient(circle at 72% 68%, transparent 0 11px, rgba(20, 120, 255, 0.045) 11px 12px, transparent 12.5px),
+    linear-gradient(24deg, transparent 35%, rgba(20, 120, 255, 0.032) 35% 37%, transparent 37%);
+}
+
+.pd-areahero--work {
+  --daily-topic-pattern:
+    linear-gradient(132deg, transparent 28%, rgba(20, 120, 255, 0.05) 28% 29%, transparent 29% 47%, rgba(20, 120, 255, 0.04) 47% 48%, transparent 48%),
+    radial-gradient(circle at 72% 28%, transparent 0 15px, rgba(20, 120, 255, 0.045) 15px 16px, transparent 16.5px);
+}
+
+.pd-areahero--goals {
+  --daily-topic-pattern:
+    linear-gradient(135deg, transparent 42%, rgba(20, 120, 255, 0.05) 42% 44%, transparent 44%),
+    linear-gradient(90deg, transparent 22%, rgba(20, 120, 255, 0.035) 22% 23%, transparent 23% 46%, rgba(20, 120, 255, 0.028) 46% 47%, transparent 47%);
+}
+
+.pd-areahero--family {
+  --daily-topic-pattern:
+    linear-gradient(45deg, transparent 38%, rgba(20, 120, 255, 0.045) 38% 39.2%, transparent 39.2%),
+    linear-gradient(135deg, transparent 38%, rgba(20, 120, 255, 0.035) 38% 39.2%, transparent 39.2%),
+    radial-gradient(circle at 76% 70%, transparent 0 13px, rgba(20, 120, 255, 0.04) 13px 14px, transparent 14.5px);
+}
+
+.pd-areahero--friends {
+  --daily-topic-pattern:
+    radial-gradient(ellipse at 34% 38%, transparent 0 20px, rgba(20, 120, 255, 0.05) 20px 21px, transparent 21.5px),
+    radial-gradient(ellipse at 70% 64%, transparent 0 17px, rgba(20, 120, 255, 0.038) 17px 18px, transparent 18.5px),
+    radial-gradient(circle at 28% 38%, rgba(20, 120, 255, 0.04) 0 1.7px, transparent 2px);
+}
+
+@media (max-width: 380px) {
+  .home-sphere-card {
+    flex-basis: 80vw;
+    min-height: 6.9rem;
+  }
+}

@@ -289,7 +289,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
             onDragEnd={onDragEnd}
             style={{ touchAction: 'pan-y' }}
           >
-            <div className="pd-areahero" style={{ ['--pd-accent' as string]: activeTab.accent } as React.CSSProperties}>
+            <div className={`pd-areahero pd-areahero--${activeTab.id}`} style={{ ['--pd-accent' as string]: activeTab.accent } as React.CSSProperties}>
               <div className="pd-areahero-title">{activeTab.title}</div>
               <div className="pd-areahero-sub">{activeTab.subtitle} · {formatLumiaDate(dateKey, language)}</div>
             </div>

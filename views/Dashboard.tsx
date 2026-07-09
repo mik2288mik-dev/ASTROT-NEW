@@ -173,11 +173,11 @@ export const Dashboard = memo<DashboardProps>(({
   const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
   const natalText = hasChart
     ? (language === 'ru'
-      ? 'Загляни в личный портрет: что в тебе сильное, что включается первым и почему некоторые вещи даются легче.'
-      : 'Step into your personal portrait: what is strong in you, what turns on first, and why some things come easier.')
+      ? 'Твой персональный разбор — по факту, а не общими словами. Загляни.'
+      : 'Your personal reading — specific, not generic. Take a look.')
     : (language === 'ru'
-      ? 'Собери личный портрет по рождению, чтобы дальше читать себя точнее и без общих фраз.'
-      : 'Build your birth portrait so the rest of the app can read you more precisely, without generic lines.');
+      ? 'Собери карту — дальше будет про твоё небо, не про знак вообще.'
+      : 'Build your chart so the app reads your sky, not just your sign.');
   const matrixText = language === 'ru'
     ? 'Короткий портрет по числам рождения: что в тебе заметно сразу и какая внутренняя тема часто возвращается.'
     : 'A compact portrait from your birth numbers: what shows first in you and what inner theme tends to return.';
@@ -186,20 +186,20 @@ export const Dashboard = memo<DashboardProps>(({
     : 'See where being close feels easy, and where softer, clearer words help you understand each other without guessing.';
   const sphereCards: SphereCard[] = language === 'ru'
     ? [
-        { section: 'love', title: 'Любовь', hook: 'Скажи проще, но теплее.' },
-        { section: 'money', title: 'Деньги', hook: 'Одна покупка просит паузу.' },
-        { section: 'work', title: 'Работа', hook: 'Фокус держится на одном деле.' },
-        { section: 'goals', title: 'Цели', hook: 'Выбери шаг, который виден.' },
-        { section: 'family', title: 'Дом', hook: 'Уют начинается с малого.' },
-        { section: 'friends', title: 'Друзья', hook: 'Лучше коротко, но по-настоящему.' },
+        { section: 'love', title: 'Любовь', hook: 'Что сегодня с чувствами? Есть нюанс' },
+        { section: 'money', title: 'Деньги', hook: 'Не спеши тратить — вот почему' },
+        { section: 'work', title: 'Работа', hook: 'Сегодня решает не срочность' },
+        { section: 'goals', title: 'Цели', hook: 'Один шаг важнее плана на месяц' },
+        { section: 'family', title: 'Дом', hook: 'Дома просится маленькая правка' },
+        { section: 'friends', title: 'Друзья', hook: 'Кому сегодня написать первым?' },
       ]
     : [
-        { section: 'love', title: 'Love', hook: 'Say it simpler, but warmer.' },
-        { section: 'money', title: 'Money', hook: 'One purchase wants a pause.' },
-        { section: 'work', title: 'Work', hook: 'Focus stays with one task.' },
-        { section: 'goals', title: 'Goals', hook: 'Choose the step you can see.' },
-        { section: 'family', title: 'Home', hook: 'Ease starts with one small fix.' },
-        { section: 'friends', title: 'Friends', hook: 'Short and real works best.' },
+        { section: 'love', title: 'Love', hook: 'What is up with feelings today?' },
+        { section: 'money', title: 'Money', hook: 'Do not rush that spend — here is why' },
+        { section: 'work', title: 'Work', hook: 'Today urgency is not the boss' },
+        { section: 'goals', title: 'Goals', hook: 'One step beats a month-long plan' },
+        { section: 'family', title: 'Home', hook: 'One small home fix wants attention' },
+        { section: 'friends', title: 'Friends', hook: 'Who is worth texting first today?' },
       ];
   const openDayHero = () => {
     lumiaSelectionHaptic();
@@ -296,7 +296,7 @@ export const Dashboard = memo<DashboardProps>(({
             <button
               key={card.section}
               type="button"
-              className="home-sphere-card"
+              className={`home-sphere-card home-sphere-card--${card.section}`}
               onClick={() => openSphere(card.section)}
             >
               <span className="home-sphere-title">{card.title}</span>
