@@ -11,11 +11,14 @@ import {
   type StickerOverride,
 } from './types';
 import {
-  OBJECT_DEFAULT_MOODS,
   defaultSurfacesForMoods,
   positionsForSurfaces,
+  themesForObject,
   typeFromAnimal,
 } from './rules';
+
+// Предметы (palm, slippers…) настроения в имени не несут — спокойный дефолт.
+const OBJECT_DEFAULT_MOODS: Mood[] = ['calm', 'happy', 'chill'];
 
 const MOOD_SET = new Set<string>(MOODS);
 const POSE_SET = new Set<string>(POSES);
@@ -67,6 +70,7 @@ export function buildStickerEntry(
   if (override.exclude) return null;
 
   const moods = override.moods && override.moods.length ? override.moods : baseMoods;
+  const themes = override.themes && override.themes.length ? override.themes : themesForObject(parsed.object);
   const surfaces = override.surfaces && override.surfaces.length ? override.surfaces : defaultSurfacesForMoods(moods);
   const positions =
     override.positions && override.positions.length ? override.positions : positionsForSurfaces(surfaces);
@@ -78,6 +82,7 @@ export function buildStickerEntry(
     object: parsed.object,
     pose: parsed.pose,
     moods,
+    themes,
     surfaces,
     positions,
   };

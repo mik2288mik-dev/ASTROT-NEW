@@ -21,13 +21,16 @@ import type { SurfaceRequest } from '../lib/stickers/select';
 
 // ── Динамическая система стикеров (см. docs/STICKER_SYSTEM.md) ──
 // Стикеры/позиции выбираются случайно из каталога на КАЖДЫЙ заход; это единственное место,
-// где настраиваются блоки и их вайб. Раньше здесь были захардкоженные стикеры (moon-маскот +
-// notebook/coffee) — заменены на <StickerSlot/>. Лимит экрана — 3 стикера суммарно.
+// где настраиваются вайб (moods) и ТЕМАТИКА (themes) каждого блока. Правила: не больше одного
+// маскота на карточку, общий лимит на экран = 3, тематический фильтр (rule 5). Раскладка
+// меняется 2 раза в сутки (см. StickerScreen), а не на каждый заход.
 // NB (для параллельного дизайн-агента): не возвращать статические <img> стикеров в карточки —
-// их рисует <StickerSlot/>; стилям карточек это не мешает (слой изолирован в styles/stickers.css).
+// их рисует <StickerSlot/>; слой изолирован в styles/stickers.css.
 const STICKER_REQUESTS: SurfaceRequest[] = [
-  { surface: 'hero', max: 2 },
-  { surface: 'moon', mood: 'calm', max: 1 },
+  // Герой дня: уютный лайфстайл, без гаджетов/спорта (чтобы не «реклама магазина»).
+  { surface: 'hero', moods: ['calm', 'happy', 'chill'], themes: ['drink', 'read', 'cozy', 'study'] },
+  // Луна/ночь: только спокойная «ночная» тематика (напитки/чтение/уют), без техники/актива.
+  { surface: 'moon', moods: ['calm', 'chill', 'thinking'], themes: ['drink', 'read', 'cozy'] },
 ];
 
 type SphereCard = {
@@ -254,9 +257,9 @@ export const Dashboard = memo<DashboardProps>(({
         aria-label={dayHeroAria}
       >
         <span className="home-day-hero-glow" aria-hidden />
-        <StickerSlot surface="hero" />
         <span className="home-day-hero-scene" aria-hidden>
           <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+          <StickerSlot surface="hero" />
         </span>
         <span className="home-day-hero-copy">
           <span className="home-day-hero-title">{dayHeroTitle}</span>

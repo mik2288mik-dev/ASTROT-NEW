@@ -17,22 +17,23 @@ export type Mood = (typeof MOODS)[number];
 export const POSES = ['pawup', 'pawdown', 'wave', 'sit', 'run', 'peek', 'stand', 'point'] as const;
 export type Pose = (typeof POSES)[number];
 
+// Тематика (rule 5): не только настроение, но и тема. Блок фильтрует каталог по обоим.
+export const THEMES = ['drink', 'read', 'cozy', 'gift', 'tech', 'active', 'study'] as const;
+export type Theme = (typeof THEMES)[number];
+
 export type StickerType = 'character' | 'object';
 
 // Экраны/блоки, где может стоять стикер. Расширяется добавлением значения + правил.
 export const SURFACES = ['hero', 'moon', 'sphere', 'feed'] as const;
 export type Surface = (typeof SURFACES)[number];
 
-// Заранее продуманный набор позиций (не произвольные координаты). «-peek» = выступает
-// за край карточки (требует overflow-visible на хосте — см. styles/stickers.css).
+// Заранее продуманный набор позиций (не произвольные координаты). Позиции — ТЕКСТО-БЕЗОПАСНЫЕ:
+// каждая привязана к зоне карточки, где нет текста (rule 4). «peek/gutter» = выступает за край
+// в фон (требует overflow-visible на хосте — см. styles/stickers.css).
 export const POSITION_SLOTS = [
-  'bottom-right-peek',
-  'bottom-left-peek',
-  'top-right-peek',
-  'top-left',
-  'bottom-center',
-  'right-center-peek',
-  'left-bottom',
+  'hero-scene', // герой: в зоне сцены (верх карточки), над текстом do/dont НЕ залезает
+  'moon-gutter', // луна: в правом отступе карточки (там зарезервировано место, текста нет)
+  'corner-peek', // мелкие карточки: нижний-правый угол, выступает наружу
 ] as const;
 export type PositionSlot = (typeof POSITION_SLOTS)[number];
 
@@ -44,6 +45,7 @@ export type StickerEntry = {
   object: string | null; // образ/предмет из имени ("coffee", "notebook", "palm"…)
   pose: Pose | null; // только у маскотов
   moods: Mood[]; // настроения, к которым подходит стикер
+  themes: Theme[]; // тематика (из образа) — для тематического фильтра блока
   surfaces: Surface[]; // где уместен
   positions: PositionSlot[]; // допустимые позиции
 };
@@ -54,7 +56,9 @@ export type StickerCatalog = {
 };
 
 /** Необязательный оверрайд на конкретный стикер (по id ИЛИ по образу для предметов). */
-export type StickerOverride = Partial<Pick<StickerEntry, 'type' | 'moods' | 'surfaces' | 'positions'>> & {
+export type StickerOverride = Partial<
+  Pick<StickerEntry, 'type' | 'moods' | 'themes' | 'surfaces' | 'positions'>
+> & {
   exclude?: boolean; // полностью убрать стикер из ротации
 };
 

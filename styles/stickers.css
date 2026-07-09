@@ -38,25 +38,29 @@
   .sticker { animation: none; }
 }
 
-/* Размер по типу блока. */
-.sticker-layer--hero .sticker { width: 8rem; }
-.sticker-layer--moon .sticker { width: 6.4rem; }
-.sticker-layer--sphere .sticker { width: 3.6rem; }
-.sticker-layer--feed .sticker { width: 4.4rem; }
+/* Размер по типу блока. Размеры подобраны так, чтобы «внутренняя» часть стикера не заходила
+ * в текстовую зону карточки (rule 4): на луне текст имеет правый отступ 4.5rem — стикер шириной
+ * 5rem с выступом ~0.95rem наружу занимает внутри ~4.05rem < 4.5rem, текста не касается. */
+.sticker-layer--hero .sticker { width: 7.4rem; }
+.sticker-layer--moon .sticker { width: 5rem; }
+.sticker-layer--sphere .sticker { width: 3.4rem; }
+.sticker-layer--feed .sticker { width: 4rem; }
 
-/* Позиции (заранее продуманный набор). «-peek» использует отрицательные отступы —
- * стикер выступает за край; .has-stickers на хосте гарантирует, что не обрежется. */
-.sticker--bottom-right-peek { right: -0.9rem; bottom: -1rem; }
-.sticker--bottom-left-peek { left: -0.9rem; bottom: -1rem; }
-.sticker--top-right-peek { right: -0.6rem; top: -1.1rem; }
-.sticker--top-left { left: 0.4rem; top: 0.3rem; }
-.sticker--bottom-center { left: 50%; bottom: -0.9rem; transform: translateX(-50%); }
-.sticker--right-center-peek { right: -0.95rem; top: 50%; transform: translateY(-50%); }
-.sticker--left-bottom { left: 0.3rem; bottom: -0.8rem; }
+/* ТЕКСТО-БЕЗОПАСНЫЕ позиции (rule 4): каждая — в зоне без текста, выступает в фон наружу.
+ *
+ * hero-scene: слот вложен в .home-day-hero-scene (верхняя «сцена» карточки, где нет copy и
+ * do/dont). Стикер прижат к низу сцены и правому краю, выступает вправо — над текстом НЕ лезет. */
+.sticker--hero-scene { right: -0.5rem; bottom: 0.4rem; }
 
-/* Компактные экраны — чуть меньше. */
+/* moon-gutter: правый отступ карточки луны (padding-right у текста зарезервировал место). */
+.sticker--moon-gutter { right: -0.95rem; bottom: -0.4rem; }
+
+/* corner-peek: нижний-правый угол мелкой карточки, выступает наружу. */
+.sticker--corner-peek { right: -0.6rem; bottom: -0.7rem; }
+
+/* Компактные экраны — меньше, чтобы луна оставалась в пределах отступа 3.75rem. */
 @media (max-width: 380px) {
-  .sticker-layer--hero .sticker { width: 6.8rem; }
-  .sticker-layer--moon .sticker { width: 5.5rem; }
-  .sticker-layer--sphere .sticker { width: 3.1rem; }
+  .sticker-layer--hero .sticker { width: 6.4rem; }
+  .sticker-layer--moon .sticker { width: 4.2rem; }
+  .sticker-layer--sphere .sticker { width: 3rem; }
 }

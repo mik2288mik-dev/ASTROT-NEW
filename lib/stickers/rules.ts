@@ -1,41 +1,58 @@
 /**
- * Правила размещения — как из тегов стикера вывести, где он уместен и в каких позициях,
- * БЕЗ ручной прописи для каждого файла. Это и даёт расширяемость на сотни стикеров:
- * корректно названный файл получает вменяемое размещение автоматически.
+ * Правила размещения — как из тегов стикера вывести тему, где он уместен и в какой
+ * ТЕКСТО-БЕЗОПАСНОЙ позиции. Расширяемость: корректно названный файл получает вменяемое
+ * размещение автоматически.
  */
 import {
   type Mood,
-  type Pose,
   type PositionSlot,
   type StickerType,
   type Surface,
+  type Theme,
 } from './types';
 
-// Какие позиции допустимы на каждом экране/блоке (заранее продуманный набор).
+// Позиция на каждом экране/блоке — ОДНА заранее выверенная зона, где нет текста (rule 4).
 export const SURFACE_POSITIONS: Record<Surface, PositionSlot[]> = {
-  // Крупная карточка-герой дня: сцена сверху, стикер выступает снизу/сверху по краям.
-  hero: ['bottom-right-peek', 'bottom-left-peek', 'top-right-peek'],
-  // Карточка луны: маскот выглядывает справа.
-  moon: ['right-center-peek', 'bottom-right-peek'],
-  // Мелкие карточки-сферы: один маленький угловой выступ.
-  sphere: ['bottom-right-peek'],
-  // Лента карточек: скромный угол.
-  feed: ['bottom-right-peek', 'top-right-peek'],
+  hero: ['hero-scene'], // верхняя «сцена» карточки-героя: над copy и do/dont
+  moon: ['moon-gutter'], // правый отступ карточки луны (там зарезервировано место)
+  sphere: ['corner-peek'],
+  feed: ['corner-peek'],
 };
 
-// Сколько стикеров максимум разумно на одном блоке (общий экранный лимит — отдельно).
-export const SURFACE_MAX: Record<Surface, number> = {
-  hero: 2,
-  moon: 1,
-  sphere: 1,
-  feed: 1,
+// Тематика по образу (rule 5). Ключ — образ/предмет из имени; значение — темы.
+const OBJECT_THEME: Record<string, Theme[]> = {
+  // напитки / уют за чашкой
+  coffee: ['drink', 'cozy'], cocoa: ['drink', 'cozy'], mug: ['drink', 'cozy'],
+  bubbletea: ['drink'], thermos: ['drink'], flask: ['drink'], bottle: ['drink'], cookie: ['cozy'],
+  // чтение / заметки
+  book: ['read', 'cozy'], notebook: ['read'], planner: ['read'], letter: ['read'],
+  clipboard: ['read', 'study'], calendar: ['read'], glasses: ['read'],
+  // уют / дом / тепло
+  candle: ['cozy'], plant: ['cozy'], flowers: ['cozy'], lantern: ['cozy'], lights: ['cozy'],
+  key: ['cozy'], hoodie: ['cozy'], beanie: ['cozy'], heart: ['cozy', 'gift'],
+  // подарки
+  gift: ['gift'], giftbox: ['gift'], present: ['gift'],
+  // техника / гаджеты (для «ночной» темы НЕ подходят — исключаем на луне)
+  laptop: ['tech'], phone: ['tech'], keyboard: ['tech'], camera: ['tech'],
+  gamepad: ['tech', 'active'], console: ['tech', 'active'], gameboy: ['tech', 'active'],
+  headphones: ['tech'], tablet: ['tech', 'read'],
+  // активность / улица
+  basketball: ['active'], skate: ['active'], stopwatch: ['active'], compass: ['active'],
+  duck: ['active'], umbrella: ['active'], sneakers: ['active'], sunglasses: ['active'],
+  // фокус / рабочее
+  flashlight: ['study'], palette: ['study'], pen: ['study'],
 };
 
-// Поза «peek» (выглядывает) особенно уместна на герое/луне; «run» — динамика на герое.
-// Это лишь ДЕФОЛТ по настроению — оверрайд может уточнить.
+/** Темы стикера по его образу (учёт варианта: `thermos_green` → `thermos`). */
+export function themesForObject(object: string | null): Theme[] {
+  if (!object) return [];
+  return OBJECT_THEME[object] || OBJECT_THEME[object.split('_')[0]] || [];
+}
+
+// Дефолтные экраны по настроению (базовый допуск; тематику режет уже запрос блока).
 const MOOD_SURFACES: Record<Mood, Surface[]> = {
   calm: ['hero', 'moon', 'sphere', 'feed'],
-  happy: ['hero', 'moon', 'sphere', 'feed'],
+  happy: ['hero', 'sphere', 'feed'],
   chill: ['hero', 'moon', 'feed'],
   thinking: ['hero', 'moon', 'feed'],
   hype: ['hero', 'sphere'],
@@ -43,20 +60,14 @@ const MOOD_SURFACES: Record<Mood, Surface[]> = {
   surprise: ['hero'],
 };
 
-/** Дефолтные экраны для стикера по его настроениям (объединение по всем его настроениям). */
 export function defaultSurfacesForMoods(moods: Mood[]): Surface[] {
   const set = new Set<Surface>();
   for (const m of moods) for (const s of MOOD_SURFACES[m] || []) set.add(s);
-  // Предмет/маскот без распознанного настроения — пусть живёт хотя бы на герое.
   if (set.size === 0) set.add('hero');
   return [...set];
 }
 
-// Предметы (palm, slippers, lamp…) настроения в имени не несут — даём спокойный дефолт,
-// чтобы новый предмет сразу попадал в ротацию без оверрайда.
-export const OBJECT_DEFAULT_MOODS: Mood[] = ['calm', 'happy', 'chill'];
-
-/** Позиции, допустимые для стикера на данном наборе экранов (объединение наборов экранов). */
+/** Позиции, допустимые для стикера на данном наборе экранов. */
 export function positionsForSurfaces(surfaces: Surface[]): PositionSlot[] {
   const set = new Set<PositionSlot>();
   for (const s of surfaces) for (const p of SURFACE_POSITIONS[s] || []) set.add(p);
@@ -67,7 +78,3 @@ export function positionsForSurfaces(surfaces: Surface[]): PositionSlot[] {
 export function typeFromAnimal(animal: string | null): StickerType {
   return animal === 'cat' || animal === 'capy' ? 'character' : 'object';
 }
-
-// Экспорт для тестов/валидации.
-export const _internal = { MOOD_SURFACES };
-export type { Pose };

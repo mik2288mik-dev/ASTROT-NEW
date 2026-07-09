@@ -1,14 +1,20 @@
 import React, { createContext, memo, useContext, useEffect, useMemo, useState } from 'react';
 import { fetchStickerCatalog, peekStickerCatalog } from '../../services/stickerService';
-import { selectScreenStickers, type SurfaceRequest } from '../../lib/stickers/select';
+import {
+  getStickerTimeKey,
+  hashSeed,
+  selectScreenStickers,
+  type SurfaceRequest,
+} from '../../lib/stickers/select';
 import type { StickerCatalog, StickerPlacement, Surface } from '../../lib/stickers/types';
 
 /**
- * Экранный провайдер стикеров: делает ОДИН выбор на весь экран (соблюдая лимит max-3),
- * раздаёт размещения по блокам через <StickerSlot surface=… />. Seed генерится на клиенте
- * при монтировании — свежий на КАЖДЫЙ заход в приложение (стикеры меняются), стабильный в
- * пределах сессии (без перетасовки на ре-рендерах) и без SSR-рассинхрона (сервер стикеры
- * не рисует — только после загрузки каталога на клиенте).
+ * Экранный провайдер стикеров: делает ОДИН выбор на весь экран (соблюдая общий лимит totalMax),
+ * раздаёт размещения по блокам через <StickerSlot surface=… />.
+ *
+ * Раскладка детерминирована ВРЕМЕННЫМ КЛЮЧОМ (московская дата + половина суток) — меняется
+ * 2 раза в сутки, а НЕ на каждый заход (rule 6): 10 открытий в одном полудне → одна и та же
+ * раскладка. Seed берётся на клиенте (после загрузки каталога) → без SSR-рассинхрона.
  */
 
 type Ctx = { placements: Record<Surface, StickerPlacement[]> } | null;
@@ -22,11 +28,11 @@ export type StickerScreenProps = {
 
 export function StickerScreen({ requests, totalMax = 3, children }: StickerScreenProps) {
   const [catalog, setCatalog] = useState<StickerCatalog | null>(() => peekStickerCatalog());
-  // seed=0 до маунта (ничего не рисуем без каталога); на клиенте — случайный на заход.
+  // seed=0 до маунта (ничего не рисуем без каталога); на клиенте — из временно́го ключа.
   const [seed, setSeed] = useState(0);
 
   useEffect(() => {
-    setSeed(1 + Math.floor(Math.random() * 0x7fffffff));
+    setSeed(hashSeed(getStickerTimeKey()) || 1);
     let alive = true;
     fetchStickerCatalog().then((c) => { if (alive) setCatalog(c); });
     return () => { alive = false; };
