@@ -39,16 +39,19 @@
 }
 
 /* Размер по типу блока — мельче и аккуратнее. */
-.sticker-layer--hero .sticker { width: 5.8rem; }
+.sticker-layer--hero .sticker { width: 2.7rem; }
 .sticker-layer--moon .sticker { width: 5rem; }
 .sticker-layer--sphere .sticker { width: 3rem; }
 .sticker-layer--feed .sticker { width: 2.9rem; }
 
-/* ТЕКСТО-БЕЗОПАСНЫЕ позиции: каждая — в зоне без текста, выступает в фон наружу.
+/* ТЕКСТО-БЕЗОПАСНЫЕ позиции: каждая — в зоне без текста.
  *
- * hero-scene: маскот выглядывает из правого края «сцены» (верх карточки-героя, где нет copy и
- * do/dont). Небольшой, прижат к правому краю сцены — над текстом не лезет. */
-.sticker--hero-scene { right: -0.8rem; bottom: 0.6rem; }
+ * hero-scene: слот вложен в «сцену» (верхняя полоса карточки-героя ~2.65rem: слева дата, справа
+ * пусто; весь текст — НИЖЕ). Маскот прижат к правому краю сцены, top:0 и мелкий, чтобы целиком
+ * помещаться в сцену на ЛЮБОЙ ширине — не срезается краем карточки сверху и не лезет на текст снизу.
+ * На узких телефонах текст заполняет карточку, поэтому единственная гарантированно пустая зона —
+ * именно сцена (над текстом). */
+.sticker--hero-scene { top: 0; right: -0.1rem; bottom: auto; }
 
 /* moon-gutter / corner-peek — оставлены для возможного повторного использования. */
 .sticker--moon-gutter { right: -0.95rem; bottom: -0.4rem; }
@@ -64,7 +67,7 @@
 
 /* Компактные экраны — ещё меньше. */
 @media (max-width: 380px) {
-  .sticker-layer--hero .sticker { width: 5.1rem; }
+  .sticker-layer--hero .sticker { width: 2.5rem; }
   .sticker-layer--feed .sticker { width: 2.6rem; }
   .sticker-layer--feed .sticker--comp-2 { width: 2.15rem; }
   .sticker-layer--feed .sticker--comp-3 { width: 1.9rem; }

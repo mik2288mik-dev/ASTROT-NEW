@@ -27,11 +27,9 @@ import type { SurfaceRequest } from '../lib/stickers/select';
 // NB (для параллельного дизайн-агента): не возвращать статические <img> стикеров в карточки —
 // их рисует <StickerSlot/>; слой изолирован в styles/stickers.css.
 const STICKER_REQUESTS: SurfaceRequest[] = [
-  // ОДИН маскот на всю страницу — на герое, выглядывает из угла «сцены».
+  // ОДИН маскот на всю страницу — только на герое, целиком видимый в правой пустой полосе.
+  // Карточки-переходы (натал/матрица/совместимость) и луна — БЕЗ стикеров (нет композиции).
   { surface: 'hero', kind: 'maskot', moods: ['calm', 'happy', 'chill'], themes: ['drink', 'read', 'cozy', 'study'] },
-  // Композиция из 2 предметов (уютный натюрморт) на нижней карточке «Совместимость».
-  // На карточке луны стикеров НЕТ.
-  { surface: 'feed', kind: 'composition', count: 2, themes: ['drink', 'read', 'cozy'] },
 ];
 
 type SphereCard = {
@@ -374,11 +372,10 @@ export const Dashboard = memo<DashboardProps>(({
 
         <button
           type="button"
-          className="home-soft-card home-feed-card home-feed-card--compat has-stickers"
+          className="home-soft-card home-feed-card home-feed-card--compat"
           onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
         >
           <span className="home-soft-card-glow" aria-hidden />
-          <StickerSlot surface="feed" />
           <span className="home-soft-card-content">
             <span className="home-soft-card-title">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
             <span className="home-soft-card-text">{compatibilityText}</span>
