@@ -1081,16 +1081,117 @@ const DAILY_FALLBACK_BULLETS_DEFAULT: string[][] = [
   ['Начни с малого', 'Доведи до конца одно', 'Дай себе выдохнуть'],
 ];
 
+function knownFallbackSign(sign: string): string | null {
+  const value = cleanLine(sign);
+  return value && value !== 'неизвестный знак' ? value : null;
+}
+
+function dailyFallbackSeed(profile: UserProfile, chart: NatalChartData): string {
+  const core = ['sun', 'moon', 'rising', 'mercury', 'venus', 'mars'].map((key) => {
+    const p = serializePosition(chart, key);
+    return `${key}:${p.sign}:${p.house ?? ''}:${p.degree ?? ''}:${p.retrograde ? 'r' : ''}`;
+  });
+
+  return createHash('sha256')
+    .update(JSON.stringify({
+      user: {
+        id: cleanLine(profile.id),
+        name: firstName(profile),
+        birthDate: cleanLine(profile.birthDate),
+        birthTime: cleanLine(profile.birthTime),
+        birthPlace: cleanLine(profile.birthPlace),
+      },
+      core,
+      calculationVersion: chart.calculationVersion || null,
+    }))
+    .digest('hex')
+    .slice(0, 16);
+}
+
+function dailyFallbackPersonalLead(profile: UserProfile, chart: NatalChartData): string {
+  const name = firstName(profile);
+  const sun = knownFallbackSign(serializePosition(chart, 'sun').sign);
+  const moon = knownFallbackSign(serializePosition(chart, 'moon').sign);
+  const asc = knownFallbackSign(serializePosition(chart, 'rising').sign);
+  const facts: string[] = [];
+
+  if (sun) facts.push(`Солнце в ${sun} — ${signTrait(sun)}`);
+  if (moon) facts.push(`Луна в ${moon} — ${moonTrait(moon)}`);
+  if (facts.length < 2 && asc) facts.push(`Асцендент в ${asc} делает первый шаг ${ascTrait(asc)}`);
+
+  if (!facts.length) {
+    return `${name}, это запасной дневной разбор по твоим данным, а не общий текст для всех.`;
+  }
+
+  return `${name}, это разбор от твоей карты, а не общий прогноз по знаку. ${facts.slice(0, 2).join('. ')}.`;
+}
+
+const DAILY_SUN_DO: Record<string, string> = {
+  Овен: 'начать без разгона',
+  Телец: 'закрепить главное',
+  Близнецы: 'сказать проще',
+  Рак: 'выбрать бережный тон',
+  Лев: 'показать результат',
+  Дева: 'разложить по шагам',
+  Весы: 'договориться честно',
+  Скорпион: 'назвать скрытое',
+  Стрелец: 'оставить простор',
+  Козерог: 'закрыть обязательство',
+  Водолей: 'сделать по-своему',
+  Рыбы: 'поймать тонкость',
+};
+
+const DAILY_MOON_DONT: Record<string, string> = {
+  Овен: 'не отвечать рывком',
+  Телец: 'не упираться молча',
+  Близнецы: 'не спорить на бегу',
+  Рак: 'не закрываться обидой',
+  Лев: 'не доказывать силой',
+  Дева: 'не чинить всё сразу',
+  Весы: 'не соглашаться из вежливости',
+  Скорпион: 'не проверять тишиной',
+  Стрелец: 'не обещать на подъёме',
+  Козерог: 'не держать лицо любой ценой',
+  Водолей: 'не отстраняться резко',
+  Рыбы: 'не растворяться в чужом',
+};
+
+function dailyDoCue(chart: NatalChartData): string {
+  const sun = knownFallbackSign(serializePosition(chart, 'sun').sign);
+  return sun && DAILY_SUN_DO[sun] ? `${sun}: ${DAILY_SUN_DO[sun]}` : 'Выбрать свой темп';
+}
+
+function dailyDontCue(chart: NatalChartData): string {
+  const moon = knownFallbackSign(serializePosition(chart, 'moon').sign);
+  return moon && DAILY_MOON_DONT[moon] ? `${moon}: ${DAILY_MOON_DONT[moon]}` : 'Не идти против себя';
+}
+
+function withPersonalFirstItem(items: string[], personalItem: string): string[] {
+  const unique = new Set<string>();
+  return [personalItem, ...items]
+    .map(cleanLine)
+    .filter((item) => {
+      if (!item || unique.has(item)) return false;
+      unique.add(item);
+      return true;
+    })
+    .slice(0, 3);
+}
+
 export function buildHumanDailyFallback(
-  _profile: UserProfile,
-  _chart: NatalChartData,
+  profile: UserProfile,
+  chart: NatalChartData,
   key: HumanDailySectionKey,
   dateKey: string
 ): InterpretationSection {
   const meta = HUMAN_DAILY_SECTION_META[key];
-  const content = pickVariant(DAILY_FALLBACK_VARIANTS[key], dateKey, key);
+  const seed = dailyFallbackSeed(profile, chart);
+  const baseContent = pickVariant(DAILY_FALLBACK_VARIANTS[key], dateKey, `${key}|${seed}`);
+  const content = key === 'daily_overview'
+    ? `${dailyFallbackPersonalLead(profile, chart)}\n\n${baseContent}`
+    : baseContent;
   const bulletVariants = DAILY_FALLBACK_BULLETS[key] || DAILY_FALLBACK_BULLETS_DEFAULT;
-  const bullets = pickVariant(bulletVariants, dateKey, `${key}.bullets`);
+  const bullets = pickVariant(bulletVariants, dateKey, `${key}.bullets|${seed}`);
 
   return {
     key,
@@ -1457,6 +1558,9 @@ export function buildDailyCanvasFallback(
     ['Не бежать наперегонки с собой', 'Не молчать из обиды', 'Не покупать на эмоции'],
     ['Не брать чужое «срочно»', 'Не проверять молчанием', 'Не подписывать на горячую голову'],
   ];
+  const seed = dailyFallbackSeed(profile, chart);
+  const doItems = pickVariant(doVariants, dateKey, `do|${seed}`);
+  const dontItems = pickVariant(dontVariants, dateKey, `dont|${seed}`);
   // Расшифровка оценки — тоже в голосе и с вариантами по числу и по дате.
   const explainFor = (s: number): string[] => {
     if (s >= 70) return [
@@ -1474,9 +1578,9 @@ export function buildDailyCanvasFallback(
   };
   return {
     summary: overview.content,
-    dayScoreExplain: score != null ? pickVariant(explainFor(score), dateKey, 'score') : '',
-    do: pickVariant(doVariants, dateKey, 'do'),
-    dont: pickVariant(dontVariants, dateKey, 'dont'),
+    dayScoreExplain: score != null ? pickVariant(explainFor(score), dateKey, `score|${seed}`) : '',
+    do: withPersonalFirstItem(doItems, dailyDoCue(chart)),
+    dont: withPersonalFirstItem(dontItems, dailyDontCue(chart)),
     spheres,
     dayScore: score ?? null,
   };
