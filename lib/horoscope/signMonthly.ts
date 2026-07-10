@@ -4,7 +4,7 @@ import { getZodiacSign } from '../../constants';
 import { getModelForTier } from '../appSettings';
 import { getContentPolicy } from '../contentMatrix';
 import { buildOpenAIChatParams } from '../openaiChat';
-import { buildSignMonthlyHoroscopePrompt, parseLumiaJson } from '../contentPromptBuilders';
+import { buildSignMonthlyHoroscopePrompt, parseModelJson } from '../contentPromptBuilders';
 import { getPool } from '../db';
 import { formatMonthPeriodLabel } from '../date-utils';
 import { normalizeZodiacKey, type ZodiacKey } from './signDaily';
@@ -73,7 +73,7 @@ async function generate(sign: ZodiacKey, periodKey: string, language: Language):
       maxTokens: 700,
       jsonMode: true,
     }));
-    const parsed = parseLumiaJson<{ headline?: string; text?: string; advice?: string[] }>(completion.choices[0]?.message?.content, {});
+    const parsed = parseModelJson<{ headline?: string; text?: string; advice?: string[] }>(completion.choices[0]?.message?.content, {});
     return normalize({ ...parsed, summary: parsed.text, reading: parsed.text, focus: parsed.advice?.[0] }, sign, periodKey, language);
   } catch {
     return fb;

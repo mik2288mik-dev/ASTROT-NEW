@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { getModelForTier, getDailyCanvasModelResolved } from './appSettings';
 import { getContentPolicy } from './contentMatrix';
 import { buildOpenAIChatParams } from './openaiChat';
-import type { LumiaModelTier } from './contentMatrix';
+import type { AiContentModelTier } from './contentMatrix';
 
 /**
  * Здоровье генерации КОНТЕНТА (гороскопы, натальные разборы, прогноз, совместимость).
@@ -47,7 +47,7 @@ export async function getAiContentHealth(): Promise<AiContentHealth> {
       if (surface === 'personal_daily') {
         return { surface, label, tier: 'daily_canvas', model: dailyCanvas };
       }
-      let tier: LumiaModelTier = 'main';
+      let tier: AiContentModelTier = 'main';
       try { tier = getContentPolicy(surface as any).modelTier; } catch { /* default */ }
       const model = tier === 'fast' ? fast : tier === 'deep' ? deep : main;
       return { surface, label, tier, model };
@@ -63,7 +63,7 @@ export async function getAiContentHealth(): Promise<AiContentHealth> {
 
 export type AiPingResult = {
   ok: boolean;
-  tier: LumiaModelTier;
+  tier: AiContentModelTier;
   model: string | null;
   latencyMs: number;
   sample?: string;
@@ -81,7 +81,7 @@ export type AiPingResult = {
  * недоступный id вернёт дословную ошибку OpenAI (model_not_found и т.п.).
  */
 export async function pingAiGeneration(
-  tier: LumiaModelTier = 'main',
+  tier: AiContentModelTier = 'main',
   explicitModel?: string | null,
 ): Promise<AiPingResult> {
   const started = Date.now();

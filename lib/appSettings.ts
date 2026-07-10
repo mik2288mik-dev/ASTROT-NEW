@@ -5,7 +5,7 @@ import type {
   ContentVariant,
 } from '../types';
 import { db } from './db';
-import type { LumiaModelTier } from './contentMatrix';
+import type { AiContentModelTier } from './contentMatrix';
 import {
   DAILY_CANVAS_MODEL_SETTING_KEY,
   DEFAULT_PREMIUM_INTERPRETATION_MODEL,
@@ -18,9 +18,9 @@ import {
 let cachedInterpretationModel: string | null = null;
 let cacheLoaded = false;
 let dailyCanvasModelCache: string | null = null;
-const tierModelCache = new Map<LumiaModelTier, string>();
+const tierModelCache = new Map<AiContentModelTier, string>();
 
-export const MODEL_TIER_SETTING_KEYS: Record<LumiaModelTier, string> = {
+export const MODEL_TIER_SETTING_KEYS: Record<AiContentModelTier, string> = {
   fast: 'openai_model_fast',
   main: INTERPRETATION_MODEL_SETTING_KEY,
   deep: 'openai_model_deep',
@@ -28,7 +28,7 @@ export const MODEL_TIER_SETTING_KEYS: Record<LumiaModelTier, string> = {
 
 // Слот полотна (личный разбор дня) не входит в fast/main/deep — у него отдельный ключ.
 // Единая карта слот→ключ для админского редактора моделей.
-export type ModelSlot = LumiaModelTier | 'daily_canvas';
+export type ModelSlot = AiContentModelTier | 'daily_canvas';
 export const MODEL_SLOT_SETTING_KEYS: Record<ModelSlot, string> = {
   ...MODEL_TIER_SETTING_KEYS,
   daily_canvas: DAILY_CANVAS_MODEL_SETTING_KEY,
@@ -97,13 +97,13 @@ export function invalidateInterpretationModelCache(): void {
 
 
 
-function getTierEnvModel(tier: LumiaModelTier): string | null {
+function getTierEnvModel(tier: AiContentModelTier): string | null {
   const envKey = tier === 'fast' ? 'OPENAI_FAST_MODEL' : tier === 'main' ? 'OPENAI_MAIN_MODEL' : 'OPENAI_DEEP_MODEL';
   return normalizeInterpretationModelId(process.env[envKey]);
 }
 
 /** Single model resolver for all new content-generation code. */
-export async function getModelForTier(tier: LumiaModelTier): Promise<string> {
+export async function getModelForTier(tier: AiContentModelTier): Promise<string> {
   const cached = tierModelCache.get(tier);
   if (cached) return cached;
 
@@ -147,7 +147,7 @@ function getConfiguredEnvModel(
 export async function getOpenAIModelForContent(
   options: OpenAIContentModelOptions
 ): Promise<OpenAIContentModelAssignment> {
-  const tier: LumiaModelTier =
+  const tier: AiContentModelTier =
     (options.contentSurface === 'natal' || options.contentSurface === 'synastry') && options.contentVariant === 'full'
       ? 'deep'
       : options.accessTier === 'premium'

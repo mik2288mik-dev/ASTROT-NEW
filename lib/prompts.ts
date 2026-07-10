@@ -6,22 +6,22 @@
  */
 
 import { AstroEvidenceItem, NatalChartData, NatalHumanSection, UserProfile } from "../types";
-import { getLumiaSystemVoice } from "./lumiaVoice";
+import { getAppSystemVoice } from "./appVoice";
 
 /**
  * Глобальный SYSTEM-слой для всех интерпретаций = ЕДИНЫЙ голос приложения
- * (lib/lumiaVoice.ts, из docs/APP_VOICE.md). Отдельного тона у Астры больше нет —
+ * (lib/appVoice.ts, из docs/APP_VOICE.md). Отдельного тона у Астры больше нет —
  * голос описан в одном месте; task-промпты ниже только добавляют свою задачу поверх.
  */
-export const SYSTEM_PROMPT_ASTRA = getLumiaSystemVoice('ru');
+export const SYSTEM_PROMPT_APP = getAppSystemVoice('ru');
 
 /**
  * Языкозависимый SYSTEM-голос. Предпочтительнее захардкоженной ru-константы
- * SYSTEM_PROMPT_ASTRA: EN-генерации должны получать англоязычный голос, иначе
+ * SYSTEM_PROMPT_APP: EN-генерации должны получать англоязычный голос, иначе
  * модель видит русский system при английском задании. Используй в местах, где
  * известен язык пользователя.
  */
-export const getAstraSystem = (language: 'ru' | 'en'): string => getLumiaSystemVoice(language);
+export const getAppSystemPrompt = (language: 'ru' | 'en'): string => getAppSystemVoice(language);
 
 /**
  * FREE natal intro — hook, «это про меня», желание читать дальше

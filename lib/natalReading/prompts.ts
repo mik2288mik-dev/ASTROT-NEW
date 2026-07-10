@@ -11,10 +11,10 @@
  */
 
 import type { SerializedChartForPrompt } from './chartSerializer';
-import { LUMIA_VOICE_BLOCK_RU } from '../lumiaVoice';
+import { APP_VOICE_BLOCK_RU } from '../appVoice';
 
 // SYSTEM = единый голос приложения; ниже только задачные (не-тональные) правила.
-export const NATAL_READING_SYSTEM = `${LUMIA_VOICE_BLOCK_RU}
+export const NATAL_READING_SYSTEM = `${APP_VOICE_BLOCK_RU}
 
 ## ЗАДАЧА — интерпретация натальной карты (длинный экран-скролл)
 

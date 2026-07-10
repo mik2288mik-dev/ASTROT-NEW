@@ -9,7 +9,7 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  getAstraSystem,
+  getAppSystemPrompt,
   addLanguageInstruction,
   createDaypartForecastPrompt,
   createFreeMonthlyForecastPrompt,
@@ -25,7 +25,7 @@ import {
 } from './prompts';
 import { getModelForTier, getOpenAIModelForContent } from './appSettings';
 import { getContentPolicy } from './contentMatrix';
-import { buildPersonalDailyPrompt, parseLumiaJson } from './contentPromptBuilders';
+import { buildPersonalDailyPrompt, parseModelJson } from './contentPromptBuilders';
 import { buildOpenAIChatParams } from './openaiChat';
 import { getCurrentTransits } from './transits-calculator';
 import { formatIsoWeekPeriodLabel, formatMonthPeriodLabel, getMoscowTodayKey } from './date-utils';
@@ -272,7 +272,7 @@ export async function generateFreeDailyForecast(
       jsonMode: true,
     }));
 
-    const parsed = parseLumiaJson<DailyForecastV2AIResponse & { main?: string; relationships?: string; action?: string; why?: string }>(completion.choices[0]?.message?.content, {} as DailyForecastV2AIResponse);
+    const parsed = parseModelJson<DailyForecastV2AIResponse & { main?: string; relationships?: string; action?: string; why?: string }>(completion.choices[0]?.message?.content, {} as DailyForecastV2AIResponse);
     return normalizeDailyForecast(parsed, lang, dateKey);
   } catch (error: any) {
     if (!allowStaticFallback) {
@@ -332,7 +332,7 @@ export async function generatePremiumDaypartForecast(
     const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: getAstraSystem(lang) },
+        { role: 'system', content: getAppSystemPrompt(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.85,
@@ -559,7 +559,7 @@ export async function generateFreeWeeklyForecast(
     const { model } = await getForecastModel('base');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: getAstraSystem(lang) },
+        { role: 'system', content: getAppSystemPrompt(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.72,
@@ -596,7 +596,7 @@ export async function generatePremiumWeeklyForecast(
     const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: getAstraSystem(lang) },
+        { role: 'system', content: getAppSystemPrompt(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.82,
@@ -633,7 +633,7 @@ export async function generateFreeMonthlyForecast(
     const { model } = await getForecastModel('base');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: getAstraSystem(lang) },
+        { role: 'system', content: getAppSystemPrompt(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.72,
@@ -670,7 +670,7 @@ export async function generatePremiumMonthlyForecast(
     const { model } = await getForecastModel('premium');
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: getAstraSystem(lang) },
+        { role: 'system', content: getAppSystemPrompt(lang) },
         { role: 'user', content: prompt },
       ],
       temperature: 0.82,

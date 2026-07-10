@@ -3,7 +3,7 @@ import type { ForecastDailyReading, Language } from '../../types';
 import { getModelForTier } from '../appSettings';
 import { getContentPolicy } from '../contentMatrix';
 import { buildOpenAIChatParams } from '../openaiChat';
-import { buildSignDailyHoroscopePrompt, parseLumiaJson } from '../contentPromptBuilders';
+import { buildSignDailyHoroscopePrompt, parseModelJson } from '../contentPromptBuilders';
 import { db } from '../db';
 import { getZodiacSign } from '../../constants';
 import { getMoonPhase } from './moonPhase';
@@ -219,7 +219,7 @@ async function generateSignReading(
       maxTokens: 500,
       jsonMode: true,
     }));
-    const parsed = parseLumiaJson<{ headline?: string; text?: string; advice?: string }>(completion.choices[0]?.message?.content, {});
+    const parsed = parseModelJson<{ headline?: string; text?: string; advice?: string }>(completion.choices[0]?.message?.content, {});
     return normalizeReading({ ...parsed, summary: parsed.text, reading: parsed.text, focus: parsed.advice, advice: parsed.advice ? [parsed.advice] : [] }, sign, date, language);
   } catch (error: any) {
     console.error('[horoscope/sign-daily] generation failed:', error instanceof Error ? error.message : error);

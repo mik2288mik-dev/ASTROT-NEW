@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission } from '../../../../../lib/admin/rbac';
 import { getAiContentHealth, pingAiGeneration } from '../../../../../lib/aiHealth';
-import type { LumiaModelTier } from '../../../../../lib/contentMatrix';
+import type { AiContentModelTier } from '../../../../../lib/contentMatrix';
 
 /**
  * Здоровье генерации контента: есть ли OPENAI_API_KEY, какие модели по тирам, и (POST) живой пинг
@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       await requireAdminPermission(req, 'analytics.view');
       const tierRaw = String(req.body?.tier || 'main');
-      const tier: LumiaModelTier = tierRaw === 'fast' || tierRaw === 'deep' ? tierRaw : 'main';
+      const tier: AiContentModelTier = tierRaw === 'fast' || tierRaw === 'deep' ? tierRaw : 'main';
       // Необязательный явный id модели: пинг проверяет доступность именно его (для проверки
       // ещё не подключённых моделей вроде gpt-5.4 до установки в env). Пустой → пинг по тиру.
       const explicitModel = typeof req.body?.model === 'string' ? req.body.model.trim() : '';

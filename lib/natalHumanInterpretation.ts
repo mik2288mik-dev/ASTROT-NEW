@@ -9,7 +9,7 @@ import type {
   UserProfile,
 } from '../types';
 import { llmJson } from './anthropic';
-import { LUMIA_VOICE_BLOCK_RU } from './lumiaVoice';
+import { APP_VOICE_BLOCK_RU } from './appVoice';
 import { getCurrentTransits } from './transits-calculator';
 import { detectTransitAspects, formatTransitAspectsRu } from './transitAspects';
 import { computeDayScoreFromTransits } from './todayPulse';
@@ -243,10 +243,10 @@ function buildChartSummary(profile: UserProfile, chart: NatalChartData): ChartSu
   };
 }
 
-// Хеш текста голоса: любое изменение LUMIA_VOICE_BLOCK_RU (смена голоса приложения)
+// Хеш текста голоса: любое изменение APP_VOICE_BLOCK_RU (смена голоса приложения)
 // меняет input-hash → кешированные разборы протухают и перегенерятся новым голосом,
 // без ручного бампа promptVersion при каждой правке голоса.
-const VOICE_HASH = createHash('sha256').update(LUMIA_VOICE_BLOCK_RU).digest('hex').slice(0, 16);
+const VOICE_HASH = createHash('sha256').update(APP_VOICE_BLOCK_RU).digest('hex').slice(0, 16);
 
 export function buildHumanInputHash(input: {
   profile: UserProfile;
@@ -274,7 +274,7 @@ export function buildHumanInputHash(input: {
 }
 
 // SYSTEM = единый голос приложения; ниже только задачные (не-тональные) правила разбора карты.
-const HUMAN_SYSTEM_PROMPT = `${LUMIA_VOICE_BLOCK_RU}
+const HUMAN_SYSTEM_PROMPT = `${APP_VOICE_BLOCK_RU}
 
 ## ЗАДАЧА — разбор натальной карты
 

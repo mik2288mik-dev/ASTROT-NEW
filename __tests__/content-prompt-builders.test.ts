@@ -10,7 +10,7 @@ import {
   buildSignDailyHoroscopePrompt,
   buildSignWeeklyHoroscopePrompt,
   buildSynastryPrompt,
-  parseLumiaJson,
+  parseModelJson,
 } from '../lib/contentPromptBuilders';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -62,9 +62,9 @@ describe('Lumia content prompt builders', () => {
 
   it('uses a safe fallback for malformed model JSON', () => {
     const fallback = { headline: 'Спокойно проверь главное', text: 'Один ясный шаг полезнее спешки.' };
-    expect(parseLumiaJson('{broken', fallback)).toEqual(fallback);
-    expect(parseLumiaJson('[]', fallback)).toEqual(fallback);
-    expect(parseLumiaJson('{"headline":"Готово"}', fallback)).toEqual({ headline: 'Готово' });
+    expect(parseModelJson('{broken', fallback)).toEqual(fallback);
+    expect(parseModelJson('[]', fallback)).toEqual(fallback);
+    expect(parseModelJson('{"headline":"Готово"}', fallback)).toEqual({ headline: 'Готово' });
   });
 
   it('connects dedicated builders to active generators instead of one shared prompt', () => {

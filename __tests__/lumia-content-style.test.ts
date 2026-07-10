@@ -16,7 +16,7 @@ const EXCLUDED_PATH_SNIPPETS = [
   'docs/',
   '__tests__/',
   'lib/migrations.ts',
-  'lib/lumiaVoice.ts',
+  'lib/appVoice.ts',
   'lib/notificationEngineRules.ts',
   'lib/rateLimit.ts',
   'lib/errorTracking.ts',
@@ -32,7 +32,7 @@ const EXCLUDED_PATH_SNIPPETS = [
   'views/v2/MatrixRoom.tsx',
 ];
 
-const SOUL_PASSPORT_EXCLUDED_SNIPPETS = ['docs/', '__tests__/', 'lib/lumiaVoice.ts'];
+const SOUL_PASSPORT_EXCLUDED_SNIPPETS = ['docs/', '__tests__/', 'lib/appVoice.ts'];
 
 /** Technical identifiers that may appear in code but must not mask user-facing copy. */
 const TECHNICAL_TOKEN_REPLACEMENTS: Array<[RegExp, string]> = [
@@ -223,12 +223,13 @@ describe('Lumia content style', () => {
     expect(violations).toEqual([]);
   });
 
-  it('lib/lumiaVoice.ts exports voice blocks for prompts', () => {
-    const voicePath = path.join(ROOT, 'lib', 'lumiaVoice.ts');
+  it('lib/appVoice.ts exports voice blocks for prompts', () => {
+    const voicePath = path.join(ROOT, 'lib', 'appVoice.ts');
     expect(fs.existsSync(voicePath)).toBe(true);
     const content = fs.readFileSync(voicePath, 'utf8');
-    expect(content).toContain('LUMIA_VOICE_BLOCK_EN');
-    expect(content).toContain('LUMIA_VOICE_BLOCK_RU');
-    expect(content).toContain('appendLumiaVoice');
+    expect(content).toContain('APP_VOICE_BLOCK_EN');
+    expect(content).toContain('APP_VOICE_BLOCK_RU');
+    expect(content).toContain('getAppSystemVoice');
+    expect(content).not.toContain('@deprecated');
   });
 });

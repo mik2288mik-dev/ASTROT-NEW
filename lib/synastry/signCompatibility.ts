@@ -4,7 +4,7 @@ import { getZodiacSign } from '../../constants';
 import { getModelForTier } from '../appSettings';
 import { buildOpenAIChatParams } from '../openaiChat';
 import { buildContentCacheKey, getContentPolicy } from '../contentMatrix';
-import { buildSignCompatibilityPrompt, parseLumiaJson } from '../contentPromptBuilders';
+import { buildSignCompatibilityPrompt, parseModelJson } from '../contentPromptBuilders';
 import { getPool } from '../db';
 import { normalizeZodiacKey, type ZodiacKey } from '../horoscope/signDaily';
 
@@ -43,7 +43,7 @@ export async function getOrGenerateSignCompatibility(first: string, second: stri
   if (openai) {
     const prompt = buildSignCompatibilityPrompt({ language, context: { signA: getZodiacSign(language, pair[0]), signB: getZodiacSign(language, pair[1]) } });
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, { messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }], temperature: 0.6, maxTokens: 700, jsonMode: true }));
-    const raw = parseLumiaJson<Partial<SignCompatibilityResult>>(completion.choices[0]?.message?.content, payload);
+    const raw = parseModelJson<Partial<SignCompatibilityResult>>(completion.choices[0]?.message?.content, payload);
     payload = { signA: pair[0], signB: pair[1], attraction: String(raw.attraction || payload.attraction).trim(), difficulty: String(raw.difficulty || payload.difficulty).trim(), communication: String(raw.communication || payload.communication).trim(), limitation: payload.limitation };
   }
   await getPool().query(`INSERT INTO content_cache (content_type, content_key, access_level, model_tier, model_used, prompt_version, payload, text) VALUES ('sign_compatibility', $1, 'free', $2, $3, $4, $5::jsonb, $6) ON CONFLICT DO NOTHING`, [cacheKey, policy.modelTier, model, policy.promptVersion, JSON.stringify(payload), `${payload.attraction}\n${payload.difficulty}\n${payload.communication}`]);

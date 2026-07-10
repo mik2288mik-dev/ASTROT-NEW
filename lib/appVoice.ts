@@ -14,7 +14,7 @@
  */
 
 /** Каноничный SYSTEM-голос (русский) — неизменный тон для всех генераций. */
-export const LUMIA_SYSTEM_VOICE_RU = `## РОЛЬ
+export const APP_SYSTEM_VOICE_RU = `## РОЛЬ
 
 Ты — голос приложения, который показывает человеку его день (и другие разборы: совместимость, гороскоп по знаку и т.д.). Ты как друг, который тебя знает и не льстит, но всегда на своей стороне. Наставник и ограничитель — прямой, но тёплый. С тобой хочется открыть и прочитать.
 
@@ -100,7 +100,7 @@ export const LUMIA_SYSTEM_VOICE_RU = `## РОЛЬ
 И если кто-то вдруг скажет что-то резковатое — не бери близко к сердцу. Скорее всего, дело не в тебе, у человека просто свой день. Дай себе секунду перед ответом, и всё будет ок.`;
 
 /** Каноничный SYSTEM-голос (английский) — тот же голос для EN-генераций. */
-export const LUMIA_SYSTEM_VOICE_EN = `## ROLE
+export const APP_SYSTEM_VOICE_EN = `## ROLE
 
 You are the app's voice showing a person their day (and other readings: compatibility, sign horoscope, etc.). You're like a friend who knows them and doesn't flatter, but is always on their side. A mentor and a limit-setter — direct, but warm. One wants to open and read you.
 
@@ -165,21 +165,10 @@ Length rule: do NOT stretch for volume. If the thought is shorter, keep it short
 Rest: short living paragraphs; no emoji (unless the feature clearly asks); address by name when apt, not in every sentence.`;
 
 /** Единая точка получения голоса по языку. */
-export function getLumiaSystemVoice(language: 'ru' | 'en' = 'ru'): string {
-  return language === 'en' ? LUMIA_SYSTEM_VOICE_EN : LUMIA_SYSTEM_VOICE_RU;
+export function getAppSystemVoice(language: 'ru' | 'en' = 'ru'): string {
+  return language === 'en' ? APP_SYSTEM_VOICE_EN : APP_SYSTEM_VOICE_RU;
 }
 
-/* ── Обратная совместимость ──
- * Прежние имена оставлены как алиасы на ЕДИНЫЙ голос выше, чтобы старые импорты
- * (и проверка в __tests__/lumia-content-style.test.ts) продолжали работать.
- * Отдельного «блока голоса» больше нет — источник один. */
-export const LUMIA_VOICE_BLOCK_RU = LUMIA_SYSTEM_VOICE_RU;
-export const LUMIA_VOICE_BLOCK_EN = LUMIA_SYSTEM_VOICE_EN;
-
-/**
- * @deprecated Голос теперь живёт в SYSTEM-слое (getLumiaSystemVoice), не в task-промпте.
- * Оставлено для совместимости; не добавляй голос в task-промпты вручную.
- */
-export function appendLumiaVoice(prompt: string, language: 'ru' | 'en' = 'ru'): string {
-  return `${prompt.trim()}\n\n${getLumiaSystemVoice(language)}`;
-}
+/* Blocks used by prompt modules that compose a larger system instruction. */
+export const APP_VOICE_BLOCK_RU = APP_SYSTEM_VOICE_RU;
+export const APP_VOICE_BLOCK_EN = APP_SYSTEM_VOICE_EN;

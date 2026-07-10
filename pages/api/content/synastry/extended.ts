@@ -16,7 +16,7 @@ import { getContentLayer, getPremiumEntitlementState } from '../../../../lib/con
 import { buildSynastryExtendedCacheKey } from '../../../../lib/synastryExtended';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
-import { buildSynastryPrompt, parseLumiaJson } from '../../../../lib/contentPromptBuilders';
+import { buildSynastryPrompt, parseModelJson } from '../../../../lib/contentPromptBuilders';
 import { computeSynastryAspects } from '../../../../lib/synastry/synastryAspects';
 
 const SCOPE = 'synastry-extended';
@@ -311,7 +311,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         jsonMode: true,
       }));
       const content = completion.choices[0]?.message?.content || '{}';
-      const parsed = parseLumiaJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
+      const parsed = parseModelJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
         content,
         buildSynastryFallback(langRu, profile.name, partnerName)
       );

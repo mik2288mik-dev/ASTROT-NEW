@@ -7,7 +7,7 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  getAstraSystem,
+  getAppSystemPrompt,
   addLanguageInstruction,
   createNatalAnchorPromptV3,
   createNatalFullPrompt,
@@ -76,7 +76,7 @@ async function createJsonCompletion<T>({
 
   const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
     messages: [
-      { role: 'system', content: getAstraSystem(language) },
+      { role: 'system', content: getAppSystemPrompt(language) },
       { role: 'user', content: prompt },
     ],
     temperature,
