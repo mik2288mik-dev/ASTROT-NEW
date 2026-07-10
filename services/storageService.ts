@@ -63,14 +63,6 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
     const requestBody = JSON.stringify(profile);
     log.info(`[saveProfile] Request body size: ${requestBody.length} bytes`);
     
-    // Логируем содержимое requestBody для отладки
-    try {
-      const parsedBody = JSON.parse(requestBody);
-      log.info(`[saveProfile] Request body.weatherCity:`, parsedBody.weatherCity);
-    } catch (e) {
-      log.warn(`[saveProfile] Failed to parse request body for logging:`, e);
-    }
-
     const startTime = Date.now();
     const response = await fetchWithTimeout(
       url,
@@ -103,9 +95,6 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
     log.info(`[saveProfile] ===== PROFILE SAVED SUCCESSFULLY =====`);
     log.info(`[saveProfile] userId:`, userId);
     log.info(`[saveProfile] responseData exists:`, !!responseData);
-    if (responseData) {
-      log.info(`[saveProfile] responseData.weatherCity:`, responseData.weatherCity);
-    }
     return;
   } catch (error: any) {
     log.error('[saveProfile] Error occurred during save', {

@@ -14,17 +14,6 @@ export interface UserEvolution {
 }
 
 export interface UserContext {
-  weather?: string; // e.g. "Rainy", "Sunny"
-  weatherData?: {
-    condition: string; // e.g. "Rainy", "Sunny"
-    temp: number; // Температура в градусах Цельсия
-    humidity: number; // Влажность в процентах
-    city: string; // Название города
-    moonPhase?: {
-      phase: string; // Фаза луны
-      illumination: number; // Освещенность в процентах
-    };
-  };
   moonPhase?: {
     phase: string; // Фаза луны
     illumination: number; // Освещенность в процентах
@@ -68,7 +57,6 @@ export interface UserProfile {
   /** User already linked to an inviter (one-time referral) */
   referralApplied?: boolean;
   notificationFrequency?: NotificationFrequency;
-  weatherCity?: string; // Город для погоды (например, "Moscow" или "Москва")
 
   // Все генерации пользователя (кэшируются)
   /** @deprecated legacy_compat input only; current client flows do not read or synchronize it. */

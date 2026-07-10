@@ -55,58 +55,6 @@ const SIGN_TRAITS: Record<string, { ru: string[]; en: string[] }> = {
     }
 };
 
-// Шаблоны шуток для погоды
-const WEATHER_JOKE_TEMPLATES = {
-    cold: {
-        ru: [
-            "{name}, на улице {temp}°C. Ты {trait}, но плед сегодня сильнее 🧣",
-            "Холодно ({temp}°C). {name}, твой настрой: «{trait}», и это идеально для чая ☕",
-            "{temp}°C за окном. {name}, ты {trait}, но мороз намекает на сериал 📺",
-        ],
-        en: [
-            "{name}, it's {temp}°C outside. You're {trait}, but the blanket wins today 🧣",
-            "Cold ({temp}°C). {name}, your mood says: «{trait}», and it's perfect for tea ☕",
-            "{temp}°C outside. {name}, you're {trait}, but the cold votes for Netflix 📺",
-        ]
-    },
-    warm: {
-        ru: [
-            "{name}, {temp}°C — самое то для небольшой прогулки. Ты {trait} 😌",
-            "{temp}°C — идеально. {name}, ты {trait}, но сначала кофе — это закон ☕",
-            "Погода {temp}°C. {name}, ты {trait}, а значит можно и на улицу, и в плед — как решишь 🫶",
-        ],
-        en: [
-            "{name}, {temp}°C is perfect for a little walk. You're {trait} 😌",
-            "{temp}°C — just right. {name}, you're {trait}, but coffee first ☕",
-            "Weather is {temp}°C. {name}, you're {trait}, so both outdoors and couch are valid 🫶",
-        ]
-    },
-    hot: {
-        ru: [
-            "Жара {temp}°C. {name}, ты {trait}, но сейчас главное — вода и тень 🧊",
-            "{temp}°C 🔥 {name}, твой режим «{trait}», но кондиционер сегодня герой 😅",
-            "На улице {temp}°C. {name}, ты {trait}, но жара просит лёгкий темп 🌴",
-        ],
-        en: [
-            "Hot {temp}°C. {name}, you're {trait}, but water and shade come first 🧊",
-            "{temp}°C 🔥 {name}, your mode is «{trait}», but AC is the hero 😅",
-            "It's {temp}°C outside. {name}, you're {trait}, but even you want shade 🌴",
-        ]
-    },
-    rain: {
-        ru: [
-            "Дождь при {temp}°C. {name}, ты {trait} — отличный повод для уюта 🌧️",
-            "Льёт дождь! {name}, ты {trait}, так что музыка и окно сегодня в тему 🎵",
-            "Дождливо ({temp}°C). {name}, ты {trait}, можно чуть замедлиться ☔",
-        ],
-        en: [
-            "Rain at {temp}°C. {name}, you're {trait} — perfect for a cozy day 🌧️",
-            "It's raining! {name}, you're {trait}, so lo-fi and window-gazing fit 🎵",
-            "Rainy ({temp}°C). {name}, you're {trait}, it's okay to slow down ☔",
-        ]
-    }
-};
-
 // Ежедневные шутки (не привязанные к погоде)
 const DAILY_JOKES = {
     ru: [
@@ -146,48 +94,6 @@ const SIGN_ADJECTIVES: Record<string, { ru: string; en: string }> = {
     Aquarius: { ru: 'необычный', en: 'unique' },
     Pisces: { ru: 'мечтательный', en: 'dreamy' },
 };
-
-/**
- * Получить шутку для погоды
- */
-export function getWeatherJoke(
-    temperature: number,
-    weatherCondition: string,
-    sunSign: string,
-    moonSign: string,
-    marsSign?: string,
-    language: 'ru' | 'en' = 'ru',
-    displayName?: string
-): string {
-    // Определяем тип погоды
-    let weatherType: 'cold' | 'warm' | 'hot' | 'rain' = 'warm';
-    
-    if (weatherCondition.toLowerCase().includes('rain') || weatherCondition.toLowerCase().includes('дождь')) {
-        weatherType = 'rain';
-    } else if (temperature < 5) {
-        weatherType = 'cold';
-    } else if (temperature > 25) {
-        weatherType = 'hot';
-    }
-
-    // Выбираем случайный шаблон
-    const templates = WEATHER_JOKE_TEMPLATES[weatherType][language];
-    const template = templates[Math.floor(Math.random() * templates.length)];
-
-    // Получаем черту знака
-    const sunTraits = SIGN_TRAITS[sunSign]?.[language] || SIGN_TRAITS['Aries'][language];
-    const trait = sunTraits[Math.floor(Math.random() * sunTraits.length)];
-
-    const name = displayName?.trim() 
-        ? displayName.trim() 
-        : (language === 'ru' ? 'друг' : 'friend');
-
-    // Заполняем шаблон
-    return template
-        .replace(/{temp}/g, String(Math.round(temperature)))
-        .replace(/{name}/g, name)
-        .replace(/{trait}/g, trait);
-}
 
 /**
  * Получить ежедневную шутку

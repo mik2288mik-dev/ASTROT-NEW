@@ -688,7 +688,6 @@ export const db = {
           language: u.language || 'ru',
           theme: u.theme || 'dark',
           is_admin: u.is_admin ?? false,
-          weather_city: u.weather_city,
           created_at: u.created_at,
           updated_at: u.updated_at,
           selected_zodiac_sign: u.selected_zodiac_sign,
@@ -716,10 +715,6 @@ export const db = {
         } catch {}
         const merge = (key: string, def?: any) =>
           data[key] !== undefined ? data[key] : (existingUser?.[key] ?? def);
-        const weatherCity = merge('weather_city');
-        const finalWeatherCity = weatherCity != null && String(weatherCity).trim()
-          ? String(weatherCity).trim()
-          : null;
         const birthDate = merge('birth_date');
         const birthTime = merge('birth_time');
         const birthPlace = merge('birth_place');
@@ -745,8 +740,8 @@ export const db = {
             latitude, longitude, sun_sign, moon_sign, ascendant,
             premium_until, trial_started_at, is_setup, selected_zodiac_sign,
             ref_code, referred_by,
-            login_streak, last_login, language, theme, is_admin, weather_city, gender
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+            login_streak, last_login, language, theme, is_admin, gender
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
           ON CONFLICT (id) DO UPDATE SET
             name = COALESCE(EXCLUDED.name, users.name),
             birth_date = COALESCE(EXCLUDED.birth_date, users.birth_date),
@@ -764,7 +759,6 @@ export const db = {
             language = COALESCE(EXCLUDED.language, users.language),
             theme = COALESCE(EXCLUDED.theme, users.theme),
             is_admin = COALESCE(EXCLUDED.is_admin, users.is_admin),
-            weather_city = COALESCE(EXCLUDED.weather_city, users.weather_city),
             gender = COALESCE(EXCLUDED.gender, users.gender),
             updated_at = CURRENT_TIMESTAMP
           RETURNING *`,
@@ -790,7 +784,6 @@ export const db = {
             merge('language', 'ru'),
             merge('theme', 'dark'),
             merge('is_admin', false),
-            finalWeatherCity,
             gender,
           ]
         );
@@ -809,7 +802,6 @@ export const db = {
           theme: u.theme || 'dark',
           is_premium: isPremium,
           is_admin: u.is_admin ?? false,
-          weather_city: u.weather_city,
           created_at: u.created_at,
           updated_at: u.updated_at,
           selected_zodiac_sign: u.selected_zodiac_sign,
@@ -976,7 +968,6 @@ export const db = {
           theme: u.theme || 'dark',
           is_premium: isPremium,
           is_admin: u.is_admin ?? false,
-          weather_city: u.weather_city,
           created_at: u.created_at,
           updated_at: u.updated_at,
           selected_zodiac_sign: u.selected_zodiac_sign,

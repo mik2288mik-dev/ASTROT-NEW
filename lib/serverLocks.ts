@@ -91,7 +91,6 @@ export const LockKeys = {
   natalChartCalculation: (userId: string) => `natal-chart:${userId}`,
   dailyHoroscope: (userId: string, date: string) => `daily-horoscope:${userId}:${date}`,
   todayOverview: (userId: string, chartId: number | null, date: string) => `today-overview:${userId}:${chartId ?? 'primary'}:${date}`,
-  weatherSettings: (userId: string) => `weather-settings:${userId}`,
   deepDive: (userId: string, topic: string) => `deep-dive:${userId}:${topic}`,
   contentGeneration: (key: string) => key,
 };

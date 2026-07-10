@@ -154,7 +154,6 @@ export default async function handler(
         updatedAt: user.updated_at ? new Date(user.updated_at).toISOString() : null,
         isAdmin: resolveIsAdmin(userId, user.is_admin),
         evolution: null,
-        weatherCity: user.weather_city && user.weather_city.trim() ? user.weather_city.trim() : undefined,
         loginStreak,
         chartSlots,
         notificationFrequency: notificationFrequency || undefined,
@@ -194,15 +193,6 @@ export default async function handler(
         });
       }
       
-      let weatherCityToSave: string | null = undefined as any;
-      if (userData.weatherCity !== undefined) {
-        weatherCityToSave = (userData.weatherCity === null || userData.weatherCity === '')
-          ? null
-          : (String(userData.weatherCity).trim() || null);
-      } else if (existingUser?.weather_city) {
-        weatherCityToSave = String(existingUser.weather_city).trim() || null;
-      }
-
       const dbUser: Record<string, any> = {
         name: normalizeNullableString(userData.name),
         birth_date: normalizeNullableString(userData.birthDate),
@@ -211,7 +201,6 @@ export default async function handler(
         is_setup: !!userData.isSetup,
         language: userData.language || 'ru',
         theme: userData.theme || 'light',
-        weather_city: weatherCityToSave,
       };
       if (userData.selectedZodiacSign !== undefined || userData.selected_zodiac_sign !== undefined) {
         dbUser.selected_zodiac_sign = normalizeNullableString(
@@ -266,7 +255,6 @@ export default async function handler(
           : null,
         isAdmin: resolveIsAdmin(userId, savedUser.is_admin),
         evolution: null,
-        weatherCity: savedUser.weather_city && savedUser.weather_city.trim() ? savedUser.weather_city.trim() : undefined,
         loginStreak: refreshedUser?.login_streak ?? 0,
         chartSlots: refreshedUser?.chart_slots ?? 1,
         notificationFrequency: notificationFrequency || undefined,
