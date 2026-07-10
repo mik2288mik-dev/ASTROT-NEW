@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   if (!profile) return null;
 
-  const isFunnel = view === 'onboarding' || view === 'hook' || view === 'paywall';
+  const isFunnel = view === 'onboarding' || view === 'paywall';
   const isDashboard = view === 'dashboard';
   const isHoroscope = view === 'horoscope';
   const isAdmin = view === 'admin';

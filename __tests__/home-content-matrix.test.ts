@@ -3,47 +3,60 @@ import path from 'path';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+const exists = (file: string) => fs.existsSync(path.join(ROOT, file));
 
-describe('compact content-matrix home', () => {
-  it('does not require chart setup and only fetches personal home for chart plus premium', () => {
-    const source = read('views/v2/TodayFeed.tsx');
-    expect(source).toContain('hasNatalChart');
-    expect(source).toContain('hasChart && premium');
-    expect(source).not.toContain('profile.isSetup');
-    expect(source).not.toContain('getPremiumNatalFullLayer');
-    expect(source).not.toContain('loadHumanPaidSection');
-  });
-
-  it('reads cached sign horoscope on home and leaves generation to the explicit read button', () => {
-    const source = read('views/v2/TodayFeed.tsx');
-    const dashboard = read('views/Dashboard.tsx');
-    expect(source).not.toContain('ensureDailySignHoroscope');
-    // Переработанная главная (Dashboard) не встраивает гороскоп знака — он открывается
-    // на своём экране по карточке, поэтому здесь не должно быть ни его генерации, ни фетча.
-    expect(dashboard).not.toContain('ensureDailySignHoroscope');
-    expect(source).toContain('getCachedDailySignHoroscope');
-    expect(dashboard).not.toContain('getCachedDailySignHoroscope');
-    expect(source).toContain('generation starts from the explicit Read button');
-    expect(source).toContain('getDailyMotivation');
-    expect(source).toContain('getLocalDailyMetrics');
-    expect(source).toContain('getPulseDailyMetrics');
-  });
-
-  it('shows v2 feed blocks for horoscope, chart, union, and ask', () => {
-    const source = read('views/v2/TodayFeed.tsx');
-    for (const title of ['LzMetricsBento', 'LzFeedHeroCard', 'LzUnionCompact', 'LzAskPresets', 'Спроси астролога']) {
-      expect(source).toContain(title);
+describe('mvp home surface', () => {
+  it('does not ship removed home/chat/weather entry points', () => {
+    for (const file of [
+      'views/v2/TodayFeed.tsx',
+      'views/v2/ActionWindows.tsx',
+      'views/OracleChat.tsx',
+      'views/HookChat.tsx',
+      'components/lumia-ui/v2/LzAskPresets.tsx',
+      'components/fresh-ui/FreshAskCombobox.tsx',
+      'pages/api/content/today/home.ts',
+      'pages/api/content/today/pulse.ts',
+      'pages/api/content/today/action-time.ts',
+      'pages/api/content/question/ask.ts',
+      'pages/api/weather.ts',
+      'services/weatherService.ts',
+    ]) {
+      expect({ file, exists: exists(file) }).toEqual({ file, exists: false });
     }
-    expect(source).toContain('onOpenHoroscopeLayer');
-    expect(source).toContain('onOpenOracle');
   });
 
-  it('sends Telegram initData headers for every human POST', () => {
-    const source = read('services/natalReadingService.ts');
-    const postHuman = source.slice(source.indexOf('async function postHuman'), source.indexOf('async function getHuman'));
-    expect(postHuman).toContain("headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }");
-    const astrology = read('services/astrologyService.ts');
-    const todayHome = astrology.slice(astrology.indexOf('export const getTodayAssistantHome'), astrology.indexOf('export const submitTodayCheckIn'));
-    expect(todayHome).toContain("headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }");
+  it('keeps dashboard focused on the approved mvp destinations', () => {
+    const dashboard = read('views/Dashboard.tsx');
+
+    expect(dashboard).toContain('onOpenPersonalDaily');
+    expect(dashboard).toContain('onCreateNatalChart');
+    expect(dashboard).toContain('onOpenMatrix');
+    expect(dashboard).toContain('onOpenSynastry');
+    expect(dashboard).not.toContain('onOpenOracle');
+    expect(dashboard).not.toContain('LzAskPresets');
+    expect(dashboard).not.toContain('FreshAskCombobox');
+    expect(dashboard).not.toContain('/api/weather');
+  });
+
+  it('routes personal day through the single personal_daily view', () => {
+    const app = read('App.tsx');
+
+    expect(app).toContain('PersonalDailyScreen');
+    expect(app).toContain('const openPersonalDailyView = useCallback');
+    expect(app).toContain("navigateTo('personal_daily')");
+    expect(app).toContain("view === 'personal_daily'");
+    expect(app).toContain('onOpenPersonalDaily={openPersonalDailyView}');
+    expect(app).not.toContain("view === 'oracle'");
+    expect(app).not.toContain("view === 'hook'");
+  });
+
+  it('protects private daily content with server identity and premium entitlement', () => {
+    const route = read('pages/api/content/natal/human-daily.ts');
+    const service = read('services/natalReadingService.ts');
+
+    expect(route).toContain('ensureValidContext');
+    expect(route).toContain('getPremiumEntitlementState');
+    expect(route).toContain('PREMIUM_REQUIRED');
+    expect(service).toContain("headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }");
   });
 });

@@ -22,7 +22,6 @@ import { Dashboard } from './views/Dashboard';
 import { NatalMagazine } from './views/v2/NatalMagazine';
 import { HoroscopeReader } from './views/v2/HoroscopeReader';
 import { PersonalDailyScreen } from './views/DailyContentScreens';
-import { OracleChat } from './views/OracleChat';
 import { Settings } from './views/Settings';
 import { AdminApp } from './views/admin2/AdminApp';
 import { Header } from './components/Header';
@@ -32,7 +31,6 @@ import { getText } from './constants';
 import { PremiumPreview } from './components/PremiumPreview';
 import { requestStarsPayment } from './services/telegramService';
 import type { PremiumPlanId } from './lib/premiumPricing';
-import { HookChat } from './views/HookChat';
 import { Paywall } from './views/Paywall';
 import { UnionRoom } from './views/v2/UnionRoom';
 import { MatrixRoom } from './views/v2/MatrixRoom';
@@ -182,7 +180,6 @@ const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'horoscope',
     'personal_daily',
     'synastry',
-    'oracle',
     'settings',
     'charts',
 ]);
@@ -283,7 +280,6 @@ const App: React.FC = () => {
     const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
-    const [oracleInitialQuestion, setOracleInitialQuestion] = useState<string | null>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [personalDailyInitialSection, setPersonalDailyInitialSection] = useState<PersonalDailySection>('overview');
@@ -561,7 +557,6 @@ const App: React.FC = () => {
         !!profile &&
         !loading &&
         view !== 'onboarding' &&
-        view !== 'hook' &&
         view !== 'paywall';
 
     useEffect(() => {
@@ -827,7 +822,7 @@ const App: React.FC = () => {
                 }
 
                 setLoadingMessage(
-                    updatedProfile.language === 'en' ? 'Loading LUMIA' : 'Загружаем LUMIA'
+                    updatedProfile.language === 'en' ? 'Loading Your Horoscope' : 'Загружаем Твой Гороскоп'
                 );
                 setLoadingProgress(50);
                 console.log('[App] Loading primary chart once...');
@@ -1213,7 +1208,7 @@ const App: React.FC = () => {
 
     // Navigation logic: user-facing screens should return to the screen they were opened from.
     const pushReturnView = useCallback((fromView: ViewState) => {
-        if (fromView === 'onboarding' || fromView === 'hook' || fromView === 'paywall') return;
+        if (fromView === 'onboarding' || fromView === 'paywall') return;
         const stack = navigationHistoryRef.current;
         if (stack[stack.length - 1] !== fromView) {
             navigationHistoryRef.current = [...stack, fromView].slice(-12);
@@ -1228,7 +1223,7 @@ const App: React.FC = () => {
     const openNatalSetupOnboarding = useCallback((returnView?: ViewState, targetView: ViewState = 'chart') => {
         const currentView = viewRef.current;
         const safeReturnView =
-            returnView && returnView !== 'onboarding' && returnView !== 'hook' && returnView !== 'paywall'
+            returnView && returnView !== 'onboarding' && returnView !== 'paywall'
                 ? returnView
                 : 'dashboard';
 
@@ -1474,12 +1469,6 @@ const App: React.FC = () => {
         navigateTo('settings', { replace: true });
     }, [navigateTo]);
 
-    // Home cards push (not replace) so Back returns to the dashboard.
-    const openOracle = useCallback((question?: string) => {
-        setOracleInitialQuestion(question?.trim() || null);
-        navigateTo('oracle');
-    }, [navigateTo]);
-
     const openSynastryFromHome = useCallback(() => {
         setSynastryPrefill(null);
         navigateTo('synastry');
@@ -1493,7 +1482,6 @@ const App: React.FC = () => {
     const canSwipeBack =
         view !== 'dashboard' &&
         view !== 'onboarding' &&
-        view !== 'hook' &&
         view !== 'paywall';
     useSwipeBack({
         onSwipeBack: handleBack,
@@ -1515,7 +1503,7 @@ const App: React.FC = () => {
         return (
             <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
                 <div className="max-w-sm text-center">
-                    <p className="lumia-brand-wordmark mb-6">LUMIA</p>
+                    <p className="lumia-brand-wordmark mb-6">Твой Гороскоп</p>
                     <h1 className="mb-3 font-serif text-[2rem] leading-none">Не удалось открыть профиль</h1>
                     <p className="mb-6 text-[15px] leading-relaxed text-[#4f4b45]">{startupError}</p>
                     <button
@@ -1584,7 +1572,6 @@ const App: React.FC = () => {
                         onOpenHoroscopeLayer={openHoroscopeLayer}
                         onOpenPersonalDaily={openPersonalDailyView}
                         onCreateNatalChart={openBottomNatal}
-                        onOpenOracle={openOracle}
                         onOpenSynastry={openSynastryFromHome}
                         onOpenMatrix={openMatrix}
                         onRequestPremium={requestPremium}
@@ -1594,12 +1581,6 @@ const App: React.FC = () => {
                 </div>
                 {view === 'admin' ? (
                     <AdminApp onClose={() => { void handleBack(); }} />
-                ) : view === 'hook' && chartData ? (
-                    <HookChat 
-                        profile={profile} 
-                        chartData={chartData} 
-                        onComplete={() => setView('dashboard')}
-                    />
                 ) : view === 'paywall' ? (
                     <Paywall
                         profile={profile}
@@ -1607,17 +1588,6 @@ const App: React.FC = () => {
                         onClose={() => { const t = paywallTarget; setPaywallTarget(null); setView(t ?? 'dashboard'); }}
                         onContinueFree={() => { const t = paywallTarget; setPaywallTarget(null); setView(t ?? 'dashboard'); }}
                     />
-                ) : view === 'oracle' ? (
-                    <div className="lumia-main-scroll lumia-bottom-tab-scroll flex h-full min-h-0 flex-col overflow-hidden scrollbar-hide" ref={appScrollRef}>
-                        <OracleChat
-                            profile={profile}
-                            layout="dm"
-                            initialQuestion={oracleInitialQuestion}
-                            onConsumeInitialQuestion={() => setOracleInitialQuestion(null)}
-                            onPremiumRequired={() => setView('paywall')}
-                            onUpdateProfile={handleProfileUpdate}
-                        />
-                    </div>
                 ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <UnionRoom

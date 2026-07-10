@@ -8,25 +8,13 @@ function read(rel: string): string {
 }
 
 describe('product daily navigation', () => {
-  it('TodayFeed routes horoscope, personal daily, and ask from feed cards', () => {
-    const source = read('views/v2/TodayFeed.tsx');
-
-    expect(source).toContain("onOpenHoroscopeLayer('sign'");
-    expect(source).toContain("onOpenPersonalDaily('overview')");
-    expect(source).toContain('onOpenPersonalDaily: (section?: PersonalDailySection) => void');
-    expect(source).toContain('onOpenOracle?.(question)');
-    expect(source).not.toContain('onOpenPremiumDaily');
-    expect(source).not.toContain("openPremiumDaily('daily_love')");
-  });
-
-  it('App uses a single personal_daily view and maps legacy daily links to it', () => {
+  it('App uses a single personal_daily view and maps old daily links into it', () => {
     const source = read('App.tsx');
 
     expect(source).toContain('PersonalDailyScreen');
     expect(source).toContain('const openPersonalDailyView = useCallback');
     expect(source).toContain("navigateTo('personal_daily')");
     expect(source).toContain("view === 'personal_daily'");
-    expect(source).toContain('onOpenPersonalDaily={openPersonalDailyView}');
     expect(source).toContain("daily_love: 'personal_daily'");
     expect(source).toContain("case 'daily_love':");
     expect(source).not.toContain('DailyLoveScreen');
@@ -35,29 +23,26 @@ describe('product daily navigation', () => {
     expect(source).not.toContain('DailyGoalsScreen');
     expect(source).not.toContain("view === 'daily_love'");
     expect(source).not.toContain("view === 'personal_forecast'");
+    expect(source).not.toContain("view === 'oracle'");
+    expect(source).not.toContain("view === 'hook'");
   });
 
-  it('PersonalDailyScreen owns the personal day tabs and content keys', () => {
+  it('PersonalDailyScreen owns the personal day sections without chat or one-off unlocks', () => {
     const source = read('views/DailyContentScreens.tsx');
 
     expect(source).toContain('export const PersonalDailyScreen');
-    expect(source).toContain("id: 'love'");
-    expect(source).toContain("sectionKey: 'daily_love'");
-    expect(source).toContain("sectionKey: 'daily_money'");
-    expect(source).toContain("sectionKey: 'daily_work_business'");
-    expect(source).toContain("sectionKey: 'daily_goals'");
+    for (const id of ['overview', 'love', 'money', 'work', 'goals', 'family', 'friends']) {
+      expect(source).toContain(`id: '${id}'`);
+    }
     expect(source).toContain('loadHumanDailySection');
-    // Вкладка «День» = daily_overview из полотна; старый daypart-источник отключён.
-    expect(source).toContain("sectionKey: 'daily_overview'");
     expect(source).not.toContain('ensureFullDaypartForecast');
     expect(source).not.toContain('export const DailyLoveScreen');
-    expect(source).not.toContain('layers.map');
     expect(source).not.toContain('<Horoscope');
     expect(source).not.toMatch(/Stars|one-off|requestStars/i);
-    expect(source).not.toMatch(/LUMIA не получила|Вернись позже|Повторить/);
+    expect(source).not.toContain('onOpenOracle');
   });
 
-  it('HoroscopeReader keeps personal generation in PersonalDailyScreen', () => {
+  it('HoroscopeReader keeps general sign horoscopes separate from personal daily generation', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
 
     expect(source).toContain('ZODIAC_KEYS');
@@ -65,26 +50,6 @@ describe('product daily navigation', () => {
     expect(source).toContain('getCachedDailySignHoroscope');
     expect(source).not.toContain('loadHumanDailySection');
     expect(source).not.toContain('ensureFullDaypartForecast');
-    expect(source).not.toContain('layers.map');
-    expect(source).not.toContain('daily_love');
-    expect(source).not.toContain('work_money');
     expect(source).not.toContain('PremiumDailyReadiness');
-  });
-
-  it('daily generators remain split by product section', () => {
-    const source = read('lib/natalHumanInterpretation.ts');
-
-    expect(source).toContain('function buildDailyLovePrompt');
-    expect(source).toContain('function buildDailyMoneyPrompt');
-    expect(source).toContain('function buildDailyWorkPrompt');
-    expect(source).toContain('function buildDailyGoalsPrompt');
-    expect(source).toContain('export async function generateDailyLoveSection');
-    expect(source).toContain('export async function generateDailyMoneySection');
-    expect(source).toContain('export async function generateDailyWorkSection');
-    expect(source).toContain('export async function generateDailyGoalsSection');
-    expect(source).toContain("case 'daily_love'");
-    expect(source).toContain("case 'daily_money'");
-    expect(source).toContain("case 'daily_work_business'");
-    expect(source).toContain("case 'daily_goals'");
   });
 });

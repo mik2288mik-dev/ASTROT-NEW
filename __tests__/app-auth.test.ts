@@ -36,7 +36,8 @@ describe('app auth providers and API security', () => {
     for (const file of ['pages/api/content/horoscope/sign-daily.ts', 'pages/api/content/horoscope/sign-weekly.ts', 'pages/api/content/synastry/sign-compatibility.ts']) {
       expect(read(file)).not.toContain('requireAppUser');
     }
-    for (const file of ['pages/api/content/today/home.ts', 'pages/api/content/synastry/extended.ts']) expect(read(file)).toContain('requireAppUser');
+    expect(read('pages/api/content/natal/human-daily.ts')).toContain('ensureValidContext');
+    expect(read('pages/api/content/synastry/extended.ts')).toContain('requireAppUser');
     expect(read('lib/natalReading/apiHelper.ts')).toContain('requireAppUser');
   });
 

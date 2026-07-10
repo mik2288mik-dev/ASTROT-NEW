@@ -133,16 +133,15 @@ describe('Premium-only product model', () => {
 
   it('Personal daily premium content routes non-premium users to Premium CTA', () => {
     const personalDaily = fs.readFileSync(path.join(ROOT, 'views', 'DailyContentScreens.tsx'), 'utf8');
-    const todayFeed = fs.readFileSync(path.join(ROOT, 'views', 'v2', 'TodayFeed.tsx'), 'utf8');
     expect(personalDaily).toContain('Открыть Premium');
-    expect(todayFeed).toContain("onRequestPremium?.('personal_daily')");
+    expect(personalDaily).toContain('requestPremium');
     expect(personalDaily).not.toContain('requestStarsOneOffPayment');
   });
 
-  it('OracleChat routes post-free users to Premium', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'views', 'OracleChat.tsx'), 'utf8');
-    expect(source).toContain('state_need_premium');
-    expect(source).not.toContain('requestStarsOneOffPayment');
+  it('removed Oracle chat runtime instead of routing it through payments', () => {
+    expect(fs.existsSync(path.join(ROOT, 'views', 'OracleChat.tsx'))).toBe(false);
+    expect(fs.existsSync(path.join(ROOT, 'pages', 'api', 'content', 'question', 'ask.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(ROOT, 'pages', 'api', 'content', 'question', 'history.ts'))).toBe(false);
   });
 
   it('Natal unlock sheets are Premium-only', () => {

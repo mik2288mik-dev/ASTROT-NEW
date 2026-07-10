@@ -1421,7 +1421,6 @@ export interface AdminNotificationDeliveryLogItem {
 
 export type ViewState =
   | 'onboarding'
-  | 'hook'
   | 'paywall'
   | 'dashboard'
   | 'chart'
@@ -1429,7 +1428,6 @@ export type ViewState =
   | 'personal_daily'
   | 'synastry'
   | 'matrix'
-  | 'oracle'
   | 'settings'
   | 'admin'
   | 'charts';

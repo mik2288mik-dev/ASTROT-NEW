@@ -6,7 +6,6 @@ const USER_FACING_RUNTIME_FILES = [
   'views/Dashboard.tsx',
   'views/Settings.tsx',
   'views/MyCharts.tsx',
-  'views/OracleChat.tsx',
   'views/Horoscope.tsx',
   'views/Synastry.tsx',
   'views/NatalChart.tsx',
@@ -50,6 +49,10 @@ function readFile(relativePath: string): string {
 }
 
 describe('user-facing UI has no Lumi wallet/product currency', () => {
+  it('does not ship the removed Oracle chat screen', () => {
+    expect(fs.existsSync(path.join(process.cwd(), 'views/OracleChat.tsx'))).toBe(false);
+  });
+
   for (const relativePath of USER_FACING_RUNTIME_FILES) {
     it(`does not expose Lumi patterns in ${relativePath}`, () => {
       const content = readFile(relativePath);

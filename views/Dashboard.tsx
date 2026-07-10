@@ -56,7 +56,6 @@ type DashboardProps = {
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onCreateNatalChart?: () => void;
-  onOpenOracle?: () => void;
   onOpenSynastry?: () => void;
   onOpenMatrix?: () => void;
   onRequestPremium?: (source?: string) => void;
