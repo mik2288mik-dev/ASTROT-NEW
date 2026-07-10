@@ -241,7 +241,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             validFrom: periodWindow.validFrom,
             validTo: periodWindow.validTo,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: 'natal_content_unified_v3',
           }, userId.trim())
         : await db.content_interpretations.upsertByUser(userId.trim(), {
@@ -257,7 +256,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             validFrom: periodWindow.validFrom,
             validTo: periodWindow.validTo,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: 'natal_content_unified_v3',
           });
     },

@@ -880,7 +880,7 @@ export type ContentVariant =
   | 'full';
 export type ContentModelTier = 'base' | 'premium';
 export type ContentUnlockType = 'free' | 'premium';
-export type PremiumTierName = 'lumia_premium';
+export type PremiumTierName = 'premium';
 export type PremiumEntitlementStatus = 'active' | 'expired' | 'cancelled';
 
 export interface ContentInterpretation<T = any> {
@@ -899,8 +899,6 @@ export interface ContentInterpretation<T = any> {
   validFrom?: string | null;
   validTo?: string | null;
   isPersistent: boolean;
-  canRegenerateForLumi: boolean;
-  regenerationCostLumi?: number | null;
   legacySource?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -915,7 +913,6 @@ export interface ContentUnlock {
   contentVariant: ContentVariant;
   unlockType: ContentUnlockType;
   cacheKey: string;
-  lumiSpent: number;
   metadata?: Record<string, any> | null;
   unlockedAt: string;
   expiresAt?: string | null;
@@ -992,7 +989,6 @@ export type AdminUserSegment =
   | 'all'
   | 'premium'
   | 'free'
-  | 'lumi'
   | 'active_7d'
   | 'inactive_3d'
   | 'inactive_7d'
@@ -1084,7 +1080,6 @@ export type AdminNotificationTargetSegment =
   | 'all'
   | 'premium'
   | 'free'
-  | 'lumi'
   | 'active_7d'
   | 'inactive_3d'
   | 'inactive_7d'

@@ -214,7 +214,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             promptVersion: NATAL_FULL_PROMPT_VERSION,
             calculationVersion: chartData.calculationVersion || null,
             isPersistent: true,
-            canRegenerateForLumi: false,
             legacySource: 'natal_content_unified_v4',
           }, userId.trim())
         : await db.content_interpretations.upsertByUser(userId.trim(), {
@@ -228,7 +227,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             promptVersion: NATAL_FULL_PROMPT_VERSION,
             calculationVersion: chartData.calculationVersion || null,
             isPersistent: true,
-            canRegenerateForLumi: false,
             legacySource: 'natal_content_unified_v4',
           });
     },

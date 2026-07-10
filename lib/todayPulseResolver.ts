@@ -118,7 +118,6 @@ async function writeCachedPulse(chartId: number | null, userId: string, cacheKey
     validFrom: `${pulse.date}T00:00:00.000Z`,
     validTo: validToForLocalDay(pulse.date, pulse.timezone),
     isPersistent: false,
-    canRegenerateForLumi: false,
     legacySource: 'today_pulse_v1',
   };
 

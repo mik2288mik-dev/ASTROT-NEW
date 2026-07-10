@@ -134,7 +134,6 @@ async function generateAndPersistPersonalForecast(
     validFrom: `${dateKey}T00:00:00.000Z`,
     validTo: `${dateKey}T23:59:59.999Z`,
     isPersistent: false,
-    canRegenerateForLumi: false,
     legacySource: 'today_overview.forecast_daily',
   };
 

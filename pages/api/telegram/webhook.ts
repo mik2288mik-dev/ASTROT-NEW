@@ -117,19 +117,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ok: true });
   }
 
-  let legacyPayload: { userId?: string; type?: string; packId?: string } | null = null;
+  let paymentPayload: { userId?: string; type?: string } | null = null;
   try {
-    legacyPayload = JSON.parse(payment.invoice_payload);
+    paymentPayload = JSON.parse(payment.invoice_payload);
   } catch {
     log.error('Invalid invoice payload', { payload: payment.invoice_payload });
-    return res.status(200).json({ ok: true });
-  }
-
-  if (legacyPayload?.type === 'lumi_pack') {
-    log.info('Lumi pack payment ignored (deprecated)', {
-      userId: legacyPayload.userId,
-      packId: legacyPayload.packId,
-    });
     return res.status(200).json({ ok: true });
   }
 
@@ -140,8 +132,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (error: any) {
     log.error('Failed to process Telegram payment', {
-      userId: legacyPayload?.userId,
-      type: legacyPayload?.type,
+      userId: paymentPayload?.userId,
+      type: paymentPayload?.type,
       error: error.message,
     });
   }

@@ -343,7 +343,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       content: resultPayload,
       modelTier,
       isPersistent: true,
-      canRegenerateForLumi: false,
       legacySource: 'synastry.full.premium',
     };
 

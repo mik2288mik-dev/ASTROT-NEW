@@ -89,7 +89,6 @@ type AdminDbUserSegment =
   | 'all'
   | 'premium'
   | 'free'
-  | 'lumi'
   | 'active_7d'
   | 'inactive_3d'
   | 'inactive_7d'
@@ -101,7 +100,7 @@ type AdminDbSortOrder = 'asc' | 'desc';
 type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
 type AdminDbNotificationResult = 'all' | 'success' | 'partial' | 'failed';
 type AdminDbNotificationSegment = AdminNotificationTargetSegment;
-type DbContentAccessTier = 'free' | 'premium' | 'stars' | 'lumi';
+type DbContentAccessTier = 'free' | 'premium';
 type DbContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
 type DbContentVariant =
   | 'anchor'
@@ -117,7 +116,7 @@ type DbContentVariant =
   | 'full'
   | 'one_off'; // legacy DB rows only; not in product ContentVariant
 type DbContentModelTier = 'base' | 'premium';
-type DbContentUnlockType = 'free' | 'premium' | 'stars' | 'lumi';
+type DbContentUnlockType = 'free' | 'premium';
 type DbHoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
 
 function normalizeJsonColumn<T = any>(value: any): T {
@@ -187,8 +186,6 @@ function mapContentInterpretationRow(row: any) {
     validFrom: row.valid_from ? new Date(row.valid_from).toISOString() : null,
     validTo: row.valid_to ? new Date(row.valid_to).toISOString() : null,
     isPersistent: !!row.is_persistent,
-    canRegenerateForLumi: !!row.can_regenerate_for_lumi,
-    regenerationCostLumi: row.regeneration_cost_lumi ?? null,
     legacySource: row.legacy_source ?? null,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
@@ -224,7 +221,6 @@ function mapContentUnlockRow(row: any) {
     contentVariant: row.content_variant,
     unlockType: row.unlock_type,
     cacheKey: row.cache_key,
-    lumiSpent: Number(row.lumi_spent ?? 0),
     metadata: normalizeJsonColumn<Record<string, any> | null>(row.metadata),
     unlockedAt: new Date(row.unlocked_at).toISOString(),
     expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
@@ -1908,8 +1904,6 @@ export const db = {
         validFrom?: string | Date | null;
         validTo?: string | Date | null;
         isPersistent?: boolean;
-        canRegenerateForLumi?: boolean;
-        regenerationCostLumi?: number | null;
         legacySource?: string | null;
       },
       ownerUserId?: string | null
@@ -1931,9 +1925,7 @@ export const db = {
                valid_from = $13,
                valid_to = $14,
                is_persistent = $15,
-               can_regenerate_for_lumi = $16,
-               regeneration_cost_lumi = $17,
-               legacy_source = $18,
+               legacy_source = $16,
                updated_at = CURRENT_TIMESTAMP
            WHERE chart_id = $1
              AND access_tier = $2
@@ -1955,8 +1947,6 @@ export const db = {
             data.validFrom ?? null,
             data.validTo ?? null,
             !!data.isPersistent,
-            !!data.canRegenerateForLumi,
-            data.regenerationCostLumi ?? null,
             data.legacySource ?? null,
           ]
         );
@@ -1964,8 +1954,8 @@ export const db = {
         if ((updated.rowCount ?? 0) === 0) {
           await dbPool.query(
             `INSERT INTO content_interpretations
-              (user_id, chart_id, access_tier, content_surface, content_variant, model_tier, cache_key, input_hash, content, prompt_version, calculation_version, valid_from, valid_to, is_persistent, can_regenerate_for_lumi, regeneration_cost_lumi, legacy_source)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $14, $15, $16, $17)`,
+              (user_id, chart_id, access_tier, content_surface, content_variant, model_tier, cache_key, input_hash, content, prompt_version, calculation_version, valid_from, valid_to, is_persistent, legacy_source)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $14, $15)`,
             [
               ownerId,
               chartId,
@@ -1981,8 +1971,6 @@ export const db = {
               data.validFrom ?? null,
               data.validTo ?? null,
               !!data.isPersistent,
-              !!data.canRegenerateForLumi,
-              data.regenerationCostLumi ?? null,
               data.legacySource ?? null,
             ]
           );
@@ -2017,8 +2005,6 @@ export const db = {
         validFrom?: string | Date | null;
         validTo?: string | Date | null;
         isPersistent?: boolean;
-        canRegenerateForLumi?: boolean;
-        regenerationCostLumi?: number | null;
         legacySource?: string | null;
       }
     ) {
@@ -2038,9 +2024,7 @@ export const db = {
                valid_from = $11,
                valid_to = $12,
                is_persistent = $13,
-               can_regenerate_for_lumi = $14,
-               regeneration_cost_lumi = $15,
-               legacy_source = $16,
+               legacy_source = $14,
                updated_at = CURRENT_TIMESTAMP
            WHERE user_id = $1
              AND access_tier = $2
@@ -2062,8 +2046,6 @@ export const db = {
             data.validFrom ?? null,
             data.validTo ?? null,
             !!data.isPersistent,
-            !!data.canRegenerateForLumi,
-            data.regenerationCostLumi ?? null,
             data.legacySource ?? null,
           ]
         );
@@ -2071,8 +2053,8 @@ export const db = {
         if ((updated.rowCount ?? 0) === 0) {
           await dbPool.query(
             `INSERT INTO content_interpretations
-              (user_id, access_tier, content_surface, content_variant, model_tier, cache_key, input_hash, content, prompt_version, calculation_version, valid_from, valid_to, is_persistent, can_regenerate_for_lumi, regeneration_cost_lumi, legacy_source)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16)`,
+              (user_id, access_tier, content_surface, content_variant, model_tier, cache_key, input_hash, content, prompt_version, calculation_version, valid_from, valid_to, is_persistent, legacy_source)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14)`,
             [
               id,
               data.accessTier,
@@ -2087,8 +2069,6 @@ export const db = {
               data.validFrom ?? null,
               data.validTo ?? null,
               !!data.isPersistent,
-              !!data.canRegenerateForLumi,
-              data.regenerationCostLumi ?? null,
               data.legacySource ?? null,
             ]
           );
@@ -2119,7 +2099,6 @@ export const db = {
       contentVariant: DbContentVariant;
       unlockType: DbContentUnlockType;
       cacheKey?: string;
-      lumiSpent?: number;
       metadata?: Record<string, any> | null;
       expiresAt?: string | Date | null;
     }) {
@@ -2129,8 +2108,8 @@ export const db = {
         const dbPool = getPool();
         const result = await dbPool.query(
           `INSERT INTO content_unlocks
-            (user_id, chart_id, access_tier, content_surface, content_variant, unlock_type, cache_key, lumi_spent, metadata, expires_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+            (user_id, chart_id, access_tier, content_surface, content_variant, unlock_type, cache_key, metadata, expires_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
            RETURNING *`,
           [
             userId,
@@ -2140,7 +2119,6 @@ export const db = {
             data.contentVariant,
             data.unlockType,
             data.cacheKey || 'default',
-            data.lumiSpent ?? 0,
             JSON.stringify(data.metadata ?? null),
             data.expiresAt ?? null,
           ]
@@ -2298,7 +2276,7 @@ export const db = {
         `SELECT *
          FROM premium_entitlements
          WHERE user_id = $1
-           AND tier_name = 'lumia_premium'
+           AND tier_name = 'premium'
            AND ends_at = $2
            AND source = 'users.premium_until'
          LIMIT 1`,
@@ -2310,7 +2288,7 @@ export const db = {
 
       const inserted = await dbPool.query(
         `INSERT INTO premium_entitlements (user_id, tier_name, status, source, starts_at, ends_at, metadata)
-         VALUES ($1, 'lumia_premium', $2, 'users.premium_until', $3, $4, $5::jsonb)
+         VALUES ($1, 'premium', $2, 'users.premium_until', $3, $4, $5::jsonb)
          RETURNING *`,
         [
           toUserId(userId),

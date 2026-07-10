@@ -39,8 +39,6 @@ const cachedInterpretation = {
   validFrom: '2026-06-03T00:00:00.000Z',
   validTo: '2026-06-03T23:59:59.999Z',
   isPersistent: false,
-  canRegenerateForLumi: false,
-  regenerationCostLumi: null,
   legacySource: 'forecast_v2.day.premium',
   createdAt: '2026-06-03T00:00:00.000Z',
   updatedAt: '2026-06-03T00:00:00.000Z',

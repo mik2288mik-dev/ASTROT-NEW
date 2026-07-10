@@ -105,8 +105,6 @@ function buildSectionEnvelope(
     validFrom: opts.validFrom ? new Date(opts.validFrom).toISOString() : null,
     validTo: opts.validTo ? new Date(opts.validTo).toISOString() : null,
     isPersistent: false,
-    canRegenerateForLumi: false,
-    regenerationCostLumi: null,
     legacySource: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

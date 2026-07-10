@@ -58,8 +58,6 @@ function buildUnsavedDaypartInterpretation(input: {
     validFrom: `${input.dateKey}T00:00:00.000Z`,
     validTo: `${input.dateKey}T23:59:59.999Z`,
     isPersistent: false,
-    canRegenerateForLumi: false,
-    regenerationCostLumi: null,
     legacySource: `forecast_v2.${input.slot}.premium`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -237,7 +235,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       validFrom: `${dateKey}T00:00:00.000Z`,
       validTo: `${dateKey}T23:59:59.999Z`,
       isPersistent: false,
-      canRegenerateForLumi: false,
       legacySource: `forecast_v2.${slot}.premium`,
     };
     return context.chartId != null

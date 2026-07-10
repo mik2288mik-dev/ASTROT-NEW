@@ -91,7 +91,6 @@ async function loadLegacyForecastDaily(userId: string, chartId: number | null, c
     validFrom: `${cacheKey}T00:00:00.000Z`,
     validTo: `${getNextDateKey(cacheKey)}T00:00:00.000Z`,
     isPersistent: false,
-    canRegenerateForLumi: false,
     legacySource: 'daily_natal_cards',
   };
 }

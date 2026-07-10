@@ -33,14 +33,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     throw error;
   }
 
-  if (type === 'lumi_pack') {
-    return res.status(410).json({
-      error: 'Lumi packs deprecated',
-      code: 'LUMI_PACKS_DEPRECATED',
-      message: 'Lumi packs are no longer available. Use Premium instead.',
-    });
-  }
-
   if (!ALLOWED_TYPES.has(type as StarsInvoiceType)) {
     return res.status(400).json({
       error: 'Invalid invoice type',

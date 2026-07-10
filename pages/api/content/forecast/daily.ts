@@ -191,7 +191,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             validFrom: `${dateKey}T00:00:00.000Z`,
             validTo: `${dateKey}T23:59:59.999Z`,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: 'forecast_v2.daily',
           }, safeUserId)
         : await db.content_interpretations.upsertByUser(safeUserId, {
@@ -205,7 +204,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             validFrom: `${dateKey}T00:00:00.000Z`,
             validTo: `${dateKey}T23:59:59.999Z`,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: 'forecast_v2.daily',
           });
     },

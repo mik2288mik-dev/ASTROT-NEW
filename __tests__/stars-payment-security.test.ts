@@ -52,8 +52,8 @@ describe('stars payment security', () => {
   });
 });
 
-describe('create-invoice lumi_pack deprecation', () => {
-  it('returns 410 for lumi_pack type', async () => {
+describe('create-invoice removed invoice types', () => {
+  it('returns 400 for removed pack invoice types', async () => {
     mockTelegramAuth();
     const handler = (await import('../pages/api/telegram/create-invoice')).default;
     const json = jest.fn();
@@ -66,8 +66,8 @@ describe('create-invoice lumi_pack deprecation', () => {
       } as any,
       { status } as any
     );
-    expect(status).toHaveBeenCalledWith(410);
-    expect(json).toHaveBeenCalledWith(expect.objectContaining({ code: 'LUMI_PACKS_DEPRECATED' }));
+    expect(status).toHaveBeenCalledWith(400);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ code: 'INVALID_INVOICE_TYPE' }));
   });
 
   it('returns 400 for removed one-off invoice types', async () => {

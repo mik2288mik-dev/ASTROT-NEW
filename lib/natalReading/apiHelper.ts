@@ -146,8 +146,6 @@ export async function saveReading<T>(
     promptVersion: opts.promptVersion,
     calculationVersion: ctx.chartData?.calculationVersion || null,
     isPersistent: opts.isPersistent ?? true,
-    canRegenerateForLumi: false,
-    regenerationCostLumi: null,
     legacySource: null,
     validFrom: opts.validFrom ?? null,
     validTo: opts.validTo ?? null,

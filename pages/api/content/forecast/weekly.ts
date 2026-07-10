@@ -340,7 +340,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             validFrom,
             validTo,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: `forecast_v2.weekly.${tierToGenerate}`,
           }, userId.trim())
         : await db.content_interpretations.upsertByUser(userId.trim(), {
@@ -354,7 +353,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             validFrom,
             validTo,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: `forecast_v2.weekly.${tierToGenerate}`,
           });
     },

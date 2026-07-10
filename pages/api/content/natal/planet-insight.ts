@@ -225,7 +225,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
             calculationVersion: chartData.calculationVersion || null,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: 'natal_v2.planet_insight',
           }, safeUserId)
         : await db.content_interpretations.upsertByUser(safeUserId, {
@@ -239,7 +238,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
             calculationVersion: chartData.calculationVersion || null,
             isPersistent: false,
-            canRegenerateForLumi: false,
             legacySource: 'natal_v2.planet_insight',
           });
     },

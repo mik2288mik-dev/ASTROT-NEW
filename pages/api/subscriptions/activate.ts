@@ -44,14 +44,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  if (type === 'lumi_pack') {
-    return res.status(410).json({
-      error: 'Lumi packs deprecated',
-      code: 'LUMI_PACKS_DEPRECATED',
-      message: 'Lumi packs are no longer available. Use Premium instead.',
-    });
-  }
-
   const plan = await getManagedPremiumPlan(type);
   if (!plan) {
     return res.status(400).json({
