@@ -6,7 +6,7 @@ export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v4.paid-focus';
 // v5.daily-canvas: личный дневной разбор генерится ЕДИНЫМ полотном за один запрос
 // с прокинутыми транзит→натал аспектами. Бамп версии инвалидирует старый посекционный
 // кеш (ключи human_v2.daily.*), новый код читает только новый ключ human_v2.canvas.*.
-export const HUMAN_DAILY_PROMPT_VERSION = 'lumia-human-v5.daily-canvas';
+export const HUMAN_DAILY_PROMPT_VERSION = 'your-horoscope-v1.daily-canvas';
 
 export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 
@@ -232,56 +232,89 @@ export function humanDailyCacheKey(dateKey: string, sectionKey: HumanDailySectio
 // ключом на сутки, режется на секции при отдаче через существующий посекционный
 // контракт фронта. Так модель видит день целиком (блоки связны, не противоречат),
 // а вызовов к OpenAI — один на день вместо N по сферам.
-export type DailyCanvasSphereKey =
+export type DailyCanvasSectionKey =
+  | 'overview'
   | 'love'
   | 'money'
   | 'work'
   | 'goals'
   | 'family'
-  | 'social'
-  | 'energy';
+  | 'friendship'
+  | 'energy'
+  | 'communication';
 
-export const DAILY_CANVAS_SPHERE_KEYS = [
+export type DailyCanvasFreeSectionKey = Exclude<DailyCanvasSectionKey, 'overview'>;
+
+export const DAILY_CANVAS_SECTION_KEYS = [
+  'overview',
   'love',
   'money',
   'work',
   'goals',
   'family',
-  'social',
+  'friendship',
   'energy',
-] as const satisfies readonly DailyCanvasSphereKey[];
+  'communication',
+] as const satisfies readonly DailyCanvasSectionKey[];
 
-export type DailyCanvas = {
-  summary: string; // главная выжимка дня (overview, free)
-  dayScoreExplain: string; // премиум: живая расшифровка числа оценки
-  do: string[]; // «сегодня в плюс» (2–4 слова на пункт)
-  dont: string[]; // «аккуратнее»
-  spheres: Record<DailyCanvasSphereKey, string>;
-  dayScore?: number | null;
+export const DAILY_CANVAS_FREE_SECTION_KEYS = [
+  'love',
+  'money',
+  'work',
+  'goals',
+  'family',
+  'friendship',
+  'energy',
+  'communication',
+] as const satisfies readonly DailyCanvasFreeSectionKey[];
+
+export type DailyCanvasCard = {
+  title: string;
+  teaser: string;
+  positive_points: string[];
+  caution_points: string[];
 };
 
-// Соответствие текущих sectionKey (посекционный контракт фронта) полям полотна.
-// Ключи вне этого списка (communication/risks/best_action/advice) полотном не
-// покрыты — эндпоинт отдаёт по ним курируемый fallback без AI (в живом UI не видны).
-export const DAILY_SECTION_TO_CANVAS_FIELD: Partial<
-  Record<HumanDailySectionKey, 'summary' | DailyCanvasSphereKey>
-> = {
-  daily_overview: 'summary',
+export type DailyCanvasSection = {
+  key: DailyCanvasSectionKey;
+  title: string;
+  text: string;
+};
+
+export type DailyCanvasSummary = {
+  main_risk: string;
+  best_action: string;
+  day_score: number | null;
+  day_score_explain: string;
+};
+
+export type DailyCanvas = {
+  card: DailyCanvasCard;
+  sections: DailyCanvasSection[];
+  summary: DailyCanvasSummary;
+  meta: {
+    free_section_key: DailyCanvasFreeSectionKey;
+  };
+};
+
+export const DAILY_SECTION_TO_CANVAS_KEY: Partial<Record<HumanDailySectionKey, DailyCanvasSectionKey>> = {
+  daily_overview: 'overview',
   daily_love: 'love',
   daily_money: 'money',
   daily_work_business: 'work',
   daily_goals: 'goals',
   daily_family: 'family',
-  daily_friendship: 'social',
+  daily_friendship: 'friendship',
   daily_energy: 'energy',
+  daily_communication: 'communication',
 };
 
 export function isCanvasBackedDailySection(key: HumanDailySectionKey): boolean {
-  return Object.prototype.hasOwnProperty.call(DAILY_SECTION_TO_CANVAS_FIELD, key);
+  return Object.prototype.hasOwnProperty.call(DAILY_SECTION_TO_CANVAS_KEY, key);
 }
 
 export function humanDailyCanvasCacheKey(dateKey: string): string {
-  return `human_v2.canvas.${dateKey}`;
+  return `personal_daily.canvas.${dateKey}`;
 }
 
 export function buildLockedPaidSections(): InterpretationSection[] {

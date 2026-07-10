@@ -236,6 +236,14 @@ function getRequestedPersonalDailySectionFromQuery(): PersonalDailySection | nul
             return 'work';
         case 'daily_goals':
             return 'goals';
+        case 'daily_family':
+            return 'family';
+        case 'daily_friendship':
+            return 'friendship';
+        case 'daily_energy':
+            return 'energy';
+        case 'daily_communication':
+            return 'communication';
         case 'personal_forecast':
         case 'personal_daily':
             return 'overview';
@@ -1335,6 +1343,10 @@ const App: React.FC = () => {
                 daily_work_business: 'work',
                 daily_money: 'money',
                 daily_goals: 'goals',
+                daily_family: 'family',
+                daily_friendship: 'friendship',
+                daily_energy: 'energy',
+                daily_communication: 'communication',
             };
             openPersonalDailyView(sectionByKey[options?.dailySectionKey ?? 'daily_work_business'] ?? 'work');
             return;

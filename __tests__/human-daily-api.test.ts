@@ -20,35 +20,53 @@ const generatedSection = {
   bullets: ['generated'],
 };
 
-const spheres = (love: string) => ({
-  love,
-  money: 'money block',
-  work: 'work block',
-  goals: 'goals block',
-  family: 'family block',
-  social: 'social block',
-  energy: 'energy block',
-});
+const canvasSections = (loveText: string) => [
+  { key: 'overview', title: 'Overview', text: 'Overview block with enough text for the personal daily canvas contract.' },
+  { key: 'love', title: 'Love', text: loveText },
+  { key: 'money', title: 'Money', text: 'Money block' },
+  { key: 'work', title: 'Work', text: 'Work block' },
+  { key: 'goals', title: 'Goals', text: 'Goals block' },
+  { key: 'family', title: 'Family', text: 'Family block' },
+  { key: 'friendship', title: 'Friendship', text: 'Friendship block' },
+  { key: 'energy', title: 'Energy', text: 'Energy block' },
+  { key: 'communication', title: 'Communication', text: 'Communication block' },
+];
 
 const generatedCanvas = {
-  summary: 'Generated summary of the day.',
-  dayScoreExplain: '74 — крепкий день.',
-  do: ['do a'],
-  dont: ['dont b'],
-  spheres: spheres(generatedSection.content),
-  dayScore: 74,
+  card: {
+    title: 'Generated title',
+    teaser: 'Generated teaser for the day.',
+    positive_points: ['do a', 'do b', 'do c'],
+    caution_points: ['dont a', 'dont b', 'dont c'],
+  },
+  sections: canvasSections(generatedSection.content),
+  summary: {
+    main_risk: 'Generated risk',
+    best_action: 'Generated action',
+    day_score: 74,
+    day_score_explain: '74 — крепкий день.',
+  },
+  meta: { free_section_key: 'love' },
 };
 
 const fallbackCanvas = {
-  summary: 'Fallback summary of the day.',
-  dayScoreExplain: '',
-  do: ['do a'],
-  dont: ['dont b'],
-  spheres: spheres(fallbackSection.content),
-  dayScore: null,
+  card: {
+    title: 'Fallback title',
+    teaser: 'Fallback teaser for the day.',
+    positive_points: ['do a', 'do b', 'do c'],
+    caution_points: ['dont a', 'dont b', 'dont c'],
+  },
+  sections: canvasSections(fallbackSection.content),
+  summary: {
+    main_risk: 'Fallback risk',
+    best_action: 'Fallback action',
+    day_score: null,
+    day_score_explain: '',
+  },
+  meta: { free_section_key: 'love' },
 };
 
-const invalidCanvas = { summary: '', dayScoreExplain: '', do: [], dont: [], spheres: {} };
+const invalidCanvas = { card: null, sections: [], summary: null, meta: null };
 
 const cachedReading = {
   id: 10,
@@ -61,7 +79,7 @@ const cachedReading = {
   cacheKey: 'human_v2.canvas.2026-06-03',
   inputHash: 'hash',
   content: generatedCanvas,
-  promptVersion: 'lumia-human-v5.daily-canvas',
+  promptVersion: 'your-horoscope-v1.daily-canvas',
   calculationVersion: 'test',
   validFrom: null,
   validTo: null,
@@ -103,6 +121,7 @@ function setupMocks(options?: {
   getCachedReading?: jest.Mock;
   saveReading?: jest.Mock;
   generateDailyCanvas?: jest.Mock;
+  isPremium?: boolean;
 }) {
   const getCachedReading = options?.getCachedReading || jest.fn().mockResolvedValue(null);
   const saveReading = options?.saveReading || jest.fn(async (_ctx, _opts, content) => savedReading(content, content === generatedCanvas ? 12 : 11));
@@ -111,7 +130,9 @@ function setupMocks(options?: {
   const sliceCanvasToSection = jest.fn((canvas: any, sectionKey: string) => {
     if (canvas === generatedCanvas) return generatedSection;
     if (canvas === fallbackCanvas) return fallbackSection;
-    return { key: sectionKey, title: 'x', access: 'premium', content: canvas?.spheres?.love || canvas?.summary || '', bullets: [] };
+    const canvasKey = sectionKey === 'daily_overview' ? 'overview' : sectionKey.replace(/^daily_/, '').replace('work_business', 'work');
+    const section = canvas?.sections?.find((item: any) => item.key === canvasKey);
+    return { key: sectionKey, title: 'x', access: 'premium', content: section?.text || '', bullets: [] };
   });
 
   jest.doMock('../lib/natalReading/apiHelper', () => ({
@@ -137,7 +158,7 @@ function setupMocks(options?: {
   }));
 
   jest.doMock('../lib/contentArchitecture', () => ({
-    getPremiumEntitlementState: jest.fn().mockResolvedValue({ isPremium: true, entitlement: null }),
+    getPremiumEntitlementState: jest.fn().mockResolvedValue({ isPremium: options?.isPremium ?? true, entitlement: null }),
   }));
 
   jest.doMock('../lib/natalHumanInterpretation', () => ({
@@ -203,6 +224,26 @@ describe('human-daily API canvas fallback-first flow', () => {
     expect(payload.interpretation.content.content).toBe(generatedSection.content);
     expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
     expect(mocks.saveReading).not.toHaveBeenCalled();
+  });
+
+  it('does not expose closed canvas sections to a free user', async () => {
+    const mocks = setupMocks({
+      getCachedReading: jest.fn().mockResolvedValue(cachedReading),
+      isPremium: false,
+    });
+
+    const open = await callHandler('GET', 'daily_love');
+    expect(open.status).toHaveBeenCalledWith(200);
+    expect(open.json.mock.calls[0][0].accessTier).toBe('free');
+
+    const closed = await callHandler('GET', 'daily_money');
+    expect(closed.status).toHaveBeenCalledWith(403);
+    expect(closed.json.mock.calls[0][0]).toMatchObject({
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      freeSectionKey: 'love',
+    });
+    expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
   });
 
   it('saves fallback canvas before generated canvas on a miss', async () => {

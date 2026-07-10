@@ -190,7 +190,9 @@ export const Dashboard = memo<DashboardProps>(({
         { section: 'work', title: 'Работа', hook: 'Сегодня решает не срочность' },
         { section: 'goals', title: 'Цели', hook: 'Один шаг важнее плана на месяц' },
         { section: 'family', title: 'Дом', hook: 'Дома просится маленькая правка' },
-        { section: 'friends', title: 'Друзья', hook: 'Кому сегодня написать первым?' },
+        { section: 'friendship', title: 'Друзья', hook: 'Кому сегодня написать первым?' },
+        { section: 'energy', title: 'Силы', hook: 'Где лучше не жать на газ' },
+        { section: 'communication', title: 'Разговоры', hook: 'Что сказать прямо, но без нажима' },
       ]
     : [
         { section: 'love', title: 'Love', hook: 'What is up with feelings today?' },
@@ -198,17 +200,19 @@ export const Dashboard = memo<DashboardProps>(({
         { section: 'work', title: 'Work', hook: 'Today urgency is not the boss' },
         { section: 'goals', title: 'Goals', hook: 'One step beats a month-long plan' },
         { section: 'family', title: 'Home', hook: 'One small home fix wants attention' },
-        { section: 'friends', title: 'Friends', hook: 'Who is worth texting first today?' },
+        { section: 'friendship', title: 'Friends', hook: 'Who is worth texting first today?' },
+        { section: 'energy', title: 'Energy', hook: 'Where not to push too hard' },
+        { section: 'communication', title: 'Talks', hook: 'What to say clearly, without pressure' },
       ];
   const openDayHero = () => {
     lumiaSelectionHaptic();
-    if (hasChart && premium) { onOpenPersonalDaily('overview'); }
+    if (hasChart) { onOpenPersonalDaily('overview'); }
     else if (!hasChart) { onCreateNatalChart?.(); }
     else { onRequestPremium?.('personal_day'); }
   };
   const openSphere = (section: PersonalDailySection) => {
     lumiaSelectionHaptic();
-    if (hasChart && premium) { onOpenPersonalDaily(section); }
+    if (hasChart) { onOpenPersonalDaily(section); }
     else if (!hasChart) { onCreateNatalChart?.(); }
     else { onRequestPremium?.('personal_day_sphere'); }
   };

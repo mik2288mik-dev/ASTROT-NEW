@@ -31,7 +31,7 @@ describe('product daily navigation', () => {
     const source = read('views/DailyContentScreens.tsx');
 
     expect(source).toContain('export const PersonalDailyScreen');
-    for (const id of ['overview', 'love', 'money', 'work', 'goals', 'family', 'friends']) {
+    for (const id of ['overview', 'love', 'money', 'work', 'goals', 'family', 'friendship', 'energy', 'communication']) {
       expect(source).toContain(`id: '${id}'`);
     }
     expect(source).toContain('loadHumanDailySection');

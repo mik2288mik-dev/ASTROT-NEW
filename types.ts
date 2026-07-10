@@ -526,7 +526,16 @@ export type HoroscopeDailySectionKey =
   | 'daily_work_business'
   | 'daily_money'
   | 'daily_goals';
-export type PersonalDailySection = 'overview' | 'love' | 'money' | 'work' | 'goals' | 'family' | 'friends';
+export type PersonalDailySection =
+  | 'overview'
+  | 'love'
+  | 'money'
+  | 'work'
+  | 'goals'
+  | 'family'
+  | 'friendship'
+  | 'energy'
+  | 'communication';
 export type HoroscopeOpenOptions = {
   mode?: HoroscopeOpenMode;
   source?: string;

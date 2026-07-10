@@ -19,13 +19,15 @@ import { buildBlindSpotPrompt, buildNatalSectionPrompt } from './contentPromptBu
 import {
   buildLockedDailySections,
   buildLockedPaidSections,
-  DAILY_CANVAS_SPHERE_KEYS,
-  DAILY_SECTION_TO_CANVAS_FIELD,
+  DAILY_CANVAS_FREE_SECTION_KEYS,
+  DAILY_CANVAS_SECTION_KEYS,
+  DAILY_SECTION_TO_CANVAS_KEY,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
   type DailyCanvas,
-  type DailyCanvasSphereKey,
+  type DailyCanvasFreeSectionKey,
+  type DailyCanvasSectionKey,
   type HumanDailySectionKey,
   type HumanPaidSectionKey,
 } from './natalHumanShared';
@@ -1417,15 +1419,40 @@ const LAYER_RU: Record<string, string> = {
   relationships: 'отношения',
 };
 
-const CANVAS_SPHERE_TO_DAILY_KEY: Record<DailyCanvasSphereKey, HumanDailySectionKey> = {
+const CANVAS_SECTION_TO_DAILY_KEY: Record<DailyCanvasSectionKey, HumanDailySectionKey> = {
+  overview: 'daily_overview',
   love: 'daily_love',
   money: 'daily_money',
   work: 'daily_work_business',
   goals: 'daily_goals',
   family: 'daily_family',
-  social: 'daily_friendship',
+  friendship: 'daily_friendship',
   energy: 'daily_energy',
+  communication: 'daily_communication',
 };
+
+const SCORE_LAYER_TO_FREE_SECTION: Partial<Record<string, DailyCanvasFreeSectionKey>> = {
+  relationships: 'love',
+  money: 'money',
+  focus: 'work',
+  energy: 'energy',
+  emotions: 'communication',
+};
+
+function chooseFreeSectionKey(
+  profile: UserProfile,
+  chart: NatalChartData,
+  dateKey: string,
+  dominantLayer?: string | null,
+): DailyCanvasFreeSectionKey {
+  const mapped = dominantLayer ? SCORE_LAYER_TO_FREE_SECTION[dominantLayer] : null;
+  if (mapped) return mapped;
+  return pickVariant(
+    [...DAILY_CANVAS_FREE_SECTION_KEYS],
+    dateKey,
+    `free-section|${dailyFallbackSeed(profile, chart)}`,
+  );
+}
 
 function compactTransits(transits: TransitsSnapshot) {
   const one = (t?: { sign?: string; degree?: number } | null) =>
@@ -1448,6 +1475,7 @@ function buildDailyCanvasPrompt(
   transitPositions: unknown,
   aspectLines: string[],
   score: { value: number; dominant: string; weakest: string } | null,
+  freeSectionKey: DailyCanvasFreeSectionKey,
 ): string {
   const aspectsBlock = aspectLines.length
     ? aspectLines.map((line) => `- ${line}`).join('\n')
@@ -1456,7 +1484,7 @@ function buildDailyCanvasPrompt(
     ? `ОЦЕНКА ДНЯ: ${score.value}/100. Сильнее всего сегодня — ${score.dominant}; слабее — ${score.weakest}.`
     : 'ОЦЕНКА ДНЯ: недоступна — не называй конкретное число, dayScoreExplain оставь пустым.';
 
-  return `Собери ЕДИНЫЙ персональный разбор дня по натальной карте и реальным транзитам. Это один связный день целиком, а не набор независимых кусков: блоки не должны противоречить друг другу (общий тон и число оценки согласованы со сферами).
+  return `Собери ЕДИНЫЙ персональный разбор дня по натальной карте и реальным транзитам. Это один связный день целиком, а не набор независимых кусков: блоки не должны противоречить друг другу (общий тон, карточка, summary и секции согласованы между собой).
 
 Дата: ${dateKey}
 
@@ -1473,33 +1501,51 @@ ${scoreBlock}
 
 Опирайся СТРОГО на переданные данные: натальную карту, посчитанные аспекты и позиции транзитов. НЕ придумывай положения планет, аспекты и фазы Луны. Точность — из расчёта, живость — из тебя. Пиши через конкретные сегодняшние ситуации (разговор, задача, покупка, договорённость, пауза). Не обещай событий, дохода, здоровья; без медицинских, юридических и финансовых гарантий.
 
+Сервер уже выбрал вторую бесплатную тему: "${freeSectionKey}". Верни её же в meta.free_section_key.
+
 Верни JSON строго такой структуры (без markdown вне JSON):
 {
-  "summary": "80–100 слов: главная выжимка дня — что сегодня важнее всего, коротко и по делу",
-  "dayScoreExplain": "1–2 фразы: живая расшифровка оценки дня, привязанная к числу и раскладу (напр. «74 — крепкий день, хорошо идут дела и разговоры, с деньгами не гони»). Без философии и напутствий; если оценка недоступна — пустая строка",
-  "do": ["3 пункта по 2–4 слова: что сегодня идёт в плюс (из поддержек расклада)"],
-  "dont": ["3 пункта по 2–4 слова: где сегодня аккуратнее (из напряжений расклада)"],
-  "spheres": {
-    "love": "80–120 слов: любовь, близость, разговоры сегодня",
-    "money": "80–120 слов: деньги, траты, решения сегодня",
-    "work": "80–120 слов: работа, задачи, фокус сегодня",
-    "goals": "80–120 слов: дела и цели — один реальный шаг",
-    "family": "80–120 слов: дом, близкие, быт сегодня",
-    "social": "80–120 слов: друзья, окружение, контакты сегодня",
-    "energy": "80–120 слов: нагрузка, ритм, восстановление сегодня (без медицинских обещаний)"
+  "card": {
+    "title": "короткий заголовок дня без штампов",
+    "teaser": "2–3 предложения: что сегодня важно, без повтора overview",
+    "positive_points": ["3 пункта по 2–6 слов: что сегодня в плюс"],
+    "caution_points": ["3 пункта по 2–6 слов: где аккуратнее"]
+  },
+  "sections": [
+    { "key": "overview", "title": "Главное на сегодня", "text": "90–130 слов: общий ход дня" },
+    { "key": "love", "title": "Любовь и близость", "text": "70–110 слов" },
+    { "key": "money", "title": "Деньги и покупки", "text": "70–110 слов" },
+    { "key": "work", "title": "Работа и дела", "text": "70–110 слов" },
+    { "key": "goals", "title": "Цели и решения", "text": "70–110 слов" },
+    { "key": "family", "title": "Дом и семья", "text": "70–110 слов" },
+    { "key": "friendship", "title": "Друзья и окружение", "text": "70–110 слов" },
+    { "key": "energy", "title": "Нагрузка и восстановление", "text": "70–110 слов; без медицинских обещаний" },
+    { "key": "communication", "title": "Общение и важные разговоры", "text": "70–110 слов" }
+  ],
+  "summary": {
+    "main_risk": "один конкретный риск дня",
+    "best_action": "одно конкретное действие дня",
+    "day_score": ${score ? score.value : 'null'},
+    "day_score_explain": "1–2 фразы: живая расшифровка оценки дня; если оценки нет — пустая строка"
+  },
+  "meta": {
+    "free_section_key": "${freeSectionKey}"
   }
 }
 
-Длину держи по содержанию, не растягивай ради объёма. Не повторяй одну и ту же мысль между блоками.`;
+Пиши секции строго в указанном порядке. Не повторяй одну и ту же мысль между блоками. Общий русский результат по sections должен быть примерно 500–900 слов.`;
 }
 
 function canvasAllText(canvas: DailyCanvas): string {
   return [
-    canvas.summary,
-    canvas.dayScoreExplain,
-    ...canvas.do,
-    ...canvas.dont,
-    ...DAILY_CANVAS_SPHERE_KEYS.map((k) => canvas.spheres[k]),
+    canvas.card.title,
+    canvas.card.teaser,
+    ...canvas.card.positive_points,
+    ...canvas.card.caution_points,
+    ...canvas.sections.map((section) => `${section.title}\n${section.text}`),
+    canvas.summary.main_risk,
+    canvas.summary.best_action,
+    canvas.summary.day_score_explain,
   ]
     .map((v) => String(v || ''))
     .join('\n');
@@ -1507,27 +1553,55 @@ function canvasAllText(canvas: DailyCanvas): string {
 
 function normalizeCanvas(raw: Partial<DailyCanvas> | null | undefined, fallback: DailyCanvas): DailyCanvas {
   const r = raw && typeof raw === 'object' ? raw : {};
-  const spheresRaw =
-    r.spheres && typeof r.spheres === 'object' ? (r.spheres as Record<string, unknown>) : {};
-  const spheres = {} as Record<DailyCanvasSphereKey, string>;
-  for (const key of DAILY_CANVAS_SPHERE_KEYS) {
-    spheres[key] = cleanText(spheresRaw[key]) || fallback.spheres[key];
-  }
+  const rawCard = r.card && typeof r.card === 'object' ? r.card as Partial<DailyCanvas['card']> : {};
+  const rawSummary = r.summary && typeof r.summary === 'object' ? r.summary as Partial<DailyCanvas['summary']> : {};
+  const rawSections = Array.isArray(r.sections) ? r.sections as Array<Partial<DailyCanvas['sections'][number]>> : [];
+  const sectionByKey = new Map(rawSections.map((section) => [section.key, section]));
+  const fallbackSectionByKey = new Map(fallback.sections.map((section) => [section.key, section]));
+  const sections = DAILY_CANVAS_SECTION_KEYS.map((key) => {
+    const rawSection = sectionByKey.get(key) || {};
+    const fallbackSection = fallbackSectionByKey.get(key)!;
+    return {
+      key,
+      title: cleanLine(rawSection.title) || fallbackSection.title,
+      text: cleanText(rawSection.text) || fallbackSection.text,
+    };
+  });
+  const rawFreeKey = r.meta?.free_section_key;
+  const freeSectionKey = DAILY_CANVAS_FREE_SECTION_KEYS.includes(rawFreeKey as DailyCanvasFreeSectionKey)
+    ? rawFreeKey as DailyCanvasFreeSectionKey
+    : fallback.meta.free_section_key;
   return {
-    summary: cleanText(r.summary) || fallback.summary,
-    dayScoreExplain: cleanText(r.dayScoreExplain) || fallback.dayScoreExplain,
-    do: normalizeBullets(r.do, fallback.do).slice(0, 4),
-    dont: normalizeBullets(r.dont, fallback.dont).slice(0, 4),
-    spheres,
-    dayScore: fallback.dayScore ?? null,
+    card: {
+      title: cleanLine(rawCard.title) || fallback.card.title,
+      teaser: cleanText(rawCard.teaser) || fallback.card.teaser,
+      positive_points: normalizeBullets(rawCard.positive_points, fallback.card.positive_points).slice(0, 3),
+      caution_points: normalizeBullets(rawCard.caution_points, fallback.card.caution_points).slice(0, 3),
+    },
+    sections,
+    summary: {
+      main_risk: cleanText(rawSummary.main_risk) || fallback.summary.main_risk,
+      best_action: cleanText(rawSummary.best_action) || fallback.summary.best_action,
+      day_score: fallback.summary.day_score ?? null,
+      day_score_explain: cleanText(rawSummary.day_score_explain) || fallback.summary.day_score_explain,
+    },
+    meta: {
+      free_section_key: freeSectionKey,
+    },
   };
 }
 
 function validateCanvas(canvas: DailyCanvas): boolean {
-  if (cleanText(canvas.summary).length < 120) return false;
-  for (const key of DAILY_CANVAS_SPHERE_KEYS) {
-    if (cleanText(canvas.spheres[key]).length < 100) return false;
+  if (!cleanLine(canvas.card.title) || cleanText(canvas.card.teaser).length < 40) return false;
+  if (normalizeBullets(canvas.card.positive_points).length < 3) return false;
+  if (normalizeBullets(canvas.card.caution_points).length < 3) return false;
+  if (!DAILY_CANVAS_FREE_SECTION_KEYS.includes(canvas.meta.free_section_key)) return false;
+  const byKey = new Map(canvas.sections.map((section) => [section.key, section]));
+  for (const key of DAILY_CANVAS_SECTION_KEYS) {
+    const section = byKey.get(key);
+    if (!section || cleanText(section.text).length < (key === 'overview' ? 120 : 80)) return false;
   }
+  if (!cleanText(canvas.summary.main_risk) || !cleanText(canvas.summary.best_action)) return false;
   if (hasBadText(canvasAllText(canvas))) return false;
   return true;
 }
@@ -1537,17 +1611,18 @@ export function buildDailyCanvasFallback(
   chart: NatalChartData,
   dateKey: string,
   score?: number | null,
+  freeSectionKey?: DailyCanvasFreeSectionKey,
 ): DailyCanvas {
-  const overview = buildHumanDailyFallback(profile, chart, 'daily_overview', dateKey);
-  const spheres = {} as Record<DailyCanvasSphereKey, string>;
-  for (const sphere of DAILY_CANVAS_SPHERE_KEYS) {
-    spheres[sphere] = buildHumanDailyFallback(
-      profile,
-      chart,
-      CANVAS_SPHERE_TO_DAILY_KEY[sphere],
-      dateKey,
-    ).content;
-  }
+  const selectedFreeSection = freeSectionKey || chooseFreeSectionKey(profile, chart, dateKey);
+  const rawSections = DAILY_CANVAS_SECTION_KEYS.map((key) => {
+    const sectionKey = CANVAS_SECTION_TO_DAILY_KEY[key];
+    const fallbackSection = buildHumanDailyFallback(profile, chart, sectionKey, dateKey);
+    return {
+      key,
+      title: HUMAN_DAILY_SECTION_META[sectionKey].title,
+      text: fallbackSection.content,
+    };
+  });
   const doVariants: string[][] = [
     ['Довести одно до конца', 'Сказать прямо и вовремя', 'Дать себе паузу'],
     ['Закрыть то, что висит', 'Начать с малого', 'Ответить по делу, без воды'],
@@ -1576,13 +1651,26 @@ export function buildDailyCanvasFallback(
       `${s} — фон низковат, и это нормально. Не требуй от себя многого сегодня; сделай минимум важного и дай себе отдохнуть.`,
     ];
   };
+  const positivePoints = withPersonalFirstItem(doItems, dailyDoCue(chart)).slice(0, 3);
+  const cautionPoints = withPersonalFirstItem(dontItems, dailyDontCue(chart)).slice(0, 3);
+  const overview = rawSections.find((section) => section.key === 'overview')!;
   return {
-    summary: overview.content,
-    dayScoreExplain: score != null ? pickVariant(explainFor(score), dateKey, `score|${seed}`) : '',
-    do: withPersonalFirstItem(doItems, dailyDoCue(chart)),
-    dont: withPersonalFirstItem(dontItems, dailyDontCue(chart)),
-    spheres,
-    dayScore: score ?? null,
+    card: {
+      title: 'Главное на сегодня',
+      teaser: `${profile.name ? `${profile.name}, ` : ''}день лучше держать в руках: выбери главное, не раздавай внимание всем подряд и оставь место для спокойного решения.`,
+      positive_points: positivePoints,
+      caution_points: cautionPoints,
+    },
+    sections: rawSections,
+    summary: {
+      main_risk: cautionPoints[0] || 'Расфокус и лишняя спешка',
+      best_action: positivePoints[0] || 'Довести одно до конца',
+      day_score: score ?? null,
+      day_score_explain: score != null ? pickVariant(explainFor(score), dateKey, `score|${seed}`) : '',
+    },
+    meta: {
+      free_section_key: selectedFreeSection,
+    },
   };
 }
 
@@ -1606,11 +1694,13 @@ export async function generateDailyCanvas(
   let aspectLines: string[] = [];
   let scoreForPrompt: { value: number; dominant: string; weakest: string } | null = null;
   let scoreNum: number | null = null;
+  let dominantLayer: string | null = null;
   if (transits) {
     aspectLines = formatTransitAspectsRu(detectTransitAspects(chart, transits, { limit: 10 }));
     try {
       const s = computeDayScoreFromTransits(chart, transits, 12, dateKey);
       scoreNum = s.score;
+      dominantLayer = s.dominant;
       scoreForPrompt = {
         value: s.score,
         dominant: LAYER_RU[s.dominant] || s.dominant,
@@ -1621,10 +1711,11 @@ export async function generateDailyCanvas(
     }
   }
 
-  const fallback = buildDailyCanvasFallback(profile, chart, dateKey, scoreNum);
+  const freeSectionKey = chooseFreeSectionKey(profile, chart, dateKey, dominantLayer);
+  const fallback = buildDailyCanvasFallback(profile, chart, dateKey, scoreNum, freeSectionKey);
   const summary = buildChartSummary(profile, chart);
   const compact = transits ? compactTransits(transits) : null;
-  const prompt = buildDailyCanvasPrompt(summary, dateKey, compact, aspectLines, scoreForPrompt);
+  const prompt = buildDailyCanvasPrompt(summary, dateKey, compact, aspectLines, scoreForPrompt, freeSectionKey);
 
   const canvas = await generateWithRetry<DailyCanvas>(
     async () => {
@@ -1644,42 +1735,48 @@ export async function generateDailyCanvas(
     fallback,
   );
 
-  // Число оценки — из расчёта (todayPulse), не из модели.
-  canvas.dayScore = scoreNum;
+  // Число оценки и free-section — из расчёта/серверного выбора, не из модели.
+  canvas.summary.day_score = scoreNum;
+  canvas.meta.free_section_key = freeSectionKey;
   return canvas;
 }
 
 /**
- * Режет полотно на секцию под существующий посекционный контракт фронта.
- * daily_overview → summary (free, буллеты = «сегодня в плюс»); сферы → premium.
- * Для ключей вне полотна возвращает null (эндпоинт отдаёт курируемый fallback).
+ * Режет новое полотно на секцию под существующий посекционный контракт фронта.
+ * Backend отдаёт только overview и выбранную free-section для free-пользователя.
  */
 export function sliceCanvasToSection(
   canvas: DailyCanvas,
   sectionKey: HumanDailySectionKey,
 ): InterpretationSection | null {
-  const field = DAILY_SECTION_TO_CANVAS_FIELD[sectionKey];
-  if (!field) return null;
+  const canvasKey = DAILY_SECTION_TO_CANVAS_KEY[sectionKey];
+  if (!canvasKey) return null;
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
-  const isOverview = field === 'summary';
-  const content = isOverview ? canvas.summary : canvas.spheres[field as DailyCanvasSphereKey];
+  const section = canvas.sections.find((item) => item.key === canvasKey);
+  if (!section) return null;
+  const isOverview = canvasKey === 'overview';
+  const isFreeExtra = canvas.meta.free_section_key === canvasKey;
   return {
     key: sectionKey,
-    title: meta.title,
+    title: section.title || meta.title,
     subtitle: meta.subtitle,
-    access: isOverview ? 'free' : 'premium',
+    access: isOverview || isFreeExtra ? 'free' : 'premium',
     isLocked: false,
     teaser: meta.teaser,
-    content: cleanText(content),
+    content: cleanText(section.text),
     bullets: [],
     ctaLabel: '',
-    // Полотно даёт do/dont/оценку только на обзоре дня — сферы их не несут.
+    // Карточка/summary живут на обзоре дня. Остальные секции получают только свой текст.
     ...(isOverview
       ? {
-          dayDo: (canvas.do || []).slice(0, 3),
-          dayDont: (canvas.dont || []).slice(0, 3),
-          dayScore: canvas.dayScore ?? null,
-          dayScoreExplain: cleanText(canvas.dayScoreExplain),
+          dayDo: (canvas.card.positive_points || []).slice(0, 3),
+          dayDont: (canvas.card.caution_points || []).slice(0, 3),
+          dayScore: canvas.summary.day_score ?? null,
+          dayScoreExplain: cleanText(canvas.summary.day_score_explain),
+          bullets: [
+            cleanText(canvas.summary.best_action),
+            cleanText(canvas.summary.main_risk),
+          ].filter(Boolean),
         }
       : {}),
   };

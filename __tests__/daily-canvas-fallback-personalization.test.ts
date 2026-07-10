@@ -59,11 +59,25 @@ describe('daily canvas fallback personalization', () => {
       '2026-07-10',
     );
 
-    expect(first.summary).not.toBe(second.summary);
-    expect(first.do).not.toEqual(second.do);
-    expect(first.dont).not.toEqual(second.dont);
-    expect(first.summary).toContain('Михаил');
-    expect(second.summary).toContain('Анна');
+    expect(first.sections.find((section) => section.key === 'overview')?.text).not.toBe(
+      second.sections.find((section) => section.key === 'overview')?.text,
+    );
+    expect(first.card.positive_points).not.toEqual(second.card.positive_points);
+    expect(first.card.caution_points).not.toEqual(second.card.caution_points);
+    expect(first.sections.find((section) => section.key === 'overview')?.text).toContain('Михаил');
+    expect(second.sections.find((section) => section.key === 'overview')?.text).toContain('Анна');
+    expect(first.sections.map((section) => section.key)).toEqual([
+      'overview',
+      'love',
+      'money',
+      'work',
+      'goals',
+      'family',
+      'friendship',
+      'energy',
+      'communication',
+    ]);
+    expect(first.meta.free_section_key).not.toBe('overview');
   });
 
   it('keeps the fallback stable for the same profile, chart, and date', () => {

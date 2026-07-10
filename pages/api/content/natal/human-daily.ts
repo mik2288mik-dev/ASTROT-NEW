@@ -15,6 +15,9 @@ import {
   sliceCanvasToSection,
 } from '../../../../lib/natalHumanInterpretation';
 import {
+  DAILY_CANVAS_FREE_SECTION_KEYS,
+  DAILY_CANVAS_SECTION_KEYS,
+  DAILY_SECTION_TO_CANVAS_KEY,
   HUMAN_DAILY_PROMPT_VERSION,
   humanDailyCanvasCacheKey,
   isHumanDailySectionKey,
@@ -52,12 +55,31 @@ type SectionWrapperOptions = {
 function isUsableCanvas(value: unknown): value is DailyCanvas {
   if (!value || typeof value !== 'object') return false;
   const canvas = value as Partial<DailyCanvas>;
+  const card = canvas.card;
+  const summary = canvas.summary;
+  const freeSectionKey = canvas.meta?.free_section_key;
+  const sections = Array.isArray(canvas.sections) ? canvas.sections : [];
+  const sectionKeys = new Set(sections.map((section) => section?.key));
   return (
-    typeof canvas.summary === 'string' &&
-    canvas.summary.trim().length > 0 &&
-    !!canvas.spheres &&
-    typeof canvas.spheres === 'object'
+    !!card &&
+    typeof card === 'object' &&
+    typeof card.title === 'string' &&
+    card.title.trim().length > 0 &&
+    typeof card.teaser === 'string' &&
+    card.teaser.trim().length > 0 &&
+    !!summary &&
+    typeof summary === 'object' &&
+    typeof summary.best_action === 'string' &&
+    typeof summary.main_risk === 'string' &&
+    DAILY_CANVAS_FREE_SECTION_KEYS.includes(freeSectionKey as any) &&
+    DAILY_CANVAS_SECTION_KEYS.every((key) => sectionKeys.has(key)) &&
+    sections.every((section) => typeof section?.title === 'string' && typeof section?.text === 'string' && section.text.trim().length > 0)
   );
+}
+
+function isFreeSectionAllowed(canvas: DailyCanvas, sectionKey: HumanDailySectionKey): boolean {
+  const canvasKey = DAILY_SECTION_TO_CANVAS_KEY[sectionKey];
+  return canvasKey === 'overview' || canvasKey === canvas.meta.free_section_key;
 }
 
 // Обёртка секции в транспортный shell, который распаковывает клиент
@@ -145,7 +167,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const isFreeOverview = sectionKey === 'daily_overview';
   const isPremium = await resolveIsPremium(userId);
-  const responseAccessTier: ContentAccessTier = isFreeOverview ? 'free' : 'premium';
+  const requestedAccessTier: ContentAccessTier = isFreeOverview ? 'free' : 'premium';
 
   const apiLogContext = {
     scope: SCOPE,
@@ -156,12 +178,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   };
 
   logContentApi(apiLogContext, 'access_check', {
-    accessTier: isFreeOverview ? 'free' : isPremium ? 'premium' : 'locked',
+    accessTier: requestedAccessTier,
     metadata: { sectionKey, dateKey, isFreeOverview },
   });
 
-  // Всё, кроме бесплатного обзора, требует премиума.
-  if (!isPremium && !isFreeOverview) {
+  const canvasBacked = isCanvasBackedDailySection(sectionKey);
+
+  if (!isPremium && !canvasBacked) {
     warnContentApi(apiLogContext, 'premium_required', {
       errorCode: 'PREMIUM_REQUIRED',
       metadata: { sectionKey },
@@ -176,7 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const window = getMoscowDayWindow(dateKey);
   const sectionWrapperOpts: SectionWrapperOptions = {
-    accessTier: responseAccessTier,
+    accessTier: 'premium',
     cacheKey: `human_v2.daily.${dateKey}.${sectionKey}`,
     promptVersion: HUMAN_DAILY_PROMPT_VERSION,
     validFrom: window.validFrom,
@@ -185,7 +208,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Ключи вне полотна (communication/risks/best_action/advice) — курируемый fallback
   // без AI и без канвы (в живом UI не отображаются).
-  if (!isCanvasBackedDailySection(sectionKey)) {
+  if (!canvasBacked) {
+    const responseAccessTier: ContentAccessTier = 'premium';
     const section = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
     logContentApi(apiLogContext, 'fallback_saved', {
       accessTier: responseAccessTier,
@@ -231,22 +255,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     source: DailyResponseSource,
     persistenceStatus: DailyPersistenceStatus,
   ) => {
+    const responseAccessTier: ContentAccessTier = isFreeSectionAllowed(canvas, sectionKey) ? 'free' : 'premium';
+    if (!isPremium && responseAccessTier !== 'free') {
+      warnContentApi(apiLogContext, 'premium_required', {
+        accessTier: 'premium',
+        errorCode: 'PREMIUM_REQUIRED',
+        metadata: { sectionKey, dateKey, freeSectionKey: canvas.meta.free_section_key },
+      });
+      return res.status(403).json({
+        error: 'Premium required',
+        code: 'PREMIUM_REQUIRED',
+        premiumRequired: true,
+        message: 'Персональный разбор дня доступен в Premium.',
+        freeSectionKey: canvas.meta.free_section_key,
+      });
+    }
+
     const section = sliceCanvasToSection(canvas, sectionKey);
     if (!section) {
       // Не должно случаться для canvas-backed ключей, но подстрахуемся.
       const fallbackSection = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
       return res.status(200).json({
-        interpretation: buildSectionEnvelope(ctx, sectionWrapperOpts, fallbackSection),
+        interpretation: buildSectionEnvelope(ctx, { ...sectionWrapperOpts, accessTier: responseAccessTier }, fallbackSection),
         source: 'fallback' satisfies DailyResponseSource,
         persistenceStatus: 'saved' satisfies DailyPersistenceStatus,
         accessTier: responseAccessTier,
+        meta: { freeSectionKey: canvas.meta.free_section_key },
       });
     }
     return res.status(200).json({
-      interpretation: buildSectionEnvelope(ctx, sectionWrapperOpts, section),
+      interpretation: buildSectionEnvelope(ctx, { ...sectionWrapperOpts, accessTier: responseAccessTier }, section),
       source,
       persistenceStatus,
       accessTier: responseAccessTier,
+      meta: { freeSectionKey: canvas.meta.free_section_key },
     });
   };
 
@@ -258,7 +300,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     cachedCanvas = rawCached && isUsableCanvas(rawCached.content) ? rawCached.content : null;
     if (rawCached && !cachedCanvas) {
       warnContentApi(apiLogContext, 'invalid_cached_row', {
-        accessTier: responseAccessTier,
+        accessTier: requestedAccessTier,
         errorCode: 'EMPTY_INTERPRETATION',
         metadata: { sectionKey, dateKey, cacheKey },
       });
@@ -266,7 +308,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error: any) {
     cacheReadFailed = true;
     warnContentApi(apiLogContext, 'cache_read_failed', {
-      accessTier: responseAccessTier,
+      accessTier: requestedAccessTier,
       errorCode: 'CACHE_READ_FAILED',
       metadata: { sectionKey, dateKey, error: error?.message || String(error) },
     });
@@ -279,7 +321,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (cachedCanvas) {
     logContentApi(apiLogContext, 'cache_hit', {
-      accessTier: responseAccessTier,
+      accessTier: requestedAccessTier,
       status: 'ready',
       durationMs: Date.now() - startedAt,
       metadata: { sectionKey, dateKey },
@@ -293,7 +335,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   logContentApi(apiLogContext, 'cache_miss', {
-    accessTier: responseAccessTier,
+    accessTier: requestedAccessTier,
     metadata: { sectionKey, dateKey, cacheKey },
   });
 
@@ -329,7 +371,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           generatedSource = 'fallback_unsaved';
           generatedPersistenceStatus = 'failed';
           warnContentApi(apiLogContext, 'persistence_failed', {
-            accessTier: responseAccessTier,
+            accessTier: requestedAccessTier,
             status: 'ready',
             errorCode: 'FALLBACK_SAVE_FAILED',
             durationMs: Date.now() - startedAt,
@@ -345,7 +387,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           generatedSource = 'generated';
           generatedPersistenceStatus = 'saved';
           logContentApi(apiLogContext, 'generation_saved', {
-            accessTier: responseAccessTier,
+            accessTier: requestedAccessTier,
             status: 'ready',
             durationMs: Date.now() - startedAt,
             metadata: { sectionKey, dateKey },
@@ -355,7 +397,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           generatedSource = 'fallback';
           generatedPersistenceStatus = 'saved';
           warnContentApi(apiLogContext, 'generation_failed', {
-            accessTier: responseAccessTier,
+            accessTier: requestedAccessTier,
             status: 'ready',
             errorCode: generationError?.code || generationError?.message || 'CONTENT_GENERATION_UNAVAILABLE',
             durationMs: Date.now() - startedAt,
@@ -380,7 +422,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return respondWithCanvas(canvas, source, persistenceStatus);
   } catch (error) {
     warnContentApi(apiLogContext, 'generation_failed', {
-      accessTier: responseAccessTier,
+      accessTier: requestedAccessTier,
       errorCode: 'CONTENT_GENERATION_UNAVAILABLE',
       durationMs: Date.now() - startedAt,
       metadata: { sectionKey, dateKey },

@@ -40,7 +40,9 @@ const DAILY_TABS: DailyTabConfig[] = [
   { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#38BDF8', sectionKey: 'daily_work_business' },
   { id: 'goals', label: 'Цели', title: 'Дела и цели', subtitle: 'Один ясный следующий шаг', accent: '#475569', sectionKey: 'daily_goals' },
   { id: 'family', label: 'Дом', title: 'Дом и семья', subtitle: 'Опора, близкие и атмосфера дома', accent: '#64748B', sectionKey: 'daily_family' },
-  { id: 'friends', label: 'Друзья', title: 'Друзья и общение', subtitle: 'Контакты, поддержка и разговоры', accent: '#0284C7', sectionKey: 'daily_friendship' },
+  { id: 'friendship', label: 'Друзья', title: 'Друзья и окружение', subtitle: 'Контакты, поддержка и разговоры', accent: '#0284C7', sectionKey: 'daily_friendship' },
+  { id: 'energy', label: 'Силы', title: 'Нагрузка и восстановление', subtitle: 'Темп дня, паузы и ресурс', accent: '#0F766E', sectionKey: 'daily_energy' },
+  { id: 'communication', label: 'Разговоры', title: 'Общение и важные разговоры', subtitle: 'Слова, паузы и договорённости', accent: '#7C3AED', sectionKey: 'daily_communication' },
 ];
 
 function splitParagraphs(value?: string | null): string[] {
@@ -204,6 +206,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   const [sections, setSections] = useState<Partial<Record<HumanDailySectionKey, InterpretationSection>>>({});
   const [loadingKey, setLoadingKey] = useState<PersonalDailySection | null>(null);
   const [errorKey, setErrorKey] = useState<PersonalDailySection | null>(null);
+  const [premiumLockedKey, setPremiumLockedKey] = useState<PersonalDailySection | null>(null);
 
   useEffect(() => { setActiveSection(initialSection); }, [initialSection]);
 
@@ -238,6 +241,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
     setLoadingKey(tab.id);
     setErrorKey(null);
+    setPremiumLockedKey((current) => (current === tab.id ? null : current));
 
     loadHumanDailySection(String(profile.id), tab.sectionKey, chartId ?? undefined, dateKey, {
       accessTier: 'premium',
@@ -253,7 +257,15 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
         }
         setErrorKey(tab.id);
       })
-      .catch(() => { if (alive) setErrorKey(tab.id); })
+      .catch((error) => {
+        if (!alive) return;
+        const err = error as { status?: number; code?: string };
+        if (err.status === 403 || err.code === 'PREMIUM_REQUIRED') {
+          setPremiumLockedKey(tab.id);
+          return;
+        }
+        setErrorKey(tab.id);
+      })
       .finally(() => { if (alive) setLoadingKey((current) => (current === tab.id ? null : current)); });
 
     return () => { alive = false; };
@@ -306,6 +318,14 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
                 icon="lock"
                 title={language === 'en' ? 'Available in Premium' : 'Доступно в Premium'}
                 body={language === 'en' ? 'Your personal daily horoscope by chart opens with Premium.' : 'Личный гороскоп по твоей карте — каждый день, открывается в Premium.'}
+                cta={language === 'en' ? 'Open Premium' : 'Открыть Premium'}
+                onCta={() => { lumiaSelectionHaptic(); void requestPremium(); }}
+              />
+            ) : premiumLockedKey === activeTab.id ? (
+              <Notice
+                icon="lock"
+                title={language === 'en' ? 'Full day is in Premium' : 'Полный день — в Premium'}
+                body={language === 'en' ? 'Free opens the overview and one extra topic for today. Premium opens all nine sections.' : 'В бесплатном доступе открыт обзор и одна дополнительная тема дня. Premium открывает все девять разделов.'}
                 cta={language === 'en' ? 'Open Premium' : 'Открыть Premium'}
                 onCta={() => { lumiaSelectionHaptic(); void requestPremium(); }}
               />

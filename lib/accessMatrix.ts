@@ -69,7 +69,7 @@ const FEATURE_ACCESS_MATRIX: FeatureAccessConfig[] = [
   { key: 'moon_calendar', tier: 'free', needsChart: false, label: 'Moon calendar' },
   { key: 'retrograde_tracker', tier: 'free', needsChart: false, label: 'Retrograde tracker' },
   { key: 'natal_basic', tier: 'free', needsChart: true, label: 'Basic natal chart' },
-  { key: 'personal_daily', tier: 'pro', needsChart: true, label: 'Personal daily forecast' },
+  { key: 'personal_daily', tier: 'free', needsChart: true, label: 'Personal daily forecast' },
   { key: 'personal_weekly', tier: 'pro', needsChart: true, label: 'Personal weekly forecast' },
   { key: 'natal_love', tier: 'pro', needsChart: true, label: 'Natal love section' },
   { key: 'natal_career', tier: 'pro', needsChart: true, label: 'Natal career section' },
