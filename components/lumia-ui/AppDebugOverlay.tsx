@@ -1,33 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import {
-  captureLumiaHomeLayout,
-  copyLumiaDebugDump,
-  installLumiaDebugGlobal,
-  isLumiaDebugEnabled,
-  lumiaDebugLog,
-} from '../../lib/lumiaDebug';
+  captureAppHomeLayout,
+  copyAppDebugDump,
+  installAppDebugGlobal,
+  isAppDebugEnabled,
+  appDebugLog,
+} from '../../lib/appDebug';
 
-/** Debug UI only when `?lumiaDebug=1` — no floating preview in normal sessions. */
-export function LumiaDebugOverlay() {
+/** Debug UI only when `?appDebug=1` — no floating preview in normal sessions. */
+export function AppDebugOverlay() {
   const [enabled, setEnabled] = useState(false);
   const [status, setStatus] = useState('LOG');
 
   useEffect(() => {
-    installLumiaDebugGlobal();
-    const nextEnabled = isLumiaDebugEnabled();
+    installAppDebugGlobal();
+    const nextEnabled = isAppDebugEnabled();
     setEnabled(nextEnabled);
     if (nextEnabled) {
-      lumiaDebugLog('debug_overlay_mount');
-      window.setTimeout(() => captureLumiaHomeLayout('debug_overlay_mount'), 120);
+      appDebugLog('debug_overlay_mount');
+      window.setTimeout(() => captureAppHomeLayout('debug_overlay_mount'), 120);
     }
   }, []);
 
   if (!enabled) return null;
 
   const copy = async () => {
-    captureLumiaHomeLayout('debug_overlay_copy');
+    captureAppHomeLayout('debug_overlay_copy');
     try {
-      await copyLumiaDebugDump();
+      await copyAppDebugDump();
       setStatus('COPIED');
       window.setTimeout(() => setStatus('LOG'), 1200);
     } catch {

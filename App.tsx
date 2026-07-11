@@ -47,7 +47,7 @@ import {
     hasActivePremium,
     type FeatureKey,
 } from './lib/accessMatrix';
-import { captureLumiaHomeLayout, installLumiaDebugGlobal, lumiaDebugLog } from './lib/lumiaDebug';
+import { captureAppHomeLayout, installAppDebugGlobal, appDebugLog } from './lib/appDebug';
 import {
     clearHumanReadingSessionCache,
     getCachedHumanBaseReport,
@@ -475,9 +475,9 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        installLumiaDebugGlobal();
+        installAppDebugGlobal();
         viewRef.current = view;
-        lumiaDebugLog('navigation', {
+        appDebugLog('navigation', {
             action: 'view_state',
             view,
             historyDepth: navigationHistoryRef.current.length,
@@ -491,7 +491,7 @@ const App: React.FC = () => {
                 : { hasProfile: false },
         });
         if (view === 'dashboard') {
-            window.setTimeout(() => captureLumiaHomeLayout('view_dashboard'), 180);
+            window.setTimeout(() => captureAppHomeLayout('view_dashboard'), 180);
         }
     }, [profile?.isPremium, profile?.premiumUntil, profile?.isAdmin, profile?.isSetup, profile?.language, view]);
 
@@ -543,7 +543,7 @@ const App: React.FC = () => {
         tg?.setBackgroundColor?.('#FFFFFF');
         tg?.setBottomBarColor?.('#FFFFFF');
         tg?.enableClosingConfirmation?.();
-        lumiaDebugLog('telegram_init', {
+        appDebugLog('telegram_init', {
             platform: tg?.platform,
             version: tg?.version,
             viewportHeight: tg?.viewportHeight,
@@ -1091,19 +1091,6 @@ const App: React.FC = () => {
         setProfile(updatedProfile);
     }, [profile]);
 
-    const handleAdminOwnProfilePatch = useCallback((
-        patch: Partial<Pick<UserProfile, 'isPremium' | 'chartSlots' | 'loginStreak'>>
-    ) => {
-        setProfile((prev) => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                ...patch,
-                isAdmin: prev.isAdmin,
-            };
-        });
-    }, []);
-
     useEffect(() => {
         if (!profile?.id || notificationAttributionSentRef.current) return;
         const launch = notificationLaunchRef.current;
@@ -1220,7 +1207,7 @@ const App: React.FC = () => {
         const stack = navigationHistoryRef.current;
         if (stack[stack.length - 1] !== fromView) {
             navigationHistoryRef.current = [...stack, fromView].slice(-12);
-            lumiaDebugLog('navigation', {
+            appDebugLog('navigation', {
                 action: 'push_return',
                 from: fromView,
                 history: navigationHistoryRef.current,
@@ -1235,7 +1222,7 @@ const App: React.FC = () => {
                 ? returnView
                 : 'dashboard';
 
-        lumiaDebugLog('navigation', {
+        appDebugLog('navigation', {
             action: 'open_natal_setup',
             from: currentView,
             to: 'onboarding',
@@ -1260,7 +1247,7 @@ const App: React.FC = () => {
         const access = getFeatureAccess(featureKey);
         if (access.allowed) return true;
 
-        lumiaDebugLog('navigation', {
+        appDebugLog('navigation', {
             action: 'feature_gate',
             featureKey,
             status: access.status,
@@ -1291,7 +1278,7 @@ const App: React.FC = () => {
             pushReturnView(currentView);
         }
 
-        lumiaDebugLog('navigation', {
+        appDebugLog('navigation', {
             action: 'navigate_to',
             from: currentView,
             to: newView,
@@ -1319,7 +1306,7 @@ const App: React.FC = () => {
     }, [view, profile?.id]);
 
     const openPersonalDailyView = useCallback((section: PersonalDailySection = 'overview') => {
-        lumiaDebugLog('navigation', {
+        appDebugLog('navigation', {
             action: 'open_personal_daily',
             from: viewRef.current,
             to: 'personal_daily',
@@ -1357,7 +1344,7 @@ const App: React.FC = () => {
             return;
         }
 
-        lumiaDebugLog('navigation', {
+        appDebugLog('navigation', {
             action: 'open_horoscope_layer',
             from: viewRef.current,
             to: 'horoscope',
@@ -1408,7 +1395,7 @@ const App: React.FC = () => {
                       : 'dashboard';
         const returnView = navigationHistoryRef.current.pop() || fallbackView;
 
-        lumiaDebugLog('navigation', {
+        appDebugLog('navigation', {
             action: 'go_back',
             from: currentView,
             to: returnView,
@@ -1681,7 +1668,7 @@ const App: React.FC = () => {
                                 });
                             }}
                             onChartSelect={(chartData, chartId) => {
-                                lumiaDebugLog('navigation', {
+                                appDebugLog('navigation', {
                                     action: 'select_saved_chart',
                                     from: viewRef.current,
                                     to: 'chart',

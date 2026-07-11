@@ -6,6 +6,7 @@ import { getZodiacSign } from '../constants';
 import { getCharts, type ChartListItem } from '../services/storageService';
 import { calculateExtendedSynastry, getSignCompatibility } from '../services/astrologyService';
 import { toDateInputValue } from '../lib/date-utils';
+import { shareToTelegram } from '../lib/botLink';
 import { MonoArticleSection, MonoShareBar } from '../components/mono-ui';
 import { FreshTabs } from '../components/fresh-ui';
 
@@ -166,10 +167,7 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
 
       {hasResults ? (
         <MonoShareBar label={ru ? 'Поделиться' : 'Share'} withTabClearance onShare={() => {
-          try {
-            const tg = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (url: string) => void } } }).Telegram?.WebApp;
-            tg?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent('https://t.me/lumia_astrology_bot')}`);
-          } catch { /* optional */ }
+          shareToTelegram(ru ? 'Проверь совместимость в «Твой Гороскоп»' : 'Check compatibility in Your Horoscope');
         }} />
       ) : null}
     </div>

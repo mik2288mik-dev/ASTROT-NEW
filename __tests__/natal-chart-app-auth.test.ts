@@ -13,6 +13,7 @@ const validBody = {
   birthTime: '12:30',
   birthPlace: 'Moscow',
   language: 'en',
+  primary: true,
 };
 
 function createResponse() {
@@ -54,7 +55,7 @@ async function setup() {
     source: 'calculated',
   });
   const repairCanonicalChartForUser = jest.fn();
-  const natalChartCalculation = jest.fn((userId: string) => `natal-chart:${userId}`);
+  const primaryChartCalculation = jest.fn((userId: string) => `primary-chart:${userId}`);
 
   jest.doMock('../lib/natalChartPersistence', () => ({
     ensureCanonicalPrimaryChart,
@@ -63,7 +64,7 @@ async function setup() {
   jest.doMock('../lib/serverLocks', () => ({
     tryAcquireLock: jest.fn().mockReturnValue(true),
     releaseLock: jest.fn(),
-    LockKeys: { natalChartCalculation },
+    LockKeys: { primaryChartCalculation },
   }));
   jest.doMock('../lib/rateLimit', () => ({
     withRateLimit: (routeHandler: any) => routeHandler,
@@ -71,8 +72,8 @@ async function setup() {
   }));
 
   const { createAppSessionToken } = await import('../lib/auth/appAuth');
-  const { default: handler } = await import('../pages/api/astrology/natal-chart');
-  return { createAppSessionToken, ensureCanonicalPrimaryChart, handler, natalChartCalculation };
+  const { default: handler } = await import('../pages/api/charts/index');
+  return { createAppSessionToken, ensureCanonicalPrimaryChart, handler, primaryChartCalculation };
 }
 
 async function call(handler: any, body: any, headers: Record<string, string>) {
@@ -81,13 +82,13 @@ async function call(handler: any, body: any, headers: Record<string, string>) {
   return res;
 }
 
-describe('natal chart app auth', () => {
+describe('primary chart app auth', () => {
   beforeEach(() => {
     jest.resetModules();
   });
 
   it('allows a web guest with a signed app session to create a basic chart', async () => {
-    const { createAppSessionToken, ensureCanonicalPrimaryChart, handler, natalChartCalculation } = await setup();
+    const { createAppSessionToken, ensureCanonicalPrimaryChart, handler, primaryChartCalculation } = await setup();
     const guestUserId = '-42';
     const token = createAppSessionToken({ userId: guestUserId, sessionId: 'guest-session', provider: 'web_guest' });
 
@@ -96,8 +97,8 @@ describe('natal chart app auth', () => {
     });
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(chartData);
-    expect(natalChartCalculation).toHaveBeenCalledWith(guestUserId);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ chart_data: chartData }));
+    expect(primaryChartCalculation).toHaveBeenCalledWith(guestUserId);
     expect(ensureCanonicalPrimaryChart).toHaveBeenCalledWith(expect.objectContaining({ userId: guestUserId }));
   });
 

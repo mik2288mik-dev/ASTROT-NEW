@@ -1653,7 +1653,6 @@ export function buildDailyCanvasFallback(
   };
   const positivePoints = withPersonalFirstItem(doItems, dailyDoCue(chart)).slice(0, 3);
   const cautionPoints = withPersonalFirstItem(dontItems, dailyDontCue(chart)).slice(0, 3);
-  const overview = rawSections.find((section) => section.key === 'overview')!;
   return {
     card: {
       title: 'Главное на сегодня',

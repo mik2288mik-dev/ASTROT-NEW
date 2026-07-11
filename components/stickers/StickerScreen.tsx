@@ -49,7 +49,7 @@ export function StickerScreen({ requests, maxMaskots = 1, children }: StickerScr
     } catch {
       return empty;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [catalog, seed, reqKey]);
 
   return <StickerCtx.Provider value={value}>{children}</StickerCtx.Provider>;

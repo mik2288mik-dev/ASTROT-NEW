@@ -29,7 +29,7 @@ module.exports = {
           border: 'var(--border-color)',
           orbit: 'var(--orbit-color)',
         },
-        /** Lumia Studio AIR (Google) — matches lumia 2.0/src/index.css */
+        /** Studio AIR (Google) - matches the imported design source. */
         'bg-warm': '#FFFFFF',
         'accent-gold': '#D4AF37',
         'text-main': '#2D2D2D',
@@ -47,7 +47,7 @@ module.exports = {
           peach: 'var(--lumia-home-peach)',
           line: 'var(--lumia-home-line)',
         },
-        /** LUMIA FRESH 2026 skin — white surfaces, blue accent (bridged from --fresh-*) */
+        /** Fresh 2026 skin — white surfaces, blue accent (bridged from --fresh-*) */
         mono: {
           bg: '#FFFFFF',
           white: '#FFFFFF',
@@ -94,7 +94,7 @@ module.exports = {
         'glow': '0 0 15px var(--highlight)',
       },
       fontFamily: {
-        /** Единый шрифт приложения — Inter. `font-serif`/`font-outfit` сведены к Inter; Outfit остался только у лого LUMIA. */
+        /** App typography: Inter everywhere; legacy aliases point to the same stack. */
         serif: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         outfit: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],

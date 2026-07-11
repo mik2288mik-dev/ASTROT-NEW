@@ -291,7 +291,7 @@ function UserDetailPanel({
   const [slotsDraft, setSlotsDraft] = useState(1);
   const [premiumDays, setPremiumDays] = useState(30);
   const load = (pii = false) => admin2.getUser(id, pii).then(setUser).catch((e) => setError(e.message));
-  useEffect(() => { load(false); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { load(false);   }, [id]);
   useEffect(() => {
     if (!user) return;
     setNameDraft(user.name || '');
@@ -388,7 +388,7 @@ function UsersSection({ me }: { me: AdminMe }) {
       })
       .catch((e) => setError(e.message));
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [pageNum, premium, segment, sortBy, sortOrder, pageSize]);
+  useEffect(() => { load();   }, [pageNum, premium, segment, sortBy, sortOrder, pageSize]);
   const resetAndLoad = () => { if (pageNum === 1) void load(); else setPageNum(1); };
   const visibleIds = page?.users.map((u) => u.id) || [];
   const allVisibleChecked = visibleIds.length > 0 && visibleIds.every((id) => checkedIds.includes(id));
@@ -566,7 +566,7 @@ function ChartDetailPanel({ id, canPii, canRecalc, onClose }: { id: number; canP
   const [chart, setChart] = useState<AdminChartDetail | null>(null);
   const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [note, setNote] = useState<string | null>(null);
   const load = (pii = false) => admin2.getChart(id, pii).then(setChart).catch((e) => setError(e.message));
-  useEffect(() => { load(false); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { load(false);   }, [id]);
   if (error && !chart) return <Card><ErrorNote>{error}</ErrorNote></Card>;
   if (!chart) return <Card><p className="text-sm text-slate-400">Загрузка…</p></Card>;
   return (
@@ -615,7 +615,7 @@ function ChartsSection({ me }: { me: AdminMe }) {
   const [selected, setSelected] = useState<number | null>(null); const [error, setError] = useState<string | null>(null);
   const canPii = me.permissions.includes('user.pii.view'); const canRecalc = me.permissions.includes('charts.recalc');
   const load = () => admin2.listCharts({ q, page: pageNum }).then((d) => { setRows(d.charts); setPages(d.pagination.totalPages); setTotal(d.pagination.total); }).catch((e) => setError(e.message));
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [pageNum]);
+  useEffect(() => { load();   }, [pageNum]);
   return (
     <div className="space-y-4">
       <TestModePanel />
@@ -1440,7 +1440,7 @@ function SupportSection({ me }: { me: AdminMe }) {
   const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const canAct = me.permissions.includes('support.act');
   const load = () => admin2.listTickets(filter).then((d) => setRows(d.tickets)).catch((e) => setError(e.message));
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
+  useEffect(() => { load();   }, [filter]);
   const open = async (id: number) => { setError(null); try { setSel(await admin2.getTicket(id)); } catch (e: any) { setError(e.message); } };
   const act = async (fn: () => Promise<any>) => { setBusy(true); setError(null); try { await fn(); await load(); if (sel) await open(sel.ticket.id); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
   return (

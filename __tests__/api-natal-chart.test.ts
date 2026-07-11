@@ -38,7 +38,7 @@ describe('API Natal Chart (Integration Tests)', () => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/astrology/natal-chart`, {
+        const response = await fetch(`${API_URL}/api/charts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
@@ -61,7 +61,7 @@ describe('API Natal Chart (Integration Tests)', () => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/astrology/natal-chart`, {
+        const response = await fetch(`${API_URL}/api/charts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -85,7 +85,7 @@ describe('API Natal Chart (Integration Tests)', () => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/astrology/natal-chart`, {
+        const response = await fetch(`${API_URL}/api/charts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

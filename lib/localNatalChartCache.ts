@@ -1,7 +1,7 @@
 import type { NatalChartData, UserProfile } from "../types";
 
 const NATAL_CHART_CACHE_SCHEMA_VERSION = 1;
-const NATAL_CHART_CACHE_PREFIX = `lumia:natal-chart:v${NATAL_CHART_CACHE_SCHEMA_VERSION}`;
+const NATAL_CHART_CACHE_PREFIX = `your-horoscope:natal-chart:v${NATAL_CHART_CACHE_SCHEMA_VERSION}`;
 
 type NatalChartCacheEntry = {
   schemaVersion: number;

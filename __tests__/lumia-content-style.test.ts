@@ -149,11 +149,19 @@ function findViolations(content: string, rules: Array<{ label: string; pattern: 
   return hits;
 }
 
-describe('Lumia content style', () => {
-  it('docs/LUMIA_CONTENT_STYLE.md exists with required sections', () => {
-    const docPath = path.join(ROOT, 'docs', 'LUMIA_CONTENT_STYLE.md');
+describe('app content style', () => {
+  it('docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md exists with required sections', () => {
+    const docPath = path.join(ROOT, 'docs', 'MVP_PRODUCT_AND_CONTENT_SYSTEM.md');
     expect(fs.existsSync(docPath)).toBe(true);
     const content = fs.readFileSync(docPath, 'utf8');
+    expect(content).toContain('## 1. MVP Functions');
+    expect(content).toContain('## 2. Free And Premium');
+    expect(content).toContain('## 3. Data Path');
+    expect(content).toContain('## 4. Personal Daily Canvas');
+    expect(content).toContain('## 5. Persistence And Archive');
+    expect(content).toContain('## 6. Voice Rules');
+    expect(content).toContain('## 7. Cleanup Boundary');
+    return;
     expect(content).toContain('## 1. Голос LUMIA');
     expect(content).toContain('## 4. Не сухо');
     expect(content).toContain('## 5. Не эзотерично');

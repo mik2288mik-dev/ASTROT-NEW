@@ -1,4 +1,6 @@
-# Art slots for LUMIA v2
+# Art Slots
+
+Image slots for the current app visual system.
 
 Drop PNG/WebP here, then set paths in `lib/lzArtAssets.ts`:
 

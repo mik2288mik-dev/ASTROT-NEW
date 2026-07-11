@@ -1,14 +1,13 @@
-# Current Lumia architecture
+# Current Architecture
 
-This document is the concise source of truth for the active application architecture.
+The active application is "Tvoi Goroskop" / "Your Horoscope".
 
-- Authentication is resolved through `requireAppUser` / `appAuth` for Telegram, signed web guests, and native-ready clients.
-- Product access is defined by `accessMatrix` and content availability by `contentMatrix`.
-- AI content prompts are assembled by `contentPromptBuilders`.
-- Product content is served by `/api/content/*`; natal chart persistence and chart management use `/api/charts/*`.
-- Natal chart calculation remains available at `/api/astrology/natal-chart` while chart clients are migrated to `/api/charts/*`.
-- Horoscope, Natal, and Synastry UI flows use the current content endpoints. Synastry extended readings use `/api/content/synastry/extended`.
-- Database migrations are immutable history and must never be deleted during legacy cleanup.
-- Static client assets live in `public/` only where still required: symbol font and admin notification uploads under `public/uploads/notifications/`. The startup splash and logo raster (`lumiastart.webp`, `lumia-logo.png`) were removed — the loading screen and home header are now plain "Твой Гороскоп" text on a milky-white surface. Legacy raster/video background packs were removed; UI uses CSS surfaces instead.
-
-Legacy `profile.generatedContent` types may remain only as compatibility input for server-side fallback resolvers. New client flows must not generate, synchronize, or read that aggregate.
+- App identity is resolved through `requireAppUser` / `appAuth`.
+- Feature access is defined by `accessMatrix`; content policy is defined by `contentMatrix`; content surface access is defined by `contentAccessMatrix`.
+- AI prompt assembly is in `contentPromptBuilders`, `natalHumanInterpretation`, and related content modules, with shared voice rules from `appVoice`.
+- Product content is served by `/api/content/*`.
+- Natal chart calculation, primary repair, and multi-chart management use `/api/charts/*`.
+- Sign horoscopes are Free and shared-cache friendly.
+- Personal daily content is a single saved canvas sliced into Free/Premium responses by the backend.
+- Database migrations are immutable history; cleanup is implemented by additive migrations rather than deleting already-applied migration history.
+- Removed pre-MVP product surfaces are tracked in `docs/MVP_LEGACY_REMOVAL_LOG.md` and are not active architecture.

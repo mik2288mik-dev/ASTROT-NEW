@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
-import { getAdminContext, requireAdminPermission, roleHasPermission } from '../../../../../lib/admin/rbac';
+import { requireAdminPermission, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { recordAdminAction } from '../../../../../lib/admin/audit';
 import { db } from '../../../../../lib/db';
 

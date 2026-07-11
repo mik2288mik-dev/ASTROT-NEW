@@ -1,185 +1,36 @@
-# Astrot - Приложение Астрологии
+# Your Horoscope
 
-Астрологическое приложение, построенное на Next.js, React и TypeScript.
+Next.js, React, TypeScript, Jest, PostgreSQL, Telegram Mini App, and Telegram Stars Premium billing.
 
-## Миграция с Vite на Next.js
+## MVP
 
-Проект был мигрирован с Vite на Next.js для включения:
-- Серверного рендеринга (SSR)
-- API Routes для backend логики
-- Лучшей интеграции с Railway Database
-- Улучшенного сохранения данных (без fallback на localStorage)
+- Home screen with personal daily reading.
+- Sign horoscopes.
+- Natal chart.
+- Free sign compatibility.
+- Premium chart-based relationship reading.
+- Matrix of Destiny.
+- Premium calendar/archive.
+- Settings, profile, onboarding, subscription, support, admin, and notifications.
 
-## Начало работы
+## Main Commands
 
-### Требования
-
-- Node.js 18+ 
-- npm или yarn
-- Аккаунт Railway (для базы данных)
-
-### Установка
-
-1. Установите зависимости:
 ```bash
 npm install
+npx tsc --noEmit
+npm test -- --runInBand
+npm run build
+npm run lint
 ```
 
-2. Настройте переменные окружения:
-```bash
-cp .env.example .env
-```
+## Core Routes
 
-3. Настройте файл `.env`:
-- `DATABASE_URL`: Строка подключения к Railway Database
-- `OPENAI_API_KEY`: (Опционально) Для AI функций
-- `EPHE_PATH`: (Опционально) Путь к файлам Swiss Ephemeris
+- `/api/charts/*` - natal chart calculation, primary repair, saved charts.
+- `/api/content/*` - horoscopes, personal daily, natal readings, synastry, matrix-related content.
+- `/api/subscriptions/*` and `/api/telegram/*` - Premium through Telegram Stars.
+- `/api/admin/v2/*` - operational admin.
+- `/api/support/*` - support flows.
 
-### Разработка
+## Current Product Documentation
 
-Запустите сервер разработки:
-
-```bash
-npm run dev
-```
-
-Откройте [http://localhost:3000](http://localhost:3000) в браузере.
-
-### Сборка для продакшена
-
-```bash
-npm run build  # Включает автоматический запуск миграций
-npm start
-```
-
-## Структура проекта
-
-```
-├── pages/
-│   ├── api/              # API Routes
-│   │   ├── users/       # Эндпоинты управления пользователями
-│   │   ├── charts/       # Эндпоинты данных карт
-│   │   └── astrology/   # Эндпоинты расчетов астрологии
-│   ├── _app.tsx         # Next.js app wrapper
-│   ├── _document.tsx    # Next.js document wrapper
-│   └── index.tsx        # Главная страница
-├── components/          # React компоненты
-├── views/              # Компоненты страниц
-├── services/           # Сервисы бизнес-логики
-├── lib/                # Утилиты (БД и т.д.)
-├── styles/             # Глобальные стили
-├── ephe/               # Файлы эфемерид Swiss Ephemeris
-└── types.ts            # Определения типов TypeScript
-```
-
-## Настройка базы данных
-
-Приложение использует Railway Database (PostgreSQL) для сохранения данных.
-
-### Настройка Railway Database
-
-1. Создайте PostgreSQL базу данных на Railway
-2. Railway автоматически добавит `DATABASE_URL` в переменные окружения
-3. Драйвер `pg` уже установлен в проекте
-
-### Миграции
-
-**Миграции запускаются ОДИН раз при деплое:**
-- Автоматически после сборки: `npm run build` выполняет `next build && npm run migrate`
-- В Docker: `CMD ["sh", "-c", "npm run migrate && npm start"]`
-
-**Ручной запуск (только для разработки):**
-```bash
-npm run migrate
-```
-
-> ⚠️ **Важно:** Миграции НЕ запускаются через API эндпоинты. Это предотвращает проблемы с блокировкой базы данных при одновременных запросах.
-
-### Схема базы данных
-
-- **users**: Профили и настройки пользователей
-- **charts**: Данные натальных карт пользователей
-- **daily_horoscopes_cache**: Кэш ежедневных гороскопов по знакам
-- **forecasts_cache**: Кэш персональных прогнозов
-- **synastry_cache**: Кэш анализов совместимости
-- **deep_dive_analyses**: Глубокие анализы
-- **regenerations**: Отслеживание регенераций контента
-- **migrations**: Отслеживание примененных миграций
-
-## API Routes
-
-### Системные
-- `GET /api/health` - Проверка здоровья приложения и подключения к БД
-
-### Пользователи
-- `GET /api/users/[id]` - Получить профиль пользователя
-- `POST /api/users/[id]` - Создать/обновить профиль пользователя
-- `GET /api/users` - Получить всех пользователей (админ)
-
-### Карты
-- `GET /api/charts/[id]` - Получить карту пользователя
-- `POST /api/charts/[id]` - Сохранить карту пользователя
-
-### Текущие content API
-- `/api/content/*` - текущие Horoscope, Natal, Synastry и Today слои
-- `/api/charts/*` - управление сохранёнными картами
-- `POST /api/astrology/natal-chart` - расчёт натальной карты (совместимый маршрут до полной миграции клиентов)
-
-### Погода
-- `GET /api/weather?city=...` - Получить погоду (прокси для WeatherAPI)
-
-## Swiss Ephemeris
-
-Расчеты натальных карт используют библиотеку Swiss Ephemeris.
-
-### Файлы эфемерид
-
-Файлы `.se1` находятся в папке `/ephe/` и автоматически копируются при сборке Docker образа.
-
-**Поддерживаемые пути (проверяются автоматически):**
-- `./ephe` (локальная разработка)
-- `/app/ephe` (Docker контейнер)
-- `/workspace/ephe` (Railway)
-- Путь из `EPHE_PATH` (переменная окружения)
-
-### Проверка работы
-
-Если расчеты не работают, проверьте:
-1. Наличие файлов `.se1` в папке `ephe/`
-2. Логи сервера на наличие ошибок `[SwissephCalculator]`
-3. Переменную окружения `EPHE_PATH` (если используется нестандартный путь)
-
-## Функции
-
-- **Профили пользователей**: Хранение данных рождения и предпочтений
-- **Натальные карты**: Расчет и отображение натальных карт
-- **Гороскопы**: Ежедневные, еженедельные и ежемесячные (с кэшированием)
-- **Синастрия**: Анализ совместимости
-- **Премиум подписки**: Интеграция с Telegram Stars
-- **Погода**: Интеграция с WeatherAPI через серверный прокси
-- **Админ панель**: Управление пользователями
-
-## Кэширование
-
-Гороскопы и прогнозы кэшируются в базе данных:
-- **Ежедневный гороскоп**: Кэшируется по знаку зодиака и дате
-- **Прогнозы**: Кэшируются по пользователю, типу периода и дате
-
-Это экономит токены AI и ускоряет загрузку.
-
-## Тестирование
-
-```bash
-# Запустить все тесты
-npm test
-
-# Запустить тесты в watch режиме
-npm run test:watch
-
-# Запустить тесты с покрытием
-npm run test:coverage
-```
-
-## Лицензия
-
-Приватный проект
+See `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`.

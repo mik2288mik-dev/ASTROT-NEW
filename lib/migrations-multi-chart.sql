@@ -1,7 +1,7 @@
 -- =============================================================================
--- Lumia: Multi-Chart Support Migration
+-- Multi-Chart Support Migration
 -- =============================================================================
--- Run AFTER lumia_001_full_schema.
+-- Run after the initial full-schema migration.
 -- Enables multiple natal charts per user, chart-level AI cache, synastry cache.
 -- =============================================================================
 
@@ -18,7 +18,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS chart_slots INTEGER DEFAULT 1;
 -- Drop UNIQUE constraint on user_id (allow multiple charts per user)
 ALTER TABLE natal_charts DROP CONSTRAINT IF EXISTS natal_charts_user_id_key;
 
--- Add new columns (is_primary may already exist from lumia_001)
+-- Add new columns (is_primary may already exist from the initial schema)
 ALTER TABLE natal_charts ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE natal_charts ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT TRUE;
 
@@ -62,12 +62,12 @@ CREATE UNIQUE INDEX idx_interpretations_chart_lookup
   ON interpretations(chart_id, type, input_hash)
   WHERE chart_id IS NOT NULL;
 
--- User-level: for question_answer (chart_id NULL)
+-- User-level rows are not part of the current MVP content matrix.
 CREATE UNIQUE INDEX idx_interpretations_user_lookup
   ON interpretations(user_id, type, input_hash)
   WHERE user_id IS NOT NULL AND chart_id IS NULL;
 
--- Chart-level: (chart_id, type, input_hash). User-level/question_answer: (user_id, type, input_hash), chart_id NULL.
+-- Chart-level: (chart_id, type, input_hash). User-level content should use explicit user-scoped cache keys.
 -- Keep user_id for chart-level rows (owner audit). Lookup uses chart_id for chart-level.
 
 -- Add CHECK: at least one of chart_id or user_id must be set

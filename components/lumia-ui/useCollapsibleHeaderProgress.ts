@@ -6,7 +6,7 @@ import {
   type MotionValue,
 } from 'framer-motion';
 import { lumiaImpactHaptic } from '../../lib/haptics';
-import { lumiaDebugLog } from '../../lib/lumiaDebug';
+import { appDebugLog } from '../../lib/appDebug';
 
 type UseCollapsibleHeaderProgressOptions = {
   scrollRef?: RefObject<HTMLDivElement | null>;
@@ -87,7 +87,7 @@ export function useCollapsibleHeaderProgress({
       if (phase !== lastDebugPhaseRef.current || now - lastDebugSampleRef.current > 350) {
         lastDebugPhaseRef.current = phase;
         lastDebugSampleRef.current = now;
-        lumiaDebugLog('collapse_state', {
+        appDebugLog('collapse_state', {
           source,
           phase,
           scrollTop: Math.round(node.scrollTop),

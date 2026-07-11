@@ -1,4 +1,4 @@
-# Lumia API auth matrix
+# App API Auth Matrix
 
 `requireAppUser` is the target auth layer. It validates Telegram initData first, then a signed HttpOnly web guest cookie, then a future signed native bearer session. A body/query `userId` is only an expected ownership assertion and never an identity source.
 

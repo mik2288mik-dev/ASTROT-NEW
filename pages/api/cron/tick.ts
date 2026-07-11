@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const now = new Date();
-  const { hour, minute, weekday, dateKey } = mskNow(now);
+  const { hour, minute, dateKey } = mskNow(now);
   const ran: string[] = [];
 
   // 1) Always flush the send queue.

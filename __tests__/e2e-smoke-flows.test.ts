@@ -14,16 +14,14 @@ describe('E2E smoke flow contracts', () => {
     expect(app).toContain('CACHE_ONLY_PREWARM_BUDGET_MS');
   });
 
-  it('chart creation reads via /api/charts and calculates through the canonical Swiss Ephemeris route', () => {
+  it('chart creation reads and calculates through /api/charts', () => {
     const chartService = read('services/chartService.ts');
     const astrologyService = read('services/astrologyService.ts');
-    // chartService reads charts via /api/charts and calculates/persists the primary
-    // chart idempotently through the canonical /api/astrology/natal-chart endpoint
-    // (the multi-chart /api/charts create route can reject a user whose only row is
-    // an incomplete primary chart still consuming the free slot).
+    // chartService reads charts via /api/charts and uses the primary upsert mode
+    // on the same route for onboarding and repair flows.
     expect(chartService).toContain('/api/charts');
-    expect(chartService).toContain('/api/astrology/natal-chart');
-    // astrologyService stays on the multi-chart /api/charts route.
+    expect(chartService).toContain('primary: true');
+    expect(chartService).not.toContain('/api/astrology/natal-chart');
     expect(astrologyService).toContain('/api/charts');
     expect(astrologyService).not.toContain('/api/astrology/natal-chart');
   });

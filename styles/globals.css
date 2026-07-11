@@ -38,7 +38,7 @@ body,
   --radius-air-sm: 0.75rem;
   --radius-air-panel: 1.75rem;
 
-  /* Lumia Home 2026: editorial consumer mobile foundation */
+  /* Home 2026: editorial consumer mobile foundation */
   --lumia-brand-primary: #155eef;
   --lumia-brand-primary-dark: #0b3aa8;
   --lumia-brand-positive: #00a66a;
@@ -112,7 +112,7 @@ body,
   --today-hero-body-size: 0.92rem;
   --today-card-shadow: 0 16px 36px rgba(17, 24, 39, 0.10), 0 2px 8px rgba(17, 24, 39, 0.04);
 
-  /* LUMIA FRESH 2026 skin — white surfaces, blue accent (synced with tailwind mono.* + --fresh-*) */
+  /* Fresh 2026 skin — white surfaces, blue accent (synced with tailwind mono.* + --fresh-*) */
   --mono-bg: #ffffff;
   --mono-white: #ffffff;
   --mono-plate: #f7f8fa;
@@ -141,7 +141,7 @@ body.theme-light {
   --shadow-color: rgba(60, 47, 47, 0.05);
 }
 
-/* Lumia Studio AIR — pure white float shell */
+/* Studio AIR - pure white float shell */
 body.theme-lumia-air {
   background-color: #ffffff !important;
   color: #2d2d2d !important;
@@ -3020,7 +3020,7 @@ a,
   }
 }
 
-/* ── LUMIA Zero v2 · editorial layer (refs: feed / bento / reader) ── */
+/* Editorial layer (refs: feed / bento / reader) */
 .lz-sheet-backdrop {
   background: rgba(17, 17, 17, 0.44);
   backdrop-filter: blur(6px);
@@ -3159,7 +3159,7 @@ a,
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LUMIA FRESH — новый дизайн 2026
+   Fresh design 2026
    Memory Bank style: белый фон, коллаж-карта, чистые списки
    ═══════════════════════════════════════════════════════════════ */
 :root {
@@ -3275,8 +3275,7 @@ a,
 
 /* Белое свечение за системными контролами Telegram (Назад/⌄/…): держит их читаемыми,
    когда под них уезжает цветной контент при скролле. Фиксировано сверху, не кликабельно. */
-.fresh-page::before,
-.oracle-chat::before {
+.fresh-page::before {
   content: '';
   position: fixed;
   top: 0;
@@ -3297,7 +3296,7 @@ a,
 .fresh-card--flat { box-shadow: none; }
 .fresh-card--pad { padding: 16px; }
 
-/* ── Логотип LUMIA (картинка из загрузочного экрана) по центру верха главной ── */
+/* Home brand title */
 .home-brand {
   position: relative;
   z-index: 61; /* поверх белого свечения .fresh-page::before (z-index 60) */
@@ -3697,7 +3696,7 @@ a,
   );
 }
 
-/* Жёлтый стикер-записка — фирменная фишка LUMIA (текст, без эмодзи) */
+/* Yellow sticky-note accent */
 .fresh-sticky {
   position: absolute;
   z-index: 2;
@@ -4468,98 +4467,6 @@ a,
   -webkit-tap-highlight-color: transparent;
 }
 .union-share:active { transform: scale(0.99); }
-
-/* ── Чат «Спросить Lumia»: композер «поиск по готовым» ── */
-.oracle-composer { display: flex; flex-direction: column; gap: 10px; }
-
-.oracle-search {
-  width: 100%;
-  min-height: 46px;
-  border: 1px solid var(--fresh-border);
-  background: var(--fresh-surface);
-  border-radius: 14px;
-  padding: 10px 14px;
-  font-size: 15px;
-  color: var(--fresh-text);
-  font-family: var(--fresh-font);
-  outline: none;
-}
-
-.oracle-search:focus { border-color: var(--fresh-link); }
-.oracle-search::placeholder { color: var(--fresh-muted); }
-
-.oracle-presets {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.oracle-preset {
-  flex-shrink: 0;
-  max-width: 260px;
-  text-align: left;
-  background: var(--fresh-surface);
-  border: 1px solid var(--fresh-border);
-  border-radius: var(--fresh-radius-pill);
-  padding: 9px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--fresh-text);
-  font-family: var(--fresh-font);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  white-space: nowrap;
-}
-
-.oracle-preset:active { transform: scale(0.97); }
-.oracle-preset:disabled { opacity: 0.5; }
-.oracle-presets-empty { font-size: 13px; color: var(--fresh-muted); padding: 6px 2px; }
-.oracle-hint { font-size: 12px; color: var(--fresh-muted); text-align: center; }
-
-/* ── Чат Lumia — единый fresh-вид (вместо mono): фон, бары, пузыри, текст ── */
-.oracle-chat { background: var(--fresh-bg); }
-.oracle-muted { color: var(--fresh-muted); }
-.oracle-ink { color: var(--fresh-text); }
-.oracle-eyebrow { font-family: var(--fresh-font); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--fresh-muted); }
-.oracle-bar { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-.oracle-bar--top { border-bottom: 1px solid var(--mono-line); }
-.oracle-bar--bottom { border-top: 1px solid var(--mono-line); }
-.oracle-msg { max-width: 88%; border-radius: 18px; padding: 11px 14px; font-family: var(--fresh-font); font-size: 15px; line-height: 1.5; }
-.oracle-msg--me { background: var(--fresh-link); color: #fff; border-bottom-right-radius: 6px; }
-.oracle-msg--bot { background: var(--fresh-surface); color: var(--fresh-text); border-bottom-left-radius: 6px; }
-.oracle-typing { background: var(--fresh-surface); border-radius: 18px; padding: 13px 16px; display: inline-flex; gap: 5px; }
-.oracle-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--fresh-muted); display: inline-block; animation: oracle-bounce 1s infinite; }
-.oracle-typing i:nth-child(2) { animation-delay: 0.15s; }
-.oracle-typing i:nth-child(3) { animation-delay: 0.3s; }
-@keyframes oracle-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
-.oracle-empty { border: 1px dashed var(--mono-line); background: var(--fresh-surface); border-radius: 14px; padding: 16px 16px 18px; font-family: var(--fresh-font); font-size: 14px; line-height: 1.5; color: var(--fresh-muted); }
-
-/* ── Шапка чата (компактный режим): по центру, не под кнопкой «назад» ── */
-.oracle-dm-head {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 2px;
-  padding: 0 16px 13px;
-  background: #fff;
-  border-bottom: 1px solid var(--fresh-border);
-}
-.oracle-dm-badge {
-  width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  background: var(--fresh-surface);
-  color: var(--fresh-text);
-  margin-bottom: 5px;
-}
-.oracle-dm-title { font-family: var(--fresh-font); font-size: 20px; font-weight: 800; color: var(--fresh-text); line-height: 1.1; letter-spacing: -0.01em; }
-.oracle-dm-sub { font-size: 13px; font-weight: 600; color: var(--fresh-muted); }
-.oracle-dm-premium { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--fresh-link); text-decoration: underline; text-underline-offset: 2px; }
-.oracle-dm-quota { margin-top: 7px; font-size: 11.5px; font-weight: 700; color: var(--fresh-muted); background: var(--fresh-surface); padding: 3px 10px; border-radius: var(--fresh-radius-pill); }
-.oracle-dm-quota.is-empty { color: #B45309; background: #FEF3C7; }
 
 /* ── Строка-комбобокс: ввод + выпадающий выбор вопросов ── */
 .fresh-combo { position: relative; width: 100%; }

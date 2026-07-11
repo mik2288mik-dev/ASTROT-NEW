@@ -177,8 +177,8 @@ describe('content cache architecture', () => {
       expect(dbSource).toContain('Invalidated cached interpretations after primary chart input change');
     });
 
-    it('natal-chart flow uses input hash cache before recalculating', () => {
-      const api = readApiSource('pages/api/astrology/natal-chart.ts');
+    it('primary chart flow uses input hash cache before recalculating', () => {
+      const api = readApiSource('pages/api/charts/index.ts');
       const persistence = readApiSource('lib/natalChartPersistence.ts');
       expect(api).toContain('ensureCanonicalPrimaryChart');
       expect(persistence).toContain('findByInputHash');

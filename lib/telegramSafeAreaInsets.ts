@@ -1,4 +1,4 @@
-import { getTelegramCssVars, lumiaDebugLog } from './lumiaDebug';
+import { getTelegramCssVars, appDebugLog } from './appDebug';
 
 /**
  * Telegram Mini App (Bot API 8+): device insets vs content insets.
@@ -46,7 +46,7 @@ export function applyTelegramSafeAreaCssVars(): void {
   if (!wa) {
     root.style.setProperty('--tg-viewport-height', '100dvh');
     root.style.setProperty('--tg-viewport-stable-height', '100dvh');
-    lumiaDebugLog('viewport_change', {
+    appDebugLog('viewport_change', {
       source: 'fallback_no_telegram',
       cssVars: getTelegramCssVars(),
     });
@@ -66,7 +66,7 @@ export function applyTelegramSafeAreaCssVars(): void {
     root.style.setProperty('--tg-viewport-stable-height', `${wa.viewportHeight}px`);
   }
 
-  lumiaDebugLog('viewport_change', {
+  appDebugLog('viewport_change', {
     source: 'telegram_webapp',
     viewportHeight: wa.viewportHeight,
     viewportStableHeight: wa.viewportStableHeight,

@@ -1,4 +1,4 @@
-type LumiaDebugEvent = {
+type AppDebugEvent = {
   seq: number;
   ts: number;
   t: number;
@@ -26,14 +26,14 @@ type TelegramWebAppDebug = {
 
 const MAX_EVENTS = 200;
 const startedAt = Date.now();
-const events: LumiaDebugEvent[] = [];
+const events: AppDebugEvent[] = [];
 let sequence = 0;
 
 declare global {
   interface Window {
-    __LUMIA_DEBUG__?: {
+    __APP_DEBUG__?: {
       enabled: boolean;
-      log: typeof lumiaDebugLog;
+      log: typeof appDebugLog;
       dump: () => string;
       copy: () => Promise<string>;
       clear: () => void;
@@ -46,10 +46,10 @@ function nowMs() {
   return Math.round(performance.now());
 }
 
-export function isLumiaDebugEnabled(): boolean {
+export function isAppDebugEnabled(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    return new URLSearchParams(window.location.search).get('lumiaDebug') === '1';
+    return new URLSearchParams(window.location.search).get('appDebug') === '1';
   } catch {
     return false;
   }
@@ -93,11 +93,11 @@ function getTelegramDebug(): TelegramWebAppDebug | null {
   };
 }
 
-export function getLumiaDebugDump(): string {
+export function getAppDebugDump(): string {
   return JSON.stringify(
     {
       meta: {
-        enabled: isLumiaDebugEnabled(),
+        enabled: isAppDebugEnabled(),
         startedAt,
         dumpedAt: Date.now(),
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
@@ -116,23 +116,23 @@ export function getLumiaDebugDump(): string {
   );
 }
 
-export async function copyLumiaDebugDump(): Promise<string> {
-  const dump = getLumiaDebugDump();
+export async function copyAppDebugDump(): Promise<string> {
+  const dump = getAppDebugDump();
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(dump);
   }
   return dump;
 }
 
-export function clearLumiaDebugLog(): void {
+export function clearAppDebugLog(): void {
   events.length = 0;
   sequence = 0;
 }
 
-export function lumiaDebugLog(type: string, payload?: Record<string, unknown>): void {
-  if (!isLumiaDebugEnabled()) return;
+export function appDebugLog(type: string, payload?: Record<string, unknown>): void {
+  if (!isAppDebugEnabled()) return;
 
-  const event: LumiaDebugEvent = {
+  const event: AppDebugEvent = {
     seq: ++sequence,
     ts: Date.now(),
     t: nowMs(),
@@ -146,14 +146,14 @@ export function lumiaDebugLog(type: string, payload?: Record<string, unknown>): 
   }
 
   try {
-    console.log('[LUMIA_DEBUG]', type, payload || {});
+    console.log('[APP_DEBUG]', type, payload || {});
   } catch {
     /* console is optional */
   }
 }
 
-export function captureLumiaHomeLayout(source = 'manual', extra?: Record<string, unknown>): void {
-  if (!isLumiaDebugEnabled()) return;
+export function captureAppHomeLayout(source = 'manual', extra?: Record<string, unknown>): void {
+  if (!isAppDebugEnabled()) return;
 
   const header = rectFor('.lumia-home-top-cluster');
   const headerSpacer = rectFor('.lumia-home-top-spacer');
@@ -176,7 +176,7 @@ export function captureLumiaHomeLayout(source = 'manual', extra?: Record<string,
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
   const telegramTopInset = Number.parseFloat(cssVar('--tg-content-safe-area-inset-top') || cssVar('--tg-safe-area-inset-top') || '0') || 0;
 
-  lumiaDebugLog('layout_snapshot', {
+  appDebugLog('layout_snapshot', {
     source,
     viewport: {
       width: viewportWidth,
@@ -259,14 +259,14 @@ export function getTelegramCssVars(): Record<string, string> {
   };
 }
 
-export function installLumiaDebugGlobal(): void {
+export function installAppDebugGlobal(): void {
   if (typeof window === 'undefined') return;
-  window.__LUMIA_DEBUG__ = {
-    enabled: isLumiaDebugEnabled(),
-    log: lumiaDebugLog,
-    dump: getLumiaDebugDump,
-    copy: copyLumiaDebugDump,
-    clear: clearLumiaDebugLog,
-    snapshot: captureLumiaHomeLayout,
+  window.__APP_DEBUG__ = {
+    enabled: isAppDebugEnabled(),
+    log: appDebugLog,
+    dump: getAppDebugDump,
+    copy: copyAppDebugDump,
+    clear: clearAppDebugLog,
+    snapshot: captureAppHomeLayout,
   };
 }

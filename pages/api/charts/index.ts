@@ -1,10 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { formatValidationErrors, validateNatalChartInput } from '../../../lib/validation';
 import { db } from '../../../lib/db';
-import { createOrReuseCanonicalChart } from '../../../lib/natalChartPersistence';
+import {
+  createOrReuseCanonicalChart,
+  ensureCanonicalPrimaryChart,
+  repairCanonicalChartForUser,
+} from '../../../lib/natalChartPersistence';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
+import { LockKeys, releaseLock, tryAcquireLock } from '../../../lib/serverLocks';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts] ${msg}`, data || ''),
@@ -34,7 +39,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'POST') {
-      const { name, birthDate, birthTime, birthPlace, chartData, language, latitude, longitude, timezone } = req.body || {};
+      const {
+        name,
+        birthDate,
+        birthTime,
+        birthPlace,
+        chartData,
+        language,
+        latitude,
+        longitude,
+        timezone,
+        forceRecalculate,
+        primary,
+      } = req.body || {};
 
       const rawBirthTime = typeof birthTime === 'string' ? birthTime.trim() : '';
       const normalizedBirthTime = rawBirthTime || '12:00';
@@ -67,6 +84,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0)
           ? { lat, lon, timezone: typeof timezone === 'string' ? timezone : undefined }
           : null;
+
+      if (primary === true || forceRecalculate === true) {
+        const lockKey = LockKeys.primaryChartCalculation(userId);
+
+        if (!tryAcquireLock(lockKey, 'primary-chart-calculation')) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          const repaired = await repairCanonicalChartForUser(userId);
+          if (repaired?.chart?.chart_data?.sun && repaired.chart.chart_data?.moon && repaired.chart.chart_data?.rising) {
+            res.setHeader('X-Chart-Source', 'cache-after-wait');
+            return res.status(200).json(repaired.chart);
+          }
+
+          return res.status(409).json({
+            error: 'Calculation in progress',
+            message: userLanguage === 'ru'
+              ? 'Расчёт уже выполняется. Подожди пару секунд и попробуй ещё раз.'
+              : 'Calculation is already in progress. Please wait a moment and try again.',
+          });
+        }
+
+        try {
+          const result = await ensureCanonicalPrimaryChart({
+            userId,
+            name: name || 'My Chart',
+            birthDate,
+            birthTime: normalizedBirthTime,
+            birthPlace,
+            language: userLanguage,
+            forceRecalculate: !!forceRecalculate,
+            coordinates: clientCoordinates,
+          });
+
+          res.setHeader('X-Chart-Source', result.source);
+          return res.status(200).json(result.chart);
+        } finally {
+          releaseLock(lockKey);
+        }
+      }
 
       const result = await createOrReuseCanonicalChart({
         userId,

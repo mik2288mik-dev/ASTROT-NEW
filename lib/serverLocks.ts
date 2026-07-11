@@ -88,7 +88,7 @@ export function isLocked(key: string): boolean {
  * Генерация ключей блокировки для разных операций
  */
 export const LockKeys = {
-  natalChartCalculation: (userId: string) => `natal-chart:${userId}`,
+  primaryChartCalculation: (userId: string) => `primary-chart:${userId}`,
   dailyHoroscope: (userId: string, date: string) => `daily-horoscope:${userId}:${date}`,
   todayOverview: (userId: string, chartId: number | null, date: string) => `today-overview:${userId}:${chartId ?? 'primary'}:${date}`,
   deepDive: (userId: string, topic: string) => `deep-dive:${userId}:${topic}`,

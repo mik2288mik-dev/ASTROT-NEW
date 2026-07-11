@@ -1,19 +1,17 @@
-# Admin and notifications — support track (Phase 9)
+# Admin Notifications Support
 
-Из [LUMIA_MASTER_REBUILD_ROADMAP.md](./LUMIA_MASTER_REBUILD_ROADMAP.md) §9: admin остаётся supporting subsystem и не ведёт consumer roadmap.
+Admin notifications are a support subsystem for real MVP surfaces only.
 
-## Текущая база в коде
+Allowed notification themes:
 
-- Админ-панель: [views/AdminPanel.tsx](../views/AdminPanel.tsx), вкладки в `views/admin/`.
-- Уведомления: маршруты `pages/api/admin/notifications/*`, шаблоны и доставка.
+- Personal daily reading when saved or available.
+- Sign horoscope.
+- Natal chart/natal reading.
+- Compatibility and Premium relationship reading.
+- Matrix of Destiny.
+- Premium subscription lifecycle.
+- Support/system maintenance.
 
-## Цели трека
+Removed legacy themes must not be targeted by scenarios, templates, copy, deep links, or scheduler jobs.
 
-- Поддержка новых content tiers (`free` / `lumi` / `premium`) в сегментации и шаблонах. В админке сегмент **`lumi`** = не Premium и `lumi_balance > 0` (см. [PHASE_2_9_STATUS_AND_GAPS.md](./PHASE_2_9_STATUS_AND_GAPS.md)).
-- Редактируемые шаблоны уведомлений и предпросмотр.
-- Сегментация аудитории (premium, активность, need attention — см. admin users).
-- В перспективе: нормальные recurring-настройки уведомлений для пользователя (не блокирует consumer core).
-
-## Ограничение
-
-До стабилизации consumer core (прогноз, натал, вопросы, синастрия, Lumi) приоритет изменений здесь — **поддержка**, а не расширение admin вместо продукта.
+Deep links must open an existing MVP screen and must not create content that does not exist.

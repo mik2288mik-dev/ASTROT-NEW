@@ -7,7 +7,7 @@ import type { NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { getApproximateSunSignByDate } from '../../lib/zodiac-utils';
 import { formatPassportBirthLine, getZodiacCardBackground } from '../../lib/zodiacCardBackgrounds';
-import { captureLumiaHomeLayout } from '../../lib/lumiaDebug';
+import { captureAppHomeLayout } from '../../lib/appDebug';
 import { getHomeCopy, type HomeLanguage } from '../Dashboard/lumiaHomeContent';
 import { useCollapsibleHeaderProgress } from './useCollapsibleHeaderProgress';
 
@@ -47,7 +47,7 @@ export function UnifiedCollapsibleTopCluster({
   const [photoUrl, setPhotoUrl] = React.useState<string | null>(null);
 
   useEffect(() => {
-    window.setTimeout(() => captureLumiaHomeLayout('home_header_mount'), 160);
+    window.setTimeout(() => captureAppHomeLayout('home_header_mount'), 160);
   }, []);
 
   useEffect(() => {

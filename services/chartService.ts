@@ -117,20 +117,14 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
 }
 
 /**
- * Calculate chart through the idempotent API.
- * The API is responsible for cache validation and persistence.
+ * Calculate or repair the primary chart through the canonical charts API.
+ * The API is responsible for cache validation, locking, and persistence.
  */
 async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
   const safeUserId = assertValidUserId(profile.id);
   log.info(`[calculateChart] Calculating for userId=${safeUserId}`);
 
-  // Use the canonical calculation endpoint for onboarding/repair flows.
-  // `/api/charts` is a multi-chart create route and can reject a user whose only
-  // existing row is an incomplete primary chart because that row still consumes
-  // the free chart slot. The canonical endpoint persists/replaces the primary
-  // chart through the server-side Swiss Ephemeris calculator and persists/replaces
-  // the primary chart idempotently, so onboarding can recover from partial saves.
-  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
+  const url = `${API_BASE_URL}/api/charts`;
 
   let response: Response;
   try {
@@ -152,6 +146,7 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
           longitude: profile.birthLongitude ?? undefined,
           timezone: profile.birthTimezone ?? undefined,
           language: profile.language,
+          primary: true,
         }),
       },
       CHART_FETCH_TIMEOUT_MS
@@ -244,7 +239,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
 
   log.info(`[forceRecalculateChart] Force recalculating for userId=${userId}`);
 
-  const url = `${API_BASE_URL}/api/astrology/natal-chart`;
+  const url = `${API_BASE_URL}/api/charts`;
 
   const response = await fetchWithTimeout(
     url,
@@ -262,6 +257,7 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
         longitude: profile.birthLongitude ?? undefined,
         timezone: profile.birthTimezone ?? undefined,
         language: profile.language,
+        primary: true,
         forceRecalculate: true,
       }),
     },

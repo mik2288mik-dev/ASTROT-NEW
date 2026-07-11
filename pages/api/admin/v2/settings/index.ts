@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const key = String(req.body?.key || '').trim();
       if (!/^[a-z0-9_]{2,60}$/.test(key)) throw new AdminAuthError(400, 'BAD_KEY', 'key must be 2–60 chars a-z 0-9 _');
       // value приходит как JSON-значение (bool/number/string/object)
-      let value = req.body?.value;
+      const value = req.body?.value;
       if (value === undefined) throw new AdminAuthError(400, 'BAD_VALUE', 'value is required');
       const description = req.body?.description != null ? String(req.body.description) : null;
       const before = await pool.query(`SELECT value FROM feature_flags WHERE key = $1`, [key]);

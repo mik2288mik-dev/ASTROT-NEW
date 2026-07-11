@@ -55,24 +55,6 @@ export const NOTIFICATION_VARIABLES = [
   'minutes_to_slot',
 ] as const;
 
-const UNUSED_LEGACY_NOTIFICATION_FORBIDDEN_PATTERNS = [
-  /\d+\s*РґРѕРј/i,
-  /[0-9]+\s*house/i,
-  /Р»СѓРЅР°\s+РєР°СЃР°РµС‚/i,
-  /Р»СѓРЅР°\s+РІ\s+[Р°-СЏС‘a-z]+/i,
-  /РІРµРЅРµСЂ[Р°С‹]\s+РІ\s+[Р°-СЏС‘a-z]+/i,
-  /РјРµСЂРєСѓСЂРё[Р№СЏ]\s+РІ\s+[Р°-СЏС‘a-z]+/i,
-  /РЅР°С‚Р°Р»СЊРЅ(С‹Р№|Р°СЏ|РѕРµ|С‹Рµ)\s+Р°РєС†РµРЅС‚/i,
-  /РЅР°С‚Р°Р»СЊРЅ(Р°СЏ|РѕР№|СѓСЋ|С‹Рµ)\s+РєР°СЂС‚/i,
-  /С‚СЂР°РЅР·РёС‚/i,
-  /Р°СЃРїРµРєС‚/i,
-  /СЃРёРЅР°СЃС‚СЂРё/i,
-  /Р·РѕРґРёР°РєР°Р»СЊРЅ/i,
-  /РіРѕСЂРѕСЃРєРѕРї\s+РґР»СЏ/i,
-  /LUMIA/i,
-  /\bLumi\b/i,
-];
-
 export const NOTIFICATION_FORBIDDEN_PATTERNS = [
   /\d+\s*\u0434\u043e\u043c/i,
   /[0-9]+\s*house/i,
@@ -87,8 +69,6 @@ export const NOTIFICATION_FORBIDDEN_PATTERNS = [
   /\u0441\u0438\u043d\u0430\u0441\u0442\u0440\u0438/i,
   /\u0437\u043e\u0434\u0438\u0430\u043a\u0430\u043b\u044c\u043d/i,
   /\u0433\u043e\u0440\u043e\u0441\u043a\u043e\u043f\s+\u0434\u043b\u044f/i,
-  /LUMIA/i,
-  /\bLumi\b/i,
 ];
 
 function t(title: string, body: string, buttonText: string, tags: string[] = []): NotificationTemplateSeed {
