@@ -61,6 +61,6 @@ EXPOSE 3000
 # планировщик уведомлений. Так контейнер каждые 30с сам гарантирует, что планировщик жив — даже
 # если instrumentation не стартовал его на буте и на сервис нет внешнего трафика.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "require('node:http').get('http://127.0.0.1:3000/api/health',(r)=>process.exit(r.statusCode>=200&&r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+  CMD node -e "const port=process.env.PORT||3000;require('node:http').get({host:'127.0.0.1',port,path:'/api/health'},(r)=>process.exit(r.statusCode>=200&&r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
 
-CMD ["sh", "-c", "npm run migrate && node server.js"]
+CMD ["sh", "-c", "npm run migrate && exec node server.js"]

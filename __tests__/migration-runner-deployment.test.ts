@@ -21,8 +21,9 @@ describe('database migration deployment runner', () => {
     const railway = JSON.parse(read('railway.json')) as { deploy?: { startCommand?: string } };
     const dockerfile = read('Dockerfile');
 
-    expect(railway.deploy?.startCommand).toBe('npm run migrate && node server.js');
-    expect(dockerfile).toContain('CMD ["sh", "-c", "npm run migrate && node server.js"]');
+    expect(railway.deploy?.startCommand).toBe('npm run migrate && exec node server.js');
+    expect(dockerfile).toContain('CMD ["sh", "-c", "npm run migrate && exec node server.js"]');
+    expect(dockerfile).toContain('process.env.PORT||3000');
     expect(dockerfile).toContain('/app/scripts ./scripts');
     expect(dockerfile).toContain('/app/lib ./lib');
   });
@@ -50,5 +51,14 @@ describe('database migration deployment runner', () => {
       expect(migrations).toContain(`const migrationName = '${migrationName}'`);
       expect(migrations).toContain('await markMigrationApplied(pool, migrationName);');
     }
+  });
+
+  it('keeps Railway healthcheck as HTTP liveness with dependency diagnostics', () => {
+    const health = read('pages/api/health.ts');
+
+    expect(health).toContain('HTTP server is responding');
+    expect(health).toContain('warnings');
+    expect(health).not.toContain("health.status === 'error' ? 503 : 200");
+    expect(health).not.toContain('return res.status(503).json');
   });
 });

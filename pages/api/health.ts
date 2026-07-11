@@ -14,7 +14,11 @@ import { Pool } from 'pg';
 const DATABASE_URL = resolveDatabaseUrl();
 
 /**
- * Health check endpoint - checks database connectivity and migrations
+ * Railway liveness endpoint.
+ *
+ * This must answer whether the HTTP server is alive. Dependency diagnostics stay
+ * visible in the JSON payload, but optional or temporarily unavailable
+ * subsystems must not make deployment liveness fail.
  */
 export default async function handler(
   req: NextApiRequest,
@@ -29,8 +33,17 @@ export default async function handler(
   // первый же health-пинг запустит планировщик (идемпотентно). Не должно влиять на ответ health.
   try { ensureNotificationScheduler('health'); } catch { /* best-effort */ }
 
+  const warnings: string[] = [];
+  const markWarning = (message: string) => {
+    if (!warnings.includes(message)) warnings.push(message);
+  };
+
   const health: any = {
     status: 'ok',
+    liveness: {
+      ok: true,
+      message: 'HTTP server is responding',
+    },
     timestamp: new Date().toISOString(),
     swissEphemeris: getSwissEphemerisHealth(),
     calculationMetrics: {
@@ -53,22 +66,22 @@ export default async function handler(
     },
   };
 
-  if (!health.observability.ok && health.status !== 'error') {
-    health.status = 'warning';
-    health.message = health.observability.alerts[0] || 'Production observability reported warnings';
+  if (!health.observability.ok) {
+    markWarning(health.observability.alerts[0] || 'Production observability reported warnings');
   }
 
   if (!health.swissEphemeris.ok) {
-    health.status = process.env.NODE_ENV === 'production' ? 'error' : 'warning';
-    health.message = health.swissEphemeris.message || 'Swiss Ephemeris is unavailable';
+    markWarning(health.swissEphemeris.message || 'Swiss Ephemeris is unavailable');
   }
 
   // Check DATABASE_URL configuration
   if (!DATABASE_URL) {
+    markWarning('DATABASE_URL is not configured');
+    health.status = 'warning';
+    health.message = warnings[0];
+    health.warnings = warnings;
     return res.status(200).json({
       ...health,
-      status: health.status === 'error' ? 'error' : 'warning',
-      message: health.message || 'DATABASE_URL is not configured',
     });
   }
 
@@ -96,28 +109,30 @@ export default async function handler(
       health.database.tablesExist = tableCheck.rows[0].exists;
       
       if (!health.database.tablesExist) {
-        if (health.status !== 'error') {
-          health.status = 'warning';
-          health.message = 'Database connected but migrations have not been run. Tables do not exist.';
-        }
+        markWarning('Database connected but migrations have not been run. Tables do not exist.');
       }
     } catch (tableError: any) {
       console.error('[Health] Table check failed:', tableError.message);
       health.database.tablesExist = false;
-      if (health.status !== 'error') {
-        health.status = 'warning';
-        health.message = 'Could not verify tables exist';
-      }
+      markWarning('Could not verify tables exist');
     }
 
-    return res.status(health.status === 'error' ? 503 : 200).json(health);
+    if (warnings.length) {
+      health.status = 'warning';
+      health.message = warnings[0];
+      health.warnings = warnings;
+    }
+
+    return res.status(200).json(health);
   } catch (error: any) {
     console.error('[Health] Database connection failed:', error.message);
-    return res.status(503).json({
+    markWarning('Database connection failed');
+    health.status = 'warning';
+    health.message = warnings[0];
+    health.warnings = warnings;
+    health.database.error = error.message;
+    return res.status(200).json({
       ...health,
-      status: 'error',
-      message: 'Database connection failed',
-      error: error.message,
     });
   } finally {
     if (pool) {

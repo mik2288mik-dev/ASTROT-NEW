@@ -3,7 +3,7 @@
 Railway starts the app with:
 
 ```text
-npm run migrate && node server.js
+npm run migrate && exec node server.js
 ```
 
 This is configured in `railway.json` and mirrored in the Dockerfile `CMD`.
@@ -11,6 +11,7 @@ This is configured in `railway.json` and mirrored in the Dockerfile `CMD`.
 ## Runtime Contract
 
 - `npm run migrate` must finish successfully before `node server.js` starts.
+- `exec node server.js` makes the Next.js server the main container process after migrations, so it receives shutdown signals directly.
 - In Railway/production/CI, missing `DATABASE_URL` is a fatal error.
 - Any migration error exits with code `1`.
 - Database URLs are logged only as safe connection metadata: host, port, database, user, and optional `sslmode`.
