@@ -1,5 +1,5 @@
-// Lumia Database Migrations
-// Full schema replacement: Astrot -> Lumia
+// Database migrations for Your Horoscope
+// MVP schema plus cleanup migrations
 
 import { Pool } from 'pg';
 import { resolveDatabaseUrl } from './database-url';
@@ -150,7 +150,6 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
       'natal_amateur',
       'natal_pro',
       'daily_natal_card',
-      'question_answer',
       'synastry',
       'deep_dive_personality',
       'deep_dive_love',
@@ -249,16 +248,6 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
   `);
 
   await pool.query(`
-    CREATE TABLE astro_questions (
-      id SERIAL PRIMARY KEY,
-      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
-      question TEXT NOT NULL,
-      answer TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  await pool.query(`
     CREATE TABLE dictionary (
       id SERIAL PRIMARY KEY,
       term TEXT UNIQUE,
@@ -273,8 +262,6 @@ async function lumia001FullSchema(pool: Pool): Promise<void> {
     CREATE INDEX idx_interpretations_user ON interpretations(user_id);
     CREATE INDEX idx_interpretations_user_type ON interpretations(user_id, type);
     CREATE UNIQUE INDEX idx_interpretations_lookup ON interpretations(user_id, type, input_hash);
-    CREATE INDEX idx_astro_questions_user ON astro_questions(user_id);
-    CREATE INDEX idx_astro_questions_user_date ON astro_questions(user_id, created_at);
     CREATE INDEX idx_daily_horoscopes_date ON daily_horoscopes(date);
     CREATE INDEX idx_daily_horoscopes_sign_date ON daily_horoscopes(zodiac_sign, date);
     CREATE INDEX idx_daily_natal_cards_user ON daily_natal_cards(user_id);
@@ -485,24 +472,24 @@ async function lumia004AdminBackoffice(pool: Pool): Promise<void> {
        ($17, $18, $19, $20, TRUE)`,
       [
         'Premium granted',
-        'Твой Premium в Lumia уже активирован. Можно возвращаться к полному разбору, Оракулу и расширенным возможностям.',
-        'Your Lumia Premium is now active. You can return to full readings, Oracle, and the expanded product flows.',
+        'Твой Premium уже активирован. Можно возвращаться к полному разбору, личному дню и расширенным возможностям.',
+        'Your Premium is now active. You can return to full readings, your personal day, and the expanded product flows.',
         'personal',
-        'Lumi credited',
-        'Мы начислили Lumi на твой баланс. Открой Lumia Wallet, чтобы посмотреть обновление.',
-        'We credited Lumi to your balance. Open Lumia Wallet to see the update.',
+        'Premium update',
+        'Premium обновлён. Можно вернуться к расширенным разборам и личному дню.',
+        'Premium is updated. You can return to expanded readings and your personal day.',
         'personal',
         'Important announcement',
-        'У нас есть важное обновление в Lumia. Открой приложение, чтобы посмотреть детали.',
-        'We have an important Lumia update. Open the app to see the details.',
+        'У нас есть важное обновление в приложении. Открой его, чтобы посмотреть детали.',
+        'We have an important app update. Open the app to see the details.',
         'broadcast',
         'Maintenance update',
-        'Сегодня в Lumia идут технические работы. Если что-то временно недоступно, попробуй чуть позже.',
-        'Lumia is undergoing maintenance today. If something is temporarily unavailable, please try again a bit later.',
+        'Сегодня в приложении идут технические работы. Если что-то временно недоступно, попробуй чуть позже.',
+        'The app is undergoing maintenance today. If something is temporarily unavailable, please try again a bit later.',
         'broadcast',
         'Come back',
-        'Мы сохранили твои карты и историю в Lumia. Возвращайся — всё уже ждёт тебя внутри.',
-        'Your charts and history are still waiting for you in Lumia. Come back when you are ready.',
+        'Мы сохранили твои карты и историю. Возвращайся — всё уже ждёт тебя внутри.',
+        'Your charts and history are still waiting for you. Come back when you are ready.',
         'broadcast',
       ]
     );
@@ -649,15 +636,15 @@ async function lumia006ScheduledNotifications(pool: Pool): Promise<void> {
        ($5, 'day', 'text', $6, $3, '', TRUE, 0, NULL, $7),
        ($8, 'evening', 'text', $9, $3, '', TRUE, 0, NULL, $10)`,
       [
-        'Morning Lumia',
-        'Доброе утро! Открой Lumia — короткий гороскоп и настроение дня уже ждут.',
-        'Открыть Lumia',
+        'Morning daily',
+        'Доброе утро! Открой личный день — короткий гороскоп и настроение дня уже ждут.',
+        'Открыть',
         'Default seed — задайте deep link в админке (URL мини-приложения).',
-        'Day Lumia',
-        'Середина дня — загляни в Lumia за персональным ориентиром.',
+        'Day daily',
+        'Середина дня — загляни в приложение за персональным ориентиром.',
         'Default seed',
-        'Evening Lumia',
-        'Вечер — хорошее время свериться с картой и гороскопом в Lumia.',
+        'Evening daily',
+        'Вечер — хорошее время свериться с картой и гороскопом.',
         'Default seed',
       ]
     );
@@ -812,15 +799,13 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
       valid_from TIMESTAMP,
       valid_to TIMESTAMP,
       is_persistent BOOLEAN NOT NULL DEFAULT FALSE,
-      can_regenerate_for_lumi BOOLEAN NOT NULL DEFAULT FALSE,
-      regeneration_cost_lumi INTEGER,
       legacy_source TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT content_interpretations_scope CHECK ((chart_id IS NOT NULL) OR (user_id IS NOT NULL)),
-      CONSTRAINT content_interpretations_access_tier CHECK (access_tier IN ('free', 'premium', 'lumi')),
-      CONSTRAINT content_interpretations_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry', 'question')),
-      CONSTRAINT content_interpretations_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
+      CONSTRAINT content_interpretations_access_tier CHECK (access_tier IN ('free', 'premium')),
+      CONSTRAINT content_interpretations_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry')),
+      CONSTRAINT content_interpretations_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full')),
       CONSTRAINT content_interpretations_model CHECK (model_tier IN ('base', 'premium'))
     )
   `);
@@ -839,15 +824,14 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
       content_variant TEXT NOT NULL,
       unlock_type TEXT NOT NULL,
       cache_key TEXT NOT NULL DEFAULT 'default',
-      lumi_spent INTEGER NOT NULL DEFAULT 0,
       metadata JSONB,
       unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       expires_at TIMESTAMP,
       revoked_at TIMESTAMP,
-      CONSTRAINT content_unlocks_access_tier CHECK (access_tier IN ('free', 'premium', 'lumi')),
-      CONSTRAINT content_unlocks_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry', 'question')),
-      CONSTRAINT content_unlocks_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off')),
-      CONSTRAINT content_unlocks_type CHECK (unlock_type IN ('free', 'premium', 'lumi'))
+      CONSTRAINT content_unlocks_access_tier CHECK (access_tier IN ('free', 'premium')),
+      CONSTRAINT content_unlocks_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry')),
+      CONSTRAINT content_unlocks_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full')),
+      CONSTRAINT content_unlocks_type CHECK (unlock_type IN ('free', 'premium'))
     )
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_content_unlocks_lookup ON content_unlocks(user_id, content_surface, content_variant, access_tier, cache_key)');
@@ -857,7 +841,7 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
     CREATE TABLE IF NOT EXISTS premium_entitlements (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      tier_name TEXT NOT NULL DEFAULT 'lumia_premium',
+      tier_name TEXT NOT NULL DEFAULT 'premium',
       status TEXT NOT NULL DEFAULT 'active',
       source TEXT NOT NULL DEFAULT 'users.premium_until',
       starts_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -875,7 +859,7 @@ async function lumia009ContentArchitecture(pool: Pool): Promise<void> {
     INSERT INTO premium_entitlements (user_id, tier_name, status, source, starts_at, ends_at, metadata)
     SELECT
       u.id,
-      'lumia_premium',
+      'premium',
       CASE WHEN u.premium_until > NOW() THEN 'active' ELSE 'expired' END,
       'users.premium_until',
       COALESCE(u.created_at, CURRENT_TIMESTAMP),
@@ -991,7 +975,7 @@ async function lumia014PlanetInsightVariant(pool: Pool): Promise<void> {
   await pool.query(`
     ALTER TABLE content_interpretations
       ADD CONSTRAINT content_interpretations_variant
-      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off'))
+      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full'))
   `);
 
   await pool.query(`
@@ -1001,7 +985,7 @@ async function lumia014PlanetInsightVariant(pool: Pool): Promise<void> {
   await pool.query(`
     ALTER TABLE content_unlocks
       ADD CONSTRAINT content_unlocks_variant
-      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full', 'one_off'))
+      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full'))
   `);
 
   await markMigrationApplied(pool, migrationName);
@@ -1341,28 +1325,6 @@ async function lumia020DailyFeedbackAssistant(pool: Pool): Promise<void> {
   await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_chart_date ON daily_checkins(user_id, chart_id, checkin_date) WHERE chart_id IS NOT NULL');
   await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins(user_id, checkin_date) WHERE chart_id IS NULL');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_daily_checkins_user_recent ON daily_checkins(user_id, checkin_date DESC)');
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS action_timing_events (
-      id BIGSERIAL PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
-      event_date DATE NOT NULL,
-      timezone TEXT NOT NULL DEFAULT 'Europe/Moscow',
-      action_key TEXT NOT NULL,
-      recommendation_state TEXT NOT NULL,
-      best_start TEXT NOT NULL,
-      best_end TEXT NOT NULL,
-      selected_hour INTEGER NOT NULL,
-      confidence INTEGER NOT NULL DEFAULT 0,
-      recommendation JSONB NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT action_timing_key_check CHECK (action_key IN ('message', 'money', 'purchase', 'serious_talk', 'work', 'rest')),
-      CONSTRAINT action_timing_state_check CHECK (recommendation_state IN ('now', 'later', 'no_edge'))
-    )
-  `);
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_action_timing_events_user_date ON action_timing_events(user_id, event_date DESC)');
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_action_timing_events_action ON action_timing_events(action_key, created_at DESC)');
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS personal_pattern_insights (
@@ -1826,37 +1788,7 @@ async function lumia023StarsAccessTier(pool: Pool): Promise<void> {
     return;
   }
 
-  log.info('Applying stars access tier migration...');
-
-  await pool.query(`
-    ALTER TABLE content_interpretations
-    DROP CONSTRAINT IF EXISTS content_interpretations_access_tier
-  `);
-  await pool.query(`
-    ALTER TABLE content_interpretations
-    ADD CONSTRAINT content_interpretations_access_tier
-    CHECK (access_tier IN ('free', 'premium', 'lumi', 'stars'))
-  `);
-
-  await pool.query(`
-    ALTER TABLE content_unlocks
-    DROP CONSTRAINT IF EXISTS content_unlocks_access_tier
-  `);
-  await pool.query(`
-    ALTER TABLE content_unlocks
-    ADD CONSTRAINT content_unlocks_access_tier
-    CHECK (access_tier IN ('free', 'premium', 'lumi', 'stars'))
-  `);
-
-  await pool.query(`
-    ALTER TABLE content_unlocks
-    DROP CONSTRAINT IF EXISTS content_unlocks_type
-  `);
-  await pool.query(`
-    ALTER TABLE content_unlocks
-    ADD CONSTRAINT content_unlocks_type
-    CHECK (unlock_type IN ('free', 'premium', 'lumi', 'stars'))
-  `);
+  log.info('Skipping removed stars content-unlock tier migration for MVP schema');
 
   await markMigrationApplied(pool, migrationName);
   log.info('Migration lumia_023_stars_access_tier applied');
@@ -2043,7 +1975,7 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
   const required = [
     'users', 'natal_charts', 'interpretations', 'app_settings',
     'daily_horoscopes', 'daily_natal_cards',
-    'astro_questions', 'dictionary', 'synastry_cache', 'star_payments',
+    'dictionary', 'synastry_cache', 'star_payments',
     'content_interpretations', 'content_cache', 'content_unlocks', 'premium_entitlements',
     'user_sessions',
     'legacy_notification_templates',
@@ -2056,7 +1988,6 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'notification_delivery_log',
     'horoscope_reactions',
     'daily_checkins',
-    'action_timing_events',
     'personal_pattern_insights',
     'notification_scenarios',
     'notification_logs',
@@ -2552,6 +2483,95 @@ async function lumia035FeatureFlags(pool: Pool): Promise<void> {
   log.info('Migration lumia_035_feature_flags applied');
 }
 
+async function mvp036SchemaCleanup(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_036_schema_cleanup';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  log.info('Applying MVP schema cleanup...');
+
+  await pool.query('DROP TABLE IF EXISTS astro_questions CASCADE');
+  await pool.query('DROP TABLE IF EXISTS action_timing_events CASCADE');
+  await pool.query('DROP TABLE IF EXISTS lumi_transactions CASCADE');
+  await pool.query('DROP TABLE IF EXISTS roulette_spins CASCADE');
+  await pool.query('DROP TABLE IF EXISTS daily_task_completions CASCADE');
+  await pool.query('ALTER TABLE users DROP COLUMN IF EXISTS lumi_balance');
+
+  await pool.query('ALTER TABLE content_interpretations DROP COLUMN IF EXISTS can_regenerate_for_lumi');
+  await pool.query('ALTER TABLE content_interpretations DROP COLUMN IF EXISTS regeneration_cost_lumi');
+  await pool.query('ALTER TABLE content_unlocks DROP COLUMN IF EXISTS lumi_spent');
+
+  await pool.query(`
+    DELETE FROM content_interpretations
+    WHERE access_tier NOT IN ('free', 'premium')
+       OR content_surface NOT IN ('natal', 'forecast', 'synastry')
+       OR content_variant NOT IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full')
+  `);
+
+  await pool.query(`
+    DELETE FROM content_unlocks
+    WHERE access_tier NOT IN ('free', 'premium')
+       OR unlock_type NOT IN ('free', 'premium')
+       OR content_surface NOT IN ('natal', 'forecast', 'synastry')
+       OR content_variant NOT IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full')
+  `);
+
+  await pool.query(`
+    UPDATE star_payments
+    SET content_surface = NULL,
+        content_variant = NULL,
+        chart_id = NULL,
+        cache_key = NULL,
+        consumed_at = NULL,
+        consumed_by_unlock_id = NULL
+    WHERE content_surface IS NOT NULL
+       OR content_variant IS NOT NULL
+       OR chart_id IS NOT NULL
+       OR cache_key IS NOT NULL
+       OR consumed_at IS NOT NULL
+       OR consumed_by_unlock_id IS NOT NULL
+  `);
+
+  await pool.query(`
+    UPDATE premium_entitlements
+    SET tier_name = 'premium'
+    WHERE tier_name = 'lumia_premium'
+  `);
+
+  await pool.query(`
+    ALTER TABLE content_interpretations
+      DROP CONSTRAINT IF EXISTS content_interpretations_access_tier,
+      DROP CONSTRAINT IF EXISTS content_interpretations_surface,
+      DROP CONSTRAINT IF EXISTS content_interpretations_variant
+  `);
+  await pool.query(`
+    ALTER TABLE content_interpretations
+      ADD CONSTRAINT content_interpretations_access_tier CHECK (access_tier IN ('free', 'premium')),
+      ADD CONSTRAINT content_interpretations_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry')),
+      ADD CONSTRAINT content_interpretations_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full'))
+  `);
+
+  await pool.query(`
+    ALTER TABLE content_unlocks
+      DROP CONSTRAINT IF EXISTS content_unlocks_access_tier,
+      DROP CONSTRAINT IF EXISTS content_unlocks_surface,
+      DROP CONSTRAINT IF EXISTS content_unlocks_variant,
+      DROP CONSTRAINT IF EXISTS content_unlocks_type
+  `);
+  await pool.query(`
+    ALTER TABLE content_unlocks
+      ADD CONSTRAINT content_unlocks_access_tier CHECK (access_tier IN ('free', 'premium')),
+      ADD CONSTRAINT content_unlocks_surface CHECK (content_surface IN ('natal', 'forecast', 'synastry')),
+      ADD CONSTRAINT content_unlocks_variant CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'brief', 'full')),
+      ADD CONSTRAINT content_unlocks_type CHECK (unlock_type IN ('free', 'premium'))
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info('Migration mvp_036_schema_cleanup applied');
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2614,6 +2634,7 @@ export async function runMigrations(): Promise<void> {
   await lumia033ContentCms(pool);
   await lumia034Support(pool);
   await lumia035FeatureFlags(pool);
+  await mvp036SchemaCleanup(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);
