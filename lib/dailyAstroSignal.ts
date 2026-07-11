@@ -657,8 +657,8 @@ function deriveSource(transits: CurrentTransits[]): DailyAstroSignal['source'] {
 }
 
 /**
- * Лёгкая оценка ДНЯ (0–100) для диапазона дат — один транзит на полдень каждого дня
- * (не 24 часа, как полный пульс). Для «лучших дней» и календаря удачных дат.
+ * Lightweight date-range scoring for internal personal-day calculations.
+ * Uses one midday transit per date instead of a full hourly day signal.
  */
 export async function computeDailyScores(
   chartData: NatalChartData,

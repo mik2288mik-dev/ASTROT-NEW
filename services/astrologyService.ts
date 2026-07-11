@@ -617,25 +617,6 @@ export const markHoroscopeView = (userId: string, sign: string, date: string) =>
 export const markHoroscopeRepost = (userId: string, sign: string, date: string) =>
   postHoroscopeEngagement(userId, sign, date, 'repost');
 
-export type FavorableDay = { date: string; score: number };
-
-/** Оценка дня (0–100) на ближайший месяц — для лучших дней и календаря удачных дат. Null при сбое. */
-export const getFavorableDays = async (userId: string): Promise<FavorableDay[] | null> => {
-  if (!isValidUserId(userId)) return null;
-  try {
-    const response = await fetchWithTimeout(
-      `${API_BASE_URL}/api/astrology/favorable-days?userId=${encodeURIComponent(userId)}`,
-      { method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } },
-      25_000,
-    );
-    if (!response.ok) return null;
-    const payload = await response.json();
-    return Array.isArray(payload?.days) ? (payload.days as FavorableDay[]) : null;
-  } catch {
-    return null;
-  }
-};
-
 export const getPremiumDaypartForecast = async (
   profile: UserProfile,
   chartData: NatalChartData,
