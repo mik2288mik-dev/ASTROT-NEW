@@ -3,7 +3,7 @@
 Railway starts the app with:
 
 ```text
-npm run migrate && exec node server.js
+sh scripts/railway-start.sh
 ```
 
 This is configured in `railway.json` and mirrored in the Dockerfile `CMD`.
