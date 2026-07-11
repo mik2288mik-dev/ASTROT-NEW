@@ -1,5 +1,5 @@
 /**
- * LUMIA Design System — Border Radius
+ * App design system — Border Radius
  * All values are pixel numbers.
  */
 

@@ -1,5 +1,5 @@
 /**
- * LUMIA Design System — Spacing
+ * App design system — Spacing
  * Base unit: 4px. All values are pixel numbers (apply via px() or template literal).
  */
 

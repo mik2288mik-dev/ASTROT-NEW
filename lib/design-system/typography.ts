@@ -1,5 +1,5 @@
 /**
- * LUMIA Design System — Typography
+ * App design system — Typography
  * Font family: Manrope (already loaded in project)
  * All size values are pixel numbers; lh is unitless line-height ratio.
  */

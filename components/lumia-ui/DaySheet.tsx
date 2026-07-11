@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
 import type { ForecastDailyReading } from '../../types';
-import { formatLumiaDate } from '../../lib/date-utils';
+import { formatDisplayDate } from '../../lib/date-utils';
 import { getCachedDailySignHoroscope, ensureDailySignHoroscope } from '../../services/astrologyService';
 
 type DaySheetProps = {
@@ -90,7 +90,7 @@ export function DaySheet({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-mono-muted">
-                  {dateKey ? formatLumiaDate(dateKey, language) : ''}
+                  {dateKey ? formatDisplayDate(dateKey, language) : ''}
                 </p>
                 <h3 className="mt-1 font-lumiaHome text-[22px] font-bold text-mono-ink">{heading}</h3>
               </div>

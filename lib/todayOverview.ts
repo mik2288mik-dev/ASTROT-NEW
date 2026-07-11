@@ -9,7 +9,7 @@ import type {
   TodayOverview,
 } from '../types';
 import { getZodiacSign } from '../constants';
-import { formatLumiaDate } from './date-utils';
+import { formatDisplayDate } from './date-utils';
 import { getCurrentTransits, type CurrentTransits, type PlanetTransit } from './transits-calculator';
 
 const ZODIAC_KEYS = [
@@ -319,7 +319,7 @@ export async function buildTodayOverview(options: {
 
   return {
     date: dateKey,
-    dateLabel: formatLumiaDate(dateKey, language),
+    dateLabel: formatDisplayDate(dateKey, language),
     sign,
     signLabel,
     headline: personalForecast.headline,

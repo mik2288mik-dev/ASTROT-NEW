@@ -4,7 +4,7 @@ import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../ty
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
-import { getMoscowTodayKey, getMoscowIsoWeekKey, getMoscowMonthKey, formatLumiaDate, formatWeekRangePretty, formatMonthPretty } from '../../lib/date-utils';
+import { getMoscowTodayKey, getMoscowIsoWeekKey, getMoscowMonthKey, formatDisplayDate, formatWeekRangePretty, formatMonthPretty } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
 import {
@@ -248,14 +248,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     const [y, m, d] = today.split('-').map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d, 12));
     const wd = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', { timeZone: 'UTC', weekday: 'long' }).format(dt);
-    return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${formatLumiaDate(today, language)}`;
+    return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${formatDisplayDate(today, language)}`;
   }, [period, today, language]);
 
   /* Тег для цветной карточки: дата (сегодня) / диапазон недели / месяц */
   const periodTag = useMemo(() => {
     if (period === 'week') return formatWeekRangePretty(getMoscowIsoWeekKey(), language);
     if (period === 'month') return formatMonthPretty(getMoscowMonthKey(), language);
-    return formatLumiaDate(today, language);
+    return formatDisplayDate(today, language);
   }, [period, today, language]);
 
   /* Личный день — доступ по карте + Premium */

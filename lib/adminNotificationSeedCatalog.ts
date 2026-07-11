@@ -185,20 +185,20 @@ function createScheduledSeeds(
 export const LEGACY_NOTIFICATION_SEEDS: LegacyNotificationSeed[] = [
   {
     title: 'Premium активирован',
-    bodyRu: 'Ваш Premium уже активирован. Можно вернуться к глубоким разборам, Oracle и расширенным возможностям приложения.',
-    bodyEn: 'Your Premium is active now. You can return to fuller readings, Oracle, and expanded app features.',
+    bodyRu: 'Ваш Premium уже активирован. Можно вернуться к глубоким разборам, личному дню и расширенным возможностям приложения.',
+    bodyEn: 'Your Premium is active now. You can return to fuller readings, your personal day, and expanded app features.',
     kind: 'personal',
   },
   {
     title: 'Premium активирован',
-    bodyRu: 'Ваш Premium уже активирован. Можно вернуться к глубоким разборам, Oracle и расширенным возможностям приложения.',
-    bodyEn: 'Your Premium is active now. You can return to fuller readings, Oracle, and expanded app features.',
+    bodyRu: 'Ваш Premium уже активирован. Можно вернуться к глубоким разборам, личному дню и расширенным возможностям приложения.',
+    bodyEn: 'Your Premium is active now. You can return to fuller readings, your personal day, and expanded app features.',
     kind: 'personal',
   },
   {
     title: 'Premium скоро закончится',
-    bodyRu: 'Срок Premium скоро подойдёт к концу. Если хочешь сохранить доступ к полной карте, Oracle и расширенным разборам, лучше продлить заранее.',
-    bodyEn: 'Your Premium will expire soon. Renew it early to keep access to the full chart, Oracle, and extended readings.',
+    bodyRu: 'Срок Premium скоро подойдёт к концу. Если хочешь сохранить доступ к полной карте, личному дню и расширенным разборам, лучше продлить заранее.',
+    bodyEn: 'Your Premium will expire soon. Renew it early to keep access to the full chart, personal day, and extended readings.',
     kind: 'personal',
   },
   {

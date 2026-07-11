@@ -1,7 +1,7 @@
 import React from 'react';
 import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
-import { formatLumiaDate } from '../../lib/date-utils';
+import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { ChartBalance } from '../../components/NatalReading/ChartBalance';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
@@ -69,7 +69,7 @@ export function NatalMagazine({
       {/* Единый верх — как на всех экранах. Имя и дата рождения — в подзаголовке. */}
       <FreshInnerHeader
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-        subtitle={`${profile.name} · ${formatLumiaDate(profile.birthDate, language)}`}
+        subtitle={`${profile.name} · ${formatDisplayDate(profile.birthDate, language)}`}
       />
 
       {/* Большая тройка: Солнце / Луна / Асцендент */}

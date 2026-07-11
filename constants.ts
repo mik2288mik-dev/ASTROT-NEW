@@ -9,47 +9,17 @@ const PREMIUM_PAYWALL_CTA_RU = `Открыть Premium • ${PREMIUM_WEEK_STARS}
 const PREMIUM_WEEK_CTA_EN = `Unlock 1 Week • ${PREMIUM_WEEK_STARS} Stars`;
 const PREMIUM_PAYWALL_CTA_EN = `Unlock Premium • ${PREMIUM_WEEK_STARS} Stars`;
 
-/**
- * Lumia Oracle Chat — системная инструкция для чата с Астрой.
- * Тон согласован с Lumia: точный, тёплый, личный, без запугивания и лишней эзотерики.
- */
-export const SYSTEM_INSTRUCTION_ASTRA = `
-Ты — астролог: современный точный наставник, который переводит карту в ясный, личный и практичный язык. Ты отвечаешь как спокойный, внимательный эксперт, который помогает увидеть суть без лишнего шума.
-
-Тон: тёплый, личный, мягкий и точный. Современный, но не холодный. Уверенный, но не давящий. Без снисхождения, без продажного нажима, без громких обещаний и без декоративной эзотерики.
-Обращайся на «ты». Пиши коротко и по делу. Не запугивай, не предсказывай ужасов, не усиливай тревогу.
-Не говори «ты должен/обязан» — используй «можно попробовать», «может быть полезно», «тут тебе может помочь».
-Говори осторожно: не выдавай тенденции за приговоры и не формулируй выводы как абсолютную истину. Лучше «похоже», «часто», «может проявляться», «в этот период легче/сложнее», чем категоричные утверждения.
-Не звучи слащаво, кокетливо или инфантильно.
-Не используй эмодзи и декоративные символы — только текст.
-
-Задачи:
-– объяснять натальную карту и астрологические темы понятными словами;
-– давать поддержку и реалистичные советы без фатализма;
-– опираться на данные карты, но переводить на язык жизни: характер, привычки, эмоции, отношения, работа;
-– держать фокус на ясности и пользе; если астрологический термин не нужен, не использовать его;
-– не использовать сухие формулировки («Солнце в 10 доме»). Говори: «по характеру ты…», «в работе тебе важно…»;
-– избегать категоричных обещаний; говорить в формате тенденций и возможностей;
-- держать мягкую структуру ответа: сначала суть, потом что это значит для жизни, потом бережный следующий шаг;
-- не превращать каждый ответ в один и тот же жёсткий шаблон; структура должна чувствоваться, но не бросаться в глаза;
-– не давать медицинских, юридических или финансовых диагнозов.
-
-Структура: короткие абзацы, списки. Не повторять знаки и градусы дословно — интерпретировать.
-`;
-
 export const TRANSLATIONS = {
   ru: {
-    loading: "Загружаем LUMIA",
+    loading: "Загружаем Твой Гороскоп",
     nav: {
       home: "Главная",
       chart: "Натальная карта",
       synastry: "Союз",
-      oracle: "Спросить астролога",
       settings: "Настройки"
     },
     header: {
       back: "Назад",
-      wallet: "Кошелёк Lumi"
     },
     hook: {
       analyzing: "Собираю твою личную основу...",
@@ -62,8 +32,8 @@ export const TRANSLATIONS = {
       title: "Premium",
       tagline: "Быстрее к нужным ответам",
       subtitle: "Premium открывает более подробные ответы по твоей карте без точечных покупок на каждом следующем шаге.",
-      feature_oracle: "Личные ответы без пауз",
-      feature_oracle_desc: "Вопросы и прогнозы открываются в Premium без лишних разовых шагов, когда тебе нужен следующий ответ.",
+      feature_daily: "Глубже по личному дню",
+      feature_daily_desc: "Premium открывает подробные дневные слои по карте без лишних разовых шагов.",
       feature_forecast: "Прогнозы подробнее и быстрее",
       feature_forecast_desc: "День, неделя и месяц доступны как более полный разбор без отдельных разовых открытий.",
       feature_deep: "Разборы без фрагментов",
@@ -78,13 +48,13 @@ export const TRANSLATIONS = {
       feature1: "Личные ответы без точечных открытий по пути",
       feature2: "Быстрый доступ к подробным разборам по карте",
       feature3: "Полная совместимость без лишних переключений",
-      feature4: "Прогнозы и вопросы в одном Premium-доступе",
+      feature4: "Прогнозы и карта в одном Premium-доступе",
       cta: PREMIUM_PAYWALL_CTA_RU,
       footer: "7 дней быстрого доступа к подробным ответам астролога"
     },
     dashboard: {
       welcome: "С возвращением,",
-      identity_body: "Личная карта уже построена по твоим данным рождения. Здесь начинается твоя личная линия «Твой Гороскоп»: день, карта, отношения и важные вопросы.",
+      identity_body: "Личная карта уже построена по твоим данным рождения. Здесь начинается твоя личная линия «Твой Гороскоп»: день, карта, отношения и личный прогноз.",
       hero_label: "Сегодня",
       hero_fallback_title: "Сегодня важно держаться за главное",
       hero_body: "Тот же дневной разбор, что и в разделе прогноза: по карте и текущим влияниям — чтобы увидеть опору, напряжение и то, что действительно стоит внимания.",
@@ -104,7 +74,7 @@ export const TRANSLATIONS = {
       natal_preview_cta: "Читать дальше",
       natal_title: "Твоя натальная карта",
       natal_body: "Характер, стиль близости, сильные стороны и повторяющиеся жизненные сценарии. Это твой базовый личный разбор, который уже сохранён в профиле.",
-      natal_note: "Базовый разбор остаётся с тобой. Позже можно открыть новый ракурс или пересчёт точечно через Lumi.",
+      natal_note: "Базовый разбор остаётся с тобой. Premium открывает больше подробных слоёв по карте.",
       natal_cta: "К карте",
       natal_point_character: "Характер",
       natal_point_love: "Отношения",
@@ -112,14 +82,13 @@ export const TRANSLATIONS = {
       natal_point_patterns: "Жизненные сценарии",
       next_label: "Дальше",
       next_title: "Что открыть дальше",
-      next_body: "Следующие шаги «Твой Гороскоп» помогают лучше понять отношения и получить личный ответ на важный вопрос.",
+      next_body: "Следующие шаги «Твой Гороскоп» помогают лучше понять отношения, карту и личный прогноз.",
       passport: "Личный портрет",
       element: "Стихия",
       ruler: "Управитель",
       menu_analysis: "Натальная карта",
       menu_forecast: "Мой прогноз",
       menu_synastry: "Совместимость",
-      menu_oracle: "Спросить астролога",
       synastry_label: "Отношения",
       moon_impact: "Луна сегодня",
       daily_transit: "Транзит дня",
@@ -143,13 +112,6 @@ export const TRANSLATIONS = {
       synastry_hint: "Бесплатно — короткий фон. Полный разбор пары доступен в Premium.",
       synastry_body: "Сравнение двух карт: романтика, дружба, семья или работа — выберите тип связи. Разборы открываются по очереди и сохраняются для выбранных пар карт.",
       synastry_cta: "К совместимости",
-      questions_label: "Личный вопрос",
-      questions_subtitle: "Личный разбор важной ситуации",
-      questions_body: "Если тебя тревожит конкретная ситуация, астролог поможет собрать её в ясный личный ответ.",
-      questions_support_free: "После бесплатного вопроса полный ответ открывается в Premium.",
-      questions_support_premium: "Задай важный вопрос и получи полный личный ответ без лишних шагов.",
-      questions_cta: "К вопросам",
-      oracle_subtitle: "Личный разбор по вопросу",
       tap_settings: "Нажмите, чтобы открыть настройки →",
       my_charts: "Мои карты",
       my_charts_subtitle: "Твои карты и слоты",
@@ -165,7 +127,6 @@ export const TRANSLATIONS = {
         "Похоже, сеть ответила не сразу. Обнови экран или попробуй открыть карту ещё раз.",
       chart_load_retry: "Ещё раз",
       chart_load_open_chart: "К карте",
-      studio_wallet_hint: "Баланс Lumi",
     },
     chart: {
       title: "Твоя натальная карта",
@@ -173,7 +134,7 @@ export const TRANSLATIONS = {
       anchor_label: "Твоя основа",
       anchor_title: "Твоя базовая карта уже готова",
       anchor_body: "Это не случайный текст, а твоя личная основа: характер, сильные стороны, стиль близости и повторяющиеся жизненные паттерны по твоей карте.",
-      anchor_persistent_note: "Эта основа закреплена за тобой и не перезаписывается сама. Новый ракурс или пересчёт — отдельное действие через Lumi.",
+      anchor_persistent_note: "Эта основа закреплена за тобой и не перезаписывается сама. Premium открывает больше подробных слоёв по карте.",
       anchor_strengths_title: "Сильные стороны",
       anchor_patterns_title: "Повторяющиеся паттерны",
       anchor_loading: "Готовлю базовый личный разбор...",
@@ -203,10 +164,10 @@ export const TRANSLATIONS = {
       forecast_week: "На неделю",
       forecast_month: "На месяц",
       free_teaser_title: "Личный портрет",
-      refresh_intro_cta: "Обновить текст основы за {cost} Lumi",
+      refresh_intro_cta: "Открыть Premium",
       refresh_intro_loading: "Готовлю новый ракурс…",
       refresh_intro_error: "Не получилось обновить",
-      refresh_intro_insufficient: "Нужно ещё Lumi, чтобы открыть новый ракурс"
+      refresh_intro_insufficient: "Premium нужен, чтобы открыть новый ракурс"
     },
     charts: {
       title: "Мои карты",
@@ -215,7 +176,6 @@ export const TRANSLATIONS = {
       no_charts: "Сохранённых карт пока нет.",
       add_chart: "Добавить карту",
       buy_slot: "Купить слот за",
-      buy_slot_lumi: "Lumi",
       limit_reached: "Достигнут лимит карт. Дополнительные карты доступны в Premium.",
       balance: "Баланс",
       purchasing: "Покупка...",
@@ -237,9 +197,8 @@ export const TRANSLATIONS = {
       slots_need_more_lumi: "Для нового слота нужен Premium.",
       enough_balance_hint: "Баланса хватает: можно открыть ещё один слот и сразу сохранить новую карту.",
       empty_title: "Начни с первой карты",
-      empty_body: "Добавь первую карту, и дальше будет проще возвращаться к совместимости, вопросам и личным разборам.",
+      empty_body: "Добавь первую карту, и дальше будет проще возвращаться к совместимости и личным разборам.",
       single_chart_body: "Ещё одна карта откроет быстрые сравнения и удобный возврат к совместимости.",
-      open_wallet: "К кошельку",
       add_form_title: "Новая карта",
       default_chart_name: "Моя карта",
       field_name: "Имя",
@@ -335,9 +294,7 @@ export const TRANSLATIONS = {
       switch_lang: "English",
       save: "Сохранить",
       admin: "Админ-панель",
-      admin_body: "Внутренний доступ для управления пользователями, Lumi и уведомлениями.",
-      wallet_title: "Кошелёк Lumi",
-      wallet_body: "Баланс, история и пополнение Lumi",
+      admin_body: "Внутренний доступ для управления пользователями и уведомлениями.",
       charts_title: "Мои карты",
       charts_body: "Твои карты в одном месте",
       theme_body: "Выберите более мягкий или более контрастный ритм интерфейса.",
@@ -350,41 +307,6 @@ export const TRANSLATIONS = {
       profile_name: "Имя",
       profile_birth_place: "Место рождения",
       profile_date_time: "Дата и время"
-    },
-    oracle: {
-      title: "Спросить астролога",
-      placeholder: "Что сейчас важно понять?",
-      intro: "Астролог отвечает не абстрактно, а через твою карту и саму ситуацию: про отношения, выбор, тревогу, деньги, давление и направление.",
-      hero_label: "Личный вопрос",
-      hero_title: "Спроси о том, что важно именно тебе",
-      hero_body: "Это не декоративный чат. Здесь можно задать прямой вопрос о том, что болит, тянет, пугает или требует решения, и получить личный ответ по твоей карте.",
-      state_free_label: "Стартовый вопрос",
-      state_free_title: "Первый вопрос открыт бесплатно",
-      state_free_body: "Один личный ответ уже открыт бесплатно. Дальше полный ответ доступен в Premium.",
-      state_need_premium_label: "Premium-уровень",
-      state_need_premium_title: "Продолжить в Premium",
-      state_need_premium_body: "Полные личные ответы по твоей карте и ситуации доступны в Premium.",
-      state_premium_label: "Premium-уровень",
-      state_premium_title: "Ты спрашиваешь на уровне Premium",
-      state_premium_body: "Здесь не нужно открывать каждый ответ отдельно: полный уровень уже доступен.",
-      state_open_premium: "Открыть Premium",
-      state_open_wallet: "Открыть Premium",
-      history_label: "Твои вопросы",
-      history_empty: "Здесь появится твоя линия вопросов. Начни с того, что правда требует ясности.",
-      composer_label: "Твой вопрос",
-      composer_body: "Сформулируй ситуацию прямо. Чем честнее вопрос, тем точнее будет ответ.",
-      send_free: "Получить ответ",
-      send_lumi: "Продолжить в Premium",
-      send_premium: "Получить полный ответ",
-      loading_history: "Загружаю твои вопросы...",
-      thinking: "Астролог собирает ответ...",
-      empty_question: "Напиши вопрос для астролога.",
-      short_question: "Добавь чуть больше деталей, и ответ будет точнее.",
-      long_question: "Сократи вопрос, чтобы астролог точнее уловил суть.",
-      history_error: "Не удалось открыть последние вопросы. Можно начать с нового.",
-      send_error: "Сейчас не получилось подготовить ответ. Попробуй ещё раз.",
-      retry: "Повторить",
-      open_premium: "Открыть Premium"
     },
     horoscope: {
       title: "Твой прогноз на сегодня",
@@ -480,17 +402,15 @@ export const TRANSLATIONS = {
     }
   },
   en: {
-    loading: "Loading LUMIA",
+    loading: "Loading Your Horoscope",
     nav: {
       home: "Home",
       chart: "Natal Chart",
       synastry: "Synastry",
-      oracle: "Ask the astrologer",
       settings: "Settings"
     },
     header: {
       back: "Back",
-      wallet: "Lumi Wallet"
     },
     hook: {
       analyzing: "Building your personal foundation...",
@@ -503,8 +423,8 @@ export const TRANSLATIONS = {
       title: "Premium",
       tagline: "More depth in your chart",
       subtitle: "Unlock a fuller reading: more context, more detail, more personal clarity.",
-      feature_oracle: "Guidance with context",
-      feature_oracle_desc: "Oracle and forecasts that continue your chart story instead of feeling separate.",
+      feature_daily: "Deeper personal day",
+      feature_daily_desc: "Premium opens detailed daily chart layers without one-off steps.",
       feature_forecast: "Forecasts with context",
       feature_forecast_desc: "Day, week, and month through the lens of your natal chart.",
       feature_deep: "All full chart themes",
@@ -519,13 +439,13 @@ export const TRANSLATIONS = {
       feature1: "Full chart: Love, Career, Challenges, and Life themes",
       feature2: "A fuller breakdown built around your chart’s main patterns",
       feature3: "A richer compatibility reading in Synastry",
-      feature4: "Oracle and forecasts as a personal continuation of your chart",
+      feature4: "Forecasts and chart layers in one Premium access",
       cta: PREMIUM_PAYWALL_CTA_EN,
       footer: "7 days of full access"
     },
     dashboard: {
       welcome: "Welcome back,",
-      identity_body: "Your chart is already built from your birth data. This is where your personal line begins: today, your chart, relationships, and important questions.",
+      identity_body: "Your chart is already built from your birth data. This is where your personal line begins: today, your chart, relationships, and your personal forecast.",
       hero_label: "Today",
       hero_fallback_title: "Today is about holding on to what matters",
       hero_body: "The same daily reading as in Forecast: grounded in your chart and current influences — support, pressure, and what deserves attention first.",
@@ -545,7 +465,7 @@ export const TRANSLATIONS = {
       natal_preview_cta: "Continue reading",
       natal_title: "Your natal chart",
       natal_body: "Character, closeness style, strengths, and repeating life patterns. This is your personal base reading, already saved in your profile.",
-      natal_note: "Your base reading stays with you. Later you can unlock a fresh angle or recalculation through Lumi.",
+      natal_note: "Your base reading stays with you. Premium opens more detailed chart layers.",
       natal_cta: "Open chart",
       natal_point_character: "Character",
       natal_point_love: "Relationships",
@@ -553,14 +473,13 @@ export const TRANSLATIONS = {
       natal_point_patterns: "Life patterns",
       next_label: "Next",
       next_title: "What you can open next",
-      next_body: "The next steps help you understand relationships better and get a personal answer to an important question.",
+      next_body: "The next steps help you understand relationships, your chart, and your personal forecast.",
       passport: "Personal portrait",
       element: "Element",
       ruler: "Ruler",
       menu_analysis: "Natal Chart",
       menu_forecast: "My Forecast",
       menu_synastry: "Compatibility",
-      menu_oracle: "Ask the astrologer",
       synastry_label: "Relationships",
       moon_impact: "Moon Today",
       daily_transit: "Daily Transit",
@@ -584,13 +503,6 @@ export const TRANSLATIONS = {
       synastry_hint: "Free gives the short entry. The full reading is available in Premium.",
       synastry_body: "Compare two charts for romance, friendship, family, or work. Readings open step by step; saved chart pairs stay cached.",
       synastry_cta: "Open compatibility",
-      questions_label: "Personal question",
-      questions_subtitle: "A clear answer to what matters",
-      questions_body: "If a specific situation is weighing on you, the astrologer can gather it into a clear personal answer.",
-      questions_support_free: "After the free question, the full answer is available in Premium.",
-      questions_support_premium: "Ask what matters and get the full personal answer.",
-      questions_cta: "Open questions",
-      oracle_subtitle: "Ask the astrologer",
       tap_settings: "Tap to open settings →",
       my_charts: "My Charts",
       my_charts_subtitle: "Manage charts & slots",
@@ -606,7 +518,6 @@ export const TRANSLATIONS = {
         "The network or server is taking too long. Refresh or open your natal chart to try again.",
       chart_load_retry: "Refresh page",
       chart_load_open_chart: "Open chart",
-      studio_wallet_hint: "Lumi balance",
     },
     chart: {
       title: "Natal Chart",
@@ -614,7 +525,7 @@ export const TRANSLATIONS = {
       anchor_label: "Your foundation",
       anchor_title: "Your base personal reading is already ready",
       anchor_body: "This is not filler text. It is your personal foundation: character, strengths, relationship style, and repeating life patterns read through your chart.",
-      anchor_persistent_note: "This foundation stays with you and does not refresh on its own. A new angle or recalculation is a separate Lumi action.",
+      anchor_persistent_note: "This foundation stays with you and does not refresh on its own. Premium opens more detailed chart layers.",
       anchor_strengths_title: "Strengths",
       anchor_patterns_title: "Repeating patterns",
       anchor_loading: "Preparing your base personal reading...",
@@ -644,10 +555,10 @@ export const TRANSLATIONS = {
       forecast_week: "This Week",
       forecast_month: "This Month",
       free_teaser_title: "Personal portrait",
-      refresh_intro_cta: "Refresh your foundation text for {cost} Lumi",
+      refresh_intro_cta: "Open Premium",
       refresh_intro_loading: "Preparing a new angle…",
       refresh_intro_error: "Could not refresh",
-      refresh_intro_insufficient: "You need more Lumi to open a new angle"
+      refresh_intro_insufficient: "Premium is needed to open a new angle"
     },
     charts: {
       title: "My Charts",
@@ -656,7 +567,6 @@ export const TRANSLATIONS = {
       no_charts: "No saved charts yet.",
       add_chart: "Add chart",
       buy_slot: "Buy slot for",
-      buy_slot_lumi: "Lumi",
       limit_reached: "Chart limit reached. Additional charts are available in Premium.",
       balance: "Balance",
       purchasing: "Purchasing...",
@@ -675,12 +585,11 @@ export const TRANSLATIONS = {
       slots_full_title: "Your slots are full",
       slots_full_body: "Unlock Premium to save more charts.",
       premium_slots_cta: "Open Premium",
-      slots_need_more_lumi: "You need more Lumi to unlock another slot.",
+      slots_need_more_lumi: "Premium is needed to unlock another slot.",
       enough_balance_hint: "You have enough balance to unlock another slot and save a new chart right away.",
       empty_title: "Start with your chart",
       empty_body: "When partner charts are saved here, they can be reused in Synastry without retyping the data.",
       single_chart_body: "One more saved chart unlocks faster Synastry comparisons.",
-      open_wallet: "Open Lumi Wallet",
       add_form_title: "New chart",
       default_chart_name: "My Chart",
       field_name: "Name",
@@ -688,7 +597,7 @@ export const TRANSLATIONS = {
       field_birth_time: "Birth time",
       field_birth_place: "Birth place",
       field_birth_place_placeholder: "Moscow, Russia",
-      error_insufficient_lumi: "Insufficient Lumi",
+      error_insufficient_lumi: "Premium required",
       error_fill_required: "Fill date and birth place",
       error_no_free_slots: "No free slots are available right now",
       error_create_failed: "Failed to create chart",
@@ -771,14 +680,12 @@ export const TRANSLATIONS = {
       plan_pro: "Premium active",
       plan_basic: "Basic plan",
       plan_active: "Active",
-      subscription_body: "Your Horoscope already opens your essentials. Premium adds fuller readings, richer synastry, and Oracle without noise.",
+      subscription_body: "Your Horoscope already opens your essentials. Premium adds fuller readings, richer synastry, and deeper personal forecasts.",
       restore: "Restore",
       switch_lang: "Русский",
       save: "Save Changes",
       admin: "Admin Panel",
-      admin_body: "Internal access for user management, Lumi operations, and notifications.",
-      wallet_title: "Lumi Wallet",
-      wallet_body: "Balance, history, and Lumi top-up",
+      admin_body: "Internal access for user management and notifications.",
       charts_title: "My Charts",
       charts_body: "Manage natal charts",
       theme_body: "Choose a softer or more contrast-driven interface rhythm.",
@@ -791,41 +698,6 @@ export const TRANSLATIONS = {
       profile_name: "Name",
       profile_birth_place: "Birth place",
       profile_date_time: "Date & time"
-    },
-    oracle: {
-      title: "Ask the astrologer",
-      placeholder: "What matters most right now?",
-      intro: "The astrologer answers through your chart and the real situation itself: relationships, decisions, fear, money, pressure, and direction.",
-      hero_label: "Personal question",
-      hero_title: "Ask about what actually matters",
-      hero_body: "This is not a decorative chat. You can ask directly about what hurts, pulls at you, scares you, or needs a decision and get a personal answer through your chart.",
-      state_free_label: "Starter question",
-      state_free_title: "Your first question is open for free",
-      state_free_body: "You already have one personal answer available at no cost. After that, the full answer is available in Premium.",
-      state_need_premium_label: "Premium level",
-      state_need_premium_title: "Continue in Premium",
-      state_need_premium_body: "Full personal answers through your chart are available in Premium.",
-      state_premium_label: "Premium level",
-      state_premium_title: "You are asking on Premium level",
-      state_premium_body: "You do not need to unlock each answer separately: the full level is already open.",
-      state_open_premium: "Open Premium",
-      state_open_wallet: "Open Premium",
-      history_label: "Your questions",
-      history_empty: "Your personal questions and the astrologer’s answers will appear here.",
-      composer_label: "Your question",
-      composer_body: "State the situation directly. The more honest the question, the sharper the answer will be.",
-      send_free: "Get an answer",
-      send_lumi: "Continue in Premium",
-      send_premium: "Get the full answer",
-      loading_history: "Loading your questions...",
-      thinking: "The astrologer is preparing an answer...",
-      empty_question: "Enter a question for the astrologer.",
-      short_question: "Your question is too short. Add a little more detail.",
-      long_question: "Your question is too long. Shorten it and try again.",
-      history_error: "Could not load recent questions. You can still ask again.",
-      send_error: "The astrologer could not answer right now. Please try again.",
-      retry: "Retry",
-      open_premium: "Open Premium"
     },
     horoscope: {
       title: "Your forecast for today",

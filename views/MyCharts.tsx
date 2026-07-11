@@ -11,7 +11,7 @@ import {
 } from '../services/storageService';
 import { Loading } from '../components/ui/Loading';
 import { getText, getZodiacSign } from '../constants';
-import { formatLumiaDate } from '../lib/date-utils';
+import { formatDisplayDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { clearLocalNatalChart } from '../lib/localNatalChartCache';
@@ -281,7 +281,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               const isPrimary = chart.is_primary ?? false;
               const isBusy =
                 actionLoading === `primary-${chart.id}` || actionLoading === `delete-${chart.id}`;
-              const formattedBirthDate = formatLumiaDate(chart.birth_date, lang) || chart.birth_date;
+              const formattedBirthDate = formatDisplayDate(chart.birth_date, lang) || chart.birth_date;
 
               return (
                 <MonoStaggerItem key={chart.id}>

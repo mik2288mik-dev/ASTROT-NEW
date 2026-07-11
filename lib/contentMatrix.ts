@@ -19,7 +19,6 @@ const VOICE_HASH = createHash('sha1')
 
 export type GeneratedContentType =
   | 'push_daily'
-  | 'action_timing'
   | 'day_card'
   | 'sign_daily_horoscope'
   | 'sign_weekly_horoscope'
@@ -66,11 +65,6 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
     type: 'push_daily', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 10, max: 15 },
     cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'push_daily.v2', purpose: 'Первая точка касания дня',
     style: 'Одна мысль, без лирики и списков.', placements: ['push'], generationPolicy: 'once_per_day',
-  },
-  action_timing: {
-    type: 'action_timing', featureKey: 'action_timing_generic', modelTier: 'fast', words: { min: 20, max: 35 },
-    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'action_timing.v1', purpose: 'Лучший момент для разговора, отдыха, денег или работы',
-    style: 'Конкретный совет с коротким объяснением.', placements: ['home'], generationPolicy: 'once_per_day',
   },
   day_card: {
     type: 'day_card', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 35, max: 50 },
@@ -138,7 +132,6 @@ export function listContentMatrix(): ContentPolicy[] {
 
 export function getContentAccess(type: GeneratedContentType, options?: { personal?: boolean; natalSection?: NatalSectionKey }): FeatureAccessConfig {
   let featureKey = CONTENT_MATRIX[type].featureKey;
-  if (type === 'action_timing' && options?.personal) featureKey = 'action_timing_personal';
   if (type === 'natal_section' && options?.natalSection) featureKey = NATAL_SECTION_FEATURES[options.natalSection];
   const access = getFeatureAccessConfig(featureKey);
   if (!access) throw new Error(`Missing accessMatrix entry for ${featureKey}`);

@@ -1,5 +1,5 @@
 /**
- * Config-driven presets for server-rendered Lumia notification cards (non-AI).
+ * Config-driven presets for server-rendered notification cards (non-AI).
  */
 
 export const GENERATED_PRESET_IDS = ['morning-soft', 'day-energy', 'evening-moon'] as const;

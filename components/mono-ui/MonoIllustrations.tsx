@@ -145,7 +145,7 @@ export function MonoIllustLetter({ className, size = 96, tone = 'ink' }: SvgProp
   );
 }
 
-/** Two speech bubbles — Ask Lumia chat */
+/** Two speech bubbles */
 export function MonoIllustChat({ className, size = 96, tone = 'ink' }: SvgProps) {
   const c = ink(tone);
   return (

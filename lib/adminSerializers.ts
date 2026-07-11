@@ -74,11 +74,6 @@ export function serializeAdminUserDetail(row: any) {
       startedAt: session.started_at,
       lastSeenAt: session.last_seen_at,
     })),
-    recentOracleQuestions: (row.recent_oracle_questions || []).map((question: any) => ({
-      question: question.question,
-      answer: question.answer,
-      createdAt: question.created_at,
-    })),
     latestStarsPayment: row.latest_stars_payment
       ? {
           starsAmount: row.latest_stars_payment.stars_amount,

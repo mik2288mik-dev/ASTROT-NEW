@@ -8,7 +8,7 @@ import type {
   UserProfile,
 } from '../types';
 import { loadHumanDailySection } from '../services/natalReadingService';
-import { formatLumiaDate, getMoscowTodayKey } from '../lib/date-utils';
+import { formatDisplayDate, getMoscowTodayKey } from '../lib/date-utils';
 import type { HumanDailySectionKey } from '../lib/natalHumanShared';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { FreshTabs } from '../components/fresh-ui';
@@ -303,7 +303,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
           >
             <div className={`pd-areahero pd-areahero--${activeTab.id}`} style={{ ['--pd-accent' as string]: activeTab.accent } as React.CSSProperties}>
               <div className="pd-areahero-title">{activeTab.title}</div>
-              <div className="pd-areahero-sub">{activeTab.subtitle} · {formatLumiaDate(dateKey, language)}</div>
+              <div className="pd-areahero-sub">{activeTab.subtitle} · {formatDisplayDate(dateKey, language)}</div>
             </div>
             {access.status === 'needs_chart' ? (
               <Notice

@@ -162,7 +162,6 @@ export type PersonalizationPrivacyFlags = {
   hasChart: boolean;
   hasDailyAstroSignal: boolean;
   hasCheckIns: boolean;
-  hasRecentQuestions: boolean;
   hasRelationshipContext: boolean;
   birthTimeQuality?: string;
   chartQuality?: unknown;
@@ -176,7 +175,6 @@ export function extractPersonalizationPrivacyFlags(context: {
   chartQuality?: { birthTimeQuality?: string };
   dailyAstroSignal?: { source?: string; calculationVersion?: string } | null;
   recentCheckIns?: unknown[];
-  recentQuestions?: unknown[];
   relationshipContext?: unknown[];
 } | null | undefined): PersonalizationPrivacyFlags {
   if (!context) {
@@ -187,7 +185,6 @@ export function extractPersonalizationPrivacyFlags(context: {
       hasChart: false,
       hasDailyAstroSignal: false,
       hasCheckIns: false,
-      hasRecentQuestions: false,
       hasRelationshipContext: false,
     };
   }
@@ -199,7 +196,6 @@ export function extractPersonalizationPrivacyFlags(context: {
     hasChart: !!context.chartData,
     hasDailyAstroSignal: !!context.dailyAstroSignal,
     hasCheckIns: (context.recentCheckIns?.length || 0) > 0,
-    hasRecentQuestions: (context.recentQuestions?.length || 0) > 0,
     hasRelationshipContext: (context.relationshipContext?.length || 0) > 0,
     birthTimeQuality: context.chartQuality?.birthTimeQuality,
     chartQuality: context.chartQuality,

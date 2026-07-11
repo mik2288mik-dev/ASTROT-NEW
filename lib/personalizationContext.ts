@@ -13,13 +13,7 @@ import { getMoscowTodayKey } from './date-utils';
 import { resolveDailyAstroSignalForUser } from './dailyAstroSignalResolver';
 import { extractPersonalizationPrivacyFlags, logger } from './logger';
 
-export type PersonalizationSurface = 'today' | 'ask_lumia' | 'natal' | 'synastry';
-
-export type RecentQuestionContext = {
-  question: string;
-  answer?: string;
-  createdAt?: string;
-};
+export type PersonalizationSurface = 'today' | 'natal' | 'synastry';
 
 export type RelationshipContextItem = {
   summary: string;
@@ -37,7 +31,6 @@ export type PersonalizationContext = {
   planets: Record<string, PlanetPosition | null>;
   dailyAstroSignal?: DailyAstroSignal | null;
   recentCheckIns: DailyCheckIn[];
-  recentQuestions: RecentQuestionContext[];
   relationshipContext: RelationshipContextItem[];
 };
 
@@ -49,7 +42,6 @@ type BuildPersonalizationContextOptions = {
   chartDataFallback?: NatalChartData | null;
   includeDailyAstroSignal?: boolean;
   includeRecentCheckIns?: boolean;
-  includeRecentQuestions?: boolean;
   includeRelationshipContext?: boolean;
   relationshipContext?: RelationshipContextItem[];
   dateKey?: string;
@@ -163,7 +155,6 @@ export async function buildPersonalizationContext(
     metadata: {
       includeDailyAstroSignal: !!options.includeDailyAstroSignal,
       includeRecentCheckIns: !!options.includeRecentCheckIns,
-      includeRecentQuestions: !!options.includeRecentQuestions,
       includeRelationshipContext: !!options.includeRelationshipContext,
     },
   });
@@ -179,7 +170,7 @@ export async function buildPersonalizationContext(
   const chartQuality = normalizeChartQuality(chartData, profile, chartRow);
   const chartId = chartRow?.id ?? options.chartId ?? null;
 
-  const [dailyAstroSignalResult, recentCheckIns, recentQuestions, recentRelationships] = await Promise.all([
+  const [dailyAstroSignalResult, recentCheckIns, recentRelationships] = await Promise.all([
     options.includeDailyAstroSignal && chartData
       ? resolveDailyAstroSignalForUser({
           userId: options.userId,
@@ -191,9 +182,6 @@ export async function buildPersonalizationContext(
       : Promise.resolve(null),
     options.includeRecentCheckIns
       ? db.daily_checkins.listRecent(options.userId, chartId, 7).catch(() => [])
-      : Promise.resolve([]),
-    options.includeRecentQuestions
-      ? db.astro_questions.getByUser(options.userId, 6).catch(() => [])
       : Promise.resolve([]),
     options.includeRelationshipContext && typeof (db.synastry as any).listRecentForUser === 'function'
       ? (db.synastry as any).listRecentForUser(options.userId, chartId, 3).catch(() => [])
@@ -239,11 +227,6 @@ export async function buildPersonalizationContext(
     planets: pickPlanets(chartData, chartQuality),
     dailyAstroSignal,
     recentCheckIns: recentCheckIns as DailyCheckIn[],
-    recentQuestions: (recentQuestions as any[]).map((item) => ({
-      question: String(item.question || '').trim(),
-      answer: item.answer ? String(item.answer).trim().slice(0, 900) : undefined,
-      createdAt: normalizeDate(item.created_at),
-    })).filter((item) => item.question),
     relationshipContext,
   };
 
@@ -320,13 +303,6 @@ export function describePersonalizationContext(context: PersonalizationContext, 
     lines.push('Recent check-ins:');
     for (const checkIn of context.recentCheckIns.slice(0, 5)) {
       lines.push(`- ${checkIn.date}: focus=${checkIn.focus}, mood=${checkIn.mood}, people=${checkIn.people}, fit=${checkIn.forecastFit}`);
-    }
-  }
-
-  if (context.recentQuestions.length) {
-    lines.push('Recent Ask the astrologer questions:');
-    for (const item of context.recentQuestions.slice(0, 5)) {
-      lines.push(`- ${item.question}`);
     }
   }
 

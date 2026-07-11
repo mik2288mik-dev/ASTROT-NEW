@@ -203,7 +203,7 @@ export interface SynastryResult {
     tips: string[]; // 3-4 подсказки как лучше обходиться друг с другом
   };
   
-  // Legacy Lumi shape kept for backward compatibility with older cached results
+  // Extended overview shape used by older cached relationship results.
   extendedOverview?: {
     connection: string;
     tension: string;
@@ -794,7 +794,7 @@ export interface MonthlyHoroscope {
 }
 
 export type ContentAccessTier = 'free' | 'premium';
-export type ContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
+export type ContentSurface = 'natal' | 'forecast' | 'synastry';
 export type ContentVariant =
   | 'anchor'
   | 'living'
@@ -880,39 +880,6 @@ export interface ContentUnlockRequest {
   expiresAt?: string | null;
 }
 
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  timestamp: number;
-}
-
-export interface OracleHistoryEntry {
-  question: string;
-  answer: string;
-  createdAt: string;
-}
-
-export type AskLumiaTier = 'free' | 'premium';
-
-export interface AskLumiaState {
-  nextTier: AskLumiaTier;
-  freeStarterAvailable: boolean;
-  isPremium: boolean;
-  /** Дневной лимит вопросов (премиум-функция). */
-  dailyLimit?: number;
-  dailyUsed?: number;
-  dailyRemaining?: number;
-}
-
-export interface OracleChatResponse {
-  answer: string;
-  createdAt: string;
-  reusedRecent?: boolean;
-  tier?: AskLumiaTier;
-  state?: AskLumiaState;
-}
-
 export type AdminPremiumFilter = 'all' | 'premium' | 'free';
 export type AdminUserSegment =
   | 'all'
@@ -985,12 +952,6 @@ export interface AdminUserSession {
   lastSeenAt: string;
 }
 
-export interface AdminOracleQuestion {
-  question: string;
-  answer: string;
-  createdAt: string;
-}
-
 export interface AdminUserDetail extends AdminUserSummary {
   birthDate: string;
   birthTime: string;
@@ -1001,7 +962,6 @@ export interface AdminUserDetail extends AdminUserSummary {
   lastSeenAt: string | null;
   currentDeviceLabel: string | null;
   recentSessions: AdminUserSession[];
-  recentOracleQuestions: AdminOracleQuestion[];
 }
 
 export type AdminNotificationTemplateKind = 'personal' | 'broadcast' | 'both';

@@ -1,5 +1,5 @@
 /**
- * RBAC для админ-панели LUMIA.
+ * RBAC для админ-панели приложения.
  *
  * Идентичность берётся из подписанных Telegram initData (lib/adminAuth), роль —
  * из таблицы admin_users. OWNER_ID всегда super_admin. Любой мутирующий админ-эндпоинт

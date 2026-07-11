@@ -1,5 +1,5 @@
 /**
- * Premium activation - Lumia MVP
+ * Premium activation for the MVP.
  *
  * Handles:
  * - Idempotent premium activation from Telegram Stars payment

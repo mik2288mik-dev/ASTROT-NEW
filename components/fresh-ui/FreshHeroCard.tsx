@@ -7,7 +7,7 @@ interface FreshHeroCardProps {
   color?: HeroColor;
   /** Картинка-фон карточки (поверх скрим + текст). Тренд новых приложений. */
   image?: string;
-  /** Жёлтый стикер-записка с текстом (фирменная фишка LUMIA) */
+  /** Жёлтый стикер-записка с текстом */
   stickyText?: string;
   stickyRotation?: number;
   /** Чип в углу (без эмодзи) */

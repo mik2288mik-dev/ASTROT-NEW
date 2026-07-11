@@ -17,8 +17,6 @@ export type FeatureKey =
   | 'natal_talents'
   | 'personal_transits'
   | 'synastry_by_charts'
-  | 'action_timing_generic'
-  | 'action_timing_personal'
   | 'blind_spot'
   | 'natal_anger'
   | 'natal_money'
@@ -77,8 +75,6 @@ const FEATURE_ACCESS_MATRIX: FeatureAccessConfig[] = [
   { key: 'natal_talents', tier: 'pro', needsChart: true, label: 'Natal talents section' },
   { key: 'personal_transits', tier: 'pro', needsChart: true, label: 'Personal transits' },
   { key: 'synastry_by_charts', tier: 'pro', needsChart: true, label: 'Synastry by charts' },
-  { key: 'action_timing_generic', tier: 'free', needsChart: false, label: 'Generic action timing' },
-  { key: 'action_timing_personal', tier: 'pro', needsChart: true, label: 'Personal action timing' },
   { key: 'blind_spot', tier: 'pro', needsChart: true, label: 'Blind spot' },
   { key: 'natal_anger', tier: 'pro', needsChart: true, label: 'Natal anger section' },
   { key: 'natal_money', tier: 'pro', needsChart: true, label: 'Natal money section' },

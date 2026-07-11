@@ -248,40 +248,6 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
       requirePremium: true,
     },
   },
-  {
-    surface: 'question',
-    variant: 'brief',
-    label: 'Первый личный вопрос',
-    description: 'Стартовый короткий вопрос.',
-    calculationRequired: true,
-    shouldPersistCalculation: false,
-    shouldPersistInterpretation: true,
-    defaultAccessTier: 'free',
-    unlockOptions: ['free'],
-    lockedBehavior: {
-      showPreview: false,
-      showTeaser: false,
-      showLockedCard: false,
-      requirePremium: false,
-    },
-  },
-  {
-    surface: 'question',
-    variant: 'full',
-    label: 'Полный личный ответ',
-    description: 'Полные личные ответы.',
-    calculationRequired: true,
-    shouldPersistCalculation: false,
-    shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
-  },
 ];
 
 const CONTENT_ACCESS_INDEX = new Map<string, ContentAccessConfig>(

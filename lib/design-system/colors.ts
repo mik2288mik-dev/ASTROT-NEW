@@ -1,5 +1,5 @@
 /**
- * LUMIA Design System — Colors
+ * App design system — Colors
  * Source of truth: reference image (white bg, pastel plan cards, black tab bar)
  *
  * Rules:
@@ -57,7 +57,7 @@ const blue = {
 } as const;
 
 const mint = {
-  /** Plan card — Ask Lumia */
+  /** Plan card — personal guidance */
   300: '#9FE0C6',
   /** Tag chip on mint card */
   tag: 'rgba(255, 255, 255, 0.60)',
@@ -119,8 +119,8 @@ export const colors = {
       bg:  blue[300],
       tag: blue.tag,
     },
-    /** Ask Lumia */
-    oracle: {
+    /** Personal guidance */
+    guidance: {
       bg:  mint[300],
       tag: mint.tag,
     },

@@ -11,7 +11,7 @@ interface PremiumPreviewProps {
 
 export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClose, onPurchase }) => {
     const features = [
-        { title: getText(language, 'premium_preview.feature_oracle'), desc: getText(language, 'premium_preview.feature_oracle_desc') },
+        { title: getText(language, 'premium_preview.feature_daily'), desc: getText(language, 'premium_preview.feature_daily_desc') },
         { title: getText(language, 'premium_preview.feature_forecast'), desc: getText(language, 'premium_preview.feature_forecast_desc') },
         { title: getText(language, 'premium_preview.feature_deep'), desc: getText(language, 'premium_preview.feature_deep_desc') },
         { title: getText(language, 'premium_preview.feature_passport'), desc: getText(language, 'premium_preview.feature_passport_desc') }

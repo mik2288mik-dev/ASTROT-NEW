@@ -99,7 +99,7 @@ type AdminDbNotificationMode = 'all' | 'personal' | 'broadcast';
 type AdminDbNotificationResult = 'all' | 'success' | 'partial' | 'failed';
 type AdminDbNotificationSegment = AdminNotificationTargetSegment;
 type DbContentAccessTier = 'free' | 'premium';
-type DbContentSurface = 'natal' | 'forecast' | 'synastry' | 'question';
+type DbContentSurface = 'natal' | 'forecast' | 'synastry';
 type DbContentVariant =
   | 'anchor'
   | 'living'
@@ -111,8 +111,7 @@ type DbContentVariant =
   | 'weekly'
   | 'monthly'
   | 'brief'
-  | 'full'
-  | 'one_off'; // legacy DB rows only; not in product ContentVariant
+  | 'full';
 type DbContentModelTier = 'base' | 'premium';
 type DbContentUnlockType = 'free' | 'premium';
 type DbHoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
@@ -329,13 +328,6 @@ function normalizeBirthTimeValue(value?: string | null): string {
 
 function normalizeBirthDateValue(value?: string | Date | null): string {
   return normalizeBirthDateInput(value);
-}
-
-function normalizeOracleQuestion(value: string) {
-  return String(value || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
 }
 
 // Check if DATABASE_URL is configured
@@ -574,7 +566,7 @@ function resolveIsSetup(row: any, birthDate?: unknown, birthPlace?: unknown): bo
 }
 
 /**
- * Lumia Database operations
+ * Application database operations.
  */
 export const db = {
   /** Key-value settings (e.g. admin-selected OpenAI model) */
@@ -1578,7 +1570,7 @@ export const db = {
     },
   },
 
-  /** OpenAI cache - interpretations table (Lumia) */
+  /** OpenAI cache - interpretations table */
   interpretations: {
     async supportsChartScope() {
       return supportsInterpretationsChartScope();
@@ -1693,7 +1685,7 @@ export const db = {
       }
     },
 
-    /** User-level cache: question_answer, oracle_chat */
+    /** User-level cache for non-chart scoped content */
     async getByUser(userId: string, type: string, inputHash: string) {
       return this._getLegacyUserScoped(userId, type, inputHash);
     },
@@ -2525,7 +2517,7 @@ export const db = {
   },
 
 
-  /** daily_horoscopes - general by zodiac sign (Lumia) */
+  /** daily_horoscopes - general by zodiac sign */
   daily_horoscopes: {
     async get(zodiacSign: string, date: string) {
       if (!DATABASE_URL) return null;
@@ -2923,7 +2915,7 @@ export const db = {
     },
   },
 
-  /** daily_natal_cards - personal daily card per chart (Lumia) */
+  /** daily_natal_cards - personal daily card per chart */
   daily_natal_cards: {
     async supportsChartScope() {
       return supportsDailyNatalCardsChartScope();
@@ -3085,89 +3077,6 @@ export const db = {
         }));
       } catch (error: any) {
         log.error('[DB] Error listing recent synastry context', { error: error.message, userId, chartId });
-        throw error;
-      }
-    },
-  },
-
-  /** astro_questions (Lumia) */
-  astro_questions: {
-    async add(userId: string, question: string, answer: string) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      try {
-        const dbPool = getPool();
-        await dbPool.query(
-          `INSERT INTO astro_questions (user_id, question, answer) VALUES ($1, $2, $3)`,
-          [id, question, answer]
-        );
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error adding astro question', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    async getByUser(userId: string, limit = 10) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return [];
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT question, answer, created_at
-           FROM astro_questions
-           WHERE user_id = $1
-           ORDER BY created_at DESC
-           LIMIT $2`,
-          [id, limit]
-        );
-        return result.rows;
-      } catch (error: any) {
-        log.error('[DB] Error getting astro questions', { error: error.message, userId });
-        throw error;
-      }
-    },
-
-    /** Сколько вопросов пользователь задал сегодня (по московскому дню) — для дневного лимита. */
-    async countToday(userId: string): Promise<number> {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return 0;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT COUNT(*)::int AS count
-           FROM astro_questions
-           WHERE user_id = $1
-             AND (created_at AT TIME ZONE 'Europe/Moscow')::date = (NOW() AT TIME ZONE 'Europe/Moscow')::date`,
-          [id]
-        );
-        return Number(result.rows[0]?.count) || 0;
-      } catch (error: any) {
-        // Fail-open: не блокируем платящего пользователя при сбое БД.
-        log.error('[DB] Error counting today astro questions', { error: error.message, userId });
-        return 0;
-      }
-    },
-
-    async findRecentDuplicate(userId: string, question: string, windowSeconds = 20) {
-      const id = toUserId(userId);
-      const normalizedQuestion = normalizeOracleQuestion(question);
-      if (!DATABASE_URL || !normalizedQuestion) return null;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `SELECT question, answer, created_at
-           FROM astro_questions
-           WHERE user_id = $1
-             AND LOWER(REGEXP_REPLACE(TRIM(question), '\s+', ' ', 'g')) = $2
-             AND created_at >= NOW() - ($3 * INTERVAL '1 second')
-           ORDER BY created_at DESC
-           LIMIT 1`,
-          [id, normalizedQuestion, windowSeconds]
-        );
-        return result.rows[0] || null;
-      } catch (error: any) {
-        log.error('[DB] Error getting recent duplicate astro question', { error: error.message, userId });
         throw error;
       }
     },
@@ -3360,7 +3269,6 @@ export const db = {
       const primaryChart = charts.find((chart: any) => chart.is_primary) || null;
       const latestStarsPayment = await db.star_payments.getLatestByUser(userId);
       const recentSessions = await db.user_sessions.getRecentByUser(userId, 3);
-      const recentOracleQuestions = await db.astro_questions.getByUser(userId, 3);
       // Последняя активность — по всем сигналам (сессии + события приложения + last_login),
       // чтобы карточка веб-гостя (у него нет Telegram-сессии) показывала реальный последний вход.
       const lastEvent = await getPool()
@@ -3400,7 +3308,6 @@ export const db = {
             }
           : null,
         recent_sessions: recentSessions,
-        recent_oracle_questions: recentOracleQuestions,
         latest_stars_payment: latestStarsPayment,
       };
     },
@@ -4271,7 +4178,7 @@ export const db = {
     },
   },
 
-  /** dictionary (Lumia) */
+  /** dictionary */
   dictionary: {
     async getByTerm(term: string) {
       if (!DATABASE_URL) return null;

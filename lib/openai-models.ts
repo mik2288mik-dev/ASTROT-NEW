@@ -1,5 +1,5 @@
 /**
- * OpenAI chat models for Lumia AI interpretations (admin-configurable + env fallback).
+ * OpenAI models for generated interpretations (admin-configurable + env fallback).
  */
 
 // ЕДИНАЯ недорогая модель для ВСЕХ генераций — gpt-5.4-mini (main/deep/fast сходятся к ней).

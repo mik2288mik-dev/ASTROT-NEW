@@ -479,7 +479,7 @@ async function geocodeViaNominatim(placeName: string, retryCount = 0): Promise<C
           addressdetails: 1
         },
         headers: {
-          'User-Agent': 'LumiaApp/1.0 (https://lumia.app)',
+          'User-Agent': 'YourHoroscope/1.0',
           'Accept': 'application/json',
           'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8'
         },

@@ -70,7 +70,7 @@ export function toDateInputValue(value: DateLike): string {
   return parts ? `${parts.year}-${parts.month}-${parts.day}` : '';
 }
 
-export function formatLumiaDate(value: DateLike, language: Language | string = 'ru'): string {
+export function formatDisplayDate(value: DateLike, language: Language | string = 'ru'): string {
   const parts = getDateOnlyParts(value);
   if (!parts) return '';
 

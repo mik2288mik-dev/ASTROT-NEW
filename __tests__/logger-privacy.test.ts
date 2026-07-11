@@ -54,7 +54,6 @@ describe('logger privacy', () => {
       chartQuality: { birthTimeQuality: 'exact' },
       dailyAstroSignal: { source: 'swisseph', calculationVersion: 'daily-astro-signal-v1' },
       recentCheckIns: [{ date: '2026-05-29' }],
-      recentQuestions: [{ question: 'hidden' }],
       relationshipContext: [{ summary: 'hidden' }],
     });
 
@@ -71,7 +70,6 @@ describe('logger privacy', () => {
     expect(serialized).toContain('"hasChart":true');
     expect(serialized).toContain('"hasDailyAstroSignal":true');
     expect(serialized).toContain('"hasCheckIns":true');
-    expect(serialized).toContain('"hasRecentQuestions":true');
     expect(serialized).toContain('"hasRelationshipContext":true');
     expect(serialized).toContain('"birthTimeQuality":"exact"');
     expect(serialized).toContain('"source":"swisseph"');
@@ -84,7 +82,7 @@ describe('logger privacy', () => {
   it('does not emit raw sensitive values through logger.info', () => {
     const line = captureLogLine(() => {
       logger.info({
-        scope: 'ask-lumia',
+        scope: 'natal',
         event: 'test_emit',
         metadata: {
           question: 'Should I change jobs this month?',

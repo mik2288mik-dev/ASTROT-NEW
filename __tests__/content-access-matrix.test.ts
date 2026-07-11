@@ -59,9 +59,6 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(true);
     });
 
-    it('allows question/brief for free users', () => {
-      expect(canAccessContent(freeUser, 'question', 'brief')).toBe(true);
-    });
   });
 
   describe('premium-only natal surfaces', () => {
@@ -102,16 +99,6 @@ describe('contentAccessMatrix', () => {
     });
   });
 
-  describe('question tiers', () => {
-    it('requires premium for question/full', () => {
-      const config = getContentAccessConfig('question', 'full');
-      expect(config?.defaultAccessTier).toBe('premium');
-      expect(config?.unlockOptions).toEqual(['premium']);
-      expect(canAccessContent(freeUser, 'question', 'full')).toBe(false);
-      expect(canAccessContent(premiumUser, 'question', 'full')).toBe(true);
-    });
-  });
-
   describe('canAccessContent unlocks', () => {
     it('returns true for premium users on premium variants', () => {
       expect(canAccessContent(premiumUser, 'forecast', 'morning')).toBe(true);
@@ -123,20 +110,20 @@ describe('contentAccessMatrix', () => {
     });
 
     it('returns true for premium unlock rows', () => {
-      const unlockUser = userWithUnlock('question', 'full', 'premium', 'question-hash');
-      expect(canAccessContent(unlockUser, 'question', 'full', 'question-hash')).toBe(true);
+      const unlockUser = userWithUnlock('synastry', 'full', 'premium', 'pair-hash');
+      expect(canAccessContent(unlockUser, 'synastry', 'full', 'pair-hash')).toBe(true);
     });
   });
 
   describe('calculation and persistence flags', () => {
     it('marks calculation-required surfaces for precalculation', () => {
       expect(shouldPrecalculate('forecast', 'morning')).toBe(true);
-      expect(shouldPrecalculate('question', 'full')).toBe(true);
+      expect(shouldPrecalculate('synastry', 'full')).toBe(true);
     });
 
     it('returns persist flags according to matrix', () => {
       expect(shouldPersistContent('forecast', 'morning')).toBe(true);
-      expect(shouldPersistContent('question', 'full')).toBe(true);
+      expect(shouldPersistContent('synastry', 'full')).toBe(true);
     });
   });
 
@@ -155,8 +142,8 @@ describe('contentAccessMatrix', () => {
 
   describe('registry', () => {
     it('indexes every matrix entry by surface:variant key', () => {
-      expect(buildContentAccessKey('question', 'brief')).toBe('question:brief');
-      expect(getContentAccessConfig('question', 'brief')).not.toBeNull();
+      expect(buildContentAccessKey('synastry', 'brief')).toBe('synastry:brief');
+      expect(getContentAccessConfig('synastry', 'brief')).not.toBeNull();
     });
   });
 
@@ -165,7 +152,6 @@ describe('contentAccessMatrix', () => {
       ['natal', 'anchor'],
       ['forecast', 'daily'],
       ['synastry', 'brief'],
-      ['question', 'brief'],
     ];
 
     const PREMIUM_ONLY: Array<[UserState['unlockedContent'][number]['surface'], UserState['unlockedContent'][number]['variant']]> = [
@@ -178,7 +164,6 @@ describe('contentAccessMatrix', () => {
       ['forecast', 'weekly'],
       ['forecast', 'monthly'],
       ['synastry', 'full'],
-      ['question', 'full'],
     ];
 
     it('free baseline layers stay free in the matrix config', () => {
@@ -205,14 +190,12 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'natal', 'anchor')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'daily')).toBe(true);
       expect(canAccessContent(premiumUser, 'synastry', 'brief')).toBe(true);
-      expect(canAccessContent(premiumUser, 'question', 'brief')).toBe(true);
     });
 
     it('free users get only the free baseline layers', () => {
       expect(canAccessContent(freeUser, 'natal', 'anchor')).toBe(true);
       expect(canAccessContent(freeUser, 'forecast', 'daily')).toBe(true);
       expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(true);
-      expect(canAccessContent(freeUser, 'question', 'brief')).toBe(true);
 
       expect(canAccessContent(freeUser, 'natal', 'full')).toBe(false);
       expect(canAccessContent(freeUser, 'natal', 'planet_insight')).toBe(false);
@@ -223,14 +206,12 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(freeUser, 'forecast', 'weekly')).toBe(false);
       expect(canAccessContent(freeUser, 'forecast', 'monthly')).toBe(false);
       expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
-      expect(canAccessContent(freeUser, 'question', 'full')).toBe(false);
     });
 
     it('premium users get baseline plus all premium layers', () => {
       expect(canAccessContent(premiumUser, 'natal', 'anchor')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'daily')).toBe(true);
       expect(canAccessContent(premiumUser, 'synastry', 'brief')).toBe(true);
-      expect(canAccessContent(premiumUser, 'question', 'brief')).toBe(true);
 
       expect(canAccessContent(premiumUser, 'natal', 'full')).toBe(true);
       expect(canAccessContent(premiumUser, 'natal', 'planet_insight')).toBe(true);
@@ -241,7 +222,6 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'forecast', 'weekly')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'monthly')).toBe(true);
       expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
-      expect(canAccessContent(premiumUser, 'question', 'full')).toBe(true);
     });
   });
 });
@@ -326,8 +306,6 @@ describe('feature access matrix', () => {
 
   it('contains every requested feature key', () => {
     expect(listFeatureAccessMatrix().map((entry) => entry.key).sort()).toEqual([
-      'action_timing_generic',
-      'action_timing_personal',
       'blind_spot',
       'daily_sign_horoscope',
       'deep_report',
