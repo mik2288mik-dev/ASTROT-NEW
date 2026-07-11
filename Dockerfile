@@ -42,6 +42,11 @@ RUN apk add --no-cache libc6-compat && \
 # standalone bundle contains only files needed at runtime
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Migration runner is executed before the app starts in Railway.
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 # Ensure Swiss Ephemeris native binary is always present in runtime image
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/swisseph-v2/build ./node_modules/swisseph-v2/build
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
@@ -58,4 +63,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD node -e "require('node:http').get('http://127.0.0.1:3000/api/health',(r)=>process.exit(r.statusCode>=200&&r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "npm run migrate && node server.js"]

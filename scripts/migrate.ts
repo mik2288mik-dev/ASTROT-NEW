@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Migration script for Railway
- * Run this script during deployment: npm run migrate
+ * Migration script for Railway.
+ * In deployment/production, missing DB config or migration failure is fatal.
  */
 
 import { loadEnvConfig } from '@next/env';
@@ -9,54 +9,71 @@ import { resolveDatabaseUrl } from '../lib/database-url';
 
 loadEnvConfig(process.cwd());
 
-async function main() {
-  console.log('🚀 Starting database migrations...');
-  
-  // Check if DATABASE_URL is set
-  const dbUrl = resolveDatabaseUrl();
-  if (!dbUrl) {
-    console.warn('⚠️ DATABASE_URL environment variable is not set');
-    console.warn('Skipping migrations - database operations will be limited');
-    console.warn('Please set DATABASE_URL in Railway environment variables');
-    // Don't exit with error - allow app to start without DB
-    process.exit(0);
-  }
+const RAILWAY_RUNTIME_ENV_KEYS = [
+  'RAILWAY_PROJECT_ID',
+  'RAILWAY_SERVICE_ID',
+  'RAILWAY_ENVIRONMENT_ID',
+  'RAILWAY_DEPLOYMENT_ID',
+  'RAILWAY_REPLICA_ID',
+];
 
-  // Log DATABASE_URL info (without sensitive data)
-  const urlMatch = dbUrl.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
-  if (urlMatch) {
-    const [, , user, , host, port, database] = urlMatch;
-    console.log(`📊 Database: ${host}:${port}/${database} (user: ${user})`);
-    
-    if (host.includes('railway.internal')) {
-      console.warn('Warning: Using Railway internal hostname');
-      console.warn('   This may not be accessible from Docker containers outside Railway network');
-      console.warn('   Consider using Railway public database URL instead');
-    }
-  }
-  
+function isDeploymentEnvironment(): boolean {
+  return process.env.NODE_ENV === 'production'
+    || process.env.CI === 'true'
+    || RAILWAY_RUNTIME_ENV_KEYS.some((key) => !!String(process.env[key] || '').trim());
+}
+
+function safeDatabaseInfo(dbUrl: string): string {
   try {
-    const { runMigrations } = await import('../lib/migrations');
-    await runMigrations();
-    console.log('✅ Migrations completed successfully');
-    process.exit(0);
-  } catch (error: any) {
-    console.error('❌ Migration failed:', error.message);
-    
-    if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
-      console.error('');
-      console.error('💡 Troubleshooting tips:');
-      console.error('   1. Verify DATABASE_URL is correct');
-      console.error('   2. If using Railway internal hostname, use public URL instead');
-      console.error('   3. Check network connectivity and DNS settings');
-      console.error('   4. Ensure database service is running on Railway');
-    }
-    
-    // Don't block app startup - let it start and handle DB errors gracefully
-    console.warn('⚠️ Continuing app startup despite migration failure');
-    console.warn('   Database operations may fail until migrations are run manually');
-    process.exit(0);
+    const url = new URL(dbUrl);
+    const user = decodeURIComponent(url.username || '');
+    const database = url.pathname.replace(/^\//, '');
+    const port = url.port || '(default)';
+    const sslMode = url.searchParams.get('sslmode');
+    return `${url.hostname}:${port}/${database} (user: ${user || '(none)'})${sslMode ? ` sslmode=${sslMode}` : ''}`;
+  } catch {
+    return '(unparseable database URL; value hidden)';
   }
 }
 
-main();
+function logConnectionHint(error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error || '');
+  if (!/ENOTFOUND|getaddrinfo|ECONNREFUSED|timeout/i.test(message)) return;
+
+  console.error('Connection troubleshooting:');
+  console.error('  1. Verify DATABASE_URL/DATABASE_PUBLIC_URL points to the intended Railway PostgreSQL service.');
+  console.error('  2. Use Railway internal hostnames only inside Railway runtime.');
+  console.error('  3. Check that the PostgreSQL service is running and reachable.');
+}
+
+async function main() {
+  console.log('[migrate] Starting database migrations');
+
+  const dbUrl = resolveDatabaseUrl();
+  if (!dbUrl) {
+    const message = 'DATABASE_URL is not configured';
+    if (isDeploymentEnvironment()) {
+      console.error(`[migrate] ${message}; refusing to continue deployment without a database`);
+      process.exit(1);
+    }
+
+    console.warn(`[migrate] ${message}; skipping local migration run`);
+    process.exit(0);
+  }
+
+  console.log(`[migrate] Database: ${safeDatabaseInfo(dbUrl)}`);
+
+  try {
+    const { runMigrations } = await import('../lib/migrations');
+    await runMigrations();
+    console.log('[migrate] Migrations completed successfully');
+    process.exit(0);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error || 'unknown error');
+    console.error(`[migrate] Migration failed: ${message}`);
+    logConnectionHint(error);
+    process.exit(1);
+  }
+}
+
+void main();

@@ -347,7 +347,6 @@ if (!DATABASE_URL) {
 
 // Create connection pool
 let pool: Pool | null = null;
-let migrationsRun = false;
 let dailyNatalCardsChartScopeSupported: boolean | null = null;
 let interpretationsChartScopeSupported: boolean | null = null;
 
@@ -435,30 +434,12 @@ export function getPool(): Pool {
 
     pool.on('connect', () => {
       log.info('New database connection established');
-      
-      // Run migrations in background on first connection
-      if (!migrationsRun) {
-        migrationsRun = true;
-        runMigrationsInBackground();
-      }
     });
 
     log.info('Database connection pool created');
   }
   
   return pool;
-}
-
-// Run migrations in background without blocking
-async function runMigrationsInBackground() {
-  try {
-    log.info('Running migrations in background...');
-    const { runMigrations } = await import('./migrations');
-    await runMigrations();
-    log.info('Background migrations completed');
-  } catch (error: any) {
-    log.warn('Background migrations failed (non-blocking):', error.message);
-  }
 }
 
 /**

@@ -7,6 +7,7 @@ import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
 import { RETENTION_NOTIFICATION_SCENARIO_SEEDS } from './retentionNotificationCatalog';
 
 const DATABASE_URL = resolveDatabaseUrl();
+const MIGRATION_LOCK_KEY = 20260711;
 
 const log = {
   info: (message: string, data?: any) => {
@@ -2269,6 +2270,12 @@ async function reconcileUserColumns(pool: Pool): Promise<void> {
  * (admin_audit_log). Идемпотентно. Owner (OWNER_ID) получает роль super_admin.
  */
 async function lumia031AdminFoundation(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_031_admin_foundation';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admin_users (
       user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -2310,14 +2317,21 @@ async function lumia031AdminFoundation(pool: Pool): Promise<void> {
   `);
   const ownerId = process.env.NEXT_PUBLIC_OWNER_ID || process.env.OWNER_ID || '';
   if (ownerId && /^\d+$/.test(ownerId.trim())) {
-    await pool.query(
+    const ownerAdminResult = await pool.query(
       `INSERT INTO admin_users (user_id, role, status, created_at)
-       VALUES ($1, 'super_admin', 'active', CURRENT_TIMESTAMP)
-       ON CONFLICT (user_id) DO UPDATE SET role = 'super_admin', status = 'active', updated_at = CURRENT_TIMESTAMP`,
+       SELECT id, 'super_admin', 'active', CURRENT_TIMESTAMP
+       FROM users
+       WHERE id = $1
+       ON CONFLICT (user_id) DO UPDATE
+         SET role = 'super_admin', status = 'active', updated_at = CURRENT_TIMESTAMP`,
       [ownerId.trim()]
     );
+    if (ownerAdminResult.rowCount === 0) {
+      log.warn('OWNER_ID does not match an existing user; skipping super_admin seed');
+    }
   }
-  log.info('Migration lumia_031_admin_foundation applied');
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
 }
 
 /**
@@ -2326,6 +2340,12 @@ async function lumia031AdminFoundation(pool: Pool): Promise<void> {
  * Stripe при миграции на native) и заводит промокоды. Идемпотентно.
  */
 async function lumia032Monetization(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_032_monetization';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
   const cols = [
     "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS provider TEXT DEFAULT 'telegram_stars'",
     "ALTER TABLE star_payments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'paid'",
@@ -2361,7 +2381,8 @@ async function lumia032Monetization(pool: Pool): Promise<void> {
     );
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_promo_redemptions_code ON promo_redemptions(code)');
-  log.info('Migration lumia_032_monetization applied');
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
 }
 
 /**
@@ -2369,6 +2390,12 @@ async function lumia032Monetization(pool: Pool): Promise<void> {
  * версионированием и статусами draft/active(published)/archived. Идемпотентно.
  */
 async function lumia033ContentCms(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_033_content_cms';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ai_prompts (
       id BIGSERIAL PRIMARY KEY,
@@ -2427,11 +2454,18 @@ async function lumia033ContentCms(pool: Pool): Promise<void> {
     );
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_cms_content_type ON cms_content(type, locale, status)');
-  log.info('Migration lumia_033_content_cms applied');
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
 }
 
 /** Поддержка/тикеты (Admin v2 Фаза 5). Идемпотентно. */
 async function lumia034Support(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_034_support';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS support_tickets (
       id BIGSERIAL PRIMARY KEY,
@@ -2458,11 +2492,18 @@ async function lumia034Support(pool: Pool): Promise<void> {
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status, updated_at DESC)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON support_messages(ticket_id, created_at)');
-  log.info('Migration lumia_034_support applied');
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
 }
 
 /** Feature flags / настройки (Admin v2 Фаза 6). Идемпотентно. */
 async function lumia035FeatureFlags(pool: Pool): Promise<void> {
+  const migrationName = 'lumia_035_feature_flags';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS feature_flags (
       key TEXT PRIMARY KEY,
@@ -2480,7 +2521,8 @@ async function lumia035FeatureFlags(pool: Pool): Promise<void> {
        ('min_app_version', '""'::jsonb, 'Минимальная версия приложения (для native).')
      ON CONFLICT (key) DO NOTHING`
   );
-  log.info('Migration lumia_035_feature_flags applied');
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
 }
 
 async function mvp036SchemaCleanup(pool: Pool): Promise<void> {
@@ -2579,6 +2621,7 @@ export async function runMigrations(): Promise<void> {
   }
 
   let pool: Pool | null = null;
+  let migrationLockAcquired = false;
 
   try {
     log.info('Starting Lumia database migrations...');
@@ -2592,6 +2635,9 @@ export async function runMigrations(): Promise<void> {
     });
 
     await testConnection(pool, 1, 1000);
+    await pool.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
+    migrationLockAcquired = true;
+    log.info('Migration advisory lock acquired');
     await createMigrationsTable(pool);
 
     await migrationReset(pool);
@@ -2646,6 +2692,10 @@ export async function runMigrations(): Promise<void> {
   } finally {
     if (pool) {
       try {
+        if (migrationLockAcquired) {
+          await pool.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]);
+          log.info('Migration advisory lock released');
+        }
         await pool.end();
         log.info('Database connection closed');
       } catch (e: any) {
