@@ -52,7 +52,7 @@ describe('logger privacy', () => {
       },
       chartData: { sun: { sign: 'Pisces' } },
       chartQuality: { birthTimeQuality: 'exact' },
-      todayPulse: { source: 'swisseph', calculationVersion: 'today-pulse-v1' },
+      dailyAstroSignal: { source: 'swisseph', calculationVersion: 'daily-astro-signal-v1' },
       recentCheckIns: [{ date: '2026-05-29' }],
       recentQuestions: [{ question: 'hidden' }],
       relationshipContext: [{ summary: 'hidden' }],
@@ -69,13 +69,13 @@ describe('logger privacy', () => {
     expect(serialized).toContain('"hasBirthTime":true');
     expect(serialized).toContain('"hasBirthPlace":true');
     expect(serialized).toContain('"hasChart":true');
-    expect(serialized).toContain('"hasTodayPulse":true');
+    expect(serialized).toContain('"hasDailyAstroSignal":true');
     expect(serialized).toContain('"hasCheckIns":true');
     expect(serialized).toContain('"hasRecentQuestions":true');
     expect(serialized).toContain('"hasRelationshipContext":true');
     expect(serialized).toContain('"birthTimeQuality":"exact"');
     expect(serialized).toContain('"source":"swisseph"');
-    expect(serialized).toContain('"calculationVersion":"today-pulse-v1"');
+    expect(serialized).toContain('"calculationVersion":"daily-astro-signal-v1"');
     expect(serialized).not.toContain('1989-03-06');
     expect(serialized).not.toContain('Moscow');
     expect(serialized).not.toContain('hidden');

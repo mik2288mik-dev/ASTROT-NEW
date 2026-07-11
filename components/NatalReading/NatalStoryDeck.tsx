@@ -870,14 +870,14 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     const handleShare = useCallback(async (card: NatalStoryCard) => {
       hapticImpact();
       const payload = {
-        title: `LUMIA: ${card.title}`,
+        title: `Твой Гороскоп: ${card.title}`,
         text: `${card.title}\n\n${card.summaryShort}`,
         url: buildShareUrl(card.id),
       };
       try {
         const image = userId ? await loadNatalStoryShareImage(userId, card.id, chartId, 'story').catch(() => null) : null;
         const files = image && typeof File !== 'undefined'
-          ? [new File([image], `lumia-${card.id}.png`, { type: 'image/png' })]
+          ? [new File([image], `your-horoscope-${card.id}.png`, { type: 'image/png' })]
           : [];
         if (files.length && navigator.share && (!navigator.canShare || navigator.canShare({ files }))) {
           fireStoryEvent('natal_share_tap', {

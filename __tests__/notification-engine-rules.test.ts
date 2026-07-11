@@ -76,12 +76,8 @@ describe('notification engine rules', () => {
       dayPart: 'day' as const,
       minutesToBestSlot: 25,
       hasBestSlot: true,
-      hasPatternProgress: false,
       userState: {
         openedToday: false,
-        acceptedFocusToday: false,
-        completedCheckinYesterday: true,
-        checkinStreak: 2,
         daysWithoutClick: 1,
       },
     };
@@ -125,15 +121,15 @@ describe('notification engine rules', () => {
   it('builds attributed WebApp deep links to concrete sections', () => {
     const url = buildNotificationDeepLink({
       baseUrl: 'https://app.lumia.example/start',
-      section: 'checkin',
-      scenarioKey: 'evening_checkin',
+      section: 'daily_card',
+      scenarioKey: 'daily_card',
       logId: 42,
     });
 
     expect(url).toContain('view=dashboard');
-    expect(url).toContain('todaySection=checkin');
+    expect(url).toContain('todaySection=daily-card');
     expect(url).toContain('source=tg_notification');
-    expect(url).toContain('scenario=evening_checkin');
+    expect(url).toContain('scenario=daily_card');
     expect(url).toContain('nl=42');
   });
 

@@ -36,7 +36,7 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
     hasBirthTime: true,
     hasBirthPlace: true,
     hasPrimaryChart: true,
-    todayPulse: null,
+    dailyAstroSignal: null,
     preparedDailyCard: {
       theme: 'Разговоры',
       summary: 'Лучше говорить коротко и по делу.',
@@ -60,11 +60,9 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
     preferences: {
       enabled: true,
       daily_card: true,
-      pulse_day: true,
       love: true,
       money: true,
       work: true,
-      assistant: true,
       natal: true,
       premium: true,
       synastry: true,
@@ -72,7 +70,7 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
     },
     quietHoursStart: '22:00',
     quietHoursEnd: '08:00',
-    interests: { love: 0, money: 0, work: 0, assistant: 0, synastry: 0, natal: 0 },
+    interests: { love: 0, money: 0, work: 0, synastry: 0, natal: 0 },
     segments: ['daily_active_free'],
   };
   return { ...base, ...overrides } as PersonalizationContext;
@@ -86,8 +84,7 @@ const enabledScenarios = [
   { id: 5, key: 'premium', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 72, deep_link: '' },
   { id: 6, key: 'love', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
   { id: 7, key: 'natal_free', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
-  { id: 8, key: 'assistant', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
-  { id: 9, key: 'synastry', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
+  { id: 8, key: 'synastry', enabled: true, priority: 10, max_per_day: 1, cooldown_hours: 20, deep_link: '' },
 ];
 
 describe('retention notification rules', () => {
@@ -166,13 +163,14 @@ describe('retention notification rules', () => {
 
     const active = detectUserSegments(
       makeContext({
-        recentScreens: ['chart', 'love', 'love', 'money', 'assistant', 'assistant'],
+        recentScreens: ['chart', 'love', 'love', 'money'],
         lockedBlockEvents: 2,
-        interests: { love: 2, money: 1, work: 0, assistant: 2, synastry: 0, natal: 0 },
+        interests: { love: 2, money: 1, work: 0, synastry: 0, natal: 0 },
         segments: [],
       })
     );
-    expect(active).toEqual(expect.arrayContaining(['free_natal_opened_no_premium', 'love_interested', 'assistant_user', 'high_intent_premium']));
+    expect(active).toEqual(expect.arrayContaining(['free_natal_opened_no_premium', 'love_interested', 'high_intent_premium']));
+    expect(active).not.toContain('assistant_user');
   });
 
   it('treats a daily-active premium user as active, never inactive_*', () => {
@@ -208,7 +206,7 @@ describe('retention notification rules', () => {
         localHour: 14,
         hasPrimaryChart: true,
         recentScreens: [],
-        interests: { love: 0, money: 0, work: 0, assistant: 0, synastry: 0, natal: 0 },
+        interests: { love: 0, money: 0, work: 0, synastry: 0, natal: 0 },
         ...over,
       });
 
@@ -219,14 +217,14 @@ describe('retention notification rules', () => {
     // Днём премиуму, не открывавшему премиум-функции, предлагаем ФУНКЦИЮ (натальный разбор приоритетнее),
     // а не рутинную сферу.
     const picked = pickRetentionCandidate(premiumAfternoon(), enabledScenarios as any,
-      ['love', 'natal_free', 'assistant', 'synastry']);
+      ['love', 'natal_free', 'synastry']);
     expect(picked?.type).toBe('natal_free');
 
-    // Побывал в карте → промо разбора отключается, слот уходит следующей неоткрытой функции (чат Lumi).
+    // Побывал в карте → промо разбора отключается, слот уходит следующей неоткрытой premium-функции.
     const afterNatal = pickRetentionCandidate(
-      premiumAfternoon({ interests: { love: 0, money: 0, work: 0, assistant: 0, synastry: 0, natal: 5 } }),
-      enabledScenarios as any, ['love', 'natal_free', 'assistant', 'synastry']);
-    expect(afterNatal?.type).toBe('assistant');
+      premiumAfternoon({ interests: { love: 0, money: 0, work: 0, synastry: 0, natal: 5 } }),
+      enabledScenarios as any, ['love', 'natal_free', 'synastry']);
+    expect(afterNatal?.type).toBe('synastry');
   });
 
   it('keeps the daily anchor for active users but suppresses recently opened non-anchor sections', () => {

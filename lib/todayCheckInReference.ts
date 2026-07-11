@@ -3,9 +3,9 @@ import type {
   DailyCheckInInput,
   DailyCheckInMood,
   DailyCheckInPeople,
-  TodayPulse,
-  TodayPulsePoint,
-  TodayPulseWindow,
+  DailyAstroSignal,
+  DailyAstroSignalPoint,
+  DailyAstroSignalWindow,
 } from '../types';
 import type { TodayCheckInDateMode } from './todayCheckInDate';
 
@@ -44,24 +44,24 @@ const RU_FOCUS: Record<DailyCheckInFocus, TodayCheckInExpectedValue> = {
   low: {
     value: 'low',
     label: 'ниже обычного',
-    hint: 'LUMIA ожидала, что фокус может быть ниже обычного: лучше коротко и без рывка.',
+    hint: 'Твой Гороскоп ожидал, что фокус может быть ниже обычного: лучше коротко и без рывка.',
   },
   normal: {
     value: 'normal',
     label: 'ровный',
-    hint: 'LUMIA ожидала ровный фокус: можно закрывать одно понятное дело без гонки.',
+    hint: 'Твой Гороскоп ожидал ровный фокус: можно закрывать одно понятное дело без гонки.',
   },
   high: {
     value: 'high',
     label: 'выше обычного',
-    hint: 'LUMIA ожидала хороший фокус: подходило одно важное дело или точное решение.',
+    hint: 'Твой Гороскоп ожидал хороший фокус: подходило одно важное дело или точное решение.',
   },
 };
 
 const EN_FOCUS: Record<DailyCheckInFocus, TodayCheckInExpectedValue> = {
-  low: { value: 'low', label: 'lower than usual', hint: 'LUMIA expected softer focus: short and calm worked better.' },
-  normal: { value: 'normal', label: 'steady', hint: 'LUMIA expected steady focus: one clear task, no rush.' },
-  high: { value: 'high', label: 'higher than usual', hint: 'LUMIA expected good focus: one important thing could move.' },
+  low: { value: 'low', label: 'lower than usual', hint: 'Your Horoscope expected softer focus: short and calm worked better.' },
+  normal: { value: 'normal', label: 'steady', hint: 'Your Horoscope expected steady focus: one clear task, no rush.' },
+  high: { value: 'high', label: 'higher than usual', hint: 'Your Horoscope expected good focus: one important thing could move.' },
 };
 
 const RU_MOOD: Record<DailyCheckInMood, TodayCheckInExpectedValue> = {
@@ -92,25 +92,25 @@ const RU_PEOPLE: Record<DailyCheckInPeople, TodayCheckInExpectedValue> = {
   social: {
     value: 'social',
     label: 'общение',
-    hint: 'LUMIA ожидала, что контакт с людьми может быть полезным, если без лишнего давления.',
+    hint: 'Твой Гороскоп ожидал, что контакт с людьми может быть полезным, если без лишнего давления.',
   },
   quiet: {
     value: 'quiet',
     label: 'тишина',
-    hint: 'LUMIA ожидала, что лучше зайдет тишина: меньше лишних контактов, больше своего пространства.',
+    hint: 'Твой Гороскоп ожидал, что лучше зайдет тишина: меньше лишних контактов, больше своего пространства.',
   },
 };
 
 const EN_PEOPLE: Record<DailyCheckInPeople, TodayCheckInExpectedValue> = {
-  social: { value: 'social', label: 'contact', hint: 'LUMIA expected contact to help if it stayed low-pressure.' },
-  quiet: { value: 'quiet', label: 'quiet', hint: 'LUMIA expected quiet to work better: fewer extra contacts, more space.' },
+  social: { value: 'social', label: 'contact', hint: 'Your Horoscope expected contact to help if it stayed low-pressure.' },
+  quiet: { value: 'quiet', label: 'quiet', hint: 'Your Horoscope expected quiet to work better: fewer extra contacts, more space.' },
 };
 
 const FORECAST_FIT: Record<Language, TodayCheckInExpectedValue> = {
   ru: {
     value: 'partial',
     label: 'сверь с ориентиром выше',
-    hint: 'Отвечай именно про блок “Сегодня LUMIA ожидала”: совпало, частично или совсем нет.',
+    hint: 'Отвечай именно про блок выше: совпало, частично или совсем нет.',
   },
   en: {
     value: 'partial',
@@ -137,17 +137,17 @@ function timeToHour(time: string) {
   return Number.isFinite(hour) ? hour : 0;
 }
 
-function windowContainsHour(window: TodayPulseWindow, hour: number) {
+function windowContainsHour(window: DailyAstroSignalWindow, hour: number) {
   const start = timeToHour(window.start);
   const end = window.end === '00:00' ? 24 : timeToHour(window.end);
   return hour >= start && hour < end;
 }
 
-function isDayPoint(point: TodayPulsePoint | null | undefined) {
+function isDayPoint(point: DailyAstroSignalPoint | null | undefined) {
   return !!point && point.hour >= 6 && point.hour < 22;
 }
 
-export function pickTodayCheckInReferencePoint(pulse: TodayPulse): TodayPulsePoint {
+export function pickTodayCheckInReferencePoint(pulse: DailyAstroSignal): DailyAstroSignalPoint {
   if (isDayPoint(pulse.peakPoint)) return pulse.peakPoint;
   const dayPoints = pulse.points.filter(isDayPoint);
   if (dayPoints.length > 0) {
@@ -156,7 +156,7 @@ export function pickTodayCheckInReferencePoint(pulse: TodayPulse): TodayPulsePoi
   return pulse.peakPoint || pulse.currentPoint;
 }
 
-function pickReferenceWindow(pulse: TodayPulse, referencePoint: TodayPulsePoint): TodayPulseWindow | null {
+function pickReferenceWindow(pulse: DailyAstroSignal, referencePoint: DailyAstroSignalPoint): DailyAstroSignalWindow | null {
   const referenceHour = Number(referencePoint.hour);
   return (
     pulse.windows.find((window) => Number.isFinite(referenceHour) && windowContainsHour(window, referenceHour)) ||
@@ -165,21 +165,21 @@ function pickReferenceWindow(pulse: TodayPulse, referencePoint: TodayPulsePoint)
   );
 }
 
-function expectedFocus(point: TodayPulsePoint, pulse: TodayPulse): DailyCheckInFocus {
+function expectedFocus(point: DailyAstroSignalPoint, pulse: DailyAstroSignal): DailyCheckInFocus {
   const focus = Number(point.layers?.focus ?? pulse.layers?.focus ?? 50);
   if (point.phase === 'focus_peak' || focus >= 70 || point.score >= 76) return 'high';
   if (point.phase === 'restore' || point.tone === 'restore' || focus <= 44) return 'low';
   return 'normal';
 }
 
-function expectedMood(point: TodayPulsePoint, pulse: TodayPulse): DailyCheckInMood {
+function expectedMood(point: DailyAstroSignalPoint, pulse: DailyAstroSignal): DailyCheckInMood {
   const emotions = Number(point.layers?.emotions ?? pulse.layers?.emotions ?? 50);
   if (point.tone === 'caution' || point.tone === 'restore' || emotions <= 42) return 'heavy';
   if (point.tone === 'rise' || point.tone === 'peak' || emotions >= 68) return 'good';
   return 'steady';
 }
 
-function expectedPeople(point: TodayPulsePoint, pulse: TodayPulse): DailyCheckInPeople {
+function expectedPeople(point: DailyAstroSignalPoint, pulse: DailyAstroSignal): DailyCheckInPeople {
   const relationships = Number(point.layers?.relationships ?? pulse.layers?.relationships ?? 50);
   if (point.phase === 'relationships' || point.tone === 'social' || relationships >= 62) return 'social';
   return 'quiet';
@@ -192,7 +192,7 @@ function dictionary(language: Language) {
 }
 
 export function buildTodayCheckInReference(
-  pulse: TodayPulse | null | undefined,
+  pulse: DailyAstroSignal | null | undefined,
   language: Language = 'ru',
   options: BuildTodayCheckInReferenceOptions = {}
 ): TodayCheckInReference {
@@ -208,8 +208,8 @@ export function buildTodayCheckInReference(
     return {
       forecastTitle: language === 'ru' ? 'Сегодня сверяем общее ощущение дня' : 'Today we compare the overall day feel',
       forecastSummary: language === 'ru'
-        ? 'Отметь, как день прошел по факту. LUMIA учтет это в следующих подсказках.'
-        : 'Mark how the day actually felt. LUMIA will use it for the next prompts.',
+        ? 'Отметь, как день прошел по факту. Это поможет следующим подсказкам.'
+        : 'Mark how the day actually felt. It will help the next prompts.',
       dateLabel: null,
       bestSlotLabel: null,
       bestSlotRange: null,

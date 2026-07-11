@@ -14,12 +14,6 @@
 /** section (как в payload.section / deep_link) → короткий код для start_param */
 const SECTION_TO_CODE: Record<string, string> = {
   daily_card: 'dc',
-  pulse: 'pd',
-  pulse_day: 'pd',
-  checkin: 'pday',
-  personal_day: 'pday',
-  'best-time': 'btime',
-  'mini-win': 'mwin',
   natal: 'natal',
   natal_free: 'natal',
   natal_full: 'natalx',
@@ -30,8 +24,6 @@ const SECTION_TO_CODE: Record<string, string> = {
   synastry: 'compat',
   union: 'compat',
   compatibility: 'compat',
-  assistant: 'today',
-  chat: 'today',
   horoscope: 'horo',
   daily: 'horo',
   today: 'today',
@@ -47,10 +39,6 @@ export type StartParamRoute = {
  *  view-значения совпадают с ViewState приложения (App.tsx). */
 const CODE_TO_ROUTE: Record<string, StartParamRoute> = {
   dc: { view: 'dashboard', todaySection: 'daily-card' },
-  pd: { view: 'dashboard', todaySection: 'pulse' },
-  pday: { view: 'personal_daily' },
-  btime: { view: 'dashboard', todaySection: 'best-time' },
-  mwin: { view: 'dashboard', todaySection: 'mini-win' },
   natal: { view: 'chart' },
   natalx: { view: 'chart' },
   love: { view: 'personal_daily' },
@@ -58,7 +46,6 @@ const CODE_TO_ROUTE: Record<string, StartParamRoute> = {
   work: { view: 'personal_daily' },
   prem: { view: 'dashboard' },
   compat: { view: 'synastry' },
-  chat: { view: 'dashboard' },
   horo: { view: 'horoscope' },
   today: { view: 'dashboard' },
 };

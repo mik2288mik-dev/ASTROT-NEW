@@ -5,12 +5,12 @@ import type {
   Language,
   NatalChartData,
   PlanetPosition,
-  TodayPulse,
+  DailyAstroSignal,
   UserProfile,
 } from '../types';
 import { db } from './db';
 import { getMoscowTodayKey } from './date-utils';
-import { resolveTodayPulseForUser } from './todayPulseResolver';
+import { resolveDailyAstroSignalForUser } from './dailyAstroSignalResolver';
 import { extractPersonalizationPrivacyFlags, logger } from './logger';
 
 export type PersonalizationSurface = 'today' | 'ask_lumia' | 'natal' | 'synastry';
@@ -35,7 +35,7 @@ export type PersonalizationContext = {
   chartData: NatalChartData | null;
   chartQuality: ChartQuality;
   planets: Record<string, PlanetPosition | null>;
-  todayPulse?: TodayPulse | null;
+  dailyAstroSignal?: DailyAstroSignal | null;
   recentCheckIns: DailyCheckIn[];
   recentQuestions: RecentQuestionContext[];
   relationshipContext: RelationshipContextItem[];
@@ -47,7 +47,7 @@ type BuildPersonalizationContextOptions = {
   chartId?: number | null;
   profileFallback?: Partial<UserProfile>;
   chartDataFallback?: NatalChartData | null;
-  includeTodayPulse?: boolean;
+  includeDailyAstroSignal?: boolean;
   includeRecentCheckIns?: boolean;
   includeRecentQuestions?: boolean;
   includeRelationshipContext?: boolean;
@@ -161,7 +161,7 @@ export async function buildPersonalizationContext(
     chartId: options.chartId ?? null,
     surface: options.surface,
     metadata: {
-      includeTodayPulse: !!options.includeTodayPulse,
+      includeDailyAstroSignal: !!options.includeDailyAstroSignal,
       includeRecentCheckIns: !!options.includeRecentCheckIns,
       includeRecentQuestions: !!options.includeRecentQuestions,
       includeRelationshipContext: !!options.includeRelationshipContext,
@@ -179,9 +179,9 @@ export async function buildPersonalizationContext(
   const chartQuality = normalizeChartQuality(chartData, profile, chartRow);
   const chartId = chartRow?.id ?? options.chartId ?? null;
 
-  const [todayPulseResult, recentCheckIns, recentQuestions, recentRelationships] = await Promise.all([
-    options.includeTodayPulse && chartData
-      ? resolveTodayPulseForUser({
+  const [dailyAstroSignalResult, recentCheckIns, recentQuestions, recentRelationships] = await Promise.all([
+    options.includeDailyAstroSignal && chartData
+      ? resolveDailyAstroSignalForUser({
           userId: options.userId,
           chartId,
           dateKey: options.dateKey || getMoscowTodayKey(),
@@ -217,11 +217,11 @@ export async function buildPersonalizationContext(
     });
   }
 
-  const todayPulse = todayPulseResult?.status === 'ready' ? todayPulseResult.pulse : null;
-  if (options.includeTodayPulse && chartData && !todayPulse) {
+  const dailyAstroSignal = dailyAstroSignalResult?.status === 'ready' ? dailyAstroSignalResult.pulse : null;
+  if (options.includeDailyAstroSignal && chartData && !dailyAstroSignal) {
     logger.warn({
       scope: 'personalization-context',
-      event: 'personalization_missing_today_pulse',
+      event: 'personalization_missing_daily_astro_signal',
       userId: options.userId,
       chartId,
       surface: options.surface,
@@ -237,7 +237,7 @@ export async function buildPersonalizationContext(
     chartData,
     chartQuality,
     planets: pickPlanets(chartData, chartQuality),
-    todayPulse,
+    dailyAstroSignal,
     recentCheckIns: recentCheckIns as DailyCheckIn[],
     recentQuestions: (recentQuestions as any[]).map((item) => ({
       question: String(item.question || '').trim(),
@@ -278,7 +278,7 @@ function planetLine(label: string, position: PlanetPosition | null | undefined) 
   return `${label}: ${position.sign}${degree}`;
 }
 
-function formatLayers(pulse: TodayPulse) {
+function formatLayers(pulse: DailyAstroSignal) {
   const layers = pulse.layers || pulse.currentPoint?.layers;
   if (!layers) return '';
   return `energy ${layers.energy}, focus ${layers.focus}, emotions ${layers.emotions}, money ${layers.money}, relationships ${layers.relationships}`;
@@ -307,12 +307,12 @@ export function describePersonalizationContext(context: PersonalizationContext, 
     planetLine('Saturn', context.planets.saturn),
   ].filter(Boolean);
 
-  if (context.todayPulse) {
+  if (context.dailyAstroSignal) {
     lines.push(
-      `Today Pulse source: ${context.todayPulse.source}`,
-      `Today Pulse current: ${context.todayPulse.currentPoint?.time || context.todayPulse.currentTime}, ${context.todayPulse.currentPoint?.title || 'current point'}, score ${context.todayPulse.currentPoint?.score ?? 'n/a'}`,
-      `Today Pulse peak: ${context.todayPulse.peakPoint?.time || 'n/a'}, ${context.todayPulse.peakPoint?.title || 'peak point'}, score ${context.todayPulse.peakPoint?.score ?? 'n/a'}`,
-      `Today Pulse layers: ${formatLayers(context.todayPulse)}`
+      `daily astro signal source: ${context.dailyAstroSignal.source}`,
+      `daily astro signal current: ${context.dailyAstroSignal.currentPoint?.time || context.dailyAstroSignal.currentTime}, ${context.dailyAstroSignal.currentPoint?.title || 'current point'}, score ${context.dailyAstroSignal.currentPoint?.score ?? 'n/a'}`,
+      `daily astro signal peak: ${context.dailyAstroSignal.peakPoint?.time || 'n/a'}, ${context.dailyAstroSignal.peakPoint?.title || 'peak point'}, score ${context.dailyAstroSignal.peakPoint?.score ?? 'n/a'}`,
+      `daily astro signal layers: ${formatLayers(context.dailyAstroSignal)}`
     );
   }
 

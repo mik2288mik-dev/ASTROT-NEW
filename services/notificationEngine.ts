@@ -22,10 +22,10 @@ import type {
   AdminNotificationScenario,
   AdminScheduledNotificationAsset,
   AdminScheduledNotificationTemplate,
-  TodayPulse,
-  TodayPulsePoint,
+  DailyAstroSignal,
+  DailyAstroSignalPoint,
 } from '../types';
-import { resolveTodayPulseForUser } from '../lib/todayPulseResolver';
+import { resolveDailyAstroSignalForUser } from '../lib/dailyAstroSignalResolver';
 import { sendTelegramPhotoMessage, sendTelegramTextMessage, buildInlineKeyboardUrl } from '../lib/telegramBot';
 
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
@@ -59,8 +59,6 @@ type UserNotificationState = {
   lastOpenedAt: string | null;
   lastClickAt: string | null;
   daysWithoutClick: number;
-  lastCheckinAt: string | null;
-  checkinStreak: number;
 };
 
 type NotificationDaySummary = {
@@ -73,14 +71,8 @@ type NotificationDaySummary = {
     to: string;
     label: string;
   } | null;
-  evening_slot: {
-    from: string;
-    to: string;
-    label: string;
-  };
   good_for: string[];
   better_later: string[];
-  mini_win: string;
   confidence: 'low' | 'medium' | 'high';
 };
 
@@ -98,7 +90,6 @@ export type NotificationDayContext = NotificationDayContextLike & {
     money: number;
     energy: number;
   };
-  patternProgress: string;
 };
 
 type PreparedNotification = {
@@ -160,7 +151,7 @@ function addHoursLabel(start: string, hours: number) {
   return `${pad2((h + hours) % 24)}:${pad2(Number.isFinite(m) ? m : 0)}`;
 }
 
-function windowForPoint(pulse: TodayPulse, point: TodayPulsePoint | null | undefined) {
+function windowForPoint(pulse: DailyAstroSignal, point: DailyAstroSignalPoint | null | undefined) {
   if (!point) return null;
   return pulse.windows.find((item) => {
     const start = Number(item.start.slice(0, 2));
@@ -182,18 +173,6 @@ function confidence(score: number): 'low' | 'medium' | 'high' {
   return 'low';
 }
 
-function miniWinFor(point: TodayPulsePoint | null | undefined) {
-  const layers = point?.layers;
-  if (!layers) return 'Закрой одно небольшое дело, которое давно висит.';
-  const entries = Object.entries(layers).sort((a, b) => Number(b[1]) - Number(a[1]));
-  const top = entries[0]?.[0];
-  if (top === 'money') return 'Проверь один финансовый хвост или короткий платеж.';
-  if (top === 'relationships') return 'Напиши одно спокойное сообщение, которое давно откладываешь.';
-  if (top === 'energy') return 'Сделай короткое движение: прогулка, разминка или быстрый порядок.';
-  if (top === 'emotions') return 'Убери один лишний раздражитель и дай себе тише войти в вечер.';
-  return 'Закрой одно дело, которое висит больше трех дней.';
-}
-
 function fallbackSummary(): NotificationDaySummary {
   return {
     main_title: 'Сегодня без сильных акцентов',
@@ -201,23 +180,19 @@ function fallbackSummary(): NotificationDaySummary {
     current_state: 'ровный день',
     current_state_text: 'Подходит для простых дел и спокойного темпа.',
     best_slot: null,
-    evening_slot: { from: '20:30', to: '22:00', label: 'лучше закрыть день спокойно' },
     good_for: ['короткие дела', 'планирование', 'спокойные решения'],
     better_later: ['резкие решения', 'покупка на эмоциях'],
-    mini_win: 'Закрой одно небольшое дело без гонки.',
     confidence: 'medium',
   };
 }
 
-function summaryFromPulse(pulse: TodayPulse | null): NotificationDaySummary {
+function summaryFromPulse(pulse: DailyAstroSignal | null): NotificationDaySummary {
   if (!pulse) return fallbackSummary();
   const current = pulse.currentPoint;
   const peak = pulse.peakPoint;
   const bestWindow = windowForPoint(pulse, peak);
   const bestFrom = bestWindow?.start || peak.time;
   const bestTo = bestWindow?.end && bestWindow.end !== '00:00' ? bestWindow.end : addHoursLabel(bestFrom, 2);
-  const eveningPoint = pulse.points.find((point) => point.phase === 'reflection') || pulse.points[20] || current;
-  const eveningWindow = windowForPoint(pulse, eveningPoint);
   return {
     main_title: current.title || (peak.score >= 70 ? 'Сегодня есть хороший рабочий слот' : 'Сегодня лучше без гонки'),
     short_text: current.summary || 'Хорошо пойдут короткие дела и спокойные решения.',
@@ -230,19 +205,13 @@ function summaryFromPulse(pulse: TodayPulse | null): NotificationDaySummary {
           label: bestWindow?.label || 'лучший момент для дел',
         }
       : null,
-    evening_slot: {
-      from: eveningWindow?.start || '20:30',
-      to: eveningWindow?.end && eveningWindow.end !== '00:00' ? eveningWindow.end : '22:00',
-      label: eveningWindow?.label || 'лучше закрыть день спокойно',
-    },
     good_for: (peak.bestFor?.length ? peak.bestFor : current.bestFor || []).slice(0, 3),
     better_later: (current.avoid?.length ? current.avoid : ['сложный разговор', 'покупка на эмоциях']).slice(0, 3),
-    mini_win: miniWinFor(peak),
     confidence: confidence(peak.score),
   };
 }
 
-function pulseSnapshot(pulse: TodayPulse | null): NotificationDayContext['pulse'] {
+function pulseSnapshot(pulse: DailyAstroSignal | null): NotificationDayContext['pulse'] {
   const point = pulse?.currentPoint;
   const layers = point?.layers;
   return {
@@ -260,7 +229,7 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
   const result = await pool.query(
     `WITH user_metrics AS (
        SELECT u.id,
-              COALESCE(u.name, 'LUMIA') AS name,
+              COALESCE(u.name, '') AS name,
               COALESCE(u.language, 'ru') AS language,
               u.premium_until,
               COALESCE(MAX(us.last_seen_at), u.last_login) AS last_seen_at,
@@ -279,7 +248,7 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
   const now = Date.now();
   return result.rows.map((row: any) => ({
     id: String(row.id),
-    name: row.name || 'LUMIA',
+    name: row.name || '',
     language: row.language || 'ru',
     isPremium: !!(row.premium_until && new Date(row.premium_until).getTime() > now),
     lastSeenAt: row.last_seen_at ? new Date(row.last_seen_at).toISOString() : null,
@@ -324,8 +293,6 @@ async function getState(userId: string, recipient: RecipientRow, localDate: stri
     lastOpenedAt: row?.last_opened_at ? new Date(row.last_opened_at).toISOString() : null,
     lastClickAt: row?.last_click_at ? new Date(row.last_click_at).toISOString() : null,
     daysWithoutClick,
-    lastCheckinAt: row?.last_checkin_at ? new Date(row.last_checkin_at).toISOString() : null,
-    checkinStreak: Number(row?.checkin_streak ?? 0),
   };
 }
 
@@ -355,46 +322,16 @@ async function hasRecentSectionOpen(userId: string, section: string, minutes = 6
   return result.rows.length > 0;
 }
 
-async function hasActionToday(userId: string, localDate: string) {
-  const pool = getPool();
-  const result = await pool.query(
-    `SELECT 1 FROM action_timing_events WHERE user_id = $1 AND event_date = $2::date LIMIT 1`,
-    [userId, localDate]
-  );
-  return result.rows.length > 0;
-}
-
-async function checkinInfo(userId: string, chartId: number | null, localDate: string) {
-  const today = await db.daily_checkins.getForDate(userId, chartId, localDate).catch(() => null);
-  const recent = await db.daily_checkins.listRecent(userId, chartId, 14).catch(() => []);
-  const streak = recent.length;
-  return {
-    completedToday: !!today,
-    completedYesterday: recent.some((item: any) => {
-      const d = new Date(`${localDate}T12:00:00.000Z`);
-      d.setUTCDate(d.getUTCDate() - 1);
-      const y = d.toISOString().slice(0, 10);
-      return item.date === y;
-    }),
-    streak,
-    patternProgress: `${Math.min(streak, 5)}/5 отметок до первых личных наблюдений`,
-    hasPatternProgress: streak > 0,
-  };
-}
-
 async function buildContext(recipient: RecipientRow, now: Date): Promise<NotificationDayContext> {
   const settings = await getSettings(recipient.id);
   const timezone = normalizeTimezone(settings.timezone, recipient.chartTimezone);
   const info = localInfo(now, timezone);
   const state = await getState(recipient.id, recipient, info.localDate);
-  const resolved = await resolveTodayPulseForUser({
+  const resolved = await resolveDailyAstroSignalForUser({
     userId: recipient.id,
     dateKey: info.localDate,
   }).catch(() => null);
   const pulse = resolved?.status === 'ready' ? resolved.pulse : null;
-  const chartId = resolved?.status === 'ready' ? resolved.chartId : null;
-  const checkin = await checkinInfo(recipient.id, chartId, info.localDate);
-  const acceptedFocusToday = await hasActionToday(recipient.id, info.localDate).catch(() => false);
   const openedToday =
     sameLocalDate(recipient.lastSeenAt, timezone, info.localDate) ||
     sameLocalDate(state.lastOpenedAt, timezone, info.localDate);
@@ -412,18 +349,12 @@ async function buildContext(recipient: RecipientRow, now: Date): Promise<Notific
     dayPart: state.daysWithoutClick >= 3 ? 'reactivation' : info.dayPart,
     minutesToBestSlot,
     hasBestSlot: !!daySummary.best_slot,
-    hasPatternProgress: checkin.hasPatternProgress,
     userState: {
       openedToday,
-      acceptedFocusToday,
-      completedCheckinToday: checkin.completedToday,
-      completedCheckinYesterday: checkin.completedYesterday,
-      checkinStreak: checkin.streak,
       daysWithoutClick: state.daysWithoutClick,
     },
     daySummary,
     pulse: pulseSnapshot(pulse),
-    patternProgress: checkin.patternProgress,
   };
 }
 
@@ -438,9 +369,6 @@ function renderVariables(context: NotificationDayContext): NotificationRenderVar
     best_slot_from: summary.best_slot?.from || 'удобное время',
     best_slot_to: summary.best_slot?.to || '',
     best_slot_label: summary.best_slot?.label || 'ровный день без одного явного пика',
-    mini_win: summary.mini_win,
-    checkin_streak: context.userState.checkinStreak,
-    pattern_progress: context.patternProgress,
     good_for: summary.good_for,
     better_later: summary.better_later,
     minutes_to_slot: context.minutesToBestSlot ?? 20,
@@ -698,7 +626,6 @@ async function prepareNotification(
       short_text: 'Можно спокойно выбрать удобный момент и не перегружать день.',
       best_slot_from: 'сегодня',
       best_slot_to: '',
-      mini_win: 'Закрой одно небольшое дело без гонки.',
     }
   );
   const media = await pickMedia(picked.scenario, context);
@@ -901,7 +828,7 @@ export async function previewNotificationScenario(input: {
   const chart = await db.natal_charts.getPrimary(input.userId).catch(() => null);
   const recipient: RecipientRow = {
     id: String(input.userId),
-    name: user.name || 'LUMIA',
+    name: user.name || '',
     language: user.language || 'ru',
     isPremium: !!user.is_premium,
     lastSeenAt: user.last_login ? new Date(user.last_login).toISOString() : null,
@@ -948,7 +875,7 @@ export async function sendTestScenarioNotification(input: {
   const chart = await db.natal_charts.getPrimary(input.userId).catch(() => null);
   const recipient: RecipientRow = {
     id: String(input.userId),
-    name: user.name || 'LUMIA',
+    name: user.name || '',
     language: user.language || 'ru',
     isPremium: !!user.is_premium,
     lastSeenAt: user.last_login ? new Date(user.last_login).toISOString() : null,

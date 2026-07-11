@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { resolveDatabaseUrl } from '../../lib/database-url';
 import { getSwissEphemerisHealth } from '../../lib/swisseph-calculator';
-import { getTodayPulseMetricsSnapshot } from '../../lib/todayPulse';
+import { getDailyAstroSignalMetricsSnapshot } from '../../lib/dailyAstroSignal';
 import { getProductionObservabilitySnapshot } from '../../lib/productionObservability';
 import { ensureNotificationScheduler, getSchedulerStatus, isSchedulerAllowedByEnv } from '../../lib/notificationScheduler';
 
@@ -34,7 +34,7 @@ export default async function handler(
     timestamp: new Date().toISOString(),
     swissEphemeris: getSwissEphemerisHealth(),
     calculationMetrics: {
-      todayPulseSources: getTodayPulseMetricsSnapshot(),
+      dailyAstroSignalSources: getDailyAstroSignalMetricsSnapshot(),
     },
     observability: await getProductionObservabilitySnapshot(),
     // Операционный статус планировщика уведомлений (без PII) — чтобы «почему не приходят пуши»

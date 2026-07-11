@@ -1,14 +1,14 @@
 /**
  * Transit → natal aspects — единый источник «что такое аспект» для дневного разбора.
  *
- * Раньше транзит↔натал взаимодействия считались ТОЛЬКО внутри todayPulse (для
+ * Раньше транзит↔натал взаимодействия считались ТОЛЬКО внутри dailyAstroSignal (для
  * числовой оценки дня, через per-layer aspectScore) и НЕ доходили до текстового
  * промпта — модель домысливала связь сама. Этот модуль перечисляет реальные
  * аспекты транзитных планет к натальным долготам человеко-читаемым текстом,
  * чтобы генерация текста опиралась на ТО ЖЕ, что посчитано, а не на догадки.
  *
  * Углы/орбы/тон согласованы с натальным calculateAspects (swisseph-calculator)
- * и с support/pressure-логикой todayPulse (соединение/секстиль/трин — на стороне
+ * и с support/pressure-логикой dailyAstroSignal (соединение/секстиль/трин — на стороне
  * поддержки, квадрат/оппозиция — напряжение).
  */
 import type { NatalChartData, PlanetPosition } from '../types';
@@ -32,7 +32,7 @@ type AspectDef = {
 };
 
 // Один список определений аспектов (углы/орбы/тон). Тот же набор, что в натальном
-// calculateAspects; тон соответствует support/pressure из todayPulse.
+// calculateAspects; тон соответствует support/pressure из dailyAstroSignal.
 export const ASPECT_DEFS: AspectDef[] = [
   { type: 'conjunction', angle: 0, orb: 8, tone: 'accent' },
   { type: 'sextile', angle: 60, orb: 4, tone: 'support' },

@@ -1,4 +1,4 @@
-﻿// Database connection utility for Railway
+// Database connection utility for Railway
 // This file handles connection to Railway Database
 // 
 // Uses process.env.DATABASE_URL from environment variables
@@ -22,14 +22,12 @@ import {
   normalizeBirthTimeInput,
 } from './natalChartCanonical';
 import type {
-  ActionTimingKey,
-  ActionTimingRecommendation,
   AdminNotificationTargetSegment,
   DailyCheckIn,
   DailyCheckInInput,
   PersonalPatternInsight,
-  TodayPulseLayers,
-  TodayPulsePhase,
+  DailyAstroSignalLayers,
+  DailyAstroSignalPhase,
 } from '../types';
 
 // Read DATABASE_URL from environment variables
@@ -141,7 +139,7 @@ function isoFromDb(value: any): string {
   return value ? new Date(value).toISOString() : new Date().toISOString();
 }
 
-const EMPTY_TODAY_PULSE_LAYERS: TodayPulseLayers = {
+const EMPTY_DAILY_ASTRO_SIGNAL_LAYERS: DailyAstroSignalLayers = {
   energy: 0,
   focus: 0,
   emotions: 0,
@@ -161,9 +159,9 @@ function mapDailyCheckInRow(row: any): DailyCheckIn {
     people: row.people_key,
     forecastFit: row.forecast_fit_key,
     pulseTime: row.pulse_time || '00:00',
-    pulsePhase: (row.pulse_phase || 'restore') as TodayPulsePhase,
+    pulsePhase: (row.pulse_phase || 'restore') as DailyAstroSignalPhase,
     pulseScore: Number(row.pulse_score ?? 0),
-    pulseLayers: normalizeJsonColumn<TodayPulseLayers>(row.pulse_layers) || EMPTY_TODAY_PULSE_LAYERS,
+    pulseLayers: normalizeJsonColumn<DailyAstroSignalLayers>(row.pulse_layers) || EMPTY_DAILY_ASTRO_SIGNAL_LAYERS,
     createdAt: isoFromDb(row.created_at),
     updatedAt: isoFromDb(row.updated_at),
   };
@@ -303,7 +301,7 @@ function getAdminUserSegmentSql(paramIndex: number) {
     OR ($${paramIndex} = 'daily_active_premium' AND premium_until IS NOT NULL AND premium_until > NOW() AND last_seen_at >= NOW() - INTERVAL '7 days')
     OR ($${paramIndex} = 'inactive_2_days' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '2 days'))
     OR ($${paramIndex} = 'inactive_14_days' AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '14 days'))
-    OR ($${paramIndex} IN ('love_interested', 'money_interested', 'work_interested', 'assistant_user') AND last_seen_at >= NOW() - INTERVAL '30 days')
+    OR ($${paramIndex} IN ('love_interested', 'money_interested', 'work_interested') AND last_seen_at >= NOW() - INTERVAL '30 days')
     OR ($${paramIndex} = 'high_intent_premium' AND (premium_until IS NULL OR premium_until <= NOW()) AND saved_charts_count > 0)
   )`;
 }
@@ -2745,7 +2743,7 @@ export const db = {
     },
   },
 
-  /** daily_checkins - evening feedback loop for personal Today assistant */
+  /** daily_checkins - evening feedback loop for personal day calibration */
   daily_checkins: {
     async getForDate(userId: string, chartId: number | null, date: string) {
       const id = toUserId(userId);
@@ -2812,9 +2810,9 @@ export const db = {
       input: DailyCheckInInput,
       pulse: {
         time: string;
-        phase: TodayPulsePhase;
+        phase: DailyAstroSignalPhase;
         score: number;
-        layers: TodayPulseLayers;
+        layers: DailyAstroSignalLayers;
       }
     ) {
       const id = toUserId(userId);
@@ -2877,79 +2875,6 @@ export const db = {
         return mapDailyCheckInRow(result.rows[0]);
       } catch (error: any) {
         log.error('[DB] Error upserting daily check-in', { error: error.message, userId, chartId, date });
-        throw error;
-      }
-    },
-  },
-
-  /** action_timing_events - chosen "when better?" actions and recommendation snapshots */
-  action_timing_events: {
-    async listRecent(userId: string, chartId: number | null, limit = 60) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return [];
-      try {
-        const dbPool = getPool();
-        const cappedLimit = Math.max(1, Math.min(120, Math.floor(limit)));
-        const result = chartId != null
-          ? await dbPool.query(
-              `SELECT action_key, recommendation
-               FROM action_timing_events
-               WHERE user_id = $1 AND chart_id = $2
-               ORDER BY created_at DESC
-               LIMIT $3`,
-              [id, chartId, cappedLimit]
-            )
-          : await dbPool.query(
-              `SELECT action_key, recommendation
-               FROM action_timing_events
-               WHERE user_id = $1
-               ORDER BY created_at DESC
-               LIMIT $2`,
-              [id, cappedLimit]
-            );
-        return result.rows.map((row: any) => ({
-          actionKey: row.action_key as ActionTimingKey,
-          recommendation: normalizeJsonColumn<ActionTimingRecommendation>(row.recommendation),
-        }));
-      } catch (error: any) {
-        log.error('[DB] Error listing action timing events', { error: error.message, userId, chartId });
-        throw error;
-      }
-    },
-
-    async create(
-      userId: string,
-      chartId: number | null,
-      date: string,
-      timezone: string,
-      recommendation: ActionTimingRecommendation
-    ) {
-      const id = toUserId(userId);
-      if (!DATABASE_URL) return null;
-      try {
-        const dbPool = getPool();
-        const result = await dbPool.query(
-          `INSERT INTO action_timing_events
-            (user_id, chart_id, event_date, timezone, action_key, recommendation_state, best_start, best_end, selected_hour, confidence, recommendation)
-           VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
-           RETURNING id`,
-          [
-            id,
-            chartId,
-            date,
-            timezone || 'Europe/Moscow',
-            recommendation.actionKey,
-            recommendation.state,
-            recommendation.bestWindow.start,
-            recommendation.bestWindow.end,
-            recommendation.targetPoint.hour,
-            recommendation.confidence,
-            JSON.stringify(recommendation),
-          ]
-        );
-        return Number(result.rows[0]?.id ?? 0);
-      } catch (error: any) {
-        log.error('[DB] Error creating action timing event', { error: error.message, userId, chartId, date });
         throw error;
       }
     },

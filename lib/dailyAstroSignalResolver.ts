@@ -1,28 +1,28 @@
-import type { NatalChartData, TodayPulse, TodayPulseResult, UserProfile } from '../types';
+import type { NatalChartData, DailyAstroSignal, DailyAstroSignalResult, UserProfile } from '../types';
 import { db } from './db';
 import { getMoscowTodayKey } from './date-utils';
 import { isCanonicalNatalChartDataComplete } from './natalChartCanonical';
 import { repairCanonicalChartRecord } from './natalChartPersistence';
-import { TODAY_PULSE_CALCULATION_VERSION, buildTodayPulse, isFullSwissTodayPulse } from './todayPulse';
+import { DAILY_ASTRO_SIGNAL_CALCULATION_VERSION, buildDailyAstroSignal, isFullSwissDailyAstroSignal } from './dailyAstroSignal';
 import { fromZonedTime } from 'date-fns-tz';
 
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
 
 type ResolvedPulseReady = {
   status: 'ready';
-  pulse: TodayPulse;
+  pulse: DailyAstroSignal;
   chartId: number | null;
   profile: UserProfile;
   source: string;
   repaired: boolean;
 };
 
-type ResolvedPulseNeedsSetup = Extract<TodayPulseResult, { status: 'needs_setup' }> & {
+type ResolvedPulseNeedsSetup = Extract<DailyAstroSignalResult, { status: 'needs_setup' }> & {
   profile: UserProfile;
   chartId: number | null;
 };
 
-export type ResolvedTodayPulse = ResolvedPulseReady | ResolvedPulseNeedsSetup;
+export type ResolvedDailyAstroSignal = ResolvedPulseReady | ResolvedPulseNeedsSetup;
 
 function toProfile(user: any | null, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -70,9 +70,9 @@ function validToForLocalDay(dateKey: string, timezone: string) {
   return fromZonedTime(`${nextDateKey(dateKey)}T00:00:00`, timezone).toISOString();
 }
 
-function isTodayPulse(value: unknown): value is TodayPulse {
-  const pulse = value as TodayPulse | null;
-  if (!pulse || !isFullSwissTodayPulse(pulse)) return false;
+function isDailyAstroSignal(value: unknown): value is DailyAstroSignal {
+  const pulse = value as DailyAstroSignal | null;
+  if (!pulse || !isFullSwissDailyAstroSignal(pulse)) return false;
   return typeof pulse === 'object' &&
     Array.isArray(pulse.points) &&
     pulse.points.length === 24 &&
@@ -88,15 +88,15 @@ async function readCachedPulse(chartId: number | null, userId: string, cacheKey:
     const existing = chartId != null
       ? await db.content_interpretations.getByChart(chartId, 'free', 'forecast', 'daily', cacheKey)
       : await db.content_interpretations.getByUser(userId, 'free', 'forecast', 'daily', cacheKey);
-    return isTodayPulse(existing?.content) ? existing.content : null;
+    return isDailyAstroSignal(existing?.content) ? existing.content : null;
   } catch {
     return null;
   }
 }
 
-async function writeCachedPulse(chartId: number | null, userId: string, cacheKey: string, pulse: TodayPulse) {
-  if (!isFullSwissTodayPulse(pulse)) {
-    console.warn('[todayPulseResolver] refusing to cache non-Swiss Today Pulse', {
+async function writeCachedPulse(chartId: number | null, userId: string, cacheKey: string, pulse: DailyAstroSignal) {
+  if (!isFullSwissDailyAstroSignal(pulse)) {
+    console.warn('[dailyAstroSignalResolver] refusing to cache non-Swiss daily astro signal', {
       userId,
       chartId,
       source: pulse?.source,
@@ -118,7 +118,7 @@ async function writeCachedPulse(chartId: number | null, userId: string, cacheKey
     validFrom: `${pulse.date}T00:00:00.000Z`,
     validTo: validToForLocalDay(pulse.date, pulse.timezone),
     isPersistent: false,
-    legacySource: 'today_pulse_v1',
+    legacySource: 'daily_astro_signal_v1',
   };
 
   try {
@@ -128,11 +128,11 @@ async function writeCachedPulse(chartId: number | null, userId: string, cacheKey
       await db.content_interpretations.upsertByUser(userId, payload);
     }
   } catch (error: any) {
-    console.warn('[todayPulseResolver] cache write failed:', error?.message || error);
+    console.warn('[dailyAstroSignalResolver] cache write failed:', error?.message || error);
   }
 }
 
-export async function resolveTodayPulseForUser({
+export async function resolveDailyAstroSignalForUser({
   userId,
   chartId,
   dateKey = getMoscowTodayKey(),
@@ -144,7 +144,7 @@ export async function resolveTodayPulseForUser({
   dateKey?: string;
   profileFallback?: Partial<UserProfile>;
   chartDataFallback?: NatalChartData | null;
-}): Promise<ResolvedTodayPulse | null> {
+}): Promise<ResolvedDailyAstroSignal | null> {
   const user = await db.users.get(userId).catch(() => null);
   const profile = toProfile(user, profileFallback);
   const requestedChart = chartId != null ? await db.natal_charts.getById(chartId).catch(() => null) : null;
@@ -180,7 +180,7 @@ export async function resolveTodayPulseForUser({
   }
 
   const timezone = normalizeTimezone(chartData.timezone || chartRow?.timezone);
-  const cacheKey = `today-pulse:${dateKey}:${timezone}:${TODAY_PULSE_CALCULATION_VERSION}`;
+  const cacheKey = `daily-astro-signal:${dateKey}:${timezone}:${DAILY_ASTRO_SIGNAL_CALCULATION_VERSION}`;
   const cached = await readCachedPulse(resolvedChartId, userId, cacheKey);
   if (cached) {
     return {
@@ -193,7 +193,7 @@ export async function resolveTodayPulseForUser({
     };
   }
 
-  const pulse = await buildTodayPulse({
+  const pulse = await buildDailyAstroSignal({
     chartData,
     dateKey,
     timezone,

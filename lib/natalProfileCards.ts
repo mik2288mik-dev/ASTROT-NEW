@@ -8,11 +8,10 @@ export type NatalProfileCardsInput = {
   isPremium?: boolean;
   todayContext?: {
     shortText?: string | null;
-    pulseTitle?: string | null;
-    pulseSummary?: string | null;
+    dailySignalTitle?: string | null;
+    dailySignalSummary?: string | null;
     bestWindowLabel?: string | null;
     checkinCompleted?: boolean | null;
-    recentActionCount?: number | null;
     localHour?: number | null;
   };
 };
@@ -129,10 +128,9 @@ export function buildNatalProfileCards(input: NatalProfileCardsInput): ProfileCa
     `mars:${mars}`,
     `positiveAspects:${aspects.positive}`,
     `tenseAspects:${aspects.tense}`,
-    input.todayContext?.pulseTitle ? `todayPulse:${input.todayContext.pulseTitle}` : '',
+    input.todayContext?.dailySignalTitle ? `dailyAstroSignal:${input.todayContext.dailySignalTitle}` : '',
     input.todayContext?.bestWindowLabel ? `todayBestWindow:${input.todayContext.bestWindowLabel}` : '',
     input.todayContext?.checkinCompleted ? 'todayCheckin:completed' : '',
-    Number(input.todayContext?.recentActionCount || 0) > 0 ? `recentActions:${input.todayContext?.recentActionCount}` : '',
   ].filter(Boolean);
 
   const firstBody = {

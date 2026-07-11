@@ -27,7 +27,6 @@ const TARGET_SEGMENTS = new Set([
   'love_interested',
   'money_interested',
   'work_interested',
-  'assistant_user',
   'high_intent_premium',
 ]);
 

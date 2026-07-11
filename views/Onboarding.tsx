@@ -98,7 +98,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 16px)' }}
     >
       <div style={{ padding: '4px 20px 0' }}>
-        <p className="lumia-brand-wordmark">LUMIA</p>
+        <p className="lumia-brand-wordmark">Твой Гороскоп</p>
       </div>
 
       {step === 'stories' ? (

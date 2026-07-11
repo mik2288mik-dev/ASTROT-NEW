@@ -15,15 +15,15 @@ import {
   resolveBotUsername,
 } from '../lib/telegramBot';
 import { buildMiniAppButtonUrl } from '../lib/notificationDeepLink';
-import { resolveTodayPulseForUser } from '../lib/todayPulseResolver';
+import { resolveDailyAstroSignalForUser } from '../lib/dailyAstroSignalResolver';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { getZodiacSign } from '../constants';
 import { normalizeZodiacKey } from '../lib/horoscope/signDaily';
 import type {
   AdminScheduledNotificationQueueItem,
   RetentionNotificationStatus,
-  TodayPulse,
-  TodayPulsePoint,
+  DailyAstroSignal,
+  DailyAstroSignalPoint,
 } from '../types';
 
 const DEFAULT_TZ = 'Europe/Moscow';
@@ -63,7 +63,6 @@ export type RetentionSegment =
   | 'love_interested'
   | 'money_interested'
   | 'work_interested'
-  | 'assistant_user'
   | 'high_intent_premium';
 
 export type RetentionNotificationType =
@@ -74,13 +73,10 @@ export type RetentionNotificationType =
   | 'birthday'
   | 'premium_expiring'
   | 'sunday_summary'
-  | 'pulse_day'
-  | 'assistant'
   | 'natal_free'
   | 'love'
   | 'money'
   | 'work'
-  | 'personal_day'
   | 'synastry'
   | 'premium'
   | 'inactive_2d'
@@ -109,11 +105,9 @@ type RecipientRow = {
 type PreferenceFlags = Record<
   | 'enabled'
   | 'daily_card'
-  | 'pulse_day'
   | 'love'
   | 'money'
   | 'work'
-  | 'assistant'
   | 'natal'
   | 'premium'
   | 'synastry'
@@ -134,7 +128,7 @@ export type PersonalizationContext = {
   hasBirthTime: boolean;
   hasBirthPlace: boolean;
   hasPrimaryChart: boolean;
-  todayPulse: TodayPulse | null;
+  dailyAstroSignal: DailyAstroSignal | null;
   preparedDailyCard: PreparedDailyCard | null;
   recentScreens: string[];
   lockedBlockEvents: number;
@@ -158,7 +152,7 @@ export type PersonalizationContext = {
   preferences: PreferenceFlags;
   quietHoursStart: string;
   quietHoursEnd: string;
-  interests: Record<'love' | 'money' | 'work' | 'assistant' | 'synastry' | 'natal', number>;
+  interests: Record<'love' | 'money' | 'work' | 'synastry' | 'natal', number>;
   segments: RetentionSegment[];
 };
 
@@ -259,7 +253,7 @@ function dateDiffDays(from: string | null, now = new Date()) {
   return Math.max(0, Math.floor(diff / 86400000));
 }
 
-function pulseWindow(pulse: TodayPulse | null, point?: TodayPulsePoint | null) {
+function pulseWindow(pulse: DailyAstroSignal | null, point?: DailyAstroSignalPoint | null) {
   if (!pulse || !point) return '';
   const row = pulse.windows.find((item) => {
     const start = Number(item.start.slice(0, 2));
@@ -271,7 +265,7 @@ function pulseWindow(pulse: TodayPulse | null, point?: TodayPulsePoint | null) {
   return `${row.start}-${row.end === '00:00' ? '23:59' : row.end}`;
 }
 
-function preparedCardFromPulse(pulse: TodayPulse | null): PreparedDailyCard {
+function preparedCardFromPulse(pulse: DailyAstroSignal | null): PreparedDailyCard {
   const point = pulse?.currentPoint || null;
   const peak = pulse?.peakPoint || point;
   const bestFor = (peak?.bestFor || point?.bestFor || []).slice(0, 2).join(', ');
@@ -291,11 +285,9 @@ function defaultPreferences(row: any): PreferenceFlags {
   return {
     enabled: row?.enabled !== false,
     daily_card: row?.daily_card_enabled !== false,
-    pulse_day: row?.pulse_day_enabled !== false,
     love: row?.love_enabled !== false,
     money: row?.money_enabled !== false,
     work: row?.work_enabled !== false,
-    assistant: row?.assistant_enabled !== false,
     natal: row?.natal_enabled !== false,
     premium: row?.premium_enabled !== false,
     synastry: row?.synastry_enabled !== false,
@@ -308,15 +300,12 @@ function preferenceForType(type: RetentionNotificationType): keyof PreferenceFla
   if (type === 'sign_daily' || type === 'weekly_horoscope' || type === 'sunday_summary') return 'daily_card';
   if (type === 'compatibility') return 'synastry';
   if (type === 'premium_expiring') return 'premium';
-  if (type === 'pulse_day') return 'pulse_day';
   if (type === 'love') return 'love';
   if (type === 'money') return 'money';
   if (type === 'work') return 'work';
-  if (type === 'assistant') return 'assistant';
   if (type === 'natal_free' || type === 'birth_data_missing' || type === 'birth_time_missing') return 'natal';
   if (type === 'premium') return 'premium';
   if (type === 'synastry') return 'synastry';
-  if (type === 'personal_day') return 'evening_summary';
   return 'enabled';
 }
 
@@ -338,7 +327,6 @@ export function detectUserSegments(context: Omit<PersonalizationContext, 'segmen
   if (context.interests.love >= 2) segments.add('love_interested');
   if (context.interests.money >= 2) segments.add('money_interested');
   if (context.interests.work >= 2) segments.add('work_interested');
-  if (context.interests.assistant >= 2) segments.add('assistant_user');
   if (!context.isPremium && context.lockedBlockEvents > 0) segments.add('high_intent_premium');
   return [...segments];
 }
@@ -352,13 +340,10 @@ function typeToSection(type: RetentionNotificationType) {
     birthday: 'horoscope',
     premium_expiring: 'premium',
     sunday_summary: 'horoscope',
-    pulse_day: 'pulse_day',
-    assistant: 'assistant',
     natal_free: 'natal_free',
     love: 'love',
     money: 'money',
     work: 'work',
-    personal_day: 'checkin',
     synastry: 'synastry',
     premium: 'premium',
     inactive_2d: 'daily_card',
@@ -366,15 +351,15 @@ function typeToSection(type: RetentionNotificationType) {
     inactive_14d: 'daily_card',
     birth_data_missing: 'natal_free',
     birth_time_missing: 'natal_free',
-    unfinished_action: 'assistant',
+    unfinished_action: 'natal_free',
   };
   return map[type];
 }
 
 function baseVariables(context: PersonalizationContext): NotificationRenderVariables {
-  const card = context.preparedDailyCard || preparedCardFromPulse(context.todayPulse);
-  const peak = context.todayPulse?.peakPoint || context.todayPulse?.currentPoint || null;
-  const avoid = context.todayPulse?.currentPoint?.avoid?.[0] || card.cautionText || 'резкие решения';
+  const card = context.preparedDailyCard || preparedCardFromPulse(context.dailyAstroSignal);
+  const peak = context.dailyAstroSignal?.peakPoint || context.dailyAstroSignal?.currentPoint || null;
+  const avoid = context.dailyAstroSignal?.currentPoint?.avoid?.[0] || card.cautionText || 'резкие решения';
   const firstName = String(context.user.name || '').split(/\s+/)[0] || '';
   const signKey = context.user.birthDate ? sunSignFromDate(context.user.birthDate) : null;
   const sign = signKey ? getZodiacSign('ru', signKey) : '';
@@ -384,8 +369,8 @@ function baseVariables(context: PersonalizationContext): NotificationRenderVaria
     sign: sign || firstName || 'ты',
     daily_theme: card.theme,
     daily_summary: card.summary,
-    pulse_window: pulseWindow(context.todayPulse, peak),
-    best_action: context.todayPulse?.currentPoint?.bestFor?.[0] || 'выбрать одно дело',
+    pulse_window: pulseWindow(context.dailyAstroSignal, peak),
+    best_action: context.dailyAstroSignal?.currentPoint?.bestFor?.[0] || 'выбрать одно дело',
     avoid_action: avoid,
     interest_topic: 'раздел',
     locked_topic: 'полную карту',
@@ -516,16 +501,6 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
     body: 'Спокойный вечер — хороший момент оглянуться на неделю и наметить пару шагов на следующую.',
     button: 'Открыть',
   },
-  pulse_day: {
-    title: 'Есть ориентир по дню',
-    body: 'Сейчас лучше свериться с окном дня. Подходит: {{best_action}}. Лучше не тащить: {{avoid_action}}.',
-    button: 'Посмотреть пульс дня',
-  },
-  assistant: {
-    title: 'Можно быстро проверить действие',
-    body: 'Если есть вопрос, выбери действие в личном помощнике: написать, купить, поговорить, работать или отдыхать.',
-    button: 'Спросить астролога',
-  },
   natal_free: {
     title: 'Твоя карта готова',
     body: 'Рассказали о тебе простым языком: характер, отношения, работа и что иногда мешает.',
@@ -545,11 +520,6 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
     title: 'Рабочее окно лучше не распылять',
     body: 'Выбери одно конкретное дело и доведи его до результата. Внутри видно, какой формат задачи подойдёт лучше.',
     button: 'Открыть работу',
-  },
-  personal_day: {
-    title: 'День почти закрыт',
-    body: 'Отметь вечер: фокус, настроение и совпал ли ориентир дня. Так астролог будет точнее завтра.',
-    button: 'Отметить день',
   },
   synastry: {
     title: 'Можно проверить союз',
@@ -594,17 +564,16 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
 };
 
 function jobAllowedTypes(jobType: RetentionJobType): RetentionNotificationType[] {
-  // Сценарии 'pulse_day' и 'personal_day' убраны — таких фич в приложении нет.
   // Единый «катящийся» планировщик: предлагает ВЕСЬ дневной набор, а КОГДА именно у юзера
   // сработает утренний/вечерний тип — решают локальные окна в candidateAllowed (+ тихие часы,
   // лимит 2/день и разрыв 7ч). Так пуши приходят в правильное локальное время в любой таймзоне.
   if (jobType === 'rolling-daily') return [
     'birthday', 'birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'sign_daily',
-    'assistant', 'love', 'money', 'work', 'compatibility', 'synastry', 'premium', 'premium_expiring',
+    'love', 'money', 'work', 'compatibility', 'synastry', 'premium', 'premium_expiring',
     'sunday_summary', 'inactive_2d', 'inactive_7d', 'inactive_14d', 'unfinished_action',
   ];
-  if (jobType === 'morning-retention-planner') return ['birthday', 'birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card', 'assistant'];
-  if (jobType === 'midday-retention-planner') return ['work', 'money', 'love', 'sign_daily', 'compatibility', 'assistant'];
+  if (jobType === 'morning-retention-planner') return ['birthday', 'birth_data_missing', 'birth_time_missing', 'natal_free', 'daily_card'];
+  if (jobType === 'midday-retention-planner') return ['work', 'money', 'love', 'sign_daily', 'compatibility'];
   if (jobType === 'evening-retention-planner') return ['premium_expiring', 'sunday_summary', 'love', 'money', 'compatibility', 'synastry', 'premium'];
   if (jobType === 'inactive-user-reactivation') return ['inactive_2d', 'inactive_7d', 'inactive_14d'];
   if (jobType === 'premium-conversion-planner') return ['premium_expiring', 'premium'];
@@ -626,12 +595,9 @@ function candidatePriority(type: RetentionNotificationType, context: Personaliza
     birthday: 1200,
     premium_expiring: 880,
     sunday_summary: 700,
-    pulse_day: 740,
-    assistant: 650,
     love: 620 + context.interests.love * 10,
     money: 610 + context.interests.money * 10,
     work: 610 + context.interests.work * 10,
-    personal_day: 800,
     premium: 520 + context.lockedBlockEvents * 50,
     synastry: 580 + context.interests.synastry * 10,
     inactive_2d: 700,
@@ -640,12 +606,11 @@ function candidatePriority(type: RetentionNotificationType, context: Personaliza
     unfinished_action: 860,
   };
   let score = base[type];
-  // Премиум: 2-й/3-й/4-й пуш дня активнее ведёт в НЕОТКРЫТЫЕ премиум-функции (чат Lumi, совместимость),
+  // Премиум: 2-й/3-й/4-й пуш дня активнее ведёт в НЕОТКРЫТЫЕ премиум-функции,
   // а не крутит рутинные сферы. Как только юзер там реально побывал (interests>0) — буст исчезает сам,
   // и слот отдаётся следующей функции/сфере. Натальный разбор (natal_free=900) и так доминирует.
   // Утренний гороскоп не задет: его окно и окна этих типов не пересекаются (см. candidateAllowed).
   if (context.isPremium) {
-    if (type === 'assistant' && context.interests.assistant === 0) score += 120;
     if ((type === 'synastry' || type === 'compatibility') && context.interests.synastry === 0) score += 120;
   }
   return score;
@@ -672,11 +637,6 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
   // daily_card; иначе премиум с картой получал бы два похожих гороскопа утром, а день/вечер — пусто).
   if (type === 'sign_daily') return !context.hasPrimaryChart && context.hasBirthDate && h >= 8 && h < 14;
   if (type === 'birthday') return context.isBirthdayToday && h >= 8 && h < 12;
-  // Ассистент Lumi — премиум-функция. Премиума зовём в чат днём/вечером (13–21), даже если он туда ещё
-  // не заходил (это и есть «приглашение в неоткрытую премиум-часть»). Free — только если реально
-  // пользуется ассистентом (утренняя подсказка).
-  if (type === 'assistant') return (context.isPremium && context.interests.assistant === 0 && h >= 13 && h < 21) || (context.interests.assistant >= 1 && h >= 9 && h < 12);
-
   // ── День/вечер: сферы жизни, совместимость, премиум. Для ПРЕМИУМА сферы (любовь/деньги/работа)
   //    открыты БЕЗ порога интересов — это оплаченный личный дневной контент, он и есть 2-й/3-й пуш дня.
   //    Free по-прежнему получает сферу, только если реально смотрел этот раздел (>=2 за 30 дней). ──
@@ -708,8 +668,6 @@ function candidateAllowed(type: RetentionNotificationType, context: Personalizat
 
   // ── Прочее ──
   if (type === 'weekly_horoscope') return context.hasBirthDate;
-  if (type === 'personal_day') return h >= 18 && h <= 22; // dead-фича
-  if (type === 'pulse_day') return !!context.todayPulse && h >= 12 && h < 18; // dead-фича
   return true;
 }
 
@@ -724,7 +682,6 @@ function segmentForType(type: RetentionNotificationType, context: Personalizatio
   if (type === 'love') return 'love_interested';
   if (type === 'money') return 'money_interested';
   if (type === 'work') return 'work_interested';
-  if (type === 'assistant') return 'assistant_user';
   return context.isPremium ? 'daily_active_premium' : 'daily_active_free';
 }
 
@@ -735,7 +692,6 @@ function sectionRecentlyOpened(type: RetentionNotificationType, context: Persona
   if (type === 'daily_card' || type === 'sign_daily') return false;
   const section = typeToSection(type);
   if (section === 'daily_card') return context.recentScreens.includes('daily_card') || context.recentScreens.includes('today');
-  if (section === 'pulse_day') return context.recentScreens.includes('pulse') || context.recentScreens.includes('pulse_day');
   if (section === 'natal_free' || section === 'natal_full') return context.recentScreens.includes('natal') || context.recentScreens.includes('chart');
   return context.recentScreens.includes(section);
 }
@@ -949,14 +905,13 @@ async function interestScores(userId: string) {
      GROUP BY 1`,
     [userId]
   );
-  const scores = { love: 0, money: 0, work: 0, assistant: 0, synastry: 0, natal: 0 };
+  const scores = { love: 0, money: 0, work: 0, synastry: 0, natal: 0 };
   for (const row of result.rows) {
     const screen = String(row.screen || '');
     const count = Number(row.count || 0);
     if (screen.includes('love')) scores.love += count;
     if (screen.includes('money')) scores.money += count;
     if (screen.includes('work')) scores.work += count;
-    if (screen.includes('assistant')) scores.assistant += count;
     if (screen.includes('synastry') || screen.includes('union')) scores.synastry += count;
     if (screen.includes('natal') || screen.includes('chart')) scores.natal += count;
   }
@@ -1020,12 +975,12 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
   const timezone = safeTimezone(settingsRow.timezone || user.chartTimezone);
   const info = localInfo(now, timezone);
   const resolved = user.hasPrimaryChart
-    ? await resolveTodayPulseForUser({ userId: user.id, dateKey: info.localDate }).catch(() => null)
+    ? await resolveDailyAstroSignalForUser({ userId: user.id, dateKey: info.localDate }).catch(() => null)
     : null;
   const pulse = resolved?.status === 'ready' ? resolved.pulse : null;
   const preparedDailyCard = await getPreparedDailyCard(user.id, info.localDate).catch(() => null);
   const recent = await recentScreens(user.id, RECENT_OPEN_MINUTES).catch(() => []);
-  const interests = await interestScores(user.id).catch(() => ({ love: 0, money: 0, work: 0, assistant: 0, synastry: 0, natal: 0 }));
+  const interests = await interestScores(user.id).catch(() => ({ love: 0, money: 0, work: 0, synastry: 0, natal: 0 }));
   const logStats = await pool.query(
     `SELECT
        COUNT(*) FILTER (WHERE status = 'sent' AND local_date = $2::date)::int AS sent_today,
@@ -1098,7 +1053,7 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     hasBirthTime: !!user.birthTime,
     hasBirthPlace: !!user.birthPlace,
     hasPrimaryChart: user.hasPrimaryChart,
-    todayPulse: pulse,
+    dailyAstroSignal: pulse,
     preparedDailyCard,
     recentScreens: recent,
     lockedBlockEvents: Number(locked.rows[0]?.count || 0),
@@ -1704,7 +1659,7 @@ export async function generateDailyCards(now: Date = new Date(), options?: { lim
       }
       const timezone = safeTimezone(user.chartTimezone);
       const info = localInfo(now, timezone);
-      const resolved = await resolveTodayPulseForUser({ userId: user.id, dateKey: info.localDate }).catch(() => null);
+      const resolved = await resolveDailyAstroSignalForUser({ userId: user.id, dateKey: info.localDate }).catch(() => null);
       const pulse = resolved?.status === 'ready' ? resolved.pulse : null;
       const card = preparedCardFromPulse(pulse);
       await getPool().query(
@@ -1848,11 +1803,9 @@ function preferenceColumnForNotificationType(type: string | null) {
   const key = preferenceForType(String(type || '') as RetentionNotificationType);
   const map: Record<string, string> = {
     daily_card: 'daily_card_enabled',
-    pulse_day: 'pulse_day_enabled',
     love: 'love_enabled',
     money: 'money_enabled',
     work: 'work_enabled',
-    assistant: 'assistant_enabled',
     natal: 'natal_enabled',
     premium: 'premium_enabled',
     synastry: 'synastry_enabled',

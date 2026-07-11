@@ -1,5 +1,5 @@
 import type { NatalChartData } from '../types';
-import { buildTodayPulse } from '../lib/todayPulse';
+import { buildDailyAstroSignal } from '../lib/dailyAstroSignal';
 
 jest.mock('../lib/transits-calculator', () => ({
   getCurrentTransits: jest.fn(async (date: Date) => {
@@ -57,7 +57,7 @@ function walk(value: unknown, path = 'root'): string[] {
 
 describe('today pulse', () => {
   it('builds a complete 24-hour pulse without nulls', async () => {
-    const pulse = await buildTodayPulse({
+    const pulse = await buildDailyAstroSignal({
       chartData: chart,
       dateKey: '2026-05-15',
       timezone: 'Europe/Moscow',
@@ -95,7 +95,7 @@ describe('today pulse', () => {
       timezone: undefined,
     } satisfies NatalChartData;
 
-    const pulse = await buildTodayPulse({
+    const pulse = await buildDailyAstroSignal({
       chartData: minimalChart,
       dateKey: '2026-05-15',
       language: 'ru',

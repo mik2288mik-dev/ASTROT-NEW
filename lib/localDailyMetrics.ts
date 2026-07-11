@@ -1,4 +1,4 @@
-import type { Language, TodayPulse } from '../types';
+import type { Language, DailyAstroSignal } from '../types';
 import { normalizeZodiacKey, type ZodiacKey } from './horoscope/signDaily';
 
 export type DailyMetricKey = 'mood' | 'energy' | 'communication' | 'focus';
@@ -58,7 +58,7 @@ export function getLocalDailyMetrics(signRaw: string, dateKey: string, language:
   };
 }
 
-export function getPulseDailyMetrics(pulse: TodayPulse, language: Language): DailyMetrics {
+export function getPulseDailyMetrics(pulse: DailyAstroSignal, language: Language): DailyMetrics {
   const layers = pulse.layers;
   const peak = pulse.peakPoint;
   const start = peak.time.slice(0, 5);

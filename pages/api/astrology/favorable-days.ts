@@ -4,7 +4,7 @@ import { requireAppUser } from '../../../lib/auth/appAuth';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '../../../lib/rateLimit';
-import { computeDailyScores } from '../../../lib/todayPulse';
+import { computeDailyScores } from '../../../lib/dailyAstroSignal';
 import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 
 // Оценка дня (0–100) на ВЕСЬ текущий календарный месяц (1-е → последнее число) — для

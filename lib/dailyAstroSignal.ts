@@ -4,59 +4,59 @@ import type {
   Language,
   NatalChartData,
   PlanetPosition,
-  TodayPulse,
-  TodayPulseLayerKey,
-  TodayPulseLayers,
-  TodayPulsePhase,
-  TodayPulsePoint,
-  TodayPulseTone,
-  TodayPulseWindow,
+  DailyAstroSignal,
+  DailyAstroSignalLayerKey,
+  DailyAstroSignalLayers,
+  DailyAstroSignalPhase,
+  DailyAstroSignalPoint,
+  DailyAstroSignalTone,
+  DailyAstroSignalWindow,
 } from '../types';
 import { getCurrentTransits, type CurrentTransits, type PlanetTransit } from './transits-calculator';
 import { logger } from './logger';
 
-export const TODAY_PULSE_CALCULATION_VERSION = 'today-pulse-v1';
+export const DAILY_ASTRO_SIGNAL_CALCULATION_VERSION = 'daily-astro-signal-v1';
 
-const LAYERS: TodayPulseLayerKey[] = ['energy', 'focus', 'emotions', 'money', 'relationships'];
+const LAYERS: DailyAstroSignalLayerKey[] = ['energy', 'focus', 'emotions', 'money', 'relationships'];
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
-type TodayPulseMetricSource = TodayPulse['source'] | 'unavailable';
+type DailyAstroSignalMetricSource = DailyAstroSignal['source'] | 'unavailable';
 
-const todayPulseMetrics = {
+const dailyAstroSignalMetrics = {
   swisseph: 0,
   algorithmic: 0,
   mixed: 0,
   unavailable: 0,
 };
 
-export class TodayPulseQualityError extends Error {
-  code = 'TODAY_PULSE_REQUIRES_SWISSEPH';
+export class DailyAstroSignalQualityError extends Error {
+  code = 'DAILY_ASTRO_SIGNAL_REQUIRES_SWISSEPH';
 
   constructor(message: string) {
     super(message);
-    this.name = 'TodayPulseQualityError';
+    this.name = 'DailyAstroSignalQualityError';
   }
 }
 
-function recordTodayPulseMetric(source: TodayPulseMetricSource) {
-  todayPulseMetrics[source] += 1;
+function recordDailyAstroSignalMetric(source: DailyAstroSignalMetricSource) {
+  dailyAstroSignalMetrics[source] += 1;
   logger.info({
-    scope: 'today-pulse',
-    event: 'today_pulse_source_metric',
+    scope: 'daily-astro-signal',
+    event: 'daily_astro_signal_source_metric',
     source,
-    metadata: { counts: { ...todayPulseMetrics } },
+    metadata: { counts: { ...dailyAstroSignalMetrics } },
   });
 }
 
-export function getTodayPulseMetricsSnapshot() {
-  return { ...todayPulseMetrics };
+export function getDailyAstroSignalMetricsSnapshot() {
+  return { ...dailyAstroSignalMetrics };
 }
 
-export function isFullSwissTodayPulse(pulse: TodayPulse | null | undefined): boolean {
+export function isFullSwissDailyAstroSignal(pulse: DailyAstroSignal | null | undefined): boolean {
   return !!pulse &&
     pulse.source === 'swisseph' &&
     Array.isArray(pulse.points) &&
     pulse.points.length === 24 &&
-    pulse.calculationVersion === TODAY_PULSE_CALCULATION_VERSION;
+    pulse.calculationVersion === DAILY_ASTRO_SIGNAL_CALCULATION_VERSION;
 }
 
 const ZODIAC_KEYS = [
@@ -76,7 +76,7 @@ const ZODIAC_KEYS = [
 
 type ZodiacKey = (typeof ZODIAC_KEYS)[number];
 
-type BuildTodayPulseOptions = {
+type BuildDailyAstroSignalOptions = {
   chartData: NatalChartData;
   dateKey: string;
   timezone?: string | null;
@@ -85,12 +85,12 @@ type BuildTodayPulseOptions = {
 };
 
 type PhaseConfig = {
-  phase: TodayPulsePhase;
+  phase: DailyAstroSignalPhase;
   start: number;
   end: number;
   label: Record<Language, string>;
   summary: Record<Language, string>;
-  tone: TodayPulseTone;
+  tone: DailyAstroSignalTone;
 };
 
 const PHASES: PhaseConfig[] = [
@@ -292,7 +292,7 @@ function gaussian(hour: number, center: number, width: number) {
   return Math.exp(-Math.pow(hour - center, 2) / (2 * width * width));
 }
 
-function circadianLayer(hour: number, layer: TodayPulseLayerKey) {
+function circadianLayer(hour: number, layer: DailyAstroSignalLayerKey) {
   if (layer === 'energy') return Math.max(gaussian(hour, 9, 3.2), gaussian(hour, 14, 4.2) * 0.74);
   if (layer === 'focus') return Math.max(gaussian(hour, 12, 2.7), gaussian(hour, 9, 3.4) * 0.58);
   if (layer === 'emotions') return Math.max(gaussian(hour, 19, 3.2), gaussian(hour, 1, 2.8) * 0.42);
@@ -304,11 +304,11 @@ function phaseForHour(hour: number) {
   return PHASES.find((phase) => hour >= phase.start && hour < phase.end) || PHASES[0];
 }
 
-function dominantLayer(layers: TodayPulseLayers): TodayPulseLayerKey {
-  return LAYERS.reduce((best, key) => (layers[key] > layers[best] ? key : best), 'energy' as TodayPulseLayerKey);
+function dominantLayer(layers: DailyAstroSignalLayers): DailyAstroSignalLayerKey {
+  return LAYERS.reduce((best, key) => (layers[key] > layers[best] ? key : best), 'energy' as DailyAstroSignalLayerKey);
 }
 
-function calculateLayers(chartData: NatalChartData, transits: CurrentTransits, hour: number, seed: string): TodayPulseLayers {
+function calculateLayers(chartData: NatalChartData, transits: CurrentTransits, hour: number, seed: string): DailyAstroSignalLayers {
   const natal = {
     sun: getPositionLongitude(chartData.sun),
     moon: getPositionLongitude(chartData.moon),
@@ -349,7 +349,7 @@ function calculateLayers(chartData: NatalChartData, transits: CurrentTransits, h
         relationships: null,
       };
   const score = (
-    layer: TodayPulseLayerKey,
+    layer: DailyAstroSignalLayerKey,
     base: number,
     astroSupport: number,
     astroPressure: number,
@@ -411,7 +411,7 @@ function calculateLayers(chartData: NatalChartData, transits: CurrentTransits, h
   };
 }
 
-function calculateScore(layers: TodayPulseLayers, phase: TodayPulsePhase) {
+function calculateScore(layers: DailyAstroSignalLayers, phase: DailyAstroSignalPhase) {
   const base =
     layers.energy * 0.24 +
     layers.focus * 0.31 +
@@ -425,9 +425,9 @@ function calculateScore(layers: TodayPulseLayers, phase: TodayPulsePhase) {
 function buildPointText(
   language: Language,
   phaseConfig: PhaseConfig,
-  layers: TodayPulseLayers,
+  layers: DailyAstroSignalLayers,
   transits: CurrentTransits,
-  dominant: TodayPulseLayerKey,
+  dominant: DailyAstroSignalLayerKey,
   hasHouses: boolean,
   score: number
 ) {
@@ -435,7 +435,7 @@ function buildPointText(
   const mercury = transits.mercury ? getZodiacSign(language, normalizeSign(transits.mercury.sign)) : null;
   const venus = transits.venus ? getZodiacSign(language, normalizeSign(transits.venus.sign)) : null;
   const cautious = phaseConfig.phase === 'relationships' && layers.emotions < 46;
-  const titleByPhase: Record<TodayPulsePhase, Record<Language, string>> = {
+  const titleByPhase: Record<DailyAstroSignalPhase, Record<Language, string>> = {
     restore: { ru: 'Восстановление', en: 'Recovery' },
     entry: { ru: 'Мягкий старт', en: 'Soft start' },
     focus_peak: { ru: score >= 72 ? 'Пик фокуса' : 'Рабочее окно', en: score >= 72 ? 'Focus peak' : 'Work window' },
@@ -443,7 +443,7 @@ function buildPointText(
     relationships: { ru: cautious ? 'Осторожнее с эмоциями' : 'Контакт и люди', en: cautious ? 'Careful with emotions' : 'People and connection' },
     reflection: { ru: 'Закрыть день', en: 'Close the day' },
   };
-  const summaryByPhase: Record<TodayPulsePhase, Record<Language, string>> = {
+  const summaryByPhase: Record<DailyAstroSignalPhase, Record<Language, string>> = {
     restore: {
       ru: score >= 50 ? 'Можно спокойно восстановиться и закрыть простые хвосты.' : 'Не разгоняйся: это окно для сна, тишины и восстановления.',
       en: score >= 50 ? 'A calm recovery window for simple loose ends.' : 'Do not push: this is for sleep, quiet, and recovery.',
@@ -469,7 +469,7 @@ function buildPointText(
       en: 'Close the day: notes, shower, quiet, no new heavy decisions.',
     },
   };
-  const dominantSummary: Record<TodayPulseLayerKey, Record<Language, string>> = {
+  const dominantSummary: Record<DailyAstroSignalLayerKey, Record<Language, string>> = {
     energy: {
       ru: 'Есть ресурс на движение, но выиграет не скорость, а ровный темп.',
       en: 'There is energy for movement, but a steady pace wins over speed.',
@@ -520,8 +520,8 @@ function buildPointText(
   return { title, summary, reasons: reasons.slice(0, 4) };
 }
 
-function bestFor(language: Language, phase: TodayPulsePhase) {
-  const ru: Record<TodayPulsePhase, string[]> = {
+function bestFor(language: Language, phase: DailyAstroSignalPhase) {
+  const ru: Record<DailyAstroSignalPhase, string[]> = {
     restore: ['сон', 'тишина', 'мягкое восстановление'],
     entry: ['план дня', 'порядок', 'первые простые задачи'],
     focus_peak: ['главная задача', 'переписка', 'планирование'],
@@ -529,7 +529,7 @@ function bestFor(language: Language, phase: TodayPulsePhase) {
     relationships: ['теплый контакт', 'личные разговоры', 'бережные решения'],
     reflection: ['закрыть день', 'дневник', 'тишина без лишних стимулов'],
   };
-  const en: Record<TodayPulsePhase, string[]> = {
+  const en: Record<DailyAstroSignalPhase, string[]> = {
     restore: ['sleep', 'quiet', 'soft recovery'],
     entry: ['day plan', 'order', 'first simple tasks'],
     focus_peak: ['main task', 'messages', 'planning'],
@@ -541,7 +541,7 @@ function bestFor(language: Language, phase: TodayPulsePhase) {
   return list.slice(0, 3);
 }
 
-function avoidFor(language: Language, phase: TodayPulsePhase, tone: TodayPulseTone) {
+function avoidFor(language: Language, phase: DailyAstroSignalPhase, tone: DailyAstroSignalTone) {
   if (language === 'en') {
     if (tone === 'caution') return ['relationship pressure', 'sharp messages', 'rushed conclusions'];
     if (phase === 'restore' || phase === 'reflection') return ['heavy decisions', 'doomscrolling', 'late arguments'];
@@ -560,7 +560,7 @@ function buildPoint(
   dateKey: string,
   hour: number,
   transits: CurrentTransits
-): TodayPulsePoint {
+): DailyAstroSignalPoint {
   const phaseConfig = phaseForHour(hour);
   const layers = calculateLayers(chartData, transits, hour, dateKey);
   const phase = phaseConfig.phase;
@@ -568,7 +568,7 @@ function buildPoint(
   const score = calculateScore(layers, phase);
   const hasHouses = hasReliableHouses(chartData);
   const text = buildPointText(language, phaseConfig, layers, transits, dominant, hasHouses, score);
-  const tone: TodayPulseTone = phase === 'relationships' && layers.emotions < 46
+  const tone: DailyAstroSignalTone = phase === 'relationships' && layers.emotions < 46
     ? 'caution'
     : score >= 72
       ? 'peak'
@@ -589,13 +589,13 @@ function buildPoint(
   };
 }
 
-function pointsForWindow(points: TodayPulsePoint[], phase: PhaseConfig) {
+function pointsForWindow(points: DailyAstroSignalPoint[], phase: PhaseConfig) {
   return points.filter((point) => point.hour >= phase.start && point.hour < phase.end);
 }
 
-function averageLayers(points: TodayPulsePoint[]): TodayPulseLayers {
+function averageLayers(points: DailyAstroSignalPoint[]): DailyAstroSignalLayers {
   const safe = points.length ? points : [];
-  const value = (key: TodayPulseLayerKey) => clamp(average(safe.map((point) => point.layers[key]), 50));
+  const value = (key: DailyAstroSignalLayerKey) => clamp(average(safe.map((point) => point.layers[key]), 50));
   return {
     energy: value('energy'),
     focus: value('focus'),
@@ -605,7 +605,7 @@ function averageLayers(points: TodayPulsePoint[]): TodayPulseLayers {
   };
 }
 
-function buildWindows(points: TodayPulsePoint[], language: Language): TodayPulseWindow[] {
+function buildWindows(points: DailyAstroSignalPoint[], language: Language): DailyAstroSignalWindow[] {
   return PHASES.map((phase) => {
     const phasePoints = pointsForWindow(points, phase);
     const layers = averageLayers(phasePoints);
@@ -629,7 +629,7 @@ function minBy<T>(items: T[], score: (item: T) => number): T {
   return items.reduce((best, item) => (score(item) < score(best) ? item : best), items[0]);
 }
 
-function chooseKeyMoments(points: TodayPulsePoint[], current: TodayPulsePoint, peak: TodayPulsePoint) {
+function chooseKeyMoments(points: DailyAstroSignalPoint[], current: DailyAstroSignalPoint, peak: DailyAstroSignalPoint) {
   const focusWindow = points.filter((point) => point.hour >= 10 && point.hour < 14);
   const relationWindow = points.filter((point) => point.hour >= 17 && point.hour < 21);
   const recoveryWindow = points.filter((point) => point.hour >= 21 || point.hour < 6);
@@ -640,7 +640,7 @@ function chooseKeyMoments(points: TodayPulsePoint[], current: TodayPulsePoint, p
     minBy(relationWindow.length ? relationWindow : points, (point) => point.layers.emotions),
     maxBy(recoveryWindow.length ? recoveryWindow : points, (point) => point.layers.emotions + point.layers.energy * 0.2),
   ];
-  const unique = new Map<number, TodayPulsePoint>();
+  const unique = new Map<number, DailyAstroSignalPoint>();
   for (const point of candidates) unique.set(point.hour, point);
   for (const phase of PHASES) {
     if (unique.size >= 5) break;
@@ -649,7 +649,7 @@ function chooseKeyMoments(points: TodayPulsePoint[], current: TodayPulsePoint, p
   return Array.from(unique.values()).sort((a, b) => a.hour - b.hour).slice(0, 5);
 }
 
-function deriveSource(transits: CurrentTransits[]): TodayPulse['source'] {
+function deriveSource(transits: CurrentTransits[]): DailyAstroSignal['source'] {
   const sources = new Set(transits.map((item) => item.source || 'algorithmic'));
   if (sources.size === 1 && sources.has('swisseph')) return 'swisseph';
   if (sources.size === 1 && sources.has('algorithmic')) return 'algorithmic';
@@ -677,9 +677,9 @@ export async function computeDailyScores(
 
 export type DayScoreResult = {
   score: number;
-  layers: TodayPulseLayers;
-  dominant: TodayPulseLayerKey;
-  weakest: TodayPulseLayerKey;
+  layers: DailyAstroSignalLayers;
+  dominant: DailyAstroSignalLayerKey;
+  weakest: DailyAstroSignalLayerKey;
 };
 
 /**
@@ -700,12 +700,12 @@ export function computeDayScoreFromTransits(
   const dominant = dominantLayer(layers);
   const weakest = LAYERS.reduce(
     (w, k) => (layers[k] < layers[w] ? k : w),
-    'energy' as TodayPulseLayerKey,
+    'energy' as DailyAstroSignalLayerKey,
   );
   return { score, layers, dominant, weakest };
 }
 
-export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<TodayPulse> {
+export async function buildDailyAstroSignal(options: BuildDailyAstroSignalOptions): Promise<DailyAstroSignal> {
   const startedAt = Date.now();
   const language = options.language === 'en' ? 'en' : 'ru';
   const timezone = normalizeTimezone(options.timezone || options.chartData.timezone);
@@ -714,9 +714,9 @@ export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<
   const currentDateKey = dateKeyForTimezone(now, timezone);
   const currentHour = currentDateKey === options.dateKey ? localNow.hour : 12;
   logger.info({
-    scope: 'today-pulse',
-    event: 'today_pulse_build_start',
-    calculationVersion: TODAY_PULSE_CALCULATION_VERSION,
+    scope: 'daily-astro-signal',
+    event: 'daily_astro_signal_build_start',
+    calculationVersion: DAILY_ASTRO_SIGNAL_CALCULATION_VERSION,
     metadata: { dateKey: options.dateKey, timezone },
   });
   const hourlyDates = Array.from({ length: 24 }, (_, hour) => localHourToUtc(options.dateKey, hour, timezone));
@@ -724,39 +724,39 @@ export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<
   try {
     transits = await Promise.all(hourlyDates.map((date) => getCurrentTransits(date)));
   } catch (error) {
-    recordTodayPulseMetric('unavailable');
+    recordDailyAstroSignalMetric('unavailable');
     logger.error({
-      scope: 'today-pulse',
-      event: 'today_pulse_unavailable',
+      scope: 'daily-astro-signal',
+      event: 'daily_astro_signal_unavailable',
       status: 'error',
-      errorCode: 'TODAY_PULSE_UNAVAILABLE',
+      errorCode: 'DAILY_ASTRO_SIGNAL_UNAVAILABLE',
       durationMs: Date.now() - startedAt,
       metadata: { dateKey: options.dateKey },
     });
     throw error;
   }
   const source = deriveSource(transits);
-  recordTodayPulseMetric(source);
+  recordDailyAstroSignalMetric(source);
   if (transits.length !== 24 || source !== 'swisseph') {
     logger.warn({
-      scope: 'today-pulse',
-      event: 'today_pulse_strict_validation_failed',
+      scope: 'daily-astro-signal',
+      event: 'daily_astro_signal_strict_validation_failed',
       source,
       status: 'failed',
-      errorCode: 'TODAY_PULSE_REQUIRES_SWISSEPH',
+      errorCode: 'DAILY_ASTRO_SIGNAL_REQUIRES_SWISSEPH',
       durationMs: Date.now() - startedAt,
       metadata: { dateKey: options.dateKey, pointCount: transits.length },
     });
-    throw new TodayPulseQualityError(
-      `Today Pulse requires 24 Swiss Ephemeris transit points; received ${transits.length} points with source=${source}`
+    throw new DailyAstroSignalQualityError(
+      `daily astro signal requires 24 Swiss Ephemeris transit points; received ${transits.length} points with source=${source}`
     );
   }
   logger.info({
-    scope: 'today-pulse',
-    event: 'today_pulse_swisseph_24_success',
+    scope: 'daily-astro-signal',
+    event: 'daily_astro_signal_swisseph_24_success',
     source: 'swisseph',
     status: 'ok',
-    calculationVersion: TODAY_PULSE_CALCULATION_VERSION,
+    calculationVersion: DAILY_ASTRO_SIGNAL_CALCULATION_VERSION,
     durationMs: Date.now() - startedAt,
     metadata: { dateKey: options.dateKey, pointCount: transits.length },
   });
@@ -780,6 +780,6 @@ export async function buildTodayPulse(options: BuildTodayPulseOptions): Promise<
     points: markedPoints,
     windows: buildWindows(markedPoints, language),
     keyMoments: markedKeyMoments,
-    calculationVersion: TODAY_PULSE_CALCULATION_VERSION,
+    calculationVersion: DAILY_ASTRO_SIGNAL_CALCULATION_VERSION,
   };
 }

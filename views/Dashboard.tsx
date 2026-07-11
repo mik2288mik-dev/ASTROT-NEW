@@ -208,13 +208,13 @@ export const Dashboard = memo<DashboardProps>(({
     lumiaSelectionHaptic();
     if (hasChart) { onOpenPersonalDaily('overview'); }
     else if (!hasChart) { onCreateNatalChart?.(); }
-    else { onRequestPremium?.('personal_day'); }
+    else { onRequestPremium?.('personal_daily'); }
   };
   const openSphere = (section: PersonalDailySection) => {
     lumiaSelectionHaptic();
     if (hasChart) { onOpenPersonalDaily(section); }
     else if (!hasChart) { onCreateNatalChart?.(); }
-    else { onRequestPremium?.('personal_day_sphere'); }
+    else { onRequestPremium?.('personal_daily_section'); }
   };
 
   return (
@@ -223,7 +223,7 @@ export const Dashboard = memo<DashboardProps>(({
       className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      <section className="home-top" aria-label="LUMIA">
+      <section className="home-top" aria-label="Твой Гороскоп">
         <div className="home-logo-bar">
           <span className="home-logo-wordmark">Твой Гороскоп</span>
         </div>

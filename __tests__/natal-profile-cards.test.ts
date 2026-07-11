@@ -132,13 +132,12 @@ describe('natal profile cards mapper', () => {
         shortText: 'Сегодня лучше выбрать одно главное и не распыляться.',
         bestWindowLabel: '14:00-16:00: лучший момент для задач',
         checkinCompleted: true,
-        recentActionCount: 2,
       },
     });
 
     expect(cards[5].primaryCta?.action).toBe('read_deeper');
     expect(cards[5].title).toBe('Где у тебя получается лучше всего');
-    expect(cards[5].sourceDebug?.join(' ')).toContain('recentActions:2');
+    expect(cards[5].sourceDebug?.join(' ')).toContain('todayCheckin:completed');
   });
 
   it('does not slice or expose an existing long generated report as profileCards', () => {
@@ -214,8 +213,8 @@ describe('natal story share renderer', () => {
     expect(story.width).toBe(1080);
     expect(story.height).toBe(1920);
     expect(feed.height).toBe(1350);
-    expect(story.svg).toContain('LUMIA');
-    expect(story.svg.replace(/ТВОЙ ПУТЬ К СЕБЕ/g, '')).not.toMatch(fogForbidden);
+    expect(story.svg).toContain('ТВОЙ ГОРОСКОП');
+    expect(story.svg.replace(/ЛИЧНАЯ КАРТА/g, '')).not.toMatch(fogForbidden);
     expect(normalizeNatalStoryShareFormat('unknown')).toBe('story');
   });
 });

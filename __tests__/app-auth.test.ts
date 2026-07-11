@@ -49,7 +49,7 @@ describe('app auth providers and API security', () => {
     for (const file of ['pages/api/charts/index.ts', 'pages/api/charts/[id].ts', 'pages/api/charts/chart/[chartId].ts', 'pages/api/charts/set-primary.ts']) expect(read(file)).toContain('requireAppUser');
     expect(read('pages/api/charts/chart/[chartId].ts')).toContain('Chart does not belong to user');
     expect(read('lib/natalReading/apiHelper.ts')).toContain('String(chart.user_id) === String(userId)');
-    expect(read('lib/todayPulseResolver.ts')).not.toContain('chartDataFallback || primaryChart?.chart_data');
+    expect(read('lib/dailyAstroSignalResolver.ts')).not.toContain('chartDataFallback || primaryChart?.chart_data');
   });
 
   it('never grants trial or trusts client Premium for a web guest', () => {

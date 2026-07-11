@@ -1,4 +1,4 @@
-import type { TodayPulse } from '../types';
+import type { DailyAstroSignal } from '../types';
 
 export type TodayCheckInDateMode = 'same_day' | 'previous_day_tail';
 
@@ -19,7 +19,7 @@ function clockHour(value: string | null | undefined) {
   return Number.isFinite(hour) ? hour : null;
 }
 
-export function getTodayCheckInDateInfo(pulse: Pick<TodayPulse, 'date' | 'currentTime'>): TodayCheckInDateInfo {
+export function getTodayCheckInDateInfo(pulse: Pick<DailyAstroSignal, 'date' | 'currentTime'>): TodayCheckInDateInfo {
   const hour = clockHour(pulse.currentTime);
   if (hour != null && hour >= 0 && hour < 4) {
     return {

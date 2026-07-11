@@ -160,7 +160,7 @@ export type PersonalizationPrivacyFlags = {
   hasBirthTime: boolean;
   hasBirthPlace: boolean;
   hasChart: boolean;
-  hasTodayPulse: boolean;
+  hasDailyAstroSignal: boolean;
   hasCheckIns: boolean;
   hasRecentQuestions: boolean;
   hasRelationshipContext: boolean;
@@ -174,7 +174,7 @@ export function extractPersonalizationPrivacyFlags(context: {
   user?: { birthDate?: string; birthTime?: string; birthPlace?: string };
   chartData?: unknown | null;
   chartQuality?: { birthTimeQuality?: string };
-  todayPulse?: { source?: string; calculationVersion?: string } | null;
+  dailyAstroSignal?: { source?: string; calculationVersion?: string } | null;
   recentCheckIns?: unknown[];
   recentQuestions?: unknown[];
   relationshipContext?: unknown[];
@@ -185,7 +185,7 @@ export function extractPersonalizationPrivacyFlags(context: {
       hasBirthTime: false,
       hasBirthPlace: false,
       hasChart: false,
-      hasTodayPulse: false,
+      hasDailyAstroSignal: false,
       hasCheckIns: false,
       hasRecentQuestions: false,
       hasRelationshipContext: false,
@@ -197,13 +197,13 @@ export function extractPersonalizationPrivacyFlags(context: {
     hasBirthTime: !!String(context.user?.birthTime || '').trim(),
     hasBirthPlace: !!String(context.user?.birthPlace || '').trim(),
     hasChart: !!context.chartData,
-    hasTodayPulse: !!context.todayPulse,
+    hasDailyAstroSignal: !!context.dailyAstroSignal,
     hasCheckIns: (context.recentCheckIns?.length || 0) > 0,
     hasRecentQuestions: (context.recentQuestions?.length || 0) > 0,
     hasRelationshipContext: (context.relationshipContext?.length || 0) > 0,
     birthTimeQuality: context.chartQuality?.birthTimeQuality,
     chartQuality: context.chartQuality,
-    source: context.todayPulse?.source,
-    calculationVersion: context.todayPulse?.calculationVersion,
+    source: context.dailyAstroSignal?.source,
+    calculationVersion: context.dailyAstroSignal?.calculationVersion,
   };
 }

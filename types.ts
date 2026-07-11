@@ -270,11 +270,11 @@ export interface TodayMetric {
   history: TodayMetricPoint[];
 }
 
-export type TodayPulseLayerKey = 'energy' | 'focus' | 'emotions' | 'money' | 'relationships';
-export type TodayPulsePhase = 'restore' | 'entry' | 'focus_peak' | 'decisions' | 'relationships' | 'reflection';
-export type TodayPulseTone = 'calm' | 'rise' | 'peak' | 'social' | 'caution' | 'restore';
+export type DailyAstroSignalLayerKey = 'energy' | 'focus' | 'emotions' | 'money' | 'relationships';
+export type DailyAstroSignalPhase = 'restore' | 'entry' | 'focus_peak' | 'decisions' | 'relationships' | 'reflection';
+export type DailyAstroSignalTone = 'calm' | 'rise' | 'peak' | 'social' | 'caution' | 'restore';
 
-export interface TodayPulseLayers {
+export interface DailyAstroSignalLayers {
   energy: number;
   focus: number;
   emotions: number;
@@ -282,50 +282,50 @@ export interface TodayPulseLayers {
   relationships: number;
 }
 
-export interface TodayPulsePoint {
+export interface DailyAstroSignalPoint {
   time: string;
   hour: number;
   score: number;
-  layers: TodayPulseLayers;
-  phase: TodayPulsePhase;
+  layers: DailyAstroSignalLayers;
+  phase: DailyAstroSignalPhase;
   title: string;
   summary: string;
   reasons: string[];
   bestFor: string[];
   avoid: string[];
-  tone: TodayPulseTone;
+  tone: DailyAstroSignalTone;
   isKeyMoment: boolean;
 }
 
-export interface TodayPulseWindow {
+export interface DailyAstroSignalWindow {
   start: string;
   end: string;
   label: string;
   summary: string;
   score: number;
-  dominantLayer: TodayPulseLayerKey;
-  tone: TodayPulseTone;
+  dominantLayer: DailyAstroSignalLayerKey;
+  tone: DailyAstroSignalTone;
 }
 
-export interface TodayPulse {
+export interface DailyAstroSignal {
   date: string;
   timezone: string;
   generatedAt: string;
   source: 'swisseph' | 'algorithmic' | 'mixed';
   currentTime: string;
-  currentPoint: TodayPulsePoint;
-  peakPoint: TodayPulsePoint;
-  layers: TodayPulseLayers;
-  points: TodayPulsePoint[];
-  windows: TodayPulseWindow[];
-  keyMoments: TodayPulsePoint[];
+  currentPoint: DailyAstroSignalPoint;
+  peakPoint: DailyAstroSignalPoint;
+  layers: DailyAstroSignalLayers;
+  points: DailyAstroSignalPoint[];
+  windows: DailyAstroSignalWindow[];
+  keyMoments: DailyAstroSignalPoint[];
   calculationVersion: string;
 }
 
-export type TodayPulseResult =
+export type DailyAstroSignalResult =
   | {
       status: 'ready';
-      pulse: TodayPulse;
+      pulse: DailyAstroSignal;
       chartId: number | null;
       source: string;
     }
@@ -355,46 +355,11 @@ export interface DailyCheckIn extends DailyCheckInInput {
   date: string;
   timezone: string;
   pulseTime: string;
-  pulsePhase: TodayPulsePhase;
+  pulsePhase: DailyAstroSignalPhase;
   pulseScore: number;
-  pulseLayers: TodayPulseLayers;
+  pulseLayers: DailyAstroSignalLayers;
   createdAt: string;
   updatedAt: string;
-}
-
-export type ActionTimingKey = 'message' | 'money' | 'purchase' | 'serious_talk' | 'work' | 'rest';
-export type ActionTimingState = 'now' | 'later' | 'no_edge';
-
-export interface ActionTimingRecommendation {
-  actionKey: ActionTimingKey;
-  state: ActionTimingState;
-  title: string;
-  summary: string;
-  bestWindow: {
-    start: string;
-    end: string;
-    label: string;
-    score: number;
-  };
-  targetPoint: TodayPulsePoint;
-  confidence: number;
-  reasons: string[];
-  caution: string;
-  date: string;
-  timezone: string;
-  generatedAt: string;
-}
-
-export interface TodayAssistantAccuracySummary {
-  historyCount: number;
-  title: string;
-  summary: string;
-  bestMatchedLayer: 'focus' | 'mood' | 'people' | 'overall' | 'none';
-  forecastFitRate: number;
-  progressToInsight: {
-    current: number;
-    target: number;
-  };
 }
 
 export interface PersonalPatternInsight {
@@ -415,42 +380,6 @@ export interface PersonalPatternTeaser {
     current: number;
     target: number;
   };
-}
-
-export type TodayAssistantDayMode = 'morning' | 'day' | 'evening';
-
-export type TodayAssistantHomeResult =
-  | {
-      status: 'ready';
-      pulse: TodayPulse;
-      chartId: number | null;
-      source: string;
-      dayMode: TodayAssistantDayMode;
-      checkInPulse?: TodayPulse;
-      checkInDate?: string;
-      checkInDateMode?: 'same_day' | 'previous_day_tail';
-      checkIn: {
-        status: 'open' | 'completed';
-        entry?: DailyCheckIn;
-      };
-      quickActions: ActionTimingRecommendation[];
-      accuracySummary: TodayAssistantAccuracySummary;
-      patternTeaser: PersonalPatternTeaser;
-      insights: PersonalPatternInsight[];
-    }
-  | {
-      status: 'needs_setup';
-      code: 'PROFILE_BIRTH_DATA_REQUIRED';
-      message: string;
-      actionLabel: string;
-    };
-
-export interface DailyCheckInSubmitResult {
-  status: 'saved';
-  checkIn: DailyCheckIn;
-  accuracySummary: TodayAssistantAccuracySummary;
-  patternTeaser: PersonalPatternTeaser;
-  insights: PersonalPatternInsight[];
 }
 
 export type HoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
@@ -1096,7 +1025,6 @@ export type AdminNotificationTargetSegment =
   | 'love_interested'
   | 'money_interested'
   | 'work_interested'
-  | 'assistant_user'
   | 'high_intent_premium';
 export type AdminNotificationModeFilter = 'all' | 'personal' | 'broadcast';
 export type AdminHistoryResultFilter = 'all' | 'success' | 'partial' | 'failed';

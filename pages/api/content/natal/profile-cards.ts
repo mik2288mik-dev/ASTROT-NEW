@@ -2,8 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { buildNatalProfileCards, NATAL_PROFILE_CARDS_VERSION } from '../../../../lib/natalProfileCards';
 import { ensureValidContext, isPremium } from '../../../../lib/natalReading/apiHelper';
 import { db } from '../../../../lib/db';
-import { resolveTodayPulseForUser } from '../../../../lib/todayPulseResolver';
-import type { TodayPulse, TodayPulseWindow } from '../../../../types';
+import { resolveDailyAstroSignalForUser } from '../../../../lib/dailyAstroSignalResolver';
+import type { DailyAstroSignal, DailyAstroSignalWindow } from '../../../../types';
 
 function readLocalHour(req: NextApiRequest): number | null {
   const raw = req.method === 'GET' ? req.query.localHour : req.body?.localHour;
@@ -34,7 +34,7 @@ function localHourFor(timezone?: string | null): number | null {
   }
 }
 
-function pickBestWindow(pulse: TodayPulse): TodayPulseWindow | null {
+function pickBestWindow(pulse: DailyAstroSignal): DailyAstroSignalWindow | null {
   const peakHour = Number(pulse.peakPoint?.hour);
   const byPeak = pulse.windows.find((window) => {
     const start = Number.parseInt(window.start.slice(0, 2), 10);
@@ -50,7 +50,7 @@ async function buildTodayContext(userId: string, chartId: number | null, valid: 
   const fallbackHour = explicitHour ?? localHourFor(valid.ctx.chartData?.timezone);
 
   try {
-    const resolved = await resolveTodayPulseForUser({
+    const resolved = await resolveDailyAstroSignalForUser({
       userId,
       chartId,
       profileFallback: valid.ctx.profile,
@@ -60,18 +60,14 @@ async function buildTodayContext(userId: string, chartId: number | null, valid: 
       return { shortText: explicitText, localHour: fallbackHour };
     }
 
-    const [todayCheckIn, actionEvents] = await Promise.all([
-      db.daily_checkins.getForDate(userId, resolved.chartId, resolved.pulse.date).catch(() => null),
-      db.action_timing_events.listRecent(userId, resolved.chartId, 14).catch(() => []),
-    ]);
+    const todayCheckIn = await db.daily_checkins.getForDate(userId, resolved.chartId, resolved.pulse.date).catch(() => null);
     const bestWindow = pickBestWindow(resolved.pulse);
     return {
       shortText: explicitText || resolved.pulse.currentPoint.summary,
-      pulseTitle: resolved.pulse.currentPoint.title,
-      pulseSummary: resolved.pulse.currentPoint.summary,
+      dailySignalTitle: resolved.pulse.currentPoint.title,
+      dailySignalSummary: resolved.pulse.currentPoint.summary,
       bestWindowLabel: bestWindow ? `${bestWindow.start}–${bestWindow.end}: ${bestWindow.label}` : null,
       checkinCompleted: !!todayCheckIn,
-      recentActionCount: actionEvents.length,
       localHour: explicitHour ?? localHourFor(resolved.pulse.timezone) ?? fallbackHour,
     };
   } catch (error: any) {

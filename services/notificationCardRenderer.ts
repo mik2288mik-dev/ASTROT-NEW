@@ -134,7 +134,7 @@ function buildSvg(cfg: CardPresetConfig, input: CardRenderInput): string {
   ${bodyBlocks}
   ${metaBlock}
   ${zodiacBlock}
-  <text x="${PAD}" y="${brandY}" font-size="20" font-weight="600" letter-spacing="0.28em" fill="${preset.brandColor}" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">LUMIA</text>
+  <text x="${PAD}" y="${brandY}" font-size="20" font-weight="600" letter-spacing="0.08em" fill="${preset.brandColor}" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">ТВОЙ ГОРОСКОП</text>
 </svg>`;
 }
 

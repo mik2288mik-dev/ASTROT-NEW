@@ -8,7 +8,7 @@ import { getZodiacSign } from '../../constants';
 import { getApproximateSunSignByDate } from '../../lib/zodiac-utils';
 import { formatPassportBirthLine, getZodiacCardBackground } from '../../lib/zodiacCardBackgrounds';
 import { captureLumiaHomeLayout } from '../../lib/lumiaDebug';
-import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
+import { getHomeCopy, type HomeLanguage } from '../Dashboard/lumiaHomeContent';
 import { useCollapsibleHeaderProgress } from './useCollapsibleHeaderProgress';
 
 type UnifiedCollapsibleTopClusterProps = {
@@ -33,8 +33,9 @@ export function UnifiedCollapsibleTopCluster({
   chartData,
   scrollRef,
 }: UnifiedCollapsibleTopClusterProps) {
-  const language: LumiaHomeLanguage = profile.language === 'en' ? 'en' : 'ru';
-  const copy = getLumiaHomeCopy(language);
+  const language: HomeLanguage = profile.language === 'en' ? 'en' : 'ru';
+  const copy = getHomeCopy(language);
+  const brandName = language === 'en' ? 'Your Horoscope' : 'Твой Гороскоп';
   const { rawProgress, visualProgress } = useCollapsibleHeaderProgress({
     scrollRef,
     collapseDistance: COLLAPSE_DISTANCE,
@@ -70,7 +71,7 @@ export function UnifiedCollapsibleTopCluster({
   const compactRowY = useTransform(rawProgress, [0, 1], [-5, 0]);
   const compactRowScale = useTransform(visualProgress, [0, 0.72, 1], [0.82, 0.94, 1]);
 
-  const displayName = profile.name?.trim() || 'LUMIA';
+  const displayName = profile.name?.trim() || (language === 'en' ? 'You' : 'Ты');
   const initial = displayName.slice(0, 1).toUpperCase();
   const sunSign = resolveSunSign(profile, chartData);
   const signLabel = sunSign ? getZodiacSign(profile.language, sunSign) : (language === 'ru' ? 'Знак не указан' : 'Sign missing');
@@ -92,7 +93,7 @@ export function UnifiedCollapsibleTopCluster({
             style={{ opacity: compactRowOpacity, y: compactRowY, scale: compactRowScale }}
             aria-hidden
           >
-            <p className="lumia-home-compact-logo">LUMIA</p>
+            <p className="lumia-home-compact-logo">{brandName}</p>
           </motion.div>
 
           <motion.div
@@ -100,7 +101,7 @@ export function UnifiedCollapsibleTopCluster({
             style={{ opacity: expandedBrandOpacity, y: expandedBrandY, scale: expandedBrandScale }}
           >
             <p className="lumia-home-wordmark">
-              LUMIA
+              {brandName}
             </p>
             <motion.p className="lumia-home-tagline" style={{ opacity: subtitleOpacity, y: subtitleY }}>
               {copy.tagline}

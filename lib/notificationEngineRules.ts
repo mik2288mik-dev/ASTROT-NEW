@@ -24,10 +24,6 @@ export type NotificationTemplateLike = {
 
 export type NotificationUserStateLike = {
   openedToday: boolean;
-  acceptedFocusToday: boolean;
-  completedCheckinToday?: boolean;
-  completedCheckinYesterday: boolean;
-  checkinStreak: number;
   daysWithoutClick: number;
 };
 
@@ -36,7 +32,6 @@ export type NotificationDayContextLike = {
   dayPart: NotificationDayPart;
   minutesToBestSlot: number | null;
   hasBestSlot: boolean;
-  hasPatternProgress: boolean;
   userState: NotificationUserStateLike;
 };
 
@@ -55,7 +50,7 @@ const EXTRA_NOTIFICATION_VARIABLES = [
   'unfinished_action',
 ] as const;
 
-const STRICT_LUMIA_FORBIDDEN_PATTERNS = [
+const LEGACY_STRICT_NOTIFICATION_FORBIDDEN_PATTERNS = [
   /зв[её]зды\s+говорят/i,
   /судьб[аыеу]/i,
   /магическ/i,
@@ -79,6 +74,30 @@ const STRICT_LUMIA_FORBIDDEN_PATTERNS = [
   /меркури|венер[аыуе]|юпитер|сатурн|\bуран\b|нептун|плутон|\bмарс[аеу]?\b/i,
   // Удалённые из продукта фичи — не упоминать.
   /пульс\s+дня|вечерн(яя|юю|ей)\s+отметк|окно\s+дня/i,
+];
+
+const STRICT_APP_FORBIDDEN_PATTERNS = [
+  /\u0437\u0432[\u0435\u0451]\u0437\u0434\u044b\s+\u0433\u043e\u0432\u043e\u0440\u044f\u0442/i,
+  /\u0441\u0443\u0434\u044c\u0431[\u0430\u044b\u0435\u0443]/i,
+  /\u043c\u0430\u0433\u0438\u0447\u0435\u0441\u043a/i,
+  /\u044d\u043d\u0435\u0440\u0433\u0435\u0442\u0438\u043a/i,
+  /\u044d\u043d\u0435\u0440\u0433\u0438\u044f/i,
+  /\u0432\u0438\u0431\u0440\u0430\u0446/i,
+  /\u043f\u043e\u0440\u0442\u0430\u043b/i,
+  /\u043e\u0442\u043a\u0440\u043e\u0439\s+\u0441\u0435\u0440\u0434\u0446\u0435/i,
+  /\u0443\u0434\u0430\u0447[\u0430\u0438\u0443\u0435]/i,
+  /\u0433\u043e\u0440\u043e\u0441\u043a\u043e\u043f\s+\u0434\u043b\u044f\s+\u0432\u0441\u0435\u0445/i,
+  /\u0437\u0430\u0439\u0434\u0438\s+\u0432\s+\u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435/i,
+  /\u0442\u0432\u043e\u0439\s+\u0433\u043e\u0440\u043e\u0441\u043a\u043e\u043f\s+\u0433\u043e\u0442\u043e\u0432/i,
+  /\u043d\u0435\s+\u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\s+\u0443\u0434\u0430\u0447\u0443/i,
+  /\u043a\u0430\u0440\u043c\u0438\u0447\u0435\u0441\u043a/i,
+  /\u043f\u0440\u0435\u0434\u043d\u0430\u0447\u0435\u0440\u0442\u0430\u043d/i,
+  /\b\u043a\u0430\u0440\u043c[\u0430\u044b\u0443\u0435]\b/i,
+  /\u0430\u0441\u0446\u0435\u043d\u0434\u0435\u043d\u0442/i,
+  /\u0432\u043e\u0441\u0445\u043e\u0434\u044f\u0449(\u0438\u0439|\u0435\u0433\u043e|\u0435\u043c\u0443)\s+\u0437\u043d\u0430\u043a/i,
+  /\u0441\u0435\u043a\u0441\u0442\u0438\u043b|\u043a\u0432\u0430\u0434\u0440\u0430\u0442\u0443\u0440|\u043e\u043f\u043f\u043e\u0437\u0438\u0446\u0438|\u0442\u0440\u0438\u0433\u043e\u043d|\b\u0442\u0440\u0438\u043d\b|\u0441\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438[\u0435\u044f]\s+\u043f\u043b\u0430\u043d\u0435\u0442/i,
+  /\u043c\u0435\u0440\u043a\u0443\u0440\u0438|\u0432\u0435\u043d\u0435\u0440[\u0430\u044b\u0443\u0435]|\u044e\u043f\u0438\u0442\u0435\u0440|\u0441\u0430\u0442\u0443\u0440\u043d|\b\u0443\u0440\u0430\u043d\b|\u043d\u0435\u043f\u0442\u0443\u043d|\u043f\u043b\u0443\u0442\u043e\u043d|\b\u043c\u0430\u0440\u0441[\u0430\u0435\u0443]?\b/i,
+  /\u043f\u0443\u043b\u044c\u0441\s+\u0434\u043d\u044f|\u0432\u0435\u0447\u0435\u0440\u043d(\u044f\u044f|\u044e\u044e|\u0435\u0439)\s+\u043e\u0442\u043c\u0435\u0442\u043a|\u043e\u043a\u043d\u043e\s+\u0434\u043d\u044f/i,
 ];
 
 // Правило продукта для пушей: максимум ОДИН уместный эмодзи на сообщение (😄/✨/😉 — любой),
@@ -108,11 +127,17 @@ export function enforceNotificationEmoji(text: string, allowEmoji = true): strin
     .trim();
 }
 
+function readableRegexSource(source: string): string {
+  return source.replace(/\\u\{([0-9a-f]+)\}|\\u([0-9a-f]{4})/gi, (_match, codePoint, codeUnit) => (
+    String.fromCodePoint(parseInt(codePoint || codeUnit, 16))
+  ));
+}
+
 export function findForbiddenNotificationTerms(text: string): string[] {
   const value = String(text || '');
-  return [...NOTIFICATION_FORBIDDEN_PATTERNS, ...STRICT_LUMIA_FORBIDDEN_PATTERNS]
+  return [...NOTIFICATION_FORBIDDEN_PATTERNS, ...STRICT_APP_FORBIDDEN_PATTERNS]
     .filter((pattern) => pattern.test(value))
-    .map((pattern) => pattern.source);
+    .map((pattern) => readableRegexSource(pattern.source));
 }
 
 export function findUnknownNotificationVariables(text: string): string[] {
@@ -158,7 +183,7 @@ export function renderNotificationTemplate(
   const title = enforceNotificationEmoji(renderNotificationText(rawTitle, variables, fallbacks));
   const body = enforceNotificationEmoji(renderNotificationText(rawBody, variables, fallbacks), !hasNotificationEmoji(title));
   const caption = [title, body].filter(Boolean).join('\n\n').trim();
-  const buttonText = enforceNotificationEmoji(renderNotificationText(template.buttonText || 'Открыть LUMIA', variables, fallbacks), false);
+  const buttonText = enforceNotificationEmoji(renderNotificationText(template.buttonText || 'Открыть', variables, fallbacks), false);
   return { title, body, caption, buttonText };
 }
 
@@ -200,22 +225,12 @@ export function scenarioTriggerMatches(
   if (rule.openedToday === false && context.userState.openedToday) {
     return { ok: false, reason: 'already_opened_today' };
   }
-  if (rule.acceptedFocusToday === true && !context.userState.acceptedFocusToday) {
-    return { ok: false, reason: 'focus_not_accepted' };
-  }
-  if (rule.hasPatternProgress === true && !context.hasPatternProgress) {
-    return { ok: false, reason: 'no_pattern_progress' };
-  }
   if (typeof rule.minDaysWithoutClick === 'number' && context.userState.daysWithoutClick < rule.minDaysWithoutClick) {
     return { ok: false, reason: 'not_inactive_enough' };
   }
   if (typeof rule.maxDaysWithoutClick === 'number' && context.userState.daysWithoutClick > rule.maxDaysWithoutClick) {
     return { ok: false, reason: 'too_inactive_for_scenario' };
   }
-  if (scenario.key === 'evening_checkin' && context.userState.completedCheckinToday) {
-    return { ok: false, reason: 'checkin_completed' };
-  }
-
   return { ok: true, reason: 'matched' };
 }
 
@@ -269,22 +284,6 @@ export function buildNotificationDeepLink(input: {
     url.searchParams.set('view', 'dashboard');
     url.searchParams.set('screen', 'daily_card');
     url.searchParams.set('todaySection', 'daily-card');
-  } else if (section === 'pulse' || section === 'pulse_day') {
-    url.searchParams.set('view', 'dashboard');
-    url.searchParams.set('screen', 'pulse_day');
-    url.searchParams.set('todaySection', 'pulse');
-  } else if (section === 'checkin') {
-    url.searchParams.set('view', 'dashboard');
-    url.searchParams.set('screen', 'checkin');
-    url.searchParams.set('todaySection', 'checkin');
-  } else if (section === 'best-time') {
-    url.searchParams.set('view', 'dashboard');
-    url.searchParams.set('screen', 'best_time');
-    url.searchParams.set('todaySection', 'best-time');
-  } else if (section === 'mini-win') {
-    url.searchParams.set('view', 'dashboard');
-    url.searchParams.set('screen', 'mini_win');
-    url.searchParams.set('todaySection', 'mini-win');
   } else if (section === 'natal' || section === 'natal_free') {
     url.searchParams.set('view', 'chart');
     url.searchParams.set('screen', 'natal_free');
@@ -295,10 +294,6 @@ export function buildNotificationDeepLink(input: {
     url.searchParams.set('view', 'dashboard');
     url.searchParams.set('screen', section);
     url.searchParams.set('story', section);
-  } else if (section === 'assistant') {
-    url.searchParams.set('view', 'dashboard');
-    url.searchParams.set('screen', 'assistant');
-    url.searchParams.set('todaySection', 'assistant');
   } else if (section === 'synastry') {
     url.searchParams.set('view', 'synastry');
     url.searchParams.set('screen', 'synastry');

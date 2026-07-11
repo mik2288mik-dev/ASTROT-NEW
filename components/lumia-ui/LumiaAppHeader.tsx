@@ -5,7 +5,7 @@ import {
 } from 'framer-motion';
 import type { RefObject } from 'react';
 import type { UserProfile, ViewState } from '../../types';
-import { getLumiaHomeCopy, type LumiaHomeLanguage } from '../Dashboard/lumiaHomeContent';
+import { getHomeCopy, type HomeLanguage } from '../Dashboard/lumiaHomeContent';
 import { useCollapsibleHeaderProgress } from './useCollapsibleHeaderProgress';
 
 type LumiaAppHeaderProps = {
@@ -23,8 +23,9 @@ export function LumiaAppHeader({
   view,
   scrollContainerRef,
 }: LumiaAppHeaderProps) {
-  const language: LumiaHomeLanguage = profile.language === 'en' ? 'en' : 'ru';
-  const copy = getLumiaHomeCopy(language);
+  const language: HomeLanguage = profile.language === 'en' ? 'en' : 'ru';
+  const copy = getHomeCopy(language);
+  const brandName = language === 'en' ? 'Your Horoscope' : 'Твой Гороскоп';
   const { rawProgress, visualProgress } = useCollapsibleHeaderProgress({
     scrollRef: scrollContainerRef,
     collapseDistance: COLLAPSE_DISTANCE,
@@ -40,7 +41,7 @@ export function LumiaAppHeader({
   const taglineOpacity = useTransform(visualProgress, [0, 0.2, 0.42], [1, 0.28, 0]);
   const taglineY = useTransform(rawProgress, [0, 1], [0, -12]);
   // Compact wordmark only starts after the expanded one has fully faded (>0.54),
-  // so the two "LUMIA" layers are never painted at the same time.
+  // so the two brand layers are never painted at the same time.
   const compactOpacity = useTransform(visualProgress, [0, 0.56, 0.82, 1], [0, 0, 0.88, 1]);
   const compactY = useTransform(rawProgress, [0, 1], [-5, 0]);
   const compactScale = useTransform(visualProgress, [0, 0.72, 1], [0.82, 0.94, 1]);
@@ -59,7 +60,7 @@ export function LumiaAppHeader({
           style={{ opacity: expandedOpacity, y: expandedY, scale: expandedScale, visibility: expandedVisibility }}
         >
           <div className="lumia-app-brand-center">
-            <p className="lumia-app-logo">LUMIA</p>
+            <p className="lumia-app-logo">{brandName}</p>
             <motion.p className="lumia-app-tagline" style={{ opacity: taglineOpacity, y: taglineY }}>
               {copy.tagline}
             </motion.p>
@@ -71,7 +72,7 @@ export function LumiaAppHeader({
           style={{ opacity: compactOpacity, y: compactY, scale: compactScale, visibility: compactVisibility }}
           aria-hidden
         >
-          <p className="lumia-app-compact-logo">LUMIA</p>
+          <p className="lumia-app-compact-logo">{brandName}</p>
         </motion.div>
       </div>
     </motion.header>

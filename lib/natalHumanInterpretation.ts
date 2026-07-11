@@ -12,7 +12,7 @@ import { llmJson } from './anthropic';
 import { APP_VOICE_BLOCK_RU } from './appVoice';
 import { getCurrentTransits } from './transits-calculator';
 import { detectTransitAspects, formatTransitAspectsRu } from './transitAspects';
-import { computeDayScoreFromTransits } from './todayPulse';
+import { computeDayScoreFromTransits } from './dailyAstroSignal';
 import { getDailyCanvasModelResolved } from './appSettings';
 import { getWordRangeInstruction } from './contentMatrix';
 import { buildBlindSpotPrompt, buildNatalSectionPrompt } from './contentPromptBuilders';
@@ -405,7 +405,7 @@ function buildFocusedDailyPrompt(
   focusName: string,
   focusRules: string
 ): string {
-  return `Создай отдельный персональный ежедневный разбор LUMIA. Это не общий слой и не часть списка: это самостоятельная страница "${meta.title}".
+  return `Создай отдельный персональный ежедневный разбор для «Твой Гороскоп». Это не общий слой и не часть списка: это самостоятельная страница "${meta.title}".
 
 Дата: ${dateKey}
 Content key: ${sectionKey}
@@ -1676,7 +1676,7 @@ export function buildDailyCanvasFallback(
 
 /**
  * Генерит ВСЁ дневное полотно одним запросом: транзиты → посчитанные аспекты + оценка
- * дня (из todayPulse) → промпт → JSON. При сбое/невалидности — человеко-написанный
+ * дня (из dailyAstroSignal) → промпт → JSON. При сбое/невалидности — человеко-написанный
  * fallback-полотно. Число оценки берётся из расчёта, а не из модели.
  */
 export async function generateDailyCanvas(
