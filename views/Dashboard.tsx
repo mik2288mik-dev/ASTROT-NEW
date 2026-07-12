@@ -129,7 +129,7 @@ export const Dashboard = memo<DashboardProps>(({
     ? ['Сегодня', 'Эта неделя', 'Этот месяц', 'Этот год']
     : ['Today', 'This week', 'This month', 'This year'];
 
-  /* Астро-контекст дня: день недели + фаза луны (фаза считается клиентски, точно) */
+  /* Астро-контекст дня: день недели + фактическая фаза Луны */
   const moon = useMemo(() => getMoonPhase(new Date(), language), [language]);
   const weekdayLabel = useMemo(() => {
     const [yr, mo, da] = today.split('-').map(Number);
@@ -152,35 +152,29 @@ export const Dashboard = memo<DashboardProps>(({
   }, [language, today, weekdayLabel]);
 
   const moonSymbol = MOON_SYMBOL[moon.slot] || '○';
-  const moonTone = language === 'ru'
-    ? 'Сегодня лучше держать день внятным: меньше шума, больше одного честного шага.'
-    : 'Today works best with a clear pace: less noise, one honest next step.';
-  const mercuryTitle = language === 'ru'
-    ? 'Меркурий сегодня'
-    : 'Mercury today';
-  const mercuryTone = language === 'ru'
-    ? 'Перед важным сообщением перечитай его один раз. Сегодня точность звучит теплее, чем скорость.'
-    : 'Before an important message, read it once more. Precision lands better than speed today.';
+  const moonFact = language === 'ru'
+    ? `Освещено около ${moon.illumination}% диска. Это факт о фазе, не личный прогноз.`
+    : `About ${moon.illumination}% of the disc is illuminated. That is a phase fact, not a personal prediction.`;
   const moonExplain = language === 'ru'
-    ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
-    : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.';
+    ? 'Фаза показывает, какая часть Луны освещена с Земли. Она меняется в течение лунного месяца и сама по себе не говорит, что с тобой обязательно произойдёт.'
+    : 'The phase shows how much of the Moon is illuminated from Earth. It changes through the lunar month and does not predict what must happen to you.';
 
   const dayHeroTitle = dailyPackage?.hero_title?.trim() || systemCopy;
   const dayHeroText = dailyPackage?.hero_hook?.trim() || systemCopy;
   const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
   const natalText = hasChart
     ? (language === 'ru'
-      ? 'Твой персональный разбор — по факту, а не общими словами. Загляни.'
-      : 'Your personal reading — specific, not generic. Take a look.')
+      ? 'Карта уже собрана. Посмотри, что в ней про характер, привычки и сильные стороны.'
+      : 'Your chart is ready. See what it says about your character, habits, and strengths.')
     : (language === 'ru'
-      ? 'Собери карту — дальше будет про твоё небо, не про знак вообще.'
-      : 'Build your chart so the app reads your sky, not just your sign.');
+      ? 'Дата, время и место рождения — и вместо общих слов будет разбор про тебя.'
+      : 'Add your birth date, time, and place to get a reading about you, not a generic one.');
   const matrixText = language === 'ru'
-    ? 'Короткий портрет по числам рождения: что в тебе заметно сразу и какая внутренняя тема часто возвращается.'
-    : 'A compact portrait from your birth numbers: what shows first in you and what inner theme tends to return.';
+    ? 'Числа рождения покажут, что у тебя получается без разгона, а где ты сам себе добавляешь квестов.'
+    : 'Your birth numbers show what comes naturally and where you tend to make life harder than it needs to be.';
   const compatibilityText = language === 'ru'
-    ? 'Посмотри, где вам легко быть рядом, а где лучше говорить бережнее, чтобы понимать друг друга без догадок.'
-    : 'See where being close feels easy, and where softer, clearer words help you understand each other without guessing.';
+    ? 'Где вы быстро находите общий язык, а где спор начинается раньше, чем кто-то понял вопрос.'
+    : 'See where you click quickly and where an argument starts before either person has understood the question.';
   const sphereCards: SphereCard[] = (language === 'ru'
     ? [
         ['love', 'Любовь'],
@@ -228,9 +222,9 @@ export const Dashboard = memo<DashboardProps>(({
       className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      <section className="home-top" aria-label="Твой Гороскоп">
+      <section className="home-top" aria-label={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}>
         <div className="home-logo-bar">
-          <span className="home-logo-wordmark">Твой Гороскоп</span>
+          <span className="home-logo-wordmark">{language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}</span>
         </div>
         <div className="home-top-content">
           <p className="home-top-greeting">
@@ -274,7 +268,7 @@ export const Dashboard = memo<DashboardProps>(({
         </span>
       </button>
 
-      <section className="home-spheres" aria-label={language === 'ru' ? 'Сферы дня' : 'Day spheres'}>
+      <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
         <div className="home-spheres-track">
           {sphereCards.map((card) => (
             <button
@@ -290,7 +284,7 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Луна сегодня' : 'Moon today'}>
+      <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Фаза Луны' : 'Moon phase'}>
         <div className="home-soft-card-glow" aria-hidden />
         <div className="home-today-copy">
           <span className="home-soft-card-kicker">{weekdayLabel}</span>
@@ -299,14 +293,7 @@ export const Dashboard = memo<DashboardProps>(({
               <span className="home-sky-symbol" aria-hidden>{moonSymbol}</span>
               <div>
                 <h2 className="home-soft-card-title">{moon.label}</h2>
-                <p className="home-soft-card-text">{moonTone}</p>
-              </div>
-            </div>
-            <div className="home-sky-item">
-              <span className="home-sky-symbol" aria-hidden>☿</span>
-              <div>
-                <h2 className="home-soft-card-title">{mercuryTitle}</h2>
-                <p className="home-soft-card-text">{mercuryTone}</p>
+                <p className="home-soft-card-text">{moonFact}</p>
               </div>
             </div>
           </div>
@@ -316,7 +303,7 @@ export const Dashboard = memo<DashboardProps>(({
             onClick={() => { lumiaSelectionHaptic(); setMoonInfoOpen((v) => !v); }}
             aria-expanded={moonInfoOpen}
           >
-            {language === 'ru' ? 'Что значит эта фаза' : 'What this phase means'}
+            {language === 'ru' ? 'Как считается фаза' : 'How the phase is calculated'}
           </button>
         </div>
 
