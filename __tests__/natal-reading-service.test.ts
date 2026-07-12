@@ -2,6 +2,7 @@ import {
   clearHumanReadingSessionCache,
   loadHumanBaseReport,
   loadHumanDailySection,
+  loadHumanDailyPackage,
   loadHumanPaidSection,
   prefetchHumanBaseReport,
   ensureHumanBaseReport,
@@ -139,6 +140,39 @@ describe('natal reading service session cache', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
+  });
+
+  it('does not request generation again after the daily package is cached in session', async () => {
+    const dailyPackage = {
+      hero_title: 'Тише к сути',
+      hero_hook: 'Пакет готов.',
+      overview: 'Overview body',
+      love: { hook: 'Love hook', body: 'Love body' },
+      money: { hook: 'Money hook', body: 'Money body' },
+      work: { hook: 'Work hook', body: 'Work body' },
+      goals: { hook: 'Goals hook', body: 'Goals body' },
+      family: { hook: 'Family hook', body: 'Family body' },
+      friendship: { hook: 'Friend hook', body: 'Friend body' },
+      energy: { hook: 'Energy hook', body: 'Energy body' },
+      communication: { hook: 'Talk hook', body: 'Talk body' },
+      meta: { free_section_key: 'love' },
+    };
+    const section = {
+      key: 'daily_overview',
+      title: 'Тема дня',
+      access: 'free',
+      content: 'Overview body',
+    };
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND' }))
+      .mockResolvedValueOnce(response(200, { interpretation: { content: section }, accessTier: 'free', dailyPackage }));
+
+    await expect(loadHumanDailyPackage('123', 7, '2026-05-25')).resolves.toBe(dailyPackage);
+    await expect(loadHumanDailyPackage('123', 7, '2026-05-25')).resolves.toBe(dailyPackage);
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect((global.fetch as jest.Mock).mock.calls[0][1]?.method).toBe('GET');
+    expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
   });
 
   it('unwraps direct fallback daily payload from POST', async () => {

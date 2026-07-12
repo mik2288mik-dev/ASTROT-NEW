@@ -10,13 +10,13 @@ import {
 import {
   buildHumanInputHash,
   buildHumanDailyFallback,
-  buildDailyCanvasFallback,
+  getDailyVoiceVersion,
   generateDailyCanvas,
+  isDailyCanvasComplete,
   sliceCanvasToSection,
 } from '../../../../lib/natalHumanInterpretation';
 import {
-  DAILY_CANVAS_FREE_SECTION_KEYS,
-  DAILY_CANVAS_SECTION_KEYS,
+  DAILY_CANVAS_TOPIC_KEYS,
   DAILY_SECTION_TO_CANVAS_KEY,
   HUMAN_DAILY_PROMPT_VERSION,
   humanDailyCanvasCacheKey,
@@ -40,7 +40,7 @@ const SCOPE = 'natal-human-daily';
 // free-overview, и премиум-сферы читали одну и ту же дневную запись.
 const CANVAS_CACHE_TIER: ContentAccessTier = 'premium';
 
-type DailyResponseSource = 'human_v2' | 'generated' | 'fallback' | 'fallback_unsaved';
+type DailyResponseSource = 'human_v2' | 'generated' | 'fallback';
 type DailyPersistenceStatus = 'saved' | 'failed';
 
 type SectionWrapperOptions = {
@@ -55,31 +55,38 @@ type SectionWrapperOptions = {
 function isUsableCanvas(value: unknown): value is DailyCanvas {
   if (!value || typeof value !== 'object') return false;
   const canvas = value as Partial<DailyCanvas>;
-  const card = canvas.card;
-  const summary = canvas.summary;
-  const freeSectionKey = canvas.meta?.free_section_key;
-  const sections = Array.isArray(canvas.sections) ? canvas.sections : [];
-  const sectionKeys = new Set(sections.map((section) => section?.key));
-  return (
-    !!card &&
-    typeof card === 'object' &&
-    typeof card.title === 'string' &&
-    card.title.trim().length > 0 &&
-    typeof card.teaser === 'string' &&
-    card.teaser.trim().length > 0 &&
-    !!summary &&
-    typeof summary === 'object' &&
-    typeof summary.best_action === 'string' &&
-    typeof summary.main_risk === 'string' &&
-    DAILY_CANVAS_FREE_SECTION_KEYS.includes(freeSectionKey as any) &&
-    DAILY_CANVAS_SECTION_KEYS.every((key) => sectionKeys.has(key)) &&
-    sections.every((section) => typeof section?.title === 'string' && typeof section?.text === 'string' && section.text.trim().length > 0)
-  );
+  const locale = canvas.meta?.locale === 'en' ? 'en' : 'ru';
+  return isDailyCanvasComplete(value as DailyCanvas, locale);
 }
 
 function isFreeSectionAllowed(canvas: DailyCanvas, sectionKey: HumanDailySectionKey): boolean {
   const canvasKey = DAILY_SECTION_TO_CANVAS_KEY[sectionKey];
   return canvasKey === 'overview' || canvasKey === canvas.meta.free_section_key;
+}
+
+function buildDailyPackagePayload(canvas: DailyCanvas, includePremiumBodies: boolean) {
+  const payload: Record<string, unknown> = {
+    hero_title: canvas.hero_title,
+    hero_hook: canvas.hero_hook,
+    overview: canvas.overview,
+    meta: {
+      free_section_key: canvas.meta.free_section_key,
+      pattern_keys: canvas.meta.pattern_keys || {},
+      locale: canvas.meta.locale || 'ru',
+      voice_version: canvas.meta.voice_version || null,
+      date_key: canvas.meta.date_key || null,
+    },
+  };
+
+  for (const key of DAILY_CANVAS_TOPIC_KEYS) {
+    const canIncludeBody = includePremiumBodies || key === canvas.meta.free_section_key;
+    payload[key] = {
+      hook: canvas[key].hook,
+      body: canIncludeBody ? canvas[key].body : '',
+    };
+  }
+
+  return payload;
 }
 
 // Обёртка секции в транспортный shell, который распаковывает клиент
@@ -224,13 +231,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ── Полотно ──
-  const cacheKey = humanDailyCanvasCacheKey(dateKey);
+  const locale = ctx.profile.language === 'en' ? 'en' : 'ru';
+  const voiceVersion = getDailyVoiceVersion(locale);
+  const cacheKey = humanDailyCanvasCacheKey(userId, dateKey, locale, voiceVersion);
   const inputHash = buildHumanInputHash({
     profile: ctx.profile,
     chartData: ctx.chartData!,
     sectionKey: 'canvas',
     dateKey,
     promptVersion: HUMAN_DAILY_PROMPT_VERSION,
+    locale,
   });
   const canvasCacheOpts = {
     accessTier: CANVAS_CACHE_TIER,
@@ -271,14 +281,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const section = sliceCanvasToSection(canvas, sectionKey);
     if (!section) {
-      // Не должно случаться для canvas-backed ключей, но подстрахуемся.
-      const fallbackSection = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-      return res.status(200).json({
-        interpretation: buildSectionEnvelope(ctx, { ...sectionWrapperOpts, accessTier: responseAccessTier }, fallbackSection),
-        source: 'fallback' satisfies DailyResponseSource,
-        persistenceStatus: 'saved' satisfies DailyPersistenceStatus,
+      warnContentApi(apiLogContext, 'invalid_daily_package_section', {
         accessTier: responseAccessTier,
-        meta: { freeSectionKey: canvas.meta.free_section_key },
+        errorCode: 'EMPTY_INTERPRETATION',
+        metadata: { sectionKey, dateKey, freeSectionKey: canvas.meta.free_section_key },
+      });
+      return res.status(502).json({
+        error: 'EMPTY_INTERPRETATION',
+        code: 'DAILY_PACKAGE_INVALID',
+        message: 'Daily package is missing the requested section.',
       });
     }
     return res.status(200).json({
@@ -287,6 +298,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       persistenceStatus,
       accessTier: responseAccessTier,
       meta: { freeSectionKey: canvas.meta.free_section_key },
+      dailyPackage: buildDailyPackagePayload(canvas, isPremium),
     });
   };
 
@@ -313,8 +325,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (cacheReadFailed) {
-    const canvas = buildDailyCanvasFallback(ctx.profile, ctx.chartData!, dateKey);
-    return respondWithCanvas(canvas, 'fallback_unsaved', 'failed');
+    return res.status(503).json({
+      error: 'DAILY_PACKAGE_UNAVAILABLE',
+      code: 'CACHE_READ_FAILED',
+      message: 'Daily package is temporarily unavailable.',
+    });
   }
 
   if (cachedCanvas) {
@@ -339,9 +354,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // POST + промах → генерим полотно ОДИН раз под общей блокировкой на сутки.
   try {
-    let generatedSource: DailyResponseSource = 'generated';
-    let generatedPersistenceStatus: DailyPersistenceStatus = 'saved';
-
     const lockResult = await withContentGenerationLock<DailyCanvas>({
       lockKey: buildContentGenerationLockKey({
         userId,
@@ -360,53 +372,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           : null;
       },
       generate: async () => {
-        // fallback-first: сохраняем fallback-полотно, затем пытаемся AI и перезаписываем.
-        const fallbackCanvas = buildDailyCanvasFallback(ctx.profile, ctx.chartData!, dateKey);
-        try {
-          await saveReading<DailyCanvas>(ctx, canvasSaveOpts, fallbackCanvas);
-          generatedSource = 'fallback';
-        } catch (fallbackError: any) {
-          generatedSource = 'fallback_unsaved';
-          generatedPersistenceStatus = 'failed';
-          warnContentApi(apiLogContext, 'persistence_failed', {
-            accessTier: requestedAccessTier,
-            status: 'ready',
-            errorCode: 'FALLBACK_SAVE_FAILED',
-            durationMs: Date.now() - startedAt,
-            metadata: { sectionKey, dateKey, error: fallbackError?.message || String(fallbackError) },
-          });
-          return fallbackCanvas;
-        }
-
-        try {
-          const canvas = await generateDailyCanvas(ctx.profile, ctx.chartData!, dateKey);
-          if (!isUsableCanvas(canvas)) throw new Error('EMPTY_DAILY_CANVAS');
-          await saveReading<DailyCanvas>(ctx, canvasSaveOpts, canvas);
-          generatedSource = 'generated';
-          generatedPersistenceStatus = 'saved';
-          logContentApi(apiLogContext, 'generation_saved', {
-            accessTier: requestedAccessTier,
-            status: 'ready',
-            durationMs: Date.now() - startedAt,
-            metadata: { sectionKey, dateKey },
-          });
-          return canvas;
-        } catch (generationError: any) {
-          generatedSource = 'fallback';
-          generatedPersistenceStatus = 'saved';
-          warnContentApi(apiLogContext, 'generation_failed', {
-            accessTier: requestedAccessTier,
-            status: 'ready',
-            errorCode: generationError?.code || generationError?.message || 'CONTENT_GENERATION_UNAVAILABLE',
-            durationMs: Date.now() - startedAt,
-            metadata: { sectionKey, dateKey },
-          });
-          console.error(
-            '[natal/human-daily:canvas] generation failed after fallback save:',
-            generationError instanceof Error ? generationError.message : generationError,
-          );
-          return fallbackCanvas;
-        }
+        const canvas = await generateDailyCanvas(ctx.profile, ctx.chartData!, dateKey);
+        if (!isUsableCanvas(canvas)) throw new Error('EMPTY_DAILY_CANVAS');
+        await saveReading<DailyCanvas>(ctx, canvasSaveOpts, canvas);
+        logContentApi(apiLogContext, 'generation_saved', {
+          accessTier: requestedAccessTier,
+          status: 'ready',
+          durationMs: Date.now() - startedAt,
+          metadata: { sectionKey, dateKey },
+        });
+        return canvas;
       },
     });
 
@@ -415,8 +390,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const canvas = lockResult.value;
-    const source = lockResult.fromCache ? (lockResult.source as DailyResponseSource) || 'human_v2' : generatedSource;
-    const persistenceStatus: DailyPersistenceStatus = lockResult.fromCache ? 'saved' : generatedPersistenceStatus;
+    const source = lockResult.fromCache ? (lockResult.source as DailyResponseSource) || 'human_v2' : 'generated';
+    const persistenceStatus: DailyPersistenceStatus = 'saved';
     return respondWithCanvas(canvas, source, persistenceStatus);
   } catch (error) {
     warnContentApi(apiLogContext, 'generation_failed', {
@@ -429,7 +404,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       '[natal/human-daily:canvas] generation flow failed:',
       error instanceof Error ? error.message : error,
     );
-    const canvas = buildDailyCanvasFallback(ctx.profile, ctx.chartData!, dateKey);
-    return respondWithCanvas(canvas, 'fallback_unsaved', 'failed');
+    return res.status(503).json({
+      error: 'DAILY_PACKAGE_UNAVAILABLE',
+      code: 'CONTENT_GENERATION_UNAVAILABLE',
+      message: 'Daily package could not be prepared.',
+    });
   }
 }

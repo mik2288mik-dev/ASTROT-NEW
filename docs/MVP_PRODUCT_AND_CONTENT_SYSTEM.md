@@ -65,7 +65,7 @@ The canvas is generated once under a shared daily cache key, then individual UI 
 ## 5. Persistence And Archive
 
 - Natal charts are stored in `natal_charts` with canonical input hashes, calculation version, chart data, coordinates, and primary-chart status.
-- Personal daily canvas content is stored in `content_interpretations` under `content_surface='natal'`, `content_variant='living'`, cache key `personal_daily.canvas.YYYY-MM-DD`, and prompt version `HUMAN_DAILY_PROMPT_VERSION`.
+- Personal daily package content is stored in `content_interpretations` under `content_surface='natal'`, `content_variant='living'`, cache key `personal_daily.package.user.<userId>.date.<YYYY-MM-DD>.locale.<locale>.voice.<voiceVersion>`, and prompt version `HUMAN_DAILY_PROMPT_VERSION`.
 - Sign horoscopes use shared `content_cache`.
 - Forecast, natal, and synastry layers use `content_interpretations` and `synastry_cache` according to `lib/contentAccessMatrix.ts`.
 - Past daily readings are read from saved rows. Archive views must not generate missing past days on read.

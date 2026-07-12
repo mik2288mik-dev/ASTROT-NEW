@@ -1,72 +1,41 @@
 export {};
 
-// Личный дневной разбор теперь генерится ЕДИНЫМ полотном (canvas) одним запросом,
-// а эндпоинт режет его на секции. Тесты проверяют тот же fallback-first flow, но на
-// уровне полотна: buildDailyCanvasFallback / generateDailyCanvas / sliceCanvasToSection.
+const topic = (hook: string, bodySeed: string) => ({
+  hook,
+  body: `${bodySeed} Это поле достаточно длинное, чтобы пройти контракт дневного пакета: оно не обещает событий, а описывает практический фокус через расчет карты и транзитов.`,
+});
 
-const fallbackSection = {
-  key: 'daily_love',
-  title: 'Love fallback',
-  access: 'premium',
-  content: 'Fallback text that is safe to show without OpenAI.',
-  bullets: ['fallback'],
+const generatedCanvas = {
+  hero_title: 'Тише к сути, без лишнего шума',
+  hero_hook: 'Один честный выбор важнее набора случайных реакций.',
+  overview: 'В карте и транзитах виден день, где лучше держать внимание на одном внятном действии. Не нужно разгонять каждую мысль до решения: полезнее отделить важное от чужой срочности, ответить там, где давно просится ясность, и оставить небольшой запас сил на вечер. Общий тон мягкий, но требовательный к точности.',
+  love: topic('Близость просит ясности', 'В отношениях лучше не проверять человека намеками.'),
+  money: topic('Расходы любят паузу', 'В деньгах полезно отделить желание быстро снять напряжение от реальной необходимости.'),
+  work: topic('Задача выигрывает от порядка', 'В работе сильнее всего помогает простая последовательность действий.'),
+  goals: topic('Цель становится меньше', 'В целях лучше выбрать шаг, который можно завершить без внутреннего торга.'),
+  family: topic('Дому нужна договоренность', 'В семье и быту помогает не большой разговор обо всем, а одно понятное правило.'),
+  friendship: topic('Друзьям хватит точности', 'В дружеском контакте лучше написать коротко и по делу, чем ждать идеального момента.'),
+  energy: topic('Сила держится на темпе', 'В нагрузке стоит смотреть не на героизм, а на устойчивый ритм.'),
+  communication: topic('Разговор веди короче', 'В общении работает прямота без давления: назвать суть, дать человеку место ответить.'),
+  meta: {
+    free_section_key: 'love',
+    locale: 'ru',
+    voice_version: 'voice-test',
+    date_key: '2026-06-03',
+    pattern_keys: {},
+  },
 };
+
+const invalidCanvas = { meta: { free_section_key: 'love', locale: 'ru' } };
 
 const generatedSection = {
   key: 'daily_love',
-  title: 'Love generated',
-  access: 'premium',
-  content: 'Generated daily love text.',
-  bullets: ['generated'],
+  title: 'Любовь',
+  access: 'free',
+  content: generatedCanvas.love.body,
+  teaser: generatedCanvas.love.hook,
+  bullets: [],
 };
-
-const canvasSections = (loveText: string) => [
-  { key: 'overview', title: 'Overview', text: 'Overview block with enough text for the personal daily canvas contract.' },
-  { key: 'love', title: 'Love', text: loveText },
-  { key: 'money', title: 'Money', text: 'Money block' },
-  { key: 'work', title: 'Work', text: 'Work block' },
-  { key: 'goals', title: 'Goals', text: 'Goals block' },
-  { key: 'family', title: 'Family', text: 'Family block' },
-  { key: 'friendship', title: 'Friendship', text: 'Friendship block' },
-  { key: 'energy', title: 'Energy', text: 'Energy block' },
-  { key: 'communication', title: 'Communication', text: 'Communication block' },
-];
-
-const generatedCanvas = {
-  card: {
-    title: 'Generated title',
-    teaser: 'Generated teaser for the day.',
-    positive_points: ['do a', 'do b', 'do c'],
-    caution_points: ['dont a', 'dont b', 'dont c'],
-  },
-  sections: canvasSections(generatedSection.content),
-  summary: {
-    main_risk: 'Generated risk',
-    best_action: 'Generated action',
-    day_score: 74,
-    day_score_explain: '74 — крепкий день.',
-  },
-  meta: { free_section_key: 'love' },
-};
-
-const fallbackCanvas = {
-  card: {
-    title: 'Fallback title',
-    teaser: 'Fallback teaser for the day.',
-    positive_points: ['do a', 'do b', 'do c'],
-    caution_points: ['dont a', 'dont b', 'dont c'],
-  },
-  sections: canvasSections(fallbackSection.content),
-  summary: {
-    main_risk: 'Fallback risk',
-    best_action: 'Fallback action',
-    day_score: null,
-    day_score_explain: '',
-  },
-  meta: { free_section_key: 'love' },
-};
-
-const invalidCanvas = { card: null, sections: [], summary: null, meta: null };
 
 const cachedReading = {
   id: 10,
@@ -76,10 +45,10 @@ const cachedReading = {
   contentSurface: 'natal',
   contentVariant: 'living',
   modelTier: 'premium',
-  cacheKey: 'human_v2.canvas.2026-06-03',
-  inputHash: 'hash',
+  cacheKey: 'personal_daily.package.user.123.date.2026-06-03.locale.ru.voice.voice-test',
+  inputHash: 'input-hash',
   content: generatedCanvas,
-  promptVersion: 'your-horoscope-v1.daily-canvas',
+  promptVersion: 'your-horoscope-v2.daily-package',
   calculationVersion: 'test',
   validFrom: null,
   validTo: null,
@@ -101,7 +70,6 @@ function savedReading(content: any, id = 11) {
     ...cachedReading,
     id,
     content,
-    inputHash: content === generatedCanvas ? 'generated-hash' : 'fallback-hash',
   };
 }
 
@@ -122,15 +90,29 @@ function setupMocks(options?: {
   isPremium?: boolean;
 }) {
   const getCachedReading = options?.getCachedReading || jest.fn().mockResolvedValue(null);
-  const saveReading = options?.saveReading || jest.fn(async (_ctx, _opts, content) => savedReading(content, content === generatedCanvas ? 12 : 11));
+  const saveReading = options?.saveReading || jest.fn(async (_ctx, _opts, content) => savedReading(content));
   const generateDailyCanvas = options?.generateDailyCanvas || jest.fn().mockResolvedValue(generatedCanvas);
 
   const sliceCanvasToSection = jest.fn((canvas: any, sectionKey: string) => {
-    if (canvas === generatedCanvas) return generatedSection;
-    if (canvas === fallbackCanvas) return fallbackSection;
     const canvasKey = sectionKey === 'daily_overview' ? 'overview' : sectionKey.replace(/^daily_/, '').replace('work_business', 'work');
-    const section = canvas?.sections?.find((item: any) => item.key === canvasKey);
-    return { key: sectionKey, title: 'x', access: 'premium', content: section?.text || '', bullets: [] };
+    if (canvasKey === 'overview') {
+      return {
+        key: sectionKey,
+        title: canvas.hero_title,
+        access: 'free',
+        content: canvas.overview,
+        teaser: canvas.hero_hook,
+        bullets: [],
+      };
+    }
+    return {
+      key: sectionKey,
+      title: canvasKey,
+      access: canvasKey === canvas.meta.free_section_key ? 'free' : 'premium',
+      content: canvas[canvasKey]?.body || '',
+      teaser: canvas[canvasKey]?.hook || '',
+      bullets: [],
+    };
   });
 
   jest.doMock('../lib/natalReading/apiHelper', () => ({
@@ -161,9 +143,10 @@ function setupMocks(options?: {
 
   jest.doMock('../lib/natalHumanInterpretation', () => ({
     buildHumanInputHash: jest.fn().mockReturnValue('input-hash'),
-    buildHumanDailyFallback: jest.fn().mockReturnValue(fallbackSection),
-    buildDailyCanvasFallback: jest.fn().mockReturnValue(fallbackCanvas),
+    buildHumanDailyFallback: jest.fn().mockReturnValue({ key: 'daily_risks', title: 'Fallback', access: 'premium', content: 'Fallback' }),
+    getDailyVoiceVersion: jest.fn().mockReturnValue('voice-test'),
     generateDailyCanvas,
+    isDailyCanvasComplete: jest.fn((canvas: any) => !!canvas?.hero_title && !!canvas?.love?.body),
     sliceCanvasToSection,
   }));
 
@@ -196,7 +179,7 @@ async function callHandler(method: 'GET' | 'POST' = 'POST', sectionKey = 'daily_
   return res;
 }
 
-describe('human-daily API canvas fallback-first flow', () => {
+describe('human-daily API daily package flow', () => {
   let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -208,7 +191,7 @@ describe('human-daily API canvas fallback-first flow', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('returns cached valid canvas without generation', async () => {
+  it('returns cached valid package without generation', async () => {
     const mocks = setupMocks({
       getCachedReading: jest.fn().mockResolvedValue(cachedReading),
     });
@@ -220,19 +203,25 @@ describe('human-daily API canvas fallback-first flow', () => {
     expect(payload.source).toBe('human_v2');
     expect(payload.persistenceStatus).toBe('saved');
     expect(payload.interpretation.content.content).toBe(generatedSection.content);
+    expect(payload.dailyPackage.hero_title).toBe(generatedCanvas.hero_title);
+    expect(payload.dailyPackage.love.body).toBe(generatedCanvas.love.body);
+    expect(payload.dailyPackage.communication.hook).toBe(generatedCanvas.communication.hook);
     expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
     expect(mocks.saveReading).not.toHaveBeenCalled();
   });
 
-  it('does not expose closed canvas sections to a free user', async () => {
+  it('does not expose closed section bodies to a free user', async () => {
     const mocks = setupMocks({
       getCachedReading: jest.fn().mockResolvedValue(cachedReading),
       isPremium: false,
     });
 
-    const open = await callHandler('GET', 'daily_love');
+    const open = await callHandler('GET', 'daily_overview');
     expect(open.status).toHaveBeenCalledWith(200);
-    expect(open.json.mock.calls[0][0].accessTier).toBe('free');
+    const payload = open.json.mock.calls[0][0];
+    expect(payload.dailyPackage.love.body).toBe(generatedCanvas.love.body);
+    expect(payload.dailyPackage.money.hook).toBe(generatedCanvas.money.hook);
+    expect(payload.dailyPackage.money.body).toBe('');
 
     const closed = await callHandler('GET', 'daily_money');
     expect(closed.status).toHaveBeenCalledWith(403);
@@ -244,7 +233,7 @@ describe('human-daily API canvas fallback-first flow', () => {
     expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
   });
 
-  it('saves fallback canvas before generated canvas on a miss', async () => {
+  it('saves a generated package once on a miss', async () => {
     const mocks = setupMocks({
       getCachedReading: jest.fn().mockResolvedValue(null),
     });
@@ -255,51 +244,25 @@ describe('human-daily API canvas fallback-first flow', () => {
     const payload = res.json.mock.calls[0][0];
     expect(payload.source).toBe('generated');
     expect(payload.persistenceStatus).toBe('saved');
-    expect(mocks.saveReading).toHaveBeenCalledTimes(2);
-    expect(mocks.saveReading.mock.calls[0][2]).toBe(fallbackCanvas);
-    expect(mocks.saveReading.mock.calls[1][2]).toBe(generatedCanvas);
-    expect(mocks.saveReading.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.generateDailyCanvas.mock.invocationCallOrder[0]
-    );
+    expect(mocks.saveReading).toHaveBeenCalledTimes(1);
+    expect(mocks.saveReading.mock.calls[0][2]).toBe(generatedCanvas);
     expect(payload.interpretation.content.content).toBe(generatedSection.content);
   });
 
-  it('returns saved fallback when canvas generation fails, then GET reads it without generation', async () => {
-    const savedFallback = savedReading(fallbackCanvas);
-    const mocks = setupMocks({
-      getCachedReading: jest.fn()
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(savedFallback),
-      saveReading: jest.fn().mockResolvedValue(savedFallback),
-      generateDailyCanvas: jest.fn().mockRejectedValue(new Error('OPENAI_DOWN')),
-    });
-
-    const post = await callHandler('POST');
-    expect(post.status).toHaveBeenCalledWith(200);
-    expect(post.json.mock.calls[0][0].source).toBe('fallback');
-    expect(post.json.mock.calls[0][0].interpretation.content.content).toBe(fallbackSection.content);
-
-    const get = await callHandler('GET');
-    expect(get.status).toHaveBeenCalledWith(200);
-    expect(get.json.mock.calls[0][0].source).toBe('human_v2');
-    expect(mocks.generateDailyCanvas).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not call OpenAI if fallback canvas persistence fails', async () => {
+  it('does not save a fake package when generation fails', async () => {
     const mocks = setupMocks({
       getCachedReading: jest.fn().mockResolvedValue(null),
-      saveReading: jest.fn().mockRejectedValue(new Error('DB_WRITE_FAILED')),
+      generateDailyCanvas: jest.fn().mockRejectedValue(new Error('OPENAI_DOWN')),
     });
 
     const res = await callHandler('POST');
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    const payload = res.json.mock.calls[0][0];
-    expect(payload.source).toBe('fallback_unsaved');
-    expect(payload.persistenceStatus).toBe('failed');
-    expect(payload.interpretation.content.content).toBe(fallbackSection.content);
-    expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json.mock.calls[0][0]).toMatchObject({
+      code: 'CONTENT_GENERATION_UNAVAILABLE',
+    });
+    expect(mocks.saveReading).not.toHaveBeenCalled();
+    expect(mocks.generateDailyCanvas).toHaveBeenCalledTimes(1);
   });
 
   it('does not save or call OpenAI when the initial cache read fails', async () => {
@@ -309,34 +272,15 @@ describe('human-daily API canvas fallback-first flow', () => {
 
     const res = await callHandler('POST');
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    const payload = res.json.mock.calls[0][0];
-    expect(payload.source).toBe('fallback_unsaved');
-    expect(payload.persistenceStatus).toBe('failed');
-    expect(payload.interpretation.content.content).toBe(fallbackSection.content);
-    expect(mocks.saveReading).not.toHaveBeenCalled();
-    expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
-  });
-
-  it('does not save or call OpenAI when the lock cache reread fails', async () => {
-    const mocks = setupMocks({
-      getCachedReading: jest.fn()
-        .mockResolvedValueOnce(null)
-        .mockRejectedValueOnce(new Error('DB_READ_FAILED')),
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json.mock.calls[0][0]).toMatchObject({
+      code: 'CACHE_READ_FAILED',
     });
-
-    const res = await callHandler('POST');
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    const payload = res.json.mock.calls[0][0];
-    expect(payload.source).toBe('fallback_unsaved');
-    expect(payload.persistenceStatus).toBe('failed');
-    expect(payload.interpretation.content.content).toBe(fallbackSection.content);
     expect(mocks.saveReading).not.toHaveBeenCalled();
     expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
   });
 
-  it('treats an invalid cached canvas as a miss and regenerates', async () => {
+  it('treats an invalid cached package as a miss and regenerates', async () => {
     const invalidReading = savedReading(invalidCanvas);
     const mocks = setupMocks({
       getCachedReading: jest.fn()
@@ -348,7 +292,7 @@ describe('human-daily API canvas fallback-first flow', () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json.mock.calls[0][0].source).toBe('generated');
-    expect(mocks.saveReading).toHaveBeenCalledTimes(2);
+    expect(mocks.saveReading).toHaveBeenCalledTimes(1);
     expect(mocks.generateDailyCanvas).toHaveBeenCalledTimes(1);
   });
 

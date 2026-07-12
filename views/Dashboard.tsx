@@ -2,7 +2,6 @@ import React, { memo, useEffect, useMemo, useState } from 'react';
 import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
-  InterpretationSection,
   NatalChartData,
   PersonalDailySection,
   UserProfile,
@@ -12,12 +11,14 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import { loadHumanDailySection } from '../services/natalReadingService';
+import { loadHumanDailyPackage } from '../services/natalReadingService';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen';
 import type { SurfaceRequest } from '../lib/stickers/select';
+import { getDashboardSystemText, type DashboardSystemState } from '../lib/dailyPresentationPatterns';
+import type { DailyCanvas } from '../lib/natalHumanShared';
 
 // ── Динамическая система стикеров (см. docs/STICKER_SYSTEM.md) ──
 // Стикеры/позиции выбираются случайно из каталога на КАЖДЫЙ заход; это единственное место,
@@ -84,33 +85,43 @@ export const Dashboard = memo<DashboardProps>(({
   const ownSunSign = String(chartData?.sun?.sign || sunSignFromDate(profile.birthDate) || '').trim().toLowerCase();
   const selectedSign = ownSunSign || String(profile.selectedZodiacSign || '').trim().toLowerCase();
 
-  // Карточка-герой берёт обзор дня из дневного полотна (тот же persistent-источник,
-  // что и внутри разбора): summary → заголовок, do/dont → две колонки под текстом.
-  // Обзор дня — бесплатная секция, грузим при наличии карты.
-  const [dayOverview, setDayOverview] = useState<InterpretationSection | null>(null);
+  // Карточка-герой и hooks восьми сфер читают один сохранённый дневной пакет.
+  // Если пакета ещё нет, Dashboard показывает системное состояние, а не прогнозную заглушку.
+  const [dailyPackage, setDailyPackage] = useState<DailyCanvas | null>(null);
+  const [dailyPackageState, setDailyPackageState] = useState<DashboardSystemState>('loading');
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [moonInfoOpen, setMoonInfoOpen] = useState(false);
 
-  /* Загрузка полотна дня (обзор) для карточки-героя */
+  /* Загрузка единого дневного пакета для карточки-героя и hooks */
   useEffect(() => {
-    if (!hasChart || !chartData || !profile.id) { setDayOverview(null); return; }
+    if (!hasChart || !chartData || !profile.id) {
+      setDailyPackage(null);
+      setDailyPackageState('no_chart');
+      return;
+    }
     let alive = true;
-    void loadHumanDailySection(String(profile.id), 'daily_overview', chartId ?? undefined, today, {
+    setDailyPackageState('loading');
+    void loadHumanDailyPackage(String(profile.id), chartId ?? undefined, today, {
       accessTier: 'premium',
       maxInProgressRetries: 3,
       profile,
       chartData,
     })
       .then((result) => {
-        if (alive && result.content?.content?.trim()) setDayOverview(result.content);
+        if (!alive) return;
+        setDailyPackage(result);
+        setDailyPackageState('ready');
       })
-      .catch(() => { if (alive) setDayOverview(null); });
+      .catch(() => {
+        if (!alive) return;
+        setDailyPackage(null);
+        setDailyPackageState('generation_error');
+      });
     return () => { alive = false; };
   }, [chartData, chartId, hasChart, profile, today]);
 
-  const dayHeroSummary = dayOverview?.content?.trim() || null;
-  const dayDo = (dayOverview?.dayDo || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
-  const dayDont = (dayOverview?.dayDont || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
+  const systemState = dailyPackage ? 'ready' : dailyPackageState;
+  const systemCopy = getDashboardSystemText(systemState, language, today);
 
   /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
@@ -154,21 +165,8 @@ export const Dashboard = memo<DashboardProps>(({
     ? 'Фаза луны — сколько её освещено сейчас, от новолуния к полнолунию и обратно. Растущая — время начинать и набирать, убывающая — завершать и отпускать. Это общий ритм месяца, а не предсказание.'
     : 'A moon phase is how much of the Moon is lit now, from new to full and back. Waxing is for starting and building, waning for finishing and letting go. It is a monthly rhythm, not a prediction.';
 
-  const dayHeroTitle = dayHeroSummary
-    || (language === 'ru'
-      ? 'День располагает к важным разговорам и спокойным решениям'
-      : 'A day for honest conversations and steadier choices');
-  const dayHeroText = !hasChart
-    ? (language === 'ru'
-      ? 'Сначала соберём личную основу: так день станет про тебя, а не про общий фон.'
-      : 'First, build your personal base so the day can feel about you, not a generic mood.')
-    : !premium
-    ? (language === 'ru'
-      ? 'Внутри будет больше деталей: где легче двигаться, а где лучше оставить себе паузу.'
-      : 'There is more detail inside: where movement comes easier and where space may help.')
-    : (language === 'ru'
-      ? 'Внутри больше деталей: сильные стороны дня, аккуратные места и подсказки по времени.'
-      : 'Inside: the day’s stronger points, softer spots, and timing cues.');
+  const dayHeroTitle = dailyPackage?.hero_title?.trim() || systemCopy;
+  const dayHeroText = dailyPackage?.hero_hook?.trim() || systemCopy;
   const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
   const natalText = hasChart
     ? (language === 'ru'
@@ -183,27 +181,34 @@ export const Dashboard = memo<DashboardProps>(({
   const compatibilityText = language === 'ru'
     ? 'Посмотри, где вам легко быть рядом, а где лучше говорить бережнее, чтобы понимать друг друга без догадок.'
     : 'See where being close feels easy, and where softer, clearer words help you understand each other without guessing.';
-  const sphereCards: SphereCard[] = language === 'ru'
+  const sphereCards: SphereCard[] = (language === 'ru'
     ? [
-        { section: 'love', title: 'Любовь', hook: 'Что сегодня с чувствами? Есть нюанс' },
-        { section: 'money', title: 'Деньги', hook: 'Не спеши тратить — вот почему' },
-        { section: 'work', title: 'Работа', hook: 'Сегодня решает не срочность' },
-        { section: 'goals', title: 'Цели', hook: 'Один шаг важнее плана на месяц' },
-        { section: 'family', title: 'Дом', hook: 'Дома просится маленькая правка' },
-        { section: 'friendship', title: 'Друзья', hook: 'Кому сегодня написать первым?' },
-        { section: 'energy', title: 'Силы', hook: 'Где лучше не жать на газ' },
-        { section: 'communication', title: 'Разговоры', hook: 'Что сказать прямо, но без нажима' },
+        ['love', 'Любовь'],
+        ['money', 'Деньги'],
+        ['work', 'Работа'],
+        ['goals', 'Цели'],
+        ['family', 'Дом и семья'],
+        ['friendship', 'Друзья'],
+        ['energy', 'Силы'],
+        ['communication', 'Разговоры'],
       ]
     : [
-        { section: 'love', title: 'Love', hook: 'What is up with feelings today?' },
-        { section: 'money', title: 'Money', hook: 'Do not rush that spend — here is why' },
-        { section: 'work', title: 'Work', hook: 'Today urgency is not the boss' },
-        { section: 'goals', title: 'Goals', hook: 'One step beats a month-long plan' },
-        { section: 'family', title: 'Home', hook: 'One small home fix wants attention' },
-        { section: 'friendship', title: 'Friends', hook: 'Who is worth texting first today?' },
-        { section: 'energy', title: 'Energy', hook: 'Where not to push too hard' },
-        { section: 'communication', title: 'Talks', hook: 'What to say clearly, without pressure' },
-      ];
+        ['love', 'Love'],
+        ['money', 'Money'],
+        ['work', 'Work'],
+        ['goals', 'Goals'],
+        ['family', 'Home and family'],
+        ['friendship', 'Friends'],
+        ['energy', 'Energy'],
+        ['communication', 'Talks'],
+      ]).map(([section, title]) => {
+        const key = section as Exclude<PersonalDailySection, 'overview'>;
+        return {
+          section: key,
+          title,
+          hook: dailyPackage?.[key]?.hook?.trim() || systemCopy,
+        };
+      });
   const openDayHero = () => {
     lumiaSelectionHaptic();
     if (hasChart) { onOpenPersonalDaily('overview'); }
@@ -267,30 +272,6 @@ export const Dashboard = memo<DashboardProps>(({
           <span className="home-day-hero-title">{dayHeroTitle}</span>
           <span className="home-day-hero-text">{dayHeroText}</span>
         </span>
-        {(dayDo.length > 0 || dayDont.length > 0) && (
-          <span className="home-day-hero-dd">
-            <span className="home-day-hero-dd-col">
-              <span className="home-day-hero-dd-head home-day-hero-dd-head--do">
-                {language === 'ru' ? 'Что сегодня пойдёт хорошо' : 'What goes well today'}
-              </span>
-              <span className="home-day-hero-dd-list">
-                {dayDo.map((item) => (
-                  <span key={item} className="home-day-hero-dd-item">{item}</span>
-                ))}
-              </span>
-            </span>
-            <span className="home-day-hero-dd-col">
-              <span className="home-day-hero-dd-head home-day-hero-dd-head--dont">
-                {language === 'ru' ? 'С чем лучше аккуратнее' : 'Where to go gently'}
-              </span>
-              <span className="home-day-hero-dd-list">
-                {dayDont.map((item) => (
-                  <span key={item} className="home-day-hero-dd-item">{item}</span>
-                ))}
-              </span>
-            </span>
-          </span>
-        )}
       </button>
 
       <section className="home-spheres" aria-label={language === 'ru' ? 'Сферы дня' : 'Day spheres'}>

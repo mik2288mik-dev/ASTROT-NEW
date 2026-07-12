@@ -1,4 +1,9 @@
 import type { InterpretationSection, InterpretationSectionKey } from '../types';
+import type {
+  DailyPackageFieldKey,
+  DailyPresentationPatternKey,
+  Locale,
+} from './dailyPresentationPatterns';
 
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
 export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v5.lean-portrait';
@@ -6,7 +11,7 @@ export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v4.paid-focus';
 // v5.daily-canvas: личный дневной разбор генерится ЕДИНЫМ полотном за один запрос
 // с прокинутыми транзит→натал аспектами. Бамп версии инвалидирует старый посекционный
 // кеш (ключи human_v2.daily.*), новый код читает только новый ключ human_v2.canvas.*.
-export const HUMAN_DAILY_PROMPT_VERSION = 'your-horoscope-v1.daily-canvas';
+export const HUMAN_DAILY_PROMPT_VERSION = 'your-horoscope-v2.daily-package';
 
 export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 
@@ -244,6 +249,7 @@ export type DailyCanvasSectionKey =
   | 'communication';
 
 export type DailyCanvasFreeSectionKey = Exclude<DailyCanvasSectionKey, 'overview'>;
+export type DailyCanvasTopicKey = DailyCanvasFreeSectionKey;
 
 export const DAILY_CANVAS_SECTION_KEYS = [
   'overview',
@@ -268,32 +274,42 @@ export const DAILY_CANVAS_FREE_SECTION_KEYS = [
   'communication',
 ] as const satisfies readonly DailyCanvasFreeSectionKey[];
 
-export type DailyCanvasCard = {
-  title: string;
-  teaser: string;
-  positive_points: string[];
-  caution_points: string[];
-};
+export const DAILY_CANVAS_TOPIC_KEYS = [
+  'love',
+  'money',
+  'work',
+  'goals',
+  'family',
+  'friendship',
+  'energy',
+  'communication',
+] as const satisfies readonly DailyCanvasTopicKey[];
 
-export type DailyCanvasSection = {
-  key: DailyCanvasSectionKey;
-  title: string;
-  text: string;
-};
-
-export type DailyCanvasSummary = {
-  main_risk: string;
-  best_action: string;
-  day_score: number | null;
-  day_score_explain: string;
+export type DailyCanvasTopic = {
+  hook: string;
+  body: string;
 };
 
 export type DailyCanvas = {
-  card: DailyCanvasCard;
-  sections: DailyCanvasSection[];
-  summary: DailyCanvasSummary;
+  hero_title: string;
+  hero_hook: string;
+  overview: string;
+  love: DailyCanvasTopic;
+  money: DailyCanvasTopic;
+  work: DailyCanvasTopic;
+  goals: DailyCanvasTopic;
+  family: DailyCanvasTopic;
+  friendship: DailyCanvasTopic;
+  energy: DailyCanvasTopic;
+  communication: DailyCanvasTopic;
   meta: {
     free_section_key: DailyCanvasFreeSectionKey;
+    pattern_keys?: Partial<Record<DailyPackageFieldKey, DailyPresentationPatternKey>>;
+    locale?: Locale;
+    voice_version?: string;
+    date_key?: string;
+    day_score?: number | null;
+    day_score_explain?: string;
   };
 };
 
@@ -313,8 +329,13 @@ export function isCanvasBackedDailySection(key: HumanDailySectionKey): boolean {
   return Object.prototype.hasOwnProperty.call(DAILY_SECTION_TO_CANVAS_KEY, key);
 }
 
-export function humanDailyCanvasCacheKey(dateKey: string): string {
-  return `personal_daily.canvas.${dateKey}`;
+export function humanDailyCanvasCacheKey(
+  userId: string,
+  dateKey: string,
+  locale: Locale,
+  voiceVersion: string,
+): string {
+  return `personal_daily.package.user.${String(userId).trim()}.date.${dateKey}.locale.${locale}.voice.${voiceVersion}`;
 }
 
 export function buildLockedPaidSections(): InterpretationSection[] {

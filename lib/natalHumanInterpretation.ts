@@ -9,7 +9,7 @@ import type {
   UserProfile,
 } from '../types';
 import { llmJson } from './anthropic';
-import { APP_VOICE_BLOCK_RU } from './appVoice';
+import { APP_VOICE_BLOCK_RU, getAppSystemVoice } from './appVoice';
 import { getCurrentTransits } from './transits-calculator';
 import { detectTransitAspects, formatTransitAspectsRu } from './transitAspects';
 import { computeDayScoreFromTransits } from './dailyAstroSignal';
@@ -20,17 +20,24 @@ import {
   buildLockedDailySections,
   buildLockedPaidSections,
   DAILY_CANVAS_FREE_SECTION_KEYS,
-  DAILY_CANVAS_SECTION_KEYS,
+  DAILY_CANVAS_TOPIC_KEYS,
   DAILY_SECTION_TO_CANVAS_KEY,
   HUMAN_DAILY_SECTION_META,
   HUMAN_FREE_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
   type DailyCanvas,
   type DailyCanvasFreeSectionKey,
-  type DailyCanvasSectionKey,
+  type DailyCanvasTopicKey,
   type HumanDailySectionKey,
   type HumanPaidSectionKey,
 } from './natalHumanShared';
+import {
+  DAILY_PACKAGE_FIELD_KEYS,
+  buildDailyPresentationPlan,
+  getDailyPresentationInstruction,
+  type DailyPresentationPlan,
+  type Locale,
+} from './dailyPresentationPatterns';
 
 const SIGN_RU: Record<string, string> = {
   Aries: 'Овен',
@@ -248,12 +255,17 @@ function buildChartSummary(profile: UserProfile, chart: NatalChartData): ChartSu
 // без ручного бампа promptVersion при каждой правке голоса.
 const VOICE_HASH = createHash('sha256').update(APP_VOICE_BLOCK_RU).digest('hex').slice(0, 16);
 
+export function getDailyVoiceVersion(locale: Locale = 'ru'): string {
+  return createHash('sha256').update(getAppSystemVoice(locale)).digest('hex').slice(0, 16);
+}
+
 export function buildHumanInputHash(input: {
   profile: UserProfile;
   chartData: NatalChartData;
   sectionKey?: string;
   dateKey?: string;
   promptVersion: string;
+  locale?: Locale;
 }): string {
   const summary = buildChartSummary(input.profile, input.chartData);
   return createHash('sha256')
@@ -268,7 +280,7 @@ export function buildHumanInputHash(input: {
       sectionKey: input.sectionKey || 'base',
       dateKey: input.dateKey || null,
       promptVersion: input.promptVersion,
-      voiceHash: VOICE_HASH,
+      voiceHash: input.locale ? getDailyVoiceVersion(input.locale) : VOICE_HASH,
     }))
     .digest('hex');
 }
@@ -1158,17 +1170,17 @@ const DAILY_MOON_DONT: Record<string, string> = {
   Рыбы: 'не растворяться в чужом',
 };
 
-function dailyDoCue(chart: NatalChartData): string {
+function _dailyDoCue(chart: NatalChartData): string {
   const sun = knownFallbackSign(serializePosition(chart, 'sun').sign);
   return sun && DAILY_SUN_DO[sun] ? `${sun}: ${DAILY_SUN_DO[sun]}` : 'Выбрать свой темп';
 }
 
-function dailyDontCue(chart: NatalChartData): string {
+function _dailyDontCue(chart: NatalChartData): string {
   const moon = knownFallbackSign(serializePosition(chart, 'moon').sign);
   return moon && DAILY_MOON_DONT[moon] ? `${moon}: ${DAILY_MOON_DONT[moon]}` : 'Не идти против себя';
 }
 
-function withPersonalFirstItem(items: string[], personalItem: string): string[] {
+function _withPersonalFirstItem(items: string[], personalItem: string): string[] {
   const unique = new Set<string>();
   return [personalItem, ...items]
     .map(cleanLine)
@@ -1419,7 +1431,7 @@ const LAYER_RU: Record<string, string> = {
   relationships: 'отношения',
 };
 
-const CANVAS_SECTION_TO_DAILY_KEY: Record<DailyCanvasSectionKey, HumanDailySectionKey> = {
+const _CANVAS_SECTION_TO_DAILY_KEY: Record<string, HumanDailySectionKey> = {
   overview: 'daily_overview',
   love: 'daily_love',
   money: 'daily_money',
@@ -1469,6 +1481,58 @@ function compactTransits(transits: TransitsSnapshot) {
   };
 }
 
+const DAILY_TOPIC_LABELS: Record<Locale, Record<DailyCanvasTopicKey, string>> = {
+  ru: {
+    love: 'Любовь',
+    money: 'Деньги',
+    work: 'Работа',
+    goals: 'Цели',
+    family: 'Дом и семья',
+    friendship: 'Друзья',
+    energy: 'Силы',
+    communication: 'Разговоры',
+  },
+  en: {
+    love: 'Love',
+    money: 'Money',
+    work: 'Work',
+    goals: 'Goals',
+    family: 'Home and family',
+    friendship: 'Friends',
+    energy: 'Energy',
+    communication: 'Talks',
+  },
+};
+
+function localeForProfile(profile: UserProfile): Locale {
+  return profile.language === 'en' ? 'en' : 'ru';
+}
+
+function buildDailyPackageSystemPrompt(locale: Locale): string {
+  const task = locale === 'en'
+    ? `## DAILY PACKAGE TASK
+
+Use the app voice above as the mandatory SYSTEM voice. The user-facing output must be English.
+
+Translate natal-chart and transit calculations into practical human language. Use only the supplied natal chart, calculated transit-to-natal aspects, and transit positions. Do not invent planetary positions, aspects, phases, events, income, health outcomes, or guarantees.
+
+Return only valid JSON.`
+    : `## ЗАДАЧА ДНЕВНОГО ПАКЕТА
+
+Используй голос приложения выше как обязательный SYSTEM-голос. Пользовательский текст должен быть на русском.
+
+Переводи натальную карту и рассчитанные транзиты в обычный человеческий язык. Опирайся только на переданную натальную карту, посчитанные транзит→натал аспекты и позиции транзитов. Не выдумывай положения планет, аспекты, фазы, события, доход, здоровье или гарантии.
+
+Ответ — только валидный JSON.`;
+  return `${getAppSystemVoice(locale)}\n\n${task}`;
+}
+
+function patternPlanBlock(plan: DailyPresentationPlan, locale: Locale): string {
+  return DAILY_PACKAGE_FIELD_KEYS
+    .map((field) => `- ${field}: ${plan[field]} — ${getDailyPresentationInstruction(plan[field], locale)}`)
+    .join('\n');
+}
+
 function buildDailyCanvasPrompt(
   summary: ChartSummary,
   dateKey: string,
@@ -1476,133 +1540,218 @@ function buildDailyCanvasPrompt(
   aspectLines: string[],
   score: { value: number; dominant: string; weakest: string } | null,
   freeSectionKey: DailyCanvasFreeSectionKey,
+  plan: DailyPresentationPlan,
+  locale: Locale,
 ): string {
   const aspectsBlock = aspectLines.length
     ? aspectLines.map((line) => `- ${line}`).join('\n')
-    : '- Точных аспектов транзитов к натальным планетам сегодня в пределах орбов нет — опирайся на позиции транзитов и натальную карту.';
+    : (locale === 'en'
+      ? '- No exact transit-to-natal aspects within the configured orbs. Use the transit positions and natal chart; be transparent and do not invent aspects.'
+      : '- Точных аспектов транзитов к натальным планетам в пределах орбов нет. Опирайся на позиции транзитов и натальную карту; не выдумывай аспекты.');
   const scoreBlock = score
-    ? `ОЦЕНКА ДНЯ: ${score.value}/100. Сильнее всего сегодня — ${score.dominant}; слабее — ${score.weakest}.`
-    : 'ОЦЕНКА ДНЯ: недоступна — не называй конкретное число, dayScoreExplain оставь пустым.';
+    ? (locale === 'en'
+      ? `DAY SCORE: ${score.value}/100. Strongest layer: ${score.dominant}; weakest layer: ${score.weakest}. Use this only as internal context.`
+      : `ОЦЕНКА ДНЯ: ${score.value}/100. Сильнее всего — ${score.dominant}; слабее — ${score.weakest}. Используй это только как внутренний контекст.`)
+    : (locale === 'en'
+      ? 'DAY SCORE: unavailable. Do not name a score.'
+      : 'ОЦЕНКА ДНЯ: недоступна. Не называй конкретное число.');
 
-  return `Собери ЕДИНЫЙ персональный разбор дня по натальной карте и реальным транзитам. Это один связный день целиком, а не набор независимых кусков: блоки не должны противоречить друг другу (общий тон, карточка, summary и секции согласованы между собой).
+  if (locale === 'en') {
+    return `Build ONE coherent personal day package for Dashboard and the personal-day sections.
 
-Дата: ${dateKey}
+Date: ${dateKey}
 
-НАТАЛЬНАЯ КАРТА (расчёт Swiss Ephemeris):
+NATAL CHART (Swiss Ephemeris calculation):
 ${JSON.stringify(summary, null, 2)}
 
-ПОЗИЦИИ ТРАНЗИТОВ НА СЕГОДНЯ (Swiss Ephemeris):
+TRANSIT POSITIONS FOR THE DATE (Swiss Ephemeris):
 ${JSON.stringify(transitPositions || {}, null, 2)}
 
-ПОСЧИТАННЫЕ ВЗАИМОДЕЙСТВИЯ ДНЯ (транзит→натал; УЖЕ вычислено — опирайся именно на это, не пересчитывай и не выдумывай другие):
+CALCULATED DAY INTERACTIONS (transit-to-natal; already computed, do not recalculate or invent):
 ${aspectsBlock}
 
 ${scoreBlock}
 
-Опирайся СТРОГО на переданные данные: натальную карту, посчитанные аспекты и позиции транзитов. НЕ придумывай положения планет, аспекты и фазы Луны. Точность — из расчёта, живость — из тебя. Пиши через конкретные сегодняшние ситуации (разговор, задача, покупка, договорённость, пауза). Не обещай событий, дохода, здоровья; без медицинских, юридических и финансовых гарантий.
+The server selected this free extra section: "${freeSectionKey}". Return exactly the same value in meta.free_section_key.
 
-Сервер уже выбрал вторую бесплатную тему: "${freeSectionKey}". Верни её же в meta.free_section_key.
+Presentation pattern for each field:
+${patternPlanBlock(plan, locale)}
 
-Верни JSON строго такой структуры (без markdown вне JSON):
+Rules:
+- The word "today" may appear no more than twice in the whole package.
+- hero_title, hero_hook, and all hooks must not start the same way.
+- Do not repeat one thought across hero, overview, and sections.
+- Hooks tease the section; they must not retell the full body.
+- The eight cards must not use one repeated syntactic construction.
+- Humor is allowed in at most one or two places in the whole package, only if the selected pattern makes it natural.
+- No fatalism, no invented astrological data, no medical/legal/financial guarantees.
+
+Return JSON with exactly this shape:
 {
-  "card": {
-    "title": "короткий заголовок дня без штампов",
-    "teaser": "2–3 предложения: что сегодня важно, без повтора overview",
-    "positive_points": ["3 пункта по 2–6 слов: что сегодня в плюс"],
-    "caution_points": ["3 пункта по 2–6 слов: где аккуратнее"]
-  },
-  "sections": [
-    { "key": "overview", "title": "Главное на сегодня", "text": "90–130 слов: общий ход дня" },
-    { "key": "love", "title": "Любовь и близость", "text": "70–110 слов" },
-    { "key": "money", "title": "Деньги и покупки", "text": "70–110 слов" },
-    { "key": "work", "title": "Работа и дела", "text": "70–110 слов" },
-    { "key": "goals", "title": "Цели и решения", "text": "70–110 слов" },
-    { "key": "family", "title": "Дом и семья", "text": "70–110 слов" },
-    { "key": "friendship", "title": "Друзья и окружение", "text": "70–110 слов" },
-    { "key": "energy", "title": "Нагрузка и восстановление", "text": "70–110 слов; без медицинских обещаний" },
-    { "key": "communication", "title": "Общение и важные разговоры", "text": "70–110 слов" }
-  ],
-  "summary": {
-    "main_risk": "один конкретный риск дня",
-    "best_action": "одно конкретное действие дня",
-    "day_score": ${score ? score.value : 'null'},
-    "day_score_explain": "1–2 фразы: живая расшифровка оценки дня; если оценки нет — пустая строка"
-  },
-  "meta": {
-    "free_section_key": "${freeSectionKey}"
+  "hero_title": "short Dashboard hero title",
+  "hero_hook": "one or two lines for the hero under the title",
+  "overview": "90-130 words: the coherent day overview",
+  "love": { "hook": "short card hook", "body": "70-110 words" },
+  "money": { "hook": "short card hook", "body": "70-110 words" },
+  "work": { "hook": "short card hook", "body": "70-110 words" },
+  "goals": { "hook": "short card hook", "body": "70-110 words" },
+  "family": { "hook": "short card hook", "body": "70-110 words" },
+  "friendship": { "hook": "short card hook", "body": "70-110 words" },
+  "energy": { "hook": "short card hook", "body": "70-110 words; no health promises" },
+  "communication": { "hook": "short card hook", "body": "70-110 words" },
+  "meta": { "free_section_key": "${freeSectionKey}" }
+}`;
   }
-}
 
-Пиши секции строго в указанном порядке. Не повторяй одну и ту же мысль между блоками. Общий русский результат по sections должен быть примерно 500–900 слов.`;
+  return `Собери ОДИН согласованный персональный пакет дня для Dashboard и разделов личного дня.
+
+Дата: ${dateKey}
+
+НАТАЛЬНАЯ КАРТА (расчет Swiss Ephemeris):
+${JSON.stringify(summary, null, 2)}
+
+ПОЗИЦИИ ТРАНЗИТОВ НА ДАТУ (Swiss Ephemeris):
+${JSON.stringify(transitPositions || {}, null, 2)}
+
+ПОСЧИТАННЫЕ ВЗАИМОДЕЙСТВИЯ ДНЯ (транзит→натал; уже вычислено, не пересчитывай и не выдумывай):
+${aspectsBlock}
+
+${scoreBlock}
+
+Сервер выбрал бесплатную дополнительную тему: "${freeSectionKey}". Верни ровно это значение в meta.free_section_key.
+
+Способ подачи для каждого поля:
+${patternPlanBlock(plan, locale)}
+
+Правила:
+- Слово «сегодня» можно использовать не больше двух раз во всем пакете.
+- hero_title, hero_hook и все hooks не должны начинаться одинаково.
+- Не повторяй одну мысль в hero, overview и разделах.
+- Hooks только открывают тему; они не пересказывают body.
+- Восемь карточек не должны идти одной синтаксической конструкцией.
+- Юмор максимум в одном-двух местах на весь пакет и только когда он уместен.
+- Без фатализма, без выдуманных астрологических данных, без медицинских, юридических и финансовых гарантий.
+
+Верни JSON строго такой структуры:
+{
+  "hero_title": "короткий заголовок hero для Dashboard",
+  "hero_hook": "одна-две строки под заголовком hero",
+  "overview": "90-130 слов: связный обзор дня",
+  "love": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "money": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "work": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "goals": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "family": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "friendship": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "energy": { "hook": "короткий hook карточки", "body": "70-110 слов; без обещаний про здоровье" },
+  "communication": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "meta": { "free_section_key": "${freeSectionKey}" }
+}`;
 }
 
 function canvasAllText(canvas: DailyCanvas): string {
   return [
-    canvas.card.title,
-    canvas.card.teaser,
-    ...canvas.card.positive_points,
-    ...canvas.card.caution_points,
-    ...canvas.sections.map((section) => `${section.title}\n${section.text}`),
-    canvas.summary.main_risk,
-    canvas.summary.best_action,
-    canvas.summary.day_score_explain,
+    canvas.hero_title,
+    canvas.hero_hook,
+    canvas.overview,
+    ...DAILY_CANVAS_TOPIC_KEYS.flatMap((key) => [canvas[key].hook, canvas[key].body]),
+    canvas.meta.day_score_explain,
   ]
     .map((v) => String(v || ''))
     .join('\n');
 }
 
-function normalizeCanvas(raw: Partial<DailyCanvas> | null | undefined, fallback: DailyCanvas): DailyCanvas {
+function normalizeCanvas(
+  raw: Partial<DailyCanvas> | null | undefined,
+  meta: {
+    freeSectionKey: DailyCanvasFreeSectionKey;
+    plan: DailyPresentationPlan;
+    locale: Locale;
+    voiceVersion: string;
+    dateKey: string;
+    dayScore: number | null;
+    dayScoreExplain: string;
+  },
+): DailyCanvas {
   const r = raw && typeof raw === 'object' ? raw : {};
-  const rawCard = r.card && typeof r.card === 'object' ? r.card as Partial<DailyCanvas['card']> : {};
-  const rawSummary = r.summary && typeof r.summary === 'object' ? r.summary as Partial<DailyCanvas['summary']> : {};
-  const rawSections = Array.isArray(r.sections) ? r.sections as Array<Partial<DailyCanvas['sections'][number]>> : [];
-  const sectionByKey = new Map(rawSections.map((section) => [section.key, section]));
-  const fallbackSectionByKey = new Map(fallback.sections.map((section) => [section.key, section]));
-  const sections = DAILY_CANVAS_SECTION_KEYS.map((key) => {
-    const rawSection = sectionByKey.get(key) || {};
-    const fallbackSection = fallbackSectionByKey.get(key)!;
+  const topic = (key: DailyCanvasTopicKey) => {
+    const rawTopic = r[key] && typeof r[key] === 'object' ? r[key] as Partial<DailyCanvas[DailyCanvasTopicKey]> : {};
     return {
-      key,
-      title: cleanLine(rawSection.title) || fallbackSection.title,
-      text: cleanText(rawSection.text) || fallbackSection.text,
+      hook: cleanLine(rawTopic.hook),
+      body: cleanText(rawTopic.body),
     };
-  });
+  };
   const rawFreeKey = r.meta?.free_section_key;
   const freeSectionKey = DAILY_CANVAS_FREE_SECTION_KEYS.includes(rawFreeKey as DailyCanvasFreeSectionKey)
     ? rawFreeKey as DailyCanvasFreeSectionKey
-    : fallback.meta.free_section_key;
+    : meta.freeSectionKey;
   return {
-    card: {
-      title: cleanLine(rawCard.title) || fallback.card.title,
-      teaser: cleanText(rawCard.teaser) || fallback.card.teaser,
-      positive_points: normalizeBullets(rawCard.positive_points, fallback.card.positive_points).slice(0, 3),
-      caution_points: normalizeBullets(rawCard.caution_points, fallback.card.caution_points).slice(0, 3),
-    },
-    sections,
-    summary: {
-      main_risk: cleanText(rawSummary.main_risk) || fallback.summary.main_risk,
-      best_action: cleanText(rawSummary.best_action) || fallback.summary.best_action,
-      day_score: fallback.summary.day_score ?? null,
-      day_score_explain: cleanText(rawSummary.day_score_explain) || fallback.summary.day_score_explain,
-    },
+    hero_title: cleanLine(r.hero_title),
+    hero_hook: cleanText(r.hero_hook),
+    overview: cleanText(r.overview),
+    love: topic('love'),
+    money: topic('money'),
+    work: topic('work'),
+    goals: topic('goals'),
+    family: topic('family'),
+    friendship: topic('friendship'),
+    energy: topic('energy'),
+    communication: topic('communication'),
     meta: {
       free_section_key: freeSectionKey,
+      pattern_keys: meta.plan,
+      locale: meta.locale,
+      voice_version: meta.voiceVersion,
+      date_key: meta.dateKey,
+      day_score: meta.dayScore,
+      day_score_explain: meta.dayScoreExplain,
     },
   };
 }
 
-function validateCanvas(canvas: DailyCanvas): boolean {
-  if (!cleanLine(canvas.card.title) || cleanText(canvas.card.teaser).length < 40) return false;
-  if (normalizeBullets(canvas.card.positive_points).length < 3) return false;
-  if (normalizeBullets(canvas.card.caution_points).length < 3) return false;
+function dailyPackageHasBadText(text: string, locale: Locale): boolean {
+  const compact = text.toLowerCase();
+  if (/undefined|null/i.test(text)) return true;
+  if (/искусственн(ый|ого) интеллект|as an ai/i.test(compact)) return true;
+  if (ESOTERIC_PATTERN.test(compact)) return true;
+  if (locale === 'ru' && !hasRussian(text)) return true;
+  return false;
+}
+
+function todayWordCount(text: string): number {
+  const ru = text.match(/\bсегодня\b/giu)?.length || 0;
+  const en = text.match(/\btoday\b/giu)?.length || 0;
+  return ru + en;
+}
+
+function startKey(text: string): string {
+  return cleanLine(text).toLowerCase().split(/\s+/).slice(0, 3).join(' ');
+}
+
+function hasRepeatedStarts(values: string[]): boolean {
+  const starts = values.map(startKey).filter((value) => value.length > 0);
+  return new Set(starts).size !== starts.length;
+}
+
+export function isDailyCanvasComplete(canvas: DailyCanvas, locale: Locale = 'ru'): boolean {
+  if (!canvas || typeof canvas !== 'object' || !canvas.meta) return false;
+  if (!cleanLine(canvas.hero_title) || cleanLine(canvas.hero_title).length < 12) return false;
+  if (!cleanText(canvas.hero_hook) || cleanText(canvas.hero_hook).length < 24) return false;
+  if (!cleanText(canvas.overview) || cleanText(canvas.overview).length < 120) return false;
   if (!DAILY_CANVAS_FREE_SECTION_KEYS.includes(canvas.meta.free_section_key)) return false;
-  const byKey = new Map(canvas.sections.map((section) => [section.key, section]));
-  for (const key of DAILY_CANVAS_SECTION_KEYS) {
-    const section = byKey.get(key);
-    if (!section || cleanText(section.text).length < (key === 'overview' ? 120 : 80)) return false;
+  for (const key of DAILY_CANVAS_TOPIC_KEYS) {
+    if (!canvas[key] || typeof canvas[key] !== 'object') return false;
+    if (!cleanLine(canvas[key].hook) || cleanLine(canvas[key].hook).length < 10) return false;
+    if (!cleanText(canvas[key].body) || cleanText(canvas[key].body).length < 80) return false;
   }
-  if (!cleanText(canvas.summary.main_risk) || !cleanText(canvas.summary.best_action)) return false;
-  if (hasBadText(canvasAllText(canvas))) return false;
+  const allText = canvasAllText(canvas);
+  if (todayWordCount(allText) > 2) return false;
+  if (hasRepeatedStarts([
+    canvas.hero_title,
+    canvas.hero_hook,
+    ...DAILY_CANVAS_TOPIC_KEYS.map((key) => canvas[key].hook),
+  ])) return false;
+  if (dailyPackageHasBadText(allText, locale)) return false;
   return true;
 }
 
@@ -1614,61 +1763,26 @@ export function buildDailyCanvasFallback(
   freeSectionKey?: DailyCanvasFreeSectionKey,
 ): DailyCanvas {
   const selectedFreeSection = freeSectionKey || chooseFreeSectionKey(profile, chart, dateKey);
-  const rawSections = DAILY_CANVAS_SECTION_KEYS.map((key) => {
-    const sectionKey = CANVAS_SECTION_TO_DAILY_KEY[key];
-    const fallbackSection = buildHumanDailyFallback(profile, chart, sectionKey, dateKey);
-    return {
-      key,
-      title: HUMAN_DAILY_SECTION_META[sectionKey].title,
-      text: fallbackSection.content,
-    };
-  });
-  const doVariants: string[][] = [
-    ['Довести одно до конца', 'Сказать прямо и вовремя', 'Дать себе паузу'],
-    ['Закрыть то, что висит', 'Начать с малого', 'Ответить по делу, без воды'],
-    ['Выбрать главное с утра', 'Спросить, а не додумывать', 'Выдохнуть между делами'],
-  ];
-  const dontVariants: string[][] = [
-    ['Не хвататься за всё сразу', 'Не решать сгоряча', 'Не копить недосказанность'],
-    ['Не бежать наперегонки с собой', 'Не молчать из обиды', 'Не покупать на эмоции'],
-    ['Не брать чужое «срочно»', 'Не проверять молчанием', 'Не подписывать на горячую голову'],
-  ];
-  const seed = dailyFallbackSeed(profile, chart);
-  const doItems = pickVariant(doVariants, dateKey, `do|${seed}`);
-  const dontItems = pickVariant(dontVariants, dateKey, `dont|${seed}`);
-  // Расшифровка оценки — тоже в голосе и с вариантами по числу и по дате.
-  const explainFor = (s: number): string[] => {
-    if (s >= 70) return [
-      `${s} — крепкий день. Дела и разговоры идут, можно спокойно браться за важное. С деньгами только не гони.`,
-      `${s} — хороший фон. Сегодня многое даётся легче обычного; используй это на то, что давно откладывал.`,
-    ];
-    if (s >= 45) return [
-      `${s} — ровный рабочий день. Ничего героического, но всё по силам, если не распыляться на десять дел разом.`,
-      `${s} — обычный день без сюрпризов. Держись одного главного, и к вечеру будешь доволен.`,
-    ];
-    return [
-      `${s} — день просит бережности, а не подвигов. Сбавь темп, сделай одно важное и не грузи себя лишним.`,
-      `${s} — фон низковат, и это нормально. Не требуй от себя многого сегодня; сделай минимум важного и дай себе отдохнуть.`,
-    ];
-  };
-  const positivePoints = withPersonalFirstItem(doItems, dailyDoCue(chart)).slice(0, 3);
-  const cautionPoints = withPersonalFirstItem(dontItems, dailyDontCue(chart)).slice(0, 3);
+  const emptyTopic = { hook: '', body: '' };
   return {
-    card: {
-      title: 'Главное на сегодня',
-      teaser: `${profile.name ? `${profile.name}, ` : ''}день лучше держать в руках: выбери главное, не раздавай внимание всем подряд и оставь место для спокойного решения.`,
-      positive_points: positivePoints,
-      caution_points: cautionPoints,
-    },
-    sections: rawSections,
-    summary: {
-      main_risk: cautionPoints[0] || 'Расфокус и лишняя спешка',
-      best_action: positivePoints[0] || 'Довести одно до конца',
-      day_score: score ?? null,
-      day_score_explain: score != null ? pickVariant(explainFor(score), dateKey, `score|${seed}`) : '',
-    },
+    hero_title: '',
+    hero_hook: '',
+    overview: '',
+    love: { ...emptyTopic },
+    money: { ...emptyTopic },
+    work: { ...emptyTopic },
+    goals: { ...emptyTopic },
+    family: { ...emptyTopic },
+    friendship: { ...emptyTopic },
+    energy: { ...emptyTopic },
+    communication: { ...emptyTopic },
     meta: {
       free_section_key: selectedFreeSection,
+      locale: localeForProfile(profile),
+      voice_version: getDailyVoiceVersion(localeForProfile(profile)),
+      date_key: dateKey,
+      day_score: score ?? null,
+      day_score_explain: '',
     },
   };
 }
@@ -1683,6 +1797,9 @@ export async function generateDailyCanvas(
   chart: NatalChartData,
   dateKey: string,
 ): Promise<DailyCanvas> {
+  const locale = localeForProfile(profile);
+  const voiceVersion = getDailyVoiceVersion(locale);
+  const patternPlan = buildDailyPresentationPlan(String(profile.id || 'anonymous'), dateKey);
   let transits: TransitsSnapshot | null = null;
   try {
     transits = await getCurrentTransits(new Date(`${dateKey}T09:00:00.000Z`));
@@ -1711,15 +1828,33 @@ export async function generateDailyCanvas(
   }
 
   const freeSectionKey = chooseFreeSectionKey(profile, chart, dateKey, dominantLayer);
-  const fallback = buildDailyCanvasFallback(profile, chart, dateKey, scoreNum, freeSectionKey);
   const summary = buildChartSummary(profile, chart);
   const compact = transits ? compactTransits(transits) : null;
-  const prompt = buildDailyCanvasPrompt(summary, dateKey, compact, aspectLines, scoreForPrompt, freeSectionKey);
+  const prompt = buildDailyCanvasPrompt(
+    summary,
+    dateKey,
+    compact,
+    aspectLines,
+    scoreForPrompt,
+    freeSectionKey,
+    patternPlan,
+    locale,
+  );
+  const meta = {
+    freeSectionKey,
+    plan: patternPlan,
+    locale,
+    voiceVersion,
+    dateKey,
+    dayScore: scoreNum,
+    dayScoreExplain: '',
+  };
+  let lastError: unknown = null;
 
-  const canvas = await generateWithRetry<DailyCanvas>(
-    async () => {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
       const raw = await llmJson<Partial<DailyCanvas>>({
-        system: HUMAN_SYSTEM_PROMPT,
+        system: buildDailyPackageSystemPrompt(locale),
         user: prompt,
         model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
         // Полотно — длинный связный текст: отдельный слот модели (app_settings → env → дефолт).
@@ -1728,16 +1863,18 @@ export async function generateDailyCanvas(
         maxTokens: 3200,
         temperature: 0.6,
       });
-      return normalizeCanvas(raw, fallback);
-    },
-    validateCanvas,
-    fallback,
-  );
+      const canvas = normalizeCanvas(raw, meta);
+      if (isDailyCanvasComplete(canvas, locale)) return canvas;
+      lastError = new Error('INVALID_DAILY_PACKAGE');
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) {
+        console.error('[NatalHumanInterpretation] daily package generation failed', error);
+      }
+    }
+  }
 
-  // Число оценки и free-section — из расчёта/серверного выбора, не из модели.
-  canvas.summary.day_score = scoreNum;
-  canvas.meta.free_section_key = freeSectionKey;
-  return canvas;
+  throw lastError instanceof Error ? lastError : new Error('DAILY_PACKAGE_GENERATION_FAILED');
 }
 
 /**
@@ -1751,31 +1888,28 @@ export function sliceCanvasToSection(
   const canvasKey = DAILY_SECTION_TO_CANVAS_KEY[sectionKey];
   if (!canvasKey) return null;
   const meta = HUMAN_DAILY_SECTION_META[sectionKey];
-  const section = canvas.sections.find((item) => item.key === canvasKey);
-  if (!section) return null;
   const isOverview = canvasKey === 'overview';
   const isFreeExtra = canvas.meta.free_section_key === canvasKey;
+  const topic = !isOverview ? canvas[canvasKey as DailyCanvasTopicKey] : null;
+  const content = isOverview ? canvas.overview : cleanText(topic?.body);
+  if (!content) return null;
   return {
     key: sectionKey,
-    title: section.title || meta.title,
+    title: isOverview
+      ? cleanLine(canvas.hero_title) || meta.title
+      : DAILY_TOPIC_LABELS[canvas.meta.locale === 'en' ? 'en' : 'ru'][canvasKey as DailyCanvasTopicKey],
     subtitle: meta.subtitle,
     access: isOverview || isFreeExtra ? 'free' : 'premium',
     isLocked: false,
-    teaser: meta.teaser,
-    content: cleanText(section.text),
+    teaser: isOverview ? cleanText(canvas.hero_hook) || meta.teaser : cleanText(topic?.hook) || meta.teaser,
+    content,
     bullets: [],
     ctaLabel: '',
-    // Карточка/summary живут на обзоре дня. Остальные секции получают только свой текст.
+    // Оценка живет в meta и не заменяет текст, если дневной пакет не готов.
     ...(isOverview
       ? {
-          dayDo: (canvas.card.positive_points || []).slice(0, 3),
-          dayDont: (canvas.card.caution_points || []).slice(0, 3),
-          dayScore: canvas.summary.day_score ?? null,
-          dayScoreExplain: cleanText(canvas.summary.day_score_explain),
-          bullets: [
-            cleanText(canvas.summary.best_action),
-            cleanText(canvas.summary.main_risk),
-          ].filter(Boolean),
+          dayScore: canvas.meta.day_score ?? null,
+          dayScoreExplain: cleanText(canvas.meta.day_score_explain),
         }
       : {}),
   };

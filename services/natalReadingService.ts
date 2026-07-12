@@ -17,6 +17,7 @@ import type {
   UserProfile,
 } from '../types';
 import type {
+  DailyCanvas,
   HumanDailySectionKey,
   HumanPaidSectionKey,
 } from '../lib/natalHumanShared';
@@ -98,6 +99,7 @@ type HumanEndpoint = 'human-base' | 'human-section' | 'human-daily';
 export type HumanReadingResult<T> = {
   content: T;
   accessTier?: ContentAccessTier;
+  dailyPackage?: DailyCanvas;
 };
 
 export type HumanReadingError = Error & {
@@ -123,6 +125,7 @@ const paidSectionCache = new Map<string, HumanReadingResult<InterpretationSectio
 const paidSectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
 const dailySectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
 const dailySectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
+const dailyPackageCache = new Map<string, DailyCanvas>();
 const profileCardsCache = new Map<string, NatalProfileCardsResponse>();
 const profileCardsInFlight = new Map<string, Promise<NatalProfileCardsResponse>>();
 
@@ -140,6 +143,10 @@ function paidKey(userId: string, sectionKey: HumanPaidSectionKey, chartId?: numb
 
 function dailyKey(userId: string, sectionKey: HumanDailySectionKey, chartId?: number, date?: string): string {
   return `${userId}:${chartKey(chartId)}:${date || 'today'}:${sectionKey}`;
+}
+
+function dailyPackageKey(userId: string, chartId?: number, date?: string): string {
+  return `${userId}:${chartKey(chartId)}:${date || 'today'}:package`;
 }
 
 function profileCardsKey(userId: string, chartId?: number, localHour?: number, todayText?: string | null): string {
@@ -163,6 +170,7 @@ export function clearHumanReadingSessionCache(userId?: string, chartId?: number)
     paidSectionInFlight.clear();
     dailySectionCache.clear();
     dailySectionInFlight.clear();
+    dailyPackageCache.clear();
     profileCardsCache.clear();
     profileCardsInFlight.clear();
     return;
@@ -182,6 +190,7 @@ export function clearHumanReadingSessionCache(userId?: string, chartId?: number)
   clearMapByPrefix(paidSectionInFlight, prefix);
   clearMapByPrefix(dailySectionCache, prefix);
   clearMapByPrefix(dailySectionInFlight, prefix);
+  clearMapByPrefix(dailyPackageCache, prefix);
   clearMapByPrefix(profileCardsCache, prefix);
   clearMapByPrefix(profileCardsInFlight, prefix);
 }
@@ -353,6 +362,7 @@ async function postHuman<T>(
     return {
       content: section as T,
       accessTier: payload.accessTier,
+      dailyPackage: payload.dailyPackage as DailyCanvas | undefined,
     };
   }
 
@@ -407,6 +417,7 @@ async function getHuman<T>(
     return {
       content: section as T,
       accessTier: payload.accessTier,
+      dailyPackage: payload.dailyPackage as DailyCanvas | undefined,
     };
   }
 
@@ -552,6 +563,9 @@ export async function ensureHumanDailySection(
       });
       const key = dailyKey(userId, sectionKey, chartId, date);
       dailySectionCache.set(key, result);
+      if (result.dailyPackage) {
+        dailyPackageCache.set(dailyPackageKey(userId, chartId, date), result.dailyPackage);
+      }
       return result;
     } catch (error) {
       lastError = error;
@@ -585,7 +599,12 @@ export async function loadHumanDailySection(
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const key = dailyKey(userId, sectionKey, chartId, date);
   const memoryCached = dailySectionCache.get(key);
-  if (memoryCached?.content?.content?.trim()) return memoryCached;
+  if (memoryCached?.content?.content?.trim()) {
+    if (memoryCached.dailyPackage) {
+      dailyPackageCache.set(dailyPackageKey(userId, chartId, date), memoryCached.dailyPackage);
+    }
+    return memoryCached;
+  }
 
   const existing = dailySectionInFlight.get(key);
   if (existing) return existing;
@@ -612,6 +631,9 @@ export async function getCachedHumanDailySection(
     const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
     if (cached?.content) {
       dailySectionCache.set(key, cached);
+      if (cached.dailyPackage) {
+        dailyPackageCache.set(dailyPackageKey(userId, chartId, date), cached.dailyPackage);
+      }
       return cached;
     }
     return null;
@@ -622,6 +644,33 @@ export async function getCachedHumanDailySection(
     }
     throw error;
   }
+}
+
+export async function loadHumanDailyPackage(
+  userId: string,
+  chartId?: number,
+  date?: string,
+  options?: {
+    accessTier?: 'premium';
+    maxInProgressRetries?: number;
+    profile?: UserProfile;
+    chartData?: NatalChartData | null;
+  }
+): Promise<DailyCanvas> {
+  const key = dailyPackageKey(userId, chartId, date);
+  const memoryCached = dailyPackageCache.get(key);
+  if (memoryCached) return memoryCached;
+
+  const result = await loadHumanDailySection(userId, 'daily_overview', chartId, date, options);
+  if (result.dailyPackage) {
+    dailyPackageCache.set(key, result.dailyPackage);
+    return result.dailyPackage;
+  }
+
+  const err = new Error('Daily package is missing') as HumanReadingError;
+  err.code = 'DAILY_PACKAGE_MISSING';
+  err.status = 502;
+  throw err;
 }
 
 export async function loadNatalProfileCards(
