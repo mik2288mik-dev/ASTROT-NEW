@@ -28,6 +28,7 @@ import {
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
+import { ChartBalance } from './ChartBalance';
 
 type Props = {
   profile: UserProfile;
@@ -446,7 +447,7 @@ export const HumanReport: React.FC<Props> = ({
   return (
     <article className="relative bg-white pb-16 pt-1">
       {/* Встроенный режим (в NatalMagazine): текст на всю ширину экрана с общими боковыми
-          отступами 16px — как big3/ChartBalance выше, без искусственно узкой колонки.
+          отступами 16px — как big3 выше, без искусственно узкой колонки.
           Standalone (!hideIntro) сохраняет читательскую центрированную колонку. */}
       <div className={`relative z-10 w-full ${hideIntro ? 'px-4' : 'mx-auto max-w-reading-wide px-5'}`}>
         <header className={hideIntro ? 'empty:hidden' : 'pb-6'}>
@@ -485,6 +486,10 @@ export const HumanReport: React.FC<Props> = ({
             ))
           )}
         </div>
+
+        {!loading && !error && report ? (
+          <ChartBalance chart={chartData} language={profile.language === 'en' ? 'en' : 'ru'} />
+        ) : null}
 
         <section className="border-t border-[#eeeeee] py-7">
           <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Подробные темы по карте</p>

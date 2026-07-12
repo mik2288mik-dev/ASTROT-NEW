@@ -1497,10 +1497,10 @@ const DAILY_TOPIC_LABELS: Record<Locale, Record<DailyCanvasTopicKey, string>> = 
     money: 'Money',
     work: 'Work',
     goals: 'Goals',
-    family: 'Home and family',
+    family: 'Home & Family',
     friendship: 'Friends',
     energy: 'Energy',
-    communication: 'Talks',
+    communication: 'Conversations',
   },
 };
 
@@ -1649,13 +1649,32 @@ ${patternPlanBlock(plan, locale)}
 }`;
 }
 
+function appendDailyCanvasRepairInstructions(
+  prompt: string,
+  hardErrors: readonly DailyCanvasValidationCode[],
+): string {
+  if (!hardErrors.length) return prompt;
+  return `${prompt}
+
+Previous attempt was rejected by server validation.
+Fix these hard validation errors exactly: ${hardErrors.join(', ')}.
+Return the same JSON shape. Do not explain the errors outside JSON.`;
+}
+
+function dailyCanvasError(message: string, code: string, hardErrors: DailyCanvasValidationCode[] = []): Error {
+  const error = new Error(message) as Error & { code?: string; hardErrors?: DailyCanvasValidationCode[] };
+  error.code = code;
+  error.hardErrors = hardErrors;
+  return error;
+}
+
 function canvasAllText(canvas: DailyCanvas): string {
   return [
     canvas.hero_title,
     canvas.hero_hook,
     canvas.overview,
-    ...DAILY_CANVAS_TOPIC_KEYS.flatMap((key) => [canvas[key].hook, canvas[key].body]),
-    canvas.meta.day_score_explain,
+    ...DAILY_CANVAS_TOPIC_KEYS.flatMap((key) => [canvas[key]?.hook, canvas[key]?.body]),
+    canvas.meta?.day_score_explain,
   ]
     .map((v) => String(v || ''))
     .join('\n');
@@ -1709,17 +1728,50 @@ function normalizeCanvas(
   };
 }
 
-function dailyPackageHasBadText(text: string, locale: Locale): boolean {
+export type DailyCanvasValidationCode =
+  | 'MISSING_CANVAS'
+  | 'MISSING_META'
+  | 'INVALID_FREE_SECTION_KEY'
+  | 'EMPTY_HERO_TITLE'
+  | 'EMPTY_HERO_HOOK'
+  | 'EMPTY_OVERVIEW'
+  | 'MISSING_TOPIC'
+  | 'EMPTY_TOPIC_HOOK'
+  | 'EMPTY_TOPIC_BODY'
+  | 'TEXT_TOO_SHORT'
+  | 'LANGUAGE_MISMATCH'
+  | 'BAD_TEXT_UNDEFINED_NULL'
+  | 'BAD_TEXT_AI_DISCLOSURE'
+  | 'BAD_TEXT_ESOTERIC'
+  | 'JSON_PARSE_FAILED'
+  | 'TODAY_WORD_OVER_LIMIT'
+  | 'REPEATED_HOOK_START'
+  | 'TEXT_OVER_RECOMMENDED_LENGTH'
+  | 'SIMILAR_SYNTAX';
+
+export type DailyCanvasValidationResult = {
+  valid: boolean;
+  hardErrors: DailyCanvasValidationCode[];
+  styleWarnings: DailyCanvasValidationCode[];
+};
+
+function pushCode(target: DailyCanvasValidationCode[], code: DailyCanvasValidationCode): void {
+  if (!target.includes(code)) target.push(code);
+}
+
+function dailyPackageBadTextCodes(text: string, locale: Locale): DailyCanvasValidationCode[] {
+  const codes: DailyCanvasValidationCode[] = [];
   const compact = text.toLowerCase();
-  if (/undefined|null/i.test(text)) return true;
-  if (/искусственн(ый|ого) интеллект|as an ai/i.test(compact)) return true;
-  if (ESOTERIC_PATTERN.test(compact)) return true;
-  if (locale === 'ru' && !hasRussian(text)) return true;
-  return false;
+  if (/undefined|null/i.test(text)) pushCode(codes, 'BAD_TEXT_UNDEFINED_NULL');
+  if (/искусственн(ый|ого) интеллект|as an ai/i.test(compact)) pushCode(codes, 'BAD_TEXT_AI_DISCLOSURE');
+  if (ESOTERIC_PATTERN.test(compact)) pushCode(codes, 'BAD_TEXT_ESOTERIC');
+  if (locale === 'ru' && !hasRussian(text)) pushCode(codes, 'LANGUAGE_MISMATCH');
+  if (locale === 'en' && hasRussian(text)) pushCode(codes, 'LANGUAGE_MISMATCH');
+  return codes;
 }
 
 function todayWordCount(text: string): number {
-  const ru = text.match(/\bсегодня\b/giu)?.length || 0;
+  const ru = text.match(/(?<![а-яё])сегодня(?![а-яё])/giu)?.length || 0;
   const en = text.match(/\btoday\b/giu)?.length || 0;
   return ru + en;
 }
@@ -1733,26 +1785,73 @@ function hasRepeatedStarts(values: string[]): boolean {
   return new Set(starts).size !== starts.length;
 }
 
-export function isDailyCanvasComplete(canvas: DailyCanvas, locale: Locale = 'ru'): boolean {
-  if (!canvas || typeof canvas !== 'object' || !canvas.meta) return false;
-  if (!cleanLine(canvas.hero_title) || cleanLine(canvas.hero_title).length < 12) return false;
-  if (!cleanText(canvas.hero_hook) || cleanText(canvas.hero_hook).length < 24) return false;
-  if (!cleanText(canvas.overview) || cleanText(canvas.overview).length < 120) return false;
-  if (!DAILY_CANVAS_FREE_SECTION_KEYS.includes(canvas.meta.free_section_key)) return false;
-  for (const key of DAILY_CANVAS_TOPIC_KEYS) {
-    if (!canvas[key] || typeof canvas[key] !== 'object') return false;
-    if (!cleanLine(canvas[key].hook) || cleanLine(canvas[key].hook).length < 10) return false;
-    if (!cleanText(canvas[key].body) || cleanText(canvas[key].body).length < 80) return false;
+export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): DailyCanvasValidationResult {
+  const hardErrors: DailyCanvasValidationCode[] = [];
+  const styleWarnings: DailyCanvasValidationCode[] = [];
+
+  if (!canvas || typeof canvas !== 'object') {
+    return { valid: false, hardErrors: ['MISSING_CANVAS'], styleWarnings };
   }
-  const allText = canvasAllText(canvas);
-  if (todayWordCount(allText) > 2) return false;
+
+  const candidate = canvas as Partial<DailyCanvas>;
+  if (!candidate.meta || typeof candidate.meta !== 'object') {
+    pushCode(hardErrors, 'MISSING_META');
+  } else if (!DAILY_CANVAS_FREE_SECTION_KEYS.includes(candidate.meta.free_section_key as DailyCanvasFreeSectionKey)) {
+    pushCode(hardErrors, 'INVALID_FREE_SECTION_KEY');
+  }
+
+  const heroTitle = cleanLine(candidate.hero_title);
+  const heroHook = cleanText(candidate.hero_hook);
+  const overview = cleanText(candidate.overview);
+
+  if (!heroTitle) pushCode(hardErrors, 'EMPTY_HERO_TITLE');
+  else if (heroTitle.length < 12) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+
+  if (!heroHook) pushCode(hardErrors, 'EMPTY_HERO_HOOK');
+  else if (heroHook.length < 24) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+
+  if (!overview) pushCode(hardErrors, 'EMPTY_OVERVIEW');
+  else if (overview.length < 120) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+
+  for (const key of DAILY_CANVAS_TOPIC_KEYS) {
+    const topic = candidate[key] as Partial<DailyCanvas[DailyCanvasTopicKey]> | undefined;
+    if (!topic || typeof topic !== 'object') {
+      pushCode(hardErrors, 'MISSING_TOPIC');
+      continue;
+    }
+    const hook = cleanLine(topic.hook);
+    const body = cleanText(topic.body);
+    if (!hook) pushCode(hardErrors, 'EMPTY_TOPIC_HOOK');
+    else if (hook.length < 10) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+    if (!body) pushCode(hardErrors, 'EMPTY_TOPIC_BODY');
+    else if (body.length < 80) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+  }
+
+  const safeCanvas = candidate as DailyCanvas;
+  const allText = canvasAllText(safeCanvas);
+  for (const code of dailyPackageBadTextCodes(allText, locale)) {
+    pushCode(hardErrors, code);
+  }
+
+  if (todayWordCount(allText) > 2) pushCode(styleWarnings, 'TODAY_WORD_OVER_LIMIT');
   if (hasRepeatedStarts([
-    canvas.hero_title,
-    canvas.hero_hook,
-    ...DAILY_CANVAS_TOPIC_KEYS.map((key) => canvas[key].hook),
-  ])) return false;
-  if (dailyPackageHasBadText(allText, locale)) return false;
-  return true;
+    safeCanvas.hero_title,
+    safeCanvas.hero_hook,
+    ...DAILY_CANVAS_TOPIC_KEYS.map((key) => safeCanvas[key]?.hook),
+  ])) {
+    pushCode(styleWarnings, 'REPEATED_HOOK_START');
+  }
+  if (allText.length > 7_500) pushCode(styleWarnings, 'TEXT_OVER_RECOMMENDED_LENGTH');
+
+  return {
+    valid: hardErrors.length === 0,
+    hardErrors,
+    styleWarnings,
+  };
+}
+
+export function isDailyCanvasComplete(canvas: DailyCanvas, locale: Locale = 'ru'): boolean {
+  return validateDailyCanvas(canvas, locale).valid;
 }
 
 export function buildDailyCanvasFallback(
@@ -1789,8 +1888,8 @@ export function buildDailyCanvasFallback(
 
 /**
  * Генерит ВСЁ дневное полотно одним запросом: транзиты → посчитанные аспекты + оценка
- * дня (из dailyAstroSignal) → промпт → JSON. При сбое/невалидности — человеко-написанный
- * fallback-полотно. Число оценки берётся из расчёта, а не из модели.
+ * дня (из dailyAstroSignal) → промпт → JSON. При hard-invalid ответе делает одну
+ * исправительную попытку с reason-кодами. Фальшивый прогнозный fallback не создаётся.
  */
 export async function generateDailyCanvas(
   profile: UserProfile,
@@ -1850,12 +1949,14 @@ export async function generateDailyCanvas(
     dayScoreExplain: '',
   };
   let lastError: unknown = null;
+  let repairErrors: DailyCanvasValidationCode[] = [];
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
+      const attemptPrompt = appendDailyCanvasRepairInstructions(prompt, repairErrors);
       const raw = await llmJson<Partial<DailyCanvas>>({
         system: buildDailyPackageSystemPrompt(locale),
-        user: prompt,
+        user: attemptPrompt,
         model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
         // Полотно — длинный связный текст: отдельный слот модели (app_settings → env → дефолт).
         // Настраивается в админке (слот daily_canvas) или через OPENAI_DAILY_CANVAS_MODEL.
@@ -1864,17 +1965,37 @@ export async function generateDailyCanvas(
         temperature: 0.6,
       });
       const canvas = normalizeCanvas(raw, meta);
-      if (isDailyCanvasComplete(canvas, locale)) return canvas;
-      lastError = new Error('INVALID_DAILY_PACKAGE');
+      const validation = validateDailyCanvas(canvas, locale);
+      if (validation.valid) {
+        if (validation.styleWarnings.length) {
+          console.warn('[NatalHumanInterpretation] daily package style warnings', {
+            styleWarnings: validation.styleWarnings,
+            attempt: attempt + 1,
+          });
+        }
+        return canvas;
+      }
+      repairErrors = validation.hardErrors;
+      lastError = dailyCanvasError('INVALID_DAILY_PACKAGE', 'DAILY_PACKAGE_HARD_INVALID', validation.hardErrors);
     } catch (error) {
-      lastError = error;
+      if (!repairErrors.length) repairErrors = ['JSON_PARSE_FAILED'];
+      lastError = error instanceof Error
+        ? error
+        : dailyCanvasError('DAILY_PACKAGE_GENERATION_FAILED', 'DAILY_PACKAGE_GENERATION_FAILED');
       if (attempt === 1) {
         console.error('[NatalHumanInterpretation] daily package generation failed', error);
       }
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('DAILY_PACKAGE_GENERATION_FAILED');
+  if (lastError instanceof Error) {
+    if (!(lastError as Error & { code?: string }).code) {
+      (lastError as Error & { code?: string; hardErrors?: DailyCanvasValidationCode[] }).code = 'DAILY_PACKAGE_GENERATION_FAILED';
+      (lastError as Error & { hardErrors?: DailyCanvasValidationCode[] }).hardErrors = repairErrors;
+    }
+    throw lastError;
+  }
+  throw dailyCanvasError('DAILY_PACKAGE_GENERATION_FAILED', 'DAILY_PACKAGE_GENERATION_FAILED', repairErrors);
 }
 
 /**

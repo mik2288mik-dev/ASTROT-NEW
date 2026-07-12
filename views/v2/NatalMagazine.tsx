@@ -3,7 +3,6 @@ import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../
 import { getZodiacSign } from '../../constants';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
-import { ChartBalance } from '../../components/NatalReading/ChartBalance';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
 import { MonoIllustChart } from '../../components/mono-ui';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
@@ -84,9 +83,6 @@ export function NatalMagazine({
           </div>
         ))}
       </div>
-
-      {/* Стихии в карте — аккуратный спектр (локально, без ИИ) */}
-      <ChartBalance chart={data} language={language} />
 
       {/* Контент карты — без своей шапки (hideIntro), «Личный день» уехал в Гороскоп */}
       <HumanReport

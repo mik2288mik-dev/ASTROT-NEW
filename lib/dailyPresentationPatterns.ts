@@ -163,7 +163,7 @@ const DASHBOARD_SYSTEM_COPY: Record<DashboardSystemState, Record<Locale, string[
     en: [
       'Matching your chart with the calculations for the day. One second.',
       'Checking the details in your chart — guessing would be cheaper, but worse.',
-      'Your reading is coming together. No magic trick, the calculations just need a moment.',
+      'Your reading is coming together. The calculations just need a moment.',
       'The picture is almost clear. A couple of details still need checking.',
       'Finding what actually applies to you, not to everyone with the same sign.',
       'The chart is here. Now we are sorting out what matters most for this date.',

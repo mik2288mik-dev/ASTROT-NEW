@@ -12,8 +12,8 @@ import {
   buildHumanDailyFallback,
   getDailyVoiceVersion,
   generateDailyCanvas,
-  isDailyCanvasComplete,
   sliceCanvasToSection,
+  validateDailyCanvas,
 } from '../../../../lib/natalHumanInterpretation';
 import {
   DAILY_CANVAS_TOPIC_KEYS,
@@ -56,7 +56,7 @@ function isUsableCanvas(value: unknown): value is DailyCanvas {
   if (!value || typeof value !== 'object') return false;
   const canvas = value as Partial<DailyCanvas>;
   const locale = canvas.meta?.locale === 'en' ? 'en' : 'ru';
-  return isDailyCanvasComplete(value as DailyCanvas, locale);
+  return validateDailyCanvas(value, locale).valid;
 }
 
 function isFreeSectionAllowed(canvas: DailyCanvas, sectionKey: HumanDailySectionKey): boolean {
@@ -309,10 +309,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const rawCached = await getCachedReading<DailyCanvas>(ctx, canvasCacheOpts);
     cachedCanvas = rawCached && isUsableCanvas(rawCached.content) ? rawCached.content : null;
     if (rawCached && !cachedCanvas) {
+      const cachedLocale = (rawCached.content as Partial<DailyCanvas> | undefined)?.meta?.locale === 'en' ? 'en' : locale;
+      const validation = validateDailyCanvas(rawCached.content, cachedLocale);
       warnContentApi(apiLogContext, 'invalid_cached_row', {
         accessTier: requestedAccessTier,
         errorCode: 'EMPTY_INTERPRETATION',
-        metadata: { sectionKey, dateKey, cacheKey },
+        metadata: {
+          sectionKey,
+          dateKey,
+          cacheKey,
+          reasonCode: 'CACHE_VALIDATION_FAILED',
+          hardErrors: validation.hardErrors,
+          styleWarnings: validation.styleWarnings,
+        },
       });
     }
   } catch (error: any) {
@@ -367,14 +376,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       operation: 'human-daily-canvas',
       readCached: async () => {
         const again = await getCachedReading<DailyCanvas>(ctx, canvasCacheOpts);
-        return again && isUsableCanvas(again.content)
-          ? { value: again.content, source: 'human_v2' as const }
-          : null;
+        if (!again) return null;
+        if (isUsableCanvas(again.content)) {
+          return { value: again.content, source: 'human_v2' as const };
+        }
+        const validation = validateDailyCanvas(again.content, locale);
+        warnContentApi(apiLogContext, 'lock_cache_invalid', {
+          accessTier: requestedAccessTier,
+          errorCode: 'EMPTY_INTERPRETATION',
+          metadata: {
+            sectionKey,
+            dateKey,
+            reasonCode: 'LOCK_CACHE_VALIDATION_FAILED',
+            hardErrors: validation.hardErrors,
+            styleWarnings: validation.styleWarnings,
+          },
+        });
+        return null;
       },
       generate: async () => {
         const canvas = await generateDailyCanvas(ctx.profile, ctx.chartData!, dateKey);
-        if (!isUsableCanvas(canvas)) throw new Error('EMPTY_DAILY_CANVAS');
-        await saveReading<DailyCanvas>(ctx, canvasSaveOpts, canvas);
+        const validation = validateDailyCanvas(canvas, locale);
+        if (!validation.valid) {
+          const error = new Error('EMPTY_DAILY_CANVAS') as Error & { code?: string; hardErrors?: string[] };
+          error.code = 'DAILY_PACKAGE_HARD_INVALID';
+          error.hardErrors = validation.hardErrors;
+          throw error;
+        }
+        if (validation.styleWarnings.length) {
+          warnContentApi(apiLogContext, 'daily_package_style_warnings', {
+            accessTier: requestedAccessTier,
+            status: 'ready',
+            metadata: {
+              sectionKey,
+              dateKey,
+              reasonCode: 'STYLE_WARNINGS',
+              styleWarnings: validation.styleWarnings,
+            },
+          });
+        }
+        try {
+          await saveReading<DailyCanvas>(ctx, canvasSaveOpts, canvas);
+        } catch (error) {
+          const saveError = new Error('SAVE_READING_FAILED') as Error & { code?: string; cause?: unknown };
+          saveError.code = 'SAVE_READING_FAILED';
+          saveError.cause = error;
+          throw saveError;
+        }
         logContentApi(apiLogContext, 'generation_saved', {
           accessTier: requestedAccessTier,
           status: 'ready',
@@ -386,7 +434,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (lockResult.status === 'in_progress') {
-      return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));
+      return res.status(202).json({
+        ...generationInProgressPayload(lockResult.retryAfterMs),
+        reasonCode: 'GENERATION_LOCK_BUSY',
+      });
     }
 
     const canvas = lockResult.value;
@@ -394,19 +445,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const persistenceStatus: DailyPersistenceStatus = 'saved';
     return respondWithCanvas(canvas, source, persistenceStatus);
   } catch (error) {
+    const err = error as Error & { code?: string; hardErrors?: string[] };
+    const errorCode = err.code || 'CONTENT_GENERATION_UNAVAILABLE';
     warnContentApi(apiLogContext, 'generation_failed', {
       accessTier: requestedAccessTier,
-      errorCode: 'CONTENT_GENERATION_UNAVAILABLE',
+      errorCode,
       durationMs: Date.now() - startedAt,
-      metadata: { sectionKey, dateKey },
+      metadata: {
+        sectionKey,
+        dateKey,
+        reasonCode: errorCode,
+        hardErrors: err.hardErrors || [],
+      },
     });
     console.error(
       '[natal/human-daily:canvas] generation flow failed:',
-      error instanceof Error ? error.message : error,
+      error instanceof Error ? `${errorCode}:${error.message}` : errorCode,
     );
     return res.status(503).json({
       error: 'DAILY_PACKAGE_UNAVAILABLE',
-      code: 'CONTENT_GENERATION_UNAVAILABLE',
+      code: errorCode,
+      reasonCode: errorCode,
       message: 'Daily package could not be prepared.',
     });
   }

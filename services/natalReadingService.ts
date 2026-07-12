@@ -30,6 +30,8 @@ import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { getTelegramInitDataHeaders } from './sessionService';
 
 const HUMAN_GENERATION_TIMEOUT_MS = 90_000;
+const DAILY_POLL_TIMEOUT_MS = 85_000;
+const DAILY_POLL_MAX_DELAY_MS = 5_000;
 
 type Endpoint = 'portrait' | 'aspects' | 'week' | 'today' | 'dive';
 
@@ -106,6 +108,7 @@ export type HumanReadingError = Error & {
   status?: number;
   code?: string;
   premiumAvailable?: boolean;
+  retryAfterMs?: number;
 };
 
 export type NatalProfileCardsResponse = {
@@ -126,6 +129,7 @@ const paidSectionInFlight = new Map<string, Promise<HumanReadingResult<Interpret
 const dailySectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
 const dailySectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
 const dailyPackageCache = new Map<string, DailyCanvas>();
+const dailyPackageInFlight = new Map<string, Promise<DailyCanvas>>();
 const profileCardsCache = new Map<string, NatalProfileCardsResponse>();
 const profileCardsInFlight = new Map<string, Promise<NatalProfileCardsResponse>>();
 
@@ -171,6 +175,7 @@ export function clearHumanReadingSessionCache(userId?: string, chartId?: number)
     dailySectionCache.clear();
     dailySectionInFlight.clear();
     dailyPackageCache.clear();
+    dailyPackageInFlight.clear();
     profileCardsCache.clear();
     profileCardsInFlight.clear();
     return;
@@ -191,6 +196,7 @@ export function clearHumanReadingSessionCache(userId?: string, chartId?: number)
   clearMapByPrefix(dailySectionCache, prefix);
   clearMapByPrefix(dailySectionInFlight, prefix);
   clearMapByPrefix(dailyPackageCache, prefix);
+  clearMapByPrefix(dailyPackageInFlight, prefix);
   clearMapByPrefix(profileCardsCache, prefix);
   clearMapByPrefix(profileCardsInFlight, prefix);
 }
@@ -268,6 +274,7 @@ async function readHumanError(response: Response, fallback: string): Promise<Hum
   err.status = response.status;
   err.code = payload.code || payload.error;
   err.premiumAvailable = payload.premiumRequired === true || payload.premiumAvailable === true;
+  if (Number.isFinite(payload.retryAfterMs)) err.retryAfterMs = Number(payload.retryAfterMs);
   return err;
 }
 
@@ -302,6 +309,7 @@ async function postHuman<T>(
     accessTier?: 'premium';
     profile?: UserProfile;
     chartData?: NatalChartData | null;
+    signal?: AbortSignal;
   }
 ): Promise<HumanReadingResult<T>> {
   const body: Record<string, unknown> = {
@@ -325,6 +333,7 @@ async function postHuman<T>(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify(body),
+      signal: options?.signal,
     },
     HUMAN_GENERATION_TIMEOUT_MS
   ).catch((error: unknown) => {
@@ -397,12 +406,14 @@ async function getHuman<T>(
     chartId?: number;
     sectionKey?: HumanPaidSectionKey | HumanDailySectionKey;
     date?: string;
+    signal?: AbortSignal;
   }
 ): Promise<HumanReadingResult<T> | null> {
   const response = await fetch(buildHumanUrl(endpoint, userId, options), {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
     cache: 'no-store',
+    signal: options?.signal,
   });
 
   if (response.status === 404) return null;
@@ -544,45 +555,53 @@ export async function ensureHumanDailySection(
     maxInProgressRetries?: number;
     profile?: UserProfile;
     chartData?: NatalChartData | null;
+    signal?: AbortSignal;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
-  const retries = options?.maxInProgressRetries ?? 3;
   const cached = await getCachedHumanDailySection(userId, sectionKey, chartId, date);
   if (cached?.content?.content?.trim()) return cached;
 
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= retries; attempt += 1) {
-    try {
-      const result = await postHuman<InterpretationSection>('human-daily', userId, {
-        chartId,
-        sectionKey,
-        date,
-        profile: options?.profile,
-        chartData: options?.chartData,
-        ...(sectionKey === 'daily_overview' ? {} : { accessTier: options?.accessTier || 'premium' }),
-      });
-      const key = dailyKey(userId, sectionKey, chartId, date);
-      dailySectionCache.set(key, result);
-      if (result.dailyPackage) {
-        dailyPackageCache.set(dailyPackageKey(userId, chartId, date), result.dailyPackage);
-      }
-      return result;
-    } catch (error) {
-      lastError = error;
-      if (!isGenerationInProgressError(error) || attempt >= retries) {
-        throw error;
-      }
-      await waitMs(getRetryAfterMs(error));
-      const afterWait = await getCachedHumanDailySection(userId, sectionKey, chartId, date);
-      if (afterWait?.content?.content?.trim()) {
-        const key = dailyKey(userId, sectionKey, chartId, date);
-        dailySectionCache.set(key, afterWait);
-        return afterWait;
-      }
+  const saveResult = (result: HumanReadingResult<InterpretationSection>) => {
+    const key = dailyKey(userId, sectionKey, chartId, date);
+    dailySectionCache.set(key, result);
+    if (result.dailyPackage) {
+      dailyPackageCache.set(dailyPackageKey(userId, chartId, date), result.dailyPackage);
     }
-  }
+    return result;
+  };
 
-  throw lastError;
+  try {
+    const result = await postHuman<InterpretationSection>('human-daily', userId, {
+      chartId,
+      sectionKey,
+      date,
+      profile: options?.profile,
+      chartData: options?.chartData,
+      signal: options?.signal,
+      ...(sectionKey === 'daily_overview' ? {} : { accessTier: options?.accessTier || 'premium' }),
+    });
+    return saveResult(result);
+  } catch (error) {
+    if (!isGenerationInProgressError(error)) throw error;
+    const deadline = Date.now() + DAILY_POLL_TIMEOUT_MS;
+    let retryAfter = getRetryAfterMs(error);
+    while (Date.now() < deadline) {
+      if (options?.signal?.aborted) {
+        const abortError = new Error('Request aborted') as HumanReadingError;
+        abortError.code = 'ABORTED';
+        abortError.status = 499;
+        throw abortError;
+      }
+      await waitMs(Math.min(Math.max(retryAfter, 500), DAILY_POLL_MAX_DELAY_MS));
+      const afterWait = await getCachedHumanDailySection(userId, sectionKey, chartId, date, options?.signal);
+      if (afterWait?.content?.content?.trim()) return saveResult(afterWait);
+      retryAfter = Math.min(Math.max(retryAfter, 1000) * 1.2, DAILY_POLL_MAX_DELAY_MS);
+    }
+    const timeout = new Error('Daily package polling timed out') as HumanReadingError;
+    timeout.code = 'DAILY_PACKAGE_POLL_TIMEOUT';
+    timeout.status = 408;
+    throw timeout;
+  }
 }
 
 export async function loadHumanDailySection(
@@ -595,6 +614,7 @@ export async function loadHumanDailySection(
     maxInProgressRetries?: number;
     profile?: UserProfile;
     chartData?: NatalChartData | null;
+    signal?: AbortSignal;
   }
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const key = dailyKey(userId, sectionKey, chartId, date);
@@ -604,6 +624,14 @@ export async function loadHumanDailySection(
       dailyPackageCache.set(dailyPackageKey(userId, chartId, date), memoryCached.dailyPackage);
     }
     return memoryCached;
+  }
+
+  const packageKey = dailyPackageKey(userId, chartId, date);
+  const existingPackage = dailyPackageInFlight.get(packageKey);
+  if (existingPackage) {
+    await existingPackage;
+    const cachedAfterPackage = await getCachedHumanDailySection(userId, sectionKey, chartId, date, options?.signal);
+    if (cachedAfterPackage?.content?.content?.trim()) return cachedAfterPackage;
   }
 
   const existing = dailySectionInFlight.get(key);
@@ -621,14 +649,15 @@ export async function getCachedHumanDailySection(
   userId: string,
   sectionKey: HumanDailySectionKey,
   chartId?: number,
-  date?: string
+  date?: string,
+  signal?: AbortSignal
 ): Promise<HumanReadingResult<InterpretationSection> | null> {
   const key = dailyKey(userId, sectionKey, chartId, date);
   const memoryCached = dailySectionCache.get(key);
   if (memoryCached?.content) return memoryCached;
 
   try {
-    const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date });
+    const cached = await getHuman<InterpretationSection>('human-daily', userId, { chartId, sectionKey, date, signal });
     if (cached?.content) {
       dailySectionCache.set(key, cached);
       if (cached.dailyPackage) {
@@ -655,22 +684,33 @@ export async function loadHumanDailyPackage(
     maxInProgressRetries?: number;
     profile?: UserProfile;
     chartData?: NatalChartData | null;
+    signal?: AbortSignal;
   }
 ): Promise<DailyCanvas> {
   const key = dailyPackageKey(userId, chartId, date);
   const memoryCached = dailyPackageCache.get(key);
   if (memoryCached) return memoryCached;
 
-  const result = await loadHumanDailySection(userId, 'daily_overview', chartId, date, options);
-  if (result.dailyPackage) {
-    dailyPackageCache.set(key, result.dailyPackage);
-    return result.dailyPackage;
-  }
+  const existing = dailyPackageInFlight.get(key);
+  if (existing) return existing;
 
-  const err = new Error('Daily package is missing') as HumanReadingError;
-  err.code = 'DAILY_PACKAGE_MISSING';
-  err.status = 502;
-  throw err;
+  const request = (async () => {
+    const result = await loadHumanDailySection(userId, 'daily_overview', chartId, date, options);
+    if (result.dailyPackage) {
+      dailyPackageCache.set(key, result.dailyPackage);
+      return result.dailyPackage;
+    }
+
+    const err = new Error('Daily package is missing') as HumanReadingError;
+    err.code = 'DAILY_PACKAGE_MISSING';
+    err.status = 502;
+    throw err;
+  })().finally(() => {
+    dailyPackageInFlight.delete(key);
+  });
+
+  dailyPackageInFlight.set(key, request);
+  return request;
 }
 
 export async function loadNatalProfileCards(

@@ -33,17 +33,29 @@ type DailyTabConfig = {
   sectionKey?: HumanDailySectionKey;
 };
 
-const DAILY_TABS: DailyTabConfig[] = [
-  { id: 'overview', label: 'День', title: 'Личный прогноз', subtitle: 'Главный фокус дня', accent: '#1478FF', sectionKey: 'daily_overview' },
-  { id: 'love', label: 'Любовь', title: 'Любовь сегодня', subtitle: 'Близость, эмоции и разговоры', accent: '#2563EB', sectionKey: 'daily_love' },
-  { id: 'money', label: 'Деньги', title: 'Деньги сегодня', subtitle: 'Решения, покупки и устойчивость', accent: '#0F172A', sectionKey: 'daily_money' },
-  { id: 'work', label: 'Работа', title: 'Работа сегодня', subtitle: 'Фокус, задачи и рабочий ритм', accent: '#38BDF8', sectionKey: 'daily_work_business' },
-  { id: 'goals', label: 'Цели', title: 'Дела и цели', subtitle: 'Один ясный следующий шаг', accent: '#475569', sectionKey: 'daily_goals' },
-  { id: 'family', label: 'Дом', title: 'Дом и семья', subtitle: 'Опора, близкие и атмосфера дома', accent: '#64748B', sectionKey: 'daily_family' },
-  { id: 'friendship', label: 'Друзья', title: 'Друзья и окружение', subtitle: 'Контакты, поддержка и разговоры', accent: '#0284C7', sectionKey: 'daily_friendship' },
-  { id: 'energy', label: 'Силы', title: 'Нагрузка и восстановление', subtitle: 'Темп дня, паузы и ресурс', accent: '#0F766E', sectionKey: 'daily_energy' },
-  { id: 'communication', label: 'Разговоры', title: 'Общение и важные разговоры', subtitle: 'Слова, паузы и договорённости', accent: '#7C3AED', sectionKey: 'daily_communication' },
+const DAILY_TAB_BASE: Array<Omit<DailyTabConfig, 'label' | 'title' | 'subtitle'> & {
+  ru: Pick<DailyTabConfig, 'label' | 'title' | 'subtitle'>;
+  en: Pick<DailyTabConfig, 'label' | 'title' | 'subtitle'>;
+}> = [
+  { id: 'overview', accent: '#1478FF', sectionKey: 'daily_overview', ru: { label: 'Обзор', title: 'Личный разбор дня', subtitle: 'Главный фокус дня' }, en: { label: 'Overview', title: 'Personal Day', subtitle: 'The main focus of the day' } },
+  { id: 'love', accent: '#2563EB', sectionKey: 'daily_love', ru: { label: 'Любовь', title: 'Любовь', subtitle: 'Близость, эмоции и разговоры' }, en: { label: 'Love', title: 'Love', subtitle: 'Closeness, feelings, and talks' } },
+  { id: 'money', accent: '#0F172A', sectionKey: 'daily_money', ru: { label: 'Деньги', title: 'Деньги', subtitle: 'Решения, покупки и устойчивость' }, en: { label: 'Money', title: 'Money', subtitle: 'Choices, spending, and steadiness' } },
+  { id: 'work', accent: '#38BDF8', sectionKey: 'daily_work_business', ru: { label: 'Работа', title: 'Работа', subtitle: 'Фокус, задачи и рабочий ритм' }, en: { label: 'Work', title: 'Work', subtitle: 'Focus, tasks, and work rhythm' } },
+  { id: 'goals', accent: '#475569', sectionKey: 'daily_goals', ru: { label: 'Цели', title: 'Цели', subtitle: 'Один ясный следующий шаг' }, en: { label: 'Goals', title: 'Goals', subtitle: 'One clear next step' } },
+  { id: 'family', accent: '#64748B', sectionKey: 'daily_family', ru: { label: 'Дом и семья', title: 'Дом и семья', subtitle: 'Опора, близкие и атмосфера дома' }, en: { label: 'Home & Family', title: 'Home & Family', subtitle: 'Support, close people, and home mood' } },
+  { id: 'friendship', accent: '#0284C7', sectionKey: 'daily_friendship', ru: { label: 'Друзья', title: 'Друзья', subtitle: 'Контакты, поддержка и разговоры' }, en: { label: 'Friends', title: 'Friends', subtitle: 'Contacts, support, and conversations' } },
+  { id: 'energy', accent: '#0F766E', sectionKey: 'daily_energy', ru: { label: 'Силы', title: 'Силы', subtitle: 'Темп дня, паузы и ресурс' }, en: { label: 'Energy', title: 'Energy', subtitle: 'Pace, pauses, and capacity' } },
+  { id: 'communication', accent: '#7C3AED', sectionKey: 'daily_communication', ru: { label: 'Разговоры', title: 'Разговоры', subtitle: 'Слова, паузы и договорённости' }, en: { label: 'Conversations', title: 'Conversations', subtitle: 'Words, pauses, and agreements' } },
 ];
+
+function getDailyTabs(language: 'ru' | 'en'): DailyTabConfig[] {
+  return DAILY_TAB_BASE.map((tab) => ({
+    id: tab.id,
+    accent: tab.accent,
+    sectionKey: tab.sectionKey,
+    ...(language === 'en' ? tab.en : tab.ru),
+  }));
+}
 
 function splitParagraphs(value?: string | null): string[] {
   return String(value || '')
@@ -52,8 +64,8 @@ function splitParagraphs(value?: string | null): string[] {
     .filter(Boolean);
 }
 
-function resolveTab(section?: PersonalDailySection | null): DailyTabConfig {
-  return DAILY_TABS.find((tab) => tab.id === section) || DAILY_TABS[0];
+function resolveTab(tabs: DailyTabConfig[], section?: PersonalDailySection | null): DailyTabConfig {
+  return tabs.find((tab) => tab.id === section) || tabs[0];
 }
 
 function Skeleton() {
@@ -196,6 +208,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 }) => {
   void onBack; // навигацию назад берёт системная кнопка Telegram
   const language = profile.language === 'en' ? 'en' : 'ru';
+  const dailyTabs = useMemo(() => getDailyTabs(language), [language]);
   const dateKey = useMemo(() => getMoscowTodayKey(), []);
   const access = useMemo(
     () => canAccessFeature('personal_daily', profile, { chartData, primaryChartId: chartId ?? null }),
@@ -207,10 +220,11 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   const [loadingKey, setLoadingKey] = useState<PersonalDailySection | null>(null);
   const [errorKey, setErrorKey] = useState<PersonalDailySection | null>(null);
   const [premiumLockedKey, setPremiumLockedKey] = useState<PersonalDailySection | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => { setActiveSection(initialSection); }, [initialSection]);
 
-  const activeTab = resolveTab(activeSection);
+  const activeTab = resolveTab(dailyTabs, activeSection);
   const activeDailySection = activeTab.sectionKey ? sections[activeTab.sectionKey] : null;
   const hasContent = !!activeDailySection?.content?.trim();
   const isLoading = loadingKey === activeTab.id;
@@ -218,12 +232,12 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   // Свайп между темами — как в гороскопе (табы остаются индикатором).
   const [dir, setDir] = useState(0);
-  const activeIndex = DAILY_TABS.findIndex((t) => t.id === activeSection);
+  const activeIndex = dailyTabs.findIndex((t) => t.id === activeSection);
   const goToSection = (nextIndex: number, direction: number) => {
-    const idx = (nextIndex + DAILY_TABS.length) % DAILY_TABS.length;
+    const idx = (nextIndex + dailyTabs.length) % dailyTabs.length;
     lumiaSelectionHaptic();
     setDir(direction);
-    setActiveSection(DAILY_TABS[idx].id);
+    setActiveSection(dailyTabs[idx].id);
   };
   const onDragEnd = (_e: unknown, info: PanInfo) => {
     const power = info.offset.x + info.velocity.x * 0.2;
@@ -233,11 +247,12 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   useEffect(() => {
     let alive = true;
-    if (!access.allowed || !profile.id || !chartData) return () => { alive = false; };
+    const controller = new AbortController();
+    if (!access.allowed || !profile.id || !chartData) return () => { alive = false; controller.abort(); };
 
-    const tab = resolveTab(activeSection);
-    if (!tab.sectionKey) return () => { alive = false; };
-    if (sections[tab.sectionKey]?.content?.trim()) return () => { alive = false; };
+    const tab = resolveTab(dailyTabs, activeSection);
+    if (!tab.sectionKey) return () => { alive = false; controller.abort(); };
+    if (sections[tab.sectionKey]?.content?.trim()) return () => { alive = false; controller.abort(); };
 
     setLoadingKey(tab.id);
     setErrorKey(null);
@@ -245,9 +260,9 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
     loadHumanDailySection(String(profile.id), tab.sectionKey, chartId ?? undefined, dateKey, {
       accessTier: 'premium',
-      maxInProgressRetries: 3,
       profile,
       chartData,
+      signal: controller.signal,
     })
       .then((result) => {
         if (!alive) return;
@@ -268,15 +283,30 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
       })
       .finally(() => { if (alive) setLoadingKey((current) => (current === tab.id ? null : current)); });
 
-    return () => { alive = false; };
-  }, [access.allowed, activeSection, chartData, chartId, dateKey, profile, sections]);
+    return () => { alive = false; controller.abort(); };
+  }, [access.allowed, activeSection, chartData, chartId, dailyTabs, dateKey, profile, reloadNonce, sections]);
 
-  const tabItems = useMemo(() => DAILY_TABS.map((t) => ({ id: t.id, label: t.label })), []);
+  const retryActiveSection = () => {
+    const tab = resolveTab(dailyTabs, activeSection);
+    lumiaSelectionHaptic();
+    setErrorKey(null);
+    setPremiumLockedKey(null);
+    if (tab.sectionKey) {
+      setSections((current) => {
+        const next = { ...current };
+        delete next[tab.sectionKey!];
+        return next;
+      });
+    }
+    setReloadNonce((value) => value + 1);
+  };
+
+  const tabItems = useMemo(() => dailyTabs.map((t) => ({ id: t.id, label: t.label })), [dailyTabs]);
 
   return (
     <div className="fresh-page">
       {/* Без своей «Назад» — навигацию назад берёт системная кнопка Telegram. */}
-      <FreshInnerHeader title={language === 'en' ? 'Personal horoscope' : 'Личный гороскоп'} />
+      <FreshInnerHeader title={language === 'en' ? 'Personal Day' : 'Личный разбор дня'} />
 
       <FreshTabs tabs={tabItems} activeTab={activeSection} onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
 
@@ -317,7 +347,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
               <Notice
                 icon="lock"
                 title={language === 'en' ? 'Available in Premium' : 'Доступно в Premium'}
-                body={language === 'en' ? 'Your personal daily horoscope by chart opens with Premium.' : 'Личный гороскоп по твоей карте — каждый день, открывается в Premium.'}
+                body={language === 'en' ? 'Your personal day by chart opens with Premium.' : 'Личный разбор дня по твоей карте открывается в Premium.'}
                 cta={language === 'en' ? 'Open Premium' : 'Открыть Premium'}
                 onCta={() => { lumiaSelectionHaptic(); void requestPremium(); }}
               />
@@ -334,7 +364,13 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
             ) : isLoading && !hasContent ? (
               <Skeleton />
             ) : hasError ? (
-              <Notice icon="chart" title={language === 'en' ? 'Could not prepare' : 'Не удалось подготовить'} body={language === 'en' ? 'Try opening this section again.' : 'Открой раздел ещё раз.'} />
+              <Notice
+                icon="chart"
+                title={language === 'en' ? 'The reading did not come together' : 'Разбор не собрался'}
+                body={language === 'en' ? 'Nothing mystical here: the tech just stumbled. Let’s try again.' : 'Ничего мистического — просто техника споткнулась. Попробуем ещё раз.'}
+                cta={language === 'en' ? 'Try again' : 'Попробовать ещё раз'}
+                onCta={retryActiveSection}
+              />
             ) : activeDailySection ? (
               <SectionContent
                 section={activeDailySection}

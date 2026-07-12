@@ -80,25 +80,47 @@ export const ELEMENT_COLOR: Record<ElementKey, string> = {
   fire: '#FF7E8B', earth: '#34C39A', air: '#5BB6EC', water: '#A98CEC',
 };
 
-/* Короткий человеческий вывод по балансу — без эзотерики */
-const ELEMENT_MEANING_RU: Record<ElementKey, string> = {
-  fire: 'действие, азарт и инициативу',
-  earth: 'практичность, быт и доведение до результата',
-  air: 'идеи, общение и анализ',
-  water: 'чувства, интуицию и заботу',
+/* Короткий человеческий вывод по балансу — без эзотерики и без языка нехватки. */
+const ELEMENT_STRONG_RU: Record<ElementKey, string> = {
+  fire: 'Огонь включается быстрее остальных: проще начать, решить и проверить идею делом.',
+  earth: 'Земля звучит заметнее: проще опереться на факты, порядок и понятный результат.',
+  air: 'Воздух заметнее остальных: легче думать через разговор, идеи и быстрые связи между фактами.',
+  water: 'Вода звучит громче: проще считывать настроение, заботиться и замечать эмоциональный подтекст.',
 };
-const ELEMENT_LACK_RU: Record<ElementKey, string> = {
-  fire: 'решительность и напор',
-  earth: 'рутину и быт',
-  air: 'отстранённый анализ и лёгкость в общении',
-  water: 'чувствительность и контакт с эмоциями',
+
+const ELEMENT_QUIET_RU: Record<ElementKey, string> = {
+  fire: 'Огонь тише — импульс иногда удобнее не форсировать, а включать после короткой внутренней проверки.',
+  earth: 'Земля тише — бытовые детали лучше держать простыми и видимыми, чтобы они не забирали лишнее внимание.',
+  air: 'Воздух тише — мысли иногда полезнее сначала разложить по полочкам, а уже потом обсуждать.',
+  water: 'Вода тише — чувства могут проявляться не сразу, зато честнее звучат, когда им дали пару минут тишины.',
+};
+
+const ELEMENT_STRONG_EN: Record<ElementKey, string> = {
+  fire: 'Fire switches on fastest: starting, deciding, and testing an idea through action can feel natural.',
+  earth: 'Earth is the clearest note: facts, order, and a visible result help you find your footing.',
+  air: 'Air is the loudest note: ideas, conversation, and quick links between facts come online easily.',
+  water: 'Water speaks clearly: mood, care, and emotional subtext are easy to notice.',
+};
+
+const ELEMENT_QUIET_EN: Record<ElementKey, string> = {
+  fire: 'Fire is quieter, so impulse may work better after one small inner check.',
+  earth: 'Earth is quieter, so practical details are easier when they stay simple and visible.',
+  air: 'Air is quieter, so thoughts may need a little sorting before they become a conversation.',
+  water: 'Water is quieter, so feelings may show up later, but they land cleaner when they get a moment.',
 };
 
 export function balanceSummaryRu(balance: ChartBalance): string {
   if (!balance.total || !balance.topElement || !balance.lowElement) return '';
-  const top = ELEMENT_MEANING_RU[balance.topElement];
-  const lacks = balance.elements[balance.lowElement] === 0
-    ? `Совсем не хватает «${ELEMENT_LABEL_RU[balance.lowElement].toLowerCase()}» — ${ELEMENT_LACK_RU[balance.lowElement]} держать сложнее.`
-    : `Меньше всего «${ELEMENT_LABEL_RU[balance.lowElement].toLowerCase()}» — ${ELEMENT_LACK_RU[balance.lowElement]} даётся труднее.`;
-  return `Больше всего в тебе про ${top}. ${lacks}`;
+  if (balance.topElement === balance.lowElement) {
+    return 'Стихии распределены ровно: карта не толкает в один единственный стиль реакции. Можно выбирать темп под ситуацию.';
+  }
+  return `${ELEMENT_STRONG_RU[balance.topElement]} ${ELEMENT_QUIET_RU[balance.lowElement]} Не баг, просто другой порядок действий.`;
+}
+
+export function balanceSummaryEn(balance: ChartBalance): string {
+  if (!balance.total || !balance.topElement || !balance.lowElement) return '';
+  if (balance.topElement === balance.lowElement) {
+    return 'The elements are evenly spread: the chart does not push one single reaction style. You can choose the pace that fits the moment.';
+  }
+  return `${ELEMENT_STRONG_EN[balance.topElement]} ${ELEMENT_QUIET_EN[balance.lowElement]} Not a flaw, just a different order of operations.`;
 }

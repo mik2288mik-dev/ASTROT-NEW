@@ -147,6 +147,11 @@ function setupMocks(options?: {
     getDailyVoiceVersion: jest.fn().mockReturnValue('voice-test'),
     generateDailyCanvas,
     isDailyCanvasComplete: jest.fn((canvas: any) => !!canvas?.hero_title && !!canvas?.love?.body),
+    validateDailyCanvas: jest.fn((canvas: any) => ({
+      valid: !!canvas?.hero_title && !!canvas?.love?.body,
+      hardErrors: !!canvas?.hero_title && !!canvas?.love?.body ? [] : ['EMPTY_HERO_TITLE'],
+      styleWarnings: [],
+    })),
     sliceCanvasToSection,
   }));
 
@@ -263,6 +268,26 @@ describe('human-daily API daily package flow', () => {
     });
     expect(mocks.saveReading).not.toHaveBeenCalled();
     expect(mocks.generateDailyCanvas).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns a clear code after a hard-invalid daily package', async () => {
+    const hardInvalid = Object.assign(new Error('INVALID_DAILY_PACKAGE'), {
+      code: 'DAILY_PACKAGE_HARD_INVALID',
+      hardErrors: ['EMPTY_TOPIC_BODY'],
+    });
+    const mocks = setupMocks({
+      getCachedReading: jest.fn().mockResolvedValue(null),
+      generateDailyCanvas: jest.fn().mockRejectedValue(hardInvalid),
+    });
+
+    const res = await callHandler('POST');
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json.mock.calls[0][0]).toMatchObject({
+      code: 'DAILY_PACKAGE_HARD_INVALID',
+      reasonCode: 'DAILY_PACKAGE_HARD_INVALID',
+    });
+    expect(mocks.saveReading).not.toHaveBeenCalled();
   });
 
   it('does not save or call OpenAI when the initial cache read fails', async () => {

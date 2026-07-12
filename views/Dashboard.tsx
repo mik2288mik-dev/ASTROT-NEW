@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
@@ -92,36 +92,43 @@ export const Dashboard = memo<DashboardProps>(({
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [moonInfoOpen, setMoonInfoOpen] = useState(false);
 
-  /* Загрузка единого дневного пакета для карточки-героя и hooks */
-  useEffect(() => {
+  const requestDailyPackage = useCallback((signal?: AbortSignal) => {
     if (!hasChart || !chartData || !profile.id) {
       setDailyPackage(null);
       setDailyPackageState('no_chart');
-      return;
+      return Promise.resolve();
     }
-    let alive = true;
     setDailyPackageState('loading');
-    void loadHumanDailyPackage(String(profile.id), chartId ?? undefined, today, {
+    setDailyPackage(null);
+    return loadHumanDailyPackage(String(profile.id), chartId ?? undefined, today, {
       accessTier: 'premium',
-      maxInProgressRetries: 3,
       profile,
       chartData,
+      signal,
     })
       .then((result) => {
-        if (!alive) return;
         setDailyPackage(result);
         setDailyPackageState('ready');
       })
       .catch(() => {
-        if (!alive) return;
+        if (signal?.aborted) return;
         setDailyPackage(null);
         setDailyPackageState('generation_error');
       });
-    return () => { alive = false; };
   }, [chartData, chartId, hasChart, profile, today]);
+
+  /* Загрузка единого дневного пакета для карточки-героя и hooks */
+  useEffect(() => {
+    const controller = new AbortController();
+    void requestDailyPackage(controller.signal);
+    return () => { controller.abort(); };
+  }, [requestDailyPackage]);
 
   const systemState = dailyPackage ? 'ready' : dailyPackageState;
   const systemCopy = getDashboardSystemText(systemState, language, today);
+  const isDailyReady = !!dailyPackage && dailyPackageState === 'ready';
+  const isDailyLoading = dailyPackageState === 'loading';
+  const isDailyError = dailyPackageState === 'generation_error';
 
   /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
@@ -159,8 +166,20 @@ export const Dashboard = memo<DashboardProps>(({
     ? 'Фаза показывает, какая часть Луны освещена с Земли. Она меняется в течение лунного месяца и сама по себе не говорит, что с тобой обязательно произойдёт.'
     : 'The phase shows how much of the Moon is illuminated from Earth. It changes through the lunar month and does not predict what must happen to you.';
 
-  const dayHeroTitle = dailyPackage?.hero_title?.trim() || systemCopy;
-  const dayHeroText = dailyPackage?.hero_hook?.trim() || systemCopy;
+  const dayHeroTitle = isDailyError
+    ? (language === 'ru' ? 'Разбор не собрался' : 'The reading did not come together')
+    : isDailyLoading
+      ? (language === 'ru' ? 'Собираю личный разбор дня' : 'Preparing your personal day')
+      : dailyPackage?.hero_title?.trim() || systemCopy;
+  const dayHeroText = isDailyError
+    ? (language === 'ru'
+      ? 'Ничего мистического — просто техника споткнулась. Попробуем ещё раз.'
+      : 'Nothing mystical here: the tech just stumbled. Let’s try again.')
+    : dailyPackage?.hero_hook?.trim() || systemCopy;
+  const retryDailyPackage = () => {
+    lumiaSelectionHaptic();
+    void requestDailyPackage();
+  };
   const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
   const natalText = hasChart
     ? (language === 'ru'
@@ -191,16 +210,17 @@ export const Dashboard = memo<DashboardProps>(({
         ['money', 'Money'],
         ['work', 'Work'],
         ['goals', 'Goals'],
-        ['family', 'Home and family'],
+        ['family', 'Home & Family'],
         ['friendship', 'Friends'],
         ['energy', 'Energy'],
-        ['communication', 'Talks'],
+        ['communication', 'Conversations'],
       ]).map(([section, title]) => {
         const key = section as Exclude<PersonalDailySection, 'overview'>;
         return {
           section: key,
           title,
-          hook: dailyPackage?.[key]?.hook?.trim() || systemCopy,
+          hook: dailyPackage?.[key]?.hook?.trim()
+            || getDashboardSystemText(isDailyLoading ? 'loading' : 'ready', language, `${today}-${key}`),
         };
       });
   const openDayHero = () => {
@@ -251,38 +271,59 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      <button
-        type="button"
-        className="home-day-hero has-stickers"
-        onClick={openDayHero}
-        aria-label={dayHeroAria}
-      >
-        <span className="home-day-hero-glow" aria-hidden />
-        <span className="home-day-hero-scene" aria-hidden>
-          <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-          <StickerSlot surface="hero" />
-        </span>
-        <span className="home-day-hero-copy">
-          <span className="home-day-hero-title">{dayHeroTitle}</span>
-          <span className="home-day-hero-text">{dayHeroText}</span>
-        </span>
-      </button>
-
-      <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
-        <div className="home-spheres-track">
-          {sphereCards.map((card) => (
-            <button
-              key={card.section}
-              type="button"
-              className={`home-sphere-card home-sphere-card--${card.section}`}
-              onClick={() => openSphere(card.section)}
-            >
-              <span className="home-sphere-title">{card.title}</span>
-              <span className="home-sphere-hook">{card.hook}</span>
+      {isDailyError ? (
+        <section className="home-day-hero has-stickers" aria-label={dayHeroAria}>
+          <span className="home-day-hero-glow" aria-hidden />
+          <span className="home-day-hero-scene" aria-hidden>
+            <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+            <StickerSlot surface="hero" />
+          </span>
+          <span className="home-day-hero-copy">
+            <span className="home-day-hero-title">{dayHeroTitle}</span>
+            <span className="home-day-hero-text">{dayHeroText}</span>
+            <button type="button" className="fresh-btn-primary" style={{ marginTop: 14, alignSelf: 'flex-start' }} onClick={retryDailyPackage}>
+              {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
             </button>
-          ))}
-        </div>
-      </section>
+          </span>
+        </section>
+      ) : (
+        <button
+          type="button"
+          className="home-day-hero has-stickers"
+          onClick={openDayHero}
+          aria-label={dayHeroAria}
+        >
+          <span className="home-day-hero-glow" aria-hidden />
+          <span className="home-day-hero-scene" aria-hidden>
+            <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+            <StickerSlot surface="hero" />
+          </span>
+          <span className="home-day-hero-copy">
+            <span className="home-day-hero-title">{dayHeroTitle}</span>
+            <span className="home-day-hero-text">{dayHeroText}</span>
+          </span>
+        </button>
+      )}
+
+      {!isDailyError ? (
+        <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
+          <div className="home-spheres-track">
+            {sphereCards.map((card) => (
+              <button
+                key={card.section}
+                type="button"
+                className={`home-sphere-card home-sphere-card--${card.section}`}
+                onClick={() => openSphere(card.section)}
+                disabled={!isDailyReady && hasChart}
+                aria-disabled={!isDailyReady && hasChart}
+              >
+                <span className="home-sphere-title">{card.title}</span>
+                <span className="home-sphere-hook">{card.hook}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Фаза Луны' : 'Moon phase'}>
         <div className="home-soft-card-glow" aria-hidden />

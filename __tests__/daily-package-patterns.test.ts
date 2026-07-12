@@ -6,7 +6,7 @@ import {
   getDashboardSystemText,
   selectDailyPresentationPattern,
 } from '../lib/dailyPresentationPatterns';
-import { isDailyCanvasComplete } from '../lib/natalHumanInterpretation';
+import { isDailyCanvasComplete, validateDailyCanvas } from '../lib/natalHumanInterpretation';
 import type { DailyCanvas } from '../lib/natalHumanShared';
 
 const ROOT = path.join(__dirname, '..');
@@ -72,5 +72,46 @@ describe('daily package presentation patterns', () => {
 
   it('daily package keeps every required field complete', () => {
     expect(isDailyCanvasComplete(packageFixture(), 'ru')).toBe(true);
+  });
+
+  it('reports a concrete hard error for a hard-invalid package', () => {
+    const result = validateDailyCanvas({ ...packageFixture(), meta: { free_section_key: 'bad' } }, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('INVALID_FREE_SECTION_KEY');
+  });
+
+  it('keeps repeated hook starts as a style warning, not a hard error', () => {
+    const canvas = packageFixture();
+    for (const key of ['love', 'money', 'work', 'goals', 'family', 'friendship', 'energy', 'communication'] as const) {
+      canvas[key].hook = 'Один мягкий старт для проверки';
+    }
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(true);
+    expect(result.hardErrors).toEqual([]);
+    expect(result.styleWarnings).toContain('REPEATED_HOOK_START');
+  });
+
+  it('keeps the today-word limit as a style warning, not a hard error', () => {
+    const canvas = packageFixture();
+    canvas.hero_hook = `${canvas.hero_hook} сегодня сегодня сегодня`;
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(true);
+    expect(result.hardErrors).toEqual([]);
+    expect(result.styleWarnings).toContain('TODAY_WORD_OVER_LIMIT');
+  });
+
+  it('treats a missing topic body as a hard error', () => {
+    const canvas = packageFixture();
+    canvas.money.body = '';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('EMPTY_TOPIC_BODY');
+  });
+
+  it('Dashboard does not repeat the same generation error through all cards', () => {
+    const dashboard = fs.readFileSync(path.join(ROOT, 'views', 'Dashboard.tsx'), 'utf8');
+    expect((dashboard.match(/Ничего мистического/g) || []).length).toBe(1);
+    expect(dashboard).toContain('!isDailyError ? (');
+    expect(dashboard).toContain('dailyPackage?.[key]?.hook');
   });
 });

@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import type { NatalChartData } from '../../types';
 import {
   computeChartBalance,
+  balanceSummaryEn,
   balanceSummaryRu,
   ELEMENT_LABEL_RU,
   ELEMENT_LABEL_EN,
@@ -31,7 +32,12 @@ export function ChartBalance({ chart, language }: { chart: NatalChartData; langu
 
   return (
     <section className="cib">
-      <div className="cib-head">{ru ? 'Стихии в твоей карте' : 'Elements in your chart'}</div>
+      <div className="cib-head">{ru ? 'Баланс стихий' : 'Element balance'}</div>
+      <p className="cib-summary">
+        {ru
+          ? 'Показывает, какие способы реагировать в карте выражены заметнее. Это не оценка характера и не список недостатков.'
+          : 'Shows which response styles are more visible in the chart. It is not a character score or a list of flaws.'}
+      </p>
 
       <motion.div
         className="cib-bar"
@@ -57,7 +63,7 @@ export function ChartBalance({ chart, language }: { chart: NatalChartData; langu
         ))}
       </div>
 
-      {ru ? <p className="cib-summary">{balanceSummaryRu(balance)}</p> : null}
+      <p className="cib-summary">{ru ? balanceSummaryRu(balance) : balanceSummaryEn(balance)}</p>
     </section>
   );
 }
