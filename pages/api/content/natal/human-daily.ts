@@ -216,6 +216,7 @@ async function resolveIsPremium(userId: string): Promise<boolean> {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const startedAt = Date.now();
   const requestId = randomUUID();
+  res.setHeader('x-request-id', requestId);
   let diagnosticUserId: string | undefined;
   let diagnosticChartId: number | null = null;
   const earlyResponse = { current: null as { stage: string; status: number; code: string } | null };

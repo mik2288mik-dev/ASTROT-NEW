@@ -85,4 +85,10 @@ describe('personal daily startup flow', () => {
     expect(app).toContain('const retryStartup = () =>');
     expect(app).toContain('setStartupRetryNonce((value) => value + 1)');
   });
+
+  it('human-daily exposes the structured log request id on the response', () => {
+    const endpoint = read('pages/api/content/natal/human-daily.ts');
+
+    expect(endpoint).toContain("res.setHeader('x-request-id', requestId)");
+  });
 });
