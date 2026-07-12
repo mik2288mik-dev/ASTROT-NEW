@@ -110,8 +110,13 @@ export const Dashboard = memo<DashboardProps>(({
         setDailyPackage(result);
         setDailyPackageState('ready');
       })
-      .catch(() => {
+      .catch((error) => {
         if (signal?.aborted) return;
+        const err = error as { code?: string; status?: number };
+        console.warn('[Dashboard] personal daily package failed', {
+          code: err?.code || 'UNKNOWN_DAILY_PACKAGE_ERROR',
+          status: err?.status || null,
+        });
         setDailyPackage(null);
         setDailyPackageState('generation_error');
       });

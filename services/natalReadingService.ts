@@ -122,6 +122,14 @@ export type NatalProfileCardsResponse = {
   };
 };
 
+type HumanDailyLoadOptions = {
+  accessTier?: 'premium';
+  maxInProgressRetries?: number;
+  profile?: UserProfile;
+  chartData?: NatalChartData | null;
+  signal?: AbortSignal;
+};
+
 const baseReportCache = new Map<string, NatalInterpretationReport>();
 const baseReportInFlight = new Map<string, Promise<NatalInterpretationReport>>();
 const paidSectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
@@ -151,6 +159,20 @@ function dailyKey(userId: string, sectionKey: HumanDailySectionKey, chartId?: nu
 
 function dailyPackageKey(userId: string, chartId?: number, date?: string): string {
   return `${userId}:${chartKey(chartId)}:${date || 'today'}:package`;
+}
+
+function detachSignal<T extends { signal?: AbortSignal }>(options?: T): T | undefined {
+  if (!options) return undefined;
+  const { signal: _signal, ...rest } = options;
+  return rest as T;
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  const abortError = new Error('Request aborted') as HumanReadingError;
+  abortError.code = 'ABORTED';
+  abortError.status = 499;
+  throw abortError;
 }
 
 function profileCardsKey(userId: string, chartId?: number, localHour?: number, todayText?: string | null): string {
@@ -550,13 +572,7 @@ export async function ensureHumanDailySection(
   sectionKey: HumanDailySectionKey,
   chartId?: number,
   date?: string,
-  options?: {
-    accessTier?: 'premium';
-    maxInProgressRetries?: number;
-    profile?: UserProfile;
-    chartData?: NatalChartData | null;
-    signal?: AbortSignal;
-  }
+  options?: HumanDailyLoadOptions
 ): Promise<HumanReadingResult<InterpretationSection>> {
   const cached = await getCachedHumanDailySection(userId, sectionKey, chartId, date);
   if (cached?.content?.content?.trim()) return cached;
@@ -586,12 +602,7 @@ export async function ensureHumanDailySection(
     const deadline = Date.now() + DAILY_POLL_TIMEOUT_MS;
     let retryAfter = getRetryAfterMs(error);
     while (Date.now() < deadline) {
-      if (options?.signal?.aborted) {
-        const abortError = new Error('Request aborted') as HumanReadingError;
-        abortError.code = 'ABORTED';
-        abortError.status = 499;
-        throw abortError;
-      }
+      throwIfAborted(options?.signal);
       await waitMs(Math.min(Math.max(retryAfter, 500), DAILY_POLL_MAX_DELAY_MS));
       const afterWait = await getCachedHumanDailySection(userId, sectionKey, chartId, date, options?.signal);
       if (afterWait?.content?.content?.trim()) return saveResult(afterWait);
@@ -609,14 +620,9 @@ export async function loadHumanDailySection(
   sectionKey: HumanDailySectionKey,
   chartId?: number,
   date?: string,
-  options?: {
-    accessTier?: 'premium';
-    maxInProgressRetries?: number;
-    profile?: UserProfile;
-    chartData?: NatalChartData | null;
-    signal?: AbortSignal;
-  }
+  options?: HumanDailyLoadOptions
 ): Promise<HumanReadingResult<InterpretationSection>> {
+  throwIfAborted(options?.signal);
   const key = dailyKey(userId, sectionKey, chartId, date);
   const memoryCached = dailySectionCache.get(key);
   if (memoryCached?.content?.content?.trim()) {
@@ -637,7 +643,7 @@ export async function loadHumanDailySection(
   const existing = dailySectionInFlight.get(key);
   if (existing) return existing;
 
-  const request = ensureHumanDailySection(userId, sectionKey, chartId, date, options).finally(() => {
+  const request = ensureHumanDailySection(userId, sectionKey, chartId, date, detachSignal(options)).finally(() => {
     dailySectionInFlight.delete(key);
   });
 
@@ -679,14 +685,9 @@ export async function loadHumanDailyPackage(
   userId: string,
   chartId?: number,
   date?: string,
-  options?: {
-    accessTier?: 'premium';
-    maxInProgressRetries?: number;
-    profile?: UserProfile;
-    chartData?: NatalChartData | null;
-    signal?: AbortSignal;
-  }
+  options?: HumanDailyLoadOptions
 ): Promise<DailyCanvas> {
+  throwIfAborted(options?.signal);
   const key = dailyPackageKey(userId, chartId, date);
   const memoryCached = dailyPackageCache.get(key);
   if (memoryCached) return memoryCached;
@@ -695,7 +696,7 @@ export async function loadHumanDailyPackage(
   if (existing) return existing;
 
   const request = (async () => {
-    const result = await loadHumanDailySection(userId, 'daily_overview', chartId, date, options);
+    const result = await loadHumanDailySection(userId, 'daily_overview', chartId, date, detachSignal(options));
     if (result.dailyPackage) {
       dailyPackageCache.set(key, result.dailyPackage);
       return result.dailyPackage;

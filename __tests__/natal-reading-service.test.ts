@@ -253,6 +253,43 @@ describe('natal reading service session cache', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('does not let one screen abort the shared daily package generation', async () => {
+    const daily = dailyPackage();
+    const section = { key: 'daily_overview', title: 'Overview', access: 'free', content: 'Overview body' };
+    let resolvePost: ((value: Response) => void) | null = null;
+    let rejectPost: ((reason?: unknown) => void) | null = null;
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND' }))
+      .mockImplementationOnce((_url: string, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+        resolvePost = resolve;
+        rejectPost = reject;
+        init?.signal?.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        });
+      }));
+
+    const controller = new AbortController();
+    const dashboardRequest = loadHumanDailyPackage('123', 7, '2026-05-25', { signal: controller.signal });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const personalDailyRequest = loadHumanDailySection('123', 'daily_overview', 7, '2026-05-25');
+    controller.abort();
+    await Promise.resolve();
+
+    const finishPost = resolvePost as ((value: Response) => void) | null;
+    expect(rejectPost).toBeTruthy();
+    expect(finishPost).toBeTruthy();
+    finishPost!(response(200, { interpretation: { content: section }, accessTier: 'free', dailyPackage: daily }));
+
+    await expect(dashboardRequest).resolves.toBe(daily);
+    await expect(personalDailyRequest).resolves.toMatchObject({ content: section });
+    expect((global.fetch as jest.Mock).mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
+  });
+
   it('retry after an error starts a new daily request', async () => {
     const daily = dailyPackage();
     const section = { key: 'daily_overview', title: 'Overview', access: 'free', content: 'Overview body' };

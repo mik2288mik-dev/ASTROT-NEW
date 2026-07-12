@@ -279,6 +279,11 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
           setPremiumLockedKey(tab.id);
           return;
         }
+        console.warn('[PersonalDaily] section load failed', {
+          sectionKey: tab.sectionKey,
+          code: err?.code || 'UNKNOWN_DAILY_SECTION_ERROR',
+          status: err?.status || null,
+        });
         setErrorKey(tab.id);
       })
       .finally(() => { if (alive) setLoadingKey((current) => (current === tab.id ? null : current)); });
