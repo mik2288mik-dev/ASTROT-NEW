@@ -4836,9 +4836,8 @@ a,
 
 .home-day-hero-title,
 .home-day-hero-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
+  overflow: visible;
 }
 
 .home-day-hero-title {
@@ -4846,9 +4845,8 @@ a,
   font-family: var(--home-editorial-font);
   font-size: var(--today-hero-title-size);
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.36;
-  -webkit-line-clamp: 5;
 }
 
 .home-day-hero-text {
@@ -4858,7 +4856,6 @@ a,
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.5;
-  -webkit-line-clamp: 3;
 }
 
 /* Две колонки на герое: «Что сегодня пойдёт хорошо» / «С чем лучше аккуратнее».
@@ -5222,9 +5219,8 @@ a,
   font-family: var(--home-editorial-font);
   font-size: var(--today-hero-title-size);
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   line-height: 1.18;
-  -webkit-line-clamp: 3;
 }
 
 .home-day-hero-text {
@@ -5234,7 +5230,6 @@ a,
   font-size: var(--today-hero-body-size);
   font-weight: 500;
   line-height: 1.45;
-  -webkit-line-clamp: 3;
 }
 
 .home-day-hero-dd {
@@ -7712,6 +7707,77 @@ a,
   --card-topic-pattern-size: 190px 126px;
   --card-topic-pattern-opacity: 0.24;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='126' viewBox='0 0 190 126'%3E%3Cpath d='M-18 36C18 14 48 58 84 36S146 14 208 38' fill='none' stroke='%231478FF' stroke-opacity='.18' stroke-width='1.4'/%3E%3Cpath d='M-12 88C26 66 58 108 96 86S158 66 204 88' fill='none' stroke='%231478FF' stroke-opacity='.12' stroke-width='1.2'/%3E%3Ccircle cx='34' cy='78' r='2.1' fill='%231478FF' fill-opacity='.15'/%3E%3Ccircle cx='128' cy='28' r='1.8' fill='%231478FF' fill-opacity='.13'/%3E%3Ccircle cx='156' cy='96' r='2.4' fill='%231478FF' fill-opacity='.1'/%3E%3C/svg%3E");
+  display: block;
+  min-height: 15.2rem;
+  padding: 1.45rem 1.45rem 1.35rem;
+  overflow: hidden;
+  box-shadow: 0 18px 44px rgba(17, 24, 39, 0.13), 0 1px 0 rgba(255, 255, 255, 0.82) inset;
+}
+
+.home-day-hero-scene {
+  position: absolute;
+  top: 0.72rem;
+  right: 0.8rem;
+  z-index: 1;
+  width: 4.8rem;
+  height: 4.8rem;
+  margin: 0;
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.home-day-hero-copy {
+  gap: 0.72rem;
+  max-width: 100%;
+}
+
+.home-day-hero-date {
+  position: relative;
+  top: auto;
+  left: auto;
+  display: inline-flex;
+  max-width: calc(100% - 5rem);
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.home-day-hero-title {
+  max-width: calc(100% - 4.7rem);
+  font-size: 1.58rem;
+  letter-spacing: 0;
+  line-height: 1.16;
+}
+
+.home-day-hero-text {
+  max-width: none;
+  font-size: 0.98rem;
+  font-weight: 560;
+  line-height: 1.46;
+}
+
+.home-day-hero-cta {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  margin-top: 0.08rem;
+  color: #1478FF;
+  font-family: var(--fresh-font);
+  font-size: 0.88rem;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.home-day-hero-cta::after {
+  content: '→';
+  margin-left: 0.42rem;
+}
+
+.home-spheres {
+  margin-top: 0.12rem;
+}
+
+.home-spheres-track {
+  gap: 0.62rem;
 }
 
 .home-sphere-card {
@@ -7755,6 +7821,25 @@ a,
   -webkit-line-clamp: 3;
 }
 
+.home-sphere-card {
+  flex-basis: min(70vw, 16rem);
+  min-height: 6.35rem;
+  padding: 1.02rem 1.08rem 1rem;
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.075);
+}
+
+.home-sphere-title {
+  font-size: 1.05rem;
+  letter-spacing: 0;
+}
+
+.home-sphere-hook {
+  max-width: 13rem;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+}
+
 /* ВАРИАТИВНОСТЬ КОМПОЗИЦИИ (не «под копирку»): чётные карточки прижимают контент к низу,
    а тематический узор — к верху; нечётные — наоборот. Плюс разный якорь узора. Итог: соседние
    карточки в ленте читаются по-разному, хотя структура (заголовок+хук) одна. */
@@ -7796,6 +7881,21 @@ a,
 .home-sphere-card--friends {
   --sphere-accent: #3a72cc;
   --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M23 31h66a12 12 0 0 1 12 12v20a12 12 0 0 1-12 12H55L34 92l6-17H23a12 12 0 0 1-12-12V43a12 12 0 0 1 12-12Z' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.5'/%3E%3Cpath d='M89 53h54a11 11 0 0 1 11 11v17a11 11 0 0 1-11 11h-20l-17 12 4-12H89a11 11 0 0 1-11-11V64a11 11 0 0 1 11-11Z' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.4'/%3E%3Ccircle cx='42' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='58' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='74' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--friendship {
+  --sphere-accent: #3a72cc;
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M23 31h66a12 12 0 0 1 12 12v20a12 12 0 0 1-12 12H55L34 92l6-17H23a12 12 0 0 1-12-12V43a12 12 0 0 1 12-12Z' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.5'/%3E%3Cpath d='M89 53h54a11 11 0 0 1 11 11v17a11 11 0 0 1-11 11h-20l-17 12 4-12H89a11 11 0 0 1-11-11V64a11 11 0 0 1 11-11Z' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.4'/%3E%3Ccircle cx='42' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='58' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3Ccircle cx='74' cy='54' r='2' fill='%231478FF' fill-opacity='.12'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--energy {
+  --sphere-accent: #26827a;
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M32 88c18-44 52-44 70 0' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.6'/%3E%3Cpath d='M67 88V48m0 0l-15 16m15-16l15 16' fill='none' stroke='%231478FF' stroke-opacity='.11' stroke-width='1.4' stroke-linecap='round'/%3E%3Cpath d='M111 34h32M111 50h24M111 66h28' stroke='%231478FF' stroke-opacity='.09' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.home-sphere-card--communication {
+  --sphere-accent: #5f63cf;
+  --card-topic-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='174' height='118' viewBox='0 0 174 118'%3E%3Cpath d='M24 30h76a13 13 0 0 1 13 13v18a13 13 0 0 1-13 13H57L39 90l5-16H24a13 13 0 0 1-13-13V43a13 13 0 0 1 13-13Z' fill='none' stroke='%231478FF' stroke-opacity='.13' stroke-width='1.5'/%3E%3Cpath d='M75 62h49l14 13-3-13h10a10 10 0 0 0 10-10V42a10 10 0 0 0-10-10h-42' fill='none' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3'/%3E%3Cpath d='M35 50h48M35 60h31' stroke='%231478FF' stroke-opacity='.1' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 .home-feed-card,
@@ -7909,9 +8009,57 @@ a,
     radial-gradient(circle at 28% 38%, rgba(20, 120, 255, 0.04) 0 1.7px, transparent 2px);
 }
 
+.pd-areahero--friendship {
+  --daily-topic-pattern:
+    radial-gradient(ellipse at 34% 38%, transparent 0 20px, rgba(20, 120, 255, 0.05) 20px 21px, transparent 21.5px),
+    radial-gradient(ellipse at 70% 64%, transparent 0 17px, rgba(20, 120, 255, 0.038) 17px 18px, transparent 18.5px),
+    radial-gradient(circle at 28% 38%, rgba(20, 120, 255, 0.04) 0 1.7px, transparent 2px);
+}
+
+.personal-daily-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  margin: 0 20px 14px;
+  padding: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 8px;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.personal-daily-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.personal-daily-tabs .fresh-tab {
+  flex: 0 0 auto;
+  min-width: max-content;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
 @media (max-width: 380px) {
+  .home-day-hero {
+    padding: 1.25rem 1.18rem 1.22rem;
+  }
+
+  .home-day-hero-scene {
+    width: 4.1rem;
+    height: 4.1rem;
+    opacity: 0.7;
+  }
+
+  .home-day-hero-date,
+  .home-day-hero-title {
+    max-width: calc(100% - 4.2rem);
+  }
+
   .home-sphere-card {
-    flex-basis: 80vw;
-    min-height: 6.9rem;
+    flex-basis: 72vw;
+    min-height: 6.45rem;
   }
 }

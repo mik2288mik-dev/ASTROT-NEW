@@ -1,30 +1,8 @@
+import { makeDailyCanvasFixture } from './dailyCanvasFixture';
+
 export {};
 
-const topic = (hook: string, bodySeed: string) => ({
-  hook,
-  body: `${bodySeed} Это поле достаточно длинное, чтобы пройти контракт дневного пакета: оно не обещает событий, а описывает практический фокус через расчет карты и транзитов.`,
-});
-
-const generatedCanvas = {
-  hero_title: 'Тише к сути, без лишнего шума',
-  hero_hook: 'Один честный выбор важнее набора случайных реакций.',
-  overview: 'В карте и транзитах виден день, где лучше держать внимание на одном внятном действии. Не нужно разгонять каждую мысль до решения: полезнее отделить важное от чужой срочности, ответить там, где давно просится ясность, и оставить небольшой запас сил на вечер. Общий тон мягкий, но требовательный к точности.',
-  love: topic('Близость просит ясности', 'В отношениях лучше не проверять человека намеками.'),
-  money: topic('Расходы любят паузу', 'В деньгах полезно отделить желание быстро снять напряжение от реальной необходимости.'),
-  work: topic('Задача выигрывает от порядка', 'В работе сильнее всего помогает простая последовательность действий.'),
-  goals: topic('Цель становится меньше', 'В целях лучше выбрать шаг, который можно завершить без внутреннего торга.'),
-  family: topic('Дому нужна договоренность', 'В семье и быту помогает не большой разговор обо всем, а одно понятное правило.'),
-  friendship: topic('Друзьям хватит точности', 'В дружеском контакте лучше написать коротко и по делу, чем ждать идеального момента.'),
-  energy: topic('Сила держится на темпе', 'В нагрузке стоит смотреть не на героизм, а на устойчивый ритм.'),
-  communication: topic('Разговор веди короче', 'В общении работает прямота без давления: назвать суть, дать человеку место ответить.'),
-  meta: {
-    free_section_key: 'love',
-    locale: 'ru',
-    voice_version: 'voice-test',
-    date_key: '2026-06-03',
-    pattern_keys: {},
-  },
-};
+const generatedCanvas = makeDailyCanvasFixture();
 
 const invalidCanvas = { meta: { free_section_key: 'love', locale: 'ru' } };
 
@@ -48,7 +26,7 @@ const cachedReading = {
   cacheKey: 'personal_daily.package.user.123.date.2026-06-03.locale.ru.voice.voice-test',
   inputHash: 'input-hash',
   content: generatedCanvas,
-  promptVersion: 'your-horoscope-v2.daily-package',
+  promptVersion: 'your-horoscope-v4.daily-distinct-scenes',
   calculationVersion: 'test',
   validFrom: null,
   validTo: null,
@@ -222,6 +200,7 @@ describe('human-daily API daily package flow', () => {
     expect(payload.dailyPackage.communication.hook).toBe(generatedCanvas.communication.hook);
     expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
     expect(mocks.saveReading).not.toHaveBeenCalled();
+    expect(mocks.getCachedReading.mock.calls[0][1].promptVersion).toBe('your-horoscope-v4.daily-distinct-scenes');
   });
 
   it('does not expose closed section bodies to a free user', async () => {
@@ -260,8 +239,32 @@ describe('human-daily API daily package flow', () => {
     expect(payload.persistenceStatus).toBe('saved');
     expect(mocks.saveReading).toHaveBeenCalledTimes(1);
     expect(mocks.saveReading.mock.calls[0][2]).toBe(generatedCanvas);
+    expect(mocks.saveReading.mock.calls[0][1].promptVersion).toBe('your-horoscope-v4.daily-distinct-scenes');
     expect(mocks.logContentApi).toHaveBeenCalledWith(expect.anything(), 'generation_saved', expect.anything());
     expect(payload.interpretation.content.content).toBe(generatedSection.content);
+  });
+
+  it('saves a new package and serves cache_hit on a repeated request', async () => {
+    let storedReading: any = null;
+    const getCachedReading = jest.fn(async () => storedReading);
+    const saveReading = jest.fn(async (_ctx, _opts, content) => {
+      storedReading = savedReading(content, 99);
+      return storedReading;
+    });
+    const mocks = setupMocks({ getCachedReading, saveReading });
+
+    const first = await callHandler('POST');
+    const second = await callHandler('POST');
+
+    expect(first.status).toHaveBeenCalledWith(200);
+    expect(first.json.mock.calls[0][0].source).toBe('generated');
+    expect(second.status).toHaveBeenCalledWith(200);
+    expect(second.json.mock.calls[0][0].source).toBe('human_v2');
+    expect(mocks.generateDailyCanvas).toHaveBeenCalledTimes(1);
+    expect(mocks.saveReading).toHaveBeenCalledTimes(1);
+    const events = mocks.logContentApi.mock.calls.map((call) => call[1]);
+    expect(events).toContain('generation_saved');
+    expect(events).toContain('cache_hit');
   });
 
   it('emits one requestId across the successful production diagnostic flow', async () => {

@@ -135,6 +135,7 @@ export const Dashboard = memo<DashboardProps>(({
   const dayHeroTitle = dailyPackage?.hero_title?.trim() || systemCopy;
   const dayHeroText = dailyPackage?.hero_hook?.trim() || systemCopy;
   const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
+  const dayHeroCta = language === 'ru' ? 'Открыть полный личный разбор' : 'Open full personal reading';
   const natalText = hasChart
     ? (language === 'ru'
       ? 'Карта уже собрана. Посмотри, что в ней про характер, привычки и сильные стороны.'
@@ -233,12 +234,13 @@ export const Dashboard = memo<DashboardProps>(({
       >
         <span className="home-day-hero-glow" aria-hidden />
         <span className="home-day-hero-scene" aria-hidden>
-          <span className="home-day-hero-date">{dayHeroDateLabel}</span>
           <StickerSlot surface="hero" />
         </span>
         <span className="home-day-hero-copy">
+          <span className="home-day-hero-date">{dayHeroDateLabel}</span>
           <span className="home-day-hero-title">{dayHeroTitle}</span>
           <span className="home-day-hero-text">{dayHeroText}</span>
+          <span className="home-day-hero-cta">{dayHeroCta}</span>
         </span>
       </button>
 

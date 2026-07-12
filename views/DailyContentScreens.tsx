@@ -297,7 +297,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
       {/* Без своей «Назад» — навигацию назад берёт системная кнопка Telegram. */}
       <FreshInnerHeader title={language === 'en' ? 'Personal Day' : 'Личный разбор дня'} />
 
-      <FreshTabs tabs={tabItems} activeTab={activeSection} onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
+      <FreshTabs tabs={tabItems} activeTab={activeSection} className="personal-daily-tabs" onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
 
       <div style={{ padding: '6px 20px 0' }}>
         <AnimatePresence mode="wait" custom={dir}>

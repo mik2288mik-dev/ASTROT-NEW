@@ -7,34 +7,13 @@ import {
   selectDailyPresentationPattern,
 } from '../lib/dailyPresentationPatterns';
 import { isDailyCanvasComplete, validateDailyCanvas } from '../lib/natalHumanInterpretation';
-import type { DailyCanvas } from '../lib/natalHumanShared';
+import { HUMAN_DAILY_PROMPT_VERSION } from '../lib/natalHumanShared';
+import { makeDailyCanvasFixture } from './dailyCanvasFixture';
 
 const ROOT = path.join(__dirname, '..');
 
-const body = (seed: string) =>
-  `${seed} Это достаточно длинный текст раздела, который описывает практический фокус без обещаний событий, без выдуманных астрологических данных и без повторения hero.`;
-
-function packageFixture(): DailyCanvas {
-  return {
-    hero_title: 'Тише к сути, без лишнего шума',
-    hero_hook: 'Один честный выбор важнее набора случайных реакций.',
-    overview: 'В карте и транзитах виден день, где лучше держать внимание на одном внятном действии. Не нужно разгонять каждую мысль до решения: полезнее отделить важное от чужой срочности, ответить там, где давно просится ясность, и оставить небольшой запас сил на вечер. Общий тон мягкий, но требовательный к точности.',
-    love: { hook: 'Близость просит ясности', body: body('В отношениях лучше не проверять человека намеками.') },
-    money: { hook: 'Расходы любят паузу', body: body('В деньгах полезно отделить желание быстро снять напряжение от необходимости.') },
-    work: { hook: 'Задача выигрывает от порядка', body: body('В работе сильнее всего помогает простая последовательность действий.') },
-    goals: { hook: 'Цель становится меньше', body: body('В целях лучше выбрать шаг, который можно завершить без внутреннего торга.') },
-    family: { hook: 'Дому нужна договоренность', body: body('В семье и быту помогает не разговор обо всем, а одно понятное правило.') },
-    friendship: { hook: 'Друзьям хватит точности', body: body('В дружеском контакте лучше написать коротко и по делу.') },
-    energy: { hook: 'Сила держится на темпе', body: body('В нагрузке стоит смотреть не на героизм, а на устойчивый ритм.') },
-    communication: { hook: 'Разговор веди короче', body: body('В общении работает прямота без давления: назвать суть и дать место ответить.') },
-    meta: {
-      free_section_key: 'love',
-      locale: 'ru',
-      voice_version: 'voice-test',
-      date_key: '2026-06-03',
-      pattern_keys: buildDailyPresentationPlan('123', '2026-06-03'),
-    },
-  };
+function packageFixture() {
+  return makeDailyCanvasFixture();
 }
 
 describe('daily package presentation patterns', () => {
@@ -74,6 +53,75 @@ describe('daily package presentation patterns', () => {
     expect(isDailyCanvasComplete(packageFixture(), 'ru')).toBe(true);
   });
 
+  it('rejects user-facing planet names and raw astrology wording', () => {
+    const canvas = packageFixture();
+    canvas.money.body += ' Венера давит на Юпитер, поэтому не спеши с покупками.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('BAD_TEXT_ASTRO_TERMS');
+  });
+
+  it('rejects transit, natal, square and trine terms in user-facing text', () => {
+    const canvas = packageFixture();
+    canvas.overview += ' Транзит и натальный квадрат переходят в трин.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('BAD_TEXT_ASTRO_TERMS');
+  });
+
+  it('allows ordinary home wording in the family section', () => {
+    const canvas = packageFixture();
+    canvas.family.body += ' Домашний ужин в квартире и обычные дела дома остаются бытовой сценой, а не астрологией.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(true);
+    expect(result.hardErrors).toEqual([]);
+  });
+
+  it('rejects explicit astrological house constructions only', () => {
+    const canvas = packageFixture();
+    canvas.family.body += ' Астрологический дом, седьмой дом, планета в доме и управитель дома должны быть скрыты.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('BAD_TEXT_ASTRO_TERMS');
+  });
+
+  it('rejects banned generic advice templates', () => {
+    const canvas = packageFixture();
+    canvas.work.body += ' Не распыляйся, выбери одно дело и держи курс.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('BAD_TEXT_GENERIC_ADVICE');
+  });
+
+  it('rejects the same practical advice repeated across sections', () => {
+    const repeated = 'Перед любым ответом сделай короткую паузу, открой календарь, проверь ближайший срок и только потом решай, брать ли на себя новую просьбу. Так ты не перепутаешь чужую срочность со своей ответственностью и не потащишь лишнюю задачу до вечера.';
+    const canvas = packageFixture();
+    canvas.love.body = repeated;
+    canvas.money.body = repeated;
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('REPEATED_SECTION_ADVICE');
+  });
+
+  it('rejects one practical idea smeared across hero, overview and sections', () => {
+    const canvas = packageFixture();
+    canvas.hero_hook = 'Утро звучит как просьба навести конкретность: в сообщении, покупке, рабочем вопросе и семейной мелочи будто снова нужен конкретный срок. Но такой пакет должен быть отклонен, потому что он превращает разные сферы в один прием, а не в живые ситуации.';
+    canvas.overview += ' Общая мысль опять сводится к тому, чтобы уточнить условие, назвать конкретный срок и сделать ясный ответ главным инструментом дня.';
+    canvas.love.body += ' В отношениях повторяется тот же ход: уточнить условие, назвать конкретный срок и считать ясный ответ решением близости.';
+    canvas.money.body += ' В деньгах снова предлагается уточнить условие, назвать конкретный срок и искать ясный ответ вместо отдельной финансовой сцены.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('REPEATED_SECTION_ADVICE');
+  });
+
+  it('rejects a section without its own recognizable scene type', () => {
+    const canvas = packageFixture();
+    canvas.family.body = 'В этом разделе есть просьба, разговор, ответ и пауза, но нет узнаваемой сцены нужной сферы. Текст выглядит достаточно длинным и конкретным на поверхности, однако вместо отдельной ситуации своего раздела снова описывает общий способ реагировать.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(false);
+    expect(result.hardErrors).toContain('ABSTRACT_DAILY_TEXT');
+  });
+
   it('reports a concrete hard error for a hard-invalid package', () => {
     const result = validateDailyCanvas({ ...packageFixture(), meta: { free_section_key: 'bad' } }, 'ru');
     expect(result.valid).toBe(false);
@@ -106,6 +154,31 @@ describe('daily package presentation patterns', () => {
     const result = validateDailyCanvas(canvas, 'ru');
     expect(result.valid).toBe(false);
     expect(result.hardErrors).toContain('EMPTY_TOPIC_BODY');
+  });
+
+  it('Dashboard hero shows the full hook without CSS line clamp', () => {
+    const dashboard = fs.readFileSync(path.join(ROOT, 'views', 'Dashboard.tsx'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'styles', 'globals.css'), 'utf8');
+    const heroTextBlocks = css.match(/\.home-day-hero-(?:title|text)\s*{[^}]*}/g)?.join('\n') || '';
+    expect(dashboard).toContain('home-day-hero-cta');
+    expect(heroTextBlocks).not.toContain('-webkit-line-clamp');
+  });
+
+  it('PersonalDaily tabs use horizontal scroll without wrapping labels', () => {
+    const screen = fs.readFileSync(path.join(ROOT, 'views', 'DailyContentScreens.tsx'), 'utf8');
+    const tabs = fs.readFileSync(path.join(ROOT, 'components', 'fresh-ui', 'FreshTabs.tsx'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'styles', 'globals.css'), 'utf8');
+    expect(screen).toContain('className="personal-daily-tabs"');
+    expect(tabs).toContain('scrollIntoView');
+    expect(css).toMatch(/\.personal-daily-tabs\s*{[^}]*overflow-x:\s*auto/s);
+    expect(css).toMatch(/\.personal-daily-tabs \.fresh-tab\s*{[^}]*flex:\s*0 0 auto/s);
+    expect(css).toMatch(/\.personal-daily-tabs \.fresh-tab\s*{[^}]*white-space:\s*nowrap/s);
+  });
+
+  it('bumps the daily package prompt version so old cached voice is not current', () => {
+    expect(HUMAN_DAILY_PROMPT_VERSION).toBe('your-horoscope-v4.daily-distinct-scenes');
+    expect(HUMAN_DAILY_PROMPT_VERSION).not.toBe('your-horoscope-v3.daily-human-voice');
+    expect(HUMAN_DAILY_PROMPT_VERSION).not.toBe('your-horoscope-v2.daily-package');
   });
 
   it('Dashboard renders card hooks from the startup package without its own retry loader', () => {

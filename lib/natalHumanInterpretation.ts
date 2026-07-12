@@ -582,6 +582,65 @@ export const NATAL_BANNED_PHRASES = [
 ];
 const ESOTERIC_PATTERN = new RegExp(`(${NATAL_BANNED_PHRASES.join('|')})`, 'i');
 
+const DAILY_ASTRO_TEXT_PATTERN =
+  /(?<![а-яё])(солнце|луна|меркурий|венера|марс|юпитер|сатурн|уран|нептун|плутон|хирон|асцендент)(?![а-яё])|транзит[а-яё]*|натальн[а-яё]*|аспект[а-яё]*|квадрат[а-яё]*|трин[а-яё]*|оппозици[а-яё]*|секстил[а-яё]*|соединени[а-яё]*|орб[а-яё]*|астрологическ[а-яё]*\s+дом[а-яё]*|(?:перв[а-яё]*|втор[а-яё]*|трет[а-яё]*|четверт[а-яё]*|пят[а-яё]*|шест[а-яё]*|седьм[а-яё]*|восьм[а-яё]*|девят[а-яё]*|десят[а-яё]*|одиннадцат[а-яё]*|двенадцат[а-яё]*|\d+\s*[-–]?\s*(?:й|ый|ой)?)\s+дом[а-яё]*|планет[а-яё]*\s+в\s+дом[а-яё]*|управител[а-яё]*\s+дом[а-яё]*|дом[а-яё]*\s+(?:карты|гороскопа)|\b(sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|natal|transit|aspect|square|trine|opposition|sextile|conjunction|orb)\b|\b(?:astrological\s+house|(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d+(?:st|nd|rd|th)?)\s+house|planet\s+in\s+(?:the\s+)?house|ruler\s+of\s+(?:the\s+)?house|house\s+ruler)\b/iu;
+
+const DAILY_GENERIC_ADVICE_PATTERNS: RegExp[] = [
+  /(?<![а-яё])не\s+(?:спеши|торопись)(?![а-яё])/iu,
+  /не\s+распыля(?:йся|ться|йтесь)/iu,
+  /(?:выбери|выбрать)\s+(?:одно|один|одну)\s+(?:дело|шаг|задач\w*|приоритет|фокус)/iu,
+  /сосредоточ(?:ься|иться|тесь)\s+на\s+главн/iu,
+  /держ[иите]\s+курс/iu,
+  /сохраня(?:й|ть|йте)\s+баланс/iu,
+  /доверь(?:ся|тесь)\s+себе/iu,
+  /говори(?:ть|те)?\s+прямо/iu,
+  /замедли(?:сь|ться|тесь)/iu,
+  /прислуша(?:йся|ться|йтесь)\s+к\s+себе/iu,
+  /отпусти(?:ть|те)?\s+лишн/iu,
+  /действу(?:й|йте|овать)\s+осознанно/iu,
+  /день\s+(?:про|о)\s+(?:фокус|ясност)/iu,
+  /энергия\s+дня/iu,
+  /чувства\s+громче/iu,
+  /вс[её]\s+встанет\s+на\s+свои\s+места/iu,
+  /угод[а-яё]*\s+всем/iu,
+  /уменьш(?:и|ить|ай|айте)\s+шаг/iu,
+  /срежь\s+лишн[а-яё]*\s+сложност/iu,
+  /разбей\s+дела?\s+на\s+коротк[а-яё]*\s+(?:подход|шаг)/iu,
+  /\b(?:do not rush|slow down|stay focused|trust yourself|keep your balance|let go|act mindfully)\b/iu,
+];
+
+const DAILY_NONSENSE_PATTERN =
+  /натальн\w*\s+центр|юпитер\s+поддерж\w*\s+юпитер|планет\w+\s+(?:поддерж\w*|давит|влия\w*)|день\s+собранн\w*,?\s+но\s+не\s+мягк/iu;
+
+const DAILY_CONCRETE_SCENE_PATTERN =
+  /сообщени|переписк|чат|звонок|встреч|разговор|вопрос|ответ|просьб|отказ|партнер|партн[её]р|человек|коллег|началь|клиент|задач|проект|дедлайн|срок|календар|обещан|план|покупк|оплат|чек|сч[её]т|долг|трат|договор|договор[её]нност|деньг|цена|дом|быт|родствен|семь|уборк|ужин|приглаш|компан|устал|раздраж|нагруз|пауза|вечер|утро|документ|письм|дорог|message|chat|call|meeting|question|answer|request|partner|colleague|deadline|task|project|calendar|purchase|payment|bill|debt|agreement|home|family|friend|tired|pause|evening|document/iu;
+
+const DAILY_TOPIC_SCENE_PATTERNS: Record<DailyCanvasTopicKey, RegExp> = {
+  love: /отношени|партн[её]р|близост|свидан|встреч|объяти|ревност|нежност|любим|partner|date|closeness|relationship/iu,
+  money: /деньг|покупк|оплат|чек|сч[её]т|долг|трат|цена|доставк|подписк|заказ|money|purchase|payment|bill|subscription|order/iu,
+  work: /работ|коллег|началь|клиент|задач|проект|дедлайн|созвон|документ|work|colleague|client|deadline|task|project|meeting/iu,
+  goals: /цел|план|курс|обуч|тренировк|заявк|черновик|привычк|проект|мечт|goal|plan|course|training|draft|habit/iu,
+  family: /дом|дома|домашн|квартир|семь|родствен|родител|реб[её]н|ужин|уборк|кухн|family|home|apartment|relative|kitchen/iu,
+  friendship: /друз|подруг|приятел|приглаш|компан|вечеринк|прогулк|friend|invitation|company|party|walk/iu,
+  energy: /сил|устал|сон|отдых|нагруз|пауза|тело|дорог|вечер|утро|energy|tired|sleep|rest|load|pause|body/iu,
+  communication: /сообщени|переписк|чат|звонок|разговор|вопрос|ответ|отказ|письм|фраз|communication|message|chat|call|question|answer|reply/iu,
+};
+
+const DAILY_ADVICE_FAMILY_PATTERNS: RegExp[] = [
+  /конкретн|уточн|ясн|срок|услови|договор[её]н|сформулир/iu,
+  /(?:одн[а-яё]*\s+(?:дел|шаг|сообщени|отказ|договор[её]н|задач))|уменьш[а-яё]*\s+шаг|срежь\s+лишн[а-яё]*\s+сложност/iu,
+  /угод[а-яё]*\s+всем|всем\s+сразу|быть\s+хорош[а-яё]*\s+для\s+всех/iu,
+];
+
+const DAILY_STOP_WORDS = new Set([
+  'сегодня', 'день', 'может', 'нужно', 'лучше', 'важно', 'стоит', 'полезно',
+  'который', 'которая', 'которые', 'потому', 'чтобы', 'через', 'когда', 'если',
+  'тебя', 'тебе', 'тобой', 'себя', 'себе', 'свой', 'свои', 'свою', 'своих',
+  'очень', 'просто', 'именно', 'этот', 'эта', 'это', 'есть', 'будет', 'быть',
+  'раздел', 'текст', 'контракт', 'пакет', 'достаточно', 'длинный', 'практический',
+  'focus', 'today', 'better', 'should', 'could', 'your', 'with', 'that', 'this',
+]);
+
 function hasBadText(text: string): boolean {
   const compact = text.toLowerCase();
   const englishSigns = /\b(aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces)\b/i;
@@ -1514,14 +1573,22 @@ function buildDailyPackageSystemPrompt(locale: Locale): string {
 
 Use the app voice above as the mandatory SYSTEM voice. The user-facing output must be English.
 
-Translate natal-chart and transit calculations into practical human language. Use only the supplied natal chart, calculated transit-to-natal aspects, and transit positions. Do not invent planetary positions, aspects, phases, events, income, health outcomes, or guarantees.
+Use the natal chart, transit positions, and calculated interactions only as internal source data. Translate them into normal human meaning: a situation, a likely reaction, a possible mistake, and a useful observation.
+
+The final user-facing JSON must not name planets, aspects, houses, transits, natal chart terms, or explain astrological mechanics. Do not write lines like "Venus presses on Jupiter" or "transit Sun". The reader should never need astrology vocabulary to understand the day.
+
+Avoid generic advice that could fit any person on any day: "do not rush", "stay focused", "trust yourself", "keep balance", "let go", "speak directly", or close paraphrases. Every section needs its own life topic and concrete scene.
 
 Return only valid JSON.`
     : `## ЗАДАЧА ДНЕВНОГО ПАКЕТА
 
 Используй голос приложения выше как обязательный SYSTEM-голос. Пользовательский текст должен быть на русском.
 
-Переводи натальную карту и рассчитанные транзиты в обычный человеческий язык. Опирайся только на переданную натальную карту, посчитанные транзит→натал аспекты и позиции транзитов. Не выдумывай положения планет, аспекты, фазы, события, доход, здоровье или гарантии.
+Используй натальную карту, позиции транзитов и посчитанные взаимодействия только как внутренние исходные данные. Переводи их в обычный человеческий смысл: ситуацию, реакцию, возможную ошибку и полезное наблюдение.
+
+В итоговом пользовательском JSON нельзя называть планеты, аспекты, транзиты, натальную карту и астрологические механики. Не пиши конструкции вроде «Венера давит на Юпитер», «транзитное Солнце», «натальный центр», «седьмой дом», «планета в доме», «управитель дома». Обычные слова «дом», «дома», «домашний», «квартира» разрешены, когда речь о быте и семье. Читатель должен понять день без астрологических терминов.
+
+Запрещены универсальные советы, которые подходят кому угодно в любой день: «не спеши», «не распыляйся», «выбери одно дело», «держи курс», «сохраняй баланс», «доверься себе», «говори прямо», «замедлись», «отпусти лишнее», «не пытайся угодить всем», «уменьши шаг» и очевидные перефразировки. Каждый раздел должен иметь свою жизненную тему, конкретную сцену и собственное действие, а не пересказ одной центральной мысли.
 
 Ответ — только валидный JSON.`;
   return `${getAppSystemVoice(locale)}\n\n${task}`;
@@ -1579,17 +1646,23 @@ ${patternPlanBlock(plan, locale)}
 
 Rules:
 - The word "today" may appear no more than twice in the whole package.
+- User-facing text must not contain astrology vocabulary: planet names, aspects, "transit", "natal", "square", "trine", "opposition", or explanations of calculations. Do not use explicit astrology-house constructions such as "astrological house", "seventh house", "planet in a house", or "ruler of the house"; ordinary home/house wording is allowed for family or everyday life.
+- Never show raw astrology sentences such as "Mars presses on the Moon" or "Jupiter supports natal Jupiter"; translate the signal into a normal life situation.
+- Do not use generic template advice or close paraphrases: do not rush, do not scatter yourself, choose one thing, focus on the main thing, keep course, keep balance, trust yourself, speak directly, slow down, listen to yourself, let go, act mindfully, do not try to please everyone, make the step smaller.
+- If a line could be shown to any person on any day, rewrite it with a concrete everyday scene: a message, purchase, deadline, promise, bill, request, family agreement, invitation, tiredness, or conversation.
 - hero_title, hero_hook, and all hooks must not start the same way.
-- Do not repeat one thought across hero, overview, and sections.
+- hero_hook must be a substantial 40-65 word Dashboard preview: concrete enough to be useful, short enough to invite opening the full reading.
+- Do not repeat one thought across hero, overview, and sections; if the hero is about a mood, the overview must synthesize different tensions, and each section must use a separate recognizable situation with a different practical move.
 - Hooks tease the section; they must not retell the full body.
 - The eight cards must not use one repeated syntactic construction.
+- The sections must be genuinely different: love is about closeness/expectations, money about purchases/obligations, work about tasks/people/deadlines, goals about plans/promises, family about home/relatives, friendship about invitations/requests, energy about load/rest, communication about messages/questions/refusals. Never spread the same advice about one step, clarity, specificity, or one message across multiple sections.
 - Humor is allowed in at most one or two places in the whole package, only if the selected pattern makes it natural.
 - No fatalism, no invented astrological data, no medical/legal/financial guarantees.
 
 Return JSON with exactly this shape:
 {
   "hero_title": "short Dashboard hero title",
-  "hero_hook": "one or two lines for the hero under the title",
+  "hero_hook": "40-65 words: substantial Dashboard preview, no astrology terms",
   "overview": "90-130 words: the coherent day overview",
   "love": { "hook": "short card hook", "body": "70-110 words" },
   "money": { "hook": "short card hook", "body": "70-110 words" },
@@ -1625,17 +1698,23 @@ ${patternPlanBlock(plan, locale)}
 
 Правила:
 - Слово «сегодня» можно использовать не больше двух раз во всем пакете.
+- В пользовательском тексте не должно быть астрологических терминов: названий планет, аспектов, слов «транзит», «натальный», «квадрат», «трин», «оппозиция» и объяснений расчётов. Не используй явные астрологические конструкции про дома: «астрологический дом», «седьмой дом», «планета в доме», «управитель дома». Обычные слова «дом», «дома», «домашний», «квартира» разрешены для быта и семьи.
+- Не показывай сырую астрологию вроде «Марс давит на Луну» или «Юпитер поддерживает натальный Юпитер»; переводи сигнал в обычную жизненную ситуацию.
+- Не используй шаблонные советы и близкие перефразировки: не спеши, не распыляйся, выбери одно дело, сосредоточься на главном, держи курс, сохраняй баланс, доверься себе, говори прямо, замедлись, прислушайся к себе, отпусти лишнее, действуй осознанно, не пытайся угодить всем, уменьши шаг.
+- Если фразу можно показать любому человеку в любой день, перепиши через конкретную бытовую сцену: сообщение, покупку, срок, обещание, счёт, просьбу, семейную договорённость, приглашение, усталость или разговор.
 - hero_title, hero_hook и все hooks не должны начинаться одинаково.
-- Не повторяй одну мысль в hero, overview и разделах.
+- hero_hook должен быть содержательной выжимкой для Dashboard на 40-65 слов: достаточно конкретной, но не заменяющей полный разбор.
+- Не повторяй одну мысль в hero, overview и разделах: если hero задает настроение, overview собирает несколько разных напряжений, а каждая сфера показывает отдельную узнаваемую ситуацию и другое практическое действие.
 - Hooks только открывают тему; они не пересказывают body.
 - Восемь карточек не должны идти одной синтаксической конструкцией.
+- Разделы должны реально отличаться: любовь — близость/ожидания, деньги — покупки/обязательства, работа — задачи/люди/сроки, цели — планы/обещания, семья — дом/родственники, друзья — приглашения/просьбы, силы — нагрузка/отдых, разговоры — переписки/вопросы/отказы. Не размазывай один совет про шаг, ясность, конкретность или одно сообщение по нескольким разделам.
 - Юмор максимум в одном-двух местах на весь пакет и только когда он уместен.
 - Без фатализма, без выдуманных астрологических данных, без медицинских, юридических и финансовых гарантий.
 
 Верни JSON строго такой структуры:
 {
   "hero_title": "короткий заголовок hero для Dashboard",
-  "hero_hook": "одна-две строки под заголовком hero",
+  "hero_hook": "40-65 слов: содержательное превью Dashboard, без астрологических терминов",
   "overview": "90-130 слов: связный обзор дня",
   "love": { "hook": "короткий hook карточки", "body": "70-110 слов" },
   "money": { "hook": "короткий hook карточки", "body": "70-110 слов" },
@@ -1658,6 +1737,11 @@ function appendDailyCanvasRepairInstructions(
 
 Previous attempt was rejected by server validation.
 Fix these hard validation errors exactly: ${hardErrors.join(', ')}.
+For BAD_TEXT_ASTRO_TERMS remove planet/aspect/transit/natal vocabulary and explicit astrology-house constructions from every user-facing field; ordinary home/house words are allowed.
+For BAD_TEXT_GENERIC_ADVICE replace generic advice with a concrete scene and a specific observation.
+For ABSTRACT_DAILY_TEXT add a separate recognizable everyday situation to every section.
+For REPEATED_SECTION_ADVICE make hero, overview, and each section solve different life topics, not the same advice in new words.
+For HERO_HOOK_TOO_SHORT rewrite hero_hook as a 40-65 word preview.
 Return the same JSON shape. Do not explain the errors outside JSON.`;
 }
 
@@ -1743,6 +1827,12 @@ export type DailyCanvasValidationCode =
   | 'BAD_TEXT_UNDEFINED_NULL'
   | 'BAD_TEXT_AI_DISCLOSURE'
   | 'BAD_TEXT_ESOTERIC'
+  | 'BAD_TEXT_ASTRO_TERMS'
+  | 'BAD_TEXT_GENERIC_ADVICE'
+  | 'BAD_TEXT_NONSENSE'
+  | 'ABSTRACT_DAILY_TEXT'
+  | 'REPEATED_SECTION_ADVICE'
+  | 'HERO_HOOK_TOO_SHORT'
   | 'JSON_PARSE_FAILED'
   | 'TODAY_WORD_OVER_LIMIT'
   | 'REPEATED_HOOK_START'
@@ -1765,6 +1855,9 @@ function dailyPackageBadTextCodes(text: string, locale: Locale): DailyCanvasVali
   if (/undefined|null/i.test(text)) pushCode(codes, 'BAD_TEXT_UNDEFINED_NULL');
   if (/искусственн(ый|ого) интеллект|as an ai/i.test(compact)) pushCode(codes, 'BAD_TEXT_AI_DISCLOSURE');
   if (ESOTERIC_PATTERN.test(compact)) pushCode(codes, 'BAD_TEXT_ESOTERIC');
+  if (DAILY_ASTRO_TEXT_PATTERN.test(compact)) pushCode(codes, 'BAD_TEXT_ASTRO_TERMS');
+  if (hasGenericDailyAdvice(compact)) pushCode(codes, 'BAD_TEXT_GENERIC_ADVICE');
+  if (DAILY_NONSENSE_PATTERN.test(compact)) pushCode(codes, 'BAD_TEXT_NONSENSE');
   if (locale === 'ru' && !hasRussian(text)) pushCode(codes, 'LANGUAGE_MISMATCH');
   if (locale === 'en' && hasRussian(text)) pushCode(codes, 'LANGUAGE_MISMATCH');
   return codes;
@@ -1774,6 +1867,92 @@ function todayWordCount(text: string): number {
   const ru = text.match(/(?<![а-яё])сегодня(?![а-яё])/giu)?.length || 0;
   const en = text.match(/\btoday\b/giu)?.length || 0;
   return ru + en;
+}
+
+function wordCount(text: string): number {
+  return text.match(/[A-Za-zА-Яа-яЁё0-9]+(?:[-'][A-Za-zА-Яа-яЁё0-9]+)?/gu)?.length || 0;
+}
+
+function hasGenericDailyAdvice(text: string): boolean {
+  return DAILY_GENERIC_ADVICE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function hasConcreteDailyScene(text: string): boolean {
+  return DAILY_CONCRETE_SCENE_PATTERN.test(text);
+}
+
+function normalizedAdviceWords(text: string): Set<string> {
+  const words = text
+    .toLowerCase()
+    .match(/[a-zа-яё]{4,}/giu) || [];
+  return new Set(words
+    .filter((word) => !DAILY_STOP_WORDS.has(word))
+    .map((word) => word.length > 7 ? word.slice(0, 7) : word));
+}
+
+function firstSentenceKey(text: string): string {
+  return cleanLine(text)
+    .toLowerCase()
+    .split(/[.!?]+/)
+    .map((part) => part.trim())
+    .find((part) => part.length > 32) || '';
+}
+
+function hasSimilarAdviceText(a: string, b: string): boolean {
+  const firstA = firstSentenceKey(a);
+  const firstB = firstSentenceKey(b);
+  if (firstA && firstA === firstB) return true;
+
+  const wordsA = normalizedAdviceWords(a);
+  const wordsB = normalizedAdviceWords(b);
+  if (wordsA.size < 8 || wordsB.size < 8) return false;
+  let overlap = 0;
+  for (const word of wordsA) {
+    if (wordsB.has(word)) overlap += 1;
+  }
+  const smaller = Math.min(wordsA.size, wordsB.size);
+  return overlap >= 8 && overlap / smaller >= 0.68;
+}
+
+function hasRepeatedAdviceFamily(canvas: DailyCanvas): boolean {
+  const fields = [
+    canvas.hero_hook,
+    canvas.overview,
+    ...DAILY_CANVAS_TOPIC_KEYS.map((key) => canvas[key]?.body),
+  ].map((text) => cleanText(text));
+
+  return DAILY_ADVICE_FAMILY_PATTERNS.some((pattern) => (
+    fields.filter((text) => pattern.test(text)).length >= 4
+  ));
+}
+
+function hasRepeatedSectionAdvice(canvas: DailyCanvas): boolean {
+  const fields = [
+    canvas.hero_hook,
+    canvas.overview,
+    ...DAILY_CANVAS_TOPIC_KEYS.map((key) => canvas[key]?.body),
+  ]
+    .map((body) => cleanText(body))
+    .filter((body) => body.length >= 80);
+  for (let i = 0; i < fields.length; i += 1) {
+    for (let j = i + 1; j < fields.length; j += 1) {
+      if (hasSimilarAdviceText(fields[i], fields[j])) return true;
+    }
+  }
+  return hasRepeatedAdviceFamily(canvas);
+}
+
+function dailyConcreteSceneCount(canvas: DailyCanvas): number {
+  return [
+    canvas.overview,
+    ...DAILY_CANVAS_TOPIC_KEYS.map((key) => canvas[key]?.body),
+  ].filter((text) => hasConcreteDailyScene(cleanText(text))).length;
+}
+
+function dailyTopicSceneCount(canvas: DailyCanvas): number {
+  return DAILY_CANVAS_TOPIC_KEYS.filter((key) => (
+    DAILY_TOPIC_SCENE_PATTERNS[key].test(cleanText(canvas[key]?.body))
+  )).length;
 }
 
 function startKey(text: string): string {
@@ -1809,6 +1988,7 @@ export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): Dai
 
   if (!heroHook) pushCode(hardErrors, 'EMPTY_HERO_HOOK');
   else if (heroHook.length < 24) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+  else if (wordCount(heroHook) < 32) pushCode(hardErrors, 'HERO_HOOK_TOO_SHORT');
 
   if (!overview) pushCode(hardErrors, 'EMPTY_OVERVIEW');
   else if (overview.length < 120) pushCode(hardErrors, 'TEXT_TOO_SHORT');
@@ -1834,6 +2014,13 @@ export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): Dai
   }
 
   if (todayWordCount(allText) > 2) pushCode(styleWarnings, 'TODAY_WORD_OVER_LIMIT');
+  if (
+    dailyConcreteSceneCount(safeCanvas) < 5 ||
+    dailyTopicSceneCount(safeCanvas) < DAILY_CANVAS_TOPIC_KEYS.length
+  ) {
+    pushCode(hardErrors, 'ABSTRACT_DAILY_TEXT');
+  }
+  if (hasRepeatedSectionAdvice(safeCanvas)) pushCode(hardErrors, 'REPEATED_SECTION_ADVICE');
   if (hasRepeatedStarts([
     safeCanvas.hero_title,
     safeCanvas.hero_hook,

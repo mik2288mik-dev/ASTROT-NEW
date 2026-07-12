@@ -11,7 +11,7 @@ export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v4.paid-focus';
 // v5.daily-canvas: личный дневной разбор генерится ЕДИНЫМ полотном за один запрос
 // с прокинутыми транзит→натал аспектами. Бамп версии инвалидирует старый посекционный
 // кеш (ключи human_v2.daily.*), новый код читает только новый ключ human_v2.canvas.*.
-export const HUMAN_DAILY_PROMPT_VERSION = 'your-horoscope-v2.daily-package';
+export const HUMAN_DAILY_PROMPT_VERSION = 'your-horoscope-v4.daily-distinct-scenes';
 
 export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
 
