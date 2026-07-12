@@ -88,15 +88,17 @@ function normalizeKey(key: string) {
   return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
 
-function sanitizeValue(value: unknown, depth = 0): unknown {
+function sanitizeValue(value: unknown, depth = 0, keyHint = ''): unknown {
   if (depth > 4) return '[truncated]';
   if (value == null || typeof value === 'boolean' || typeof value === 'number') return value;
   if (typeof value === 'string') {
-    if (value.length > 200) return `[string:${value.length}]`;
+    const normalizedKey = normalizeKey(keyHint);
+    const limit = normalizedKey.includes('stack') ? 2000 : 200;
+    if (value.length > limit) return `${value.slice(0, limit)}[truncated:${value.length}]`;
     return value;
   }
   if (Array.isArray(value)) {
-    return value.slice(0, 10).map((item) => sanitizeValue(item, depth + 1));
+    return value.slice(0, 10).map((item) => sanitizeValue(item, depth + 1, keyHint));
   }
   if (typeof value === 'object') {
     const result: Record<string, unknown> = {};
@@ -110,7 +112,7 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
         result[key] = '[redacted]';
         continue;
       }
-      result[key] = sanitizeValue(nested, depth + 1);
+      result[key] = sanitizeValue(nested, depth + 1, key);
     }
     return result;
   }

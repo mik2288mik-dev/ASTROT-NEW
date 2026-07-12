@@ -42,10 +42,13 @@ export async function withContentGenerationLock<T>(options: {
   readCached: () => Promise<CachedContentLayer<T> | null>;
   generate: () => Promise<T>;
   waitMs?: number;
+  onLockAcquired?: () => void;
+  onLockBusy?: () => void;
 }): Promise<ContentGenerationLockResult<T>> {
   const waitMs = options.waitMs ?? CONTENT_GENERATION_RETRY_AFTER_MS;
 
   if (!tryAcquireLock(options.lockKey, options.operation)) {
+    options.onLockBusy?.();
     await new Promise((resolve) => setTimeout(resolve, waitMs));
     const afterWait = await options.readCached();
     if (afterWait != null) {
@@ -59,6 +62,7 @@ export async function withContentGenerationLock<T>(options: {
     return { status: 'in_progress', retryAfterMs: waitMs };
   }
 
+  options.onLockAcquired?.();
   try {
     const insideLock = await options.readCached();
     if (insideLock != null) {

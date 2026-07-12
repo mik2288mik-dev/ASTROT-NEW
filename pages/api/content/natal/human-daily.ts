@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { randomUUID } from 'crypto';
 import type { ContentAccessTier, InterpretationSection } from '../../../../types';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
@@ -51,6 +52,69 @@ type SectionWrapperOptions = {
   validFrom?: Date | null;
   validTo?: Date | null;
 };
+
+type DiagnosticMetadata = Record<string, unknown>;
+
+function headerValue(headers: unknown, name: string): string | undefined {
+  if (!headers || typeof headers !== 'object') return undefined;
+  const anyHeaders = headers as any;
+  const direct = anyHeaders[name] || anyHeaders[name.toLowerCase()];
+  if (typeof direct === 'string') return direct;
+  if (Array.isArray(direct)) return direct[0];
+  if (typeof anyHeaders.get === 'function') {
+    const value = anyHeaders.get(name) || anyHeaders.get(name.toLowerCase());
+    return typeof value === 'string' ? value : undefined;
+  }
+  return undefined;
+}
+
+function isPostgresError(value: any): boolean {
+  if (!value || typeof value !== 'object') return false;
+  return (
+    typeof value.constraint === 'string' ||
+    typeof value.detail === 'string' ||
+    (typeof value.code === 'string' && /^[0-9A-Z]{5}$/.test(value.code))
+  );
+}
+
+function errorDiagnostics(error: unknown): DiagnosticMetadata {
+  const err = error as any;
+  const cause = err?.cause;
+  const dbError = isPostgresError(err) ? err : isPostgresError(cause) ? cause : null;
+  const openaiError = err?.status || err?.request_id || err?.requestId || err?.headers || err?.error
+    ? err
+    : cause?.status || cause?.request_id || cause?.requestId || cause?.headers || cause?.error
+      ? cause
+      : null;
+
+  const details: DiagnosticMetadata = {
+    errorMessage: err?.message || String(error),
+  };
+  if (err?.stack) details.errorStack = err.stack;
+  if (dbError?.code) details.pgCode = dbError.code;
+  if (dbError?.detail) details.pgDetail = dbError.detail;
+  if (dbError?.constraint) details.pgConstraint = dbError.constraint;
+  if (dbError?.table) details.pgTable = dbError.table;
+  if (openaiError?.status || openaiError?.statusCode) {
+    details.openaiStatus = openaiError.status || openaiError.statusCode;
+  }
+  if (openaiError?.code || openaiError?.error?.code) {
+    details.openaiCode = openaiError.code || openaiError.error.code;
+  }
+  const openaiRequestId =
+    openaiError?.request_id ||
+    openaiError?.requestId ||
+    headerValue(openaiError?.headers, 'x-request-id') ||
+    headerValue(openaiError?.headers, 'x-openai-request-id');
+  if (openaiRequestId) details.openaiRequestId = openaiRequestId;
+  return details;
+}
+
+function markDiagnosticStage(error: unknown, stage: string): void {
+  if (error && typeof error === 'object') {
+    (error as any).diagnosticStage = stage;
+  }
+}
 
 function isUsableCanvas(value: unknown): value is DailyCanvas {
   if (!value || typeof value !== 'object') return false;
@@ -151,20 +215,174 @@ async function resolveIsPremium(userId: string): Promise<boolean> {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const startedAt = Date.now();
-  const ready = await ensureValidContext(req, res);
-  if (!ready) return;
-  const { userId, ctx } = ready;
+  const requestId = randomUUID();
+  let diagnosticUserId: string | undefined;
+  let diagnosticChartId: number | null = null;
+  const earlyResponse = { current: null as { stage: string; status: number; code: string } | null };
   const sectionKey = readSectionKey(req);
   const dateKey = readDateKey(req);
 
-  logContentApi(
-    { scope: SCOPE, userId, chartId: ctx.chartId, surface: 'natal', variant: 'living' },
-    'request_start',
-    { metadata: { sectionKey, dateKey, method: req.method } },
-  );
+  const diagnosticContext = () => ({
+    scope: SCOPE,
+    userId: diagnosticUserId,
+    chartId: diagnosticChartId,
+    surface: 'natal' as const,
+    variant: 'living' as const,
+  });
+
+  const withDiagnosticMetadata = (stage: string, metadata?: DiagnosticMetadata) => ({
+    requestId,
+    stage,
+    method: req.method,
+    sectionKey,
+    dateKey,
+    ...(metadata || {}),
+  });
+
+  const logStage = (
+    stage: string,
+    fields: {
+      accessTier?: ContentAccessTier;
+      status?: string;
+      errorCode?: string;
+      durationMs?: number;
+      metadata?: DiagnosticMetadata;
+    } = {},
+  ) => {
+    logContentApi(diagnosticContext(), stage, {
+      ...fields,
+      metadata: withDiagnosticMetadata(stage, fields.metadata as DiagnosticMetadata | undefined),
+    });
+  };
+
+  const warnStage = (
+    stage: string,
+    fields: {
+      accessTier?: ContentAccessTier;
+      status?: string;
+      errorCode?: string;
+      durationMs?: number;
+      metadata?: DiagnosticMetadata;
+    } = {},
+  ) => {
+    warnContentApi(diagnosticContext(), stage, {
+      ...fields,
+      metadata: withDiagnosticMetadata(stage, fields.metadata as DiagnosticMetadata | undefined),
+    });
+  };
+
+  const logStageError = (
+    stage: string,
+    httpStatus: number,
+    appErrorCode: string,
+    error: unknown,
+    metadata: DiagnosticMetadata = {},
+  ) => {
+    markDiagnosticStage(error, stage);
+    warnStage(stage, {
+      status: 'error',
+      errorCode: appErrorCode,
+      durationMs: Date.now() - startedAt,
+      metadata: {
+        httpStatus,
+        appErrorCode,
+        ...errorDiagnostics(error),
+        ...metadata,
+      },
+    });
+  };
+
+  const logResponseSent = (
+    httpStatus: number,
+    appErrorCode?: string,
+    metadata: DiagnosticMetadata = {},
+  ) => {
+    const status = httpStatus >= 400 ? 'error' : httpStatus === 202 ? 'pending' : 'ready';
+    const fields = {
+      status,
+      ...(appErrorCode ? { errorCode: appErrorCode } : {}),
+      durationMs: Date.now() - startedAt,
+      metadata: {
+        httpStatus,
+        ...(appErrorCode ? { appErrorCode } : {}),
+        ...metadata,
+      },
+    };
+    if (httpStatus >= 400) {
+      warnStage('response_sent', fields);
+    } else {
+      logStage('response_sent', fields);
+    }
+  };
+
+  const sendJson = (
+    httpStatus: number,
+    payload: Record<string, unknown>,
+    metadata: DiagnosticMetadata = {},
+  ) => {
+    const appErrorCode = typeof payload.code === 'string'
+      ? payload.code
+      : typeof payload.error === 'string' && httpStatus >= 400
+        ? payload.error
+        : undefined;
+    logResponseSent(httpStatus, appErrorCode, metadata);
+    return res.status(httpStatus).json(payload);
+  };
+
+  logStage('request_started');
+
+  let ready: Awaited<ReturnType<typeof ensureValidContext>> | null = null;
+  try {
+    ready = await ensureValidContext(req, res, {
+      onAuthSuccess: ({ userId: authenticatedUserId }) => {
+        diagnosticUserId = authenticatedUserId;
+        logStage('auth_success');
+      },
+      onAuthFailed: ({ userId: failedUserId, status, code, error }) => {
+        diagnosticUserId = failedUserId ? String(failedUserId) : undefined;
+        earlyResponse.current = { stage: 'auth_failed', status, code };
+        logStageError('auth_failed', status, code, error || new Error(code));
+      },
+      onChartResolved: ({ userId: resolvedUserId, chartId: resolvedChartId }) => {
+        diagnosticUserId = resolvedUserId;
+        diagnosticChartId = resolvedChartId;
+        logStage('chart_resolved', {
+          metadata: { hasChartData: true },
+        });
+      },
+      onChartFailed: ({ userId: failedUserId, chartId: failedChartId, status, code, error }) => {
+        diagnosticUserId = failedUserId;
+        diagnosticChartId = failedChartId;
+        earlyResponse.current = { stage: 'chart_failed', status, code };
+        logStageError('chart_failed', status, code, error || new Error(code));
+      },
+    });
+  } catch (error) {
+    logStageError('auth_failed', 500, 'AUTH_UNEXPECTED_ERROR', error);
+    return sendJson(500, {
+      error: 'INTERNAL_SERVER_ERROR',
+      code: 'AUTH_UNEXPECTED_ERROR',
+      message: 'Daily package could not be prepared.',
+    });
+  }
+
+  if (!ready) {
+    if (earlyResponse.current) {
+      logResponseSent(earlyResponse.current.status, earlyResponse.current.code, {
+        failedStage: earlyResponse.current.stage,
+      });
+    }
+    return;
+  }
+
+  const { userId, ctx } = ready;
+  diagnosticUserId = userId;
+  diagnosticChartId = ctx.chartId;
 
   if (!sectionKey) {
-    return res.status(400).json({
+    const error = new Error('sectionKey must be a daily human interpretation section key');
+    logStageError('request_failed', 400, 'BAD_REQUEST', error);
+    return sendJson(400, {
       error: 'BAD_REQUEST',
       message: 'sectionKey must be a daily human interpretation section key',
     });
@@ -174,27 +392,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const isPremium = await resolveIsPremium(userId);
   const requestedAccessTier: ContentAccessTier = isFreeOverview ? 'free' : 'premium';
 
-  const apiLogContext = {
-    scope: SCOPE,
-    userId,
-    chartId: ctx.chartId,
-    surface: 'natal' as const,
-    variant: 'living' as const,
-  };
-
-  logContentApi(apiLogContext, 'access_check', {
+  logStage('access_check', {
     accessTier: requestedAccessTier,
-    metadata: { sectionKey, dateKey, isFreeOverview },
+    metadata: { isFreeOverview },
   });
 
   const canvasBacked = isCanvasBackedDailySection(sectionKey);
 
   if (!isPremium && !canvasBacked) {
-    warnContentApi(apiLogContext, 'premium_required', {
+    warnStage('premium_required', {
       errorCode: 'PREMIUM_REQUIRED',
-      metadata: { sectionKey },
+      metadata: {},
     });
-    return res.status(403).json({
+    return sendJson(403, {
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
@@ -216,13 +426,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!canvasBacked) {
     const responseAccessTier: ContentAccessTier = 'premium';
     const section = buildHumanDailyFallback(ctx.profile, ctx.chartData!, sectionKey, dateKey);
-    logContentApi(apiLogContext, 'fallback_saved', {
+    logStage('fallback_saved', {
       accessTier: responseAccessTier,
       status: 'ready',
       durationMs: Date.now() - startedAt,
-      metadata: { sectionKey, dateKey, source: 'curated_fallback_no_canvas' },
+      metadata: { source: 'curated_fallback_no_canvas' },
     });
-    return res.status(200).json({
+    return sendJson(200, {
       interpretation: buildSectionEnvelope(ctx, sectionWrapperOpts, section),
       source: 'fallback' satisfies DailyResponseSource,
       persistenceStatus: 'saved' satisfies DailyPersistenceStatus,
@@ -265,12 +475,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   ) => {
     const responseAccessTier: ContentAccessTier = isFreeSectionAllowed(canvas, sectionKey) ? 'free' : 'premium';
     if (!isPremium && responseAccessTier !== 'free') {
-      warnContentApi(apiLogContext, 'premium_required', {
+      warnStage('premium_required', {
         accessTier: 'premium',
         errorCode: 'PREMIUM_REQUIRED',
-        metadata: { sectionKey, dateKey, freeSectionKey: canvas.meta.free_section_key },
+        metadata: { freeSectionKey: canvas.meta.free_section_key },
       });
-      return res.status(403).json({
+      return sendJson(403, {
         error: 'Premium required',
         code: 'PREMIUM_REQUIRED',
         premiumRequired: true,
@@ -281,24 +491,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const section = sliceCanvasToSection(canvas, sectionKey);
     if (!section) {
-      warnContentApi(apiLogContext, 'invalid_daily_package_section', {
+      const error = new Error('Daily package is missing the requested section.');
+      logStageError('validation_failed', 502, 'DAILY_PACKAGE_INVALID', error, {
         accessTier: responseAccessTier,
-        errorCode: 'EMPTY_INTERPRETATION',
-        metadata: { sectionKey, dateKey, freeSectionKey: canvas.meta.free_section_key },
+        freeSectionKey: canvas.meta.free_section_key,
       });
-      return res.status(502).json({
+      return sendJson(502, {
         error: 'EMPTY_INTERPRETATION',
         code: 'DAILY_PACKAGE_INVALID',
         message: 'Daily package is missing the requested section.',
       });
     }
-    return res.status(200).json({
+    return sendJson(200, {
       interpretation: buildSectionEnvelope(ctx, { ...sectionWrapperOpts, accessTier: responseAccessTier }, section),
       source,
       persistenceStatus,
       accessTier: responseAccessTier,
       meta: { freeSectionKey: canvas.meta.free_section_key },
       dailyPackage: buildDailyPackagePayload(canvas, isPremium),
+    }, {
+      source,
+      persistenceStatus,
+      responseAccessTier,
     });
   };
 
@@ -311,12 +525,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (rawCached && !cachedCanvas) {
       const cachedLocale = (rawCached.content as Partial<DailyCanvas> | undefined)?.meta?.locale === 'en' ? 'en' : locale;
       const validation = validateDailyCanvas(rawCached.content, cachedLocale);
-      warnContentApi(apiLogContext, 'invalid_cached_row', {
+      warnStage('invalid_cached_row', {
         accessTier: requestedAccessTier,
         errorCode: 'EMPTY_INTERPRETATION',
         metadata: {
-          sectionKey,
-          dateKey,
           cacheKey,
           reasonCode: 'CACHE_VALIDATION_FAILED',
           hardErrors: validation.hardErrors,
@@ -326,15 +538,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (error: any) {
     cacheReadFailed = true;
-    warnContentApi(apiLogContext, 'cache_read_failed', {
+    logStageError('cache_read_failed', 503, 'CACHE_READ_FAILED', error, {
       accessTier: requestedAccessTier,
-      errorCode: 'CACHE_READ_FAILED',
-      metadata: { sectionKey, dateKey, error: error?.message || String(error) },
     });
   }
 
   if (cacheReadFailed) {
-    return res.status(503).json({
+    return sendJson(503, {
       error: 'DAILY_PACKAGE_UNAVAILABLE',
       code: 'CACHE_READ_FAILED',
       message: 'Daily package is temporarily unavailable.',
@@ -342,24 +552,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (cachedCanvas) {
-    logContentApi(apiLogContext, 'cache_hit', {
+    logStage('cache_hit', {
       accessTier: requestedAccessTier,
       status: 'ready',
       durationMs: Date.now() - startedAt,
-      metadata: { sectionKey, dateKey },
+      metadata: { cacheKey },
     });
     return respondWithCanvas(cachedCanvas, 'human_v2', 'saved');
   }
 
   // GET читает только кеш — если полотна ещё нет, 404 (клиент триггерит POST).
-  if (req.method === 'GET') {
-    return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_DAILY_NOT_READY' });
-  }
-
-  logContentApi(apiLogContext, 'cache_miss', {
+  logStage('cache_miss', {
     accessTier: requestedAccessTier,
-    metadata: { sectionKey, dateKey, cacheKey },
+    metadata: { cacheKey },
   });
+
+  if (req.method === 'GET') {
+    return sendJson(404, { error: 'NOT_FOUND', code: 'HUMAN_DAILY_NOT_READY' });
+  }
 
   // POST + промах → генерим полотно ОДИН раз под общей блокировкой на сутки.
   try {
@@ -374,6 +584,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         promptVersion: HUMAN_DAILY_PROMPT_VERSION,
       }),
       operation: 'human-daily-canvas',
+      onLockAcquired: () => logStage('lock_acquired', {
+        accessTier: requestedAccessTier,
+        metadata: { cacheKey },
+      }),
+      onLockBusy: () => logStage('lock_busy', {
+        accessTier: requestedAccessTier,
+        status: 'pending',
+        metadata: { cacheKey },
+      }),
       readCached: async () => {
         const again = await getCachedReading<DailyCanvas>(ctx, canvasCacheOpts);
         if (!again) return null;
@@ -381,12 +600,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return { value: again.content, source: 'human_v2' as const };
         }
         const validation = validateDailyCanvas(again.content, locale);
-        warnContentApi(apiLogContext, 'lock_cache_invalid', {
+        warnStage('lock_cache_invalid', {
           accessTier: requestedAccessTier,
           errorCode: 'EMPTY_INTERPRETATION',
           metadata: {
-            sectionKey,
-            dateKey,
             reasonCode: 'LOCK_CACHE_VALIDATION_FAILED',
             hardErrors: validation.hardErrors,
             styleWarnings: validation.styleWarnings,
@@ -395,46 +612,102 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return null;
       },
       generate: async () => {
-        const canvas = await generateDailyCanvas(ctx.profile, ctx.chartData!, dateKey);
+        logStage('generation_started', {
+          accessTier: requestedAccessTier,
+          metadata: { cacheKey },
+        });
+        let canvas: DailyCanvas;
+        try {
+          canvas = await generateDailyCanvas(ctx.profile, ctx.chartData!, dateKey, {
+            onTransitsSuccess: (metadata) => logStage('transits_success', {
+              accessTier: requestedAccessTier,
+              status: 'ready',
+              metadata: {
+                transitSource: metadata.source,
+                transitDate: metadata.date,
+              },
+            }),
+            onTransitsFailed: (error) => logStageError('transits_failed', 200, 'TRANSITS_UNAVAILABLE', error, {
+              accessTier: requestedAccessTier,
+              degraded: true,
+            }),
+          });
+          logStage('generation_success', {
+            accessTier: requestedAccessTier,
+            status: 'ready',
+            durationMs: Date.now() - startedAt,
+            metadata: { cacheKey },
+          });
+        } catch (error) {
+          const err = error as Error & { code?: string; hardErrors?: string[] };
+          const errorCode = err.code || 'CONTENT_GENERATION_UNAVAILABLE';
+          logStageError('generation_failed', 503, errorCode, error, {
+            accessTier: requestedAccessTier,
+            reasonCode: errorCode,
+            hardErrors: err.hardErrors || [],
+          });
+          throw error;
+        }
         const validation = validateDailyCanvas(canvas, locale);
         if (!validation.valid) {
           const error = new Error('EMPTY_DAILY_CANVAS') as Error & { code?: string; hardErrors?: string[] };
           error.code = 'DAILY_PACKAGE_HARD_INVALID';
           error.hardErrors = validation.hardErrors;
+          logStageError('validation_failed', 503, error.code, error, {
+            accessTier: requestedAccessTier,
+            hardErrors: validation.hardErrors,
+          });
           throw error;
         }
+        logStage('validation_success', {
+          accessTier: requestedAccessTier,
+          status: 'ready',
+          metadata: { cacheKey },
+        });
         if (validation.styleWarnings.length) {
-          warnContentApi(apiLogContext, 'daily_package_style_warnings', {
+          warnStage('daily_package_style_warnings', {
             accessTier: requestedAccessTier,
             status: 'ready',
             metadata: {
-              sectionKey,
-              dateKey,
               reasonCode: 'STYLE_WARNINGS',
               styleWarnings: validation.styleWarnings,
             },
           });
         }
+        logStage('save_started', {
+          accessTier: requestedAccessTier,
+          metadata: { cacheKey },
+        });
         try {
           await saveReading<DailyCanvas>(ctx, canvasSaveOpts, canvas);
         } catch (error) {
           const saveError = new Error('SAVE_READING_FAILED') as Error & { code?: string; cause?: unknown };
           saveError.code = 'SAVE_READING_FAILED';
           saveError.cause = error;
+          logStageError('save_failed', 503, saveError.code, saveError, {
+            accessTier: requestedAccessTier,
+            cacheKey,
+          });
           throw saveError;
         }
-        logContentApi(apiLogContext, 'generation_saved', {
+        logStage('save_success', {
           accessTier: requestedAccessTier,
           status: 'ready',
           durationMs: Date.now() - startedAt,
-          metadata: { sectionKey, dateKey },
+          metadata: { cacheKey },
+        });
+        logStage('generation_saved', {
+          accessTier: requestedAccessTier,
+          status: 'ready',
+          durationMs: Date.now() - startedAt,
+          metadata: { cacheKey },
         });
         return canvas;
       },
     });
 
     if (lockResult.status === 'in_progress') {
-      return res.status(202).json({
+      return sendJson(202, {
         ...generationInProgressPayload(lockResult.retryAfterMs),
         reasonCode: 'GENERATION_LOCK_BUSY',
       });
@@ -447,22 +720,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     const err = error as Error & { code?: string; hardErrors?: string[] };
     const errorCode = err.code || 'CONTENT_GENERATION_UNAVAILABLE';
-    warnContentApi(apiLogContext, 'generation_failed', {
-      accessTier: requestedAccessTier,
-      errorCode,
-      durationMs: Date.now() - startedAt,
-      metadata: {
-        sectionKey,
-        dateKey,
+    if (!(err as any).diagnosticStage) {
+      logStageError('generation_failed', 503, errorCode, error, {
+        accessTier: requestedAccessTier,
         reasonCode: errorCode,
         hardErrors: err.hardErrors || [],
-      },
-    });
-    console.error(
-      '[natal/human-daily:canvas] generation flow failed:',
-      error instanceof Error ? `${errorCode}:${error.message}` : errorCode,
-    );
-    return res.status(503).json({
+      });
+    }
+    return sendJson(503, {
       error: 'DAILY_PACKAGE_UNAVAILABLE',
       code: errorCode,
       reasonCode: errorCode,

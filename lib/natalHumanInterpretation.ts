@@ -1891,10 +1891,16 @@ export function buildDailyCanvasFallback(
  * дня (из dailyAstroSignal) → промпт → JSON. При hard-invalid ответе делает одну
  * исправительную попытку с reason-кодами. Фальшивый прогнозный fallback не создаётся.
  */
+export type DailyCanvasGenerationDiagnostics = {
+  onTransitsSuccess?: (metadata: { source: string | null; date: string | null }) => void;
+  onTransitsFailed?: (error: unknown) => void;
+};
+
 export async function generateDailyCanvas(
   profile: UserProfile,
   chart: NatalChartData,
   dateKey: string,
+  diagnostics: DailyCanvasGenerationDiagnostics = {},
 ): Promise<DailyCanvas> {
   const locale = localeForProfile(profile);
   const voiceVersion = getDailyVoiceVersion(locale);
@@ -1902,7 +1908,12 @@ export async function generateDailyCanvas(
   let transits: TransitsSnapshot | null = null;
   try {
     transits = await getCurrentTransits(new Date(`${dateKey}T09:00:00.000Z`));
-  } catch {
+    diagnostics.onTransitsSuccess?.({
+      source: transits?.source || null,
+      date: transits?.date || null,
+    });
+  } catch (error) {
+    diagnostics.onTransitsFailed?.(error);
     transits = null;
   }
 

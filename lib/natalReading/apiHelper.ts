@@ -190,27 +190,60 @@ export async function isPremium(userId: string): Promise<boolean> {
   return entitlement.isPremium;
 }
 
+type EnsureValidContextOptions = {
+  allowGuest?: boolean;
+  onAuthSuccess?: (detail: { userId: string }) => void;
+  onAuthFailed?: (detail: { userId?: string | null; status: number; code: string; error?: unknown }) => void;
+  onChartResolved?: (detail: { userId: string; chartId: number | null; hasChartData: boolean }) => void;
+  onChartFailed?: (detail: { userId: string; chartId: number | null; status: number; code: string; error?: unknown }) => void;
+};
+
 export async function ensureValidContext(
   req: NextApiRequest,
   res: NextApiResponse,
-  options: { allowGuest?: boolean } = {}
+  options: EnsureValidContextOptions = {}
 ): Promise<{ userId: string; ctx: ReadingContext } | null> {
   if (req.method !== 'GET' && req.method !== 'POST') {
+    options.onAuthFailed?.({
+      userId: null,
+      status: 405,
+      code: 'METHOD_NOT_ALLOWED',
+      error: new Error('Method not allowed'),
+    });
     res.status(405).json({ error: 'Method not allowed' });
     return null;
   }
   const userId = await readUserId(req);
   if (!userId) {
+    options.onAuthFailed?.({
+      userId: null,
+      status: 400,
+      code: 'USER_ID_REQUIRED',
+      error: new Error('userId is required'),
+    });
     res.status(400).json({ error: 'Bad request', message: 'userId is required' });
     return null;
   }
   try {
     await requireAppUser(req, { expectedUserId: userId, allowGuest: options.allowGuest });
+    options.onAuthSuccess?.({ userId });
   } catch (error) {
     if (error instanceof AdminAuthError) {
+      options.onAuthFailed?.({
+        userId,
+        status: error.status,
+        code: error.code,
+        error,
+      });
       handleAdminError(res, error);
       return null;
     }
+    options.onAuthFailed?.({
+      userId,
+      status: 500,
+      code: 'AUTH_UNEXPECTED_ERROR',
+      error,
+    });
     throw error;
   }
   const chartId = await readChartId(req);
@@ -221,15 +254,34 @@ export async function ensureValidContext(
     req.method === 'POST' ? req.body?.chartData : undefined
   );
   if (!ctx) {
+    options.onChartFailed?.({
+      userId,
+      chartId,
+      status: 404,
+      code: 'USER_NOT_FOUND',
+      error: new Error('Profile not found'),
+    });
     res.status(404).json({ error: 'User not found', message: 'Profile not found' });
     return null;
   }
   if (!ctx.chartData) {
+    options.onChartFailed?.({
+      userId,
+      chartId: ctx.chartId ?? chartId,
+      status: 409,
+      code: 'PRIMARY_CHART_MISSING',
+      error: new Error('A saved natal chart is required for the natal reading.'),
+    });
     res.status(409).json({
       error: 'PRIMARY_CHART_MISSING',
       message: 'A saved natal chart is required for the natal reading.',
     });
     return null;
   }
+  options.onChartResolved?.({
+    userId,
+    chartId: ctx.chartId,
+    hasChartData: !!ctx.chartData,
+  });
   return { userId, ctx };
 }

@@ -91,7 +91,10 @@ function setupMocks(options?: {
 }) {
   const getCachedReading = options?.getCachedReading || jest.fn().mockResolvedValue(null);
   const saveReading = options?.saveReading || jest.fn(async (_ctx, _opts, content) => savedReading(content));
-  const generateDailyCanvas = options?.generateDailyCanvas || jest.fn().mockResolvedValue(generatedCanvas);
+  const generateDailyCanvas = options?.generateDailyCanvas || jest.fn(async (_profile, _chart, dateKey, diagnostics) => {
+    diagnostics?.onTransitsSuccess?.({ source: 'swisseph', date: dateKey });
+    return generatedCanvas;
+  });
   const logContentApi = jest.fn();
   const warnContentApi = jest.fn();
 
@@ -118,22 +121,26 @@ function setupMocks(options?: {
   });
 
   jest.doMock('../lib/natalReading/apiHelper', () => ({
-    ensureValidContext: jest.fn().mockResolvedValue({
-      userId: '123',
-      ctx: {
-        user: { id: '123' },
-        profile: {
-          id: '123',
-          name: 'Test',
-          birthDate: '1990-01-01',
-          birthTime: '12:00',
-          birthPlace: 'Moscow',
-          language: 'ru',
-          isPremium: true,
+    ensureValidContext: jest.fn(async (_req, _res, diagnostics) => {
+      diagnostics?.onAuthSuccess?.({ userId: '123' });
+      diagnostics?.onChartResolved?.({ userId: '123', chartId: 7, hasChartData: true });
+      return {
+        userId: '123',
+        ctx: {
+          user: { id: '123' },
+          profile: {
+            id: '123',
+            name: 'Test',
+            birthDate: '1990-01-01',
+            birthTime: '12:00',
+            birthPlace: 'Moscow',
+            language: 'ru',
+            isPremium: true,
+          },
+          chartId: 7,
+          chartData,
         },
-        chartId: 7,
-        chartData,
-      },
+      };
     }),
     getCachedReading,
     saveReading,
@@ -255,6 +262,70 @@ describe('human-daily API daily package flow', () => {
     expect(mocks.saveReading.mock.calls[0][2]).toBe(generatedCanvas);
     expect(mocks.logContentApi).toHaveBeenCalledWith(expect.anything(), 'generation_saved', expect.anything());
     expect(payload.interpretation.content.content).toBe(generatedSection.content);
+  });
+
+  it('emits one requestId across the successful production diagnostic flow', async () => {
+    const mocks = setupMocks({
+      getCachedReading: jest.fn().mockResolvedValue(null),
+    });
+
+    await callHandler('POST');
+
+    const events = mocks.logContentApi.mock.calls.map((call) => call[1]);
+    expect(events).toEqual(expect.arrayContaining([
+      'request_started',
+      'auth_success',
+      'chart_resolved',
+      'cache_miss',
+      'lock_acquired',
+      'generation_started',
+      'transits_success',
+      'generation_success',
+      'validation_success',
+      'save_started',
+      'save_success',
+      'generation_saved',
+      'response_sent',
+    ]));
+    const requestIds = new Set(
+      mocks.logContentApi.mock.calls
+        .map((call) => call[2]?.metadata?.requestId)
+        .filter(Boolean)
+    );
+    expect(requestIds.size).toBe(1);
+  });
+
+  it('logs PostgreSQL diagnostics when saving the daily package fails', async () => {
+    const pgError = Object.assign(new Error('duplicate key value violates unique constraint'), {
+      code: '23505',
+      detail: 'Key already exists.',
+      constraint: 'content_interpretations_unique_idx',
+    });
+    const mocks = setupMocks({
+      getCachedReading: jest.fn().mockResolvedValue(null),
+      saveReading: jest.fn().mockRejectedValue(pgError),
+    });
+
+    const res = await callHandler('POST');
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json.mock.calls[0][0]).toMatchObject({
+      code: 'SAVE_READING_FAILED',
+    });
+    expect(mocks.warnContentApi).toHaveBeenCalledWith(
+      expect.anything(),
+      'save_failed',
+      expect.objectContaining({
+        errorCode: 'SAVE_READING_FAILED',
+        metadata: expect.objectContaining({
+          appErrorCode: 'SAVE_READING_FAILED',
+          pgCode: '23505',
+          pgDetail: 'Key already exists.',
+          pgConstraint: 'content_interpretations_unique_idx',
+          requestId: expect.any(String),
+        }),
+      })
+    );
   });
 
   it('does not save a fake package when generation fails', async () => {
