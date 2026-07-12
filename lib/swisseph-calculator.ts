@@ -23,6 +23,14 @@ const log = {
   },
 };
 
+function isSwissDebugEnabled(): boolean {
+  return process.env.NODE_ENV !== 'production' && process.env.SWISSEPH_DEBUG === 'true';
+}
+
+function debugInfo(message: string, data?: any): void {
+  if (isSwissDebugEnabled()) log.info(message, data);
+}
+
 // Импортируем централизованные данные о знаках зодиака
 import { ZODIAC_SIGNS, getElementForSign as getElementForSignUtil, getRulingPlanet as getRulingPlanetUtil, getApproximateSunSignByDate, type ZodiacSign } from './zodiac-utils';
 
@@ -161,7 +169,7 @@ export function getSwissEphemerisHealth(): { ok: boolean; code?: string; message
  */
 function initSwissEph() {
   if (isInitialized && sweInstance) {
-    log.info('Swiss Ephemeris already initialized, reusing instance');
+    debugInfo('Swiss Ephemeris already initialized, reusing instance');
     return sweInstance;
   }
 
@@ -578,7 +586,7 @@ export function getZodiacSign(degree: number): string {
   const signName = signs[finalIndex];
   const degreeInSign = normalizedDegree % 30;
   
-  log.info(`[getZodiacSign] ✓ Calculated`, {
+  debugInfo(`[getZodiacSign] ✓ Calculated`, {
     inputDegree: degree.toFixed(6),
     normalizedDegree: normalizedDegree.toFixed(6),
     signIndex: finalIndex,
@@ -671,13 +679,13 @@ function calculatePlanetPosition(
     const sign = getZodiacSign(longitude);
     const degreeInSign = getDegreeInSign(longitude);
 
-    log.info(`[PLANET] Calculated ${planetName}`, { 
+    debugInfo(`[PLANET] Calculated ${planetName}`, { 
       longitude: longitude.toFixed(6), 
       sign, 
       degreeInSign: degreeInSign.toFixed(4),
       fullDegree: `${degreeInSign.toFixed(2)}° ${sign}`
     });
-
+    
     return {
       planet: planetName,
       sign,

@@ -92,6 +92,8 @@ function setupMocks(options?: {
   const getCachedReading = options?.getCachedReading || jest.fn().mockResolvedValue(null);
   const saveReading = options?.saveReading || jest.fn(async (_ctx, _opts, content) => savedReading(content));
   const generateDailyCanvas = options?.generateDailyCanvas || jest.fn().mockResolvedValue(generatedCanvas);
+  const logContentApi = jest.fn();
+  const warnContentApi = jest.fn();
 
   const sliceCanvasToSection = jest.fn((canvas: any, sectionKey: string) => {
     const canvasKey = sectionKey === 'daily_overview' ? 'overview' : sectionKey.replace(/^daily_/, '').replace('work_business', 'work');
@@ -161,11 +163,11 @@ function setupMocks(options?: {
   }));
 
   jest.doMock('../lib/contentApiLogging', () => ({
-    logContentApi: jest.fn(),
-    warnContentApi: jest.fn(),
+    logContentApi,
+    warnContentApi,
   }));
 
-  return { getCachedReading, saveReading, generateDailyCanvas, sliceCanvasToSection };
+  return { getCachedReading, saveReading, generateDailyCanvas, sliceCanvasToSection, logContentApi, warnContentApi };
 }
 
 async function callHandler(method: 'GET' | 'POST' = 'POST', sectionKey = 'daily_love') {
@@ -251,6 +253,7 @@ describe('human-daily API daily package flow', () => {
     expect(payload.persistenceStatus).toBe('saved');
     expect(mocks.saveReading).toHaveBeenCalledTimes(1);
     expect(mocks.saveReading.mock.calls[0][2]).toBe(generatedCanvas);
+    expect(mocks.logContentApi).toHaveBeenCalledWith(expect.anything(), 'generation_saved', expect.anything());
     expect(payload.interpretation.content.content).toBe(generatedSection.content);
   });
 

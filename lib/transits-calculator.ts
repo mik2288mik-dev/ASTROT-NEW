@@ -57,6 +57,9 @@ const ZODIAC_SIGNS = [
   'Pisces',
 ];
 
+const TRANSIT_CACHE_TTL_MS = 55 * 60 * 1000;
+const transitCache = new Map<string, { expiresAt: number; value: CurrentTransits }>();
+
 function isProductionRuntime() {
   return process.env.NODE_ENV === 'production';
 }
@@ -68,6 +71,14 @@ function isApproximateTransitFallbackAllowed() {
 function normalizeDegree(value: number): number {
   const next = value % 360;
   return next < 0 ? next + 360 : next;
+}
+
+function transitCacheKey(date: Date): string {
+  return date.toISOString().slice(0, 13);
+}
+
+export function clearTransitCacheForTests(): void {
+  transitCache.clear();
 }
 
 function toRadians(value: number): number {
@@ -135,6 +146,19 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
   const targetDate = date || new Date();
   const dateString = targetDate.toISOString().split('T')[0];
   const timeString = targetDate.toISOString().slice(11, 16);
+  const cacheKey = transitCacheKey(targetDate);
+  const cached = transitCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    logger.info({
+      scope: 'transits-calculator',
+      event: 'transit_cache_hit',
+      source: cached.value.source,
+      status: 'ok',
+      metadata: { date: dateString, hour: targetDate.getUTCHours() },
+    });
+    return cached.value;
+  }
+  if (cached) transitCache.delete(cacheKey);
 
   logger.info({
     scope: 'transits-calculator',
@@ -163,7 +187,7 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
 
     logger.info({
       scope: 'transits-calculator',
-      event: 'swisseph_success',
+      event: 'transit_calculation_success',
       source: transits.source,
       status: 'ok',
       metadata: {
@@ -174,6 +198,10 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
       },
     });
 
+    transitCache.set(cacheKey, {
+      expiresAt: Date.now() + TRANSIT_CACHE_TTL_MS,
+      value: transits,
+    });
     return transits;
   } catch (error: any) {
     const unavailableError = new TransitsUnavailableError(
@@ -183,7 +211,7 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
 
     logger.error({
       scope: 'transits-calculator',
-      event: 'swisseph_error',
+      event: 'transit_calculation_failed',
       source: 'swisseph',
       status: 'error',
       errorCode: unavailableError.code,
