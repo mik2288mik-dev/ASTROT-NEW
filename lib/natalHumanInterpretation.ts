@@ -1849,6 +1849,12 @@ function pushCode(target: DailyCanvasValidationCode[], code: DailyCanvasValidati
   if (!target.includes(code)) target.push(code);
 }
 
+function isHardDailyTextCode(code: DailyCanvasValidationCode): boolean {
+  return code === 'BAD_TEXT_ASTRO_TERMS' ||
+    code === 'BAD_TEXT_GENERIC_ADVICE' ||
+    code === 'LANGUAGE_MISMATCH';
+}
+
 function dailyPackageBadTextCodes(text: string, locale: Locale): DailyCanvasValidationCode[] {
   const codes: DailyCanvasValidationCode[] = [];
   const compact = text.toLowerCase();
@@ -1984,14 +1990,14 @@ export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): Dai
   const overview = cleanText(candidate.overview);
 
   if (!heroTitle) pushCode(hardErrors, 'EMPTY_HERO_TITLE');
-  else if (heroTitle.length < 12) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+  else if (heroTitle.length < 12) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
 
   if (!heroHook) pushCode(hardErrors, 'EMPTY_HERO_HOOK');
-  else if (heroHook.length < 24) pushCode(hardErrors, 'TEXT_TOO_SHORT');
-  else if (wordCount(heroHook) < 32) pushCode(hardErrors, 'HERO_HOOK_TOO_SHORT');
+  else if (heroHook.length < 24) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
+  else if (wordCount(heroHook) < 32) pushCode(styleWarnings, 'HERO_HOOK_TOO_SHORT');
 
   if (!overview) pushCode(hardErrors, 'EMPTY_OVERVIEW');
-  else if (overview.length < 120) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+  else if (overview.length < 120) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
 
   for (const key of DAILY_CANVAS_TOPIC_KEYS) {
     const topic = candidate[key] as Partial<DailyCanvas[DailyCanvasTopicKey]> | undefined;
@@ -2002,15 +2008,15 @@ export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): Dai
     const hook = cleanLine(topic.hook);
     const body = cleanText(topic.body);
     if (!hook) pushCode(hardErrors, 'EMPTY_TOPIC_HOOK');
-    else if (hook.length < 10) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+    else if (hook.length < 10) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
     if (!body) pushCode(hardErrors, 'EMPTY_TOPIC_BODY');
-    else if (body.length < 80) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+    else if (body.length < 80) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
   }
 
   const safeCanvas = candidate as DailyCanvas;
   const allText = canvasAllText(safeCanvas);
   for (const code of dailyPackageBadTextCodes(allText, locale)) {
-    pushCode(hardErrors, code);
+    pushCode(isHardDailyTextCode(code) ? hardErrors : styleWarnings, code);
   }
 
   if (todayWordCount(allText) > 2) pushCode(styleWarnings, 'TODAY_WORD_OVER_LIMIT');
@@ -2018,9 +2024,9 @@ export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): Dai
     dailyConcreteSceneCount(safeCanvas) < 5 ||
     dailyTopicSceneCount(safeCanvas) < DAILY_CANVAS_TOPIC_KEYS.length
   ) {
-    pushCode(hardErrors, 'ABSTRACT_DAILY_TEXT');
+    pushCode(styleWarnings, 'ABSTRACT_DAILY_TEXT');
   }
-  if (hasRepeatedSectionAdvice(safeCanvas)) pushCode(hardErrors, 'REPEATED_SECTION_ADVICE');
+  if (hasRepeatedSectionAdvice(safeCanvas)) pushCode(styleWarnings, 'REPEATED_SECTION_ADVICE');
   if (hasRepeatedStarts([
     safeCanvas.hero_title,
     safeCanvas.hero_hook,
@@ -2148,6 +2154,8 @@ export async function generateDailyCanvas(
   };
   let lastError: unknown = null;
   let repairErrors: DailyCanvasValidationCode[] = [];
+  let lastSafeCanvas: DailyCanvas | null = null;
+  let lastSafeWarnings: DailyCanvasValidationCode[] = [];
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -2171,6 +2179,12 @@ export async function generateDailyCanvas(
             attempt: attempt + 1,
           });
         }
+        if (attempt === 0 && validation.styleWarnings.length) {
+          lastSafeCanvas = canvas;
+          lastSafeWarnings = validation.styleWarnings;
+          repairErrors = validation.styleWarnings;
+          continue;
+        }
         return canvas;
       }
       repairErrors = validation.hardErrors;
@@ -2184,6 +2198,15 @@ export async function generateDailyCanvas(
         console.error('[NatalHumanInterpretation] daily package generation failed', error);
       }
     }
+  }
+
+  if (lastSafeCanvas) {
+    if (lastSafeWarnings.length) {
+      console.warn('[NatalHumanInterpretation] returning safe daily package with style warnings after repair attempt', {
+        styleWarnings: lastSafeWarnings,
+      });
+    }
+    return lastSafeCanvas;
   }
 
   if (lastError instanceof Error) {

@@ -77,11 +77,11 @@ describe('personal daily startup flow', () => {
     expect(openApp).toBeGreaterThan(dailyPackage);
   });
 
-  it('startup daily errors keep the user on the shared retry screen', () => {
+  it('startup daily errors do not block Dashboard entry', () => {
     const app = read('App.tsx');
 
-    expect(app).toContain('const showStartupError = (message: string, error?: unknown)');
-    expect(app).toContain('showStartupError(startupDailyErrorMessage(updatedProfile.language), dailyError)');
+    expect(app).toContain('Startup personal daily package failed; continuing without blocking app entry');
+    expect(app).not.toContain('showStartupError(startupDailyErrorMessage(updatedProfile.language), dailyError)');
     expect(app).toContain('const retryStartup = () =>');
     expect(app).toContain('setStartupRetryNonce((value) => value + 1)');
   });

@@ -305,7 +305,7 @@ const App: React.FC = () => {
     const dailyPackageSessionRef = useRef<{
         key: string;
         data: DailyCanvas | null;
-        promise: Promise<DailyCanvas> | null;
+        promise: Promise<DailyCanvas | null> | null;
     }>({ key: '', data: null, promise: null });
     const primaryChartDataRef = useRef<NatalChartData | null>(null);
     const requestedViewRef = useRef<ViewState | null>(null);
@@ -412,8 +412,15 @@ const App: React.FC = () => {
                 if (dailyPackageSessionRef.current.key === key) {
                     dailyPackageSessionRef.current = { key: '', data: null, promise: null };
                 }
+                const err = error as { code?: string; status?: number; message?: string };
+                console.warn('[App] Startup personal daily package failed; continuing without blocking app entry', {
+                    code: err?.code || 'UNKNOWN_STARTUP_DAILY_ERROR',
+                    status: err?.status || null,
+                    message: err?.message || String(error),
+                });
                 setDailyPackage(null);
-                throw error;
+                setLoadingProgress(progressStart + progressSpan);
+                return null;
             });
 
         dailyPackageSessionRef.current = { key, data: null, promise: request };
@@ -661,11 +668,6 @@ const App: React.FC = () => {
         const logStartupMetric = (name: string, value: number | boolean) => {
             console.info(`[App][Startup] ${name}`, value);
         };
-        const startupDailyErrorMessage = (language?: string) => (
-            language === 'en'
-                ? 'Your personal day could not be prepared. Try again.'
-                : '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u043b\u0438\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439 \u0435\u0449\u0451 \u0440\u0430\u0437.'
-        );
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
@@ -928,8 +930,7 @@ const App: React.FC = () => {
                             progressSpan: 34,
                         });
                     } catch (dailyError) {
-                        showStartupError(startupDailyErrorMessage(updatedProfile.language), dailyError);
-                        return;
+                        console.warn('[App] Startup daily package failed after local chart; opening Dashboard:', dailyError);
                     }
                     showStartupDashboard('dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true);
@@ -966,8 +967,7 @@ const App: React.FC = () => {
                             progressSpan: 22,
                         });
                     } catch (dailyError) {
-                        showStartupError(startupDailyErrorMessage(updatedProfile.language), dailyError);
-                        return;
+                        console.warn('[App] Startup daily package failed after DB chart; opening Dashboard:', dailyError);
                     }
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, chart, startupChartId, false);

@@ -99,8 +99,9 @@ describe('daily package presentation patterns', () => {
     canvas.love.body = repeated;
     canvas.money.body = repeated;
     const result = validateDailyCanvas(canvas, 'ru');
-    expect(result.valid).toBe(false);
-    expect(result.hardErrors).toContain('REPEATED_SECTION_ADVICE');
+    expect(result.valid).toBe(true);
+    expect(result.hardErrors).toEqual([]);
+    expect(result.styleWarnings).toContain('REPEATED_SECTION_ADVICE');
   });
 
   it('rejects one practical idea smeared across hero, overview and sections', () => {
@@ -110,16 +111,27 @@ describe('daily package presentation patterns', () => {
     canvas.love.body += ' В отношениях повторяется тот же ход: уточнить условие, назвать конкретный срок и считать ясный ответ решением близости.';
     canvas.money.body += ' В деньгах снова предлагается уточнить условие, назвать конкретный срок и искать ясный ответ вместо отдельной финансовой сцены.';
     const result = validateDailyCanvas(canvas, 'ru');
-    expect(result.valid).toBe(false);
-    expect(result.hardErrors).toContain('REPEATED_SECTION_ADVICE');
+    expect(result.valid).toBe(true);
+    expect(result.hardErrors).toEqual([]);
+    expect(result.styleWarnings).toContain('REPEATED_SECTION_ADVICE');
   });
 
-  it('rejects a section without its own recognizable scene type', () => {
+  it('keeps a section without its own recognizable scene type as a style warning', () => {
     const canvas = packageFixture();
     canvas.family.body = 'В этом разделе есть просьба, разговор, ответ и пауза, но нет узнаваемой сцены нужной сферы. Текст выглядит достаточно длинным и конкретным на поверхности, однако вместо отдельной ситуации своего раздела снова описывает общий способ реагировать.';
     const result = validateDailyCanvas(canvas, 'ru');
-    expect(result.valid).toBe(false);
-    expect(result.hardErrors).toContain('ABSTRACT_DAILY_TEXT');
+    expect(result.valid).toBe(true);
+    expect(result.hardErrors).toEqual([]);
+    expect(result.styleWarnings).toContain('ABSTRACT_DAILY_TEXT');
+  });
+
+  it('keeps a short hero hook as a style warning, not a hard error', () => {
+    const canvas = packageFixture();
+    canvas.hero_hook = 'Короткое превью дня с сообщением, покупкой и вечерним разговором.';
+    const result = validateDailyCanvas(canvas, 'ru');
+    expect(result.valid).toBe(true);
+    expect(result.hardErrors).toEqual([]);
+    expect(result.styleWarnings).toContain('HERO_HOOK_TOO_SHORT');
   });
 
   it('reports a concrete hard error for a hard-invalid package', () => {

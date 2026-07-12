@@ -95,6 +95,7 @@ export const Dashboard = memo<DashboardProps>(({
   const systemState: DashboardSystemState = dailyPackage ? 'ready' : hasChart ? 'generation_error' : 'no_chart';
   const systemCopy = getDashboardSystemText(systemState, language, today);
   const isDailyReady = !!dailyPackage;
+  const showPersonalDaySurface = isDailyReady || !hasChart;
 
   /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
@@ -226,41 +227,45 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      <button
-        type="button"
-        className="home-day-hero has-stickers"
-        onClick={openDayHero}
-        aria-label={dayHeroAria}
-      >
-        <span className="home-day-hero-glow" aria-hidden />
-        <span className="home-day-hero-scene" aria-hidden>
-          <StickerSlot surface="hero" />
-        </span>
-        <span className="home-day-hero-copy">
-          <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-          <span className="home-day-hero-title">{dayHeroTitle}</span>
-          <span className="home-day-hero-text">{dayHeroText}</span>
-          <span className="home-day-hero-cta">{dayHeroCta}</span>
-        </span>
-      </button>
+      {showPersonalDaySurface ? (
+        <>
+          <button
+            type="button"
+            className="home-day-hero has-stickers"
+            onClick={openDayHero}
+            aria-label={dayHeroAria}
+          >
+            <span className="home-day-hero-glow" aria-hidden />
+            <span className="home-day-hero-scene" aria-hidden>
+              <StickerSlot surface="hero" />
+            </span>
+            <span className="home-day-hero-copy">
+              <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+              <span className="home-day-hero-title">{dayHeroTitle}</span>
+              <span className="home-day-hero-text">{dayHeroText}</span>
+              <span className="home-day-hero-cta">{dayHeroCta}</span>
+            </span>
+          </button>
 
-      <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
-        <div className="home-spheres-track">
-          {sphereCards.map((card) => (
-            <button
-              key={card.section}
-              type="button"
-              className={`home-sphere-card home-sphere-card--${card.section}`}
-              onClick={() => openSphere(card.section)}
-              disabled={!isDailyReady && hasChart}
-              aria-disabled={!isDailyReady && hasChart}
-            >
-              <span className="home-sphere-title">{card.title}</span>
-              <span className="home-sphere-hook">{card.hook}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+          <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
+            <div className="home-spheres-track">
+              {sphereCards.map((card) => (
+                <button
+                  key={card.section}
+                  type="button"
+                  className={`home-sphere-card home-sphere-card--${card.section}`}
+                  onClick={() => openSphere(card.section)}
+                  disabled={!isDailyReady && hasChart}
+                  aria-disabled={!isDailyReady && hasChart}
+                >
+                  <span className="home-sphere-title">{card.title}</span>
+                  <span className="home-sphere-hook">{card.hook}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
+      ) : null}
 
       <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Фаза Луны' : 'Moon phase'}>
         <div className="home-soft-card-glow" aria-hidden />
