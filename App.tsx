@@ -52,8 +52,10 @@ import {
     clearHumanReadingSessionCache,
     getCachedHumanBaseReport,
     getHumanBaseReportCached,
+    loadHumanDailyPackage,
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
+import type { DailyCanvas } from './lib/natalHumanShared';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -277,12 +279,14 @@ const App: React.FC = () => {
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
+    const [dailyPackage, setDailyPackage] = useState<DailyCanvas | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
     const [startupError, setStartupError] = useState<string | null>(null);
+    const [startupRetryNonce, setStartupRetryNonce] = useState(0);
     const [view, setView] = useState<ViewState>('onboarding');
     // Когда задан — paywall показан после онбординга; close/«продолжить бесплатно» ведут сюда.
     const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
@@ -297,6 +301,11 @@ const App: React.FC = () => {
         key: string;
         data: NatalChartData | null;
         promise: Promise<NatalChartData | null> | null;
+    }>({ key: '', data: null, promise: null });
+    const dailyPackageSessionRef = useRef<{
+        key: string;
+        data: DailyCanvas | null;
+        promise: Promise<DailyCanvas> | null;
     }>({ key: '', data: null, promise: null });
     const primaryChartDataRef = useRef<NatalChartData | null>(null);
     const requestedViewRef = useRef<ViewState | null>(null);
@@ -355,6 +364,60 @@ const App: React.FC = () => {
             return dbCached;
         }
         return null;
+    }, []);
+
+    const prepareStartupDailyPackage = useCallback(async (input: {
+        profile: UserProfile;
+        chartData: NatalChartData | null;
+        chartId: number | null;
+        progressStart?: number;
+        progressSpan?: number;
+    }): Promise<DailyCanvas | null> => {
+        const userId = input.profile.id ? String(input.profile.id) : '';
+        if (!userId || isGuestUserId(userId) || !input.chartData?.sun || !input.chartData?.moon || !input.chartData?.rising) {
+            setDailyPackage(null);
+            return null;
+        }
+
+        const dateKey = getMoscowTodayKey();
+        const key = `${userId}:${input.chartId ?? 'primary'}:${dateKey}`;
+        const current = dailyPackageSessionRef.current;
+        if (current.key === key && current.data) {
+            setDailyPackage(current.data);
+            return current.data;
+        }
+        if (current.key === key && current.promise) {
+            const existing = await current.promise;
+            setDailyPackage(existing);
+            return existing;
+        }
+
+        const progressStart = input.progressStart ?? 70;
+        const progressSpan = input.progressSpan ?? 24;
+        setLoadingMessage(input.profile.language === 'en' ? 'Preparing your personal day' : '\u0413\u043e\u0442\u043e\u0432\u0438\u043c \u0442\u0432\u043e\u0439 \u043b\u0438\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c');
+        setLoadingProgress(progressStart);
+
+        const request = loadHumanDailyPackage(userId, input.chartId ?? undefined, dateKey, {
+            accessTier: 'premium',
+            profile: input.profile,
+            chartData: input.chartData,
+        })
+            .then((canvas) => {
+                dailyPackageSessionRef.current = { key, data: canvas, promise: null };
+                setDailyPackage(canvas);
+                setLoadingProgress(progressStart + progressSpan);
+                return canvas;
+            })
+            .catch((error) => {
+                if (dailyPackageSessionRef.current.key === key) {
+                    dailyPackageSessionRef.current = { key: '', data: null, promise: null };
+                }
+                setDailyPackage(null);
+                throw error;
+            });
+
+        dailyPackageSessionRef.current = { key, data: null, promise: request };
+        return request;
     }, []);
 
     const prepareUserContentDbFirst = useCallback(async (input: {
@@ -472,6 +535,8 @@ const App: React.FC = () => {
         setPrimaryChartId(null);
         setActiveChartId(undefined);
         setPreloadedHumanReport(null);
+        dailyPackageSessionRef.current = { key: '', data: null, promise: null };
+        setDailyPackage(null);
     }, []);
 
     useEffect(() => {
@@ -596,12 +661,19 @@ const App: React.FC = () => {
         const logStartupMetric = (name: string, value: number | boolean) => {
             console.info(`[App][Startup] ${name}`, value);
         };
+        const startupDailyErrorMessage = (language?: string) => (
+            language === 'en'
+                ? 'Your personal day could not be prepared. Try again.'
+                : '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u043b\u0438\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439 \u0435\u0449\u0451 \u0440\u0430\u0437.'
+        );
         const safetyTimer = window.setTimeout(() => {
             if (cancelled || safetyCleared) return;
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
+            startupVisible = true;
+            safetyCleared = true;
             setStartupError('«Твой Гороскоп» не успел загрузить профиль. Обнови страницу и попробуй ещё раз.');
             setLoadingProgress(100);
-            setView('dashboard');
+            setLoadingMessage(undefined);
             setLoading(false);
         }, STARTUP_SAFETY_TIMEOUT_MS);
 
@@ -620,6 +692,24 @@ const App: React.FC = () => {
             setView(targetView);
             setLoading(false);
             logStartupMetric('startup_dashboard_visible_ms', startupElapsedMs());
+        };
+
+        const showStartupError = (message: string, error?: unknown) => {
+            if (cancelled || startupVisible) return;
+            startupVisible = true;
+            clearSafety();
+            if (error) {
+                const err = error as { code?: string; status?: number; message?: string };
+                console.warn('[App] Startup personal daily package failed', {
+                    code: err?.code || 'UNKNOWN_STARTUP_DAILY_ERROR',
+                    status: err?.status || null,
+                    message: err?.message || String(error),
+                });
+            }
+            setStartupError(message);
+            setLoadingProgress(100);
+            setLoadingMessage(undefined);
+            setLoading(false);
         };
 
         const scheduleStartupBackgroundWork = (
@@ -820,12 +910,29 @@ const App: React.FC = () => {
                     primaryChartDataRef.current = localEntry.chartData;
                     setChartData(localEntry.chartData);
                     setChartLoadState('ready');
-                    if (localEntry.chartId != null) {
-                        setPrimaryChartId(localEntry.chartId);
+                    const startupChartId = localEntry.chartId ?? await getPrimaryChartId(String(updatedProfile.id)).catch((error: any) => {
+                        console.warn('[App] Startup primary chart ID lookup failed:', error?.message || error);
+                        return null;
+                    });
+                    if (startupChartId != null) {
+                        setPrimaryChartId(startupChartId);
+                        writeLocalNatalChart(updatedProfile, localEntry.chartData, startupChartId);
                     }
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
+                    try {
+                        await prepareStartupDailyPackage({
+                            profile: updatedProfile,
+                            chartData: localEntry.chartData,
+                            chartId: startupChartId,
+                            progressStart: 60,
+                            progressSpan: 34,
+                        });
+                    } catch (dailyError) {
+                        showStartupError(startupDailyErrorMessage(updatedProfile.language), dailyError);
+                        return;
+                    }
                     showStartupDashboard('dashboard');
-                    scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, localEntry.chartId ?? null, true);
+                    scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true);
                     return;
                 }
 
@@ -842,8 +949,28 @@ const App: React.FC = () => {
                         moonSign: chart.moon.sign
                     });
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
+                    const startupChartId = await getPrimaryChartId(String(updatedProfile.id)).catch((error: any) => {
+                        console.warn('[App] Startup primary chart ID lookup failed:', error?.message || error);
+                        return null;
+                    });
+                    if (startupChartId != null) {
+                        setPrimaryChartId(startupChartId);
+                        writeLocalNatalChart(updatedProfile, chart, startupChartId);
+                    }
+                    try {
+                        await prepareStartupDailyPackage({
+                            profile: updatedProfile,
+                            chartData: chart,
+                            chartId: startupChartId,
+                            progressStart: 72,
+                            progressSpan: 22,
+                        });
+                    } catch (dailyError) {
+                        showStartupError(startupDailyErrorMessage(updatedProfile.language), dailyError);
+                        return;
+                    }
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
-                    scheduleStartupBackgroundWork(updatedProfile, chart, null, false);
+                    scheduleStartupBackgroundWork(updatedProfile, chart, startupChartId, false);
                 } else {
                     console.log('[App] Chart unavailable after startup load, going to dashboard');
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
@@ -879,7 +1006,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus]);
+    }, [loadPrimaryChartOnce, prepareStartupDailyPackage, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus, startupRetryNonce]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         console.log('[App] === ONBOARDING COMPLETE ===', {
@@ -989,6 +1116,13 @@ const App: React.FC = () => {
                 setPrimaryChartId(primaryChartId);
                 writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
             }
+            await prepareStartupDailyPackage({
+                profile: fullProfile,
+                chartData: generatedChart,
+                chartId: primaryChartId,
+                progressStart: 72,
+                progressSpan: 18,
+            });
             const dateKey = getMoscowTodayKey();
             try {
                 await prepareUserContentDbFirst({
@@ -1049,6 +1183,21 @@ const App: React.FC = () => {
             console.error('[App] Error stack:', error?.stack);
             
             // Получаем оригинальное сообщение ошибки
+            const dailyErrorCode = String(error?.code || '');
+            if (
+                dailyErrorCode.includes('DAILY_PACKAGE') ||
+                dailyErrorCode.includes('CONTENT_GENERATION') ||
+                dailyErrorCode.includes('SAVE_READING') ||
+                dailyErrorCode.includes('CACHE_READ')
+            ) {
+                setStartupError(
+                    fullProfile.language === 'en'
+                        ? 'Your personal day could not be prepared. Try again.'
+                        : 'Не удалось подготовить личный день. Попробуй ещё раз.'
+                );
+                return;
+            }
+
             const originalMessage = error?.message || 'Неизвестная ошибка';
             
             // Если сообщение уже на русском - показываем его как есть
@@ -1176,6 +1325,17 @@ const App: React.FC = () => {
            if (hasActivePremium(premiumProfile) && chartData) {
                const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
                if (activeChartId == null && chartId != null) setPrimaryChartId(chartId);
+               dailyPackageSessionRef.current = { key: '', data: null, promise: null };
+               setDailyPackage(null);
+               await prepareStartupDailyPackage({
+                   profile: premiumProfile,
+                   chartData,
+                   chartId,
+                   progressStart: 35,
+                   progressSpan: 35,
+               }).catch((dailyError: any) => {
+                   console.warn('[App] Premium daily package reload failed:', dailyError?.message || dailyError);
+               });
                await prepareUserContentDbFirst({
                    userId: String(premiumProfile.id),
                    chartId,
@@ -1365,6 +1525,8 @@ const App: React.FC = () => {
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
             clearHumanReadingSessionCache(String(profile.id));
+            dailyPackageSessionRef.current = { key: '', data: null, promise: null };
+            setDailyPackage(null);
             clearLocalHumanBaseReport(profile, primaryChartId ?? undefined);
             setPreloadedHumanReport(null);
             if (freshChart) {
@@ -1489,16 +1651,15 @@ const App: React.FC = () => {
         edgeWidth: 30,
     });
 
-    if (loading) {
-        return (
-            <Loading
-                message={loadingMessage || getText(profile?.language || 'ru', 'loading')}
-                progress={loadingProgress}
-            />
-        );
-    }
+    const retryStartup = () => {
+        setStartupError(null);
+        setLoadingMessage(undefined);
+        setLoadingProgress(0);
+        setLoading(true);
+        setStartupRetryNonce((value) => value + 1);
+    };
 
-    if (!profile && startupError) {
+    if (startupError) {
         return (
             <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
                 <div className="max-w-sm text-center">
@@ -1508,12 +1669,21 @@ const App: React.FC = () => {
                     <button
                         type="button"
                         className="rounded-full border border-[#1f1f1f] px-6 py-3 text-[15px] font-medium text-[#1f1f1f]"
-                        onClick={() => window.location.reload()}
+                        onClick={retryStartup}
                     >
                         Попробовать снова
                     </button>
                 </div>
             </div>
+        );
+    }
+
+    if (loading) {
+        return (
+            <Loading
+                message={loadingMessage || getText(profile?.language || 'ru', 'loading')}
+                progress={loadingProgress}
+            />
         );
     }
 
@@ -1545,6 +1715,7 @@ const App: React.FC = () => {
         profile,
         chartData,
         chartId: primaryChartId,
+        dailyPackage,
         initialSection: personalDailyInitialSection,
         onBack: handleBack,
         requestPremium,
@@ -1568,6 +1739,7 @@ const App: React.FC = () => {
                         profile={profile}
                         chartData={chartData}
                         chartId={primaryChartId}
+                        dailyPackage={dailyPackage}
                         onOpenHoroscopeLayer={openHoroscopeLayer}
                         onOpenPersonalDaily={openPersonalDailyView}
                         onCreateNatalChart={openBottomNatal}

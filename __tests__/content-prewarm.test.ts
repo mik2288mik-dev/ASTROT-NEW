@@ -244,7 +244,7 @@ describe('content prewarm', () => {
     expect(source).toContain('setPrimaryChartId(primaryChartId)');
   });
 
-  it('Horoscope delegates premium daily generation to PersonalDailyScreen', () => {
+  it('Horoscope keeps sign content separate while PersonalDaily renders the startup package', () => {
     const horoscope = fs.readFileSync(path.join(ROOT, 'views/v2/HoroscopeReader.tsx'), 'utf8');
     expect(horoscope).toContain('ensureDailySignHoroscope');
     expect(horoscope).not.toContain('loadHumanDailySection');
@@ -253,7 +253,9 @@ describe('content prewarm', () => {
 
     const personalDaily = fs.readFileSync(path.join(ROOT, 'views/DailyContentScreens.tsx'), 'utf8');
     expect(personalDaily).toContain('PersonalDailyScreen');
-    expect(personalDaily).toContain('loadHumanDailySection');
+    expect(personalDaily).not.toContain('loadHumanDailySection');
+    expect(personalDaily).toContain('dailyPackage: DailyCanvas | null');
+    expect(personalDaily).toContain('sectionFromDailyCanvas');
     // Вкладка «День» теперь читает summary/do/dont из ЕДИНОГО полотна (daily_overview),
     // а не из старого daypart-генератора — источник personal-текста только canvas.
     expect(personalDaily).toContain("sectionKey: 'daily_overview'");

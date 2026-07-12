@@ -35,7 +35,10 @@ describe('startup profile bootstrap', () => {
   it('shows retry button on startup error screen', () => {
     const app = read('App.tsx');
     expect(app).toContain('Попробовать снова');
-    expect(app).toContain('window.location.reload()');
+    expect(app).toContain('const retryStartup = () =>');
+    expect(app).toContain('onClick={retryStartup}');
+    expect(app).toContain('setStartupRetryNonce((value) => value + 1)');
+    expect(app).not.toContain('window.location.reload()');
   });
 
   it('logs auth failures distinctly in getProfile', () => {

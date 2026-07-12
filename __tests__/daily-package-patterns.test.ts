@@ -108,10 +108,12 @@ describe('daily package presentation patterns', () => {
     expect(result.hardErrors).toContain('EMPTY_TOPIC_BODY');
   });
 
-  it('Dashboard does not repeat the same generation error through all cards', () => {
+  it('Dashboard renders card hooks from the startup package without its own retry loader', () => {
     const dashboard = fs.readFileSync(path.join(ROOT, 'views', 'Dashboard.tsx'), 'utf8');
-    expect((dashboard.match(/Ничего мистического/g) || []).length).toBe(1);
-    expect(dashboard).toContain('!isDailyError ? (');
+    expect(dashboard).not.toContain('isDailyError');
+    expect(dashboard).not.toContain('retryDailyPackage');
+    expect(dashboard).not.toContain('requestDailyPackage');
     expect(dashboard).toContain('dailyPackage?.[key]?.hook');
+    expect(dashboard).toContain('getDashboardSystemText(systemState');
   });
 });

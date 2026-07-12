@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
@@ -11,7 +11,6 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
-import { loadHumanDailyPackage } from '../services/natalReadingService';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
@@ -54,6 +53,7 @@ type DashboardProps = {
   profile: UserProfile;
   chartData: NatalChartData | null;
   chartId?: number | null;
+  dailyPackage: DailyCanvas | null;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onCreateNatalChart?: () => void;
@@ -69,6 +69,7 @@ export const Dashboard = memo<DashboardProps>(({
   profile,
   chartData,
   chartId,
+  dailyPackage,
   onOpenPersonalDaily,
   onCreateNatalChart,
   onOpenSynastry,
@@ -87,53 +88,13 @@ export const Dashboard = memo<DashboardProps>(({
 
   // Карточка-герой и hooks восьми сфер читают один сохранённый дневной пакет.
   // Если пакета ещё нет, Dashboard показывает системное состояние, а не прогнозную заглушку.
-  const [dailyPackage, setDailyPackage] = useState<DailyCanvas | null>(null);
-  const [dailyPackageState, setDailyPackageState] = useState<DashboardSystemState>('loading');
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [moonInfoOpen, setMoonInfoOpen] = useState(false);
 
-  const requestDailyPackage = useCallback((signal?: AbortSignal) => {
-    if (!hasChart || !chartData || !profile.id) {
-      setDailyPackage(null);
-      setDailyPackageState('no_chart');
-      return Promise.resolve();
-    }
-    setDailyPackageState('loading');
-    setDailyPackage(null);
-    return loadHumanDailyPackage(String(profile.id), chartId ?? undefined, today, {
-      accessTier: 'premium',
-      profile,
-      chartData,
-      signal,
-    })
-      .then((result) => {
-        setDailyPackage(result);
-        setDailyPackageState('ready');
-      })
-      .catch((error) => {
-        if (signal?.aborted) return;
-        const err = error as { code?: string; status?: number };
-        console.warn('[Dashboard] personal daily package failed', {
-          code: err?.code || 'UNKNOWN_DAILY_PACKAGE_ERROR',
-          status: err?.status || null,
-        });
-        setDailyPackage(null);
-        setDailyPackageState('generation_error');
-      });
-  }, [chartData, chartId, hasChart, profile, today]);
-
-  /* Загрузка единого дневного пакета для карточки-героя и hooks */
-  useEffect(() => {
-    const controller = new AbortController();
-    void requestDailyPackage(controller.signal);
-    return () => { controller.abort(); };
-  }, [requestDailyPackage]);
-
-  const systemState = dailyPackage ? 'ready' : dailyPackageState;
+  /* Единый дневной пакет приходит из App startup. */
+  const systemState: DashboardSystemState = dailyPackage ? 'ready' : hasChart ? 'generation_error' : 'no_chart';
   const systemCopy = getDashboardSystemText(systemState, language, today);
-  const isDailyReady = !!dailyPackage && dailyPackageState === 'ready';
-  const isDailyLoading = dailyPackageState === 'loading';
-  const isDailyError = dailyPackageState === 'generation_error';
+  const isDailyReady = !!dailyPackage;
 
   /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
@@ -171,20 +132,8 @@ export const Dashboard = memo<DashboardProps>(({
     ? 'Фаза показывает, какая часть Луны освещена с Земли. Она меняется в течение лунного месяца и сама по себе не говорит, что с тобой обязательно произойдёт.'
     : 'The phase shows how much of the Moon is illuminated from Earth. It changes through the lunar month and does not predict what must happen to you.';
 
-  const dayHeroTitle = isDailyError
-    ? (language === 'ru' ? 'Разбор не собрался' : 'The reading did not come together')
-    : isDailyLoading
-      ? (language === 'ru' ? 'Собираю личный разбор дня' : 'Preparing your personal day')
-      : dailyPackage?.hero_title?.trim() || systemCopy;
-  const dayHeroText = isDailyError
-    ? (language === 'ru'
-      ? 'Ничего мистического — просто техника споткнулась. Попробуем ещё раз.'
-      : 'Nothing mystical here: the tech just stumbled. Let’s try again.')
-    : dailyPackage?.hero_hook?.trim() || systemCopy;
-  const retryDailyPackage = () => {
-    lumiaSelectionHaptic();
-    void requestDailyPackage();
-  };
+  const dayHeroTitle = dailyPackage?.hero_title?.trim() || systemCopy;
+  const dayHeroText = dailyPackage?.hero_hook?.trim() || systemCopy;
   const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
   const natalText = hasChart
     ? (language === 'ru'
@@ -225,7 +174,7 @@ export const Dashboard = memo<DashboardProps>(({
           section: key,
           title,
           hook: dailyPackage?.[key]?.hook?.trim()
-            || getDashboardSystemText(isDailyLoading ? 'loading' : 'ready', language, `${today}-${key}`),
+            || getDashboardSystemText(systemState, language, `${today}-${key}`),
         };
       });
   const openDayHero = () => {
@@ -276,59 +225,40 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      {isDailyError ? (
-        <section className="home-day-hero has-stickers" aria-label={dayHeroAria}>
-          <span className="home-day-hero-glow" aria-hidden />
-          <span className="home-day-hero-scene" aria-hidden>
-            <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-            <StickerSlot surface="hero" />
-          </span>
-          <span className="home-day-hero-copy">
-            <span className="home-day-hero-title">{dayHeroTitle}</span>
-            <span className="home-day-hero-text">{dayHeroText}</span>
-            <button type="button" className="fresh-btn-primary" style={{ marginTop: 14, alignSelf: 'flex-start' }} onClick={retryDailyPackage}>
-              {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
-            </button>
-          </span>
-        </section>
-      ) : (
-        <button
-          type="button"
-          className="home-day-hero has-stickers"
-          onClick={openDayHero}
-          aria-label={dayHeroAria}
-        >
-          <span className="home-day-hero-glow" aria-hidden />
-          <span className="home-day-hero-scene" aria-hidden>
-            <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-            <StickerSlot surface="hero" />
-          </span>
-          <span className="home-day-hero-copy">
-            <span className="home-day-hero-title">{dayHeroTitle}</span>
-            <span className="home-day-hero-text">{dayHeroText}</span>
-          </span>
-        </button>
-      )}
+      <button
+        type="button"
+        className="home-day-hero has-stickers"
+        onClick={openDayHero}
+        aria-label={dayHeroAria}
+      >
+        <span className="home-day-hero-glow" aria-hidden />
+        <span className="home-day-hero-scene" aria-hidden>
+          <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+          <StickerSlot surface="hero" />
+        </span>
+        <span className="home-day-hero-copy">
+          <span className="home-day-hero-title">{dayHeroTitle}</span>
+          <span className="home-day-hero-text">{dayHeroText}</span>
+        </span>
+      </button>
 
-      {!isDailyError ? (
-        <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
-          <div className="home-spheres-track">
-            {sphereCards.map((card) => (
-              <button
-                key={card.section}
-                type="button"
-                className={`home-sphere-card home-sphere-card--${card.section}`}
-                onClick={() => openSphere(card.section)}
-                disabled={!isDailyReady && hasChart}
-                aria-disabled={!isDailyReady && hasChart}
-              >
-                <span className="home-sphere-title">{card.title}</span>
-                <span className="home-sphere-hook">{card.hook}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
+        <div className="home-spheres-track">
+          {sphereCards.map((card) => (
+            <button
+              key={card.section}
+              type="button"
+              className={`home-sphere-card home-sphere-card--${card.section}`}
+              onClick={() => openSphere(card.section)}
+              disabled={!isDailyReady && hasChart}
+              aria-disabled={!isDailyReady && hasChart}
+            >
+              <span className="home-sphere-title">{card.title}</span>
+              <span className="home-sphere-hook">{card.hook}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Фаза Луны' : 'Moon phase'}>
         <div className="home-soft-card-glow" aria-hidden />

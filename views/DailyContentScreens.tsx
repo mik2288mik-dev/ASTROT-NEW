@@ -7,9 +7,13 @@ import type {
   PersonalDailySection,
   UserProfile,
 } from '../types';
-import { loadHumanDailySection } from '../services/natalReadingService';
 import { formatDisplayDate, getMoscowTodayKey } from '../lib/date-utils';
-import type { HumanDailySectionKey } from '../lib/natalHumanShared';
+import {
+  DAILY_SECTION_TO_CANVAS_KEY,
+  type DailyCanvas,
+  type DailyCanvasTopicKey,
+  type HumanDailySectionKey,
+} from '../lib/natalHumanShared';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { FreshTabs } from '../components/fresh-ui';
 import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
@@ -18,6 +22,7 @@ type PersonalDailyScreenProps = {
   profile: UserProfile;
   chartData: NatalChartData | null;
   chartId?: number | null;
+  dailyPackage: DailyCanvas | null;
   initialSection?: PersonalDailySection;
   onBack: () => void | Promise<void>;
   requestPremium: () => void | Promise<void>;
@@ -68,15 +73,50 @@ function resolveTab(tabs: DailyTabConfig[], section?: PersonalDailySection | nul
   return tabs.find((tab) => tab.id === section) || tabs[0];
 }
 
-function Skeleton() {
-  return (
-    <div className="pd-skel" aria-busy="true">
-      <div className="pd-skel-line" style={{ width: '85%' }} />
-      <div className="pd-skel-line" style={{ width: '100%' }} />
-      <div className="pd-skel-line" style={{ width: '78%' }} />
-      <div className="pd-skel-line" style={{ width: '64%' }} />
-    </div>
-  );
+function sectionFromDailyCanvas(
+  canvas: DailyCanvas | null,
+  tab: DailyTabConfig,
+  premium: boolean,
+): InterpretationSection | null {
+  if (!canvas || !tab.sectionKey) return null;
+  const canvasKey = DAILY_SECTION_TO_CANVAS_KEY[tab.sectionKey];
+  if (!canvasKey) return null;
+
+  if (canvasKey === 'overview') {
+    const content = canvas.overview?.trim();
+    if (!content) return null;
+    return {
+      key: tab.sectionKey,
+      title: canvas.hero_title?.trim() || tab.title,
+      subtitle: tab.subtitle,
+      access: 'free',
+      isLocked: false,
+      teaser: canvas.hero_hook?.trim() || '',
+      content,
+      bullets: [],
+      ctaLabel: '',
+      dayScore: canvas.meta?.day_score ?? null,
+      dayScoreExplain: canvas.meta?.day_score_explain || '',
+    };
+  }
+
+  const topicKey = canvasKey as DailyCanvasTopicKey;
+  const topic = canvas[topicKey];
+  const content = topic?.body?.trim() || '';
+  const isFreeExtra = canvas.meta?.free_section_key === topicKey;
+  if (!content && !premium && !isFreeExtra) return null;
+  if (!content) return null;
+  return {
+    key: tab.sectionKey,
+    title: tab.title,
+    subtitle: tab.subtitle,
+    access: isFreeExtra ? 'free' : 'premium',
+    isLocked: false,
+    teaser: topic?.hook?.trim() || '',
+    content,
+    bullets: [],
+    ctaLabel: '',
+  };
 }
 
 function Notice({ icon, title, body, cta, onCta }: { icon: 'lock' | 'chart'; title: string; body: string; cta?: string; onCta?: () => void }) {
@@ -201,6 +241,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   profile,
   chartData,
   chartId,
+  dailyPackage,
   initialSection = 'overview',
   onBack,
   requestPremium,
@@ -216,19 +257,23 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   );
   const premium = hasActivePremium(profile);
   const [activeSection, setActiveSection] = useState<PersonalDailySection>(initialSection);
-  const [sections, setSections] = useState<Partial<Record<HumanDailySectionKey, InterpretationSection>>>({});
-  const [loadingKey, setLoadingKey] = useState<PersonalDailySection | null>(null);
-  const [errorKey, setErrorKey] = useState<PersonalDailySection | null>(null);
-  const [premiumLockedKey, setPremiumLockedKey] = useState<PersonalDailySection | null>(null);
-  const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => { setActiveSection(initialSection); }, [initialSection]);
 
   const activeTab = resolveTab(dailyTabs, activeSection);
-  const activeDailySection = activeTab.sectionKey ? sections[activeTab.sectionKey] : null;
+  const activeDailySection = useMemo(
+    () => sectionFromDailyCanvas(dailyPackage, activeTab, premium),
+    [activeTab, dailyPackage, premium]
+  );
   const hasContent = !!activeDailySection?.content?.trim();
-  const isLoading = loadingKey === activeTab.id;
-  const hasError = errorKey === activeTab.id && !hasContent;
+  const activeCanvasKey = activeTab.sectionKey ? DAILY_SECTION_TO_CANVAS_KEY[activeTab.sectionKey] : null;
+  const premiumLocked = !!dailyPackage
+    && !premium
+    && !!activeCanvasKey
+    && activeCanvasKey !== 'overview'
+    && dailyPackage.meta?.free_section_key !== activeCanvasKey
+    && !hasContent;
+  const hasError = access.allowed && !!chartData && !!profile.id && !premiumLocked && !hasContent;
 
   // Свайп между темами — как в гороскопе (табы остаются индикатором).
   const [dir, setDir] = useState(0);
@@ -243,67 +288,6 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
     const power = info.offset.x + info.velocity.x * 0.2;
     if (power < -70) goToSection(activeIndex + 1, 1);
     else if (power > 70) goToSection(activeIndex - 1, -1);
-  };
-
-  useEffect(() => {
-    let alive = true;
-    const controller = new AbortController();
-    if (!access.allowed || !profile.id || !chartData) return () => { alive = false; controller.abort(); };
-
-    const tab = resolveTab(dailyTabs, activeSection);
-    if (!tab.sectionKey) return () => { alive = false; controller.abort(); };
-    if (sections[tab.sectionKey]?.content?.trim()) return () => { alive = false; controller.abort(); };
-
-    setLoadingKey(tab.id);
-    setErrorKey(null);
-    setPremiumLockedKey((current) => (current === tab.id ? null : current));
-
-    loadHumanDailySection(String(profile.id), tab.sectionKey, chartId ?? undefined, dateKey, {
-      accessTier: 'premium',
-      profile,
-      chartData,
-      signal: controller.signal,
-    })
-      .then((result) => {
-        if (!alive) return;
-        if (result.content?.content?.trim()) {
-          setSections((current) => ({ ...current, [tab.sectionKey!]: result.content }));
-          return;
-        }
-        setErrorKey(tab.id);
-      })
-      .catch((error) => {
-        if (!alive) return;
-        const err = error as { status?: number; code?: string };
-        if (err.status === 403 || err.code === 'PREMIUM_REQUIRED') {
-          setPremiumLockedKey(tab.id);
-          return;
-        }
-        console.warn('[PersonalDaily] section load failed', {
-          sectionKey: tab.sectionKey,
-          code: err?.code || 'UNKNOWN_DAILY_SECTION_ERROR',
-          status: err?.status || null,
-        });
-        setErrorKey(tab.id);
-      })
-      .finally(() => { if (alive) setLoadingKey((current) => (current === tab.id ? null : current)); });
-
-    return () => { alive = false; controller.abort(); };
-  }, [access.allowed, activeSection, chartData, chartId, dailyTabs, dateKey, profile, reloadNonce, sections]);
-
-  const retryActiveSection = () => {
-    const tab = resolveTab(dailyTabs, activeSection);
-    lumiaSelectionHaptic();
-    setErrorKey(null);
-    setPremiumLockedKey(null);
-    if (tab.sectionKey) {
-      setSections((current) => {
-        const next = { ...current };
-        delete next[tab.sectionKey!];
-        return next;
-      });
-    }
-    setReloadNonce((value) => value + 1);
   };
 
   const tabItems = useMemo(() => dailyTabs.map((t) => ({ id: t.id, label: t.label })), [dailyTabs]);
@@ -356,7 +340,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
                 cta={language === 'en' ? 'Open Premium' : 'Открыть Premium'}
                 onCta={() => { lumiaSelectionHaptic(); void requestPremium(); }}
               />
-            ) : premiumLockedKey === activeTab.id ? (
+            ) : premiumLocked ? (
               <Notice
                 icon="lock"
                 title={language === 'en' ? 'Full day is in Premium' : 'Полный день — в Premium'}
@@ -366,15 +350,11 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
               />
             ) : !chartData || !profile.id ? (
               <Notice icon="chart" title={language === 'en' ? 'Check birth data' : 'Проверь данные рождения'} body={language === 'en' ? 'Open this section again after your birth data is saved.' : 'Открой раздел ещё раз, когда данные рождения сохранятся.'} />
-            ) : isLoading && !hasContent ? (
-              <Skeleton />
             ) : hasError ? (
               <Notice
                 icon="chart"
-                title={language === 'en' ? 'The reading did not come together' : 'Разбор не собрался'}
-                body={language === 'en' ? 'Nothing mystical here: the tech just stumbled. Let’s try again.' : 'Ничего мистического — просто техника споткнулась. Попробуем ещё раз.'}
-                cta={language === 'en' ? 'Try again' : 'Попробовать ещё раз'}
-                onCta={retryActiveSection}
+                title={language === 'en' ? 'The reading is still being prepared' : 'Разбор ещё готовится'}
+                body={language === 'en' ? 'Return to the main loading flow and try again.' : 'Вернись к общей загрузке и попробуй ещё раз.'}
               />
             ) : activeDailySection ? (
               <SectionContent
@@ -384,9 +364,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
                 isOverview={activeTab.id === 'overview'}
                 premium={premium}
               />
-            ) : (
-              <Skeleton />
-            )}
+            ) : null}
           </motion.div>
         </AnimatePresence>
       </div>

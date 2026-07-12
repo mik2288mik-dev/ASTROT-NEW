@@ -27,14 +27,17 @@ describe('product daily navigation', () => {
     expect(source).not.toContain("view === 'hook'");
   });
 
-  it('PersonalDailyScreen owns the personal day sections without chat or one-off unlocks', () => {
+  it('PersonalDailyScreen renders personal day sections from the startup package', () => {
     const source = read('views/DailyContentScreens.tsx');
 
     expect(source).toContain('export const PersonalDailyScreen');
     for (const id of ['overview', 'love', 'money', 'work', 'goals', 'family', 'friendship', 'energy', 'communication']) {
       expect(source).toContain(`id: '${id}'`);
     }
-    expect(source).toContain('loadHumanDailySection');
+    expect(source).not.toContain('loadHumanDailySection');
+    expect(source).not.toContain('fetch(');
+    expect(source).toContain('dailyPackage: DailyCanvas | null');
+    expect(source).toContain('sectionFromDailyCanvas');
     expect(source).not.toContain('ensureFullDaypartForecast');
     expect(source).not.toContain('export const DailyLoveScreen');
     expect(source).not.toContain('<Horoscope');
