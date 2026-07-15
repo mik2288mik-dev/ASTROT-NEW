@@ -7,12 +7,15 @@
  */
 
 import { logger } from './logger';
+import { calculateMoonPhaseFromLongitudes } from './skyToday';
 
 export interface PlanetTransit {
   planet: string;
   sign: string;
   degree: number;
   longitude?: number;
+  retrograde: boolean;
+  speedLongitude: number;
   description?: string;
 }
 
@@ -103,6 +106,8 @@ function transitFromLongitude(
     sign,
     degree: Number((normalized % 30).toFixed(2)),
     longitude: Number(normalized.toFixed(6)),
+    retrograde: false,
+    speedLongitude: 0,
     description: description(sign),
   };
 }
@@ -130,7 +135,13 @@ function calculateApproximateLongitudes(date: Date) {
 
 function fromSwissPlanet(
   planet: string,
-  position: { sign: string; degree: number; longitude: number } | null | undefined
+  position: {
+    sign: string;
+    degree: number;
+    longitude: number;
+    retrograde: boolean;
+    speedLongitude: number;
+  } | null | undefined
 ): PlanetTransit | undefined {
   if (!position) return undefined;
   return {
@@ -138,6 +149,8 @@ function fromSwissPlanet(
     sign: position.sign,
     degree: position.degree,
     longitude: position.longitude,
+    retrograde: position.retrograde,
+    speedLongitude: position.speedLongitude,
     description: `${planet} is currently in ${position.sign}.`,
   };
 }
@@ -169,7 +182,10 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
   try {
     const { calculatePlanetaryTransitsAt } = await import('./swisseph-calculator');
     const transitChart = calculatePlanetaryTransitsAt(targetDate);
-    const moonPhase = getMoonPhase(transitChart.moon.longitude);
+    const moonPhase = calculateMoonPhaseFromLongitudes(
+      transitChart.sun.longitude,
+      transitChart.moon.longitude,
+    ).phaseLabel;
 
     const transits: CurrentTransits = {
       date: dateString,
@@ -260,27 +276,10 @@ function getAlgorithmicTransits(date: Date): CurrentTransits {
     mars: transitFromLongitude('Mars', longitudes.mars, (sign) => `Mars is currently in ${sign}.`),
     jupiter: transitFromLongitude('Jupiter', longitudes.jupiter, (sign) => `Jupiter is currently in ${sign}.`),
     saturn: transitFromLongitude('Saturn', longitudes.saturn, (sign) => `Saturn is currently in ${sign}.`),
-    moonPhase: getMoonPhase(longitudes.moon),
+    moonPhase: calculateMoonPhaseFromLongitudes(longitudes.sun, longitudes.moon).phaseLabel,
     summary: `Approximate astrological transits for ${dateString}`,
     source: 'algorithmic',
   };
-}
-
-function getMoonPhase(moonDegree: number): string {
-  const phase = Math.floor(normalizeDegree(moonDegree) / 45) % 8;
-
-  const phases = [
-    'New Moon',
-    'Waxing Crescent',
-    'First Quarter',
-    'Waxing Gibbous',
-    'Full Moon',
-    'Waning Gibbous',
-    'Last Quarter',
-    'Waning Crescent',
-  ];
-
-  return phases[phase] || 'Waxing';
 }
 
 export async function getTransitsForPeriod(

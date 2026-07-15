@@ -19,7 +19,11 @@ function transitChart(date: Date) {
     julianDay: 1234567.5,
     sun: planet('Cancer', 20, 110),
     moon: planet('Leo', 5, 125),
-    mercury: planet('Cancer', 18, 108),
+    mercury: {
+      ...planet('Cancer', 18, 108),
+      retrograde: true,
+      speedLongitude: -0.72,
+    },
     venus: planet('Gemini', 28, 88),
     mars: planet('Virgo', 3, 153),
     jupiter: planet('Cancer', 9, 99),
@@ -71,6 +75,7 @@ describe('transits UTC-hour cache', () => {
     await getCurrentTransits(new Date('2026-07-12T10:00:00.000Z'));
 
     expect(second).toBe(first);
+    expect(first.mercury).toMatchObject({ retrograde: true, speedLongitude: -0.72 });
     expect(calculatePlanetaryTransitsAt).toHaveBeenCalledTimes(2);
     expect(calculatePlanetaryTransitsAt).toHaveBeenNthCalledWith(1, new Date('2026-07-12T09:10:00.000Z'));
     expect(calculatePlanetaryTransitsAt).toHaveBeenNthCalledWith(2, new Date('2026-07-12T10:00:00.000Z'));

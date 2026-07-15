@@ -56,6 +56,8 @@ import {
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
 import type { DailyCanvas } from './lib/natalHumanShared';
+import type { SkyTodaySnapshot } from './lib/skyToday';
+import { getSkyToday } from './services/astrologyService';
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -280,6 +282,7 @@ const App: React.FC = () => {
     const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
     const [dailyPackage, setDailyPackage] = useState<DailyCanvas | null>(null);
+    const [skySnapshot, setSkySnapshot] = useState<SkyTodaySnapshot | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
@@ -544,6 +547,20 @@ const App: React.FC = () => {
         setPreloadedHumanReport(null);
         dailyPackageSessionRef.current = { key: '', data: null, promise: null };
         setDailyPackage(null);
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        // Public sky data is independent from profile and personal daily startup.
+        // Failure intentionally leaves the card hidden and never blocks app entry.
+        void getSkyToday(getMoscowTodayKey()).then((snapshot) => {
+            if (!cancelled) setSkySnapshot(snapshot);
+        });
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -1740,6 +1757,7 @@ const App: React.FC = () => {
                         chartData={chartData}
                         chartId={primaryChartId}
                         dailyPackage={dailyPackage}
+                        skySnapshot={skySnapshot}
                         onOpenHoroscopeLayer={openHoroscopeLayer}
                         onOpenPersonalDaily={openPersonalDailyView}
                         onCreateNatalChart={openBottomNatal}

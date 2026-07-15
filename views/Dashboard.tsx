@@ -9,15 +9,16 @@ import type {
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
-import { getMoonPhase } from '../lib/horoscope/moonPhase';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
+import { SkyTodayCard } from '../components/Dashboard/SkyTodayCard';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen';
 import type { SurfaceRequest } from '../lib/stickers/select';
 import { getDashboardSystemText, type DashboardSystemState } from '../lib/dailyPresentationPatterns';
 import type { DailyCanvas } from '../lib/natalHumanShared';
+import type { SkyTodaySnapshot } from '../lib/skyToday';
 
 // ── Динамическая система стикеров (см. docs/STICKER_SYSTEM.md) ──
 // Стикеры/позиции выбираются случайно из каталога на КАЖДЫЙ заход; это единственное место,
@@ -38,22 +39,12 @@ type SphereCard = {
   hook: string;
 };
 
-const MOON_SYMBOL: Record<string, string> = {
-  new: '●',
-  'waxing-crescent': '☽',
-  'first-quarter': '◐',
-  'waxing-gibbous': '◑',
-  full: '○',
-  'waning-gibbous': '◒',
-  'last-quarter': '◑',
-  'waning-crescent': '☾',
-};
-
 type DashboardProps = {
   profile: UserProfile;
   chartData: NatalChartData | null;
   chartId?: number | null;
   dailyPackage: DailyCanvas | null;
+  skySnapshot: SkyTodaySnapshot | null;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onCreateNatalChart?: () => void;
@@ -70,6 +61,7 @@ export const Dashboard = memo<DashboardProps>(({
   chartData,
   chartId,
   dailyPackage,
+  skySnapshot,
   onOpenPersonalDaily,
   onCreateNatalChart,
   onOpenSynastry,
@@ -89,7 +81,6 @@ export const Dashboard = memo<DashboardProps>(({
   // Карточка-герой и hooks восьми сфер читают один сохранённый дневной пакет.
   // Если пакета ещё нет, Dashboard показывает системное состояние, а не прогнозную заглушку.
   const [sheetDate, setSheetDate] = useState<string | null>(null);
-  const [moonInfoOpen, setMoonInfoOpen] = useState(false);
 
   /* Единый дневной пакет приходит из App startup. */
   const systemState: DashboardSystemState = dailyPackage ? 'ready' : hasChart ? 'generation_error' : 'no_chart';
@@ -103,8 +94,7 @@ export const Dashboard = memo<DashboardProps>(({
     ? ['Сегодня', 'Эта неделя', 'Этот месяц', 'Этот год']
     : ['Today', 'This week', 'This month', 'This year'];
 
-  /* Астро-контекст дня: день недели + фактическая фаза Луны */
-  const moon = useMemo(() => getMoonPhase(new Date(), language), [language]);
+  /* Дата личного hero. Общий sky snapshot загружается отдельно в App. */
   const weekdayLabel = useMemo(() => {
     const [yr, mo, da] = today.split('-').map(Number);
     const d = new Date(Date.UTC(yr, mo - 1, da, 12));
@@ -124,14 +114,6 @@ export const Dashboard = memo<DashboardProps>(({
     const dayName = language === 'ru' ? weekdayLabel.toLowerCase() : weekdayLabel;
     return `${date} · ${dayName}`;
   }, [language, today, weekdayLabel]);
-
-  const moonSymbol = MOON_SYMBOL[moon.slot] || '○';
-  const moonFact = language === 'ru'
-    ? `Освещено около ${moon.illumination}% диска. Это факт о фазе, не личный прогноз.`
-    : `About ${moon.illumination}% of the disc is illuminated. That is a phase fact, not a personal prediction.`;
-  const moonExplain = language === 'ru'
-    ? 'Фаза показывает, какая часть Луны освещена с Земли. Она меняется в течение лунного месяца и сама по себе не говорит, что с тобой обязательно произойдёт.'
-    : 'The phase shows how much of the Moon is illuminated from Earth. It changes through the lunar month and does not predict what must happen to you.';
 
   const dayHeroTitle = dailyPackage?.hero_title?.trim() || systemCopy;
   const dayHeroText = dailyPackage?.hero_hook?.trim() || systemCopy;
@@ -267,35 +249,7 @@ export const Dashboard = memo<DashboardProps>(({
         </>
       ) : null}
 
-      <section className="home-today home-soft-card home-soft-card--moon" aria-label={language === 'ru' ? 'Фаза Луны' : 'Moon phase'}>
-        <div className="home-soft-card-glow" aria-hidden />
-        <div className="home-today-copy">
-          <span className="home-soft-card-kicker">{weekdayLabel}</span>
-          <div className="home-sky-grid">
-            <div className="home-sky-item">
-              <span className="home-sky-symbol" aria-hidden>{moonSymbol}</span>
-              <div>
-                <h2 className="home-soft-card-title">{moon.label}</h2>
-                <p className="home-soft-card-text">{moonFact}</p>
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="home-soft-card-link"
-            onClick={() => { lumiaSelectionHaptic(); setMoonInfoOpen((v) => !v); }}
-            aria-expanded={moonInfoOpen}
-          >
-            {language === 'ru' ? 'Как считается фаза' : 'How the phase is calculated'}
-          </button>
-        </div>
-
-        {moonInfoOpen && (
-          <div className="home-today-panel">
-            <p className="home-today-explain">{moonExplain}</p>
-          </div>
-        )}
-      </section>
+      <SkyTodayCard snapshot={skySnapshot} language={language} />
 
       <div className="home-feed">
         <button

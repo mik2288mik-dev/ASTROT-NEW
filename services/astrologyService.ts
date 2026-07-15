@@ -10,6 +10,7 @@ import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
 import type { SignCompatibilityResult } from '../lib/synastry/signCompatibility';
 import { buildLocalSignCompatibility } from '../lib/synastry/localSignText';
 import { getTelegramInitDataHeaders } from "./sessionService";
+import type { SkyTodaySnapshot } from '../lib/skyToday';
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
@@ -1497,30 +1498,32 @@ export const getCachedDailyHoroscope = async (
   });
 };
 
-export type SkyRetrogradePlanet = {
-  key: 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn';
-  nameRu: string;
-  nameEn: string;
-  sign: string;
-};
+let skyTodayCache: { key: string; data: SkyTodaySnapshot } | null = null;
+let skyTodayRequest: { key: string; promise: Promise<SkyTodaySnapshot | null> } | null = null;
 
-export type SkyToday = { date: string; retrograde: SkyRetrogradePlanet[] };
+export async function getSkyToday(todayKey: string): Promise<SkyTodaySnapshot | null> {
+  if (skyTodayCache?.key === todayKey) return skyTodayCache.data;
+  if (skyTodayRequest?.key === todayKey) return skyTodayRequest.promise;
 
-let skyTodayCache: { key: string; data: SkyToday } | null = null;
+  const promise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/content/today/sky`, {
+        method: 'GET',
+        headers: getTelegramInitDataHeaders(),
+      });
+      if (!response.ok) throw new Error(`sky ${response.status}`);
+      const data = (await response.json()) as SkyTodaySnapshot;
+      if (data?.source !== 'swisseph' || !data.moon || !data.mercury) return null;
+      skyTodayCache = { key: todayKey, data };
+      return data;
+    } catch {
+      return null;
+    } finally {
+      if (skyTodayRequest?.key === todayKey) skyTodayRequest = null;
+    }
+  })();
 
-export async function getSkyToday(todayKey: string): Promise<SkyToday> {
-  if (skyTodayCache && skyTodayCache.key === todayKey) return skyTodayCache.data;
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/content/today/sky`, {
-      method: 'GET',
-      headers: getTelegramInitDataHeaders(),
-    });
-    if (!response.ok) throw new Error(`sky ${response.status}`);
-    const data = (await response.json()) as SkyToday;
-    skyTodayCache = { key: todayKey, data };
-    return data;
-  } catch {
-    return { date: todayKey, retrograde: [] };
-  }
+  skyTodayRequest = { key: todayKey, promise };
+  return promise;
 }
 

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" fill="none">
+  <defs>
+    <linearGradient id="paper" x1="96" y1="38" x2="1090" y2="676" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDFC"/>
+      <stop offset="0.56" stop-color="#F9FBFE"/>
+      <stop offset="1" stop-color="#EEF5FF"/>
+    </linearGradient>
+    <linearGradient id="bluePaper" x1="852" y1="402" x2="1132" y2="664" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F3F8FF"/>
+      <stop offset="0.58" stop-color="#D9E9FC"/>
+      <stop offset="1" stop-color="#BBD6F4"/>
+    </linearGradient>
+    <linearGradient id="lilacPaper" x1="50" y1="615" x2="390" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F3EEFF"/>
+      <stop offset="1" stop-color="#E5EAFB"/>
+    </linearGradient>
+    <linearGradient id="crescent" x1="871" y1="148" x2="1033" y2="418" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#F8FAFD"/>
+      <stop offset="1" stop-color="#E7EEF8"/>
+    </linearGradient>
+    <filter id="paperShadow" x="-20%" y="-20%" width="150%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#5B78A0" flood-opacity="0.16"/>
+    </filter>
+    <filter id="softShadow" x="-30%" y="-30%" width="180%" height="190%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#49698F" flood-opacity="0.16"/>
+    </filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="18" result="noise"/>
+      <feColorMatrix in="noise" type="saturate" values="0" result="mono"/>
+      <feComponentTransfer in="mono">
+        <feFuncA type="table" tableValues="0 0.035"/>
+      </feComponentTransfer>
+    </filter>
+    <mask id="crescentMask">
+      <rect width="1200" height="700" fill="black"/>
+      <circle cx="932" cy="284" r="120" fill="white"/>
+      <circle cx="888" cy="250" r="122" fill="black"/>
+    </mask>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#paper)"/>
+
+  <!-- Layered paper edges stay around the perimeter so content remains quiet. -->
+  <path d="M1200 316C1092 350 1065 420 1002 478C927 547 842 550 752 610C704 642 675 674 660 700H1200V316Z" fill="url(#bluePaper)" filter="url(#paperShadow)"/>
+  <path d="M1200 400C1095 430 1062 500 972 553C904 593 842 607 780 700H1200V400Z" fill="#DCEAFB" fill-opacity="0.9" filter="url(#paperShadow)"/>
+  <path d="M1200 492C1094 511 1039 568 951 610C891 639 849 670 824 700H1200V492Z" fill="#C7DEF7" fill-opacity="0.72" filter="url(#paperShadow)"/>
+  <path d="M0 590C104 629 191 643 285 655C346 663 402 679 456 700H0V590Z" fill="url(#lilacPaper)" filter="url(#paperShadow)"/>
+  <path d="M0 642C121 673 218 679 316 700H0V642Z" fill="#DCE8FA" fill-opacity="0.74"/>
+
+  <!-- Sparse chart orbits and measured arcs. -->
+  <g stroke-linecap="round" fill="none">
+    <path d="M742 -34C708 172 753 375 920 548C1007 638 1110 688 1236 712" stroke="#397FCE" stroke-opacity="0.26" stroke-width="1.3"/>
+    <path d="M658 255C815 96 1035 50 1226 132" stroke="#347BD0" stroke-opacity="0.25" stroke-width="1.2"/>
+    <path d="M752 412C842 317 1001 300 1114 371C1176 410 1213 460 1234 516" stroke="#6D8BD3" stroke-opacity="0.22" stroke-width="1.1"/>
+    <path d="M865 600C785 469 807 313 930 211C1023 133 1128 112 1238 132" stroke="#2E81DA" stroke-opacity="0.39" stroke-width="1.4" stroke-dasharray="2 9"/>
+    <path d="M24 330C49 460 117 575 228 669" stroke="#3D84D0" stroke-opacity="0.32" stroke-width="1.3" stroke-dasharray="2 9"/>
+    <path d="M-42 486C68 425 177 429 275 486" stroke="#6B86CA" stroke-opacity="0.17" stroke-width="1"/>
+    <path d="M778 100L1168 442" stroke="#3E7DC8" stroke-opacity="0.17" stroke-width="1"/>
+    <path d="M824 530L1192 205" stroke="#7B91D6" stroke-opacity="0.13" stroke-width="1"/>
+  </g>
+
+  <g fill="#4C8ED5" fill-opacity="0.7">
+    <circle cx="773" cy="196" r="3"/>
+    <circle cx="866" cy="603" r="3"/>
+    <circle cx="1112" cy="116" r="3"/>
+  </g>
+  <circle cx="1154" cy="151" r="9" stroke="#4C8ED5" stroke-opacity="0.48" stroke-width="1.2"/>
+  <circle cx="73" cy="506" r="10" stroke="#7B78D1" stroke-opacity="0.34" stroke-width="1.2"/>
+
+  <!-- Quiet paper crescent, intentionally on the right. -->
+  <g mask="url(#crescentMask)" filter="url(#softShadow)">
+    <circle cx="932" cy="284" r="120" fill="url(#crescent)"/>
+  </g>
+  <path d="M1008 172C1061 243 1050 341 981 398" stroke="#7A94BB" stroke-opacity="0.16" stroke-width="1"/>
+
+  <!-- Small Mercury glyph drawn as editable paths. -->
+  <g transform="translate(818 458)" stroke="#4C78BA" stroke-opacity="0.58" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 2C10 5 6 12 7 20M32 2C40 5 44 12 43 20"/>
+    <circle cx="25" cy="28" r="15"/>
+    <path d="M25 43V70M15 59H35"/>
+  </g>
+  <circle cx="843" cy="486" r="37" stroke="#4C8ED5" stroke-opacity="0.22" stroke-width="1.2" stroke-dasharray="2 7"/>
+  <circle cx="843" cy="486" r="66" stroke="#4C8ED5" stroke-opacity="0.13" stroke-width="1"/>
+
+  <rect width="1200" height="700" filter="url(#grain)" opacity="0.42"/>
+</svg>
