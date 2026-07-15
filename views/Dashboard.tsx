@@ -11,14 +11,12 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
-import { SkyTodayCard } from '../components/Dashboard/SkyTodayCard';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen';
 import type { SurfaceRequest } from '../lib/stickers/select';
 import { getDashboardSystemText, type DashboardSystemState } from '../lib/dailyPresentationPatterns';
 import type { DailyCanvas } from '../lib/natalHumanShared';
-import type { SkyTodaySnapshot } from '../lib/skyToday';
 
 // ── Динамическая система стикеров (см. docs/STICKER_SYSTEM.md) ──
 // Стикеры/позиции выбираются случайно из каталога на КАЖДЫЙ заход; это единственное место,
@@ -44,7 +42,6 @@ type DashboardProps = {
   chartData: NatalChartData | null;
   chartId?: number | null;
   dailyPackage: DailyCanvas | null;
-  skySnapshot: SkyTodaySnapshot | null;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onCreateNatalChart?: () => void;
@@ -61,7 +58,6 @@ export const Dashboard = memo<DashboardProps>(({
   chartData,
   chartId,
   dailyPackage,
-  skySnapshot,
   onOpenPersonalDaily,
   onCreateNatalChart,
   onOpenSynastry,
@@ -248,8 +244,6 @@ export const Dashboard = memo<DashboardProps>(({
           </section>
         </>
       ) : null}
-
-      <SkyTodayCard snapshot={skySnapshot} language={language} />
 
       <div className="home-feed">
         <button

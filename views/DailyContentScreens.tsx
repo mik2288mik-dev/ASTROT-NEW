@@ -63,10 +63,35 @@ function getDailyTabs(language: 'ru' | 'en'): DailyTabConfig[] {
 }
 
 function splitParagraphs(value?: string | null): string[] {
-  return String(value || '')
+  const explicitParagraphs = String(value || '')
     .split(/\n{2,}|\r\n{2,}/)
     .map((item) => item.trim())
     .filter(Boolean);
+
+  if (explicitParagraphs.length !== 1 || explicitParagraphs[0].length < 360) {
+    return explicitParagraphs;
+  }
+
+  const sentences = explicitParagraphs[0]
+    .match(/[^.!?…]+(?:[.!?…]+[»”"']?|$)/g)
+    ?.map((sentence) => sentence.trim())
+    .filter(Boolean) || [];
+
+  if (sentences.length < 4) return explicitParagraphs;
+
+  const paragraphCount = explicitParagraphs[0].length >= 760 && sentences.length >= 6 ? 3 : 2;
+  const balancedParagraphs: string[] = [];
+  let sentenceIndex = 0;
+
+  for (let paragraphIndex = 0; paragraphIndex < paragraphCount; paragraphIndex += 1) {
+    const paragraphsLeft = paragraphCount - paragraphIndex;
+    const sentencesLeft = sentences.length - sentenceIndex;
+    const take = Math.ceil(sentencesLeft / paragraphsLeft);
+    balancedParagraphs.push(sentences.slice(sentenceIndex, sentenceIndex + take).join(' '));
+    sentenceIndex += take;
+  }
+
+  return balancedParagraphs;
 }
 
 function resolveTab(tabs: DailyTabConfig[], section?: PersonalDailySection | null): DailyTabConfig {
@@ -216,9 +241,9 @@ function SectionContent({
   const showScore = isOverview && premium && typeof section.dayScore === 'number';
   return (
     <div className="pd-body">
-      <motion.div className="natal-sec-body" style={{ marginTop: 0 }} variants={PD_STAGGER} initial="hidden" animate="show">
+      <motion.div className="natal-sec-body pd-reading-card" variants={PD_STAGGER} initial="hidden" animate="show">
         {paragraphs.map((paragraph, index) => (
-          <motion.p key={index} className="natal-sec-p" style={{ marginTop: index ? 12 : 0 }} variants={PD_ITEM}>{paragraph}</motion.p>
+          <motion.p key={index} className="natal-sec-p pd-reading-paragraph" variants={PD_ITEM}>{paragraph}</motion.p>
         ))}
       </motion.div>
       {isOverview ? (
@@ -299,7 +324,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
       <FreshTabs tabs={tabItems} activeTab={activeSection} className="personal-daily-tabs" onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
 
-      <div style={{ padding: '6px 20px 0' }}>
+      <div className="personal-daily-content">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={activeTab.id}
