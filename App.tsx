@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenOptions, type PersonalDailySection } from './types';
+import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type DailyPackageStatus, type HoroscopeOpenOptions, type PersonalDailySection } from './types';
 import {
     getProfile,
     saveProfile,
@@ -285,6 +285,7 @@ const App: React.FC = () => {
     const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
     const [dailyPackage, setDailyPackage] = useState<DailyCanvas | null>(null);
+    const [dailyPackageStatus, setDailyPackageStatus] = useState<DailyPackageStatus>('idle');
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
@@ -382,6 +383,7 @@ const App: React.FC = () => {
         const userId = input.profile.id ? String(input.profile.id) : '';
         if (!userId || isGuestUserId(userId) || !input.chartData?.sun || !input.chartData?.moon || !input.chartData?.rising) {
             setDailyPackage(null);
+            setDailyPackageStatus('idle');
             return null;
         }
 
@@ -390,11 +392,16 @@ const App: React.FC = () => {
         const current = dailyPackageSessionRef.current;
         if (current.key === key && current.data) {
             setDailyPackage(current.data);
+            setDailyPackageStatus('ready');
             return current.data;
         }
         if (current.key === key && current.promise) {
+            setDailyPackageStatus('loading');
             const existing = await current.promise;
-            setDailyPackage(existing);
+            if (existing && dailyPackageSessionRef.current.key === key) {
+                setDailyPackage(existing);
+                setDailyPackageStatus('ready');
+            }
             return existing;
         }
 
@@ -402,23 +409,35 @@ const App: React.FC = () => {
         const progressSpan = input.progressSpan ?? 24;
         const reportProgress = input.reportProgress !== false;
         if (reportProgress) {
-            setLoadingMessage(input.profile.language === 'en' ? 'Preparing your personal day' : '\u0413\u043e\u0442\u043e\u0432\u0438\u043c \u0442\u0432\u043e\u0439 \u043b\u0438\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c');
+            setLoadingMessage(input.profile.language === 'en' ? 'Preparing your personal horoscope' : 'Готовим твой личный гороскоп');
             setLoadingProgress(progressStart);
         }
+        setDailyPackageStatus('loading');
 
-        const request = loadHumanDailyPackage(userId, input.chartId ?? undefined, dateKey, {
+        let request: Promise<DailyCanvas | null>;
+        request = loadHumanDailyPackage(userId, input.chartId ?? undefined, dateKey, {
             accessTier: 'premium',
             profile: input.profile,
             chartData: input.chartData,
         })
             .then((canvas) => {
+                if (
+                    dailyPackageSessionRef.current.key !== key ||
+                    dailyPackageSessionRef.current.promise !== request
+                ) {
+                    return canvas;
+                }
                 dailyPackageSessionRef.current = { key, data: canvas, promise: null };
                 setDailyPackage(canvas);
+                setDailyPackageStatus('ready');
                 if (reportProgress) setLoadingProgress(progressStart + progressSpan);
                 return canvas;
             })
             .catch((error) => {
-                if (dailyPackageSessionRef.current.key === key) {
+                const isCurrentRequest =
+                    dailyPackageSessionRef.current.key === key &&
+                    dailyPackageSessionRef.current.promise === request;
+                if (isCurrentRequest) {
                     dailyPackageSessionRef.current = { key: '', data: null, promise: null };
                 }
                 const err = error as { code?: string; status?: number; message?: string };
@@ -427,8 +446,11 @@ const App: React.FC = () => {
                     status: err?.status || null,
                     message: err?.message || String(error),
                 });
-                setDailyPackage(null);
-                if (reportProgress) setLoadingProgress(progressStart + progressSpan);
+                if (isCurrentRequest) {
+                    setDailyPackage(null);
+                    setDailyPackageStatus('error');
+                }
+                if (isCurrentRequest && reportProgress) setLoadingProgress(progressStart + progressSpan);
                 return null;
             });
 
@@ -553,6 +575,7 @@ const App: React.FC = () => {
         setPreloadedHumanReport(null);
         dailyPackageSessionRef.current = { key: '', data: null, promise: null };
         setDailyPackage(null);
+        setDailyPackageStatus('idle');
     }, []);
 
     useEffect(() => {
@@ -729,6 +752,7 @@ const App: React.FC = () => {
             initialChartId: number | null,
             refreshChartFromDb: boolean,
         ) => {
+            setDailyPackageStatus('loading');
             const userId = String(targetProfile.id);
             const startHumanBasePrefetch = (chartId: number) => {
                 void prefetchHumanBaseReport(userId, chartId)
@@ -1527,6 +1551,8 @@ const App: React.FC = () => {
             clearHumanReadingSessionCache(String(profile.id));
             dailyPackageSessionRef.current = { key: '', data: null, promise: null };
             setDailyPackage(null);
+            const hasFreshChart = !!(freshChart?.sun && freshChart?.moon && freshChart?.rising);
+            setDailyPackageStatus(hasFreshChart ? 'loading' : 'idle');
             clearLocalHumanBaseReport(profile, primaryChartId ?? undefined);
             setPreloadedHumanReport(null);
             if (freshChart) {
@@ -1539,11 +1565,35 @@ const App: React.FC = () => {
             setChartLoadState(freshChart?.sun && freshChart?.moon ? 'ready' : 'error');
             setChartData(freshChart);
             setActiveChartId(undefined);
+            if (hasFreshChart && freshChart) {
+                void prepareStartupDailyPackage({
+                    profile,
+                    chartData: freshChart,
+                    chartId: freshPrimaryChartId,
+                    reportProgress: false,
+                });
+            }
         } catch (error) {
             console.error('[App] Failed to refresh primary chart state:', error);
             // Keep the existing local/session chart on transient DB errors.
         }
-    }, [prefetchBaseReportForChart, primaryChartId, profile]);
+    }, [prefetchBaseReportForChart, prepareStartupDailyPackage, primaryChartId, profile]);
+
+    const retryDailyPackage = useCallback(() => {
+        if (!profile?.id) return;
+        const targetChart = primaryChartDataRef.current || chartData;
+        if (!targetChart?.sun || !targetChart?.moon || !targetChart?.rising) return;
+
+        dailyPackageSessionRef.current = { key: '', data: null, promise: null };
+        setDailyPackage(null);
+        setDailyPackageStatus('loading');
+        void prepareStartupDailyPackage({
+            profile,
+            chartData: targetChart,
+            chartId: primaryChartId,
+            reportProgress: false,
+        });
+    }, [chartData, prepareStartupDailyPackage, primaryChartId, profile]);
 
     const handleBack = useCallback(async () => {
         const currentView = viewRef.current;
@@ -1740,6 +1790,8 @@ const App: React.FC = () => {
                         chartData={chartData}
                         chartId={primaryChartId}
                         dailyPackage={dailyPackage}
+                        dailyPackageStatus={dailyPackageStatus}
+                        onRetryDailyPackage={retryDailyPackage}
                         onOpenHoroscopeLayer={openHoroscopeLayer}
                         onOpenPersonalDaily={openPersonalDailyView}
                         onCreateNatalChart={openBottomNatal}

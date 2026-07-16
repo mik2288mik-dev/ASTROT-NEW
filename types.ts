@@ -453,6 +453,7 @@ export type PersonalDailySection =
   | 'friendship'
   | 'energy'
   | 'communication';
+export type DailyPackageStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type HoroscopeOpenOptions = {
   mode?: HoroscopeOpenMode;
   source?: string;

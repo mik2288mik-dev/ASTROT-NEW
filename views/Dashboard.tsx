@@ -3,6 +3,7 @@ import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
   NatalChartData,
+  DailyPackageStatus,
   PersonalDailySection,
   UserProfile,
 } from '../types';
@@ -25,10 +26,10 @@ import type { DailyCanvas } from '../lib/natalHumanShared';
 // меняется 2 раза в сутки (см. StickerScreen), а не на каждый заход.
 // NB (для параллельного дизайн-агента): не возвращать статические <img> стикеров в карточки —
 // их рисует <StickerSlot/>; слой изолирован в styles/stickers.css.
-const STICKER_REQUESTS: SurfaceRequest[] = [
-  // ОДИН маскот на всю страницу — только на герое, целиком видимый в правой пустой полосе.
-  // Карточки-переходы (натал/матрица/совместимость) и луна — БЕЗ стикеров (нет композиции).
-  { surface: 'hero', kind: 'maskot', moods: ['calm', 'happy', 'chill'], themes: ['drink', 'read', 'cozy', 'study'] },
+const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
+  // Маскот появляется только пока считается личный гороскоп. Спокойные рабочие
+  // образы поддерживают статус, но не остаются декоративным шумом после загрузки.
+  { surface: 'hero', kind: 'maskot', moods: ['thinking', 'calm'], themes: ['study', 'read', 'tech'] },
 ];
 
 type SphereCard = {
@@ -42,6 +43,8 @@ type DashboardProps = {
   chartData: NatalChartData | null;
   chartId?: number | null;
   dailyPackage: DailyCanvas | null;
+  dailyPackageStatus: DailyPackageStatus;
+  onRetryDailyPackage: () => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
   onCreateNatalChart?: () => void;
@@ -58,6 +61,8 @@ export const Dashboard = memo<DashboardProps>(({
   chartData,
   chartId,
   dailyPackage,
+  dailyPackageStatus,
+  onRetryDailyPackage,
   onOpenPersonalDaily,
   onCreateNatalChart,
   onOpenSynastry,
@@ -79,10 +84,18 @@ export const Dashboard = memo<DashboardProps>(({
   const [sheetDate, setSheetDate] = useState<string | null>(null);
 
   /* Единый дневной пакет приходит из App startup. */
-  const systemState: DashboardSystemState = dailyPackage ? 'ready' : hasChart ? 'generation_error' : 'no_chart';
+  const systemState: DashboardSystemState = dailyPackage
+    ? 'ready'
+    : !hasChart
+      ? 'no_chart'
+      : dailyPackageStatus === 'error'
+        ? 'generation_error'
+        : 'loading';
   const systemCopy = getDashboardSystemText(systemState, language, today);
   const isDailyReady = !!dailyPackage;
-  const showPersonalDaySurface = isDailyReady || !hasChart;
+  const isDailyLoading = hasChart && !isDailyReady && dailyPackageStatus === 'loading';
+  const isDailyError = hasChart && !isDailyReady && !isDailyLoading;
+  const stickerRequests = isDailyLoading ? LOADING_STICKER_REQUESTS : [];
 
   /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
@@ -111,10 +124,25 @@ export const Dashboard = memo<DashboardProps>(({
     return `${date} · ${dayName}`;
   }, [language, today, weekdayLabel]);
 
-  const dayHeroTitle = dailyPackage?.hero_title?.trim() || systemCopy;
+  const dayHeroTitle = dailyPackage?.hero_title?.trim()
+    || (isDailyLoading
+      ? (language === 'ru' ? 'Готовим твой личный гороскоп' : 'Preparing your personal horoscope')
+      : isDailyError
+        ? (language === 'ru' ? 'Личный гороскоп пока не готов' : 'Your personal horoscope is not ready yet')
+        : (language === 'ru' ? 'Личный гороскоп' : 'Personal Horoscope'));
   const dayHeroText = dailyPackage?.hero_hook?.trim() || systemCopy;
-  const dayHeroAria = language === 'ru' ? 'Открыть личный разбор дня' : 'Open your personal day reading';
-  const dayHeroCta = language === 'ru' ? 'Открыть полный личный разбор' : 'Open full personal reading';
+  const dayHeroAria = isDailyLoading
+    ? (language === 'ru' ? 'Личный гороскоп рассчитывается' : 'Personal horoscope is being calculated')
+    : isDailyError
+      ? (language === 'ru' ? 'Повторить расчёт личного гороскопа' : 'Retry personal horoscope calculation')
+      : language === 'ru' ? 'Открыть личный гороскоп' : 'Open your personal horoscope';
+  const dayHeroCta = isDailyLoading
+    ? (language === 'ru' ? 'Гороскоп рассчитывается' : 'Calculating your horoscope')
+    : isDailyError
+      ? (language === 'ru' ? 'Попробовать ещё раз' : 'Try again')
+      : !hasChart
+        ? (language === 'ru' ? 'Создать натальную карту' : 'Create natal chart')
+        : (language === 'ru' ? 'Открыть личный гороскоп' : 'Open personal horoscope');
   const natalText = hasChart
     ? (language === 'ru'
       ? 'Карта уже собрана. Посмотри, что в ней про характер, привычки и сильные стороны.'
@@ -158,20 +186,20 @@ export const Dashboard = memo<DashboardProps>(({
         };
       });
   const openDayHero = () => {
+    if (isDailyLoading) return;
     lumiaSelectionHaptic();
-    if (hasChart) { onOpenPersonalDaily('overview'); }
-    else if (!hasChart) { onCreateNatalChart?.(); }
-    else { onRequestPremium?.('personal_daily'); }
+    if (!hasChart) { onCreateNatalChart?.(); return; }
+    if (isDailyError) { onRetryDailyPackage(); return; }
+    if (isDailyReady) { onOpenPersonalDaily('overview'); }
   };
   const openSphere = (section: PersonalDailySection) => {
     lumiaSelectionHaptic();
-    if (hasChart) { onOpenPersonalDaily(section); }
-    else if (!hasChart) { onCreateNatalChart?.(); }
-    else { onRequestPremium?.('personal_daily_section'); }
+    if (!hasChart) { onCreateNatalChart?.(); return; }
+    if (isDailyReady) { onOpenPersonalDaily(section); }
   };
 
   return (
-    <StickerScreen requests={STICKER_REQUESTS} maxMaskots={1}>
+    <StickerScreen requests={stickerRequests} maxMaskots={isDailyLoading ? 1 : 0}>
     <div
       className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
@@ -205,27 +233,37 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      {showPersonalDaySurface ? (
         <>
           <button
             type="button"
-            className="home-day-hero has-stickers"
+            className={`home-day-hero home-day-hero--${systemState}${isDailyLoading ? ' has-stickers' : ''}`}
             onClick={openDayHero}
             aria-label={dayHeroAria}
+            aria-busy={isDailyLoading}
+            disabled={isDailyLoading}
           >
             <span className="home-day-hero-glow" aria-hidden />
-            <span className="home-day-hero-scene" aria-hidden>
-              <StickerSlot surface="hero" />
-            </span>
+            {isDailyLoading ? (
+              <span className="home-day-hero-scene" aria-hidden>
+                <StickerSlot surface="hero" />
+              </span>
+            ) : null}
             <span className="home-day-hero-copy">
               <span className="home-day-hero-date">{dayHeroDateLabel}</span>
               <span className="home-day-hero-title">{dayHeroTitle}</span>
               <span className="home-day-hero-text">{dayHeroText}</span>
-              <span className="home-day-hero-cta">{dayHeroCta}</span>
+              <span className="home-day-hero-cta">
+                {dayHeroCta}
+                {isDailyLoading ? (
+                  <span className="home-day-loading-dots" aria-hidden>
+                    <i /><i /><i />
+                  </span>
+                ) : null}
+              </span>
             </span>
           </button>
 
-          <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного разбора' : 'Personal reading topics'}>
+          <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного гороскопа' : 'Personal horoscope topics'}>
             <div className="home-spheres-track">
               {sphereCards.map((card) => (
                 <button
@@ -243,7 +281,6 @@ export const Dashboard = memo<DashboardProps>(({
             </div>
           </section>
         </>
-      ) : null}
 
       <div className="home-feed">
         <button

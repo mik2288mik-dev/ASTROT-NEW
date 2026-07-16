@@ -22,8 +22,8 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     q: { ru: 'Это правда про меня, а не общий гороскоп?', en: 'Is this really about me, not a generic horoscope?' },
     a: {
-      ru: 'Натальная карта строится индивидуально по твоим дате, времени и месту рождения, и разборы опираются именно на твои положения планет и домов. Гороскоп по знаку — общий для всех с этим знаком, и мы честно держим его отдельно от личных разборов.',
-      en: 'Your natal chart is built individually from your birth date, time and place, and the readings rely on your own planets and houses. The sign horoscope is general for everyone with that sign, and we keep it honestly separate from your personal readings.',
+      ru: 'Натальная карта строится индивидуально по твоим дате, времени и месту рождения, а личный гороскоп опирается именно на твои положения планет и домов. Гороскоп по знаку — общий для всех с этим знаком, и мы честно держим его отдельно.',
+      en: 'Your natal chart is built individually from your birth date, time and place, and your personal horoscope relies on your own planets and houses. The sign horoscope is general for everyone with that sign, and we keep it honestly separate.',
     },
   },
   {
@@ -50,8 +50,8 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     q: { ru: 'Что происходит с моими данными?', en: 'What happens to my data?' },
     a: {
-      ru: 'Дата, время и место рождения нужны только для одного — построить твою карту и личные разборы. Больше эти данные ни для чего не используются.',
-      en: 'Your birth date, time and place are used for one thing only — to build your chart and personal readings. They are not used for anything else.',
+      ru: 'Дата, время и место рождения нужны только для одного — построить твою карту и личный гороскоп. Больше эти данные ни для чего не используются.',
+      en: 'Your birth date, time and place are used for one thing only — to build your chart and personal horoscope. They are not used for anything else.',
     },
   },
 ];

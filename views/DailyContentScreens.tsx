@@ -42,7 +42,7 @@ const DAILY_TAB_BASE: Array<Omit<DailyTabConfig, 'label' | 'title' | 'subtitle'>
   ru: Pick<DailyTabConfig, 'label' | 'title' | 'subtitle'>;
   en: Pick<DailyTabConfig, 'label' | 'title' | 'subtitle'>;
 }> = [
-  { id: 'overview', accent: '#1478FF', sectionKey: 'daily_overview', ru: { label: 'Обзор', title: 'Личный разбор дня', subtitle: 'Главный фокус дня' }, en: { label: 'Overview', title: 'Personal Day', subtitle: 'The main focus of the day' } },
+  { id: 'overview', accent: '#1478FF', sectionKey: 'daily_overview', ru: { label: 'Обзор', title: 'Личный гороскоп', subtitle: 'Главный фокус дня' }, en: { label: 'Overview', title: 'Personal Horoscope', subtitle: 'The main focus of the day' } },
   { id: 'love', accent: '#2563EB', sectionKey: 'daily_love', ru: { label: 'Любовь', title: 'Любовь', subtitle: 'Близость, эмоции и разговоры' }, en: { label: 'Love', title: 'Love', subtitle: 'Closeness, feelings, and talks' } },
   { id: 'money', accent: '#0F172A', sectionKey: 'daily_money', ru: { label: 'Деньги', title: 'Деньги', subtitle: 'Решения, покупки и устойчивость' }, en: { label: 'Money', title: 'Money', subtitle: 'Choices, spending, and steadiness' } },
   { id: 'work', accent: '#38BDF8', sectionKey: 'daily_work_business', ru: { label: 'Работа', title: 'Работа', subtitle: 'Фокус, задачи и рабочий ритм' }, en: { label: 'Work', title: 'Work', subtitle: 'Focus, tasks, and work rhythm' } },
@@ -320,7 +320,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   return (
     <div className="fresh-page">
       {/* Без своей «Назад» — навигацию назад берёт системная кнопка Telegram. */}
-      <FreshInnerHeader title={language === 'en' ? 'Personal Day' : 'Личный разбор дня'} />
+      <FreshInnerHeader title={language === 'en' ? 'Personal Horoscope' : 'Личный гороскоп'} />
 
       <FreshTabs tabs={tabItems} activeTab={activeSection} className="personal-daily-tabs" onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
 
@@ -353,7 +353,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
               <Notice
                 icon="chart"
                 title={language === 'en' ? 'Create your natal chart' : 'Создать натальную карту'}
-                body={language === 'en' ? 'Personal readings need birth data first.' : 'Для персонального прогноза сначала нужна твоя карта рождения.'}
+                body={language === 'en' ? 'A personal horoscope needs birth data first.' : 'Для личного гороскопа сначала нужна твоя карта рождения.'}
                 cta={onCreateNatalChart ? (language === 'en' ? 'Create chart' : 'Создать карту') : undefined}
                 onCta={onCreateNatalChart ? () => { lumiaSelectionHaptic(); void onCreateNatalChart(); } : undefined}
               />
@@ -361,14 +361,14 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
               <Notice
                 icon="lock"
                 title={language === 'en' ? 'Available in Premium' : 'Доступно в Premium'}
-                body={language === 'en' ? 'Your personal day by chart opens with Premium.' : 'Личный разбор дня по твоей карте открывается в Premium.'}
+                body={language === 'en' ? 'Your personal horoscope by chart opens with Premium.' : 'Личный гороскоп по твоей карте открывается в Premium.'}
                 cta={language === 'en' ? 'Open Premium' : 'Открыть Premium'}
                 onCta={() => { lumiaSelectionHaptic(); void requestPremium(); }}
               />
             ) : premiumLocked ? (
               <Notice
                 icon="lock"
-                title={language === 'en' ? 'Full day is in Premium' : 'Полный день — в Premium'}
+                title={language === 'en' ? 'Full personal horoscope is in Premium' : 'Полный личный гороскоп — в Premium'}
                 body={language === 'en' ? 'Free opens the overview and one extra topic for today. Premium opens all nine sections.' : 'В бесплатном доступе открыт обзор и одна дополнительная тема дня. Premium открывает все девять разделов.'}
                 cta={language === 'en' ? 'Open Premium' : 'Открыть Premium'}
                 onCta={() => { lumiaSelectionHaptic(); void requestPremium(); }}

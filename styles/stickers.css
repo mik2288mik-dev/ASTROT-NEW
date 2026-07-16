@@ -77,3 +77,10 @@
   .sticker-layer--feed .sticker--comp-2 { width: 2.15rem; }
   .sticker-layer--feed .sticker--comp-3 { width: 1.9rem; }
 }
+
+/* Dashboard mascot is a loading indicator, not permanent decoration. */
+.home-day-hero--loading .sticker-layer--hero .sticker { width: 5.2rem; }
+
+@media (max-width: 380px) {
+  .home-day-hero--loading .sticker-layer--hero .sticker { width: 4.5rem; }
+}

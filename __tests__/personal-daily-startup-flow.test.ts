@@ -28,7 +28,7 @@ describe('personal daily startup flow', () => {
     expect(dashboard).toContain('dailyPackage?.[key]?.hook');
     expect(dashboard).not.toContain('loadHumanDailyPackage');
     expect(dashboard).not.toContain('requestDailyPackage');
-    expect(dashboard).not.toContain('retryDailyPackage');
+    expect(dashboard).toContain('onRetryDailyPackage');
     expect(dashboard).not.toContain('useEffect(');
     expect(dashboard).not.toContain('fetch(');
   });

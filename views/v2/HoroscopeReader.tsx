@@ -258,7 +258,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     return formatDisplayDate(today, language);
   }, [period, today, language]);
 
-  /* Личный день — доступ по карте + Premium */
+  /* Личный гороскоп — доступ по карте + Premium */
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const personalSubtitle = !hasChart
     ? (language === 'ru' ? 'Сначала собери карту — тогда будет про тебя, не про знак вообще.' : 'Build your chart first — then it is about you, not just the sign.')
@@ -292,10 +292,10 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       {/* Единый верх (как на всех экранах). Знак НЕ дублируем — он в селекторе и на карточке. */}
       <FreshInnerHeader title={language === 'ru' ? 'Гороскоп' : 'Horoscope'} subtitle={dateLine} />
 
-      {/* Личный день — премиум, наверху */}
+      {/* Личный гороскоп — премиум, наверху */}
       <button type="button" className="horo-premium" onClick={openPersonal}>
         <div className="horo-premium-text">
-          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный день' : 'Personal day'}</div>
+          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный гороскоп' : 'Personal Horoscope'}</div>
           <div className="horo-premium-title">{personalSubtitle}</div>
         </div>
         <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
@@ -314,8 +314,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       <div style={{ padding: '0 20px' }}>
         <InfoNote title={language === 'ru' ? 'На чём основан гороскоп?' : 'What is this based on?'}>
           {language === 'ru'
-            ? 'Это общий гороскоп по знаку Солнца — один ориентир на период для всех с этим знаком. Личный разбор по твоей дате, времени и месту рождения — в разделе «Личный день».'
-            : 'This is a general horoscope for your Sun sign — one shared cue for everyone with that sign. A personal reading from your exact birth data is in "Personal day".'}
+            ? 'Это общий гороскоп по знаку Солнца — один ориентир на период для всех с этим знаком. Гороскоп по твоей дате, времени и месту рождения — в разделе «Личный гороскоп».'
+            : 'This is a general horoscope for your Sun sign — one shared cue for everyone with that sign. A horoscope based on your exact birth data is in “Personal Horoscope”.'}
         </InfoNote>
       </div>
 

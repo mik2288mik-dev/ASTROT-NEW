@@ -193,11 +193,12 @@ describe('daily package presentation patterns', () => {
     expect(HUMAN_DAILY_PROMPT_VERSION).not.toBe('your-horoscope-v2.daily-package');
   });
 
-  it('Dashboard renders card hooks from the startup package without its own retry loader', () => {
+  it('Dashboard renders card hooks from the startup package while App owns retry loading', () => {
     const dashboard = fs.readFileSync(path.join(ROOT, 'views', 'Dashboard.tsx'), 'utf8');
-    expect(dashboard).not.toContain('isDailyError');
-    expect(dashboard).not.toContain('retryDailyPackage');
+    expect(dashboard).toContain('dailyPackageStatus');
+    expect(dashboard).toContain('onRetryDailyPackage');
     expect(dashboard).not.toContain('requestDailyPackage');
+    expect(dashboard).not.toContain('loadHumanDailyPackage');
     expect(dashboard).toContain('dailyPackage?.[key]?.hook');
     expect(dashboard).toContain('getDashboardSystemText(systemState');
   });
