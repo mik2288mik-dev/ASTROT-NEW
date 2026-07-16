@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { getZodiacSign } from '../../../constants';
 import type { Language } from '../../../types';
 import { ZodiacIcon } from '../../icons/ZodiacIcon';
-import { ZODIAC_KEYS } from '../../../lib/horoscope/signDaily';
+import { ZODIAC_KEYS } from '../../../lib/zodiacKeys';
 
 type LzSignPickerSheetProps = {
   open: boolean;

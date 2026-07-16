@@ -1,6 +1,6 @@
 import type { Language } from '../types';
 import { getZodiacSign } from '../constants';
-import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from './horoscope/signDaily';
+import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from './zodiacKeys';
 
 type Element = 'fire' | 'earth' | 'air' | 'water';
 

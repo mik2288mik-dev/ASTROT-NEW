@@ -613,7 +613,7 @@ export const db = {
       }
     },
 
-    async get(userId: string) {
+    async get(userId: string, options?: { hydratePrimaryChart?: boolean }) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
       try {
@@ -625,13 +625,15 @@ export const db = {
         if (result.rows.length === 0) return null;
         const u = result.rows[0];
         let primaryChart: any = null;
-        try {
-          primaryChart = await db.natal_charts.getPrimary(id);
-        } catch (chartError: any) {
-          log.warn('[DB] Failed to hydrate user with primary chart summary', {
-            userId: id,
-            error: chartError?.message,
-          });
+        if (options?.hydratePrimaryChart !== false) {
+          try {
+            primaryChart = await db.natal_charts.getPrimary(id);
+          } catch (chartError: any) {
+            log.warn('[DB] Failed to hydrate user with primary chart summary', {
+              userId: id,
+              error: chartError?.message,
+            });
+          }
         }
         const isPremium = isFutureTimestamp(u.premium_until);
         const isSetup = resolveIsSetup(u);
@@ -650,6 +652,7 @@ export const db = {
           trial_started_at: u.trial_started_at,
           ref_code: u.ref_code,
           referred_by: u.referred_by,
+          notification_frequency: u.notification_frequency,
           login_streak: u.login_streak ?? 0,
           last_login: u.last_login,
           language: u.language || 'ru',

@@ -6,7 +6,7 @@ import { buildOpenAIChatParams } from '../openaiChat';
 import { buildContentCacheKey, getContentPolicy } from '../contentMatrix';
 import { buildSignCompatibilityPrompt, parseModelJson } from '../contentPromptBuilders';
 import { getPool } from '../db';
-import { normalizeZodiacKey, type ZodiacKey } from '../horoscope/signDaily';
+import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const policy = getContentPolicy('sign_compatibility');

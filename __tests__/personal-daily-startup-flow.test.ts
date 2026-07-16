@@ -46,35 +46,41 @@ describe('personal daily startup flow', () => {
     expect(screen).not.toContain('setSections');
   });
 
-  it('waits for personal daily before opening Dashboard for cached and DB charts', () => {
+  it('opens Dashboard before starting personal daily background work for cached and DB charts', () => {
     const app = read('App.tsx');
 
     const localRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
-    const localDaily = indexAfter(app, 'await prepareStartupDailyPackage({', localRead);
-    const localDashboard = indexAfter(app, "showStartupDashboard('dashboard')", localDaily);
+    const localDashboard = indexAfter(app, "showStartupDashboard('dashboard')", localRead);
+    const localBackground = indexAfter(app, 'scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData', localDashboard);
 
     const dbRead = app.indexOf('const chart = await loadPrimaryChartOnce(updatedProfile)');
-    const dbDaily = indexAfter(app, 'await prepareStartupDailyPackage({', dbRead);
-    const dbDashboard = indexAfter(app, "showStartupDashboard(requestedViewRef.current || 'dashboard')", dbDaily);
+    const dbDashboard = indexAfter(app, "showStartupDashboard(requestedViewRef.current || 'dashboard')", dbRead);
+    const dbBackground = indexAfter(app, 'scheduleStartupBackgroundWork(updatedProfile, chart, null, false)', dbDashboard);
+    const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
+    const backgroundDaily = indexAfter(app, 'void prepareStartupDailyPackage({', scheduler);
 
     expect(localRead).toBeGreaterThan(-1);
-    expect(localDaily).toBeGreaterThan(localRead);
-    expect(localDashboard).toBeGreaterThan(localDaily);
+    expect(localDashboard).toBeGreaterThan(localRead);
+    expect(localBackground).toBeGreaterThan(localDashboard);
     expect(dbRead).toBeGreaterThan(-1);
-    expect(dbDaily).toBeGreaterThan(dbRead);
-    expect(dbDashboard).toBeGreaterThan(dbDaily);
+    expect(dbDashboard).toBeGreaterThan(dbRead);
+    expect(dbBackground).toBeGreaterThan(dbDashboard);
+    expect(backgroundDaily).toBeGreaterThan(scheduler);
+    expect(app.slice(localRead, localDashboard)).not.toContain('await prepareStartupDailyPackage');
+    expect(app.slice(dbRead, dbDashboard)).not.toContain('await prepareStartupDailyPackage');
   });
 
-  it('creates the personal daily package during onboarding before opening the app', () => {
+  it('starts the personal daily package without awaiting it during onboarding', () => {
     const app = read('App.tsx');
 
     const chartGenerated = app.indexOf('const generatedChart = await getOrCalculateChart(fullProfile)');
-    const dailyPackage = indexAfter(app, 'await prepareStartupDailyPackage({', chartGenerated);
+    const dailyPackage = indexAfter(app, 'void prepareStartupDailyPackage({', chartGenerated);
     const openApp = indexAfter(app, 'setView(targetView)', dailyPackage);
 
     expect(chartGenerated).toBeGreaterThan(-1);
     expect(dailyPackage).toBeGreaterThan(chartGenerated);
     expect(openApp).toBeGreaterThan(dailyPackage);
+    expect(app.slice(chartGenerated, openApp)).not.toContain('await prepareStartupDailyPackage');
   });
 
   it('startup daily errors do not block Dashboard entry', () => {

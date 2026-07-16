@@ -108,7 +108,7 @@ export default async function handler(
       
       let user;
       try {
-        user = await db.users.get(userId);
+        user = await db.users.get(userId, { hydratePrimaryChart: false });
       } catch (dbError: any) {
         log.error(`[GET] Database error`, { error: dbError.message });
         return res.status(500).json({ error: 'Database error', message: dbError.message });
@@ -127,13 +127,15 @@ export default async function handler(
 
       const loginStreak = user.login_streak ?? 0;
       const chartSlots = user.chart_slots ?? 1;
-      const notificationFrequency = await getNotificationFrequency(userId);
+      const notificationFrequency = normalizeNotificationFrequency(user.notification_frequency);
 
-      let refCode: string | null = null;
-      try {
-        refCode = await db.users.ensureReferralCode(userId);
-      } catch (e: any) {
-        log.warn('[GET] ensureReferralCode failed', { userId, error: e?.message });
+      let refCode = normalizeNullableString(user.ref_code)?.toUpperCase() || null;
+      if (!refCode) {
+        try {
+          refCode = await db.users.ensureReferralCode(userId);
+        } catch (e: any) {
+          log.warn('[GET] ensureReferralCode failed', { userId, error: e?.message });
+        }
       }
 
       const clientUser = {

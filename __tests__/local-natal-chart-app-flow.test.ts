@@ -5,40 +5,40 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('local natal chart app flow', () => {
-  it('prepares the daily package before showing the cached startup dashboard', () => {
+  it('shows the cached startup dashboard before background daily and refresh work', () => {
     const app = read('App.tsx');
     const startupLocalRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
     const ready = app.indexOf("setChartLoadState('ready')", startupLocalRead);
-    const dailyPackage = app.indexOf('await prepareStartupDailyPackage({', ready);
-    const dashboard = app.indexOf("showStartupDashboard('dashboard')", dailyPackage);
+    const dashboard = app.indexOf("showStartupDashboard('dashboard')", ready);
     const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData', dashboard);
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
+    const dailyPackage = app.indexOf('void prepareStartupDailyPackage({', scheduler);
     const dbRefresh = app.indexOf('getChartFromDB(String(targetProfile.id))', scheduler);
     const idRefresh = app.indexOf('getPrimaryChartId(String(targetProfile.id))', scheduler);
     const prewarm = app.indexOf('void prepareUserContentDbFirst({', scheduler);
 
     expect(startupLocalRead).toBeGreaterThan(-1);
     expect(ready).toBeGreaterThan(startupLocalRead);
-    expect(dailyPackage).toBeGreaterThan(ready);
-    expect(dashboard).toBeGreaterThan(dailyPackage);
+    expect(dashboard).toBeGreaterThan(ready);
     expect(background).toBeGreaterThan(dashboard);
+    expect(dailyPackage).toBeGreaterThan(scheduler);
+    expect(app.slice(ready, dashboard)).not.toContain('await prepareStartupDailyPackage');
     expect(dbRefresh).toBeGreaterThan(scheduler);
     expect(idRefresh).toBeGreaterThan(scheduler);
     expect(prewarm).toBeGreaterThan(scheduler);
     expect(app).toContain('Background primary chart refresh failed; keeping local cache');
   });
 
-  it('prepares the daily package after a DB chart before opening dashboard', () => {
+  it('opens dashboard immediately after a DB chart and schedules daily in background', () => {
     const app = read('App.tsx');
     const dbChart = app.indexOf('const chart = await loadPrimaryChartOnce(updatedProfile)');
-    const dailyPackage = app.indexOf('await prepareStartupDailyPackage({', dbChart);
-    const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')", dailyPackage);
-    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, chart, startupChartId, false)', dashboard);
+    const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')", dbChart);
+    const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, chart, null, false)', dashboard);
 
     expect(dbChart).toBeGreaterThan(-1);
-    expect(dailyPackage).toBeGreaterThan(dbChart);
-    expect(dashboard).toBeGreaterThan(dailyPackage);
+    expect(dashboard).toBeGreaterThan(dbChart);
     expect(background).toBeGreaterThan(dashboard);
+    expect(app.slice(dbChart, dashboard)).not.toContain('await prepareStartupDailyPackage');
     expect(app).toContain('void prepareUserContentDbFirst({');
   });
 
@@ -76,15 +76,13 @@ describe('local natal chart app flow', () => {
   it('starts human-base prefetch with the resolved primary chart ID after the first dashboard paint', () => {
     const app = read('App.tsx');
     const localRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
-    const dailyPackage = app.indexOf('await prepareStartupDailyPackage({', localRead);
-    const dashboard = app.indexOf("showStartupDashboard('dashboard')", dailyPackage);
+    const dashboard = app.indexOf("showStartupDashboard('dashboard')", localRead);
     const scheduleCall = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true)', dashboard);
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
-    const earlyPrefetch = app.indexOf('if (initialChartId != null) startHumanBasePrefetch(initialChartId)', scheduler);
+    const earlyPrefetch = app.indexOf('startHumanBasePrefetch(initialChartId);', scheduler);
     const prewarm = app.indexOf('void prepareUserContentDbFirst({', scheduler);
 
-    expect(dailyPackage).toBeGreaterThan(localRead);
-    expect(dashboard).toBeGreaterThan(dailyPackage);
+    expect(dashboard).toBeGreaterThan(localRead);
     expect(scheduleCall).toBeGreaterThan(dashboard);
     expect(earlyPrefetch).toBeGreaterThan(scheduler);
     expect(earlyPrefetch).toBeLessThan(prewarm);

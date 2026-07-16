@@ -18,7 +18,7 @@ import { buildMiniAppButtonUrl } from '../lib/notificationDeepLink';
 import { resolveDailyAstroSignalForUser } from '../lib/dailyAstroSignalResolver';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { getZodiacSign } from '../constants';
-import { normalizeZodiacKey } from '../lib/horoscope/signDaily';
+import { normalizeZodiacKey } from '../lib/zodiacKeys';
 import type {
   AdminScheduledNotificationQueueItem,
   RetentionNotificationStatus,

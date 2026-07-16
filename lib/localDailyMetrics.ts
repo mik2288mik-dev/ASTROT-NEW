@@ -1,5 +1,5 @@
 import type { Language, DailyAstroSignal } from '../types';
-import { normalizeZodiacKey, type ZodiacKey } from './horoscope/signDaily';
+import { normalizeZodiacKey, type ZodiacKey } from './zodiacKeys';
 
 export type DailyMetricKey = 'mood' | 'energy' | 'communication' | 'focus';
 

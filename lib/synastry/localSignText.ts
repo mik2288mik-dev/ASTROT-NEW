@@ -4,7 +4,7 @@
  */
 import type { Language } from '../../types';
 import { getZodiacSign } from '../../constants';
-import { normalizeZodiacKey } from '../horoscope/signDaily';
+import { normalizeZodiacKey } from '../zodiacKeys';
 import type { SignCompatibilityResult } from './signCompatibility';
 
 type Element = 'fire' | 'earth' | 'air' | 'water';

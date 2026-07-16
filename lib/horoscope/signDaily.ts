@@ -7,6 +7,10 @@ import { buildSignDailyHoroscopePrompt, parseModelJson } from '../contentPromptB
 import { db } from '../db';
 import { getZodiacSign } from '../../constants';
 import { getMoonPhase } from './moonPhase';
+import { ZODIAC_KEYS, normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
+
+export { ZODIAC_KEYS, normalizeZodiacKey };
+export type { ZodiacKey };
 
 /** Реальный контекст дня для общего гороскопа по знаку — фаза Луны конкретной даты. */
 function dayContext(date: string, language: Language) {
@@ -26,29 +30,7 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-export const ZODIAC_KEYS = [
-  'Aries',
-  'Taurus',
-  'Gemini',
-  'Cancer',
-  'Leo',
-  'Virgo',
-  'Libra',
-  'Scorpio',
-  'Sagittarius',
-  'Capricorn',
-  'Aquarius',
-  'Pisces',
-] as const;
-
-export type ZodiacKey = (typeof ZODIAC_KEYS)[number];
-
 export const SIGN_HOROSCOPE_PROMPT_VERSION = getContentPolicy('sign_daily_horoscope').promptVersion;
-
-export function normalizeZodiacKey(value: string | null | undefined): ZodiacKey | null {
-  const raw = String(value || '').trim();
-  return ZODIAC_KEYS.find((key) => key.toLowerCase() === raw.toLowerCase()) || null;
-}
 
 /**
  * Ключ вовлечённости (лайки/просмотры): либо один знак, либо пара "знак_знак" в

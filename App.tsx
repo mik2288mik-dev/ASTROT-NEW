@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type HoroscopeOpenOptions, type PersonalDailySection } from './types';
 import {
     getProfile,
@@ -17,24 +18,13 @@ import {
 } from './lib/localHumanBaseReportCache';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
-import { Onboarding } from './views/Onboarding';
 import { Dashboard } from './views/Dashboard';
-import { NatalMagazine } from './views/v2/NatalMagazine';
-import { HoroscopeReader } from './views/v2/HoroscopeReader';
-import { PersonalDailyScreen } from './views/DailyContentScreens';
-import { Settings } from './views/Settings';
-import { AdminApp } from './views/admin2/AdminApp';
 import { Header } from './components/Header';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
-import { PremiumPreview } from './components/PremiumPreview';
 import { requestStarsPayment } from './services/telegramService';
 import type { PremiumPlanId } from './lib/premiumPricing';
-import { Paywall } from './views/Paywall';
-import { UnionRoom } from './views/v2/UnionRoom';
-import { MatrixRoom } from './views/v2/MatrixRoom';
-import { MyCharts } from './views/MyCharts';
 import { getAdminStatus } from './services/adminService';
 import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, updateUserNotificationSettings, waitForTelegramInitData } from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
@@ -56,6 +46,21 @@ import {
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
 import type { DailyCanvas } from './lib/natalHumanShared';
+
+const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
+    ssr: false,
+    loading: () => <Loading />,
+});
+const NatalMagazine = dynamic(() => import('./views/v2/NatalMagazine').then((module) => module.NatalMagazine), { ssr: false });
+const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
+const PersonalDailyScreen = dynamic(() => import('./views/DailyContentScreens').then((module) => module.PersonalDailyScreen), { ssr: false });
+const Settings = dynamic(() => import('./views/Settings').then((module) => module.Settings), { ssr: false });
+const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
+const PremiumPreview = dynamic(() => import('./components/PremiumPreview').then((module) => module.PremiumPreview), { ssr: false });
+const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
+const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
+const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
+const MyCharts = dynamic(() => import('./views/MyCharts').then((module) => module.MyCharts), { ssr: false });
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
@@ -372,6 +377,7 @@ const App: React.FC = () => {
         chartId: number | null;
         progressStart?: number;
         progressSpan?: number;
+        reportProgress?: boolean;
     }): Promise<DailyCanvas | null> => {
         const userId = input.profile.id ? String(input.profile.id) : '';
         if (!userId || isGuestUserId(userId) || !input.chartData?.sun || !input.chartData?.moon || !input.chartData?.rising) {
@@ -394,8 +400,11 @@ const App: React.FC = () => {
 
         const progressStart = input.progressStart ?? 70;
         const progressSpan = input.progressSpan ?? 24;
-        setLoadingMessage(input.profile.language === 'en' ? 'Preparing your personal day' : '\u0413\u043e\u0442\u043e\u0432\u0438\u043c \u0442\u0432\u043e\u0439 \u043b\u0438\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c');
-        setLoadingProgress(progressStart);
+        const reportProgress = input.reportProgress !== false;
+        if (reportProgress) {
+            setLoadingMessage(input.profile.language === 'en' ? 'Preparing your personal day' : '\u0413\u043e\u0442\u043e\u0432\u0438\u043c \u0442\u0432\u043e\u0439 \u043b\u0438\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c');
+            setLoadingProgress(progressStart);
+        }
 
         const request = loadHumanDailyPackage(userId, input.chartId ?? undefined, dateKey, {
             accessTier: 'premium',
@@ -405,7 +414,7 @@ const App: React.FC = () => {
             .then((canvas) => {
                 dailyPackageSessionRef.current = { key, data: canvas, promise: null };
                 setDailyPackage(canvas);
-                setLoadingProgress(progressStart + progressSpan);
+                if (reportProgress) setLoadingProgress(progressStart + progressSpan);
                 return canvas;
             })
             .catch((error) => {
@@ -419,7 +428,7 @@ const App: React.FC = () => {
                     message: err?.message || String(error),
                 });
                 setDailyPackage(null);
-                setLoadingProgress(progressStart + progressSpan);
+                if (reportProgress) setLoadingProgress(progressStart + progressSpan);
                 return null;
             });
 
@@ -731,9 +740,26 @@ const App: React.FC = () => {
                         console.warn('[App] Human base report background prefetch failed:', error?.message || error);
                     });
             };
+            let dailyPackageStarted = false;
+            const startDailyPackage = (chart: NatalChartData, chartId: number | null) => {
+                if (dailyPackageStarted) return;
+                dailyPackageStarted = true;
+                void prepareStartupDailyPackage({
+                    profile: targetProfile,
+                    chartData: chart,
+                    chartId,
+                    reportProgress: false,
+                }).finally(() => {
+                    logStartupMetric('startup_daily_done_ms', startupElapsedMs());
+                });
+            };
 
-            // Start independently from chart refresh and content prewarm once the cached ID is known.
-            if (initialChartId != null) startHumanBasePrefetch(initialChartId);
+            // Cached data is already sufficient for the exact same daily request; do not
+            // keep the app loader visible while the model/cache endpoint finishes.
+            if (initialChartId != null) {
+                startHumanBasePrefetch(initialChartId);
+                startDailyPackage(initialChart, initialChartId);
+            }
 
             void (async () => {
                 let chart = initialChart;
@@ -774,6 +800,10 @@ const App: React.FC = () => {
 
                 await Promise.all([chartRefresh, chartIdRefresh]);
 
+                if (!dailyPackageStarted) {
+                    startDailyPackage(chart, chartId);
+                }
+
                 void prepareUserContentDbFirst({
                     userId: String(targetProfile.id),
                     chartId,
@@ -804,18 +834,17 @@ const App: React.FC = () => {
             setInitialTodaySection(notificationLaunchRef.current?.section || startParamSection);
             
             // Ждём Telegram Web App (может загружаться асинхронно)
-            let tgId: string | number | undefined;
-            const telegramWaitAttempts = (window as any).Telegram?.WebApp ? 12 : 1;
-            for (let attempt = 0; attempt < telegramWaitAttempts; attempt++) {
-                if (cancelled) return;
-                const tg = (window as any).Telegram?.WebApp;
-                tgId = tg?.initDataUnsafe?.user?.id;
-                if (tgId) {
-                    applyTelegramSafeAreaCssVars();
-                    break;
+            const telegramWebApp = (window as any).Telegram?.WebApp;
+            if (telegramWebApp) {
+                const initData = await waitForTelegramInitData({ maxAttempts: 8, delayMs: 250 });
+                if (!initData) {
+                    console.warn('[App] Telegram initData not available after bounded wait; proceeding with local profile fallback');
+                    logStartupMetric('startup_init_data_missing', true);
                 }
-                await new Promise(r => setTimeout(r, 300));
+                applyTelegramSafeAreaCssVars();
             }
+            if (cancelled) return;
+            let tgId: string | number | undefined = telegramWebApp?.initDataUnsafe?.user?.id;
 
             let webGuestProfile: UserProfile | null = null;
             if (!isValidUserId(tgId)) {
@@ -842,14 +871,6 @@ const App: React.FC = () => {
                 const tg = (window as any).Telegram?.WebApp;
                 const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
 
-                if (tg) {
-                    const initData = await waitForTelegramInitData();
-                    if (!initData) {
-                        console.warn('[App] Telegram initData not available after wait; proceeding with local profile fallback');
-                        logStartupMetric('startup_init_data_missing', true);
-                    }
-                }
-
                 setLoadingProgress(30);
                 const storedProfile = webGuestProfile || await getProfile();
 
@@ -862,7 +883,7 @@ const App: React.FC = () => {
                 let updatedProfile: UserProfile;
                 if (!storedProfile) {
                     setLoadingProgress(42);
-                    const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, false);
+                    const isAdmin = getFallbackAdminStatus(safeTgId, false);
                     updatedProfile = {
                         ...buildMinimalStartupProfile(safeTgId, tgUser),
                         isAdmin,
@@ -876,7 +897,7 @@ const App: React.FC = () => {
                         });
                     }
                 } else {
-                    const isAdmin = await resolveAuthoritativeAdminStatus(safeTgId, storedProfile.isAdmin);
+                    const isAdmin = getFallbackAdminStatus(safeTgId, storedProfile.isAdmin);
                     updatedProfile = normalizeStartupProfile(storedProfile, safeTgId, tgUser, isAdmin);
                     if (needsStartupProfileNormalizationSave(storedProfile)) {
                         void saveProfile(updatedProfile).catch((saveError: any) => {
@@ -886,6 +907,15 @@ const App: React.FC = () => {
                 }
 
                 setProfile(updatedProfile);
+                if (!isGuestUserId(String(safeTgId))) {
+                    void resolveAuthoritativeAdminStatus(safeTgId, updatedProfile.isAdmin)
+                        .then((isAdmin) => {
+                            if (cancelled) return;
+                            setProfile((current) => current && String(current.id) === String(safeTgId)
+                                ? { ...current, isAdmin }
+                                : current);
+                        });
+                }
                 logStartupMetric('startup_profile_loaded_ms', startupElapsedMs());
 
                 runReferralFromStartParam(String(safeTgId), (r) => {
@@ -912,26 +942,12 @@ const App: React.FC = () => {
                     primaryChartDataRef.current = localEntry.chartData;
                     setChartData(localEntry.chartData);
                     setChartLoadState('ready');
-                    const startupChartId = localEntry.chartId ?? await getPrimaryChartId(String(updatedProfile.id)).catch((error: any) => {
-                        console.warn('[App] Startup primary chart ID lookup failed:', error?.message || error);
-                        return null;
-                    });
+                    const startupChartId = localEntry.chartId ?? null;
                     if (startupChartId != null) {
                         setPrimaryChartId(startupChartId);
                         writeLocalNatalChart(updatedProfile, localEntry.chartData, startupChartId);
                     }
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
-                    try {
-                        await prepareStartupDailyPackage({
-                            profile: updatedProfile,
-                            chartData: localEntry.chartData,
-                            chartId: startupChartId,
-                            progressStart: 60,
-                            progressSpan: 34,
-                        });
-                    } catch (dailyError) {
-                        console.warn('[App] Startup daily package failed after local chart; opening Dashboard:', dailyError);
-                    }
                     showStartupDashboard('dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true);
                     return;
@@ -950,27 +966,8 @@ const App: React.FC = () => {
                         moonSign: chart.moon.sign
                     });
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
-                    const startupChartId = await getPrimaryChartId(String(updatedProfile.id)).catch((error: any) => {
-                        console.warn('[App] Startup primary chart ID lookup failed:', error?.message || error);
-                        return null;
-                    });
-                    if (startupChartId != null) {
-                        setPrimaryChartId(startupChartId);
-                        writeLocalNatalChart(updatedProfile, chart, startupChartId);
-                    }
-                    try {
-                        await prepareStartupDailyPackage({
-                            profile: updatedProfile,
-                            chartData: chart,
-                            chartId: startupChartId,
-                            progressStart: 72,
-                            progressSpan: 22,
-                        });
-                    } catch (dailyError) {
-                        console.warn('[App] Startup daily package failed after DB chart; opening Dashboard:', dailyError);
-                    }
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
-                    scheduleStartupBackgroundWork(updatedProfile, chart, startupChartId, false);
+                    scheduleStartupBackgroundWork(updatedProfile, chart, null, false);
                 } else {
                     console.log('[App] Chart unavailable after startup load, going to dashboard');
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
@@ -1031,7 +1028,7 @@ const App: React.FC = () => {
         // identity loaded into the current profile from its signed server session.
         const safeUserId = String(hasTelegramUserId ? tgId : currentProfileId);
         const isGuestOnboarding = !hasTelegramUserId;
-        const isAdmin = isGuestOnboarding ? false : await resolveAuthoritativeAdminStatus(safeUserId, false);
+        const isAdmin = isGuestOnboarding ? false : getFallbackAdminStatus(safeUserId, profile?.isAdmin);
         const retainedPremiumUntil = isGuestOnboarding
             ? null
             : getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
@@ -1053,6 +1050,14 @@ const App: React.FC = () => {
         };
 
         setProfile(fullProfile);
+        if (!isGuestOnboarding) {
+            void resolveAuthoritativeAdminStatus(safeUserId, fullProfile.isAdmin)
+                .then((authoritativeIsAdmin) => {
+                    setProfile((current) => current && String(current.id) === safeUserId
+                        ? { ...current, isAdmin: authoritativeIsAdmin }
+                        : current);
+                });
+        }
         setLoading(true);
         setLoadingProgress(10);
 
@@ -1109,52 +1114,47 @@ const App: React.FC = () => {
             setLoadingMessage(
                 fullProfile.language === 'en' ? 'Preparing your day' : 'Готовим твой день'
             );
-            setLoadingProgress(72);
-            const primaryChartId = await getPrimaryChartId(String(fullProfile.id));
-            if (primaryChartId != null) {
-                clearLocalHumanBaseReport(fullProfile, primaryChartId);
-                setPrimaryChartId(primaryChartId);
-                writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
-            }
-            await prepareStartupDailyPackage({
+            void prepareStartupDailyPackage({
                 profile: fullProfile,
                 chartData: generatedChart,
-                chartId: primaryChartId,
-                progressStart: 72,
-                progressSpan: 18,
+                chartId: null,
+                reportProgress: false,
             });
-            const dateKey = getMoscowTodayKey();
-            try {
-                await prepareUserContentDbFirst({
-                    userId: String(fullProfile.id),
-                    chartId: primaryChartId,
-                    profile: fullProfile,
-                    chartData: generatedChart,
-                    isPremium: hasActivePremium(fullProfile),
-                    dateKey,
-                    progressStart: 72,
-                    progressSpan: 18,
+            void getPrimaryChartId(String(fullProfile.id))
+                .then((primaryChartId) => {
+                    if (primaryChartId != null) {
+                        clearLocalHumanBaseReport(fullProfile, primaryChartId);
+                        setPrimaryChartId(primaryChartId);
+                        writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
+                    }
+                    return prepareUserContentDbFirst({
+                        userId: String(fullProfile.id),
+                        chartId: primaryChartId,
+                        profile: fullProfile,
+                        chartData: generatedChart,
+                        isPremium: hasActivePremium(fullProfile),
+                        dateKey: getMoscowTodayKey(),
+                    });
+                })
+                .catch((prewarmError: any) => {
+                    console.warn('[App] Onboarding background content flow failed:', prewarmError?.message || prewarmError);
                 });
-            } catch (prewarmError: any) {
-                console.warn('[App] Onboarding DB-first content flow failed:', prewarmError?.message || prewarmError);
-            }
             setLoadingProgress(90);
 
             // Опт-ин уведомлений из онбординга — регистрируем настройки в движке (best-effort).
             if (newProfile.notificationFrequency && newProfile.notificationFrequency !== 'quiet') {
-                try {
-                    const freq = newProfile.notificationFrequency;
-                    await updateUserNotificationSettings({
+                const freq = newProfile.notificationFrequency;
+                void updateUserNotificationSettings({
                         enabled: true,
                         morningEnabled: true,
                         dayEnabled: freq === 'twice_daily',
                         eveningEnabled: freq === 'daily' || freq === 'twice_daily',
                         reactivationEnabled: true,
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+                    })
+                    .catch((notifyError: any) => {
+                        console.warn('[App] notification opt-in registration failed:', notifyError?.message || notifyError);
                     });
-                } catch (notifyError: any) {
-                    console.warn('[App] notification opt-in registration failed:', notifyError?.message || notifyError);
-                }
             }
 
             setLoadingProgress(100);

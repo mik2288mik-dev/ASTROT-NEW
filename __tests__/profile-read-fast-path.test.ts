@@ -1,0 +1,27 @@
+import fs from 'fs';
+import path from 'path';
+
+const ROOT = path.resolve(__dirname, '..');
+const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+describe('profile read fast path', () => {
+  it('uses the user row for startup fields without redundant chart and preference queries', () => {
+    const route = read('pages/api/users/[id].ts');
+    const getStart = route.indexOf("if (req.method === 'GET')");
+    const postStart = route.indexOf("if (req.method === 'POST'", getStart);
+    const getBlock = route.slice(getStart, postStart);
+
+    expect(getBlock).toContain("db.users.get(userId, { hydratePrimaryChart: false })");
+    expect(getBlock).toContain('normalizeNotificationFrequency(user.notification_frequency)');
+    expect(getBlock).not.toContain('await getNotificationFrequency(userId)');
+    expect(getBlock).toContain('if (!refCode)');
+  });
+
+  it('keeps primary-chart hydration enabled by default for other callers', () => {
+    const db = read('lib/db.ts');
+
+    expect(db).toContain('async get(userId: string, options?: { hydratePrimaryChart?: boolean })');
+    expect(db).toContain("if (options?.hydratePrimaryChart !== false)");
+    expect(db).toContain('notification_frequency: u.notification_frequency');
+  });
+});

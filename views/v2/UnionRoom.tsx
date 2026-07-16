@@ -12,7 +12,7 @@ import { getCompatScore, sunSignFromDate, DIMENSION_LABELS, type CompatResult, t
 import { ZodiacIcon } from '../../components/icons/ZodiacIcon';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { FreshSignWheel, InfoNote } from '../../components/fresh-ui';
-import { ZODIAC_KEYS } from '../../lib/horoscope/signDaily';
+import { ZODIAC_KEYS } from '../../lib/zodiacKeys';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';

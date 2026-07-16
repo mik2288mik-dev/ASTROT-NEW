@@ -21,7 +21,7 @@ import { FreshTabs, FreshSignCarousel, InfoNote } from '../../components/fresh-u
 import { ZodiacIllustration } from '../../components/icons/ZodiacArt';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
-import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/horoscope/signDaily';
+import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
 
 const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
 

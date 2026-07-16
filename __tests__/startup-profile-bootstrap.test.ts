@@ -8,10 +8,23 @@ describe('startup profile bootstrap', () => {
   it('waits for Telegram initData before profile fetch', () => {
     const app = read('App.tsx');
     expect(app).toContain('waitForTelegramInitData');
-    const waitIdx = app.indexOf('await waitForTelegramInitData()');
+    const waitIdx = app.indexOf('await waitForTelegramInitData({ maxAttempts: 8, delayMs: 250 })');
     const getProfileIdx = app.indexOf('await getProfile()', waitIdx);
     expect(waitIdx).toBeGreaterThan(-1);
     expect(getProfileIdx).toBeGreaterThan(waitIdx);
+  });
+
+  it('does not block startup on admin status or primary chart ID when local chart exists', () => {
+    const app = read('App.tsx');
+    const profileLoaded = app.indexOf('const storedProfile = webGuestProfile || await getProfile()');
+    const localChart = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)', profileLoaded);
+    const dashboard = app.indexOf("showStartupDashboard('dashboard')", localChart);
+
+    expect(profileLoaded).toBeGreaterThan(-1);
+    expect(localChart).toBeGreaterThan(profileLoaded);
+    expect(dashboard).toBeGreaterThan(localChart);
+    expect(app.slice(profileLoaded, localChart)).not.toContain('await resolveAuthoritativeAdminStatus');
+    expect(app.slice(localChart, dashboard)).not.toContain('await getPrimaryChartId');
   });
 
   it('uses retry helper instead of bare await saveProfile for new users', () => {
