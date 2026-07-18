@@ -35,4 +35,8 @@ npm run lint
 
 See `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`.
 
-- [Card background illustration system](docs/design/card-background-system/README.md)
+## Visual card system
+
+- [Visual system, composition, rotation, expanded covers, and seasonal rules](docs/design/card-background-system/README.md)
+- [Guide for generating new illustrated card assets](docs/design/card-background-system/ASSET_GENERATION_GUIDE.md)
+- [Production asset manifest](docs/design/card-background-system/card-background-manifest.json)
