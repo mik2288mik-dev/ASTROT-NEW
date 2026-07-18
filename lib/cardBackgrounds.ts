@@ -25,8 +25,7 @@ type CardBackgroundStyle = CSSProperties & {
 
 const ASSETS = (manifest.assets as CardBackgroundAsset[]).filter((asset) => asset.enabled);
 
-const PERSONAL_THEME_BY_SECTION: Record<PersonalDailySection, string> = {
-  overview: 'overview',
+const PERSONAL_THEME_BY_SECTION: Record<Exclude<PersonalDailySection, 'overview'>, string> = {
   love: 'love',
   money: 'money',
   work: 'work',
@@ -69,6 +68,8 @@ export function getPersonalCardBackground(
   userId: string,
   dateKey: string,
 ): CardBackgroundAsset | null {
+  // Обзор открывается из главной hero-карточки, поэтому сохраняет ту же композицию.
+  if (section === 'overview') return getHeroCardBackground(userId, dateKey);
   return selectAsset('personal', PERSONAL_THEME_BY_SECTION[section], userId, dateKey);
 }
 
