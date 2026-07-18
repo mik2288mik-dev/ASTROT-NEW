@@ -34,3 +34,5 @@ npm run lint
 ## Current Product Documentation
 
 See `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`.
+
+- [Card background illustration system](docs/design/card-background-system/README.md)
