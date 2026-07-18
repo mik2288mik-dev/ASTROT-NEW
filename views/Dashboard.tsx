@@ -18,17 +18,18 @@ import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen
 import type { SurfaceRequest } from '../lib/stickers/select';
 import { getDashboardSystemText, type DashboardSystemState } from '../lib/dailyPresentationPatterns';
 import type { DailyCanvas } from '../lib/natalHumanShared';
+import {
+  cardBackgroundStyle,
+  getHeroCardBackground,
+  getPersonalCardBackground,
+  getUniversalCardBackground,
+  type CardBackgroundAsset,
+} from '../lib/cardBackgrounds';
 
 // ── Динамическая система стикеров (см. docs/STICKER_SYSTEM.md) ──
-// Стикеры/позиции выбираются случайно из каталога на КАЖДЫЙ заход; это единственное место,
-// где настраиваются вайб (moods) и ТЕМАТИКА (themes) каждого блока. Правила: не больше одного
-// маскота на карточку, общий лимит на экран = 3, тематический фильтр (rule 5). Раскладка
-// меняется 2 раза в сутки (см. StickerScreen), а не на каждый заход.
-// NB (для параллельного дизайн-агента): не возвращать статические <img> стикеров в карточки —
-// их рисует <StickerSlot/>; слой изолирован в styles/stickers.css.
+// Маскот остаётся только в состоянии расчёта. После загрузки характер карточкам
+// дают оригинальные editorial-фоны из card-background-manifest.json.
 const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
-  // Маскот появляется только пока считается личный гороскоп. Спокойные рабочие
-  // образы поддерживают статус, но не остаются декоративным шумом после загрузки.
   { surface: 'hero', kind: 'maskot', moods: ['thinking', 'calm'], themes: ['study', 'read', 'tech'] },
 ];
 
@@ -36,6 +37,7 @@ type SphereCard = {
   section: PersonalDailySection;
   title: string;
   hook: string;
+  background: CardBackgroundAsset | null;
 };
 
 type DashboardProps = {
@@ -72,12 +74,23 @@ export const Dashboard = memo<DashboardProps>(({
 }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const today = useMemo(() => getMoscowTodayKey(), []);
+  const backgroundUserId = String(profile.id || 'guest');
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
   // Главная всегда показывает СВОЙ знак (по карте/дате рождения), а не последний
   // просмотренный в гороскопе — иначе у Рыб на главной мог оказаться Козерог.
   const ownSunSign = String(chartData?.sun?.sign || sunSignFromDate(profile.birthDate) || '').trim().toLowerCase();
   const selectedSign = ownSunSign || String(profile.selectedZodiacSign || '').trim().toLowerCase();
+
+  // Картинки выбираются детерминированно: пользователь + дата + ключ карточки.
+  // Поэтому фон не прыгает при повторном рендере и остаётся тем же весь день.
+  const heroBackground = useMemo(
+    () => getHeroCardBackground(backgroundUserId, today),
+    [backgroundUserId, today],
+  );
+  const natalBackground = useMemo(() => getUniversalCardBackground('natal'), []);
+  const matrixBackground = useMemo(() => getUniversalCardBackground('matrix'), []);
+  const compatibilityBackground = useMemo(() => getUniversalCardBackground('compatibility'), []);
 
   // Карточка-герой и hooks восьми сфер читают один сохранённый дневной пакет.
   // Если пакета ещё нет, Dashboard показывает системное состояние, а не прогнозную заглушку.
@@ -103,7 +116,7 @@ export const Dashboard = memo<DashboardProps>(({
     ? ['Сегодня', 'Эта неделя', 'Этот месяц', 'Этот год']
     : ['Today', 'This week', 'This month', 'This year'];
 
-  /* Дата личного hero. Общий sky snapshot загружается отдельно в App. */
+  /* Дата личного hero. */
   const weekdayLabel = useMemo(() => {
     const [yr, mo, da] = today.split('-').map(Number);
     const d = new Date(Date.UTC(yr, mo - 1, da, 12));
@@ -136,55 +149,59 @@ export const Dashboard = memo<DashboardProps>(({
     : isDailyError
       ? (language === 'ru' ? 'Повторить расчёт личного гороскопа' : 'Retry personal horoscope calculation')
       : language === 'ru' ? 'Открыть личный гороскоп' : 'Open your personal horoscope';
-  const dayHeroCta = isDailyLoading
+  const dayHeroCta: string | null = isDailyLoading
     ? (language === 'ru' ? 'Гороскоп рассчитывается' : 'Calculating your horoscope')
     : isDailyError
       ? (language === 'ru' ? 'Попробовать ещё раз' : 'Try again')
       : !hasChart
         ? (language === 'ru' ? 'Создать натальную карту' : 'Create natal chart')
-        : (language === 'ru' ? 'Открыть личный гороскоп' : 'Open personal horoscope');
+        : null;
   const natalText = hasChart
     ? (language === 'ru'
-      ? 'Карта уже собрана. Посмотри, что в ней про характер, привычки и сильные стороны.'
-      : 'Your chart is ready. See what it says about your character, habits, and strengths.')
+      ? 'Характер, привычки и сильные стороны — по твоим данным рождения.'
+      : 'Character, habits, and strengths based on your birth data.')
     : (language === 'ru'
       ? 'Дата, время и место рождения — и вместо общих слов будет разбор про тебя.'
       : 'Add your birth date, time, and place to get a reading about you, not a generic one.');
   const matrixText = language === 'ru'
-    ? 'Числа рождения покажут, что у тебя получается без разгона, а где ты сам себе добавляешь квестов.'
-    : 'Your birth numbers show what comes naturally and where you tend to make life harder than it needs to be.';
+    ? 'Что у тебя получается естественно, а где ты сам добавляешь себе лишний квест.'
+    : 'What comes naturally and where you tend to make life harder than it needs to be.';
   const compatibilityText = language === 'ru'
-    ? 'Где вы быстро находите общий язык, а где спор начинается раньше, чем кто-то понял вопрос.'
-    : 'See where you click quickly and where an argument starts before either person has understood the question.';
-  const sphereCards: SphereCard[] = (language === 'ru'
-    ? [
-        ['love', 'Любовь'],
-        ['money', 'Деньги'],
-        ['work', 'Работа'],
-        ['goals', 'Цели'],
-        ['family', 'Дом и семья'],
-        ['friendship', 'Друзья'],
-        ['energy', 'Силы'],
-        ['communication', 'Разговоры'],
-      ]
-    : [
-        ['love', 'Love'],
-        ['money', 'Money'],
-        ['work', 'Work'],
-        ['goals', 'Goals'],
-        ['family', 'Home & Family'],
-        ['friendship', 'Friends'],
-        ['energy', 'Energy'],
-        ['communication', 'Conversations'],
-      ]).map(([section, title]) => {
-        const key = section as Exclude<PersonalDailySection, 'overview'>;
-        return {
-          section: key,
-          title,
-          hook: dailyPackage?.[key]?.hook?.trim()
-            || getDashboardSystemText(systemState, language, `${today}-${key}`),
-        };
-      });
+    ? 'Где вы быстро находите общий язык, а где спор начинается раньше вопроса.'
+    : 'Where you click quickly and where an argument starts before the question does.';
+
+  const sphereCards: SphereCard[] = useMemo(() => {
+    const labels: Array<[Exclude<PersonalDailySection, 'overview'>, string]> = language === 'ru'
+      ? [
+          ['love', 'Любовь'],
+          ['money', 'Деньги'],
+          ['work', 'Работа'],
+          ['goals', 'Цели'],
+          ['family', 'Дом и семья'],
+          ['friendship', 'Друзья'],
+          ['energy', 'Силы'],
+          ['communication', 'Разговоры'],
+        ]
+      : [
+          ['love', 'Love'],
+          ['money', 'Money'],
+          ['work', 'Work'],
+          ['goals', 'Goals'],
+          ['family', 'Home & Family'],
+          ['friendship', 'Friends'],
+          ['energy', 'Energy'],
+          ['communication', 'Conversations'],
+        ];
+
+    return labels.map(([section, title]) => ({
+      section,
+      title,
+      hook: dailyPackage?.[section]?.hook?.trim()
+        || getDashboardSystemText(systemState, language, `${today}-${section}`),
+      background: getPersonalCardBackground(section, backgroundUserId, today),
+    }));
+  }, [backgroundUserId, dailyPackage, language, systemState, today]);
+
   const openDayHero = () => {
     if (isDailyLoading) return;
     lumiaSelectionHaptic();
@@ -233,25 +250,27 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-        <>
-          <button
-            type="button"
-            className={`home-day-hero home-day-hero--${systemState}${isDailyLoading ? ' has-stickers' : ''}`}
-            onClick={openDayHero}
-            aria-label={dayHeroAria}
-            aria-busy={isDailyLoading}
-            disabled={isDailyLoading}
-          >
-            <span className="home-day-hero-glow" aria-hidden />
-            {isDailyLoading ? (
-              <span className="home-day-hero-scene" aria-hidden>
-                <StickerSlot surface="hero" />
-              </span>
-            ) : null}
-            <span className="home-day-hero-copy">
-              <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-              <span className="home-day-hero-title">{dayHeroTitle}</span>
-              <span className="home-day-hero-text">{dayHeroText}</span>
+      <>
+        <button
+          type="button"
+          className={`home-day-hero home-day-hero--${systemState}${isDailyLoading ? ' has-stickers' : ''}${heroBackground ? ' has-card-background' : ''}`}
+          style={cardBackgroundStyle(heroBackground)}
+          onClick={openDayHero}
+          aria-label={dayHeroAria}
+          aria-busy={isDailyLoading}
+          disabled={isDailyLoading}
+        >
+          <span className="home-day-hero-glow" aria-hidden />
+          {isDailyLoading ? (
+            <span className="home-day-hero-scene" aria-hidden>
+              <StickerSlot surface="hero" />
+            </span>
+          ) : null}
+          <span className="home-day-hero-copy">
+            <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+            <span className="home-day-hero-title">{dayHeroTitle}</span>
+            <span className="home-day-hero-text">{dayHeroText}</span>
+            {dayHeroCta ? (
               <span className="home-day-hero-cta">
                 {dayHeroCta}
                 {isDailyLoading ? (
@@ -260,32 +279,35 @@ export const Dashboard = memo<DashboardProps>(({
                   </span>
                 ) : null}
               </span>
-            </span>
-          </button>
+            ) : null}
+          </span>
+        </button>
 
-          <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного гороскопа' : 'Personal horoscope topics'}>
-            <div className="home-spheres-track">
-              {sphereCards.map((card) => (
-                <button
-                  key={card.section}
-                  type="button"
-                  className={`home-sphere-card home-sphere-card--${card.section}`}
-                  onClick={() => openSphere(card.section)}
-                  disabled={!isDailyReady && hasChart}
-                  aria-disabled={!isDailyReady && hasChart}
-                >
-                  <span className="home-sphere-title">{card.title}</span>
-                  <span className="home-sphere-hook">{card.hook}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </>
+        <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного гороскопа' : 'Personal horoscope topics'}>
+          <div className="home-spheres-track">
+            {sphereCards.map((card) => (
+              <button
+                key={card.section}
+                type="button"
+                className={`home-sphere-card home-sphere-card--${card.section}${card.background ? ' has-card-background' : ''}`}
+                style={cardBackgroundStyle(card.background)}
+                onClick={() => openSphere(card.section)}
+                disabled={!isDailyReady && hasChart}
+                aria-disabled={!isDailyReady && hasChart}
+              >
+                <span className="home-sphere-title">{card.title}</span>
+                <span className="home-sphere-hook">{card.hook}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </>
 
       <div className="home-feed">
         <button
           type="button"
-          className="home-soft-card home-feed-card home-feed-card--natal"
+          className={`home-soft-card home-feed-card home-feed-card--natal${natalBackground ? ' has-card-background' : ''}`}
+          style={cardBackgroundStyle(natalBackground)}
           onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
         >
           <span className="home-soft-card-glow" aria-hidden />
@@ -298,7 +320,8 @@ export const Dashboard = memo<DashboardProps>(({
         {onOpenMatrix ? (
           <button
             type="button"
-            className="home-soft-card home-feed-card home-feed-card--matrix"
+            className={`home-soft-card home-feed-card home-feed-card--matrix${matrixBackground ? ' has-card-background' : ''}`}
+            style={cardBackgroundStyle(matrixBackground)}
             onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
           >
             <span className="home-soft-card-glow" aria-hidden />
@@ -311,7 +334,8 @@ export const Dashboard = memo<DashboardProps>(({
 
         <button
           type="button"
-          className="home-soft-card home-feed-card home-feed-card--compat"
+          className={`home-soft-card home-feed-card home-feed-card--compat${compatibilityBackground ? ' has-card-background' : ''}`}
+          style={cardBackgroundStyle(compatibilityBackground)}
           onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
         >
           <span className="home-soft-card-glow" aria-hidden />
@@ -322,10 +346,8 @@ export const Dashboard = memo<DashboardProps>(({
         </button>
       </div>
 
-      {/* ── FAQ в самом низу: на чём основаны расчёты, что это не медицина ── */}
       <HomeFaq language={language} />
 
-      {/* ── Скрытые компоненты логики ── */}
       <DaySheet
         dateKey={sheetDate}
         todayKey={today}
