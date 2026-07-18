@@ -17,6 +17,7 @@ import {
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { FreshTabs } from '../components/fresh-ui';
 import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
+import { cardBackgroundStyle, getPersonalCardBackground } from '../lib/cardBackgrounds';
 
 type PersonalDailyScreenProps = {
   profile: UserProfile;
@@ -42,15 +43,15 @@ const DAILY_TAB_BASE: Array<Omit<DailyTabConfig, 'label' | 'title' | 'subtitle'>
   ru: Pick<DailyTabConfig, 'label' | 'title' | 'subtitle'>;
   en: Pick<DailyTabConfig, 'label' | 'title' | 'subtitle'>;
 }> = [
-  { id: 'overview', accent: '#1478FF', sectionKey: 'daily_overview', ru: { label: 'Обзор', title: 'Личный гороскоп', subtitle: 'Главный фокус дня' }, en: { label: 'Overview', title: 'Personal Horoscope', subtitle: 'The main focus of the day' } },
-  { id: 'love', accent: '#2563EB', sectionKey: 'daily_love', ru: { label: 'Любовь', title: 'Любовь', subtitle: 'Близость, эмоции и разговоры' }, en: { label: 'Love', title: 'Love', subtitle: 'Closeness, feelings, and talks' } },
-  { id: 'money', accent: '#0F172A', sectionKey: 'daily_money', ru: { label: 'Деньги', title: 'Деньги', subtitle: 'Решения, покупки и устойчивость' }, en: { label: 'Money', title: 'Money', subtitle: 'Choices, spending, and steadiness' } },
-  { id: 'work', accent: '#38BDF8', sectionKey: 'daily_work_business', ru: { label: 'Работа', title: 'Работа', subtitle: 'Фокус, задачи и рабочий ритм' }, en: { label: 'Work', title: 'Work', subtitle: 'Focus, tasks, and work rhythm' } },
-  { id: 'goals', accent: '#475569', sectionKey: 'daily_goals', ru: { label: 'Цели', title: 'Цели', subtitle: 'Один ясный следующий шаг' }, en: { label: 'Goals', title: 'Goals', subtitle: 'One clear next step' } },
-  { id: 'family', accent: '#64748B', sectionKey: 'daily_family', ru: { label: 'Дом и семья', title: 'Дом и семья', subtitle: 'Опора, близкие и атмосфера дома' }, en: { label: 'Home & Family', title: 'Home & Family', subtitle: 'Support, close people, and home mood' } },
-  { id: 'friendship', accent: '#0284C7', sectionKey: 'daily_friendship', ru: { label: 'Друзья', title: 'Друзья', subtitle: 'Контакты, поддержка и разговоры' }, en: { label: 'Friends', title: 'Friends', subtitle: 'Contacts, support, and conversations' } },
-  { id: 'energy', accent: '#0F766E', sectionKey: 'daily_energy', ru: { label: 'Силы', title: 'Силы', subtitle: 'Темп дня, паузы и ресурс' }, en: { label: 'Energy', title: 'Energy', subtitle: 'Pace, pauses, and capacity' } },
-  { id: 'communication', accent: '#7C3AED', sectionKey: 'daily_communication', ru: { label: 'Разговоры', title: 'Разговоры', subtitle: 'Слова, паузы и договорённости' }, en: { label: 'Conversations', title: 'Conversations', subtitle: 'Words, pauses, and agreements' } },
+  { id: 'overview', accent: '#1478FF', sectionKey: 'daily_overview', ru: { label: 'Обзор', title: 'Личный гороскоп', subtitle: 'Главное на сегодня' }, en: { label: 'Overview', title: 'Personal Horoscope', subtitle: 'Today at a glance' } },
+  { id: 'love', accent: '#2563EB', sectionKey: 'daily_love', ru: { label: 'Любовь', title: 'Любовь', subtitle: 'Отношения и личные реакции' }, en: { label: 'Love', title: 'Love', subtitle: 'Relationships and personal reactions' } },
+  { id: 'money', accent: '#0F172A', sectionKey: 'daily_money', ru: { label: 'Деньги', title: 'Деньги', subtitle: 'Покупки, решения и цена выбора' }, en: { label: 'Money', title: 'Money', subtitle: 'Spending, choices, and value' } },
+  { id: 'work', accent: '#38BDF8', sectionKey: 'daily_work_business', ru: { label: 'Работа', title: 'Работа', subtitle: 'Задачи, люди и рабочие решения' }, en: { label: 'Work', title: 'Work', subtitle: 'Tasks, people, and work decisions' } },
+  { id: 'goals', accent: '#475569', sectionKey: 'daily_goals', ru: { label: 'Цели', title: 'Цели', subtitle: 'Что сегодня действительно стоит решить' }, en: { label: 'Goals', title: 'Goals', subtitle: 'What is actually worth deciding today' } },
+  { id: 'family', accent: '#64748B', sectionKey: 'daily_family', ru: { label: 'Дом и семья', title: 'Дом и семья', subtitle: 'Близкие, дом и личное пространство' }, en: { label: 'Home & Family', title: 'Home & Family', subtitle: 'Close people, home, and personal space' } },
+  { id: 'friendship', accent: '#0284C7', sectionKey: 'daily_friendship', ru: { label: 'Друзья', title: 'Друзья', subtitle: 'Компания, контакты и чужие реакции' }, en: { label: 'Friends', title: 'Friends', subtitle: 'Company, contacts, and other people’s reactions' } },
+  { id: 'energy', accent: '#0F766E', sectionKey: 'daily_energy', ru: { label: 'Силы', title: 'Силы', subtitle: 'На что сегодня реально хватает ресурса' }, en: { label: 'Energy', title: 'Energy', subtitle: 'What you actually have capacity for today' } },
+  { id: 'communication', accent: '#7C3AED', sectionKey: 'daily_communication', ru: { label: 'Разговоры', title: 'Разговоры', subtitle: 'Тон, паузы и важные договорённости' }, en: { label: 'Conversations', title: 'Conversations', subtitle: 'Tone, pauses, and important agreements' } },
 ];
 
 function getDailyTabs(language: 'ru' | 'en'): DailyTabConfig[] {
@@ -177,7 +178,6 @@ function scoreTone(score: number): string {
   return '#6366F1';
 }
 
-// Две колонки «Сегодня в плюс» / «Аккуратнее» — из do[]/dont[] полотна.
 function DoDontColumns({ dayDo, dayDont, ru }: { dayDo?: string[]; dayDont?: string[]; ru: boolean }) {
   const doItems = (dayDo || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
   const dontItems = (dayDont || []).map((s) => s.trim()).filter(Boolean).slice(0, 3);
@@ -191,7 +191,7 @@ function DoDontColumns({ dayDo, dayDont, ru }: { dayDo?: string[]; dayDont?: str
         </ul>
       </div>
       <div className="pd-dd-col pd-dd-col--dont">
-        <div className="pd-dd-head">{ru ? 'Аккуратнее' : 'Go gently'}</div>
+        <div className="pd-dd-head">{ru ? 'Аккуратнее' : 'Watch this'}</div>
         <ul className="pd-dd-list">
           {dontItems.map((item) => <li key={item} className="pd-dd-item">{item}</li>)}
         </ul>
@@ -200,7 +200,6 @@ function DoDontColumns({ dayDo, dayDont, ru }: { dayDo?: string[]; dayDont?: str
   );
 }
 
-// Оценка дня — единственное место показа во всём приложении (низ разбора, premium).
 function DayScorePanel({ score, explain, ru }: { score: number; explain?: string; ru: boolean }) {
   const tone = scoreTone(score);
   return (
@@ -237,7 +236,6 @@ function SectionContent({
   premium?: boolean;
 }) {
   const paragraphs = splitParagraphs(section.content);
-  // Оценка дня показывается ТОЛЬКО в самом низу обзора дня и только премиуму.
   const showScore = isOverview && premium && typeof section.dayScore === 'number';
   return (
     <div className="pd-body">
@@ -272,7 +270,7 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   requestPremium,
   onCreateNatalChart,
 }) => {
-  void onBack; // навигацию назад берёт системная кнопка Telegram
+  void onBack;
   const language = profile.language === 'en' ? 'en' : 'ru';
   const dailyTabs = useMemo(() => getDailyTabs(language), [language]);
   const dateKey = useMemo(() => getMoscowTodayKey(), []);
@@ -286,6 +284,14 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
   useEffect(() => { setActiveSection(initialSection); }, [initialSection]);
 
   const activeTab = resolveTab(dailyTabs, activeSection);
+  const activeBackground = useMemo(
+    () => getPersonalCardBackground(activeSection, String(profile.id || 'guest'), dateKey),
+    [activeSection, dateKey, profile.id],
+  );
+  const activeHeroStyle = {
+    ['--pd-accent' as string]: activeTab.accent,
+    ...cardBackgroundStyle(activeBackground),
+  } as React.CSSProperties;
   const activeDailySection = useMemo(
     () => sectionFromDailyCanvas(dailyPackage, activeTab, premium),
     [activeTab, dailyPackage, premium]
@@ -300,7 +306,6 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
     && !hasContent;
   const hasError = access.allowed && !!chartData && !!profile.id && !premiumLocked && !hasContent;
 
-  // Свайп между темами — как в гороскопе (табы остаются индикатором).
   const [dir, setDir] = useState(0);
   const activeIndex = dailyTabs.findIndex((t) => t.id === activeSection);
   const goToSection = (nextIndex: number, direction: number) => {
@@ -319,7 +324,6 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
 
   return (
     <div className="fresh-page">
-      {/* Без своей «Назад» — навигацию назад берёт системная кнопка Telegram. */}
       <FreshInnerHeader title={language === 'en' ? 'Personal Horoscope' : 'Личный гороскоп'} />
 
       <FreshTabs tabs={tabItems} activeTab={activeSection} className="personal-daily-tabs" onTabChange={(id) => { lumiaSelectionHaptic(); setActiveSection(id as PersonalDailySection); }} />
@@ -345,7 +349,10 @@ export const PersonalDailyScreen = memo<PersonalDailyScreenProps>(({
             onDragEnd={onDragEnd}
             style={{ touchAction: 'pan-y' }}
           >
-            <div className={`pd-areahero pd-areahero--${activeTab.id}`} style={{ ['--pd-accent' as string]: activeTab.accent } as React.CSSProperties}>
+            <div
+              className={`pd-areahero pd-areahero--${activeTab.id}${activeBackground ? ' has-card-background' : ''}`}
+              style={activeHeroStyle}
+            >
               <div className="pd-areahero-title">{activeTab.title}</div>
               <div className="pd-areahero-sub">{activeTab.subtitle} · {formatDisplayDate(dateKey, language)}</div>
             </div>
