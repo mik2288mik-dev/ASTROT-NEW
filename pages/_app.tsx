@@ -2,6 +2,7 @@ import type { AppProps } from 'next/app';
 import '../styles/globals.css';
 import '../styles/stickers.css';
 import '../styles/cardBackgrounds.css';
+import '../styles/cardBackgroundPolish.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 
 export default function App({ Component, pageProps }: AppProps) {
