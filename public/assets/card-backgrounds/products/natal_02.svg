@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".42" numOctaves="2" seed="13" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="#F7E9C9"/>
+  <path d="M0 720C205 618 392 620 625 720V900H0Z" fill="#F1B62F" opacity=".27"/>
+  <g transform="translate(770 0)" filter="url(#paper)">
+    <rect x="0" y="0" width="830" height="900" fill="#1D4D73"/>
+    <path d="M0 585L315 282L465 430L830 65V900H0Z" fill="#0D8B95"/>
+    <path d="M0 715L280 470L450 616L830 255V900H0Z" fill="#F46F3D"/>
+    <path d="M0 810L245 618L442 772L830 460V900H0Z" fill="#F6B82E"/>
+    <g transform="translate(410 345)">
+      <circle r="250" fill="#F8EBD0"/>
+      <circle r="207" fill="none" stroke="#1D4D73" stroke-width="12"/>
+      <circle r="150" fill="none" stroke="#F46F3D" stroke-width="10"/>
+      <circle r="82" fill="#0D8B95"/>
+      <circle r="23" fill="#F6B82E"/>
+      <g stroke="#1D4D73" stroke-width="4" opacity=".72">
+        <path d="M0-250V250M-250 0H250M-177-177L177 177M-177 177L177-177"/>
+      </g>
+      <g fill="#F6B82E"><circle cx="0" cy="-207" r="12"/><circle cx="207" cy="0" r="12"/><circle cx="0" cy="207" r="12"/><circle cx="-207" cy="0" r="12"/></g>
+    </g>
+    <path d="M640 120h190v70H640z" fill="#F8EBD0" opacity=".75"/>
+    <path d="M670 220h160v24H670zM610 270h220v24H610z" fill="#F8EBD0" opacity=".45"/>
+  </g>
+  <path d="M1280 0H1600V220Z" fill="#F46F3D"/>
+</svg>
