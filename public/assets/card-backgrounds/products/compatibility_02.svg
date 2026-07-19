@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".46" numOctaves="2" seed="17" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter></defs>
+  <rect width="1600" height="900" fill="#F8E9CA"/>
+  <g transform="translate(785 0)" filter="url(#paper)">
+    <rect width="815" height="900" fill="#11A0A7"/>
+    <path d="M0 0H815V185H0Z" fill="#F4B82F"/>
+    <path d="M0 185H815V275H0Z" fill="#F06A3E"/>
+    <path d="M100 900V360H270V900ZM545 900V360H715V900Z" fill="#F8E9CA"/>
+    <path d="M270 470H545V900H270Z" fill="#174B72"/>
+    <g transform="translate(408 370)">
+      <ellipse cx="-104" cy="0" rx="210" ry="176" fill="#F06A3E"/>
+      <ellipse cx="104" cy="0" rx="210" ry="176" fill="#4EC9BC"/>
+      <ellipse cx="0" cy="0" rx="107" ry="176" fill="#F8E9CA" opacity=".88"/>
+    </g>
+    <path d="M135 680l110-140 110 140-110 120z" fill="#F4B82F"/>
+    <path d="M460 680l110-140 110 140-110 120z" fill="#F06A3E"/>
+    <path d="M195 800h100v32H195zM520 800h100v32H520z" fill="#174B72"/>
+    <path d="M0 795C170 720 330 716 408 774C506 846 641 842 815 770V900H0Z" fill="#086E7B"/>
+  </g>
+  <path d="M0 775C270 650 506 666 745 785V900H0Z" fill="#4EC9BC" opacity=".18"/>
+</svg>
