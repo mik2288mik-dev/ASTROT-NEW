@@ -3,6 +3,7 @@ import path from 'path';
 import manifest from '../docs/design/card-background-system/card-background-manifest.json';
 import {
   cardBackgroundStyle,
+  getDailyQuestionCardBackground,
   getHeroCardBackground,
   getPersonalCardBackground,
   getUniversalCardBackground,
@@ -52,6 +53,19 @@ describe('card background library', () => {
     }
   });
 
+  it('adds three illustrated variants for every premium Today question', () => {
+    for (const theme of ['advantage', 'conversation', 'attention']) {
+      for (const variant of ['01', '02', '03']) {
+        const file = `public/assets/card-backgrounds/questions/question_${theme}_${variant}.svg`;
+        expect(fs.existsSync(path.join(ROOT, file))).toBe(true);
+        expect(read(file)).toContain('<svg');
+      }
+      const first = getDailyQuestionCardBackground(theme as 'advantage' | 'conversation' | 'attention', '42', '2026-07-19');
+      const second = getDailyQuestionCardBackground(theme as 'advantage' | 'conversation' | 'attention', '42', '2026-07-19');
+      expect(first?.id).toBe(second?.id);
+    }
+  });
+
   it('returns a stable rotating product background and CSS variables', () => {
     const natal = getUniversalCardBackground('natal', '42', '2026-07-19');
     const sameNatal = getUniversalCardBackground('natal', '42', '2026-07-19');
@@ -66,7 +80,7 @@ describe('card background library', () => {
 });
 
 describe('card background UI wiring', () => {
-  it('connects the library to Dashboard, questions, and expanded destination covers', () => {
+  it('connects the library to Dashboard, premium stories, and expanded destination covers', () => {
     const dashboard = read('views/Dashboard.tsx');
     const personalDaily = read('views/DailyContentScreens.tsx');
     const natal = read('views/v2/NatalMagazine.tsx');
@@ -77,7 +91,9 @@ describe('card background UI wiring', () => {
     expect(dashboard).toContain('getHeroCardBackground');
     expect(dashboard).toContain('getPersonalCardBackground');
     expect(dashboard).toContain('getUniversalCardBackground');
-    expect(dashboard).toContain('home-daily-question-card');
+    expect(dashboard).toContain('buildDailyQuestionStories');
+    expect(dashboard).toContain('daily-question-story');
+    expect(dashboard).toContain("onRequestPremium?.('daily_questions')");
     expect(dashboard).toContain('home-product-card--natal');
     expect(dashboard).toContain('home-product-card--compat');
     expect(dashboard).toContain('home-product-card--matrix');
@@ -87,6 +103,7 @@ describe('card background UI wiring', () => {
     expect(compatibility).toContain("getUniversalCardBackground('compatibility'");
     expect(matrix).toContain("getUniversalCardBackground('matrix'");
     expect(app).toContain("../styles/homeContentHierarchy.css");
+    expect(app).toContain("../styles/readingBackgrounds.css");
   });
 
   it('does not show a ready-state text CTA inside the clickable hero', () => {
