@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".48" numOctaves="2" seed="15" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter></defs>
+  <rect width="1600" height="900" fill="#F8E8C7"/>
+  <g transform="translate(790 0)" filter="url(#paper)">
+    <rect width="810" height="900" fill="#0B8992"/>
+    <path d="M0 0H810V170H0Z" fill="#F4B52F"/>
+    <path d="M0 170H810V280H0Z" fill="#EF6A3F"/>
+    <g transform="translate(75 335)">
+      <rect width="660" height="430" fill="#F8E8C7"/>
+      <g fill="#17476E"><rect x="0" y="0" width="145" height="145"/><rect x="172" y="0" width="145" height="145"/><rect x="344" y="0" width="145" height="145"/><rect x="516" y="0" width="144" height="145"/></g>
+      <g fill="#F4B52F"><rect x="0" y="172" width="145" height="145"/><rect x="172" y="172" width="145" height="145"/><rect x="344" y="172" width="145" height="145"/><rect x="516" y="172" width="144" height="145"/></g>
+      <g fill="#EF6A3F"><circle cx="72" cy="72" r="36"/><circle cx="244" cy="244" r="36"/><circle cx="416" cy="72" r="36"/><circle cx="588" cy="244" r="36"/></g>
+      <g stroke="#17476E" stroke-width="7" opacity=".72"><path d="M72 72L244 244L416 72L588 244"/><path d="M72 244L244 72L416 244L588 72"/></g>
+    </g>
+    <path d="M0 790C185 725 325 733 405 786C514 857 659 850 810 782V900H0Z" fill="#17476E"/>
+  </g>
+  <path d="M0 780C250 680 510 688 760 810V900H0Z" fill="#EF6A3F" opacity=".17"/>
+</svg>
