@@ -1,5 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
-import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
@@ -13,6 +12,7 @@ import { getMoscowTodayKey } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
+import { DailyQuestionStoryModal } from '../components/Dashboard/DailyQuestionStoryModal';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen';
@@ -223,19 +223,17 @@ export const Dashboard = memo<DashboardProps>(({
     setActiveQuestionIndex(index);
   };
 
-  const moveQuestion = (direction: number) => {
+  const closeDailyQuestion = useCallback(() => {
+    setActiveQuestionIndex(null);
+  }, []);
+
+  const moveQuestion = useCallback((direction: number) => {
     if (!dailyQuestionStories.length) return;
     setActiveQuestionIndex((current) => {
       const index = current ?? 0;
       return (index + direction + dailyQuestionStories.length) % dailyQuestionStories.length;
     });
-  };
-
-  const onQuestionDragEnd = (_event: unknown, info: PanInfo) => {
-    const power = info.offset.x + info.velocity.x * 0.18;
-    if (power < -70) moveQuestion(1);
-    if (power > 70) moveQuestion(-1);
-  };
+  }, [dailyQuestionStories.length]);
 
   return (
     <StickerScreen requests={stickerRequests} maxMaskots={isDailyLoading ? 1 : 0}>
@@ -422,52 +420,15 @@ export const Dashboard = memo<DashboardProps>(({
         />
       </div>
 
-      <AnimatePresence>
-        {activeQuestion && premium ? (
-          <motion.div
-            className="daily-question-story"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            role="dialog"
-            aria-modal="true"
-            aria-label={activeQuestion.question}
-          >
-            <motion.div
-              key={activeQuestion.id}
-              className="daily-question-story-scene"
-              style={cardBackgroundStyle(activeQuestion.background)}
-              initial={{ opacity: 0, scale: 1.015 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.992 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.35}
-              onDragEnd={onQuestionDragEnd}
-            >
-              <div className="daily-question-story-progress" aria-hidden>
-                {dailyQuestionStories.map((story, index) => (
-                  <i key={story.id} className={index <= (activeQuestionIndex ?? 0) ? 'is-active' : ''} />
-                ))}
-              </div>
-              <button
-                type="button"
-                className="daily-question-story-close"
-                onClick={() => setActiveQuestionIndex(null)}
-                aria-label={language === 'ru' ? 'Закрыть' : 'Close'}
-              >
-                ×
-              </button>
-              <div className="daily-question-story-copy">
-                <div className="daily-question-story-kicker">{language === 'ru' ? 'Твой вопрос на сегодня' : 'Your question for today'}</div>
-                <h2>{activeQuestion.question}</h2>
-                <p>{activeQuestion.answer}</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <DailyQuestionStoryModal
+        activeStory={activeQuestion}
+        stories={dailyQuestionStories}
+        activeIndex={activeQuestionIndex}
+        language={language}
+        scrollRef={scrollRef}
+        onClose={closeDailyQuestion}
+        onMove={moveQuestion}
+      />
     </StickerScreen>
   );
 });
