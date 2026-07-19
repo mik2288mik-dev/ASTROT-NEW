@@ -48,18 +48,19 @@ describe('personal horoscope Dashboard states', () => {
 });
 
 describe('personal horoscope topic carousel', () => {
-  it('uses a one-row native carousel with extra left breathing room and no controls', () => {
+  it('uses a one-row native carousel with a moderate left offset and no controls', () => {
     const dashboard = read('views/Dashboard.tsx');
     const globals = read('styles/globals.css');
-    const polish = read('styles/homeMvpLayout.css');
-    const css = `${globals}\n${polish}`;
+    const base = read('styles/homeMvpLayout.css');
+    const hierarchy = read('styles/homeContentHierarchy.css');
+    const css = `${globals}\n${base}\n${hierarchy}`;
 
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*display:\s*flex/s);
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*overflow-x:\s*auto/s);
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*scroll-snap-type:\s*x mandatory/s);
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*scroll-behavior:\s*smooth/s);
-    expect(polish).toContain('padding: 0.05rem 16px 0.55rem 32px');
-    expect(polish).toContain('flex: 0 0 min(79vw, 19.5rem)');
+    expect(hierarchy).toContain('padding-left: 22px');
+    expect(base).toContain('flex: 0 0 min(79vw, 19.5rem)');
     expect(css).toContain('scroll-snap-align: start');
     expect(css).toMatch(/\.home-spheres-track::\-webkit-scrollbar\s*\{[^}]*display:\s*none/s);
     expect(dashboard).not.toContain('home-spheres-arrow');
@@ -81,17 +82,31 @@ describe('approved Dashboard visual hierarchy', () => {
     expect(css).toContain('text-align: center');
   });
 
-  it('separates natal, compatibility, and matrix from the illustrated daily cards', () => {
+  it('puts three rounded personal questions before angular product promos', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const css = read('styles/homeMvpLayout.css');
+    const css = read('styles/homeContentHierarchy.css');
 
-    expect(dashboard).toContain('home-product-card--natal');
-    expect(dashboard).toContain('home-product-card--compat');
-    expect(dashboard).toContain('home-product-card--matrix');
-    expect(dashboard).not.toContain('getUniversalCardBackground');
-    expect(css).toContain('Natal chart: calm structural atlas, no animals.');
-    expect(css).toContain('Compatibility: paired forms and two strong colours, no cats.');
-    expect(css).toContain('Matrix: modular numeric/structural world, no animals.');
+    expect(dashboard).toContain('Где сегодня у тебя преимущество?');
+    expect(dashboard).toContain('Какой разговор решит больше, чем кажется?');
+    expect(dashboard).toContain('Кто сегодня замечает тебя внимательнее остальных?');
+    expect(dashboard.indexOf('home-daily-questions')).toBeLessThan(dashboard.indexOf('home-product-grid'));
+    expect(css).toContain('.home-daily-question-card');
+    expect(css).toContain('border-radius: 1.5rem');
+    expect(css).toContain('.home-product-card.home-product-card--wide');
+    expect(css).toContain('border-radius: 0.72rem');
+  });
+
+  it('separates natal, compatibility, and matrix into three wide rotating promos', () => {
+    const dashboard = read('views/Dashboard.tsx');
+
+    expect(dashboard).toContain("getUniversalCardBackground('natal'");
+    expect(dashboard).toContain("getUniversalCardBackground('compatibility'");
+    expect(dashboard).toContain("getUniversalCardBackground('matrix'");
+    expect(dashboard).toContain('home-product-card--natal home-product-card--wide');
+    expect(dashboard).toContain('home-product-card--compat home-product-card--wide');
+    expect(dashboard).toContain('home-product-card--matrix home-product-card--wide');
+    expect(dashboard).not.toContain('home-product-card-art');
+    expect(dashboard).not.toContain('home-product-card-kicker');
   });
 
   it('keeps original chrome geometry and changes only the liquid-glass material', () => {
