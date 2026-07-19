@@ -22,13 +22,9 @@ import {
   cardBackgroundStyle,
   getHeroCardBackground,
   getPersonalCardBackground,
-  getUniversalCardBackground,
   type CardBackgroundAsset,
 } from '../lib/cardBackgrounds';
 
-// ── Динамическая система стикеров (см. docs/STICKER_SYSTEM.md) ──
-// Маскот остаётся только в состоянии расчёта. После загрузки характер карточкам
-// дают оригинальные editorial-фоны из card-background-manifest.json.
 const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
   { surface: 'hero', kind: 'maskot', moods: ['thinking', 'calm'], themes: ['study', 'read', 'tech'] },
 ];
@@ -57,7 +53,6 @@ type DashboardProps = {
   initialTodaySection?: string | null;
 };
 
-/* ── Dashboard ── */
 export const Dashboard = memo<DashboardProps>(({
   profile,
   chartData,
@@ -77,26 +72,16 @@ export const Dashboard = memo<DashboardProps>(({
   const backgroundUserId = String(profile.id || 'guest');
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
-  // Главная всегда показывает СВОЙ знак (по карте/дате рождения), а не последний
-  // просмотренный в гороскопе — иначе у Рыб на главной мог оказаться Козерог.
   const ownSunSign = String(chartData?.sun?.sign || sunSignFromDate(profile.birthDate) || '').trim().toLowerCase();
   const selectedSign = ownSunSign || String(profile.selectedZodiacSign || '').trim().toLowerCase();
 
-  // Картинки выбираются детерминированно: пользователь + дата + ключ карточки.
-  // Поэтому фон не прыгает при повторном рендере и остаётся тем же весь день.
   const heroBackground = useMemo(
     () => getHeroCardBackground(backgroundUserId, today),
     [backgroundUserId, today],
   );
-  const natalBackground = useMemo(() => getUniversalCardBackground('natal'), []);
-  const matrixBackground = useMemo(() => getUniversalCardBackground('matrix'), []);
-  const compatibilityBackground = useMemo(() => getUniversalCardBackground('compatibility'), []);
 
-  // Карточка-герой и hooks восьми сфер читают один сохранённый дневной пакет.
-  // Если пакета ещё нет, Dashboard показывает системное состояние, а не прогнозную заглушку.
   const [sheetDate, setSheetDate] = useState<string | null>(null);
 
-  /* Единый дневной пакет приходит из App startup. */
   const systemState: DashboardSystemState = dailyPackage
     ? 'ready'
     : !hasChart
@@ -110,13 +95,11 @@ export const Dashboard = memo<DashboardProps>(({
   const isDailyError = hasChart && !isDailyReady && !isDailyLoading;
   const stickerRequests = isDailyLoading ? LOADING_STICKER_REQUESTS : [];
 
-  /* Вспомогательные данные */
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
   const periodTabs = language === 'ru'
     ? ['Сегодня', 'Эта неделя', 'Этот месяц', 'Этот год']
     : ['Today', 'This week', 'This month', 'This year'];
 
-  /* Дата личного hero. */
   const weekdayLabel = useMemo(() => {
     const [yr, mo, da] = today.split('-').map(Number);
     const d = new Date(Date.UTC(yr, mo - 1, da, 12));
@@ -125,6 +108,7 @@ export const Dashboard = memo<DashboardProps>(({
     }).format(d);
     return w.charAt(0).toUpperCase() + w.slice(1);
   }, [today, language]);
+
   const dayHeroDateLabel = useMemo(() => {
     const [yr, mo, da] = today.split('-').map(Number);
     const d = new Date(Date.UTC(yr, mo - 1, da, 12));
@@ -139,7 +123,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   const dayHeroTitle = dailyPackage?.hero_title?.trim()
     || (isDailyLoading
-      ? (language === 'ru' ? 'Готовим твой личный гороскоп' : 'Preparing your personal horoscope')
+      ? (language === 'ru' ? 'Считаем твой личный гороскоп' : 'Calculating your personal horoscope')
       : isDailyError
         ? (language === 'ru' ? 'Личный гороскоп пока не готов' : 'Your personal horoscope is not ready yet')
         : (language === 'ru' ? 'Личный гороскоп' : 'Personal Horoscope'));
@@ -148,14 +132,25 @@ export const Dashboard = memo<DashboardProps>(({
     ? (language === 'ru' ? 'Личный гороскоп рассчитывается' : 'Personal horoscope is being calculated')
     : isDailyError
       ? (language === 'ru' ? 'Повторить расчёт личного гороскопа' : 'Retry personal horoscope calculation')
-      : language === 'ru' ? 'Открыть личный гороскоп' : 'Open your personal horoscope';
+      : language === 'ru' ? 'Личный гороскоп на сегодня' : 'Personal horoscope for today';
   const dayHeroCta: string | null = isDailyLoading
-    ? (language === 'ru' ? 'Гороскоп рассчитывается' : 'Calculating your horoscope')
+    ? (language === 'ru' ? 'Идёт расчёт' : 'Calculating')
     : isDailyError
       ? (language === 'ru' ? 'Попробовать ещё раз' : 'Try again')
       : !hasChart
-        ? (language === 'ru' ? 'Создать натальную карту' : 'Create natal chart')
+        ? (language === 'ru' ? 'Нужны данные рождения' : 'Birth data needed')
         : null;
+  const dayHeroBasisTitle = hasChart
+    ? (language === 'ru' ? 'Личный расчёт' : 'Personal calculation')
+    : (language === 'ru' ? 'Станет личным' : 'Make it personal');
+  const dayHeroBasisText = hasChart
+    ? (language === 'ru'
+      ? 'Твоя карта рождения + положение планет сегодня'
+      : 'Your birth chart + today’s planetary positions')
+    : (language === 'ru'
+      ? 'Добавь дату, время и место рождения'
+      : 'Add your birth date, time, and place');
+
   const natalText = hasChart
     ? (language === 'ru'
       ? 'Характер, привычки и сильные стороны — по твоим данным рождения.'
@@ -209,6 +204,7 @@ export const Dashboard = memo<DashboardProps>(({
     if (isDailyError) { onRetryDailyPackage(); return; }
     if (isDailyReady) { onOpenPersonalDaily('overview'); }
   };
+
   const openSphere = (section: PersonalDailySection) => {
     lumiaSelectionHaptic();
     if (!hasChart) { onCreateNatalChart?.(); return; }
@@ -217,40 +213,39 @@ export const Dashboard = memo<DashboardProps>(({
 
   return (
     <StickerScreen requests={stickerRequests} maxMaskots={isDailyLoading ? 1 : 0}>
-    <div
-      className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
-      ref={scrollRef as React.RefObject<HTMLDivElement>}
-    >
-      <section className="home-top" aria-label={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}>
-        <div className="home-logo-bar">
-          <span className="home-logo-wordmark">{language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}</span>
-        </div>
-        <div className="home-top-content">
-          <p className="home-top-greeting">
-            {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
-          </p>
-          <div className="home-period-tabs" role="tablist" aria-label={language === 'ru' ? 'Период' : 'Period'}>
-            {periodTabs.map((label, index) => {
-              const active = index === 0;
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  className={`home-period-tab${active ? ' is-active' : ''}`}
-                  role="tab"
-                  aria-selected={active}
-                  aria-disabled={!active}
-                  onClick={active ? () => { lumiaSelectionHaptic(); } : undefined}
-                >
-                  {label}
-                </button>
-              );
-            })}
+      <div
+        className="fresh-page home-screen lumia-main-scroll lumia-bottom-tab-scroll"
+        ref={scrollRef as React.RefObject<HTMLDivElement>}
+      >
+        <section className="home-top" aria-label={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}>
+          <div className="home-logo-bar">
+            <span className="home-logo-wordmark">{language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}</span>
           </div>
-        </div>
-      </section>
+          <div className="home-top-content">
+            <p className="home-top-greeting">
+              {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
+            </p>
+            <div className="home-period-tabs" role="tablist" aria-label={language === 'ru' ? 'Период' : 'Period'}>
+              {periodTabs.map((label, index) => {
+                const active = index === 0;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    className={`home-period-tab${active ? ' is-active' : ''}`}
+                    role="tab"
+                    aria-selected={active}
+                    aria-disabled={!active}
+                    onClick={active ? () => { lumiaSelectionHaptic(); } : undefined}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
 
-      <>
         <button
           type="button"
           className={`home-day-hero home-day-hero--${systemState}${isDailyLoading ? ' has-stickers' : ''}${heroBackground ? ' has-card-background' : ''}`}
@@ -268,6 +263,19 @@ export const Dashboard = memo<DashboardProps>(({
           ) : null}
           <span className="home-day-hero-copy">
             <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+            <span className="home-day-hero-basis">
+              <span className="home-day-hero-basis-icon" aria-hidden>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.5" />
+                  <circle cx="12" cy="12" r="2.25" fill="currentColor" />
+                  <path d="M12 2.75V5M21.25 12H19M12 21.25V19M2.75 12H5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </span>
+              <span className="home-day-hero-basis-copy">
+                <strong>{dayHeroBasisTitle}</strong>
+                <small>{dayHeroBasisText}</small>
+              </span>
+            </span>
             <span className="home-day-hero-title">{dayHeroTitle}</span>
             <span className="home-day-hero-text">{dayHeroText}</span>
             {dayHeroCta ? (
@@ -301,63 +309,62 @@ export const Dashboard = memo<DashboardProps>(({
             ))}
           </div>
         </section>
-      </>
 
-      <div className="home-feed">
-        <button
-          type="button"
-          className={`home-soft-card home-feed-card home-feed-card--natal${natalBackground ? ' has-card-background' : ''}`}
-          style={cardBackgroundStyle(natalBackground)}
-          onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
-        >
-          <span className="home-soft-card-glow" aria-hidden />
-          <span className="home-soft-card-content">
-            <span className="home-soft-card-title">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</span>
-            <span className="home-soft-card-text">{natalText}</span>
-          </span>
-        </button>
-
-        {onOpenMatrix ? (
+        <section className="home-product-grid" aria-label={language === 'ru' ? 'Другие разделы' : 'Other sections'}>
           <button
             type="button"
-            className={`home-soft-card home-feed-card home-feed-card--matrix${matrixBackground ? ' has-card-background' : ''}`}
-            style={cardBackgroundStyle(matrixBackground)}
-            onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
+            className="home-product-card home-product-card--natal home-product-card--wide"
+            onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
           >
-            <span className="home-soft-card-glow" aria-hidden />
-            <span className="home-soft-card-content">
-              <span className="home-soft-card-title">{language === 'ru' ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</span>
-              <span className="home-soft-card-text">{matrixText}</span>
+            <span className="home-product-card-art" aria-hidden />
+            <span className="home-product-card-copy">
+              <span className="home-product-card-kicker">{language === 'ru' ? 'Карта рождения' : 'Birth chart'}</span>
+              <span className="home-product-card-title">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</span>
+              <span className="home-product-card-text">{natalText}</span>
             </span>
           </button>
-        ) : null}
 
-        <button
-          type="button"
-          className={`home-soft-card home-feed-card home-feed-card--compat${compatibilityBackground ? ' has-card-background' : ''}`}
-          style={cardBackgroundStyle(compatibilityBackground)}
-          onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
-        >
-          <span className="home-soft-card-glow" aria-hidden />
-          <span className="home-soft-card-content">
-            <span className="home-soft-card-title">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
-            <span className="home-soft-card-text">{compatibilityText}</span>
-          </span>
-        </button>
+          <button
+            type="button"
+            className="home-product-card home-product-card--compat"
+            onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
+          >
+            <span className="home-product-card-art" aria-hidden />
+            <span className="home-product-card-copy">
+              <span className="home-product-card-kicker">{language === 'ru' ? 'Два человека' : 'Two people'}</span>
+              <span className="home-product-card-title">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
+              <span className="home-product-card-text">{compatibilityText}</span>
+            </span>
+          </button>
+
+          {onOpenMatrix ? (
+            <button
+              type="button"
+              className="home-product-card home-product-card--matrix"
+              onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
+            >
+              <span className="home-product-card-art" aria-hidden />
+              <span className="home-product-card-copy">
+                <span className="home-product-card-kicker">{language === 'ru' ? 'Числа рождения' : 'Birth numbers'}</span>
+                <span className="home-product-card-title">{language === 'ru' ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</span>
+                <span className="home-product-card-text">{matrixText}</span>
+              </span>
+            </button>
+          ) : null}
+        </section>
+
+        <HomeFaq language={language} />
+
+        <DaySheet
+          dateKey={sheetDate}
+          todayKey={today}
+          sign={selectedSign}
+          language={language}
+          isPremium={premium}
+          onClose={() => setSheetDate(null)}
+          onRequestPremium={() => onRequestPremium?.('calendar')}
+        />
       </div>
-
-      <HomeFaq language={language} />
-
-      <DaySheet
-        dateKey={sheetDate}
-        todayKey={today}
-        sign={selectedSign}
-        language={language}
-        isPremium={premium}
-        onClose={() => setSheetDate(null)}
-        onRequestPremium={() => onRequestPremium?.('calendar')}
-      />
-    </div>
     </StickerScreen>
   );
 });
