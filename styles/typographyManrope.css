@@ -36,24 +36,40 @@ textarea {
   font-family: var(--font-app);
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-span,
-a,
-label,
-li {
-  font-family: inherit;
+/* The id selector deliberately wins over legacy one-off font classes. */
+#__next,
+#__next :where(
+  div,
+  section,
+  article,
+  header,
+  footer,
+  nav,
+  main,
+  aside,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  li
+) {
+  font-family: var(--font-app);
 }
 
 /* Preserve the dedicated glyph font only for astronomical symbols. */
-.font-astro-symbols,
-.home-sky-symbol,
-.home-moon-symbol {
+#__next .font-astro-symbols,
+#__next .home-sky-symbol,
+#__next .home-moon-symbol {
   font-family: 'Noto Sans Symbols 2 Local', 'Noto Sans Symbols 2', 'Segoe UI Symbol', sans-serif;
 }
 
@@ -132,26 +148,6 @@ li {
   font-weight: 400;
   line-height: var(--type-small-line);
   letter-spacing: 0;
-}
-
-/* Shared headings and long-form reading */
-.fresh-inner-title,
-.pd-notice-title,
-.pd-dd-head,
-.pd-score-k,
-.home-logo-wordmark,
-.home-top-greeting,
-.home-period-tab,
-.lumia-bottom-tab-label {
-  font-family: var(--font-app);
-}
-
-.natal-sec-p,
-.pd-reading-paragraph,
-.pd-notice-body,
-.home-soft-card-text,
-.home-sphere-hook {
-  font-family: var(--font-app);
 }
 
 @media (min-width: 430px) {
