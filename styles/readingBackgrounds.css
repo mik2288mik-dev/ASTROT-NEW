@@ -1,0 +1,92 @@
+/* Background layer for every finished reading surface.
+   Today screens may use the illustrated cat family; all other products use no-animal artwork. */
+
+.personal-daily-content {
+  position: relative;
+  isolation: isolate;
+  padding: 0.35rem 0 1rem;
+  background-color: rgba(248, 250, 252, 0.92);
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.personal-daily-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(248,250,252,0.92) 62%, #fff 100%);
+  backdrop-filter: blur(22px) saturate(0.92);
+  -webkit-backdrop-filter: blur(22px) saturate(0.92);
+  pointer-events: none;
+}
+
+.personal-daily-content:has(.pd-areahero--overview) { background-image: url('/assets/card-backgrounds/hero/hero_01.webp'); }
+.personal-daily-content:has(.pd-areahero--love) { background-image: url('/assets/card-backgrounds/personal/love_01.webp'); }
+.personal-daily-content:has(.pd-areahero--money) { background-image: url('/assets/card-backgrounds/personal/money_01.webp'); }
+.personal-daily-content:has(.pd-areahero--work) { background-image: url('/assets/card-backgrounds/personal/work_01.webp'); }
+.personal-daily-content:has(.pd-areahero--goals) { background-image: url('/assets/card-backgrounds/personal/goals_01.webp'); }
+.personal-daily-content:has(.pd-areahero--family) { background-image: url('/assets/card-backgrounds/personal/home_01.webp'); }
+.personal-daily-content:has(.pd-areahero--friendship) { background-image: url('/assets/card-backgrounds/personal/friends_01.webp'); }
+.personal-daily-content:has(.pd-areahero--energy) { background-image: url('/assets/card-backgrounds/personal/energy_01.webp'); }
+.personal-daily-content:has(.pd-areahero--communication) { background-image: url('/assets/card-backgrounds/personal/communication_01.webp'); }
+
+.pd-reading-card,
+.pd-notice,
+.pd-score,
+.pd-dd,
+.natal-big3-card,
+.union-pad,
+.union-form,
+.mtx-form,
+.mtx-card,
+.mtx-hero {
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 12px 30px rgba(20, 32, 52, 0.07), 0 1px 0 rgba(255, 255, 255, 0.86) inset;
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.pd-reading-paragraph,
+.natal-sec-p,
+.union-pad p,
+.mtx-card-essence,
+.mtx-hero-essence {
+  font-size: clamp(0.96rem, 3.45vw, 1.04rem);
+  line-height: 1.58;
+}
+
+/* Product pages: full page keeps a faint version of the same no-animal visual family. */
+.fresh-page:has(.product-screen-cover--natal) {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.94) 54%, #fff 100%),
+    url('/assets/card-backgrounds/products/natal_01.svg') center top / cover fixed;
+}
+
+.fresh-page:has(.product-screen-cover--compatibility) {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.94) 54%, #fff 100%),
+    url('/assets/card-backgrounds/products/compatibility_01.svg') center top / cover fixed;
+}
+
+.fresh-page:has(.product-screen-cover--matrix) {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.94) 54%, #fff 100%),
+    url('/assets/card-backgrounds/products/matrix_01.svg') center top / cover fixed;
+}
+
+.fresh-page:has(.product-screen-cover--natal) .fresh-inner-header,
+.fresh-page:has(.product-screen-cover--compatibility) .fresh-page-title-block,
+.fresh-page:has(.product-screen-cover--matrix) .fresh-inner-header {
+  background: rgba(255, 255, 255, 0.64);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+}
+
+@supports not selector(:has(*)) {
+  .personal-daily-content {
+    background-image: linear-gradient(135deg, rgba(45, 132, 190, 0.12), rgba(255, 122, 61, 0.1));
+  }
+}
