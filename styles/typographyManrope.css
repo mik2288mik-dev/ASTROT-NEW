@@ -1,0 +1,162 @@
+/* Approved app typography system: Manrope only.
+   Loaded last so legacy decorative/serif declarations cannot leak into product UI. */
+
+:root {
+  --font-app: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: var(--font-app);
+
+  /* Fixed mobile type scale */
+  --type-hero-size: 1.75rem;
+  --type-hero-line: 2rem;
+  --type-card-size: 1.25rem;
+  --type-card-line: 1.5rem;
+  --type-section-size: 1.125rem;
+  --type-section-line: 1.375rem;
+  --type-body-size: 0.875rem;
+  --type-body-line: 1.25rem;
+  --type-small-size: 0.75rem;
+  --type-small-line: 1rem;
+
+  --lumia-home-font-sans: var(--font-app);
+  --lumia-home-font-display: var(--font-app);
+  --lumia-home-font-pulse-kicker: var(--font-app);
+  --lumia-brand-wordmark-font: var(--font-app);
+  --home-editorial-font: var(--font-app);
+  --fresh-font: var(--font-app);
+  --fresh-font-round: var(--font-app);
+  --card-editorial-serif: var(--font-app);
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-app);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+a,
+label,
+li {
+  font-family: inherit;
+}
+
+/* Preserve the dedicated glyph font only for astronomical symbols. */
+.font-astro-symbols,
+.home-sky-symbol,
+.home-moon-symbol {
+  font-family: 'Noto Sans Symbols 2 Local', 'Noto Sans Symbols 2', 'Segoe UI Symbol', sans-serif;
+}
+
+/* Main daily hero */
+.home-day-hero.has-card-background .home-day-hero-title {
+  font-family: var(--font-display);
+  font-size: var(--type-hero-size);
+  font-weight: 800;
+  line-height: var(--type-hero-line);
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.home-day-hero.has-card-background .home-day-hero-date {
+  font-family: var(--font-app);
+  font-size: var(--type-small-size);
+  font-weight: 600;
+  line-height: var(--type-small-line);
+  letter-spacing: 0;
+}
+
+.home-day-hero.has-card-background .home-day-hero-text {
+  font-family: var(--font-app);
+  font-size: var(--type-body-size);
+  font-weight: 500;
+  line-height: var(--type-body-line);
+  letter-spacing: -0.005em;
+}
+
+/* Daily topic carousel */
+.home-sphere-card.has-card-background .home-sphere-title {
+  font-family: var(--font-display);
+  font-size: var(--type-card-size);
+  font-weight: 700;
+  line-height: var(--type-card-line);
+  letter-spacing: -0.025em;
+}
+
+.home-sphere-card.has-card-background .home-sphere-hook {
+  font-family: var(--font-app);
+  font-size: var(--type-body-size);
+  font-weight: 500;
+  line-height: var(--type-body-line);
+  letter-spacing: -0.005em;
+}
+
+/* Product navigation cards */
+.home-feed-card.has-card-background .home-soft-card-title {
+  font-family: var(--font-display);
+  font-size: var(--type-card-size);
+  font-weight: 700;
+  line-height: var(--type-card-line);
+  letter-spacing: -0.025em;
+}
+
+.home-feed-card.has-card-background .home-soft-card-text {
+  font-family: var(--font-app);
+  font-size: var(--type-body-size);
+  font-weight: 500;
+  line-height: var(--type-body-line);
+  letter-spacing: -0.005em;
+}
+
+/* Expanded personal horoscope cover */
+.pd-areahero.has-card-background .pd-areahero-title {
+  font-family: var(--font-display);
+  font-size: var(--type-section-size);
+  font-weight: 600;
+  line-height: var(--type-section-line);
+  letter-spacing: -0.02em;
+}
+
+.pd-areahero.has-card-background .pd-areahero-sub {
+  font-family: var(--font-app);
+  font-size: var(--type-small-size);
+  font-weight: 400;
+  line-height: var(--type-small-line);
+  letter-spacing: 0;
+}
+
+/* Shared headings and long-form reading */
+.fresh-inner-title,
+.pd-notice-title,
+.pd-dd-head,
+.pd-score-k,
+.home-logo-wordmark,
+.home-top-greeting,
+.home-period-tab,
+.lumia-bottom-tab-label {
+  font-family: var(--font-app);
+}
+
+.natal-sec-p,
+.pd-reading-paragraph,
+.pd-notice-body,
+.home-soft-card-text,
+.home-sphere-hook {
+  font-family: var(--font-app);
+}
+
+@media (min-width: 430px) {
+  :root {
+    --type-hero-size: 2rem;
+    --type-hero-line: 2.25rem;
+  }
+}
