@@ -82,31 +82,34 @@ describe('approved Dashboard visual hierarchy', () => {
     expect(css).toContain('text-align: center');
   });
 
-  it('puts three rounded personal questions before angular product promos', () => {
+  it('puts three Premium ask-the-day cards before angular product promos', () => {
     const dashboard = read('views/Dashboard.tsx');
     const css = read('styles/homeContentHierarchy.css');
 
-    expect(dashboard).toContain('Где сегодня у тебя преимущество?');
-    expect(dashboard).toContain('Какой разговор решит больше, чем кажется?');
-    expect(dashboard).toContain('Кто сегодня замечает тебя внимательнее остальных?');
+    expect(dashboard).toContain('buildDailyQuestionStories');
+    expect(dashboard).toContain('Спроси про сегодня');
+    expect(dashboard).toContain("onRequestPremium?.('daily_questions')");
+    expect(dashboard).toContain('daily-question-story');
     expect(dashboard.indexOf('home-daily-questions')).toBeLessThan(dashboard.indexOf('home-product-grid'));
     expect(css).toContain('.home-daily-question-card');
-    expect(css).toContain('border-radius: 1.5rem');
+    expect(css).toContain('border-radius: 1.48rem');
     expect(css).toContain('.home-product-card.home-product-card--wide');
-    expect(css).toContain('border-radius: 0.72rem');
+    expect(css).toContain('border-radius: 0.58rem');
   });
 
-  it('separates natal, compatibility, and matrix into three wide rotating promos', () => {
+  it('uses compact, readable advertising copy for three no-animal product promos', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const css = read('styles/homeContentHierarchy.css');
 
+    expect(dashboard).toContain('Вот почему ты именно такой');
+    expect(dashboard).toContain('Что между вами на самом деле');
+    expect(dashboard).toContain('Твоя дата — не просто цифры');
     expect(dashboard).toContain("getUniversalCardBackground('natal'");
     expect(dashboard).toContain("getUniversalCardBackground('compatibility'");
     expect(dashboard).toContain("getUniversalCardBackground('matrix'");
-    expect(dashboard).toContain('home-product-card--natal home-product-card--wide');
-    expect(dashboard).toContain('home-product-card--compat home-product-card--wide');
-    expect(dashboard).toContain('home-product-card--matrix home-product-card--wide');
-    expect(dashboard).not.toContain('home-product-card-art');
-    expect(dashboard).not.toContain('home-product-card-kicker');
+    expect(dashboard).toContain('home-product-card-kicker');
+    expect(css).toContain('min-height: clamp(6.6rem, 24vw, 7.45rem)');
+    expect(css).toContain('color: #10223d');
   });
 
   it('keeps original chrome geometry and changes only the liquid-glass material', () => {
