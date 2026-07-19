@@ -1,85 +1,68 @@
 /**
  * App design system — Typography
- * Font family: Manrope (already loaded in project)
- * All size values are pixel numbers; lh is unitless line-height ratio.
+ * Approved font family: Manrope everywhere in the product UI.
+ * All size values are pixel numbers; lineHeight is a pixel value.
  */
-
-// ─── Type definitions ─────────────────────────────────────────────────────────
 
 export interface TypeStyle {
   fontFamily: string;
-  fontSize:   number;
+  fontSize: number;
   fontWeight: number;
   lineHeight: number;
   /** Optional letter-spacing in em */
   letterSpacing?: number;
 }
 
-// ─── Font family ──────────────────────────────────────────────────────────────
-
 export const fontFamily = {
   sans: 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  display: 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 } as const;
 
-// ─── Scale ────────────────────────────────────────────────────────────────────
-
 export const typography = {
-  /**
-   * Display — Hero card headline, page titles
-   * Example: "Сегодня для вас"
-   */
+  /** Hero card headline — 28/32, ExtraBold */
   display: {
-    fontFamily:  fontFamily.sans,
-    fontSize:    28,
-    fontWeight:  700,
-    lineHeight:  1.15,
+    fontFamily: fontFamily.display,
+    fontSize: 28,
+    fontWeight: 800,
+    lineHeight: 32,
+    letterSpacing: -0.035,
   } satisfies TypeStyle,
 
-  /**
-   * Title — Section headings, card titles
-   * Example: "Ваш план", "Натальная карта"
-   */
+  /** Card titles — 20/24, Bold */
   title: {
-    fontFamily:  fontFamily.sans,
-    fontSize:    22,
-    fontWeight:  700,
-    lineHeight:  1.2,
+    fontFamily: fontFamily.display,
+    fontSize: 20,
+    fontWeight: 700,
+    lineHeight: 24,
+    letterSpacing: -0.025,
   } satisfies TypeStyle,
 
-  /**
-   * Subtitle — Sub-headings, plan card descriptions header
-   * Example: "Что сегодня важно"
-   */
+  /** Section headings — 18/22, SemiBold */
   subtitle: {
-    fontFamily:  fontFamily.sans,
-    fontSize:    17,
-    fontWeight:  600,
-    lineHeight:  1.35,
+    fontFamily: fontFamily.sans,
+    fontSize: 18,
+    fontWeight: 600,
+    lineHeight: 22,
+    letterSpacing: -0.02,
   } satisfies TypeStyle,
 
-  /**
-   * Body — Main body copy, card descriptions
-   * Example: reading paragraphs, card text
-   */
+  /** Descriptions and reading text — 14/20, Medium */
   body: {
-    fontFamily:  fontFamily.sans,
-    fontSize:    14,
-    fontWeight:  400,
-    lineHeight:  1.55,
+    fontFamily: fontFamily.sans,
+    fontSize: 14,
+    fontWeight: 500,
+    lineHeight: 20,
+    letterSpacing: -0.005,
   } satisfies TypeStyle,
 
-  /**
-   * Caption — Tags, dates, labels, muted metadata
-   * Example: "Натальная карта" tag chip, day picker labels
-   */
+  /** Dates, labels and metadata — 12/16, Regular */
   caption: {
-    fontFamily:   fontFamily.sans,
-    fontSize:     11,
-    fontWeight:   500,
-    lineHeight:   1.4,
-    letterSpacing: 0.01,
+    fontFamily: fontFamily.sans,
+    fontSize: 12,
+    fontWeight: 400,
+    lineHeight: 16,
   } satisfies TypeStyle,
 } as const;
 
 export type Typography = typeof typography;
-export type TypeScale  = keyof Typography;
+export type TypeScale = keyof Typography;
