@@ -5,7 +5,8 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { getZodiacSign } from '../constants';
 import { getCharts, type ChartListItem } from '../services/storageService';
 import { calculateExtendedSynastry, getSignCompatibility } from '../services/astrologyService';
-import { toDateInputValue } from '../lib/date-utils';
+import { getMoscowTodayKey, toDateInputValue } from '../lib/date-utils';
+import { cardBackgroundStyle, getUniversalCardBackground } from '../lib/cardBackgrounds';
 import { shareToTelegram } from '../lib/botLink';
 import { MonoArticleSection, MonoShareBar } from '../components/mono-ui';
 import { FreshTabs } from '../components/fresh-ui';
@@ -31,6 +32,11 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   const ru = language === 'ru';
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId });
   const premium = hasActivePremium(profile);
+  const today = useMemo(() => getMoscowTodayKey(), []);
+  const compatibilityBackground = useMemo(
+    () => getUniversalCardBackground('compatibility', String(profile.id || 'guest'), today),
+    [profile.id, today],
+  );
   const [mode, setMode] = useState<'signs' | 'personal'>(initialPrefill ? 'personal' : (initialMode ?? 'signs'));
   const [signA, setSignA] = useState('aries'); const [signB, setSignB] = useState('libra');
   const [signResult, setSignResult] = useState<SignCompatibilityResult | null>(null);
@@ -63,10 +69,26 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   return (
     <div className="fresh-page">
       {!embedded ? (
-        <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 12 }}>
-          <div className="fresh-page-kicker">{ru ? 'Союз' : 'Union'}</div>
-          <div className="fresh-page-title">{ru ? 'Совместимость' : 'Compatibility'}</div>
-        </div>
+        <>
+          <div className="fresh-page-title-block" style={{ textAlign: 'center', paddingTop: 0, paddingBottom: 12 }}>
+            <div className="fresh-page-kicker">{ru ? 'Союз' : 'Union'}</div>
+            <div className="fresh-page-title">{ru ? 'Совместимость' : 'Compatibility'}</div>
+          </div>
+          <section
+            className={`product-screen-cover product-screen-cover--compatibility${compatibilityBackground ? ' has-card-background' : ''}`}
+            style={cardBackgroundStyle(compatibilityBackground)}
+            aria-label={ru ? 'Совместимость' : 'Compatibility'}
+          >
+            <div className="product-screen-cover-copy">
+              <div className="product-screen-cover-title">{ru ? 'Что происходит между вами' : 'What happens between you'}</div>
+              <div className="product-screen-cover-text">
+                {ru
+                  ? 'Где вы совпадаете легко, а где начинаете говорить на разных языках.'
+                  : 'Where you align easily and where you start speaking different languages.'}
+              </div>
+            </div>
+          </section>
+        </>
       ) : null}
 
       <FreshTabs tabs={modeTabs} activeTab={mode} onTabChange={(id) => setMode(id as 'signs' | 'personal')} />
