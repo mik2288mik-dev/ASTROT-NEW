@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
-import { formatDisplayDate } from '../../lib/date-utils';
+import { formatDisplayDate, getMoscowTodayKey } from '../../lib/date-utils';
+import { cardBackgroundStyle, getUniversalCardBackground } from '../../lib/cardBackgrounds';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
 import { MonoIllustChart } from '../../components/mono-ui';
@@ -30,6 +31,11 @@ export function NatalMagazine({
   onCreateChart,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
+  const today = useMemo(() => getMoscowTodayKey(), []);
+  const natalBackground = useMemo(
+    () => getUniversalCardBackground('natal', String(profile.id || 'guest'), today),
+    [profile.id, today],
+  );
 
   if (!data) {
     return (
@@ -65,13 +71,26 @@ export function NatalMagazine({
     <div className="fresh-page">
       <ShimmerStyles />
 
-      {/* Единый верх — как на всех экранах. Имя и дата рождения — в подзаголовке. */}
       <FreshInnerHeader
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
         subtitle={`${profile.name} · ${formatDisplayDate(profile.birthDate, language)}`}
       />
 
-      {/* Большая тройка: Солнце / Луна / Асцендент */}
+      <section
+        className={`product-screen-cover product-screen-cover--natal${natalBackground ? ' has-card-background' : ''}`}
+        style={cardBackgroundStyle(natalBackground)}
+        aria-label={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
+      >
+        <div className="product-screen-cover-copy">
+          <div className="product-screen-cover-title">{language === 'ru' ? 'Твоя карта рождения' : 'Your birth chart'}</div>
+          <div className="product-screen-cover-text">
+            {language === 'ru'
+              ? 'Характер, сильные стороны и повторяющиеся сценарии — по твоим данным рождения.'
+              : 'Character, strengths, and recurring patterns based on your birth data.'}
+          </div>
+        </div>
+      </section>
+
       <div className="natal-big3">
         {bigThree.map((it) => (
           <div key={it.planet} className="natal-big3-card">
@@ -84,7 +103,6 @@ export function NatalMagazine({
         ))}
       </div>
 
-      {/* Контент карты — без своей шапки (hideIntro), «Личный день» уехал в Гороскоп */}
       <HumanReport
         profile={profile}
         chartData={data}
