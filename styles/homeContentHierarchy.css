@@ -1,0 +1,285 @@
+/* Final approved home hierarchy:
+   1) personal day hero + swipe cards = rounded illustrated family;
+   2) three wide rounded personal questions;
+   3) separate low angular product promos with no cats. */
+
+/* The carousel keeps breathing room, but no longer looks pushed too far right. */
+.home-spheres-track {
+  padding-right: 16px;
+  padding-left: 22px;
+  scroll-padding-inline-start: 22px;
+}
+
+/* ── Personal questions for today ─────────────────────────────── */
+.home-daily-questions {
+  padding: 0 16px 1.45rem;
+}
+
+.home-section-heading {
+  margin: 0 0 0.72rem;
+  color: #111827;
+  font-family: var(--font-app);
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.home-daily-question-list {
+  display: grid;
+  gap: 0.78rem;
+}
+
+.home-daily-question-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: 100%;
+  min-height: clamp(9.25rem, 36vw, 11rem);
+  align-items: flex-end;
+  overflow: hidden;
+  border: 0;
+  border-radius: 1.5rem;
+  padding: 1.05rem 1.12rem;
+  background-color: #176f88;
+  background-image: var(--card-bg-image);
+  background-position: var(--card-bg-position, center);
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #fff;
+  text-align: left;
+  box-shadow:
+    0 15px 32px rgba(17, 24, 39, 0.12),
+    0 2px 8px rgba(17, 24, 39, 0.055);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-daily-question-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(7, 17, 30, 0.68) 0%, rgba(7, 17, 30, 0.4) 43%, rgba(7, 17, 30, 0.03) 78%),
+    linear-gradient(0deg, rgba(7, 17, 30, 0.48) 0%, rgba(7, 17, 30, 0) 68%);
+}
+
+.home-daily-question-card:active {
+  transform: scale(0.993);
+}
+
+.home-daily-question-card:disabled {
+  opacity: 0.76;
+}
+
+.home-daily-question-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  max-width: min(74%, 25rem);
+  flex-direction: column;
+}
+
+.home-daily-question-title {
+  color: #fff;
+  font-family: var(--font-app);
+  font-size: clamp(1.18rem, 4.8vw, 1.48rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+  text-wrap: balance;
+}
+
+.home-daily-question-hook {
+  display: -webkit-box;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-app);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.36;
+  text-shadow: 0 2px 11px rgba(0, 0, 0, 0.34);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* ── Separate product promo family ───────────────────────────── */
+.home-product-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.72rem;
+  padding: 0 16px 1.65rem;
+}
+
+.home-product-card,
+.home-product-card.home-product-card--wide {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: 100%;
+  min-height: clamp(7.55rem, 28vw, 8.75rem);
+  align-items: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0.72rem;
+  padding: 1rem 1.05rem;
+  background-color: #f3e3bf;
+  background-image: var(--card-bg-image);
+  background-position: var(--card-bg-position, center);
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #10223d;
+  text-align: left;
+  box-shadow:
+    0 11px 24px rgba(17, 24, 39, 0.085),
+    0 2px 6px rgba(17, 24, 39, 0.04);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease;
+}
+
+.home-product-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(250, 242, 222, 0.98) 0%, rgba(250, 242, 222, 0.9) 42%, rgba(250, 242, 222, 0.18) 68%, rgba(250, 242, 222, 0) 100%);
+}
+
+.home-product-card::after {
+  content: none;
+}
+
+.home-product-card:active {
+  transform: translateY(1px) scale(0.994);
+  box-shadow: 0 7px 18px rgba(17, 24, 39, 0.08);
+}
+
+.home-product-card-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  max-width: min(60%, 23rem);
+  flex-direction: column;
+}
+
+.home-product-card-title {
+  display: block;
+  margin: 0;
+  color: #10223d;
+  font-family: var(--font-app);
+  font-size: clamp(1.18rem, 4.7vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.home-product-card-text {
+  display: -webkit-box;
+  margin-top: 0.38rem;
+  overflow: hidden;
+  color: rgba(16, 34, 61, 0.77);
+  font-family: var(--font-app);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.34;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Old CSS illustration layers are no longer used on the product promos. */
+.home-product-card-art,
+.home-product-card-kicker {
+  display: none;
+}
+
+/* ── Same product artwork expands inside the destination screen ─ */
+.product-screen-cover {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: calc(100% - 32px);
+  min-height: clamp(15rem, 46vw, 20rem);
+  align-items: flex-end;
+  overflow: hidden;
+  margin: 0 16px 1.15rem;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background-color: #f3e3bf;
+  background-image: var(--card-bg-image);
+  background-position: var(--card-bg-position, center);
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow:
+    0 18px 40px rgba(17, 24, 39, 0.12),
+    0 3px 9px rgba(17, 24, 39, 0.05);
+}
+
+.product-screen-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(248, 238, 214, 0.95) 0%, rgba(248, 238, 214, 0.76) 43%, rgba(248, 238, 214, 0.04) 76%);
+}
+
+.product-screen-cover-copy {
+  position: relative;
+  z-index: 1;
+  max-width: min(60%, 22rem);
+}
+
+.product-screen-cover-title {
+  color: #10223d;
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+}
+
+.product-screen-cover-text {
+  margin-top: 0.55rem;
+  color: rgba(16, 34, 61, 0.78);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.42;
+}
+
+@media (max-width: 380px) {
+  .home-spheres-track {
+    padding-left: 18px;
+    scroll-padding-inline-start: 18px;
+  }
+
+  .home-daily-questions,
+  .home-product-grid {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .home-daily-question-copy,
+  .home-product-card-copy,
+  .product-screen-cover-copy {
+    max-width: 66%;
+  }
+
+  .product-screen-cover {
+    width: calc(100% - 28px);
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-daily-question-card,
+  .home-product-card {
+    transition: none;
+  }
+}
