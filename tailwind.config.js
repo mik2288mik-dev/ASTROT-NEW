@@ -94,16 +94,15 @@ module.exports = {
         'glow': '0 0 15px var(--highlight)',
       },
       fontFamily: {
-        /** App typography: Inter everywhere; legacy aliases point to the same stack. */
-        serif: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        outfit: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        lumiaHome: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        lumiaHomeDisplay: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        lora: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        /** Doodle skin: handwritten display + small hand labels; body stays lumiaHome (Manrope) */
-        doodleDisplay: ['"Caveat"', '"Ink Free"', '"Segoe Print"', 'cursive'],
-        doodleHand: ['"Neucha"', '"Ink Free"', '"Segoe Print"', 'cursive'],
+        /** Approved product typography: Manrope everywhere. Legacy aliases stay for compatibility. */
+        serif: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        outfit: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        lumiaHome: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        lumiaHomeDisplay: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        lora: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        doodleDisplay: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        doodleHand: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
