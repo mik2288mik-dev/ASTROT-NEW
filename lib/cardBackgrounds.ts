@@ -3,6 +3,7 @@ import manifest from '../docs/design/card-background-system/card-background-mani
 import type { PersonalDailySection } from '../types';
 
 export type CardBackgroundCategory = 'hero' | 'personal' | 'universal' | 'strips';
+export type UniversalCardTheme = 'natal' | 'compatibility' | 'zodiac' | 'matrix' | 'more';
 
 export type CardBackgroundAsset = {
   id: string;
@@ -25,6 +26,52 @@ type CardBackgroundStyle = CSSProperties & {
 
 const ASSETS = (manifest.assets as CardBackgroundAsset[]).filter((asset) => asset.enabled);
 
+/**
+ * Separate product family: same saturated editorial illustration language,
+ * but no cats. Each product has three original variants and rotates stably.
+ */
+const PRODUCT_ASSETS: CardBackgroundAsset[] = [
+  ...(['01', '02', '03'] as const).map((variant) => ({
+    id: `product_natal_${variant}`,
+    path: `/assets/card-backgrounds/products/natal_${variant}.svg`,
+    category: 'universal' as const,
+    theme: 'natal',
+    size: { width: 1600, height: 900 },
+    text_side: 'left' as const,
+    main_object_position: 'right',
+    background_position: 'center',
+    season: 'base',
+    enabled: true,
+    description: 'Насыщенная рисованная архитектурная сцена и графика карты без животных.',
+  })),
+  ...(['01', '02', '03'] as const).map((variant) => ({
+    id: `product_compatibility_${variant}`,
+    path: `/assets/card-backgrounds/products/compatibility_${variant}.svg`,
+    category: 'universal' as const,
+    theme: 'compatibility',
+    size: { width: 1600, height: 900 },
+    text_side: 'left' as const,
+    main_object_position: 'right',
+    background_position: 'center',
+    season: 'base',
+    enabled: true,
+    description: 'Парная рисованная композиция в насыщенной палитре без котов и сердечек.',
+  })),
+  ...(['01', '02', '03'] as const).map((variant) => ({
+    id: `product_matrix_${variant}`,
+    path: `/assets/card-backgrounds/products/matrix_${variant}.svg`,
+    category: 'universal' as const,
+    theme: 'matrix',
+    size: { width: 1600, height: 900 },
+    text_side: 'left' as const,
+    main_object_position: 'right',
+    background_position: 'center',
+    season: 'base',
+    enabled: true,
+    description: 'Модульная рисованная система с сеткой, узлами и насыщенными цветами.',
+  })),
+];
+
 const PERSONAL_THEME_BY_SECTION: Record<Exclude<PersonalDailySection, 'overview'>, string> = {
   love: 'love',
   money: 'money',
@@ -45,18 +92,28 @@ function stableHash(value: string): number {
   return hash >>> 0;
 }
 
+function selectFrom(
+  assets: CardBackgroundAsset[],
+  category: CardBackgroundCategory,
+  theme: string,
+  userId: string,
+  dateKey: string,
+): CardBackgroundAsset | null {
+  const candidates = assets.filter(
+    (asset) => asset.enabled && asset.category === category && asset.theme === theme && asset.season === 'base',
+  );
+  if (!candidates.length) return null;
+  const index = stableHash(`${userId || 'guest'}|${dateKey}|${category}|${theme}`) % candidates.length;
+  return candidates[index] || candidates[0] || null;
+}
+
 function selectAsset(
   category: CardBackgroundCategory,
   theme: string,
   userId: string,
   dateKey: string,
 ): CardBackgroundAsset | null {
-  const candidates = ASSETS.filter(
-    (asset) => asset.category === category && asset.theme === theme && asset.season === 'base',
-  );
-  if (!candidates.length) return null;
-  const index = stableHash(`${userId || 'guest'}|${dateKey}|${category}|${theme}`) % candidates.length;
-  return candidates[index] || candidates[0] || null;
+  return selectFrom(ASSETS, category, theme, userId, dateKey);
 }
 
 export function getHeroCardBackground(userId: string, dateKey: string): CardBackgroundAsset | null {
@@ -74,11 +131,14 @@ export function getPersonalCardBackground(
 }
 
 export function getUniversalCardBackground(
-  theme: 'natal' | 'compatibility' | 'zodiac' | 'matrix' | 'more',
+  theme: UniversalCardTheme,
+  userId = 'guest',
+  dateKey = 'base',
 ): CardBackgroundAsset | null {
-  return ASSETS.find(
-    (asset) => asset.category === 'universal' && asset.theme === theme && asset.season === 'base',
-  ) || null;
+  if (theme === 'natal' || theme === 'compatibility' || theme === 'matrix') {
+    return selectFrom(PRODUCT_ASSETS, 'universal', theme, userId, dateKey);
+  }
+  return selectAsset('universal', theme, userId, dateKey);
 }
 
 export function getStripCardBackground(
