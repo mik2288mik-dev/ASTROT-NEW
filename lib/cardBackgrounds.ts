@@ -73,27 +73,102 @@ const PRODUCT_ASSETS: CardBackgroundAsset[] = [
   })),
 ];
 
+function questionAsset(
+  id: string,
+  theme: DailyQuestionTheme,
+  path: string,
+  backgroundPosition: string,
+  description: string,
+): CardBackgroundAsset {
+  return {
+    id,
+    path,
+    category: 'personal',
+    theme: `question_${theme}`,
+    size: path.includes('/hero/')
+      ? { width: 1200, height: 1320 }
+      : { width: 1600, height: 800 },
+    text_side: 'center',
+    main_object_position: 'background',
+    background_position: backgroundPosition,
+    season: 'base',
+    enabled: true,
+    description,
+  };
+}
+
 /**
- * Premium questions belong to the Today family, so only here small cat fragments are allowed.
- * Each of the three question slots has three different illustrated scenes.
+ * Premium questions are part of Today, so they reuse the approved editorial
+ * Today artwork instead of the temporary abstract SVG set. The same file is
+ * shown in the preview and in the full-screen story.
  */
-const QUESTION_ASSETS: CardBackgroundAsset[] = (
-  ['advantage', 'conversation', 'attention'] as const
-).flatMap((theme) => (
-  ['01', '02', '03'] as const
-).map((variant) => ({
-  id: `question_${theme}_${variant}`,
-  path: `/assets/card-backgrounds/questions/question_${theme}_${variant}.svg`,
-  category: 'personal' as const,
-  theme: `question_${theme}`,
-  size: { width: 1600, height: 700 },
-  text_side: 'left' as const,
-  main_object_position: 'right',
-  background_position: 'center',
-  season: 'base',
-  enabled: true,
-  description: 'Яркая рисованная сцена Today с небольшим фрагментом кота, без текста.',
-})));
+const QUESTION_ASSETS: CardBackgroundAsset[] = [
+  questionAsset(
+    'question_advantage_01',
+    'advantage',
+    '/assets/card-backgrounds/hero/hero_01.webp',
+    '68% 58%',
+    'Яркая сцена Today у окна: спокойная точка силы и личное преимущество.',
+  ),
+  questionAsset(
+    'question_advantage_02',
+    'advantage',
+    '/assets/card-backgrounds/personal/goals_01.webp',
+    '69% 50%',
+    'Цветные ступени и направление движения из ежедневной серии.',
+  ),
+  questionAsset(
+    'question_advantage_03',
+    'advantage',
+    '/assets/card-backgrounds/hero/hero_05.webp',
+    '70% 62%',
+    'Фрагмент кота и выразительные цветные плоскости из мира Сегодня.',
+  ),
+
+  questionAsset(
+    'question_conversation_01',
+    'conversation',
+    '/assets/card-backgrounds/personal/communication_01.webp',
+    '70% 50%',
+    'Два профиля и отражение для вопроса о важном разговоре.',
+  ),
+  questionAsset(
+    'question_conversation_02',
+    'conversation',
+    '/assets/card-backgrounds/personal/friends_01.webp',
+    '70% 50%',
+    'Живая социальная сцена из ежедневной серии.',
+  ),
+  questionAsset(
+    'question_conversation_03',
+    'conversation',
+    '/assets/card-backgrounds/personal/love_02.webp',
+    '72% 50%',
+    'Хвосты и тени создают интригу без буквальной иллюстрации разговора.',
+  ),
+
+  questionAsset(
+    'question_attention_01',
+    'attention',
+    '/assets/card-backgrounds/hero/hero_04.webp',
+    '68% 58%',
+    'Кот среди крупных листьев и цветной архитектуры.',
+  ),
+  questionAsset(
+    'question_attention_02',
+    'attention',
+    '/assets/card-backgrounds/personal/overview_01.webp',
+    '70% 50%',
+    'Наблюдательная сцена на ярких журналах для вопроса о внимании.',
+  ),
+  questionAsset(
+    'question_attention_03',
+    'attention',
+    '/assets/card-backgrounds/personal/home_01.webp',
+    '70% 52%',
+    'Выразительная интерьерная сцена с частью кошачьей композиции.',
+  ),
+];
 
 const PERSONAL_THEME_BY_SECTION: Record<Exclude<PersonalDailySection, 'overview'>, string> = {
   love: 'love',
