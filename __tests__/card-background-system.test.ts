@@ -12,7 +12,7 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('card background library', () => {
-  it('documents exactly 30 enabled production assets', () => {
+  it('keeps the original 30 enabled daily assets documented', () => {
     expect(manifest.assets).toHaveLength(30);
     expect(manifest.assets.every((asset) => asset.enabled)).toBe(true);
     expect(new Set(manifest.assets.map((asset) => asset.id)).size).toBe(30);
@@ -42,30 +42,51 @@ describe('card background library', () => {
     expect(getPersonalCardBackground('communication', '42', '2026-07-19')?.path).toContain('/communication_');
   });
 
-  it('exposes universal product backgrounds and CSS variables', () => {
-    const natal = getUniversalCardBackground('natal');
-    expect(natal?.path).toBe('/assets/card-backgrounds/universal/universal_natal.webp');
+  it('adds three original no-cat illustrated variants for every product', () => {
+    for (const theme of ['natal', 'compatibility', 'matrix']) {
+      for (const variant of ['01', '02', '03']) {
+        const file = `public/assets/card-backgrounds/products/${theme}_${variant}.svg`;
+        expect(fs.existsSync(path.join(ROOT, file))).toBe(true);
+        expect(read(file)).toContain('<svg');
+      }
+    }
+  });
+
+  it('returns a stable rotating product background and CSS variables', () => {
+    const natal = getUniversalCardBackground('natal', '42', '2026-07-19');
+    const sameNatal = getUniversalCardBackground('natal', '42', '2026-07-19');
+
+    expect(natal?.path).toMatch(/^\/assets\/card-backgrounds\/products\/natal_0[1-3]\.svg$/);
+    expect(sameNatal?.id).toBe(natal?.id);
     expect(cardBackgroundStyle(natal)).toEqual({
-      '--card-bg-image': 'url("/assets/card-backgrounds/universal/universal_natal.webp")',
+      '--card-bg-image': `url("${natal?.path}")`,
       '--card-bg-position': natal?.background_position,
     });
   });
 });
 
 describe('card background UI wiring', () => {
-  it('connects the library to Dashboard and the personal horoscope cover', () => {
+  it('connects the library to Dashboard, questions, and expanded destination covers', () => {
     const dashboard = read('views/Dashboard.tsx');
     const personalDaily = read('views/DailyContentScreens.tsx');
+    const natal = read('views/v2/NatalMagazine.tsx');
+    const compatibility = read('views/Synastry.tsx');
+    const matrix = read('views/v2/MatrixRoom.tsx');
     const app = read('pages/_app.tsx');
 
     expect(dashboard).toContain('getHeroCardBackground');
     expect(dashboard).toContain('getPersonalCardBackground');
     expect(dashboard).toContain('getUniversalCardBackground');
-    expect(dashboard).toContain("heroBackground ? ' has-card-background' : ''");
-    expect(dashboard).toContain('style={cardBackgroundStyle(card.background)}');
+    expect(dashboard).toContain('home-daily-question-card');
+    expect(dashboard).toContain('home-product-card--natal');
+    expect(dashboard).toContain('home-product-card--compat');
+    expect(dashboard).toContain('home-product-card--matrix');
     expect(personalDaily).toContain('getPersonalCardBackground(activeSection');
     expect(personalDaily).toContain("activeBackground ? ' has-card-background' : ''");
-    expect(app).toContain("../styles/cardBackgrounds.css");
+    expect(natal).toContain("getUniversalCardBackground('natal'");
+    expect(compatibility).toContain("getUniversalCardBackground('compatibility'");
+    expect(matrix).toContain("getUniversalCardBackground('matrix'");
+    expect(app).toContain("../styles/homeContentHierarchy.css");
   });
 
   it('does not show a ready-state text CTA inside the clickable hero', () => {
