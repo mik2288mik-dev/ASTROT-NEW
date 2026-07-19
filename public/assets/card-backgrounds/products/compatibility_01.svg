@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs><filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".5" numOctaves="2" seed="9" result="n"/><feBlend in="SourceGraphic" in2="n" mode="soft-light"/></filter></defs>
+  <rect width="1600" height="900" fill="#F7E8C8"/>
+  <g transform="translate(760 0)" filter="url(#paper)">
+    <rect width="840" height="900" fill="#1A8090"/>
+    <path d="M0 520C190 450 320 460 430 560C560 678 690 644 840 540V900H0Z" fill="#0B5C70"/>
+    <circle cx="325" cy="390" r="235" fill="#F46F4A"/>
+    <circle cx="530" cy="390" r="235" fill="#4EC8BC"/>
+    <path d="M428 175A235 235 0 0 1 428 605A235 235 0 0 0 428 175Z" fill="#F6BE37" opacity=".92"/>
+    <path d="M150 720l155-170 155 170-155 145z" fill="#F7E8C8"/>
+    <path d="M465 720l155-170 155 170-155 145z" fill="#173B67"/>
+    <path d="M200 705h210v28H200zM515 705h210v28H515z" fill="#E85B37" opacity=".78"/>
+    <path d="M64 130c94 28 151 90 170 185" fill="none" stroke="#F7E8C8" stroke-width="24" stroke-linecap="round"/>
+    <path d="M780 122c-95 35-151 98-163 189" fill="none" stroke="#F7E8C8" stroke-width="24" stroke-linecap="round"/>
+  </g>
+  <path d="M0 720C250 620 486 636 720 750V900H0Z" fill="#F6BE37" opacity=".24"/>
+</svg>
