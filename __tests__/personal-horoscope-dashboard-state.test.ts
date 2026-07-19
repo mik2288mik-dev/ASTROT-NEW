@@ -68,12 +68,14 @@ describe('personal horoscope topic carousel', () => {
 });
 
 describe('approved Dashboard visual hierarchy', () => {
-  it('shows the personal calculation basis inside the large hero', () => {
+  it('shows the approved personal explanation as plain text inside the large hero', () => {
     const dashboard = read('views/Dashboard.tsx');
     const css = read('styles/homeMvpLayout.css');
 
     expect(dashboard).toContain('home-day-hero-basis');
-    expect(dashboard).toContain('Твоя карта рождения + положение планет сегодня');
+    expect(dashboard).toContain('Здесь твой личный гороскоп — по дате рождения и положению планет сегодня.');
+    expect(dashboard).not.toContain('home-day-hero-basis-icon');
+    expect(css).toContain('Plain explanatory line: no badge, icon, border or nested card.');
     expect(css).toContain('min-height: clamp(25.5rem, calc(100svh - 19.5rem), 31rem)');
     expect(css).toContain('.home-day-hero.has-card-background .home-day-hero-date');
     expect(css).toContain('text-align: center');
@@ -86,21 +88,25 @@ describe('approved Dashboard visual hierarchy', () => {
     expect(dashboard).toContain('home-product-card--natal');
     expect(dashboard).toContain('home-product-card--compat');
     expect(dashboard).toContain('home-product-card--matrix');
-    expect(dashboard).not.toContain("getUniversalCardBackground");
+    expect(dashboard).not.toContain('getUniversalCardBackground');
     expect(css).toContain('Natal chart: calm structural atlas, no animals.');
     expect(css).toContain('Compatibility: paired forms and two strong colours, no cats.');
     expect(css).toContain('Matrix: modular numeric/structural world, no animals.');
   });
 
-  it('uses crisp liquid glass for top and bottom chrome without the old fog', () => {
+  it('keeps original chrome geometry and changes only the liquid-glass material', () => {
     const css = read('styles/homeMvpLayout.css');
+    const topRule = css.match(/\.home-screen \.home-logo-bar\s*\{([^}]*)\}/s)?.[1] || '';
 
     expect(css).toContain('.home-screen.fresh-page::before');
     expect(css).toContain('display: none');
-    expect(css).toContain('.home-screen .home-logo-bar');
-    expect(css).toContain('backdrop-filter: blur(24px) saturate(1.55)');
+    expect(topRule).toContain('backdrop-filter: blur(22px) saturate(1.55)');
+    expect(topRule).not.toContain('position:');
+    expect(topRule).not.toContain('min-height:');
+    expect(topRule).not.toContain('margin:');
     expect(css).toContain('.lumia-bottom-tab-bar');
     expect(css).toContain('backdrop-filter: blur(30px) saturate(1.6)');
+    expect(css).not.toContain('.lumia-bottom-tab-shell {');
   });
 });
 
