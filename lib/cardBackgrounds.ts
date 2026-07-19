@@ -4,6 +4,7 @@ import type { PersonalDailySection } from '../types';
 
 export type CardBackgroundCategory = 'hero' | 'personal' | 'universal' | 'strips';
 export type UniversalCardTheme = 'natal' | 'compatibility' | 'zodiac' | 'matrix' | 'more';
+export type DailyQuestionTheme = 'advantage' | 'conversation' | 'attention';
 
 export type CardBackgroundAsset = {
   id: string;
@@ -55,7 +56,7 @@ const PRODUCT_ASSETS: CardBackgroundAsset[] = [
     background_position: 'center',
     season: 'base',
     enabled: true,
-    description: 'Парная рисованная композиция в насыщенной палитре без котов и сердечек.',
+    description: 'Парная рисованная композиция в насыщенной палитре без животных и сердечек.',
   })),
   ...(['01', '02', '03'] as const).map((variant) => ({
     id: `product_matrix_${variant}`,
@@ -71,6 +72,28 @@ const PRODUCT_ASSETS: CardBackgroundAsset[] = [
     description: 'Модульная рисованная система с сеткой, узлами и насыщенными цветами.',
   })),
 ];
+
+/**
+ * Premium questions belong to the Today family, so only here small cat fragments are allowed.
+ * Each of the three question slots has three different illustrated scenes.
+ */
+const QUESTION_ASSETS: CardBackgroundAsset[] = (
+  ['advantage', 'conversation', 'attention'] as const
+).flatMap((theme) => (
+  ['01', '02', '03'] as const
+).map((variant) => ({
+  id: `question_${theme}_${variant}`,
+  path: `/assets/card-backgrounds/questions/question_${theme}_${variant}.svg`,
+  category: 'personal' as const,
+  theme: `question_${theme}`,
+  size: { width: 1600, height: 700 },
+  text_side: 'left' as const,
+  main_object_position: 'right',
+  background_position: 'center',
+  season: 'base',
+  enabled: true,
+  description: 'Яркая рисованная сцена Today с небольшим фрагментом кота, без текста.',
+})));
 
 const PERSONAL_THEME_BY_SECTION: Record<Exclude<PersonalDailySection, 'overview'>, string> = {
   love: 'love',
@@ -125,9 +148,16 @@ export function getPersonalCardBackground(
   userId: string,
   dateKey: string,
 ): CardBackgroundAsset | null {
-  // Обзор открывается из главной hero-карточки, поэтому сохраняет ту же композицию.
   if (section === 'overview') return getHeroCardBackground(userId, dateKey);
   return selectAsset('personal', PERSONAL_THEME_BY_SECTION[section], userId, dateKey);
+}
+
+export function getDailyQuestionCardBackground(
+  theme: DailyQuestionTheme,
+  userId: string,
+  dateKey: string,
+): CardBackgroundAsset | null {
+  return selectFrom(QUESTION_ASSETS, 'personal', `question_${theme}`, userId, dateKey);
 }
 
 export function getUniversalCardBackground(
