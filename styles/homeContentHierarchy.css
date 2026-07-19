@@ -1,16 +1,24 @@
-/* Final approved home hierarchy:
-   1) personal day hero + swipe cards = rounded illustrated family;
-   2) three wide rounded personal questions;
-   3) separate low angular product promos with no cats. */
+/* Approved home hierarchy:
+   1) personal day hero + swipe cards = rounded illustrated Today family;
+   2) three wide rounded Premium questions that open as full-screen stories;
+   3) separate low angular product promos with no animals. */
 
-/* The carousel keeps breathing room, but no longer looks pushed too far right. */
 .home-spheres-track {
   padding-right: 16px;
   padding-left: 22px;
   scroll-padding-inline-start: 22px;
 }
 
-/* ── Personal questions for today ─────────────────────────────── */
+.home-sphere-card.has-card-background .home-sphere-title {
+  font-size: clamp(1.28rem, 5vw, 1.48rem);
+}
+
+.home-sphere-card.has-card-background .home-sphere-hook {
+  font-size: clamp(0.84rem, 3.15vw, 0.91rem);
+  line-height: 1.36;
+}
+
+/* ── Premium questions about this exact day ───────────────────── */
 .home-daily-questions {
   padding: 0 16px 1.45rem;
 }
@@ -19,7 +27,7 @@
   margin: 0 0 0.72rem;
   color: #111827;
   font-family: var(--font-app);
-  font-size: 1.18rem;
+  font-size: 1.22rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -35,12 +43,12 @@
   isolation: isolate;
   display: flex;
   width: 100%;
-  min-height: clamp(9.25rem, 36vw, 11rem);
+  min-height: clamp(7.9rem, 30vw, 9rem);
   align-items: flex-end;
   overflow: hidden;
   border: 0;
-  border-radius: 1.5rem;
-  padding: 1.05rem 1.12rem;
+  border-radius: 1.48rem;
+  padding: 1rem 1.08rem;
   background-color: #176f88;
   background-image: var(--card-bg-image);
   background-position: var(--card-bg-position, center);
@@ -49,8 +57,8 @@
   color: #fff;
   text-align: left;
   box-shadow:
-    0 15px 32px rgba(17, 24, 39, 0.12),
-    0 2px 8px rgba(17, 24, 39, 0.055);
+    0 14px 30px rgba(17, 24, 39, 0.115),
+    0 2px 8px rgba(17, 24, 39, 0.05);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -63,56 +71,195 @@
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(7, 17, 30, 0.68) 0%, rgba(7, 17, 30, 0.4) 43%, rgba(7, 17, 30, 0.03) 78%),
-    linear-gradient(0deg, rgba(7, 17, 30, 0.48) 0%, rgba(7, 17, 30, 0) 68%);
+    linear-gradient(90deg, rgba(7, 17, 30, 0.72) 0%, rgba(7, 17, 30, 0.45) 43%, rgba(7, 17, 30, 0.04) 79%),
+    linear-gradient(0deg, rgba(7, 17, 30, 0.5) 0%, rgba(7, 17, 30, 0) 70%);
+}
+
+.home-daily-question-card.is-locked::after {
+  background:
+    linear-gradient(90deg, rgba(7, 17, 30, 0.78) 0%, rgba(7, 17, 30, 0.55) 49%, rgba(7, 17, 30, 0.16) 100%),
+    linear-gradient(0deg, rgba(7, 17, 30, 0.54) 0%, rgba(7, 17, 30, 0.04) 74%);
 }
 
 .home-daily-question-card:active {
   transform: scale(0.993);
 }
 
-.home-daily-question-card:disabled {
-  opacity: 0.76;
-}
-
 .home-daily-question-copy {
   position: relative;
   z-index: 1;
   display: flex;
-  max-width: min(74%, 25rem);
+  max-width: min(77%, 25rem);
   flex-direction: column;
 }
 
 .home-daily-question-title {
   color: #fff;
   font-family: var(--font-app);
-  font-size: clamp(1.18rem, 4.8vw, 1.48rem);
+  font-size: clamp(1.2rem, 4.75vw, 1.5rem);
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1.08;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.32);
   text-wrap: balance;
 }
 
 .home-daily-question-hook {
   display: -webkit-box;
-  margin-top: 0.5rem;
+  margin-top: 0.48rem;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
   font-family: var(--font-app);
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-size: clamp(0.82rem, 3.1vw, 0.9rem);
+  font-weight: 550;
   line-height: 1.36;
   text-shadow: 0 2px 11px rgba(0, 0, 0, 0.34);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
-/* ── Separate product promo family ───────────────────────────── */
+.home-daily-question-lock {
+  position: absolute;
+  top: 0.86rem;
+  right: 0.9rem;
+  z-index: 2;
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(4, 16, 31, 0.17), 0 1px 0 rgba(255, 255, 255, 0.42) inset;
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+}
+
+/* Same preview artwork becomes a full-screen story. */
+.daily-question-story {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  padding: max(env(safe-area-inset-top, 0px), 10px) 10px max(env(safe-area-inset-bottom, 0px), 10px);
+  background: rgba(5, 12, 24, 0.78);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.daily-question-story-scene {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 1.8rem;
+  background-color: #176f88;
+  background-image: var(--card-bg-image);
+  background-position: var(--card-bg-position, center);
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
+  touch-action: pan-y;
+}
+
+.daily-question-story-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(0deg, rgba(4, 12, 24, 0.9) 0%, rgba(4, 12, 24, 0.67) 37%, rgba(4, 12, 24, 0.1) 72%),
+    linear-gradient(90deg, rgba(4, 12, 24, 0.24), rgba(4, 12, 24, 0.02));
+  pointer-events: none;
+}
+
+.daily-question-story-progress {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  left: 1rem;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.daily-question-story-progress i {
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.daily-question-story-progress i.is-active {
+  background: #fff;
+}
+
+.daily-question-story-close {
+  position: absolute;
+  top: 1.55rem;
+  right: 1rem;
+  z-index: 4;
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-family: var(--font-app);
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.daily-question-story-copy {
+  position: absolute;
+  right: 1.3rem;
+  bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+  left: 1.3rem;
+  z-index: 2;
+  color: #fff;
+}
+
+.daily-question-story-kicker {
+  margin-bottom: 0.62rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.daily-question-story-copy h2 {
+  max-width: 24rem;
+  margin: 0;
+  font-family: var(--font-app);
+  font-size: clamp(1.85rem, 8vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.daily-question-story-copy p {
+  max-width: 34rem;
+  margin: 1rem 0 0;
+  color: rgba(255, 255, 255, 0.93);
+  font-family: var(--font-app);
+  font-size: clamp(0.98rem, 3.8vw, 1.08rem);
+  font-weight: 500;
+  line-height: 1.53;
+}
+
+/* ── Separate compact product promo family ────────────────────── */
 .home-product-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.72rem;
+  gap: 0.68rem;
   padding: 0 16px 1.65rem;
 }
 
@@ -122,12 +269,12 @@
   isolation: isolate;
   display: flex;
   width: 100%;
-  min-height: clamp(7.55rem, 28vw, 8.75rem);
+  min-height: clamp(6.6rem, 24vw, 7.45rem);
   align-items: center;
   overflow: hidden;
   border: 0;
-  border-radius: 0.72rem;
-  padding: 1rem 1.05rem;
+  border-radius: 0.58rem;
+  padding: 0.82rem 0.95rem;
   background-color: #f3e3bf;
   background-image: var(--card-bg-image);
   background-position: var(--card-bg-position, center);
@@ -135,9 +282,7 @@
   background-size: cover;
   color: #10223d;
   text-align: left;
-  box-shadow:
-    0 11px 24px rgba(17, 24, 39, 0.085),
-    0 2px 6px rgba(17, 24, 39, 0.04);
+  box-shadow: 0 10px 22px rgba(17, 24, 39, 0.08), 0 2px 5px rgba(17, 24, 39, 0.035);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms ease;
@@ -149,7 +294,7 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(250, 242, 222, 0.98) 0%, rgba(250, 242, 222, 0.9) 42%, rgba(250, 242, 222, 0.18) 68%, rgba(250, 242, 222, 0) 100%);
+  background: linear-gradient(90deg, rgba(251, 245, 230, 0.99) 0%, rgba(251, 245, 230, 0.94) 44%, rgba(251, 245, 230, 0.46) 62%, rgba(251, 245, 230, 0.04) 82%);
 }
 
 .home-product-card::after {
@@ -165,60 +310,68 @@
   position: relative;
   z-index: 1;
   display: flex;
-  max-width: min(60%, 23rem);
+  max-width: min(65%, 24rem);
   flex-direction: column;
+}
+
+.home-product-card-kicker {
+  display: block;
+  color: rgba(16, 34, 61, 0.66);
+  font-family: var(--font-app);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.075em;
+  line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .home-product-card-title {
   display: block;
-  margin: 0;
+  margin: 0.24rem 0 0;
   color: #10223d;
   font-family: var(--font-app);
-  font-size: clamp(1.18rem, 4.7vw, 1.45rem);
+  font-size: clamp(1.16rem, 4.55vw, 1.42rem);
   font-weight: 800;
   letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: 1.06;
+  text-wrap: balance;
 }
 
 .home-product-card-text {
   display: -webkit-box;
-  margin-top: 0.38rem;
+  margin-top: 0.32rem;
   overflow: hidden;
-  color: rgba(16, 34, 61, 0.77);
+  color: rgba(16, 34, 61, 0.8);
   font-family: var(--font-app);
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.34;
+  font-size: clamp(0.79rem, 3.05vw, 0.87rem);
+  font-weight: 550;
+  line-height: 1.32;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
-/* Old CSS illustration layers are no longer used on the product promos. */
-.home-product-card-art,
-.home-product-card-kicker {
+.home-product-card-art {
   display: none;
 }
 
-/* ── Same product artwork expands inside the destination screen ─ */
+/* ── Same product artwork inside destination screens ──────────── */
 .product-screen-cover {
   position: relative;
   isolation: isolate;
   display: flex;
   width: calc(100% - 32px);
-  min-height: clamp(15rem, 46vw, 20rem);
+  min-height: clamp(13rem, 42vw, 17rem);
   align-items: flex-end;
   overflow: hidden;
-  margin: 0 16px 1.15rem;
-  border-radius: 1rem;
-  padding: 1.25rem;
+  margin: 0 16px 1.05rem;
+  border-radius: 0.9rem;
+  padding: 1.15rem;
   background-color: #f3e3bf;
   background-image: var(--card-bg-image);
   background-position: var(--card-bg-position, center);
   background-repeat: no-repeat;
   background-size: cover;
-  box-shadow:
-    0 18px 40px rgba(17, 24, 39, 0.12),
-    0 3px 9px rgba(17, 24, 39, 0.05);
+  box-shadow: 0 17px 38px rgba(17, 24, 39, 0.11), 0 3px 8px rgba(17, 24, 39, 0.05);
 }
 
 .product-screen-cover::after {
@@ -227,13 +380,13 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(248, 238, 214, 0.95) 0%, rgba(248, 238, 214, 0.76) 43%, rgba(248, 238, 214, 0.04) 76%);
+  background: linear-gradient(90deg, rgba(249, 240, 218, 0.97) 0%, rgba(249, 240, 218, 0.82) 46%, rgba(249, 240, 218, 0.08) 78%);
 }
 
 .product-screen-cover-copy {
   position: relative;
   z-index: 1;
-  max-width: min(60%, 22rem);
+  max-width: min(63%, 23rem);
 }
 
 .product-screen-cover-title {
@@ -245,10 +398,10 @@
 }
 
 .product-screen-cover-text {
-  margin-top: 0.55rem;
-  color: rgba(16, 34, 61, 0.78);
-  font-size: 0.86rem;
-  font-weight: 500;
+  margin-top: 0.5rem;
+  color: rgba(16, 34, 61, 0.8);
+  font-size: clamp(0.88rem, 3.25vw, 0.98rem);
+  font-weight: 550;
   line-height: 1.42;
 }
 
@@ -267,7 +420,7 @@
   .home-daily-question-copy,
   .home-product-card-copy,
   .product-screen-cover-copy {
-    max-width: 66%;
+    max-width: 69%;
   }
 
   .product-screen-cover {
