@@ -1,0 +1,72 @@
+/* Narrow, approved fix only:
+   1) align the first Today topic card with the 16px main gutter;
+   2) prevent iOS/Telegram WebView from flashing rounded image cards while vertically scrolling.
+   No visual redesign belongs in this file. */
+
+/* One final effective gutter for the horizontal topic rail. */
+.home-screen .home-spheres-track {
+  padding-left: 16px;
+  scroll-padding-inline-start: 16px;
+}
+
+/* Rounded background-image buttons can briefly repaint in Telegram's iOS WebView,
+   especially while fixed liquid-glass chrome overlaps them. Keep each card and its
+   scrim in a stable composited paint layer. */
+.home-screen :is(
+  .home-day-hero.has-card-background,
+  .home-sphere-card.has-card-background,
+  .home-daily-question-card,
+  .home-product-card
+) {
+  contain: paint;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background-clip: padding-box;
+}
+
+.home-screen :is(
+  .home-day-hero.has-card-background,
+  .home-sphere-card.has-card-background,
+  .home-daily-question-card,
+  .home-product-card
+)::before,
+.home-screen :is(
+  .home-day-hero.has-card-background,
+  .home-sphere-card.has-card-background,
+  .home-daily-question-card,
+  .home-product-card
+)::after {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* A vertical swipe must not trigger the old press-scale animation mid-scroll. */
+.home-screen :is(
+  .home-day-hero.has-card-background,
+  .home-sphere-card.has-card-background,
+  .home-daily-question-card,
+  .home-product-card
+):active {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* Keep the two liquid-glass chrome surfaces on their own stable layers as cards pass below. */
+.home-screen .home-logo-bar,
+.lumia-bottom-tab-bar {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (max-width: 380px) {
+  .home-screen .home-spheres-track {
+    padding-left: 14px;
+    scroll-padding-inline-start: 14px;
+  }
+}
