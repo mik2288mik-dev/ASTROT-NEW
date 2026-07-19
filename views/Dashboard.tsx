@@ -22,6 +22,7 @@ import {
   cardBackgroundStyle,
   getHeroCardBackground,
   getPersonalCardBackground,
+  getUniversalCardBackground,
   type CardBackgroundAsset,
 } from '../lib/cardBackgrounds';
 
@@ -31,6 +32,14 @@ const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
 
 type SphereCard = {
   section: PersonalDailySection;
+  title: string;
+  hook: string;
+  background: CardBackgroundAsset | null;
+};
+
+type DailyQuestionCard = {
+  key: string;
+  section: Exclude<PersonalDailySection, 'overview'>;
   title: string;
   hook: string;
   background: CardBackgroundAsset | null;
@@ -77,6 +86,18 @@ export const Dashboard = memo<DashboardProps>(({
 
   const heroBackground = useMemo(
     () => getHeroCardBackground(backgroundUserId, today),
+    [backgroundUserId, today],
+  );
+  const natalBackground = useMemo(
+    () => getUniversalCardBackground('natal', backgroundUserId, today),
+    [backgroundUserId, today],
+  );
+  const compatibilityBackground = useMemo(
+    () => getUniversalCardBackground('compatibility', backgroundUserId, today),
+    [backgroundUserId, today],
+  );
+  const matrixBackground = useMemo(
+    () => getUniversalCardBackground('matrix', backgroundUserId, today),
     [backgroundUserId, today],
   );
 
@@ -148,17 +169,17 @@ export const Dashboard = memo<DashboardProps>(({
 
   const natalText = hasChart
     ? (language === 'ru'
-      ? 'Характер, привычки и сильные стороны — по твоим данным рождения.'
-      : 'Character, habits, and strengths based on your birth data.')
+      ? 'Характер, сильные стороны и повторяющиеся сценарии — по твоим данным рождения.'
+      : 'Character, strengths, and recurring patterns based on your birth data.')
     : (language === 'ru'
       ? 'Дата, время и место рождения — и вместо общих слов будет разбор про тебя.'
       : 'Add your birth date, time, and place to get a reading about you, not a generic one.');
   const matrixText = language === 'ru'
-    ? 'Что у тебя получается естественно, а где ты сам добавляешь себе лишний квест.'
-    : 'What comes naturally and where you tend to make life harder than it needs to be.';
+    ? 'Сильные стороны, привычные сценарии и точки роста — через числа рождения.'
+    : 'Strengths, recurring patterns, and growth points through birth numbers.';
   const compatibilityText = language === 'ru'
-    ? 'Где вы быстро находите общий язык, а где спор начинается раньше вопроса.'
-    : 'Where you click quickly and where an argument starts before the question does.';
+    ? 'Где вы совпадаете легко, а где начинаете говорить на разных языках.'
+    : 'Where you align easily and where you start speaking different languages.';
 
   const sphereCards: SphereCard[] = useMemo(() => {
     const labels: Array<[Exclude<PersonalDailySection, 'overview'>, string]> = language === 'ru'
@@ -188,6 +209,44 @@ export const Dashboard = memo<DashboardProps>(({
       title,
       hook: dailyPackage?.[section]?.hook?.trim()
         || getDashboardSystemText(systemState, language, `${today}-${section}`),
+      background: getPersonalCardBackground(section, backgroundUserId, today),
+    }));
+  }, [backgroundUserId, dailyPackage, language, systemState, today]);
+
+  const dailyQuestionCards: DailyQuestionCard[] = useMemo(() => {
+    const definitions: Array<{
+      key: string;
+      section: Exclude<PersonalDailySection, 'overview'>;
+      ru: string;
+      en: string;
+    }> = [
+      {
+        key: 'advantage',
+        section: 'goals',
+        ru: 'Где сегодня у тебя преимущество?',
+        en: 'Where do you have an edge today?',
+      },
+      {
+        key: 'conversation',
+        section: 'communication',
+        ru: 'Какой разговор решит больше, чем кажется?',
+        en: 'Which conversation matters more than it seems?',
+      },
+      {
+        key: 'attention',
+        section: 'love',
+        ru: 'Кто сегодня замечает тебя внимательнее остальных?',
+        en: 'Who is paying closer attention to you today?',
+      },
+    ];
+
+    return definitions.map(({ key, section, ru, en }) => ({
+      key,
+      section,
+      title: language === 'ru' ? ru : en,
+      hook: dailyPackage?.[section]?.hook?.trim()
+        || getDashboardSystemText(systemState, language, `${today}-question-${section}`),
+      // The question opens the same section, so the same artwork expands inside.
       background: getPersonalCardBackground(section, backgroundUserId, today),
     }));
   }, [backgroundUserId, dailyPackage, language, systemState, today]);
@@ -295,15 +354,36 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         </section>
 
+        <section className="home-daily-questions" aria-label={language === 'ru' ? 'Ещё на сегодня' : 'More for today'}>
+          <h2 className="home-section-heading">{language === 'ru' ? 'Ещё на сегодня' : 'More for today'}</h2>
+          <div className="home-daily-question-list">
+            {dailyQuestionCards.map((card) => (
+              <button
+                key={card.key}
+                type="button"
+                className={`home-daily-question-card${card.background ? ' has-card-background' : ''}`}
+                style={cardBackgroundStyle(card.background)}
+                onClick={() => openSphere(card.section)}
+                disabled={!isDailyReady && hasChart}
+                aria-disabled={!isDailyReady && hasChart}
+              >
+                <span className="home-daily-question-copy">
+                  <span className="home-daily-question-title">{card.title}</span>
+                  <span className="home-daily-question-hook">{card.hook}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         <section className="home-product-grid" aria-label={language === 'ru' ? 'Другие разделы' : 'Other sections'}>
           <button
             type="button"
-            className="home-product-card home-product-card--natal home-product-card--wide"
+            className={`home-product-card home-product-card--natal home-product-card--wide${natalBackground ? ' has-card-background' : ''}`}
+            style={cardBackgroundStyle(natalBackground)}
             onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
           >
-            <span className="home-product-card-art" aria-hidden />
             <span className="home-product-card-copy">
-              <span className="home-product-card-kicker">{language === 'ru' ? 'Карта рождения' : 'Birth chart'}</span>
               <span className="home-product-card-title">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</span>
               <span className="home-product-card-text">{natalText}</span>
             </span>
@@ -311,12 +391,11 @@ export const Dashboard = memo<DashboardProps>(({
 
           <button
             type="button"
-            className="home-product-card home-product-card--compat"
+            className={`home-product-card home-product-card--compat home-product-card--wide${compatibilityBackground ? ' has-card-background' : ''}`}
+            style={cardBackgroundStyle(compatibilityBackground)}
             onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
           >
-            <span className="home-product-card-art" aria-hidden />
             <span className="home-product-card-copy">
-              <span className="home-product-card-kicker">{language === 'ru' ? 'Два человека' : 'Two people'}</span>
               <span className="home-product-card-title">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
               <span className="home-product-card-text">{compatibilityText}</span>
             </span>
@@ -325,12 +404,11 @@ export const Dashboard = memo<DashboardProps>(({
           {onOpenMatrix ? (
             <button
               type="button"
-              className="home-product-card home-product-card--matrix"
+              className={`home-product-card home-product-card--matrix home-product-card--wide${matrixBackground ? ' has-card-background' : ''}`}
+              style={cardBackgroundStyle(matrixBackground)}
               onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
             >
-              <span className="home-product-card-art" aria-hidden />
               <span className="home-product-card-copy">
-                <span className="home-product-card-kicker">{language === 'ru' ? 'Числа рождения' : 'Birth numbers'}</span>
                 <span className="home-product-card-title">{language === 'ru' ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</span>
                 <span className="home-product-card-text">{matrixText}</span>
               </span>
