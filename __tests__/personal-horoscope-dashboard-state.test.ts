@@ -24,8 +24,8 @@ describe('personal horoscope Dashboard states', () => {
     expect(dashboard).not.toContain('showPersonalDaySurface');
     expect(dashboard).toContain('home-day-hero--${systemState}');
     expect(dashboard).toContain('aria-busy={isDailyLoading}');
-    expect(dashboard).toContain('Готовим твой личный гороскоп');
-    expect(dashboard).toContain('Гороскоп рассчитывается');
+    expect(dashboard).toContain('Считаем твой личный гороскоп');
+    expect(dashboard).toContain('Идёт расчёт');
     expect(dashboard).toContain('Личный гороскоп пока не готов');
     expect(dashboard).toContain('Попробовать ещё раз');
 
@@ -48,20 +48,59 @@ describe('personal horoscope Dashboard states', () => {
 });
 
 describe('personal horoscope topic carousel', () => {
-  it('uses a one-row native 85 percent snap carousel without controls', () => {
+  it('uses a one-row native carousel with extra left breathing room and no controls', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const css = read('styles/globals.css');
+    const globals = read('styles/globals.css');
+    const polish = read('styles/homeMvpLayout.css');
+    const css = `${globals}\n${polish}`;
 
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*display:\s*flex/s);
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*overflow-x:\s*auto/s);
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*scroll-snap-type:\s*x mandatory/s);
     expect(css).toMatch(/\.home-spheres-track\s*\{[^}]*scroll-behavior:\s*smooth/s);
-    expect(css).toMatch(/\.home-sphere-card,[\s\S]*?flex:\s*0 0 85%/s);
-    expect(css).toContain('height: clamp(9rem, calc(42.5vw - 0.85rem), 11rem)');
+    expect(polish).toContain('padding: 0.05rem 16px 0.55rem 32px');
+    expect(polish).toContain('flex: 0 0 min(79vw, 19.5rem)');
     expect(css).toContain('scroll-snap-align: start');
     expect(css).toMatch(/\.home-spheres-track::\-webkit-scrollbar\s*\{[^}]*display:\s*none/s);
     expect(dashboard).not.toContain('home-spheres-arrow');
     expect(dashboard).not.toContain('home-spheres-dots');
+  });
+});
+
+describe('approved Dashboard visual hierarchy', () => {
+  it('shows the personal calculation basis inside the large hero', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const css = read('styles/homeMvpLayout.css');
+
+    expect(dashboard).toContain('home-day-hero-basis');
+    expect(dashboard).toContain('Твоя карта рождения + положение планет сегодня');
+    expect(css).toContain('min-height: clamp(25.5rem, calc(100svh - 19.5rem), 31rem)');
+    expect(css).toContain('.home-day-hero.has-card-background .home-day-hero-date');
+    expect(css).toContain('text-align: center');
+  });
+
+  it('separates natal, compatibility, and matrix from the illustrated daily cards', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const css = read('styles/homeMvpLayout.css');
+
+    expect(dashboard).toContain('home-product-card--natal');
+    expect(dashboard).toContain('home-product-card--compat');
+    expect(dashboard).toContain('home-product-card--matrix');
+    expect(dashboard).not.toContain("getUniversalCardBackground");
+    expect(css).toContain('Natal chart: calm structural atlas, no animals.');
+    expect(css).toContain('Compatibility: paired forms and two strong colours, no cats.');
+    expect(css).toContain('Matrix: modular numeric/structural world, no animals.');
+  });
+
+  it('uses crisp liquid glass for top and bottom chrome without the old fog', () => {
+    const css = read('styles/homeMvpLayout.css');
+
+    expect(css).toContain('.home-screen.fresh-page::before');
+    expect(css).toContain('display: none');
+    expect(css).toContain('.home-screen .home-logo-bar');
+    expect(css).toContain('backdrop-filter: blur(24px) saturate(1.55)');
+    expect(css).toContain('.lumia-bottom-tab-bar');
+    expect(css).toContain('backdrop-filter: blur(30px) saturate(1.6)');
   });
 });
 
