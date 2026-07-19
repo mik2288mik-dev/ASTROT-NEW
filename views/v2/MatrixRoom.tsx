@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import type { UserProfile } from '../../types';
 import { computeMatrix } from '../../lib/matrixOfDestiny';
 import { getArcana, MATRIX_TITLE, MATRIX_SUBTITLE } from '../../lib/matrixArcana';
-import { toDateInputValue } from '../../lib/date-utils';
+import { getMoscowTodayKey, toDateInputValue } from '../../lib/date-utils';
+import { cardBackgroundStyle, getUniversalCardBackground } from '../../lib/cardBackgrounds';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
 
-// Единый регистр: каждый лейбл/ключевое слово начинается с заглавной (keyword в данных — строчными).
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 type Props = {
@@ -18,9 +18,14 @@ type Props = {
 };
 
 export function MatrixRoom({ profile, onBack }: Props) {
-  void onBack; // назад берёт системная кнопка Telegram
+  void onBack;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
+  const today = useMemo(() => getMoscowTodayKey(), []);
+  const matrixBackground = useMemo(
+    () => getUniversalCardBackground('matrix', String(profile.id || 'guest'), today),
+    [profile.id, today],
+  );
 
   const initial = toDateInputValue(profile.birthDate || '');
   const [date, setDate] = useState(initial);
@@ -33,8 +38,6 @@ export function MatrixRoom({ profile, onBack }: Props) {
   const self = result?.positions.find((p) => p.key === 'self');
   const selfArcana = self ? getArcana(self.arcana) : null;
 
-  // Группируем позиции по теме (по аркану), чтобы один и тот же смысл не повторялся
-  // на нескольких карточках. Каждая тема показывается ОДИН раз + перечень её областей.
   const { selfGroup, themeGroups } = useMemo(() => {
     const map = new Map<number, { arcana: ReturnType<typeof getArcana>; labels: string[]; hasSelf: boolean }>();
     (result?.positions || []).forEach((p) => {
@@ -47,7 +50,6 @@ export function MatrixRoom({ profile, onBack }: Props) {
     return { selfGroup: all.find((g) => g.hasSelf) || null, themeGroups: all.filter((g) => !g.hasSelf) };
   }, [result]);
 
-  // Другие области, где «звучит» тема сути (без слова «усилена» — просто перечень).
   const selfAlsoLabels = useMemo(
     () => (selfGroup && self ? selfGroup.labels.filter((l) => l !== self.label) : []),
     [selfGroup, self],
@@ -63,8 +65,22 @@ export function MatrixRoom({ profile, onBack }: Props) {
 
   return (
     <div className="fresh-page">
-      {/* Без своей «Назад» — назад берёт системная кнопка Telegram. */}
       <FreshInnerHeader title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en} />
+
+      <section
+        className={`product-screen-cover product-screen-cover--matrix${matrixBackground ? ' has-card-background' : ''}`}
+        style={cardBackgroundStyle(matrixBackground)}
+        aria-label={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}
+      >
+        <div className="product-screen-cover-copy">
+          <div className="product-screen-cover-title">{ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</div>
+          <div className="product-screen-cover-text">
+            {ru
+              ? 'Сильные стороны, привычные сценарии и точки роста — через числа рождения.'
+              : 'Strengths, recurring patterns, and growth points through birth numbers.'}
+          </div>
+        </div>
+      </section>
 
       <p style={{ padding: '0 20px 8px', margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
         {ru ? MATRIX_SUBTITLE.ru : MATRIX_SUBTITLE.en}
