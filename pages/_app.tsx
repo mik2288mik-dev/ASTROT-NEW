@@ -7,6 +7,7 @@ import '../styles/homeMvpLayout.css';
 import '../styles/typographyManrope.css';
 import '../styles/homeContentHierarchy.css';
 import '../styles/readingBackgrounds.css';
+import '../styles/homeScrollStability.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 
 export default function App({ Component, pageProps }: AppProps) {
