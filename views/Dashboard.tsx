@@ -140,16 +140,11 @@ export const Dashboard = memo<DashboardProps>(({
       : !hasChart
         ? (language === 'ru' ? 'Нужны данные рождения' : 'Birth data needed')
         : null;
-  const dayHeroBasisTitle = hasChart
-    ? (language === 'ru' ? 'Личный расчёт' : 'Personal calculation')
-    : (language === 'ru' ? 'Станет личным' : 'Make it personal');
-  const dayHeroBasisText = hasChart
+  const dayHeroPersonalLine = hasChart
     ? (language === 'ru'
-      ? 'Твоя карта рождения + положение планет сегодня'
-      : 'Your birth chart + today’s planetary positions')
-    : (language === 'ru'
-      ? 'Добавь дату, время и место рождения'
-      : 'Add your birth date, time, and place');
+      ? 'Здесь твой личный гороскоп — по дате рождения и положению планет сегодня.'
+      : 'Your personal horoscope, based on your birth data and today’s planetary positions.')
+    : null;
 
   const natalText = hasChart
     ? (language === 'ru'
@@ -263,19 +258,9 @@ export const Dashboard = memo<DashboardProps>(({
           ) : null}
           <span className="home-day-hero-copy">
             <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-            <span className="home-day-hero-basis">
-              <span className="home-day-hero-basis-icon" aria-hidden>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.5" />
-                  <circle cx="12" cy="12" r="2.25" fill="currentColor" />
-                  <path d="M12 2.75V5M21.25 12H19M12 21.25V19M2.75 12H5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </span>
-              <span className="home-day-hero-basis-copy">
-                <strong>{dayHeroBasisTitle}</strong>
-                <small>{dayHeroBasisText}</small>
-              </span>
-            </span>
+            {dayHeroPersonalLine ? (
+              <span className="home-day-hero-basis">{dayHeroPersonalLine}</span>
+            ) : null}
             <span className="home-day-hero-title">{dayHeroTitle}</span>
             <span className="home-day-hero-text">{dayHeroText}</span>
             {dayHeroCta ? (
