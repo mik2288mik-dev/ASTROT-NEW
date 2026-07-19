@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import type {
   HoroscopeLayer,
   HoroscopeOpenOptions,
@@ -18,6 +19,7 @@ import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen
 import type { SurfaceRequest } from '../lib/stickers/select';
 import { getDashboardSystemText, type DashboardSystemState } from '../lib/dailyPresentationPatterns';
 import type { DailyCanvas } from '../lib/natalHumanShared';
+import { buildDailyQuestionStories } from '../lib/dailyQuestions';
 import {
   cardBackgroundStyle,
   getHeroCardBackground,
@@ -32,14 +34,6 @@ const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
 
 type SphereCard = {
   section: PersonalDailySection;
-  title: string;
-  hook: string;
-  background: CardBackgroundAsset | null;
-};
-
-type DailyQuestionCard = {
-  key: string;
-  section: Exclude<PersonalDailySection, 'overview'>;
   title: string;
   hook: string;
   background: CardBackgroundAsset | null;
@@ -102,6 +96,7 @@ export const Dashboard = memo<DashboardProps>(({
   );
 
   const [sheetDate, setSheetDate] = useState<string | null>(null);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
 
   const systemState: DashboardSystemState = dailyPackage
     ? 'ready'
@@ -167,20 +162,6 @@ export const Dashboard = memo<DashboardProps>(({
       : 'Your personal horoscope, based on your birth data and today’s planetary positions.')
     : null;
 
-  const natalText = hasChart
-    ? (language === 'ru'
-      ? 'Характер, сильные стороны и повторяющиеся сценарии — по твоим данным рождения.'
-      : 'Character, strengths, and recurring patterns based on your birth data.')
-    : (language === 'ru'
-      ? 'Дата, время и место рождения — и вместо общих слов будет разбор про тебя.'
-      : 'Add your birth date, time, and place to get a reading about you, not a generic one.');
-  const matrixText = language === 'ru'
-    ? 'Сильные стороны, привычные сценарии и точки роста — через числа рождения.'
-    : 'Strengths, recurring patterns, and growth points through birth numbers.';
-  const compatibilityText = language === 'ru'
-    ? 'Где вы совпадаете легко, а где начинаете говорить на разных языках.'
-    : 'Where you align easily and where you start speaking different languages.';
-
   const sphereCards: SphereCard[] = useMemo(() => {
     const labels: Array<[Exclude<PersonalDailySection, 'overview'>, string]> = language === 'ru'
       ? [
@@ -213,43 +194,11 @@ export const Dashboard = memo<DashboardProps>(({
     }));
   }, [backgroundUserId, dailyPackage, language, systemState, today]);
 
-  const dailyQuestionCards: DailyQuestionCard[] = useMemo(() => {
-    const definitions: Array<{
-      key: string;
-      section: Exclude<PersonalDailySection, 'overview'>;
-      ru: string;
-      en: string;
-    }> = [
-      {
-        key: 'advantage',
-        section: 'goals',
-        ru: 'Где сегодня у тебя преимущество?',
-        en: 'Where do you have an edge today?',
-      },
-      {
-        key: 'conversation',
-        section: 'communication',
-        ru: 'Какой разговор решит больше, чем кажется?',
-        en: 'Which conversation matters more than it seems?',
-      },
-      {
-        key: 'attention',
-        section: 'love',
-        ru: 'Кто сегодня замечает тебя внимательнее остальных?',
-        en: 'Who is paying closer attention to you today?',
-      },
-    ];
-
-    return definitions.map(({ key, section, ru, en }) => ({
-      key,
-      section,
-      title: language === 'ru' ? ru : en,
-      hook: dailyPackage?.[section]?.hook?.trim()
-        || getDashboardSystemText(systemState, language, `${today}-question-${section}`),
-      // The question opens the same section, so the same artwork expands inside.
-      background: getPersonalCardBackground(section, backgroundUserId, today),
-    }));
-  }, [backgroundUserId, dailyPackage, language, systemState, today]);
+  const dailyQuestionStories = useMemo(
+    () => buildDailyQuestionStories(dailyPackage, backgroundUserId, today, language),
+    [backgroundUserId, dailyPackage, language, today],
+  );
+  const activeQuestion = activeQuestionIndex == null ? null : dailyQuestionStories[activeQuestionIndex] || null;
 
   const openDayHero = () => {
     if (isDailyLoading) return;
@@ -263,6 +212,29 @@ export const Dashboard = memo<DashboardProps>(({
     lumiaSelectionHaptic();
     if (!hasChart) { onCreateNatalChart?.(); return; }
     if (isDailyReady) { onOpenPersonalDaily(section); }
+  };
+
+  const openDailyQuestion = (index: number) => {
+    lumiaSelectionHaptic();
+    if (!premium) {
+      onRequestPremium?.('daily_questions');
+      return;
+    }
+    setActiveQuestionIndex(index);
+  };
+
+  const moveQuestion = (direction: number) => {
+    if (!dailyQuestionStories.length) return;
+    setActiveQuestionIndex((current) => {
+      const index = current ?? 0;
+      return (index + direction + dailyQuestionStories.length) % dailyQuestionStories.length;
+    });
+  };
+
+  const onQuestionDragEnd = (_event: unknown, info: PanInfo) => {
+    const power = info.offset.x + info.velocity.x * 0.18;
+    if (power < -70) moveQuestion(1);
+    if (power > 70) moveQuestion(-1);
   };
 
   return (
@@ -317,19 +289,13 @@ export const Dashboard = memo<DashboardProps>(({
           ) : null}
           <span className="home-day-hero-copy">
             <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-            {dayHeroPersonalLine ? (
-              <span className="home-day-hero-basis">{dayHeroPersonalLine}</span>
-            ) : null}
+            {dayHeroPersonalLine ? <span className="home-day-hero-basis">{dayHeroPersonalLine}</span> : null}
             <span className="home-day-hero-title">{dayHeroTitle}</span>
             <span className="home-day-hero-text">{dayHeroText}</span>
             {dayHeroCta ? (
               <span className="home-day-hero-cta">
                 {dayHeroCta}
-                {isDailyLoading ? (
-                  <span className="home-day-loading-dots" aria-hidden>
-                    <i /><i /><i />
-                  </span>
-                ) : null}
+                {isDailyLoading ? <span className="home-day-loading-dots" aria-hidden><i /><i /><i /></span> : null}
               </span>
             ) : null}
           </span>
@@ -354,27 +320,39 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         </section>
 
-        <section className="home-daily-questions" aria-label={language === 'ru' ? 'Ещё на сегодня' : 'More for today'}>
-          <h2 className="home-section-heading">{language === 'ru' ? 'Ещё на сегодня' : 'More for today'}</h2>
-          <div className="home-daily-question-list">
-            {dailyQuestionCards.map((card) => (
-              <button
-                key={card.key}
-                type="button"
-                className={`home-daily-question-card${card.background ? ' has-card-background' : ''}`}
-                style={cardBackgroundStyle(card.background)}
-                onClick={() => openSphere(card.section)}
-                disabled={!isDailyReady && hasChart}
-                aria-disabled={!isDailyReady && hasChart}
-              >
-                <span className="home-daily-question-copy">
-                  <span className="home-daily-question-title">{card.title}</span>
-                  <span className="home-daily-question-hook">{card.hook}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
+        {dailyQuestionStories.length ? (
+          <section className="home-daily-questions" aria-label={language === 'ru' ? 'Спроси про сегодня' : 'Ask about today'}>
+            <h2 className="home-section-heading">{language === 'ru' ? 'Спроси про сегодня' : 'Ask about today'}</h2>
+            <div className="home-daily-question-list">
+              {dailyQuestionStories.map((story, index) => (
+                <button
+                  key={story.id}
+                  type="button"
+                  className={`home-daily-question-card${story.background ? ' has-card-background' : ''}${premium ? '' : ' is-locked'}`}
+                  style={cardBackgroundStyle(story.background)}
+                  onClick={() => openDailyQuestion(index)}
+                >
+                  <span className="home-daily-question-copy">
+                    <span className="home-daily-question-title">{story.question}</span>
+                    <span className="home-daily-question-hook">
+                      {premium
+                        ? story.teaser
+                        : (language === 'ru' ? 'Личный ответ доступен в Premium' : 'Personal answer is available in Premium')}
+                    </span>
+                  </span>
+                  {!premium ? (
+                    <span className="home-daily-question-lock" aria-label={language === 'ru' ? 'Доступно в Premium' : 'Available in Premium'}>
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+                        <rect x="3.5" y="8" width="11" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+                        <path d="M6 8V6.25a3 3 0 0 1 6 0V8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="home-product-grid" aria-label={language === 'ru' ? 'Другие разделы' : 'Other sections'}>
           <button
@@ -384,8 +362,13 @@ export const Dashboard = memo<DashboardProps>(({
             onClick={() => { lumiaSelectionHaptic(); onCreateNatalChart?.(); }}
           >
             <span className="home-product-card-copy">
-              <span className="home-product-card-title">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</span>
-              <span className="home-product-card-text">{natalText}</span>
+              <span className="home-product-card-kicker">{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</span>
+              <span className="home-product-card-title">{language === 'ru' ? 'Вот почему ты именно такой' : 'This is why you are the way you are'}</span>
+              <span className="home-product-card-text">
+                {language === 'ru'
+                  ? 'Характер, сильные стороны и знакомые сценарии — по твоей карте рождения.'
+                  : 'Character, strengths, and familiar patterns from your birth chart.'}
+              </span>
             </span>
           </button>
 
@@ -396,8 +379,13 @@ export const Dashboard = memo<DashboardProps>(({
             onClick={() => { lumiaSelectionHaptic(); onOpenSynastry?.(); }}
           >
             <span className="home-product-card-copy">
-              <span className="home-product-card-title">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
-              <span className="home-product-card-text">{compatibilityText}</span>
+              <span className="home-product-card-kicker">{language === 'ru' ? 'Совместимость' : 'Compatibility'}</span>
+              <span className="home-product-card-title">{language === 'ru' ? 'Что между вами на самом деле' : 'What is really between you'}</span>
+              <span className="home-product-card-text">
+                {language === 'ru'
+                  ? 'Где вас тянет друг к другу, а где вы начинаете говорить на разных языках.'
+                  : 'Where you are drawn together and where you start speaking different languages.'}
+              </span>
             </span>
           </button>
 
@@ -409,8 +397,13 @@ export const Dashboard = memo<DashboardProps>(({
               onClick={() => { lumiaSelectionHaptic(); onOpenMatrix(); }}
             >
               <span className="home-product-card-copy">
-                <span className="home-product-card-title">{language === 'ru' ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</span>
-                <span className="home-product-card-text">{matrixText}</span>
+                <span className="home-product-card-kicker">{language === 'ru' ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</span>
+                <span className="home-product-card-title">{language === 'ru' ? 'Твоя дата — не просто цифры' : 'Your date is more than numbers'}</span>
+                <span className="home-product-card-text">
+                  {language === 'ru'
+                    ? 'Что даётся тебе легко, а где ты снова попадаешь в знакомый сюжет.'
+                    : 'What comes naturally and where you keep returning to a familiar pattern.'}
+                </span>
               </span>
             </button>
           ) : null}
@@ -428,6 +421,53 @@ export const Dashboard = memo<DashboardProps>(({
           onRequestPremium={() => onRequestPremium?.('calendar')}
         />
       </div>
+
+      <AnimatePresence>
+        {activeQuestion && premium ? (
+          <motion.div
+            className="daily-question-story"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeQuestion.question}
+          >
+            <motion.div
+              key={activeQuestion.id}
+              className="daily-question-story-scene"
+              style={cardBackgroundStyle(activeQuestion.background)}
+              initial={{ opacity: 0, scale: 1.015 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.992 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.35}
+              onDragEnd={onQuestionDragEnd}
+            >
+              <div className="daily-question-story-progress" aria-hidden>
+                {dailyQuestionStories.map((story, index) => (
+                  <i key={story.id} className={index <= (activeQuestionIndex ?? 0) ? 'is-active' : ''} />
+                ))}
+              </div>
+              <button
+                type="button"
+                className="daily-question-story-close"
+                onClick={() => setActiveQuestionIndex(null)}
+                aria-label={language === 'ru' ? 'Закрыть' : 'Close'}
+              >
+                ×
+              </button>
+              <div className="daily-question-story-copy">
+                <div className="daily-question-story-kicker">{language === 'ru' ? 'Твой вопрос на сегодня' : 'Your question for today'}</div>
+                <h2>{activeQuestion.question}</h2>
+                <p>{activeQuestion.answer}</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </StickerScreen>
   );
 });
