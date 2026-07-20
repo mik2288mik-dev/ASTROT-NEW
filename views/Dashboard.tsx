@@ -19,7 +19,7 @@ import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen
 import type { SurfaceRequest } from '../lib/stickers/select';
 import { getDashboardSystemText, type DashboardSystemState } from '../lib/dailyPresentationPatterns';
 import type { DailyCanvas } from '../lib/natalHumanShared';
-import { buildDailyQuestionStories } from '../lib/dailyQuestions';
+import { useDailyQuestionStories } from '../lib/dailyQuestions';
 import {
   cardBackgroundStyle,
   getHeroCardBackground,
@@ -56,7 +56,7 @@ type DashboardProps = {
   initialTodaySection?: string | null;
 };
 
-export const Dashboard = memo<DashboardProps>(({
+export const Dashboard = memo<DashboardProps>(({ 
   profile,
   chartData,
   chartId,
@@ -194,9 +194,12 @@ export const Dashboard = memo<DashboardProps>(({
     }));
   }, [backgroundUserId, dailyPackage, language, systemState, today]);
 
-  const dailyQuestionStories = useMemo(
-    () => buildDailyQuestionStories(dailyPackage, backgroundUserId, today, language),
-    [backgroundUserId, dailyPackage, language, today],
+  const dailyQuestionStories = useDailyQuestionStories(
+    dailyPackage,
+    backgroundUserId,
+    today,
+    language,
+    premium,
   );
   const activeQuestion = activeQuestionIndex == null ? null : dailyQuestionStories[activeQuestionIndex] || null;
 
@@ -332,11 +335,7 @@ export const Dashboard = memo<DashboardProps>(({
                 >
                   <span className="home-daily-question-copy">
                     <span className="home-daily-question-title">{story.question}</span>
-                    <span className="home-daily-question-hook">
-                      {premium
-                        ? story.teaser
-                        : (language === 'ru' ? 'Личный ответ доступен в Premium' : 'Personal answer is available in Premium')}
-                    </span>
+                    <span className="home-daily-question-hook">{story.teaser}</span>
                   </span>
                   {!premium ? (
                     <span className="home-daily-question-lock" aria-label={language === 'ru' ? 'Доступно в Premium' : 'Available in Premium'}>
