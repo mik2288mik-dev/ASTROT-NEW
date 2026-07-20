@@ -1,0 +1,8 @@
+/* Locked question cards should sell the question itself, not show service copy. */
+.home-daily-question-card.is-locked .home-daily-question-hook {
+  display: none;
+}
+
+.home-daily-question-card.is-locked .home-daily-question-copy {
+  max-width: calc(100% - 3.2rem);
+}
