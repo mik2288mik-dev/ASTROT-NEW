@@ -1,9 +1,15 @@
-import type { DailyCanvas, DailyCanvasTopicKey } from './natalHumanShared';
+import { useEffect, useMemo, useState } from 'react';
+import type { DailyCanvas } from './natalHumanShared';
 import {
   getDailyQuestionCardBackground,
   type CardBackgroundAsset,
   type DailyQuestionTheme,
 } from './cardBackgrounds';
+import type {
+  PersonalizedDailyQuestion,
+  PersonalizedDailyQuestionsPayload,
+} from './dailyQuestionTypes';
+import { getTelegramInitDataHeaders } from '../services/sessionService';
 
 export type DailyQuestionStory = {
   id: string;
@@ -16,58 +22,9 @@ export type DailyQuestionStory = {
 
 type Locale = 'ru' | 'en';
 
-type QuestionTemplate = {
-  question: string;
-  sources: [DailyCanvasTopicKey, DailyCanvasTopicKey];
-};
-
-/**
- * These are not horoscope headings. They are questions a person could actually
- * ask themselves during the day. The personal hook and answer still come from
- * the generated DailyCanvas, so the visible copy stays tied to this user's day.
- */
-const BANK: Record<Locale, Record<DailyQuestionTheme, QuestionTemplate[]>> = {
-  ru: {
-    advantage: [
-      { question: 'Брать ещё одну задачу?', sources: ['work', 'goals'] },
-      { question: 'Соглашаться на это предложение?', sources: ['work', 'communication'] },
-      { question: 'Дожимать дело или уже хватит?', sources: ['goals', 'energy'] },
-      { question: 'Тебе правда надо это доказывать?', sources: ['work', 'friendship'] },
-    ],
-    conversation: [
-      { question: 'Писать первым — нормальная идея?', sources: ['love', 'communication'] },
-      { question: 'Поднимать эту тему сейчас?', sources: ['communication', 'family'] },
-      { question: 'Соглашаться на встречу?', sources: ['friendship', 'love'] },
-      { question: 'Отвечать на это сообщение?', sources: ['communication', 'friendship'] },
-    ],
-    attention: [
-      { question: 'Эта покупка тебе правда нужна?', sources: ['money', 'goals'] },
-      { question: 'Тратить на это деньги?', sources: ['money', 'energy'] },
-      { question: 'Отменять планы из-за усталости?', sources: ['energy', 'friendship'] },
-      { question: 'Тебя злит человек — или просто всё навалилось?', sources: ['energy', 'communication'] },
-    ],
-  },
-  en: {
-    advantage: [
-      { question: 'Take on one more task?', sources: ['work', 'goals'] },
-      { question: 'Say yes to this offer?', sources: ['work', 'communication'] },
-      { question: 'Push this through or call it done?', sources: ['goals', 'energy'] },
-      { question: 'Do you really need to prove this?', sources: ['work', 'friendship'] },
-    ],
-    conversation: [
-      { question: 'Text first?', sources: ['love', 'communication'] },
-      { question: 'Bring this up now?', sources: ['communication', 'family'] },
-      { question: 'Say yes to the meeting?', sources: ['friendship', 'love'] },
-      { question: 'Reply to that message?', sources: ['communication', 'friendship'] },
-    ],
-    attention: [
-      { question: 'Do you actually need this purchase?', sources: ['money', 'goals'] },
-      { question: 'Spend money on this?', sources: ['money', 'energy'] },
-      { question: 'Cancel plans because you are tired?', sources: ['energy', 'friendship'] },
-      { question: 'Are you mad at them — or just overloaded?', sources: ['energy', 'communication'] },
-    ],
-  },
-};
+const THEMES: DailyQuestionTheme[] = ['conversation', 'advantage', 'attention'];
+const memoryCache = new Map<string, PersonalizedDailyQuestion[]>();
+const inFlight = new Map<string, Promise<PersonalizedDailyQuestion[]>>();
 
 function stableHash(value: string): number {
   let hash = 2166136261;
@@ -78,53 +35,175 @@ function stableHash(value: string): number {
   return hash >>> 0;
 }
 
-function sentences(value: string): string[] {
-  return String(value || '')
-    .match(/[^.!?…]+(?:[.!?…]+|$)/gu)
-    ?.map((sentence) => sentence.trim())
-    .filter(Boolean) || [];
+function requestKey(
+  canvas: DailyCanvas,
+  userId: string,
+  dateKey: string,
+  locale: Locale,
+  premium: boolean,
+): string {
+  const contentKey = [
+    canvas.meta?.voice_version || 'voice',
+    canvas.hero_title,
+    canvas.hero_hook,
+    canvas.overview.slice(0, 180),
+  ].join('|');
+  return `${userId}|${dateKey}|${locale}|${premium ? 'premium' : 'free'}|${stableHash(contentKey)}`;
 }
 
-function limitWords(value: string, maxWords: number): string {
-  const words = value.split(/\s+/).filter(Boolean);
-  if (words.length <= maxWords) return value.trim();
-  return `${words.slice(0, maxWords).join(' ').replace(/[,:;—-]+$/u, '')}…`;
+function localStorageKey(key: string): string {
+  return `your-horoscope:daily-questions:v2:${key}`;
 }
 
-function buildTeaser(canvas: DailyCanvas, primary: DailyCanvasTopicKey): string {
-  const hook = String(canvas[primary]?.hook || '').trim();
-  if (hook) return limitWords(hook, 20);
-  return limitWords(sentences(canvas[primary]?.body || '')[0] || '', 20);
+function normalizeClientQuestions(value: unknown): PersonalizedDailyQuestion[] {
+  const raw = Array.isArray((value as PersonalizedDailyQuestionsPayload | undefined)?.questions)
+    ? (value as PersonalizedDailyQuestionsPayload).questions
+    : [];
+
+  return raw.slice(0, 3).filter((item) => (
+    item &&
+    typeof item.id === 'string' &&
+    typeof item.topic === 'string' &&
+    typeof item.question === 'string' &&
+    item.question.trim().endsWith('?') &&
+    typeof item.teaser === 'string' &&
+    typeof item.answer === 'string'
+  )).map((item) => ({
+    id: item.id,
+    topic: item.topic,
+    question: item.question.trim(),
+    teaser: item.teaser.trim(),
+    answer: item.answer.trim(),
+  })) as PersonalizedDailyQuestion[];
 }
 
-function buildAnswer(canvas: DailyCanvas, first: DailyCanvasTopicKey, second: DailyCanvasTopicKey): string {
-  const firstPart = sentences(canvas[first]?.body || '').slice(0, 3).join(' ');
-  const secondPart = sentences(canvas[second]?.body || '').slice(0, 2).join(' ');
-  const overviewFallback = sentences(canvas.overview || '').slice(0, 2).join(' ');
-  const main = limitWords(firstPart || overviewFallback, 72);
-  const extra = limitWords(secondPart, 34);
-  return [main, extra].filter(Boolean).join('\n\n');
+function readLocal(key: string): PersonalizedDailyQuestion[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(localStorageKey(key));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return normalizeClientQuestions(parsed);
+  } catch {
+    return [];
+  }
 }
 
-export function buildDailyQuestionStories(
+function writeLocal(key: string, questions: PersonalizedDailyQuestion[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(localStorageKey(key), JSON.stringify({ questions }));
+  } catch {
+    // Storage can be unavailable in private or restricted WebViews. Server cache still works.
+  }
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function fetchPersonalizedQuestions(
+  key: string,
+  canvas: DailyCanvas,
+  userId: string,
+  dateKey: string,
+): Promise<PersonalizedDailyQuestion[]> {
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const response = await fetch('/api/content/natal/daily-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getTelegramInitDataHeaders(),
+        },
+        body: JSON.stringify({
+          userId,
+          date: dateKey,
+          dailyPackage: canvas,
+        }),
+      });
+
+      if (response.status === 202) {
+        const pending = await response.json().catch(() => ({}));
+        const retryAfterMs = Number(pending?.retryAfterMs);
+        await wait(Number.isFinite(retryAfterMs) ? Math.min(Math.max(retryAfterMs, 500), 2500) : 900);
+        continue;
+      }
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.message || payload?.error || `Daily questions failed (${response.status})`);
+      }
+
+      const payload = await response.json();
+      const questions = normalizeClientQuestions(payload);
+      if (questions.length !== 3) throw new Error('Daily questions response is incomplete');
+      memoryCache.set(key, questions);
+      writeLocal(key, questions);
+      return questions;
+    }
+
+    throw new Error('Daily questions are still being generated');
+  })().finally(() => {
+    inFlight.delete(key);
+  });
+
+  inFlight.set(key, request);
+  return request;
+}
+
+export function useDailyQuestionStories(
   canvas: DailyCanvas | null,
   userId: string,
   dateKey: string,
   locale: Locale,
+  premium: boolean,
 ): DailyQuestionStory[] {
-  if (!canvas) return [];
+  const key = useMemo(
+    () => canvas ? requestKey(canvas, userId, dateKey, locale, premium) : '',
+    [canvas, dateKey, locale, premium, userId],
+  );
+  const [questions, setQuestions] = useState<PersonalizedDailyQuestion[]>([]);
 
-  return (['advantage', 'conversation', 'attention'] as const).map((theme, index) => {
-    const templates = BANK[locale][theme];
-    const template = templates[stableHash(`${userId}|${dateKey}|${theme}`) % templates.length];
-    const [primary, secondary] = template.sources;
+  useEffect(() => {
+    let cancelled = false;
+    if (!canvas || !key || !userId || userId === 'guest') {
+      setQuestions([]);
+      return () => { cancelled = true; };
+    }
+
+    const cached = memoryCache.get(key) || readLocal(key);
+    if (cached.length === 3) {
+      memoryCache.set(key, cached);
+      setQuestions(cached);
+      return () => { cancelled = true; };
+    }
+
+    setQuestions([]);
+    void fetchPersonalizedQuestions(key, canvas, userId, dateKey)
+      .then((next) => {
+        if (!cancelled) setQuestions(next);
+      })
+      .catch((error) => {
+        if (!cancelled) setQuestions([]);
+        console.warn('[dailyQuestions] personalized questions unavailable:', error instanceof Error ? error.message : error);
+      });
+
+    return () => { cancelled = true; };
+  }, [canvas, dateKey, key, userId]);
+
+  return useMemo(() => questions.map((item, index) => {
+    const theme = THEMES[index % THEMES.length];
     return {
-      id: `${theme}-${index}`,
+      id: item.id,
       theme,
-      question: template.question,
-      teaser: buildTeaser(canvas, primary),
-      answer: buildAnswer(canvas, primary, secondary),
+      question: item.question,
+      teaser: item.teaser,
+      answer: item.answer,
       background: getDailyQuestionCardBackground(theme, userId, dateKey),
     };
-  });
+  }), [dateKey, questions, userId]);
 }
