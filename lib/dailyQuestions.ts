@@ -21,45 +21,50 @@ type QuestionTemplate = {
   sources: [DailyCanvasTopicKey, DailyCanvasTopicKey];
 };
 
+/**
+ * These are not horoscope headings. They are questions a person could actually
+ * ask themselves during the day. The personal hook and answer still come from
+ * the generated DailyCanvas, so the visible copy stays tied to this user's day.
+ */
 const BANK: Record<Locale, Record<DailyQuestionTheme, QuestionTemplate[]>> = {
   ru: {
     advantage: [
-      { question: 'Что сегодня может сыграть тебе на руку?', sources: ['goals', 'work'] },
-      { question: 'Где у тебя больше шансов, чем кажется?', sources: ['work', 'communication'] },
-      { question: 'На чём сегодня можно выиграть время?', sources: ['energy', 'goals'] },
-      { question: 'Что получится легче, если заметить момент?', sources: ['friendship', 'work'] },
+      { question: 'Брать ещё одну задачу?', sources: ['work', 'goals'] },
+      { question: 'Соглашаться на это предложение?', sources: ['work', 'communication'] },
+      { question: 'Дожимать дело или уже хватит?', sources: ['goals', 'energy'] },
+      { question: 'Тебе правда надо это доказывать?', sources: ['work', 'friendship'] },
     ],
     conversation: [
-      { question: 'Какой разговор лучше не оставлять на потом?', sources: ['communication', 'love'] },
-      { question: 'Где одна фраза поменяет весь тон?', sources: ['communication', 'family'] },
-      { question: 'На какое сообщение не стоит отвечать на автомате?', sources: ['communication', 'friendship'] },
-      { question: 'С кем сегодня проще договориться, чем спорить?', sources: ['communication', 'work'] },
+      { question: 'Писать первым — нормальная идея?', sources: ['love', 'communication'] },
+      { question: 'Поднимать эту тему сейчас?', sources: ['communication', 'family'] },
+      { question: 'Соглашаться на встречу?', sources: ['friendship', 'love'] },
+      { question: 'Отвечать на это сообщение?', sources: ['communication', 'friendship'] },
     ],
     attention: [
-      { question: 'Что сегодня потянет внимание сильнее, чем должно?', sources: ['money', 'energy'] },
-      { question: 'Где легко принять чужое настроение за своё?', sources: ['love', 'friendship'] },
-      { question: 'Какой момент дня легко переоценить?', sources: ['energy', 'goals'] },
-      { question: 'Что стоит заметить до вечера?', sources: ['family', 'friendship'] },
+      { question: 'Эта покупка тебе правда нужна?', sources: ['money', 'goals'] },
+      { question: 'Тратить на это деньги?', sources: ['money', 'energy'] },
+      { question: 'Отменять планы из-за усталости?', sources: ['energy', 'friendship'] },
+      { question: 'Тебя злит человек — или просто всё навалилось?', sources: ['energy', 'communication'] },
     ],
   },
   en: {
     advantage: [
-      { question: 'What could quietly work in your favor today?', sources: ['goals', 'work'] },
-      { question: 'Where are your odds better than they look?', sources: ['work', 'communication'] },
-      { question: 'Where can you save more time than expected?', sources: ['energy', 'goals'] },
-      { question: 'What gets easier once you catch the moment?', sources: ['friendship', 'work'] },
+      { question: 'Take on one more task?', sources: ['work', 'goals'] },
+      { question: 'Say yes to this offer?', sources: ['work', 'communication'] },
+      { question: 'Push this through or call it done?', sources: ['goals', 'energy'] },
+      { question: 'Do you really need to prove this?', sources: ['work', 'friendship'] },
     ],
     conversation: [
-      { question: 'Which conversation should not be left for later?', sources: ['communication', 'love'] },
-      { question: 'Where could one sentence change the whole tone?', sources: ['communication', 'family'] },
-      { question: 'Which message deserves more than an automatic reply?', sources: ['communication', 'friendship'] },
-      { question: 'Who is easier to agree with than argue with today?', sources: ['communication', 'work'] },
+      { question: 'Text first?', sources: ['love', 'communication'] },
+      { question: 'Bring this up now?', sources: ['communication', 'family'] },
+      { question: 'Say yes to the meeting?', sources: ['friendship', 'love'] },
+      { question: 'Reply to that message?', sources: ['communication', 'friendship'] },
     ],
     attention: [
-      { question: 'What may pull more attention than it deserves?', sources: ['money', 'energy'] },
-      { question: 'Where could someone else’s mood feel like your own?', sources: ['love', 'friendship'] },
-      { question: 'Which part of the day is easy to overestimate?', sources: ['energy', 'goals'] },
-      { question: 'What is worth noticing before the evening?', sources: ['family', 'friendship'] },
+      { question: 'Do you actually need this purchase?', sources: ['money', 'goals'] },
+      { question: 'Spend money on this?', sources: ['money', 'energy'] },
+      { question: 'Cancel plans because you are tired?', sources: ['energy', 'friendship'] },
+      { question: 'Are you mad at them — or just overloaded?', sources: ['energy', 'communication'] },
     ],
   },
 };
@@ -86,12 +91,19 @@ function limitWords(value: string, maxWords: number): string {
   return `${words.slice(0, maxWords).join(' ').replace(/[,:;—-]+$/u, '')}…`;
 }
 
+function buildTeaser(canvas: DailyCanvas, primary: DailyCanvasTopicKey): string {
+  const hook = String(canvas[primary]?.hook || '').trim();
+  if (hook) return limitWords(hook, 20);
+  return limitWords(sentences(canvas[primary]?.body || '')[0] || '', 20);
+}
+
 function buildAnswer(canvas: DailyCanvas, first: DailyCanvasTopicKey, second: DailyCanvasTopicKey): string {
-  const firstSentences = sentences(canvas[first]?.body || '').slice(0, 2);
-  const secondSentences = sentences(canvas[second]?.body || '').slice(0, 2);
-  const overviewSentence = sentences(canvas.overview || '').slice(0, 1);
-  const combined = [...firstSentences, ...secondSentences, ...overviewSentence].join(' ');
-  return limitWords(combined, 88);
+  const firstPart = sentences(canvas[first]?.body || '').slice(0, 3).join(' ');
+  const secondPart = sentences(canvas[second]?.body || '').slice(0, 2).join(' ');
+  const overviewFallback = sentences(canvas.overview || '').slice(0, 2).join(' ');
+  const main = limitWords(firstPart || overviewFallback, 72);
+  const extra = limitWords(secondPart, 34);
+  return [main, extra].filter(Boolean).join('\n\n');
 }
 
 export function buildDailyQuestionStories(
@@ -105,15 +117,13 @@ export function buildDailyQuestionStories(
   return (['advantage', 'conversation', 'attention'] as const).map((theme, index) => {
     const templates = BANK[locale][theme];
     const template = templates[stableHash(`${userId}|${dateKey}|${theme}`) % templates.length];
-    const answer = buildAnswer(canvas, template.sources[0], template.sources[1]);
+    const [primary, secondary] = template.sources;
     return {
       id: `${theme}-${index}`,
       theme,
       question: template.question,
-      teaser: locale === 'ru'
-        ? 'Короткий личный ответ по твоему расчёту на день.'
-        : 'A short personal answer based on your day calculation.',
-      answer,
+      teaser: buildTeaser(canvas, primary),
+      answer: buildAnswer(canvas, primary, secondary),
       background: getDailyQuestionCardBackground(theme, userId, dateKey),
     };
   });
