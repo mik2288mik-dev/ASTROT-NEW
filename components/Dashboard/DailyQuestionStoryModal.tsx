@@ -14,6 +14,8 @@ type Props = {
   onMove: (direction: number) => void;
 };
 
+const SHEET_EASE = [0.22, 1, 0.36, 1] as const;
+
 export function DailyQuestionStoryModal({
   activeStory,
   language,
@@ -103,11 +105,15 @@ export function DailyQuestionStoryModal({
 
   useEffect(() => {
     if (!activeStory) return;
-    const frame = window.requestAnimationFrame(() => {
+
+    // Let the sheet finish its GPU transform before moving focus. On Telegram iOS,
+    // focusing during the first frame can force a costly layout and make the opening stutter.
+    const timer = window.setTimeout(() => {
       const target = hasNativeBack ? titleRef.current : closeButtonRef.current;
       target?.focus({ preventScroll: true });
-    });
-    return () => window.cancelAnimationFrame(frame);
+    }, 280);
+
+    return () => window.clearTimeout(timer);
   }, [activeStory, hasNativeBack]);
 
   const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -129,30 +135,28 @@ export function DailyQuestionStoryModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.14, ease: 'easeOut' }}
           role="presentation"
         >
-          <motion.button
+          <button
             type="button"
             className="daily-question-sheet-backdrop"
             aria-label={language === 'ru' ? 'Закрыть ответ' : 'Close answer'}
             onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
           />
 
           <motion.section
             className="daily-question-sheet"
-            initial={{ y: '100%' }}
+            initial={{ y: '102%' }}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 34, stiffness: 330, mass: 0.82 }}
+            exit={{ y: '102%' }}
+            transition={{ duration: 0.27, ease: SHEET_EASE }}
             drag="y"
             dragControls={dragControls}
             dragListener={false}
             dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.48 }}
+            dragElastic={{ top: 0, bottom: 0.26 }}
+            dragMomentum={false}
             onDragEnd={handleDragEnd}
             role="dialog"
             aria-modal="true"
