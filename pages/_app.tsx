@@ -9,6 +9,7 @@ import '../styles/homeContentHierarchy.css';
 import '../styles/readingBackgrounds.css';
 import '../styles/homeScrollStability.css';
 import '../styles/dailyQuestionStory.css';
+import '../styles/dailyQuestionCardTone.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 
 export default function App({ Component, pageProps }: AppProps) {
