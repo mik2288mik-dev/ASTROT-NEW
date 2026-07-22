@@ -6,6 +6,7 @@ import {
   getDashboardSystemText,
   selectDailyPresentationPattern,
 } from '../lib/dailyPresentationPatterns';
+import { getWordRangeInstruction } from '../lib/contentMatrix';
 import { isDailyCanvasComplete, validateDailyCanvas } from '../lib/natalHumanInterpretation';
 import { HUMAN_DAILY_PROMPT_VERSION } from '../lib/natalHumanShared';
 import { makeDailyCanvasFixture } from './dailyCanvasFixture';
@@ -125,13 +126,53 @@ describe('daily package presentation patterns', () => {
     expect(result.styleWarnings).toContain('ABSTRACT_DAILY_TEXT');
   });
 
-  it('keeps a short hero hook as a style warning, not a hard error', () => {
+  it('enforces the direct supportive daily voice without padding short complete text', () => {
+    const appVoice = fs.readFileSync(path.join(ROOT, 'lib', 'appVoice.ts'), 'utf8');
+    const dailyPrompt = fs.readFileSync(path.join(ROOT, 'lib', 'natalHumanInterpretation.ts'), 'utf8');
+    const systemCopy = fs.readFileSync(path.join(ROOT, 'lib', 'dailyPresentationPatterns.ts'), 'utf8');
+
+    expect(appVoice).toContain('Давай прямой ответ');
+    expect(appVoice).toContain('всегда на стороне пользователя');
+    expect(appVoice).toContain('Фатализм');
+    expect(appVoice).toContain('Мистическая жвачка');
+    expect(appVoice).toContain('Не добивай текст до заданного количества слов');
+    expect(appVoice).toContain('Give a direct answer');
+    expect(appVoice).toContain("always on the user's side");
+    expect(appVoice).toContain('Fatalism');
+    expect(appVoice).toContain('Mystical fluff');
+    expect(appVoice).toContain('Never pad text to a word count');
+
+    expect(dailyPrompt).toContain('С первого предложения назови суть');
+    expect(dailyPrompt).toContain('Поддерживай пользователя через конкретную ситуацию');
+    expect(dailyPrompt).toContain('не добавляй предложения ради количества слов');
+    expect(dailyPrompt).not.toContain('"hero_hook": "40-65 слов');
+    expect(dailyPrompt).not.toContain('"overview": "90-130 слов');
+    expect(dailyPrompt).not.toContain('"body": "70-110 слов');
+    expect(getWordRangeInstruction('personal_daily')).toBe(
+      'Maximum length: 130 words. Stop sooner when the thought is complete; never pad to a word count.',
+    );
+
     const canvas = packageFixture();
-    canvas.hero_hook = 'Короткое превью дня с сообщением, покупкой и вечерним разговором.';
+    canvas.hero_hook = 'Чужая уверенность может давить. Проверь факты перед ответом.';
+    canvas.overview = 'Главная сложность — чужая срочность. Отдели свой срок от чужого.';
+    canvas.love.body = 'Близость не требует угадывать. Спроси партнёра о конкретной договорённости.';
+    canvas.money.body = 'Скидка давит таймером. Проверь, нужна ли покупка без неё.';
+    canvas.work.body = 'Чужой дедлайн не становится твоим автоматически. Назови реальный срок задачи.';
+    canvas.goals.body = 'План застрял на черновике. Открой проект и допиши одну мысль.';
+    canvas.family.body = 'Бытовая просьба звучит громче усталости. Распределите дело дома по фактам.';
+    canvas.friendship.body = 'Приглашение не создаёт долг. Предложи другу формат, который тебе подходит.';
+    canvas.energy.body = 'Нагрузка уже видна по усталости. Убери с вечера необязательную встречу.';
+    canvas.communication.body = 'Короткое сообщение легко понять неверно. Уточни вопрос до ответа.';
     const result = validateDailyCanvas(canvas, 'ru');
+
     expect(result.valid).toBe(true);
     expect(result.hardErrors).toEqual([]);
-    expect(result.styleWarnings).toContain('HERO_HOOK_TOO_SHORT');
+    expect(result.styleWarnings).not.toContain('TEXT_TOO_SHORT');
+    expect(systemCopy.toLowerCase()).not.toContain('не торопимся');
+    expect(systemCopy.toLowerCase()).not.toContain('разбор готов');
+    expect(systemCopy.toLowerCase()).not.toContain("'готово.");
+    expect(systemCopy).not.toContain("'Ready.");
+    expect(systemCopy).not.toContain("'All set.");
   });
 
   it('reports a concrete hard error for a hard-invalid package', () => {

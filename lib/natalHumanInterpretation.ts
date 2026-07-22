@@ -1573,22 +1573,26 @@ function buildDailyPackageSystemPrompt(locale: Locale): string {
 
 Use the app voice above as the mandatory SYSTEM voice. The user-facing output must be English.
 
-Use the natal chart, transit positions, and calculated interactions only as internal source data. Translate them into normal human meaning: a situation, a likely reaction, a possible mistake, and a useful observation.
+Use the natal chart, transit positions, and calculated interactions only as internal source data. Give each topic a different real meaning. State the point in the first sentence, show one possible ordinary-life manifestation, and give one useful guide.
 
 The final user-facing JSON must not name planets, aspects, houses, transits, natal chart terms, or explain astrological mechanics. Do not write lines like "Venus presses on Jupiter" or "transit Sun". The reader should never need astrology vocabulary to understand the day.
 
-Avoid generic advice that could fit any person on any day: "do not rush", "stay focused", "trust yourself", "keep balance", "let go", "speak directly", or close paraphrases. Every section needs its own life topic and concrete scene.
+Avoid generic advice that could fit any person on any day: "do not rush", "stay focused", "trust yourself", "keep balance", "let go", "speak directly", or close paraphrases. Never invent a definite event or the user's profession, job title, family status, income, or other social role. Describe a concrete scene only as a possible manifestation of the supplied data.
+
+Support the user through the specific situation, without praise, lectures, a verdict, or a separate motivational ending. Do not repeat one conclusion across fields and never add sentences merely to reach a word count.
 
 Return only valid JSON.`
     : `## ЗАДАЧА ДНЕВНОГО ПАКЕТА
 
 Используй голос приложения выше как обязательный SYSTEM-голос. Пользовательский текст должен быть на русском.
 
-Используй натальную карту, позиции транзитов и посчитанные взаимодействия только как внутренние исходные данные. Переводи их в обычный человеческий смысл: ситуацию, реакцию, возможную ошибку и полезное наблюдение.
+Используй натальную карту, позиции транзитов и посчитанные взаимодействия только как внутренние исходные данные. Дай каждой теме свой реальный смысл. С первого предложения назови суть, покажи одно возможное проявление в обычной жизни и дай один полезный ориентир.
 
 В итоговом пользовательском JSON нельзя называть планеты, аспекты, транзиты, натальную карту и астрологические механики. Не пиши конструкции вроде «Венера давит на Юпитер», «транзитное Солнце», «натальный центр», «седьмой дом», «планета в доме», «управитель дома». Обычные слова «дом», «дома», «домашний», «квартира» разрешены, когда речь о быте и семье. Читатель должен понять день без астрологических терминов.
 
-Запрещены универсальные советы, которые подходят кому угодно в любой день: «не спеши», «не распыляйся», «выбери одно дело», «держи курс», «сохраняй баланс», «доверься себе», «говори прямо», «замедлись», «отпусти лишнее», «не пытайся угодить всем», «уменьши шаг» и очевидные перефразировки. Каждый раздел должен иметь свою жизненную тему, конкретную сцену и собственное действие, а не пересказ одной центральной мысли.
+Запрещены универсальные советы, которые подходят кому угодно в любой день: «не спеши», «не распыляйся», «выбери одно дело», «держи курс», «сохраняй баланс», «доверься себе», «говори прямо», «замедлись», «отпусти лишнее», «не пытайся угодить всем», «уменьши шаг» и очевидные перефразировки. Не выдумывай свершившееся событие, профессию, должность, семейный статус, доход или другую социальную роль пользователя. Конкретную сцену описывай только как возможное проявление переданных данных.
+
+Поддерживай пользователя через конкретную ситуацию, без похвалы, поучения, приговора и отдельного мотивационного финала. Не повторяй один вывод в разных полях и не добавляй предложения ради количества слов.
 
 Ответ — только валидный JSON.`;
   return `${getAppSystemVoice(locale)}\n\n${task}`;
@@ -1646,32 +1650,36 @@ ${patternPlanBlock(plan, locale)}
 
 Rules:
 - The word "today" may appear no more than twice in the whole package.
+- Start every field with its direct point. Then briefly show a possible ordinary-life manifestation and give one useful guide; stop when the thought is complete.
 - User-facing text must not contain astrology vocabulary: planet names, aspects, "transit", "natal", "square", "trine", "opposition", or explanations of calculations. Do not use explicit astrology-house constructions such as "astrological house", "seventh house", "planet in a house", or "ruler of the house"; ordinary home/house wording is allowed for family or everyday life.
 - Never show raw astrology sentences such as "Mars presses on the Moon" or "Jupiter supports natal Jupiter"; translate the signal into a normal life situation.
 - Do not use generic template advice or close paraphrases: do not rush, do not scatter yourself, choose one thing, focus on the main thing, keep course, keep balance, trust yourself, speak directly, slow down, listen to yourself, let go, act mindfully, do not try to please everyone, make the step smaller.
-- If a line could be shown to any person on any day, rewrite it with a concrete everyday scene: a message, purchase, deadline, promise, bill, request, family agreement, invitation, tiredness, or conversation.
+- If a line could be shown to any person on any day, ground it in a possible everyday manifestation: a message, purchase, deadline, promise, bill, request, family agreement, invitation, tiredness, or conversation. Never claim that one of these events definitely exists.
+- Never invent the user's profession, job title, family status, income, or social role. Work language must fit any kind of useful activity without assigning a career.
+- Keep support tied to the specific tension. No empty reassurance, lecture, verdict, or motivational ending.
 - hero_title, hero_hook, and all hooks must not start the same way.
-- hero_hook must be a substantial 40-65 word Dashboard preview: concrete enough to be useful, short enough to invite opening the full reading.
+- hero_hook is one or two short, complete sentences: useful enough to orient the reader, short enough to invite opening the full reading.
 - Do not repeat one thought across hero, overview, and sections; if the hero is about a mood, the overview must synthesize different tensions, and each section must use a separate recognizable situation with a different practical move.
 - Hooks tease the section; they must not retell the full body.
 - The eight cards must not use one repeated syntactic construction.
 - The sections must be genuinely different: love is about closeness/expectations, money about purchases/obligations, work about tasks/people/deadlines, goals about plans/promises, family about home/relatives, friendship about invitations/requests, energy about load/rest, communication about messages/questions/refusals. Never spread the same advice about one step, clarity, specificity, or one message across multiple sections.
 - Humor is allowed in at most one or two places in the whole package, only if the selected pattern makes it natural.
 - No fatalism, no invented astrological data, no medical/legal/financial guarantees.
+- Never pad a field to a word count. Two strong sentences are enough when the point, manifestation, and guide are complete. Respect the maximums below as ceilings only.
 
 Return JSON with exactly this shape:
 {
-  "hero_title": "short Dashboard hero title",
-  "hero_hook": "40-65 words: substantial Dashboard preview, no astrology terms",
-  "overview": "90-130 words: the coherent day overview",
-  "love": { "hook": "short card hook", "body": "70-110 words" },
-  "money": { "hook": "short card hook", "body": "70-110 words" },
-  "work": { "hook": "short card hook", "body": "70-110 words" },
-  "goals": { "hook": "short card hook", "body": "70-110 words" },
-  "family": { "hook": "short card hook", "body": "70-110 words" },
-  "friendship": { "hook": "short card hook", "body": "70-110 words" },
-  "energy": { "hook": "short card hook", "body": "70-110 words; no health promises" },
-  "communication": { "hook": "short card hook", "body": "70-110 words" },
+  "hero_title": "short Dashboard hero title, no more than 8 words",
+  "hero_hook": "one or two short, complete sentences; no astrology terms",
+  "overview": "a coherent overview, no more than 130 words",
+  "love": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words" },
+  "money": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words" },
+  "work": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words" },
+  "goals": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words" },
+  "family": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words" },
+  "friendship": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words" },
+  "energy": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words; no health promises" },
+  "communication": { "hook": "one concrete phrase", "body": "complete thought, no more than 110 words" },
   "meta": { "free_section_key": "${freeSectionKey}" }
 }`;
   }
@@ -1698,32 +1706,36 @@ ${patternPlanBlock(plan, locale)}
 
 Правила:
 - Слово «сегодня» можно использовать не больше двух раз во всем пакете.
+- Каждое поле начинай с прямой сути. Затем коротко покажи возможное бытовое проявление и дай один полезный ориентир; остановись, когда мысль закончена.
 - В пользовательском тексте не должно быть астрологических терминов: названий планет, аспектов, слов «транзит», «натальный», «квадрат», «трин», «оппозиция» и объяснений расчётов. Не используй явные астрологические конструкции про дома: «астрологический дом», «седьмой дом», «планета в доме», «управитель дома». Обычные слова «дом», «дома», «домашний», «квартира» разрешены для быта и семьи.
 - Не показывай сырую астрологию вроде «Марс давит на Луну» или «Юпитер поддерживает натальный Юпитер»; переводи сигнал в обычную жизненную ситуацию.
 - Не используй шаблонные советы и близкие перефразировки: не спеши, не распыляйся, выбери одно дело, сосредоточься на главном, держи курс, сохраняй баланс, доверься себе, говори прямо, замедлись, прислушайся к себе, отпусти лишнее, действуй осознанно, не пытайся угодить всем, уменьши шаг.
-- Если фразу можно показать любому человеку в любой день, перепиши через конкретную бытовую сцену: сообщение, покупку, срок, обещание, счёт, просьбу, семейную договорённость, приглашение, усталость или разговор.
+- Если фразу можно показать любому человеку в любой день, привяжи её к возможному бытовому проявлению: сообщению, покупке, сроку, обещанию, счёту, просьбе, семейной договорённости, приглашению, усталости или разговору. Не утверждай, что одно из этих событий точно существует.
+- Не выдумывай профессию, должность, семейный статус, доход или социальную роль пользователя. Рабочая тема должна подходить любой полезной деятельности без назначения человеку карьеры.
+- Связывай поддержку с конкретным напряжением. Без пустого утешения, поучения, приговора и мотивационного финала.
 - hero_title, hero_hook и все hooks не должны начинаться одинаково.
-- hero_hook должен быть содержательной выжимкой для Dashboard на 40-65 слов: достаточно конкретной, но не заменяющей полный разбор.
+- hero_hook — одно-два коротких законченных предложения: достаточно полезных для ориентира, но не заменяющих полный разбор.
 - Не повторяй одну мысль в hero, overview и разделах: если hero задает настроение, overview собирает несколько разных напряжений, а каждая сфера показывает отдельную узнаваемую ситуацию и другое практическое действие.
 - Hooks только открывают тему; они не пересказывают body.
 - Восемь карточек не должны идти одной синтаксической конструкцией.
 - Разделы должны реально отличаться: любовь — близость/ожидания, деньги — покупки/обязательства, работа — задачи/люди/сроки, цели — планы/обещания, семья — дом/родственники, друзья — приглашения/просьбы, силы — нагрузка/отдых, разговоры — переписки/вопросы/отказы. Не размазывай один совет про шаг, ясность, конкретность или одно сообщение по нескольким разделам.
 - Юмор максимум в одном-двух местах на весь пакет и только когда он уместен.
 - Без фатализма, без выдуманных астрологических данных, без медицинских, юридических и финансовых гарантий.
+- Не добивай поля до количества слов. Если суть, проявление и ориентир закончены в двух сильных предложениях, остановись. Максимумы ниже — только потолок.
 
 Верни JSON строго такой структуры:
 {
-  "hero_title": "короткий заголовок hero для Dashboard",
-  "hero_hook": "40-65 слов: содержательное превью Dashboard, без астрологических терминов",
-  "overview": "90-130 слов: связный обзор дня",
-  "love": { "hook": "короткий hook карточки", "body": "70-110 слов" },
-  "money": { "hook": "короткий hook карточки", "body": "70-110 слов" },
-  "work": { "hook": "короткий hook карточки", "body": "70-110 слов" },
-  "goals": { "hook": "короткий hook карточки", "body": "70-110 слов" },
-  "family": { "hook": "короткий hook карточки", "body": "70-110 слов" },
-  "friendship": { "hook": "короткий hook карточки", "body": "70-110 слов" },
-  "energy": { "hook": "короткий hook карточки", "body": "70-110 слов; без обещаний про здоровье" },
-  "communication": { "hook": "короткий hook карточки", "body": "70-110 слов" },
+  "hero_title": "короткий заголовок hero для Dashboard, не больше 8 слов",
+  "hero_hook": "одно-два коротких законченных предложения, без астрологических терминов",
+  "overview": "связный обзор дня, не больше 130 слов",
+  "love": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов" },
+  "money": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов" },
+  "work": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов" },
+  "goals": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов" },
+  "family": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов" },
+  "friendship": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов" },
+  "energy": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов; без обещаний про здоровье" },
+  "communication": { "hook": "одна конкретная фраза", "body": "законченная мысль, не больше 110 слов" },
   "meta": { "free_section_key": "${freeSectionKey}" }
 }`;
 }
@@ -1739,9 +1751,9 @@ Previous attempt was rejected by server validation.
 Fix these hard validation errors exactly: ${hardErrors.join(', ')}.
 For BAD_TEXT_ASTRO_TERMS remove planet/aspect/transit/natal vocabulary and explicit astrology-house constructions from every user-facing field; ordinary home/house words are allowed.
 For BAD_TEXT_GENERIC_ADVICE replace generic advice with a concrete scene and a specific observation.
-For ABSTRACT_DAILY_TEXT add a separate recognizable everyday situation to every section.
+For ABSTRACT_DAILY_TEXT add a separate recognizable possible everyday manifestation to every section without claiming it definitely happened.
 For REPEATED_SECTION_ADVICE make hero, overview, and each section solve different life topics, not the same advice in new words.
-For HERO_HOOK_TOO_SHORT rewrite hero_hook as a 40-65 word preview.
+For TEXT_TOO_SHORT replace an empty or meaningless stub with a short complete thought; never pad to a word count.
 Return the same JSON shape. Do not explain the errors outside JSON.`;
 }
 
@@ -1832,7 +1844,6 @@ export type DailyCanvasValidationCode =
   | 'BAD_TEXT_NONSENSE'
   | 'ABSTRACT_DAILY_TEXT'
   | 'REPEATED_SECTION_ADVICE'
-  | 'HERO_HOOK_TOO_SHORT'
   | 'JSON_PARSE_FAILED'
   | 'TODAY_WORD_OVER_LIMIT'
   | 'REPEATED_HOOK_START'
@@ -1877,6 +1888,19 @@ function todayWordCount(text: string): number {
 
 function wordCount(text: string): number {
   return text.match(/[A-Za-zА-Яа-яЁё0-9]+(?:[-'][A-Za-zА-Яа-яЁё0-9]+)?/gu)?.length || 0;
+}
+
+function isMeaninglessDailyStub(text: string): boolean {
+  const compact = cleanText(text);
+  if (!compact) return true;
+  if (/^(?:текст|заглушка|разбор|прогноз|готово|text|placeholder|reading|forecast|ready)[.!?]?$/iu.test(compact)) return true;
+  return wordCount(compact) < 2 && !/[.!?]$/u.test(compact);
+}
+
+function hasIncompleteDailyEnding(text: string): boolean {
+  const compact = cleanText(text);
+  return /(?:[,;:—–-]|\.{3})$/u.test(compact) ||
+    /(?:\b(?:и|но|а|или|если|когда|чтобы|потому\s+что|and|but|or|if|when|because|to))\s*[.!?]?$/iu.test(compact);
 }
 
 function hasGenericDailyAdvice(text: string): boolean {
@@ -1990,14 +2014,14 @@ export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): Dai
   const overview = cleanText(candidate.overview);
 
   if (!heroTitle) pushCode(hardErrors, 'EMPTY_HERO_TITLE');
-  else if (heroTitle.length < 12) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
 
   if (!heroHook) pushCode(hardErrors, 'EMPTY_HERO_HOOK');
-  else if (heroHook.length < 24) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
-  else if (wordCount(heroHook) < 32) pushCode(styleWarnings, 'HERO_HOOK_TOO_SHORT');
+  else if (isMeaninglessDailyStub(heroHook)) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+  else if (hasIncompleteDailyEnding(heroHook)) pushCode(hardErrors, 'BAD_TEXT_NONSENSE');
 
   if (!overview) pushCode(hardErrors, 'EMPTY_OVERVIEW');
-  else if (overview.length < 120) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
+  else if (isMeaninglessDailyStub(overview)) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+  else if (hasIncompleteDailyEnding(overview)) pushCode(hardErrors, 'BAD_TEXT_NONSENSE');
 
   for (const key of DAILY_CANVAS_TOPIC_KEYS) {
     const topic = candidate[key] as Partial<DailyCanvas[DailyCanvasTopicKey]> | undefined;
@@ -2008,9 +2032,9 @@ export function validateDailyCanvas(canvas: unknown, locale: Locale = 'ru'): Dai
     const hook = cleanLine(topic.hook);
     const body = cleanText(topic.body);
     if (!hook) pushCode(hardErrors, 'EMPTY_TOPIC_HOOK');
-    else if (hook.length < 10) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
     if (!body) pushCode(hardErrors, 'EMPTY_TOPIC_BODY');
-    else if (body.length < 80) pushCode(styleWarnings, 'TEXT_TOO_SHORT');
+    else if (isMeaninglessDailyStub(body)) pushCode(hardErrors, 'TEXT_TOO_SHORT');
+    else if (hasIncompleteDailyEnding(body)) pushCode(hardErrors, 'BAD_TEXT_NONSENSE');
   }
 
   const safeCanvas = candidate as DailyCanvas;

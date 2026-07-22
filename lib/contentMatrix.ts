@@ -97,9 +97,9 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
     style: 'Конкретно, без обвинений, мягко, но точно.', placements: ['home', 'natal'], generationPolicy: 'once_per_week',
   },
   personal_daily: {
-    type: 'personal_daily', featureKey: 'personal_daily', modelTier: 'main', words: { min: 90, max: 130 },
+    type: 'personal_daily', featureKey: 'personal_daily', modelTier: 'main', words: { min: 0, max: 130 },
     cacheTtl: '24h', cacheScope: 'user_chart', promptVersion: 'personal_daily.v2', purpose: 'Личный прогноз на день',
-    style: 'Главное сегодня, отношения/люди, действие и риск дня, плюс короткое объяснение по карте; без воды.', placements: ['home', 'horoscope'], generationPolicy: 'once_per_day',
+    style: 'Сначала суть, затем короткое жизненное проявление и один полезный ориентир; без обязательного минимума и без воды.', placements: ['home', 'horoscope'], generationPolicy: 'once_per_day',
   },
   natal_section: {
     type: 'natal_section', featureKey: 'natal_basic', modelTier: 'main', words: { min: 150, max: 200 },
@@ -140,6 +140,7 @@ export function getContentAccess(type: GeneratedContentType, options?: { persona
 
 export function getWordRangeInstruction(type: GeneratedContentType): string {
   const { min, max } = getContentPolicy(type).words;
+  if (min === 0) return `Maximum length: ${max} words. Stop sooner when the thought is complete; never pad to a word count.`;
   return `Target length: ${min}-${max} words.`;
 }
 
