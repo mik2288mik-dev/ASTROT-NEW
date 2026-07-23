@@ -32,7 +32,7 @@ export function sanitizePersonalDailyPostBody(body: BodyInit | null | undefined)
 export function installPersonalDailyRequestGuard(): void {
   if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
 
-  const runtime = window as typeof window & Record<string, unknown>;
+  const runtime = window as unknown as typeof window & Record<string, unknown>;
   if (runtime[INSTALL_MARKER]) return;
 
   const originalFetch = window.fetch.bind(window);
