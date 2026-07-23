@@ -25,6 +25,7 @@ describe('yearly period without Dashboard redesign', () => {
     const endpoint = read('pages/api/content/horoscope/sign-yearly.ts');
     const service = read('services/astrologyService.ts');
     const dashboard = read('views/Dashboard.tsx');
+    const generationLock = read('lib/contentGenerationLock.ts');
 
     expect(generator).toContain('ForecastDailyReading');
     expect(generator).toContain("content_type = 'sign_yearly'");
@@ -33,6 +34,7 @@ describe('yearly period without Dashboard redesign', () => {
     expect(generator).toContain('Это общий разбор для твоего знака. Личная картина начинается с натальной карты.');
     expect(generator).not.toMatch(/CREATE\s+TABLE|ALTER\s+TABLE/i);
     expect(endpoint).toContain('withContentGenerationLock');
+    expect(generationLock).toContain("export type ContentGenerationVariant = ContentVariant | 'yearly'");
     expect(endpoint).toContain('getCachedSignYearlyHoroscope');
     expect(endpoint).toContain('getOrGenerateSignYearlyHoroscope');
     expect(service).toContain('getCachedYearlySignHoroscope');

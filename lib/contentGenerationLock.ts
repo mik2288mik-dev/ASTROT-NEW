@@ -3,12 +3,14 @@ import { releaseLock, tryAcquireLock } from './serverLocks';
 
 export const CONTENT_GENERATION_RETRY_AFTER_MS = 1500;
 
+export type ContentGenerationVariant = ContentVariant | 'yearly';
+
 export type ContentGenerationLockKeyInput = {
   userId: string;
   chartId?: number | null;
   accessTier: ContentAccessTier;
   contentSurface: ContentSurface;
-  contentVariant: ContentVariant;
+  contentVariant: ContentGenerationVariant;
   cacheKey: string;
   promptVersion?: string | null;
 };
