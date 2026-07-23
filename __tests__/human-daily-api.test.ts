@@ -163,7 +163,7 @@ async function callHandler(method: 'GET' | 'POST' = 'POST', sectionKey = 'daily_
       method,
       query: method === 'GET' ? { userId: '123', chartId: '7', sectionKey, date: '2026-06-03' } : {},
       body: method === 'POST'
-        ? { userId: '123', chartId: 7, sectionKey, date: '2026-06-03', profile: { isPremium: true }, chartData }
+        ? { userId: '123', chartId: 7, sectionKey, date: '2026-06-03' }
         : {},
     } as any,
     res
@@ -296,6 +296,12 @@ describe('human-daily API daily package flow', () => {
         .filter(Boolean)
     );
     expect(requestIds.size).toBe(1);
+    const requestStarted = mocks.logContentApi.mock.calls.find((call) => call[1] === 'request_started');
+    expect(requestStarted?.[2]?.metadata).toMatchObject({
+      requestBodyBytes: expect.any(Number),
+      hasProfile: false,
+      hasChartData: false,
+    });
   });
 
   it('logs PostgreSQL diagnostics when saving the daily package fails', async () => {

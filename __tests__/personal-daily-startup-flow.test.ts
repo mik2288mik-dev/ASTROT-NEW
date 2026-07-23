@@ -16,6 +16,11 @@ describe('personal daily startup flow', () => {
     expect(app).toContain('dailyPackageSessionRef');
     expect(app).toContain('const prepareStartupDailyPackage = useCallback');
     expect(app).toContain('loadHumanDailyPackage(userId, input.chartId ?? undefined, dateKey');
+    const prepareStart = app.indexOf('const prepareStartupDailyPackage = useCallback');
+    const prepareEnd = app.indexOf('const prepareUserContentDbFirst', prepareStart);
+    const prepareSource = app.slice(prepareStart, prepareEnd);
+    expect(prepareSource).not.toContain('profile: input.profile,');
+    expect(prepareSource).not.toContain('chartData: input.chartData,');
     expect(app).toContain('dailyPackage,');
     expect(app).toContain('dailyPackage={dailyPackage}');
   });
@@ -89,6 +94,10 @@ describe('personal daily startup flow', () => {
     expect(app).not.toContain('showStartupError(startupDailyErrorMessage(updatedProfile.language), dailyError)');
     expect(app).toContain('const retryStartup = () =>');
     expect(app).toContain('setStartupRetryNonce((value) => value + 1)');
+    const prepareError = app.indexOf("stage: 'prepare_error'");
+    const errorState = indexAfter(app, "setDailyPackageStatus('error')", prepareError);
+    expect(prepareError).toBeGreaterThan(-1);
+    expect(errorState).toBeGreaterThan(prepareError);
   });
 
   it('human-daily exposes the structured log request id on the response', () => {

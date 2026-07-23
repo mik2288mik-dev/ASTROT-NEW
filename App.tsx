@@ -418,12 +418,16 @@ const App: React.FC = () => {
             setLoadingProgress(progressStart);
         }
         setDailyPackageStatus('loading');
+        console.info('[PersonalDaily][App]', {
+            scope: 'personal-daily-app',
+            stage: 'prepare_started',
+            chartId: input.chartId,
+            date: dateKey,
+        });
 
         let request: Promise<DailyCanvas | null>;
         request = loadHumanDailyPackage(userId, input.chartId ?? undefined, dateKey, {
             accessTier: 'premium',
-            profile: input.profile,
-            chartData: input.chartData,
         })
             .then((canvas) => {
                 if (
@@ -435,6 +439,12 @@ const App: React.FC = () => {
                 dailyPackageSessionRef.current = { key, data: canvas, promise: null };
                 setDailyPackage(canvas);
                 setDailyPackageStatus('ready');
+                console.info('[PersonalDaily][App]', {
+                    scope: 'personal-daily-app',
+                    stage: 'prepare_completed',
+                    chartId: input.chartId,
+                    date: dateKey,
+                });
                 if (reportProgress) setLoadingProgress(progressStart + progressSpan);
                 return canvas;
             })
@@ -447,6 +457,8 @@ const App: React.FC = () => {
                 }
                 const err = error as { code?: string; status?: number; message?: string };
                 console.warn('[App] Startup personal daily package failed; continuing without blocking app entry', {
+                    scope: 'personal-daily-app',
+                    stage: 'prepare_error',
                     code: err?.code || 'UNKNOWN_STARTUP_DAILY_ERROR',
                     status: err?.status || null,
                     message: err?.message || String(error),

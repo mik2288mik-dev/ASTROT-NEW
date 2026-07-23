@@ -194,6 +194,15 @@ function readDateKey(req: NextApiRequest): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : getMoscowTodayKey();
 }
 
+function requestBodyByteLength(req: NextApiRequest): number | null {
+  if (req.method !== 'POST') return null;
+  try {
+    return Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 function getMoscowDayWindow(dateKey: string) {
   const [yearRaw, monthRaw, dayRaw] = dateKey.split('-');
   const year = Number(yearRaw);
@@ -330,7 +339,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(httpStatus).json(payload);
   };
 
-  logStage('request_started');
+  logStage('request_started', {
+    metadata: {
+      requestBodyBytes: requestBodyByteLength(req),
+      contentLength: headerValue(req.headers, 'content-length') || null,
+      hasProfile: req.method === 'POST' && !!req.body?.profile,
+      hasChartData: req.method === 'POST' && !!req.body?.chartData,
+    },
+  });
 
   let ready: Awaited<ReturnType<typeof ensureValidContext>> | null = null;
   try {

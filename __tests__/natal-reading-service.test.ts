@@ -11,10 +11,6 @@ import {
 import { HUMAN_FREE_SECTION_KEYS, HUMAN_PAID_SECTION_KEYS } from '../lib/natalHumanShared';
 import type { NatalInterpretationReport } from '../types';
 
-jest.mock('../services/apiClient', () => ({
-  apiFetch: (input: RequestInfo | URL, init?: RequestInit) => global.fetch(input, init),
-}));
-
 function response(status: number, payload: any): Response {
   return {
     ok: status >= 200 && status < 300,
@@ -56,6 +52,8 @@ describe('natal reading service session cache', () => {
   beforeEach(() => {
     clearHumanReadingSessionCache();
     global.fetch = jest.fn();
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -184,6 +182,65 @@ describe('natal reading service session cache', () => {
     expect((global.fetch as jest.Mock).mock.calls[1][1]?.method).toBe('POST');
   });
 
+  it('sends a small authoritative human-daily POST body without profile or chartData', async () => {
+    const daily = dailyPackage();
+    const section = { key: 'daily_overview', title: 'Overview', access: 'free', content: 'Overview body' };
+    const circularProfile: Record<string, unknown> = { id: '123' };
+    circularProfile.self = circularProfile;
+    const oversizedChartData = { debug: 'x'.repeat(2_000_000) };
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND', code: 'HUMAN_DAILY_NOT_READY' }))
+      .mockResolvedValueOnce(response(200, {
+        interpretation: { content: section },
+        accessTier: 'free',
+        dailyPackage: daily,
+      }));
+
+    await expect(loadHumanDailyPackage('123', 7, '2026-05-25', {
+      profile: circularProfile,
+      chartData: oversizedChartData,
+    } as any)).resolves.toBe(daily);
+
+    const postInit = (global.fetch as jest.Mock).mock.calls[1][1] as RequestInit;
+    const postBody = String(postInit.body);
+    const parsed = JSON.parse(postBody);
+    expect(parsed).toEqual({
+      userId: '123',
+      chartId: 7,
+      sectionKey: 'daily_overview',
+      date: '2026-05-25',
+    });
+    expect(parsed.profile).toBeUndefined();
+    expect(parsed.chartData).toBeUndefined();
+    expect(new TextEncoder().encode(postBody).byteLength).toBeLessThan(1024);
+    const diagnosticStages = (console.info as jest.Mock).mock.calls
+      .map((call) => call[1]?.stage)
+      .filter(Boolean);
+    expect(diagnosticStages).toEqual(expect.arrayContaining([
+      'cache_get_started',
+      'cache_get_completed',
+      'post_human_entered',
+      'json_serialization_started',
+      'json_serialization_completed',
+      'api_fetch_started',
+      'started',
+      'response',
+      'api_fetch_response',
+    ]));
+  });
+
+  it('surfaces a real human-daily POST HTTP error with status and code', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(response(404, { error: 'NOT_FOUND', code: 'HUMAN_DAILY_NOT_READY' }))
+      .mockResolvedValueOnce(response(413, { code: 'PAYLOAD_TOO_LARGE', message: 'request rejected' }));
+
+    await expect(loadHumanDailyPackage('123', 7, '2026-05-25')).rejects.toMatchObject({
+      status: 413,
+      code: 'PAYLOAD_TOO_LARGE',
+    });
+    expect((global.fetch as jest.Mock).mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
+  });
+
   it('polls GET after 202 instead of repeating concurrent POST requests', async () => {
     jest.useFakeTimers();
     const section = { key: 'daily_overview', title: 'Overview', access: 'free', content: 'Overview body' };
@@ -277,12 +334,9 @@ describe('natal reading service session cache', () => {
 
     const controller = new AbortController();
     const dashboardRequest = loadHumanDailyPackage('123', 7, '2026-05-25', { signal: controller.signal });
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    for (let i = 0; i < 20 && !resolvePost; i += 1) {
+      await Promise.resolve();
+    }
 
     const personalDailyRequest = loadHumanDailySection('123', 'daily_overview', 7, '2026-05-25');
     controller.abort();

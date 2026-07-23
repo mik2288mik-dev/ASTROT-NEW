@@ -3,6 +3,7 @@ import { assertNativeNetworkAvailable } from './nativeNetwork';
 
 const TELEGRAM_INIT_DATA_HEADER = 'x-telegram-init-data';
 const DEFAULT_TIMEOUT_MS = 30_000;
+const HUMAN_DAILY_PATH = '/api/content/natal/human-daily';
 
 type NativeSessionResponse = {
   token: string;
@@ -109,18 +110,73 @@ async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Pr
   }
 }
 
+function logHumanDailyTransport(
+  stage: string,
+  path: string,
+  init: RequestInit,
+  metadata: Record<string, unknown> = {},
+  level: 'info' | 'warn' = 'info'
+): void {
+  if (!path.includes(HUMAN_DAILY_PATH)) return;
+  const payload = {
+    scope: 'personal-daily-transport',
+    stage,
+    method: init.method || 'GET',
+    path,
+    ...metadata,
+  };
+  if (level === 'warn') {
+    console.warn('[PersonalDaily][apiFetch]', payload);
+    return;
+  }
+  console.info('[PersonalDaily][apiFetch]', payload);
+}
+
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
-  const response = await fetchOnce(path, init, timeoutMs);
+  const startedAt = Date.now();
+  logHumanDailyTransport('started', path, init, { timeoutMs });
+  let response: Response;
+  try {
+    response = await fetchOnce(path, init, timeoutMs);
+  } catch (error) {
+    const isAbort = error instanceof Error && error.name === 'AbortError';
+    logHumanDailyTransport(isAbort ? 'abort' : 'transport_error', path, init, {
+      durationMs: Date.now() - startedAt,
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : String(error),
+    }, 'warn');
+    throw error;
+  }
+  logHumanDailyTransport('response', path, init, {
+    status: response.status,
+    durationMs: Date.now() - startedAt,
+  });
   if (!isNativeAppRuntime() || response.status !== 401 || path.includes('/api/auth/native-guest')) {
     return response;
   }
 
   await requestNativeSession(true);
-  return fetchOnce(path, init, timeoutMs);
+  logHumanDailyTransport('native_auth_retry_started', path, init);
+  try {
+    const retriedResponse = await fetchOnce(path, init, timeoutMs);
+    logHumanDailyTransport('native_auth_retry_response', path, init, {
+      status: retriedResponse.status,
+      durationMs: Date.now() - startedAt,
+    });
+    return retriedResponse;
+  } catch (error) {
+    const isAbort = error instanceof Error && error.name === 'AbortError';
+    logHumanDailyTransport(isAbort ? 'native_auth_retry_abort' : 'native_auth_retry_transport_error', path, init, {
+      durationMs: Date.now() - startedAt,
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : String(error),
+    }, 'warn');
+    throw error;
+  }
 }
 
 export async function clearNativeSession(): Promise<void> {

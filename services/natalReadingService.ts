@@ -9,12 +9,10 @@ import type {
 import type {
   ContentAccessTier,
   InterpretationSection,
-  NatalChartData,
   NatalInterpretationReport,
   NatalStoryCardId,
   NatalStoryShareFormat,
   ProfileCard,
-  UserProfile,
 } from '../types';
 import type {
   DailyCanvas,
@@ -125,8 +123,6 @@ export type NatalProfileCardsResponse = {
 type HumanDailyLoadOptions = {
   accessTier?: 'premium';
   maxInProgressRetries?: number;
-  profile?: UserProfile;
-  chartData?: NatalChartData | null;
   signal?: AbortSignal;
 };
 
@@ -173,6 +169,27 @@ function throwIfAborted(signal?: AbortSignal): void {
   abortError.code = 'ABORTED';
   abortError.status = 499;
   throw abortError;
+}
+
+function logHumanDailyClient(
+  stage: string,
+  metadata: Record<string, unknown> = {},
+  level: 'info' | 'warn' = 'info'
+): void {
+  const payload = {
+    scope: 'personal-daily-client',
+    stage,
+    ...metadata,
+  };
+  if (level === 'warn') {
+    console.warn('[PersonalDaily]', payload);
+    return;
+  }
+  console.info('[PersonalDaily]', payload);
+}
+
+function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
 }
 
 function profileCardsKey(userId: string, chartId?: number, localHour?: number, todayText?: string | null): string {
@@ -329,47 +346,100 @@ async function postHuman<T>(
     sectionKey?: HumanPaidSectionKey | HumanDailySectionKey;
     date?: string;
     accessTier?: 'premium';
-    profile?: UserProfile;
-    chartData?: NatalChartData | null;
     signal?: AbortSignal;
   }
 ): Promise<HumanReadingResult<T>> {
-  const body: Record<string, unknown> = {
-      userId,
-      chartId: options?.chartId,
+  const isHumanDaily = endpoint === 'human-daily';
+  if (isHumanDaily) {
+    logHumanDailyClient('post_human_entered', {
       sectionKey: options?.sectionKey,
       date: options?.date,
-    };
+    });
+  }
+
+  const body: Record<string, unknown> = {
+    userId,
+    chartId: options?.chartId,
+    sectionKey: options?.sectionKey,
+    date: options?.date,
+  };
   if (options?.accessTier) {
     body.accessTier = options.accessTier;
   }
-  if (options?.profile) {
-    body.profile = options.profile;
+
+  if (isHumanDaily) {
+    logHumanDailyClient('json_serialization_started', {
+      sectionKey: options?.sectionKey,
+      date: options?.date,
+    });
   }
-  if (options?.chartData) {
-    body.chartData = options.chartData;
+
+  let serializedBody: string;
+  try {
+    serializedBody = JSON.stringify(body);
+  } catch (error) {
+    if (isHumanDaily) {
+      logHumanDailyClient('json_serialization_error', {
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        message: error instanceof Error ? error.message : String(error),
+      }, 'warn');
+    }
+    const serializationError = new Error('Daily request could not be serialized') as HumanReadingError;
+    serializationError.code = 'REQUEST_SERIALIZATION_FAILED';
+    serializationError.status = 400;
+    throw serializationError;
   }
-  const response = await apiFetch(
-    buildHumanUrl(endpoint, userId, options),
-    {
+
+  const bodyBytes = utf8ByteLength(serializedBody);
+  const url = buildHumanUrl(endpoint, userId, options);
+  if (isHumanDaily) {
+    logHumanDailyClient('json_serialization_completed', { bodyBytes });
+    logHumanDailyClient('api_fetch_started', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify(body),
-      signal: options?.signal,
-    },
-    HUMAN_GENERATION_TIMEOUT_MS
-  ).catch((error: unknown) => {
-    if (error instanceof Error && error.name === 'AbortError') {
+      url,
+      bodyBytes,
+    });
+  }
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      url,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+        body: serializedBody,
+        signal: options?.signal,
+      },
+      HUMAN_GENERATION_TIMEOUT_MS
+    );
+  } catch (error) {
+    const isAbort = error instanceof Error && error.name === 'AbortError';
+    if (isHumanDaily) {
+      logHumanDailyClient(isAbort ? 'api_fetch_abort' : 'api_fetch_transport_error', {
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        message: error instanceof Error ? error.message : String(error),
+        bodyBytes,
+      }, 'warn');
+    }
+    if (isAbort) {
       const err = new Error('Request timed out') as HumanReadingError;
       err.code = 'TIMEOUT';
       err.status = 408;
       throw err;
     }
     throw error;
-  });
+  }
 
   if (response.status === 202) {
     const payload = await response.json().catch(() => ({}));
+    if (isHumanDaily) {
+      logHumanDailyClient('api_fetch_response', {
+        status: response.status,
+        code: payload.code || 'GENERATION_IN_PROGRESS',
+        bodyBytes,
+      });
+    }
     const err = await readHumanError(response, payload.message || 'Generation in progress');
     err.code = payload.code || 'GENERATION_IN_PROGRESS';
     err.status = 202;
@@ -378,10 +448,25 @@ async function postHuman<T>(
   }
 
   if (!response.ok) {
-    throw await readHumanError(response, `Failed (${response.status})`);
+    const error = await readHumanError(response, `Failed (${response.status})`);
+    if (isHumanDaily) {
+      logHumanDailyClient('api_fetch_response', {
+        status: response.status,
+        code: error.code || 'HTTP_ERROR',
+        bodyBytes,
+      }, 'warn');
+    }
+    throw error;
   }
 
   const payload = await response.json();
+  if (isHumanDaily) {
+    logHumanDailyClient('api_fetch_response', {
+      status: response.status,
+      code: null,
+      bodyBytes,
+    });
+  }
   if (endpoint === 'human-daily') {
     const section = unwrapDailySectionPayload(payload);
     if (!section) {
@@ -431,19 +516,68 @@ async function getHuman<T>(
     signal?: AbortSignal;
   }
 ): Promise<HumanReadingResult<T> | null> {
-  const response = await apiFetch(buildHumanUrl(endpoint, userId, options), {
-    method: 'GET',
-    headers: getTelegramInitDataHeaders(),
-    cache: 'no-store',
-    signal: options?.signal,
-  });
+  const url = buildHumanUrl(endpoint, userId, options);
+  if (endpoint === 'human-daily') {
+    logHumanDailyClient('cache_get_started', {
+      method: 'GET',
+      url,
+      sectionKey: options?.sectionKey,
+      date: options?.date,
+    });
+  }
 
-  if (response.status === 404) return null;
+  let response: Response;
+  try {
+    response = await apiFetch(url, {
+      method: 'GET',
+      headers: getTelegramInitDataHeaders(),
+      cache: 'no-store',
+      signal: options?.signal,
+    });
+  } catch (error) {
+    if (endpoint === 'human-daily') {
+      logHumanDailyClient(
+        error instanceof Error && error.name === 'AbortError'
+          ? 'cache_get_abort'
+          : 'cache_get_transport_error',
+        {
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+          message: error instanceof Error ? error.message : String(error),
+        },
+        'warn'
+      );
+    }
+    throw error;
+  }
+
+  if (response.status === 404) {
+    const payload = await response.json().catch(() => ({}));
+    if (endpoint === 'human-daily') {
+      logHumanDailyClient('cache_get_completed', {
+        status: response.status,
+        code: payload.code || payload.error || 'NOT_FOUND',
+      });
+    }
+    return null;
+  }
   if (!response.ok) {
-    throw await readHumanError(response, `Failed (${response.status})`);
+    const error = await readHumanError(response, `Failed (${response.status})`);
+    if (endpoint === 'human-daily') {
+      logHumanDailyClient('cache_get_completed', {
+        status: response.status,
+        code: error.code || 'HTTP_ERROR',
+      }, 'warn');
+    }
+    throw error;
   }
 
   const payload = await response.json();
+  if (endpoint === 'human-daily') {
+    logHumanDailyClient('cache_get_completed', {
+      status: response.status,
+      code: null,
+    });
+  }
   if (endpoint === 'human-daily') {
     const section = unwrapDailySectionPayload(payload);
     if (!section) return null;
@@ -591,8 +725,6 @@ export async function ensureHumanDailySection(
       chartId,
       sectionKey,
       date,
-      profile: options?.profile,
-      chartData: options?.chartData,
       signal: options?.signal,
       ...(sectionKey === 'daily_overview' ? {} : { accessTier: options?.accessTier || 'premium' }),
     });
