@@ -1,0 +1,21 @@
+name: Railway Docker Diagnostic
+
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'next.config.js'
+      - 'middleware.ts'
+      - '.github/workflows/railway-docker-diagnostic.yml'
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Railway image
+        run: docker build --progress=plain -t astrot-railway-diagnostic .
