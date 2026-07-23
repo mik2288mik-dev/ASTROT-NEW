@@ -1,0 +1,188 @@
+name: Apply personal daily cache-miss hotfix
+
+on:
+  push:
+    branches:
+      - fix/personal-daily-generate-after-cache-miss
+    paths:
+      - .github/workflows/apply-personal-daily-hotfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-hotfix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/personal-daily-generate-after-cache-miss
+          fetch-depth: 0
+
+      - name: Patch client generation request and add regression test
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service_path = Path('services/natalReadingService.ts')
+          source = service_path.read_text(encoding='utf-8')
+          old = """  if (options?.profile) {
+            body.profile = options.profile;
+          }
+          if (options?.chartData) {
+            body.chartData = options.chartData;
+          }
+"""
+          new = """  // The authenticated API resolves the profile and natal chart from PostgreSQL.
+          // Do not send the full client-side profile/chart payload here: it is redundant,
+          // can exceed the request body limit, and may prevent the generation POST from
+          // reaching the Next.js handler after a normal cache miss.
+"""
+          if old not in source:
+              raise SystemExit('Expected postHuman profile/chartData block was not found')
+          service_path.write_text(source.replace(old, new, 1), encoding='utf-8')
+
+          test_path = Path('__tests__/personal-daily-cache-miss-generation.test.ts')
+          test_path.write_text("""import {
+            clearHumanReadingSessionCache,
+            loadHumanDailyPackage,
+          } from '../services/natalReadingService';
+
+          jest.mock('../services/apiClient', () => ({
+            apiFetch: (input: RequestInfo | URL, init?: RequestInit) => global.fetch(input, init),
+          }));
+
+          function response(status: number, payload: unknown): Response {
+            return {
+              ok: status >= 200 && status < 300,
+              status,
+              json: jest.fn().mockResolvedValue(payload),
+            } as unknown as Response;
+          }
+
+          const dailyPackage = {
+            hero_title: 'Тема дня',
+            hero_hook: 'Личный разбор готов.',
+            overview: 'Главная мысль дня.',
+            love: { hook: 'Love hook', body: 'Love body' },
+            money: { hook: 'Money hook', body: 'Money body' },
+            work: { hook: 'Work hook', body: 'Work body' },
+            goals: { hook: 'Goals hook', body: 'Goals body' },
+            family: { hook: 'Family hook', body: 'Family body' },
+            friendship: { hook: 'Friend hook', body: 'Friend body' },
+            energy: { hook: 'Energy hook', body: 'Energy body' },
+            communication: { hook: 'Talk hook', body: 'Talk body' },
+            meta: { free_section_key: 'love' },
+          };
+
+          describe('personal daily cache miss generation request', () => {
+            beforeEach(() => {
+              clearHumanReadingSessionCache();
+              global.fetch = jest.fn();
+            });
+
+            afterEach(() => {
+              jest.restoreAllMocks();
+            });
+
+            it('turns GET 404 into one minimal POST and returns the generated package', async () => {
+              const section = {
+                key: 'daily_overview',
+                title: 'Тема дня',
+                access: 'free',
+                content: 'Главная мысль дня.',
+              };
+
+              (global.fetch as jest.Mock)
+                .mockResolvedValueOnce(response(404, {
+                  error: 'NOT_FOUND',
+                  code: 'HUMAN_DAILY_NOT_READY',
+                }))
+                .mockResolvedValueOnce(response(200, {
+                  interpretation: { content: section },
+                  accessTier: 'free',
+                  dailyPackage,
+                }));
+
+              const result = await loadHumanDailyPackage('123', 7, '2026-07-23', {
+                accessTier: 'premium',
+                profile: {
+                  id: '123',
+                  name: 'Mik',
+                  birthDate: '1990-01-01',
+                  birthTime: '12:00',
+                  birthPlace: 'Moscow',
+                  isSetup: true,
+                  language: 'ru',
+                  theme: 'light',
+                  isPremium: true,
+                  loginStreak: 0,
+                  chartSlots: 1,
+                },
+                chartData: {
+                  sun: { sign: 'Cancer', degree: 1 },
+                  moon: { sign: 'Leo', degree: 2 },
+                  rising: { sign: 'Virgo', degree: 3 },
+                  oversizedClientOnlyField: 'x'.repeat(50_000),
+                } as any,
+              });
+
+              expect(result).toBe(dailyPackage);
+              expect(global.fetch).toHaveBeenCalledTimes(2);
+              expect((global.fetch as jest.Mock).mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
+
+              const postBody = JSON.parse(String((global.fetch as jest.Mock).mock.calls[1][1]?.body));
+              expect(postBody).toEqual({
+                userId: '123',
+                chartId: 7,
+                sectionKey: 'daily_overview',
+                date: '2026-07-23',
+              });
+              expect(postBody).not.toHaveProperty('profile');
+              expect(postBody).not.toHaveProperty('chartData');
+            });
+
+            it('shares one generation POST across concurrent package loads', async () => {
+              const section = {
+                key: 'daily_overview',
+                title: 'Тема дня',
+                access: 'free',
+                content: 'Главная мысль дня.',
+              };
+
+              (global.fetch as jest.Mock)
+                .mockResolvedValueOnce(response(404, { code: 'HUMAN_DAILY_NOT_READY' }))
+                .mockResolvedValueOnce(response(200, {
+                  interpretation: { content: section },
+                  accessTier: 'free',
+                  dailyPackage,
+                }));
+
+              const first = loadHumanDailyPackage('123', 7, '2026-07-23');
+              const second = loadHumanDailyPackage('123', 7, '2026-07-23');
+
+              await expect(first).resolves.toBe(dailyPackage);
+              await expect(second).resolves.toBe(dailyPackage);
+              expect((global.fetch as jest.Mock).mock.calls.filter((call) => call[1]?.method === 'POST')).toHaveLength(1);
+            });
+          });
+          """, encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run regression tests
+        run: npx jest __tests__/personal-daily-cache-miss-generation.test.ts __tests__/natal-reading-service.test.ts --runInBand
+
+      - name: Commit hotfix and remove one-shot workflow
+        shell: bash
+        run: |
+          rm .github/workflows/apply-personal-daily-hotfix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/natalReadingService.ts __tests__/personal-daily-cache-miss-generation.test.ts .github/workflows/apply-personal-daily-hotfix.yml
+          git commit -m "Fix personal daily generation after cache miss"
+          git push origin HEAD:fix/personal-daily-generate-after-cache-miss
