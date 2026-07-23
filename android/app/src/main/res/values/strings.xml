@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Твой Гороскоп</string>
+    <string name="title_activity_main">Твой Гороскоп</string>
+    <string name="package_name">com.yourhoroscope.app</string>
+    <string name="custom_url_scheme">com.yourhoroscope.app</string>
+</resources>

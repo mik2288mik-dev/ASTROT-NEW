@@ -1,4 +1,5 @@
 import { nativeSessionStore } from './nativeSessionStore';
+import { assertNativeNetworkAvailable } from './nativeNetwork';
 
 const TELEGRAM_INIT_DATA_HEADER = 'x-telegram-init-data';
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -80,6 +81,7 @@ export async function getAppAuthHeaders(): Promise<Record<string, string>> {
 }
 
 async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  await assertNativeNetworkAvailable();
   const controller = new AbortController();
   const externalSignal = init.signal;
   const abortFromExternal = () => controller.abort(externalSignal?.reason);

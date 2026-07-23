@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type DailyPackageStatus, type HoroscopeOpenOptions, type PersonalDailySection } from './types';
 import {
     getProfile,
@@ -46,6 +48,7 @@ import {
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
 import type { DailyCanvas } from './lib/natalHumanShared';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
 
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
@@ -301,6 +304,7 @@ const App: React.FC = () => {
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [personalDailyInitialSection, setPersonalDailyInitialSection] = useState<PersonalDailySection>('overview');
+    const [currentDateKey, setCurrentDateKey] = useState(() => getMoscowTodayKey());
     const lastSessionPingRef = useRef(0);
     const prewarmCompletedKeyRef = useRef<string | null>(null);
     const primaryChartSessionRef = useRef<{
@@ -1628,6 +1632,57 @@ const App: React.FC = () => {
         return () => { backButton.offClick?.(handler); };
     }, [view, handleBack]);
 
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+
+        let disposed = false;
+        let backHandle: { remove: () => Promise<void> } | undefined;
+        let appStateHandle: { remove: () => Promise<void> } | undefined;
+        let lastRootBackAt = 0;
+
+        void CapacitorApp.addListener('backButton', () => {
+            if (showPremiumPreview) {
+                setShowPremiumPreview(false);
+                return;
+            }
+
+            const detail: NativeBackEventDetail = { handled: false };
+            window.dispatchEvent(new CustomEvent<NativeBackEventDetail>(NATIVE_BACK_EVENT, { detail }));
+            if (detail.handled) return;
+
+            const currentView = viewRef.current;
+            if (currentView !== 'dashboard' && currentView !== 'onboarding') {
+                void handleBack();
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastRootBackAt <= 1_800) {
+                void CapacitorApp.exitApp();
+                return;
+            }
+            lastRootBackAt = now;
+        }).then((handle) => {
+            if (disposed) void handle.remove();
+            else backHandle = handle;
+        });
+
+        void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+            if (!isActive) return;
+            const nextDateKey = getMoscowTodayKey();
+            setCurrentDateKey((current) => current === nextDateKey ? current : nextDateKey);
+        }).then((handle) => {
+            if (disposed) void handle.remove();
+            else appStateHandle = handle;
+        });
+
+        return () => {
+            disposed = true;
+            void backHandle?.remove();
+            void appStateHandle?.remove();
+        };
+    }, [handleBack, showPremiumPreview]);
+
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
         navigateTo('charts');
@@ -1766,6 +1821,7 @@ const App: React.FC = () => {
                         chartId={primaryChartId}
                         dailyPackage={dailyPackage}
                         dailyPackageStatus={dailyPackageStatus}
+                        currentDateKey={currentDateKey}
                         onRetryDailyPackage={retryDailyPackage}
                         onOpenHoroscopeLayer={openHoroscopeLayer}
                         onOpenPersonalDaily={openPersonalDailyView}

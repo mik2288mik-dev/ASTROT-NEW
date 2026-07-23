@@ -44,6 +44,7 @@ import {
   getCachedWeeklySignHoroscope,
   getCachedYearlySignHoroscope,
 } from '../services/astrologyService';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 
 const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
   { surface: 'hero', kind: 'maskot', moods: ['thinking', 'calm'], themes: ['study', 'read', 'tech'] },
@@ -81,6 +82,7 @@ type DashboardProps = {
   chartId?: number | null;
   dailyPackage: DailyCanvas | null;
   dailyPackageStatus: DailyPackageStatus;
+  currentDateKey?: string;
   onRetryDailyPackage: () => void;
   onOpenHoroscopeLayer: (layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => void;
   onOpenPersonalDaily: (section?: PersonalDailySection) => void;
@@ -98,6 +100,7 @@ export const Dashboard = memo<DashboardProps>(({
   chartId,
   dailyPackage,
   dailyPackageStatus,
+  currentDateKey,
   onRetryDailyPackage,
   onOpenPersonalDaily,
   onCreateNatalChart,
@@ -107,7 +110,7 @@ export const Dashboard = memo<DashboardProps>(({
   scrollRef,
 }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
-  const today = useMemo(() => getMoscowTodayKey(), []);
+  const today = currentDateKey || getMoscowTodayKey();
   const backgroundUserId = String(profile.id || 'guest');
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
@@ -133,9 +136,9 @@ export const Dashboard = memo<DashboardProps>(({
 
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
-  const weekPeriodKey = useMemo(() => getMoscowIsoWeekKey(), []);
-  const monthPeriodKey = useMemo(() => getMoscowMonthKey(), []);
-  const yearPeriodKey = useMemo(() => getMoscowYearKey(), []);
+  const weekPeriodKey = useMemo(() => getMoscowIsoWeekKey(), [today]);
+  const monthPeriodKey = useMemo(() => getMoscowMonthKey(), [today]);
+  const yearPeriodKey = useMemo(() => getMoscowYearKey(), [today]);
   const [activePeriod, setActivePeriod] = useState<HomePeriod>('today');
   const [periodStates, setPeriodStates] = useState<Record<string, PeriodLoadState>>({});
   const [periodReadings, setPeriodReadings] = useState<Record<string, ForecastDailyReading>>({});
@@ -150,6 +153,21 @@ export const Dashboard = memo<DashboardProps>(({
     setPeriodStates({});
     setPeriodReadings({});
   }, [periodContextKey]);
+
+  useEffect(() => {
+    const handleNativeBack = (event: Event) => {
+      const detail = (event as CustomEvent<NativeBackEventDetail>).detail;
+      if (activeQuestionIndex != null) {
+        setActiveQuestionIndex(null);
+        detail.handled = true;
+      } else if (sheetDate) {
+        setSheetDate(null);
+        detail.handled = true;
+      }
+    };
+    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+  }, [activeQuestionIndex, sheetDate]);
 
   const systemState: DashboardSystemState = dailyPackage
     ? 'ready'

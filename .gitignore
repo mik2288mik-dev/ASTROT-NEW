@@ -12,6 +12,14 @@
 /.next/
 /out/
 
+# Android local build state and generated packages
+/android/local.properties
+/android/.gradle/
+/android/build/
+/android/app/build/
+*.apk
+*.aab
+
 # production
 /build
 

@@ -33,6 +33,7 @@ import {
   type AdminNotificationDiagnostics,
   type AdminContentHealth,
 } from '../../services/admin2Service';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 
 /**
  * Admin v2 — светлый дашборд в стиле Spike Admin: белый сайдбар с группами, белые
@@ -1566,6 +1567,15 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => { loadMe(); }, []);
   const visible = useMemo(() => (me ? NAV.filter((s) => me.permissions.includes(s.perm)) : []), [me]);
   useEffect(() => { if (visible.length && !visible.some((s) => s.id === active)) setActive(visible[0].id); }, [visible, active]);
+  useEffect(() => {
+    if (!navOpen) return;
+    const handleNativeBack = (event: Event) => {
+      setNavOpen(false);
+      (event as CustomEvent<NativeBackEventDetail>).detail.handled = true;
+    };
+    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+  }, [navOpen]);
 
   const go = (id: SectionId) => { setActive(id); setNavOpen(false); };
   const activeLabel = visible.find((s) => s.id === active)?.label || 'Админка';

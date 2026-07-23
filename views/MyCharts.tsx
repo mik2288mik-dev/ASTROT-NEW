@@ -13,6 +13,7 @@ import { Loading } from '../components/ui/Loading';
 import { getText, getZodiacSign } from '../constants';
 import { formatDisplayDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { clearLocalNatalChart } from '../lib/localNatalChartCache';
 import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
@@ -68,6 +69,16 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     setAddTime('12:00');
     setAddPlace('');
   }, []);
+
+  useEffect(() => {
+    if (!showAddForm) return;
+    const handleNativeBack = (event: Event) => {
+      resetAddForm();
+      (event as CustomEvent<NativeBackEventDetail>).detail.handled = true;
+    };
+    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+  }, [resetAddForm, showAddForm]);
 
   const loadCharts = useCallback(async () => {
     if (!profile.id) return;
