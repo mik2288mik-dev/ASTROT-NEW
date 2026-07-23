@@ -4,6 +4,7 @@
  * недоступность каталога = просто нет стикеров, экран не ломается.
  */
 import type { StickerCatalog } from '../lib/stickers/types';
+import { apiFetch } from './apiClient';
 
 // v2: у записей появилось поле themes. Ключ поднят, чтобы старый кэш (без themes) НЕ читался
 // и не ронял выбор (entry.themes был undefined). Плюс валидируем схему на всякий случай.
@@ -51,7 +52,7 @@ export function peekStickerCatalog(): StickerCatalog | null {
 export function fetchStickerCatalog(): Promise<StickerCatalog> {
   if (memory) return Promise.resolve(memory);
   if (inflight) return inflight;
-  inflight = fetch('/api/stickers/catalog', { headers: { accept: 'application/json' } })
+  inflight = apiFetch('/api/stickers/catalog', { headers: { accept: 'application/json' } })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
     .then((catalog: StickerCatalog) => {
       memory = catalog;

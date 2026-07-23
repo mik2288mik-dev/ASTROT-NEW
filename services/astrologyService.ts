@@ -2,7 +2,7 @@
 import { getElementForSign } from "../lib/zodiac-utils";
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
 import { buildForecastFullDayUnlockCacheKey } from "../lib/forecastFullDay";
-import { fetchWithTimeout } from "../lib/fetchWithTimeout";
+import { apiFetch, getApiBaseUrl } from "./apiClient";
 import { isValidUserId } from "../lib/userId";
 import { getRetryAfterMs, isGenerationInProgressError, waitMs } from "../lib/contentInterpretation";
 import { hasActivePremium } from "../lib/accessMatrix";
@@ -13,7 +13,7 @@ import { getTelegramInitDataHeaders } from "./sessionService";
 import type { SkyTodaySnapshot } from '../lib/skyToday';
 
 // API base URL - используем локальные Next.js API routes
-const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE_URL = getApiBaseUrl();
 
 // Logging utility
 const log = {
@@ -83,7 +83,7 @@ async function fetchContentApi<T>(
 
   let response: Response;
   try {
-    response = await fetchWithTimeout(url, init, timeoutMs);
+    response = await apiFetch(url, init, timeoutMs);
   } catch (error: any) {
     if (error?.name === 'AbortError') {
       throw buildApiError('Request timed out', 408, 'TIMEOUT');
@@ -280,7 +280,7 @@ export const getCachedDailySignHoroscope = async (
   const url = `${API_BASE_URL}/api/content/horoscope/sign-daily?${params.toString()}`;
   log.info('[getCachedDailySignHoroscope] Starting request', { sign, date, language });
 
-  const response = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store' }, 4500);
+  const response = await apiFetch(url, { method: 'GET', cache: 'no-store' }, 4500);
   if (response.status === 404) return null;
 
   if (!response.ok) {
@@ -311,7 +311,7 @@ export const ensureDailySignHoroscope = async (
   if (cached) return cached;
 
   log.info('[ensureDailySignHoroscope] Generating missing sign horoscope', { sign, date, language });
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-daily`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ sign, date, language, strict: true }),
@@ -356,7 +356,7 @@ export const getCachedWeeklySignHoroscope = async (
   const memory = signWeeklyClientCache.get(key);
   if (memory) return memory;
   const params = new URLSearchParams({ sign, periodKey, language });
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-weekly?${params}`, { method: 'GET', cache: 'no-store' }, 4500);
+  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-weekly?${params}`, { method: 'GET', cache: 'no-store' }, 4500);
   if (response.status === 404) return null;
   if (!response.ok) throw buildApiError(`Weekly sign horoscope failed: ${response.status}`, response.status);
   const payload = await response.json();
@@ -372,7 +372,7 @@ export const ensureWeeklySignHoroscope = async (
 ): Promise<ForecastDailyReading> => {
   const cached = await getCachedWeeklySignHoroscope(sign, periodKey, language);
   if (cached) return cached;
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-weekly`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-weekly`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ sign, periodKey, language }),
   }, 15000);
   if (!response.ok) throw buildApiError(`Weekly sign horoscope failed: ${response.status}`, response.status);
@@ -391,7 +391,7 @@ export const getCachedMonthlySignHoroscope = async (
   const memory = signMonthlyClientCache.get(key);
   if (memory) return memory;
   const params = new URLSearchParams({ sign, periodKey, language });
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-monthly?${params}`, { method: 'GET', cache: 'no-store' }, 4500);
+  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-monthly?${params}`, { method: 'GET', cache: 'no-store' }, 4500);
   if (response.status === 404) return null;
   if (!response.ok) throw buildApiError(`Monthly sign horoscope failed: ${response.status}`, response.status);
   const payload = await response.json();
@@ -407,7 +407,7 @@ export const ensureMonthlySignHoroscope = async (
 ): Promise<ForecastDailyReading> => {
   const cached = await getCachedMonthlySignHoroscope(sign, periodKey, language);
   if (cached) return cached;
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-monthly`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-monthly`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }, body: JSON.stringify({ sign, periodKey, language }),
   }, 15000);
   if (!response.ok) throw buildApiError(`Monthly sign horoscope failed: ${response.status}`, response.status);
@@ -426,7 +426,7 @@ export const getCachedYearlySignHoroscope = async (
   const memory = signYearlyClientCache.get(key);
   if (memory) return memory;
   const params = new URLSearchParams({ sign, periodKey, language });
-  const response = await fetchWithTimeout(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/content/horoscope/sign-yearly?${params}`,
     { method: 'GET', cache: 'no-store' },
     4500
@@ -446,7 +446,7 @@ export const ensureYearlySignHoroscope = async (
 ): Promise<ForecastDailyReading> => {
   const cached = await getCachedYearlySignHoroscope(sign, periodKey, language);
   if (cached) return cached;
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/sign-yearly`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-yearly`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ sign, periodKey, language }),
@@ -477,7 +477,7 @@ export const getTodayOverview = async (
   };
   let response: Response;
   try {
-    response = await fetchWithTimeout(`${API_BASE_URL}/api/content/today/overview`, {
+    response = await apiFetch(`${API_BASE_URL}/api/content/today/overview`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify(body),
@@ -536,7 +536,7 @@ export const setHoroscopeReaction = async (
   if (!isValidUserId(userId)) {
     throw buildApiError('User id is required', 400, 'INVALID_USER_ID');
   }
-  const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/reactions`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
@@ -566,7 +566,7 @@ export const removeHoroscopeReaction = async (
 ): Promise<HoroscopeReactionSummary | null> => {
   if (!isValidUserId(userId)) return null;
   try {
-    const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/reactions`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/reactions`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
@@ -596,7 +596,7 @@ export const getHoroscopeReactionSummary = async (
       + `&date=${encodeURIComponent(date)}`
       + `&language=${language}`
       + `&period=${period}`;
-    const response = await fetchWithTimeout(url, {
+    const response = await apiFetch(url, {
       method: 'GET',
       credentials: 'include',
       headers: { ...getTelegramInitDataHeaders() },
@@ -621,7 +621,7 @@ export const getHoroscopeEngagement = async (
       + `?userId=${encodeURIComponent(userId)}`
       + `&sign=${encodeURIComponent(sign)}`
       + `&date=${encodeURIComponent(date)}`;
-    const response = await fetchWithTimeout(url, {
+    const response = await apiFetch(url, {
       method: 'GET',
       credentials: 'include',
       headers: { ...getTelegramInitDataHeaders() },
@@ -642,7 +642,7 @@ const postHoroscopeEngagement = async (
 ): Promise<HoroscopeEngagementSummary | null> => {
   if (!isValidUserId(userId)) return null;
   try {
-    const response = await fetchWithTimeout(`${API_BASE_URL}/api/content/horoscope/engagement`, {
+    const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/engagement`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
@@ -1223,7 +1223,7 @@ export const calculateNatalChart = async (profile: UserProfile, forceRecalculate
     log.info(`[calculateNatalChart] Sending POST request to: ${url}`);
 
     const startTime = Date.now();
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify(requestBody)
@@ -1375,7 +1375,7 @@ export const calculateExtendedSynastry = async (
   const url = `${API_BASE_URL}/api/content/synastry/extended`;
   log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate });
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
@@ -1553,7 +1553,7 @@ export async function getSkyToday(todayKey: string): Promise<SkyTodaySnapshot | 
 
   const promise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/content/today/sky`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/content/today/sky`, {
         method: 'GET',
         headers: getTelegramInitDataHeaders(),
       });

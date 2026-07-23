@@ -1,8 +1,7 @@
 import { UserProfile } from '../types';
 import { PREMIUM_PLANS, type PremiumPlanId } from '../lib/premiumPricing';
 import { getTelegramInitDataHeaders } from './sessionService';
-
-const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+import { apiFetch, isNativeAppRuntime } from './apiClient';
 
 type PaymentPlanView = {
   days: number;
@@ -26,6 +25,7 @@ function paymentCopy(plan: PaymentPlanView) {
  * - Without BOT_TOKEN: sim mode with showPopup + activate API
  */
 export const requestStarsPayment = async (profile: UserProfile, planId: PremiumPlanId = 'premium_week'): Promise<boolean> => {
+  if (isNativeAppRuntime()) return false;
   const userId = profile.id;
   if (!userId) {
     console.warn('[TelegramService] No user id');
@@ -35,7 +35,7 @@ export const requestStarsPayment = async (profile: UserProfile, planId: PremiumP
   const tg = (window as any).Telegram?.WebApp;
 
   try {
-    const res = await fetch(`${API_BASE}/api/telegram/create-invoice`, {
+    const res = await apiFetch('/api/telegram/create-invoice', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({ userId, type: planId }),
@@ -135,7 +135,8 @@ async function simPaymentFlow(
 }
 
 async function activateSim(userId: string, payload: Record<string, any>): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/api/subscriptions/activate`, {
+  if (isNativeAppRuntime()) return false;
+  const res = await apiFetch('/api/subscriptions/activate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, ...payload }),

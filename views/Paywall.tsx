@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { UserProfile } from '../types';
 import { PREMIUM_PLANS, type PremiumPlan, type PremiumPlanId } from '../lib/premiumPricing';
 import { lumiaSelectionHaptic } from '../lib/haptics';
+import { apiFetch } from '../services/apiClient';
 
 interface PaywallProps {
   profile: UserProfile;
@@ -49,7 +50,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/subscriptions/plans')
+    apiFetch('/api/subscriptions/plans')
       .then((res) => res.ok ? res.json() : null)
       .then((payload) => {
         if (cancelled || !Array.isArray(payload?.plans)) return;

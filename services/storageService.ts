@@ -3,9 +3,9 @@ import {
   NatalChartData,
 } from "../types";
 import { toDateInputValue } from "../lib/date-utils";
-import { fetchWithTimeout } from "../lib/fetchWithTimeout";
 import { isValidUserId } from "../lib/userId";
 import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
+import { apiFetch } from "./apiClient";
 
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
 const PROFILE_SAVE_TIMEOUT_MS = 45_000;
@@ -14,8 +14,6 @@ const PROFILE_FETCH_ATTEMPTS = 3;
 const PROFILE_FETCH_RETRY_DELAYS_MS = [0, 700, 1600];
 
 // Next.js API base URL - используем локальные API routes
-const API_BASE_URL = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
-
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
@@ -31,7 +29,7 @@ const log = {
 
 log.info('StorageService initialized', { 
   isClient: typeof window !== 'undefined',
-  apiBaseUrl: API_BASE_URL || '/api'
+  apiBaseUrl: '/api'
 });
 
 /**
@@ -57,14 +55,14 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
 
   try {
     // Always try to save to database via Next.js API
-    const url = `${API_BASE_URL}/api/users/${userId}`;
+    const url = `/api/users/${userId}`;
     log.info(`[saveProfile] Sending POST request to: ${url}`);
     
     const requestBody = JSON.stringify(profile);
     log.info(`[saveProfile] Request body size: ${requestBody.length} bytes`);
     
     const startTime = Date.now();
-    const response = await fetchWithTimeout(
+    const response = await apiFetch(
       url,
       {
         method: 'POST',
@@ -117,7 +115,7 @@ export const getProfile = async (): Promise<UserProfile | null> => {
   
   if (!tgId) {
       log.info('[getProfile] Telegram unavailable; resolving signed web guest session');
-      const me = await fetchWithTimeout(`${API_BASE_URL}/api/users/me`, { method: 'GET', credentials: 'include' }, PROFILE_FETCH_TIMEOUT_MS).catch(() => null);
+      const me = await apiFetch('/api/users/me', { method: 'GET', credentials: 'include' }, PROFILE_FETCH_TIMEOUT_MS).catch(() => null);
       if (me?.ok) return await me.json();
       return await ensureWebGuestSession();
   }
@@ -126,7 +124,7 @@ export const getProfile = async (): Promise<UserProfile | null> => {
   
   log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
 
-  const url = `${API_BASE_URL}/api/users/${userId}`;
+  const url = `/api/users/${userId}`;
 
   for (let attempt = 0; attempt < PROFILE_FETCH_ATTEMPTS; attempt++) {
     const delay = PROFILE_FETCH_RETRY_DELAYS_MS[attempt] ?? 0;
@@ -138,7 +136,7 @@ export const getProfile = async (): Promise<UserProfile | null> => {
       log.info(`[getProfile] GET attempt ${attempt + 1}/${PROFILE_FETCH_ATTEMPTS}: ${url}`);
 
       const startTime = Date.now();
-      const response = await fetchWithTimeout(
+      const response = await apiFetch(
         url,
         { method: 'GET', headers: getTelegramInitDataHeaders() },
         PROFILE_FETCH_TIMEOUT_MS
@@ -196,7 +194,7 @@ export const postReferralClaim = async (userId: string, inviteCode: string): Pro
   if (!userId || !inviteCode.trim()) {
     return { ok: false, status: 400, code: 'MISSING' };
   }
-  const res = await fetch(`${API_BASE_URL}/api/users/referral/claim`, {
+  const res = await apiFetch('/api/users/referral/claim', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, inviteCode: inviteCode.trim() }),
@@ -262,14 +260,14 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
 
   try {
     // Always try to save to database via Next.js API
-    const url = `${API_BASE_URL}/api/charts/${userId}`;
+    const url = `/api/charts/${userId}`;
     log.info(`[saveChartData] Sending POST request to: ${url}`);
 
     const requestBody = JSON.stringify(data);
     log.info(`[saveChartData] Request body size: ${requestBody.length} bytes`);
 
     const startTime = Date.now();
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: requestBody
@@ -328,11 +326,11 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
 
   try {
     // Always try to get from database via Next.js API
-    const url = `${API_BASE_URL}/api/charts/${userId}`;
+    const url = `/api/charts/${userId}`;
     log.info(`[getChartData] Sending GET request to: ${url}`);
 
     const startTime = Date.now();
-    const response = await fetchWithTimeout(
+    const response = await apiFetch(
       url,
       { method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } },
       CHART_GET_TIMEOUT_MS
@@ -416,8 +414,8 @@ const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
  */
 export const getCharts = async (userId: string): Promise<ChartsResponse> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `${API_BASE_URL}/api/charts?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url, { headers: getTelegramInitDataHeaders() });
+  const url = `/api/charts?userId=${encodeURIComponent(userId)}`;
+  const res = await apiFetch(url, { headers: getTelegramInitDataHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed to fetch charts: ${res.status}`);
@@ -437,8 +435,8 @@ export const createChart = async (
   data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData?: any; language?: string }
 ): Promise<ChartListItem> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `${API_BASE_URL}/api/charts`;
-  const res = await fetch(url, {
+  const url = '/api/charts';
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, ...data }),
@@ -456,8 +454,8 @@ export const createChart = async (
  */
 export const deleteChart = async (chartId: number, userId: string): Promise<void> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `${API_BASE_URL}/api/charts/chart/${chartId}?userId=${encodeURIComponent(userId)}`;
-  const res = await fetch(url, { method: 'DELETE', headers: getTelegramInitDataHeaders() });
+  const url = `/api/charts/chart/${chartId}?userId=${encodeURIComponent(userId)}`;
+  const res = await apiFetch(url, { method: 'DELETE', headers: getTelegramInitDataHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed to delete chart: ${res.status}`);
@@ -469,8 +467,8 @@ export const deleteChart = async (chartId: number, userId: string): Promise<void
  */
 export const setPrimaryChart = async (chartId: number, userId: string): Promise<void> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `${API_BASE_URL}/api/charts/set-primary`;
-  const res = await fetch(url, {
+  const url = '/api/charts/set-primary';
+  const res = await apiFetch(url, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ chartId, userId }),
@@ -489,11 +487,11 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
 
   try {
     // Always try to get from database via Next.js API
-    const url = `${API_BASE_URL}/api/users`;
+    const url = '/api/users';
     log.info(`[getAllUsers] Sending GET request to: ${url}`);
 
     const startTime = Date.now();
-    const response = await fetch(url, { headers: getTelegramInitDataHeaders() });
+    const response = await apiFetch(url, { headers: getTelegramInitDataHeaders() });
     const duration = Date.now() - startTime;
 
     log.info(`[getAllUsers] Response received in ${duration}ms`, {

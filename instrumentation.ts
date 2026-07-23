@@ -4,6 +4,7 @@
  * on Railway (which had no external cron triggering them).
  */
 export async function register() {
+  if (process.env.NEXT_PUBLIC_MOBILE_BUILD === '1') return;
   // Пропускаем ТОЛЬКО edge-рантайм. Раньше стоял `!== 'nodejs'`, но в standalone-сервере на буте
   // NEXT_RUNTIME может быть не выставлен (undefined) → строгая проверка молча выходила и планировщик
   // не стартовал при запуске контейнера вовсе. Теперь стартуем и при nodejs, и при undefined.

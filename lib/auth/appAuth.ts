@@ -46,7 +46,6 @@ export function verifyAppSessionToken(token: string): SessionPayload | null {
     const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SessionPayload;
     if (!payload.userId || !payload.sessionId || !['web_guest', 'native'].includes(payload.provider)) return null;
     if (payload.provider === 'web_guest' && !isGuestUserId(payload.userId)) return null;
-    if (payload.provider === 'native' && isGuestUserId(payload.userId)) return null;
     if (!Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {
@@ -91,6 +90,24 @@ export async function createGuestAppUser(res: NextApiResponse): Promise<AppUserC
   return { userId: identity.userId, provider: 'web_guest', isGuest: true, sessionId: identity.sessionId };
 }
 
+export async function createNativeGuestAppUser(): Promise<{ auth: AppUserContext; token: string }> {
+  const identity = createGuestIdentity();
+  await db.users.set(identity.userId, {
+    name: 'Гость', language: 'ru', theme: 'light', is_setup: false,
+    is_premium: false, premium_until: null, trial_started_at: null,
+  });
+  const token = createAppSessionToken({ ...identity, provider: 'native' });
+  return {
+    token,
+    auth: {
+      userId: identity.userId,
+      provider: 'native',
+      isGuest: true,
+      sessionId: identity.sessionId,
+    },
+  };
+}
+
 export async function requireAppUser(req: NextApiRequest, options: { expectedUserId?: unknown; allowGuest?: boolean } = {}): Promise<AppUserContext> {
   let context: AppUserContext | null = null;
   if (header(req, 'x-telegram-init-data')) {
@@ -100,7 +117,12 @@ export async function requireAppUser(req: NextApiRequest, options: { expectedUse
     const authorization = header(req, 'authorization');
     const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
     const payload = verifyAppSessionToken(bearer || cookie(req, APP_SESSION_COOKIE));
-    if (payload) context = { userId: payload.userId, provider: payload.provider, isGuest: payload.provider === 'web_guest', sessionId: payload.sessionId };
+    if (payload) context = {
+      userId: payload.userId,
+      provider: payload.provider,
+      isGuest: isGuestUserId(payload.userId),
+      sessionId: payload.sessionId,
+    };
   }
   if (!context) throw new AdminAuthError(401, 'APP_AUTH_REQUIRED', 'A valid Telegram, web guest, or native session is required');
   if (context.isGuest && !options.allowGuest) throw new AdminAuthError(403, 'REGISTERED_ACCOUNT_REQUIRED', 'This feature requires a registered account');

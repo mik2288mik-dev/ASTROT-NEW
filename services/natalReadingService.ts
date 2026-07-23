@@ -26,8 +26,8 @@ import {
   isGenerationInProgressError,
   waitMs,
 } from '../lib/contentInterpretation';
-import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { getTelegramInitDataHeaders } from './sessionService';
+import { apiFetch } from './apiClient';
 
 const HUMAN_GENERATION_TIMEOUT_MS = 90_000;
 const DAILY_POLL_TIMEOUT_MS = 85_000;
@@ -49,7 +49,7 @@ async function fetchOrGenerate<T>(
   topic?: string
 ): Promise<T> {
   const url = buildUrl(endpoint, userId, chartId, topic);
-  const tryGet = await fetch(url, { method: 'GET', headers: getTelegramInitDataHeaders() });
+  const tryGet = await apiFetch(url, { method: 'GET', headers: getTelegramInitDataHeaders() });
   if (tryGet.ok) {
     const j = await tryGet.json();
     return j.interpretation.content as T;
@@ -59,7 +59,7 @@ async function fetchOrGenerate<T>(
     throw new Error(err?.error || 'PREMIUM_REQUIRED');
   }
   // Trigger generation via POST
-  const post = await fetch(url, {
+  const post = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, chartId, topic }),
@@ -349,7 +349,7 @@ async function postHuman<T>(
   if (options?.chartData) {
     body.chartData = options.chartData;
   }
-  const response = await fetchWithTimeout(
+  const response = await apiFetch(
     buildHumanUrl(endpoint, userId, options),
     {
       method: 'POST',
@@ -431,7 +431,7 @@ async function getHuman<T>(
     signal?: AbortSignal;
   }
 ): Promise<HumanReadingResult<T> | null> {
-  const response = await fetch(buildHumanUrl(endpoint, userId, options), {
+  const response = await apiFetch(buildHumanUrl(endpoint, userId, options), {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
     cache: 'no-store',
@@ -730,7 +730,7 @@ export async function loadNatalProfileCards(
   if (existing) return existing;
 
   const promise = (async () => {
-    const response = await fetch(buildProfileCardsUrl(userId, { chartId, ...options }), {
+    const response = await apiFetch(buildProfileCardsUrl(userId, { chartId, ...options }), {
       method: 'GET',
       headers: getTelegramInitDataHeaders(),
       cache: 'no-store',
@@ -757,7 +757,7 @@ export async function loadNatalStoryShareImage(
   chartId?: number,
   format: NatalStoryShareFormat = 'story'
 ): Promise<Blob> {
-  const response = await fetch(buildProfileCardShareUrl(userId, cardId, { chartId, format }), {
+  const response = await apiFetch(buildProfileCardShareUrl(userId, cardId, { chartId, format }), {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
     cache: 'no-store',

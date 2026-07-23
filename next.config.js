@@ -1,10 +1,17 @@
+const webpack = require('webpack');
+const isMobileBuild = process.env.MOBILE_BUILD === '1';
+
+if (isMobileBuild && !process.env.NEXT_PUBLIC_API_URL) {
+  throw new Error('NEXT_PUBLIC_API_URL is required when MOBILE_BUILD=1');
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  output: isMobileBuild ? 'export' : 'standalone',
   // Нативные/серверные пакеты не бандлим в серверный билд (в т.ч. instrumentation),
   // иначе webpack пытается разрешить нативный .node и падает.
-  serverExternalPackages: ['swisseph-v2', 'pg', 'pg-native', 'tz-lookup'],
+  serverExternalPackages: isMobileBuild ? [] : ['swisseph-v2', 'pg', 'pg-native', 'tz-lookup'],
   // Кладём файлы эфемерид (.se1) в standalone-сборку, иначе в проде их не найти
   // и расчёт уходит в Moshier-фолбэк. С ними — высокая точность Swiss Ephemeris.
   outputFileTracingIncludes: {
@@ -17,12 +24,18 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60, // Кэшировать изображения минимум 60 секунд
+    unoptimized: isMobileBuild,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
   // Webpack конфигурация для исключения Node.js модулей из клиентского бандла
   webpack: (config, { isServer }) => {
+    if (isMobileBuild) {
+      config.plugins.push(new webpack.IgnorePlugin({
+        resourceRegExp: /^\.\/lib\/notificationScheduler$/,
+      }));
+    }
     if (!isServer) {
       // Исключаем Node.js модули из клиентского бандла
       config.resolve.fallback = {
@@ -49,8 +62,9 @@ const nextConfig = {
     return config;
   },
   // Для работы с Telegram WebApp
-  async headers() {
-    return [
+  ...(!isMobileBuild ? {
+    async headers() {
+      return [
       {
         // Telegram встраивает мини-апп в iframe — нужно всем путям
         source: '/:path*',
@@ -73,8 +87,9 @@ const nextConfig = {
           },
         ],
       },
-    ];
-  },
+      ];
+    },
+  } : {}),
 };
 
 module.exports = nextConfig;

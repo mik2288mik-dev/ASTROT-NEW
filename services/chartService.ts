@@ -8,12 +8,11 @@
  */
 
 import { NatalChartData, UserProfile } from '../types';
-import { fetchWithTimeout } from '../lib/fetchWithTimeout';
 import { assertValidUserId } from '../lib/userId';
 import { writeLocalNatalChart } from '../lib/localNatalChartCache';
 import { getTelegramInitDataHeaders } from './sessionService';
+import { apiFetch } from './apiClient';
 
-const API_BASE_URL = typeof window !== 'undefined' ? '' : '';
 const CHART_FETCH_TIMEOUT_MS = 25_000;
 
 const log = {
@@ -36,10 +35,10 @@ const calculationInFlight = new Map<string, Promise<NatalChartData>>();
  */
 export async function getPrimaryChartId(userId: string): Promise<number | null> {
   const safeUserId = assertValidUserId(userId);
-  const url = `${API_BASE_URL}/api/charts?userId=${encodeURIComponent(safeUserId)}`;
+  const url = `/api/charts?userId=${encodeURIComponent(safeUserId)}`;
 
   try {
-    const response = await fetchWithTimeout(
+    const response = await apiFetch(
       url,
       { method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } },
       8_000
@@ -63,10 +62,10 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
   const safeUserId = assertValidUserId(userId);
   log.info(`[getChartFromDB] userId=${userId}`);
 
-  const url = `${API_BASE_URL}/api/charts/${safeUserId}`;
+  const url = `/api/charts/${safeUserId}`;
   let response: Response;
   try {
-    response = await fetchWithTimeout(
+    response = await apiFetch(
       url,
       { method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } },
       CHART_FETCH_TIMEOUT_MS
@@ -124,11 +123,11 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
   const safeUserId = assertValidUserId(profile.id);
   log.info(`[calculateChart] Calculating for userId=${safeUserId}`);
 
-  const url = `${API_BASE_URL}/api/charts`;
+  const url = '/api/charts';
 
   let response: Response;
   try {
-    response = await fetchWithTimeout(
+    response = await apiFetch(
       url,
       {
         method: 'POST',
@@ -239,9 +238,9 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
 
   log.info(`[forceRecalculateChart] Force recalculating for userId=${userId}`);
 
-  const url = `${API_BASE_URL}/api/charts`;
+  const url = '/api/charts';
 
-  const response = await fetchWithTimeout(
+  const response = await apiFetch(
     url,
     {
       method: 'POST',

@@ -1,4 +1,5 @@
-const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+import { apiFetch } from './apiClient';
+
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
 
@@ -62,7 +63,7 @@ export async function recordUserSession(telegramPlatform?: string | null): Promi
   // Пишем вход и для веб-гостей (авторизация по signed cookie), поэтому credentials:'include',
   // а initData — опционально. Раньше без initData выходили → входы веб-гостей терялись.
 
-  const response = await fetch(`${API_BASE}/api/users/session`, {
+  const response = await apiFetch('/api/users/session', {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -93,7 +94,7 @@ export async function recordNotificationAttribution(payload: {
   const initData = getTelegramInitData();
   if (!initData) return;
 
-  await fetch(`${API_BASE}/api/notifications/attribution`, {
+  await apiFetch('/api/notifications/attribution', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -119,7 +120,7 @@ export async function recordUserAppEvent(payload: {
   // Считаем всех: Telegram (по initData-заголовку) И веб-гостей (по cookie-сессии,
   // поэтому credentials:'include'). Раньше при отсутствии initData событие терялось.
   const initData = getTelegramInitData();
-  await fetch(`${API_BASE}/api/users/events`, {
+  await apiFetch('/api/users/events', {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -148,7 +149,7 @@ export async function getUserNotificationSettings(): Promise<UserNotificationSet
   const initData = getTelegramInitData();
   if (!initData) return null;
   try {
-    const response = await fetch(`${API_BASE}/api/users/notification-settings`, {
+    const response = await apiFetch('/api/users/notification-settings', {
       method: 'GET',
       headers: { [INIT_DATA_HEADER]: initData },
     });
@@ -176,7 +177,7 @@ export async function updateUserNotificationSettings(payload: {
   if (!initData) return false;
 
   try {
-    const response = await fetch(`${API_BASE}/api/users/notification-settings`, {
+    const response = await apiFetch('/api/users/notification-settings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ export async function updateUserNotificationSettings(payload: {
 /** Ensure a non-Telegram browser has a signed HttpOnly guest session. Telegram remains the priority provider. */
 export async function ensureWebGuestSession(): Promise<any | null> {
   if (typeof window === 'undefined' || getTelegramInitData()) return null;
-  const response = await fetch(`${API_BASE}/api/auth/guest`, { method: 'POST', credentials: 'include' });
+  const response = await apiFetch('/api/auth/guest', { method: 'POST', credentials: 'include' });
   if (!response.ok) throw new Error(`Guest session failed: ${response.status}`);
   const payload = await response.json();
   return payload?.profile || null;

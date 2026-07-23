@@ -3,7 +3,8 @@
  * initData; локально можно включить browser-dev доступ через ADMIN_WEB_DEV_AUTH_ENABLED.
  * Сервер проверяет роль/право (RBAC) и пишет audit. См. lib/admin/*.
  */
-const API_BASE = typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+import { apiFetch } from './apiClient';
+
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const ADMIN_DEV_USER_HEADER = 'x-admin-dev-user-id';
 const ADMIN_DEV_SECRET_HEADER = 'x-admin-dev-secret';
@@ -286,7 +287,7 @@ function authHeaders(): Record<string, string> {
 async function req<T>(path: string, opts: { method?: string; body?: any } = {}): Promise<T> {
   const headers: Record<string, string> = authHeaders();
   if (opts.body) headers['Content-Type'] = 'application/json';
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiFetch(path, {
     method: opts.method || 'GET',
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,

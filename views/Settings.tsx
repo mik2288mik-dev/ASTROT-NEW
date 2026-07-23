@@ -6,6 +6,7 @@ import { saveProfile } from '../services/storageService';
 import { updateUserNotificationSettings, getUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
+import { apiFetch } from '../services/apiClient';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -137,7 +138,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         try {
             // Admin v2: реальный сквозной пуш себе через движок. Старый /api/admin/notifications/*
             // удалён при перестройке Admin V2 (27 июня) — отсюда и «не вышло».
-            const res = await fetch('/api/admin/v2/notifications/run', {
+            const res = await apiFetch('/api/admin/v2/notifications/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
                 body: JSON.stringify({ action: 'selftest' }),
@@ -164,14 +165,14 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         try {
             const headers = { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() };
             // Гарантированная доставка (selftest) + honest-диагностика, почему регулярные могут молчать.
-            const res = await fetch('/api/admin/v2/notifications/run', {
+            const res = await apiFetch('/api/admin/v2/notifications/run', {
                 method: 'POST', headers, body: JSON.stringify({ action: 'selftest' }),
             });
             const data = await res.json().catch(() => ({} as any));
             const result = data?.result || {};
             if (res.ok && result.ok) {
                 setDailyPush('ok');
-                const diag = await fetch('/api/admin/v2/notifications/diagnostics', { headers: getTelegramInitDataHeaders() })
+                const diag = await apiFetch('/api/admin/v2/notifications/diagnostics', { headers: getTelegramInitDataHeaders() })
                     .then((x) => x.json()).catch(() => null);
                 const hints: string[] = [];
                 if (diag?.env?.dryRun) hints.push('отправка выключена (нет токена)');

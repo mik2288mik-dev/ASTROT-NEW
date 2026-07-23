@@ -10,6 +10,7 @@ import type {
   PersonalizedDailyQuestionsPayload,
 } from './dailyQuestionTypes';
 import { getTelegramInitDataHeaders } from '../services/sessionService';
+import { apiFetch } from '../services/apiClient';
 
 export type DailyQuestionStory = {
   id: string;
@@ -113,7 +114,7 @@ async function fetchPersonalizedQuestions(
 
   const request = (async () => {
     for (let attempt = 0; attempt < 8; attempt += 1) {
-      const response = await fetch('/api/content/natal/daily-questions', {
+      const response = await apiFetch('/api/content/natal/daily-questions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
