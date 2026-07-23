@@ -30,14 +30,16 @@ export function sanitizePersonalDailyPostBody(body: BodyInit | null | undefined)
  * the route after a normal GET cache miss.
  */
 export function installPersonalDailyRequestGuard(): void {
-  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+  if (typeof globalThis.fetch !== 'function') return;
 
-  const guardedWindow = window as typeof window & Record<string, unknown>;
-  if (guardedWindow[INSTALL_MARKER]) return;
+  const runtime = globalThis as typeof globalThis & Record<string, unknown>;
+  if (runtime[INSTALL_MARKER]) return;
 
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
-    const method = String(init?.method || (typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET')).toUpperCase();
+  const originalFetch = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    const method = String(
+      init?.method || (typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET')
+    ).toUpperCase();
     const isPersonalDailyPost = method === 'POST' && requestUrl(input).includes(PERSONAL_DAILY_PATH);
 
     if (!isPersonalDailyPost || !init) {
@@ -48,9 +50,7 @@ export function installPersonalDailyRequestGuard(): void {
       ...init,
       body: sanitizePersonalDailyPostBody(init.body),
     });
-  }) as typeof window.fetch;
+  }) as typeof globalThis.fetch;
 
-  guardedWindow[INSTALL_MARKER] = true;
+  runtime[INSTALL_MARKER] = true;
 }
-
-installPersonalDailyRequestGuard();
