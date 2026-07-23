@@ -177,10 +177,11 @@ describe('mobile API and native auth', () => {
     ])).toBe(true);
 
     const middleware = read('middleware.ts');
+    const cors = read('lib/apiCors.ts');
     expect(middleware).toContain("matcher: '/api/:path*'");
     expect(middleware).toContain("request.method === 'OPTIONS'");
-    expect(middleware).toContain("headers.get('x-forwarded-host')");
-    expect(middleware).toContain("headers.get('x-forwarded-proto')");
+    expect(cors).toContain("headers.get('x-forwarded-host')");
+    expect(cors).toContain("headers.get('x-forwarded-proto')");
     expect(middleware).toContain("'Vary'");
     expect(middleware).not.toContain("Access-Control-Allow-Origin', '*");
     expect(middleware).not.toContain('Access-Control-Allow-Credentials');
