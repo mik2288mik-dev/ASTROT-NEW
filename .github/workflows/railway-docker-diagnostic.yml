@@ -22,7 +22,21 @@ jobs:
         run: |
           set +e
           docker build --progress=plain -t astrot-railway-diagnostic . > /tmp/docker-build.log 2>&1
-          status=$?
-          echo "===== Docker build tail ====="
-          tail -n 180 /tmp/docker-build.log
+          echo "$?" > /tmp/docker-build-status
+          exit 0
+
+      - name: Upload Docker build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: railway-docker-build-log
+          path: /tmp/docker-build.log
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Report Docker build result
+        shell: bash
+        run: |
+          status="$(cat /tmp/docker-build-status)"
+          tail -n 60 /tmp/docker-build.log
           exit "$status"
