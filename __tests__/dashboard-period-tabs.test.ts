@@ -29,7 +29,7 @@ describe('Dashboard period tabs without redesign', () => {
     expect(dashboard).toContain("useState<HomePeriod>('today')");
     expect(dashboard).toContain('tab.id === activePeriod');
     expect(dashboard).toContain('onClick={() => selectPeriod(tab.id)}');
-    expect(dashboard).toContain("if (period === 'week' || period === 'month') void loadPeriod(period);");
+    expect(dashboard).toContain("if (period !== 'today') void loadPeriod(period);");
     expect(dashboard).not.toContain('useEffect(');
 
     for (const service of [

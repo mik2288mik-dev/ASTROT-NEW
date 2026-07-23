@@ -12,9 +12,11 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import {
   formatIsoWeekPeriodLabel,
   formatMonthPeriodLabel,
+  formatYearPeriodLabel,
   getMoscowIsoWeekKey,
   getMoscowMonthKey,
   getMoscowTodayKey,
+  getMoscowYearKey,
 } from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
@@ -37,8 +39,10 @@ import {
 import {
   ensureMonthlySignHoroscope,
   ensureWeeklySignHoroscope,
+  ensureYearlySignHoroscope,
   getCachedMonthlySignHoroscope,
   getCachedWeeklySignHoroscope,
+  getCachedYearlySignHoroscope,
 } from '../services/astrologyService';
 
 const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
@@ -53,7 +57,7 @@ type SphereCard = {
 };
 
 type HomePeriod = 'today' | 'week' | 'month' | 'year';
-type LoadableHomePeriod = Extract<HomePeriod, 'week' | 'month'>;
+type LoadableHomePeriod = Exclude<HomePeriod, 'today'>;
 type PeriodLoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 type PeriodSphereCard = {
@@ -131,10 +135,12 @@ export const Dashboard = memo<DashboardProps>(({
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
   const weekPeriodKey = useMemo(() => getMoscowIsoWeekKey(), []);
   const monthPeriodKey = useMemo(() => getMoscowMonthKey(), []);
+  const yearPeriodKey = useMemo(() => getMoscowYearKey(), []);
   const [activePeriod, setActivePeriod] = useState<HomePeriod>('today');
   const [periodStates, setPeriodStates] = useState<Record<LoadableHomePeriod, PeriodLoadState>>({
     week: 'idle',
     month: 'idle',
+    year: 'idle',
   });
   const [periodReadings, setPeriodReadings] = useState<Partial<Record<LoadableHomePeriod, ForecastDailyReading>>>({});
   const periodRequestsRef = useRef<Partial<Record<LoadableHomePeriod, boolean>>>({});
@@ -245,13 +251,21 @@ export const Dashboard = memo<DashboardProps>(({
     periodRequestsRef.current[period] = true;
     setPeriodStates((current) => ({ ...current, [period]: 'loading' }));
     try {
-      const periodKey = period === 'week' ? weekPeriodKey : monthPeriodKey;
+      const periodKey = period === 'week'
+        ? weekPeriodKey
+        : period === 'month'
+          ? monthPeriodKey
+          : yearPeriodKey;
       const cached = period === 'week'
         ? await getCachedWeeklySignHoroscope(selectedSign, periodKey, language)
-        : await getCachedMonthlySignHoroscope(selectedSign, periodKey, language);
+        : period === 'month'
+          ? await getCachedMonthlySignHoroscope(selectedSign, periodKey, language)
+          : await getCachedYearlySignHoroscope(selectedSign, periodKey, language);
       const reading = cached || (period === 'week'
         ? await ensureWeeklySignHoroscope(selectedSign, periodKey, language)
-        : await ensureMonthlySignHoroscope(selectedSign, periodKey, language));
+        : period === 'month'
+          ? await ensureMonthlySignHoroscope(selectedSign, periodKey, language)
+          : await ensureYearlySignHoroscope(selectedSign, periodKey, language));
       setPeriodReadings((current) => ({ ...current, [period]: reading }));
       setPeriodStates((current) => ({ ...current, [period]: 'ready' }));
     } catch {
@@ -264,52 +278,62 @@ export const Dashboard = memo<DashboardProps>(({
   const selectPeriod = (period: HomePeriod) => {
     lumiaSelectionHaptic();
     setActivePeriod(period);
-    if (period === 'week' || period === 'month') void loadPeriod(period);
+    if (period !== 'today') void loadPeriod(period);
   };
 
-  const loadablePeriod = activePeriod === 'week' || activePeriod === 'month' ? activePeriod : null;
+  const loadablePeriod = activePeriod === 'today' ? null : activePeriod;
   const periodState = loadablePeriod ? periodStates[loadablePeriod] : 'idle';
   const periodReading = loadablePeriod ? periodReadings[loadablePeriod] : undefined;
-  const periodKey = loadablePeriod === 'week' ? weekPeriodKey : loadablePeriod === 'month' ? monthPeriodKey : '';
+  const periodKey = loadablePeriod === 'week'
+    ? weekPeriodKey
+    : loadablePeriod === 'month'
+      ? monthPeriodKey
+      : loadablePeriod === 'year'
+        ? yearPeriodKey
+        : '';
   const periodLabel = loadablePeriod === 'week'
     ? formatIsoWeekPeriodLabel(weekPeriodKey, language)
     : loadablePeriod === 'month'
       ? formatMonthPeriodLabel(monthPeriodKey, language)
-      : '';
+      : loadablePeriod === 'year'
+        ? formatYearPeriodLabel(yearPeriodKey, language)
+        : '';
   const periodIsLoading = !!selectedSign && !!loadablePeriod && (periodState === 'idle' || periodState === 'loading');
   const periodVisualState: DashboardSystemState = !selectedSign
     ? 'no_chart'
-    : activePeriod === 'year'
-      ? 'ready'
-      : periodState === 'error'
-        ? 'generation_error'
-        : periodState === 'ready'
-          ? 'ready'
-          : 'loading';
+    : periodState === 'error'
+      ? 'generation_error'
+      : periodState === 'ready'
+        ? 'ready'
+        : 'loading';
   const periodHeroTitle = !selectedSign
     ? (language === 'ru' ? 'Нужны данные рождения' : 'Birth data needed')
-    : activePeriod === 'year'
-      ? (language === 'ru' ? 'Годовой разбор будет здесь' : 'Your yearly reading will appear here')
-      : periodState === 'error'
-        ? (loadablePeriod === 'week'
-          ? (language === 'ru' ? 'Неделя не загрузилась' : 'The week did not load')
-          : (language === 'ru' ? 'Месяц не загрузился' : 'The month did not load'))
-        : periodReading?.headline
-          || (loadablePeriod === 'week'
-            ? (language === 'ru' ? 'Смотрим эту неделю' : 'Looking at this week')
-            : (language === 'ru' ? 'Смотрим этот месяц' : 'Looking at this month'));
+    : periodState === 'error'
+      ? (loadablePeriod === 'week'
+        ? (language === 'ru' ? 'Неделя не загрузилась' : 'The week did not load')
+        : loadablePeriod === 'month'
+          ? (language === 'ru' ? 'Месяц не загрузился' : 'The month did not load')
+          : (language === 'ru' ? 'Год не загрузился' : 'The year did not load'))
+      : periodReading?.headline
+        || (loadablePeriod === 'week'
+          ? (language === 'ru' ? 'Смотрим эту неделю' : 'Looking at this week')
+          : loadablePeriod === 'month'
+            ? (language === 'ru' ? 'Смотрим этот месяц' : 'Looking at this month')
+            : (language === 'ru' ? 'Смотрим этот год' : 'Looking at this year'));
   const periodHeroText = !selectedSign
     ? (language === 'ru' ? 'Добавь место и время рождения, чтобы определить твой знак.' : 'Add your birth place and time so we can identify your sign.')
-    : activePeriod === 'year'
-      ? (language === 'ru' ? 'Откроется после подключения годового разбора.' : 'It will open when the yearly reading is connected.')
-      : periodState === 'error'
-        ? (loadablePeriod === 'week'
-          ? (language === 'ru' ? 'Неделя не загрузилась. Попробуем ещё раз.' : 'The week did not load. Let’s try again.')
-          : (language === 'ru' ? 'Месяц не загрузился. Попробуем ещё раз.' : 'The month did not load. Let’s try again.'))
-        : periodReading?.reading
-          || (loadablePeriod === 'week'
-            ? (language === 'ru' ? 'Смотрим, что важно на этой неделе.' : 'Looking at what matters this week.')
-            : (language === 'ru' ? 'Смотрим месяц — без воды и страшилок.' : 'Looking at the month — no filler or scare tactics.'));
+    : periodState === 'error'
+      ? (loadablePeriod === 'week'
+        ? (language === 'ru' ? 'Неделя не загрузилась. Попробуем ещё раз.' : 'The week did not load. Let’s try again.')
+        : loadablePeriod === 'month'
+          ? (language === 'ru' ? 'Месяц не загрузился. Попробуем ещё раз.' : 'The month did not load. Let’s try again.')
+          : (language === 'ru' ? 'Год не загрузился. Попробуем ещё раз.' : 'The year did not load. Let’s try again.'))
+      : periodReading?.reading
+        || (loadablePeriod === 'week'
+          ? (language === 'ru' ? 'Смотрим, что важно на этой неделе.' : 'Looking at what matters this week.')
+          : loadablePeriod === 'month'
+            ? (language === 'ru' ? 'Смотрим месяц — без воды и страшилок.' : 'Looking at the month — no filler or scare tactics.')
+            : (language === 'ru' ? 'Смотрим год — коротко и без обещаний.' : 'Looking at the year — short and without promises.'));
   const periodHeroCta = !selectedSign
     ? (language === 'ru' ? 'Заполнить данные' : 'Add birth data')
     : loadablePeriod && periodState === 'error'

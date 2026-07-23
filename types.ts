@@ -806,6 +806,7 @@ export type ContentVariant =
   | 'evening'
   | 'weekly'
   | 'monthly'
+  | 'yearly'
   | 'brief'
   | 'full';
 export type ContentModelTier = 'base' | 'premium';

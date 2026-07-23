@@ -23,6 +23,7 @@ export type GeneratedContentType =
   | 'sign_daily_horoscope'
   | 'sign_weekly_horoscope'
   | 'sign_monthly_horoscope'
+  | 'sign_yearly'
   | 'sign_compatibility'
   | 'blind_spot'
   | 'personal_daily'
@@ -85,6 +86,12 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
     type: 'sign_monthly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 110, max: 150 },
     cacheTtl: '30d', cacheScope: 'shared', promptVersion: 'sign_monthly_horoscope.v1', purpose: 'Общий гороскоп по знаку на месяц',
     style: 'Один главный сюжет месяца и два коротких совета.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
+  },
+  sign_yearly: {
+    type: 'sign_yearly', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 0, max: 170 },
+    cacheTtl: 'forever', cacheScope: 'shared', promptVersion: 'sign_yearly.v1', purpose: 'Общий гороскоп по знаку на календарный год',
+    style: 'Одна тема года, короткий законченный разбор и до трёх неповторяющихся ориентиров; без помесячного перечисления и гарантий.',
+    placements: ['home', 'horoscope'], generationPolicy: 'explicit_only', batchSize: 12,
   },
   sign_compatibility: {
     type: 'sign_compatibility', featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },
