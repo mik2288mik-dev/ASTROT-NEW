@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   API_CORS_ALLOW_HEADERS,
   API_CORS_ALLOW_METHODS,
+  getForwardedApiOrigin,
   isAllowedNativeOrigin,
+  isSameApiOrigin,
 } from './lib/apiCors';
 
 function addVaryOrigin(headers: Headers): void {
@@ -24,7 +26,12 @@ export function middleware(request: NextRequest) {
   const origin = request.headers.get('origin');
   if (!origin) return NextResponse.next();
 
-  const sameOrigin = origin.replace(/\/+$/, '') === request.nextUrl.origin.replace(/\/+$/, '');
+  // Behind Railway/other reverse proxies request.nextUrl.origin can describe the
+  // internal container (for example http://0.0.0.0:8080) while browser POSTs send
+  // the public HTTPS Origin. Trust the proxy's forwarded public host/proto as an
+  // additional same-origin candidate instead of rejecting valid Telegram POSTs.
+  const forwardedOrigin = getForwardedApiOrigin(request.headers, request.nextUrl.origin);
+  const sameOrigin = isSameApiOrigin(origin, [request.nextUrl.origin, forwardedOrigin]);
   if (sameOrigin) return NextResponse.next();
 
   if (!isAllowedNativeOrigin(origin)) {
