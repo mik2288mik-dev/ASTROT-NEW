@@ -1,4 +1,3 @@
-const webpack = require('webpack');
 const isMobileBuild = process.env.MOBILE_BUILD === '1';
 
 if (isMobileBuild && !process.env.NEXT_PUBLIC_API_URL) {
@@ -29,8 +28,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Webpack конфигурация для исключения Node.js модулей из клиентского бандла
-  webpack: (config, { isServer }) => {
+  // Next передаёт собственный экземпляр webpack в callback. Не require('webpack') здесь:
+  // webpack не является прямой зависимостью проекта, и чистый Docker/npm ci обязан работать без
+  // случайно оставшегося локального пакета в node_modules.
+  webpack: (config, { isServer, webpack }) => {
     if (isMobileBuild) {
       config.plugins.push(new webpack.IgnorePlugin({
         resourceRegExp: /^\.\/lib\/notificationScheduler$/,
