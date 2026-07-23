@@ -91,8 +91,8 @@ describe('card background UI wiring', () => {
     expect(dashboard).toContain('getHeroCardBackground');
     expect(dashboard).toContain('getPersonalCardBackground');
     expect(dashboard).toContain('getUniversalCardBackground');
-    expect(dashboard).toContain('buildDailyQuestionStories');
-    expect(dashboard).toContain('daily-question-story');
+    expect(dashboard).toContain('useDailyQuestionStories');
+    expect(dashboard).toContain('DailyQuestionStoryModal');
     expect(dashboard).toContain("onRequestPremium?.('daily_questions')");
     expect(dashboard).toContain('home-product-card--natal');
     expect(dashboard).toContain('home-product-card--compat');

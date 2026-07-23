@@ -11,6 +11,10 @@ import {
 import { HUMAN_FREE_SECTION_KEYS, HUMAN_PAID_SECTION_KEYS } from '../lib/natalHumanShared';
 import type { NatalInterpretationReport } from '../types';
 
+jest.mock('../services/apiClient', () => ({
+  apiFetch: (input: RequestInfo | URL, init?: RequestInit) => global.fetch(input, init),
+}));
+
 function response(status: number, payload: any): Response {
   return {
     ok: status >= 200 && status < 300,
@@ -273,6 +277,10 @@ describe('natal reading service session cache', () => {
 
     const controller = new AbortController();
     const dashboardRequest = loadHumanDailyPackage('123', 7, '2026-05-25', { signal: controller.signal });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
 
