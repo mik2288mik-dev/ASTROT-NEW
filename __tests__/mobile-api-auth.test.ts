@@ -1,6 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { isAllowedNativeOrigin } from '../lib/apiCors';
+import {
+  getForwardedApiOrigin,
+  isAllowedNativeOrigin,
+  isSameApiOrigin,
+} from '../lib/apiCors';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -152,15 +156,31 @@ describe('mobile API and native auth', () => {
     ]);
   });
 
-  it('allows only explicitly configured native origins and centralizes API preflight', () => {
-    const origins = 'https://localhost,https://mobile.example.com';
+  it('recognizes Railway forwarded same-origin requests and standard Capacitor origins', () => {
+    const origins = 'https://mobile.example.com';
     expect(isAllowedNativeOrigin('https://localhost', origins)).toBe(true);
+    expect(isAllowedNativeOrigin('capacitor://localhost', origins)).toBe(true);
     expect(isAllowedNativeOrigin('https://mobile.example.com/', origins)).toBe(true);
     expect(isAllowedNativeOrigin('https://unknown.example.com', origins)).toBe(false);
+
+    const values: Record<string, string> = {
+      'x-forwarded-proto': 'https',
+      'x-forwarded-host': 'astrot-production.up.railway.app',
+      host: '0.0.0.0:8080',
+    };
+    const headers = { get: (name: string) => values[name.toLowerCase()] || null };
+    const forwardedOrigin = getForwardedApiOrigin(headers, 'http://0.0.0.0:8080');
+    expect(forwardedOrigin).toBe('https://astrot-production.up.railway.app');
+    expect(isSameApiOrigin('https://astrot-production.up.railway.app/', [
+      'http://0.0.0.0:8080',
+      forwardedOrigin,
+    ])).toBe(true);
 
     const middleware = read('middleware.ts');
     expect(middleware).toContain("matcher: '/api/:path*'");
     expect(middleware).toContain("request.method === 'OPTIONS'");
+    expect(middleware).toContain("headers.get('x-forwarded-host')");
+    expect(middleware).toContain("headers.get('x-forwarded-proto')");
     expect(middleware).toContain("'Vary'");
     expect(middleware).not.toContain("Access-Control-Allow-Origin', '*");
     expect(middleware).not.toContain('Access-Control-Allow-Credentials');
