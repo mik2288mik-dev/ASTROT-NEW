@@ -1,5 +1,6 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type {
+  ForecastDailyReading,
   HoroscopeLayer,
   HoroscopeOpenOptions,
   NatalChartData,
@@ -8,7 +9,13 @@ import type {
   UserProfile,
 } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
-import { getMoscowTodayKey } from '../lib/date-utils';
+import {
+  formatIsoWeekPeriodLabel,
+  formatMonthPeriodLabel,
+  getMoscowIsoWeekKey,
+  getMoscowMonthKey,
+  getMoscowTodayKey,
+} from '../lib/date-utils';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
@@ -27,6 +34,12 @@ import {
   getUniversalCardBackground,
   type CardBackgroundAsset,
 } from '../lib/cardBackgrounds';
+import {
+  ensureMonthlySignHoroscope,
+  ensureWeeklySignHoroscope,
+  getCachedMonthlySignHoroscope,
+  getCachedWeeklySignHoroscope,
+} from '../services/astrologyService';
 
 const LOADING_STICKER_REQUESTS: SurfaceRequest[] = [
   { surface: 'hero', kind: 'maskot', moods: ['thinking', 'calm'], themes: ['study', 'read', 'tech'] },
@@ -38,6 +51,25 @@ type SphereCard = {
   hook: string;
   background: CardBackgroundAsset | null;
 };
+
+type HomePeriod = 'today' | 'week' | 'month' | 'year';
+type LoadableHomePeriod = Extract<HomePeriod, 'week' | 'month'>;
+type PeriodLoadState = 'idle' | 'loading' | 'ready' | 'error';
+
+type PeriodSphereCard = {
+  id: string;
+  visualSection: Exclude<PersonalDailySection, 'overview'>;
+  title: string;
+  hook: string;
+  background: CardBackgroundAsset | null;
+};
+
+const PERIOD_TABS: ReadonlyArray<{ id: HomePeriod; ru: string; en: string }> = [
+  { id: 'today', ru: 'Сегодня', en: 'Today' },
+  { id: 'week', ru: 'Эта неделя', en: 'This week' },
+  { id: 'month', ru: 'Этот месяц', en: 'This month' },
+  { id: 'year', ru: 'Этот год', en: 'This year' },
+] as const;
 
 type DashboardProps = {
   profile: UserProfile;
@@ -97,6 +129,15 @@ export const Dashboard = memo<DashboardProps>(({
 
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
+  const weekPeriodKey = useMemo(() => getMoscowIsoWeekKey(), []);
+  const monthPeriodKey = useMemo(() => getMoscowMonthKey(), []);
+  const [activePeriod, setActivePeriod] = useState<HomePeriod>('today');
+  const [periodStates, setPeriodStates] = useState<Record<LoadableHomePeriod, PeriodLoadState>>({
+    week: 'idle',
+    month: 'idle',
+  });
+  const [periodReadings, setPeriodReadings] = useState<Partial<Record<LoadableHomePeriod, ForecastDailyReading>>>({});
+  const periodRequestsRef = useRef<Partial<Record<LoadableHomePeriod, boolean>>>({});
 
   const systemState: DashboardSystemState = dailyPackage
     ? 'ready'
@@ -112,10 +153,6 @@ export const Dashboard = memo<DashboardProps>(({
   const stickerRequests = isDailyLoading ? LOADING_STICKER_REQUESTS : [];
 
   const displayName = profile.name?.trim() || (language === 'ru' ? 'друг' : 'friend');
-  const periodTabs = language === 'ru'
-    ? ['Сегодня', 'Эта неделя', 'Этот месяц', 'Этот год']
-    : ['Today', 'This week', 'This month', 'This year'];
-
   const weekdayLabel = useMemo(() => {
     const [yr, mo, da] = today.split('-').map(Number);
     const d = new Date(Date.UTC(yr, mo - 1, da, 12));
@@ -203,6 +240,134 @@ export const Dashboard = memo<DashboardProps>(({
   );
   const activeQuestion = activeQuestionIndex == null ? null : dailyQuestionStories[activeQuestionIndex] || null;
 
+  const loadPeriod = async (period: LoadableHomePeriod) => {
+    if (!selectedSign || periodReadings[period] || periodRequestsRef.current[period]) return;
+    periodRequestsRef.current[period] = true;
+    setPeriodStates((current) => ({ ...current, [period]: 'loading' }));
+    try {
+      const periodKey = period === 'week' ? weekPeriodKey : monthPeriodKey;
+      const cached = period === 'week'
+        ? await getCachedWeeklySignHoroscope(selectedSign, periodKey, language)
+        : await getCachedMonthlySignHoroscope(selectedSign, periodKey, language);
+      const reading = cached || (period === 'week'
+        ? await ensureWeeklySignHoroscope(selectedSign, periodKey, language)
+        : await ensureMonthlySignHoroscope(selectedSign, periodKey, language));
+      setPeriodReadings((current) => ({ ...current, [period]: reading }));
+      setPeriodStates((current) => ({ ...current, [period]: 'ready' }));
+    } catch {
+      setPeriodStates((current) => ({ ...current, [period]: 'error' }));
+    } finally {
+      periodRequestsRef.current[period] = false;
+    }
+  };
+
+  const selectPeriod = (period: HomePeriod) => {
+    lumiaSelectionHaptic();
+    setActivePeriod(period);
+    if (period === 'week' || period === 'month') void loadPeriod(period);
+  };
+
+  const loadablePeriod = activePeriod === 'week' || activePeriod === 'month' ? activePeriod : null;
+  const periodState = loadablePeriod ? periodStates[loadablePeriod] : 'idle';
+  const periodReading = loadablePeriod ? periodReadings[loadablePeriod] : undefined;
+  const periodKey = loadablePeriod === 'week' ? weekPeriodKey : loadablePeriod === 'month' ? monthPeriodKey : '';
+  const periodLabel = loadablePeriod === 'week'
+    ? formatIsoWeekPeriodLabel(weekPeriodKey, language)
+    : loadablePeriod === 'month'
+      ? formatMonthPeriodLabel(monthPeriodKey, language)
+      : '';
+  const periodIsLoading = !!selectedSign && !!loadablePeriod && (periodState === 'idle' || periodState === 'loading');
+  const periodVisualState: DashboardSystemState = !selectedSign
+    ? 'no_chart'
+    : activePeriod === 'year'
+      ? 'ready'
+      : periodState === 'error'
+        ? 'generation_error'
+        : periodState === 'ready'
+          ? 'ready'
+          : 'loading';
+  const periodHeroTitle = !selectedSign
+    ? (language === 'ru' ? 'Нужны данные рождения' : 'Birth data needed')
+    : activePeriod === 'year'
+      ? (language === 'ru' ? 'Годовой разбор будет здесь' : 'Your yearly reading will appear here')
+      : periodState === 'error'
+        ? (loadablePeriod === 'week'
+          ? (language === 'ru' ? 'Неделя не загрузилась' : 'The week did not load')
+          : (language === 'ru' ? 'Месяц не загрузился' : 'The month did not load'))
+        : periodReading?.headline
+          || (loadablePeriod === 'week'
+            ? (language === 'ru' ? 'Смотрим эту неделю' : 'Looking at this week')
+            : (language === 'ru' ? 'Смотрим этот месяц' : 'Looking at this month'));
+  const periodHeroText = !selectedSign
+    ? (language === 'ru' ? 'Добавь место и время рождения, чтобы определить твой знак.' : 'Add your birth place and time so we can identify your sign.')
+    : activePeriod === 'year'
+      ? (language === 'ru' ? 'Откроется после подключения годового разбора.' : 'It will open when the yearly reading is connected.')
+      : periodState === 'error'
+        ? (loadablePeriod === 'week'
+          ? (language === 'ru' ? 'Неделя не загрузилась. Попробуем ещё раз.' : 'The week did not load. Let’s try again.')
+          : (language === 'ru' ? 'Месяц не загрузился. Попробуем ещё раз.' : 'The month did not load. Let’s try again.'))
+        : periodReading?.reading
+          || (loadablePeriod === 'week'
+            ? (language === 'ru' ? 'Смотрим, что важно на этой неделе.' : 'Looking at what matters this week.')
+            : (language === 'ru' ? 'Смотрим месяц — без воды и страшилок.' : 'Looking at the month — no filler or scare tactics.'));
+  const periodHeroCta = !selectedSign
+    ? (language === 'ru' ? 'Заполнить данные' : 'Add birth data')
+    : loadablePeriod && periodState === 'error'
+      ? (language === 'ru' ? 'Попробовать ещё раз' : 'Try again')
+      : periodIsLoading
+        ? (language === 'ru' ? 'Загружаем' : 'Loading')
+        : null;
+  const periodSphereCards: PeriodSphereCard[] = useMemo(() => {
+    if (!periodReading || !loadablePeriod) return [];
+    const candidates: Array<Omit<PeriodSphereCard, 'background'>> = [
+      {
+        id: 'focus',
+        visualSection: 'goals',
+        title: language === 'ru' ? 'Что сейчас главное' : 'What matters now',
+        hook: periodReading.focus,
+      },
+      {
+        id: 'chance',
+        visualSection: 'energy',
+        title: language === 'ru' ? 'На что можно опереться' : 'What can support you',
+        hook: periodReading.chance,
+      },
+      {
+        id: 'risk',
+        visualSection: 'communication',
+        title: language === 'ru' ? 'Где не усложнять' : 'Where not to complicate things',
+        hook: periodReading.risk,
+      },
+      {
+        id: 'advice',
+        visualSection: 'work',
+        title: language === 'ru' ? 'Полезные ориентиры' : 'Useful guidance',
+        hook: [...new Set((periodReading.advice || []).map((item) => item.trim()).filter(Boolean))].join(' · '),
+      },
+      {
+        id: 'context',
+        visualSection: 'family',
+        title: language === 'ru' ? 'Основа разбора' : 'Reading context',
+        hook: periodReading.context,
+      },
+    ];
+    return candidates
+      .filter((card) => card.hook?.trim())
+      .map((card) => ({
+        ...card,
+        background: getPersonalCardBackground(card.visualSection, backgroundUserId, periodKey),
+      }));
+  }, [backgroundUserId, language, loadablePeriod, periodKey, periodReading]);
+
+  const openPeriodHero = () => {
+    lumiaSelectionHaptic();
+    if (!selectedSign) {
+      onCreateNatalChart?.();
+      return;
+    }
+    if (loadablePeriod && periodState === 'error') void loadPeriod(loadablePeriod);
+  };
+
   const openDayHero = () => {
     if (isDailyLoading) return;
     lumiaSelectionHaptic();
@@ -253,19 +418,18 @@ export const Dashboard = memo<DashboardProps>(({
               {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
             </p>
             <div className="home-period-tabs" role="tablist" aria-label={language === 'ru' ? 'Период' : 'Period'}>
-              {periodTabs.map((label, index) => {
-                const active = index === 0;
+              {PERIOD_TABS.map((tab) => {
+                const active = tab.id === activePeriod;
                 return (
                   <button
-                    key={label}
+                    key={tab.id}
                     type="button"
                     className={`home-period-tab${active ? ' is-active' : ''}`}
                     role="tab"
                     aria-selected={active}
-                    aria-disabled={!active}
-                    onClick={active ? () => { lumiaSelectionHaptic(); } : undefined}
+                    onClick={() => selectPeriod(tab.id)}
                   >
-                    {label}
+                    {tab[language]}
                   </button>
                 );
               })}
@@ -273,83 +437,135 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         </section>
 
-        <button
-          type="button"
-          className={`home-day-hero home-day-hero--${systemState}${isDailyLoading ? ' has-stickers' : ''}${heroBackground ? ' has-card-background' : ''}`}
-          style={cardBackgroundStyle(heroBackground)}
-          onClick={openDayHero}
-          aria-label={dayHeroAria}
-          aria-busy={isDailyLoading}
-          disabled={isDailyLoading}
-        >
-          <span className="home-day-hero-glow" aria-hidden />
-          {isDailyLoading ? (
-            <span className="home-day-hero-scene" aria-hidden>
-              <StickerSlot surface="hero" />
-            </span>
-          ) : null}
-          <span className="home-day-hero-copy">
-            <span className="home-day-hero-date">{dayHeroDateLabel}</span>
-            {dayHeroPersonalLine ? <span className="home-day-hero-basis">{dayHeroPersonalLine}</span> : null}
-            <span className="home-day-hero-title">{dayHeroTitle}</span>
-            <span className="home-day-hero-text">{dayHeroText}</span>
-            {dayHeroCta ? (
-              <span className="home-day-hero-cta">
-                {dayHeroCta}
-                {isDailyLoading ? <span className="home-day-loading-dots" aria-hidden><i /><i /><i /></span> : null}
-              </span>
-            ) : null}
-          </span>
-        </button>
-
-        <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного гороскопа' : 'Personal horoscope topics'}>
-          <div className="home-spheres-track">
-            {sphereCards.map((card) => (
-              <button
-                key={card.section}
-                type="button"
-                className={`home-sphere-card home-sphere-card--${card.section}${card.background ? ' has-card-background' : ''}`}
-                style={cardBackgroundStyle(card.background)}
-                onClick={() => openSphere(card.section)}
-                disabled={!isDailyReady && hasChart}
-                aria-disabled={!isDailyReady && hasChart}
-              >
-                <span className="home-sphere-title">{card.title}</span>
-                <span className="home-sphere-hook">{card.hook}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {dailyQuestionStories.length ? (
-          <section className="home-daily-questions" aria-label={language === 'ru' ? 'Спроси про сегодня' : 'Ask about today'}>
-            <h2 className="home-section-heading">{language === 'ru' ? 'Спроси про сегодня' : 'Ask about today'}</h2>
-            <div className="home-daily-question-list">
-              {dailyQuestionStories.map((story, index) => (
-                <button
-                  key={story.id}
-                  type="button"
-                  className={`home-daily-question-card${story.background ? ' has-card-background' : ''}${premium ? '' : ' is-locked'}`}
-                  style={cardBackgroundStyle(story.background)}
-                  onClick={() => openDailyQuestion(index)}
-                >
-                  <span className="home-daily-question-copy">
-                    <span className="home-daily-question-title">{story.question}</span>
-                    <span className="home-daily-question-hook">{story.teaser}</span>
+        {activePeriod === 'today' ? (
+          <>
+            <button
+              type="button"
+              className={`home-day-hero home-day-hero--${systemState}${isDailyLoading ? ' has-stickers' : ''}${heroBackground ? ' has-card-background' : ''}`}
+              style={cardBackgroundStyle(heroBackground)}
+              onClick={openDayHero}
+              aria-label={dayHeroAria}
+              aria-busy={isDailyLoading}
+              disabled={isDailyLoading}
+            >
+              <span className="home-day-hero-glow" aria-hidden />
+              {isDailyLoading ? (
+                <span className="home-day-hero-scene" aria-hidden>
+                  <StickerSlot surface="hero" />
+                </span>
+              ) : null}
+              <span className="home-day-hero-copy">
+                <span className="home-day-hero-date">{dayHeroDateLabel}</span>
+                {dayHeroPersonalLine ? <span className="home-day-hero-basis">{dayHeroPersonalLine}</span> : null}
+                <span className="home-day-hero-title">{dayHeroTitle}</span>
+                <span className="home-day-hero-text">{dayHeroText}</span>
+                {dayHeroCta ? (
+                  <span className="home-day-hero-cta">
+                    {dayHeroCta}
+                    {isDailyLoading ? <span className="home-day-loading-dots" aria-hidden><i /><i /><i /></span> : null}
                   </span>
-                  {!premium ? (
-                    <span className="home-daily-question-lock" aria-label={language === 'ru' ? 'Доступно в Premium' : 'Available in Premium'}>
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-                        <rect x="3.5" y="8" width="11" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
-                        <path d="M6 8V6.25a3 3 0 0 1 6 0V8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      </svg>
-                    </span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
+                ) : null}
+              </span>
+            </button>
+
+            <section className="home-spheres" aria-label={language === 'ru' ? 'Темы личного гороскопа' : 'Personal horoscope topics'}>
+              <div className="home-spheres-track">
+                {sphereCards.map((card) => (
+                  <button
+                    key={card.section}
+                    type="button"
+                    className={`home-sphere-card home-sphere-card--${card.section}${card.background ? ' has-card-background' : ''}`}
+                    style={cardBackgroundStyle(card.background)}
+                    onClick={() => openSphere(card.section)}
+                    disabled={!isDailyReady && hasChart}
+                    aria-disabled={!isDailyReady && hasChart}
+                  >
+                    <span className="home-sphere-title">{card.title}</span>
+                    <span className="home-sphere-hook">{card.hook}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {dailyQuestionStories.length ? (
+              <section className="home-daily-questions" aria-label={language === 'ru' ? 'Спроси про сегодня' : 'Ask about today'}>
+                <h2 className="home-section-heading">{language === 'ru' ? 'Спроси про сегодня' : 'Ask about today'}</h2>
+                <div className="home-daily-question-list">
+                  {dailyQuestionStories.map((story, index) => (
+                    <button
+                      key={story.id}
+                      type="button"
+                      className={`home-daily-question-card${story.background ? ' has-card-background' : ''}${premium ? '' : ' is-locked'}`}
+                      style={cardBackgroundStyle(story.background)}
+                      onClick={() => openDailyQuestion(index)}
+                    >
+                      <span className="home-daily-question-copy">
+                        <span className="home-daily-question-title">{story.question}</span>
+                        <span className="home-daily-question-hook">{story.teaser}</span>
+                      </span>
+                      {!premium ? (
+                        <span className="home-daily-question-lock" aria-label={language === 'ru' ? 'Доступно в Premium' : 'Available in Premium'}>
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+                            <rect x="3.5" y="8" width="11" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+                            <path d="M6 8V6.25a3 3 0 0 1 6 0V8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                          </svg>
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={`home-day-hero home-day-hero--${periodVisualState}${periodIsLoading ? ' has-stickers' : ''}${heroBackground ? ' has-card-background' : ''}`}
+              style={cardBackgroundStyle(heroBackground)}
+              onClick={openPeriodHero}
+              aria-label={periodHeroTitle}
+              aria-busy={periodIsLoading}
+              disabled={periodIsLoading}
+            >
+              <span className="home-day-hero-glow" aria-hidden />
+              {periodIsLoading ? (
+                <span className="home-day-hero-scene" aria-hidden>
+                  <StickerSlot surface="hero" />
+                </span>
+              ) : null}
+              <span className="home-day-hero-copy">
+                <span className="home-day-hero-date">{periodLabel}</span>
+                {periodReading?.summary ? <span className="home-day-hero-basis">{periodReading.summary}</span> : null}
+                <span className="home-day-hero-title">{periodHeroTitle}</span>
+                <span className="home-day-hero-text">{periodHeroText}</span>
+                {periodHeroCta ? (
+                  <span className="home-day-hero-cta">
+                    {periodHeroCta}
+                    {periodIsLoading ? <span className="home-day-loading-dots" aria-hidden><i /><i /><i /></span> : null}
+                  </span>
+                ) : null}
+              </span>
+            </button>
+
+            {periodSphereCards.length ? (
+              <section className="home-spheres" aria-label={language === 'ru' ? 'Разбор периода' : 'Period reading'}>
+                <div className="home-spheres-track">
+                  {periodSphereCards.map((card) => (
+                    <div
+                      key={card.id}
+                      className={`home-sphere-card home-sphere-card--${card.visualSection}${card.background ? ' has-card-background' : ''}`}
+                      style={cardBackgroundStyle(card.background)}
+                    >
+                      <span className="home-sphere-title">{card.title}</span>
+                      <span className="home-sphere-hook">{card.hook}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </>
+        )}
 
         <section className="home-product-grid" aria-label={language === 'ru' ? 'Другие разделы' : 'Other sections'}>
           <button
