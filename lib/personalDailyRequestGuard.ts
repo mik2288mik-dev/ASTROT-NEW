@@ -30,13 +30,13 @@ export function sanitizePersonalDailyPostBody(body: BodyInit | null | undefined)
  * the route after a normal GET cache miss.
  */
 export function installPersonalDailyRequestGuard(): void {
-  if (typeof globalThis.fetch !== 'function') return;
+  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
 
-  const runtime = globalThis as typeof globalThis & Record<string, unknown>;
+  const runtime = window as typeof window & Record<string, unknown>;
   if (runtime[INSTALL_MARKER]) return;
 
-  const originalFetch = globalThis.fetch.bind(globalThis);
-  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     const method = String(
       init?.method || (typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET')
     ).toUpperCase();
@@ -50,7 +50,7 @@ export function installPersonalDailyRequestGuard(): void {
       ...init,
       body: sanitizePersonalDailyPostBody(init.body),
     });
-  }) as typeof globalThis.fetch;
+  }) as typeof window.fetch;
 
   runtime[INSTALL_MARKER] = true;
 }
