@@ -9,7 +9,7 @@ import { getZodiacSign } from '../constants';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 
 interface OnboardingProps {
-  onComplete: (profile: UserProfile) => void;
+  onComplete: (profile: UserProfile) => Promise<void>;
 }
 
 type FieldKey = 'name' | 'date' | 'time' | 'place';
@@ -22,9 +22,9 @@ type Story = { color: string; icon: React.ReactNode; title: string; text: string
 
 const STORIES: Story[] = [
   { color: '#1478FF', icon: <NatalChartIcon size={52} />, title: 'Натальная карта', text: 'Узнай, кто ты на самом деле — характер, сильные стороны и зоны роста по дате рождения.' },
-  { color: '#2563EB', icon: <ZodiacIcon sign="leo" size={56} strokeWidth={1.2} />, title: 'Гороскоп каждый день', text: 'Твой день наперёд — на сегодня, завтра и неделю. Коротко и по делу, без эзотерики.' },
-  { color: '#38BDF8', icon: <HeartIcon size={52} />, title: 'Совместимость и матрица', text: 'Проверь совместимость с любым человеком и рассчитай матрицу судьбы — бесплатно, по дате рождения.' },
-  { color: '#64748B', icon: <SparkIcon size={52} />, title: 'Личный гороскоп · Premium', text: 'Твой день по твоей карте: лучшие окна для действий, любовь, деньги и работа — глубоко и точно.' },
+  { color: '#2563EB', icon: <ZodiacIcon sign="leo" size={56} strokeWidth={1.2} />, title: 'Гороскоп каждый день', text: 'Разборы на сегодня, неделю, месяц и год. Коротко и по делу, без эзотерики.' },
+  { color: '#38BDF8', icon: <HeartIcon size={52} />, title: 'Совместимость и матрица', text: 'Проверь совместимость с другим человеком и загляни в матрицу по дате рождения.' },
+  { color: '#64748B', icon: <SparkIcon size={52} />, title: 'Личный гороскоп · Premium', text: 'Любовь, деньги, работа и другие темы дня — глубже по твоей карте.' },
 ];
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
@@ -41,6 +41,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [placeCoords, setPlaceCoords] = useState<{ lat: number; lon: number; timezone?: string } | null>(null);
   const [notify, setNotify] = useState(true);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const nameRef = useRef<HTMLInputElement | null>(null);
   const dateRef = useRef<HTMLInputElement | null>(null);
@@ -69,27 +71,37 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     else setStep('birth');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!name.trim()) { setError('Добавь имя, чтобы астролог обращался к тебе лично.'); focusField('name'); return; }
     if (!date) { setError('Укажи дату рождения.'); focusField('date'); return; }
     if (!time) { setError('Укажи время рождения.'); focusField('time'); return; }
     if (!place.trim()) { setError('Укажи место рождения.'); focusField('place'); return; }
+    submittingRef.current = true;
+    setIsSubmitting(true);
     setError('');
-    onComplete({
-      name: name.trim(),
-      gender,
-      birthDate: date,
-      birthTime: time,
-      birthPlace: place.trim(),
-      birthLatitude: placeCoords?.lat ?? null,
-      birthLongitude: placeCoords?.lon ?? null,
-      birthTimezone: placeCoords?.timezone ?? null,
-      isSetup: true,
-      language: 'ru',
-      theme: 'light',
-      isPremium: false,
-      notificationFrequency: notify ? 'daily' : 'important',
-    });
+    try {
+      await onComplete({
+        name: name.trim(),
+        gender,
+        birthDate: date,
+        birthTime: time,
+        birthPlace: place.trim(),
+        birthLatitude: placeCoords?.lat ?? null,
+        birthLongitude: placeCoords?.lon ?? null,
+        birthTimezone: placeCoords?.timezone ?? null,
+        isSetup: false,
+        language: 'ru',
+        theme: 'light',
+        isPremium: false,
+        notificationFrequency: notify ? 'daily' : 'important',
+      });
+    } catch (submitError: any) {
+      setError(submitError?.message || 'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.');
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -193,9 +205,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
           <div style={{ marginTop: 'auto', paddingTop: 22 }}>
             {error ? <p style={{ margin: '0 20px 12px', fontSize: 12.5, lineHeight: 1.45, color: '#B91C1C' }}>{error}</p> : null}
-            <button type="button" className="fresh-btn-primary" disabled={!canSubmit} onClick={handleSubmit}>Открыть карту</button>
+            <button type="button" className="fresh-btn-primary" disabled={!canSubmit || isSubmitting} onClick={() => void handleSubmit()}>
+              {isSubmitting ? 'Сохраняем…' : 'Открыть карту'}
+            </button>
             <p style={{ margin: '12px 20px 0', maxWidth: '20rem', fontSize: 10.5, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-              Расчёты «Твой Гороскоп» опираются на точные астрономические данные и Swiss Ephemeris — это реальная карта, а не общий шаблон.
+              Расчёты «Твой Гороскоп» опираются на астрономические данные и Swiss Ephemeris, чтобы собрать карту по твоим данным, а не общий шаблон.
             </p>
           </div>
         </div>

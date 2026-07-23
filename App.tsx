@@ -322,6 +322,7 @@ const App: React.FC = () => {
     const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const onboardingTargetViewRef = useRef<ViewState>('dashboard');
+    const onboardingCompletionRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
@@ -1030,6 +1031,8 @@ const App: React.FC = () => {
     }, [loadPrimaryChartOnce, prepareStartupDailyPackage, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus, startupRetryNonce]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
+        if (onboardingCompletionRef.current) return;
+        onboardingCompletionRef.current = true;
         console.log('[App] === ONBOARDING COMPLETE ===', {
             name: newProfile.name,
             birthDate: newProfile.birthDate
@@ -1043,10 +1046,8 @@ const App: React.FC = () => {
         const hasGuestProfileId = isGuestUserId(currentProfileId);
         if (!hasTelegramUserId && !hasGuestProfileId) {
             console.error('[App] Cannot complete onboarding without a confirmed guest session');
-            window.alert?.('Не удалось подтвердить гостевую сессию. Обнови страницу и попробуй ещё раз.');
-            setView('onboarding');
-            setLoading(false);
-            return;
+            onboardingCompletionRef.current = false;
+            throw new Error('Не удалось подтвердить гостевую сессию. Обнови страницу и попробуй ещё раз.');
         }
         // Telegram remains authoritative when present. A web guest may only use the
         // identity loaded into the current profile from its signed server session.
@@ -1056,9 +1057,9 @@ const App: React.FC = () => {
         const retainedPremiumUntil = isGuestOnboarding
             ? null
             : getProfilePremiumUntil(profile) ?? getProfilePremiumUntil(newProfile);
-        const fullProfile = {
+        const pendingProfile = {
             ...newProfile,
-            isSetup: true,
+            isSetup: false,
             id: safeUserId,
             isAdmin,
             isPremium: isGuestOnboarding
@@ -1070,38 +1071,31 @@ const App: React.FC = () => {
             chartSlots: profile?.chartSlots ?? newProfile.chartSlots,
             refCode: profile?.refCode ?? newProfile.refCode,
             referralApplied: profile?.referralApplied ?? newProfile.referralApplied,
-            notificationFrequency: profile?.notificationFrequency ?? newProfile.notificationFrequency,
+            notificationFrequency: newProfile.notificationFrequency ?? profile?.notificationFrequency,
         };
-
-        setProfile(fullProfile);
-        if (!isGuestOnboarding) {
-            void resolveAuthoritativeAdminStatus(safeUserId, fullProfile.isAdmin)
-                .then((authoritativeIsAdmin) => {
-                    setProfile((current) => current && String(current.id) === safeUserId
-                        ? { ...current, isAdmin: authoritativeIsAdmin }
-                        : current);
-                });
-        }
-        setLoading(true);
+        const fullProfile = { ...pendingProfile, isSetup: true };
         setLoadingProgress(10);
 
         try {
-            // Шаг 1: Сохраняем профиль в БД (критично для persistence)
+            // Шаг 1: сохраняем данные без флага завершения. isSetup станет true
+            // только после успешного canonical-расчёта карты.
             setLoadingProgress(20);
+            let pendingSaveError: any = null;
             for (let attempt = 1; attempt <= 2; attempt++) {
                 try {
-                    await saveProfile(fullProfile);
-                    console.log('[App] Profile saved successfully');
+                    await saveProfile(pendingProfile);
+                    pendingSaveError = null;
+                    console.log('[App] Pending onboarding profile saved successfully');
                     break;
                 } catch (saveError: any) {
+                    pendingSaveError = saveError;
                     console.warn(`[App] Profile save attempt ${attempt}/2 failed:`, saveError.message);
-                    if (attempt === 2) {
-                        console.warn('[App] Profile save failed twice, continuing — natal-chart API will create user');
-                    } else {
+                    if (attempt < 2) {
                         await new Promise(r => setTimeout(r, 500));
                     }
                 }
             }
+            if (pendingSaveError) throw pendingSaveError;
 
             runReferralFromStartParam(safeUserId, (r) => {
                 if (r.ok) {
@@ -1116,7 +1110,7 @@ const App: React.FC = () => {
             setLoadingProgress(40);
             console.log('[App] Calculating natal chart...');
             
-            const generatedChart = await getOrCalculateChart(fullProfile);
+            const generatedChart = await getOrCalculateChart(pendingProfile);
             
             if (!generatedChart || !generatedChart.sun || !generatedChart.moon || !generatedChart.rising) {
                 throw new Error('Не удалось получить данные карты. Попробуйте ещё раз.');
@@ -1126,6 +1120,20 @@ const App: React.FC = () => {
                 sunSign: generatedChart.sun.sign,
                 moonSign: generatedChart.moon.sign
             });
+
+            // Завершение фиксируется только после готовой карты. Повтор после сбоя
+            // безопасен: профиль обновляется по тому же ID, а chartService читает
+            // уже созданную primary chart вместо параллельного расчёта.
+            await saveProfile(fullProfile);
+            setProfile(fullProfile);
+            if (!isGuestOnboarding) {
+                void resolveAuthoritativeAdminStatus(safeUserId, fullProfile.isAdmin)
+                    .then((authoritativeIsAdmin) => {
+                        setProfile((current) => current && String(current.id) === safeUserId
+                            ? { ...current, isAdmin: authoritativeIsAdmin }
+                            : current);
+                    });
+            }
 
             const primaryKey = getPrimaryChartLoadKey(fullProfile);
             primaryChartSessionRef.current = { key: primaryKey, data: generatedChart, promise: null };
@@ -1191,69 +1199,36 @@ const App: React.FC = () => {
             // Первая регистрация → показываем тарифы (триал уже активен). Повторное
             // редактирование карты ведёт сразу в приложение, без пейвола.
             const isFirstSetup = !profile?.isSetup;
-            setTimeout(() => {
-                if (isFirstSetup) {
-                    setPaywallTarget(targetView);
-                    setView('paywall');
-                } else {
-                    setView(targetView);
-                }
-                onboardingTargetViewRef.current = 'dashboard';
-            }, 300);
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            if (isFirstSetup) {
+                setPaywallTarget(targetView);
+                setView('paywall');
+            } else {
+                setView(targetView);
+            }
+            onboardingTargetViewRef.current = 'dashboard';
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);
-            console.error('[App] Error message:', error?.message);
-            console.error('[App] Error stack:', error?.stack);
-            
-            // Получаем оригинальное сообщение ошибки
-            const dailyErrorCode = String(error?.code || '');
-            if (
-                dailyErrorCode.includes('DAILY_PACKAGE') ||
-                dailyErrorCode.includes('CONTENT_GENERATION') ||
-                dailyErrorCode.includes('SAVE_READING') ||
-                dailyErrorCode.includes('CACHE_READ')
-            ) {
-                setStartupError(
-                    fullProfile.language === 'en'
-                        ? 'Your personal day could not be prepared. Try again.'
-                        : 'Не удалось подготовить личный день. Попробуй ещё раз.'
-                );
-                return;
-            }
-
             const originalMessage = error?.message || 'Неизвестная ошибка';
-            
-            // Если сообщение уже на русском - показываем его как есть
-            if (/[а-яА-ЯёЁ]/.test(originalMessage)) {
-                alert(originalMessage);
-            } else {
-                // Определяем тип ошибки для user-friendly сообщения
-                const lowerMessage = originalMessage.toLowerCase();
-                let errorMessage = originalMessage;
-                
-                if (lowerMessage.includes('database') || lowerMessage.includes('db')) {
-                    errorMessage = 'Ошибка базы данных. Попробуйте позже.';
-                } else if (lowerMessage.includes('initialize') || lowerMessage.includes('ephemeris')) {
-                    errorMessage = 'Ошибка инициализации расчетов. Попробуйте позже.';
-                } else if (lowerMessage.includes('location') || lowerMessage.includes('coordinates') || lowerMessage.includes('not found')) {
-                    errorMessage = 'Не удалось найти место рождения. Проверьте написание (например: "Москва, Россия").';
-                } else if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
-                    errorMessage = `Ошибка данных: ${originalMessage}`;
-                } else if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
-                    errorMessage = 'Ошибка сети. Проверьте интернет-соединение.';
-                } else if (lowerMessage.includes('timeout')) {
-                    errorMessage = 'Превышено время ожидания. Попробуйте позже.';
-                } else {
-                    errorMessage = 'Произошла ошибка при расчёте. Попробуйте снова.';
-                }
-                
-                alert(errorMessage);
-            }
-            setView('onboarding');
+            const lowerMessage = originalMessage.toLowerCase();
+            const errorMessage = lowerMessage.includes('location')
+                || lowerMessage.includes('coordinates')
+                || lowerMessage.includes('not found')
+                ? 'Не удалось найти место рождения. Проверь написание и попробуй ещё раз.'
+                : lowerMessage.includes('network')
+                    || lowerMessage.includes('fetch')
+                    || lowerMessage.includes('timeout')
+                    ? 'Не удалось связаться с сервисом. Проверь интернет и попробуй ещё раз.'
+                    : lowerMessage.includes('validation') || lowerMessage.includes('invalid')
+                        ? 'Проверь введённые данные и попробуй ещё раз.'
+                        : 'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.';
+            throw new Error(errorMessage);
         } finally {
             setLoadingProgress(100);
-            setTimeout(() => setLoading(false), 300);
+            setLoadingMessage(undefined);
+            setLoading(false);
+            onboardingCompletionRef.current = false;
         }
     };
 

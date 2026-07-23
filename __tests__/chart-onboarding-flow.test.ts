@@ -34,7 +34,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).toContain('isPremium: isGuestOnboarding');
     expect(app).toContain('trialStartedAt: isGuestOnboarding ? null');
     expect(app).toContain('await saveProfile(fullProfile)');
-    expect(app).toContain('await getOrCalculateChart(fullProfile)');
+    expect(app).toContain('await getOrCalculateChart(pendingProfile)');
   });
 
   it('keeps Telegram identity authoritative and reports an invalid guest session clearly', () => {

@@ -73,7 +73,7 @@ describe('personal daily startup flow', () => {
   it('starts the personal daily package without awaiting it during onboarding', () => {
     const app = read('App.tsx');
 
-    const chartGenerated = app.indexOf('const generatedChart = await getOrCalculateChart(fullProfile)');
+    const chartGenerated = app.indexOf('const generatedChart = await getOrCalculateChart(pendingProfile)');
     const dailyPackage = indexAfter(app, 'void prepareStartupDailyPackage({', chartGenerated);
     const openApp = indexAfter(app, 'setView(targetView)', dailyPackage);
 
