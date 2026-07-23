@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   ForecastDailyReading,
   HoroscopeLayer,
@@ -137,13 +137,19 @@ export const Dashboard = memo<DashboardProps>(({
   const monthPeriodKey = useMemo(() => getMoscowMonthKey(), []);
   const yearPeriodKey = useMemo(() => getMoscowYearKey(), []);
   const [activePeriod, setActivePeriod] = useState<HomePeriod>('today');
-  const [periodStates, setPeriodStates] = useState<Record<LoadableHomePeriod, PeriodLoadState>>({
-    week: 'idle',
-    month: 'idle',
-    year: 'idle',
-  });
-  const [periodReadings, setPeriodReadings] = useState<Partial<Record<LoadableHomePeriod, ForecastDailyReading>>>({});
-  const periodRequestsRef = useRef<Partial<Record<LoadableHomePeriod, boolean>>>({});
+  const [periodStates, setPeriodStates] = useState<Record<string, PeriodLoadState>>({});
+  const [periodReadings, setPeriodReadings] = useState<Record<string, ForecastDailyReading>>({});
+  const periodRequestsRef = useRef<Record<string, boolean>>({});
+  const periodContextKey = `${selectedSign}:${language}:${weekPeriodKey}:${monthPeriodKey}:${yearPeriodKey}`;
+  const periodContextRef = useRef(periodContextKey);
+
+  useEffect(() => {
+    if (periodContextRef.current === periodContextKey) return;
+    periodContextRef.current = periodContextKey;
+    periodRequestsRef.current = {};
+    setPeriodStates({});
+    setPeriodReadings({});
+  }, [periodContextKey]);
 
   const systemState: DashboardSystemState = dailyPackage
     ? 'ready'
@@ -246,16 +252,21 @@ export const Dashboard = memo<DashboardProps>(({
   );
   const activeQuestion = activeQuestionIndex == null ? null : dailyQuestionStories[activeQuestionIndex] || null;
 
+  const getPeriodKey = (period: LoadableHomePeriod) => (
+    period === 'week' ? weekPeriodKey : period === 'month' ? monthPeriodKey : yearPeriodKey
+  );
+
+  const getPeriodCacheKey = (period: LoadableHomePeriod) => (
+    `${period}:${selectedSign}:${language}:${getPeriodKey(period)}`
+  );
+
   const loadPeriod = async (period: LoadableHomePeriod) => {
-    if (!selectedSign || periodReadings[period] || periodRequestsRef.current[period]) return;
-    periodRequestsRef.current[period] = true;
-    setPeriodStates((current) => ({ ...current, [period]: 'loading' }));
+    const cacheKey = getPeriodCacheKey(period);
+    if (!selectedSign || periodReadings[cacheKey] || periodRequestsRef.current[cacheKey]) return;
+    periodRequestsRef.current[cacheKey] = true;
+    setPeriodStates((current) => ({ ...current, [cacheKey]: 'loading' }));
     try {
-      const periodKey = period === 'week'
-        ? weekPeriodKey
-        : period === 'month'
-          ? monthPeriodKey
-          : yearPeriodKey;
+      const periodKey = getPeriodKey(period);
       const cached = period === 'week'
         ? await getCachedWeeklySignHoroscope(selectedSign, periodKey, language)
         : period === 'month'
@@ -266,12 +277,12 @@ export const Dashboard = memo<DashboardProps>(({
         : period === 'month'
           ? await ensureMonthlySignHoroscope(selectedSign, periodKey, language)
           : await ensureYearlySignHoroscope(selectedSign, periodKey, language));
-      setPeriodReadings((current) => ({ ...current, [period]: reading }));
-      setPeriodStates((current) => ({ ...current, [period]: 'ready' }));
+      setPeriodReadings((current) => ({ ...current, [cacheKey]: reading }));
+      setPeriodStates((current) => ({ ...current, [cacheKey]: 'ready' }));
     } catch {
-      setPeriodStates((current) => ({ ...current, [period]: 'error' }));
+      setPeriodStates((current) => ({ ...current, [cacheKey]: 'error' }));
     } finally {
-      periodRequestsRef.current[period] = false;
+      periodRequestsRef.current[cacheKey] = false;
     }
   };
 
@@ -282,8 +293,6 @@ export const Dashboard = memo<DashboardProps>(({
   };
 
   const loadablePeriod = activePeriod === 'today' ? null : activePeriod;
-  const periodState = loadablePeriod ? periodStates[loadablePeriod] : 'idle';
-  const periodReading = loadablePeriod ? periodReadings[loadablePeriod] : undefined;
   const periodKey = loadablePeriod === 'week'
     ? weekPeriodKey
     : loadablePeriod === 'month'
@@ -291,6 +300,9 @@ export const Dashboard = memo<DashboardProps>(({
       : loadablePeriod === 'year'
         ? yearPeriodKey
         : '';
+  const activePeriodCacheKey = loadablePeriod ? getPeriodCacheKey(loadablePeriod) : '';
+  const periodState = activePeriodCacheKey ? periodStates[activePeriodCacheKey] ?? 'idle' : 'idle';
+  const periodReading = activePeriodCacheKey ? periodReadings[activePeriodCacheKey] : undefined;
   const periodLabel = loadablePeriod === 'week'
     ? formatIsoWeekPeriodLabel(weekPeriodKey, language)
     : loadablePeriod === 'month'

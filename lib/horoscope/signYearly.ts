@@ -8,9 +8,11 @@ import { yearKeyToValidRangeUtc } from '../date-utils';
 import { getPool } from '../db';
 import { buildOpenAIChatParams } from '../openaiChat';
 import { normalizeZodiacKey, type ZodiacKey } from './signDaily';
+import { normalizeSignPeriodReading, SignPeriodGenerationError } from './signPeriodShared';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const policy = getContentPolicy('sign_yearly');
+const GENERATION_ERROR = 'SIGN_YEARLY_GENERATION_FAILED' as const;
 
 const YEARLY_CONTEXT: Record<Language, string> = {
   ru: 'Это общий разбор для твоего знака. Личная картина начинается с натальной карты.',
@@ -25,50 +27,14 @@ export function buildSignYearlyCacheKey(sign: string, periodKey: string, languag
   });
 }
 
-function fallback(sign: ZodiacKey, periodKey: string, language: Language): ForecastDailyReading {
-  const label = getZodiacSign(language, sign);
-  return language === 'en'
-    ? {
-        date: periodKey,
-        headline: `${label}: choose before you commit`,
-        summary: 'This year makes it useful to notice which decisions are truly yours and which merely arrived with confidence attached.',
-        reading: 'The useful thread is discernment. A convincing offer, plan, or opinion can still be a poor fit for you. Pause long enough to check what the choice asks from your time and attention. Small, repeatable decisions will tell you more than a dramatic promise.',
-        focus: 'Give important choices enough time to become clear.',
-        chance: 'Rely on consistency and direct conversations.',
-        risk: 'Do not turn someone else’s urgency into your obligation.',
-        context: YEARLY_CONTEXT.en,
-        advice: ['Ask what a decision changes in everyday life.', 'Keep one priority visible.', 'Review an agreement before expanding it.'],
-      }
-    : {
-        date: periodKey,
-        headline: `${label}: сначала выбрать, потом соглашаться`,
-        summary: 'В этом году полезно замечать, какие решения действительно твои, а какие просто поданы слишком уверенно.',
-        reading: 'Главная линия — разборчивость. Убедительное предложение, план или мнение всё равно могут тебе не подходить. Остановись и проверь, чего выбор потребует от твоего времени и внимания. Небольшие повторяемые решения расскажут больше, чем громкое обещание.',
-        focus: 'Давай важным решениям время стать яснее.',
-        chance: 'Опирайся на последовательность и прямые разговоры.',
-        risk: 'Не превращай чужую срочность в свою обязанность.',
-        context: YEARLY_CONTEXT.ru,
-        advice: ['Проверяй, что решение меняет в обычной жизни.', 'Держи один приоритет на виду.', 'Пересматривай договорённость до её расширения.'],
-      };
-}
-
-function normalize(raw: Partial<ForecastDailyReading>, sign: ZodiacKey, periodKey: string, language: Language): ForecastDailyReading {
-  const fb = fallback(sign, periodKey, language);
-  const clean = (value: unknown, backup: string) => String(value || '').replace(/\s+/g, ' ').trim() || backup;
-  const advice = Array.isArray(raw.advice)
-    ? [...new Set(raw.advice.map((item) => clean(item, '')).filter(Boolean))].slice(0, 3)
-    : fb.advice;
-  return {
-    date: periodKey,
-    headline: clean(raw.headline, fb.headline),
-    summary: clean(raw.summary, fb.summary),
-    reading: clean(raw.reading, fb.reading),
-    focus: clean(raw.focus, fb.focus),
-    chance: clean(raw.chance, fb.chance),
-    risk: clean(raw.risk, fb.risk),
+function normalize(
+  raw: Partial<ForecastDailyReading>,
+  periodKey: string,
+  language: Language
+): ForecastDailyReading {
+  return normalizeSignPeriodReading(raw, periodKey, GENERATION_ERROR, {
     context: YEARLY_CONTEXT[language],
-    advice,
-  };
+  });
 }
 
 export async function getCachedSignYearlyHoroscope(
@@ -85,15 +51,14 @@ export async function getCachedSignYearlyHoroscope(
       [periodKey, sign, language, policy.promptVersion]
     );
     const payload = result.rows[0]?.payload;
-    return payload ? normalize(payload, sign, periodKey, language) : null;
+    return payload ? normalize(payload, periodKey, language) : null;
   } catch {
     return null;
   }
 }
 
 async function generate(sign: ZodiacKey, periodKey: string, language: Language): Promise<ForecastDailyReading> {
-  const fb = fallback(sign, periodKey, language);
-  if (!openai) return fb;
+  if (!openai) throw new SignPeriodGenerationError(GENERATION_ERROR);
   const prompt = buildSignYearlyHoroscopePrompt({
     language,
     context: { sign: getZodiacSign(language, sign), year: periodKey },
@@ -106,14 +71,14 @@ async function generate(sign: ZodiacKey, periodKey: string, language: Language):
       maxTokens: 700,
       jsonMode: true,
     }));
-    return normalize(
-      parseModelJson<Partial<ForecastDailyReading>>(completion.choices[0]?.message?.content, {}),
-      sign,
-      periodKey,
-      language
+    const parsed = parseModelJson<Partial<ForecastDailyReading>>(
+      completion.choices[0]?.message?.content,
+      {}
     );
-  } catch {
-    return fb;
+    return normalize(parsed, periodKey, language);
+  } catch (error) {
+    if (error instanceof SignPeriodGenerationError) throw error;
+    throw new SignPeriodGenerationError(GENERATION_ERROR, error);
   }
 }
 
@@ -126,6 +91,7 @@ export async function getOrGenerateSignYearlyHoroscope(
   if (!sign) throw new Error('Invalid zodiac sign');
   const cached = await getCachedSignYearlyHoroscope(sign, periodKey, language);
   if (cached) return cached;
+
   const reading = await generate(sign, periodKey, language);
   try {
     const { validTo } = yearKeyToValidRangeUtc(periodKey);
@@ -146,7 +112,7 @@ export async function getOrGenerateSignYearlyHoroscope(
       ]
     );
   } catch {
-    // Content remains readable when persistence is temporarily unavailable.
+    // A valid model result remains usable when persistence is temporarily unavailable.
   }
   return reading;
 }

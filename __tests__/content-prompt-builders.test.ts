@@ -8,7 +8,9 @@ import {
   buildPushDailyPrompt,
   buildSignCompatibilityPrompt,
   buildSignDailyHoroscopePrompt,
+  buildSignMonthlyHoroscopePrompt,
   buildSignWeeklyHoroscopePrompt,
+  buildSignYearlyHoroscopePrompt,
   buildSynastryPrompt,
   parseModelJson,
 } from '../lib/contentPromptBuilders';
@@ -20,6 +22,8 @@ const builders = [
   buildDayCardPrompt,
   buildSignDailyHoroscopePrompt,
   buildSignWeeklyHoroscopePrompt,
+  buildSignMonthlyHoroscopePrompt,
+  buildSignYearlyHoroscopePrompt,
   buildPersonalDailyPrompt,
   buildBlindSpotPrompt,
   buildNatalSectionPrompt,
@@ -29,7 +33,7 @@ const builders = [
 
 describe('Lumia content prompt builders', () => {
   it('provides a dedicated versioned JSON prompt for every requested content shape', () => {
-    expect(builders).toHaveLength(9);
+    expect(builders).toHaveLength(11);
     for (const build of builders) {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
@@ -54,7 +58,12 @@ describe('Lumia content prompt builders', () => {
     expect(buildSignDailyHoroscopePrompt().user).toContain('Не перечисляй подряд любовь');
     // Гороскоп по знаку опирается на реальный контекст дня (фаза Луны), а не «знак вообще».
     expect(buildSignDailyHoroscopePrompt().user).toContain('реальная фаза Луны');
-    expect(buildSignWeeklyHoroscopePrompt().user).toContain('ровно два коротких практичных совета');
+    for (const prompt of [buildSignWeeklyHoroscopePrompt(), buildSignMonthlyHoroscopePrompt(), buildSignYearlyHoroscopePrompt()]) {
+      for (const field of ['headline', 'summary', 'reading', 'focus', 'chance', 'risk', 'context', 'advice']) {
+        expect(prompt.user).toContain(`"${field}"`);
+      }
+      expect(prompt.user).toContain('Если мысль закончена, остановись');
+    }
     expect(buildNatalSectionPrompt({ title: 'Как ты любишь' }).user).toContain('не больше 200 слов');
     expect(buildSignCompatibilityPrompt().user).toContain('без счёта совместимости');
     expect(buildSynastryPrompt().user).toContain('Не используй термин «синастрия»');

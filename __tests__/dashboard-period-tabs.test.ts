@@ -30,7 +30,10 @@ describe('Dashboard period tabs without redesign', () => {
     expect(dashboard).toContain('tab.id === activePeriod');
     expect(dashboard).toContain('onClick={() => selectPeriod(tab.id)}');
     expect(dashboard).toContain("if (period !== 'today') void loadPeriod(period);");
-    expect(dashboard).not.toContain('useEffect(');
+    expect(dashboard).toContain('setPeriodStates({})');
+    expect(dashboard).toContain('setPeriodReadings({})');
+    expect(dashboard).toContain('periodContextKey');
+    expect(dashboard).toContain('getPeriodCacheKey');
 
     for (const service of [
       'getCachedWeeklySignHoroscope',
