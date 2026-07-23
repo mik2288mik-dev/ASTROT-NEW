@@ -1,0 +1,264 @@
+body.period-extra-reader-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.period-extra-reader-open .lumia-bottom-tab-bar {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.period-extra-reader-open .lumia-main-scroll {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.home-period-extras {
+  margin-top: 22px;
+}
+
+.home-period-extra-card.is-influences {
+  min-height: 154px;
+}
+
+.period-extra-reader-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: max(12px, env(safe-area-inset-top, 0px));
+  background: rgba(10, 17, 29, 0.68);
+  animation: period-extra-layer-in 180ms ease-out both;
+}
+
+.period-extra-reader {
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 520px);
+  height: min(94dvh, 860px);
+  overflow: hidden;
+  border-radius: 30px 30px 0 0;
+  background: #182231;
+  background-image: var(--card-bg-image);
+  background-position: var(--card-bg-position, center);
+  background-size: cover;
+  color: #fff;
+  box-shadow: 0 -20px 54px rgba(4, 9, 17, 0.34);
+  animation: period-extra-reader-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.period-extra-reader.has-card-background {
+  background-size: auto 112%;
+}
+
+.period-extra-reader-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 14, 25, 0.5) 0%, rgba(7, 14, 25, 0.77) 42%, rgba(7, 14, 25, 0.95) 100%),
+    linear-gradient(90deg, rgba(7, 14, 25, 0.68) 0%, rgba(7, 14, 25, 0.32) 72%);
+  backdrop-filter: blur(2px);
+}
+
+.period-extra-reader-close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  z-index: 3;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(8, 15, 26, 0.54);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(3, 8, 15, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.period-extra-reader-close:active {
+  transform: scale(0.96);
+}
+
+.period-extra-reader-close:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.78);
+  outline-offset: 3px;
+}
+
+.period-extra-reader-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.period-extra-reader-scroll {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.period-extra-reader-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.period-extra-reader-copy {
+  min-height: 100%;
+  padding:
+    max(92px, calc(72px + env(safe-area-inset-top, 0px)))
+    max(24px, env(safe-area-inset-right, 0px))
+    calc(42px + env(safe-area-inset-bottom, 0px))
+    max(24px, env(safe-area-inset-left, 0px));
+}
+
+.period-extra-reader-eyebrow {
+  max-width: 380px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-app);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.period-extra-reader h2 {
+  max-width: 430px;
+  margin: 12px 44px 0 0;
+  color: #fff;
+  font-family: var(--font-app);
+  font-size: clamp(30px, 8vw, 42px);
+  font-weight: 820;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+  text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(2, 8, 18, 0.35);
+}
+
+.period-extra-reader-teaser {
+  max-width: 420px;
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-app);
+  font-size: clamp(17px, 4.4vw, 20px);
+  font-weight: 720;
+  letter-spacing: -0.015em;
+  line-height: 1.42;
+  text-wrap: pretty;
+}
+
+.period-extra-reader-body {
+  max-width: 430px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-app);
+  font-size: clamp(16px, 4vw, 18px);
+  font-weight: 520;
+  line-height: 1.62;
+}
+
+.period-extra-reader-body p,
+.period-extra-reader-basis p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.period-extra-reader-body p + p {
+  margin-top: 16px;
+}
+
+.period-extra-reader-basis {
+  max-width: 430px;
+  margin-top: 30px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  background: rgba(8, 15, 26, 0.52);
+  color: rgba(255, 255, 255, 0.78);
+  font-family: var(--font-app);
+  backdrop-filter: blur(12px);
+}
+
+.period-extra-reader-basis h3 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.period-extra-reader-basis p,
+.period-extra-reader-basis li,
+.period-extra-reader-basis summary {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.period-extra-reader-basis details {
+  margin-top: 14px;
+}
+
+.period-extra-reader-basis summary {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 750;
+}
+
+.period-extra-reader-basis ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+.period-extra-reader-basis li + li {
+  margin-top: 7px;
+}
+
+@keyframes period-extra-layer-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes period-extra-reader-in {
+  from { transform: translate3d(0, 100%, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@media (min-width: 540px) {
+  .period-extra-reader-layer {
+    align-items: center;
+    padding: 16px;
+  }
+
+  .period-extra-reader {
+    height: min(92dvh, 860px);
+    border-radius: 30px;
+  }
+}
+
+@media (max-height: 680px) {
+  .period-extra-reader {
+    height: 98dvh;
+  }
+
+  .period-extra-reader-copy {
+    padding-top: max(74px, calc(58px + env(safe-area-inset-top, 0px)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .period-extra-reader-layer,
+  .period-extra-reader {
+    animation-duration: 1ms !important;
+  }
+}

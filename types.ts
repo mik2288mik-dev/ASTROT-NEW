@@ -255,6 +255,36 @@ export interface ForecastDailyReading {
   advice: string[];
 }
 
+export type PersonalPeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export type PeriodExtraVisualTag =
+  | 'communication'
+  | 'relationships'
+  | 'work'
+  | 'money'
+  | 'goals'
+  | 'family'
+  | 'friendship'
+  | 'energy';
+
+export interface PeriodExtraCard {
+  id: string;
+  title: string;
+  teaser: string;
+  fullText: string;
+  visualTag?: PeriodExtraVisualTag;
+  isPremium: boolean;
+  basisSummary?: string;
+  basisDetails?: string[];
+}
+
+export interface PeriodExtras {
+  periodType: PersonalPeriodType;
+  periodKey: string;
+  cards: PeriodExtraCard[];
+  influencesCard: PeriodExtraCard;
+}
+
 export type TodayMetricKey = 'resource' | 'stress' | 'love' | 'focus';
 
 export interface TodayMetricPoint {

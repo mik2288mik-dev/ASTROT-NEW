@@ -11,6 +11,7 @@ import type { SignCompatibilityResult } from '../lib/synastry/signCompatibility'
 import { buildLocalSignCompatibility } from '../lib/synastry/localSignText';
 import { getTelegramInitDataHeaders } from "./sessionService";
 import type { SkyTodaySnapshot } from '../lib/skyToday';
+import type { PeriodExtraCard, PeriodExtras, PersonalPeriodType } from '../types';
 
 // API base URL - используем локальные Next.js API routes
 const API_BASE_URL = getApiBaseUrl();
@@ -48,6 +49,7 @@ type ContentApiResponse<T> = {
   starsCost?: number;
   starsPaymentRequired?: boolean;
   accessTier?: ContentAccessTier;
+  locked?: boolean;
 };
 
 const DAILY_FORECAST_HEADLINE_FALLBACK: Record<'ru' | 'en', string> = {
@@ -875,6 +877,157 @@ function coerceForecastMonthlyReading(raw: any): ForecastMonthlyReading {
     reading: raw.reading != null ? String(raw.reading) : undefined,
   };
 }
+
+type PeriodExtrasLoadResult = {
+  extras: PeriodExtras;
+  locked: boolean;
+};
+
+const periodExtrasClientCache = new Map<string, PeriodExtrasLoadResult>();
+
+function periodExtrasClientCacheKey(
+  userId: string,
+  chartId: number | null | undefined,
+  periodType: PersonalPeriodType,
+  periodKey: string,
+  language: 'ru' | 'en',
+  isPremium: boolean,
+) {
+  return `${userId}:${chartId ?? 'primary'}:${periodType}:${periodKey}:${language}:${isPremium ? 'open' : 'locked'}`;
+}
+
+function coercePeriodExtraCard(raw: any, locked: boolean): PeriodExtraCard | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const id = String(raw.id || '').trim();
+  const title = String(raw.title || '').trim();
+  const teaser = String(raw.teaser || '').trim();
+  const fullText = String(raw.fullText || '').trim();
+  if (!id || !title || !teaser || (!locked && !fullText)) return null;
+  const visualTag = [
+    'communication',
+    'relationships',
+    'work',
+    'money',
+    'goals',
+    'family',
+    'friendship',
+    'energy',
+  ].includes(String(raw.visualTag || ''))
+    ? raw.visualTag
+    : 'goals';
+  return {
+    id,
+    title,
+    teaser,
+    fullText,
+    visualTag,
+    isPremium: raw.isPremium !== false,
+    basisSummary: raw.basisSummary ? String(raw.basisSummary).trim() : undefined,
+    basisDetails: Array.isArray(raw.basisDetails)
+      ? raw.basisDetails.map(String).map((item: string) => item.trim()).filter(Boolean).slice(0, 8)
+      : undefined,
+  };
+}
+
+function coercePeriodExtras(raw: any, locked: boolean): PeriodExtras | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const periodType = String(raw.periodType || '') as PersonalPeriodType;
+  if (!['daily', 'weekly', 'monthly', 'yearly'].includes(periodType)) return null;
+  const periodKey = String(raw.periodKey || '').trim();
+  const cards = (Array.isArray(raw.cards) ? raw.cards : [])
+    .map((card) => coercePeriodExtraCard(card, locked))
+    .filter((card): card is PeriodExtraCard => !!card);
+  const influencesCard = coercePeriodExtraCard(raw.influencesCard, locked);
+  if (!periodKey || cards.length !== 4 || !influencesCard) return null;
+  return { periodType, periodKey, cards, influencesCard };
+}
+
+export const getCachedPeriodExtras = async (
+  userId: string,
+  chartId: number | null | undefined,
+  periodType: PersonalPeriodType,
+  periodKey: string,
+  language: 'ru' | 'en',
+  isPremium = false,
+): Promise<PeriodExtrasLoadResult | null> => {
+  if (!userId) return null;
+  const memoryKey = periodExtrasClientCacheKey(userId, chartId, periodType, periodKey, language, isPremium);
+  const memory = periodExtrasClientCache.get(memoryKey);
+  if (memory) return memory;
+
+  const params = new URLSearchParams({
+    userId,
+    periodType,
+    periodKey,
+    language,
+  });
+  if (chartId != null) params.set('chartId', String(chartId));
+  const data = await fetchContentApi<PeriodExtras>(
+    `${API_BASE_URL}/api/content/forecast/period-extras?${params.toString()}`,
+    { method: 'GET', cache: 'no-store' },
+    { notFoundAsNull: true, timeoutMs: 9000 },
+  );
+  const locked = !!data?.locked;
+  const extras = coercePeriodExtras(data?.interpretation?.content, locked);
+  if (!extras || extras.periodType !== periodType || extras.periodKey !== periodKey) return null;
+  const result = { extras, locked };
+  periodExtrasClientCache.set(memoryKey, result);
+  return result;
+};
+
+export const ensurePeriodExtras = async (
+  profile: UserProfile,
+  chartData: NatalChartData,
+  chartId: number | null | undefined,
+  periodType: PersonalPeriodType,
+  periodKey: string,
+): Promise<PeriodExtrasLoadResult> => {
+  const userId = String(profile.id || '').trim();
+  if (!userId) throw buildApiError('userId is required', 400);
+  const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const premium = hasActivePremium(profile);
+  const memoryKey = periodExtrasClientCacheKey(userId, chartId, periodType, periodKey, language, premium);
+  const cached = await getCachedPeriodExtras(userId, chartId, periodType, periodKey, language, premium);
+  if (cached) return cached;
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const data = await fetchContentApi<PeriodExtras>(
+        `${API_BASE_URL}/api/content/forecast/period-extras`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+          body: JSON.stringify({
+            userId,
+            chartId: chartId ?? undefined,
+            profile,
+            chartData,
+            periodType,
+            periodKey,
+            language,
+          }),
+        },
+        { timeoutMs: 90_000 },
+      );
+      const locked = !!data?.locked;
+      const extras = coercePeriodExtras(data?.interpretation?.content, locked);
+      if (!extras || extras.periodType !== periodType || extras.periodKey !== periodKey) {
+        throw buildApiError('Period extras content is missing', 502, 'EMPTY_INTERPRETATION');
+      }
+      const result = { extras, locked };
+      periodExtrasClientCache.set(memoryKey, result);
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (!isGenerationInProgressError(error) || attempt >= 2) throw error;
+      await waitMs(getRetryAfterMs(error));
+      const again = await getCachedPeriodExtras(userId, chartId, periodType, periodKey, language, premium);
+      if (again) return again;
+    }
+  }
+  throw lastError;
+};
 
 export const getCachedWeeklyForecastLayer = async (
   userId: string,

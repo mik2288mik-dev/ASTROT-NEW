@@ -5,7 +5,11 @@ import type {
   HoroscopeOpenOptions,
   NatalChartData,
   DailyPackageStatus,
+  PeriodExtraCard,
+  PeriodExtras,
+  PeriodExtraVisualTag,
   PersonalDailySection,
+  PersonalPeriodType,
   UserProfile,
 } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
@@ -22,6 +26,7 @@ import { lumiaSelectionHaptic } from '../lib/haptics';
 import { DaySheet } from '../components/lumia-ui/DaySheet';
 import { HomeFaq } from '../components/Dashboard/HomeFaq';
 import { DailyQuestionStoryModal } from '../components/Dashboard/DailyQuestionStoryModal';
+import { PeriodExtraCardModal } from '../components/Dashboard/PeriodExtraCardModal';
 import { MATRIX_TITLE } from '../lib/matrixArcana';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { StickerScreen, StickerSlot } from '../components/stickers/StickerScreen';
@@ -43,6 +48,7 @@ import {
   getCachedMonthlySignHoroscope,
   getCachedWeeklySignHoroscope,
   getCachedYearlySignHoroscope,
+  ensurePeriodExtras,
 } from '../services/astrologyService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 
@@ -69,12 +75,43 @@ type PeriodSphereCard = {
   background: CardBackgroundAsset | null;
 };
 
+type PeriodExtrasResult = {
+  extras: PeriodExtras;
+  locked: boolean;
+};
+
+type ActivePeriodExtra = {
+  card: PeriodExtraCard;
+  background: CardBackgroundAsset | null;
+  period: HomePeriod;
+};
+
 const PERIOD_TABS: ReadonlyArray<{ id: HomePeriod; ru: string; en: string }> = [
   { id: 'today', ru: 'Сегодня', en: 'Today' },
   { id: 'week', ru: 'Эта неделя', en: 'This week' },
   { id: 'month', ru: 'Этот месяц', en: 'This month' },
   { id: 'year', ru: 'Этот год', en: 'This year' },
 ] as const;
+
+const PERIOD_EXTRA_TYPE: Record<HomePeriod, PersonalPeriodType> = {
+  today: 'daily',
+  week: 'weekly',
+  month: 'monthly',
+  year: 'yearly',
+};
+
+function visualSectionForExtra(
+  tag?: PeriodExtraVisualTag,
+): Exclude<PersonalDailySection, 'overview'> {
+  if (tag === 'relationships') return 'love';
+  if (tag === 'communication') return 'communication';
+  if (tag === 'work') return 'work';
+  if (tag === 'money') return 'money';
+  if (tag === 'family') return 'family';
+  if (tag === 'friendship') return 'friendship';
+  if (tag === 'energy') return 'energy';
+  return 'goals';
+}
 
 type DashboardProps = {
   profile: UserProfile;
@@ -136,6 +173,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
+  const [activePeriodExtra, setActivePeriodExtra] = useState<ActivePeriodExtra | null>(null);
   const weekPeriodKey = useMemo(() => getMoscowIsoWeekKey(), [today]);
   const monthPeriodKey = useMemo(() => getMoscowMonthKey(), [today]);
   const yearPeriodKey = useMemo(() => getMoscowYearKey(), [today]);
@@ -143,21 +181,31 @@ export const Dashboard = memo<DashboardProps>(({
   const [periodStates, setPeriodStates] = useState<Record<string, PeriodLoadState>>({});
   const [periodReadings, setPeriodReadings] = useState<Record<string, ForecastDailyReading>>({});
   const periodRequestsRef = useRef<Record<string, boolean>>({});
-  const periodContextKey = `${selectedSign}:${language}:${weekPeriodKey}:${monthPeriodKey}:${yearPeriodKey}`;
+  const [periodExtras, setPeriodExtras] = useState<Record<string, PeriodExtrasResult>>({});
+  const periodExtraRequestsRef = useRef<Record<string, boolean>>({});
+  const periodExtraAttemptedRef = useRef<Record<string, number>>({});
+  const periodContextKey = `${backgroundUserId}:${chartId ?? 'primary'}:${selectedSign}:${language}:${premium ? 'premium' : 'free'}:${today}:${weekPeriodKey}:${monthPeriodKey}:${yearPeriodKey}`;
   const periodContextRef = useRef(periodContextKey);
 
   useEffect(() => {
     if (periodContextRef.current === periodContextKey) return;
     periodContextRef.current = periodContextKey;
     periodRequestsRef.current = {};
+    periodExtraRequestsRef.current = {};
+    periodExtraAttemptedRef.current = {};
     setPeriodStates({});
     setPeriodReadings({});
+    setPeriodExtras({});
+    setActivePeriodExtra(null);
   }, [periodContextKey]);
 
   useEffect(() => {
     const handleNativeBack = (event: Event) => {
       const detail = (event as CustomEvent<NativeBackEventDetail>).detail;
-      if (activeQuestionIndex != null) {
+      if (activePeriodExtra) {
+        setActivePeriodExtra(null);
+        detail.handled = true;
+      } else if (activeQuestionIndex != null) {
         setActiveQuestionIndex(null);
         detail.handled = true;
       } else if (sheetDate) {
@@ -167,7 +215,7 @@ export const Dashboard = memo<DashboardProps>(({
     };
     window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
     return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
-  }, [activeQuestionIndex, sheetDate]);
+  }, [activePeriodExtra, activeQuestionIndex, sheetDate]);
 
   const systemState: DashboardSystemState = dailyPackage
     ? 'ready'
@@ -278,6 +326,55 @@ export const Dashboard = memo<DashboardProps>(({
     `${period}:${selectedSign}:${language}:${getPeriodKey(period)}`
   );
 
+  const getPeriodExtraKey = (period: HomePeriod) => (
+    period === 'today'
+      ? today
+      : period === 'week'
+        ? weekPeriodKey
+        : period === 'month'
+          ? monthPeriodKey
+          : yearPeriodKey
+  );
+
+  const getPeriodExtraCacheKey = (period: HomePeriod) => (
+    `${backgroundUserId}:${chartId ?? 'primary'}:${PERIOD_EXTRA_TYPE[period]}:${getPeriodExtraKey(period)}:${language}`
+  );
+
+  const loadPeriodExtras = async (period: HomePeriod) => {
+    const cacheKey = getPeriodExtraCacheKey(period);
+    const lastAttemptAt = periodExtraAttemptedRef.current[cacheKey] || 0;
+    if (
+      !hasChart ||
+      !chartData ||
+      periodExtras[cacheKey] ||
+      periodExtraRequestsRef.current[cacheKey] ||
+      Date.now() - lastAttemptAt < 60_000
+    ) {
+      return;
+    }
+
+    periodExtraRequestsRef.current[cacheKey] = true;
+    periodExtraAttemptedRef.current[cacheKey] = Date.now();
+    try {
+      const result = await ensurePeriodExtras(
+        profile,
+        chartData,
+        chartId,
+        PERIOD_EXTRA_TYPE[period],
+        getPeriodExtraKey(period),
+      );
+      setPeriodExtras((current) => ({ ...current, [cacheKey]: result }));
+    } catch {
+      // Optional additions stay hidden; the existing period content remains usable.
+    } finally {
+      periodExtraRequestsRef.current[cacheKey] = false;
+    }
+  };
+
+  useEffect(() => {
+    if (hasChart && chartData) void loadPeriodExtras('today');
+  }, [periodContextKey, hasChart, chartData]);
+
   const loadPeriod = async (period: LoadableHomePeriod) => {
     const cacheKey = getPeriodCacheKey(period);
     if (!selectedSign || periodReadings[cacheKey] || periodRequestsRef.current[cacheKey]) return;
@@ -308,6 +405,7 @@ export const Dashboard = memo<DashboardProps>(({
     lumiaSelectionHaptic();
     setActivePeriod(period);
     if (period !== 'today') void loadPeriod(period);
+    void loadPeriodExtras(period);
   };
 
   const loadablePeriod = activePeriod === 'today' ? null : activePeriod;
@@ -412,6 +510,55 @@ export const Dashboard = memo<DashboardProps>(({
         background: getPersonalCardBackground(card.visualSection, backgroundUserId, periodKey),
       }));
   }, [backgroundUserId, language, loadablePeriod, periodKey, periodReading]);
+
+  const activePeriodExtraCacheKey = getPeriodExtraCacheKey(activePeriod);
+  const activePeriodExtrasResult = periodExtras[activePeriodExtraCacheKey];
+  const activePeriodExtraCards = useMemo(() => {
+    const extras = activePeriodExtrasResult?.extras;
+    if (!extras) return [];
+    return [
+      ...extras.cards.map((card) => ({ card, influences: false })),
+      { card: extras.influencesCard, influences: true },
+    ].map(({ card, influences }) => ({
+      card,
+      influences,
+      background: getPersonalCardBackground(
+        visualSectionForExtra(card.visualTag),
+        backgroundUserId,
+        `${extras.periodKey}:${card.id}`,
+      ),
+    }));
+  }, [activePeriodExtrasResult, backgroundUserId]);
+  const periodExtrasHeading = activePeriod === 'today'
+    ? (language === 'ru' ? 'Ещё про сегодня' : 'More about today')
+    : activePeriod === 'week'
+      ? (language === 'ru' ? 'Что ещё важно на этой неделе' : 'What else matters this week')
+      : activePeriod === 'month'
+        ? (language === 'ru' ? 'Что ещё важно в этом месяце' : 'What else matters this month')
+        : (language === 'ru' ? 'Что ещё важно в этом году' : 'What else matters this year');
+  const periodExtraEyebrow = activePeriodExtra?.period === 'today'
+    ? (language === 'ru' ? 'Сегодня' : 'Today')
+    : activePeriodExtra?.period === 'week'
+      ? (language === 'ru' ? 'Эта неделя' : 'This week')
+      : activePeriodExtra?.period === 'month'
+        ? (language === 'ru' ? 'Этот месяц' : 'This month')
+        : (language === 'ru' ? 'Этот год' : 'This year');
+
+  const openPeriodExtra = (
+    card: PeriodExtraCard,
+    background: CardBackgroundAsset | null,
+  ) => {
+    lumiaSelectionHaptic();
+    if (activePeriodExtrasResult?.locked || (card.isPremium && !premium)) {
+      onRequestPremium?.(`period_extras_${activePeriod}`);
+      return;
+    }
+    setActivePeriodExtra({ card, background, period: activePeriod });
+  };
+
+  const closePeriodExtra = useCallback(() => {
+    setActivePeriodExtra(null);
+  }, []);
 
   const openPeriodHero = () => {
     lumiaSelectionHaptic();
@@ -621,6 +768,45 @@ export const Dashboard = memo<DashboardProps>(({
           </>
         )}
 
+        {activePeriodExtraCards.length ? (
+          <section
+            className="home-daily-questions home-period-extras"
+            aria-label={periodExtrasHeading}
+          >
+            <h2 className="home-section-heading">{periodExtrasHeading}</h2>
+            <div className="home-daily-question-list">
+              {activePeriodExtraCards.map(({ card, background, influences }) => {
+                const locked = !!activePeriodExtrasResult?.locked || (card.isPremium && !premium);
+                return (
+                  <button
+                    key={`${activePeriod}-${card.id}`}
+                    type="button"
+                    className={`home-daily-question-card home-period-extra-card${background ? ' has-card-background' : ''}${locked ? ' is-locked' : ''}${influences ? ' is-influences' : ''}`}
+                    style={cardBackgroundStyle(background)}
+                    onClick={() => openPeriodExtra(card, background)}
+                  >
+                    <span className="home-daily-question-copy">
+                      <span className="home-daily-question-title">{card.title}</span>
+                      <span className="home-daily-question-hook">{card.teaser}</span>
+                    </span>
+                    {locked ? (
+                      <span
+                        className="home-daily-question-lock"
+                        aria-label={language === 'ru' ? 'Доступно в Premium' : 'Available in Premium'}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+                          <rect x="3.5" y="8" width="11" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+                          <path d="M6 8V6.25a3 3 0 0 1 6 0V8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
         <section className="home-product-grid" aria-label={language === 'ru' ? 'Другие разделы' : 'Other sections'}>
           <button
             type="button"
@@ -697,6 +883,14 @@ export const Dashboard = memo<DashboardProps>(({
         scrollRef={scrollRef}
         onClose={closeDailyQuestion}
         onMove={moveQuestion}
+      />
+      <PeriodExtraCardModal
+        activeCard={activePeriodExtra?.card || null}
+        background={activePeriodExtra?.background || null}
+        eyebrow={periodExtraEyebrow}
+        language={language}
+        scrollRef={scrollRef}
+        onClose={closePeriodExtra}
       />
     </StickerScreen>
   );
