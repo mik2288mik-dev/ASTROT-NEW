@@ -934,8 +934,8 @@ function coercePeriodExtras(raw: any, locked: boolean): PeriodExtras | null {
   const periodType = String(raw.periodType || '') as PersonalPeriodType;
   if (!['daily', 'weekly', 'monthly', 'yearly'].includes(periodType)) return null;
   const periodKey = String(raw.periodKey || '').trim();
-  const cards = (Array.isArray(raw.cards) ? raw.cards : [])
-    .map((card) => coercePeriodExtraCard(card, locked))
+  const cards = ((Array.isArray(raw.cards) ? raw.cards : []) as unknown[])
+    .map((card: unknown) => coercePeriodExtraCard(card, locked))
     .filter((card): card is PeriodExtraCard => !!card);
   const influencesCard = coercePeriodExtraCard(raw.influencesCard, locked);
   if (!periodKey || cards.length !== 4 || !influencesCard) return null;
