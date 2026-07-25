@@ -2,6 +2,7 @@ import { APP_VOICE_VERSION } from './appVoice';
 import { HUMAN_DAILY_PROMPT_VERSION } from './natalHumanShared';
 
 const HUMAN_DAILY_PATH = '/api/content/natal/human-daily';
+const CHARTS_PATH = '/api/charts';
 const STORAGE_PREFIX = 'your-horoscope:daily-package-response:v1';
 
 type CachedDailyResponse = {
@@ -38,6 +39,24 @@ function keyPart(value: string): string {
   return encodeURIComponent(value);
 }
 
+function requestUrl(input: RequestInfo | URL): URL | null {
+  if (typeof window === 'undefined') return null;
+  const rawUrl = typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input.url;
+  try {
+    return new URL(rawUrl, window.location.origin);
+  } catch {
+    return null;
+  }
+}
+
+function requestMethod(input: RequestInfo | URL, init?: RequestInit): string {
+  return String(init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+}
+
 function buildStorageKey(userId: string, chartId: string, dateKey: string): string {
   return [
     STORAGE_PREFIX,
@@ -50,25 +69,11 @@ function buildStorageKey(userId: string, chartId: string, dateKey: string): stri
 }
 
 function describeRequest(input: RequestInfo | URL, init?: RequestInit): DailyRequestDescriptor | null {
-  if (typeof window === 'undefined') return null;
-
-  const rawUrl = typeof input === 'string'
-    ? input
-    : input instanceof URL
-      ? input.toString()
-      : input.url;
-
-  let url: URL;
-  try {
-    url = new URL(rawUrl, window.location.origin);
-  } catch {
-    return null;
-  }
-
-  if (url.pathname !== HUMAN_DAILY_PATH) return null;
+  const url = requestUrl(input);
+  if (!url || url.pathname !== HUMAN_DAILY_PATH) return null;
   if (url.searchParams.get('sectionKey') !== 'daily_overview') return null;
 
-  const method = String(init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+  const method = requestMethod(input, init);
   if (method !== 'GET' && method !== 'POST') return null;
 
   const userId = String(url.searchParams.get('userId') || '').trim();
@@ -83,6 +88,25 @@ function describeRequest(input: RequestInfo | URL, init?: RequestInit): DailyReq
     chartId,
     storageKey: buildStorageKey(userId, chartId, dateKey),
   };
+}
+
+function isChartMutation(input: RequestInfo | URL, init?: RequestInit): boolean {
+  const url = requestUrl(input);
+  if (!url || !(url.pathname === CHARTS_PATH || url.pathname.startsWith(`${CHARTS_PATH}/`))) {
+    return false;
+  }
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(requestMethod(input, init));
+}
+
+function clearAllCachedDailyPackages(): void {
+  const storage = getStorage();
+  if (!storage) return;
+  const keysToRemove: string[] = [];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key?.startsWith(`${STORAGE_PREFIX}:`)) keysToRemove.push(key);
+  }
+  keysToRemove.forEach((key) => storage.removeItem(key));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -202,7 +226,12 @@ export function installDailyPackageFetchCache(): () => void {
 
   const cachedFetch: typeof window.fetch = async (input, init) => {
     const descriptor = describeRequest(input, init);
-    if (!descriptor) return baseFetch(input, init);
+    if (!descriptor) {
+      const chartMutation = isChartMutation(input, init);
+      const response = await baseFetch(input, init);
+      if (chartMutation && response.ok) clearAllCachedDailyPackages();
+      return response;
+    }
 
     if (descriptor.method === 'GET') {
       const cached = readCachedPayload(descriptor);
