@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { AppProps } from 'next/app';
 import '../styles/globals.css';
 import '../styles/stickers.css';
@@ -12,8 +13,11 @@ import '../styles/dailyQuestionStory.css';
 import '../styles/dailyQuestionCardTone.css';
 import '../styles/periodExtraCards.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
+import { installDailyPackageFetchCache } from '../lib/dailyPackageFetchCache';
 
 export default function App({ Component, pageProps }: AppProps) {
+  useEffect(() => installDailyPackageFetchCache(), []);
+
   // Database migrations are handled during build process (npm run migrate)
   return (
     <>
