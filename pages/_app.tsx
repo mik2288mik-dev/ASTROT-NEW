@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import type { AppProps } from 'next/app';
 import '../styles/globals.css';
 import '../styles/stickers.css';
@@ -16,7 +15,8 @@ import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { installDailyPackageFetchCache } from '../lib/dailyPackageFetchCache';
 
 export default function App({ Component, pageProps }: AppProps) {
-  useEffect(() => installDailyPackageFetchCache(), []);
+  // Install before the child App renders so its startup requests can use the cache.
+  installDailyPackageFetchCache();
 
   // Database migrations are handled during build process (npm run migrate)
   return (
