@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { APP_VOICE_VERSION } from '../lib/appVoice';
 import {
   buildBlindSpotPrompt,
   buildDayCardPrompt,
@@ -37,8 +38,7 @@ describe('Lumia content prompt builders', () => {
     for (const build of builders) {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
-      // promptVersion = базовая версия .vN + отпечаток голоса (инвалидирует кэш при смене голоса)
-      expect(prompt.promptVersion).toMatch(/\.v\d+\+voice\.[0-9a-f]{8}$/);
+      expect(prompt.promptVersion).toMatch(new RegExp(`\\.v\\d+\\+voice\\.${APP_VOICE_VERSION}$`));
       expect(prompt.user).toContain('Верни только валидный JSON');
       expect(prompt.user).toContain('Объём: не больше');
       expect(prompt.user).toContain('конкретный жизненный пример');

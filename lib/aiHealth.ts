@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { getModelForTier, getDailyCanvasModelResolved } from './appSettings';
+import { getAppSystemVoice } from './appVoice';
 import { getContentPolicy } from './contentMatrix';
 import { buildOpenAIChatParams } from './openaiChat';
 import type { AiContentModelTier } from './contentMatrix';
@@ -96,7 +97,7 @@ export async function pingAiGeneration(
     const completion = await client.chat.completions.create(
       buildOpenAIChatParams(model, {
         messages: [
-          { role: 'system', content: 'Ты — генератор контента приложения-астрологии. Отвечай кратко и по делу.' },
+          { role: 'system', content: getAppSystemVoice('ru') },
           { role: 'user', content: 'Ответь ровно одним словом: работает' },
         ],
         maxTokens: 16,

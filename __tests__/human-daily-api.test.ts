@@ -26,7 +26,7 @@ const cachedReading = {
   cacheKey: 'personal_daily.package.user.123.date.2026-06-03.locale.ru.voice.voice-test',
   inputHash: 'input-hash',
   content: generatedCanvas,
-  promptVersion: 'your-horoscope-v4.daily-distinct-scenes',
+  promptVersion: 'your-horoscope-v4.daily-distinct-scenes+voice.1',
   calculationVersion: 'test',
   validFrom: null,
   validTo: null,
@@ -200,7 +200,7 @@ describe('human-daily API daily package flow', () => {
     expect(payload.dailyPackage.communication.hook).toBe(generatedCanvas.communication.hook);
     expect(mocks.generateDailyCanvas).not.toHaveBeenCalled();
     expect(mocks.saveReading).not.toHaveBeenCalled();
-    expect(mocks.getCachedReading.mock.calls[0][1].promptVersion).toBe('your-horoscope-v4.daily-distinct-scenes');
+    expect(mocks.getCachedReading.mock.calls[0][1].promptVersion).toBe('your-horoscope-v4.daily-distinct-scenes+voice.1');
   });
 
   it('does not expose closed section bodies to a free user', async () => {
@@ -239,7 +239,7 @@ describe('human-daily API daily package flow', () => {
     expect(payload.persistenceStatus).toBe('saved');
     expect(mocks.saveReading).toHaveBeenCalledTimes(1);
     expect(mocks.saveReading.mock.calls[0][2]).toBe(generatedCanvas);
-    expect(mocks.saveReading.mock.calls[0][1].promptVersion).toBe('your-horoscope-v4.daily-distinct-scenes');
+    expect(mocks.saveReading.mock.calls[0][1].promptVersion).toBe('your-horoscope-v4.daily-distinct-scenes+voice.1');
     expect(mocks.logContentApi).toHaveBeenCalledWith(expect.anything(), 'generation_saved', expect.anything());
     expect(payload.interpretation.content.content).toBe(generatedSection.content);
   });

@@ -7,7 +7,6 @@ import type {
   UserProfile,
 } from '../types';
 import {
-  getAppSystemPrompt,
   addLanguageInstruction,
   createNatalAnchorPromptV3,
   createNatalFullPrompt,
@@ -16,6 +15,7 @@ import {
   NatalFullAIResponse,
   NatalLivingAIResponse,
 } from './prompts';
+import { getAppSystemVoice } from './appVoice';
 import { getModelForTier } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
 import { getContentPolicy } from './contentMatrix';
@@ -76,7 +76,7 @@ async function createJsonCompletion<T>({
 
   const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
     messages: [
-      { role: 'system', content: getAppSystemPrompt(language) },
+      { role: 'system', content: getAppSystemVoice(language) },
       { role: 'user', content: prompt },
     ],
     temperature,

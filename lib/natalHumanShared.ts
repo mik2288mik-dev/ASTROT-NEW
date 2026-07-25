@@ -4,16 +4,17 @@ import type {
   DailyPresentationPatternKey,
   Locale,
 } from './dailyPresentationPatterns';
+import { withAppVoiceCacheKey, withAppVoiceVersion } from './appVoice';
 
-export const HUMAN_INTERPRETATION_PROMPT_VERSION = 'lumia-human-v2';
-export const HUMAN_BASE_PROMPT_VERSION = 'lumia-human-v5.lean-portrait';
-export const HUMAN_PAID_PROMPT_VERSION = 'lumia-human-v4.paid-focus';
+export const HUMAN_INTERPRETATION_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v2');
+export const HUMAN_BASE_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v5.lean-portrait');
+export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v4.paid-focus');
 // v5.daily-canvas: личный дневной разбор генерится ЕДИНЫМ полотном за один запрос
 // с прокинутыми транзит→натал аспектами. Бамп версии инвалидирует старый посекционный
 // кеш (ключи human_v2.daily.*), новый код читает только новый ключ human_v2.canvas.*.
-export const HUMAN_DAILY_PROMPT_VERSION = 'your-horoscope-v4.daily-distinct-scenes';
+export const HUMAN_DAILY_PROMPT_VERSION = withAppVoiceVersion('your-horoscope-v4.daily-distinct-scenes');
 
-export const HUMAN_BASE_CACHE_KEY = 'human_v2.base';
+export const HUMAN_BASE_CACHE_KEY = withAppVoiceCacheKey('human_v2.base');
 
 export const HUMAN_FREE_SECTION_KEYS = [
   'base_portrait',
@@ -225,7 +226,7 @@ export function isHumanDailySectionKey(value: string): value is HumanDailySectio
 }
 
 export function humanPaidCacheKey(sectionKey: HumanPaidSectionKey): string {
-  return `human_v2.paid.${sectionKey}`;
+  return withAppVoiceCacheKey(`human_v2.paid.${sectionKey}`);
 }
 
 export function humanDailyCacheKey(dateKey: string, sectionKey: HumanDailySectionKey): string {

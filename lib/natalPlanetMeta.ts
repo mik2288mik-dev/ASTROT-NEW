@@ -1,4 +1,5 @@
 import type { Language, NatalChartData, PlanetInsightTag, PlanetPosition } from '../types';
+import { withAppVoiceCacheKey } from './appVoice';
 import { getElementForSign, ZODIAC_SIGNS, type ZodiacSign } from './zodiac-utils';
 
 export type NatalPlanetKey =
@@ -133,5 +134,5 @@ export function buildPlanetInsightCacheKey(
   calculationVersion?: string | null
 ): string {
   const safeVersion = String(calculationVersion || 'default').trim() || 'default';
-  return `planet:${planetId}:lang:${language === 'en' ? 'en' : 'ru'}:calc:${safeVersion}`;
+  return withAppVoiceCacheKey(`planet:${planetId}:lang:${language === 'en' ? 'en' : 'ru'}:calc:${safeVersion}`);
 }

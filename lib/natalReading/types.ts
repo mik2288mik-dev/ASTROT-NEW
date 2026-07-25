@@ -1,12 +1,10 @@
+import { withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
+
 /**
  * Types for the new long-scroll natal reading screen.
  *
  * Storage map (re-uses existing content_interpretations CHECK constraints):
- *   portrait → variant='anchor', cache_key='reading.portrait.v1'      (free)
- *   aspects  → variant='anchor', cache_key='reading.aspects.v1'       (free)
- *   week     → variant='weekly', cache_key='reading.week.YYYY-WW'     (free)
- *   today    → variant='daily',  cache_key='reading.today.YYYY-MM-DD' (premium)
- *   dive_*   → variant='full',   cache_key='reading.dive.<topic>.v1'  (premium)
+ *   Cache keys include APP_VOICE_VERSION through withAppVoiceCacheKey.
  */
 
 export type NatalReadingArchetype = {
@@ -62,16 +60,16 @@ export type NatalReadingDeepDive = {
 };
 
 /** Cache key helpers — keep in sync with API endpoints. */
-export const NATAL_READING_PORTRAIT_KEY = 'reading.portrait.v1';
-export const NATAL_READING_ASPECTS_KEY = 'reading.aspects.v1';
-export const NATAL_READING_PORTRAIT_PROMPT = 'natal_reading.portrait.v1';
-export const NATAL_READING_ASPECTS_PROMPT = 'natal_reading.aspects.v1';
-export const NATAL_READING_WEEK_PROMPT = 'natal_reading.week.v1';
-export const NATAL_READING_TODAY_PROMPT = 'natal_reading.today.v1';
-export const NATAL_READING_DIVE_PROMPT = 'natal_reading.dive.v1';
+export const NATAL_READING_PORTRAIT_KEY = withAppVoiceCacheKey('reading.portrait.v1');
+export const NATAL_READING_ASPECTS_KEY = withAppVoiceCacheKey('reading.aspects.v1');
+export const NATAL_READING_PORTRAIT_PROMPT = withAppVoiceVersion('natal_reading.portrait.v1');
+export const NATAL_READING_ASPECTS_PROMPT = withAppVoiceVersion('natal_reading.aspects.v1');
+export const NATAL_READING_WEEK_PROMPT = withAppVoiceVersion('natal_reading.week.v1');
+export const NATAL_READING_TODAY_PROMPT = withAppVoiceVersion('natal_reading.today.v1');
+export const NATAL_READING_DIVE_PROMPT = withAppVoiceVersion('natal_reading.dive.v1');
 
 export function readingDiveCacheKey(topic: NatalReadingDeepDiveKey): string {
-  return `reading.dive.${topic}.v1`;
+  return withAppVoiceCacheKey(`reading.dive.${topic}.v1`);
 }
 
 export function readingWeekCacheKey(date: Date = new Date()): string {
@@ -82,12 +80,12 @@ export function readingWeekCacheKey(date: Date = new Date()): string {
   const week = 1 + Math.round(
     ((tmp.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7
   );
-  return `reading.week.${tmp.getUTCFullYear()}-${String(week).padStart(2, '0')}`;
+  return withAppVoiceCacheKey(`reading.week.${tmp.getUTCFullYear()}-${String(week).padStart(2, '0')}`);
 }
 
 export function readingTodayCacheKey(date: Date = new Date()): string {
   const y = date.getUTCFullYear();
   const m = String(date.getUTCMonth() + 1).padStart(2, '0');
   const d = String(date.getUTCDate()).padStart(2, '0');
-  return `reading.today.${y}-${m}-${d}`;
+  return withAppVoiceCacheKey(`reading.today.${y}-${m}-${d}`);
 }

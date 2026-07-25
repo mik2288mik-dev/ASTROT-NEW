@@ -1,9 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import {
+  buildForecastDailyCacheKey,
   buildForecastDaypartCacheKey,
   buildForecastFullDayUnlockCacheKey,
 } from '../lib/forecastFullDay';
+import { APP_VOICE_VERSION } from '../lib/appVoice';
 import { getDefaultCacheKeyForContent } from '../lib/contentArchitecture';
 import {
   getMoscowIsoWeekKey,
@@ -71,17 +73,18 @@ describe('content cache architecture', () => {
     });
 
     it('uses non-date cache keys for natal anchor and full', () => {
-      expect(NATAL_ANCHOR_CACHE_KEY).toBe('base');
-      expect(NATAL_FULL_CACHE_KEY).toBe('personality');
+      expect(NATAL_ANCHOR_CACHE_KEY).toBe(`base:voice:${APP_VOICE_VERSION}`);
+      expect(NATAL_FULL_CACHE_KEY).toBe(`personality:voice:${APP_VOICE_VERSION}`);
       expect(NATAL_ANCHOR_CACHE_KEY).not.toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(NATAL_FULL_CACHE_KEY).not.toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(getDefaultCacheKeyForContent('natal', 'anchor')).toBe(NATAL_ANCHOR_CACHE_KEY);
-      expect(getDefaultCacheKeyForContent('natal', 'full')).toBe(NATAL_FULL_CACHE_KEY);
+      expect(getDefaultCacheKeyForContent('natal', 'anchor')).toBe('base');
+      expect(getDefaultCacheKeyForContent('natal', 'full')).toBe('personality');
     });
 
     it('scopes planet insight by planet and calculation version', () => {
       const key = buildPlanetInsightCacheKey('venus', 'ru', 'calc-v1');
       expect(key).toMatch(/^planet:venus:/);
+      expect(key).toContain(`:voice:${APP_VOICE_VERSION}`);
       expect(key).not.toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
   });
@@ -101,15 +104,16 @@ describe('content cache architecture', () => {
       expect(getDefaultCacheKeyForContent('forecast', 'evening')).toBe(`${TODAY}:evening`);
       expect(getDefaultCacheKeyForContent('forecast', 'weekly')).toBe(ISO_WEEK);
       expect(getDefaultCacheKeyForContent('forecast', 'monthly')).toBe(MONTH);
-      expect(buildForecastDaypartCacheKey(TODAY, 'morning')).toBe(`${TODAY}:morning`);
+      expect(buildForecastDailyCacheKey(TODAY)).toBe(`${TODAY}:voice:${APP_VOICE_VERSION}`);
+      expect(buildForecastDaypartCacheKey(TODAY, 'morning')).toBe(`${TODAY}:morning:voice:${APP_VOICE_VERSION}`);
       expect(buildForecastFullDayUnlockCacheKey(TODAY)).toBe(TODAY);
     });
   });
 
   describe('natal living period key', () => {
-    it('uses periodKey (currently daily Moscow date) via buildNatalLivingCacheKey', () => {
+    it('versions the generated living cache key without changing the base period key', () => {
       const periodKey = getCurrentNatalPeriodKey();
-      expect(buildNatalLivingCacheKey(periodKey)).toBe(periodKey);
+      expect(buildNatalLivingCacheKey(periodKey)).toBe(`${periodKey}:voice:${APP_VOICE_VERSION}`);
       expect(getDefaultCacheKeyForContent('natal', 'living')).toBe(periodKey);
     });
   });

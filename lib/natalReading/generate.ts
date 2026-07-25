@@ -1,8 +1,8 @@
 import { llmJson, llmTagged } from '../anthropic';
 import type { NatalChartData, UserProfile } from '../../types';
+import { getAppSystemVoice } from '../appVoice';
 import { serializeChartForPrompt } from './chartSerializer';
 import {
-  NATAL_READING_SYSTEM,
   buildAspectsPrompt,
   buildDeepDivePrompt,
   buildPortraitPrompt,
@@ -34,7 +34,7 @@ export async function generatePortrait(
 ): Promise<NatalReadingPortrait> {
   const serialized = serializeChartForPrompt(profile, chart);
   const raw = await llmTagged({
-    system: NATAL_READING_SYSTEM,
+    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildPortraitPrompt(serialized),
     model: {
       accessTier: 'free',
@@ -67,7 +67,7 @@ export async function generateAspects(
 ): Promise<NatalReadingAspects> {
   const serialized = serializeChartForPrompt(profile, chart);
   const result = await llmJson<NatalReadingAspects>({
-    system: NATAL_READING_SYSTEM,
+    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildAspectsPrompt(serialized),
     model: {
       accessTier: 'free',
@@ -104,7 +104,7 @@ export async function generateWeek(
   sunday.setDate(monday.getDate() + 6);
   const fmt = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   const result = await llmJson<NatalReadingWeek>({
-    system: NATAL_READING_SYSTEM,
+    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildWeekPrompt(serialized, { from: fmt(monday), to: fmt(sunday) }),
     model: {
       accessTier: 'premium',
@@ -132,7 +132,7 @@ export async function generateToday(
     weekday: 'long',
   });
   const result = await llmJson<NatalReadingToday>({
-    system: NATAL_READING_SYSTEM,
+    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildTodayPrompt(serialized, dateLabel),
     model: {
       accessTier: 'premium',
@@ -159,7 +159,7 @@ export async function generateDeepDive(
   const topic: DeepDiveTopic = DEEP_DIVE_TOPICS[key];
   const serialized = serializeChartForPrompt(profile, chart);
   const result = await llmJson<NatalReadingDeepDive>({
-    system: NATAL_READING_SYSTEM,
+    system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildDeepDivePrompt(serialized, topic),
     model: {
       accessTier: 'premium',

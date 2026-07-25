@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { NatalChartData, UserProfile } from '../../../../types';
+import { withAppVoiceCacheKey } from '../../../../lib/appVoice';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import { generatePremiumWeeklyForecast } from '../../../../lib/forecastContent';
@@ -92,6 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const periodKey = parsePeriodKey(req);
+  const contentCacheKey = withAppVoiceCacheKey(periodKey);
 
   const context = await resolveContext(
     userId.trim(),
@@ -183,7 +185,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier,
       contentSurface: 'forecast',
       contentVariant: 'weekly',
-      cacheKey: periodKey,
+      cacheKey: contentCacheKey,
     });
 
     if (!result.interpretation) {
@@ -255,7 +257,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     accessTier: tierToGenerate,
     contentSurface: 'forecast',
     contentVariant: 'weekly',
-    cacheKey: periodKey,
+    cacheKey: contentCacheKey,
   });
 
   if (existing.interpretation) {
@@ -304,7 +306,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier: tierToGenerate,
       contentSurface: 'forecast',
       contentVariant: 'weekly',
-      cacheKey: periodKey,
+      cacheKey: contentCacheKey,
     }),
     operation: 'forecast-weekly-generation',
     readCached: async () => {
@@ -314,7 +316,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         accessTier: tierToGenerate,
         contentSurface: 'forecast',
         contentVariant: 'weekly',
-        cacheKey: periodKey,
+        cacheKey: contentCacheKey,
       });
       return layer.interpretation
         ? { value: layer.interpretation, source: layer.source }
@@ -333,8 +335,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             accessTier: tierToGenerate,
             contentSurface: 'forecast',
             contentVariant: 'weekly',
-            cacheKey: periodKey,
-            inputHash: periodKey,
+            cacheKey: contentCacheKey,
+            inputHash: contentCacheKey,
             content: forecast,
             modelTier,
             validFrom,
@@ -346,8 +348,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             accessTier: tierToGenerate,
             contentSurface: 'forecast',
             contentVariant: 'weekly',
-            cacheKey: periodKey,
-            inputHash: periodKey,
+            cacheKey: contentCacheKey,
+            inputHash: contentCacheKey,
             content: forecast,
             modelTier,
             validFrom,
@@ -383,7 +385,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     interpretation: lockResult.value,
     source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
-    cacheKey: periodKey,
+    cacheKey: contentCacheKey,
     periodKey,
     entitlement: entitlement.entitlement,
   });

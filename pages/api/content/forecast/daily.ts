@@ -10,6 +10,7 @@ import {
   withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
+import { buildForecastDailyCacheKey } from '../../../../lib/forecastFullDay';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 
@@ -102,6 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const chartData = context.chartData;
+  const cacheKey = buildForecastDailyCacheKey(dateKey);
 
   if (req.method === 'GET') {
     const result = await getContentLayer({
@@ -110,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier: 'free',
       contentSurface: 'forecast',
       contentVariant: 'daily',
-      cacheKey: dateKey,
+      cacheKey,
     });
 
     if (!result.interpretation) {
@@ -137,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     accessTier: 'free',
     contentSurface: 'forecast',
     contentVariant: 'daily',
-    cacheKey: dateKey,
+    cacheKey,
   });
 
   if (existing.interpretation) {
@@ -156,7 +158,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       accessTier: 'free',
       contentSurface: 'forecast',
       contentVariant: 'daily',
-      cacheKey: dateKey,
+      cacheKey,
     }),
     operation: 'forecast-daily-generation',
     readCached: async () => {
@@ -166,7 +168,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         accessTier: 'free',
         contentSurface: 'forecast',
         contentVariant: 'daily',
-        cacheKey: dateKey,
+        cacheKey,
       });
       return layer.interpretation
         ? { value: layer.interpretation, source: layer.source }
@@ -184,8 +186,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             accessTier: 'free',
             contentSurface: 'forecast',
             contentVariant: 'daily',
-            cacheKey: dateKey,
-            inputHash: dateKey,
+            cacheKey,
+            inputHash: cacheKey,
             content: forecast,
             modelTier,
             validFrom: `${dateKey}T00:00:00.000Z`,
@@ -197,8 +199,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             accessTier: 'free',
             contentSurface: 'forecast',
             contentVariant: 'daily',
-            cacheKey: dateKey,
-            inputHash: dateKey,
+            cacheKey,
+            inputHash: cacheKey,
             content: forecast,
             modelTier,
             validFrom: `${dateKey}T00:00:00.000Z`,
@@ -217,6 +219,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     interpretation: lockResult.value,
     source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
-    cacheKey: dateKey,
+    cacheKey,
   });
 }

@@ -21,7 +21,7 @@ import {
 } from './date-utils';
 import { buildDailyAstroEvidence } from './natalReadings';
 import { buildOpenAIChatParams } from './openaiChat';
-import { getAppSystemPrompt } from './prompts';
+import { getAppSystemVoice, withAppVoiceVersion } from './appVoice';
 import { detectTransitAspects } from './transitAspects';
 import {
   getCurrentTransits,
@@ -29,7 +29,7 @@ import {
   type PlanetTransit,
 } from './transits-calculator';
 
-export const PERIOD_EXTRAS_PROMPT_VERSION = 'period-extras.personal-transits-v1';
+export const PERIOD_EXTRAS_PROMPT_VERSION = withAppVoiceVersion('period-extras.personal-transits-v1');
 export const PERIOD_EXTRAS_CALCULATION_VERSION = 'period-extras-sampled-transits-v1';
 
 const openai = process.env.OPENAI_API_KEY
@@ -464,18 +464,18 @@ function periodLabel(periodType: PersonalPeriodType, periodKey: string, language
 function periodLogic(periodType: PersonalPeriodType, language: 'ru' | 'en'): string {
   if (language === 'en') {
     const values: Record<PersonalPeriodType, string> = {
-      daily: 'specific events today: messages, meetings, answers, changed plans, and morning/day/evening timing',
-      weekly: 'development across seven days: beginning, middle, end, key days, a conversation, a returning topic, and what changes by the weekend',
-      monthly: 'the main change, strongest and tense weeks, a start or decision window, and what becomes clear by month end',
-      yearly: 'the main story, key months, long processes, a major choice, first versus second half, and the result by year end',
+      daily: 'possible situations today: messages, meetings, answers, changed plans, and morning/day/evening timing',
+      weekly: 'possible development across seven days: beginning, middle, end, key days, a conversation, a returning topic, and the direction by the weekend',
+      monthly: 'the main direction, stronger and tenser weeks, a start or decision window, and the direction by month end',
+      yearly: 'the main direction, key months, long processes, a major choice, and differences between the first and second half',
     };
     return values[periodType];
   }
   const values: Record<PersonalPeriodType, string> = {
-    daily: 'конкретные события сегодня: сообщения, встречи, ответы, изменение планов и разница между утром, днём и вечером',
-    weekly: 'развитие ситуации за семь дней: начало, середина и конец недели, важные дни, разговор, возвращение темы и изменение к выходным',
-    monthly: 'главное изменение, сильная и напряжённая недели, момент старта или выбора и ясность к концу месяца',
-    yearly: 'главная история, ключевые месяцы, длительные процессы, крупный выбор, первая и вторая половина и результат к концу года',
+    daily: 'возможные ситуации сегодня: сообщения, встречи, ответы, изменение планов и разница между утром, днём и вечером',
+    weekly: 'возможное развитие ситуации за семь дней: начало, середина и конец недели, важные дни, разговор, возвращение темы и направление к выходным',
+    monthly: 'главное направление, более сильные и напряжённые недели, момент старта или выбора и направление к концу месяца',
+    yearly: 'главное направление, ключевые месяцы, длительные процессы, крупный выбор и разница между первой и второй половиной года',
   };
   return values[periodType];
 }
@@ -494,7 +494,7 @@ function buildPrompt(
       "id": "short-stable-id",
       "title": "short personal question tied to this exact period",
       "teaser": "one concrete preview sentence",
-      "fullText": "2-4 short paragraphs with a direct useful answer and timing",
+      "fullText": "2-4 short paragraphs with an answer and timing",
       "visualTag": "communication|relationships|work|money|goals|family|friendship|energy",
       "basisIds": ["signal-1"]
     }
@@ -519,10 +519,9 @@ Each card must cover a different active theme. Do not repeat one conclusion with
 Titles must be short, personal, concrete questions about this exact period and promise a specific answer.
 Do not use dry category titles such as Work, Love, Money, Energy, Relationships, Career, Advice.
 Do not ask permanent personality questions. This is period forecasting, not a natal personality reading.
-Do not use astrology terms in titles. Do not use fatalism, inevitability, slang, coaching filler, mystical clichés, or scare tactics.
+Do not use astrology terms in titles.
 Teasers must be one short concrete sentence. fullText must give a clear answer, include real timing from the evidence, and stay readable.
 Do not mention that you are an AI. Do not mention zodiac-sign horoscopes.
-The voice is a bold, precise, kind and honest friend: direct, lively, confident, simple, without rudeness or teenage language.
 Period logic: ${periodLogic(periodType, language)}.
 Period: ${periodType}; key: ${periodKey}; label: ${periodLabel(periodType, periodKey, language)}.
 User first name: ${cleanLine(profile.name, 80) || (language === 'ru' ? 'пользователь' : 'user')}.
@@ -748,7 +747,7 @@ export async function generatePeriodExtras(
   });
   const completion = await openai.chat.completions.create(buildOpenAIChatParams(assignment.model, {
     messages: [
-      { role: 'system', content: getAppSystemPrompt(language) },
+      { role: 'system', content: getAppSystemVoice(language) },
       { role: 'user', content: buildPrompt(profile, periodType, periodKey, language, evidence) },
     ],
     temperature: 0.76,

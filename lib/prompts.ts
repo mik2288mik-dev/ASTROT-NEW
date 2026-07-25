@@ -6,22 +6,6 @@
  */
 
 import { AstroEvidenceItem, NatalChartData, NatalHumanSection, UserProfile } from "../types";
-import { getAppSystemVoice } from "./appVoice";
-
-/**
- * Глобальный SYSTEM-слой для всех интерпретаций = ЕДИНЫЙ голос приложения
- * (lib/appVoice.ts, из docs/APP_VOICE.md). Отдельного тона у Астры больше нет —
- * голос описан в одном месте; task-промпты ниже только добавляют свою задачу поверх.
- */
-export const SYSTEM_PROMPT_APP = getAppSystemVoice('ru');
-
-/**
- * Языкозависимый SYSTEM-голос. Предпочтительнее захардкоженной ru-константы
- * SYSTEM_PROMPT_APP: EN-генерации должны получать англоязычный голос, иначе
- * модель видит русский system при английском задании. Используй в местах, где
- * известен язык пользователя.
- */
-export const getAppSystemPrompt = (language: 'ru' | 'en'): string => getAppSystemVoice(language);
 
 /**
  * FREE natal intro — hook, «это про меня», желание читать дальше
@@ -29,9 +13,9 @@ export const getAppSystemPrompt = (language: 'ru' | 'en'): string => getAppSyste
  */
 export const addLanguageInstruction = (prompt: string, language: 'ru' | 'en'): string => {
   if (language === 'en') {
-    return prompt + '\n\n**LANGUAGE: Write in English only.** Use natural, fluent English as if native. Avoid a translated feel. The tone (warm, precise, personal, soft) must work in English.';
+    return prompt + '\n\n**LANGUAGE: Write in English only.**';
   }
-  return prompt + '\n\n**ЯЗЫК: Пиши только на русском.** Используй естественный, живой русский как родной. Избегай ощущения перевода. Тон (тёплый, точный, личный, мягкий) должен сохраняться.';
+  return prompt + '\n\n**ЯЗЫК: Пиши только на русском.**';
 };
 
 /**
@@ -129,27 +113,23 @@ ${natalDataJson}
 Current transits:
 ${transitsJson}
 
-Task: create a serious personal daily forecast.
+Task: create a personal daily forecast.
 
 Rules:
 - Speak to the user as a real person, not as a zodiac sign.
-- The result must feel personal, emotionally precise, modern, and useful.
 - Focus on emotions, relationships, money, decisions, pressure, opportunity, and direction.
 - This free daily flow contains two layers inside one response:
   1) a short daily horoscope layer in headline / summary / chance / risk / focus
   2) a free daily natal card layer in reading / context / advice
 - This is the free daily layer: one coherent reading for the whole day. Do not split the day into morning/day/evening here — that is reserved for premium.
-- The user should feel "yes, this is exactly what my day feels like."
 - Free layer should already help, not tease. But do not try to map every nuance, every scenario, or every part of the day — richer situational detail belongs to premium.
 - The daily natal card part should mix the user's inner background with a few recognizable moments or triggers the day may bring.
-- No mystical fluff.
 - No "color of the day", "number of the day", moon gimmicks, or decorative astrology.
-- No vague filler. Be concrete and human.
-- Free layer should still feel valuable and real.
+- Base every conclusion on the natal chart or current transits. Present possible situations as possibilities, not known events.
 
 Return strict JSON with these fields:
 - headline: one strong personal line for today, max 90 chars
-- summary: 1-2 sentences explaining the tone of the day like a short horoscope
+- summary: 1-2 sentences explaining the main conclusion for the day
 - chance: one practical opening of the day
 - risk: one practical risk of the day
 - focus: one clear focus for the day
@@ -189,18 +169,15 @@ ${natalDataJson}
 Current transits:
 ${transitsJson}
 
-Task: create a premium-quality personal forecast for this specific part of the day.
+Task: create a personal forecast for this specific part of the day.
 
 Rules:
-- This is the full daily reading used by Premium. It must feel meaningfully stronger than the free daily reading through richer nuance, sharper situational precision, and a clearer sense of what is happening in real life.
-- It should feel close to the user's real state, decisions, relationships, money, and tension points in this exact part of the day.
-- Explicitly differ from a single-day summary: this slice is about how the day *feels and behaves* in this part of the day (energy, social tone, practical risk, inner tempo).
+- This is the full daily reading used by Premium. Cover more situational detail than the free daily reading.
+- Explicitly differ from a single-day summary: this slice is about this part of the day, including social context, practical risk, and pace.
 - Treat it like a full daily natal card segment: mix the user's inner state with concrete situations, triggers, and moments that may surface in this slot.
 - When relevant, surface one concrete scenario or behavioral pattern the user may actually run into in this slot.
-- Keep it personal, emotionally accurate, modern, and composed.
-- No mystical fluff, no gimmicks, no vague empty reassurance.
-- The text should feel like a calm personal consultation, not a generic horoscope.
 - Use the slot (${slot}) to change the rhythm and practical emphasis.
+- Base every conclusion on the natal chart or current transits. Present possible situations as possibilities, not known events.
 
 Return strict JSON with these fields:
 - headline: one strong slot-specific line, max 90 chars
@@ -232,26 +209,21 @@ Task: create the user's natal chart reading.
 
 Rules:
 - This is the first complete natal reading a user sees. It must feel valuable on its own.
-- It must feel personal, emotionally accurate, modern, and grounded in real natal calculation.
-- The user should immediately feel "this is about me", not just "this sounds nice".
-- Explain the person, not astrology mechanics.
+- Ground every conclusion in the natal calculation and explain its meaning instead of astrology mechanics.
 - Focus on character, emotional habits, first impression, strengths, decision style, and what is worth noticing.
 - Include recognizable everyday examples inside the reading: choices, closeness, conflict, rhythm, self-perception.
-- No mystical fluff, no fate spam, no empty praise, no cheap sales language.
 - No long lists of planets/houses/aspects. Translate the chart into human language.
 - Do not greet the user. Do not write "hello", "hi", "привет", or the user's name as an opener.
 - Do not use user-facing internal words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
-- Follow the app voice: no mystical, fatalistic, or bureaucratic wording.
-- Keep language human and mature. No slang, no theatrical phrasing, no astrological conspiracy wording.
 
 Return strict JSON with these fields:
 - headline: one strong user-facing title, max 80 chars
-- summary: 1-2 quiet sentences explaining the overall tone of the chart
+- summary: 1-2 sentences explaining the overall conclusion from the chart
 - reading: 5-7 short paragraphs separated by "\\n\\n"; no greeting and no name opener
 - threeAnchors: exactly 3 objects with title/body. Titles must be Sun/Moon/Rising in the response language; bodies explain them as human roles: character, emotions, first impression.
 - perceivedByOthers: 2-3 sentences about how people usually read this person and what they may misunderstand.
 - strengths: exactly 3 short observations with life examples.
-- watchouts: exactly 3 soft warnings without drama.
+- watchouts: exactly 3 warnings tied to the supplied data.
 - dictionaryTerms: 5-7 objects with term/meaning. Explain simple terms such as Sun, Moon, Rising, Sign, Aspect, House in everyday language.
 
 Return only JSON.`;
@@ -280,20 +252,17 @@ ${transitsJson}
 Task: create today's personal natal reading.
 
 Rules:
-- This is a fuller daily reading inside the user's natal chart. It should feel precise, useful, and current.
+- This is a fuller daily reading inside the user's natal chart.
 - Explain what is activated right now and how it may show up in real life today.
-- Focus on today's personal rhythm, concrete situations, relationships, work/money state, evening decompression, one repeating pattern, and one honest question.
+- Focus on today's personal rhythm, concrete situations, relationships, work/money state, evening decompression, one repeating pattern, and one question.
 - Show how this period may affect choices, closeness, work rhythm, confidence, or pressure points with recognizable examples.
-- Be personal, emotionally precise, serious, modern, and useful.
-- No mystical fluff, no vague filler, no decorative astrology language.
-- Write like a calm, intelligent personal guide, not a therapist and not a fortune-teller.
 - Do not greet the user. Do not open with the user's name.
 - Do not use user-facing internal words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
 - Do not give medical, legal, or financial instructions. For work/money, speak about state, focus, pressure, and decision hygiene.
 
 Return strict JSON with these fields:
 - headline: one strong title for today, max 80 chars
-- summary: 1-2 sentences on today's tone
+- summary: 1-2 sentences with today's main conclusion
 - fullPersonality: 4-6 short paragraphs about how this person lives, reacts, chooses, and builds contact. This is a fuller but still readable personality interpretation.
 - today: 2-4 short paragraphs about what is activated today.
 - daySituations: exactly 3 objects with title/body. Titles should be concrete, e.g. "In conversation", "In work", "Inside yourself" / "В разговоре", "В делах", "Внутри себя".
@@ -301,48 +270,26 @@ Return strict JSON with these fields:
 - workMoneyToday: 2-3 sentences about focus, state, decisions, anxiety, and practical rhythm. No financial advice.
 - evening: 2-3 sentences about what to release or understand by evening.
 - repeatingScenario: 2-3 sentences about one pattern especially worth seeing now.
-- questionOfDay: one honest question for self-observation.
+- questionOfDay: one question for self-observation.
 
 Return only JSON.`;
 };
-
-const NATAL_EDITORIAL_BANNED = [
-  'это читается через',
-  'может проявляться',
-  'здесь описывается',
-  'полезно проверить',
-  'тема связана с',
-  'день просит',
-  'внутренняя точность',
-  'чужой шум',
-  'выбрать из ясности',
-  'пространство',
-  'слой',
-  'премиум',
-  'day asks',
-  'inner precision',
-  'outside noise',
-  'choose from clarity',
-];
 
 function natalEvidenceJson(evidence: AstroEvidenceItem[] | undefined) {
   return JSON.stringify((evidence || []).slice(0, 8), null, 2);
 }
 
-function natalEditorialRules(language: string) {
+function natalTaskRules(language: string) {
   return `Language: ${language}
 
-Editorial standard:
-- Write as an astrologer-editor, not as a motivational quote generator.
-- Every section must clearly come from astroEvidence: planet/sign/house/aspect/transit -> human translation -> concrete life situation -> soft orientation.
+Task rules:
+- Every section must clearly come from astroEvidence: planet/sign/house/aspect/transit -> human translation -> concrete life situation.
 - Use only facts present in astroEvidence and the chart JSON. If a fact is not present, do not invent it.
 - Do not greet the user and do not open with the user's name.
 - Do not use internal product words: free, premium, layer, unlock, upsell, sale, trial, "бесплатный", "премиум", "слой", "живой слой", "твоя основа", "опорная карта".
-- Follow the app voice: no fatalistic, mystical, or bureaucratic wording.
-- Avoid these exact empty formulas: ${NATAL_EDITORIAL_BANNED.map((item) => `"${item}"`).join(', ')}.
 - No medical, legal, or financial advice. For money/work, speak about state, focus, pressure, and decision hygiene.
 - Short paragraphs. No emoji. No decorative symbols.
-- The text should feel personal because the chart facts are specific, not because it uses vague intimacy.`;
+- Tie every statement to specific chart facts.`;
 }
 
 export const createNatalAnchorPromptV3 = (
@@ -353,11 +300,11 @@ export const createNatalAnchorPromptV3 = (
   const natalDataJson = JSON.stringify(natalData, null, 2);
   const evidenceJson = natalEvidenceJson(astroEvidence);
 
-  return `${natalEditorialRules(profile.language)}
+  return `${natalTaskRules(profile.language)}
 
 Task: create the canonical natal reading in a human planet-by-planet format.
 
-This is a complete first reading, not a teaser. It should feel like a real personal chart, grounded in planets, signs, houses, and aspects, but written in clean human language.
+This is a complete first reading, not a teaser. Ground it in planets, signs, houses, and aspects.
 
 astroEvidence:
 ${evidenceJson}
@@ -368,7 +315,7 @@ ${natalDataJson}
 Required JSON shape:
 {
   "headline": "max 80 chars",
-  "lead": "1-2 sentences about the tone of the whole chart",
+  "lead": "1-2 sentences with the overall conclusion from the chart",
   "sections": [
     {
       "id": "character",
@@ -407,7 +354,7 @@ export const createNatalFullPrompt = (
   const natalDataJson = JSON.stringify(natalData, null, 2);
   const evidenceJson = natalEvidenceJson(astroEvidence);
 
-  return `${natalEditorialRules(profile.language)}
+  return `${natalTaskRules(profile.language)}
 
 Task: create the canonical full natal personality interpretation in a human planet-by-planet format.
 
@@ -459,7 +406,7 @@ export const createNatalLivingPromptV3 = (
   const transitsJson = JSON.stringify(transits || {}, null, 2);
   const evidenceJson = natalEvidenceJson(astroEvidence);
 
-  return `${natalEditorialRules(profile.language)}
+  return `${natalTaskRules(profile.language)}
 
 Period: ${periodKey}
 
@@ -540,13 +487,11 @@ ${options.anchorSummary}
 Task: write a short personal natal insight for one placement in the app's dashboard insight panel.
 
 Rules:
-- You are an astrologer-psychologist writing for a real person.
 - Explain what ${options.planetLabel} in ${options.planetSign}${options.house ? ` in house ${options.house}` : ''} means in this person's life.
-- Use warm, modern second-person language: you / your.
-- Keep it personal and concrete, with recognizable emotional or daily-life texture.
-- No mystical fluff, no fear language, no long astrology lectures.
+- Use second-person language: you / your.
+- Include a recognizable emotional or daily-life example tied to the placement.
+- No long astrology lectures.
 - No bullet lists.
-- The result should feel clear and intimate inside a compact mobile panel.
 - Keep the body to 2-3 sentences.
 
 Return strict JSON with:
@@ -651,16 +596,14 @@ ${natalDataJson}
 Current transits (context):
 ${transitsJson}
 
-Task: FREE weekly layer — one honest, compact orientation for this calendar week.
+Task: FREE weekly layer — one compact orientation for this calendar week.
 
 Rules:
 - Short and useful: this is not the premium deep layer.
-- Personal, modern, emotionally precise; no mystical fluff.
-- User should feel recognized, not just informed.
 - Give one clear emotional pattern for the week and one practical focus that is worth carrying through the week.
 - Make it useful now, but do not try to cover every domain or every scenario. Premium adds more examples and maps more nuance.
 - No color/number/lucky day gimmicks. No moon-sign fluff for entertainment.
-- Speak to the real person; connect week-scale tone to chart + transits.
+- Connect the weekly conclusion to the chart and transits.
 
 Return strict JSON:
 - headline: max 90 chars, one strong line for the week
@@ -696,13 +639,12 @@ ${transitsJson}
 Task: PREMIUM weekly layer — full-class forecast for the week (stronger than free, not just longer).
 
 Rules:
-- This is a premium weekly consultation, not a teaser expanded for length.
+- This is the full premium weekly forecast, not a teaser expanded for length.
 - Combine depth, situational precision, and recognizable life scenarios across the week.
-- Be emotionally precise and useful for decisions, relationships, work/money, tension, opportunity, and timing.
+- Cover decisions, relationships, work/money, tension, opportunity, and timing.
 - Clearly richer than the free weekly layer; different class of interpretation.
 - When relevant, show how the week may unfold in actual behavior, conversations, pressure, or momentum.
-- Write with the tone of a calm personal consultation.
-- No gimmicks (no color/number games). No vague filler.
+- No color/number games.
 
 Return strict JSON:
 - headline: max 90 chars
@@ -713,7 +655,7 @@ Return strict JSON:
 - challenges: 2-3 sentences
 - relationships: 2-3 sentences
 - career: 2-3 sentences (work, money, direction)
-- guidance: 3-4 sentences direct orientation
+- guidance: 3-4 sentences with orientation
 - reading: 4-6 short paragraphs separated by "\\n\\n"
 
 Return only JSON.`;
@@ -744,8 +686,7 @@ ${transitsJson}
 Task: FREE monthly layer — compact month orientation.
 
 Rules:
-- Brief but serious; personal; no gimmicks.
-- User should feel "yes, this is my month", not just get a decorative summary.
+- Keep the response within the required compact structure.
 - Give one recognizable monthly tension or emphasis and one practical focus.
 - Free layer should already orient the month, but not replace the fuller premium month reading with more nuance, examples, and situational detail.
 
@@ -782,11 +723,9 @@ ${transitsJson}
 Task: PREMIUM monthly layer — deep month reading (premium class, not inflated length).
 
 Rules:
-- This is a premium monthly consultation: dense, nuanced, and grounded in how the month is actually likely to unfold.
+- Cover the month with more detail than the free monthly layer.
 - Combine depth, situational precision, and real-life scenarios across relationships, money/work, energy, and choices.
 - Show tradeoffs, emotional undercurrents, and where momentum may build or stall.
-- Write with the tone of a calm personal consultation.
-- No gimmicks.
 
 Return strict JSON:
 - headline: max 90 chars

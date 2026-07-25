@@ -128,10 +128,9 @@ function stripAllowedTechnicalTokens(content: string): string {
   return prepared;
 }
 
-/** Remove negative allowlists and voice denylist sections — forbidden words listed as bans, not user copy. */
+/** Remove legacy negative allowlists — forbidden words listed as bans, not user copy. */
 function stripNegativeAllowlists(content: string): string {
   let prepared = content;
-  prepared = prepared.replace(/export const NATAL_BANNED_PHRASES = \[[\s\S]*?\];/g, '');
   prepared = prepared.replace(/ЗАПРЕЩЕНО:[\s\S]*?(?=СТИЛЬ:)/g, '');
   prepared = prepared.replace(/FORBIDDEN:[\s\S]*?(?=STYLE:)/g, '');
   return prepared;
@@ -231,13 +230,15 @@ describe('app content style', () => {
     expect(violations).toEqual([]);
   });
 
-  it('lib/appVoice.ts exports voice blocks for prompts', () => {
+  it('lib/appVoice.ts exposes the versioned system voice API', () => {
     const voicePath = path.join(ROOT, 'lib', 'appVoice.ts');
     expect(fs.existsSync(voicePath)).toBe(true);
     const content = fs.readFileSync(voicePath, 'utf8');
-    expect(content).toContain('APP_VOICE_BLOCK_EN');
-    expect(content).toContain('APP_VOICE_BLOCK_RU');
+    expect(content).toContain('APP_VOICE_VERSION');
     expect(content).toContain('getAppSystemVoice');
+    expect(content).toContain('hasAppVoiceViolation');
+    expect(content).toContain('withAppVoiceVersion');
+    expect(content).toContain('withAppVoiceCacheKey');
     expect(content).not.toContain('@deprecated');
   });
 });

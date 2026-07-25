@@ -11,18 +11,18 @@ import {
 } from './natalPlanetMeta';
 import { buildPlanetInsight } from './planetInsightContent';
 import {
-  getAppSystemPrompt,
   addLanguageInstruction,
   createPlanetInsightPrompt,
   type PlanetInsightAIResponse,
 } from './prompts';
+import { getAppSystemVoice, withAppVoiceVersion } from './appVoice';
 import { hasActivePremium } from './accessMatrix';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-export const PLANET_INSIGHT_PROMPT_VERSION = 'planet_insight.v1';
+export const PLANET_INSIGHT_PROMPT_VERSION = withAppVoiceVersion('planet_insight.v1');
 
 export async function generatePlanetInsight(
   profile: UserProfile,
@@ -71,7 +71,7 @@ export async function generatePlanetInsight(
 
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
-        { role: 'system', content: getAppSystemPrompt(language === 'en' ? 'en' : 'ru') },
+        { role: 'system', content: getAppSystemVoice(language === 'en' ? 'en' : 'ru') },
         { role: 'user', content: prompt },
       ],
       temperature: 0.8,

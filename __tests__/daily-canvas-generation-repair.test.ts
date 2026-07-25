@@ -21,10 +21,13 @@ describe('daily canvas generation repair prompt', () => {
       getDailyCanvasModelResolved: jest.fn().mockResolvedValue('daily-model-test'),
     }));
     jest.doMock('../lib/appVoice', () => ({
-      APP_VOICE_BLOCK_RU: '',
-      APP_SYSTEM_VOICE_RU: 'SYSTEM VOICE RU',
-      APP_SYSTEM_VOICE_EN: 'SYSTEM VOICE EN',
+      APP_VOICE_VERSION: 'test',
       getAppSystemVoice: jest.fn().mockReturnValue('SYSTEM VOICE'),
+      hasAppVoiceCliche: jest.fn().mockReturnValue(false),
+      hasAppVoiceMysticism: jest.fn().mockReturnValue(false),
+      hasAppVoiceViolation: jest.fn().mockReturnValue(false),
+      withAppVoiceVersion: jest.fn((value: string) => `${value}+voice.test`),
+      withAppVoiceCacheKey: jest.fn((value: string) => `${value}:voice:test`),
     }));
     jest.doMock('../lib/transits-calculator', () => ({
       getCurrentTransits: jest.fn().mockResolvedValue(null),
@@ -49,10 +52,10 @@ describe('daily canvas generation repair prompt', () => {
     )).resolves.toMatchObject({ hero_title: validCanvas().hero_title });
 
     expect(llmJson).toHaveBeenCalledTimes(2);
-    expect(llmJson.mock.calls[0][0].system).toContain('В итоговом пользовательском JSON нельзя называть планеты');
-    expect(llmJson.mock.calls[0][0].system).toContain('Обычные слова «дом», «дома», «домашний», «квартира» разрешены');
-    expect(llmJson.mock.calls[0][0].user).toContain('hero_hook должен быть содержательной выжимкой');
-    expect(llmJson.mock.calls[0][0].user).toContain('не спеши, не распыляйся, выбери одно дело');
+    expect(llmJson.mock.calls[0][0].system).toBe('SYSTEM VOICE');
+    expect(llmJson.mock.calls[0][0].user).toContain('В пользовательском тексте не должно быть астрологических терминов');
+    expect(llmJson.mock.calls[0][0].user).toContain('Обычные слова «дом», «дома», «домашний», «квартира» разрешены');
+    expect(llmJson.mock.calls[0][0].user).toContain('hero_hook — одно-два коротких законченных предложения');
     expect(llmJson.mock.calls[0][0].user).toContain('Не размазывай один совет про шаг, ясность, конкретность или одно сообщение');
     expect(llmJson.mock.calls[1][0].user).toContain('EMPTY_HERO_TITLE');
     expect(llmJson.mock.calls[1][0].user).toContain('EMPTY_TOPIC_BODY');

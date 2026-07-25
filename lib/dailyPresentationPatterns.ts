@@ -2,13 +2,13 @@ export type Locale = 'ru' | 'en';
 
 export const DAILY_PRESENTATION_PATTERNS = [
   {
-    key: 'direct_observation',
-    ru: 'Назови наблюдение прямо: что видно в поведении или выборе, без захода издалека.',
+    key: 'observation_lead',
+    ru: 'Начни с наблюдения о том, что видно в поведении или выборе.',
     en: 'Open with a plain observation: what shows in behavior or choice, without a long setup.',
   },
   {
     key: 'contradiction',
-    ru: 'Построй фразу на живом противоречии: хочется одного, полезнее другое.',
+    ru: 'Построй фразу на противоречии: хочется одного, полезнее другое.',
     en: 'Frame the line around a real tension: one impulse pulls, another move helps more.',
   },
   {
@@ -17,14 +17,14 @@ export const DAILY_PRESENTATION_PATTERNS = [
     en: 'Show a possible everyday manifestation, such as a message, purchase, task, or meeting, without claiming it already happened.',
   },
   {
-    key: 'sharp_question',
-    ru: 'Сформулируй острый вопрос, который сразу ведет к сути, без драматизации.',
-    en: 'Use a sharp question that goes straight to the point without turning dramatic.',
+    key: 'question_lead',
+    ru: 'Сформулируй вопрос, который сразу ведёт к сути.',
+    en: 'Use a question that goes straight to the point.',
   },
   {
-    key: 'gentle_warning',
-    ru: 'Дай мягкое предупреждение: где стоит быть аккуратнее и почему.',
-    en: 'Give a gentle warning: where to be more careful and why.',
+    key: 'risk_and_reason',
+    ru: 'Покажи риск: где стоит быть аккуратнее и почему.',
+    en: 'Show a risk: where to be more careful and why.',
   },
   {
     key: 'permission',
@@ -42,9 +42,9 @@ export const DAILY_PRESENTATION_PATTERNS = [
     en: 'Offer a clear choice between two understandable moves.',
   },
   {
-    key: 'light_humor',
-    ru: 'Разрешен легкий юмор: одна теплая улыбка, без шуток вместо смысла.',
-    en: 'Allow light humor: one warm wink, never a joke instead of meaning.',
+    key: 'illustrative_analogy',
+    ru: 'Добавь одну короткую наглядную аналогию, если она помогает объяснить смысл.',
+    en: 'Add one short illustrative analogy if it helps explain the point.',
   },
   {
     key: 'missed_detail',

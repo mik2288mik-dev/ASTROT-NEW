@@ -9,7 +9,13 @@ import type {
   UserProfile,
 } from '../types';
 import { llmJson } from './anthropic';
-import { APP_VOICE_BLOCK_RU, getAppSystemVoice } from './appVoice';
+import {
+  APP_VOICE_VERSION,
+  getAppSystemVoice,
+  hasAppVoiceCliche,
+  hasAppVoiceMysticism,
+  hasAppVoiceViolation,
+} from './appVoice';
 import { getCurrentTransits } from './transits-calculator';
 import { detectTransitAspects, formatTransitAspectsRu } from './transitAspects';
 import { computeDayScoreFromTransits } from './dailyAstroSignal';
@@ -250,13 +256,8 @@ function buildChartSummary(profile: UserProfile, chart: NatalChartData): ChartSu
   };
 }
 
-// Хеш текста голоса: любое изменение APP_VOICE_BLOCK_RU (смена голоса приложения)
-// меняет input-hash → кешированные разборы протухают и перегенерятся новым голосом,
-// без ручного бампа promptVersion при каждой правке голоса.
-const VOICE_HASH = createHash('sha256').update(APP_VOICE_BLOCK_RU).digest('hex').slice(0, 16);
-
-export function getDailyVoiceVersion(locale: Locale = 'ru'): string {
-  return createHash('sha256').update(getAppSystemVoice(locale)).digest('hex').slice(0, 16);
+export function getDailyVoiceVersion(_locale: Locale = 'ru'): string {
+  return APP_VOICE_VERSION;
 }
 
 export function buildHumanInputHash(input: {
@@ -280,49 +281,43 @@ export function buildHumanInputHash(input: {
       sectionKey: input.sectionKey || 'base',
       dateKey: input.dateKey || null,
       promptVersion: input.promptVersion,
-      voiceHash: input.locale ? getDailyVoiceVersion(input.locale) : VOICE_HASH,
+      voiceVersion: getDailyVoiceVersion(input.locale),
     }))
     .digest('hex');
 }
 
-// SYSTEM = единый голос приложения; ниже только задачные (не-тональные) правила разбора карты.
-const HUMAN_SYSTEM_PROMPT = `${APP_VOICE_BLOCK_RU}
+function withHumanTaskRules(task: string): string {
+  return `ТЕХНИЧЕСКИЕ ПРАВИЛА:
+- Используй только переданные расчёты и данные пользователя.
+- Если упоминаешь планету, знак или дом, сразу объясни его значение в описываемом поведении или ситуации; не показывай градусы.
+- РОД: в данных есть user.gender. «male» — мужской род, «female» — женский, «unspecified» — нейтрально; никогда не угадывай пол по имени.
+- Не давай медицинских, психиатрических, юридических или финансовых диагнозов и гарантий.
+- Ответ — только валидный JSON по заданной схеме, без markdown вне JSON.
 
-## ЗАДАЧА — разбор натальной карты
-
-Переводи расчёты по дате, времени и месту рождения в обычный человеческий язык: читатель не знает астрологии и не должен её знать, чтобы тебя понять. Если упоминаешь планету, знак или дом — сразу объясняй, что это значит в поведении, без градусов и терминов.
-
-Каждый важный вывод отвечает на четыре вопроса: как это видно в обычной жизни; в каких ситуациях проявляется; что человеку с этим делать; почему это может быть полезно.
-
-Не обещай конкретные события, доход, любовь или здоровье. Не давай медицинских и психиатрических диагнозов.
-
-РОД: в данных есть user.gender. «male» — мужской род («ты сделал», «ты готов»), «female» — женский («ты сделала», «ты готова»), «unspecified» — нейтрально, без родовых окончаний в адрес читателя; никогда не угадывай пол по имени.
-
-Ответ — только валидный JSON по заданной схеме, без markdown вне JSON.`;
+${task}`;
+}
 
 function buildBasePrompt(summary: ChartSummary): string {
-  return `Создай короткий, но сильный бесплатный портрет личности по натальной карте. Объём небольшой — каждое слово должно работать. Лучше меньше текста, но точнее и живее.
+  return withHumanTaskRules(`Создай короткий бесплатный портрет личности по натальной карте.
 
 Данные пользователя и карты:
 ${JSON.stringify(summary, null, 2)}
 
 Верни JSON NatalInterpretationReport. Поля:
 - "userName": имя пользователя;
-- "shortCard": { "title": "Если коротко", "text": "1–2 предложения — суть характера человеческим языком", "keywords": ["4–5 коротких слов-черт, без названий знаков и планет"], "advice": "одна тёплая практичная мысль (1 фраза)" };
+- "shortCard": { "title": "Если коротко", "text": "1–2 предложения — суть характера без названий знаков и планет", "keywords": ["4–5 коротких слов-черт, без названий знаков и планет"], "advice": "одна практичная мысль (1 фраза)" };
 - "freeSections": массив ровно из 4 элементов в этом порядке и с этими ключами/заголовками (каждый ~70–100 слов, всего ~300–380 слов):
   1. { "key": "base_portrait", "title": "Кто ты по сути", ... } — цельный портрет: характер, как принимаешь решения, как входишь в контакт. Синтез Солнца/Луны/Асцендента, а не перечисление планет.
   2. { "key": "strengths", "title": "Сильные стороны", ... } — на что реально опираться, с 1 примером из жизни.
-  3. { "key": "growth_zones", "title": "Где бывает трудно", ... } — слабые места и зоны роста, мягко и честно, без диагнозов и запугивания.
+  3. { "key": "growth_zones", "title": "Где бывает трудно", ... } — слабые места и зоны роста, без диагнозов и запугивания.
   4. { "key": "main_advice", "title": "Как с этим жить", ... } — 1 практичный совет: как пользоваться сильными сторонами и обходить слабые.
   у каждой секции: "subtitle" (короткий, 2–4 слова), "access": "free", "content" (строка), "bullets" (2–3 очень коротких вывода).
 - "paidSections": [] и "premiumSections": [] — пустые массивы.
 
-Требования к тексту:
-- пиши так, будто ты лучший астролог-человек: точно, тепло, с конкретными примерами (работа, деньги, отношения, разговоры, решения). Никакой воды и общих фраз, которые подойдут кому угодно;
-- коротко и по делу — это важнее, чем «побольше написать»;
-- НИКАКОЙ эзотерики, мистики и космизма — пиши как про реального человека (подробнее в системных правилах);
-- опирайся на Солнце, Луну и Асцендент (Асцендент — только если время рождения надёжно). Если время неизвестно/неточно, мягко упомяни это один раз;
-- не повторяй мысли между секциями, не дублируй абзацы.`;
+Требования:
+- добавь конкретные примеры из работы, денег, отношений, разговоров или решений и привяжи их к данным карты;
+- опирайся на Солнце, Луну и Асцендент (Асцендент — только если время рождения надёжно). Если время неизвестно/неточно, укажи это один раз;
+- не повторяй мысли между секциями, не дублируй абзацы.`);
 }
 
 /**
@@ -432,7 +427,7 @@ ${JSON.stringify(transitData || {}, null, 2)}
 Правила именно этого раздела:
 ${focusRules}
 
-Стиль: живой русский текст, без мистической воды, без обещаний событий, дохода, любви, здоровья или юридических/финансовых гарантий. Пиши так, чтобы пользователь сразу понял, как прожить эту сферу сегодня.
+Ограничения: не обещай конкретные события, доход, любовь или здоровье и не давай юридических или финансовых гарантий.
 
 Структура content:
 1. Главная тема сферы сегодня
@@ -524,7 +519,7 @@ function buildDailyGoalsPrompt(
     dateKey,
     transitData,
     'дела, цели, приоритет и один реальный шаг',
-    'Смотри только на цели и дела: что выбрать главным, где не распыляться, какой шаг реально завершить сегодня, как не перегрузить день.'
+    'Смотри только на цели и дела: что выбрать главным, какой шаг реально завершить сегодня и как учитывать доступную нагрузку.'
   );
 }
 
@@ -573,40 +568,23 @@ function hasDuplicateParagraphs(text: string): boolean {
   return new Set(paragraphs).size !== paragraphs.length;
 }
 
-// Явная эзотерика/космизм, которой не должно быть в «человеческом» разборе.
-// Намеренно НЕ включаем «энергия/энергетика» — это слово легитимно в дневных разборах
-// (нагрузка/восстановление) и в обычной речи.
-export const NATAL_BANNED_PHRASES = [
-  'карм', 'чакр', 'астрал', 'эзотери', 'вселенн', 'мироздан', 'вибрац',
-  'предназначен', 'предначертан', 'высшие силы', 'тонкие матери', 'духовный путь',
-];
-const ESOTERIC_PATTERN = new RegExp(`(${NATAL_BANNED_PHRASES.join('|')})`, 'i');
-
 const DAILY_ASTRO_TEXT_PATTERN =
   /(?<![а-яё])(солнце|луна|меркурий|венера|марс|юпитер|сатурн|уран|нептун|плутон|хирон|асцендент)(?![а-яё])|транзит[а-яё]*|натальн[а-яё]*|аспект[а-яё]*|квадрат[а-яё]*|трин[а-яё]*|оппозици[а-яё]*|секстил[а-яё]*|соединени[а-яё]*|орб[а-яё]*|астрологическ[а-яё]*\s+дом[а-яё]*|(?:перв[а-яё]*|втор[а-яё]*|трет[а-яё]*|четверт[а-яё]*|пят[а-яё]*|шест[а-яё]*|седьм[а-яё]*|восьм[а-яё]*|девят[а-яё]*|десят[а-яё]*|одиннадцат[а-яё]*|двенадцат[а-яё]*|\d+\s*[-–]?\s*(?:й|ый|ой)?)\s+дом[а-яё]*|планет[а-яё]*\s+в\s+дом[а-яё]*|управител[а-яё]*\s+дом[а-яё]*|дом[а-яё]*\s+(?:карты|гороскопа)|\b(sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|ascendant|natal|transit|aspect|square|trine|opposition|sextile|conjunction|orb)\b|\b(?:astrological\s+house|(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d+(?:st|nd|rd|th)?)\s+house|planet\s+in\s+(?:the\s+)?house|ruler\s+of\s+(?:the\s+)?house|house\s+ruler)\b/iu;
 
 const DAILY_GENERIC_ADVICE_PATTERNS: RegExp[] = [
-  /(?<![а-яё])не\s+(?:спеши|торопись)(?![а-яё])/iu,
-  /не\s+распыля(?:йся|ться|йтесь)/iu,
   /(?:выбери|выбрать)\s+(?:одно|один|одну)\s+(?:дело|шаг|задач\w*|приоритет|фокус)/iu,
   /сосредоточ(?:ься|иться|тесь)\s+на\s+главн/iu,
   /держ[иите]\s+курс/iu,
-  /сохраня(?:й|ть|йте)\s+баланс/iu,
-  /доверь(?:ся|тесь)\s+себе/iu,
   /говори(?:ть|те)?\s+прямо/iu,
-  /замедли(?:сь|ться|тесь)/iu,
-  /прислуша(?:йся|ться|йтесь)\s+к\s+себе/iu,
   /отпусти(?:ть|те)?\s+лишн/iu,
   /действу(?:й|йте|овать)\s+осознанно/iu,
   /день\s+(?:про|о)\s+(?:фокус|ясност)/iu,
-  /энергия\s+дня/iu,
   /чувства\s+громче/iu,
-  /вс[её]\s+встанет\s+на\s+свои\s+места/iu,
   /угод[а-яё]*\s+всем/iu,
   /уменьш(?:и|ить|ай|айте)\s+шаг/iu,
   /срежь\s+лишн[а-яё]*\s+сложност/iu,
   /разбей\s+дела?\s+на\s+коротк[а-яё]*\s+(?:подход|шаг)/iu,
-  /\b(?:do not rush|slow down|stay focused|trust yourself|keep your balance|let go|act mindfully)\b/iu,
+  /\b(?:stay focused|trust yourself|let go|act mindfully)\b/iu,
 ];
 
 const DAILY_NONSENSE_PATTERN =
@@ -649,7 +627,7 @@ function hasBadText(text: string): boolean {
     /undefined|null/i.test(text) ||
     /искусственн(ый|ого) интеллект|as an ai/i.test(compact) ||
     englishSigns.test(text) ||
-    ESOTERIC_PATTERN.test(compact) ||
+    hasAppVoiceViolation(compact) ||
     /[{}[\]]/.test(text) ||
     /\d+\s*°/.test(text) ||
     /(Солнце|Луна|Марс|Венера|Меркурий)\s*·/.test(text) ||
@@ -1331,7 +1309,7 @@ export async function generateHumanBaseReport(profile: UserProfile, chart: Natal
   return generateWithRetry<NatalInterpretationReport>(
     async () => {
       const raw = await llmJson<NatalInterpretationReport>({
-        system: HUMAN_SYSTEM_PROMPT,
+        system: getAppSystemVoice(localeForProfile(profile)),
         // Дешёвая модель (fast-тир, gpt-5.4-mini): экономим бюджет. Качество держим за счёт
         // жёсткого промпта и короткого формата.
         user: prompt,
@@ -1408,8 +1386,8 @@ async function generateDailySectionWithPrompt(
   return generateWithRetry<InterpretationSection>(
     async () => {
       const raw = await llmJson<InterpretationSection>({
-        system: HUMAN_SYSTEM_PROMPT,
-        user: prompt,
+        system: getAppSystemVoice(localeForProfile(profile)),
+        user: withHumanTaskRules(prompt),
         model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
         maxTokens: 2200,
         temperature: 0.62,
@@ -1567,37 +1545,6 @@ function localeForProfile(profile: UserProfile): Locale {
   return profile.language === 'en' ? 'en' : 'ru';
 }
 
-function buildDailyPackageSystemPrompt(locale: Locale): string {
-  const task = locale === 'en'
-    ? `## DAILY PACKAGE TASK
-
-Use the app voice above as the mandatory SYSTEM voice. The user-facing output must be English.
-
-Use the natal chart, transit positions, and calculated interactions only as internal source data. Give each topic a different real meaning. State the point in the first sentence, show one possible ordinary-life manifestation, and give one useful guide.
-
-The final user-facing JSON must not name planets, aspects, houses, transits, natal chart terms, or explain astrological mechanics. Do not write lines like "Venus presses on Jupiter" or "transit Sun". The reader should never need astrology vocabulary to understand the day.
-
-Avoid generic advice that could fit any person on any day: "do not rush", "stay focused", "trust yourself", "keep balance", "let go", "speak directly", or close paraphrases. Never invent a definite event or the user's profession, job title, family status, income, or other social role. Describe a concrete scene only as a possible manifestation of the supplied data.
-
-Support the user through the specific situation, without praise, lectures, a verdict, or a separate motivational ending. Do not repeat one conclusion across fields and never add sentences merely to reach a word count.
-
-Return only valid JSON.`
-    : `## ЗАДАЧА ДНЕВНОГО ПАКЕТА
-
-Используй голос приложения выше как обязательный SYSTEM-голос. Пользовательский текст должен быть на русском.
-
-Используй натальную карту, позиции транзитов и посчитанные взаимодействия только как внутренние исходные данные. Дай каждой теме свой реальный смысл. С первого предложения назови суть, покажи одно возможное проявление в обычной жизни и дай один полезный ориентир.
-
-В итоговом пользовательском JSON нельзя называть планеты, аспекты, транзиты, натальную карту и астрологические механики. Не пиши конструкции вроде «Венера давит на Юпитер», «транзитное Солнце», «натальный центр», «седьмой дом», «планета в доме», «управитель дома». Обычные слова «дом», «дома», «домашний», «квартира» разрешены, когда речь о быте и семье. Читатель должен понять день без астрологических терминов.
-
-Запрещены универсальные советы, которые подходят кому угодно в любой день: «не спеши», «не распыляйся», «выбери одно дело», «держи курс», «сохраняй баланс», «доверься себе», «говори прямо», «замедлись», «отпусти лишнее», «не пытайся угодить всем», «уменьши шаг» и очевидные перефразировки. Не выдумывай свершившееся событие, профессию, должность, семейный статус, доход или другую социальную роль пользователя. Конкретную сцену описывай только как возможное проявление переданных данных.
-
-Поддерживай пользователя через конкретную ситуацию, без похвалы, поучения, приговора и отдельного мотивационного финала. Не повторяй один вывод в разных полях и не добавляй предложения ради количества слов.
-
-Ответ — только валидный JSON.`;
-  return `${getAppSystemVoice(locale)}\n\n${task}`;
-}
-
 function patternPlanBlock(plan: DailyPresentationPlan, locale: Locale): string {
   return DAILY_PACKAGE_FIELD_KEYS
     .map((field) => `- ${field}: ${plan[field]} — ${getDailyPresentationInstruction(plan[field], locale)}`)
@@ -1650,22 +1597,17 @@ ${patternPlanBlock(plan, locale)}
 
 Rules:
 - The word "today" may appear no more than twice in the whole package.
-- Start every field with its direct point. Then briefly show a possible ordinary-life manifestation and give one useful guide; stop when the thought is complete.
 - User-facing text must not contain astrology vocabulary: planet names, aspects, "transit", "natal", "square", "trine", "opposition", or explanations of calculations. Do not use explicit astrology-house constructions such as "astrological house", "seventh house", "planet in a house", or "ruler of the house"; ordinary home/house wording is allowed for family or everyday life.
 - Never show raw astrology sentences such as "Mars presses on the Moon" or "Jupiter supports natal Jupiter"; translate the signal into a normal life situation.
-- Do not use generic template advice or close paraphrases: do not rush, do not scatter yourself, choose one thing, focus on the main thing, keep course, keep balance, trust yourself, speak directly, slow down, listen to yourself, let go, act mindfully, do not try to please everyone, make the step smaller.
 - If a line could be shown to any person on any day, ground it in a possible everyday manifestation: a message, purchase, deadline, promise, bill, request, family agreement, invitation, tiredness, or conversation. Never claim that one of these events definitely exists.
-- Never invent the user's profession, job title, family status, income, or social role. Work language must fit any kind of useful activity without assigning a career.
-- Keep support tied to the specific tension. No empty reassurance, lecture, verdict, or motivational ending.
 - hero_title, hero_hook, and all hooks must not start the same way.
 - hero_hook is one or two short, complete sentences: useful enough to orient the reader, short enough to invite opening the full reading.
 - Do not repeat one thought across hero, overview, and sections; if the hero is about a mood, the overview must synthesize different tensions, and each section must use a separate recognizable situation with a different practical move.
 - Hooks tease the section; they must not retell the full body.
 - The eight cards must not use one repeated syntactic construction.
 - The sections must be genuinely different: love is about closeness/expectations, money about purchases/obligations, work about tasks/people/deadlines, goals about plans/promises, family about home/relatives, friendship about invitations/requests, energy about load/rest, communication about messages/questions/refusals. Never spread the same advice about one step, clarity, specificity, or one message across multiple sections.
-- Humor is allowed in at most one or two places in the whole package, only if the selected pattern makes it natural.
-- No fatalism, no invented astrological data, no medical/legal/financial guarantees.
-- Never pad a field to a word count. Two strong sentences are enough when the point, manifestation, and guide are complete. Respect the maximums below as ceilings only.
+- Do not invent astrological data.
+- Never pad a field to a word count. Two complete sentences are enough when the point, manifestation, and guide are complete. Respect the maximums below as ceilings only.
 
 Return JSON with exactly this shape:
 {
@@ -1706,22 +1648,17 @@ ${patternPlanBlock(plan, locale)}
 
 Правила:
 - Слово «сегодня» можно использовать не больше двух раз во всем пакете.
-- Каждое поле начинай с прямой сути. Затем коротко покажи возможное бытовое проявление и дай один полезный ориентир; остановись, когда мысль закончена.
 - В пользовательском тексте не должно быть астрологических терминов: названий планет, аспектов, слов «транзит», «натальный», «квадрат», «трин», «оппозиция» и объяснений расчётов. Не используй явные астрологические конструкции про дома: «астрологический дом», «седьмой дом», «планета в доме», «управитель дома». Обычные слова «дом», «дома», «домашний», «квартира» разрешены для быта и семьи.
 - Не показывай сырую астрологию вроде «Марс давит на Луну» или «Юпитер поддерживает натальный Юпитер»; переводи сигнал в обычную жизненную ситуацию.
-- Не используй шаблонные советы и близкие перефразировки: не спеши, не распыляйся, выбери одно дело, сосредоточься на главном, держи курс, сохраняй баланс, доверься себе, говори прямо, замедлись, прислушайся к себе, отпусти лишнее, действуй осознанно, не пытайся угодить всем, уменьши шаг.
 - Если фразу можно показать любому человеку в любой день, привяжи её к возможному бытовому проявлению: сообщению, покупке, сроку, обещанию, счёту, просьбе, семейной договорённости, приглашению, усталости или разговору. Не утверждай, что одно из этих событий точно существует.
-- Не выдумывай профессию, должность, семейный статус, доход или социальную роль пользователя. Рабочая тема должна подходить любой полезной деятельности без назначения человеку карьеры.
-- Связывай поддержку с конкретным напряжением. Без пустого утешения, поучения, приговора и мотивационного финала.
 - hero_title, hero_hook и все hooks не должны начинаться одинаково.
 - hero_hook — одно-два коротких законченных предложения: достаточно полезных для ориентира, но не заменяющих полный разбор.
 - Не повторяй одну мысль в hero, overview и разделах: если hero задает настроение, overview собирает несколько разных напряжений, а каждая сфера показывает отдельную узнаваемую ситуацию и другое практическое действие.
 - Hooks только открывают тему; они не пересказывают body.
 - Восемь карточек не должны идти одной синтаксической конструкцией.
 - Разделы должны реально отличаться: любовь — близость/ожидания, деньги — покупки/обязательства, работа — задачи/люди/сроки, цели — планы/обещания, семья — дом/родственники, друзья — приглашения/просьбы, силы — нагрузка/отдых, разговоры — переписки/вопросы/отказы. Не размазывай один совет про шаг, ясность, конкретность или одно сообщение по нескольким разделам.
-- Юмор максимум в одном-двух местах на весь пакет и только когда он уместен.
-- Без фатализма, без выдуманных астрологических данных, без медицинских, юридических и финансовых гарантий.
-- Не добивай поля до количества слов. Если суть, проявление и ориентир закончены в двух сильных предложениях, остановись. Максимумы ниже — только потолок.
+- Не выдумывай астрологические данные.
+- Не добивай поля до количества слов. Если суть, проявление и ориентир закончены в двух предложениях, остановись. Максимумы ниже — только потолок.
 
 Верни JSON строго такой структуры:
 {
@@ -1871,7 +1808,7 @@ function dailyPackageBadTextCodes(text: string, locale: Locale): DailyCanvasVali
   const compact = text.toLowerCase();
   if (/undefined|null/i.test(text)) pushCode(codes, 'BAD_TEXT_UNDEFINED_NULL');
   if (/искусственн(ый|ого) интеллект|as an ai/i.test(compact)) pushCode(codes, 'BAD_TEXT_AI_DISCLOSURE');
-  if (ESOTERIC_PATTERN.test(compact)) pushCode(codes, 'BAD_TEXT_ESOTERIC');
+  if (hasAppVoiceMysticism(compact)) pushCode(codes, 'BAD_TEXT_ESOTERIC');
   if (DAILY_ASTRO_TEXT_PATTERN.test(compact)) pushCode(codes, 'BAD_TEXT_ASTRO_TERMS');
   if (hasGenericDailyAdvice(compact)) pushCode(codes, 'BAD_TEXT_GENERIC_ADVICE');
   if (DAILY_NONSENSE_PATTERN.test(compact)) pushCode(codes, 'BAD_TEXT_NONSENSE');
@@ -1904,7 +1841,8 @@ function hasIncompleteDailyEnding(text: string): boolean {
 }
 
 function hasGenericDailyAdvice(text: string): boolean {
-  return DAILY_GENERIC_ADVICE_PATTERNS.some((pattern) => pattern.test(text));
+  return hasAppVoiceCliche(text) ||
+    DAILY_GENERIC_ADVICE_PATTERNS.some((pattern) => pattern.test(text));
 }
 
 function hasConcreteDailyScene(text: string): boolean {
@@ -2185,7 +2123,7 @@ export async function generateDailyCanvas(
     try {
       const attemptPrompt = appendDailyCanvasRepairInstructions(prompt, repairErrors);
       const raw = await llmJson<Partial<DailyCanvas>>({
-        system: buildDailyPackageSystemPrompt(locale),
+        system: getAppSystemVoice(locale),
         user: attemptPrompt,
         model: { accessTier: 'premium', contentSurface: 'natal', contentVariant: 'living' },
         // Полотно — длинный связный текст: отдельный слот модели (app_settings → env → дефолт).

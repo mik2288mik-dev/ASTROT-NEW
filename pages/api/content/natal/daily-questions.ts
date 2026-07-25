@@ -2,7 +2,12 @@ import { createHash } from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { llmJson } from '../../../../lib/anthropic';
 import { getDailyCanvasModelResolved } from '../../../../lib/appSettings';
-import { getAppSystemVoice } from '../../../../lib/appVoice';
+import {
+  getAppSystemVoice,
+  hasAppVoiceViolation,
+  withAppVoiceCacheKey,
+  withAppVoiceVersion,
+} from '../../../../lib/appVoice';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import {
   buildContentGenerationLockKey,
@@ -28,9 +33,8 @@ import {
 
 export const config = { maxDuration: 60 };
 
-const PROMPT_VERSION = 'your-horoscope-v2.personal-daily-questions';
+const PROMPT_VERSION = withAppVoiceVersion('your-horoscope-v2.personal-daily-questions');
 const QUESTION_COUNT = 3;
-const FORBIDDEN_COPY = /не\s+спеш|не\s+тороп|замедл|возьми\s+пауз|дай\s+себе\s+время|всё\s+станет\s+понятно|все\s+станет\s+понятно|один\s+разговор\s+покажет|энерги[яи]\s+дня|ритм\s+дня|сфер[аы]\s+дня|доверься\s+себе|прислушайся\s+к\s+себе|сыграет\s+тебе\s+на\s+руку|где\s+у\s+тебя\s+больше\s+шансов|что\s+стоит\s+заметить|какой\s+момент\s+дня/i;
 const REAL_SCENE = /сообщ|переписк|ответ|звон|встреч|покуп|цен|деньг|сч[её]т|задач|работ|срок|дедлайн|обещ|просьб|отказ|дом|родн|друг|устал|план|приглаш|разговор|человек|партн[её]р|началь|коллег/i;
 
 function readDateKey(req: NextApiRequest): string {
@@ -124,7 +128,7 @@ function normalizeQuestions(value: unknown): PersonalizedDailyQuestionsPayload |
     if (item.teaser.length < 14 || item.teaser.length > 135) return null;
     if (item.answer.length < 100 || item.answer.length > 760) return null;
     const all = `${item.question}\n${item.teaser}\n${item.answer}`;
-    if (FORBIDDEN_COPY.test(all) || !REAL_SCENE.test(all)) return null;
+    if (hasAppVoiceViolation(all) || !REAL_SCENE.test(all)) return null;
   }
 
   return { questions: normalized as PersonalizedDailyQuestion[] };
@@ -149,10 +153,10 @@ The three questions must cover three different life areas. Do not summarize sect
 Each item:
 - topic: one of ${DAILY_CANVAS_TOPIC_KEYS.join(', ')}; topics must not repeat;
 - question: 4-10 words, ending with ?, phrased like a real thought in someone's head;
-- teaser: 5-16 words, a direct sharp answer or angle, not clickbait;
+- teaser: 5-16 words, states the answer or angle without clickbait;
 - answer: 45-85 words, two short paragraphs. Start with the point, then explain what to notice or do.
 
-Do not invent that a specific person, message, offer, purchase, or conflict definitely exists. Use conditional wording where needed. No astrology words, coaching clichés, mystical fluff, fatalism, or generic advice. Never use versions of “slow down”, “take your time”, “trust yourself”, “everything will become clear”, or “one conversation will reveal everything”.
+Do not invent that a specific person, message, offer, purchase, or conflict definitely exists. Use conditional wording where needed. Do not use astrology terms.
 
 ${repair ? 'The previous result failed validation. Make every item concrete, distinct, concise, and fully compliant.' : ''}
 
@@ -170,21 +174,14 @@ ${JSON.stringify(packageForPrompt, null, 2)}
 Каждый элемент:
 - topic: одно из ${DAILY_CANVAS_TOPIC_KEYS.join(', ')}; темы не повторяются;
 - question: 4–10 слов, обязательно со знаком ?, звучит как настоящая мысль человека;
-- teaser: 5–16 слов, сразу даёт сильный и полезный угол, без пустой интриги;
+- teaser: 5–16 слов, сообщает ответ или угол без пустой интриги;
 - answer: 45–85 слов, два коротких абзаца. Первая фраза — суть. Дальше нормальное объяснение: что заметить и как поступить без лекции.
 
-Тон: дерзкий, молодой, живой, добрый и умный друг. Без литературщины и служебных слов.
-
-Запрещено:
-- «что сегодня может сыграть на руку», «где больше шансов», «какой разговор важен», «что стоит заметить»;
-- «не спеши», «не торопись», «замедлись», «возьми паузу», «дай себе время» и любые версии торможения;
-- «всё станет понятно», «один разговор покажет», «энергия дня», «ритм дня», «доверься себе»;
-- выдумывать, что конкретный человек, сообщение, предложение, покупка или конфликт точно существует. Если исходные данные только намекают на ситуацию — формулируй условно.
-- астрологические термины, фатализм, угрозы и обещания точного будущего.
+Не выдумывай, что конкретный человек, сообщение, предложение, покупка или конфликт точно существует. Если исходные данные только намекают на ситуацию — формулируй условно. Не используй астрологические термины.
 
 Не повторяй тексты карточек дословно. Вопрос, тизер и ответ должны быть написаны вместе и отвечать друг другу.
 
-${repair ? 'Прошлый вариант не прошёл проверку. Сделай каждый вопрос конкретным, живым, разным по теме и без единой запрещённой формулы.' : ''}
+${repair ? 'Прошлый вариант не прошёл проверку. Сделай каждый вопрос конкретным, отличающимся по теме и соответствующим ограничениям выше.' : ''}
 
 Верни только JSON:
 {"questions":[{"topic":"communication","question":"... ?","teaser":"...","answer":"...\n\n..."}]}`;
@@ -222,7 +219,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .update(`${baseInputHash}:${packageHash}`)
     .digest('hex');
   const window = getMoscowDayWindow(dateKey);
-  const cacheKey = `personal_daily.questions.user.${userId}.date.${dateKey}.locale.${locale}.v2`;
+  const cacheKey = withAppVoiceCacheKey(`personal_daily.questions.user.${userId}.date.${dateKey}.locale.${locale}.v2`);
   const cacheOpts = {
     accessTier: 'premium' as const,
     contentVariant: 'living' as const,

@@ -1,21 +1,6 @@
-import { createHash } from 'crypto';
 import type { FeatureAccessConfig, FeatureKey } from './accessMatrix';
 import { getFeatureAccessConfig } from './accessMatrix';
-import { APP_SYSTEM_VOICE_RU, APP_SYSTEM_VOICE_EN } from './appVoice';
-
-/**
- * Отпечаток текущего голоса приложения. Подмешивается в promptVersion каждого
- * AI-типа: когда меняется текст голоса (lib/appVoice.ts), хэш меняется →
- * кэш-ключи всех генераций сдвигаются → старый (доголосовой) текст перестаёт
- * подтягиваться из кэша и перегенерируется в новом голосе. Без этого правка
- * голоса «висла» в кэше до смены даты/ручного бампа promptVersion.
- */
-const VOICE_HASH = createHash('sha1')
-  .update(APP_SYSTEM_VOICE_RU)
-  .update('\0')
-  .update(APP_SYSTEM_VOICE_EN)
-  .digest('hex')
-  .slice(0, 8);
+import { withAppVoiceVersion } from './appVoice';
 
 export type GeneratedContentType =
   | 'push_daily'
@@ -65,7 +50,7 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
   push_daily: {
     type: 'push_daily', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 10, max: 15 },
     cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'push_daily.v2', purpose: 'Первая точка касания дня',
-    style: 'Одна мысль, без лирики и списков.', placements: ['push'], generationPolicy: 'once_per_day',
+    style: 'Одна мысль, без списков.', placements: ['push'], generationPolicy: 'once_per_day',
   },
   day_card: {
     type: 'day_card', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 35, max: 50 },
@@ -101,17 +86,17 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
   blind_spot: {
     type: 'blind_spot', featureKey: 'blind_spot', modelTier: 'main', words: { min: 80, max: 110 },
     cacheTtl: '7d', cacheScope: 'user_chart', promptVersion: 'blind_spot.v2', purpose: 'Что ты можешь не замечать',
-    style: 'Конкретно, без обвинений, мягко, но точно.', placements: ['home', 'natal'], generationPolicy: 'once_per_week',
+    style: 'Одна слепая зона поведения с одним примером и одним следующим действием.', placements: ['home', 'natal'], generationPolicy: 'once_per_week',
   },
   personal_daily: {
     type: 'personal_daily', featureKey: 'personal_daily', modelTier: 'main', words: { min: 0, max: 130 },
     cacheTtl: '24h', cacheScope: 'user_chart', promptVersion: 'personal_daily.v2', purpose: 'Личный прогноз на день',
-    style: 'Сначала суть, затем короткое жизненное проявление и один полезный ориентир; без обязательного минимума и без воды.', placements: ['home', 'horoscope'], generationPolicy: 'once_per_day',
+    style: 'Один вывод, одно возможное жизненное проявление и один ориентир; без обязательного минимума.', placements: ['home', 'horoscope'], generationPolicy: 'once_per_day',
   },
   natal_section: {
     type: 'natal_section', featureKey: 'natal_basic', modelTier: 'main', words: { min: 150, max: 200 },
     cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'natal_section.v2', purpose: 'Отдельный раздел натальной карты',
-    style: 'Цельный практичный разбор одной темы карты.', placements: ['natal'], generationPolicy: 'once_per_chart_version',
+    style: 'Цельный разбор одной темы карты.', placements: ['natal'], generationPolicy: 'once_per_chart_version',
   },
   deep_report: {
     type: 'deep_report', featureKey: 'deep_report', modelTier: 'deep', words: { min: 800, max: 1500 },
@@ -128,9 +113,7 @@ const NATAL_SECTION_FEATURES: Record<NatalSectionKey, FeatureKey> = {
 
 export function getContentPolicy(type: GeneratedContentType): ContentPolicy {
   const base = CONTENT_MATRIX[type];
-  // Голос — часть промпта, поэтому его отпечаток входит в версию: смена голоса
-  // инвалидирует кэш так же, как ручной бамп promptVersion.
-  return { ...base, promptVersion: `${base.promptVersion}+voice.${VOICE_HASH}` };
+  return { ...base, promptVersion: withAppVoiceVersion(base.promptVersion) };
 }
 
 export function listContentMatrix(): ContentPolicy[] {

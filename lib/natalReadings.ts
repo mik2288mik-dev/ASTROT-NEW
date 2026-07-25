@@ -11,14 +11,19 @@ import type {
 } from '../types';
 import type { CurrentTransits, PlanetTransit } from './transits-calculator';
 import { getMoscowTodayKey } from './date-utils';
+import {
+  hasAppVoiceViolation,
+  withAppVoiceCacheKey,
+  withAppVoiceVersion,
+} from './appVoice';
 import { ZODIAC_SIGNS, type ZodiacSign } from './zodiac-utils';
 
-export const NATAL_ANCHOR_PROMPT_VERSION = 'natal_anchor.planet_human_v4';
-export const NATAL_FULL_PROMPT_VERSION = 'natal_full.planet_human_v4';
-export const NATAL_LIVING_PROMPT_VERSION = 'natal_daily.editorial_v3';
+export const NATAL_ANCHOR_PROMPT_VERSION = withAppVoiceVersion('natal_anchor.planet_human_v4');
+export const NATAL_FULL_PROMPT_VERSION = withAppVoiceVersion('natal_full.planet_human_v4');
+export const NATAL_LIVING_PROMPT_VERSION = withAppVoiceVersion('natal_daily.editorial_v3');
 
-export const NATAL_ANCHOR_CACHE_KEY = 'base';
-export const NATAL_FULL_CACHE_KEY = 'personality';
+export const NATAL_ANCHOR_CACHE_KEY = withAppVoiceCacheKey('base');
+export const NATAL_FULL_CACHE_KEY = withAppVoiceCacheKey('personality');
 
 export const NATAL_CONTENT_ACTIVE_PROMPT_VERSIONS = [
   NATAL_ANCHOR_PROMPT_VERSION,
@@ -26,21 +31,10 @@ export const NATAL_CONTENT_ACTIVE_PROMPT_VERSIONS = [
   NATAL_LIVING_PROMPT_VERSION,
 ] as const;
 
-export const NATAL_BANNED_PHRASES = [
-  'это читается через',
-  'может проявляться',
-  'здесь описывается',
-  'полезно проверить',
-  'тема связана с',
-  'день просит',
-  'внутренняя точность',
-  'чужой шум',
-  'выбрать из ясности',
+const NATAL_FORBIDDEN_PRODUCT_TERMS = [
   'пространство',
   'слой',
   'премиум',
-  'судьба',
-  'магия',
 ];
 
 const SIGN_LABELS_RU: Record<string, string> = {
@@ -153,7 +147,7 @@ const FULL_SECTION_IDS = [
 ] as const;
 
 export function buildNatalLivingCacheKey(periodKey: string) {
-  return periodKey;
+  return withAppVoiceCacheKey(periodKey);
 }
 
 /**
@@ -523,7 +517,8 @@ export function buildDailyAstroEvidence(
 
 export function containsNatalBannedPhrase(content: unknown) {
   const haystack = JSON.stringify(content || '').toLowerCase();
-  return NATAL_BANNED_PHRASES.some((phrase) => haystack.includes(phrase.toLowerCase()));
+  return hasAppVoiceViolation(haystack) ||
+    NATAL_FORBIDDEN_PRODUCT_TERMS.some((phrase) => haystack.includes(phrase));
 }
 
 function evidenceText(evidence: AstroEvidenceItem[], fallback: string) {
