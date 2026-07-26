@@ -1,129 +1,142 @@
 # MVP Product And Content System
 
-This is the active product and content source of truth for "Tvoi Goroskop" / "Your Horoscope".
+This is the product-level source of truth for «Твой Гороскоп» / “Your Horoscope”. Runtime details that have not yet completed migration are explicitly marked below.
 
-## 1. MVP Functions
+## 1. MVP products
 
-- Home screen with a personal daily reading.
-- Daily, weekly, and monthly sign horoscopes.
-- Natal chart calculation and natal reading screens.
+- Personal forecast screen: `Сегодня / Неделя / Месяц / Год`.
+- Separate general `Зодиак` product with sign-based forecasts.
+- Natal chart calculation and natal readings.
 - Free sign compatibility.
-- Premium relationship reading by two saved charts.
-- Matrix of Destiny with free short and Premium full views.
-- Premium calendar/archive for saved personal daily readings.
-- Settings, profile, onboarding, subscription, support, admin, and notification system screens needed to operate the MVP.
+- Premium chart-based relationship reading.
+- Matrix of Destiny with Free/Premium layers.
+- Premium calendar/archive for saved personal readings.
+- Settings, onboarding, subscription, support, admin, notifications, and mobile-shell functionality required to operate the MVP.
 
-## 2. Free And Premium
+## 2. Personal forecast screen — approved target
 
-- Personal daily: Free users receive the card, overview, and one additional topic chosen by the backend. Premium users receive all nine topics and summary.
-- Sign horoscope: daily/weekly/monthly sign content is Free.
-- Natal chart: chart calculation and teaser/basic entry are Free; full report, planet insight, living/current-period sections, and topic sections require Premium.
-- Sign compatibility: Free and chart-free.
-- Detailed relationship reading: Premium and chart-based.
-- Matrix of Destiny: short result is Free, full report is Premium.
-- Calendar/archive: Premium only.
+The complete implementation contract is:
 
-Backend access is enforced by `lib/accessMatrix.ts`, `lib/contentAccessMatrix.ts`, `lib/contentArchitecture.ts`, and Premium entitlement helpers. The frontend can show locks and CTAs, but it is not the source of truth.
+`docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md`
 
-## 3. Data Path
+All four periods are personal and use the user’s natal chart plus calculated influences for the selected interval. Sign horoscopes must not power these tabs.
 
-- App auth is resolved through `requireAppUser` / `lib/auth/appAuth.ts` for Telegram users, signed web guests, and native-ready sessions.
-- The canonical chart write/read surface is `/api/charts`. Primary chart creation and repair use `ensureCanonicalPrimaryChart`; additional saved charts use `createOrReuseCanonicalChart`.
-- Swiss Ephemeris calculations live in `lib/swisseph-calculator.ts`; AI receives structured chart/transit evidence and does not calculate astronomy.
-- Product content APIs live under `/api/content/*`.
-- AI prompts use the unified voice from `lib/appVoice.ts` and route through the OpenAI client/generation helpers already used by active content modules.
-- Active persistence uses PostgreSQL through `lib/db.ts` and immutable migrations in `lib/migrations.ts`.
+Every period has the same seven fixed topics:
 
-## 4. Personal Daily Canvas
+1. Твой день / Твоя неделя / Твой месяц / Твой год
+2. Любовь
+3. Работа и дела
+4. Деньги
+5. Настроение и силы
+6. Общение
+7. Удача
 
-The personal daily reading is generated and stored as one canvas through `pages/api/content/natal/human-daily.ts`.
+The server additionally selects 2–3 dynamic topics from calculated evidence. The model does not invent topic titles or life events.
 
-The canonical canvas shape is:
+Each topic contains:
 
-- `card.title`
-- `card.teaser`
-- `card.positive_points`
-- `card.caution_points`
-- `sections`
-- `summary`
-- `meta.free_section_key`
+- `card` — concise useful answer for the main screen;
+- `reading` — complete explanation of the selected topic;
+- `astrology.explanation` — human-readable reason for the result;
+- verified evidence references generated from server calculations.
 
-The required section order is:
+The personal screen uses one unified user-facing model resolver, default GPT-4.1. Astronomy and topic evidence are calculated in code; GPT only explains supplied evidence.
 
-1. `overview`
-2. `love`
-3. `money`
-4. `work`
-5. `goals`
-6. `family`
-7. `friendship`
-8. `energy`
-9. `communication`
+## 3. Current migration state
 
-The canvas is generated once under a shared daily cache key, then individual UI tabs are sliced from that same saved canvas. Free access is decided by `meta.free_section_key`: `overview` is always Free, and exactly one of the other eight topics is Free. The key is selected by backend logic in `lib/natalHumanInterpretation.ts` and is stable for the saved reading.
+The current main branch still contains the legacy implementation:
 
-## 5. Persistence And Archive
+- Today uses the old saved daily canvas;
+- Week/Month/Year on Dashboard load general sign forecasts;
+- period extras use a separate contract;
+- old fixed topics, generated hooks/headlines, scene requirements, fallback texts, cache keys, and tests remain active.
 
-- Natal charts are stored in `natal_charts` with canonical input hashes, calculation version, chart data, coordinates, and primary-chart status.
-- Personal daily package content is stored in `content_interpretations` under `content_surface='natal'`, `content_variant='living'`, cache key `personal_daily.package.user.<userId>.date.<YYYY-MM-DD>.locale.<locale>.voice.<voiceVersion>`, and prompt version `HUMAN_DAILY_PROMPT_VERSION`.
-- Sign horoscopes use shared `content_cache`.
-- Forecast, natal, and synastry layers use `content_interpretations` and `synastry_cache` according to `lib/contentAccessMatrix.ts`.
-- Past daily readings are read from saved rows. Archive views must not generate missing past days on read.
-- When birth data changes, chart persistence creates or repairs a canonical chart version by input hash. New readings use the new chart/input hash; old saved rows stay tied to the old chart/cache context.
+These are migration inputs, not approved target behavior. The forecast V2 branch must switch every consumer before deleting dead code. Do not remove sign-horoscope generation itself because it remains necessary for the separate `Зодиак` product.
 
-## 6. Voice Rules
+## 4. Free and Premium
 
-The app speaks like a direct, kind, smart friend: concrete, warm, concise, and useful. It uses "you", avoids fatalism, avoids fear, avoids fake certainty, and does not bury practical advice under mystical filler.
+The forecast-screen implementation must preserve the ability to enforce this product logic on the backend:
 
-Do:
+- overview of the selected period is fully Free;
+- short `card` text is visible to all users;
+- one additional fixed topic may be fully Free according to backend selection;
+- remaining full readings, dynamic topics, detailed evidence, and advanced period access may require Premium.
 
-- Name real situations plainly.
-- Give one useful next move.
-- Keep sensitive topics respectful.
-- Let humor stay light and occasional.
+Other products:
 
-Do not use:
+- `Зодиак`: general sign forecasts are Free unless product pricing is changed separately;
+- natal chart: calculation/basic entry Free, full interpretation Premium;
+- sign compatibility: Free and chart-free;
+- detailed relationship reading: Premium and chart-based;
+- Matrix of Destiny: short result Free, full report Premium;
+- archive/calendar: Premium.
 
-- Generic wellness filler.
-- Fate/prophesy language.
-- Empty cosmic abstractions.
-- Product names from removed systems.
-- Copy that says a day or horoscope is "ready" as a ritual catchphrase.
+Frontend locks and CTAs are presentation only. Access truth is enforced by `lib/accessMatrix.ts`, `lib/contentAccessMatrix.ts`, `lib/contentArchitecture.ts`, and entitlement helpers.
 
-The runtime voice source is `lib/appVoice.ts`. Prompt builders and fallback text should use it or match it.
+## 5. Data and calculation path
 
-## 7. Cleanup Boundary
+- App identity: `requireAppUser` / `lib/auth/appAuth.ts`.
+- Canonical chart APIs: `/api/charts/*`.
+- Chart calculation: `lib/swisseph-calculator.ts` and related deterministic calculation modules.
+- Personal forecast evidence: server-calculated natal/transit relationships for the requested period.
+- Product content APIs: `/api/content/*`.
+- Unified model selection: `getUnifiedContentModel()`.
+- Runtime voice source: `lib/appVoice.ts`.
+- Persistence: PostgreSQL through `lib/db.ts`; applied migrations remain immutable history.
 
-Only the MVP functions listed above belong to the active product surface. Deprecated chat, utility, currency, one-off purchase, standalone daily-assistant, and compatibility systems are not part of runtime, UI, active prompts, or product documentation.
+The model never calculates astronomy and never creates an aspect, orb, date, house activation, or period window that is absent from supplied evidence.
 
-Detailed removed-name tracking lives in `docs/MVP_LEGACY_REMOVAL_LOG.md`. Schema cleanup is implemented by migration `mvp_036_schema_cleanup` in `lib/migrations.ts`.
+## 6. Personal forecast cache and archive
 
-## 8. Active Tables
+The final V2 key format and prewarm cadence are specified in `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md` and summarized in `docs/CONTENT_CACHE_AND_PREWARM.md`.
 
-Core active tables include:
+The migration must invalidate legacy personal-screen packages without deleting unrelated natal, `Зодиак`, synastry, compatibility, payment, or archive data. Past saved readings are not generated on archive read.
 
-- `users`
-- `user_sessions`
-- `natal_charts`
-- `content_interpretations`
-- `content_cache`
-- `synastry_cache`
-- `content_unlocks`
-- `premium_entitlements`
-- `star_payments`
-- `daily_checkins`
-- notification/admin/support tables required by the operational backoffice
+## 7. Voice and content rules
 
-The cleanup migration removes legacy product tables that are no longer part of the MVP.
+The app explains calculations calmly, confidently, directly, and in normal modern language.
 
-## 9. Active AI Generations
+Required order:
 
-- Personal daily canvas.
-- Free personal/sign daily forecast where the route needs generation.
-- Sign weekly/monthly horoscope.
-- Natal anchor/full/living/planet insight.
-- Premium synastry.
-- Matrix interpretation where the active matrix flow needs generated text.
-- Notification/admin text only for real MVP notification scenarios.
+1. answer the topic;
+2. explain the combined result;
+3. show the astrological basis separately when useful.
 
-All generated user-facing text must use structured inputs and the app voice.
+Generated text must not:
+
+- invent conversations, purchases, work, partners, conflicts, documents, tasks, or events;
+- replace a forecast with a psychological portrait;
+- add advice automatically;
+- use generic wellness, mystical, coaching, or pseudo-profound filler;
+- pad fields to a target length;
+- create artificial hooks, hero headlines, or generated CTAs for the personal forecast cards.
+
+The only runtime source for shared voice rules is `lib/appVoice.ts`. `docs/APP_VOICE.md` documents that contract.
+
+## 8. Visual system
+
+The personal screen has one design language but different visual families for Day/Week/Month/Year.
+
+- no duplicate `asset.path` on one screen;
+- period heroes differ when the asset pool allows it;
+- topic images are selected deterministically for the period;
+- GPT does not select images;
+- when a unique suitable asset is unavailable, use the approved design-system fallback rather than repeating an unrelated image;
+- the implementation report must include an asset inventory and missing slots.
+
+## 9. Active storage boundaries
+
+Core active storage includes users/sessions, natal charts, content interpretations/cache, synastry cache, unlocks, entitlements, payments, archive/check-in data, and operational notification/admin/support tables.
+
+Deprecated product tables are removed only through additive cleanup migrations. Do not delete applied migration history.
+
+## 10. Cleanup rule
+
+Do not keep redirect task files, duplicate product specifications, or obsolete forecast contracts after migration. The implementation PR must update:
+
+- `docs/CURRENT_ARCHITECTURE.md`;
+- `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`;
+- `docs/CONTENT_CACHE_AND_PREWARM.md`;
+- `docs/NEXT_TASK_CONTEXT.md`.
+
+It must also remove dead legacy code and incompatible tests only after all runtime consumers have switched to the new personal forecast contract.
