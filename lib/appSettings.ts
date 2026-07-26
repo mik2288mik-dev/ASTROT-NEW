@@ -6,127 +6,94 @@ import type {
 } from '../types';
 import { db } from './db';
 import type { AiContentModelTier } from './contentMatrix';
-import {
-  DAILY_CANVAS_MODEL_SETTING_KEY,
-  DEFAULT_PREMIUM_INTERPRETATION_MODEL,
-  getDailyCanvasModelFromEnv,
-  getInterpretationModelFromEnv,
-  INTERPRETATION_MODEL_SETTING_KEY,
-  normalizeInterpretationModelId,
-} from './openai-models';
-
-let cachedInterpretationModel: string | null = null;
-let cacheLoaded = false;
-let dailyCanvasModelCache: string | null = null;
-const tierModelCache = new Map<AiContentModelTier, string>();
-
-export const MODEL_TIER_SETTING_KEYS: Record<AiContentModelTier, string> = {
-  fast: 'openai_model_fast',
-  main: INTERPRETATION_MODEL_SETTING_KEY,
-  deep: 'openai_model_deep',
-};
-
-// Слот полотна (личный разбор дня) не входит в fast/main/deep — у него отдельный ключ.
-// Единая карта слот→ключ для админского редактора моделей.
-export type ModelSlot = AiContentModelTier | 'daily_canvas';
-export const MODEL_SLOT_SETTING_KEYS: Record<ModelSlot, string> = {
-  ...MODEL_TIER_SETTING_KEYS,
-  daily_canvas: DAILY_CANVAS_MODEL_SETTING_KEY,
-};
-
-export async function getOpenAIInterpretationModel(): Promise<string> {
-  if (cacheLoaded && cachedInterpretationModel) {
-    return cachedInterpretationModel;
-  }
-
-  try {
-    const row = await db.app_settings.get(INTERPRETATION_MODEL_SETTING_KEY);
-    const fromDb = normalizeInterpretationModelId(row?.value);
-    if (fromDb) {
-      cachedInterpretationModel = fromDb;
-      cacheLoaded = true;
-      return fromDb;
-    }
-  } catch {
-    // DB unavailable — fall through to env
-  }
-
-  const fallback = getInterpretationModelFromEnv();
-  cachedInterpretationModel = fallback;
-  cacheLoaded = true;
-  return fallback;
-}
+import { normalizeInterpretationModelId } from './openai-models';
 
 /**
- * Модель личного дневного полотна. Приоритет: app_settings (БД) → env → дефолт — тот же
- * контракт, что и getModelForTier. Асинхронный (в отличие от старого env-only геттера),
- * поэтому call-site (generateDailyCanvas) должен await'ить.
+ * One model writes every user-facing generated text in the application.
+ *
+ * Astrology calculations remain deterministic code. This setting controls only
+ * the model that explains those calculations: personal forecasts, natal chart,
+ * synastry, sign horoscopes, daily questions and chat.
+ *
+ * Resolution order: app_settings -> OPENAI_CONTENT_MODEL -> fixed default.
+ * Legacy per-slot DB/env values are intentionally ignored so different product
+ * surfaces cannot silently drift to different voices again.
  */
-export async function getDailyCanvasModelResolved(): Promise<string> {
-  if (dailyCanvasModelCache) return dailyCanvasModelCache;
+export const UNIFIED_CONTENT_MODEL_SETTING_KEY = 'openai_content_model';
+export const DEFAULT_UNIFIED_CONTENT_MODEL = 'gpt-4.1';
+
+let cachedContentModel: string | null = null;
+
+export const MODEL_TIER_SETTING_KEYS: Record<AiContentModelTier, string> = {
+  fast: UNIFIED_CONTENT_MODEL_SETTING_KEY,
+  main: UNIFIED_CONTENT_MODEL_SETTING_KEY,
+  deep: UNIFIED_CONTENT_MODEL_SETTING_KEY,
+};
+
+/**
+ * Legacy slot names are kept only so the existing admin API/UI and generator
+ * imports remain backward compatible. Every slot resolves and writes the same
+ * global setting.
+ */
+export type ModelSlot = AiContentModelTier | 'daily_canvas';
+export const MODEL_SLOT_SETTING_KEYS: Record<ModelSlot, string> = {
+  fast: UNIFIED_CONTENT_MODEL_SETTING_KEY,
+  main: UNIFIED_CONTENT_MODEL_SETTING_KEY,
+  deep: UNIFIED_CONTENT_MODEL_SETTING_KEY,
+  daily_canvas: UNIFIED_CONTENT_MODEL_SETTING_KEY,
+};
+
+function getUnifiedContentModelFromEnv(): string {
+  return normalizeInterpretationModelId(process.env.OPENAI_CONTENT_MODEL)
+    || DEFAULT_UNIFIED_CONTENT_MODEL;
+}
+
+export async function getUnifiedContentModel(): Promise<string> {
+  if (cachedContentModel) return cachedContentModel;
+
   try {
-    const row = await db.app_settings.get(DAILY_CANVAS_MODEL_SETTING_KEY);
+    const row = await db.app_settings.get(UNIFIED_CONTENT_MODEL_SETTING_KEY);
     const configured = normalizeInterpretationModelId(row?.value);
     if (configured) {
-      dailyCanvasModelCache = configured;
+      cachedContentModel = configured;
       return configured;
     }
   } catch {
-    // DB unavailable — env/default fallback.
+    // DB unavailable — use environment/default fallback.
   }
-  const model = getDailyCanvasModelFromEnv();
-  dailyCanvasModelCache = model;
-  return model;
+
+  cachedContentModel = getUnifiedContentModelFromEnv();
+  return cachedContentModel;
+}
+
+/** Backward-compatible resolver used by older generation code. */
+export async function getOpenAIInterpretationModel(): Promise<string> {
+  return getUnifiedContentModel();
+}
+
+/** Personal daily content now uses the same author model as every other surface. */
+export async function getDailyCanvasModelResolved(): Promise<string> {
+  return getUnifiedContentModel();
 }
 
 /**
- * Сохраняет модель для слота (fast/main/deep/daily_canvas) в app_settings и сбрасывает кэши,
- * чтобы новое значение подхватилось на лету (без редеплоя). model уже должен быть валидным id.
+ * Any legacy slot update changes the one global model and immediately clears
+ * the in-process cache. The slot argument is intentionally ignored.
  */
-export async function setModelForSlot(slot: ModelSlot, model: string): Promise<void> {
-  await db.app_settings.set(MODEL_SLOT_SETTING_KEYS[slot], model);
+export async function setModelForSlot(_slot: ModelSlot, model: string): Promise<void> {
+  await db.app_settings.set(UNIFIED_CONTENT_MODEL_SETTING_KEY, model);
   invalidateInterpretationModelCache();
 }
 
 export function invalidateInterpretationModelCache(): void {
-  cachedInterpretationModel = null;
-  cacheLoaded = false;
-  dailyCanvasModelCache = null;
-  tierModelCache.clear();
+  cachedContentModel = null;
 }
 
-
-
-function getTierEnvModel(tier: AiContentModelTier): string | null {
-  const envKey = tier === 'fast' ? 'OPENAI_FAST_MODEL' : tier === 'main' ? 'OPENAI_MAIN_MODEL' : 'OPENAI_DEEP_MODEL';
-  return normalizeInterpretationModelId(process.env[envKey]);
+/** All content tiers resolve to one model. Tiers still describe product access. */
+export async function getModelForTier(_tier: AiContentModelTier): Promise<string> {
+  return getUnifiedContentModel();
 }
 
-/** Single model resolver for all new content-generation code. */
-export async function getModelForTier(tier: AiContentModelTier): Promise<string> {
-  const cached = tierModelCache.get(tier);
-  if (cached) return cached;
-
-  try {
-    const row = await db.app_settings.get(MODEL_TIER_SETTING_KEYS[tier]);
-    const configured = normalizeInterpretationModelId(row?.value);
-    if (configured) {
-      tierModelCache.set(tier, configured);
-      return configured;
-    }
-  } catch {
-    // DB unavailable — use safe environment/default fallback.
-  }
-
-  const mainModel = getTierEnvModel('main') || await getOpenAIInterpretationModel();
-  const model = tier === 'fast'
-    ? getTierEnvModel('fast') || getConfiguredEnvModel('OPENAI_FREE_MODEL') || getConfiguredEnvModel('OPENAI_BASE_MODEL') || mainModel
-    : tier === 'deep'
-      ? getTierEnvModel('deep') || getConfiguredEnvModel('OPENAI_PREMIUM_MODEL') || DEFAULT_PREMIUM_INTERPRETATION_MODEL
-      : mainModel;
-  tierModelCache.set(tier, model);
-  return model;
-}
 type OpenAIContentModelOptions = {
   accessTier: ContentAccessTier;
   contentSurface?: ContentSurface;
@@ -138,22 +105,13 @@ export type OpenAIContentModelAssignment = {
   modelTier: ContentModelTier;
 };
 
-function getConfiguredEnvModel(
-  key: 'OPENAI_BASE_MODEL' | 'OPENAI_FREE_MODEL' | 'OPENAI_PREMIUM_MODEL'
-): string | null {
-  return normalizeInterpretationModelId(process.env[key]);
-}
-
 export async function getOpenAIModelForContent(
   options: OpenAIContentModelOptions
 ): Promise<OpenAIContentModelAssignment> {
-  const tier: AiContentModelTier =
-    (options.contentSurface === 'natal' || options.contentSurface === 'synastry') && options.contentVariant === 'full'
-      ? 'deep'
-      : options.accessTier === 'premium'
-        ? 'main'
-        : 'fast';
-  const model = await getModelForTier(tier);
-  const premiumModel = await getModelForTier('deep');
-  return { model, modelTier: model === premiumModel ? 'premium' : 'base' };
+  const model = await getUnifiedContentModel();
+
+  // Preserve the access/cache classification even though the author model is
+  // the same. Free and Premium content must not collapse into one cache tier.
+  const modelTier: ContentModelTier = options.accessTier === 'premium' ? 'premium' : 'base';
+  return { model, modelTier };
 }
