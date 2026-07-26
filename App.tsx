@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
-import { UserProfile, NatalChartData, ViewState, HoroscopeLayer, NatalInterpretationReport, type DailyPackageStatus, type HoroscopeOpenOptions, type PersonalDailySection } from './types';
+import { UserProfile, NatalChartData, ViewState, NatalInterpretationReport } from './types';
 import {
     getProfile,
     saveProfile,
@@ -20,7 +20,7 @@ import {
 } from './lib/localHumanBaseReportCache';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
-import { Dashboard } from './views/Dashboard';
+import { Dashboard, type PersonalForecastSelection } from './views/Dashboard';
 import { Header } from './components/Header';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { Loading } from './components/ui/Loading';
@@ -44,10 +44,8 @@ import {
     clearHumanReadingSessionCache,
     getCachedHumanBaseReport,
     getHumanBaseReportCached,
-    loadHumanDailyPackage,
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
-import type { DailyCanvas } from './lib/natalHumanShared';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
 
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
@@ -56,7 +54,7 @@ const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => m
 });
 const NatalMagazine = dynamic(() => import('./views/v2/NatalMagazine').then((module) => module.NatalMagazine), { ssr: false });
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
-const PersonalDailyScreen = dynamic(() => import('./views/DailyContentScreens').then((module) => module.PersonalDailyScreen), { ssr: false });
+const PersonalForecastScreen = dynamic(() => import('./views/PersonalForecastScreen').then((module) => module.PersonalForecastScreen), { ssr: false });
 const Settings = dynamic(() => import('./views/Settings').then((module) => module.Settings), { ssr: false });
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
 const PremiumPreview = dynamic(() => import('./components/PremiumPreview').then((module) => module.PremiumPreview), { ssr: false });
@@ -234,34 +232,6 @@ function getRequestedViewFromQuery(): ViewState | null {
     return getStartParamView();
 }
 
-function getRequestedPersonalDailySectionFromQuery(): PersonalDailySection | null {
-    if (typeof window === 'undefined') return null;
-    const requested = new URLSearchParams(window.location.search).get('view');
-    switch (requested) {
-        case 'daily_love':
-            return 'love';
-        case 'daily_money':
-            return 'money';
-        case 'daily_work':
-            return 'work';
-        case 'daily_goals':
-            return 'goals';
-        case 'daily_family':
-            return 'family';
-        case 'daily_friendship':
-            return 'friendship';
-        case 'daily_energy':
-            return 'energy';
-        case 'daily_communication':
-            return 'communication';
-        case 'personal_forecast':
-        case 'personal_daily':
-            return 'overview';
-        default:
-            return null;
-    }
-}
-
 type NotificationLaunchParams = {
     source: string | null;
     scenario: string | null;
@@ -287,8 +257,6 @@ const App: React.FC = () => {
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
-    const [dailyPackage, setDailyPackage] = useState<DailyCanvas | null>(null);
-    const [dailyPackageStatus, setDailyPackageStatus] = useState<DailyPackageStatus>('idle');
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
@@ -303,7 +271,7 @@ const App: React.FC = () => {
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
-    const [personalDailyInitialSection, setPersonalDailyInitialSection] = useState<PersonalDailySection>('overview');
+    const [personalForecastSelection, setPersonalForecastSelection] = useState<PersonalForecastSelection | null>(null);
     const [currentDateKey, setCurrentDateKey] = useState(() => getMoscowTodayKey());
     const lastSessionPingRef = useRef(0);
     const prewarmCompletedKeyRef = useRef<string | null>(null);
@@ -312,18 +280,12 @@ const App: React.FC = () => {
         data: NatalChartData | null;
         promise: Promise<NatalChartData | null> | null;
     }>({ key: '', data: null, promise: null });
-    const dailyPackageSessionRef = useRef<{
-        key: string;
-        data: DailyCanvas | null;
-        promise: Promise<DailyCanvas | null> | null;
-    }>({ key: '', data: null, promise: null });
     const primaryChartDataRef = useRef<NatalChartData | null>(null);
     const requestedViewRef = useRef<ViewState | null>(null);
     const notificationLaunchRef = useRef<NotificationLaunchParams | null>(null);
     const notificationAttributionSentRef = useRef(false);
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
-    const [initialTodaySection, setInitialTodaySection] = useState<string | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
     const onboardingTargetViewRef = useRef<ViewState>('dashboard');
     const onboardingCompletionRef = useRef(false);
@@ -377,104 +339,6 @@ const App: React.FC = () => {
         return null;
     }, []);
 
-    const prepareStartupDailyPackage = useCallback(async (input: {
-        profile: UserProfile;
-        chartData: NatalChartData | null;
-        chartId: number | null;
-        progressStart?: number;
-        progressSpan?: number;
-        reportProgress?: boolean;
-    }): Promise<DailyCanvas | null> => {
-        const userId = input.profile.id ? String(input.profile.id) : '';
-        if (!userId || isGuestUserId(userId) || !input.chartData?.sun || !input.chartData?.moon || !input.chartData?.rising) {
-            setDailyPackage(null);
-            setDailyPackageStatus('idle');
-            return null;
-        }
-
-        const dateKey = getMoscowTodayKey();
-        const key = `${userId}:${input.chartId ?? 'primary'}:${dateKey}`;
-        const current = dailyPackageSessionRef.current;
-        if (current.key === key && current.data) {
-            setDailyPackage(current.data);
-            setDailyPackageStatus('ready');
-            return current.data;
-        }
-        if (current.key === key && current.promise) {
-            setDailyPackageStatus('loading');
-            const existing = await current.promise;
-            if (existing && dailyPackageSessionRef.current.key === key) {
-                setDailyPackage(existing);
-                setDailyPackageStatus('ready');
-            }
-            return existing;
-        }
-
-        const progressStart = input.progressStart ?? 70;
-        const progressSpan = input.progressSpan ?? 24;
-        const reportProgress = input.reportProgress !== false;
-        if (reportProgress) {
-            setLoadingMessage(input.profile.language === 'en' ? 'Preparing your personal horoscope' : 'Готовим твой личный гороскоп');
-            setLoadingProgress(progressStart);
-        }
-        setDailyPackageStatus('loading');
-        console.info('[PersonalDaily][App]', {
-            scope: 'personal-daily-app',
-            stage: 'prepare_started',
-            chartId: input.chartId,
-            date: dateKey,
-        });
-
-        let request: Promise<DailyCanvas | null>;
-        request = loadHumanDailyPackage(userId, input.chartId ?? undefined, dateKey, {
-            accessTier: 'premium',
-        })
-            .then((canvas) => {
-                if (
-                    dailyPackageSessionRef.current.key !== key ||
-                    dailyPackageSessionRef.current.promise !== request
-                ) {
-                    return canvas;
-                }
-                dailyPackageSessionRef.current = { key, data: canvas, promise: null };
-                setDailyPackage(canvas);
-                setDailyPackageStatus('ready');
-                console.info('[PersonalDaily][App]', {
-                    scope: 'personal-daily-app',
-                    stage: 'prepare_completed',
-                    chartId: input.chartId,
-                    date: dateKey,
-                });
-                if (reportProgress) setLoadingProgress(progressStart + progressSpan);
-                return canvas;
-            })
-            .catch((error) => {
-                const isCurrentRequest =
-                    dailyPackageSessionRef.current.key === key &&
-                    dailyPackageSessionRef.current.promise === request;
-                if (isCurrentRequest) {
-                    dailyPackageSessionRef.current = { key: '', data: null, promise: null };
-                }
-                const err = error as { code?: string; status?: number; message?: string };
-                console.warn('[App] Startup personal daily package failed; continuing without blocking app entry', {
-                    scope: 'personal-daily-app',
-                    stage: 'prepare_error',
-                    code: err?.code || 'UNKNOWN_STARTUP_DAILY_ERROR',
-                    status: err?.status || null,
-                    message: err?.message || String(error),
-                });
-                if (isCurrentRequest) {
-                    setDailyPackage(null);
-                    setDailyPackageStatus('error');
-                }
-                if (isCurrentRequest && reportProgress) setLoadingProgress(progressStart + progressSpan);
-                return null;
-            });
-
-        dailyPackageSessionRef.current = { key, data: null, promise: request };
-        return request;
-    }, []);
-
     const prepareUserContentDbFirst = useCallback(async (input: {
         userId: string;
         chartId: number | null;
@@ -502,6 +366,17 @@ const App: React.FC = () => {
         });
 
         prewarmCompletedKeyRef.current = prewarmKey;
+        void prewarmUserContent({
+            userId: input.userId,
+            chartId: input.chartId,
+            profile: input.profile,
+            chartData: input.chartData,
+            isPremium: input.isPremium,
+            dateKey: input.dateKey,
+            mode: 'generate-missing',
+        }).catch((error: any) => {
+            console.warn('[App] Background personal forecast prewarm failed:', error?.message || error);
+        });
         void prefetchBaseReportForChart(input.profile, input.chartId ?? undefined).catch((error: any) => {
             console.warn('[App] Human base report cache prefetch failed:', error?.message || error);
         });
@@ -590,9 +465,7 @@ const App: React.FC = () => {
         setPrimaryChartId(null);
         setActiveChartId(undefined);
         setPreloadedHumanReport(null);
-        dailyPackageSessionRef.current = { key: '', data: null, promise: null };
-        setDailyPackage(null);
-        setDailyPackageStatus('idle');
+        setPersonalForecastSelection(null);
     }, []);
 
     useEffect(() => {
@@ -745,31 +618,12 @@ const App: React.FC = () => {
             logStartupMetric('startup_dashboard_visible_ms', startupElapsedMs());
         };
 
-        const showStartupError = (message: string, error?: unknown) => {
-            if (cancelled || startupVisible) return;
-            startupVisible = true;
-            clearSafety();
-            if (error) {
-                const err = error as { code?: string; status?: number; message?: string };
-                console.warn('[App] Startup personal daily package failed', {
-                    code: err?.code || 'UNKNOWN_STARTUP_DAILY_ERROR',
-                    status: err?.status || null,
-                    message: err?.message || String(error),
-                });
-            }
-            setStartupError(message);
-            setLoadingProgress(100);
-            setLoadingMessage(undefined);
-            setLoading(false);
-        };
-
         const scheduleStartupBackgroundWork = (
             targetProfile: UserProfile,
             initialChart: NatalChartData,
             initialChartId: number | null,
             refreshChartFromDb: boolean,
         ) => {
-            setDailyPackageStatus('loading');
             const userId = String(targetProfile.id);
             const startHumanBasePrefetch = (chartId: number) => {
                 void prefetchHumanBaseReport(userId, chartId)
@@ -781,25 +635,8 @@ const App: React.FC = () => {
                         console.warn('[App] Human base report background prefetch failed:', error?.message || error);
                     });
             };
-            let dailyPackageStarted = false;
-            const startDailyPackage = (chart: NatalChartData, chartId: number | null) => {
-                if (dailyPackageStarted) return;
-                dailyPackageStarted = true;
-                void prepareStartupDailyPackage({
-                    profile: targetProfile,
-                    chartData: chart,
-                    chartId,
-                    reportProgress: false,
-                }).finally(() => {
-                    logStartupMetric('startup_daily_done_ms', startupElapsedMs());
-                });
-            };
-
-            // Cached data is already sufficient for the exact same daily request; do not
-            // keep the app loader visible while the model/cache endpoint finishes.
             if (initialChartId != null) {
                 startHumanBasePrefetch(initialChartId);
-                startDailyPackage(initialChart, initialChartId);
             }
 
             void (async () => {
@@ -841,10 +678,6 @@ const App: React.FC = () => {
 
                 await Promise.all([chartRefresh, chartIdRefresh]);
 
-                if (!dailyPackageStarted) {
-                    startDailyPackage(chart, chartId);
-                }
-
                 void prepareUserContentDbFirst({
                     userId: String(targetProfile.id),
                     chartId,
@@ -866,13 +699,7 @@ const App: React.FC = () => {
             console.log('[App] === LOADING USER DATA ===');
             setLoadingProgress(10);
             requestedViewRef.current = getRequestedViewFromQuery();
-            const requestedPersonalSection = getRequestedPersonalDailySectionFromQuery();
-            if (requestedPersonalSection) {
-                setPersonalDailyInitialSection(requestedPersonalSection);
-            }
             notificationLaunchRef.current = getNotificationLaunchParams();
-            const startParamSection = resolveStartParamRoute(getStartParamRaw())?.route.todaySection || null;
-            setInitialTodaySection(notificationLaunchRef.current?.section || startParamSection);
             
             // Ждём Telegram Web App (может загружаться асинхронно)
             const telegramWebApp = (window as any).Telegram?.WebApp;
@@ -1044,7 +871,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [loadPrimaryChartOnce, prepareStartupDailyPackage, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus, startupRetryNonce]);
+    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus, startupRetryNonce]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         if (onboardingCompletionRef.current) return;
@@ -1159,15 +986,6 @@ const App: React.FC = () => {
             setChartLoadState('ready');
             setChartData(generatedChart);
             writeLocalNatalChart(fullProfile, generatedChart);
-            setLoadingMessage(
-                fullProfile.language === 'en' ? 'Preparing your day' : 'Готовим твой день'
-            );
-            void prepareStartupDailyPackage({
-                profile: fullProfile,
-                chartData: generatedChart,
-                chartId: null,
-                reportProgress: false,
-            });
             void getPrimaryChartId(String(fullProfile.id))
                 .then((primaryChartId) => {
                     if (primaryChartId != null) {
@@ -1337,32 +1155,21 @@ const App: React.FC = () => {
                ? refreshedProfile
                : { ...(refreshedProfile || profile), id: profile.id, isPremium: true };
            setProfile(premiumProfile);
-           if (hasActivePremium(premiumProfile) && chartData) {
-               const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
-               if (activeChartId == null && chartId != null) setPrimaryChartId(chartId);
-               dailyPackageSessionRef.current = { key: '', data: null, promise: null };
-               setDailyPackage(null);
-               await prepareStartupDailyPackage({
-                   profile: premiumProfile,
-                   chartData,
-                   chartId,
-                   progressStart: 35,
-                   progressSpan: 35,
-               }).catch((dailyError: any) => {
-                   console.warn('[App] Premium daily package reload failed:', dailyError?.message || dailyError);
-               });
-               await prepareUserContentDbFirst({
-                   userId: String(premiumProfile.id),
-                   chartId,
-                   profile: premiumProfile,
+            if (hasActivePremium(premiumProfile) && chartData) {
+                const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
+                if (activeChartId == null && chartId != null) setPrimaryChartId(chartId);
+                void prepareUserContentDbFirst({
+                    userId: String(premiumProfile.id),
+                    chartId,
+                    profile: premiumProfile,
                    chartData,
                    isPremium: true,
                    dateKey: getMoscowTodayKey(),
                    progressStart: 35,
                    progressSpan: 60,
-               }).catch((prewarmError: any) => {
-                   console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
-               });
+                }).catch((prewarmError: any) => {
+                    console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
+                });
            }
            setShowPremiumPreview(false);
            setLoadingProgress(100);
@@ -1480,54 +1287,17 @@ const App: React.FC = () => {
         void recordUserAppEvent({ eventType: 'screen_view', section: view });
     }, [view, profile?.id]);
 
-    const openPersonalDailyView = useCallback((section: PersonalDailySection = 'overview') => {
+    const openPersonalForecast = useCallback((selection: PersonalForecastSelection) => {
         appDebugLog('navigation', {
-            action: 'open_personal_daily',
+            action: 'open_personal_forecast',
             from: viewRef.current,
             to: 'personal_daily',
-            section,
+            section: selection.topicKey,
             historyBeforeSet: navigationHistoryRef.current,
         });
-        setPersonalDailyInitialSection(section);
-        if (!gateFeatureAccess('personal_daily', 'personal_daily')) return;
+        setPersonalForecastSelection(selection);
         navigateTo('personal_daily');
-    }, [gateFeatureAccess, navigateTo]);
-
-    const openHoroscopeLayer = useCallback((layer: HoroscopeLayer, options?: HoroscopeOpenOptions) => {
-        if (layer === 'love') {
-            openPersonalDailyView('love');
-            return;
-        }
-
-        if (layer === 'work_money') {
-            const sectionByKey: Record<string, PersonalDailySection> = {
-                daily_love: 'love',
-                daily_work_business: 'work',
-                daily_money: 'money',
-                daily_goals: 'goals',
-                daily_family: 'family',
-                daily_friendship: 'friendship',
-                daily_energy: 'energy',
-                daily_communication: 'communication',
-            };
-            openPersonalDailyView(sectionByKey[options?.dailySectionKey ?? 'daily_work_business'] ?? 'work');
-            return;
-        }
-
-        if (layer === 'chart') {
-            openPersonalDailyView('overview');
-            return;
-        }
-
-        appDebugLog('navigation', {
-            action: 'open_horoscope_layer',
-            from: viewRef.current,
-            to: 'horoscope',
-            source: options?.source ?? null,
-            historyBeforeSet: navigationHistoryRef.current,
-        });
-        navigateTo('horoscope');
-    }, [navigateTo, openPersonalDailyView]);
+    }, [navigateTo]);
 
     const refreshPrimaryChartState = useCallback(async () => {
         if (!profile?.id) return;
@@ -1540,10 +1310,7 @@ const App: React.FC = () => {
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
             clearHumanReadingSessionCache(String(profile.id));
-            dailyPackageSessionRef.current = { key: '', data: null, promise: null };
-            setDailyPackage(null);
-            const hasFreshChart = !!(freshChart?.sun && freshChart?.moon && freshChart?.rising);
-            setDailyPackageStatus(hasFreshChart ? 'loading' : 'idle');
+            setPersonalForecastSelection(null);
             clearLocalHumanBaseReport(profile, primaryChartId ?? undefined);
             setPreloadedHumanReport(null);
             if (freshChart) {
@@ -1556,35 +1323,23 @@ const App: React.FC = () => {
             setChartLoadState(freshChart?.sun && freshChart?.moon ? 'ready' : 'error');
             setChartData(freshChart);
             setActiveChartId(undefined);
-            if (hasFreshChart && freshChart) {
-                void prepareStartupDailyPackage({
+            if (freshChart?.sun && freshChart?.moon && freshChart?.rising) {
+                void prepareUserContentDbFirst({
+                    userId: String(profile.id),
+                    chartId: freshPrimaryChartId,
                     profile,
                     chartData: freshChart,
-                    chartId: freshPrimaryChartId,
-                    reportProgress: false,
+                    isPremium: hasActivePremium(profile),
+                    dateKey: getMoscowTodayKey(),
+                }).catch((error: any) => {
+                    console.warn('[App] Refreshed chart prewarm failed:', error?.message || error);
                 });
             }
         } catch (error) {
             console.error('[App] Failed to refresh primary chart state:', error);
             // Keep the existing local/session chart on transient DB errors.
         }
-    }, [prefetchBaseReportForChart, prepareStartupDailyPackage, primaryChartId, profile]);
-
-    const retryDailyPackage = useCallback(() => {
-        if (!profile?.id) return;
-        const targetChart = primaryChartDataRef.current || chartData;
-        if (!targetChart?.sun || !targetChart?.moon || !targetChart?.rising) return;
-
-        dailyPackageSessionRef.current = { key: '', data: null, promise: null };
-        setDailyPackage(null);
-        setDailyPackageStatus('loading');
-        void prepareStartupDailyPackage({
-            profile,
-            chartData: targetChart,
-            chartId: primaryChartId,
-            reportProgress: false,
-        });
-    }, [chartData, prepareStartupDailyPackage, primaryChartId, profile]);
+    }, [prefetchBaseReportForChart, prepareUserContentDbFirst, primaryChartId, profile]);
 
     const handleBack = useCallback(async () => {
         const currentView = viewRef.current;
@@ -1803,15 +1558,15 @@ const App: React.FC = () => {
     const isPrimaryChartView = activeChartId == null;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
 
-    const dailyScreenProps = {
+    const dashboardProps = {
         profile,
         chartData,
         chartId: primaryChartId,
-        dailyPackage,
-        initialSection: personalDailyInitialSection,
-        onBack: handleBack,
-        requestPremium,
+        currentDateKey,
+        onOpenPersonalForecast: openPersonalForecast,
         onCreateNatalChart: openBottomNatal,
+        onOpenSynastry: openSynastryFromHome,
+        onOpenMatrix: openMatrix,
     };
 
     return (
@@ -1827,23 +1582,7 @@ const App: React.FC = () => {
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
                     aria-hidden={view !== 'dashboard'}
                 >
-                    <Dashboard
-                        profile={profile}
-                        chartData={chartData}
-                        chartId={primaryChartId}
-                        dailyPackage={dailyPackage}
-                        dailyPackageStatus={dailyPackageStatus}
-                        currentDateKey={currentDateKey}
-                        onRetryDailyPackage={retryDailyPackage}
-                        onOpenHoroscopeLayer={openHoroscopeLayer}
-                        onOpenPersonalDaily={openPersonalDailyView}
-                        onCreateNatalChart={openBottomNatal}
-                        onOpenSynastry={openSynastryFromHome}
-                        onOpenMatrix={openMatrix}
-                        onRequestPremium={requestPremium}
-                        scrollRef={dashboardScrollRef}
-                        initialTodaySection={initialTodaySection}
-                    />
+                    <Dashboard {...dashboardProps} scrollRef={dashboardScrollRef} />
                 </div>
                 {view === 'admin' ? (
                     <AdminApp onClose={() => { void handleBack(); }} />
@@ -1882,12 +1621,21 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onRequestPremium={requestPremium}
-                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
+                            onOpenPersonalForecast={() => navigateTo('dashboard')}
                         />
                     </div>
                 ) : view === 'personal_daily' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        <PersonalDailyScreen {...dailyScreenProps} />
+                        {personalForecastSelection ? (
+                            <PersonalForecastScreen
+                                profile={profile}
+                                selection={personalForecastSelection}
+                                onBack={handleBack}
+                                requestPremium={requestPremium}
+                            />
+                        ) : (
+                            <Dashboard {...dashboardProps} />
+                        )}
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
@@ -1899,7 +1647,6 @@ const App: React.FC = () => {
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
                             onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
-                            onOpenPersonalDaily={() => openPersonalDailyView('overview')}
                         />
                     </div>
                 ) : view === 'settings' ? (

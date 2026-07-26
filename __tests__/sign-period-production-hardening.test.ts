@@ -1,4 +1,3 @@
-import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import {
@@ -161,18 +160,12 @@ describe('sign period production hardening', () => {
     expect(query.mock.calls.some(([sql]) => String(sql).includes('INSERT INTO content_cache'))).toBe(false);
   });
 
-  it('keeps Dashboard lazy and scopes cached state by period, sign, language, and current key', () => {
+  it('keeps personal Dashboard lazy and scopes state by chart, period, language, and current key', () => {
     const dashboard = read('views/Dashboard.tsx');
-    expect(dashboard).toContain("if (period !== 'today') void loadPeriod(period);");
-    expect(dashboard).toContain('`${period}:${selectedSign}:${language}:${getPeriodKey(period)}`');
+    expect(dashboard).toContain('loadPeriod(activePeriod)');
+    expect(dashboard).toContain('`${contextKey}:${period}:${periodKey}`');
     expect(dashboard).toContain('setPeriodStates({})');
-    expect(dashboard).toContain('setPeriodReadings({})');
-    expect(dashboard).not.toMatch(/useEffect\(\(\) => \{[^}]*loadPeriod/s);
-
-    const changedFiles = execFileSync('git', ['diff', '--name-only'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    }).trim().split(/\r?\n/).filter(Boolean);
-    expect(changedFiles.some((file) => file.endsWith('.css'))).toBe(false);
+    expect(dashboard).toContain('readLocalPersonalForecast');
+    expect(dashboard).not.toMatch(/getCachedWeeklySignHoroscope|ensureMonthlySignHoroscope/);
   });
 });

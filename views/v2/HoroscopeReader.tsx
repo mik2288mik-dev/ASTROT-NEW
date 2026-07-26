@@ -70,7 +70,7 @@ export type HoroscopeReaderProps = {
   chartId?: number | null;
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
-  onOpenPersonalDaily?: () => void;
+  onOpenPersonalForecast?: () => void;
   onRequestPremium?: () => void;
 };
 
@@ -105,7 +105,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   chartId,
   onUpdateProfile,
   onOpenChart,
-  onOpenPersonalDaily,
+  onOpenPersonalForecast,
   onRequestPremium,
 }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
@@ -273,7 +273,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   const openPersonal = () => {
     lumiaSelectionHaptic();
-    if (hasChart && premium) onOpenPersonalDaily?.();
+    if (hasChart && premium) onOpenPersonalForecast?.();
     else if (!hasChart) onOpenChart?.();
     else onRequestPremium?.();
   };

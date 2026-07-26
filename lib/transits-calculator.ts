@@ -28,6 +28,9 @@ export interface CurrentTransits {
   mars?: PlanetTransit;
   jupiter?: PlanetTransit;
   saturn?: PlanetTransit;
+  uranus?: PlanetTransit;
+  neptune?: PlanetTransit;
+  pluto?: PlanetTransit;
   moonPhase?: string;
   summary?: string;
   source?: 'swisseph' | 'algorithmic';
@@ -129,8 +132,11 @@ function calculateApproximateLongitudes(date: Date) {
   const mars = normalizeDegree(355.433 + 0.524039 * n + 8 * Math.sin((2 * Math.PI * n) / 780));
   const jupiter = normalizeDegree(34.351 + 0.083086 * n);
   const saturn = normalizeDegree(50.077 + 0.033459 * n);
+  const uranus = normalizeDegree(314.055 + 0.011731 * n);
+  const neptune = normalizeDegree(304.349 + 0.005981 * n);
+  const pluto = normalizeDegree(238.929 + 0.003972 * n);
 
-  return { sun, moon, mercury, venus, mars, jupiter, saturn };
+  return { sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto };
 }
 
 function fromSwissPlanet(
@@ -196,6 +202,9 @@ export async function getCurrentTransits(date?: Date): Promise<CurrentTransits> 
       mars: fromSwissPlanet('Mars', transitChart.mars),
       jupiter: fromSwissPlanet('Jupiter', transitChart.jupiter),
       saturn: fromSwissPlanet('Saturn', transitChart.saturn),
+      uranus: fromSwissPlanet('Uranus', transitChart.uranus),
+      neptune: fromSwissPlanet('Neptune', transitChart.neptune),
+      pluto: fromSwissPlanet('Pluto', transitChart.pluto),
       moonPhase,
       summary: `Current astrological transits for ${dateString}`,
       source: 'swisseph',
@@ -276,6 +285,9 @@ function getAlgorithmicTransits(date: Date): CurrentTransits {
     mars: transitFromLongitude('Mars', longitudes.mars, (sign) => `Mars is currently in ${sign}.`),
     jupiter: transitFromLongitude('Jupiter', longitudes.jupiter, (sign) => `Jupiter is currently in ${sign}.`),
     saturn: transitFromLongitude('Saturn', longitudes.saturn, (sign) => `Saturn is currently in ${sign}.`),
+    uranus: transitFromLongitude('Uranus', longitudes.uranus, (sign) => `Uranus is currently in ${sign}.`),
+    neptune: transitFromLongitude('Neptune', longitudes.neptune, (sign) => `Neptune is currently in ${sign}.`),
+    pluto: transitFromLongitude('Pluto', longitudes.pluto, (sign) => `Pluto is currently in ${sign}.`),
     moonPhase: calculateMoonPhaseFromLongitudes(longitudes.sun, longitudes.moon).phaseLabel,
     summary: `Approximate astrological transits for ${dateString}`,
     source: 'algorithmic',

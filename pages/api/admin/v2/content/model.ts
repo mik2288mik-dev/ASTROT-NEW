@@ -10,7 +10,8 @@ import {
 import { normalizeInterpretationModelId } from '../../../../../lib/openai-models';
 
 /**
- * Смена модели генерации по слоту (fast/main/deep/daily_canvas): пишет значение в app_settings
+ * Смена единой модели генерации через совместимые слоты fast/main/deep:
+ * пишет одно значение в app_settings
  * и сбрасывает кэш — новое значение подхватывается на лету, без редеплоя. Право — ai.edit.
  * model валидируется по курируемому списку (normalizeInterpretationModelId): случайный/битый id
  * сюда не пройдёт, чтобы не сломать живую генерацию у всех (для проверки нового id есть пинг).
@@ -22,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const slot = String(req.body?.slot || '').trim() as ModelSlot;
     if (!(slot in MODEL_SLOT_SETTING_KEYS)) {
-      throw new AdminAuthError(400, 'BAD_SLOT', 'slot must be one of fast, main, deep, daily_canvas');
+      throw new AdminAuthError(400, 'BAD_SLOT', 'slot must be one of fast, main, deep');
     }
     const model = normalizeInterpretationModelId(req.body?.model);
     if (!model) {

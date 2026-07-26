@@ -1,32 +1,27 @@
 import type { ContentAccessTier, ContentSurface } from '../types';
 
 export type PrewarmPriority = 'high' | 'medium' | 'low';
-
-export type PrewarmTaskId =
-  | 'sign_daily'
-  | 'forecast_daypart_day';
+export type PrewarmTaskId = 'personal_forecast_day';
 
 export type PrewarmPlanItem = {
   id: PrewarmTaskId;
   priority: PrewarmPriority;
   accessTier: ContentAccessTier;
   contentSurface: ContentSurface;
-  contentVariant: string;
+  contentVariant: 'daily';
   cacheKey: string;
-  /** forecast daypart slot */
-  daypartSlot?: 'day';
 };
 
 export const FREE_STARTUP_REQUIRED_TASK_IDS = [
-  'sign_daily',
+  'personal_forecast_day',
 ] as const satisfies readonly PrewarmTaskId[];
 
 export const PREMIUM_STARTUP_REQUIRED_TASK_IDS = [
   ...FREE_STARTUP_REQUIRED_TASK_IDS,
 ] as const satisfies readonly PrewarmTaskId[];
 
-export function getStartupRequiredTaskIds(isPremium: boolean): PrewarmTaskId[] {
-  return [...(isPremium ? PREMIUM_STARTUP_REQUIRED_TASK_IDS : FREE_STARTUP_REQUIRED_TASK_IDS)];
+export function getStartupRequiredTaskIds(_isPremium: boolean): PrewarmTaskId[] {
+  return [...FREE_STARTUP_REQUIRED_TASK_IDS];
 }
 
 const PRIORITY_ORDER: Record<PrewarmPriority, number> = {
@@ -40,42 +35,21 @@ export function sortPrewarmPlan(plan: PrewarmPlanItem[]): PrewarmPlanItem[] {
 }
 
 export function buildFreePrewarmPlan(dateKey: string): PrewarmPlanItem[] {
-  return sortPrewarmPlan([
-    {
-      id: 'sign_daily',
-      priority: 'high',
-      accessTier: 'free',
-      contentSurface: 'forecast',
-      contentVariant: 'daily',
-      cacheKey: dateKey,
-    },
-  ]);
+  return [{
+    id: 'personal_forecast_day',
+    priority: 'high',
+    accessTier: 'free',
+    contentSurface: 'forecast',
+    contentVariant: 'daily',
+    cacheKey: dateKey,
+  }];
 }
 
 export function buildPremiumPrewarmPlan(dateKey: string): PrewarmPlanItem[] {
-  const premiumOnly: PrewarmPlanItem[] = [
-    {
-      id: 'forecast_daypart_day',
-      priority: 'high',
-      accessTier: 'premium',
-      contentSurface: 'forecast',
-      contentVariant: 'day',
-      cacheKey: `${dateKey}:day`,
-      daypartSlot: 'day',
-    },
-  ];
-
-  const free = buildFreePrewarmPlan(dateKey);
-  const seen = new Set<string>();
-  const merged: PrewarmPlanItem[] = [];
-
-  for (const item of [...free, ...premiumOnly]) {
-    if (seen.has(item.id)) continue;
-    seen.add(item.id);
-    merged.push(item);
-  }
-
-  return sortPrewarmPlan(merged);
+  return buildFreePrewarmPlan(dateKey).map((item) => ({
+    ...item,
+    accessTier: 'premium',
+  }));
 }
 
 export function buildUserPrewarmPlan(isPremium: boolean, dateKey: string): PrewarmPlanItem[] {
@@ -83,5 +57,5 @@ export function buildUserPrewarmPlan(isPremium: boolean, dateKey: string): Prewa
 }
 
 export function planUsesContentGenerationLock(item: PrewarmPlanItem): boolean {
-  return item.contentSurface === 'forecast' || item.contentVariant === 'anchor' || item.contentVariant === 'full';
+  return item.id === 'personal_forecast_day';
 }

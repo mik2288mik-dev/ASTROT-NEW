@@ -41,11 +41,7 @@ export type ReadingCallOptions = {
   cacheSystem?: boolean;
   maxTokens?: number;
   temperature?: number;
-  /**
-   * Explicit model id that bypasses per-content resolution (getOpenAIModelForContent).
-   * Used by the daily-canvas generator, which has its own model slot resolved via
-   * getDailyCanvasModelResolved (app_settings → env → default), independent of the tiers.
-   */
+  /** Explicit model id that bypasses per-content resolution. */
   modelOverride?: string;
 };
 

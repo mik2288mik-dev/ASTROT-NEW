@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { getModelForTier, getDailyCanvasModelResolved } from './appSettings';
+import { getModelForTier } from './appSettings';
 import { getAppSystemVoice } from './appVoice';
 import { getContentPolicy } from './contentMatrix';
 import { buildOpenAIChatParams } from './openaiChat';
@@ -16,8 +16,7 @@ import type { AiContentModelTier } from './contentMatrix';
 
 export type AiContentHealth = {
   openaiKeyPresent: boolean;
-  // dailyCanvas — отдельный слот личного разбора дня (не входит в fast/main/deep).
-  models: { fast: string | null; main: string | null; deep: string | null; dailyCanvas: string | null };
+  models: { fast: string | null; main: string | null; deep: string | null };
   surfaces: Array<{ surface: string; label: string; tier: string; model: string | null }>;
   problems: string[];
   checkedAt: string;
@@ -33,21 +32,15 @@ const SURFACES: Array<{ surface: string; label: string }> = [
 
 export async function getAiContentHealth(): Promise<AiContentHealth> {
   const openaiKeyPresent = !!process.env.OPENAI_API_KEY;
-  const [fast, main, deep, dailyCanvas] = await Promise.all([
+  const [fast, main, deep] = await Promise.all([
     getModelForTier('fast').catch(() => null),
     getModelForTier('main').catch(() => null),
     getModelForTier('deep').catch(() => null),
-    getDailyCanvasModelResolved().catch(() => null),
   ]);
-  const models = { fast, main, deep, dailyCanvas };
+  const models = { fast, main, deep };
 
   const surfaces = await Promise.all(
     SURFACES.map(async ({ surface, label }) => {
-      // Личный разбор дня идёт по СВОЕМУ слоту (daily_canvas), а не по тиру main —
-      // раньше экран показывал main и вводил в заблуждение.
-      if (surface === 'personal_daily') {
-        return { surface, label, tier: 'daily_canvas', model: dailyCanvas };
-      }
       let tier: AiContentModelTier = 'main';
       try { tier = getContentPolicy(surface as any).modelTier; } catch { /* default */ }
       const model = tier === 'fast' ? fast : tier === 'deep' ? deep : main;

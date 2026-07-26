@@ -75,10 +75,6 @@ export function buildSignYearlyHoroscopePrompt(input: PromptInput = {}): AppCont
   );
 }
 
-export function buildPersonalDailyPrompt(input: PromptInput = {}): AppContentPrompt {
-  return buildPrompt('personal_daily', '{ "headline": "...", "main": "...", "relationships": "...", "action": "...", "risk": "...", "why": "..." }', 'Создай личный день по карте и текущему контексту.', input, '- Поле why — максимум 15 слов. Не больше двух астрологических терминов; каждый термин сразу объясни простыми словами. Без списков.');
-}
-
 export function buildBlindSpotPrompt(input: PromptInput & { focus?: string } = {}): AppContentPrompt {
   const focusLine = input.focus ? ` Опирайся именно на: ${input.focus}` : '';
   return buildPrompt('blind_spot', '{ "headline": "Что ты можешь не замечать", "text": "...", "example": "...", "soft_step": "..." }', `Покажи одну слепую зону поведения.${focusLine}`, input, '- Без диагнозов. Не перечисляй несколько проблем; разбери одну узнаваемую реакцию.');

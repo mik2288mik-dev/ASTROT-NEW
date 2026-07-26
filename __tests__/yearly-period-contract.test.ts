@@ -1,4 +1,3 @@
-import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { buildContentCacheKey, getContentAccess, getContentPolicy } from '../lib/contentMatrix';
@@ -6,8 +5,8 @@ import { buildContentCacheKey, getContentAccess, getContentPolicy } from '../lib
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-describe('yearly period without Dashboard redesign', () => {
-  it('uses the shared sign-year-language cache and existing Dashboard cards after an explicit click', () => {
+describe('yearly sign period remains a separate Zodiac product', () => {
+  it('keeps the shared sign-year-language cache out of the personal Dashboard', () => {
     expect(getContentPolicy('sign_yearly')).toMatchObject({
       modelTier: 'fast',
       words: { min: 0, max: 170 },
@@ -40,17 +39,11 @@ describe('yearly period without Dashboard redesign', () => {
     expect(service).toContain('getCachedYearlySignHoroscope');
     expect(service).toContain('ensureYearlySignHoroscope');
     expect(service).toContain('signYearlyClientCache');
-    expect(dashboard).toContain("if (period !== 'today') void loadPeriod(period);");
-    expect(dashboard).toContain('getCachedYearlySignHoroscope');
-    expect(dashboard).toContain('ensureYearlySignHoroscope');
+    expect(dashboard).not.toContain('getCachedYearlySignHoroscope');
+    expect(dashboard).not.toContain('ensureYearlySignHoroscope');
+    expect(dashboard).toContain('loadPersonalForecast');
     expect(dashboard).toContain('home-day-hero');
     expect(dashboard).toContain('home-sphere-card');
     expect(read('lib/migrations.ts')).not.toContain('sign_yearly');
-
-    const changedFiles = execFileSync('git', ['diff', '--name-only'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    }).trim().split(/\r?\n/).filter(Boolean);
-    expect(changedFiles.some((file) => file.endsWith('.css'))).toBe(false);
   });
 });

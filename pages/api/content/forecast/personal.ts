@@ -1,0 +1,129 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
+import {
+  ensurePersonalForecast,
+  getCachedPersonalForecast,
+} from '../../../../lib/personalForecastCache';
+import {
+  createUnavailablePersonalForecast,
+  getPersonalForecastPeriodKey,
+  normalizeForecastTimezone,
+  slicePersonalForecastForAccess,
+  type PersonalForecastAccessPayload,
+  type PersonalForecastPeriod,
+} from '../../../../lib/personalForecastContract';
+import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
+
+export const config = { maxDuration: 180 };
+
+function readPeriod(req: NextApiRequest): PersonalForecastPeriod | null {
+  const raw = String(req.method === 'GET' ? req.query.period || '' : req.body?.period || '').trim();
+  return (['day', 'week', 'month', 'year'] as const).includes(raw as PersonalForecastPeriod)
+    ? raw as PersonalForecastPeriod
+    : null;
+}
+
+function readPeriodKey(req: NextApiRequest): string {
+  return String(req.method === 'GET' ? req.query.periodKey || '' : req.body?.periodKey || '').trim();
+}
+
+function responsePayload(
+  forecast: Parameters<typeof slicePersonalForecastForAccess>[0],
+  isPremium: boolean,
+  source: PersonalForecastAccessPayload['source'],
+): PersonalForecastAccessPayload {
+  const sliced = slicePersonalForecastForAccess(forecast, isPremium);
+  return {
+    forecast: sliced.forecast,
+    accessTier: isPremium ? 'premium' : 'free',
+    lockedTopicKeys: sliced.lockedTopicKeys,
+    source,
+  };
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' });
+  }
+  const ready = await ensureValidContext(req, res);
+  if (!ready) return;
+  const { userId, ctx } = ready;
+  if (!ctx.chartData) {
+    return res.status(409).json({
+      error: 'Natal chart required',
+      code: 'PERSONAL_FORECAST_CHART_REQUIRED',
+    });
+  }
+  const period = readPeriod(req);
+  if (!period) {
+    return res.status(400).json({
+      error: 'Bad request',
+      code: 'PERSONAL_FORECAST_PERIOD_INVALID',
+    });
+  }
+  const timezone = normalizeForecastTimezone(
+    ctx.chartData.timezone || ctx.profile.birthTimezone,
+  );
+  const periodKey = readPeriodKey(req) || getPersonalForecastPeriodKey(period, new Date(), timezone);
+  const cacheInput = { ctx, period, periodKey };
+  const entitlement = await getPremiumEntitlementState(userId);
+
+  try {
+    const cached = await getCachedPersonalForecast(cacheInput);
+    if (cached) {
+      return res.status(200).json(responsePayload(cached.forecast, entitlement.isPremium, 'cache'));
+    }
+    if (req.method === 'GET') {
+      return res.status(404).json({
+        error: 'Not found',
+        code: 'PERSONAL_FORECAST_NOT_READY',
+        forecast: createUnavailablePersonalForecast(
+          period,
+          periodKey,
+          timezone,
+          ctx.profile.language === 'en' ? 'en' : 'ru',
+          'unavailable',
+          'PERSONAL_FORECAST_NOT_READY',
+        ),
+      });
+    }
+
+    const generated = await ensurePersonalForecast(cacheInput);
+    if (generated.status === 'in_progress') {
+      return res.status(202).json({
+        ...generationInProgressPayload(generated.retryAfterMs),
+        forecast: createUnavailablePersonalForecast(
+          period,
+          periodKey,
+          timezone,
+          ctx.profile.language === 'en' ? 'en' : 'ru',
+          'generating',
+          'PERSONAL_FORECAST_GENERATING',
+        ),
+      });
+    }
+    return res.status(200).json(responsePayload(
+      generated.value,
+      entitlement.isPremium,
+      generated.fromCache ? 'cache' : 'generated',
+    ));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[personal-forecast-v2] request failed:', message);
+    return res.status(503).json({
+      error: 'Personal forecast unavailable',
+      code: 'PERSONAL_FORECAST_GENERATION_FAILED',
+      forecast: createUnavailablePersonalForecast(
+        period,
+        periodKey,
+        timezone,
+        ctx.profile.language === 'en' ? 'en' : 'ru',
+        'unavailable',
+        message.startsWith('PERSONAL_FORECAST_')
+          ? message.split(':')[0]
+          : 'PERSONAL_FORECAST_GENERATION_FAILED',
+      ),
+    });
+  }
+}

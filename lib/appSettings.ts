@@ -13,7 +13,7 @@ import { normalizeInterpretationModelId } from './openai-models';
  *
  * Astrology calculations remain deterministic code. This setting controls only
  * the model that explains those calculations: personal forecasts, natal chart,
- * synastry, sign horoscopes, daily questions and chat.
+ * synastry, and sign horoscopes.
  *
  * Resolution order: app_settings -> OPENAI_CONTENT_MODEL -> fixed default.
  * Legacy per-slot DB/env values are intentionally ignored so different product
@@ -30,17 +30,11 @@ export const MODEL_TIER_SETTING_KEYS: Record<AiContentModelTier, string> = {
   deep: UNIFIED_CONTENT_MODEL_SETTING_KEY,
 };
 
-/**
- * Legacy slot names are kept only so the existing admin API/UI and generator
- * imports remain backward compatible. Every slot resolves and writes the same
- * global setting.
- */
-export type ModelSlot = AiContentModelTier | 'daily_canvas';
+export type ModelSlot = AiContentModelTier;
 export const MODEL_SLOT_SETTING_KEYS: Record<ModelSlot, string> = {
   fast: UNIFIED_CONTENT_MODEL_SETTING_KEY,
   main: UNIFIED_CONTENT_MODEL_SETTING_KEY,
   deep: UNIFIED_CONTENT_MODEL_SETTING_KEY,
-  daily_canvas: UNIFIED_CONTENT_MODEL_SETTING_KEY,
 };
 
 function getUnifiedContentModelFromEnv(): string {
@@ -71,14 +65,10 @@ export async function getOpenAIInterpretationModel(): Promise<string> {
   return getUnifiedContentModel();
 }
 
-/** Personal daily content now uses the same author model as every other surface. */
-export async function getDailyCanvasModelResolved(): Promise<string> {
-  return getUnifiedContentModel();
-}
-
 /**
- * Any legacy slot update changes the one global model and immediately clears
- * the in-process cache. The slot argument is intentionally ignored.
+ * Any admin slot update changes the one global model and immediately clears
+ * the in-process cache. The slot argument is intentionally ignored because
+ * every user-facing surface shares the same author model.
  */
 export async function setModelForSlot(_slot: ModelSlot, model: string): Promise<void> {
   await db.app_settings.set(UNIFIED_CONTENT_MODEL_SETTING_KEY, model);

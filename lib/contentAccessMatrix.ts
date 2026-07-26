@@ -131,70 +131,19 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
   },
   {
     surface: 'forecast',
-    variant: 'morning',
-    label: 'Утренний ориентир',
-    description: 'Подробное утро.',
-    calculationRequired: true,
-    shouldPersistCalculation: false,
-    shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
-  },
-  {
-    surface: 'forecast',
-    variant: 'day',
-    label: 'Дневной ориентир',
-    description: 'Подробный день.',
-    calculationRequired: true,
-    shouldPersistCalculation: false,
-    shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
-  },
-  {
-    surface: 'forecast',
-    variant: 'evening',
-    label: 'Вечерний ориентир',
-    description: 'Подробный вечер.',
-    calculationRequired: true,
-    shouldPersistCalculation: false,
-    shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
-  },
-  {
-    surface: 'forecast',
     variant: 'weekly',
     label: 'Прогноз на неделю',
     description: 'Недельный прогноз.',
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
+    defaultAccessTier: 'free',
+    unlockOptions: ['free'],
     lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
+      showPreview: false,
+      showTeaser: false,
+      showLockedCard: false,
+      requirePremium: false,
     },
   },
   {
@@ -205,13 +154,30 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
+    defaultAccessTier: 'free',
+    unlockOptions: ['free'],
     lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
+      showPreview: false,
+      showTeaser: false,
+      showLockedCard: false,
+      requirePremium: false,
+    },
+  },
+  {
+    surface: 'forecast',
+    variant: 'yearly',
+    label: 'Прогноз на год',
+    description: 'Годовой персональный прогноз.',
+    calculationRequired: true,
+    shouldPersistCalculation: false,
+    shouldPersistInterpretation: true,
+    defaultAccessTier: 'free',
+    unlockOptions: ['free'],
+    lockedBehavior: {
+      showPreview: false,
+      showTeaser: false,
+      showLockedCard: false,
+      requirePremium: false,
     },
   },
   {
@@ -284,10 +250,6 @@ function hasActiveUnlock(
 ) {
   if (userState.unlockedContent.some((entry) => matchesUnlockEntry(entry, surface, variant, cacheKey))) {
     return true;
-  }
-
-  if (surface === 'forecast' && (variant === 'morning' || variant === 'day' || variant === 'evening')) {
-    return userState.unlockedContent.some((entry) => matchesUnlockEntry(entry, 'forecast', 'full', cacheKey));
   }
 
   return false;

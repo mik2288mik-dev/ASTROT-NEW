@@ -139,15 +139,17 @@ describe('content generation lock', () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  describe('content POST generation routes use content generation lock', () => {
-    const routes = [
-      'pages/api/content/forecast/daily.ts',
-      'pages/api/content/forecast/daypart.ts',
-      'pages/api/content/natal/full.ts',
-    ];
+  describe('content generation paths use content generation lock', () => {
+    it('personal forecast cache locks generation and rechecks its canonical cache', () => {
+      const source = readApiSource('lib/personalForecastCache.ts');
+      expect(source).toContain('withContentGenerationLock');
+      expect(source).toContain('buildContentGenerationLockKey');
+      expect(source).toContain('readCached:');
+      expect(source).toContain('getCachedPersonalForecast');
+    });
 
-    it.each(routes)('%s uses withContentGenerationLock and rechecks cache inside lock', (rel) => {
-      const source = readApiSource(rel);
+    it('natal full route locks generation and rechecks content cache', () => {
+      const source = readApiSource('pages/api/content/natal/full.ts');
       expect(source).toContain('withContentGenerationLock');
       expect(source).toContain('buildContentGenerationLockKey');
       expect(source).toContain('readCached:');

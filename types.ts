@@ -255,51 +255,6 @@ export interface ForecastDailyReading {
   advice: string[];
 }
 
-export type PersonalPeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-export type PeriodExtraVisualTag =
-  | 'communication'
-  | 'relationships'
-  | 'work'
-  | 'money'
-  | 'goals'
-  | 'family'
-  | 'friendship'
-  | 'energy';
-
-export interface PeriodExtraCard {
-  id: string;
-  title: string;
-  teaser: string;
-  fullText: string;
-  visualTag?: PeriodExtraVisualTag;
-  isPremium: boolean;
-  basisSummary?: string;
-  basisDetails?: string[];
-}
-
-export interface PeriodExtras {
-  periodType: PersonalPeriodType;
-  periodKey: string;
-  cards: PeriodExtraCard[];
-  influencesCard: PeriodExtraCard;
-}
-
-export type TodayMetricKey = 'resource' | 'stress' | 'love' | 'focus';
-
-export interface TodayMetricPoint {
-  date: string;
-  value: number;
-}
-
-export interface TodayMetric {
-  key: TodayMetricKey;
-  label: string;
-  value: number;
-  description: string;
-  history: TodayMetricPoint[];
-}
-
 export type DailyAstroSignalLayerKey = 'energy' | 'focus' | 'emotions' | 'money' | 'relationships';
 export type DailyAstroSignalPhase = 'restore' | 'entry' | 'focus_peak' | 'decisions' | 'relationships' | 'reflection';
 export type DailyAstroSignalTone = 'calm' | 'rise' | 'peak' | 'social' | 'caution' | 'restore';
@@ -431,110 +386,6 @@ export interface HoroscopeEngagementSummary {
   views: number;
   reposts: number;
   reposted: boolean;
-}
-
-export interface TodayOverview {
-  date: string;
-  dateLabel: string;
-  sign: string;
-  signLabel: string;
-  headline: string;
-  summary: string;
-  phrase: string;
-  bestAction: string;
-  softRisk: string;
-  horoscopeExcerpt: string;
-  joke: string;
-  comparison: string;
-  metrics: TodayMetric[];
-  personalForecast: ForecastDailyReading;
-  signHoroscope: ForecastDailyReading;
-  reactions: HoroscopeReactionSummary;
-}
-
-export type TodayOverviewResult =
-  | {
-      status: 'ready';
-      overview: TodayOverview;
-      chartId: number | null;
-      source: string;
-    }
-  | {
-      status: 'generating';
-      code: 'GENERATION_IN_PROGRESS';
-      retryAfterMs: number;
-      chartId: number | null;
-    };
-
-export type HoroscopeLayer = 'sign' | 'chart' | 'love' | 'work_money';
-export type HoroscopeOpenMode = 'overview' | 'single';
-export type HoroscopeDailySectionKey =
-  | 'daily_love'
-  | 'daily_work_business'
-  | 'daily_money'
-  | 'daily_goals';
-export type PersonalDailySection =
-  | 'overview'
-  | 'love'
-  | 'money'
-  | 'work'
-  | 'goals'
-  | 'family'
-  | 'friendship'
-  | 'energy'
-  | 'communication';
-export type DailyPackageStatus = 'idle' | 'loading' | 'ready' | 'error';
-export type HoroscopeOpenOptions = {
-  mode?: HoroscopeOpenMode;
-  source?: string;
-  dailySectionKey?: HoroscopeDailySectionKey;
-};
-
-export type ForecastDaypartSlot = 'morning' | 'day' | 'evening';
-
-export interface ForecastDaypartReading {
-  date: string;
-  slot: ForecastDaypartSlot;
-  headline: string;
-  summary: string;
-  focus: string;
-  relationships: string;
-  money: string;
-  guidance: string;
-  risk?: string;
-  chartReason?: string;
-}
-
-/** Free tier: короткий слой; Premium — дополнительные поля заполнены. */
-export interface ForecastWeeklyReading {
-  periodKey: string;
-  periodLabel: string;
-  headline: string;
-  summary: string;
-  focus: string;
-  theme?: string;
-  opportunities?: string;
-  challenges?: string;
-  relationships?: string;
-  career?: string;
-  guidance?: string;
-  reading?: string;
-}
-
-/** Free tier: короткий слой; Premium — развёрнутый период. */
-export interface ForecastMonthlyReading {
-  periodKey: string;
-  periodLabel: string;
-  headline: string;
-  summary: string;
-  focus: string;
-  theme?: string;
-  opportunities?: string;
-  challenges?: string;
-  relationships?: string;
-  money?: string;
-  guidance?: string;
-  reading?: string;
 }
 
 export interface NatalReadingPoint {
@@ -836,6 +687,7 @@ export type ContentVariant =
   | 'evening'
   | 'weekly'
   | 'monthly'
+  | 'yearly'
   | 'brief'
   | 'full';
 export type ContentModelTier = 'base' | 'premium';

@@ -4,29 +4,16 @@ import {
   type PrewarmPlanItem,
   type PrewarmTaskId,
 } from '../lib/contentPrewarm';
-import { getMoscowTodayKey } from '../lib/date-utils';
 import {
-  ensureDailySignHoroscope,
-  getCachedDailySignHoroscope,
-  getCachedFullDaypartForecast,
-  getFullDaypartForecast,
-} from './astrologyService';
+  getPersonalForecastPeriodKey,
+  normalizeForecastTimezone,
+} from '../lib/personalForecastContract';
 import {
-  getRetryAfterMs,
-  isGenerationInProgressError,
-  waitMs,
-} from '../lib/contentInterpretation';
+  loadPersonalForecast,
+  type PersonalForecastClientError,
+} from './personalForecastService';
 
 export type PrewarmMode = 'cache-only' | 'generate-missing';
-
-const log = {
-  info: (message: string, data?: Record<string, unknown>) => {
-    console.log(`[ContentPrewarm] ${message}`, data || '');
-  },
-  warn: (message: string, data?: Record<string, unknown>) => {
-    console.warn(`[ContentPrewarm] ${message}`, data || '');
-  },
-};
 
 export type PrewarmUserContentInput = {
   userId: string;
@@ -36,9 +23,7 @@ export type PrewarmUserContentInput = {
   isPremium: boolean;
   dateKey?: string;
   mode?: PrewarmMode;
-  /** Only run these tasks (generate-missing). */
   onlyTaskIds?: PrewarmTaskId[];
-  /** Max time to block caller; cache-only startup should stay under ~3s. */
   blockingBudgetMs?: number;
   onProgress?: (ratio: number) => void;
 };
@@ -61,180 +46,88 @@ export type PrewarmUserContentResult = {
 
 const CACHE_ONLY_DEFAULT_BUDGET_MS = 1_500;
 const GENERATE_MISSING_DEFAULT_BUDGET_MS = 120_000;
-const GENERATE_MISSING_CONCURRENCY = 4;
+const prewarmInFlight = new Map<string, Promise<PrewarmUserContentResult>>();
 
-let prewarmInFlight: Promise<PrewarmUserContentResult> | null = null;
-let prewarmInFlightKey: string | null = null;
-
-async function runWithGenerationRetry<T>(
-  label: string,
-  attempts: number,
-  run: () => Promise<T>
-): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await run();
-    } catch (error) {
-      lastError = error;
-      if (!isGenerationInProgressError(error) || attempt >= attempts) {
-        throw error;
-      }
-      await waitMs(getRetryAfterMs(error));
-      log.info(`${label}: waiting for in-flight generation`, { attempt });
-    }
-  }
-  throw lastError;
+function personalDayKey(input: PrewarmUserContentInput): string {
+  const timezone = normalizeForecastTimezone(
+    input.chartData.timezone || input.profile.birthTimezone,
+  );
+  return getPersonalForecastPeriodKey('day', new Date(), timezone);
 }
 
 async function probePrewarmItem(
   item: PrewarmPlanItem,
-  input: PrewarmUserContentInput
+  input: PrewarmUserContentInput,
 ): Promise<boolean> {
-  const { userId, chartId, dateKey = getMoscowTodayKey() } = input;
-  const language = input.profile.language === 'en' ? 'en' : 'ru';
-
-  switch (item.id) {
-    case 'sign_daily': {
-      const sign = String(input.chartData?.sun?.sign || '').trim();
-      if (!sign) return false;
-      return !!(await getCachedDailySignHoroscope(sign, dateKey, language));
-    }
-    case 'forecast_daypart_day':
-      return !!(await getCachedFullDaypartForecast(userId, 'day', {
-        chartId,
-        accessTier: 'premium',
-        dateKey,
-      }));
-    default:
-      return false;
+  if (item.id !== 'personal_forecast_day') return false;
+  try {
+    await loadPersonalForecast({
+      profile: input.profile,
+      chartData: input.chartData,
+      chartId: input.chartId,
+      period: 'day',
+      periodKey: personalDayKey(input),
+      options: { cacheOnly: true, force: true },
+    });
+    return true;
+  } catch (error) {
+    if ((error as PersonalForecastClientError)?.status === 404) return false;
+    throw error;
   }
 }
 
 async function generatePrewarmItem(
   item: PrewarmPlanItem,
-  input: PrewarmUserContentInput
+  input: PrewarmUserContentInput,
 ): Promise<void> {
-  const { profile, chartData, chartId, dateKey = getMoscowTodayKey() } = input;
-
-  switch (item.id) {
-    case 'sign_daily': {
-      const sign = String(chartData?.sun?.sign || '').trim();
-      if (!sign) return;
-      await runWithGenerationRetry('sign-daily', 3, () =>
-        ensureDailySignHoroscope(sign, dateKey, profile.language === 'en' ? 'en' : 'ru')
-      );
-      return;
-    }
-    case 'forecast_daypart_day':
-      await runWithGenerationRetry('forecast:day', 3, async () => {
-        await getFullDaypartForecast(profile, chartData, 'day', {
-          accessTier: 'premium',
-          date: dateKey,
-          chartId,
-        });
-      });
-      return;
-    default:
-      return;
-  }
-}
-
-async function runWithConcurrency<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<void>
-): Promise<void> {
-  let nextIndex = 0;
-  const workerCount = Math.min(Math.max(limit, 1), items.length);
-  const workers = Array.from({ length: workerCount }, async () => {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      await worker(items[currentIndex], currentIndex);
-    }
+  if (item.id !== 'personal_forecast_day') return;
+  await loadPersonalForecast({
+    profile: input.profile,
+    chartData: input.chartData,
+    chartId: input.chartId,
+    period: 'day',
+    periodKey: personalDayKey(input),
+    options: { force: true },
   });
-  await Promise.all(workers);
 }
 
 async function runPlan(
   plan: PrewarmPlanItem[],
   input: PrewarmUserContentInput,
-  deadlineMs: number
+  deadline: number,
 ): Promise<PrewarmUserContentResult> {
   const completed: PrewarmTaskResult[] = [];
   const failed: PrewarmTaskResult[] = [];
   const missingTaskIds: PrewarmTaskId[] = [];
   const cachedTaskIds: PrewarmTaskId[] = [];
-  const mode = input.mode ?? 'cache-only';
-
-  if (mode === 'generate-missing') {
-    const orderedCompleted: Array<PrewarmTaskResult | null> = Array(plan.length).fill(null);
-    let settled = 0;
-
-    await runWithConcurrency(plan, GENERATE_MISSING_CONCURRENCY, async (item, index) => {
-      try {
-        if (Date.now() >= deadlineMs) {
-          throw new Error('startup-content-deadline');
-        }
-
-        const hasCache = await probePrewarmItem(item, input);
-        if (hasCache) {
-          cachedTaskIds.push(item.id);
-          orderedCompleted[index] = { id: item.id, status: 'cached' };
-          return;
-        }
-
-        if (Date.now() >= deadlineMs) {
-          throw new Error('startup-content-deadline');
-        }
-
-        await generatePrewarmItem(item, input);
-        orderedCompleted[index] = { id: item.id, status: 'generated' };
-      } catch (error: any) {
-        const message = error?.message || String(error);
-        log.warn(`Task failed: ${item.id}`, { message, code: error?.code, mode });
-        failed.push({ id: item.id, status: 'failed', error: message });
-      } finally {
-        settled += 1;
-        input.onProgress?.(settled / Math.max(plan.length, 1));
-      }
-    });
-
-    return {
-      planSize: plan.length,
-      completed: orderedCompleted.filter((item): item is PrewarmTaskResult => !!item),
-      failed,
-      missingTaskIds,
-      cachedTaskIds,
-    };
-  }
+  const mode = input.mode || 'cache-only';
 
   for (const item of plan) {
-    if (Date.now() >= deadlineMs) {
+    if (Date.now() >= deadline) {
       missingTaskIds.push(item.id);
       continue;
     }
-
     try {
-      const hasCache = await probePrewarmItem(item, input);
-      if (hasCache) {
+      const cached = await probePrewarmItem(item, input);
+      if (cached) {
         cachedTaskIds.push(item.id);
         completed.push({ id: item.id, status: 'cached' });
-        continue;
+      } else if (mode === 'cache-only') {
+        missingTaskIds.push(item.id);
+        completed.push({ id: item.id, status: 'missing' });
+      } else if (Date.now() < deadline) {
+        await generatePrewarmItem(item, input);
+        completed.push({ id: item.id, status: 'generated' });
+      } else {
+        missingTaskIds.push(item.id);
       }
-
-      missingTaskIds.push(item.id);
-      completed.push({ id: item.id, status: 'missing' });
-      continue;
-    } catch (error: any) {
-      const message = error?.message || String(error);
-      log.warn(`Task failed: ${item.id}`, { message, code: error?.code, mode });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       failed.push({ id: item.id, status: 'failed', error: message });
-      missingTaskIds.push(item.id);
+      if (mode === 'cache-only') missingTaskIds.push(item.id);
+    } finally {
+      input.onProgress?.((completed.length + failed.length) / Math.max(plan.length, 1));
     }
-
-    input.onProgress?.((completed.length + failed.length) / Math.max(plan.length, 1));
   }
 
   return {
@@ -247,53 +140,39 @@ async function runPlan(
 }
 
 export async function prewarmUserContent(
-  input: PrewarmUserContentInput
+  input: PrewarmUserContentInput,
 ): Promise<PrewarmUserContentResult> {
-  const dateKey = input.dateKey || getMoscowTodayKey();
-  const mode = input.mode ?? 'cache-only';
-  const taskScope = input.onlyTaskIds?.length ? [...input.onlyTaskIds].sort().join(',') : 'all';
-  const key = `${input.userId}:${input.chartId ?? 'primary'}:${dateKey}:${input.isPremium ? 'premium' : 'free'}:${mode}:${taskScope}`;
+  const periodKey = personalDayKey(input);
+  const mode = input.mode || 'cache-only';
+  const scope = input.onlyTaskIds?.length
+    ? [...input.onlyTaskIds].sort().join(',')
+    : 'all';
+  const key = [
+    input.userId,
+    input.chartId ?? 'primary',
+    periodKey,
+    mode,
+    scope,
+  ].join(':');
+  const existing = prewarmInFlight.get(key);
+  if (existing) return existing;
 
-  if (prewarmInFlight && prewarmInFlightKey === key) {
-    return prewarmInFlight;
-  }
-
-  let plan = buildUserPrewarmPlan(input.isPremium, dateKey);
+  let plan = buildUserPrewarmPlan(input.isPremium, periodKey);
   if (input.onlyTaskIds?.length) {
     const allowed = new Set(input.onlyTaskIds);
     plan = plan.filter((item) => allowed.has(item.id));
   }
-
-  const blockingBudgetMs =
-    input.blockingBudgetMs ??
-    (mode === 'cache-only' ? CACHE_ONLY_DEFAULT_BUDGET_MS : GENERATE_MISSING_DEFAULT_BUDGET_MS);
-  const deadline = Date.now() + blockingBudgetMs;
-
-  const run = async (): Promise<PrewarmUserContentResult> => {
-    log.info('Starting prewarm', {
-      userId: input.userId,
-      chartId: input.chartId ?? null,
-      isPremium: input.isPremium,
-      planSize: plan.length,
-      dateKey,
-      mode,
-    });
-
-    return runPlan(plan, input, deadline);
-  };
-
-  prewarmInFlightKey = key;
-  prewarmInFlight = run().finally(() => {
-    if (prewarmInFlightKey === key) {
-      prewarmInFlight = null;
-      prewarmInFlightKey = null;
-    }
+  const budget = input.blockingBudgetMs
+    ?? (mode === 'cache-only'
+      ? CACHE_ONLY_DEFAULT_BUDGET_MS
+      : GENERATE_MISSING_DEFAULT_BUDGET_MS);
+  const request = runPlan(plan, input, Date.now() + budget).finally(() => {
+    if (prewarmInFlight.get(key) === request) prewarmInFlight.delete(key);
   });
-
-  return prewarmInFlight;
+  prewarmInFlight.set(key, request);
+  return request;
 }
 
-export function resetPrewarmSessionForTests() {
-  prewarmInFlight = null;
-  prewarmInFlightKey = null;
+export function resetPrewarmSessionForTests(): void {
+  prewarmInFlight.clear();
 }

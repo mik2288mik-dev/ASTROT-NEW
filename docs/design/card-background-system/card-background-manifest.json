@@ -1,5 +1,6 @@
 {
-  "version": 1,
+  "version": 2,
+  "visualManifestVersion": "forecast-visual-v2",
   "season": "base",
   "assets": [
     {
@@ -13,6 +14,10 @@
       "background_position": "72% 62%",
       "season": "base",
       "enabled": true,
+      "periods": ["day"],
+      "topicKeys": ["overview"],
+      "paletteTag": "day-coral",
+      "compositionTag": "hero-day-window",
       "description": "Кот у высокого окна в ярком современном интерьере."
     },
     {
@@ -26,6 +31,10 @@
       "background_position": "76% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["week"],
+      "topicKeys": ["overview"],
+      "paletteTag": "week-blue",
+      "compositionTag": "hero-week-portrait",
       "description": "Очень крупный фрагмент рисованного кошачьего портрета."
     },
     {
@@ -39,6 +48,10 @@
       "background_position": "70% 60%",
       "season": "base",
       "enabled": true,
+      "periods": ["month"],
+      "topicKeys": ["overview"],
+      "paletteTag": "month-plum",
+      "compositionTag": "hero-month-editorial",
       "description": "Солнечный журнальный интерьер без животных."
     },
     {
@@ -52,6 +65,10 @@
       "background_position": "72% 62%",
       "season": "base",
       "enabled": true,
+      "periods": ["year"],
+      "topicKeys": ["overview"],
+      "paletteTag": "year-ochre",
+      "compositionTag": "hero-year-architecture",
       "description": "Кот проходит среди крупных листьев и цветной архитектуры."
     },
     {
@@ -65,6 +82,10 @@
       "background_position": "72% 66%",
       "season": "base",
       "enabled": true,
+      "periods": ["day"],
+      "topicKeys": ["overview"],
+      "paletteTag": "day-coral",
+      "compositionTag": "hero-day-abstract",
       "description": "Хвост, часть спины и тень кота среди цветных плоскостей."
     },
     {
@@ -78,6 +99,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["day"],
+      "topicKeys": ["public_visibility"],
+      "paletteTag": "editorial-coral",
+      "compositionTag": "topic-observer",
       "description": "Наблюдательный кот на стопке ярких журналов в интерьере."
     },
     {
@@ -91,6 +116,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["year"],
+      "topicKeys": ["public_visibility"],
+      "paletteTag": "editorial-blue",
+      "compositionTag": "topic-interior",
       "description": "Солнечный интерьер с полосами жалюзи и крупными предметами."
     },
     {
@@ -104,6 +133,10 @@
       "background_position": "74% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["day"],
+      "topicKeys": ["love"],
+      "paletteTag": "relationship-coral",
+      "compositionTag": "topic-pair",
       "description": "Два кота в сцене внимания и лёгкой недосказанности."
     },
     {
@@ -117,6 +150,10 @@
       "background_position": "75% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["year"],
+      "topicKeys": ["love"],
+      "paletteTag": "relationship-blue",
+      "compositionTag": "topic-shadows",
       "description": "Два почти соприкасающихся хвоста и кошачьи тени."
     },
     {
@@ -130,6 +167,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["month"],
+      "topicKeys": ["money"],
+      "paletteTag": "money-coral",
+      "compositionTag": "topic-still-life",
       "description": "Журнальный натюрморт и кошачья лапа, тянущаяся к предмету."
     },
     {
@@ -143,6 +184,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["week"],
+      "topicKeys": ["money"],
+      "paletteTag": "money-blue",
+      "compositionTag": "topic-objects",
       "description": "Цветной натюрморт с повседневными предметами без животных."
     },
     {
@@ -156,6 +201,10 @@
       "background_position": "73% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["day"],
+      "topicKeys": ["work"],
+      "paletteTag": "work-coral",
+      "compositionTag": "topic-desk-cat",
       "description": "Кот с лёгким недоверием смотрит на экран у рабочего стола."
     },
     {
@@ -169,6 +218,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["month"],
+      "topicKeys": ["work"],
+      "paletteTag": "work-blue",
+      "compositionTag": "topic-desk",
       "description": "Яркий рабочий стол с блокнотом, бумагой, очками и чашкой."
     },
     {
@@ -182,6 +235,10 @@
       "background_position": "73% 52%",
       "season": "base",
       "enabled": true,
+      "periods": ["week"],
+      "topicKeys": ["luck"],
+      "paletteTag": "choice-coral",
+      "compositionTag": "topic-stairs",
       "description": "Кот на цветных ступенях между двумя возможными направлениями."
     },
     {
@@ -195,6 +252,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["year"],
+      "topicKeys": ["luck"],
+      "paletteTag": "choice-blue",
+      "compositionTag": "topic-passages",
       "description": "Два цветных архитектурных прохода разной глубины."
     },
     {
@@ -208,6 +269,10 @@
       "background_position": "73% 54%",
       "season": "base",
       "enabled": true,
+      "periods": ["month"],
+      "topicKeys": ["home_family"],
+      "paletteTag": "home-coral",
+      "compositionTag": "topic-chair",
       "description": "Кот отдыхает в выразительном кресле среди насыщенного света."
     },
     {
@@ -221,6 +286,10 @@
       "background_position": "74% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["week"],
+      "topicKeys": ["home_family"],
+      "paletteTag": "home-blue",
+      "compositionTag": "topic-curtain",
       "description": "Хвост и лапа кота выглядывают из-за яркой шторы."
     },
     {
@@ -234,6 +303,10 @@
       "background_position": "73% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["day"],
+      "topicKeys": ["friends_social"],
+      "paletteTag": "social-coral",
+      "compositionTag": "topic-group",
       "description": "Три кота на разных уровнях в живой и ироничной сцене."
     },
     {
@@ -247,6 +320,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["year"],
+      "topicKeys": ["friends_social"],
+      "paletteTag": "social-blue",
+      "compositionTag": "topic-after-meeting",
       "description": "Следы недавней встречи: чашки, очки, журнал, ключи и стул."
     },
     {
@@ -260,6 +337,10 @@
       "background_position": "73% 54%",
       "season": "base",
       "enabled": true,
+      "periods": ["day"],
+      "topicKeys": ["mood_energy"],
+      "paletteTag": "energy-coral",
+      "compositionTag": "topic-sun-rest",
       "description": "Спящий кот в ярком солнечном пятне среди цветных поверхностей."
     },
     {
@@ -273,6 +354,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["year"],
+      "topicKeys": ["mood_energy"],
+      "paletteTag": "energy-blue",
+      "compositionTag": "topic-window-motion",
       "description": "Открытое окно, вода, яркий текстиль и предмет для движения."
     },
     {
@@ -286,6 +371,10 @@
       "background_position": "74% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["week"],
+      "topicKeys": ["communication"],
+      "paletteTag": "communication-coral",
+      "compositionTag": "topic-dialogue",
       "description": "Два кошачьих профиля по сторонам цветной отражающей поверхности."
     },
     {
@@ -299,6 +388,10 @@
       "background_position": "72% 50%",
       "season": "base",
       "enabled": true,
+      "periods": ["month"],
+      "topicKeys": ["communication"],
+      "paletteTag": "communication-blue",
+      "compositionTag": "topic-facing-chairs",
       "description": "Два по-разному освещённых кресла стоят напротив друг друга."
     },
     {

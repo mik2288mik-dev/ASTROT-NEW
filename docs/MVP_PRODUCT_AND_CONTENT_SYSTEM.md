@@ -1,6 +1,6 @@
 # MVP Product And Content System
 
-This is the product-level source of truth for «Твой Гороскоп» / “Your Horoscope”. Runtime details that have not yet completed migration are explicitly marked below.
+This is the product-level source of truth for «Твой Гороскоп» / “Your Horoscope”.
 
 ## 1. MVP products
 
@@ -13,9 +13,9 @@ This is the product-level source of truth for «Твой Гороскоп» / �
 - Premium calendar/archive for saved personal readings.
 - Settings, onboarding, subscription, support, admin, notifications, and mobile-shell functionality required to operate the MVP.
 
-## 2. Personal forecast screen — approved target
+## 2. Personal forecast screen — active product
 
-The complete implementation contract is:
+The implemented contract is documented in:
 
 `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md`
 
@@ -42,16 +42,13 @@ Each topic contains:
 
 The personal screen uses one unified user-facing model resolver, default GPT-4.1. Astronomy and topic evidence are calculated in code; GPT only explains supplied evidence.
 
-## 3. Current migration state
+## 3. Runtime boundary
 
-The current main branch still contains the legacy implementation:
-
-- Today uses the old saved daily canvas;
-- Week/Month/Year on Dashboard load general sign forecasts;
-- period extras use a separate contract;
-- old fixed topics, generated hooks/headlines, scene requirements, fallback texts, cache keys, and tests remain active.
-
-These are migration inputs, not approved target behavior. The forecast V2 branch must switch every consumer before deleting dead code. Do not remove sign-horoscope generation itself because it remains necessary for the separate `Зодиак` product.
+- Today/Week/Month/Year all use the same chart-based `PersonalForecastPackage`.
+- The personal Dashboard has no daily-canvas, period-extra, or sign-horoscope consumer.
+- Missing personal content reports `generating`/`unavailable` locally and never substitutes a general sign forecast or static forecast copy.
+- General sign-horoscope generation remains active only for the separate `Зодиак` product.
+- Legacy personal rows are retained in storage but are incompatible with V2 keys.
 
 ## 4. Free and Premium
 
@@ -88,9 +85,9 @@ The model never calculates astronomy and never creates an aspect, orb, date, hou
 
 ## 6. Personal forecast cache and archive
 
-The final V2 key format and prewarm cadence are specified in `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md` and summarized in `docs/CONTENT_CACHE_AND_PREWARM.md`.
+The V2 key format, lock identity, retention policy, and prewarm cadence are specified in `docs/CONTENT_CACHE_AND_PREWARM.md`.
 
-The migration must invalidate legacy personal-screen packages without deleting unrelated natal, `Зодиак`, synastry, compatibility, payment, or archive data. Past saved readings are not generated on archive read.
+Legacy personal-screen packages are invalidated by versioned identity without deleting unrelated natal, `Зодиак`, synastry, compatibility, payment, or archive data. Past saved readings are not generated on archive read.
 
 ## 7. Voice and content rules
 
@@ -130,13 +127,13 @@ Core active storage includes users/sessions, natal charts, content interpretatio
 
 Deprecated product tables are removed only through additive cleanup migrations. Do not delete applied migration history.
 
-## 10. Cleanup rule
+## 10. Architecture sources
 
-Do not keep redirect task files, duplicate product specifications, or obsolete forecast contracts after migration. The implementation PR must update:
+The shipped architecture is maintained in:
 
 - `docs/CURRENT_ARCHITECTURE.md`;
 - `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`;
 - `docs/CONTENT_CACHE_AND_PREWARM.md`;
 - `docs/NEXT_TASK_CONTEXT.md`.
 
-It must also remove dead legacy code and incompatible tests only after all runtime consumers have switched to the new personal forecast contract.
+Dead legacy runtime and incompatible tests are removed only after all consumers use the personal forecast V2 contract. The historical task contract remains `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md`; do not add duplicate forecast task documents.

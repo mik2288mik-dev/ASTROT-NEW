@@ -1,5 +1,5 @@
 /* Narrow, approved fix only:
-   1) align the first Today topic card with the 16px main gutter;
+   1) align the first forecast topic card with the 16px main gutter;
    2) prevent iOS/Telegram WebView from flashing rounded image cards while vertically scrolling.
    No visual redesign belongs in this file. */
 
@@ -15,7 +15,6 @@
 .home-screen :is(
   .home-day-hero.has-card-background,
   .home-sphere-card.has-card-background,
-  .home-daily-question-card,
   .home-product-card
 ) {
   contain: paint;
@@ -29,13 +28,11 @@
 .home-screen :is(
   .home-day-hero.has-card-background,
   .home-sphere-card.has-card-background,
-  .home-daily-question-card,
   .home-product-card
 )::before,
 .home-screen :is(
   .home-day-hero.has-card-background,
   .home-sphere-card.has-card-background,
-  .home-daily-question-card,
   .home-product-card
 )::after {
   transform: translate3d(0, 0, 0);
@@ -48,7 +45,6 @@
 .home-screen :is(
   .home-day-hero.has-card-background,
   .home-sphere-card.has-card-background,
-  .home-daily-question-card,
   .home-product-card
 ):active {
   transform: translate3d(0, 0, 0);

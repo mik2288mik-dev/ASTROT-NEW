@@ -123,25 +123,24 @@ describe('product model guard', () => {
     expect(violations).toEqual([]);
   });
 
-  describe('forecast additive architecture', () => {
-    it('serves forecast/daily on the free access tier without premiumRequired', () => {
-      const source = fs.readFileSync(path.join(ROOT, 'pages/api/content/forecast/daily.ts'), 'utf8');
-      expect(source).not.toMatch(/PREMIUM_REQUIRED/);
-      expect(source).not.toMatch(/premiumRequired:\s*true/);
-      expect(source).toMatch(/accessTier:\s*['"]free['"]/);
-      expect(source).toMatch(/contentVariant:\s*['"]daily['"]/);
+  describe('personal forecast additive architecture', () => {
+    it('stores one canonical Premium package and slices access only at response time', () => {
+      const cache = fs.readFileSync(path.join(ROOT, 'lib/personalForecastCache.ts'), 'utf8');
+      const route = fs.readFileSync(path.join(ROOT, 'pages/api/content/forecast/personal.ts'), 'utf8');
+      expect(cache).toContain("CANONICAL_CACHE_TIER = 'premium'");
+      expect(route).toContain('slicePersonalForecastForAccess');
+      expect(route).toContain('getPremiumEntitlementState');
     });
 
-    it('requires Premium for forecast/daypart layers', () => {
-      const source = fs.readFileSync(path.join(ROOT, 'pages/api/content/forecast/daypart.ts'), 'utf8');
-      expect(source).toMatch(/PREMIUM_REQUIRED/);
-      expect(source).toMatch(/premiumRequired:\s*true/);
+    it('keeps overview and one full reading available to Free users', () => {
+      const contract = fs.readFileSync(path.join(ROOT, 'lib/personalForecastContract.ts'), 'utf8');
+      expect(contract).toContain("PERSONAL_FORECAST_FREE_READING_TOPIC: FixedForecastTopicKey = 'love'");
+      expect(contract).toContain("key !== 'overview' && key !== PERSONAL_FORECAST_FREE_READING_TOPIC");
     });
 
-    it('builds premium weekly fallback on top of the free weekly baseline', () => {
-      const source = fs.readFileSync(path.join(ROOT, 'lib/forecastContent.ts'), 'utf8');
-      expect(source).toMatch(/buildFreeWeeklyFallback/);
-      expect(source).toMatch(/buildPremiumWeeklyFallback[\s\S]*\.\.\.base/);
+    it('does not keep old personal daypart or fallback generators', () => {
+      expect(fs.existsSync(path.join(ROOT, 'pages/api/content/forecast/daypart.ts'))).toBe(false);
+      expect(fs.existsSync(path.join(ROOT, 'lib/forecastContent.ts'))).toBe(false);
     });
   });
 });

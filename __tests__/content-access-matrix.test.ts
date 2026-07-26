@@ -74,14 +74,14 @@ describe('contentAccessMatrix', () => {
     });
   });
 
-  describe('premium-only paid surfaces', () => {
-    it.each(['morning', 'day', 'evening'] as const)(
-      'requires premium for forecast/%s',
+  describe('personal forecast surfaces', () => {
+    it.each(['daily', 'weekly', 'monthly', 'yearly'] as const)(
+      'keeps forecast/%s available before topic-level server slicing',
       (variant) => {
         const config = getContentAccessConfig('forecast', variant);
-        expect(config?.defaultAccessTier).toBe('premium');
-        expect(config?.unlockOptions).toEqual(['premium']);
-        expect(canAccessContent(freeUser, 'forecast', variant)).toBe(false);
+        expect(config?.defaultAccessTier).toBe('free');
+        expect(config?.unlockOptions).toEqual(['free']);
+        expect(canAccessContent(freeUser, 'forecast', variant)).toBe(true);
         expect(canAccessContent(premiumUser, 'forecast', variant)).toBe(true);
       }
     );
@@ -92,20 +92,14 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
       expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
     });
-
-    it('allows forecast daypart via premium unlock rows only', () => {
-      const unlockUser = userWithUnlock('forecast', 'full', 'premium', '2026-05-29');
-      expect(canAccessContent(unlockUser, 'forecast', 'morning', '2026-05-29')).toBe(true);
-    });
   });
 
   describe('canAccessContent unlocks', () => {
     it('returns true for premium users on premium variants', () => {
-      expect(canAccessContent(premiumUser, 'forecast', 'morning')).toBe(true);
+      expect(canAccessContent(premiumUser, 'natal', 'full')).toBe(true);
     });
 
     it('returns true for trial users with future premiumUntil on premium variants', () => {
-      expect(canAccessContent(trialUser, 'forecast', 'morning')).toBe(true);
       expect(canAccessContent(trialUser, 'natal', 'full')).toBe(true);
     });
 
@@ -117,24 +111,24 @@ describe('contentAccessMatrix', () => {
 
   describe('calculation and persistence flags', () => {
     it('marks calculation-required surfaces for precalculation', () => {
-      expect(shouldPrecalculate('forecast', 'morning')).toBe(true);
+      expect(shouldPrecalculate('forecast', 'daily')).toBe(true);
       expect(shouldPrecalculate('synastry', 'full')).toBe(true);
     });
 
     it('returns persist flags according to matrix', () => {
-      expect(shouldPersistContent('forecast', 'morning')).toBe(true);
+      expect(shouldPersistContent('forecast', 'daily')).toBe(true);
       expect(shouldPersistContent('synastry', 'full')).toBe(true);
     });
   });
 
   describe('locked behavior', () => {
     it('returns unlocked behavior when access is granted', () => {
-      const behavior = getLockedBehavior(premiumUser, 'forecast', 'morning');
+      const behavior = getLockedBehavior(premiumUser, 'natal', 'full');
       expect(behavior.showLockedCard).toBe(false);
     });
 
     it('returns premium-only locked behavior when access is denied', () => {
-      const behavior = getLockedBehavior(freeUser, 'forecast', 'morning');
+      const behavior = getLockedBehavior(freeUser, 'natal', 'full');
       expect(behavior.showLockedCard).toBe(true);
       expect(behavior.requirePremium).toBe(true);
     });
@@ -151,6 +145,9 @@ describe('contentAccessMatrix', () => {
     const FREE_BASELINE: Array<[UserState['unlockedContent'][number]['surface'], UserState['unlockedContent'][number]['variant']]> = [
       ['natal', 'anchor'],
       ['forecast', 'daily'],
+      ['forecast', 'weekly'],
+      ['forecast', 'monthly'],
+      ['forecast', 'yearly'],
       ['synastry', 'brief'],
     ];
 
@@ -158,11 +155,6 @@ describe('contentAccessMatrix', () => {
       ['natal', 'full'],
       ['natal', 'planet_insight'],
       ['natal', 'living'],
-      ['forecast', 'morning'],
-      ['forecast', 'day'],
-      ['forecast', 'evening'],
-      ['forecast', 'weekly'],
-      ['forecast', 'monthly'],
       ['synastry', 'full'],
     ];
 
@@ -200,11 +192,9 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(freeUser, 'natal', 'full')).toBe(false);
       expect(canAccessContent(freeUser, 'natal', 'planet_insight')).toBe(false);
       expect(canAccessContent(freeUser, 'natal', 'living')).toBe(false);
-      expect(canAccessContent(freeUser, 'forecast', 'morning')).toBe(false);
-      expect(canAccessContent(freeUser, 'forecast', 'day')).toBe(false);
-      expect(canAccessContent(freeUser, 'forecast', 'evening')).toBe(false);
-      expect(canAccessContent(freeUser, 'forecast', 'weekly')).toBe(false);
-      expect(canAccessContent(freeUser, 'forecast', 'monthly')).toBe(false);
+      expect(canAccessContent(freeUser, 'forecast', 'weekly')).toBe(true);
+      expect(canAccessContent(freeUser, 'forecast', 'monthly')).toBe(true);
+      expect(canAccessContent(freeUser, 'forecast', 'yearly')).toBe(true);
       expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
     });
 
@@ -216,11 +206,9 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'natal', 'full')).toBe(true);
       expect(canAccessContent(premiumUser, 'natal', 'planet_insight')).toBe(true);
       expect(canAccessContent(premiumUser, 'natal', 'living')).toBe(true);
-      expect(canAccessContent(premiumUser, 'forecast', 'morning')).toBe(true);
-      expect(canAccessContent(premiumUser, 'forecast', 'day')).toBe(true);
-      expect(canAccessContent(premiumUser, 'forecast', 'evening')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'weekly')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'monthly')).toBe(true);
+      expect(canAccessContent(premiumUser, 'forecast', 'yearly')).toBe(true);
       expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
     });
   });

@@ -1,14 +1,4 @@
-/**
- * OpenAI models for generated interpretations (admin-configurable + env fallback).
- */
-
-// ЕДИНАЯ недорогая модель для ВСЕХ генераций — gpt-5.4-mini (main/deep/fast сходятся к ней).
-// Достаточно умная для наших текстов и дешёвая. Дорогие модели (gpt-5.5 и т.п.) — только
-// точечно через env/админку, если реально понадобится.
-export const DEFAULT_INTERPRETATION_MODEL = 'gpt-5.4-mini';
-export const DEFAULT_PREMIUM_INTERPRETATION_MODEL = 'gpt-5.4-mini';
-
-export const INTERPRETATION_MODEL_SETTING_KEY = 'openai_interpretation_model';
+/** Curated model IDs accepted by the unified content-model setting. */
 
 /** Curated list: GPT-4 family through GPT-5.5 variants (exact API ids depend on OpenAI account). */
 export const INTERPRETATION_MODEL_OPTIONS: Array<{ id: string; label: string }> = [
@@ -37,21 +27,4 @@ export function normalizeInterpretationModelId(raw: string | null | undefined): 
   if (!raw || typeof raw !== 'string') return null;
   const t = raw.trim();
   return t && ALLOWED_IDS.has(t) ? t : null;
-}
-
-export function getInterpretationModelFromEnv(): string {
-  return normalizeInterpretationModelId(process.env.OPENAI_INTERPRETATION_MODEL) || DEFAULT_INTERPRETATION_MODEL;
-}
-
-// Личный дневной разбор генерится ЕДИНЫМ полотном (длинный связный текст) — под него
-// отдельный слот модели. Приоритет: app_settings (БД, ключ ниже) → env → дефолт.
-// Дефолт — проверенный mini, чтобы неверный/недоступный id (напр. если gpt-5.4 не подключён
-// на аккаунте) не приводил к 400 → тихий fallback у всех юзеров. Поднять: через админку
-// (слот daily_canvas) или env OPENAI_DAILY_CANVAS_MODEL=gpt-5.4.
-export const DEFAULT_DAILY_CANVAS_MODEL = DEFAULT_PREMIUM_INTERPRETATION_MODEL;
-export const DAILY_CANVAS_MODEL_SETTING_KEY = 'openai_model_daily_canvas';
-
-/** env → дефолт для слота полотна. Слой app_settings добавляет getDailyCanvasModelResolved(). */
-export function getDailyCanvasModelFromEnv(): string {
-  return normalizeInterpretationModelId(process.env.OPENAI_DAILY_CANVAS_MODEL) || DEFAULT_DAILY_CANVAS_MODEL;
 }

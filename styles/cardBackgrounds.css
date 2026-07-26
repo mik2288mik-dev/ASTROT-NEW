@@ -244,6 +244,54 @@
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
+.home-day-hero.has-forecast-fallback,
+.home-sphere-card.has-forecast-fallback,
+.pd-areahero.has-forecast-fallback {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% 22%, color-mix(in srgb, var(--forecast-fallback-accent) 28%, transparent) 0 17%, transparent 18%),
+    linear-gradient(132deg, var(--forecast-fallback-soft) 0 66%, color-mix(in srgb, var(--forecast-fallback-accent) 18%, #ffffff) 100%);
+  color: #172033;
+}
+
+.home-day-hero.has-forecast-fallback::before,
+.home-sphere-card.has-forecast-fallback::before,
+.pd-areahero.has-forecast-fallback::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 12rem;
+  height: 12rem;
+  right: -4.4rem;
+  bottom: -6rem;
+  border: 1.4rem solid color-mix(in srgb, var(--forecast-fallback-accent) 24%, transparent);
+  border-radius: 42% 58% 54% 46%;
+  transform: rotate(-18deg);
+}
+
+.home-day-hero.has-forecast-fallback {
+  min-height: clamp(18.5rem, 72vw, 21.5rem);
+  padding: 1.35rem 1.3rem 1.25rem;
+  text-align: left;
+}
+
+.home-sphere-card.has-forecast-fallback {
+  flex: 0 0 85%;
+  min-height: 9rem;
+  padding: 1.08rem;
+  scroll-snap-align: start;
+}
+
+.pd-areahero.has-forecast-fallback {
+  display: flex;
+  min-height: clamp(11.5rem, 48vw, 14rem);
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.2rem 1.15rem;
+}
+
 @media (max-width: 380px) {
   .home-day-hero.has-card-background {
     min-height: 17.5rem;

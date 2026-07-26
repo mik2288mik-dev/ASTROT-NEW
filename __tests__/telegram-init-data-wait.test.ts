@@ -1,4 +1,11 @@
 describe('waitForTelegramInitData', () => {
+  const fakeWindow = (webApp: { initData: string }) => ({
+    Telegram: { WebApp: webApp },
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  });
+
   beforeEach(() => {
     jest.useFakeTimers();
     jest.resetModules();
@@ -10,9 +17,7 @@ describe('waitForTelegramInitData', () => {
   });
 
   it('returns initData immediately when available', async () => {
-    (global as any).window = {
-      Telegram: { WebApp: { initData: 'query_id=1&user=%7B%7D&hash=abc' } },
-    };
+    (global as any).window = fakeWindow({ initData: 'query_id=1&user=%7B%7D&hash=abc' });
 
     const { waitForTelegramInitData } = await import('../services/sessionService');
     await expect(waitForTelegramInitData({ maxAttempts: 3, delayMs: 100 })).resolves.toBe(
@@ -22,7 +27,7 @@ describe('waitForTelegramInitData', () => {
 
   it('polls until initData appears', async () => {
     const webApp = { initData: '' };
-    (global as any).window = { Telegram: { WebApp: webApp } };
+    (global as any).window = fakeWindow(webApp);
 
     const { waitForTelegramInitData } = await import('../services/sessionService');
     const promise = waitForTelegramInitData({ maxAttempts: 5, delayMs: 100 });
@@ -35,7 +40,7 @@ describe('waitForTelegramInitData', () => {
   });
 
   it('returns null after timeout when initData never appears', async () => {
-    (global as any).window = { Telegram: { WebApp: { initData: '' } } };
+    (global as any).window = fakeWindow({ initData: '' });
 
     const { waitForTelegramInitData } = await import('../services/sessionService');
     const promise = waitForTelegramInitData({ maxAttempts: 3, delayMs: 100 });

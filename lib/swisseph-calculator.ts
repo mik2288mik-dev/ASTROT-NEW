@@ -82,6 +82,9 @@ export interface PlanetaryTransitsAtResult {
   mars: PlanetPosition;
   jupiter: PlanetPosition;
   saturn: PlanetPosition;
+  uranus: PlanetPosition;
+  neptune: PlanetPosition;
+  pluto: PlanetPosition;
 }
 
 interface NatalHouseData {
@@ -799,6 +802,9 @@ export function calculatePlanetaryTransitsAt(date: Date): PlanetaryTransitsAtRes
   const mars = calculatePlanetPosition(swe, julianDay, PLANETS.MARS, 'Mars');
   const jupiter = calculatePlanetPosition(swe, julianDay, PLANETS.JUPITER, 'Jupiter');
   const saturn = calculatePlanetPosition(swe, julianDay, PLANETS.SATURN, 'Saturn');
+  const uranus = calculatePlanetPosition(swe, julianDay, PLANETS.URANUS, 'Uranus');
+  const neptune = calculatePlanetPosition(swe, julianDay, PLANETS.NEPTUNE, 'Neptune');
+  const pluto = calculatePlanetPosition(swe, julianDay, PLANETS.PLUTO, 'Pluto');
 
   const missing = [
     ['Sun', sun],
@@ -808,6 +814,9 @@ export function calculatePlanetaryTransitsAt(date: Date): PlanetaryTransitsAtRes
     ['Mars', mars],
     ['Jupiter', jupiter],
     ['Saturn', saturn],
+    ['Uranus', uranus],
+    ['Neptune', neptune],
+    ['Pluto', pluto],
   ].filter(([, position]) => !position).map(([planet]) => planet);
 
   if (missing.length > 0) {
@@ -827,6 +836,9 @@ export function calculatePlanetaryTransitsAt(date: Date): PlanetaryTransitsAtRes
     mars: mars!,
     jupiter: jupiter!,
     saturn: saturn!,
+    uranus: uranus!,
+    neptune: neptune!,
+    pluto: pluto!,
   };
 }
 

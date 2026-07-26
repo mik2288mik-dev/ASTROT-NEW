@@ -1,7 +1,7 @@
 import type { ContentSurface, ContentUnlock, ContentVariant } from '../types';
 import { getPremiumEntitlementState } from './contentArchitecture';
 import type { UnlockedContentEntry, UserState } from './contentAccessMatrix';
-import { canAccessContent, matchesUnlockEntry as matrixMatchesUnlockEntry } from './contentAccessMatrix';
+import { matchesUnlockEntry as matrixMatchesUnlockEntry } from './contentAccessMatrix';
 import { normalizeStoredAccessTier } from './contentAccessTier';
 import { db } from './db';
 
@@ -24,12 +24,6 @@ export function hasExistingUnlock(
     return true;
   }
 
-  if (surface === 'forecast' && (variant === 'morning' || variant === 'day' || variant === 'evening')) {
-    return userState.unlockedContent.some((entry) =>
-      matrixMatchesUnlockEntry(entry, 'forecast', 'full', cacheKey)
-    );
-  }
-
   return false;
 }
 
@@ -49,12 +43,4 @@ export async function buildContentAccessUserState(
     isPremium,
     unlockedContent: mapUnlocksToUserState(unlocks),
   };
-}
-
-export function canAccessForecastDaypart(
-  userState: UserState,
-  variant: 'morning' | 'day' | 'evening',
-  unlockCacheKey?: string
-): boolean {
-  return canAccessContent(userState, 'forecast', variant, unlockCacheKey);
 }

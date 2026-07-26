@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { buildSignCompatibilityCacheKey, normalizeSignPair } from '../lib/synastry/signCompatibility';
 import { getContentPolicy } from '../lib/contentMatrix';
+import { APP_VOICE_VERSION } from '../lib/appVoice';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -13,7 +14,7 @@ describe('Union product flow', () => {
     expect(policy.words).toEqual({ min: 120, max: 180 });
     expect(policy.cacheScope).toBe('shared');
     // Базовая версия + отпечаток голоса (последний инвалидирует кэш при смене голоса).
-    expect(policy.promptVersion).toMatch(/^sign_compatibility\.v2\+voice\.[0-9a-f]{8}$/);
+    expect(policy.promptVersion).toBe(`sign_compatibility.v2+voice.${APP_VOICE_VERSION}`);
   });
 
   it('uses an order-independent sign pair cache key with language and prompt version at persistence', () => {

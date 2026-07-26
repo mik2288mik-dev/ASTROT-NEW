@@ -110,6 +110,7 @@ type DbContentVariant =
   | 'evening'
   | 'weekly'
   | 'monthly'
+  | 'yearly'
   | 'brief'
   | 'full';
 type DbContentModelTier = 'base' | 'premium';

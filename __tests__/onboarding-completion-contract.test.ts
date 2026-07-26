@@ -1,4 +1,3 @@
-import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -62,10 +61,7 @@ describe('existing onboarding completion flow', () => {
     expect(app).toContain('onboardingCompletionRef.current = false');
     expect(app).not.toContain("window.alert?.('Не удалось подтвердить гостевую сессию");
 
-    const changedFiles = execFileSync('git', ['diff', '--name-only'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    }).trim().split(/\r?\n/).filter(Boolean);
-    expect(changedFiles.some((file) => file.endsWith('.css'))).toBe(false);
+    expect(app).toContain("mode: 'generate-missing'");
+    expect(app).toContain('void prepareUserContentDbFirst');
   });
 });

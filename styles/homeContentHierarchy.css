@@ -1,7 +1,4 @@
-/* Approved home hierarchy:
-   1) personal day hero + swipe cards = rounded illustrated Today family;
-   2) three wide rounded Premium questions that open as full-screen stories;
-   3) separate low angular product promos with no animals. */
+/* Forecast topics, calculated dynamic topics, and product navigation. */
 
 .home-spheres-track {
   padding-right: 16px;
@@ -18,8 +15,7 @@
   line-height: 1.36;
 }
 
-/* ── Premium questions about this exact day ───────────────────── */
-.home-daily-questions {
+.home-forecast-dynamic {
   padding: 0 16px 1.45rem;
 }
 
@@ -33,92 +29,12 @@
   line-height: 1.2;
 }
 
-.home-daily-question-list {
+.home-forecast-dynamic-list {
   display: grid;
   gap: 0.78rem;
 }
 
-.home-daily-question-card {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  width: 100%;
-  min-height: clamp(7.9rem, 30vw, 9rem);
-  align-items: flex-end;
-  overflow: hidden;
-  border: 0;
-  border-radius: 1.48rem;
-  padding: 1rem 1.08rem;
-  background-color: #176f88;
-  background-image: var(--card-bg-image);
-  background-position: var(--card-bg-position, center);
-  background-repeat: no-repeat;
-  background-size: cover;
-  color: #fff;
-  text-align: left;
-  box-shadow:
-    0 14px 30px rgba(17, 24, 39, 0.115),
-    0 2px 8px rgba(17, 24, 39, 0.05);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.home-daily-question-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(7, 17, 30, 0.72) 0%, rgba(7, 17, 30, 0.45) 43%, rgba(7, 17, 30, 0.04) 79%),
-    linear-gradient(0deg, rgba(7, 17, 30, 0.5) 0%, rgba(7, 17, 30, 0) 70%);
-}
-
-.home-daily-question-card.is-locked::after {
-  background:
-    linear-gradient(90deg, rgba(7, 17, 30, 0.78) 0%, rgba(7, 17, 30, 0.55) 49%, rgba(7, 17, 30, 0.16) 100%),
-    linear-gradient(0deg, rgba(7, 17, 30, 0.54) 0%, rgba(7, 17, 30, 0.04) 74%);
-}
-
-.home-daily-question-card:active {
-  transform: scale(0.993);
-}
-
-.home-daily-question-copy {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  max-width: min(77%, 25rem);
-  flex-direction: column;
-}
-
-.home-daily-question-title {
-  color: #fff;
-  font-family: var(--font-app);
-  font-size: clamp(1.2rem, 4.75vw, 1.5rem);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.32);
-  text-wrap: balance;
-}
-
-.home-daily-question-hook {
-  display: -webkit-box;
-  margin-top: 0.48rem;
-  overflow: hidden;
-  color: rgba(255, 255, 255, 0.92);
-  font-family: var(--font-app);
-  font-size: clamp(0.82rem, 3.1vw, 0.9rem);
-  font-weight: 550;
-  line-height: 1.36;
-  text-shadow: 0 2px 11px rgba(0, 0, 0, 0.34);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.home-daily-question-lock {
+.home-forecast-topic-lock {
   position: absolute;
   top: 0.86rem;
   right: 0.9rem;
@@ -134,125 +50,6 @@
   box-shadow: 0 8px 20px rgba(4, 16, 31, 0.17), 0 1px 0 rgba(255, 255, 255, 0.42) inset;
   backdrop-filter: blur(12px) saturate(1.3);
   -webkit-backdrop-filter: blur(12px) saturate(1.3);
-}
-
-/* Same preview artwork becomes a full-screen story. */
-.daily-question-story {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  padding: max(env(safe-area-inset-top, 0px), 10px) 10px max(env(safe-area-inset-bottom, 0px), 10px);
-  background: rgba(5, 12, 24, 0.78);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-}
-
-.daily-question-story-scene {
-  position: relative;
-  isolation: isolate;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  border-radius: 1.8rem;
-  background-color: #176f88;
-  background-image: var(--card-bg-image);
-  background-position: var(--card-bg-position, center);
-  background-repeat: no-repeat;
-  background-size: cover;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38);
-  touch-action: pan-y;
-}
-
-.daily-question-story-scene::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background:
-    linear-gradient(0deg, rgba(4, 12, 24, 0.9) 0%, rgba(4, 12, 24, 0.67) 37%, rgba(4, 12, 24, 0.1) 72%),
-    linear-gradient(90deg, rgba(4, 12, 24, 0.24), rgba(4, 12, 24, 0.02));
-  pointer-events: none;
-}
-
-.daily-question-story-progress {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  left: 1rem;
-  z-index: 3;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.35rem;
-}
-
-.daily-question-story-progress i {
-  height: 3px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, 0.34);
-}
-
-.daily-question-story-progress i.is-active {
-  background: #fff;
-}
-
-.daily-question-story-close {
-  position: absolute;
-  top: 1.55rem;
-  right: 1rem;
-  z-index: 4;
-  display: grid;
-  width: 2.65rem;
-  height: 2.65rem;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.46);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-family: var(--font-app);
-  font-size: 1.7rem;
-  font-weight: 400;
-  line-height: 1;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.daily-question-story-copy {
-  position: absolute;
-  right: 1.3rem;
-  bottom: max(2rem, env(safe-area-inset-bottom, 0px));
-  left: 1.3rem;
-  z-index: 2;
-  color: #fff;
-}
-
-.daily-question-story-kicker {
-  margin-bottom: 0.62rem;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.daily-question-story-copy h2 {
-  max-width: 24rem;
-  margin: 0;
-  font-family: var(--font-app);
-  font-size: clamp(1.85rem, 8vw, 2.8rem);
-  font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 1.02;
-  text-wrap: balance;
-}
-
-.daily-question-story-copy p {
-  max-width: 34rem;
-  margin: 1rem 0 0;
-  color: rgba(255, 255, 255, 0.93);
-  font-family: var(--font-app);
-  font-size: clamp(0.98rem, 3.8vw, 1.08rem);
-  font-weight: 500;
-  line-height: 1.53;
 }
 
 /* ── Separate compact product promo family ────────────────────── */
@@ -411,13 +208,12 @@
     scroll-padding-inline-start: 18px;
   }
 
-  .home-daily-questions,
+  .home-forecast-dynamic,
   .home-product-grid {
     padding-right: 14px;
     padding-left: 14px;
   }
 
-  .home-daily-question-copy,
   .home-product-card-copy,
   .product-screen-cover-copy {
     max-width: 69%;
@@ -431,7 +227,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-daily-question-card,
   .home-product-card {
     transition: none;
   }

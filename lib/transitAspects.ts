@@ -127,6 +127,7 @@ function hasReliableAscendant(chart: NatalChartData): boolean {
 
 const TRANSIT_PLANETS: Array<keyof CurrentTransits> = [
   'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn',
+  'uranus', 'neptune', 'pluto',
 ];
 
 /**

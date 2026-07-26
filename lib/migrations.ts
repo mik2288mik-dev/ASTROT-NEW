@@ -2614,6 +2614,36 @@ async function mvp036SchemaCleanup(pool: Pool): Promise<void> {
   log.info('Migration mvp_036_schema_cleanup applied');
 }
 
+async function mvp037PersonalForecastYearlyVariant(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_037_personal_forecast_yearly_variant';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`
+    ALTER TABLE content_interpretations
+      DROP CONSTRAINT IF EXISTS content_interpretations_variant
+  `);
+  await pool.query(`
+    ALTER TABLE content_interpretations
+      ADD CONSTRAINT content_interpretations_variant
+      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'yearly', 'brief', 'full'))
+  `);
+  await pool.query(`
+    ALTER TABLE content_unlocks
+      DROP CONSTRAINT IF EXISTS content_unlocks_variant
+  `);
+  await pool.query(`
+    ALTER TABLE content_unlocks
+      ADD CONSTRAINT content_unlocks_variant
+      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'yearly', 'brief', 'full'))
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2681,6 +2711,7 @@ export async function runMigrations(): Promise<void> {
   await lumia034Support(pool);
   await lumia035FeatureFlags(pool);
   await mvp036SchemaCleanup(pool);
+  await mvp037PersonalForecastYearlyVariant(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

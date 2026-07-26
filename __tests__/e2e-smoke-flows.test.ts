@@ -26,12 +26,13 @@ describe('E2E smoke flow contracts', () => {
     expect(astrologyService).not.toContain('/api/astrology/natal-chart');
   });
 
-  it('horoscope smoke path keeps sign content chart-free and personal dayparts premium-gated', () => {
+  it('keeps Zodiac chart-free and slices personal forecast access server-side', () => {
     const signDaily = read('pages/api/content/horoscope/sign-daily.ts');
-    const daypart = read('pages/api/content/forecast/daypart.ts');
+    const personal = read('pages/api/content/forecast/personal.ts');
     expect(signDaily).toContain("accessTier: 'free'");
-    expect(daypart).toContain('premiumRequired: true');
-    expect(daypart).toContain('getPremiumEntitlementState');
+    expect(personal).toContain('getPremiumEntitlementState');
+    expect(personal).toContain('slicePersonalForecastForAccess');
+    expect(personal).toContain("accessTier: isPremium ? 'premium' : 'free'");
   });
 
   it('natal Premium gate is chart-first and Premium-second', () => {

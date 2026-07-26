@@ -194,7 +194,7 @@ describe('mobile API and native auth', () => {
         .map((file) => `services/${file}`),
       'views/Settings.tsx',
       'views/Paywall.tsx',
-      'lib/dailyQuestions.ts',
+      'lib/personalForecastPrewarm.ts',
     ];
     for (const file of runtimeFiles) {
       expect(read(file)).not.toMatch(/\bfetch\s*\(\s*['"`]\/api\//);

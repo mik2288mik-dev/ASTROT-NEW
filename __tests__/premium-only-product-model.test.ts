@@ -131,11 +131,11 @@ describe('Premium-only product model', () => {
     }
   });
 
-  it('Personal daily premium content routes non-premium users to Premium CTA', () => {
-    const personalDaily = fs.readFileSync(path.join(ROOT, 'views', 'DailyContentScreens.tsx'), 'utf8');
-    expect(personalDaily).toContain('Открыть Premium');
-    expect(personalDaily).toContain('requestPremium');
-    expect(personalDaily).not.toContain('requestStarsOneOffPayment');
+  it('Personal forecast premium content routes non-premium users to Premium CTA', () => {
+    const personalForecast = fs.readFileSync(path.join(ROOT, 'views', 'PersonalForecastScreen.tsx'), 'utf8');
+    expect(personalForecast).toContain('Открыть Premium');
+    expect(personalForecast).toContain('requestPremium');
+    expect(personalForecast).not.toContain('requestStarsOneOffPayment');
   });
 
   it('removed Oracle chat runtime instead of routing it through payments', () => {

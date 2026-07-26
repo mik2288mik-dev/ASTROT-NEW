@@ -28,7 +28,7 @@ describe('mvp home surface', () => {
   it('keeps dashboard focused on the approved mvp destinations', () => {
     const dashboard = read('views/Dashboard.tsx');
 
-    expect(dashboard).toContain('onOpenPersonalDaily');
+    expect(dashboard).toContain('onOpenPersonalForecast');
     expect(dashboard).toContain('onCreateNatalChart');
     expect(dashboard).toContain('onOpenMatrix');
     expect(dashboard).toContain('onOpenSynastry');
@@ -38,25 +38,26 @@ describe('mvp home surface', () => {
     expect(dashboard).not.toContain('/api/weather');
   });
 
-  it('routes personal day through the single personal_daily view', () => {
+  it('routes every personal period through the single personal forecast reader', () => {
     const app = read('App.tsx');
 
-    expect(app).toContain('PersonalDailyScreen');
-    expect(app).toContain('const openPersonalDailyView = useCallback');
+    expect(app).toContain('PersonalForecastScreen');
+    expect(app).toContain('const openPersonalForecast = useCallback');
     expect(app).toContain("navigateTo('personal_daily')");
     expect(app).toContain("view === 'personal_daily'");
-    expect(app).toContain('onOpenPersonalDaily={openPersonalDailyView}');
+    expect(app).toContain('onOpenPersonalForecast: openPersonalForecast');
     expect(app).not.toContain("view === 'oracle'");
     expect(app).not.toContain("view === 'hook'");
   });
 
-  it('protects private daily content with server identity and premium entitlement', () => {
-    const route = read('pages/api/content/natal/human-daily.ts');
-    const service = read('services/natalReadingService.ts');
+  it('protects private personal forecast content with server identity and entitlement slicing', () => {
+    const route = read('pages/api/content/forecast/personal.ts');
+    const service = read('services/personalForecastService.ts');
 
     expect(route).toContain('ensureValidContext');
     expect(route).toContain('getPremiumEntitlementState');
-    expect(route).toContain('PREMIUM_REQUIRED');
-    expect(service).toContain("headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() }");
+    expect(route).toContain('slicePersonalForecastForAccess');
+    expect(service).toContain("'Content-Type': 'application/json'");
+    expect(service).toContain('...getTelegramInitDataHeaders()');
   });
 });

@@ -5,7 +5,6 @@ import {
   buildBlindSpotPrompt,
   buildDayCardPrompt,
   buildNatalSectionPrompt,
-  buildPersonalDailyPrompt,
   buildPushDailyPrompt,
   buildSignCompatibilityPrompt,
   buildSignDailyHoroscopePrompt,
@@ -25,7 +24,6 @@ const builders = [
   buildSignWeeklyHoroscopePrompt,
   buildSignMonthlyHoroscopePrompt,
   buildSignYearlyHoroscopePrompt,
-  buildPersonalDailyPrompt,
   buildBlindSpotPrompt,
   buildNatalSectionPrompt,
   buildSignCompatibilityPrompt,
@@ -34,7 +32,7 @@ const builders = [
 
 describe('Lumia content prompt builders', () => {
   it('provides a dedicated versioned JSON prompt for every requested content shape', () => {
-    expect(builders).toHaveLength(11);
+    expect(builders).toHaveLength(10);
     for (const build of builders) {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
@@ -43,14 +41,6 @@ describe('Lumia content prompt builders', () => {
       expect(prompt.user).toContain('Объём: не больше');
       expect(prompt.user).toContain('конкретный жизненный пример');
     }
-  });
-
-  it('encodes the strict personal daily schema and limits', () => {
-    const prompt = buildPersonalDailyPrompt({ context: { date: '2026-06-06', chart: 'test chart' } });
-    for (const field of ['headline', 'main', 'relationships', 'action', 'risk', 'why']) expect(prompt.user).toContain(`"${field}"`);
-    expect(prompt.user).toContain('не больше 130 слов');
-    expect(prompt.user).toContain('why — максимум 15 слов');
-    expect(prompt.user).toContain('Не больше двух астрологических терминов');
   });
 
   it('keeps daily, weekly, natal, compatibility, and relationship prompts focused', () => {
@@ -79,7 +69,8 @@ describe('Lumia content prompt builders', () => {
   it('connects dedicated builders to active generators instead of one shared prompt', () => {
     expect(read('lib/horoscope/signDaily.ts')).toContain('buildSignDailyHoroscopePrompt');
     expect(read('lib/horoscope/signWeekly.ts')).toContain('buildSignWeeklyHoroscopePrompt');
-    expect(read('lib/forecastContent.ts')).toContain('buildPersonalDailyPrompt');
+    expect(read('lib/personalForecastGeneration.ts')).toContain('buildPersonalForecastTopicPrompt');
+    expect(read('lib/personalForecastGeneration.ts')).toContain('getAppSystemVoice');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('buildNatalSectionPrompt');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('buildBlindSpotPrompt');
     expect(read('lib/synastry/signCompatibility.ts')).toContain('buildSignCompatibilityPrompt');

@@ -1,10 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import {
-  buildForecastDailyCacheKey,
-  buildForecastDaypartCacheKey,
-  buildForecastFullDayUnlockCacheKey,
-} from '../lib/forecastFullDay';
 import { APP_VOICE_VERSION } from '../lib/appVoice';
 import { getDefaultCacheKeyForContent } from '../lib/contentArchitecture';
 import {
@@ -38,11 +33,9 @@ const STATIC_PERSISTENT: Array<{ surface: string; variant: string }> = [
 
 const DAILY_PERIODIC: Array<{ surface: string; variant: string }> = [
   { surface: 'forecast', variant: 'daily' },
-  { surface: 'forecast', variant: 'morning' },
-  { surface: 'forecast', variant: 'day' },
-  { surface: 'forecast', variant: 'evening' },
   { surface: 'forecast', variant: 'weekly' },
   { surface: 'forecast', variant: 'monthly' },
+  { surface: 'forecast', variant: 'yearly' },
 ];
 
 const TODAY = getMoscowTodayKey();
@@ -99,14 +92,9 @@ describe('content cache architecture', () => {
 
     it('uses date and period cache keys', () => {
       expect(getDefaultCacheKeyForContent('forecast', 'daily')).toBe(TODAY);
-      expect(getDefaultCacheKeyForContent('forecast', 'morning')).toBe(`${TODAY}:morning`);
-      expect(getDefaultCacheKeyForContent('forecast', 'day')).toBe(`${TODAY}:day`);
-      expect(getDefaultCacheKeyForContent('forecast', 'evening')).toBe(`${TODAY}:evening`);
       expect(getDefaultCacheKeyForContent('forecast', 'weekly')).toBe(ISO_WEEK);
       expect(getDefaultCacheKeyForContent('forecast', 'monthly')).toBe(MONTH);
-      expect(buildForecastDailyCacheKey(TODAY)).toBe(`${TODAY}:voice:${APP_VOICE_VERSION}`);
-      expect(buildForecastDaypartCacheKey(TODAY, 'morning')).toBe(`${TODAY}:morning:voice:${APP_VOICE_VERSION}`);
-      expect(buildForecastFullDayUnlockCacheKey(TODAY)).toBe(TODAY);
+      expect(getDefaultCacheKeyForContent('forecast', 'yearly')).toMatch(/^\d{4}$/);
     });
   });
 
@@ -118,12 +106,12 @@ describe('content cache architecture', () => {
     });
   });
 
-  describe('premium prewarm must be additive and idempotent', () => {
+  describe('content prewarm must be non-blocking and deduplicated', () => {
     it('documents prewarm as implemented', () => {
       expect(PREMIUM_CONTENT_PREWARM_STATUS).toBe('implemented');
       const doc = fs.readFileSync(path.join(ROOT, 'docs/CONTENT_CACHE_AND_PREWARM.md'), 'utf8');
-      expect(doc).toContain('idempotent');
-      expect(doc).toContain('Premium prewarm');
+      expect(doc).toContain('Client requests are deduplicated');
+      expect(doc).toContain('Startup never awaits generation');
     });
   });
 
@@ -145,17 +133,11 @@ describe('content cache architecture', () => {
   });
 
   describe('no repeated generation on GET if interpretation exists', () => {
-    it('forecast daily GET only reads cache', () => {
-      const source = readApiSource('pages/api/content/forecast/daily.ts');
-      assertNoGenerationBefore(source, 'generateFreeDailyForecast');
-      expect(source).toContain('getContentLayer');
-    });
-
-    it('forecast daypart GET returns NOT_FOUND without generating', () => {
-      const source = readApiSource('pages/api/content/forecast/daypart.ts');
-      assertNoGenerationBefore(source, 'generatePremiumDaypartForecast');
-      expect(source).toContain('getContentLayer');
-      expect(source).toContain('FORECAST_DAYPART_NOT_FOUND');
+    it('personal forecast GET only reads the canonical V2 cache', () => {
+      const source = readApiSource('pages/api/content/forecast/personal.ts');
+      assertNoGenerationBefore(source, 'ensurePersonalForecast');
+      expect(source).toContain('getCachedPersonalForecast');
+      expect(source).toContain('PERSONAL_FORECAST_NOT_READY');
     });
 
     it('natal anchor GET does not call generateNatalAnchorReading', () => {

@@ -1,83 +1,63 @@
 # Next Task Context
 
-This repository is the MVP app "Твой Гороскоп" / "Your Horoscope".
+This repository is the MVP app «Твой Гороскоп» / “Your Horoscope”.
 
-## Active task
+## Current personal forecast architecture
 
-The only active implementation contract for the personal forecast screen is:
+The complete personal screen contract in `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md` is implemented on `feat/personal-forecast-screen-v2`:
 
-`docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md`
+- one chart-based product for `Сегодня / Неделя / Месяц / Год`;
+- exactly seven fixed topics plus two or three evidence-selected dynamic topics;
+- server-calculated Swiss Ephemeris evidence with stable IDs;
+- GPT explains only evidence assigned to one topic;
+- one versioned package/cache/lock path for all four periods;
+- local-first Dashboard and background refresh/prewarm;
+- backend Free/Premium slicing;
+- deterministic whole-screen visual resolver with CSS fallback;
+- separate `Зодиак` sign-horoscope product preserved.
 
-It covers the complete personal screen `Сегодня / Неделя / Месяц / Год`, seven fixed topics, 2–3 calculated dynamic topics, evidence-first generation, cache/prewarm, Free/Premium slicing, reading screens, and period-specific visual backgrounds.
-
-The current runtime still contains the old daily canvas and sign-based week/month/year Dashboard flow. Treat those files as migration input, not as the target product design.
-
-## Mandatory local/GitHub reconciliation before editing
-
-The coding agent works locally, while recent specification and model changes were committed directly to `origin/main`. Do not start from an unsynchronised working tree.
-
-Run and record:
-
-```bash
-git status --short
-git branch --show-current
-git rev-parse HEAD
-git remote -v
-git fetch origin --prune
-git rev-parse origin/main
-git log --oneline --decorate -n 15 --all
-```
-
-Verify that the fetched history contains the unified-model commit and the current forecast task:
-
-```bash
-git merge-base --is-ancestor 96da083f2d601a0569124bb85a43f00743ff05dd origin/main
-git merge-base --is-ancestor 841f0820762cc5d56d67535b0fb0c69c08f021ab origin/main
-```
-
-If the working tree is clean:
-
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c feat/personal-forecast-screen-v2
-```
-
-If local changes exist, preserve them first with a clearly named local WIP commit or `git stash push -u`; then fetch/rebase and inspect the diff before restoring them. Never use `git reset --hard`, never discard untracked files, and never force-push to `main`.
-
-Before implementation, compare local work with remote:
-
-```bash
-git diff --stat origin/main...HEAD
-git diff origin/main...HEAD
-```
-
-Resolve conflicts deliberately. Keep valid local work, but do not restore superseded model slots, the today-only task, or the old product contract.
-
-## Documentation precedence and cleanup
-
-For this migration, `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md` overrides conflicting forecast-screen sections in older architecture/product/cache documents.
-
-The same implementation branch must update these documents to the final shipped architecture:
-
-- `docs/CURRENT_ARCHITECTURE.md`
-- `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`
-- `docs/CONTENT_CACHE_AND_PREWARM.md`
-- this file
-
-Do not add another forecast task document. Delete obsolete task notes instead of leaving redirect files.
+The incompatible personal daily canvas, period extras, fallback copy, and sign-based Dashboard period consumers have been removed. Old database rows are retained but do not match V2 keys.
 
 ## Architecture boundaries
 
 - Root UI: `App.tsx`; screens: `views/`; reusable UI: `components/`.
+- Personal contract: `lib/personalForecastContract.ts`.
+- Evidence calculation: `lib/personalForecastEvidence.ts`.
+- Generation and validation: `lib/personalForecastGeneration.ts`.
+- Server cache/locks: `lib/personalForecastCache.ts`.
+- Client stale-while-revalidate: `services/personalForecastService.ts`.
+- Endpoint: `/api/content/forecast/personal`.
+- Prewarm: `lib/personalForecastPrewarm.ts`, `lib/contentPrewarm.ts`, and `services/contentPrewarmService.ts`.
+- Visual resolver: `lib/personalForecastVisuals.ts`.
 - App auth: `lib/auth/appAuth.ts`.
 - Canonical charts: `/api/charts/*`.
-- Product content APIs: `/api/content/*`.
-- Access enforcement: `lib/accessMatrix.ts`, `lib/contentAccessMatrix.ts`, and Premium entitlement helpers.
 - Unified user-facing model resolver: `getUnifiedContentModel()`; default model: GPT-4.1.
 - AI voice source: `lib/appVoice.ts`.
-- Sign horoscopes remain a separate `Зодиак` product and must not power the personal Dashboard periods.
+- Sign horoscopes remain a separate `Зодиак` product and must never power personal Dashboard periods.
+
+## Safety boundaries for follow-up work
+
+- Do not restore daily-canvas, personal period-extra, or sign-based personal Dashboard code.
+- Do not delete old database content as part of an unrelated change.
+- Do not copy or rename images to fill missing visual slots; use the documented fallback until distinct artwork exists.
+- Keep visual-manifest versioning independent from prompt/text cache versioning.
+- Preserve local-first startup: a cache miss or background error must not hide or close Dashboard.
+- Update the existing architecture documents when changing the personal forecast contract; do not add another task document.
 
 ## Required completion checks
 
-Run `npm test`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`. Do not merge into `main` until the migration, dead-code cleanup, documentation update, and production build are all complete.
+For changes touching this product run:
+
+```bash
+npm test
+npx tsc --noEmit
+npm run lint
+npm run build
+git diff --check
+```
+
+Also search for working imports of removed personal systems and confirm that `views/Dashboard.tsx` contains no sign-horoscope endpoint or service calls.
+
+## Release manual QA
+
+Before release, verify Telegram Mini App safe areas, native and Telegram back/swipe behavior, notification and share deep links, and startup/retry behavior on a slow network.

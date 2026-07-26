@@ -18,7 +18,6 @@ type NatalMagazineProps = {
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
   onCreateChart?: () => void;
-  onOpenPersonalDaily?: () => void;
 };
 
 export function NatalMagazine({

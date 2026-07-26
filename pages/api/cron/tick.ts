@@ -5,9 +5,8 @@ import {
   generateDailyCards,
 } from '../../../services/notificationRetentionService';
 import {
-  getNextMoscowDateKey,
-  prewarmPersonalDailyForActiveUsers,
-} from '../../../lib/personalDailyPrewarm';
+  prewarmPersonalForecastsForActiveUsers,
+} from '../../../lib/personalForecastPrewarm';
 
 /**
  * Single entry point for an EXTERNAL cron (e.g. cron-job.org): hit this every few
@@ -22,7 +21,7 @@ import {
 
 const MSK_TZ = 'Europe/Moscow';
 const PLANNER_LIMIT = 500;
-const PERSONAL_DAILY_LIMIT = 250;
+const PERSONAL_FORECAST_LIMIT = 250;
 
 function verifyCron(req: NextApiRequest): boolean {
   const secret = process.env.CRON_SECRET || '';
@@ -87,30 +86,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.warn('[cron/tick] dispatch failed:', error instanceof Error ? error.message : error);
   }
 
-  // 2) Ensure today's personal package exists on the server for recently active users.
-  // This runs once per process/day; DB cache + generation locks make repeated instances safe.
+  // 2) Prewarm the current personal periods. The resolver adds upcoming periods only
+  // near their boundaries; cache keys and generation locks make repeated instances safe.
   await once(
-    'personal-daily-today',
+    'personal-forecast-periods',
     dateKey,
-    () => prewarmPersonalDailyForActiveUsers(dateKey, { limit: PERSONAL_DAILY_LIMIT, activeDays: 7, concurrency: 2 }),
+    () => prewarmPersonalForecastsForActiveUsers(now, {
+      limit: PERSONAL_FORECAST_LIMIT,
+      activeDays: 7,
+      concurrency: 2,
+    }),
     ran
   );
 
-  // 3) From 20:00 MSK prepare tomorrow as an additional safety net.
-  if (hour >= 20) {
-    const tomorrowKey = getNextMoscowDateKey(now);
-    await once(
-      'personal-daily-tomorrow',
-      tomorrowKey,
-      () => prewarmPersonalDailyForActiveUsers(tomorrowKey, { limit: PERSONAL_DAILY_LIMIT, activeDays: 7, concurrency: 2 }),
-      ran
-    );
-  }
-
-  // 4) Daily card content — once per day (morning MSK). Fallback exists for the push itself.
+  // 3) Daily card content — once per day (morning MSK). Fallback exists for the push itself.
   if (hour === 6 && minute >= 30) await once('daily-card-generator', dateKey, () => generateDailyCards(now, { limit: 250 }), ran);
 
-  // 5) Single rolling planner — offers the whole daily set; per-user LOCAL windows
+  // 4) Single rolling planner — offers the whole daily set; per-user LOCAL windows
   //    (candidateAllowed) + quiet hours + 2/day + 7h gap decide what/when. Timezone-correct.
   //    Runs at most once per 30-minute slot regardless of external cron frequency.
   const slot = `${dateKey}-${hour}-${Math.floor(minute / 30)}`;

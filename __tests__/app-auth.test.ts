@@ -36,7 +36,7 @@ describe('app auth providers and API security', () => {
     for (const file of ['pages/api/content/horoscope/sign-daily.ts', 'pages/api/content/horoscope/sign-weekly.ts', 'pages/api/content/synastry/sign-compatibility.ts']) {
       expect(read(file)).not.toContain('requireAppUser');
     }
-    expect(read('pages/api/content/natal/human-daily.ts')).toContain('ensureValidContext');
+    expect(read('pages/api/content/forecast/personal.ts')).toContain('ensureValidContext');
     expect(read('pages/api/content/synastry/extended.ts')).toContain('requireAppUser');
     expect(read('lib/natalReading/apiHelper.ts')).toContain('requireAppUser');
   });
@@ -56,7 +56,7 @@ describe('app auth providers and API security', () => {
     expect(read('pages/api/users/[id].ts')).toContain('!existingUser && !appUser.isGuest');
     expect(read('lib/contentArchitecture.ts')).toContain('if (isGuestUserId(userId)) return { isPremium: false');
     expect(read('pages/api/content/natal/human-section.ts')).not.toContain('entitlement.isPremium || profile?.isPremium');
-    expect(read('pages/api/content/natal/human-daily.ts')).not.toContain('if (profile?.isPremium)');
+    expect(read('pages/api/content/forecast/personal.ts')).not.toContain('if (profile?.isPremium)');
   });
 
   it('does not auto-repair or calculate a chart during primary chart reads', () => {

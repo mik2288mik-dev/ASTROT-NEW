@@ -18,27 +18,27 @@ function storage(): Storage | null {
   }
 }
 
-function useNativePreferences(): boolean {
+function shouldUseNativePreferences(): boolean {
   return typeof window !== 'undefined' && Capacitor.isNativePlatform();
 }
 
 export const nativeSessionStore: NativeSessionStore = {
   async getToken() {
-    if (useNativePreferences()) {
+    if (shouldUseNativePreferences()) {
       const result = await Preferences.get({ key: NATIVE_SESSION_TOKEN_KEY });
       return result.value || null;
     }
     return storage()?.getItem(NATIVE_SESSION_TOKEN_KEY) || null;
   },
   async setToken(token) {
-    if (useNativePreferences()) {
+    if (shouldUseNativePreferences()) {
       await Preferences.set({ key: NATIVE_SESSION_TOKEN_KEY, value: token });
       return;
     }
     storage()?.setItem(NATIVE_SESSION_TOKEN_KEY, token);
   },
   async clearToken() {
-    if (useNativePreferences()) {
+    if (shouldUseNativePreferences()) {
       await Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY });
       return;
     }

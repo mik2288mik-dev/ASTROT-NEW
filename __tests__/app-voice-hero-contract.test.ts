@@ -4,22 +4,23 @@ import path from 'path';
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-describe('app voice hero contract', () => {
-  it('requires a newly generated friendly hero title for every day', () => {
+describe('single app voice contract', () => {
+  it('keeps generated content direct and does not define a friend persona', () => {
     const voice = read('lib/appVoice.ts');
 
-    expect(voice).toContain('hero_title генерируется заново для каждого дня');
-    expect(voice).toContain('Никогда не подставляй постоянный заголовок');
-    expect(voice).toContain('добрый, дерзкий и современный друг');
-    expect(voice).toContain('без приказа пользователю');
+    expect(voice).toContain("export const APP_VOICE_VERSION = '1'");
+    expect(voice).toContain('спокойно, уверенно и прямо');
+    expect(voice).toContain('Не говори голосом эзотерика');
+    expect(voice).not.toContain('hero_title генерируется');
+    expect(voice).not.toContain('добрый, дерзкий и современный друг');
   });
 
-  it('explicitly rejects the stale coaching and pseudo-deep wording', () => {
+  it('explicitly rejects coaching, mysticism, and generic wording', () => {
     const voice = read('lib/appVoice.ts');
 
-    expect(voice).toContain('«красивый разгон»');
-    expect(voice).toContain('«рывок»');
-    expect(voice).toContain('«вязнешь в мелочах»');
-    expect(voice).toContain('конструкции «день не про…», «либо…, либо…»');
+    expect(voice).toContain('«не распыляйся»');
+    expect(voice).toContain('«энергия дня»');
+    expect(voice).toContain('«Вселенная подсказывает»');
+    expect(voice).toContain('общую психологическую воду');
   });
 });

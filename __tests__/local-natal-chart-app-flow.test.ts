@@ -5,14 +5,13 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('local natal chart app flow', () => {
-  it('shows the cached startup dashboard before background daily and refresh work', () => {
+  it('shows the cached startup dashboard before background forecast and refresh work', () => {
     const app = read('App.tsx');
     const startupLocalRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
     const ready = app.indexOf("setChartLoadState('ready')", startupLocalRead);
     const dashboard = app.indexOf("showStartupDashboard('dashboard')", ready);
     const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData', dashboard);
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
-    const dailyPackage = app.indexOf('void prepareStartupDailyPackage({', scheduler);
     const dbRefresh = app.indexOf('getChartFromDB(String(targetProfile.id))', scheduler);
     const idRefresh = app.indexOf('getPrimaryChartId(String(targetProfile.id))', scheduler);
     const prewarm = app.indexOf('void prepareUserContentDbFirst({', scheduler);
@@ -21,15 +20,14 @@ describe('local natal chart app flow', () => {
     expect(ready).toBeGreaterThan(startupLocalRead);
     expect(dashboard).toBeGreaterThan(ready);
     expect(background).toBeGreaterThan(dashboard);
-    expect(dailyPackage).toBeGreaterThan(scheduler);
-    expect(app.slice(ready, dashboard)).not.toContain('await prepareStartupDailyPackage');
+    expect(app.slice(ready, dashboard)).not.toContain('await prewarmUserContent');
     expect(dbRefresh).toBeGreaterThan(scheduler);
     expect(idRefresh).toBeGreaterThan(scheduler);
     expect(prewarm).toBeGreaterThan(scheduler);
     expect(app).toContain('Background primary chart refresh failed; keeping local cache');
   });
 
-  it('opens dashboard immediately after a DB chart and schedules daily in background', () => {
+  it('opens dashboard immediately after a DB chart and schedules forecast prewarm in background', () => {
     const app = read('App.tsx');
     const dbChart = app.indexOf('const chart = await loadPrimaryChartOnce(updatedProfile)');
     const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')", dbChart);
@@ -38,7 +36,7 @@ describe('local natal chart app flow', () => {
     expect(dbChart).toBeGreaterThan(-1);
     expect(dashboard).toBeGreaterThan(dbChart);
     expect(background).toBeGreaterThan(dashboard);
-    expect(app.slice(dbChart, dashboard)).not.toContain('await prepareStartupDailyPackage');
+    expect(app.slice(dbChart, dashboard)).not.toContain('await prewarmUserContent');
     expect(app).toContain('void prepareUserContentDbFirst({');
   });
 

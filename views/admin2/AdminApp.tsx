@@ -923,7 +923,7 @@ function ContentHealthCard() {
       <p className="mt-1 text-[11px] text-slate-400">Пинг только проверяет доступность модели на аккаунте OpenAI, ничего не меняет. Сменить рабочую модель — в блоке «Модели по слотам» ниже.</p>
       <div className="mt-3 grid gap-1 text-xs text-slate-500">
         <div>Токен OpenAI: <b className={h.openaiKeyPresent ? 'text-emerald-600' : 'text-rose-600'}>{h.openaiKeyPresent ? 'задан' : 'НЕ задан'}</b></div>
-        <div>Модели: fast <b className="text-slate-700">{h.models.fast || '—'}</b> · main <b className="text-slate-700">{h.models.main || '—'}</b> · deep <b className="text-slate-700">{h.models.deep || '—'}</b> · разбор дня <b className="text-slate-700">{h.models.dailyCanvas || '—'}</b></div>
+        <div>Единая модель: <b className="text-slate-700">{h.models.main || h.models.fast || h.models.deep || '—'}</b></div>
       </div>
       <div className="mt-3 space-y-1">
         {h.surfaces.map((s) => (
@@ -938,8 +938,7 @@ function ContentHealthCard() {
   );
 }
 
-const MODEL_SLOTS: Array<{ slot: 'fast' | 'main' | 'deep' | 'daily_canvas'; label: string; hint: string }> = [
-  { slot: 'daily_canvas', label: 'Личный разбор дня', hint: 'полотно дня' },
+const MODEL_SLOTS: Array<{ slot: 'fast' | 'main' | 'deep'; label: string; hint: string }> = [
   { slot: 'main', label: 'main', hint: 'натал, слепая зона' },
   { slot: 'fast', label: 'fast', hint: 'гороскопы по знаку, совместимость' },
   { slot: 'deep', label: 'deep', hint: 'глубокий отчёт' },
@@ -950,17 +949,17 @@ function ModelSlotEditor({
   models,
   onSaved,
 }: {
-  models: { fast: string | null; main: string | null; deep: string | null; dailyCanvas: string | null };
+  models: { fast: string | null; main: string | null; deep: string | null };
   onSaved: () => void | Promise<void>;
 }) {
   const current: Record<string, string | null> = {
-    fast: models.fast, main: models.main, deep: models.deep, daily_canvas: models.dailyCanvas,
+    fast: models.fast, main: models.main, deep: models.deep,
   };
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [savingSlot, setSavingSlot] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const valueFor = (slot: string) => (draft[slot] ?? current[slot] ?? '');
-  const save = async (slot: 'fast' | 'main' | 'deep' | 'daily_canvas') => {
+  const save = async (slot: 'fast' | 'main' | 'deep') => {
     const model = valueFor(slot).trim();
     if (!model) return;
     setSavingSlot(slot); setMsg(null);

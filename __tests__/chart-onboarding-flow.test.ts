@@ -55,15 +55,14 @@ describe('chart onboarding and lazy sections', () => {
     expect(prompt).toContain("contentVariant: 'living'");
   });
 
-  it('uses human product names and exposes personal daily from the horoscope', () => {
+  it('uses human product names and exposes the personal forecast from Zodiac', () => {
     const shared = read('lib/natalHumanShared.ts');
     const horoscope = read('views/v2/HoroscopeReader.tsx');
     for (const title of ['Как ты любишь', 'Где твоя сила', 'Что тебя бесит', 'Тёмная сторона', 'Скрытые таланты', 'Деньги и решения', 'Как тебя видят другие']) {
       expect(shared).toContain(title);
     }
-    // «Личный день» переехал из натальной карты в раздел Гороскоп
-    expect(horoscope).toContain('onOpenPersonalDaily');
-    expect(horoscope).toContain('Личный день');
+    expect(horoscope).toContain('onOpenPersonalForecast');
+    expect(horoscope).toContain('Личный гороскоп');
   });
 
   it('passes the primary chart ID and report when no saved chart is active', () => {
