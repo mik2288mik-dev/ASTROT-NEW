@@ -38,7 +38,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
       {appJsonLd ? <JsonLd data={appJsonLd} /> : null}
       <section className="hero">
         <div className="shell hero-grid">
-          <div>
+          <div className="hero-copy">
             <p className="eyebrow">{dict.hero.eyebrow}</p>
             <h1>{dict.hero.title}</h1>
             <p className="lead">{dict.hero.body}</p>
@@ -48,22 +48,39 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
             </div>
           </div>
           <div className="hero-visual" aria-label={`${brands[locale]} product preview`}>
-            <span className="visual-chip one">Today</span>
-            <span className="visual-chip two">Natal chart</span>
-            <span className="visual-chip three">Compatibility</span>
+            <div className="visual-blob blob-one" aria-hidden="true" />
+            <div className="visual-blob blob-two" aria-hidden="true" />
+            <div className="visual-card visual-card-one">
+              <span>01</span>
+              <strong>{dict.sections.personal.title}</strong>
+            </div>
+            <div className="visual-card visual-card-two">
+              <span>02</span>
+              <strong>{dict.sections.natal.title}</strong>
+            </div>
+            <div className="visual-card visual-card-three">
+              <span>03</span>
+              <strong>{dict.sections.compatibility.title}</strong>
+            </div>
+            <div className="visual-card visual-card-four">
+              <span>04</span>
+              <strong>{dict.sections.questions.title}</strong>
+            </div>
+            <div className="visual-mark" aria-hidden="true">★</div>
           </div>
         </div>
       </section>
 
-      <section className="section" id="features">
+      <section className="section feature-section" id="features">
         <div className="shell">
           <div className="section-heading">
             <h2>{dict.nav.features}</h2>
             <p>{dict.hero.body}</p>
           </div>
           <div className="feature-grid">
-            {features.map(([slug, item]) => (
-              <article className="feature-card" key={slug}>
+            {features.map(([slug, item], index) => (
+              <article className={`feature-card feature-${slug}`} key={slug}>
+                <span className="feature-index">0{index + 1}</span>
                 <div><h3>{item.title}</h3><p>{item.body}</p></div>
                 <Link href={`/${locale}/${slug}`}>{dict.common.readMore} →</Link>
               </article>
@@ -72,14 +89,14 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         </div>
       </section>
 
-      <section className="section alt">
+      <section className="section alt story-section">
         <div className="shell split-panel">
-          <article className="content-panel">
+          <article className="content-panel content-panel-primary">
             <p className="eyebrow">{brands[locale]}</p>
             <h2>{dict.home.whyTitle}</h2>
             <p>{dict.home.whyBody}</p>
           </article>
-          <article className="content-panel">
+          <article className="content-panel content-panel-secondary">
             <p className="eyebrow">Editorial</p>
             <h2>{dict.home.contentTitle}</h2>
             <p>{dict.home.contentBody}</p>
@@ -88,20 +105,20 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         </div>
       </section>
 
-      <section className="section">
+      <section className="section zodiac-section">
         <div className="shell">
           <div className="section-heading"><h2>{dict.common.zodiac}</h2><Link className="button secondary" href={`/${locale}/zodiac`}>{dict.common.allSigns}</Link></div>
           <div className="sign-grid">
-            {zodiacSlugs.slice(0, 8).map((sign) => {
+            {zodiacSlugs.slice(0, 8).map((sign, index) => {
               const info = getZodiacInfo(locale, sign);
-              return <Link className="sign-card" key={sign} href={`/${locale}/zodiac/${sign}`}><strong>{info.name}</strong><span>{info.dates}</span></Link>;
+              return <Link className={`sign-card sign-card-${(index % 4) + 1}`} key={sign} href={`/${locale}/zodiac/${sign}`}><strong>{info.name}</strong><span>{info.dates}</span></Link>;
             })}
           </div>
         </div>
       </section>
 
       {guides.length > 0 ? (
-        <section className="section alt">
+        <section className="section alt guides-section">
           <div className="shell">
             <div className="section-heading"><h2>{dict.home.contentTitle}</h2><Link className="button secondary" href={`/${locale}/guides`}>{dict.common.allGuides}</Link></div>
             <div className="article-grid">
