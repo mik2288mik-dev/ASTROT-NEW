@@ -1,8 +1,10 @@
 # Onboarding V1 — Master Specification
 
-Status: product direction fixed for implementation review.
+Status: product flow fixed for implementation review; visual direction pending separate approval.
 Languages: RU / EN / ES.
 Scope: first launch, path selection, birth-data setup, zodiac-only entry, first calculation, legal consent, analytics.
+
+`docs/ACTIVE_DECISIONS_ONBOARDING_V1.md` overrides any earlier visual experiment or archived design document.
 
 ## 1. Product goal
 
@@ -16,7 +18,7 @@ Onboarding must sell the whole application, not one feature. It introduces:
 
 The flow must not force every new user to enter birth data. A person may start with a zodiac horoscope and add personal data later.
 
-The onboarding is not a gallery of screenshots. It is a short interactive story with an early choice of path.
+The onboarding is not a gallery of passive teaching screenshots. It is a short interactive flow with an early choice of path.
 
 ## 2. Principles
 
@@ -42,7 +44,7 @@ RU body: `Личный разбор, натальная карта, совмес
 Primary CTA: `Дальше`
 Secondary action: `Пропустить`
 
-Visual: one expressive editorial scene, no app screenshot, no mystical galaxy.
+Visual treatment is not fixed in this document. Use a neutral implementation placeholder until a separate visual direction is approved.
 
 ### Screen 2 — Product universe
 
@@ -53,7 +55,7 @@ RU body: `Сегодня, неделя, месяц, год, любовь, раб
 Primary CTA: `Показать дальше`
 Secondary action: `Пропустить`
 
-Visual: a product-universe composition. It may reference multiple functions, but must not look like a feature grid or presentation slide.
+Visual treatment is not fixed in this document. It must support the product message without turning the screen into a feature-grid presentation.
 
 ### Screen 3 — Path choice
 
@@ -168,31 +170,34 @@ Birth data consent must state that date, time and place of birth are used to cre
 
 Do not use a pre-ticked optional marketing-consent checkbox.
 
-## 6. Visual direction
+## 6. Visual direction status
 
-The first generated beige editorial set is Direction A only, not the final lock.
+The onboarding visual direction is deliberately **not fixed** in this specification.
 
-Final production visual requirements:
+Obsolete assumptions that must not be reused as current requirements:
 
-- bright lifestyle/editorial look;
-- no dark cosmic backgrounds as the base style;
-- no generic galaxy, crystal ball or fortune-teller clichés;
-- one strong scene per screen;
-- text remains native UI, never baked into the image;
-- visual assets are exported without system status bars;
-- safe text zone in lower 42–48% of the screen;
-- vertical source asset at least 1440×2560;
-- additional wide crop for tablets if needed;
-- all images must survive RU, EN and ES text-length differences;
-- no brands, trademarked devices or copyrighted UI replicas.
+- mandatory bright editorial illustration;
+- mandatory paper layers, cut-paper depth, halftone or magazine grain;
+- mandatory cat or capybara presence;
+- mandatory milk-white base;
+- blanket bans or requirements for photography, 3D, beige, dark palettes, cosmic elements or any other medium;
+- previously generated beige and dark-cosmic mockups.
 
-Recommended visual routes for review:
+Before visual production:
 
-A. Editorial warm: paper, soft daylight, premium tactile materials.
-B. Bright modern app: white base, bold color fields, layered paper/3D objects, more energetic.
-C. Real-animal mascot route: realistic sticker-style cat/capybara integrated sparingly, not on every screen.
+1. Audit the latest approved application screens and the final Personal Forecast V3 implementation.
+2. Identify the current product visual system from active UI, not archived experiments.
+3. Prepare several complete onboarding directions using the same product flow and native copy.
+4. Show rendered results to the product owner.
+5. Only the selected direction becomes the production asset specification.
 
-Production should compare all three routes before locking one.
+Until this approval:
+
+- use neutral placeholders or CSS-only layout scaffolding;
+- keep visual assets swappable behind a resolver/config layer;
+- do not generate or register final onboarding art;
+- do not encode an old visual style into components, tokens or tests;
+- keep copy, controls, analytics and navigation independent from the visual layer.
 
 ## 7. Content voice
 
@@ -211,7 +216,7 @@ Onboarding copy must be short, confident and commercial without sounding like an
 
 ## 8. Localization
 
-All strings live in localization files, never in images.
+All strings live in localization files, never in final artwork.
 
 Required locales:
 
@@ -264,11 +269,11 @@ Do not send raw birth date, time, place or name to analytics.
 2. New user can complete personal setup and land in Today.
 3. Screens 1–2 communicate the whole product.
 4. The path choice is on screen 3.
-5. No screenshots are embedded as onboarding teaching cards.
+5. No passive screenshot tutorial replaces the interactive product choice.
 6. No paywall blocks first product value.
 7. Legal links are accessible before birth-data submission.
 8. Copy exists in RU/EN/ES.
-9. Images contain no text or system UI.
+9. No obsolete visual direction is encoded as a requirement or final asset.
 10. Analytics contains no raw personal birth data.
 11. Back/skip/restart preserve valid progress.
 12. Existing users never see V1 onboarding again unless version explicitly changes.
