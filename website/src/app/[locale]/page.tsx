@@ -17,290 +17,260 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return pageMetadata({ locale, title: dict.hero.title, description: dict.hero.body });
 }
 
-const extraCopy = {
+const homeCopy = {
   ru: {
-    badge: 'Личное приложение про тебя',
-    proof: ['Сегодня, неделя, месяц и год', 'Натальная карта без занудства', 'Совместимость без сладкой лжи'],
-    today: 'Сегодня',
-    date: 'ВОСКРЕСЕНЬЕ · 26 ИЮЛЯ',
-    todayTitle: 'День просит не суетиться там, где уже всё понятно.',
-    todayBody: 'Важный разговор лучше не растягивать. Ты и так знаешь, что хочешь сказать.',
+    status: 'Личный прогноз, натальная карта и совместимость',
+    heroNote: 'Одно приложение для тех, кто хочет понять себя и ближайший период без фатализма и общих фраз.',
+    primary: 'Посмотреть возможности',
+    secondary: 'Читать разборы',
+    showcaseLabel: 'Персональный прогноз',
+    showcaseDate: 'ВОСКРЕСЕНЬЕ · 26 ИЮЛЯ',
+    showcaseTitle: 'Сегодня лучше говорить прямо, а не надеяться, что все догадаются сами.',
+    showcaseBody: 'День не требует рывка. Он требует одного понятного решения, которое ты давно откладываешь.',
     love: 'Любовь',
-    loveText: 'Есть шанс наконец договориться без игры в угадайку.',
-    natal: 'Натальная карта',
-    natalText: 'Сильные стороны, привычные сценарии и то, что ты обычно не замечаешь.',
-    compatibility: 'Совместимость',
-    compatibilityText: 'Не процент ради процента, а разбор общения, притяжения и сложных мест.',
-    ticker: ['Личный прогноз', 'Натальная карта', 'Совместимость', 'Ответы на вопросы', 'Гороскопы по знакам'],
-    featuresKicker: 'Всё приложение — на одном сайте',
-    featuresTitle: 'Не пять одинаковых карточек. Пять разных причин зайти.',
-    featuresBody: 'Каждый раздел отвечает на свой вопрос и ведёт в приложение без мистического тумана и рекламной шелухи.',
-    periodKicker: 'Личный прогноз',
-    periodTitle: 'Сегодня понятно. Дальше — тоже.',
-    periodBody: 'Один персональный разбор развивается по четырём периодам. Не нужно собирать смысл по случайным карточкам.',
-    periodTabs: ['Сегодня', 'Неделя', 'Месяц', 'Год'],
-    chartKicker: 'Натальная карта',
-    chartTitle: 'Не ярлык на всю жизнь. Нормальный разбор характера.',
-    chartBody: 'Показываем сильные стороны, повторяющиеся реакции и реальные точки роста — без фатализма и псевдодиагнозов.',
-    stepsKicker: 'Как это работает',
-    stepsTitle: 'Три шага. Без квеста на двадцать экранов.',
-    steps: [
-      ['01', 'Выбираешь формат', 'Начни с гороскопа по знаку или сразу перейди к личному разбору.'],
-      ['02', 'Добавляешь данные', 'Дата, время и место рождения нужны только для персональных расчётов.'],
-      ['03', 'Получаешь разбор', 'Приложение объясняет выводы человеческим языком и показывает, откуда они взялись.'],
-    ],
-    zodiacKicker: 'Гороскопы по знакам',
-    zodiacTitle: 'Быстрый вход, когда не хочется ничего заполнять.',
-    guidesKicker: 'Полезные материалы',
-    guidesTitle: 'Читайте разборы, которые не заканчиваются словами «доверься Вселенной».',
+    work: 'Дела и деньги',
+    loveText: 'Разговор даст больше, чем очередная попытка прочитать мысли другого человека.',
+    workText: 'Хороший момент закрыть один зависший вопрос и не распыляться на пять новых.',
+    productsLabel: 'Возможности',
+    productsTitle: 'Не набор функций. Нормальные ответы на разные жизненные вопросы.',
+    productsBody: 'Каждый раздел работает как отдельный полезный инструмент, но внутри приложения они собираются в одну понятную картину.',
+    personalLabel: 'Сегодня · Неделя · Месяц · Год',
+    personalTitle: 'Один личный прогноз, который развивается вместе с периодом.',
+    personalBody: 'Начни с сегодняшнего дня, а потом посмотри, как та же тема раскрывается на неделе, в месяце и в году.',
+    natalLabel: 'Натальная карта',
+    natalTitle: 'Не ярлык. Карта привычек, реакций и сильных сторон.',
+    natalBody: 'Показываем не “кто ты навсегда”, а как ты обычно действуешь, где повторяешь один сценарий и на что реально можешь опереться.',
+    compatibilityLabel: 'Совместимость',
+    compatibilityTitle: 'Не процент ради красивой цифры.',
+    compatibilityBody: 'Разбираем притяжение, общение, сложные места и то, что помогает людям действительно договариваться.',
+    questionsLabel: 'Персональные вопросы',
+    questionsTitle: 'Можно спросить именно то, что сейчас не даёт покоя.',
+    questionsBody: 'Ответ строится по натальной карте, периоду и уже рассчитанному контексту — без чатовой воды и случайных советов.',
+    zodiacLabel: 'Гороскоп по знаку',
+    zodiacTitle: 'Быстрый вход без лишних шагов.',
+    zodiacBody: 'Выбираешь знак и сразу читаешь прогноз. Персональные данные можно добавить позже.',
+    guidesLabel: 'Разборы и статьи',
+    guidesTitle: 'Материалы, которые отвечают на вопрос, а не растягивают вступление.',
+    allSigns: 'Все знаки',
+    allGuides: 'Все материалы',
+    read: 'Подробнее',
+    finalLabel: 'Твой Гороскоп',
   },
   en: {
-    badge: 'A personal app about you',
-    proof: ['Today, week, month, and year', 'A natal chart without jargon', 'Compatibility without sugar-coating'],
-    today: 'Today',
-    date: 'SUNDAY · JULY 26',
-    todayTitle: 'Do not overcomplicate what is already clear.',
-    todayBody: 'That important conversation will go better when you stop rehearsing and say the real thing.',
+    status: 'Personal forecasts, natal chart and compatibility',
+    heroNote: 'One app for understanding yourself and the period ahead without fatalism or generic filler.',
+    primary: 'Explore the app',
+    secondary: 'Read guides',
+    showcaseLabel: 'Personal forecast',
+    showcaseDate: 'SUNDAY · JULY 26',
+    showcaseTitle: 'Today works better when you say the real thing instead of waiting to be understood.',
+    showcaseBody: 'The day does not ask for a dramatic push. It asks for one clear decision you have postponed long enough.',
     love: 'Love',
-    loveText: 'A direct conversation can finally replace the guessing game.',
-    natal: 'Natal chart',
-    natalText: 'Strengths, repeating patterns, and the things you usually miss about yourself.',
-    compatibility: 'Compatibility',
-    compatibilityText: 'Not a random score — communication, attraction, and points of friction.',
-    ticker: ['Personal forecast', 'Natal chart', 'Compatibility', 'Personal answers', 'Zodiac horoscopes'],
-    featuresKicker: 'The whole app in one place',
-    featuresTitle: 'Not five identical cards. Five real reasons to open the app.',
-    featuresBody: 'Every section answers a different question and leads to useful content without mystical fog or marketing filler.',
-    periodKicker: 'Personal forecast',
-    periodTitle: 'Today makes sense. What comes next does too.',
-    periodBody: 'One personal reading develops across four timeframes instead of scattering the meaning across random cards.',
-    periodTabs: ['Today', 'Week', 'Month', 'Year'],
-    chartKicker: 'Natal chart',
-    chartTitle: 'Not a life sentence. A useful reading of your patterns.',
-    chartBody: 'See strengths, repeating reactions, and practical growth points without fatalism or pseudo-diagnosis.',
-    stepsKicker: 'How it works',
-    stepsTitle: 'Three steps. No twenty-screen obstacle course.',
-    steps: [
-      ['01', 'Choose your format', 'Start with a zodiac horoscope or go straight to a personal reading.'],
-      ['02', 'Add your details', 'Birth date, time, and place are requested only for personal calculations.'],
-      ['03', 'Get the reading', 'The app explains conclusions in plain language and shows what supports them.'],
-    ],
-    zodiacKicker: 'Zodiac horoscopes',
-    zodiacTitle: 'A quick start when you do not want to fill anything in.',
-    guidesKicker: 'Useful reading',
-    guidesTitle: 'Guides that do not end with “trust the universe.”',
+    work: 'Work and money',
+    loveText: 'A direct conversation will do more than another attempt to read someone’s mind.',
+    workText: 'A good moment to close one delayed issue before opening five new ones.',
+    productsLabel: 'What the app does',
+    productsTitle: 'Not a pile of features. Useful answers to different life questions.',
+    productsBody: 'Each area works as a focused tool, while the full app connects them into one clear picture.',
+    personalLabel: 'Today · Week · Month · Year',
+    personalTitle: 'One personal forecast that develops with the timeframe.',
+    personalBody: 'Start with today, then see how the same theme unfolds across the week, month and year.',
+    natalLabel: 'Natal chart',
+    natalTitle: 'Not a label. A map of patterns, reactions and strengths.',
+    natalBody: 'See how you tend to act, where the same scenario repeats, and what you can genuinely rely on.',
+    compatibilityLabel: 'Compatibility',
+    compatibilityTitle: 'Not a percentage made for a pretty result.',
+    compatibilityBody: 'Understand attraction, communication, friction and what actually helps two people meet halfway.',
+    questionsLabel: 'Personal questions',
+    questionsTitle: 'Ask what is genuinely on your mind right now.',
+    questionsBody: 'Answers use your chart, the selected period and calculated context instead of generic chat advice.',
+    zodiacLabel: 'Zodiac horoscope',
+    zodiacTitle: 'A quick start without extra steps.',
+    zodiacBody: 'Choose a sign and read the forecast. Personal details can be added later.',
+    guidesLabel: 'Guides and articles',
+    guidesTitle: 'Content that answers the question instead of stretching the introduction.',
+    allSigns: 'All signs',
+    allGuides: 'All guides',
+    read: 'Read more',
+    finalLabel: 'Your Horoscope',
   },
   es: {
-    badge: 'Una app personal sobre ti',
-    proof: ['Hoy, semana, mes y año', 'Carta natal sin jerga', 'Compatibilidad sin endulzar'],
-    today: 'Hoy',
-    date: 'DOMINGO · 26 DE JULIO',
-    todayTitle: 'No compliques lo que ya está claro.',
-    todayBody: 'Esa conversación importante irá mejor cuando dejes de ensayarla y digas lo que de verdad piensas.',
+    status: 'Pronóstico personal, carta natal y compatibilidad',
+    heroNote: 'Una app para entenderte y mirar el período que viene sin fatalismo ni frases genéricas.',
+    primary: 'Ver la app',
+    secondary: 'Leer guías',
+    showcaseLabel: 'Pronóstico personal',
+    showcaseDate: 'DOMINGO · 26 DE JULIO',
+    showcaseTitle: 'Hoy funciona mejor hablar claro que esperar que los demás adivinen.',
+    showcaseBody: 'El día no pide un gran salto. Pide una decisión concreta que llevas demasiado tiempo aplazando.',
     love: 'Amor',
-    loveText: 'Hablar claro puede sustituir por fin el juego de adivinar.',
-    natal: 'Carta natal',
-    natalText: 'Fortalezas, patrones repetidos y detalles que no siempre ves en ti.',
-    compatibility: 'Compatibilidad',
-    compatibilityText: 'No un porcentaje al azar: comunicación, atracción y puntos de fricción.',
-    ticker: ['Pronóstico personal', 'Carta natal', 'Compatibilidad', 'Respuestas personales', 'Horóscopos por signo'],
-    featuresKicker: 'Toda la app en un solo lugar',
-    featuresTitle: 'No son cinco tarjetas iguales. Son cinco razones reales para entrar.',
-    featuresBody: 'Cada sección responde a una pregunta distinta y lleva a contenido útil, sin niebla mística ni relleno comercial.',
-    periodKicker: 'Pronóstico personal',
-    periodTitle: 'Hoy queda claro. Lo que viene después, también.',
-    periodBody: 'Una lectura personal se desarrolla en cuatro períodos, sin repartir el sentido entre tarjetas aleatorias.',
-    periodTabs: ['Hoy', 'Semana', 'Mes', 'Año'],
-    chartKicker: 'Carta natal',
-    chartTitle: 'No es una sentencia. Es una lectura útil de tus patrones.',
-    chartBody: 'Muestra fortalezas, reacciones repetidas y puntos de crecimiento sin fatalismo ni pseudodiagnósticos.',
-    stepsKicker: 'Cómo funciona',
-    stepsTitle: 'Tres pasos. Sin una carrera de veinte pantallas.',
-    steps: [
-      ['01', 'Elige el formato', 'Empieza por tu signo o pasa directamente a una lectura personal.'],
-      ['02', 'Añade tus datos', 'Fecha, hora y lugar de nacimiento solo se piden para cálculos personales.'],
-      ['03', 'Recibe la lectura', 'La app explica las conclusiones con claridad y muestra en qué se apoyan.'],
-    ],
-    zodiacKicker: 'Horóscopos por signo',
-    zodiacTitle: 'Una entrada rápida cuando no quieres rellenar nada.',
-    guidesKicker: 'Contenido útil',
-    guidesTitle: 'Guías que no terminan con “confía en el universo”.',
+    work: 'Trabajo y dinero',
+    loveText: 'Una conversación directa servirá más que intentar leer la mente de otra persona.',
+    workText: 'Buen momento para cerrar un asunto pendiente antes de abrir cinco más.',
+    productsLabel: 'Qué ofrece la app',
+    productsTitle: 'No es una lista de funciones. Son respuestas útiles para preguntas distintas.',
+    productsBody: 'Cada área funciona como una herramienta concreta y juntas forman una imagen clara.',
+    personalLabel: 'Hoy · Semana · Mes · Año',
+    personalTitle: 'Un pronóstico personal que cambia con el período.',
+    personalBody: 'Empieza por hoy y mira cómo la misma historia se desarrolla durante la semana, el mes y el año.',
+    natalLabel: 'Carta natal',
+    natalTitle: 'No es una etiqueta. Es un mapa de patrones, reacciones y fortalezas.',
+    natalBody: 'Muestra cómo sueles actuar, dónde repites un escenario y en qué puedes apoyarte de verdad.',
+    compatibilityLabel: 'Compatibilidad',
+    compatibilityTitle: 'No un porcentaje pensado para quedar bonito.',
+    compatibilityBody: 'Analiza atracción, comunicación, fricciones y lo que ayuda a dos personas a entenderse.',
+    questionsLabel: 'Preguntas personales',
+    questionsTitle: 'Pregunta lo que de verdad te preocupa ahora.',
+    questionsBody: 'La respuesta usa tu carta, el período y el contexto calculado, no consejos genéricos de chat.',
+    zodiacLabel: 'Horóscopo por signo',
+    zodiacTitle: 'Una entrada rápida sin pasos innecesarios.',
+    zodiacBody: 'Elige tu signo y lee el pronóstico. Los datos personales se pueden añadir después.',
+    guidesLabel: 'Guías y artículos',
+    guidesTitle: 'Contenido que responde a la pregunta sin alargar la introducción.',
+    allSigns: 'Todos los signos',
+    allGuides: 'Todas las guías',
+    read: 'Leer más',
+    finalLabel: 'Tu Horóscopo',
   },
 } as const;
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const dict = getDictionary(locale);
-  const extra = extraCopy[locale];
-  const guides = (await getGuides(locale)).slice(0, 3);
-  const features = [
-    ['personal-horoscope', dict.sections.personal],
-    ['natal-chart', dict.sections.natal],
-    ['compatibility', dict.sections.compatibility],
-    ['zodiac-horoscope', dict.sections.zodiac],
-    ['questions', dict.sections.questions],
-  ] as const;
 
+  const dict = getDictionary(locale);
+  const copy = homeCopy[locale];
+  const guides = (await getGuides(locale)).slice(0, 3);
   const appJsonLd = softwareApplicationJsonLd(locale);
+
   return (
     <>
       <JsonLd data={organizationJsonLd(locale)} />
       <JsonLd data={websiteJsonLd(locale)} />
       {appJsonLd ? <JsonLd data={appJsonLd} /> : null}
 
-      <section className="hero hero-home">
-        <div className="shell hero-grid">
-          <div className="hero-copy">
-            <p className="hero-badge">{extra.badge}</p>
-            <p className="eyebrow">{dict.hero.eyebrow}</p>
-            <h1>{dict.hero.title}</h1>
-            <p className="lead">{dict.hero.body}</p>
-            <div className="hero-actions">
-              <Link className="button" href={`/${locale}#features`}>{dict.hero.primary}</Link>
-              <Link className="button secondary" href={`/${locale}/guides`}>{dict.hero.secondary}</Link>
-            </div>
-            <ul className="hero-proof" aria-label={extra.badge}>
-              {extra.proof.map((item) => <li key={item}>{item}</li>)}
-            </ul>
+      <main className="home-page">
+        <section className="home-hero shell">
+          <div className="hero-status"><span />{copy.status}</div>
+          <h1>{dict.hero.title}</h1>
+          <p className="home-hero-lead">{copy.heroNote}</p>
+          <div className="home-hero-actions">
+            <Link className="pill-button pill-button-primary" href={`/${locale}#products`}>{copy.primary}</Link>
+            <Link className="pill-button" href={`/${locale}/guides`}>{copy.secondary}</Link>
           </div>
+        </section>
 
-          <div className="product-stage" aria-label={`${brands[locale]} product preview`}>
-            <span className="stage-orb stage-orb-one" />
-            <span className="stage-orb stage-orb-two" />
-            <div className="phone phone-main">
-              <div className="phone-top"><span>{extra.today}</span><span>•••</span></div>
-              <p className="phone-date">{extra.date}</p>
-              <h2>{extra.todayTitle}</h2>
-              <p>{extra.todayBody}</p>
-              <div className="phone-topic phone-topic-love"><span>{extra.love}</span><strong>{extra.loveText}</strong></div>
-            </div>
-            <div className="phone phone-side">
-              <div className="mini-chart" aria-hidden="true"><span /><span /><span /><span /></div>
-              <p className="phone-kicker">{extra.natal}</p>
-              <strong>{extra.natalText}</strong>
-            </div>
-            <div className="floating-note">
-              <span>87%</span>
-              <strong>{extra.compatibility}</strong>
-              <p>{extra.compatibilityText}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="value-strip" aria-hidden="true">
-        <div className="value-track">
-          {[...extra.ticker, ...extra.ticker].map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
-        </div>
-      </div>
-
-      <section className="section feature-section" id="features">
-        <div className="shell">
-          <div className="section-heading section-heading-wide">
-            <div><p className="eyebrow">{extra.featuresKicker}</p><h2>{extra.featuresTitle}</h2></div>
-            <p>{extra.featuresBody}</p>
-          </div>
-          <div className="feature-bento">
-            {features.map(([slug, item], index) => (
-              <article className={`feature-card feature-${slug} feature-card-${index + 1}`} key={slug}>
-                <span className="feature-index">0{index + 1}</span>
-                <div><h3>{item.title}</h3><p>{item.body}</p></div>
-                <Link href={`/${locale}/${slug}`}>{dict.common.readMore} <span aria-hidden="true">↗</span></Link>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section product-story-section">
-        <div className="shell product-story-grid">
-          <article className="story-card story-card-period">
-            <div className="story-copy">
-              <p className="eyebrow">{extra.periodKicker}</p>
-              <h2>{extra.periodTitle}</h2>
-              <p>{extra.periodBody}</p>
-              <Link className="text-button" href={`/${locale}/personal-horoscope`}>{dict.common.readMore} →</Link>
-            </div>
-            <div className="period-demo">
-              <div className="period-tabs">{extra.periodTabs.map((tab, index) => <span className={index === 0 ? 'active' : ''} key={tab}>{tab}</span>)}</div>
-              <div className="period-line period-line-long" />
-              <div className="period-line" />
-              <div className="period-block period-block-blue" />
-              <div className="period-line period-line-short" />
-            </div>
-          </article>
-
-          <article className="story-card story-card-chart">
-            <div className="chart-art" aria-hidden="true">
-              <span className="chart-ring chart-ring-one" />
-              <span className="chart-ring chart-ring-two" />
-              <span className="chart-dot chart-dot-one" />
-              <span className="chart-dot chart-dot-two" />
-              <span className="chart-dot chart-dot-three" />
-            </div>
-            <div className="story-copy">
-              <p className="eyebrow">{extra.chartKicker}</p>
-              <h2>{extra.chartTitle}</h2>
-              <p>{extra.chartBody}</p>
-              <Link className="text-button" href={`/${locale}/natal-chart`}>{dict.common.readMore} →</Link>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="section steps-section">
-        <div className="shell">
-          <div className="section-heading section-heading-wide">
-            <div><p className="eyebrow">{extra.stepsKicker}</p><h2>{extra.stepsTitle}</h2></div>
-          </div>
-          <div className="steps-grid">
-            {extra.steps.map(([number, title, body]) => (
-              <article className="step-card" key={number}>
-                <span>{number}</span>
-                <h3>{title}</h3>
-                <p>{body}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section zodiac-section">
-        <div className="shell">
-          <div className="section-heading section-heading-wide">
-            <div><p className="eyebrow">{extra.zodiacKicker}</p><h2>{extra.zodiacTitle}</h2></div>
-            <Link className="button secondary" href={`/${locale}/zodiac`}>{dict.common.allSigns}</Link>
-          </div>
-          <div className="sign-grid sign-grid-home">
-            {zodiacSlugs.map((sign, index) => {
-              const info = getZodiacInfo(locale, sign);
-              return <Link className={`sign-card sign-card-${(index % 6) + 1}`} key={sign} href={`/${locale}/zodiac/${sign}`}><strong>{info.name}</strong><span>{info.dates}</span><b aria-hidden="true">↗</b></Link>;
-            })}
-          </div>
-        </div>
-      </section>
-
-      {guides.length > 0 ? (
-        <section className="section guides-section">
-          <div className="shell">
-            <div className="section-heading section-heading-wide">
-              <div><p className="eyebrow">{extra.guidesKicker}</p><h2>{extra.guidesTitle}</h2></div>
-              <Link className="button secondary" href={`/${locale}/guides`}>{dict.common.allGuides}</Link>
-            </div>
-            <div className="article-grid">
-              {guides.map((guide) => <ArticleCard key={guide.frontmatter.slug} href={`/${locale}/guides/${guide.frontmatter.slug}`} title={guide.frontmatter.title} description={guide.frontmatter.description} meta={guide.frontmatter.publishedAt} />)}
+        <section className="shell hero-showcase" aria-label={`${brands[locale]} product preview`}>
+          <div className="showcase-glow showcase-glow-one" />
+          <div className="showcase-glow showcase-glow-two" />
+          <div className="showcase-window">
+            <div className="showcase-window-bar"><span /><span /><span /><b>{copy.showcaseLabel}</b></div>
+            <div className="showcase-content">
+              <div className="showcase-main-copy">
+                <p className="showcase-date">{copy.showcaseDate}</p>
+                <h2>{copy.showcaseTitle}</h2>
+                <p>{copy.showcaseBody}</p>
+              </div>
+              <div className="showcase-insight-grid">
+                <article><span>{copy.love}</span><p>{copy.loveText}</p></article>
+                <article><span>{copy.work}</span><p>{copy.workText}</p></article>
+              </div>
             </div>
           </div>
         </section>
-      ) : null}
 
-      <section className="section final-section">
-        <div className="shell final-cta">
-          <div><p className="eyebrow">{brands[locale]}</p><h2>{dict.home.finalTitle}</h2><p>{dict.home.finalBody}</p></div>
+        <section className="shell section-intro" id="products">
+          <p className="section-kicker">{copy.productsLabel}</p>
+          <h2>{copy.productsTitle}</h2>
+          <p>{copy.productsBody}</p>
+        </section>
+
+        <section className="shell case-list">
+          <article className="case-study case-study-wide">
+            <div className="case-copy">
+              <p className="section-kicker">{copy.personalLabel}</p>
+              <h2>{copy.personalTitle}</h2>
+              <p>{copy.personalBody}</p>
+              <Link href={`/${locale}/personal-horoscope`}>{copy.read} <span>↗</span></Link>
+            </div>
+            <div className="case-visual period-visual" aria-hidden="true">
+              <div className="period-nav"><span className="active">{locale === 'ru' ? 'Сегодня' : locale === 'es' ? 'Hoy' : 'Today'}</span><span>{locale === 'ru' ? 'Неделя' : locale === 'es' ? 'Semana' : 'Week'}</span><span>{locale === 'ru' ? 'Месяц' : locale === 'es' ? 'Mes' : 'Month'}</span><span>{locale === 'ru' ? 'Год' : locale === 'es' ? 'Año' : 'Year'}</span></div>
+              <div className="period-preview-card"><small>{copy.showcaseDate}</small><strong>{copy.showcaseTitle}</strong><i /><i /><i /></div>
+            </div>
+          </article>
+
+          <div className="case-study-grid">
+            <article className="case-study">
+              <div className="case-copy">
+                <p className="section-kicker">{copy.natalLabel}</p>
+                <h2>{copy.natalTitle}</h2>
+                <p>{copy.natalBody}</p>
+                <Link href={`/${locale}/natal-chart`}>{copy.read} <span>↗</span></Link>
+              </div>
+              <div className="case-visual chart-visual" aria-hidden="true"><div className="chart-core" /><div className="chart-ring ring-a" /><div className="chart-ring ring-b" /><div className="chart-ring ring-c" /><b className="chart-node node-a" /><b className="chart-node node-b" /><b className="chart-node node-c" /></div>
+            </article>
+
+            <article className="case-study">
+              <div className="case-copy">
+                <p className="section-kicker">{copy.compatibilityLabel}</p>
+                <h2>{copy.compatibilityTitle}</h2>
+                <p>{copy.compatibilityBody}</p>
+                <Link href={`/${locale}/compatibility`}>{copy.read} <span>↗</span></Link>
+              </div>
+              <div className="case-visual compatibility-visual" aria-hidden="true"><div className="profile-disc disc-a">A</div><div className="profile-disc disc-b">B</div><div className="match-line"><span /></div><strong>87%</strong></div>
+            </article>
+          </div>
+
+          <article className="case-study case-study-wide case-study-reverse">
+            <div className="case-copy">
+              <p className="section-kicker">{copy.questionsLabel}</p>
+              <h2>{copy.questionsTitle}</h2>
+              <p>{copy.questionsBody}</p>
+              <Link href={`/${locale}/questions`}>{copy.read} <span>↗</span></Link>
+            </div>
+            <div className="case-visual questions-visual" aria-hidden="true">
+              <div className="question-row">{locale === 'ru' ? 'Стоит ли менять работу?' : locale === 'es' ? '¿Debería cambiar de trabajo?' : 'Should I change jobs?'}</div>
+              <div className="question-row">{locale === 'ru' ? 'Что сейчас важнее в отношениях?' : locale === 'es' ? '¿Qué importa ahora en la relación?' : 'What matters most in my relationship now?'}</div>
+              <div className="question-row muted">{locale === 'ru' ? 'Когда лучше решиться на переезд?' : locale === 'es' ? '¿Cuándo conviene mudarse?' : 'When is a better time to move?'}</div>
+            </div>
+          </article>
+        </section>
+
+        <section className="shell zodiac-feature">
+          <div className="zodiac-copy">
+            <p className="section-kicker">{copy.zodiacLabel}</p>
+            <h2>{copy.zodiacTitle}</h2>
+            <p>{copy.zodiacBody}</p>
+            <Link className="pill-button" href={`/${locale}/zodiac`}>{copy.allSigns}</Link>
+          </div>
+          <div className="zodiac-list">
+            {zodiacSlugs.map((sign) => {
+              const info = getZodiacInfo(locale, sign);
+              return <Link key={sign} href={`/${locale}/zodiac/${sign}`}><span>{info.name}</span><small>{info.dates}</small></Link>;
+            })}
+          </div>
+        </section>
+
+        {guides.length > 0 ? (
+          <section className="shell guides-feature">
+            <div className="section-intro section-intro-left">
+              <p className="section-kicker">{copy.guidesLabel}</p>
+              <h2>{copy.guidesTitle}</h2>
+              <Link className="pill-button" href={`/${locale}/guides`}>{copy.allGuides}</Link>
+            </div>
+            <div className="editorial-list">
+              {guides.map((guide) => <ArticleCard key={guide.frontmatter.slug} href={`/${locale}/guides/${guide.frontmatter.slug}`} title={guide.frontmatter.title} description={guide.frontmatter.description} meta={guide.frontmatter.publishedAt} />)}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="shell closing-panel">
+          <p className="section-kicker">{copy.finalLabel}</p>
+          <h2>{dict.home.finalTitle}</h2>
+          <p>{dict.home.finalBody}</p>
           <StoreButtons fallback={dict.common.comingSoon} />
-        </div>
-      </section>
+        </section>
+      </main>
     </>
   );
 }
