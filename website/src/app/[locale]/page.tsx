@@ -10,141 +10,165 @@ import { pageMetadata, organizationJsonLd, softwareApplicationJsonLd, websiteJso
 import { brands, isLocale } from '@/lib/site';
 import { zodiacSlugs, getZodiacInfo } from '@/lib/zodiac';
 
+const pageCopy = {
+  ru: {
+    badge: 'Твой день, твои вопросы, твоя карта',
+    heroTitle: 'Что у тебя сейчас — и куда всё движется.',
+    heroBody: 'Сегодня, отношения, работа, деньги, натальная карта и совместимость. Не общий текст на всех, а разбор именно про тебя.',
+    primary: 'Показать приложение',
+    secondary: 'Почитать разборы',
+    quick: ['Начни со своего знака', 'Добавь данные — получишь личный разбор', 'Сегодня · Неделя · Месяц · Год'],
+    featuresKicker: 'Что можно узнать',
+    featuresTitle: 'Не просто «что ждёт сегодня». Здесь можно разобраться, что происходит именно у тебя.',
+    featuresBody: 'Открой день, посмотри отношения, разберись с работой и деньгами, проверь совместимость или задай свой вопрос. Всё собрано в одном приложении.',
+    personalKicker: 'Личный прогноз',
+    personalTitle: 'Твой день — без общих фраз.',
+    personalBody: 'Сначала главное: на что сегодня обратить внимание. Потом — любовь, настроение, дом, друзья, работа и деньги. Читай подряд или сразу прыгай к нужной теме.',
+    personalBullets: ['Главная мысль дня — в начале', 'Только темы, которые сегодня действительно важны', 'Можно открыть неделю, месяц и год'],
+    personalLink: 'Посмотреть личный прогноз',
+    natalKicker: 'Натальная карта',
+    natalTitle: 'Почему ты снова делаешь именно так?',
+    natalBody: 'Натальная карта помогает увидеть сильные стороны, привычные реакции и повторяющиеся истории. Не ставит диагноз и не решает за тебя — просто показывает то, что со стороны часто не видно.',
+    natalLink: 'Разобрать свою карту',
+    compatibilityKicker: 'Совместимость',
+    compatibilityTitle: 'Где вас тянет друг к другу, а где всё начинает бесить.',
+    compatibilityBody: 'Совместимость показывает, как вы общаетесь, чего ждёте друг от друга и на чём чаще всего спотыкаетесь. Не обещает вечную любовь — зато помогает понять, что между вами на самом деле.',
+    compatibilityLink: 'Посмотреть, как вы совпадаете',
+    questionsKicker: 'Свои вопросы',
+    questionsTitle: 'Есть вопрос, который не отпускает?',
+    questionsBody: 'Спроси про работу, деньги, отношения, переезд, профессию или большое решение. Ответ будет опираться на твою карту и текущий период, а не на универсальный совет из интернета.',
+    questionsLink: 'Посмотреть вопросы',
+    stepsKicker: 'Как начать',
+    stepsTitle: 'Можно начать за минуту.',
+    steps: [
+      ['01', 'Выбери, с чего зайти', 'Хочешь быстро — открой гороскоп по знаку. Хочешь точнее — начни с личного разбора.'],
+      ['02', 'Добавь дату рождения', 'Для личного прогноза понадобятся дата, время и город рождения.'],
+      ['03', 'Смотри то, что важно сейчас', 'День, неделя, отношения, работа, деньги, карта и свои вопросы будут ждать внутри.'],
+    ],
+    zodiacKicker: 'Гороскопы по знакам',
+    zodiacTitle: 'Хочется просто глянуть гороскоп? Начинай со знака.',
+    zodiacBody: 'Выбери знак и посмотри общий прогноз. Личный разбор можно добавить позже.',
+    guidesKicker: 'Полезные разборы',
+    guidesTitle: 'Тексты, после которых хоть что-то становится понятнее.',
+    finalTitle: 'Зайди с того, что волнует тебя сегодня.',
+    finalBody: 'Любовь, деньги, работа, совместимость или просто свой знак — выбирай, с чего начать.',
+    previewDate: 'ВОСКРЕСЕНЬЕ · 26 ИЮЛЯ',
+    previewTitle: 'Сегодня лучше сказать прямо, чем ещё раз додумывать за другого.',
+    previewBody: 'Сначала — главная тема дня. Дальше любовь, работа, деньги и всё, что сегодня действительно влияет на тебя.',
+    previewTopic: 'Один честный разговор сейчас полезнее десяти намёков.',
+    heroAlt: 'Человек смотрит личный прогноз в телефоне за ярким рабочим столом',
+    natalAlt: 'Человек разбирает заметки о своих сильных сторонах и привычках',
+    compatibilityAlt: 'Два человека спокойно разговаривают за столом',
+    questionsAlt: 'Человек работает за ноутбуком и записывает важный вопрос',
+  },
+  en: {
+    badge: 'Your day, your questions, your chart',
+    heroTitle: 'See what is happening now — and where it is going.',
+    heroBody: 'Your day, relationships, work, money, natal chart, and compatibility. Not one generic text for everyone, but a reading built around you.',
+    primary: 'Explore the app',
+    secondary: 'Read the guides',
+    quick: ['Start with your zodiac sign', 'Add birth details for a personal reading', 'Today · Week · Month · Year'],
+    featuresKicker: 'What you can explore',
+    featuresTitle: 'More than “what will happen today.” See what is actually going on for you.',
+    featuresBody: 'Check your day, look at relationships, sort through work and money, explore compatibility, or ask your own question — all in one app.',
+    personalKicker: 'Personal forecast',
+    personalTitle: 'Your day, without generic filler.',
+    personalBody: 'Start with the main thing to notice today. Then move through love, mood, home, friends, work, and money. Read it all or jump straight to the part you need.',
+    personalBullets: ['The main point comes first', 'Only the topics that matter today', 'Week, month, and year are there when you need them'],
+    personalLink: 'See the personal forecast',
+    natalKicker: 'Natal chart',
+    natalTitle: 'Why do you keep reacting this way?',
+    natalBody: 'A natal chart helps you notice strengths, familiar reactions, and stories that keep repeating. It does not diagnose you or make choices for you — it shows what is easy to miss from the inside.',
+    natalLink: 'Explore your chart',
+    compatibilityKicker: 'Compatibility',
+    compatibilityTitle: 'Where you click — and where you start getting on each other’s nerves.',
+    compatibilityBody: 'Compatibility looks at how you communicate, what you expect from each other, and where things usually go wrong. No promise of forever — just a clearer picture of what is really happening between you.',
+    compatibilityLink: 'See how you work together',
+    questionsKicker: 'Your questions',
+    questionsTitle: 'Got a question you cannot shake?',
+    questionsBody: 'Ask about work, money, relationships, relocation, career, or a big decision. The answer uses your chart and current period instead of serving generic internet advice.',
+    questionsLink: 'See the questions',
+    stepsKicker: 'Getting started',
+    stepsTitle: 'You can start in a minute.',
+    steps: [
+      ['01', 'Choose your starting point', 'Want it quick? Open your zodiac sign. Want it personal? Start with your reading.'],
+      ['02', 'Add your birth details', 'A personal forecast needs your birth date, time, and city.'],
+      ['03', 'Open what matters now', 'Your day, week, relationships, work, money, chart, and questions are all inside.'],
+    ],
+    zodiacKicker: 'Zodiac horoscopes',
+    zodiacTitle: 'Just want to check your horoscope? Start with your sign.',
+    zodiacBody: 'Choose your sign and read the general forecast. You can add a personal reading later.',
+    guidesKicker: 'Useful guides',
+    guidesTitle: 'Articles that leave you with something clearer than before.',
+    finalTitle: 'Start with whatever is on your mind today.',
+    finalBody: 'Love, money, work, compatibility, or simply your sign — pick where to begin.',
+    previewDate: 'SUNDAY · JULY 26',
+    previewTitle: 'Say it clearly today instead of guessing what the other person meant.',
+    previewBody: 'The main theme comes first. Then love, work, money, and everything that genuinely matters today.',
+    previewTopic: 'One honest conversation is worth more than ten hints right now.',
+    heroAlt: 'Person checking a personal forecast on a phone in a bright workspace',
+    natalAlt: 'Person reviewing notes about strengths and familiar habits',
+    compatibilityAlt: 'Two people having a calm conversation at a table',
+    questionsAlt: 'Person working on a laptop and writing down an important question',
+  },
+  es: {
+    badge: 'Tu día, tus preguntas, tu carta',
+    heroTitle: 'Mira qué está pasando ahora y hacia dónde va.',
+    heroBody: 'Tu día, relaciones, trabajo, dinero, carta natal y compatibilidad. No un texto genérico para todos, sino una lectura pensada para ti.',
+    primary: 'Ver la app',
+    secondary: 'Leer las guías',
+    quick: ['Empieza por tu signo', 'Añade tus datos para una lectura personal', 'Hoy · Semana · Mes · Año'],
+    featuresKicker: 'Qué puedes descubrir',
+    featuresTitle: 'Mucho más que “qué pasará hoy”. Entiende qué está ocurriendo de verdad contigo.',
+    featuresBody: 'Mira tu día, revisa relaciones, aclara trabajo y dinero, comprueba compatibilidad o haz tu propia pregunta. Todo está en la misma app.',
+    personalKicker: 'Pronóstico personal',
+    personalTitle: 'Tu día, sin frases genéricas.',
+    personalBody: 'Primero, lo más importante de hoy. Después: amor, ánimo, hogar, amistades, trabajo y dinero. Léelo todo o salta directamente al tema que necesitas.',
+    personalBullets: ['La idea principal aparece primero', 'Solo los temas que importan hoy', 'Semana, mes y año cuando los necesites'],
+    personalLink: 'Ver el pronóstico personal',
+    natalKicker: 'Carta natal',
+    natalTitle: '¿Por qué vuelves a reaccionar así?',
+    natalBody: 'La carta natal ayuda a ver fortalezas, reacciones habituales e historias que se repiten. No te diagnostica ni decide por ti: muestra lo que desde dentro suele costar ver.',
+    natalLink: 'Explorar tu carta',
+    compatibilityKicker: 'Compatibilidad',
+    compatibilityTitle: 'Dónde encajáis y dónde empezáis a sacaros de quicio.',
+    compatibilityBody: 'La compatibilidad muestra cómo habláis, qué esperáis y en qué punto suelen aparecer los problemas. No promete amor eterno, pero sí ayuda a entender qué pasa de verdad entre vosotros.',
+    compatibilityLink: 'Ver cómo encajáis',
+    questionsKicker: 'Tus preguntas',
+    questionsTitle: '¿Hay una pregunta que no te deja en paz?',
+    questionsBody: 'Pregunta por trabajo, dinero, relaciones, mudanzas, profesión o una decisión importante. La respuesta usa tu carta y el momento actual, no un consejo genérico de internet.',
+    questionsLink: 'Ver las preguntas',
+    stepsKicker: 'Cómo empezar',
+    stepsTitle: 'Puedes empezar en un minuto.',
+    steps: [
+      ['01', 'Elige por dónde entrar', '¿Quieres algo rápido? Abre tu signo. ¿Quieres algo personal? Empieza por tu lectura.'],
+      ['02', 'Añade tus datos de nacimiento', 'Para el pronóstico personal hacen falta fecha, hora y ciudad de nacimiento.'],
+      ['03', 'Abre lo que importa ahora', 'Tu día, semana, relaciones, trabajo, dinero, carta y preguntas estarán dentro.'],
+    ],
+    zodiacKicker: 'Horóscopos por signo',
+    zodiacTitle: '¿Solo quieres mirar el horóscopo? Empieza por tu signo.',
+    zodiacBody: 'Elige tu signo y lee el pronóstico general. La lectura personal puede esperar.',
+    guidesKicker: 'Guías útiles',
+    guidesTitle: 'Textos que dejan algo más claro que antes.',
+    finalTitle: 'Empieza por lo que te preocupa hoy.',
+    finalBody: 'Amor, dinero, trabajo, compatibilidad o simplemente tu signo: elige por dónde entrar.',
+    previewDate: 'DOMINGO · 26 DE JULIO',
+    previewTitle: 'Hoy conviene hablar claro en vez de volver a adivinar qué quiso decir la otra persona.',
+    previewBody: 'Primero aparece el tema principal. Después: amor, trabajo, dinero y todo lo que de verdad importa hoy.',
+    previewTopic: 'Ahora mismo, una conversación honesta vale más que diez indirectas.',
+    heroAlt: 'Persona consultando un pronóstico personal en el teléfono en un espacio de trabajo luminoso',
+    natalAlt: 'Persona revisando notas sobre sus fortalezas y hábitos',
+    compatibilityAlt: 'Dos personas conversando con calma en una mesa',
+    questionsAlt: 'Persona trabajando con un portátil y anotando una pregunta importante',
+  },
+} as const;
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const copy = pageCopy[locale];
   return pageMetadata({ locale, title: copy.heroTitle, description: copy.heroBody });
 }
-
-const pageCopy = {
-  ru: {
-    badge: 'Твой Гороскоп — приложение про тебя',
-    heroTitle: 'Пойми свой период. Без тумана и страшилок.',
-    heroBody: 'Личный прогноз, натальная карта, совместимость и гороскопы по знакам — в одном приложении. Честно, понятно и без фатализма.',
-    primary: 'Посмотреть, что внутри',
-    secondary: 'Читать разборы',
-    quick: ['Можно начать со знака', 'Личный разбор по данным рождения', 'Русский · English · Español'],
-    featuresKicker: 'Что внутри',
-    featuresTitle: 'Не ещё один гороскоп. Нормальные ответы на разные жизненные вопросы.',
-    featuresBody: 'Каждый раздел решает свою задачу, но вместе они дают понятную картину: что происходит сейчас, что повторяется и где стоит действовать аккуратнее.',
-    personalKicker: 'Личный прогноз',
-    personalTitle: 'Сегодня, неделя, месяц и год — в одной понятной ленте.',
-    personalBody: 'Сначала общий вывод, потом любовь, настроение, дом, друзья, работа и деньги. Никаких случайных карточек, повторов и фраз, которые можно отправить кому угодно.',
-    personalBullets: ['Общий вывод — сразу', 'Темы дня по реальному расчёту', 'Пояснения человеческим языком'],
-    personalLink: 'Подробнее о личном прогнозе',
-    natalKicker: 'Натальная карта',
-    natalTitle: 'Натальная карта без ярлыков.',
-    natalBody: 'Разбираем сильные стороны, привычные реакции и повторяющиеся сценарии. Не решаем за тебя, кем быть и что делать — показываем, на что ты реально можешь опереться.',
-    natalLink: 'Как устроен разбор карты',
-    compatibilityKicker: 'Совместимость',
-    compatibilityTitle: 'Не красивый процент ради красивой цифры.',
-    compatibilityBody: 'Показываем, где вам легко, где начинается спор и что помогает нормально разговаривать. Без сказки про «идеальную пару» и без приговора отношениям.',
-    compatibilityLink: 'Посмотреть совместимость',
-    questionsKicker: 'Персональные вопросы',
-    questionsTitle: 'Спроси про то, что реально важно.',
-    questionsBody: 'Работа, деньги, отношения, переезд, профессия, крупные решения — ответ строится по карте и выбранному периоду, а не выдаётся как случайный совет.',
-    questionsLink: 'Какие вопросы можно задать',
-    stepsKicker: 'Как начать',
-    stepsTitle: 'Без анкеты на двадцать экранов.',
-    steps: [
-      ['01', 'Выбери вход', 'Начни с гороскопа по знаку или сразу перейди к личному разбору.'],
-      ['02', 'Добавь данные, когда готов', 'Дата, время и место рождения нужны только для персональных расчётов.'],
-      ['03', 'Читай и задавай вопросы', 'Приложение объясняет выводы понятным языком и показывает, откуда они взялись.'],
-    ],
-    zodiacKicker: 'Гороскопы по знакам',
-    zodiacTitle: 'Быстрый вход без лишних форм.',
-    zodiacBody: 'Выбери знак, прочитай общий прогноз и реши, нужен ли тебе более точный личный разбор.',
-    guidesKicker: 'Полезные материалы',
-    guidesTitle: 'Разборы, которые отвечают на вопрос, а не пересказывают Википедию.',
-    finalTitle: 'Начни с того, что волнует тебя сейчас.',
-    finalBody: 'Гороскоп по знаку — для быстрого входа. Личный прогноз — когда нужна точность под тебя.',
-  },
-  en: {
-    badge: 'Your Horoscope — a personal app about you',
-    heroTitle: 'Understand your moment. No fog, no scare tactics.',
-    heroBody: 'Personal forecasts, natal chart, compatibility, and zodiac horoscopes in one app. Clear, honest, and never fatalistic.',
-    primary: 'See what is inside',
-    secondary: 'Read the guides',
-    quick: ['Start with your zodiac sign', 'Personal reading from birth data', 'Русский · English · Español'],
-    featuresKicker: 'Inside the app',
-    featuresTitle: 'Not another horoscope. Useful answers for different parts of life.',
-    featuresBody: 'Each section has a clear job, while together they show what is happening now, what keeps repeating, and where a careful choice matters.',
-    personalKicker: 'Personal forecast',
-    personalTitle: 'Today, week, month, and year in one clear reading.',
-    personalBody: 'Start with the main conclusion, then move through love, mood, home, friends, work, and money. No random cards, repeated filler, or lines that could fit anyone.',
-    personalBullets: ['The main conclusion first', 'Topics selected by the calculation', 'Plain-language explanations'],
-    personalLink: 'Explore personal forecasts',
-    natalKicker: 'Natal chart',
-    natalTitle: 'A natal chart without labels.',
-    natalBody: 'See strengths, familiar reactions, and repeating patterns. The app does not decide who you are; it shows what you can genuinely rely on.',
-    natalLink: 'How the natal reading works',
-    compatibilityKicker: 'Compatibility',
-    compatibilityTitle: 'Not a pretty score for the sake of a pretty number.',
-    compatibilityBody: 'See where communication is easy, where friction begins, and what helps two people actually understand each other — without “perfect match” claims.',
-    compatibilityLink: 'Explore compatibility',
-    questionsKicker: 'Personal questions',
-    questionsTitle: 'Ask about what genuinely matters.',
-    questionsBody: 'Work, money, relationships, relocation, profession, and major decisions — answers use your chart and selected period instead of producing generic advice.',
-    questionsLink: 'See the question topics',
-    stepsKicker: 'How to start',
-    stepsTitle: 'No twenty-screen questionnaire.',
-    steps: [
-      ['01', 'Choose your entry point', 'Start with a zodiac horoscope or go straight to a personal reading.'],
-      ['02', 'Add details when you are ready', 'Birth date, time, and place are requested only for personal calculations.'],
-      ['03', 'Read and ask questions', 'The app explains conclusions in plain language and shows what supports them.'],
-    ],
-    zodiacKicker: 'Zodiac horoscopes',
-    zodiacTitle: 'A quick start without extra forms.',
-    zodiacBody: 'Choose your sign, read the general forecast, and decide whether you want a more precise personal reading.',
-    guidesKicker: 'Useful reading',
-    guidesTitle: 'Guides that answer the question instead of rewriting an encyclopedia.',
-    finalTitle: 'Start with what matters to you right now.',
-    finalBody: 'A zodiac horoscope for a quick start. A personal forecast when you want something built around you.',
-  },
-  es: {
-    badge: 'Tu Horóscopo — una app personal sobre ti',
-    heroTitle: 'Entiende tu momento. Sin niebla ni alarmismo.',
-    heroBody: 'Pronóstico personal, carta natal, compatibilidad y horóscopos por signo en una sola app. Claro, honesto y sin fatalismo.',
-    primary: 'Ver qué hay dentro',
-    secondary: 'Leer las guías',
-    quick: ['Empieza por tu signo', 'Lectura personal con datos de nacimiento', 'Русский · English · Español'],
-    featuresKicker: 'Dentro de la app',
-    featuresTitle: 'No es otro horóscopo. Son respuestas útiles para distintas partes de la vida.',
-    featuresBody: 'Cada sección tiene una función clara y, juntas, muestran qué ocurre ahora, qué se repite y dónde conviene elegir con más cuidado.',
-    personalKicker: 'Pronóstico personal',
-    personalTitle: 'Hoy, semana, mes y año en una lectura clara.',
-    personalBody: 'Primero la conclusión principal; después amor, ánimo, hogar, amistades, trabajo y dinero. Sin tarjetas aleatorias ni frases que podrían servirle a cualquiera.',
-    personalBullets: ['La conclusión principal primero', 'Temas elegidos por el cálculo', 'Explicaciones en lenguaje claro'],
-    personalLink: 'Ver el pronóstico personal',
-    natalKicker: 'Carta natal',
-    natalTitle: 'Una carta natal sin etiquetas.',
-    natalBody: 'Muestra fortalezas, reacciones habituales y patrones repetidos. La app no decide quién eres: señala en qué puedes apoyarte de verdad.',
-    natalLink: 'Cómo funciona la lectura natal',
-    compatibilityKicker: 'Compatibilidad',
-    compatibilityTitle: 'No un porcentaje bonito porque sí.',
-    compatibilityBody: 'Muestra dónde es fácil entenderse, dónde aparece la fricción y qué ayuda a hablar de verdad, sin promesas de “pareja perfecta”.',
-    compatibilityLink: 'Ver compatibilidad',
-    questionsKicker: 'Preguntas personales',
-    questionsTitle: 'Pregunta por lo que de verdad importa.',
-    questionsBody: 'Trabajo, dinero, relaciones, mudanzas, profesión y decisiones importantes: la respuesta usa tu carta y el período elegido, no consejos genéricos.',
-    questionsLink: 'Ver temas de preguntas',
-    stepsKicker: 'Cómo empezar',
-    stepsTitle: 'Sin un formulario de veinte pantallas.',
-    steps: [
-      ['01', 'Elige cómo entrar', 'Empieza por tu signo o pasa directamente a una lectura personal.'],
-      ['02', 'Añade datos cuando quieras', 'Fecha, hora y lugar de nacimiento solo se piden para cálculos personales.'],
-      ['03', 'Lee y pregunta', 'La app explica las conclusiones con claridad y muestra en qué se apoyan.'],
-    ],
-    zodiacKicker: 'Horóscopos por signo',
-    zodiacTitle: 'Una entrada rápida sin formularios innecesarios.',
-    zodiacBody: 'Elige tu signo, lee el pronóstico general y decide si quieres una lectura personal más precisa.',
-    guidesKicker: 'Contenido útil',
-    guidesTitle: 'Guías que responden la pregunta en lugar de reescribir una enciclopedia.',
-    finalTitle: 'Empieza por lo que te importa ahora.',
-    finalBody: 'Horóscopo por signo para entrar rápido. Pronóstico personal cuando quieres algo hecho para ti.',
-  },
-} as const;
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -175,7 +199,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
             </ul>
           </div>
           <div className="hero-image-wrap">
-            <img src="/site/lifestyle-hero.svg" alt={locale === 'ru' ? 'Человек смотрит персональный прогноз в телефоне за ярким рабочим столом' : locale === 'es' ? 'Persona consultando un pronóstico personal en el teléfono en un espacio de trabajo luminoso' : 'Person checking a personal forecast on a phone in a bright workspace'} width="1200" height="900" fetchPriority="high" />
+            <img src="/site/lifestyle-hero.svg" alt={copy.heroAlt} width="1200" height="900" fetchPriority="high" />
             <div className="hero-float-card hero-float-top"><strong>{copy.personalKicker}</strong><span>{copy.personalBullets[0]}</span></div>
             <div className="hero-float-card hero-float-bottom"><strong>{copy.compatibilityKicker}</strong><span>{copy.compatibilityBody}</span></div>
           </div>
@@ -209,17 +233,17 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
           </div>
           <div className="forecast-preview" aria-label={copy.personalKicker}>
             <div className="preview-tabs"><span className="active">{locale === 'ru' ? 'Сегодня' : locale === 'es' ? 'Hoy' : 'Today'}</span><span>{locale === 'ru' ? 'Неделя' : locale === 'es' ? 'Semana' : 'Week'}</span><span>{locale === 'ru' ? 'Месяц' : locale === 'es' ? 'Mes' : 'Month'}</span><span>{locale === 'ru' ? 'Год' : locale === 'es' ? 'Año' : 'Year'}</span></div>
-            <div className="preview-date">{locale === 'ru' ? 'ВОСКРЕСЕНЬЕ · 26 ИЮЛЯ' : locale === 'es' ? 'DOMINGO · 26 DE JULIO' : 'SUNDAY · JULY 26'}</div>
-            <h3>{locale === 'ru' ? 'Сегодня лучше договориться, чем снова гадать, что имелось в виду.' : locale === 'es' ? 'Hoy es mejor hablar claro que volver a adivinar lo que quiso decir la otra persona.' : 'Today, a clear conversation beats another round of guessing.'}</h3>
-            <p>{locale === 'ru' ? 'Главная тема дня показывается сразу, а дальше можно спокойно пройтись по любви, работе, деньгам и другим важным разделам.' : locale === 'es' ? 'La idea principal aparece primero; después puedes revisar amor, trabajo, dinero y otros temas importantes.' : 'The main theme comes first, followed by love, work, money, and the other areas that matter.'}</p>
-            <div className="preview-topic"><span>{locale === 'ru' ? 'Любовь' : locale === 'es' ? 'Amor' : 'Love'}</span><strong>{locale === 'ru' ? 'Меньше намёков. Больше нормального разговора.' : locale === 'es' ? 'Menos indirectas. Más conversación real.' : 'Fewer hints. More real conversation.'}</strong></div>
+            <div className="preview-date">{copy.previewDate}</div>
+            <h3>{copy.previewTitle}</h3>
+            <p>{copy.previewBody}</p>
+            <div className="preview-topic"><span>{locale === 'ru' ? 'Любовь' : locale === 'es' ? 'Amor' : 'Love'}</span><strong>{copy.previewTopic}</strong></div>
           </div>
         </div>
       </section>
 
       <section className="section product-row-section section-peach">
         <div className="shell product-row">
-          <div className="product-visual"><img src="/site/lifestyle-natal.svg" alt={locale === 'ru' ? 'Человек разбирает заметки о своих сильных сторонах и привычных реакциях' : locale === 'es' ? 'Persona organizando notas sobre sus fortalezas y patrones habituales' : 'Person organizing notes about strengths and familiar patterns'} width="1200" height="900" loading="lazy" /></div>
+          <div className="product-visual"><img src="/site/lifestyle-natal.svg" alt={copy.natalAlt} width="1200" height="900" loading="lazy" /></div>
           <div className="product-copy">
             <p className="eyebrow">{copy.natalKicker}</p>
             <h2>{copy.natalTitle}</h2>
@@ -231,7 +255,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
 
       <section className="section product-row-section section-blue">
         <div className="shell product-row product-row-reverse">
-          <div className="product-visual"><img src="/site/lifestyle-compatibility.svg" alt={locale === 'ru' ? 'Два человека спокойно разговаривают за столом' : locale === 'es' ? 'Dos personas conversando con calma en una mesa' : 'Two people having a calm conversation at a table'} width="1200" height="900" loading="lazy" /></div>
+          <div className="product-visual"><img src="/site/lifestyle-compatibility.svg" alt={copy.compatibilityAlt} width="1200" height="900" loading="lazy" /></div>
           <div className="product-copy">
             <p className="eyebrow">{copy.compatibilityKicker}</p>
             <h2>{copy.compatibilityTitle}</h2>
@@ -243,7 +267,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
 
       <section className="section product-row-section section-mint">
         <div className="shell product-row">
-          <div className="product-visual"><img src="/site/lifestyle-work.svg" alt={locale === 'ru' ? 'Человек работает за ноутбуком и записывает важный вопрос' : locale === 'es' ? 'Persona trabajando con un portátil y anotando una pregunta importante' : 'Person working on a laptop and writing down an important question'} width="1200" height="900" loading="lazy" /></div>
+          <div className="product-visual"><img src="/site/lifestyle-work.svg" alt={copy.questionsAlt} width="1200" height="900" loading="lazy" /></div>
           <div className="product-copy">
             <p className="eyebrow">{copy.questionsKicker}</p>
             <h2>{copy.questionsTitle}</h2>
