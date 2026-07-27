@@ -10,10 +10,10 @@ export function Header({ locale }: { locale: Locale }) {
       <div className="shell header-inner">
         <Link href={`/${locale}`} className="wordmark" aria-label={brands[locale]}>{brands[locale]}</Link>
         <nav className="primary-nav" aria-label="Primary">
-          <Link href={`/${locale}#features`}>{dict.nav.features}</Link>
+          <Link href={`/${locale}#inside`}>{dict.nav.features}</Link>
           <Link href={`/${locale}/zodiac`}>{dict.nav.zodiac}</Link>
           <Link href={`/${locale}/guides`}>{dict.nav.guides}</Link>
-          <Link href={`/${locale}/faq`}>{dict.nav.faq}</Link>
+          <Link href={`/${locale}/questions`}>{dict.nav.faq}</Link>
           <Link href={`/${locale}/support`}>{dict.nav.support}</Link>
         </nav>
         <LanguageSwitcher locale={locale} />
