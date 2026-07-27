@@ -1,0 +1,95 @@
+/* Subtle astronomical atmosphere: decorative only, no mystic symbols. */
+body {
+  background:
+    radial-gradient(circle at 14% 8%, rgba(86, 104, 255, .08), transparent 28%),
+    radial-gradient(circle at 88% 14%, rgba(155, 91, 255, .08), transparent 25%),
+    #fffdf8;
+}
+
+.landing-hero {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 16% 24%, rgba(77, 99, 255, .22), transparent 30%),
+    radial-gradient(circle at 76% 20%, rgba(122, 72, 255, .18), transparent 27%),
+    radial-gradient(circle at 87% 74%, rgba(255, 116, 89, .14), transparent 24%),
+    linear-gradient(135deg, #111b3e 0%, #1d2854 48%, #35255f 100%);
+  color: #fff;
+}
+
+.landing-hero::before {
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  border-radius: 0;
+  filter: none;
+  z-index: -1;
+  opacity: .8;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.9) 0 1px, transparent 1.4px),
+    radial-gradient(circle, rgba(255,255,255,.65) 0 1px, transparent 1.3px),
+    radial-gradient(circle, rgba(183,199,255,.75) 0 1.2px, transparent 1.5px);
+  background-size: 96px 96px, 143px 143px, 211px 211px;
+  background-position: 17px 21px, 48px 70px, 91px 33px;
+}
+
+.landing-hero::after {
+  width: 480px;
+  height: 480px;
+  right: -170px;
+  bottom: -250px;
+  background: radial-gradient(circle, rgba(110, 232, 196, .3), rgba(110,232,196,0) 68%);
+  filter: blur(6px);
+}
+
+.landing-hero .pill-label {
+  color: #e7ebff;
+  border-color: rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+
+.landing-hero .hero-lead,
+.landing-hero .quick-proof {
+  color: #d8def6;
+}
+
+.landing-hero .button-primary {
+  color: #172033;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(0,0,0,.22);
+}
+
+.landing-hero .button-ghost {
+  color: #fff;
+  border-color: rgba(255,255,255,.24);
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+}
+
+.landing-hero .quick-proof li::before {
+  background: #8df0c8;
+}
+
+.hero-image-wrap {
+  filter: drop-shadow(0 34px 70px rgba(0,0,0,.28));
+}
+
+.hero-image-wrap > img {
+  border-color: rgba(255,255,255,.2);
+}
+
+.section-soft {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(69, 91, 255, .08), transparent 32%),
+    linear-gradient(180deg, #f3f5ff, #fffdf8);
+}
+
+@media (max-width: 700px) {
+  .landing-hero {
+    background:
+      radial-gradient(circle at 20% 18%, rgba(77, 99, 255, .24), transparent 38%),
+      radial-gradient(circle at 88% 72%, rgba(255, 116, 89, .15), transparent 30%),
+      linear-gradient(155deg, #111b3e 0%, #302454 100%);
+  }
+}
