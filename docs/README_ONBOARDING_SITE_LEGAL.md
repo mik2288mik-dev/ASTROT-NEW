@@ -4,8 +4,10 @@
 
 - `ONBOARDING_V1_MASTER_SPEC.md`
 - `ONBOARDING_V1_COPY_RU_EN_ES.json`
-- `ONBOARDING_ASSET_PACK_V1.md`
+- `ACTIVE_DECISIONS_ONBOARDING_V1.md`
 - `ONBOARDING_IMPLEMENTATION_HANDOFF.md`
+
+The onboarding visual direction is not fixed. `ACTIVE_DECISIONS_ONBOARDING_V1.md` overrides archived design assumptions and generated mockups.
 
 ## Website / legal / store
 
