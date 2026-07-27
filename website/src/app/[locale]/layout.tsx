@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import '../globals.css';
 import '../landing-v2.css';
+import '../cosmic.css';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { absoluteUrl, brands, isLocale, locales, type Locale } from '@/lib/site';
