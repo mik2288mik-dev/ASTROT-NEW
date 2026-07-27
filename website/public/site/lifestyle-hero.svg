@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+<title id="title">Яркая рабочая сцена с телефоном и блокнотом</title>
+<desc id="desc">Современная иллюстрация человека за столом с телефоном, блокнотом, чашкой и растениями.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dbe7ff"/><stop offset=".5" stop-color="#fff0cf"/><stop offset="1" stop-color="#d8f7ea"/></linearGradient>
+  <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2f5bff"/><stop offset="1" stop-color="#6d4cff"/></linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#18233f" flood-opacity=".16"/></filter>
+</defs>
+<rect width="1200" height="900" rx="72" fill="url(#bg)"/>
+<circle cx="980" cy="135" r="95" fill="#ff7a59" opacity=".9"/>
+<circle cx="150" cy="145" r="62" fill="#ffd34d"/>
+<path d="M98 680c52-105 158-139 251-87 85 47 102 158 51 233H116c-37-44-43-97-18-146z" fill="#2ea76f" opacity=".9"/>
+<rect x="110" y="650" width="980" height="110" rx="40" fill="#f5b77b"/>
+<rect x="150" y="735" width="900" height="55" rx="20" fill="#d98755"/>
+<g filter="url(#shadow)">
+  <rect x="655" y="220" width="270" height="470" rx="52" fill="#151827"/>
+  <rect x="673" y="249" width="234" height="410" rx="36" fill="#ffffff"/>
+  <rect x="750" y="268" width="80" height="12" rx="6" fill="#d8dce8"/>
+  <rect x="702" y="320" width="176" height="68" rx="24" fill="#eff3ff"/>
+  <rect x="702" y="410" width="84" height="118" rx="24" fill="#ffb19b"/>
+  <rect x="794" y="410" width="84" height="118" rx="24" fill="#bdebd6"/>
+  <rect x="702" y="550" width="176" height="78" rx="24" fill="#ffd95f"/>
+</g>
+<g>
+  <ellipse cx="470" cy="367" rx="112" ry="132" fill="#f3b58f"/>
+  <path d="M360 354c6-121 103-183 195-121 54 36 67 101 51 156-23-55-69-87-132-92-37 30-78 48-114 57z" fill="#3b2c33"/>
+  <path d="M350 460c52-72 174-88 252-18 64 58 72 150 42 244H332c-21-75-12-160 18-226z" fill="url(#shirt)"/>
+  <path d="M408 531c-47 46-79 90-98 132" stroke="#f3b58f" stroke-width="38" stroke-linecap="round"/>
+  <path d="M565 520c63 24 104 55 143 104" stroke="#f3b58f" stroke-width="38" stroke-linecap="round"/>
+  <circle cx="432" cy="377" r="7" fill="#34262d"/>
+  <circle cx="518" cy="377" r="7" fill="#34262d"/>
+  <path d="M460 427c25 14 51 14 75-1" stroke="#b55d56" stroke-width="8" stroke-linecap="round" fill="none"/>
+</g>
+<g filter="url(#shadow)">
+  <rect x="168" y="570" width="300" height="145" rx="26" fill="#ffffff" transform="rotate(-5 168 570)"/>
+  <rect x="198" y="600" width="180" height="14" rx="7" fill="#3157ff" opacity=".8" transform="rotate(-5 198 600)"/>
+  <rect x="195" y="632" width="220" height="10" rx="5" fill="#d8dce8" transform="rotate(-5 195 632)"/>
+  <rect x="190" y="657" width="140" height="10" rx="5" fill="#ffd24a" transform="rotate(-5 190 657)"/>
+</g>
+<g>
+  <ellipse cx="982" cy="665" rx="72" ry="28" fill="#cf704b" opacity=".35"/>
+  <path d="M950 662c-8-75 5-157 51-237 39 67 50 145 35 237z" fill="#269867"/>
+  <path d="M1004 662c9-88 51-162 113-214 2 88-30 161-88 214z" fill="#3bb77e"/>
+  <rect x="942" y="640" width="108" height="90" rx="22" fill="#ff7a59"/>
+</g>
+<g filter="url(#shadow)">
+  <ellipse cx="880" cy="690" rx="72" ry="20" fill="#c06f45" opacity=".35"/>
+  <path d="M820 630h120v60c0 38-27 60-60 60s-60-22-60-60z" fill="#ffffff"/>
+  <path d="M938 648h27c25 0 25 42 0 42h-24" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+</g>
+</svg>
