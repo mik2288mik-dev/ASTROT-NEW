@@ -1,0 +1,60 @@
+import type { Locale } from './site';
+import { legalAddress, legalCountry, legalOperator, minimumAge, privacyEmail, supportEmail } from './site';
+import type { StaticPage } from './pages';
+
+const ready = process.env.LEGAL_READY === 'true';
+const text = (locale: Locale, ru: string, en: string, es: string) => locale === 'ru' ? ru : locale === 'es' ? es : en;
+const draft = (locale: Locale) => text(locale, 'Черновик: перед публикацией нужно заполнить юридические реквизиты, поставщиков и условия подписки.', 'Draft: legal identity, processors, and subscription terms must be completed before publication.', 'Borrador: antes de publicar deben completarse los datos legales, proveedores y condiciones de suscripción.');
+
+function privacy(locale: Locale): StaticPage {
+  return {
+    slug:'privacy',
+    title:text(locale,'Политика конфиденциальности','Privacy Policy','Política de privacidad'),
+    description:text(locale,'Как обрабатываются данные аккаунта, рождения, расчётов, вопросов и покупок.','How account, birth, calculation, question, and purchase data is processed.','Cómo se tratan datos de cuenta, nacimiento, cálculos, preguntas y compras.'),
+    intro:draft(locale), noindex:!ready,
+    sections:[
+      {title:text(locale,'Оператор','Controller','Responsable'),body:[`${legalOperator}; ${legalCountry}; ${legalAddress}.`,`${text(locale,'Контакт','Contact','Contacto')}: ${privacyEmail}.`]},
+      {title:text(locale,'Какие данные','Data processed','Datos tratados'),body:[text(locale,'Идентификаторы аккаунта, дата, время и место рождения, натальная карта, вопросы и ответы, статус покупок, технические журналы, диагностика и токены уведомлений при включении.','Account identifiers, birth date, time and place, natal chart, questions and answers, purchase status, technical logs, diagnostics, and notification tokens when enabled.','Identificadores de cuenta, fecha, hora y lugar de nacimiento, carta natal, preguntas y respuestas, estado de compras, registros técnicos, diagnóstico y tokens de notificaciones cuando se activan.')]},
+      {title:text(locale,'Зачем','Purposes','Finalidades'),body:[text(locale,'Создание расчётов и персональных текстов, работа аккаунта, синхронизация, поддержка, безопасность, восстановление покупок и запрошенные уведомления.','Creating calculations and personal text, account operation, sync, support, security, purchase restoration, and requested notifications.','Crear cálculos y textos personales, gestionar cuenta, sincronización, soporte, seguridad, restauración de compras y notificaciones solicitadas.')]},
+      {title:text(locale,'AI и поставщики','AI and processors','IA y proveedores'),body:[text(locale,'Часть рассчитанного контекста может передаваться AI-поставщику для генерации текста. Перед production здесь должны быть перечислены реальные поставщики, хостинг, база данных и аналитика.','Calculated context may be sent to an AI provider to generate text. Actual AI, hosting, database, and analytics providers must be listed before production.','Parte del contexto calculado puede enviarse a un proveedor de IA para generar texto. Antes de producción deben indicarse los proveedores reales de IA, hosting, base de datos y analítica.')]},
+      {title:text(locale,'Хранение и удаление','Retention and deletion','Conservación y eliminación'),body:[text(locale,'Данные хранятся столько, сколько нужно для сервиса и закона. Удаление доступно в приложении и через публичную страницу. Резервные копии могут очищаться с технической задержкой.','Data is kept as needed for the service and law. Deletion is available in the app and through the public page. Backups may be removed with a technical delay.','Los datos se conservan mientras sean necesarios para el servicio y la ley. La eliminación está disponible en la app y en la página pública. Las copias de seguridad pueden tardar en borrarse.')]},
+      {title:text(locale,'Права и возраст','Rights and age','Derechos y edad'),body:[text(locale,`Можно запросить доступ, исправление или удаление данных. Минимальный возраст: ${minimumAge} лет, если местный закон не требует иного.`,`Users may request access, correction, or deletion. Minimum age: ${minimumAge}, unless local law requires otherwise.`,`Se puede solicitar acceso, rectificación o eliminación. Edad mínima: ${minimumAge}, salvo que la ley local exija otra.`)]},
+    ],
+  };
+}
+
+function terms(locale: Locale): StaticPage {
+  return {slug:'terms',title:text(locale,'Условия использования','Terms of Use','Condiciones de uso'),description:text(locale,'Правила использования приложения и сайта.','Rules for using the app and website.','Reglas para usar la app y el sitio.'),intro:draft(locale),noindex:!ready,sections:[
+    {title:text(locale,'Сервис','Service','Servicio'),body:[text(locale,'Астрологические расчёты и тексты предоставляются в информационно-развлекательных целях. Это не медицинская, юридическая, финансовая или экстренная помощь.','Astrology calculations and text are informational and for entertainment. They are not medical, legal, financial, or emergency advice.','Los cálculos y textos astrológicos son informativos y de entretenimiento. No son asesoramiento médico, legal, financiero ni de emergencia.')]},
+    {title:text(locale,'Аккаунт и допустимое использование','Account and acceptable use','Cuenta y uso permitido'),body:[text(locale,'Пользователь отвечает за точность данных рождения. Запрещены незаконные действия, угрозы, преследование, мошенничество и обход защитных механизмов.','Users are responsible for accurate birth data. Illegal activity, threats, harassment, fraud, and bypassing safeguards are prohibited.','La persona usuaria es responsable de sus datos de nacimiento. Se prohíben actividades ilegales, amenazas, acoso, fraude y elusión de controles.')]},
+    {title:text(locale,'Нет гарантии результата','No outcome guarantee','Sin garantía de resultados'),body:[text(locale,'Сервис не гарантирует события, отношения, карьеру, доход или иные результаты.','The service does not guarantee events, relationships, careers, income, or other outcomes.','El servicio no garantiza eventos, relaciones, carrera, ingresos ni otros resultados.')]},
+    {title:text(locale,'Контакт и право','Contact and law','Contacto y ley'),body:[`${supportEmail}.`,text(locale,'Применимое право: [GOVERNING_LAW].','Governing law: [GOVERNING_LAW].','Ley aplicable: [GOVERNING_LAW].')]},
+  ]};
+}
+
+function subscription(locale: Locale): StaticPage {
+  return {slug:'subscription-terms',title:text(locale,'Условия подписки','Subscription Terms','Condiciones de suscripción'),description:text(locale,'Оплата, автопродление, отмена и восстановление.','Billing, renewal, cancellation, and restoration.','Pago, renovación, cancelación y restauración.'),intro:draft(locale),noindex:!ready,sections:[
+    {title:text(locale,'Планы и цена','Plans and price','Planes y precio'),body:[text(locale,'Актуальные планы, период оплаты и локальная цена показываются в магазине и приложении до покупки.','Plans, billing period, and local price are shown in the store and app before purchase.','Los planes, período de cobro y precio local se muestran antes de comprar.')]},
+    {title:text(locale,'Автопродление','Auto-renewal','Renovación automática'),body:[text(locale,'Подписка продлевается автоматически, если её не отменить в магазине до следующего списания.','Subscriptions renew automatically unless canceled in the store before the next charge.','La suscripción se renueva automáticamente salvo cancelación previa en la tienda.')]},
+    {title:text(locale,'Отмена и доступ','Cancellation and access','Cancelación y acceso'),body:[text(locale,'Отмена прекращает будущие списания; доступ обычно сохраняется до конца оплаченного периода. Удаление аккаунта не всегда отменяет подписку.','Cancellation stops future charges; access usually continues until the paid period ends. Deleting an account does not always cancel the subscription.','Cancelar evita futuros cobros; el acceso suele continuar hasta terminar el período pagado. Eliminar la cuenta no siempre cancela la suscripción.')]},
+    {title:text(locale,'Возвраты и восстановление','Refunds and restoration','Reembolsos y restauración'),body:[text(locale,'Возвраты регулируются магазином. Покупки можно восстановить через приложение.','Refunds follow store rules. Purchases can be restored in the app.','Los reembolsos siguen las reglas de la tienda. Las compras pueden restaurarse en la app.')]},
+  ]};
+}
+
+function deleteAccount(locale: Locale): StaticPage {
+  return {slug:'delete-account',title:text(locale,'Удаление аккаунта','Delete Account','Eliminar la cuenta'),description:text(locale,'Как удалить аккаунт и связанные данные.','How to delete an account and related data.','Cómo eliminar la cuenta y los datos relacionados.'),intro:text(locale,'Удаление необратимо. Подписку в магазине может потребоваться отменить отдельно.','Deletion is irreversible. A store subscription may need to be canceled separately.','La eliminación es irreversible. Puede ser necesario cancelar la suscripción por separado.'),noindex:false,sections:[
+    {title:text(locale,'В приложении','In the app','Desde la app'),body:[text(locale,'Профиль → Настройки → Удалить аккаунт. Подтвердите действие на экране.','Profile → Settings → Delete account. Confirm using the on-screen steps.','Perfil → Ajustes → Eliminar cuenta. Confirma la acción en pantalla.')]},
+    {title:text(locale,'Через сайт','Through the website','Desde el sitio'),body:[text(locale,`Если доступ к приложению потерян, напишите на ${supportEmail}. Укажите email или идентификатор аккаунта и не отправляйте пароль.`,`If app access is lost, email ${supportEmail}. Include the account email or identifier and never send a password.`,`Si no puedes acceder a la app, escribe a ${supportEmail}. Incluye el email o identificador y nunca la contraseña.`)]},
+    {title:text(locale,'Что удаляется','What is deleted','Qué se elimina'),body:[text(locale,'Профиль, данные рождения, натальная карта, вопросы, ответы и связанные данные, кроме информации, которую требуется сохранить по закону.','Profile, birth data, natal chart, questions, answers, and related data, except information that must be retained by law.','Perfil, datos de nacimiento, carta natal, preguntas, respuestas y datos relacionados, salvo lo que deba conservarse por ley.')]},
+  ]};
+}
+
+export function getLegalPage(locale: Locale, slug: string): StaticPage | undefined {
+  if (slug === 'privacy') return privacy(locale);
+  if (slug === 'terms') return terms(locale);
+  if (slug === 'subscription-terms') return subscription(locale);
+  if (slug === 'delete-account') return deleteAccount(locale);
+  if (slug === 'cookies') return {slug,title:text(locale,'Файлы cookie','Cookies','Cookies'),description:text(locale,'Как сайт использует необходимые технологии.','How the site uses necessary technologies.','Cómo utiliza el sitio las tecnologías necesarias.'),intro:text(locale,'V1 работает без рекламных cookie и необязательной аналитики.','V1 works without advertising cookies or optional analytics.','V1 funciona sin cookies publicitarias ni analítica opcional.'),sections:[{title:text(locale,'Необходимое','Necessary','Necesario'),body:[text(locale,'Допустимы только средства безопасности, языка и работы сайта. При добавлении аналитики политика и согласие будут обновлены.','Only security, language, and essential site mechanisms are used. If analytics is added, the policy and consent flow will be updated.','Solo se usan mecanismos de seguridad, idioma y funcionamiento esencial. Si se añade analítica, se actualizarán la política y el consentimiento.')]}]};
+  if (slug === 'contact') return {slug,title:text(locale,'Контакты','Contact','Contacto'),description:text(locale,'Поддержка и конфиденциальность.','Support and privacy contacts.','Contactos de soporte y privacidad.'),intro:supportEmail,sections:[{title:text(locale,'Поддержка','Support','Soporte'),body:[supportEmail]},{title:text(locale,'Конфиденциальность','Privacy','Privacidad'),body:[privacyEmail]}]};
+  return undefined;
+}
