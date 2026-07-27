@@ -6,8 +6,10 @@ Use this only after the Personal Forecast V3 branch is committed and available r
 
 - `docs/ONBOARDING_V1_MASTER_SPEC.md`
 - `docs/ONBOARDING_V1_COPY_RU_EN_ES.json`
-- `docs/ONBOARDING_ASSET_PACK_V1.md`
+- `docs/ACTIVE_DECISIONS_ONBOARDING_V1.md`
 - `docs/PARALLEL_PRELAUNCH_WORKSTREAMS.md`
+
+`ACTIVE_DECISIONS_ONBOARDING_V1.md` overrides all earlier visual experiments. The onboarding visual direction is currently not fixed.
 
 ## Integration sequence
 
@@ -17,7 +19,7 @@ Use this only after the Personal Forecast V3 branch is committed and available r
 4. Keep Personal and Zodiac paths inside one flow.
 5. Wire Personal success to the final Today feed route and section registry.
 6. Wire Zodiac success to the existing Zodiac reader without creating a duplicate reader.
-7. Keep visual assets behind a resolver/manifest with CSS fallbacks.
+7. Keep the visual layer swappable and use neutral placeholders until the current visual direction is separately approved.
 8. Keep all copy in RU / EN / ES localization files.
 9. Add legal URLs through environment/config, never hardcoded provisional domains.
 10. Add analytics without raw birth data, name or place text.
@@ -63,6 +65,7 @@ Do not persist raw birth data into analytics or logs. Draft persistence must use
 - Unknown-time mode is shown only if the calculation layer supports it honestly.
 - Calculation progress uses actual states and opens available content on partial success.
 - No paywall before the first useful content experience.
+- Do not implement, generate or lock onboarding visuals from archived design documents.
 
 ## Tests
 
