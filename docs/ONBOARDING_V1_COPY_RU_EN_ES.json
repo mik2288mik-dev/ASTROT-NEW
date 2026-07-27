@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "locales": {
+    "ru-RU": {
+      "common": {
+        "next": "Дальше",
+        "show_more": "Показать дальше",
+        "continue": "Продолжить",
+        "skip": "Пропустить",
+        "back": "Назад",
+        "retry": "Попробовать снова"
+      },
+      "screen_1": {
+        "title": "Гороскоп, который говорит по делу",
+        "body": "Личный разбор, натальная карта, совместимость и прогнозы — без воды и сказок.",
+        "primary_cta": "Дальше"
+      },
+      "screen_2": {
+        "title": "Здесь есть всё, что правда интересно о тебе",
+        "body": "Сегодня, неделя, месяц, год, любовь, работа, деньги, натальная карта и совместимость.",
+        "primary_cta": "Показать дальше"
+      },
+      "screen_3": {
+        "eyebrow": "С чего начнём?",
+        "title": "Выбери, что тебе ближе",
+        "personal_title": "Личный разбор",
+        "personal_body": "Прогноз под твои данные",
+        "zodiac_title": "Гороскоп по знаку",
+        "zodiac_body": "Сразу перейти к своему знаку",
+        "primary_cta": "Продолжить"
+      },
+      "screen_4_personal": {
+        "eyebrow": "Личный разбор",
+        "title": "Соберём твой первый разбор",
+        "body": "Нужны дата рождения, время и место. Чем точнее данные — тем точнее расчёт.",
+        "birth_date": "Дата рождения",
+        "birth_time": "Время рождения",
+        "birth_place": "Место рождения",
+        "unknown_time": "Не знаю точное время",
+        "primary_cta": "Продолжить",
+        "legal": "Продолжая, вы принимаете Условия использования и Политику конфиденциальности."
+      },
+      "screen_4_zodiac": {
+        "eyebrow": "Гороскоп по знаку",
+        "title": "Выбери свой знак",
+        "body": "Откроем прогноз и сразу покажем, что там сегодня.",
+        "primary_cta": "Открыть гороскоп"
+      },
+      "screen_5_personal": {
+        "eyebrow": "Первый расчёт",
+        "title": "Собираем твой прогноз",
+        "body": "Считаем карту, день и первые персональные разборы.",
+        "step_day": "Твой день",
+        "step_topics": "Любовь, работа и деньги",
+        "step_natal": "Натальная база для следующих разборов",
+        "success_cta": "Поехали",
+        "error_title": "Расчёт споткнулся. Данные на месте.",
+        "error_body": "Попробуем ещё раз — ничего вводить заново не придётся."
+      },
+      "zodiac_personal_tip": {
+        "title": "Хочешь разбор именно под себя?",
+        "body": "Добавь данные рождения позже — и откроется личный прогноз.",
+        "cta": "Добавить данные"
+      }
+    },
+    "en-US": {
+      "common": {
+        "next": "Next",
+        "show_more": "Show me more",
+        "continue": "Continue",
+        "skip": "Skip",
+        "back": "Back",
+        "retry": "Try again"
+      },
+      "screen_1": {
+        "title": "A horoscope that gets to the point",
+        "body": "Personal readings, your birth chart, compatibility, and forecasts — without the fluff.",
+        "primary_cta": "Next"
+      },
+      "screen_2": {
+        "title": "Everything you actually want to know about yourself",
+        "body": "Today, week, month, year, love, work, money, your birth chart, and compatibility.",
+        "primary_cta": "Show me more"
+      },
+      "screen_3": {
+        "eyebrow": "Where do we start?",
+        "title": "Choose what feels right",
+        "personal_title": "Personal reading",
+        "personal_body": "A forecast based on your details",
+        "zodiac_title": "Zodiac horoscope",
+        "zodiac_body": "Go straight to your sign",
+        "primary_cta": "Continue"
+      },
+      "screen_4_personal": {
+        "eyebrow": "Personal reading",
+        "title": "Let’s build your first reading",
+        "body": "We need your birth date, time, and place. Better data means a more accurate calculation.",
+        "birth_date": "Birth date",
+        "birth_time": "Birth time",
+        "birth_place": "Birth place",
+        "unknown_time": "I don’t know the exact time",
+        "primary_cta": "Continue",
+        "legal": "By continuing, you agree to the Terms of Use and Privacy Policy."
+      },
+      "screen_4_zodiac": {
+        "eyebrow": "Zodiac horoscope",
+        "title": "Choose your sign",
+        "body": "We’ll open your forecast and show you what today has in store.",
+        "primary_cta": "Open horoscope"
+      },
+      "screen_5_personal": {
+        "eyebrow": "First calculation",
+        "title": "Building your forecast",
+        "body": "Calculating your chart, your day, and your first personal readings.",
+        "step_day": "Your day",
+        "step_topics": "Love, work, and money",
+        "step_natal": "Your natal foundation for future readings",
+        "success_cta": "Let’s go",
+        "error_title": "The calculation hit a snag. Your details are safe.",
+        "error_body": "Try again — you won’t need to enter anything twice."
+      },
+      "zodiac_personal_tip": {
+        "title": "Want a reading built around you?",
+        "body": "Add your birth details later to unlock personal forecasts.",
+        "cta": "Add details"
+      }
+    },
+    "es-ES": {
+      "common": {
+        "next": "Siguiente",
+        "show_more": "Ver más",
+        "continue": "Continuar",
+        "skip": "Saltar",
+        "back": "Atrás",
+        "retry": "Intentarlo de nuevo"
+      },
+      "screen_1": {
+        "title": "Un horóscopo que va al grano",
+        "body": "Lecturas personales, carta natal, compatibilidad y pronósticos sin relleno ni cuentos.",
+        "primary_cta": "Siguiente"
+      },
+      "screen_2": {
+        "title": "Todo lo que de verdad quieres saber sobre ti",
+        "body": "Hoy, semana, mes, año, amor, trabajo, dinero, carta natal y compatibilidad.",
+        "primary_cta": "Ver más"
+      },
+      "screen_3": {
+        "eyebrow": "¿Por dónde empezamos?",
+        "title": "Elige lo que más te encaje",
+        "personal_title": "Lectura personal",
+        "personal_body": "Un pronóstico basado en tus datos",
+        "zodiac_title": "Horóscopo por signo",
+        "zodiac_body": "Ir directamente a tu signo",
+        "primary_cta": "Continuar"
+      },
+      "screen_4_personal": {
+        "eyebrow": "Lectura personal",
+        "title": "Vamos a crear tu primera lectura",
+        "body": "Necesitamos tu fecha, hora y lugar de nacimiento. Cuanto más precisos sean los datos, más preciso será el cálculo.",
+        "birth_date": "Fecha de nacimiento",
+        "birth_time": "Hora de nacimiento",
+        "birth_place": "Lugar de nacimiento",
+        "unknown_time": "No sé la hora exacta",
+        "primary_cta": "Continuar",
+        "legal": "Al continuar, aceptas las Condiciones de uso y la Política de privacidad."
+      },
+      "screen_4_zodiac": {
+        "eyebrow": "Horóscopo por signo",
+        "title": "Elige tu signo",
+        "body": "Abriremos tu pronóstico y te enseñaremos qué trae el día de hoy.",
+        "primary_cta": "Abrir horóscopo"
+      },
+      "screen_5_personal": {
+        "eyebrow": "Primer cálculo",
+        "title": "Estamos preparando tu pronóstico",
+        "body": "Calculamos tu carta, tu día y tus primeras lecturas personales.",
+        "step_day": "Tu día",
+        "step_topics": "Amor, trabajo y dinero",
+        "step_natal": "Tu base natal para futuras lecturas",
+        "success_cta": "Vamos allá",
+        "error_title": "El cálculo se ha atascado. Tus datos siguen guardados.",
+        "error_body": "Inténtalo de nuevo: no tendrás que introducir nada otra vez."
+      },
+      "zodiac_personal_tip": {
+        "title": "¿Quieres una lectura hecha para ti?",
+        "body": "Añade tus datos de nacimiento más adelante para desbloquear pronósticos personales.",
+        "cta": "Añadir datos"
+      }
+    }
+  }
+}
