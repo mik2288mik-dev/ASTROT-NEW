@@ -7,311 +7,364 @@ import { StoreButtons } from '@/components/StoreButtons';
 import { getGuides } from '@/lib/content';
 import { getDictionary } from '@/lib/i18n';
 import { pageMetadata, organizationJsonLd, softwareApplicationJsonLd, websiteJsonLd } from '@/lib/seo';
-import { brands, isLocale } from '@/lib/site';
+import { isLocale } from '@/lib/site';
 import { zodiacSlugs, getZodiacInfo } from '@/lib/zodiac';
 
-const pageCopy = {
+const copy = {
   ru: {
-    seoTitle: 'Личный гороскоп, натальная карта и совместимость',
-    seoDescription: 'Личный прогноз на сегодня, неделю, месяц и год, натальная карта, совместимость и гороскопы по знакам в приложении «Твой Гороскоп».',
-    badge: 'Личный гороскоп по твоим данным',
-    heroTitle: 'Не просто «что там у Овнов». Здесь всё про тебя.',
-    heroBody: 'Посмотри, что происходит сегодня, разберись в отношениях, работе и деньгах, открой натальную карту или проверь совместимость. Без страшилок и готовых приговоров.',
-    primary: 'Посмотреть, что внутри',
-    secondary: 'Начать со знака',
-    quick: ['Сегодня, неделя, месяц и год', 'Натальная карта и совместимость', 'Свои вопросы — про то, что правда волнует'],
-    featuresKicker: 'Что есть в приложении',
-    featuresTitle: 'Один вопрос — один нормальный ответ.',
-    featuresBody: 'Не надо учить астрологические термины. Выбираешь, что волнует, и сразу идёшь туда: день, отношения, работа, деньги, карта или совместимость.',
-    personalKicker: 'Личный прогноз',
-    personalTitle: 'Что сегодня важно именно тебе',
-    personalBody: 'Сначала коротко — о главном. Потом можно пройтись по любви, настроению, дому, друзьям, работе и деньгам. Без одинаковых советов на все случаи жизни.',
-    personalBullets: ['Сегодня — главное без длинного вступления', 'Неделя и месяц — чтобы видеть дальше одного дня', 'Год — чтобы не потерять большой сюжет'],
-    personalLink: 'Посмотреть личный прогноз',
-    natalKicker: 'Натальная карта',
-    natalTitle: 'Почему ты снова реагируешь именно так',
-    natalBody: 'Карта помогает заметить сильные стороны, привычные реакции и истории, которые повторяются. Не решает за тебя, кем быть и что делать. Просто показывает то, что изнутри обычно не видно.',
-    natalLink: 'Разобрать свою карту',
-    compatibilityKicker: 'Совместимость',
-    compatibilityTitle: 'Почему вас тянет друг к другу — и почему вы спорите об одном и том же',
-    compatibilityBody: 'Посмотри, как вы общаетесь, чего ждёте друг от друга и где чаще всего начинаются сложности. Это не вердикт отношениям. Это способ лучше понять, что между вами происходит.',
-    compatibilityLink: 'Посмотреть совместимость',
-    questionsKicker: 'Свои вопросы',
-    questionsTitle: 'Спроси прямо. Про то, что не отпускает.',
-    questionsBody: 'Работа, деньги, отношения, переезд, новая профессия или большое решение. Выбираешь вопрос — получаешь разбор с учётом своей карты и текущего периода.',
-    questionsLink: 'Посмотреть вопросы',
-    stepsKicker: 'Как начать',
-    stepsTitle: 'Заходи так, как удобно тебе',
-    steps: [
-      ['01', 'Хочешь быстро?', 'Выбери знак и сразу читай общий гороскоп. Без длинной анкеты.'],
-      ['02', 'Хочешь точнее?', 'Добавь дату, время и город рождения — откроется личный разбор.'],
-      ['03', 'Дальше выбирай тему', 'Сегодня, неделя, отношения, работа, деньги, карта, совместимость или свой вопрос.'],
+    badge: 'Твой Гороскоп',
+    heroTitle: 'Личный гороскоп, натальная карта и совместимость',
+    heroBody: 'Смотри прогноз на сегодня, неделю, месяц и год. Начни со своего знака или добавь данные рождения — приложение соберёт разбор под тебя.',
+    primary: 'Посмотреть возможности',
+    secondary: 'Выбрать знак',
+    proof: ['Сегодня · Неделя · Месяц · Год', 'Натальная карта', 'Совместимость'],
+    photoLabel: 'Личный прогноз',
+    photoNote: 'Главное на сегодня — сразу. Остальное по темам.',
+    insideEyebrow: 'Что внутри',
+    insideTitle: 'Выбери, что важно сейчас',
+    insideBody: 'Можно быстро посмотреть гороскоп по знаку, а можно пойти глубже — в личный прогноз, натальную карту, совместимость и вопросы.',
+    features: [
+      ['Личный прогноз', 'Прогноз на сегодня, неделю, месяц и год с учётом твоих данных.', 'personal-horoscope'],
+      ['Натальная карта', 'Понятный разбор характера, сильных сторон и повторяющихся сценариев.', 'natal-chart'],
+      ['Совместимость', 'Быстрая версия по знакам или подробный разбор двух натальных карт.', 'compatibility'],
+      ['Свои вопросы', 'Работа, деньги, отношения, переезд и другие темы, которые не отпускают.', 'questions'],
     ],
-    zodiacKicker: 'Гороскопы по знакам',
-    zodiacTitle: 'Хочешь быстро? Просто выбери знак.',
-    zodiacBody: 'Открой общий прогноз и посмотри, что там на сегодня, неделю или месяц. Личный разбор можно добавить позже.',
-    guidesKicker: 'Разборы и статьи',
-    guidesTitle: 'Тексты, которые можно дочитать без зевка.',
-    finalTitle: 'Начни с того, что сейчас не даёт покоя.',
-    finalBody: 'Любовь, работа, деньги, совместимость или просто твой знак — нужный раздел уже рядом.',
+    readMore: 'Подробнее',
+    personalEyebrow: 'Личный прогноз',
+    personalTitle: 'Сегодня, неделя, месяц и год — в одном месте',
+    personalBody: 'Главная тема периода показывается сразу. Дальше — любовь, настроение, дом, друзья, работа и деньги. Читай подряд или переходи к нужному разделу.',
+    personalLink: 'Посмотреть личный прогноз',
     previewDate: 'ВОСКРЕСЕНЬЕ · 26 ИЮЛЯ',
-    previewTitle: 'Сегодня лучше сказать прямо, чем снова ждать, что тебя поймут без слов.',
-    previewBody: 'Сначала — главная тема дня. Дальше можно сразу перейти к любви, работе, деньгам или другой важной для тебя теме.',
-    previewTopic: 'Один честный разговор сейчас полезнее десяти намёков.',
-    heroAlt: 'Человек смотрит личный гороскоп в телефоне за ярким рабочим столом',
-    natalAlt: 'Человек разбирает заметки о своих сильных сторонах и привычных реакциях',
-    compatibilityAlt: 'Два человека спокойно разговаривают за столом',
-    questionsAlt: 'Человек работает за ноутбуком и записывает важный вопрос',
+    previewTitle: 'Сегодня разговор решит больше, чем ещё одна попытка всё угадать',
+    previewBody: 'Это пример подачи: сначала главное, потом короткие выводы по темам.',
+    topicLove: ['Любовь', 'Скажи прямо, чего хочешь'],
+    topicWork: ['Работа', 'Закрой один зависший вопрос'],
+    topicMoney: ['Деньги', 'Не покупай на эмоциях'],
+    natalEyebrow: 'Натальная карта',
+    natalTitle: 'Натальная карта с понятной расшифровкой',
+    natalBody: 'Не только знак зодиака. Карта помогает увидеть сочетание характера, эмоций, привычных реакций, отношений с работой, деньгами и близкими.',
+    natalLink: 'Посмотреть натальную карту',
+    compatibilityEyebrow: 'Совместимость',
+    compatibilityTitle: 'Совместимость по знакам и натальным картам',
+    compatibilityBody: 'По знакам — быстро. По двум картам — подробнее: общение, притяжение, ценности и причины конфликтов. Без вердиктов про «судьбу навсегда».',
+    compatibilityLink: 'Проверить совместимость',
+    questionsEyebrow: 'Персональные вопросы',
+    questionsTitle: 'Есть вопрос, который не отпускает?',
+    questionsBody: 'Работа, деньги, отношения, переезд, новая профессия или сложное решение. Ответ связывает твой вопрос с натальной картой и тем, что происходит сейчас.',
+    questionsLink: 'Посмотреть вопросы',
+    stepsEyebrow: 'Как начать',
+    stepsTitle: 'Без длинной анкеты на старте',
+    steps: [
+      ['01', 'Начни со знака', 'Выбери свой знак и сразу посмотри общий прогноз.'],
+      ['02', 'Добавь данные рождения', 'Дата, время и город нужны только для личных разборов.'],
+      ['03', 'Открой то, что важно', 'День, неделя, карта, совместимость и свои вопросы будут внутри.'],
+    ],
+    zodiacEyebrow: 'Гороскопы по знакам',
+    zodiacTitle: 'Хочется просто посмотреть гороскоп? Начни со знака',
+    zodiacBody: 'Быстрый прогноз без регистрации. Личный разбор можно добавить позже.',
+    guidesEyebrow: 'Полезные материалы',
+    guidesTitle: 'Натальная карта, совместимость и астрология — нормальным языком',
+    finalTitle: 'Начни со своего знака или получи личный разбор',
+    finalBody: 'Один быстрый вход — и дальше выбирай, что тебе нужно сейчас.',
+    altHero: 'Женщина в светлом современном интерьере',
+    altNotebook: 'Открытый блокнот и ручка на рабочем столе',
+    altNatal: 'Человек делает записи в блокноте',
+    altCompatibility: 'Друзья разговаривают вместе за столом',
+    altQuestions: 'Команда обсуждает рабочие вопросы за столом',
   },
   en: {
-    seoTitle: 'Personal horoscope, natal chart, and compatibility',
-    seoDescription: 'Personal forecasts for today, week, month, and year, plus natal chart, compatibility, questions, and zodiac horoscopes in Your Horoscope.',
-    badge: 'A personal horoscope built around you',
-    heroTitle: 'Not just “what is happening for Aries.” This one is about you.',
-    heroBody: 'Check your day, sort through relationships, work, and money, explore your natal chart, or look at compatibility. No scare tactics and no verdicts about your future.',
-    primary: 'See what is inside',
-    secondary: 'Start with your sign',
-    quick: ['Today, week, month, and year', 'Natal chart and compatibility', 'Your own questions about real life'],
-    featuresKicker: 'Inside the app',
-    featuresTitle: 'One question. One useful answer.',
-    featuresBody: 'No astrology homework required. Pick what is on your mind and go straight there: your day, relationships, work, money, chart, or compatibility.',
-    personalKicker: 'Personal forecast',
-    personalTitle: 'What matters for you today',
-    personalBody: 'Start with the main point. Then move through love, mood, home, friends, work, and money. No one-size-fits-all advice.',
-    personalBullets: ['Today — the main point first', 'Week and month — a wider view', 'Year — the bigger story'],
-    personalLink: 'See the personal forecast',
-    natalKicker: 'Natal chart',
-    natalTitle: 'Why do you keep reacting this way?',
-    natalBody: 'Your chart can help you notice strengths, familiar reactions, and stories that keep repeating. It does not decide who you are. It shows what can be hard to see from the inside.',
-    natalLink: 'Explore your chart',
-    compatibilityKicker: 'Compatibility',
-    compatibilityTitle: 'Why you click — and why the same argument keeps coming back',
-    compatibilityBody: 'See how you communicate, what you expect from each other, and where things usually get difficult. Not a relationship verdict — a clearer view of what is happening between you.',
-    compatibilityLink: 'Explore compatibility',
-    questionsKicker: 'Your questions',
-    questionsTitle: 'Ask directly about what will not leave your mind.',
-    questionsBody: 'Work, money, relationships, relocation, a new career, or a major decision. Choose a question and get a reading shaped by your chart and current period.',
-    questionsLink: 'See the questions',
-    stepsKicker: 'How to start',
-    stepsTitle: 'Start the way that suits you',
-    steps: [
-      ['01', 'Want it quick?', 'Choose your sign and read a general horoscope right away.'],
-      ['02', 'Want it personal?', 'Add your birth date, time, and city to open your personal reading.'],
-      ['03', 'Then choose the topic', 'Today, week, relationships, work, money, chart, compatibility, or your own question.'],
+    badge: 'Your Horoscope',
+    heroTitle: 'Personal horoscope, natal chart, and compatibility',
+    heroBody: 'See your forecast for today, the week, month, and year. Start with your sign or add birth details for a reading built around you.',
+    primary: 'Explore the app',
+    secondary: 'Choose your sign',
+    proof: ['Today · Week · Month · Year', 'Natal chart', 'Compatibility'],
+    photoLabel: 'Personal forecast',
+    photoNote: 'The main point first. Everything else by topic.',
+    insideEyebrow: 'Inside the app',
+    insideTitle: 'Choose what matters now',
+    insideBody: 'Check your sign for a quick forecast or go deeper with a personal forecast, natal chart, compatibility, and personal questions.',
+    features: [
+      ['Personal forecast', 'Today, week, month, and year based on your birth details.', 'personal-horoscope'],
+      ['Natal chart', 'A clear look at personality, strengths, and repeating patterns.', 'natal-chart'],
+      ['Compatibility', 'A quick sign match or a deeper comparison of two natal charts.', 'compatibility'],
+      ['Your questions', 'Work, money, relationships, relocation, and the topics on your mind.', 'questions'],
     ],
-    zodiacKicker: 'Zodiac horoscopes',
-    zodiacTitle: 'Want it quick? Just choose your sign.',
-    zodiacBody: 'Open a general forecast for today, the week, or the month. You can add a personal reading later.',
-    guidesKicker: 'Guides and articles',
-    guidesTitle: 'Useful reading that does not feel like homework.',
-    finalTitle: 'Start with whatever is on your mind right now.',
-    finalBody: 'Love, work, money, compatibility, or simply your sign — the right section is already here.',
+    readMore: 'Learn more',
+    personalEyebrow: 'Personal forecast',
+    personalTitle: 'Today, week, month, and year in one place',
+    personalBody: 'See the main theme first, then move through love, mood, home, friends, work, and money. Read it all or jump to what you need.',
+    personalLink: 'Explore personal forecasts',
     previewDate: 'SUNDAY · JULY 26',
-    previewTitle: 'Say it clearly today instead of hoping they will read your mind.',
-    previewBody: 'The main theme comes first. Then jump straight to love, work, money, or whatever matters most to you.',
-    previewTopic: 'One honest conversation is worth more than ten hints right now.',
-    heroAlt: 'Person checking a personal horoscope on a phone in a bright workspace',
-    natalAlt: 'Person reviewing notes about strengths and familiar reactions',
-    compatibilityAlt: 'Two people having a calm conversation at a table',
-    questionsAlt: 'Person working on a laptop and writing down an important question',
+    previewTitle: 'A clear conversation will do more today than another round of guessing',
+    previewBody: 'An example of the format: the main point first, then short notes by topic.',
+    topicLove: ['Love', 'Say what you actually want'],
+    topicWork: ['Work', 'Close one unfinished task'],
+    topicMoney: ['Money', 'Do not buy on impulse'],
+    natalEyebrow: 'Natal chart',
+    natalTitle: 'A natal chart explained clearly',
+    natalBody: 'More than a zodiac sign. See how personality, emotions, familiar reactions, work, money, and relationships fit together.',
+    natalLink: 'Explore the natal chart',
+    compatibilityEyebrow: 'Compatibility',
+    compatibilityTitle: 'Compatibility by signs and natal charts',
+    compatibilityBody: 'Signs for a quick overview. Two charts for communication, attraction, values, and the reasons behind recurring conflict.',
+    compatibilityLink: 'Check compatibility',
+    questionsEyebrow: 'Personal questions',
+    questionsTitle: 'Got a question you cannot shake?',
+    questionsBody: 'Work, money, relationships, relocation, a new career, or a difficult decision. The answer connects your question with your chart and current moment.',
+    questionsLink: 'Explore questions',
+    stepsEyebrow: 'How to start',
+    stepsTitle: 'No long form at the beginning',
+    steps: [
+      ['01', 'Start with your sign', 'Choose your sign and open the general forecast right away.'],
+      ['02', 'Add birth details', 'Date, time, and city are only needed for personal readings.'],
+      ['03', 'Open what matters', 'Your day, week, chart, compatibility, and questions are all inside.'],
+    ],
+    zodiacEyebrow: 'Zodiac horoscopes',
+    zodiacTitle: 'Just checking your horoscope? Start with your sign',
+    zodiacBody: 'A quick forecast without registration. Add a personal reading later.',
+    guidesEyebrow: 'Useful guides',
+    guidesTitle: 'Natal charts, compatibility, and astrology in plain language',
+    finalTitle: 'Start with your sign or get a personal reading',
+    finalBody: 'One quick entry point, then choose what matters to you now.',
+    altHero: 'Woman in a bright modern interior',
+    altNotebook: 'Open notebook and pen on a desk',
+    altNatal: 'Person writing notes in a notebook',
+    altCompatibility: 'Friends talking together at a table',
+    altQuestions: 'Team discussing work around a table',
   },
   es: {
-    seoTitle: 'Horóscopo personal, carta natal y compatibilidad',
-    seoDescription: 'Pronóstico personal para hoy, semana, mes y año, carta natal, compatibilidad, preguntas y horóscopos por signo en Tu Horóscopo.',
-    badge: 'Un horóscopo personal hecho para ti',
-    heroTitle: 'No solo “qué pasa con Aries”. Aquí hablamos de ti.',
-    heroBody: 'Mira tu día, aclara relaciones, trabajo y dinero, explora tu carta natal o revisa compatibilidad. Sin alarmismo ni sentencias sobre tu futuro.',
-    primary: 'Ver qué hay dentro',
-    secondary: 'Empezar por mi signo',
-    quick: ['Hoy, semana, mes y año', 'Carta natal y compatibilidad', 'Tus propias preguntas sobre la vida real'],
-    featuresKicker: 'Dentro de la app',
-    featuresTitle: 'Una pregunta. Una respuesta útil.',
-    featuresBody: 'No necesitas aprender términos de astrología. Elige lo que te preocupa y ve directo: día, relaciones, trabajo, dinero, carta o compatibilidad.',
-    personalKicker: 'Pronóstico personal',
-    personalTitle: 'Lo importante para ti hoy',
-    personalBody: 'Primero, la idea principal. Después: amor, ánimo, hogar, amistades, trabajo y dinero. Sin consejos genéricos para todo el mundo.',
-    personalBullets: ['Hoy — lo importante primero', 'Semana y mes — una mirada más amplia', 'Año — la historia completa'],
-    personalLink: 'Ver el pronóstico personal',
-    natalKicker: 'Carta natal',
-    natalTitle: '¿Por qué vuelves a reaccionar así?',
-    natalBody: 'Tu carta puede ayudarte a ver fortalezas, reacciones habituales e historias que se repiten. No decide quién eres. Muestra lo que desde dentro suele costar ver.',
-    natalLink: 'Explorar tu carta',
-    compatibilityKicker: 'Compatibilidad',
-    compatibilityTitle: 'Por qué conectáis — y por qué vuelve siempre la misma discusión',
-    compatibilityBody: 'Mira cómo os comunicáis, qué esperáis y dónde suelen empezar las dificultades. No es un veredicto: es una forma más clara de entender qué pasa entre vosotros.',
-    compatibilityLink: 'Ver compatibilidad',
-    questionsKicker: 'Tus preguntas',
-    questionsTitle: 'Pregunta directamente por eso que no te deja en paz.',
-    questionsBody: 'Trabajo, dinero, relaciones, mudanza, nueva profesión o una decisión importante. Elige una pregunta y recibe una lectura basada en tu carta y el momento actual.',
-    questionsLink: 'Ver las preguntas',
-    stepsKicker: 'Cómo empezar',
-    stepsTitle: 'Empieza como te resulte más cómodo',
-    steps: [
-      ['01', '¿Lo quieres rápido?', 'Elige tu signo y lee el horóscopo general al momento.'],
-      ['02', '¿Lo quieres personal?', 'Añade fecha, hora y ciudad de nacimiento para abrir tu lectura personal.'],
-      ['03', 'Después, elige el tema', 'Hoy, semana, relaciones, trabajo, dinero, carta, compatibilidad o tu propia pregunta.'],
+    badge: 'Tu Horóscopo',
+    heroTitle: 'Horóscopo personal, carta natal y compatibilidad',
+    heroBody: 'Mira tu pronóstico de hoy, semana, mes y año. Empieza por tu signo o añade tus datos de nacimiento para una lectura personal.',
+    primary: 'Ver la app',
+    secondary: 'Elegir signo',
+    proof: ['Hoy · Semana · Mes · Año', 'Carta natal', 'Compatibilidad'],
+    photoLabel: 'Pronóstico personal',
+    photoNote: 'Lo principal primero. Después, cada tema.',
+    insideEyebrow: 'Dentro de la app',
+    insideTitle: 'Elige lo que importa ahora',
+    insideBody: 'Consulta tu signo para algo rápido o entra en detalle con un pronóstico personal, carta natal, compatibilidad y preguntas.',
+    features: [
+      ['Pronóstico personal', 'Hoy, semana, mes y año según tus datos de nacimiento.', 'personal-horoscope'],
+      ['Carta natal', 'Una lectura clara de personalidad, fortalezas y patrones repetidos.', 'natal-chart'],
+      ['Compatibilidad', 'Una versión rápida por signos o una comparación de dos cartas natales.', 'compatibility'],
+      ['Tus preguntas', 'Trabajo, dinero, relaciones, mudanzas y los temas que tienes en la cabeza.', 'questions'],
     ],
-    zodiacKicker: 'Horóscopos por signo',
-    zodiacTitle: '¿Lo quieres rápido? Elige tu signo.',
-    zodiacBody: 'Abre el pronóstico general de hoy, la semana o el mes. Puedes añadir la lectura personal más tarde.',
-    guidesKicker: 'Guías y artículos',
-    guidesTitle: 'Lecturas útiles que no parecen deberes.',
-    finalTitle: 'Empieza por lo que ahora mismo no te deja tranquilo.',
-    finalBody: 'Amor, trabajo, dinero, compatibilidad o simplemente tu signo: la sección adecuada ya está aquí.',
+    readMore: 'Ver más',
+    personalEyebrow: 'Pronóstico personal',
+    personalTitle: 'Hoy, semana, mes y año en un solo lugar',
+    personalBody: 'Primero aparece el tema principal. Después, amor, ánimo, hogar, amistades, trabajo y dinero. Lee todo o salta a lo que necesitas.',
+    personalLink: 'Ver el pronóstico personal',
     previewDate: 'DOMINGO · 26 DE JULIO',
-    previewTitle: 'Hoy conviene hablar claro en vez de esperar que te lean la mente.',
-    previewBody: 'Primero aparece el tema principal. Después puedes ir directo a amor, trabajo, dinero o lo que más te importa.',
-    previewTopic: 'Ahora mismo, una conversación honesta vale más que diez indirectas.',
-    heroAlt: 'Persona consultando un horóscopo personal en el teléfono en un espacio de trabajo luminoso',
-    natalAlt: 'Persona revisando notas sobre sus fortalezas y reacciones habituales',
-    compatibilityAlt: 'Dos personas conversando con calma en una mesa',
-    questionsAlt: 'Persona trabajando con un portátil y anotando una pregunta importante',
+    previewTitle: 'Hoy una conversación clara servirá más que volver a adivinar',
+    previewBody: 'Un ejemplo del formato: primero lo principal, después notas breves por tema.',
+    topicLove: ['Amor', 'Di claramente lo que quieres'],
+    topicWork: ['Trabajo', 'Cierra una tarea pendiente'],
+    topicMoney: ['Dinero', 'No compres por impulso'],
+    natalEyebrow: 'Carta natal',
+    natalTitle: 'Una carta natal explicada con claridad',
+    natalBody: 'Mucho más que un signo. Mira cómo encajan personalidad, emociones, reacciones, trabajo, dinero y relaciones.',
+    natalLink: 'Ver la carta natal',
+    compatibilityEyebrow: 'Compatibilidad',
+    compatibilityTitle: 'Compatibilidad por signos y cartas natales',
+    compatibilityBody: 'Por signos para una visión rápida. Con dos cartas para entender comunicación, atracción, valores y conflictos repetidos.',
+    compatibilityLink: 'Comprobar compatibilidad',
+    questionsEyebrow: 'Preguntas personales',
+    questionsTitle: '¿Hay una pregunta que no te deja en paz?',
+    questionsBody: 'Trabajo, dinero, relaciones, mudanzas, una nueva profesión o una decisión difícil. La respuesta conecta tu pregunta con tu carta y el momento actual.',
+    questionsLink: 'Ver preguntas',
+    stepsEyebrow: 'Cómo empezar',
+    stepsTitle: 'Sin un formulario largo al principio',
+    steps: [
+      ['01', 'Empieza por tu signo', 'Elige tu signo y abre el pronóstico general.'],
+      ['02', 'Añade tus datos', 'Fecha, hora y ciudad solo hacen falta para lecturas personales.'],
+      ['03', 'Abre lo que importa', 'Tu día, semana, carta, compatibilidad y preguntas estarán dentro.'],
+    ],
+    zodiacEyebrow: 'Horóscopos por signo',
+    zodiacTitle: '¿Solo quieres mirar tu horóscopo? Empieza por tu signo',
+    zodiacBody: 'Un pronóstico rápido sin registro. La lectura personal puede esperar.',
+    guidesEyebrow: 'Guías útiles',
+    guidesTitle: 'Carta natal, compatibilidad y astrología en un lenguaje claro',
+    finalTitle: 'Empieza por tu signo o recibe una lectura personal',
+    finalBody: 'Una entrada rápida y después eliges lo que importa ahora.',
+    altHero: 'Mujer en un interior moderno y luminoso',
+    altNotebook: 'Cuaderno abierto y bolígrafo sobre una mesa',
+    altNatal: 'Persona escribiendo notas en un cuaderno',
+    altCompatibility: 'Amigos conversando alrededor de una mesa',
+    altQuestions: 'Equipo hablando de trabajo alrededor de una mesa',
   },
 } as const;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  const copy = pageCopy[locale];
-  return pageMetadata({ locale, title: copy.seoTitle, description: copy.seoDescription });
+  const page = copy[locale];
+  return pageMetadata({ locale, title: page.heroTitle, description: page.heroBody });
 }
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
+  const page = copy[locale];
   const dict = getDictionary(locale);
-  const copy = pageCopy[locale];
   const guides = (await getGuides(locale)).slice(0, 3);
   const appJsonLd = softwareApplicationJsonLd(locale);
 
   return (
-    <>
+    <div className="home-v2">
       <JsonLd data={organizationJsonLd(locale)} />
       <JsonLd data={websiteJsonLd(locale)} />
       {appJsonLd ? <JsonLd data={appJsonLd} /> : null}
 
-      <section className="landing-hero">
-        <div className="shell landing-hero-grid">
-          <div className="landing-hero-copy">
-            <p className="pill-label"><span />{copy.badge}</p>
-            <h1>{copy.heroTitle}</h1>
-            <p className="hero-lead">{copy.heroBody}</p>
-            <div className="hero-actions">
-              <Link className="button button-primary" href={`/${locale}#inside`}>{copy.primary}</Link>
-              <Link className="button button-ghost" href={`/${locale}/zodiac`}>{copy.secondary}</Link>
+      <section className="home-hero">
+        <div className="home-shell home-hero-grid">
+          <div>
+            <p className="home-kicker">{page.badge}</p>
+            <h1>{page.heroTitle}</h1>
+            <p className="home-hero-lead">{page.heroBody}</p>
+            <div className="home-actions">
+              <Link className="home-button home-button-primary" href={`/${locale}#inside`}>{page.primary}</Link>
+              <Link className="home-button home-button-secondary" href={`/${locale}/zodiac`}>{page.secondary}</Link>
             </div>
-            <ul className="quick-proof">
-              {copy.quick.map((item) => <li key={item}>{item}</li>)}
-            </ul>
+            <ul className="home-proof">{page.proof.map((item) => <li key={item}>{item}</li>)}</ul>
           </div>
-          <div className="hero-image-wrap">
-            <img src="/site/lifestyle-hero.svg" alt={copy.heroAlt} width="1200" height="900" fetchPriority="high" />
-            <div className="hero-float-card hero-float-top"><strong>{copy.personalKicker}</strong><span>{copy.personalBullets[0]}</span></div>
-            <div className="hero-float-card hero-float-bottom"><strong>{copy.compatibilityKicker}</strong><span>{copy.compatibilityTitle}</span></div>
+          <div className="home-photo-collage">
+            <img className="home-photo-main" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=85" alt={page.altHero} width="1200" height="1400" fetchPriority="high" />
+            <img className="home-photo-small" src="https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=700&q=85" alt={page.altNotebook} width="700" height="520" />
+            <div className="home-photo-label"><strong>{page.photoLabel}</strong><span>{page.photoNote}</span></div>
           </div>
         </div>
       </section>
 
-      <section className="section section-soft" id="inside">
-        <div className="shell">
-          <div className="section-heading section-heading-centered">
-            <p className="eyebrow">{copy.featuresKicker}</p>
-            <h2>{copy.featuresTitle}</h2>
-            <p>{copy.featuresBody}</p>
+      <section className="home-section home-section-soft" id="inside">
+        <div className="home-shell">
+          <div className="home-section-head center">
+            <p className="home-eyebrow">{page.insideEyebrow}</p>
+            <h2>{page.insideTitle}</h2>
+            <p>{page.insideBody}</p>
           </div>
-          <div className="feature-shortcuts">
-            <Link href={`/${locale}/personal-horoscope`}><span className="shortcut-dot blue" /><strong>{copy.personalKicker}</strong></Link>
-            <Link href={`/${locale}/natal-chart`}><span className="shortcut-dot yellow" /><strong>{copy.natalKicker}</strong></Link>
-            <Link href={`/${locale}/compatibility`}><span className="shortcut-dot coral" /><strong>{copy.compatibilityKicker}</strong></Link>
-            <Link href={`/${locale}/questions`}><span className="shortcut-dot green" /><strong>{copy.questionsKicker}</strong></Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="section product-row-section">
-        <div className="shell product-row product-row-personal">
-          <div className="product-copy">
-            <p className="eyebrow">{copy.personalKicker}</p>
-            <h2>{copy.personalTitle}</h2>
-            <p>{copy.personalBody}</p>
-            <ul className="check-list">{copy.personalBullets.map((item) => <li key={item}>{item}</li>)}</ul>
-            <Link className="text-link" href={`/${locale}/personal-horoscope`}>{copy.personalLink} →</Link>
-          </div>
-          <div className="forecast-preview" aria-label={copy.personalKicker}>
-            <div className="preview-tabs"><span className="active">{locale === 'ru' ? 'Сегодня' : locale === 'es' ? 'Hoy' : 'Today'}</span><span>{locale === 'ru' ? 'Неделя' : locale === 'es' ? 'Semana' : 'Week'}</span><span>{locale === 'ru' ? 'Месяц' : locale === 'es' ? 'Mes' : 'Month'}</span><span>{locale === 'ru' ? 'Год' : locale === 'es' ? 'Año' : 'Year'}</span></div>
-            <div className="preview-date">{copy.previewDate}</div>
-            <h3>{copy.previewTitle}</h3>
-            <p>{copy.previewBody}</p>
-            <div className="preview-topic"><span>{locale === 'ru' ? 'Любовь' : locale === 'es' ? 'Amor' : 'Love'}</span><strong>{copy.previewTopic}</strong></div>
+          <div className="home-feature-grid">
+            {page.features.map(([title, body, slug]) => (
+              <article className="home-feature-card" key={slug}>
+                <div><h3>{title}</h3><p>{body}</p></div>
+                <Link href={`/${locale}/${slug}`}>{page.readMore} →</Link>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="section product-row-section section-peach">
-        <div className="shell product-row">
-          <div className="product-visual"><img src="/site/lifestyle-natal.svg" alt={copy.natalAlt} width="1200" height="900" loading="lazy" /></div>
-          <div className="product-copy">
-            <p className="eyebrow">{copy.natalKicker}</p>
-            <h2>{copy.natalTitle}</h2>
-            <p>{copy.natalBody}</p>
-            <Link className="text-link" href={`/${locale}/natal-chart`}>{copy.natalLink} →</Link>
+      <section className="home-section">
+        <div className="home-shell home-product-grid">
+          <div className="home-feature-copy">
+            <p className="home-eyebrow">{page.personalEyebrow}</p>
+            <h2>{page.personalTitle}</h2>
+            <p>{page.personalBody}</p>
+            <Link className="home-text-link" href={`/${locale}/personal-horoscope`}>{page.personalLink} →</Link>
+          </div>
+          <div className="home-preview" aria-label={page.personalEyebrow}>
+            <div className="home-preview-tabs"><span className="active">{locale === 'ru' ? 'Сегодня' : locale === 'es' ? 'Hoy' : 'Today'}</span><span>{locale === 'ru' ? 'Неделя' : locale === 'es' ? 'Semana' : 'Week'}</span><span>{locale === 'ru' ? 'Месяц' : locale === 'es' ? 'Mes' : 'Month'}</span><span>{locale === 'ru' ? 'Год' : locale === 'es' ? 'Año' : 'Year'}</span></div>
+            <div className="home-preview-date">{page.previewDate}</div>
+            <h3>{page.previewTitle}</h3>
+            <p>{page.previewBody}</p>
+            <div className="home-preview-topics">
+              {[page.topicLove, page.topicWork, page.topicMoney].map(([title, body]) => <div className="home-preview-topic" key={title}><span>{title}</span><strong>{body}</strong></div>)}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="section product-row-section section-blue">
-        <div className="shell product-row product-row-reverse">
-          <div className="product-visual"><img src="/site/lifestyle-compatibility.svg" alt={copy.compatibilityAlt} width="1200" height="900" loading="lazy" /></div>
-          <div className="product-copy">
-            <p className="eyebrow">{copy.compatibilityKicker}</p>
-            <h2>{copy.compatibilityTitle}</h2>
-            <p>{copy.compatibilityBody}</p>
-            <Link className="text-link" href={`/${locale}/compatibility`}>{copy.compatibilityLink} →</Link>
+      <section className="home-section home-section-peach">
+        <div className="home-shell home-product-grid reverse">
+          <div className="home-feature-copy">
+            <p className="home-eyebrow">{page.natalEyebrow}</p>
+            <h2>{page.natalTitle}</h2>
+            <p>{page.natalBody}</p>
+            <Link className="home-text-link" href={`/${locale}/natal-chart`}>{page.natalLink} →</Link>
+          </div>
+          <div className="home-feature-media">
+            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1200&q=85" alt={page.altNatal} width="1200" height="900" loading="lazy" />
           </div>
         </div>
       </section>
 
-      <section className="section product-row-section section-mint">
-        <div className="shell product-row">
-          <div className="product-visual"><img src="/site/lifestyle-work.svg" alt={copy.questionsAlt} width="1200" height="900" loading="lazy" /></div>
-          <div className="product-copy">
-            <p className="eyebrow">{copy.questionsKicker}</p>
-            <h2>{copy.questionsTitle}</h2>
-            <p>{copy.questionsBody}</p>
-            <Link className="text-link" href={`/${locale}/questions`}>{copy.questionsLink} →</Link>
+      <section className="home-section">
+        <div className="home-shell home-product-grid">
+          <div className="home-feature-copy">
+            <p className="home-eyebrow">{page.compatibilityEyebrow}</p>
+            <h2>{page.compatibilityTitle}</h2>
+            <p>{page.compatibilityBody}</p>
+            <Link className="home-text-link" href={`/${locale}/compatibility`}>{page.compatibilityLink} →</Link>
+          </div>
+          <div className="home-feature-media">
+            <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=85" alt={page.altCompatibility} width="1200" height="900" loading="lazy" />
           </div>
         </div>
       </section>
 
-      <section className="section steps-section">
-        <div className="shell">
-          <div className="section-heading">
-            <div><p className="eyebrow">{copy.stepsKicker}</p><h2>{copy.stepsTitle}</h2></div>
+      <section className="home-section home-section-mint">
+        <div className="home-shell home-product-grid reverse">
+          <div className="home-feature-copy">
+            <p className="home-eyebrow">{page.questionsEyebrow}</p>
+            <h2>{page.questionsTitle}</h2>
+            <p>{page.questionsBody}</p>
+            <Link className="home-text-link" href={`/${locale}/questions`}>{page.questionsLink} →</Link>
           </div>
-          <div className="steps-grid">
-            {copy.steps.map(([number, title, body]) => <article className="step-card" key={number}><span>{number}</span><h3>{title}</h3><p>{body}</p></article>)}
+          <div className="home-feature-media">
+            <img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=85" alt={page.altQuestions} width="1200" height="900" loading="lazy" />
           </div>
         </div>
       </section>
 
-      <section className="section zodiac-section">
-        <div className="shell">
-          <div className="section-heading section-heading-split">
-            <div><p className="eyebrow">{copy.zodiacKicker}</p><h2>{copy.zodiacTitle}</h2><p>{copy.zodiacBody}</p></div>
-            <Link className="button button-ghost" href={`/${locale}/zodiac`}>{dict.common.allSigns}</Link>
+      <section className="home-section">
+        <div className="home-shell">
+          <div className="home-section-head">
+            <p className="home-eyebrow">{page.stepsEyebrow}</p>
+            <h2>{page.stepsTitle}</h2>
           </div>
-          <div className="sign-grid sign-grid-home">
+          <div className="home-step-grid">
+            {page.steps.map(([number, title, body]) => <article className="home-step" key={number}><b>{number}</b><h3>{title}</h3><p>{body}</p></article>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section home-section-soft">
+        <div className="home-shell">
+          <div className="home-section-head">
+            <p className="home-eyebrow">{page.zodiacEyebrow}</p>
+            <h2>{page.zodiacTitle}</h2>
+            <p>{page.zodiacBody}</p>
+          </div>
+          <div className="home-zodiac-grid">
             {zodiacSlugs.map((sign) => {
               const info = getZodiacInfo(locale, sign);
-              return <Link className="sign-card" key={sign} href={`/${locale}/zodiac/${sign}`}><strong>{info.name}</strong><span>{info.dates}</span><b aria-hidden="true">↗</b></Link>;
+              return <Link className="home-zodiac-card" key={sign} href={`/${locale}/zodiac/${sign}`}><strong>{info.name}</strong><span>{info.dates}</span></Link>;
             })}
           </div>
         </div>
       </section>
 
-      {guides.length > 0 ? <section className="section guides-section"><div className="shell"><div className="section-heading section-heading-split"><div><p className="eyebrow">{copy.guidesKicker}</p><h2>{copy.guidesTitle}</h2></div><Link className="button button-ghost" href={`/${locale}/guides`}>{dict.common.allGuides}</Link></div><div className="article-grid">{guides.map((guide) => <ArticleCard key={guide.frontmatter.slug} href={`/${locale}/guides/${guide.frontmatter.slug}`} title={guide.frontmatter.title} description={guide.frontmatter.description} meta={guide.frontmatter.publishedAt} />)}</div></div></section> : null}
+      {guides.length > 0 ? (
+        <section className="home-section">
+          <div className="home-shell">
+            <div className="home-section-head">
+              <p className="home-eyebrow">{page.guidesEyebrow}</p>
+              <h2>{page.guidesTitle}</h2>
+            </div>
+            <div className="article-grid">
+              {guides.map((guide) => <ArticleCard key={guide.frontmatter.slug} href={`/${locale}/guides/${guide.frontmatter.slug}`} title={guide.frontmatter.title} description={guide.frontmatter.description} meta={guide.frontmatter.publishedAt} />)}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
-      <section className="section final-section"><div className="shell final-cta"><div><p className="eyebrow">{brands[locale]}</p><h2>{copy.finalTitle}</h2><p>{copy.finalBody}</p></div><StoreButtons fallback={dict.common.comingSoon} /></div></section>
-    </>
+      <section className="home-section">
+        <div className="home-shell home-final">
+          <div><h2>{page.finalTitle}</h2><p>{page.finalBody}</p></div>
+          <StoreButtons fallback={dict.common.comingSoon} />
+        </div>
+      </section>
+    </div>
   );
 }
