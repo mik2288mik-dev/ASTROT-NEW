@@ -3,6 +3,8 @@ import { UserProfile } from '../types';
 import { PREMIUM_PLANS, type PremiumPlan, type PremiumPlanId } from '../lib/premiumPricing';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { apiFetch } from '../services/apiClient';
+import { resolveDistributionChannel } from '../lib/distributionChannel';
+import { getRuStoreProductId } from '../services/rustorePayService';
 
 interface PaywallProps {
   profile: UserProfile;
@@ -44,6 +46,7 @@ function pluralDays(n: number, ru: boolean): string {
 
 export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, onContinueFree }) => {
   const ru = profile.language !== 'en';
+  const distributionChannel = resolveDistributionChannel();
   const [selected, setSelected] = useState<PremiumPlanId>('premium_year');
   const [paying, setPaying] = useState(false);
   const [plans, setPlans] = useState<Record<PremiumPlanId, PaywallPlan>>(PREMIUM_PLANS);
@@ -108,7 +111,9 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
   };
 
   const buy = () => {
-    if (paying) return;
+    const canPurchase = distributionChannel === 'telegram'
+      || (distributionChannel === 'rustore' && !!getRuStoreProductId(selected));
+    if (paying || !canPurchase) return;
     lumiaSelectionHaptic();
     setPaying(true);
     onPurchase(selected);
@@ -171,11 +176,13 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         })}
       </div>
 
-      <button type="button" className="pw2-cta" onClick={buy} disabled={paying}>
+      {(distributionChannel === 'telegram' || distributionChannel === 'rustore') ? <button type="button" className="pw2-cta" onClick={buy} disabled={paying || (distributionChannel === 'rustore' && !getRuStoreProductId(selected))}>
         {paying
           ? (ru ? 'Открываю оплату…' : 'Opening…')
-          : `${ru ? 'Оформить Premium' : 'Get Premium'} · ${priceText(selected)}`}
-      </button>
+          : (distributionChannel === 'rustore' && !getRuStoreProductId(selected)
+            ? (ru ? 'Покупка временно недоступна' : 'Purchase is temporarily unavailable')
+            : `${ru ? 'Оформить Premium' : 'Get Premium'} · ${priceText(selected)}`)}
+      </button> : <p className="pw2-foot">{ru ? 'Premium, который уже есть у аккаунта, доступен в этом приложении. Новые покупки здесь пока не подключены.' : 'Premium already linked to your account is available here. New purchases are not connected in this build yet.'}</p>}
 
       {onContinueFree ? (
         <button type="button" className="pw2-free" onClick={() => { lumiaSelectionHaptic(); onContinueFree(); }}>
@@ -185,7 +192,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         </button>
       ) : null}
 
-      <p className="pw2-foot">{ru ? 'Оплата в Telegram Stars. Подписку можно не продлевать.' : 'Pay with Telegram Stars. No auto-renewal.'}</p>
+      {distributionChannel === 'telegram' ? <p className="pw2-foot">{ru ? 'Оплата в Telegram Stars. Подписку можно не продлевать.' : 'Pay with Telegram Stars. No auto-renewal.'}</p> : null}
     </div>
   );
 };

@@ -17,9 +17,14 @@
     "audit:db": "tsx scripts/audit-db.ts",
     "migrate": "tsx scripts/migrate.ts",
     "repair:natal-charts": "tsx scripts/repair-canonical-natal-charts.ts",
-    "android:sync": "cross-env NEXT_PUBLIC_API_URL=https://astrot-production.up.railway.app npm run build:mobile && cap sync android",
+    "android:sync": "cross-env NEXT_PUBLIC_DISTRIBUTION_CHANNEL=development npm run build:mobile && cap sync android",
     "android:open": "cap open android",
-    "android:debug": "node scripts/android-debug.mjs"
+    "android:debug": "node scripts/android-debug.mjs",
+    "android:validate": "node scripts/validate-store-release.mjs",
+    "android:validate:release": "node scripts/validate-store-release.mjs --release",
+    "android:rustore:apk": "node scripts/android-release.mjs rustore-apk",
+    "android:rustore:aab": "node scripts/android-release.mjs rustore-aab",
+    "android:google-play:aab": "node scripts/android-release.mjs google-play-aab"
   },
   "dependencies": {
     "@capacitor/android": "8.4.2",

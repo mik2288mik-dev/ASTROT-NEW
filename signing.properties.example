@@ -1,0 +1,9 @@
+# Copy to android/signing.properties (it is ignored by Git), then replace every value.
+# The same names can instead be supplied as environment variables or Gradle -P values.
+RELEASE_STORE_FILE=/absolute/path/to/your-horoscope-release.jks
+RELEASE_STORE_PASSWORD=
+RELEASE_KEY_ALIAS=
+RELEASE_KEY_PASSWORD=
+# Do not change versions here without following the release flow.
+APP_VERSION_CODE=1
+APP_VERSION_NAME=1.0.0

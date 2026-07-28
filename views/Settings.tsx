@@ -104,6 +104,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [quietStart, setQuietStart] = useState('22:00');
     const [quietEnd, setQuietEnd] = useState('08:00');
     const [deletingAccount, setDeletingAccount] = useState(false);
+    const [deletionError, setDeletionError] = useState('');
 
     useEffect(() => {
         let alive = true;
@@ -602,9 +603,16 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     <button type="button" className="fresh-btn-ghost" onClick={onLogout}>{profile.language === 'en' ? 'Sign out' : 'Выйти'}</button>
                     <button type="button" disabled={deletingAccount} className="fresh-btn-ghost text-red-700" onClick={() => {
                         if (!window.confirm(profile.language === 'en' ? 'Delete your account and related data permanently?' : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
-                        setDeletingAccount(true); void onDeleteAccount?.().finally(() => setDeletingAccount(false));
+                        setDeletionError('');
+                        setDeletingAccount(true);
+                        void onDeleteAccount?.().catch(() => {
+                            setDeletionError(profile.language === 'en'
+                                ? 'Account deletion did not complete. Your account is still active.'
+                                : 'Не удалось удалить аккаунт. Он остаётся активным.');
+                        }).finally(() => setDeletingAccount(false));
                     }}>{deletingAccount ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…') : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}</button>
                 </div>
+                {deletionError ? <p role="alert" className="mt-2 text-sm text-red-700">{deletionError}</p> : null}
             </section>
 
             <div className="pt-1 text-center">

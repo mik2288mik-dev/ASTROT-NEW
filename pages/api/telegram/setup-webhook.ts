@@ -27,7 +27,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const botToken = process.env.BOT_TOKEN;
   const secretToken = process.env.WEBHOOK_SECRET_TOKEN;
-  const baseUrl = process.env.WEBHOOK_BASE_URL || 'https://astrot-production.up.railway.app';
+  const baseUrl = String(process.env.WEBHOOK_BASE_URL || '').trim();
+  if (!baseUrl.startsWith('https://')) {
+    return res.status(500).json({ error: 'WEBHOOK_BASE_URL must be an HTTPS URL' });
+  }
   const webhookUrl = `${baseUrl.replace(/\/$/, '')}${WEBHOOK_PATH}`;
 
   if (!botToken) {

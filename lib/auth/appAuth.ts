@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { AdminAuthError, getVerifiedTelegramUser } from '../adminAuth';
-import { db } from '../db';
+import { db, getPool } from '../db';
 import { isGuestUserId } from '../userId';
 
 export type AppAuthProvider = 'telegram' | 'web_guest' | 'native';
@@ -72,6 +72,32 @@ export function setAppSessionCookie(res: NextApiResponse, token: string): void {
   res.setHeader('Set-Cookie', `${APP_SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS}${secure}`);
 }
 
+export function clearAppSessionCookie(res: NextApiResponse): void {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${APP_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
+}
+
+async function isRevokedSession(sessionId: string): Promise<boolean> {
+  // Unit-test DB doubles from older auth tests do not expose getPool.
+  if (!process.env.DATABASE_URL || typeof getPool !== 'function') return false;
+  const result = await getPool().query(
+    `SELECT 1 FROM app_session_revocations WHERE session_id = $1 AND expires_at > NOW() LIMIT 1`,
+    [sessionId],
+  );
+  return !!result.rowCount;
+}
+
+export async function revokeAppSession(sessionId: string, expiresAt: number): Promise<void> {
+  if (!sessionId) return;
+  if (!process.env.DATABASE_URL || typeof getPool !== 'function') return;
+  await getPool().query(
+    `INSERT INTO app_session_revocations (session_id, expires_at)
+     VALUES ($1, $2)
+     ON CONFLICT (session_id) DO UPDATE SET expires_at = EXCLUDED.expires_at, revoked_at = CURRENT_TIMESTAMP`,
+    [sessionId, new Date(expiresAt * 1000).toISOString()],
+  );
+}
+
 export function createGuestIdentity(): { userId: string; sessionId: string } {
   // users.id is BIGINT today; reserve negative IDs for non-Telegram guest identities.
   const random = BigInt(`0x${crypto.randomBytes(8).toString('hex')}`) % 8_000_000_000_000_000_000n;
@@ -117,12 +143,21 @@ export async function requireAppUser(req: NextApiRequest, options: { expectedUse
     const authorization = header(req, 'authorization');
     const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
     const payload = verifyAppSessionToken(bearer || cookie(req, APP_SESSION_COOKIE));
-    if (payload) context = {
-      userId: payload.userId,
-      provider: payload.provider,
-      isGuest: isGuestUserId(payload.userId),
-      sessionId: payload.sessionId,
-    };
+    if (payload) {
+      if (await isRevokedSession(payload.sessionId)) {
+        throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+      }
+      if (process.env.DATABASE_URL) {
+        const user = await db.users.get(payload.userId, { hydratePrimaryChart: false });
+        if (!user) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This account no longer exists');
+      }
+      context = {
+        userId: payload.userId,
+        provider: payload.provider,
+        isGuest: isGuestUserId(payload.userId),
+        sessionId: payload.sessionId,
+      };
+    }
   }
   if (!context) throw new AdminAuthError(401, 'APP_AUTH_REQUIRED', 'A valid Telegram, web guest, or native session is required');
   if (context.isGuest && !options.allowGuest) throw new AdminAuthError(403, 'REGISTERED_ACCOUNT_REQUIRED', 'This feature requires a registered account');

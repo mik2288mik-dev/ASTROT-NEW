@@ -12,6 +12,11 @@ export async function deleteCurrentAccount(): Promise<void> {
   if (!response.ok) throw new Error('ACCOUNT_DELETION_FAILED');
 }
 
+export async function logoutCurrentAccount(): Promise<void> {
+  const response = await apiFetch('/api/users/session/logout', { method: 'POST' });
+  if (!response.ok) throw new Error('LOGOUT_FAILED');
+}
+
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
 const PROFILE_SAVE_TIMEOUT_MS = 45_000;
 const CHART_GET_TIMEOUT_MS = 25_000;
@@ -19,16 +24,21 @@ const PROFILE_FETCH_ATTEMPTS = 3;
 const PROFILE_FETCH_RETRY_DELAYS_MS = [0, 700, 1600];
 
 // Next.js API base URL - используем локальные API routes
-// Logging utility
+// Diagnostics are opt-in and never enabled in a production/store bundle.
+// Profile saves include sensitive natal data, so they must not reach device logs.
+const diagnosticsEnabled =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.NEXT_PUBLIC_DEBUG_STORAGE_LOGS === '1';
+
 const log = {
   info: (message: string, data?: any) => {
-    console.log(`[StorageService] ${message}`, data || '');
+    if (diagnosticsEnabled) console.log(`[StorageService] ${message}`, data || '');
   },
   error: (message: string, error?: any) => {
-    console.error(`[StorageService] ERROR: ${message}`, error || '');
+    if (diagnosticsEnabled) console.error(`[StorageService] ERROR: ${message}`, error || '');
   },
   warn: (message: string, data?: any) => {
-    console.warn(`[StorageService] WARNING: ${message}`, data || '');
+    if (diagnosticsEnabled) console.warn(`[StorageService] WARNING: ${message}`, data || '');
   }
 };
 

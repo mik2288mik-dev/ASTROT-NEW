@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+
+const target = process.argv[2];
+const tasks = {
+  'rustore-apk': ['assembleRustoreRelease', 'android/app/build/outputs/apk/rustore/release/app-rustore-release.apk'],
+  'rustore-aab': ['bundleRustoreRelease', 'android/app/build/outputs/bundle/rustoreRelease/app-rustore-release.aab'],
+  'google-play-aab': ['bundleGooglePlayRelease', 'android/app/build/outputs/bundle/googlePlayRelease/app-google-play-release.aab'],
+};
+if (!tasks[target]) {
+  console.error('Usage: node scripts/android-release.mjs rustore-apk|rustore-aab|google-play-aab');
+  process.exit(1);
+}
+const channel = target.startsWith('rustore') ? 'rustore' : 'google_play';
+process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = channel;
+process.env.MOBILE_BUILD = '1';
+process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
+process.env.STORE_RELEASE = '1';
+
+function run(command, args, cwd = process.cwd()) {
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32', env: process.env });
+  if (result.status !== 0) process.exit(result.status || 1);
+}
+
+run(process.execPath, ['scripts/validate-store-release.mjs', '--release']);
+run('npm', ['run', 'build:mobile']);
+run('npx', ['cap', 'sync', 'android']);
+const [task, output] = tasks[target];
+run(process.platform === 'win32' ? 'gradlew.bat' : './gradlew', [task], path.join(process.cwd(), 'android'));
+const artifact = path.join(process.cwd(), output);
+if (!fs.existsSync(artifact)) {
+  console.error(`Expected artifact was not created: ${artifact}`);
+  process.exit(1);
+}
+const sha256 = createHash('sha256').update(fs.readFileSync(artifact)).digest('hex');
+console.log(`Artifact: ${artifact}`);
+console.log(`SHA-256: ${sha256}`);

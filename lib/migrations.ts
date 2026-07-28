@@ -2781,6 +2781,69 @@ async function mvp038PersonalForecastQuestions(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+/** RuStore Pay SDK purchase ledger and idempotent server notification inbox. */
+async function mvp039RuStorePay(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_039_rustore_pay';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS store_purchases (
+      id BIGSERIAL PRIMARY KEY,
+      provider TEXT NOT NULL,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      external_purchase_id TEXT,
+      external_invoice_id TEXT,
+      external_product_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      purchased_at TIMESTAMP,
+      expires_at TIMESTAMP,
+      last_validated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT store_purchases_provider CHECK (provider IN ('rustore'))
+    )
+  `);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_store_purchases_provider_purchase
+    ON store_purchases(provider, external_purchase_id) WHERE external_purchase_id IS NOT NULL`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_store_purchases_provider_invoice
+    ON store_purchases(provider, external_invoice_id) WHERE external_invoice_id IS NOT NULL`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_store_purchases_user_status
+    ON store_purchases(user_id, status, expires_at DESC)`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS payment_provider_events (
+      id BIGSERIAL PRIMARY KEY,
+      provider TEXT NOT NULL,
+      external_event_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      external_purchase_id TEXT,
+      status TEXT,
+      received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processed_at TIMESTAMP,
+      CONSTRAINT payment_provider_events_provider CHECK (provider IN ('rustore')),
+      CONSTRAINT payment_provider_events_unique UNIQUE (provider, external_event_id)
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_provider_events_purchase
+    ON payment_provider_events(provider, external_purchase_id)`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_session_revocations (
+      session_id TEXT PRIMARY KEY,
+      expires_at TIMESTAMP NOT NULL,
+      revoked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_app_session_revocations_expiry
+    ON app_session_revocations(expires_at)`);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2850,6 +2913,7 @@ export async function runMigrations(): Promise<void> {
   await mvp036SchemaCleanup(pool);
   await mvp037PersonalForecastYearlyVariant(pool);
   await mvp038PersonalForecastQuestions(pool);
+  await mvp039RuStorePay(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

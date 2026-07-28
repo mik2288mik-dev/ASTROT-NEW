@@ -3,7 +3,9 @@
 # Usage: .\scripts\set-webhook.ps1
 # Or: $env:BOT_TOKEN="..."; $env:WEBHOOK_SECRET_TOKEN="..."; .\scripts\set-webhook.ps1
 
-$url = "https://astrot-production.up.railway.app/api/telegram/webhook"
+$baseUrl = $env:WEBHOOK_BASE_URL
+if ([string]::IsNullOrWhiteSpace($baseUrl) -or -not $baseUrl.StartsWith("https://")) { Write-Host "Error: WEBHOOK_BASE_URL must be a public HTTPS URL"; exit 1 }
+$url = "$($baseUrl.TrimEnd('/'))/api/telegram/webhook"
 $bot = $env:BOT_TOKEN
 $secret = $env:WEBHOOK_SECRET_TOKEN
 

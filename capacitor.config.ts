@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.yourhoroscope.app',
   appName: 'Твой Гороскоп',
   webDir: 'out',
-  loggingBehavior: 'debug',
+  loggingBehavior: process.env.STORE_RELEASE === '1' || process.env.NODE_ENV === 'production' ? 'none' : 'debug',
   backgroundColor: '#ffffff',
   android: {
     backgroundColor: '#ffffff',

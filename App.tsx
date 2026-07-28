@@ -9,6 +9,7 @@ import {
     saveProfile,
     runReferralFromStartParam,
     deleteCurrentAccount,
+    logoutCurrentAccount,
 } from './services/storageService';
 import { clearAppSessionAndLocalData } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
@@ -27,7 +28,8 @@ import { Header } from './components/Header';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
-import { requestStarsPayment } from './services/telegramService';
+import { getPaymentProvider } from './services/paymentProvider';
+import { restoreRuStorePurchases } from './services/rustorePayService';
 import type { PremiumPlanId } from './lib/premiumPricing';
 import { getAdminStatus } from './services/adminService';
 import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, updateUserNotificationSettings, waitForTelegramInitData } from './services/sessionService';
@@ -289,6 +291,7 @@ const App: React.FC = () => {
     const viewRef = useRef<ViewState>('onboarding');
     const onboardingTargetViewRef = useRef<ViewState>('dashboard');
     const onboardingCompletionRef = useRef(false);
+    const restoredRuStoreUserRef = useRef<string | null>(null);
     const navigationHistoryRef = useRef<ViewState[]>([]);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
@@ -741,10 +744,9 @@ const App: React.FC = () => {
                 setLoadingProgress(30);
                 const storedProfile = webGuestProfile || await getProfile();
 
-                console.log('[App] Profile loaded:', {
+                console.log('[App] Profile state loaded:', {
                     hasProfile: !!storedProfile,
                     isSetup: storedProfile?.isSetup,
-                    tgId: safeTgId
                 });
 
                 let updatedProfile: UserProfile;
@@ -828,10 +830,7 @@ const App: React.FC = () => {
 
                 const chart = await loadPrimaryChartOnce(updatedProfile);
                 if (chart?.sun && chart?.moon) {
-                    console.log('[App] Chart loaded successfully:', {
-                        sunSign: chart.sun.sign,
-                        moonSign: chart.moon.sign
-                    });
+                    console.log('[App] Chart loaded successfully');
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, chart, null, false);
@@ -875,10 +874,7 @@ const App: React.FC = () => {
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         if (onboardingCompletionRef.current) return;
         onboardingCompletionRef.current = true;
-        console.log('[App] === ONBOARDING COMPLETE ===', {
-            name: newProfile.name,
-            birthDate: newProfile.birthDate
-        });
+        console.log('[App] Onboarding completed');
 
         const tg = (window as any).Telegram?.WebApp;
         const tgUser = tg?.initDataUnsafe?.user;
@@ -958,10 +954,7 @@ const App: React.FC = () => {
                 throw new Error('Не удалось получить данные карты. Попробуйте ещё раз.');
             }
             
-            console.log('[App] Chart calculated:', {
-                sunSign: generatedChart.sun.sign,
-                moonSign: generatedChart.moon.sign
-            });
+            console.log('[App] Chart calculated');
 
             // Завершение фиксируется только после готовой карты. Повтор после сбоя
             // безопасен: профиль обновляется по тому же ID, а chartService читает
@@ -1079,13 +1072,41 @@ const App: React.FC = () => {
         }
         await clearAppSessionAndLocalData();
         setProfile(null);
-        window.location.reload();
+        setChartData(null);
+        setPrimaryChartId(null);
+        setActiveChartId(undefined);
+        setStartupError(null);
+        setLoading(true);
+        setStartupRetryNonce((value) => value + 1);
     }, [profile]);
 
     const handleDeleteAccount = useCallback(async () => {
         await deleteCurrentAccount();
         await resetLocalAccountState();
     }, [resetLocalAccountState]);
+
+    const handleLogout = useCallback(async () => {
+        try {
+            await logoutCurrentAccount();
+        } finally {
+            await resetLocalAccountState();
+        }
+    }, [resetLocalAccountState]);
+
+    useEffect(() => {
+        const userId = profile?.id ? String(profile.id) : '';
+        if (!userId || restoredRuStoreUserRef.current === userId) return;
+        restoredRuStoreUserRef.current = userId;
+
+        // The bridge is a no-op outside the explicit RuStore Android channel.
+        // A returned SDK purchase still becomes Premium only after backend
+        // validation; the next profile load is therefore authoritative.
+        void restoreRuStorePurchases().then(async (results) => {
+            if (!results.some((result) => result.status === 'completed')) return;
+            const refreshed = await getProfile();
+            if (refreshed) setProfile(refreshed);
+        }).catch(() => undefined);
+    }, [profile?.id]);
 
     useEffect(() => {
         if (!profile?.id || notificationAttributionSentRef.current) return;
@@ -1135,8 +1156,17 @@ const App: React.FC = () => {
            setView('paywall');
            return;
        }
-       console.log('[App] Requesting premium for user:', profile.id, 'plan:', planId);
-       const success = await requestStarsPayment(profile, planId);
+       console.log('[App] Requesting premium for configured payment provider');
+       const paymentResult = await getPaymentProvider().purchase(profile, planId);
+       const success = paymentResult.status === 'completed';
+       if (!success) {
+           // The current paywall remains visually unchanged. Store channels do
+           // not fall back to Telegram or pretend that a purchase succeeded.
+           if (paymentResult.status !== 'cancelled') {
+               console.warn('[App] Premium purchase was not completed:', paymentResult.reason);
+           }
+           return;
+       }
        if (success) {
            console.log('[App] Premium payment successful, refreshing profile...');
            const returnInPlace = premiumReturnInPlaceRef.current;
@@ -1671,7 +1701,7 @@ const App: React.FC = () => {
                             onRequestPremium={() => { void requestPremium('settings'); }}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
-                            onLogout={() => { void resetLocalAccountState(); }}
+                            onLogout={() => { void handleLogout(); }}
                             onDeleteAccount={handleDeleteAccount}
                         />
                     </div>

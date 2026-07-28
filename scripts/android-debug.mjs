@@ -4,7 +4,8 @@ import process from 'node:process';
 
 const androidDirectory = path.resolve('android');
 const wrapper = path.join(androidDirectory, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
-const result = spawnSync(wrapper, ['assembleDebug'], {
+process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL || 'development';
+const result = spawnSync(wrapper, ['assembleDevelopmentDebug'], {
   cwd: androidDirectory,
   stdio: 'inherit',
   shell: process.platform === 'win32',

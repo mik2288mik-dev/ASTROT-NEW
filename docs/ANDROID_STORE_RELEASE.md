@@ -1,56 +1,39 @@
-# Android release preparation: RuStore and Google Play
+# Android store release
 
-## Current project values
+## Current technical baseline
 
-- Application ID: `com.yourhoroscope.app` — placeholder; choose the final, globally unique ID before the first public build and keep it forever.
-- Version: `APP_VERSION_CODE` (integer, increase for every upload) and `APP_VERSION_NAME` (user-visible version, default `1.0.0`).
-- SDK: min 24, compile/target 36. Only `INTERNET` is declared.
-- Existing adaptive launcher icon and Android 12 splash resources are used by the Capacitor project.
-- The app uses HTTPS-only networking. Legal pages are normal HTTPS Next.js routes: `/privacy`, `/terms`, `/delete-account`.
+- Capacitor 8.4.2; Android minSdk 24, compileSdk/targetSdk 36; AGP 8.13.0 and Gradle 8.14.3.
+- Flavors: `development`, `telegram`, `rustore`, `googlePlay`. Only `rustore` compiles RuStore Pay SDK (`ru.rustore.sdk:bom:2026.06.01` / `pay`); Google Play and Telegram do not include it.
+- `telegram` alone can invoke Telegram Stars. `google_play` has no checkout action until Google Play Billing is a separate project.
+- `rustore` uses a Capacitor native bridge, return deep link, server validation, and encrypted callback endpoint. Do not use the deprecated RuStore BillingClient.
+- Release build has minification, `allowBackup=false`, cleartext disabled and requires signing. Debug remains available as `assembleDevelopmentDebug`.
 
-## Signing: create once, keep forever
+## Owner values required before first upload
 
-Do not commit a keystore or passwords. Before the first upload, create and back up one permanent key:
+1. Final package ID: replace `com.yourhoroscope.app` in `android/app/build.gradle` (`namespace`, `applicationId`), `capacitor.config.ts` (`appId`), `android/app/src/main/res/values/strings.xml` (`package_name`, `custom_url_scheme`), Java package/path, and `RUSTORE_PACKAGE_NAME`. Run `npm run android:validate:release` afterwards.
+2. Permanent keystore: create once with `keytool -genkeypair -v -keystore your-horoscope-release.jks -alias your-horoscope -keyalg RSA -keysize 4096 -validity 10000`; store it plus passwords in a password manager and encrypted offline backup. The same signing identity is required for every future update.
+3. Copy `signing.properties.example` to ignored `android/signing.properties`, or use CI environment variables. Never commit either a keystore or passwords.
+4. Set a stable HTTPS `NEXT_PUBLIC_API_URL`; the APK/AAB must not use a provider-specific temporary host.
 
-```bash
-keytool -genkeypair -v -keystore your-horoscope-release.jks -alias your-horoscope -keyalg RSA -keysize 4096 -validity 10000
-```
+## Commands
 
-Store the file and all passwords in a password manager and an encrypted offline backup. Every future APK/AAB update must use this same key (or, for Google Play, the configured Play App Signing upload key).
-
-Set these only in CI secrets, environment variables, or untracked `android/signing.properties`:
-
-```properties
-RELEASE_STORE_FILE=/absolute/path/to/your-horoscope-release.jks
-RELEASE_STORE_PASSWORD=...
-RELEASE_KEY_ALIAS=your-horoscope
-RELEASE_KEY_PASSWORD=...
-APP_VERSION_CODE=1
-APP_VERSION_NAME=1.0.0
-```
-
-## Release commands
-
-```bash
-export NEXT_PUBLIC_API_URL=https://[УКАЖИТЕ_PRODUCTION_API_HOST]
+```powershell
+$env:NEXT_PUBLIC_API_URL = 'https://api.example.ru'
+$env:NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'development'
 npm run build:mobile
 npx cap sync android
-cd android
-./gradlew assembleRelease    # signed APK for testing/RuStore
-./gradlew bundleRelease      # signed AAB for Google Play
+cd android; .\gradlew.bat assembleDevelopmentDebug
+
+# With all owner values, signing and legal configuration set:
+npm run android:rustore:apk
+npm run android:rustore:aab
+npm run android:google-play:aab
 ```
 
-Expected outputs: `android/app/build/outputs/apk/release/` and `android/app/build/outputs/bundle/release/`.
+The release script validates channel, package consistency, versions, legal URLs, signing and RuStore fields; builds the web export, syncs Capacitor, emits an artifact path and SHA-256, and never uploads it.
 
-## Store-console checklist still requiring owner input
+## RuStore owner setup
 
-1. Final application ID and public developer/app name.
-2. Production HTTPS API URL for `NEXT_PUBLIC_API_URL`.
-3. Developer/legal entity name, address, support email, privacy retention details, and final legal review.
-4. Public production domain hosting `/privacy`, `/terms`, and `/delete-account` over HTTPS.
-5. Permanent release keystore and passwords; Google Play / RuStore developer accounts.
-6. Store listing assets, content rating, Data Safety / privacy disclosures, and the deletion-page URL in Play Console.
+In RuStore Console: create the app with the final signed package, enable monetization, create the chosen subscriptions/products, copy their product IDs from **Monetization**, and insert them into `NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_*` and `RUSTORE_ALLOWED_PRODUCT_IDS`. Copy application ID from the Console URL into `RUSTORE_CONSOLE_APP_ID`, request a Public API token into server-only `RUSTORE_PUBLIC_API_TOKEN`, and configure the callback URL `https://<public-domain>/api/payments/rustore/notifications`. Save the AES-256 callback key only in `RUSTORE_NOTIFICATION_AES_KEY` server secret. Add test VK IDs in the Console before sandbox testing.
 
-## Data and permissions inventory for future declarations
-
-The app processes profile name, Telegram/native session identifier, birth date/time/place and derived natal chart, forecast/questions, notification preferences, and Premium/account records. Android declares only network access. Verify every actual production SDK and server processor before completing store forms.
+The callback payload is AES-256-GCM decrypted server-side. Premium is never granted by an APK response; it is granted after server validation of a permitted subscription and linked to one user/purchase ID only.

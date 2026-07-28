@@ -1,0 +1,27 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
+import { RuStorePaymentError, validateRuStorePurchase } from '../../../../lib/rustorePayments';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  try {
+    const auth = await requireAppUser(req);
+    const result = await validateRuStorePurchase({
+      userId: auth.userId,
+      productId: typeof req.body?.productId === 'string' ? req.body.productId : '',
+      purchaseId: typeof req.body?.purchaseId === 'string' ? req.body.purchaseId : '',
+      invoiceId: typeof req.body?.invoiceId === 'string' ? req.body.invoiceId : undefined,
+      sandbox: process.env.RUSTORE_PAY_MODE === 'sandbox',
+    });
+    return res.status(200).json({
+      entitlement: { isPremium: result.entitlement.isPremium, expiresAt: result.expiresAt },
+      status: result.status,
+    });
+  } catch (error: any) {
+    const known = error instanceof RuStorePaymentError;
+    return res.status(known ? 422 : (error?.status || 500)).json({
+      error: known ? error.code : 'RUSTORE_VALIDATION_FAILED',
+      message: known ? error.message : 'RuStore purchase validation failed',
+    });
+  }
+}
