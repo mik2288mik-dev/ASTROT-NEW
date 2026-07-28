@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#091126">
+  <meta name="description" content="Твой Гороскоп — личные разборы, натальная карта и совместимость без страшилок и эзотерической ваты.">
+  <meta property="og:title" content="Твой Гороскоп">
+  <meta property="og:description" content="Гороскоп — общий. Этот разбор про тебя.">
+  <meta property="og:type" content="website">
+  <title>Твой Гороскоп — личный разбор без воды</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23091126'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23c9ff6f' stroke-width='5'/%3E%3Cpath d='M11 32h42M32 11v42' stroke='%23fff' stroke-width='3' stroke-linecap='round' opacity='.8'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Твой Гороскоп">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span data-i18n="brand">Твой Гороскоп</span>
+    </a>
+
+    <nav class="nav" aria-label="Основная навигация">
+      <a href="#inside" data-i18n="navInside">Что внутри</a>
+      <a href="#voice" data-i18n="navVoice">Как говорит</a>
+      <a href="#zodiac" data-i18n="navZodiac">Знаки</a>
+    </nav>
+
+    <div class="header-actions">
+      <div class="lang-switcher" aria-label="Язык">
+        <button class="lang is-active" type="button" data-lang="ru">RU</button>
+        <button class="lang" type="button" data-lang="en">EN</button>
+        <button class="lang" type="button" data-lang="es">ES</button>
+      </div>
+      <a class="header-cta" href="#download" data-i18n="download">Скачать</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="stars stars-a" aria-hidden="true"></div>
+      <div class="stars stars-b" aria-hidden="true"></div>
+      <div class="orbit orbit-a" aria-hidden="true"></div>
+      <div class="orbit orbit-b" aria-hidden="true"></div>
+      <div class="planet" aria-hidden="true"><span></span></div>
+
+      <div class="shell hero-grid">
+        <div class="hero-copy reveal">
+          <p class="eyebrow" data-i18n="eyebrow">Астрология без театра судьбы</p>
+          <h1 data-i18n="heroTitle">Гороскоп — общий.<br><em>Этот разбор про тебя.</em></h1>
+          <p class="hero-lead" data-i18n="heroLead">Натальная карта, совместимость и личные разборы без страшилок и сахарной ваты. Приложение говорит прямо — и не решает за тебя.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#inside" data-i18n="showInside">Покажи, что внутри</a>
+            <a class="button button-ghost" href="#zodiac" data-i18n="chooseSign">Выбрать знак</a>
+          </div>
+          <div class="hero-notes" aria-label="Преимущества">
+            <span data-i18n="noteOne">По твоим данным</span>
+            <span data-i18n="noteTwo">Без фатализма</span>
+            <span data-i18n="noteThree">Нормальным языком</span>
+          </div>
+        </div>
+
+        <div class="phone-stage reveal" aria-label="Пример интерфейса приложения">
+          <div class="glow glow-blue" aria-hidden="true"></div>
+          <div class="glow glow-lime" aria-hidden="true"></div>
+          <div class="phone">
+            <div class="phone-top"><span>9:41</span><span class="phone-sensors"></span></div>
+            <div class="phone-screen">
+              <div class="app-head">
+                <span data-i18n="appHello">Привет, Миша</span>
+                <span class="avatar">М</span>
+              </div>
+              <div class="app-date" data-i18n="appDate">ПОНЕДЕЛЬНИК · 28 ИЮЛЯ</div>
+              <article class="app-hero-card">
+                <div class="card-orbit" aria-hidden="true"></div>
+                <span class="app-label" data-i18n="appMain">ГЛАВНОЕ</span>
+                <h2 data-i18n="appCardTitle">Не отвечай на автомате. Сначала пойми, чего хочешь ты.</h2>
+                <button type="button" data-i18n="appCardCta">Ладно, рассказывай</button>
+              </article>
+              <div class="mini-grid">
+                <article class="mini-card coral"><span data-i18n="love">Любовь</span><strong data-i18n="loveText">Скажи прямо</strong></article>
+                <article class="mini-card blue"><span data-i18n="work">Работа</span><strong data-i18n="workText">Закрой один хвост</strong></article>
+                <article class="mini-card lime"><span data-i18n="money">Деньги</span><strong data-i18n="moneyText">Без покупок назло</strong></article>
+                <article class="mini-card lilac"><span data-i18n="mood">Настроение</span><strong data-i18n="moodText">Не тащи чужое</strong></article>
+              </div>
+            </div>
+          </div>
+          <div class="float-chip chip-left" data-i18n="chipLeft">Натальная карта</div>
+          <div class="float-chip chip-right" data-i18n="chipRight">Совместимость</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ticker" aria-label="Возможности приложения">
+      <div class="ticker-track">
+        <span data-i18n="ticker">Личный разбор • Натальная карта • Совместимость • Любовь • Работа • Деньги • Свои вопросы •</span>
+        <span aria-hidden="true" data-i18n="ticker">Личный разбор • Натальная карта • Совместимость • Любовь • Работа • Деньги • Свои вопросы •</span>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="inside">
+      <div class="shell">
+        <div class="section-heading reveal">
+          <p class="eyebrow dark" data-i18n="insideEyebrow">Не комбайн на сто кнопок</p>
+          <h2 data-i18n="insideTitle">Выбираешь, что волнует.<br>Идёшь сразу туда.</h2>
+        </div>
+
+        <div class="bento">
+          <a class="bento-card bento-main reveal" href="#download">
+            <span class="bento-number">01</span>
+            <div>
+              <p class="bento-kicker" data-i18n="personal">Личный разбор</p>
+              <h3 data-i18n="personalTitle">Не «всем Овнам приготовиться».</h3>
+              <p data-i18n="personalBody">Дата, время и город рождения превращают общий текст в разбор именно твоей ситуации.</p>
+            </div>
+            <span class="bento-link" data-i18n="more">Что там дальше?</span>
+          </a>
+
+          <a class="bento-card bento-natal reveal" href="#download">
+            <span class="bento-number">02</span>
+            <div class="natal-wheel" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div>
+              <p class="bento-kicker" data-i18n="natal">Натальная карта</p>
+              <h3 data-i18n="natalTitle">Разбор без учебника.</h3>
+              <p data-i18n="natalBody">Характер, привычные реакции и сильные стороны — без лекции на сорок экранов.</p>
+            </div>
+          </a>
+
+          <a class="bento-card bento-compat reveal" href="#download">
+            <span class="bento-number">03</span>
+            <div class="compat-visual" aria-hidden="true"><span>♈</span><span>♎</span></div>
+            <div>
+              <p class="bento-kicker" data-i18n="compat">Совместимость</p>
+              <h3 data-i18n="compatTitle">Не приговор отношениям.</h3>
+              <p data-i18n="compatBody">Где вас тянет друг к другу, а где вы снова спорите об одном и том же.</p>
+            </div>
+          </a>
+
+          <a class="bento-card bento-question reveal" href="#download">
+            <span class="bento-number">04</span>
+            <div>
+              <p class="bento-kicker" data-i18n="questions">Свои вопросы</p>
+              <h3 data-i18n="questionsTitle">Спроси прямо.</h3>
+              <p data-i18n="questionsBody">Работа, деньги, отношения, переезд — то, что правда сидит в голове.</p>
+            </div>
+            <span class="question-mark" aria-hidden="true">?</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section voice-section" id="voice">
+      <div class="shell voice-grid">
+        <div class="voice-copy reveal">
+          <p class="eyebrow" data-i18n="voiceEyebrow">Голос приложения</p>
+          <h2 data-i18n="voiceTitle">Не «энергия дня».<br>По-человечески.</h2>
+          <p data-i18n="voiceBody">Как добрый дерзкий друг: скажет правду, но не станет объявлять твою жизнь сломанной из-за ретроградного чего-нибудь.</p>
+        </div>
+        <blockquote class="voice-card reveal">
+          <span class="quote-mark">“</span>
+          <p data-i18n="quote">Ты не обязан отвечать сразу. Но делать вид, что вопроса нет, — тоже план так себе.</p>
+          <footer data-i18n="quoteFooter">Пример личного разбора</footer>
+        </blockquote>
+      </div>
+    </section>
+
+    <section class="section zodiac-section" id="zodiac">
+      <div class="shell">
+        <div class="section-heading compact reveal">
+          <p class="eyebrow dark" data-i18n="zodiacEyebrow">Хочется быстро?</p>
+          <h2 data-i18n="zodiacTitle">Начни со своего знака.</h2>
+          <p data-i18n="zodiacBody">Без анкеты и регистрации. Личный разбор добавишь потом.</p>
+        </div>
+        <div class="zodiac-grid reveal">
+          <a href="#download"><span>♈</span><strong data-i18n="aries">Овен</strong></a>
+          <a href="#download"><span>♉</span><strong data-i18n="taurus">Телец</strong></a>
+          <a href="#download"><span>♊</span><strong data-i18n="gemini">Близнецы</strong></a>
+          <a href="#download"><span>♋</span><strong data-i18n="cancer">Рак</strong></a>
+          <a href="#download"><span>♌</span><strong data-i18n="leo">Лев</strong></a>
+          <a href="#download"><span>♍</span><strong data-i18n="virgo">Дева</strong></a>
+          <a href="#download"><span>♎</span><strong data-i18n="libra">Весы</strong></a>
+          <a href="#download"><span>♏</span><strong data-i18n="scorpio">Скорпион</strong></a>
+          <a href="#download"><span>♐</span><strong data-i18n="sagittarius">Стрелец</strong></a>
+          <a href="#download"><span>♑</span><strong data-i18n="capricorn">Козерог</strong></a>
+          <a href="#download"><span>♒</span><strong data-i18n="aquarius">Водолей</strong></a>
+          <a href="#download"><span>♓</span><strong data-i18n="pisces">Рыбы</strong></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-section" id="download">
+      <div class="shell final-card reveal">
+        <div class="final-stars" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow" data-i18n="finalEyebrow">Скоро в магазинах приложений</p>
+          <h2 data-i18n="finalTitle">Раз уж зашёл —<br>посмотри, что там про тебя.</h2>
+          <p data-i18n="finalBody">Google Play, RuStore и App Store появятся здесь сразу после публикации.</p>
+        </div>
+        <div class="store-stack">
+          <span class="store-button is-disabled">Google Play</span>
+          <span class="store-button is-disabled">RuStore</span>
+          <span class="store-button is-disabled">App Store</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell footer-row">
+      <div>
+        <strong data-i18n="brand">Твой Гороскоп</strong>
+        <p data-i18n="footerText">Без фатализма. Без сахарной ваты.</p>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html" data-i18n="privacy">Конфиденциальность</a>
+        <a href="terms.html" data-i18n="terms">Условия</a>
+        <a href="delete-account.html" data-i18n="delete">Удаление аккаунта</a>
+      </div>
+      <span>© 2026</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
