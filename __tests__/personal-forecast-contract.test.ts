@@ -86,8 +86,8 @@ function forecastForPeriod(
 describe('personal forecast V3 contract', () => {
   it('keeps the exact fixed order and accepts only two to four dynamic sections', () => {
     expect(FIXED_FORECAST_SECTION_KEYS).toEqual([
-      'love',
       'mood',
+      'love',
       'home_family',
       'friends',
       'work_money',

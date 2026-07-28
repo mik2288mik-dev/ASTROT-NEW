@@ -152,6 +152,7 @@
   display: flex;
   width: 100%;
   align-items: center;
+  justify-content: center;
   gap: 0;
   overflow-x: auto;
   padding: 2px 1px 5px;
@@ -391,11 +392,13 @@
   font-weight: 780;
   letter-spacing: -0.012em;
   line-height: 1.28;
+  text-align: center;
 }
 
 .forecast-feed-section-copy {
   display: grid;
   gap: 12px;
+  text-align: center;
 }
 
 .forecast-feed-section-text {
@@ -405,6 +408,7 @@
   font-weight: 440;
   line-height: 1.68;
   white-space: pre-line;
+  text-align: center;
 }
 
 .forecast-feed-section.is-overview .forecast-feed-section-text {
@@ -426,9 +430,10 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.72);
   color: rgba(46, 55, 69, 0.72);
-  font-family: Georgia, serif;
   font-size: 11px;
-  font-style: italic;
+  font-family: var(--fresh-font);
+  font-style: normal;
+  font-weight: 760;
   line-height: 1;
   vertical-align: 0.12em;
 }
@@ -450,6 +455,7 @@
 
 .forecast-feed-locked {
   color: #242a36;
+  text-align: center;
 }
 
 .forecast-feed-locked-lead {
@@ -469,7 +475,7 @@
   filter: blur(4.5px);
   font-size: 15.5px;
   line-height: 1.62;
-  text-align: left;
+  text-align: center;
   -webkit-user-select: none;
   user-select: none;
 }

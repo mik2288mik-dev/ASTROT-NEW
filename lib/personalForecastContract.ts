@@ -169,8 +169,8 @@ export type PersonalForecastAccessPayload = {
 };
 
 export const FIXED_FORECAST_SECTION_KEYS = [
-  'love',
   'mood',
+  'love',
   'home_family',
   'friends',
   'work_money',
@@ -196,7 +196,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v4.concise-period',
+  'personal-forecast-feed.v4.1.mood-first-feed',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v3';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v3';

@@ -119,15 +119,6 @@ export function personalForecastFixture(): PersonalForecastPackage {
     }),
     sections: [
       sectionFixture({
-        id: 'love',
-        kind: 'fixed',
-        fixedKey: 'love',
-        sourceTopicKey: 'love',
-        title: FORECAST_FIXED_TITLES.en.love,
-        text: 'A direct conversation can define the limits of this relationship.',
-        importance: 92,
-      }),
-      sectionFixture({
         id: 'mood',
         kind: 'fixed',
         fixedKey: 'mood',
@@ -135,6 +126,15 @@ export function personalForecastFixture(): PersonalForecastPackage {
         title: FORECAST_FIXED_TITLES.en.mood,
         text: 'Mental focus improves when the next task has exact boundaries.',
         importance: 86,
+      }),
+      sectionFixture({
+        id: 'love',
+        kind: 'fixed',
+        fixedKey: 'love',
+        sourceTopicKey: 'love',
+        title: FORECAST_FIXED_TITLES.en.love,
+        text: 'A direct conversation can define the limits of this relationship.',
+        importance: 92,
       }),
       sectionFixture({
         id: 'home_family',

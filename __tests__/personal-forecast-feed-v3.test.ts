@@ -67,6 +67,12 @@ describe('personal forecast feed V3 wiring', () => {
       'tabIndex={compactVisible ? undefined : -1}',
     );
     expect(topicNavigation).toContain("language === 'ru' ? 'Сейчас:' : 'Now:'");
+    expect(topicNavigation).toContain('row.scrollTo({');
+    expect(topicNavigation).not.toContain('scrollIntoView');
+    expect(read('components/PersonalForecastFeed/ForecastSectionBlock.tsx'))
+      .toContain("day: 'Личный гороскоп на сегодня'");
+    expect(feedStyles).toContain('justify-content: center');
+    expect(feedStyles).toContain('text-align: center');
     expect(dashboard).toContain('function personalForecastGreeting');
     expect(dashboard).toContain('timeZone: timezone');
     expect(dashboard).toContain(

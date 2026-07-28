@@ -17,6 +17,26 @@ type ForecastSectionBlockProps = {
   onRequestPremium: () => void;
 };
 
+function overviewTitle(
+  period: PersonalForecastPeriod,
+  language: 'ru' | 'en',
+): string {
+  if (language === 'en') {
+    return {
+      day: 'Your horoscope for today',
+      week: 'Your horoscope for the week',
+      month: 'Your horoscope for the month',
+      year: 'Your horoscope for the year',
+    }[period];
+  }
+  return {
+    day: 'Личный гороскоп на сегодня',
+    week: 'Личный гороскоп на неделю',
+    month: 'Личный гороскоп на месяц',
+    year: 'Личный гороскоп на год',
+  }[period];
+}
+
 function renderTextWithAnchors(
   section: ForecastSection,
   onExplain: ForecastSectionBlockProps['onExplain'],
@@ -117,8 +137,11 @@ export function ForecastSectionBlock({
   onExplain,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
-  const title = section.title?.trim();
   const isOverview = section.kind === 'overview';
+  const title = isOverview
+    ? overviewTitle(period, language)
+    : section.title?.trim();
+  const overviewAnchor = isOverview ? section.explanationAnchors[0] : null;
   const preview = section.lockedPreview;
 
   return (
@@ -136,7 +159,23 @@ export function ForecastSectionBlock({
       style={style}
     >
       <div className="forecast-feed-section-content">
-        {title ? <h2 className="forecast-feed-section-title">{title}</h2> : null}
+        {title ? (
+          <h2 className="forecast-feed-section-title">
+            {title}
+            {overviewAnchor ? (
+              <button
+                type="button"
+                className="forecast-feed-info-icon"
+                aria-label={language === 'ru'
+                  ? 'Показать, почему получился этот вывод'
+                  : 'Show why this conclusion was reached'}
+                onClick={() => onExplain(section, overviewAnchor)}
+              >
+                i
+              </button>
+            ) : null}
+          </h2>
+        ) : null}
         {locked ? (
           <div className="forecast-feed-locked">
             <p className="forecast-feed-locked-lead">{preview.lead}</p>

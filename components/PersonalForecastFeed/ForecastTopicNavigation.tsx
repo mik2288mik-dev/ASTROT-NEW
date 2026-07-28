@@ -34,10 +34,10 @@ export function ForecastTopicNavigation({
     const target = Array.from(
       row.querySelectorAll<HTMLElement>('[data-forecast-topic]'),
     ).find((item) => item.dataset.forecastTopic === active.id);
-    target?.scrollIntoView({
+    if (!target) return;
+    row.scrollTo({
+      left: Math.max(0, target.offsetLeft - (row.clientWidth - target.clientWidth) / 2),
       behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
     });
   }, [active]);
 
