@@ -1,12 +1,14 @@
-import React, { useMemo } from 'react';
-import {
-  cardBackgroundStyle,
-  getUniversalCardBackground,
-} from '../../lib/cardBackgrounds';
+import React from 'react';
 import type {
   PersonalForecastPromoPlacement,
   PersonalForecastPromoProduct,
 } from '../../lib/personalForecastPromo';
+
+const PROMO_ART: Record<PersonalForecastPromoProduct, string> = {
+  natal: '/assets/forecast-feed/banner-natal.png',
+  compatibility: '/assets/forecast-feed/banner-compatibility.png',
+  zodiac: '/assets/forecast-feed/banner-zodiac.png',
+};
 
 type ForecastPromotionProps = {
   placement: PersonalForecastPromoPlacement;
@@ -78,10 +80,8 @@ export function ForecastPromotion({
   onOpenCompatibility,
   onOpenZodiac,
 }: ForecastPromotionProps) {
-  const background = useMemo(
-    () => getUniversalCardBackground(placement.product, userId, periodKey),
-    [periodKey, placement.product, userId],
-  );
+  void userId;
+  void periodKey;
   const copy = COPY[language][placement.product];
   const open = placement.product === 'natal'
     ? onOpenNatal
@@ -95,9 +95,9 @@ export function ForecastPromotion({
         'forecast-feed-promo',
         `forecast-feed-promo--${placement.product}`,
         `forecast-feed-promo--${placement.format}`,
-        background ? 'has-card-background' : '',
+        'has-card-background',
       ].filter(Boolean).join(' ')}
-      style={cardBackgroundStyle(background)}
+      style={{ '--forecast-promo-image': `url("${PROMO_ART[placement.product]}")` } as React.CSSProperties}
       aria-label={copy.kicker}
     >
       <span className="forecast-feed-promo-shade" aria-hidden />

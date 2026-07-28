@@ -14,7 +14,7 @@ The active contract is `docs/PERSONAL_FORECAST_FEED_V3_SPEC.md`.
 - `lib/appVoice.ts` and `getAppSystemVoice(language)` remain the only runtime source of the shared voice.
 - Canonical packages are cached once, then server-sliced for Free/Premium. Week, Month, and Year stay fully locked for Free while the server returns only their personalized preview and benefit copy, never the full section text.
 - Dashboard stays local-first and non-blocking.
-- Native promos and visuals are deterministic and use existing assets.
+- Native promos and visuals are deterministic. Reviewed Feed visual assets live in `public/assets/forecast-feed/` and are resolved through `lib/personalForecastVisuals.ts`.
 - The audited bilingual question catalog, strict high-confidence automatic moderation, manual moderation, limits, cached answers, and unread answer notifications are part of the period feed. Raw admin moderation data requires both publishing and PII permissions.
 - Saved questions are bound to the exact feed input hash, chart fingerprint, period/key, normalized wording, answer prompt, and voice. Do not loosen that identity or retry stale-version rows indefinitely.
 - The separate sign-based `Зодиак` product remains intact.
@@ -47,7 +47,7 @@ Old database rows are retained. V3 cache, prompt, visual, and question identitie
 
 - Do not restore DailyCanvas, personal period extras, fallback forecast copy, a separate topic reader, or sign-based personal Dashboard periods.
 - Do not delete old database content as part of unrelated work.
-- Do not copy, rename, or generate images to fill a visual slot; use the versioned resolver fallback.
+- Do not reference generator output outside the repository. New reviewed Feed assets belong in `public/assets/forecast-feed/` and must be registered through the versioned resolver.
 - Keep visual-manifest versioning independent from prompt/text cache versioning.
 - Preserve local-first startup: cache misses and background errors must not hide or close Dashboard.
 - Keep question answers inside the period feed; do not recreate a chat.

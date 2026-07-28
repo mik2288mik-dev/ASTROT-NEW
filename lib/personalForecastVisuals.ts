@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react';
-import manifest from '../docs/design/card-background-system/card-background-manifest.json';
 import {
   PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION,
   getPreviousPersonalForecastPeriodKey,
@@ -96,7 +95,18 @@ type ForecastVisualStyle = CSSProperties & {
   '--forecast-section-fallback-soft'?: string;
 };
 
-const ASSETS = (manifest.assets as ManifestAsset[]).filter((asset) => asset.enabled);
+const PREMIUM_FEED_ASSETS: ManifestAsset[] = [
+  { id: 'feed_mood_day', path: '/assets/forecast-feed/mood-day.png', category: 'personal', theme: 'energy', text_side: 'center', background_position: '72% 50%', enabled: true },
+  { id: 'feed_love_day', path: '/assets/forecast-feed/love-day.png', category: 'personal', theme: 'love', text_side: 'center', background_position: '74% 50%', enabled: true },
+  { id: 'feed_work_day', path: '/assets/forecast-feed/work-day.png', category: 'personal', theme: 'work', text_side: 'center', background_position: '72% 50%', enabled: true },
+  { id: 'feed_home_day', path: '/assets/forecast-feed/home-day.png', category: 'personal', theme: 'home_family', text_side: 'center', background_position: '73% 50%', enabled: true },
+  { id: 'feed_friends_day', path: '/assets/forecast-feed/friends-day.png', category: 'personal', theme: 'friends', text_side: 'center', background_position: '73% 50%', enabled: true },
+  { id: 'feed_money_day', path: '/assets/forecast-feed/money-day.png', category: 'personal', theme: 'money', text_side: 'center', background_position: '72% 50%', enabled: true },
+  { id: 'feed_mercury_day', path: '/assets/forecast-feed/mercury-day.png', category: 'personal', theme: 'communication', text_side: 'center', background_position: '74% 50%', enabled: true },
+  { id: 'feed_opportunity_day', path: '/assets/forecast-feed/opportunity-day.png', category: 'personal', theme: 'goals', text_side: 'center', background_position: '73% 50%', enabled: true },
+];
+
+const ASSETS = PREMIUM_FEED_ASSETS;
 
 const FALLBACK_PALETTES: Record<
   PersonalForecastPeriod,
@@ -109,7 +119,7 @@ const FALLBACK_PALETTES: Record<
 };
 
 const VISUAL_TAG_THEMES: Record<string, string[]> = {
-  overview: ['overview'],
+  overview: ['goals'],
   love: ['love'],
   mood: ['energy'],
   home: ['home_family'],
@@ -188,8 +198,7 @@ function normalizeTag(value: string): string {
 function assetCategory(
   request: ForecastVisualRequest,
 ): Extract<ManifestAsset['category'], 'hero' | 'personal' | 'strips'> {
-  if (request.kind === 'overview') return 'hero';
-  if (request.kind === 'astro_accent') return 'strips';
+  void request;
   return 'personal';
 }
 

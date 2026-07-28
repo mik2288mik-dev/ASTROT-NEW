@@ -196,10 +196,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v4.1.mood-first-feed',
+  'personal-forecast-feed.v4.2.tight-premium-feed',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v3';
-export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v3';
+export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v4-premium-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
   'ru' | 'en',
@@ -279,10 +279,10 @@ export const DYNAMIC_FORECAST_FOCUS_LABELS: Record<
   },
 };
 
-const OVERVIEW_TEXT_MIN = 450;
-const OVERVIEW_TEXT_MAX = 650;
-const SECTION_TEXT_MIN = 250;
-const SECTION_TEXT_MAX = 400;
+const OVERVIEW_TEXT_MIN = 320;
+const OVERVIEW_TEXT_MAX = 460;
+const SECTION_TEXT_MIN = 180;
+const SECTION_TEXT_MAX = 280;
 const EXPLANATION_TEXT_MIN = 120;
 const EXPLANATION_TEXT_MAX = 220;
 

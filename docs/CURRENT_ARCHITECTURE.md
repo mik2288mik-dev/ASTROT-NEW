@@ -20,7 +20,7 @@ The existing global content architecture remains active: `accessMatrix` owns pro
 Every `PersonalForecastPackage` contains:
 
 1. one overview;
-2. the fixed life sections in this order: love, mood, home and family, friends, tasks/work/money, wishes;
+2. the fixed life sections in this order: mood, love, home and family, friends, tasks/work/money, wishes;
 3. two to four simple life-dynamic sections selected from calculated evidence;
 4. separate astro-accent sections only for strong Moon, Mercury, or retrograde factors;
 5. weak factors as inline accents;
@@ -84,7 +84,7 @@ Admin moderation is available through `/api/admin/v2/forecast-questions` and the
 - A Zodiac promo is added only when a strong astro-accent provides a relevant anchor; no product or visual format repeats in the same feed.
 - Sign-horoscope generation remains a separate `Зодиак` product and never powers personal periods.
 
-`lib/personalForecastVisuals.ts` resolves `[overview, ...sections]` in one deterministic pass using existing manifest assets only.
+`lib/personalForecastVisuals.ts` resolves `[overview, ...sections]` in one deterministic pass using the dedicated Feed asset set.
 
 - assignments are keyed by section ID;
 - adjacent backgrounds do not repeat;
@@ -94,7 +94,7 @@ Admin moderation is available through `/api/admin/v2/forecast-questions` and the
 - responsive crop, scale, optional mirror, overlay preset, and CSS fallback are deterministic;
 - visual versioning is independent from text/prompt cache versioning.
 
-No image or `generated_images` file is created by Feed V3.
+Generated, reviewed Feed source assets are committed under `public/assets/forecast-feed/`; transient generator output is never referenced by runtime code.
 
 ## Persistence and migration boundary
 
