@@ -18,6 +18,7 @@ import {
   isSimpleDynamicTitle,
   personalForecastExplanationTextRange,
   personalForecastOverviewTextRange,
+  personalForecastSectionTextLimit,
   personalForecastSectionTextRange,
   selectTodayFreeSections,
   validateForecastSectionRepetition,
@@ -792,12 +793,9 @@ function parseSection(input: {
   const premiumTeaser = typeof input.raw.premium_teaser === 'string'
     ? input.raw.premium_teaser.trim()
     : '';
-  const textRange = input.plan.kind === 'overview'
-    ? personalForecastOverviewTextRange()
-    : personalForecastSectionTextRange();
   const lockedPreview = buildForecastLockedPreview(text, premiumTeaser);
   if (id !== input.plan.id) input.errors.push(`${input.plan.id}: returned id does not match`);
-  if (text.length < textRange.min || text.length > textRange.max) {
+  if (!text || text.length > personalForecastSectionTextLimit(input.period)) {
     input.errors.push(`${input.plan.id}: text is invalid`);
   }
   if (

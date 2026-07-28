@@ -52,6 +52,7 @@ describe('personal forecast feed V3 wiring', () => {
 
   it('uses real feed topics, hides the compact topic trigger from keyboard, and keeps info copy', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const feedStyles = read('styles/personalForecastFeed.css');
     const topicNavigation = read(
       'components/PersonalForecastFeed/ForecastTopicNavigation.tsx',
     );
@@ -66,6 +67,16 @@ describe('personal forecast feed V3 wiring', () => {
       'tabIndex={compactVisible ? undefined : -1}',
     );
     expect(topicNavigation).toContain("language === 'ru' ? 'Сейчас:' : 'Now:'");
+    expect(dashboard).toContain('function personalForecastGreeting');
+    expect(dashboard).toContain('timeZone: timezone');
+    expect(dashboard).toContain(
+      'const [greetingVariant] = useState(() => Math.floor(Math.random() * 3))',
+    );
+    expect(dashboard).toContain('className="forecast-feed-date-zone"');
+    expect(dashboard).toContain('className="forecast-feed-global-info"');
+    expect(dashboard).toContain('const retained = options?.retry ? null');
+    expect(feedStyles).toContain('.forecast-feed-page .home-period-tabs');
+    expect(feedStyles).toContain('margin-top: 0');
     expect(dashboard).toContain('Точное время рождения влияет на Асцендент и дома.');
     expect(dashboard).toContain('ИИ формулирует текст только по переданной карте');
     expect(dashboard).toContain('Дата, время и место рождения используются');

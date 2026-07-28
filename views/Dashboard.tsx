@@ -106,6 +106,38 @@ function personalForecastIntro(
   }[period];
 }
 
+function personalForecastGreeting(
+  name: string,
+  timezone: string,
+  variant: number,
+  language: 'ru' | 'en',
+): string {
+  let hour = new Date().getHours();
+  try {
+    hour = Number(new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date()));
+  } catch {
+    // The normalized profile timezone is expected to be valid.
+  }
+  if (language === 'en') {
+    if (variant === 1) return `Hi, ${name}`;
+    if (variant === 2) return `Hello, ${name}`;
+    if (hour >= 5 && hour < 12) return `Good morning, ${name}`;
+    if (hour >= 12 && hour < 18) return `Good afternoon, ${name}`;
+    if (hour >= 18 && hour < 23) return `Good evening, ${name}`;
+    return `Good night, ${name}`;
+  }
+  if (variant === 1) return `Привет, ${name}`;
+  if (variant === 2) return `Здравствуйте, ${name}`;
+  if (hour >= 5 && hour < 12) return `Доброе утро, ${name}`;
+  if (hour >= 12 && hour < 18) return `Добрый день, ${name}`;
+  if (hour >= 18 && hour < 23) return `Добрый вечер, ${name}`;
+  return `Доброй ночи, ${name}`;
+}
+
 function emptyPeriodState(): PeriodState {
   return { result: null, phase: 'idle' };
 }
@@ -155,6 +187,7 @@ export const Dashboard = memo<DashboardProps>(({
     ? buildPersonalForecastChartFingerprint(chartData)
     : 'none';
   const [activePeriod, setActivePeriod] = useState<PersonalForecastPeriod>('day');
+  const [greetingVariant] = useState(() => Math.floor(Math.random() * 3));
   const [periodStates, setPeriodStates] = useState<Record<PersonalForecastPeriod, PeriodState>>({
     day: emptyPeriodState(),
     week: emptyPeriodState(),
@@ -245,21 +278,23 @@ export const Dashboard = memo<DashboardProps>(({
 
   const loadPeriod = useCallback((
     period: PersonalForecastPeriod,
-    _options?: { retry?: boolean },
+    options?: { retry?: boolean },
   ) => {
     if (!chartData || !hasChart) return;
     if (requestsRef.current[period]) return;
 
     const periodKey = periodKeys[period];
-    const local = readLocalPersonalForecast({
-      profile,
-      chartData,
-      chartId,
-      period,
-      periodKey,
-    });
+    const local = options?.retry
+      ? null
+      : readLocalPersonalForecast({
+          profile,
+          chartData,
+          chartId,
+          period,
+          periodKey,
+        });
     setPeriodStates((current) => {
-      const retained = current[period]?.result || local;
+      const retained = options?.retry ? null : current[period]?.result || local;
       return {
         ...current,
         [period]: {
@@ -273,17 +308,7 @@ export const Dashboard = memo<DashboardProps>(({
     const request = (async () => {
       try {
         let next: PersonalForecastClientResult;
-        try {
-          next = await loadPersonalForecast({
-            profile,
-            chartData,
-            chartId,
-            period,
-            periodKey,
-            options: { cacheOnly: true, force: true },
-          });
-        } catch (error: any) {
-          if (error?.status !== 404) throw error;
+        if (options?.retry) {
           next = await loadPersonalForecast({
             profile,
             chartData,
@@ -292,6 +317,27 @@ export const Dashboard = memo<DashboardProps>(({
             periodKey,
             options: { force: true },
           });
+        } else {
+          try {
+            next = await loadPersonalForecast({
+              profile,
+              chartData,
+              chartId,
+              period,
+              periodKey,
+              options: { cacheOnly: true, force: true },
+            });
+          } catch (error: any) {
+            if (error?.status !== 404) throw error;
+            next = await loadPersonalForecast({
+              profile,
+              chartData,
+              chartId,
+              period,
+              periodKey,
+              options: { force: true },
+            });
+          }
         }
         if (accessContextRef.current !== requestContextKey) return;
         setPeriodStates((current) => ({
@@ -301,7 +347,7 @@ export const Dashboard = memo<DashboardProps>(({
       } catch {
         if (accessContextRef.current !== requestContextKey) return;
         setPeriodStates((current) => {
-          const retained = current[period]?.result || local;
+          const retained = options?.retry ? null : current[period]?.result || local;
           return {
             ...current,
             [period]: {
@@ -551,6 +597,15 @@ export const Dashboard = memo<DashboardProps>(({
   ) || [];
   const displayName = profile.name?.trim()
     || (language === 'ru' ? 'друг' : 'friend');
+  const greeting = useMemo(
+    () => personalForecastGreeting(
+      displayName,
+      timezone,
+      greetingVariant,
+      language,
+    ),
+    [displayName, greetingVariant, language, timezone],
+  );
 
   return (
     <div
@@ -595,13 +650,23 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </section>
 
-      <p className="forecast-feed-date">
-        {dateLabel.split('\n').map((line) => <span key={line}>{line}</span>)}
-      </p>
+      <div className="forecast-feed-date-zone">
+        <p className="forecast-feed-date">
+          {dateLabel.split('\n').map((line) => <span key={line}>{line}</span>)}
+        </p>
+        <button
+          type="button"
+          className="forecast-feed-global-info"
+          aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
+          onClick={() => setHowItWorksOpen(true)}
+        >
+          <Info size={16} aria-hidden />
+        </button>
+      </div>
       <div className="forecast-feed-intro">
         <div className="forecast-feed-greeting-row">
           <p className="home-top-greeting">
-            {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
+            {greeting}
           </p>
           <div className="forecast-feed-header-actions">
             {unreadQuestions.length > 0 ? (
@@ -617,14 +682,6 @@ export const Dashboard = memo<DashboardProps>(({
                 <span className="forecast-feed-notification-dot" aria-hidden />
               </button>
             ) : null}
-            <button
-              type="button"
-              className="forecast-feed-header-action"
-              aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
-              onClick={() => setHowItWorksOpen(true)}
-            >
-              <Info size={16} aria-hidden />
-            </button>
           </div>
         </div>
         <p className="forecast-feed-intro-copy">
