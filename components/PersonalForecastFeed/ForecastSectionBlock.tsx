@@ -169,14 +169,7 @@ export function ForecastSectionBlock({
             </button>
           </div>
         ) : (
-          <>
-            {renderTextWithAnchors(section, onExplain, language)}
-            {section.inlineAstroAccent?.text ? (
-              <p className="forecast-feed-inline-astro">
-                {section.inlineAstroAccent.text}
-              </p>
-            ) : null}
-          </>
+          renderTextWithAnchors(section, onExplain, language)
         )}
         {children}
       </div>

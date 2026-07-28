@@ -196,7 +196,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v3.structured-period',
+  'personal-forecast-feed.v4.concise-period',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v3';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v3';
@@ -279,19 +279,12 @@ export const DYNAMIC_FORECAST_FOCUS_LABELS: Record<
   },
 };
 
-const SECTION_TEXT_LIMITS: Record<PersonalForecastPeriod, number> = {
-  day: 1_400,
-  week: 1_800,
-  month: 2_200,
-  year: 2_800,
-};
-
-const EXPLANATION_LIMITS: Record<PersonalForecastPeriod, number> = {
-  day: 700,
-  week: 850,
-  month: 1_000,
-  year: 1_150,
-};
+const OVERVIEW_TEXT_MIN = 450;
+const OVERVIEW_TEXT_MAX = 650;
+const SECTION_TEXT_MIN = 250;
+const SECTION_TEXT_MAX = 400;
+const EXPLANATION_TEXT_MIN = 120;
+const EXPLANATION_TEXT_MAX = 220;
 
 const BANNED_DYNAMIC_TITLES = new Set([
   'публичность',
@@ -690,7 +683,7 @@ export function buildForecastLockedPreview(
 function anchorValid(
   value: unknown,
   evidenceIds: Set<string>,
-  period: PersonalForecastPeriod,
+  _period: PersonalForecastPeriod,
 ): value is ExplanationAnchor {
   if (!value || typeof value !== 'object') return false;
   const anchor = value as ExplanationAnchor;
@@ -702,7 +695,8 @@ function anchorValid(
     && anchor.conclusion.length <= 220
     && typeof anchor.explanation === 'string'
     && !!anchor.explanation.trim()
-    && anchor.explanation.length <= EXPLANATION_LIMITS[period]
+    && anchor.explanation.length >= EXPLANATION_TEXT_MIN
+    && anchor.explanation.length <= EXPLANATION_TEXT_MAX
     && Array.isArray(anchor.evidenceIds)
     && anchor.evidenceIds.length >= 1
     && anchor.evidenceIds.length <= 4
@@ -757,7 +751,14 @@ function sectionValid(
     )
     || typeof section.text !== 'string'
     || (redacted ? !!section.text.trim() : !section.text.trim())
-    || section.text.length > SECTION_TEXT_LIMITS[period]
+    || (!redacted && section.status === 'ready' && (
+      section.text.length < (
+        section.kind === 'overview' ? OVERVIEW_TEXT_MIN : SECTION_TEXT_MIN
+      )
+      || section.text.length > (
+        section.kind === 'overview' ? OVERVIEW_TEXT_MAX : SECTION_TEXT_MAX
+      )
+    ))
     || !Number.isFinite(section.importance)
     || section.importance < 0
     || section.importance > 100
@@ -1355,9 +1356,32 @@ export function slicePersonalForecastForAccess(
 }
 
 export function personalForecastSectionTextLimit(period: PersonalForecastPeriod): number {
-  return SECTION_TEXT_LIMITS[period];
+  void period;
+  return SECTION_TEXT_MAX;
 }
 
 export function personalForecastExplanationLimit(period: PersonalForecastPeriod): number {
-  return EXPLANATION_LIMITS[period];
+  void period;
+  return EXPLANATION_TEXT_MAX;
+}
+
+export function personalForecastOverviewTextRange(): Readonly<{
+  min: number;
+  max: number;
+}> {
+  return { min: OVERVIEW_TEXT_MIN, max: OVERVIEW_TEXT_MAX };
+}
+
+export function personalForecastSectionTextRange(): Readonly<{
+  min: number;
+  max: number;
+}> {
+  return { min: SECTION_TEXT_MIN, max: SECTION_TEXT_MAX };
+}
+
+export function personalForecastExplanationTextRange(): Readonly<{
+  min: number;
+  max: number;
+}> {
+  return { min: EXPLANATION_TEXT_MIN, max: EXPLANATION_TEXT_MAX };
 }

@@ -50,10 +50,22 @@ describe('personal forecast feed V3 wiring', () => {
     expect(questionService).toContain('input.chartFingerprint');
   });
 
-  it('keeps hidden compact tabs out of keyboard navigation and includes the technical info copy', () => {
+  it('uses real feed topics, hides the compact topic trigger from keyboard, and keeps info copy', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const topicNavigation = read(
+      'components/PersonalForecastFeed/ForecastTopicNavigation.tsx',
+    );
 
-    expect(dashboard).toContain('tabIndex={compact && !compactTabsVisible ? -1 : undefined}');
+    expect(dashboard).toContain('ForecastTopicNavigation');
+    expect(dashboard).toContain('const title = section.title?.trim()');
+    expect(dashboard).toContain('return title ? [{ id: section.id, title }] : []');
+    expect(dashboard).toContain(
+      'Личный прогноз на сегодня по твоей натальной карте и расчётам дня.',
+    );
+    expect(topicNavigation).toContain(
+      'tabIndex={compactVisible ? undefined : -1}',
+    );
+    expect(topicNavigation).toContain("language === 'ru' ? 'Сейчас:' : 'Now:'");
     expect(dashboard).toContain('Точное время рождения влияет на Асцендент и дома.');
     expect(dashboard).toContain('ИИ формулирует текст только по переданной карте');
     expect(dashboard).toContain('Дата, время и место рождения используются');
@@ -64,9 +76,11 @@ describe('personal forecast feed V3 wiring', () => {
     const questions = read('components/PersonalForecastFeed/ForecastQuestions.tsx');
 
     expect(questions).toContain("snapshot.moderation.status === 'pending'");
-    expect(questions).toContain('Вопрос отправлен на модерацию.');
+    expect(questions).toContain('На модерации.');
     expect(questions).toContain('snapshot.moderation.suggestions.map');
     expect(questions).toContain('activeMutationRef.current');
+    expect(questions).toContain('Найди вопрос или напиши свой');
+    expect(questions).toContain('Мои вопросы и ответы');
   });
 
   it('startup does not own or await personal forecast generation', () => {

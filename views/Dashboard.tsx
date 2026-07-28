@@ -38,6 +38,7 @@ import { ForecastPromotion } from '../components/PersonalForecastFeed/ForecastPr
 import { ForecastQuestions } from '../components/PersonalForecastFeed/ForecastQuestions';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
 import { ForecastSideNavigator } from '../components/PersonalForecastFeed/ForecastSideNavigator';
+import { ForecastTopicNavigation } from '../components/PersonalForecastFeed/ForecastTopicNavigation';
 import type {
   PersonalForecastQuestionNotification,
 } from '../services/personalForecastQuestionService';
@@ -83,6 +84,26 @@ function periodTabLabel(
   language: 'ru' | 'en',
 ): string {
   return PERIOD_TABS.find((tab) => tab.id === period)?.[language] || period;
+}
+
+function personalForecastIntro(
+  period: PersonalForecastPeriod,
+  language: 'ru' | 'en',
+): string {
+  if (language === 'en') {
+    return {
+      day: 'A personal forecast for today based on your natal chart and today’s calculations.',
+      week: 'A personal forecast for this week based on your natal chart and weekly calculations.',
+      month: 'A personal forecast for this month based on your natal chart and monthly calculations.',
+      year: 'A personal forecast for this year based on your natal chart and yearly calculations.',
+    }[period];
+  }
+  return {
+    day: 'Личный прогноз на сегодня по твоей натальной карте и расчётам дня.',
+    week: 'Личный прогноз на неделю по твоей натальной карте и расчётам недели.',
+    month: 'Личный прогноз на месяц по твоей натальной карте и расчётам месяца.',
+    year: 'Личный прогноз на год по твоей натальной карте и расчётам года.',
+  }[period];
 }
 
 function emptyPeriodState(): PeriodState {
@@ -366,25 +387,30 @@ export const Dashboard = memo<DashboardProps>(({
     language,
   );
 
-  const sideSections = useMemo(() => {
+  const topicSections = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
     return [
       {
         id: 'overview',
-        title: language === 'ru' ? 'Главное' : 'Overview',
+        title: language === 'ru' ? 'Общее' : 'Overview',
       },
-      ...forecast.sections.map((section) => ({
-        id: section.id,
-        title: section.title || (
-          language === 'ru' ? 'Важный период' : 'Important period'
-        ),
-      })),
-      {
-        id: 'questions',
-        title: language === 'ru' ? 'Вопросы' : 'Questions',
-      },
+      ...forecast.sections.flatMap((section) => {
+        const title = section.title?.trim();
+        return title ? [{ id: section.id, title }] : [];
+      }),
     ];
   }, [forecast, language]);
+
+  const sideSections = useMemo(() => {
+    if (!topicSections.length) return [];
+    return [
+      ...topicSections,
+      {
+        id: 'questions',
+        title: language === 'ru' ? 'Вопросы по карте' : 'Chart questions',
+      },
+    ];
+  }, [language, topicSections]);
 
   const scrollToSection = useCallback((sectionId: string) => {
     const root = scrollRef?.current;
@@ -498,28 +524,6 @@ export const Dashboard = memo<DashboardProps>(({
     setExplanation({ section, anchor });
   }, []);
 
-  const renderTabs = (compact = false) => (
-    <div
-      className={compact ? 'forecast-feed-tabs is-compact' : 'forecast-feed-tabs'}
-      role="tablist"
-      aria-label={language === 'ru' ? 'Период прогноза' : 'Forecast period'}
-    >
-      {PERIOD_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          className={`forecast-feed-tab${tab.id === activePeriod ? ' is-active' : ''}`}
-          role="tab"
-          aria-selected={tab.id === activePeriod}
-          tabIndex={compact && !compactTabsVisible ? -1 : undefined}
-          onClick={() => selectPeriod(tab.id)}
-        >
-          {tab[language]}
-        </button>
-      ))}
-    </div>
-  );
-
   const renderPromo = (placement: PersonalForecastPromoPlacement) => (
     <ForecastPromotion
       key={placement.id}
@@ -563,34 +567,6 @@ export const Dashboard = memo<DashboardProps>(({
           </span>
         </div>
         <div className="home-top-content">
-          <div className="forecast-feed-greeting-row">
-            <p className="home-top-greeting">
-              {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
-            </p>
-            <div className="forecast-feed-header-actions">
-              {unreadQuestions.length > 0 ? (
-                <button
-                  type="button"
-                  className="forecast-feed-header-action has-notification"
-                  aria-label={language === 'ru'
-                    ? `Новых ответов: ${unreadQuestions.length}`
-                    : `New answers: ${unreadQuestions.length}`}
-                  onClick={openQuestionNotification}
-                >
-                  <Bell size={16} aria-hidden />
-                  <span className="forecast-feed-notification-dot" aria-hidden />
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="forecast-feed-header-action"
-                aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
-                onClick={() => setHowItWorksOpen(true)}
-              >
-                <Info size={16} aria-hidden />
-              </button>
-            </div>
-          </div>
           <div
             className="home-period-tabs"
             role="tablist"
@@ -609,20 +585,53 @@ export const Dashboard = memo<DashboardProps>(({
               </button>
             ))}
           </div>
+          <ForecastTopicNavigation
+            sections={topicSections}
+            activeId={activeSectionId}
+            compactVisible={compactTabsVisible}
+            language={language}
+            onNavigate={scrollToSection}
+          />
         </div>
       </section>
 
       <p className="forecast-feed-date">
         {dateLabel.split('\n').map((line) => <span key={line}>{line}</span>)}
       </p>
-      <div className="forecast-feed-ambient" aria-hidden />
-
-      <div
-        className={`forecast-feed-compact-tabs${compactTabsVisible ? ' is-visible' : ''}`}
-        aria-hidden={!compactTabsVisible}
-      >
-        {renderTabs(true)}
+      <div className="forecast-feed-intro">
+        <div className="forecast-feed-greeting-row">
+          <p className="home-top-greeting">
+            {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
+          </p>
+          <div className="forecast-feed-header-actions">
+            {unreadQuestions.length > 0 ? (
+              <button
+                type="button"
+                className="forecast-feed-header-action has-notification"
+                aria-label={language === 'ru'
+                  ? `Новых ответов: ${unreadQuestions.length}`
+                  : `New answers: ${unreadQuestions.length}`}
+                onClick={openQuestionNotification}
+              >
+                <Bell size={16} aria-hidden />
+                <span className="forecast-feed-notification-dot" aria-hidden />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="forecast-feed-header-action"
+              aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
+              onClick={() => setHowItWorksOpen(true)}
+            >
+              <Info size={16} aria-hidden />
+            </button>
+          </div>
+        </div>
+        <p className="forecast-feed-intro-copy">
+          {personalForecastIntro(activePeriod, language)}
+        </p>
       </div>
+      <div className="forecast-feed-ambient" aria-hidden />
 
       {!hasChart ? (
         <section className="forecast-feed-status">
@@ -740,7 +749,6 @@ export const Dashboard = memo<DashboardProps>(({
             premium={premium}
             focusNotification={focusQuestion}
             onRequestPremium={requestPremium}
-            onSelectPeriod={(period) => selectPeriod(period, 'questions')}
             onUnreadChange={setUnreadQuestions}
             onFocusConsumed={() => setFocusQuestion(null)}
           />
