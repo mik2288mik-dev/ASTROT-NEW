@@ -1,198 +1,129 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { ArticleCard } from '@/components/ArticleCard';
 import { JsonLd } from '@/components/JsonLd';
 import { StoreButtons } from '@/components/StoreButtons';
-import { getGuides } from '@/lib/content';
 import { getDictionary } from '@/lib/i18n';
 import { pageMetadata, organizationJsonLd, softwareApplicationJsonLd, websiteJsonLd } from '@/lib/seo';
 import { isLocale } from '@/lib/site';
 import { zodiacSlugs, getZodiacInfo } from '@/lib/zodiac';
 
+const zodiacSymbols = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'] as const;
+
 const copy = {
   ru: {
     badge: 'Твой Гороскоп',
-    heroTitle: 'Личный гороскоп, натальная карта и совместимость',
-    heroBody: 'Смотри прогноз на сегодня, неделю, месяц и год. Начни со своего знака или добавь данные рождения — приложение соберёт разбор под тебя.',
-    primary: 'Посмотреть возможности',
-    secondary: 'Выбрать знак',
-    proof: ['Сегодня · Неделя · Месяц · Год', 'Натальная карта', 'Совместимость'],
-    photoLabel: 'Личный прогноз',
-    photoNote: 'Главное на сегодня — сразу. Остальное по темам.',
+    heroLine: 'Гороскоп — общий.',
+    heroAccent: 'Этот разбор про тебя.',
+    heroBody: 'Дата, время и место рождения — и приложение собирает личный прогноз, натальную карту и совместимость. Без страшилок, приговоров и космической воды.',
+    primary: 'Посмотреть, что внутри',
+    secondary: 'Начать со знака',
+    chips: ['Личный прогноз', 'Натальная карта', 'Совместимость', 'Свои вопросы'],
+    phoneKicker: 'ЛИЧНЫЙ РАЗБОР',
+    phoneTitle: 'Не гадай, что имелось в виду. Спроси прямо.',
+    phoneBody: 'Разговор, который ты откладываешь, не станет проще от ещё одной недели молчания.',
+    phoneCards: [
+      ['Любовь', 'Хватит намёков'],
+      ['Работа', 'Закрой один хвост'],
+      ['Деньги', 'Не покупай на эмоциях'],
+    ],
     insideEyebrow: 'Что внутри',
-    insideTitle: 'Выбери, что важно сейчас',
-    insideBody: 'Можно быстро посмотреть гороскоп по знаку, а можно пойти глубже — в личный прогноз, натальную карту, совместимость и вопросы.',
+    insideTitle: 'Всё нужное. Без астрологического квеста.',
+    insideBody: 'Выбираешь тему — сразу получаешь понятный разбор. Термины и расчёты остаются под капотом.',
     features: [
-      ['Личный прогноз', 'Прогноз на сегодня, неделю, месяц и год с учётом твоих данных.', 'personal-horoscope'],
-      ['Натальная карта', 'Понятный разбор характера, сильных сторон и повторяющихся сценариев.', 'natal-chart'],
-      ['Совместимость', 'Быстрая версия по знакам или подробный разбор двух натальных карт.', 'compatibility'],
-      ['Свои вопросы', 'Работа, деньги, отношения, переезд и другие темы, которые не отпускают.', 'questions'],
+      ['Личный прогноз', 'Главное — сразу. Потом любовь, работа, деньги и всё остальное.', 'personal-horoscope'],
+      ['Натальная карта', 'Не «ты сложный человек», а что именно у тебя работает так.', 'natal-chart'],
+      ['Совместимость', 'Где вас тянет друг к другу, а где оба жмёте не на ту кнопку.', 'compatibility'],
+      ['Свои вопросы', 'Про отношения, деньги, переезд и решения, которые не дают покоя.', 'questions'],
     ],
-    readMore: 'Подробнее',
-    personalEyebrow: 'Личный прогноз',
-    personalTitle: 'Сегодня, неделя, месяц и год — в одном месте',
-    personalBody: 'Главная тема периода показывается сразу. Дальше — любовь, настроение, дом, друзья, работа и деньги. Читай подряд или переходи к нужному разделу.',
-    personalLink: 'Посмотреть личный прогноз',
-    previewDate: 'ВОСКРЕСЕНЬЕ · 26 ИЮЛЯ',
-    previewTitle: 'Сегодня разговор решит больше, чем ещё одна попытка всё угадать',
-    previewBody: 'Это пример подачи: сначала главное, потом короткие выводы по темам.',
-    topicLove: ['Любовь', 'Скажи прямо, чего хочешь'],
-    topicWork: ['Работа', 'Закрой один зависший вопрос'],
-    topicMoney: ['Деньги', 'Не покупай на эмоциях'],
-    natalEyebrow: 'Натальная карта',
-    natalTitle: 'Натальная карта с понятной расшифровкой',
-    natalBody: 'Не только знак зодиака. Карта помогает увидеть сочетание характера, эмоций, привычных реакций, отношений с работой, деньгами и близкими.',
-    natalLink: 'Посмотреть натальную карту',
-    compatibilityEyebrow: 'Совместимость',
-    compatibilityTitle: 'Совместимость по знакам и натальным картам',
-    compatibilityBody: 'По знакам — быстро. По двум картам — подробнее: общение, притяжение, ценности и причины конфликтов. Без вердиктов про «судьбу навсегда».',
-    compatibilityLink: 'Проверить совместимость',
-    questionsEyebrow: 'Персональные вопросы',
-    questionsTitle: 'Есть вопрос, который не отпускает?',
-    questionsBody: 'Работа, деньги, отношения, переезд, новая профессия или сложное решение. Ответ связывает твой вопрос с натальной картой и тем, что происходит сейчас.',
-    questionsLink: 'Посмотреть вопросы',
-    stepsEyebrow: 'Как начать',
-    stepsTitle: 'Без длинной анкеты на старте',
-    steps: [
-      ['01', 'Начни со знака', 'Выбери свой знак и сразу посмотри общий прогноз.'],
-      ['02', 'Добавь данные рождения', 'Дата, время и город нужны только для личных разборов.'],
-      ['03', 'Открой то, что важно', 'День, неделя, карта, совместимость и свои вопросы будут внутри.'],
-    ],
-    zodiacEyebrow: 'Гороскопы по знакам',
-    zodiacTitle: 'Хочется просто посмотреть гороскоп? Начни со знака',
-    zodiacBody: 'Быстрый прогноз без регистрации. Личный разбор можно добавить позже.',
-    guidesEyebrow: 'Полезные материалы',
-    guidesTitle: 'Натальная карта, совместимость и астрология — нормальным языком',
-    finalTitle: 'Начни со своего знака или получи личный разбор',
-    finalBody: 'Один быстрый вход — и дальше выбирай, что тебе нужно сейчас.',
-    altHero: 'Женщина в светлом современном интерьере',
-    altNotebook: 'Открытый блокнот и ручка на рабочем столе',
-    altNatal: 'Человек делает записи в блокноте',
-    altCompatibility: 'Друзья разговаривают вместе за столом',
-    altQuestions: 'Команда обсуждает рабочие вопросы за столом',
+    voiceEyebrow: 'Как мы говорим',
+    voiceTitle: 'Без «энергии дня». По-человечески.',
+    voiceBody: 'Как добрый дерзкий друг: скажет правду, не напугает и не станет решать за тебя.',
+    quote: 'Ты не обязан отвечать сразу. Но делать вид, что вопроса нет, — тоже план так себе.',
+    toneTags: ['Честно', 'Без фатализма', 'С пользой'],
+    zodiacEyebrow: 'Можно начать проще',
+    zodiacTitle: 'Сначала знак. Личный разбор — когда захочешь.',
+    zodiacBody: 'Быстрый вход без анкеты и лишних обещаний.',
+    finalTitle: 'Ну что, посмотрим, что там у тебя?',
+    finalBody: 'Начни со знака или добавь данные рождения для персонального разбора.',
+    quoteFooter: 'Без занудства',
+    me: 'Я',
   },
   en: {
     badge: 'Your Horoscope',
-    heroTitle: 'Personal horoscope, natal chart, and compatibility',
-    heroBody: 'See your forecast for today, the week, month, and year. Start with your sign or add birth details for a reading built around you.',
-    primary: 'Explore the app',
-    secondary: 'Choose your sign',
-    proof: ['Today · Week · Month · Year', 'Natal chart', 'Compatibility'],
-    photoLabel: 'Personal forecast',
-    photoNote: 'The main point first. Everything else by topic.',
+    heroLine: 'Horoscopes are general.',
+    heroAccent: 'This reading is about you.',
+    heroBody: 'Add your birth date, time, and place to get a personal forecast, natal chart, and compatibility reading — without fear, verdicts, or cosmic filler.',
+    primary: 'See what is inside',
+    secondary: 'Start with your sign',
+    chips: ['Personal forecast', 'Natal chart', 'Compatibility', 'Your questions'],
+    phoneKicker: 'PERSONAL READING',
+    phoneTitle: 'Stop guessing what they meant. Ask directly.',
+    phoneBody: 'The conversation you keep postponing will not get easier after another week of silence.',
+    phoneCards: [
+      ['Love', 'Enough with hints'],
+      ['Work', 'Close one loose end'],
+      ['Money', 'Do not shop your mood'],
+    ],
     insideEyebrow: 'Inside the app',
-    insideTitle: 'Choose what matters now',
-    insideBody: 'Check your sign for a quick forecast or go deeper with a personal forecast, natal chart, compatibility, and personal questions.',
+    insideTitle: 'Everything useful. No astrology obstacle course.',
+    insideBody: 'Pick a topic and get a clear reading. The terms and calculations stay under the hood.',
     features: [
-      ['Personal forecast', 'Today, week, month, and year based on your birth details.', 'personal-horoscope'],
-      ['Natal chart', 'A clear look at personality, strengths, and repeating patterns.', 'natal-chart'],
-      ['Compatibility', 'A quick sign match or a deeper comparison of two natal charts.', 'compatibility'],
-      ['Your questions', 'Work, money, relationships, relocation, and the topics on your mind.', 'questions'],
+      ['Personal forecast', 'The main point first. Then love, work, money, and everything else.', 'personal-horoscope'],
+      ['Natal chart', 'Not “you are complicated,” but what actually works that way in you.', 'natal-chart'],
+      ['Compatibility', 'Where you click — and where both of you keep pressing the wrong button.', 'compatibility'],
+      ['Your questions', 'Relationships, money, moving, and decisions that will not leave you alone.', 'questions'],
     ],
-    readMore: 'Learn more',
-    personalEyebrow: 'Personal forecast',
-    personalTitle: 'Today, week, month, and year in one place',
-    personalBody: 'See the main theme first, then move through love, mood, home, friends, work, and money. Read it all or jump to what you need.',
-    personalLink: 'Explore personal forecasts',
-    previewDate: 'SUNDAY · JULY 26',
-    previewTitle: 'A clear conversation will do more today than another round of guessing',
-    previewBody: 'An example of the format: the main point first, then short notes by topic.',
-    topicLove: ['Love', 'Say what you actually want'],
-    topicWork: ['Work', 'Close one unfinished task'],
-    topicMoney: ['Money', 'Do not buy on impulse'],
-    natalEyebrow: 'Natal chart',
-    natalTitle: 'A natal chart explained clearly',
-    natalBody: 'More than a zodiac sign. See how personality, emotions, familiar reactions, work, money, and relationships fit together.',
-    natalLink: 'Explore the natal chart',
-    compatibilityEyebrow: 'Compatibility',
-    compatibilityTitle: 'Compatibility by signs and natal charts',
-    compatibilityBody: 'Signs for a quick overview. Two charts for communication, attraction, values, and the reasons behind recurring conflict.',
-    compatibilityLink: 'Check compatibility',
-    questionsEyebrow: 'Personal questions',
-    questionsTitle: 'Got a question you cannot shake?',
-    questionsBody: 'Work, money, relationships, relocation, a new career, or a difficult decision. The answer connects your question with your chart and current moment.',
-    questionsLink: 'Explore questions',
-    stepsEyebrow: 'How to start',
-    stepsTitle: 'No long form at the beginning',
-    steps: [
-      ['01', 'Start with your sign', 'Choose your sign and open the general forecast right away.'],
-      ['02', 'Add birth details', 'Date, time, and city are only needed for personal readings.'],
-      ['03', 'Open what matters', 'Your day, week, chart, compatibility, and questions are all inside.'],
-    ],
-    zodiacEyebrow: 'Zodiac horoscopes',
-    zodiacTitle: 'Just checking your horoscope? Start with your sign',
-    zodiacBody: 'A quick forecast without registration. Add a personal reading later.',
-    guidesEyebrow: 'Useful guides',
-    guidesTitle: 'Natal charts, compatibility, and astrology in plain language',
-    finalTitle: 'Start with your sign or get a personal reading',
-    finalBody: 'One quick entry point, then choose what matters to you now.',
-    altHero: 'Woman in a bright modern interior',
-    altNotebook: 'Open notebook and pen on a desk',
-    altNatal: 'Person writing notes in a notebook',
-    altCompatibility: 'Friends talking together at a table',
-    altQuestions: 'Team discussing work around a table',
+    voiceEyebrow: 'How we talk',
+    voiceTitle: 'No “energy of the day.” Just human.',
+    voiceBody: 'Like a kind, bold friend: honest, supportive, and never fatalistic.',
+    quote: 'You do not have to answer right away. Pretending the question is not there is still a pretty bad plan.',
+    toneTags: ['Honest', 'No fatalism', 'Useful'],
+    zodiacEyebrow: 'Start simple',
+    zodiacTitle: 'Your sign first. A personal reading when you are ready.',
+    zodiacBody: 'A quick entry without a long form or big promises.',
+    finalTitle: 'So, shall we see what is going on with you?',
+    finalBody: 'Start with your sign or add birth details for a personal reading.',
+    quoteFooter: 'No fluff',
+    me: 'Me',
   },
   es: {
     badge: 'Tu Horóscopo',
-    heroTitle: 'Horóscopo personal, carta natal y compatibilidad',
-    heroBody: 'Mira tu pronóstico de hoy, semana, mes y año. Empieza por tu signo o añade tus datos de nacimiento para una lectura personal.',
-    primary: 'Ver la app',
-    secondary: 'Elegir signo',
-    proof: ['Hoy · Semana · Mes · Año', 'Carta natal', 'Compatibilidad'],
-    photoLabel: 'Pronóstico personal',
-    photoNote: 'Lo principal primero. Después, cada tema.',
+    heroLine: 'El horóscopo es general.',
+    heroAccent: 'Esta lectura habla de ti.',
+    heroBody: 'Añade fecha, hora y lugar de nacimiento para recibir un pronóstico personal, carta natal y compatibilidad, sin miedo, sentencias ni relleno cósmico.',
+    primary: 'Ver qué hay dentro',
+    secondary: 'Empezar por mi signo',
+    chips: ['Pronóstico personal', 'Carta natal', 'Compatibilidad', 'Tus preguntas'],
+    phoneKicker: 'LECTURA PERSONAL',
+    phoneTitle: 'Deja de adivinar qué quiso decir. Pregunta.',
+    phoneBody: 'La conversación que sigues posponiendo no será más fácil después de otra semana de silencio.',
+    phoneCards: [
+      ['Amor', 'Basta de indirectas'],
+      ['Trabajo', 'Cierra un pendiente'],
+      ['Dinero', 'No compres tu enfado'],
+    ],
     insideEyebrow: 'Dentro de la app',
-    insideTitle: 'Elige lo que importa ahora',
-    insideBody: 'Consulta tu signo para algo rápido o entra en detalle con un pronóstico personal, carta natal, compatibilidad y preguntas.',
+    insideTitle: 'Todo lo útil. Sin una carrera de obstáculos astrológica.',
+    insideBody: 'Elige un tema y recibe una lectura clara. Los términos y cálculos se quedan bajo el capó.',
     features: [
-      ['Pronóstico personal', 'Hoy, semana, mes y año según tus datos de nacimiento.', 'personal-horoscope'],
-      ['Carta natal', 'Una lectura clara de personalidad, fortalezas y patrones repetidos.', 'natal-chart'],
-      ['Compatibilidad', 'Una versión rápida por signos o una comparación de dos cartas natales.', 'compatibility'],
-      ['Tus preguntas', 'Trabajo, dinero, relaciones, mudanzas y los temas que tienes en la cabeza.', 'questions'],
+      ['Pronóstico personal', 'Primero lo importante. Después amor, trabajo, dinero y lo demás.', 'personal-horoscope'],
+      ['Carta natal', 'No “eres una persona complicada”, sino qué funciona así en ti.', 'natal-chart'],
+      ['Compatibilidad', 'Dónde conectáis y dónde ambos pulsáis el botón equivocado.', 'compatibility'],
+      ['Tus preguntas', 'Relaciones, dinero, mudanzas y decisiones que no te dejan en paz.', 'questions'],
     ],
-    readMore: 'Ver más',
-    personalEyebrow: 'Pronóstico personal',
-    personalTitle: 'Hoy, semana, mes y año en un solo lugar',
-    personalBody: 'Primero aparece el tema principal. Después, amor, ánimo, hogar, amistades, trabajo y dinero. Lee todo o salta a lo que necesitas.',
-    personalLink: 'Ver el pronóstico personal',
-    previewDate: 'DOMINGO · 26 DE JULIO',
-    previewTitle: 'Hoy una conversación clara servirá más que volver a adivinar',
-    previewBody: 'Un ejemplo del formato: primero lo principal, después notas breves por tema.',
-    topicLove: ['Amor', 'Di claramente lo que quieres'],
-    topicWork: ['Trabajo', 'Cierra una tarea pendiente'],
-    topicMoney: ['Dinero', 'No compres por impulso'],
-    natalEyebrow: 'Carta natal',
-    natalTitle: 'Una carta natal explicada con claridad',
-    natalBody: 'Mucho más que un signo. Mira cómo encajan personalidad, emociones, reacciones, trabajo, dinero y relaciones.',
-    natalLink: 'Ver la carta natal',
-    compatibilityEyebrow: 'Compatibilidad',
-    compatibilityTitle: 'Compatibilidad por signos y cartas natales',
-    compatibilityBody: 'Por signos para una visión rápida. Con dos cartas para entender comunicación, atracción, valores y conflictos repetidos.',
-    compatibilityLink: 'Comprobar compatibilidad',
-    questionsEyebrow: 'Preguntas personales',
-    questionsTitle: '¿Hay una pregunta que no te deja en paz?',
-    questionsBody: 'Trabajo, dinero, relaciones, mudanzas, una nueva profesión o una decisión difícil. La respuesta conecta tu pregunta con tu carta y el momento actual.',
-    questionsLink: 'Ver preguntas',
-    stepsEyebrow: 'Cómo empezar',
-    stepsTitle: 'Sin un formulario largo al principio',
-    steps: [
-      ['01', 'Empieza por tu signo', 'Elige tu signo y abre el pronóstico general.'],
-      ['02', 'Añade tus datos', 'Fecha, hora y ciudad solo hacen falta para lecturas personales.'],
-      ['03', 'Abre lo que importa', 'Tu día, semana, carta, compatibilidad y preguntas estarán dentro.'],
-    ],
-    zodiacEyebrow: 'Horóscopos por signo',
-    zodiacTitle: '¿Solo quieres mirar tu horóscopo? Empieza por tu signo',
-    zodiacBody: 'Un pronóstico rápido sin registro. La lectura personal puede esperar.',
-    guidesEyebrow: 'Guías útiles',
-    guidesTitle: 'Carta natal, compatibilidad y astrología en un lenguaje claro',
-    finalTitle: 'Empieza por tu signo o recibe una lectura personal',
-    finalBody: 'Una entrada rápida y después eliges lo que importa ahora.',
-    altHero: 'Mujer en un interior moderno y luminoso',
-    altNotebook: 'Cuaderno abierto y bolígrafo sobre una mesa',
-    altNatal: 'Persona escribiendo notas en un cuaderno',
-    altCompatibility: 'Amigos conversando alrededor de una mesa',
-    altQuestions: 'Equipo hablando de trabajo alrededor de una mesa',
+    voiceEyebrow: 'Cómo hablamos',
+    voiceTitle: 'Sin “energía del día”. Como personas.',
+    voiceBody: 'Como un amigo amable y directo: sincero, cercano y nunca fatalista.',
+    quote: 'No tienes que responder ahora. Pero fingir que la pregunta no existe también es un plan bastante malo.',
+    toneTags: ['Sincero', 'Sin fatalismo', 'Útil'],
+    zodiacEyebrow: 'Empieza fácil',
+    zodiacTitle: 'Primero tu signo. La lectura personal, cuando quieras.',
+    zodiacBody: 'Una entrada rápida sin formulario largo ni grandes promesas.',
+    finalTitle: 'Entonces, ¿vemos qué pasa contigo?',
+    finalBody: 'Empieza por tu signo o añade tus datos de nacimiento para una lectura personal.',
+    quoteFooter: 'Sin relleno',
+    me: 'Yo',
   },
 } as const;
 
@@ -200,168 +131,161 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const page = copy[locale];
-  return pageMetadata({ locale, title: page.heroTitle, description: page.heroBody });
+  return pageMetadata({ locale, title: `${page.heroLine} ${page.heroAccent}`, description: page.heroBody });
 }
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
+
   const page = copy[locale];
   const dict = getDictionary(locale);
-  const guides = (await getGuides(locale)).slice(0, 3);
   const appJsonLd = softwareApplicationJsonLd(locale);
 
   return (
-    <div className="home-v2">
+    <div className="home-v3">
       <JsonLd data={organizationJsonLd(locale)} />
       <JsonLd data={websiteJsonLd(locale)} />
       {appJsonLd ? <JsonLd data={appJsonLd} /> : null}
 
-      <section className="home-hero">
-        <div className="home-shell home-hero-grid">
-          <div>
-            <p className="home-kicker">{page.badge}</p>
-            <h1>{page.heroTitle}</h1>
-            <p className="home-hero-lead">{page.heroBody}</p>
-            <div className="home-actions">
-              <Link className="home-button home-button-primary" href={`/${locale}#inside`}>{page.primary}</Link>
-              <Link className="home-button home-button-secondary" href={`/${locale}/zodiac`}>{page.secondary}</Link>
+      <section className="v3-hero">
+        <div className="v3-hero-glow v3-hero-glow-a" aria-hidden="true" />
+        <div className="v3-hero-glow v3-hero-glow-b" aria-hidden="true" />
+        <div className="v3-shell v3-hero-grid">
+          <div className="v3-hero-copy">
+            <p className="v3-kicker"><span aria-hidden="true" />{page.badge}</p>
+            <h1><span>{page.heroLine}</span><strong>{page.heroAccent}</strong></h1>
+            <p className="v3-hero-lead">{page.heroBody}</p>
+            <div className="v3-actions">
+              <Link className="v3-button v3-button-primary" href={`/${locale}#inside`}>{page.primary}</Link>
+              <Link className="v3-button v3-button-ghost" href={`/${locale}/zodiac`}>{page.secondary}</Link>
             </div>
-            <ul className="home-proof">{page.proof.map((item) => <li key={item}>{item}</li>)}</ul>
+            <ul className="v3-chip-row">
+              {page.chips.map((item) => <li key={item}>{item}</li>)}
+            </ul>
           </div>
-          <div className="home-photo-collage">
-            <img className="home-photo-main" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=85" alt={page.altHero} width="1200" height="1400" fetchPriority="high" />
-            <img className="home-photo-small" src="https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=700&q=85" alt={page.altNotebook} width="700" height="520" />
-            <div className="home-photo-label"><strong>{page.photoLabel}</strong><span>{page.photoNote}</span></div>
+
+          <div className="v3-device-stage" aria-label={page.phoneKicker}>
+            <div className="v3-orbit v3-orbit-one" aria-hidden="true" />
+            <div className="v3-orbit v3-orbit-two" aria-hidden="true" />
+            <div className="v3-planet" aria-hidden="true" />
+            <div className="v3-float-card v3-float-natal">
+              <span>✦</span>
+              <div><b>{page.chips[1]}</b><small>11 · 32 · 8</small></div>
+            </div>
+            <div className="v3-float-card v3-float-match">
+              <span>82%</span>
+              <div><b>{page.chips[2]}</b><small>♡</small></div>
+            </div>
+
+            <div className="v3-phone">
+              <div className="v3-phone-speaker" aria-hidden="true" />
+              <div className="v3-phone-screen">
+                <div className="v3-phone-top">
+                  <span>{page.badge}</span>
+                  <span className="v3-phone-avatar">{page.me}</span>
+                </div>
+                <div className="v3-phone-hero-card">
+                  <small>{page.phoneKicker}</small>
+                  <h2>{page.phoneTitle}</h2>
+                  <p>{page.phoneBody}</p>
+                  <span className="v3-phone-arrow" aria-hidden="true">→</span>
+                </div>
+                <div className="v3-phone-cards">
+                  {page.phoneCards.map(([title, body], index) => (
+                    <div className={`v3-phone-card v3-phone-card-${index + 1}`} key={title}>
+                      <span>{title}</span>
+                      <strong>{body}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="v3-phone-nav" aria-hidden="true">
+                  <span className="active">●</span><span>○</span><span>◇</span><span>☰</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="home-section home-section-soft" id="inside">
-        <div className="home-shell">
-          <div className="home-section-head center">
-            <p className="home-eyebrow">{page.insideEyebrow}</p>
+      <div className="v3-signal-strip" aria-hidden="true">
+        {[...page.chips, ...page.chips].map((item, index) => <span key={`${item}-${index}`}>{item}<b>✦</b></span>)}
+      </div>
+
+      <section className="v3-section" id="inside">
+        <div className="v3-shell">
+          <div className="v3-section-head">
+            <p className="v3-eyebrow">{page.insideEyebrow}</p>
             <h2>{page.insideTitle}</h2>
             <p>{page.insideBody}</p>
           </div>
-          <div className="home-feature-grid">
-            {page.features.map(([title, body, slug]) => (
-              <article className="home-feature-card" key={slug}>
-                <div><h3>{title}</h3><p>{body}</p></div>
-                <Link href={`/${locale}/${slug}`}>{page.readMore} →</Link>
-              </article>
+          <div className="v3-bento">
+            {page.features.map(([title, body, slug], index) => (
+              <Link className={`v3-feature v3-feature-${index + 1}`} href={`/${locale}/${slug}`} key={slug}>
+                <span className="v3-feature-number">0{index + 1}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </div>
+                <span className="v3-feature-arrow">↗</span>
+                {index === 0 ? <div className="v3-mini-stack" aria-hidden="true"><i /><i /><i /></div> : null}
+                {index === 1 ? <div className="v3-mini-chart" aria-hidden="true"><i /><i /><i /></div> : null}
+                {index === 2 ? <div className="v3-mini-match" aria-hidden="true"><i>♡</i><b>82%</b></div> : null}
+                {index === 3 ? <div className="v3-mini-question" aria-hidden="true">?</div> : null}
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="home-section">
-        <div className="home-shell home-product-grid">
-          <div className="home-feature-copy">
-            <p className="home-eyebrow">{page.personalEyebrow}</p>
-            <h2>{page.personalTitle}</h2>
-            <p>{page.personalBody}</p>
-            <Link className="home-text-link" href={`/${locale}/personal-horoscope`}>{page.personalLink} →</Link>
+      <section className="v3-voice">
+        <div className="v3-shell v3-voice-grid">
+          <div className="v3-voice-copy">
+            <p className="v3-eyebrow">{page.voiceEyebrow}</p>
+            <h2>{page.voiceTitle}</h2>
+            <p>{page.voiceBody}</p>
+            <div className="v3-tone-tags">{page.toneTags.map((tag) => <span key={tag}>{tag}</span>)}</div>
           </div>
-          <div className="home-preview" aria-label={page.personalEyebrow}>
-            <div className="home-preview-tabs"><span className="active">{locale === 'ru' ? 'Сегодня' : locale === 'es' ? 'Hoy' : 'Today'}</span><span>{locale === 'ru' ? 'Неделя' : locale === 'es' ? 'Semana' : 'Week'}</span><span>{locale === 'ru' ? 'Месяц' : locale === 'es' ? 'Mes' : 'Month'}</span><span>{locale === 'ru' ? 'Год' : locale === 'es' ? 'Año' : 'Year'}</span></div>
-            <div className="home-preview-date">{page.previewDate}</div>
-            <h3>{page.previewTitle}</h3>
-            <p>{page.previewBody}</p>
-            <div className="home-preview-topics">
-              {[page.topicLove, page.topicWork, page.topicMoney].map(([title, body]) => <div className="home-preview-topic" key={title}><span>{title}</span><strong>{body}</strong></div>)}
+          <blockquote className="v3-quote">
+            <span className="v3-quote-mark">“</span>
+            <p>{page.quote}</p>
+            <div className="v3-quote-footer"><span>{page.badge}</span><span>{page.quoteFooter}</span></div>
+          </blockquote>
+        </div>
+      </section>
+
+      <section className="v3-section v3-zodiac-section">
+        <div className="v3-shell">
+          <div className="v3-section-head v3-section-head-split">
+            <div>
+              <p className="v3-eyebrow">{page.zodiacEyebrow}</p>
+              <h2>{page.zodiacTitle}</h2>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section home-section-peach">
-        <div className="home-shell home-product-grid reverse">
-          <div className="home-feature-copy">
-            <p className="home-eyebrow">{page.natalEyebrow}</p>
-            <h2>{page.natalTitle}</h2>
-            <p>{page.natalBody}</p>
-            <Link className="home-text-link" href={`/${locale}/natal-chart`}>{page.natalLink} →</Link>
-          </div>
-          <div className="home-feature-media">
-            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1200&q=85" alt={page.altNatal} width="1200" height="900" loading="lazy" />
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section">
-        <div className="home-shell home-product-grid">
-          <div className="home-feature-copy">
-            <p className="home-eyebrow">{page.compatibilityEyebrow}</p>
-            <h2>{page.compatibilityTitle}</h2>
-            <p>{page.compatibilityBody}</p>
-            <Link className="home-text-link" href={`/${locale}/compatibility`}>{page.compatibilityLink} →</Link>
-          </div>
-          <div className="home-feature-media">
-            <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=85" alt={page.altCompatibility} width="1200" height="900" loading="lazy" />
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section home-section-mint">
-        <div className="home-shell home-product-grid reverse">
-          <div className="home-feature-copy">
-            <p className="home-eyebrow">{page.questionsEyebrow}</p>
-            <h2>{page.questionsTitle}</h2>
-            <p>{page.questionsBody}</p>
-            <Link className="home-text-link" href={`/${locale}/questions`}>{page.questionsLink} →</Link>
-          </div>
-          <div className="home-feature-media">
-            <img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=85" alt={page.altQuestions} width="1200" height="900" loading="lazy" />
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section">
-        <div className="home-shell">
-          <div className="home-section-head">
-            <p className="home-eyebrow">{page.stepsEyebrow}</p>
-            <h2>{page.stepsTitle}</h2>
-          </div>
-          <div className="home-step-grid">
-            {page.steps.map(([number, title, body]) => <article className="home-step" key={number}><b>{number}</b><h3>{title}</h3><p>{body}</p></article>)}
-          </div>
-        </div>
-      </section>
-
-      <section className="home-section home-section-soft">
-        <div className="home-shell">
-          <div className="home-section-head">
-            <p className="home-eyebrow">{page.zodiacEyebrow}</p>
-            <h2>{page.zodiacTitle}</h2>
             <p>{page.zodiacBody}</p>
           </div>
-          <div className="home-zodiac-grid">
-            {zodiacSlugs.map((sign) => {
+          <div className="v3-zodiac-grid">
+            {zodiacSlugs.map((sign, index) => {
               const info = getZodiacInfo(locale, sign);
-              return <Link className="home-zodiac-card" key={sign} href={`/${locale}/zodiac/${sign}`}><strong>{info.name}</strong><span>{info.dates}</span></Link>;
+              return (
+                <Link className="v3-zodiac-card" key={sign} href={`/${locale}/zodiac/${sign}`}>
+                  <span className="v3-zodiac-symbol">{zodiacSymbols[index]}</span>
+                  <strong>{info.name}</strong>
+                  <small>{info.dates}</small>
+                </Link>
+              );
             })}
           </div>
         </div>
       </section>
 
-      {guides.length > 0 ? (
-        <section className="home-section">
-          <div className="home-shell">
-            <div className="home-section-head">
-              <p className="home-eyebrow">{page.guidesEyebrow}</p>
-              <h2>{page.guidesTitle}</h2>
-            </div>
-            <div className="article-grid">
-              {guides.map((guide) => <ArticleCard key={guide.frontmatter.slug} href={`/${locale}/guides/${guide.frontmatter.slug}`} title={guide.frontmatter.title} description={guide.frontmatter.description} meta={guide.frontmatter.publishedAt} />)}
-            </div>
+      <section className="v3-final-wrap">
+        <div className="v3-shell v3-final">
+          <div className="v3-final-planet" aria-hidden="true" />
+          <div>
+            <p className="v3-kicker"><span aria-hidden="true" />{page.badge}</p>
+            <h2>{page.finalTitle}</h2>
+            <p>{page.finalBody}</p>
           </div>
-        </section>
-      ) : null}
-
-      <section className="home-section">
-        <div className="home-shell home-final">
-          <div><h2>{page.finalTitle}</h2><p>{page.finalBody}</p></div>
           <StoreButtons fallback={dict.common.comingSoon} />
         </div>
       </section>
