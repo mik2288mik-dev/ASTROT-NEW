@@ -1,20 +1,38 @@
 apply plugin: 'com.android.application'
 
-def releaseStoreFileValue = project.findProperty('RELEASE_STORE_FILE') ?: System.getenv('RELEASE_STORE_FILE')
-def releaseStorePasswordValue = project.findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('RELEASE_STORE_PASSWORD')
-def releaseKeyAliasValue = project.findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('RELEASE_KEY_ALIAS')
-def releaseKeyPasswordValue = project.findProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('RELEASE_KEY_PASSWORD')
+def appPackageId = 'com.yourhoroscope.app'
+def localSigningProperties = new Properties()
+def localSigningPropertiesFile = rootProject.file('signing.properties')
+if (localSigningPropertiesFile.exists()) {
+    localSigningPropertiesFile.withInputStream { localSigningProperties.load(it) }
+}
+def signingValue = { String name -> project.findProperty(name) ?: System.getenv(name) ?: localSigningProperties.getProperty(name) }
+def releaseStoreFileValue = signingValue('RELEASE_STORE_FILE')
+def releaseStorePasswordValue = signingValue('RELEASE_STORE_PASSWORD')
+def releaseKeyAliasValue = signingValue('RELEASE_KEY_ALIAS')
+def releaseKeyPasswordValue = signingValue('RELEASE_KEY_PASSWORD')
 def releaseSigningReady = releaseStoreFileValue && releaseStorePasswordValue && releaseKeyAliasValue && releaseKeyPasswordValue
+def rustoreConsoleAppId = project.findProperty('RUSTORE_CONSOLE_APP_ID') ?: System.getenv('RUSTORE_CONSOLE_APP_ID') ?: 'RUSTORE_CONSOLE_APP_ID_REQUIRED'
+def rustoreScheme = project.findProperty('RUSTORE_PAY_SCHEME') ?: System.getenv('RUSTORE_PAY_SCHEME') ?: "${appPackageId}.rustore"
+def releaseTaskRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') && !it.toLowerCase().contains('lint') }
+
+if (releaseTaskRequested && !releaseSigningReady) {
+    throw new GradleException('Release signing is required. Set RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS and RELEASE_KEY_PASSWORD.')
+}
 
 android {
-    namespace = "com.yourhoroscope.app"
+    namespace = appPackageId
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.yourhoroscope.app"
+        applicationId appPackageId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode (project.findProperty('APP_VERSION_CODE') ?: System.getenv('APP_VERSION_CODE') ?: '1').toInteger()
         versionName (project.findProperty('APP_VERSION_NAME') ?: System.getenv('APP_VERSION_NAME') ?: '1.0.0')
+        manifestPlaceholders = [
+            rustoreConsoleAppId: rustoreConsoleAppId,
+            rustorePayScheme: rustoreScheme,
+        ]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -32,13 +50,32 @@ android {
             }
         }
     }
+    flavorDimensions += 'distribution'
+    productFlavors {
+        development {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"development"'
+        }
+        telegram {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"telegram"'
+        }
+        rustore {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"rustore"'
+            manifestPlaceholders = [rustoreConsoleAppId: rustoreConsoleAppId, rustorePayScheme: rustoreScheme]
+        }
+        googlePlay {
+            dimension 'distribution'
+            buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"google_play"'
+        }
+    }
+    buildFeatures {
+        buildConfig true
+    }
     buildTypes {
         release {
-            if (releaseSigningReady) {
-                signingConfig signingConfigs.release
-            } else {
-                logger.lifecycle('Release signing is not configured. Provide RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS and RELEASE_KEY_PASSWORD.')
-            }
+            signingConfig signingConfigs.release
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -61,6 +98,8 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    rustoreImplementation platform('ru.rustore.sdk:bom:2026.06.01')
+    rustoreImplementation 'ru.rustore.sdk:pay'
 }
 
 apply from: 'capacitor.build.gradle'

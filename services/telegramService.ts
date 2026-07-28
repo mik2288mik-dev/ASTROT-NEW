@@ -1,5 +1,6 @@
 import { UserProfile } from '../types';
 import { PREMIUM_PLANS, type PremiumPlanId } from '../lib/premiumPricing';
+import { canUseTelegramStars } from '../lib/distributionChannel';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch, isNativeAppRuntime } from './apiClient';
 
@@ -25,7 +26,9 @@ function paymentCopy(plan: PaymentPlanView) {
  * - Without BOT_TOKEN: sim mode with showPopup + activate API
  */
 export const requestStarsPayment = async (profile: UserProfile, planId: PremiumPlanId = 'premium_week'): Promise<boolean> => {
-  if (isNativeAppRuntime()) return false;
+  // Store builds must not even request a Telegram invoice. The build channel is
+  // explicit, so a WebView user-agent cannot accidentally enable Stars.
+  if (isNativeAppRuntime() || !canUseTelegramStars()) return false;
   const userId = profile.id;
   if (!userId) {
     console.warn('[TelegramService] No user id');

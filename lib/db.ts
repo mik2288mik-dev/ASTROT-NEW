@@ -620,7 +620,16 @@ export const db = {
       try {
         const dbPool = getPool();
         const result = await dbPool.query(
-          'SELECT * FROM users WHERE id = $1',
+          `SELECT u.*,
+             EXISTS(
+               SELECT 1 FROM premium_entitlements pe
+               WHERE pe.user_id = u.id AND pe.status = 'active' AND pe.ends_at > NOW()
+             ) AS has_active_premium_entitlement,
+             (
+               SELECT MAX(pe.ends_at) FROM premium_entitlements pe
+               WHERE pe.user_id = u.id AND pe.status = 'active' AND pe.ends_at > NOW()
+             ) AS entitlement_premium_until
+           FROM users u WHERE u.id = $1`,
           [id]
         );
         if (result.rows.length === 0) return null;
@@ -636,7 +645,10 @@ export const db = {
             });
           }
         }
-        const isPremium = isFutureTimestamp(u.premium_until);
+        const isPremium = isFutureTimestamp(u.premium_until) || u.has_active_premium_entitlement === true;
+        const premiumUntil = u.entitlement_premium_until && (!u.premium_until || new Date(u.entitlement_premium_until) > new Date(u.premium_until))
+          ? u.entitlement_premium_until
+          : u.premium_until;
         const isSetup = resolveIsSetup(u);
         return {
           id: String(u.id),
@@ -649,7 +661,7 @@ export const db = {
           sun_sign: primaryChart?.sun_sign ?? u.sun_sign,
           moon_sign: primaryChart?.moon_sign ?? u.moon_sign,
           ascendant: primaryChart?.ascendant_sign ?? u.ascendant,
-          premium_until: u.premium_until,
+          premium_until: premiumUntil,
           trial_started_at: u.trial_started_at,
           ref_code: u.ref_code,
           referred_by: u.referred_by,

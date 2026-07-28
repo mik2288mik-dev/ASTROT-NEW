@@ -111,7 +111,7 @@ describe('mobile API and native auth', () => {
   it('uses the configured HTTPS API base, stores bearer auth, and retries one 401 only once', async () => {
     jest.resetModules();
     process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
-    process.env.NEXT_PUBLIC_API_URL = 'https://astrot-production.up.railway.app/';
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test/';
     let storedToken: string | null = 'expired-token';
     const store = {
       getToken: jest.fn(async () => storedToken),
@@ -136,27 +136,27 @@ describe('mobile API and native auth', () => {
     Object.defineProperty(globalThis, 'fetch', { value: fetchMock, configurable: true });
 
     const { apiFetch, getApiBaseUrl } = require('../services/apiClient');
-    expect(getApiBaseUrl()).toBe('https://astrot-production.up.railway.app');
+    expect(getApiBaseUrl()).toBe('https://api.example.test');
     const response = await apiFetch('/api/data');
 
     expect(response.status).toBe(200);
     expect(calls).toEqual([
       {
-        url: 'https://astrot-production.up.railway.app/api/data',
+        url: 'https://api.example.test/api/data',
         authorization: 'Bearer expired-token',
       },
       {
-        url: 'https://astrot-production.up.railway.app/api/auth/native-guest',
+        url: 'https://api.example.test/api/auth/native-guest',
         authorization: null,
       },
       {
-        url: 'https://astrot-production.up.railway.app/api/data',
+        url: 'https://api.example.test/api/data',
         authorization: 'Bearer fresh-token',
       },
     ]);
   });
 
-  it('recognizes Railway forwarded same-origin requests and standard Capacitor origins', () => {
+  it('recognizes forwarded same-origin requests and standard Capacitor origins', () => {
     const origins = 'https://mobile.example.com';
     expect(isAllowedNativeOrigin('https://localhost', origins)).toBe(true);
     expect(isAllowedNativeOrigin('capacitor://localhost', origins)).toBe(true);
@@ -165,13 +165,13 @@ describe('mobile API and native auth', () => {
 
     const values: Record<string, string> = {
       'x-forwarded-proto': 'https',
-      'x-forwarded-host': 'astrot-production.up.railway.app',
+      'x-forwarded-host': 'api.example.test',
       host: '0.0.0.0:8080',
     };
     const headers = { get: (name: string) => values[name.toLowerCase()] || null };
     const forwardedOrigin = getForwardedApiOrigin(headers, 'http://0.0.0.0:8080');
-    expect(forwardedOrigin).toBe('https://astrot-production.up.railway.app');
-    expect(isSameApiOrigin('https://astrot-production.up.railway.app/', [
+    expect(forwardedOrigin).toBe('https://api.example.test');
+    expect(isSameApiOrigin('https://api.example.test/', [
       'http://0.0.0.0:8080',
       forwardedOrigin,
     ])).toBe(true);

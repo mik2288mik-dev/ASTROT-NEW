@@ -19,6 +19,10 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+# The server deployment is the Telegram WebApp. Native store artifacts always
+# set their own explicit channel in scripts/android-release.mjs.
+ARG DISTRIBUTION_CHANNEL=telegram
+ENV NEXT_PUBLIC_DISTRIBUTION_CHANNEL=${DISTRIBUTION_CHANNEL}
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
