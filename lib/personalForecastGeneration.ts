@@ -698,6 +698,7 @@ function parseAnchors(input: {
   plan: ForecastSectionPlan;
   period: PersonalForecastPeriod;
   dateWhitelist: Set<string>;
+  errors: string[];
 }): ExplanationAnchor[] {
   if (!Array.isArray(input.raw)) return [];
   const supplied = evidenceIdsForPlan(input.plan);
@@ -712,9 +713,20 @@ function parseAnchors(input: {
       ? unique(raw.evidence_ids.filter((value): value is string => typeof value === 'string'))
       : [];
     const anchorText = `${conclusion}\n${explanation}`;
+    if (anchorIds.has(id)) {
+      input.errors.push(`${input.plan.id}: explanation anchor id is duplicated`);
+      return;
+    }
+    if (
+      evidenceIds.length < 1
+      || evidenceIds.length > 4
+      || evidenceIds.some((value) => !supplied.has(value))
+    ) {
+      input.errors.push(`${input.plan.id}: explanation anchor evidence_ids are invalid`);
+      return;
+    }
     const valid = (
       !!id
-      && !anchorIds.has(id)
       && !!conclusion
       && conclusion.length <= 220
       && !!explanation
@@ -722,9 +734,6 @@ function parseAnchors(input: {
     if (
       !valid
       || explanation.length > personalForecastExplanationLimit(input.period)
-      || evidenceIds.length < 1
-      || evidenceIds.length > 4
-      || evidenceIds.some((value) => !supplied.has(value))
       || validateDates(anchorText, input.dateWhitelist).length > 0
       || hasGuaranteedFutureClaim(anchorText)
       || hasAppVoiceViolation(anchorText)
@@ -804,6 +813,7 @@ function parseSection(input: {
     plan: input.plan,
     period: input.period,
     dateWhitelist: input.dateWhitelist,
+    errors: input.errors,
   });
   const inlineAstroAccent = parseInlineAccent({
     raw: input.raw.inline_astro_accent,
@@ -953,7 +963,11 @@ export function validateGeneratedForecastFeed(input: {
     rawSections.length === input.sectionPlans.length
     && rawIds.some((id, index) => id !== expectedIds[index])
   ) {
-    structuralErrors.push('sections order does not match the plan');
+    rawIds.forEach((id, index) => {
+      if (id !== expectedIds[index]) {
+        structuralErrors.push(`${expectedIds[index]}: returned id does not match`);
+      }
+    });
   }
   const dateWhitelist = allowedDates([input.overviewPlan, ...input.sectionPlans]);
   const overviewErrors: string[] = [];

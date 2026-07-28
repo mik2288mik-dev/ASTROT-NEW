@@ -464,16 +464,16 @@ describe('personal forecast V3 contract', () => {
 
     expect(free.periodLocked).toBe(true);
     expect(free.lockedSectionIds).toEqual(allIds);
-    expect([free.forecast.overview, ...free.forecast.sections].every(
-      (section) => (
-        section.text === ''
-        && section.title === undefined
-        && section.premiumTeaser === ''
-        && section.lockedPreview.lead === ''
-        && section.lockedPreview.blurred === ''
-        && section.lockedPreview.teaser === ''
-      ),
-    )).toBe(true);
+    for (const section of [free.forecast.overview, ...free.forecast.sections]) {
+      const original = [full.overview, ...full.sections]
+        .find((candidate) => candidate.id === section.id)!;
+      expect(section.text).toBe('');
+      expect(section.title).toBe(original.title);
+      expect(section.premiumTeaser).toBe(original.premiumTeaser);
+      expect(section.lockedPreview).toEqual(original.lockedPreview);
+      expect(section.explanationAnchors).toEqual([]);
+      expect(section.inlineAstroAccent).toBeNull();
+    }
     expect(free.forecast.suggestedCrossPeriodLinks).toEqual([]);
     expect(free.forecast.evidence).toEqual({});
 

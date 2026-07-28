@@ -1331,11 +1331,11 @@ export function slicePersonalForecastForAccess(
   const next: PersonalForecastPackage = {
     ...navigableForecast,
     overview: locked.has('overview')
-      ? stripLockedSection(navigableForecast.overview, !periodLocked)
+      ? stripLockedSection(navigableForecast.overview)
       : navigableForecast.overview,
     sections: navigableForecast.sections.map((section) => (
       locked.has(section.id)
-        ? stripLockedSection(section, !periodLocked)
+        ? stripLockedSection(section)
         : section
     )),
   };
