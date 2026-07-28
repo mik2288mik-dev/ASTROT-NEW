@@ -29,7 +29,7 @@ jest.mock('../lib/personalForecastCache', () => ({
 }));
 jest.mock('../lib/personalForecastQuestionGeneration', () => ({
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION:
-    'personal-forecast-question.v3.answer+voice.1',
+    'personal-forecast-question.v4.concise-answer+voice.1',
   generatePersonalForecastQuestionAnswer: (...args: unknown[]) =>
     mockGenerateAnswer(...args),
 }));
@@ -93,7 +93,7 @@ function question(
     answerText: null,
     answerMeta: null,
     modelId: null,
-    promptVersion: 'personal-forecast-question.v3.answer+voice.1',
+    promptVersion: 'personal-forecast-question.v4.concise-answer+voice.1',
     voiceVersion: '1',
     generationStartedAt: null,
     answeredAt: null,

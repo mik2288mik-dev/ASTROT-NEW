@@ -86,6 +86,14 @@ function calculatedFixture(): EvidenceCalculationResult {
 
 type Plans = ReturnType<typeof buildPersonalForecastSectionPlans>;
 
+function generatedText(seed: string, minimum: number): string {
+  const continuation =
+    ' It connects the conclusion with an ordinary practical choice and briefly explains why the supplied period calculation supports that direction without promising a fixed event.';
+  let value = seed;
+  while (value.length < minimum) value += continuation;
+  return value.slice(0, minimum + 22);
+}
+
 function firstEvidenceId(
   plan: Plans['overview'] | Plans['sections'][number],
 ): string {
@@ -99,14 +107,20 @@ function validRawFeed(plans: Plans) {
   ) => ({
     id: plan.id,
     ...(plan.kind === 'dynamic' ? { title: `Focus ${index}` } : {}),
-    text: index < 0
-      ? 'The main period conclusion identifies one practical priority and its timing.'
-      : `Calculated section ${index} gives a distinct practical conclusion for this period.`,
+    text: generatedText(
+      index < 0
+        ? 'The main period conclusion identifies one practical priority and its timing.'
+        : `Calculated section ${index} gives a distinct practical conclusion for this period.`,
+      index < 0 ? 450 : 250,
+    ),
     premium_teaser: `The complete section ${index + 2} explains the calculated conclusion and its practical meaning.`,
     explanation_anchors: [{
       id: `anchor-${plan.id}`,
       conclusion: `Conclusion ${index + 2} follows from the supplied period calculation.`,
-      explanation: 'The calculated aspect supports this subject during the selected interval.',
+      explanation: generatedText(
+        'The supplied calculation supports this subject during the selected interval.',
+        120,
+      ).slice(0, 190),
       evidence_ids: [firstEvidenceId(plan)],
     }],
     inline_astro_accent: null,

@@ -29,7 +29,7 @@ jest.mock('../lib/personalForecastCache', () => ({
 }));
 jest.mock('../lib/personalForecastQuestionGeneration', () => ({
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION:
-    'personal-forecast-question.v3.answer+voice.1',
+    'personal-forecast-question.v4.concise-answer+voice.1',
   generatePersonalForecastQuestionAnswer: (...args: unknown[]) =>
     mockGenerateAnswer(...args),
 }));
@@ -93,7 +93,7 @@ function questionRow(
     answerText: null,
     answerMeta: null,
     modelId: null,
-    promptVersion: 'personal-forecast-question.v3.answer+voice.1',
+    promptVersion: 'personal-forecast-question.v4.concise-answer+voice.1',
     voiceVersion: '1',
     generationStartedAt: null,
     answeredAt: null,
@@ -271,7 +271,7 @@ describe('personal forecast questions API', () => {
         chartFingerprint: buildPersonalForecastChartFingerprint(chartFixture),
         forecastInputHash: 'forecast-input-v1',
         language: 'ru',
-        promptVersion: 'personal-forecast-question.v3.answer+voice.1',
+        promptVersion: 'personal-forecast-question.v4.concise-answer+voice.1',
         voiceVersion: '1',
       }),
     }));
@@ -279,7 +279,7 @@ describe('personal forecast questions API', () => {
       identity: expect.objectContaining({
         chartFingerprint: buildPersonalForecastChartFingerprint(chartFixture),
         language: 'ru',
-        promptVersion: 'personal-forecast-question.v3.answer+voice.1',
+        promptVersion: 'personal-forecast-question.v4.concise-answer+voice.1',
         voiceVersion: '1',
       }),
     }));

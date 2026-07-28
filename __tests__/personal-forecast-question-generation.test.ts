@@ -21,6 +21,14 @@ const profile = {
   language: 'ru',
 } as UserProfile;
 
+function answerFixture(seed: string): string {
+  const continuation =
+    ' In ordinary life, this means choosing the next concrete action, checking the facts already available, and leaving room to adjust if circumstances change. The supplied period calculation supports that priority, but it does not invent an event or promise a fixed result.';
+  let value = seed;
+  while (value.length < 350) value += continuation;
+  return value.slice(0, 560);
+}
+
 describe('personal forecast question answer generation', () => {
   it('supplies natal calculation, feed text, and calculated evidence without a local persona', () => {
     const forecast = personalForecastFixture();
@@ -85,8 +93,9 @@ describe('personal forecast question answer generation', () => {
   });
 
   it('rejects unknown or missing evidence IDs instead of silently accepting them', () => {
-    const answer =
-      'Сейчас полезнее завершить решение с измеримым результатом. Расчёт периода подтверждает рабочий приоритет.';
+    const answer = answerFixture(
+      'Сейчас полезнее завершить решение с измеримым результатом. Расчёт периода подтверждает рабочий приоритет.',
+    );
     expect(() => parsePersonalForecastQuestionAnswer({
       content: JSON.stringify({
         answer,
@@ -105,8 +114,9 @@ describe('personal forecast question answer generation', () => {
     const forecast = personalForecastFixture();
     expect(() => parsePersonalForecastQuestionAnswer({
       content: JSON.stringify({
-        answer:
+        answer: answerFixture(
           'A concrete decision will be useful on 2026-08-10, although that date is absent from the supplied forecast.',
+        ),
         evidenceIds: ['e1'],
       }),
       forecast,
@@ -114,8 +124,9 @@ describe('personal forecast question answer generation', () => {
 
     expect(() => parsePersonalForecastQuestionAnswer({
       content: JSON.stringify({
-        answer:
+        answer: answerFixture(
           'You will definitely receive the exact offer during this forecast period, so the result is already certain.',
+        ),
         evidenceIds: ['e1'],
       }),
       forecast,
@@ -130,8 +141,9 @@ describe('personal forecast question answer generation', () => {
         return prompts.length === 1
           ? 'not-json'
           : JSON.stringify({
-              answer:
+              answer: answerFixture(
                 'В работе сейчас важнее решение с понятным сроком и проверяемым результатом. Это прямо следует из уже рассчитанного периода.',
+              ),
               evidenceIds: ['e1'],
             });
       });

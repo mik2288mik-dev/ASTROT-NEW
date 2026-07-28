@@ -16,8 +16,9 @@ import {
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
   isSimpleDynamicTitle,
-  personalForecastExplanationLimit,
-  personalForecastSectionTextLimit,
+  personalForecastExplanationTextRange,
+  personalForecastOverviewTextRange,
+  personalForecastSectionTextRange,
   selectTodayFreeSections,
   validateForecastSectionRepetition,
   type CalculatedAstroEvidence,
@@ -515,8 +516,9 @@ export function buildPersonalForecastFeedPrompt(input: {
   sections: ForecastSectionPlan[];
   repairErrors?: string[];
 }): string {
-  const sectionLimit = personalForecastSectionTextLimit(input.period);
-  const explanationLimit = personalForecastExplanationLimit(input.period);
+  const overviewRange = personalForecastOverviewTextRange();
+  const sectionRange = personalForecastSectionTextRange();
+  const explanationRange = personalForecastExplanationTextRange();
   const repair = input.repairErrors?.length
     ? `\nThe previous JSON was rejected:\n- ${input.repairErrors.join('\n- ')}\nReturn a corrected complete object.`
     : '';
@@ -575,10 +577,12 @@ Technical constraints:
 - return every planned section exactly once and in the supplied order;
 - omit a generated title for fixed, wishes, overview, and astro_accent sections;
 - dynamic titles use one to seven ordinary words and must not use “Публичность”, “Важный выбор”, “Поездки и движение”, “Public visibility”, “Important choice”, or “Travel and movement”;
-- each text starts with a direct conclusion, then explains its meaning, then naturally gives the calculated basis when useful;
-- text length is flexible, but each section is at most ${sectionLimit} characters and must not repeat one point in different words;
+- every text starts with the direct conclusion for the selected period, then shows how it can appear in ordinary life, then briefly explains why the supplied calculation supports it;
+- overview text is ${overviewRange.min}–${overviewRange.max} characters; every other section text is ${sectionRange.min}–${sectionRange.max} characters;
+- write with candid warmth and lively precision; no fatalism, self-help slogans, pseudo-psychology, filler, or repeated points;
+- user-facing section text must not name planets, houses, aspects, or introduce a technical block such as “Основание:” or “Basis:”;
 - premium_teaser is 40–300 characters, starts from a real supplied conclusion, tells what the full text clarifies, and contains no invented intrigue;
-- explanation_anchors contain zero to two items; each explanation is at most ${explanationLimit} characters and uses one to four evidence IDs assigned to that section;
+- explanation_anchors contain zero to two items; each explanation is ${explanationRange.min}–${explanationRange.max} characters, uses one to four evidence IDs assigned to that section, and gives a short human explanation of the calculation without orbs, weights, or service fields;
 - overview must contain at least one explanation anchor;
 - inline_astro_accent is null unless inlineEvidenceIds are supplied; when supplied it uses only those IDs;
 - no duplicate titles, duplicate opening sentences, templated introductions, markdown, technical field names, or fields outside the schema;
@@ -700,6 +704,7 @@ function parseAnchors(input: {
   dateWhitelist: Set<string>;
   errors: string[];
 }): ExplanationAnchor[] {
+  const explanationRange = personalForecastExplanationTextRange();
   if (!Array.isArray(input.raw)) return [];
   const supplied = evidenceIdsForPlan(input.plan);
   const anchors: ExplanationAnchor[] = [];
@@ -733,7 +738,8 @@ function parseAnchors(input: {
     );
     if (
       !valid
-      || explanation.length > personalForecastExplanationLimit(input.period)
+      || explanation.length < explanationRange.min
+      || explanation.length > explanationRange.max
       || validateDates(anchorText, input.dateWhitelist).length > 0
       || hasGuaranteedFutureClaim(anchorText)
       || hasAppVoiceViolation(anchorText)
@@ -786,9 +792,12 @@ function parseSection(input: {
   const premiumTeaser = typeof input.raw.premium_teaser === 'string'
     ? input.raw.premium_teaser.trim()
     : '';
+  const textRange = input.plan.kind === 'overview'
+    ? personalForecastOverviewTextRange()
+    : personalForecastSectionTextRange();
   const lockedPreview = buildForecastLockedPreview(text, premiumTeaser);
   if (id !== input.plan.id) input.errors.push(`${input.plan.id}: returned id does not match`);
-  if (!text || text.length > personalForecastSectionTextLimit(input.period)) {
+  if (text.length < textRange.min || text.length > textRange.max) {
     input.errors.push(`${input.plan.id}: text is invalid`);
   }
   if (

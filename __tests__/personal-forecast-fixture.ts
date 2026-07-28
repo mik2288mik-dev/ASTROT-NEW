@@ -53,6 +53,14 @@ const evidenceView: ForecastEvidenceView = {
   meaning: 'This calculated factor supports the section conclusion.',
 };
 
+function expandedFixtureText(seed: string, minimum: number): string {
+  const continuation =
+    ' It connects the main conclusion with an ordinary choice, keeps the outcome conditional, and explains the practical reason without adding an unsupported event.';
+  let value = seed;
+  while (value.length < minimum) value += continuation;
+  return value.slice(0, minimum + 18);
+}
+
 function sectionFixture(input: {
   id: string;
   kind: ForecastSectionKind;
@@ -62,6 +70,10 @@ function sectionFixture(input: {
   fixedKey?: ForecastSection['fixedKey'];
   sourceTopicKey?: ForecastTopicKey;
 }): ForecastSection {
+  const text = expandedFixtureText(
+    input.text,
+    input.kind === 'overview' ? 450 : 250,
+  );
   const premiumTeaser =
     `Open the complete ${input.id} forecast section to see the calculated details.`;
   return {
@@ -72,15 +84,18 @@ function sectionFixture(input: {
     fixedKey: input.fixedKey,
     sourceTopicKey: input.sourceTopicKey,
     title: input.title,
-    text: input.text,
+    text,
     importance: input.importance,
     visualTag: input.id,
     premiumTeaser,
-    lockedPreview: buildForecastLockedPreview(input.text, premiumTeaser),
+    lockedPreview: buildForecastLockedPreview(text, premiumTeaser),
     explanationAnchors: [{
       id: `anchor:${input.id}`,
       conclusion: 'The conclusion follows from the calculated period factor.',
-      explanation: 'The applying aspect strengthens this subject during the selected period.',
+      explanation: expandedFixtureText(
+        'The supplied calculation strengthens this subject during the selected period.',
+        120,
+      ).slice(0, 180),
       evidenceIds: ['e1'],
     }],
     inlineAstroAccent: null,
