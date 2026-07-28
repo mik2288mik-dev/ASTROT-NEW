@@ -8,6 +8,7 @@ import {
 import { db } from './db';
 import type { ReadingContext } from './natalReading/apiHelper';
 import {
+  PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildPersonalForecastCacheKey,
   buildPersonalForecastInputHash,
@@ -64,6 +65,7 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
 
 export async function getCachedPersonalForecast(
   input: PersonalForecastCacheContext,
+  options: { allowExpired?: boolean } = {},
 ): Promise<{
   forecast: PersonalForecastPackage;
   model: string;
@@ -79,6 +81,7 @@ export async function getCachedPersonalForecast(
         'forecast',
         identity.contentVariant,
         identity.cacheKey,
+        options.allowExpired === true,
       )
     : await db.content_interpretations.getByUser(
         userId,
@@ -86,6 +89,7 @@ export async function getCachedPersonalForecast(
         'forecast',
         identity.contentVariant,
         identity.cacheKey,
+        options.allowExpired === true,
       );
   const interpretation = existing as ContentInterpretation<PersonalForecastPackage> | null;
   if (
@@ -119,7 +123,7 @@ async function savePersonalForecast(
     content: forecast,
     modelTier: 'premium' as const,
     promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-    calculationVersion: input.ctx.chartData?.calculationVersion || null,
+    calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
     isPersistent: false,
     legacySource: null,
     validFrom: identity.window.startsAt,
@@ -151,7 +155,7 @@ export async function ensurePersonalForecast(
       cacheKey: identity.cacheKey,
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     }),
-    operation: `personal-forecast-v2-${input.period}`,
+    operation: `personal-forecast-feed-v3-${input.period}`,
     readCached: async () => {
       const cached = await getCachedPersonalForecast(input);
       return cached ? { value: cached.forecast, source: 'cache' } : null;
@@ -165,15 +169,18 @@ export async function ensurePersonalForecast(
       const previous = await getCachedPersonalForecast({
         ...input,
         periodKey: previousPeriodKey,
-      });
+      }, { allowExpired: true });
       const forecast = await generatePersonalForecastPackage({
         profile: input.ctx.profile,
         chartData: input.ctx.chartData!,
         model: identity.model,
         period: input.period,
         window: identity.window,
-        previousDynamicKeys: previous?.forecast.dynamic.map((topic) => topic.key),
+        previousForecast: previous?.forecast ?? null,
       });
+      if (!isPersonalForecastPackage(forecast)) {
+        throw new Error('PERSONAL_FORECAST_PACKAGE_INVALID');
+      }
       await savePersonalForecast(input, forecast, identity);
       return forecast;
     },

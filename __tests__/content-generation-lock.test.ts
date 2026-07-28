@@ -11,11 +11,21 @@ jest.mock('../lib/serverLocks', () => ({
   tryAcquireLock: jest.fn(),
   releaseLock: jest.fn(),
 }));
+jest.mock('../lib/database-url', () => ({
+  hasDatabaseUrl: jest.fn(() => false),
+}));
+jest.mock('../lib/db', () => ({
+  getPool: jest.fn(),
+}));
 
 import { tryAcquireLock, releaseLock } from '../lib/serverLocks';
+import { hasDatabaseUrl } from '../lib/database-url';
+import { getPool } from '../lib/db';
 
 const mockedTryAcquireLock = tryAcquireLock as jest.MockedFunction<typeof tryAcquireLock>;
 const mockedReleaseLock = releaseLock as jest.MockedFunction<typeof releaseLock>;
+const mockedHasDatabaseUrl = hasDatabaseUrl as jest.MockedFunction<typeof hasDatabaseUrl>;
+const mockedGetPool = getPool as jest.MockedFunction<typeof getPool>;
 
 function readApiSource(rel: string) {
   return fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -25,6 +35,7 @@ describe('content generation lock', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockedHasDatabaseUrl.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -156,5 +167,42 @@ describe('content generation lock', () => {
       expect(source).toContain('getContentLayer');
       expect(source).toContain('generationInProgressPayload');
     });
+  });
+
+  it('holds a PostgreSQL advisory lock across generation when a database is configured', async () => {
+    mockedTryAcquireLock.mockReturnValue(true);
+    mockedHasDatabaseUrl.mockReturnValue(true);
+    const query = jest.fn()
+      .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+      .mockResolvedValueOnce({ rows: [{ pg_advisory_unlock: true }] });
+    const release = jest.fn();
+    mockedGetPool.mockReturnValue({
+      connect: jest.fn().mockResolvedValue({ query, release }),
+    } as any);
+    const generate = jest.fn().mockResolvedValue({ id: 10 });
+
+    await expect(withContentGenerationLock({
+      lockKey: 'content-generation:distributed',
+      operation: 'test',
+      readCached: jest.fn().mockResolvedValue(null),
+      generate,
+    })).resolves.toMatchObject({
+      status: 'ready',
+      value: { id: 10 },
+      fromCache: false,
+    });
+
+    expect(query).toHaveBeenNthCalledWith(
+      1,
+      'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired',
+      ['content-generation:distributed'],
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      2,
+      'SELECT pg_advisory_unlock(hashtextextended($1, 0))',
+      ['content-generation:distributed'],
+    );
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(generate).toHaveBeenCalledTimes(1);
   });
 });

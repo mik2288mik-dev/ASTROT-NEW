@@ -1,4 +1,5 @@
 import type { ContentAccessTier, ContentSurface, ContentVariant } from '../types';
+import { hasDatabaseUrl } from './database-url';
 import { releaseLock, tryAcquireLock } from './serverLocks';
 
 export const CONTENT_GENERATION_RETRY_AFTER_MS = 1500;
@@ -38,6 +39,47 @@ export function generationInProgressPayload(retryAfterMs: number) {
   };
 }
 
+type DistributedLock = {
+  acquired: boolean;
+  release: () => Promise<void>;
+};
+
+async function tryAcquireDistributedLock(lockKey: string): Promise<DistributedLock> {
+  if (!hasDatabaseUrl()) {
+    return { acquired: true, release: async () => undefined };
+  }
+
+  const { getPool } = await import('./db');
+  const client = await getPool().connect();
+  let acquired = false;
+  try {
+    const result = await client.query<{ acquired: boolean }>(
+      'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired',
+      [lockKey],
+    );
+    acquired = result.rows[0]?.acquired === true;
+    if (!acquired) client.release();
+    return {
+      acquired,
+      release: async () => {
+        if (!acquired) return;
+        acquired = false;
+        try {
+          await client.query(
+            'SELECT pg_advisory_unlock(hashtextextended($1, 0))',
+            [lockKey],
+          );
+        } finally {
+          client.release();
+        }
+      },
+    };
+  } catch (error) {
+    client.release();
+    throw error;
+  }
+}
+
 export async function withContentGenerationLock<T>(options: {
   lockKey: string;
   operation: string;
@@ -64,8 +106,26 @@ export async function withContentGenerationLock<T>(options: {
     return { status: 'in_progress', retryAfterMs: waitMs };
   }
 
-  options.onLockAcquired?.();
+  let distributedLock: DistributedLock | null = null;
   try {
+    distributedLock = await tryAcquireDistributedLock(options.lockKey);
+    if (!distributedLock.acquired) {
+      options.onLockBusy?.();
+      releaseLock(options.lockKey);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      const afterWait = await options.readCached();
+      if (afterWait != null) {
+        return {
+          status: 'ready',
+          value: afterWait.value,
+          fromCache: true,
+          source: afterWait.source,
+        };
+      }
+      return { status: 'in_progress', retryAfterMs: waitMs };
+    }
+
+    options.onLockAcquired?.();
     const insideLock = await options.readCached();
     if (insideLock != null) {
       return {
@@ -79,6 +139,7 @@ export async function withContentGenerationLock<T>(options: {
     const generated = await options.generate();
     return { status: 'ready', value: generated, fromCache: false };
   } finally {
+    await distributedLock?.release();
     releaseLock(options.lockKey);
   }
 }

@@ -25,27 +25,36 @@ describe('mvp home surface', () => {
     }
   });
 
-  it('keeps dashboard focused on the approved mvp destinations', () => {
+  it('keeps the continuous Dashboard focused on the approved destinations', () => {
     const dashboard = read('views/Dashboard.tsx');
 
-    expect(dashboard).toContain('onOpenPersonalForecast');
     expect(dashboard).toContain('onCreateNatalChart');
-    expect(dashboard).toContain('onOpenMatrix');
     expect(dashboard).toContain('onOpenSynastry');
+    expect(dashboard).toContain('onOpenHoroscope');
+    expect(dashboard).toContain('onRequestPremium');
+    expect(dashboard).toContain('ForecastPromotion');
     expect(dashboard).not.toContain('onOpenOracle');
     expect(dashboard).not.toContain('LzAskPresets');
     expect(dashboard).not.toContain('FreshAskCombobox');
     expect(dashboard).not.toContain('/api/weather');
   });
 
-  it('routes every personal period through the single personal forecast reader', () => {
+  it('keeps every personal period inside the single continuous Dashboard feed', () => {
     const app = read('App.tsx');
+    const dashboard = read('views/Dashboard.tsx');
+    const types = read('types.ts');
 
-    expect(app).toContain('PersonalForecastScreen');
-    expect(app).toContain('const openPersonalForecast = useCallback');
-    expect(app).toContain("navigateTo('personal_daily')");
-    expect(app).toContain("view === 'personal_daily'");
-    expect(app).toContain('onOpenPersonalForecast: openPersonalForecast');
+    expect(app).toContain('<Dashboard {...dashboardProps}');
+    expect(app).toContain('onRequestPremium: requestPremium');
+    expect(dashboard).toContain('PERIOD_TABS');
+    expect(dashboard).toContain('setActivePeriod');
+    expect(dashboard).toContain('ForecastSectionBlock');
+    expect(dashboard).toContain('ForecastSideNavigator');
+    expect(dashboard).toContain('ForecastBottomSheet');
+    expect(app).not.toContain('PersonalForecastScreen');
+    expect(app).not.toContain("navigateTo('personal_daily')");
+    expect(app).not.toContain("view === 'personal_daily'");
+    expect(types).not.toContain('personal_daily');
     expect(app).not.toContain("view === 'oracle'");
     expect(app).not.toContain("view === 'hook'");
   });

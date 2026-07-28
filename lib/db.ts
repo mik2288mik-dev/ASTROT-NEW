@@ -1773,7 +1773,8 @@ export const db = {
       accessTier: DbContentAccessTier,
       contentSurface: DbContentSurface,
       contentVariant: DbContentVariant,
-      cacheKey = 'default'
+      cacheKey = 'default',
+      includeExpired = false,
     ) {
       if (!DATABASE_URL) return null;
       try {
@@ -1785,8 +1786,8 @@ export const db = {
              AND access_tier = $2
              AND content_surface = $3
              AND content_variant = $4
-             AND cache_key = $5
-             AND (valid_to IS NULL OR valid_to >= NOW())
+              AND cache_key = $5
+              ${includeExpired ? '' : 'AND (valid_to IS NULL OR valid_to >= NOW())'}
            ORDER BY updated_at DESC
            LIMIT 1`,
           [chartId, accessTier, contentSurface, contentVariant, cacheKey]
@@ -1810,7 +1811,8 @@ export const db = {
       accessTier: DbContentAccessTier,
       contentSurface: DbContentSurface,
       contentVariant: DbContentVariant,
-      cacheKey = 'default'
+      cacheKey = 'default',
+      includeExpired = false,
     ) {
       const id = toUserId(userId);
       if (!DATABASE_URL) return null;
@@ -1824,8 +1826,8 @@ export const db = {
              AND content_surface = $3
              AND content_variant = $4
              AND cache_key = $5
-             AND chart_id IS NULL
-             AND (valid_to IS NULL OR valid_to >= NOW())
+              AND chart_id IS NULL
+              ${includeExpired ? '' : 'AND (valid_to IS NULL OR valid_to >= NOW())'}
            ORDER BY updated_at DESC
            LIMIT 1`,
           [id, accessTier, contentSurface, contentVariant, cacheKey]

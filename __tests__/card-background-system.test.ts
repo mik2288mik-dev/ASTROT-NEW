@@ -40,27 +40,38 @@ describe('card background library', () => {
 });
 
 describe('card background UI wiring', () => {
-  it('connects the forecast resolver and product backgrounds to their screens', () => {
+  it('connects real forecast visuals and product backgrounds to the continuous feed', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const personalForecast = read('views/PersonalForecastScreen.tsx');
+    const visuals = read('lib/personalForecastVisuals.ts');
+    const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
+    const promotion = read('components/PersonalForecastFeed/ForecastPromotion.tsx');
     const natal = read('views/v2/NatalMagazine.tsx');
     const compatibility = read('views/Synastry.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
     const app = read('pages/_app.tsx');
 
-    expect(dashboard).toContain('resolveForecastVisualScreen');
-    expect(dashboard).toContain('buildForecastVisualRequests');
-    expect(dashboard).toContain('getUniversalCardBackground');
-    expect(dashboard).toContain('home-product-card--natal');
-    expect(dashboard).toContain('home-product-card--compat');
-    expect(dashboard).toContain('home-product-card--matrix');
-    expect(personalForecast).toContain('resolveForecastVisualScreen');
-    expect(personalForecast).toContain('forecastVisualStyle');
+    expect(visuals).toContain(
+      "import manifest from '../docs/design/card-background-system/card-background-manifest.json'",
+    );
+    expect(visuals).toContain('resolvePersonalForecastVisuals');
+    expect(visuals).toContain("'--forecast-section-image'");
+    expect(visuals).toContain("'--forecast-section-position-mobile'");
+    expect(dashboard).toContain('resolvePersonalForecastVisuals');
+    expect(dashboard).toContain('forecastSectionVisualStyle');
+    expect(dashboard).toContain('visual?.assignments[section.id]');
+    expect(sectionBlock).toContain("hasVisual ? 'has-visual' : 'has-visual-fallback'");
+    expect(sectionBlock).toContain('style={style}');
+    expect(promotion).toContain('getUniversalCardBackground');
+    expect(dashboard).not.toMatch(
+      /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
+    );
+    expect(dashboard).not.toMatch(/home-day-hero|home-sphere-card|pd-reading-card/);
     expect(natal).toContain("getUniversalCardBackground('natal'");
     expect(compatibility).toContain("getUniversalCardBackground('compatibility'");
     expect(matrix).toContain("getUniversalCardBackground('matrix'");
     expect(app).toContain("../styles/homeContentHierarchy.css");
     expect(app).toContain("../styles/readingBackgrounds.css");
+    expect(app).toContain("../styles/personalForecastFeed.css");
   });
 
   it('does not generate a hero CTA or hook', () => {

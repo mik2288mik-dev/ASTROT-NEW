@@ -8,6 +8,7 @@ import {
 import {
   createUnavailablePersonalForecast,
   getPersonalForecastPeriodKey,
+  isCurrentPersonalForecastPeriodKey,
   normalizeForecastTimezone,
   slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
@@ -37,7 +38,8 @@ function responsePayload(
   return {
     forecast: sliced.forecast,
     accessTier: isPremium ? 'premium' : 'free',
-    lockedTopicKeys: sliced.lockedTopicKeys,
+    lockedSectionIds: sliced.lockedSectionIds,
+    periodLocked: sliced.periodLocked,
     source,
   };
 }
@@ -65,7 +67,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const timezone = normalizeForecastTimezone(
     ctx.chartData.timezone || ctx.profile.birthTimezone,
   );
-  const periodKey = readPeriodKey(req) || getPersonalForecastPeriodKey(period, new Date(), timezone);
+  const requestedPeriodKey = readPeriodKey(req);
+  const periodKey = requestedPeriodKey
+    || getPersonalForecastPeriodKey(period, new Date(), timezone);
+  if (
+    requestedPeriodKey
+    && !isCurrentPersonalForecastPeriodKey(period, periodKey, timezone)
+  ) {
+    return res.status(400).json({
+      error: 'Only the current personal forecast period can be requested',
+      code: 'PERSONAL_FORECAST_PERIOD_KEY_INVALID',
+    });
+  }
   const cacheInput = { ctx, period, periodKey };
   const entitlement = await getPremiumEntitlementState(userId);
 
@@ -110,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[personal-forecast-v2] request failed:', message);
+    console.error('[personal-forecast-feed-v3] request failed:', message);
     return res.status(503).json({
       error: 'Personal forecast unavailable',
       code: 'PERSONAL_FORECAST_GENERATION_FAILED',

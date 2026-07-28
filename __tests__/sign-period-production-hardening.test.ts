@@ -163,8 +163,9 @@ describe('sign period production hardening', () => {
   it('keeps personal Dashboard lazy and scopes state by chart, period, language, and current key', () => {
     const dashboard = read('views/Dashboard.tsx');
     expect(dashboard).toContain('loadPeriod(activePeriod)');
-    expect(dashboard).toContain('`${contextKey}:${period}:${periodKey}`');
-    expect(dashboard).toContain('setPeriodStates({})');
+    expect(dashboard).toContain("const contextKey = useMemo(() => [");
+    expect(dashboard).toContain('periodKeys[period]');
+    expect(dashboard).toContain('setPeriodStates({');
     expect(dashboard).toContain('readLocalPersonalForecast');
     expect(dashboard).not.toMatch(/getCachedWeeklySignHoroscope|ensureMonthlySignHoroscope/);
   });

@@ -4,60 +4,76 @@ This repository is the MVP app «Твой Гороскоп» / “Your Horoscope
 
 ## Current personal forecast architecture
 
-The complete personal screen contract in `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md` is implemented on `feat/personal-forecast-screen-v2`:
+The active contract is `docs/PERSONAL_FORECAST_FEED_V3_SPEC.md`.
 
-- one chart-based product for `Сегодня / Неделя / Месяц / Год`;
-- exactly seven fixed topics plus two or three evidence-selected dynamic topics;
-- server-calculated Swiss Ephemeris evidence with stable IDs;
-- GPT explains only evidence assigned to one topic;
-- one versioned package/cache/lock path for all four periods;
-- local-first Dashboard and background refresh/prewarm;
-- backend Free/Premium slicing;
-- deterministic whole-screen visual resolver with CSS fallback;
-- separate `Зодиак` sign-horoscope product preserved.
+- Today, Week, Month, and Year are one chart-based continuous feed in `views/Dashboard.tsx`.
+- The separate `PersonalForecastScreen` and `personal_daily` view no longer exist.
+- Each package has one overview, six fixed life sections in the prescribed order, two to four calculated dynamics, optional strong astro accents, local explanation anchors, and verified cross-period links. Continuation links carry immutable timing and are filtered against the target period currently reachable from Dashboard.
+- One structured model request creates the complete period feed from server-calculated Swiss Ephemeris evidence.
+- The production model resolver is unchanged and intentionally not fixed by the V3 specification.
+- `lib/appVoice.ts` and `getAppSystemVoice(language)` remain the only runtime source of the shared voice.
+- Canonical packages are cached once, then server-sliced for Free/Premium. Week, Month, and Year stay fully locked for Free while the server returns only their personalized preview and benefit copy, never the full section text.
+- Dashboard stays local-first and non-blocking.
+- Native promos and visuals are deterministic and use existing assets.
+- The audited bilingual question catalog, strict high-confidence automatic moderation, manual moderation, limits, cached answers, and unread answer notifications are part of the period feed. Raw admin moderation data requires both publishing and PII permissions.
+- Saved questions are bound to the exact feed input hash, chart fingerprint, period/key, normalized wording, answer prompt, and voice. Do not loosen that identity or retry stale-version rows indefinitely.
+- The separate sign-based `Зодиак` product remains intact.
 
-The incompatible personal daily canvas, period extras, fallback copy, and sign-based Dashboard period consumers have been removed. Old database rows are retained but do not match V2 keys.
+Old database rows are retained. V3 cache, prompt, visual, and question identities prevent old personal content from being treated as current.
 
 ## Architecture boundaries
 
-- Root UI: `App.tsx`; screens: `views/`; reusable UI: `components/`.
-- Personal contract: `lib/personalForecastContract.ts`.
-- Evidence calculation: `lib/personalForecastEvidence.ts`.
-- Generation and validation: `lib/personalForecastGeneration.ts`.
-- Server cache/locks: `lib/personalForecastCache.ts`.
+- Root UI and navigation: `App.tsx`.
+- Continuous feed: `views/Dashboard.tsx`.
+- Feed components: `components/PersonalForecastFeed/`.
+- Contract and access slicing: `lib/personalForecastContract.ts`.
+- Evidence: `lib/personalForecastEvidence.ts`.
+- One-request generation and validation: `lib/personalForecastGeneration.ts`.
+- Server cache and locks: `lib/personalForecastCache.ts`.
 - Client stale-while-revalidate: `services/personalForecastService.ts`.
-- Endpoint: `/api/content/forecast/personal`.
-- Prewarm: `lib/personalForecastPrewarm.ts`, `lib/contentPrewarm.ts`, and `services/contentPrewarmService.ts`.
+- Forecast endpoint: `/api/content/forecast/personal`.
+- Prewarm: `lib/personalForecastPrewarm.ts`, `lib/contentPrewarm.ts`, `services/contentPrewarmService.ts`.
 - Visual resolver: `lib/personalForecastVisuals.ts`.
+- Promo resolver: `lib/personalForecastPromo.ts`.
+- Question catalog/moderation/store/generation: `lib/personalForecastQuestion*.ts`.
+- User question endpoint: `/api/content/forecast/questions`.
+- Admin moderation: `/api/admin/v2/forecast-questions`.
 - App auth: `lib/auth/appAuth.ts`.
 - Canonical charts: `/api/charts/*`.
-- Unified user-facing model resolver: `getUnifiedContentModel()`; default model: GPT-4.1.
 - AI voice source: `lib/appVoice.ts`.
-- Sign horoscopes remain a separate `Зодиак` product and must never power personal Dashboard periods.
+- General sign horoscopes: separate `Зодиак` routes/services only.
 
-## Safety boundaries for follow-up work
+## Safety boundaries
 
-- Do not restore daily-canvas, personal period-extra, or sign-based personal Dashboard code.
-- Do not delete old database content as part of an unrelated change.
-- Do not copy or rename images to fill missing visual slots; use the documented fallback until distinct artwork exists.
+- Do not restore DailyCanvas, personal period extras, fallback forecast copy, a separate topic reader, or sign-based personal Dashboard periods.
+- Do not delete old database content as part of unrelated work.
+- Do not copy, rename, or generate images to fill a visual slot; use the versioned resolver fallback.
 - Keep visual-manifest versioning independent from prompt/text cache versioning.
-- Preserve local-first startup: a cache miss or background error must not hide or close Dashboard.
-- Update the existing architecture documents when changing the personal forecast contract; do not add another task document.
+- Preserve local-first startup: cache misses and background errors must not hide or close Dashboard.
+- Keep question answers inside the period feed; do not recreate a chat.
+- Do not change the model configuration as a side effect of personal-feed work.
+- Update existing architecture documents; do not add another task document.
 
 ## Required completion checks
 
 For changes touching this product run:
 
 ```bash
-npm test
+npm test -- --runInBand
 npx tsc --noEmit
 npm run lint
 npm run build
 git diff --check
 ```
 
-Also search for working imports of removed personal systems and confirm that `views/Dashboard.tsx` contains no sign-horoscope endpoint or service calls.
+Also search for:
+
+- working imports of `DailyCanvas`, personal `periodExtras`, and the removed `PersonalForecastScreen`;
+- `personal_daily` view wiring;
+- local persona/tone instructions in V3 task prompts;
+- sign-horoscope endpoints or services in `views/Dashboard.tsx`;
+- new image or `generated_images` files.
 
 ## Release manual QA
 
-Before release, verify Telegram Mini App safe areas, native and Telegram back/swipe behavior, notification and share deep links, and startup/retry behavior on a slow network.
+Verify Android and iPhone viewport screenshots, Telegram safe areas, back/swipe behavior, full and compact period tabs, long-press rail navigation, local/global explanation sheets, Free blur previews, in-place Premium reveal, question moderation states, unread-answer bell and deep links, slow network/background retry, and scroll retention.

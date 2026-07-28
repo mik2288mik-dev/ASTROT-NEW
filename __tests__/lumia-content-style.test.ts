@@ -154,10 +154,10 @@ describe('app content style', () => {
     expect(fs.existsSync(docPath)).toBe(true);
     const content = fs.readFileSync(docPath, 'utf8');
     expect(content).toContain('## 1. MVP products');
-    expect(content).toContain('## 2. Personal forecast screen');
+    expect(content).toContain('## 2. Personal forecast feed — active product');
     expect(content).toContain('## 4. Free and Premium');
-    expect(content).toContain('## 5. Data and calculation path');
-    expect(content).toContain('## 6. Personal forecast cache and archive');
+    expect(content).toContain('## 5. Questions');
+    expect(content).toContain('## 6. Data, calculation, and caching');
     expect(content).toContain('## 7. Voice and content rules');
     expect(content).toContain('## 10. Architecture sources');
     return;
