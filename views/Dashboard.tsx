@@ -141,6 +141,7 @@ export const Dashboard = memo<DashboardProps>(({
     year: emptyPeriodState(),
   });
   const [compactTabsVisible, setCompactTabsVisible] = useState(false);
+  const [feedScrolling, setFeedScrolling] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState<string>('overview');
   const [explanation, setExplanation] = useState<ExplanationSelection | null>(null);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
@@ -152,6 +153,7 @@ export const Dashboard = memo<DashboardProps>(({
   const contextRef = useRef('');
   const accessContextRef = useRef('');
   const pendingSectionRef = useRef<string | null>(null);
+  const scrollIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => ({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
@@ -404,6 +406,11 @@ export const Dashboard = memo<DashboardProps>(({
     let lastScrollTop = root.scrollTop;
     const handleScroll = () => {
       const next = root.scrollTop;
+      setFeedScrolling(true);
+      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+      scrollIdleTimerRef.current = setTimeout(() => {
+        setFeedScrolling(false);
+      }, 620);
       if (next < 104) {
         setCompactTabsVisible(false);
       } else if (next < lastScrollTop - 2) {
@@ -414,7 +421,10 @@ export const Dashboard = memo<DashboardProps>(({
       lastScrollTop = next;
     };
     root.addEventListener('scroll', handleScroll, { passive: true });
-    return () => root.removeEventListener('scroll', handleScroll);
+    return () => {
+      root.removeEventListener('scroll', handleScroll);
+      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+    };
   }, [scrollRef]);
 
   useEffect(() => {
@@ -535,41 +545,77 @@ export const Dashboard = memo<DashboardProps>(({
   const overviewCrossLinks = forecast?.suggestedCrossPeriodLinks.filter(
     (link) => link.fromSectionId === 'overview',
   ) || [];
+  const displayName = profile.name?.trim()
+    || (language === 'ru' ? 'друг' : 'friend');
 
   return (
     <div
-      className="forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll"
+      className="fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll"
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
-      <header className="forecast-feed-header">
-        <div className="forecast-feed-header-actions">
-          {unreadQuestions.length > 0 ? (
-            <button
-              type="button"
-              className="forecast-feed-header-action has-notification"
-              aria-label={language === 'ru'
-                ? `Новых ответов: ${unreadQuestions.length}`
-                : `New answers: ${unreadQuestions.length}`}
-              onClick={openQuestionNotification}
-            >
-              <Bell size={19} aria-hidden />
-              <span className="forecast-feed-notification-dot" aria-hidden />
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="forecast-feed-header-action"
-            aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
-            onClick={() => setHowItWorksOpen(true)}
-          >
-            <Info size={19} aria-hidden />
-          </button>
+      <section
+        className="home-top"
+        aria-label={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
+      >
+        <div className="home-logo-bar">
+          <span className="home-logo-wordmark">
+            {language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
+          </span>
         </div>
-        {renderTabs()}
-        <p className="forecast-feed-date">
-          {dateLabel.split('\n').map((line) => <span key={line}>{line}</span>)}
-        </p>
-      </header>
+        <div className="home-top-content">
+          <div className="forecast-feed-greeting-row">
+            <p className="home-top-greeting">
+              {language === 'ru' ? `Привет, ${displayName}` : `Hi, ${displayName}`}
+            </p>
+            <div className="forecast-feed-header-actions">
+              {unreadQuestions.length > 0 ? (
+                <button
+                  type="button"
+                  className="forecast-feed-header-action has-notification"
+                  aria-label={language === 'ru'
+                    ? `Новых ответов: ${unreadQuestions.length}`
+                    : `New answers: ${unreadQuestions.length}`}
+                  onClick={openQuestionNotification}
+                >
+                  <Bell size={16} aria-hidden />
+                  <span className="forecast-feed-notification-dot" aria-hidden />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="forecast-feed-header-action"
+                aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
+                onClick={() => setHowItWorksOpen(true)}
+              >
+                <Info size={16} aria-hidden />
+              </button>
+            </div>
+          </div>
+          <div
+            className="home-period-tabs"
+            role="tablist"
+            aria-label={language === 'ru' ? 'Период' : 'Period'}
+          >
+            {PERIOD_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`home-period-tab${tab.id === activePeriod ? ' is-active' : ''}`}
+                role="tab"
+                aria-selected={tab.id === activePeriod}
+                onClick={() => selectPeriod(tab.id)}
+              >
+                {tab[language]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <p className="forecast-feed-date">
+        {dateLabel.split('\n').map((line) => <span key={line}>{line}</span>)}
+      </p>
+      <div className="forecast-feed-ambient" aria-hidden />
 
       <div
         className={`forecast-feed-compact-tabs${compactTabsVisible ? ' is-visible' : ''}`}
@@ -699,19 +745,11 @@ export const Dashboard = memo<DashboardProps>(({
             onFocusConsumed={() => setFocusQuestion(null)}
           />
 
-          <button
-            type="button"
-            className="forecast-feed-how-it-works"
-            onClick={() => setHowItWorksOpen(true)}
-          >
-            <Info size={18} aria-hidden />
-            {language === 'ru' ? 'Как это работает' : 'How it works'}
-          </button>
-
           <ForecastSideNavigator
             sections={sideSections}
             activeId={activeSectionId}
             onNavigate={scrollToSection}
+            className={feedScrolling ? 'is-scrolling' : undefined}
             ariaLabel={language === 'ru'
               ? 'Навигация по разделам прогноза'
               : 'Forecast section navigation'}
@@ -737,7 +775,6 @@ export const Dashboard = memo<DashboardProps>(({
                 if (!evidence) return null;
                 return (
                   <div key={id} className="forecast-feed-sheet-evidence-row">
-                    <strong>{evidence.factor}</strong>
                     <span>{evidence.meaning}</span>
                     {evidence.period ? <small>{evidence.period}</small> : null}
                   </div>

@@ -20,86 +20,89 @@ type ForecastSectionBlockProps = {
 function renderTextWithAnchors(
   section: ForecastSection,
   onExplain: ForecastSectionBlockProps['onExplain'],
+  language: 'ru' | 'en',
 ): ReactNode {
   const text = section.text.trim();
   if (!text) return null;
 
-  const located = section.explanationAnchors
-    .map((anchor) => ({
-      anchor,
-      index: text.indexOf(anchor.conclusion),
-    }))
-    .filter((entry) => entry.index >= 0)
-    .sort((left, right) => left.index - right.index);
-
-  if (!located.length) {
-    return (
-      <>
-        <p className="forecast-feed-section-text">{text}</p>
-        {section.explanationAnchors.length ? (
-          <div className="forecast-feed-anchor-list">
-            {section.explanationAnchors.map((anchor) => (
-              <button
-                key={anchor.id}
-                type="button"
-                className="forecast-feed-anchor"
-                onClick={() => onExplain(section, anchor)}
-              >
-                <span>{anchor.conclusion}</span>
-                <span className="forecast-feed-info-icon" aria-hidden>i</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </>
-    );
-  }
-
-  const parts: ReactNode[] = [];
-  let cursor = 0;
-  for (const { anchor, index } of located) {
-    if (index < cursor) continue;
-    if (index > cursor) parts.push(text.slice(cursor, index));
-    parts.push(
-      <Fragment key={anchor.id}>
-        {anchor.conclusion}
-        <button
-          type="button"
-          className="forecast-feed-inline-info"
-          aria-label="Показать основание вывода"
-          onClick={() => onExplain(section, anchor)}
-        >
-          i
-        </button>
-      </Fragment>,
-    );
-    cursor = index + anchor.conclusion.length;
-  }
-  if (cursor < text.length) parts.push(text.slice(cursor));
-
-  const unlocated = section.explanationAnchors.filter(
-    (anchor) => !located.some((entry) => entry.anchor.id === anchor.id),
+  const explicitParagraphs = text
+    .split(/\n{2,}/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const sentences = explicitParagraphs.length === 1
+    ? text.match(/[^.!?…]+(?:[.!?…]+|$)/gu)?.map((value) => value.trim()).filter(Boolean) || []
+    : [];
+  const paragraphs = explicitParagraphs.length > 1 || sentences.length <= 2
+    ? explicitParagraphs
+    : sentences.reduce<string[]>((groups, sentence, index) => {
+        const groupIndex = Math.floor(index / 2);
+        groups[groupIndex] = groups[groupIndex]
+          ? `${groups[groupIndex]} ${sentence}`
+          : sentence;
+        return groups;
+      }, []);
+  const locatedAnchorIds = new Set(
+    section.explanationAnchors
+      .filter((anchor) => paragraphs.some((paragraph) => paragraph.includes(anchor.conclusion)))
+      .map((anchor) => anchor.id),
+  );
+  const fallbackAnchor = section.explanationAnchors.find(
+    (anchor) => !locatedAnchorIds.has(anchor.id),
   );
 
   return (
-    <>
-      <p className="forecast-feed-section-text">{parts}</p>
-      {unlocated.length ? (
-        <div className="forecast-feed-anchor-list">
-          {unlocated.map((anchor) => (
-            <button
-              key={anchor.id}
-              type="button"
-              className="forecast-feed-anchor"
-              onClick={() => onExplain(section, anchor)}
-            >
-              <span>{anchor.conclusion}</span>
-              <span className="forecast-feed-info-icon" aria-hidden>i</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </>
+    <div className="forecast-feed-section-copy">
+      {paragraphs.map((paragraph, paragraphIndex) => {
+        const located = section.explanationAnchors
+          .map((anchor) => ({
+            anchor,
+            index: paragraph.indexOf(anchor.conclusion),
+          }))
+          .filter((entry) => entry.index >= 0)
+          .sort((left, right) => left.index - right.index);
+        const parts: ReactNode[] = [];
+        let cursor = 0;
+        for (const { anchor, index } of located) {
+          if (index < cursor) continue;
+          if (index > cursor) parts.push(paragraph.slice(cursor, index));
+          parts.push(
+            <Fragment key={anchor.id}>
+              {anchor.conclusion}
+              <button
+                type="button"
+                className="forecast-feed-inline-info"
+                aria-label={language === 'ru'
+                  ? 'Показать, почему получился этот вывод'
+                  : 'Show why this conclusion was reached'}
+                onClick={() => onExplain(section, anchor)}
+              >
+                i
+              </button>
+            </Fragment>,
+          );
+          cursor = index + anchor.conclusion.length;
+        }
+        if (cursor < paragraph.length) parts.push(paragraph.slice(cursor));
+
+        return (
+          <p key={`${section.id}:${paragraphIndex}`} className="forecast-feed-section-text">
+            {parts}
+            {!locatedAnchorIds.size && paragraphIndex === 0 && fallbackAnchor ? (
+              <button
+                type="button"
+                className="forecast-feed-inline-info"
+                aria-label={language === 'ru'
+                  ? 'Показать, почему получился этот вывод'
+                  : 'Show why this conclusion was reached'}
+                onClick={() => onExplain(section, fallbackAnchor)}
+              >
+                i
+              </button>
+            ) : null}
+          </p>
+        );
+      })}
+    </div>
   );
 }
 
@@ -132,7 +135,6 @@ export function ForecastSectionBlock({
       ].filter(Boolean).join(' ')}
       style={style}
     >
-      <span className="forecast-feed-section-shade" aria-hidden />
       <div className="forecast-feed-section-content">
         {title ? <h2 className="forecast-feed-section-title">{title}</h2> : null}
         {locked ? (
@@ -163,13 +165,12 @@ export function ForecastSectionBlock({
               className="forecast-feed-premium-cta"
               onClick={onRequestPremium}
             >
-              <span aria-hidden>✦</span>
-              {language === 'ru' ? 'Открыть в Premium' : 'Unlock with Premium'}
+              {language === 'ru' ? 'Показать продолжение' : 'Show the rest'}
             </button>
           </div>
         ) : (
           <>
-            {renderTextWithAnchors(section, onExplain)}
+            {renderTextWithAnchors(section, onExplain, language)}
             {section.inlineAstroAccent?.text ? (
               <p className="forecast-feed-inline-astro">
                 {section.inlineAstroAccent.text}
