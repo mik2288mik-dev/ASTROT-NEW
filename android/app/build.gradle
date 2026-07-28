@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def releaseStoreFileValue = project.findProperty('RELEASE_STORE_FILE') ?: System.getenv('RELEASE_STORE_FILE')
+def releaseStorePasswordValue = project.findProperty('RELEASE_STORE_PASSWORD') ?: System.getenv('RELEASE_STORE_PASSWORD')
+def releaseKeyAliasValue = project.findProperty('RELEASE_KEY_ALIAS') ?: System.getenv('RELEASE_KEY_ALIAS')
+def releaseKeyPasswordValue = project.findProperty('RELEASE_KEY_PASSWORD') ?: System.getenv('RELEASE_KEY_PASSWORD')
+def releaseSigningReady = releaseStoreFileValue && releaseStorePasswordValue && releaseKeyAliasValue && releaseKeyPasswordValue
+
 android {
     namespace = "com.yourhoroscope.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +13,8 @@ android {
         applicationId "com.yourhoroscope.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode (project.findProperty('APP_VERSION_CODE') ?: System.getenv('APP_VERSION_CODE') ?: '1').toInteger()
+        versionName (project.findProperty('APP_VERSION_NAME') ?: System.getenv('APP_VERSION_NAME') ?: '1.0.0')
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,9 +22,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseSigningReady) {
+            release {
+                storeFile file(releaseStoreFileValue)
+                storePassword releaseStorePasswordValue
+                keyAlias releaseKeyAliasValue
+                keyPassword releaseKeyPasswordValue
+            }
+        }
+    }
     buildTypes {
         release {
-            minifyEnabled false
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.lifecycle('Release signing is not configured. Provide RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS and RELEASE_KEY_PASSWORD.')
+            }
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

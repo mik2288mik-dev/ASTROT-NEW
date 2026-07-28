@@ -7,6 +7,7 @@ import { updateUserNotificationSettings, getUserNotificationSettings, getTelegra
 import { hasActivePremium } from '../lib/accessMatrix';
 import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
 import { apiFetch } from '../services/apiClient';
+import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -35,6 +36,8 @@ interface SettingsProps {
     onRequestPremium?: () => void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
+    onLogout?: () => void;
+    onDeleteAccount?: () => Promise<void>;
 }
 
 const NOTIFICATION_FREQUENCIES: NotificationFrequency[] = ['quiet', 'important', 'daily', 'twice_daily'];
@@ -85,7 +88,7 @@ function profileEditsThisMonth(userId?: string): number {
     }).length;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onRequestPremium, onOpenAdmin }) => {
+export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onRequestPremium, onOpenAdmin, onLogout, onDeleteAccount }) => {
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
@@ -100,6 +103,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [notifEnabled, setNotifEnabled] = useState(true);
     const [quietStart, setQuietStart] = useState('22:00');
     const [quietEnd, setQuietEnd] = useState('08:00');
+    const [deletingAccount, setDeletingAccount] = useState(false);
 
     useEffect(() => {
         let alive = true;
@@ -581,6 +585,27 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     </div>
                 </button>
             )}
+
+            <section className={sectionClass}>
+                <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Legal and support' : 'Правовая информация и поддержка'}</h3>
+                <div className="mt-3 grid gap-2 text-sm">
+                    <a className="fresh-btn-ghost text-left" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer">{profile.language === 'en' ? 'Privacy Policy' : 'Политика конфиденциальности'}</a>
+                    <a className="fresh-btn-ghost text-left" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer">{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</a>
+                    <a className="fresh-btn-ghost text-left" href={`mailto:${releaseConfig.supportEmail}`}>{profile.language === 'en' ? 'Support' : 'Поддержка'}</a>
+                </div>
+            </section>
+
+            <section className={`${sectionClass} border border-red-200`}>
+                <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Account and data' : 'Аккаунт и данные'}</h3>
+                <p className="lumia-muted mt-1 text-sm">{profile.language === 'en' ? 'Sign out from this device or permanently delete your account and related data.' : 'Можно выйти с этого устройства или навсегда удалить аккаунт и связанные данные.'}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                    <button type="button" className="fresh-btn-ghost" onClick={onLogout}>{profile.language === 'en' ? 'Sign out' : 'Выйти'}</button>
+                    <button type="button" disabled={deletingAccount} className="fresh-btn-ghost text-red-700" onClick={() => {
+                        if (!window.confirm(profile.language === 'en' ? 'Delete your account and related data permanently?' : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
+                        setDeletingAccount(true); void onDeleteAccount?.().finally(() => setDeletingAccount(false));
+                    }}>{deletingAccount ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…') : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}</button>
+                </div>
+            </section>
 
             <div className="pt-1 text-center">
                  <button type="button" className="min-h-[44px] px-3 text-[10px] uppercase tracking-widest text-mono-muted transition-colors hover:text-mono-ink">

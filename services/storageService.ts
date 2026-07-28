@@ -7,6 +7,11 @@ import { isValidUserId } from "../lib/userId";
 import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
 import { apiFetch } from "./apiClient";
 
+export async function deleteCurrentAccount(): Promise<void> {
+  const response = await apiFetch('/api/users/account', { method: 'DELETE' });
+  if (!response.ok) throw new Error('ACCOUNT_DELETION_FAILED');
+}
+
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
 const PROFILE_SAVE_TIMEOUT_MS = 45_000;
 const CHART_GET_TIMEOUT_MS = 25_000;

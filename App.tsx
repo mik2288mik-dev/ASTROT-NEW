@@ -8,7 +8,9 @@ import {
     getProfile,
     saveProfile,
     runReferralFromStartParam,
+    deleteCurrentAccount,
 } from './services/storageService';
+import { clearAppSessionAndLocalData } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { prewarmUserContent } from './services/contentPrewarmService';
 import { CACHE_ONLY_PREWARM_BUDGET_MS } from './lib/appStartupFlags';
@@ -1070,6 +1072,21 @@ const App: React.FC = () => {
         setProfile(updatedProfile);
     }, [profile]);
 
+    const resetLocalAccountState = useCallback(async () => {
+        if (profile) {
+            clearLocalNatalChart(profile);
+            clearLocalHumanBaseReport(profile);
+        }
+        await clearAppSessionAndLocalData();
+        setProfile(null);
+        window.location.reload();
+    }, [profile]);
+
+    const handleDeleteAccount = useCallback(async () => {
+        await deleteCurrentAccount();
+        await resetLocalAccountState();
+    }, [resetLocalAccountState]);
+
     useEffect(() => {
         if (!profile?.id || notificationAttributionSentRef.current) return;
         const launch = notificationLaunchRef.current;
@@ -1654,6 +1671,8 @@ const App: React.FC = () => {
                             onRequestPremium={() => { void requestPremium('settings'); }}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
+                            onLogout={() => { void resetLocalAccountState(); }}
+                            onDeleteAccount={handleDeleteAccount}
                         />
                     </div>
                 ) : view === 'charts' ? (

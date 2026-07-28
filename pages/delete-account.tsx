@@ -1,0 +1,3 @@
+import Head from 'next/head';
+import { STORE_RELEASE_CONFIG as config } from '../lib/storeReleaseConfig';
+export default function DeleteAccountPage() { return <main style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px', lineHeight: 1.6 }}><Head><title>Удаление аккаунта — {config.appName}</title></Head><h1>Удаление аккаунта и данных</h1><p>Войдите в приложение и выберите Настройки → Удалить аккаунт. После подтверждения аккаунт и связанные с ним данные удаляются с сервиса.</p><p>Если войти в приложение невозможно, отправьте запрос с описанием ситуации на {config.supportEmail}. [УКАЖИТЕ_СПОСОБ_ПРОВЕРКИ_ЛИЧНОСТИ_И_СРОК_ОБРАБОТКИ_ПЕРЕД_ПУБЛИКАЦИЕЙ].</p><p>Сведения о законных исключениях по хранению должны быть перечислены в Политике конфиденциальности.</p></main>; }

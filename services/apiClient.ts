@@ -126,3 +126,9 @@ export async function apiFetch(
 export async function clearNativeSession(): Promise<void> {
   await nativeSessionStore.clearToken();
 }
+
+export async function clearAppSessionAndLocalData(): Promise<void> {
+  await clearNativeSession();
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.clear(); window.sessionStorage.clear(); } catch { /* unavailable storage */ }
+}

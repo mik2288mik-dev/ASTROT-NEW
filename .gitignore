@@ -19,6 +19,9 @@
 /android/app/build/
 *.apk
 *.aab
+*.jks
+*.keystore
+android/signing.properties
 
 # production
 /build
