@@ -1,224 +1,26 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#091126">
-  <meta name="description" content="Твой Гороскоп — личные разборы, натальная карта и совместимость без страшилок и эзотерической ваты.">
-  <meta property="og:title" content="Твой Гороскоп">
-  <meta property="og:description" content="Гороскоп — общий. Этот разбор про тебя.">
-  <meta property="og:type" content="website">
-  <title>Твой Гороскоп — личный разбор без воды</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23091126'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23c9ff6f' stroke-width='5'/%3E%3Cpath d='M11 32h42M32 11v42' stroke='%23fff' stroke-width='3' stroke-linecap='round' opacity='.8'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#081126">
+<meta name="description" content="Твой Гороскоп — личные разборы, натальная карта и совместимость без страшилок и эзотерической ваты.">
+<title>Твой Гороскоп — этот разбор про тебя</title>
+<style>
+:root{--night:#081126;--night2:#161d43;--paper:#f3f0e8;--white:#fff;--ink:#111827;--muted:#697082;--blue:#3f6fff;--lime:#caff72;--coral:#ff7b67;--lilac:#b9a9ff;--line:rgba(17,24,39,.11);--shadow:0 30px 90px rgba(17,24,39,.15);--shell:min(1180px,calc(100vw - 40px))}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:var(--paper);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}a{color:inherit;text-decoration:none}.shell{width:var(--shell);margin:auto}.header{position:fixed;z-index:50;inset:16px 20px auto;min-height:62px;display:flex;align-items:center;gap:22px;padding:8px 10px 8px 16px;border:1px solid rgba(255,255,255,.16);border-radius:22px;background:rgba(8,17,38,.76);color:#fff;backdrop-filter:blur(18px);box-shadow:0 16px 50px rgba(0,0,0,.18)}.brand{display:flex;align-items:center;gap:10px;font-weight:850;letter-spacing:-.04em;white-space:nowrap}.mark{width:26px;height:26px;border:2px solid var(--lime);border-radius:50%;position:relative;box-shadow:0 0 24px rgba(202,255,114,.25)}.mark:before,.mark:after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:9px;transform:translate(-50%,-50%);opacity:.8}.mark:before{width:3px;height:32px}.mark:after{width:32px;height:3px}.nav{margin-left:auto;display:flex;gap:4px}.nav a{padding:10px 12px;border-radius:12px;color:rgba(255,255,255,.68);font-size:.86rem}.nav a:hover{color:#fff;background:rgba(255,255,255,.08)}.download{padding:11px 15px;border-radius:13px;background:#fff;color:var(--night);font-size:.86rem;font-weight:850}.hero{min-height:860px;position:relative;overflow:hidden;color:#fff;background:radial-gradient(circle at 15% 20%,rgba(63,111,255,.28),transparent 28%),radial-gradient(circle at 84% 72%,rgba(202,255,114,.12),transparent 24%),linear-gradient(135deg,var(--night),var(--night2) 58%,#2e2054);padding:150px 0 92px}.hero:before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.9) 0 1px,transparent 1.4px),radial-gradient(circle,rgba(255,255,255,.45) 0 1px,transparent 1.3px);background-size:108px 108px,171px 171px;background-position:21px 28px,58px 78px;opacity:.55}.orbit{position:absolute;border:1px solid rgba(255,255,255,.13);border-radius:50%;pointer-events:none}.orbit.one{width:760px;height:760px;right:-260px;top:-180px}.orbit.two{width:430px;height:430px;right:-95px;top:-15px}.planet{position:absolute;right:8%;top:17%;width:118px;height:118px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff3ca 0 5%,#ffb666 26%,#ff7c68 58%,#7b47ff 100%);box-shadow:0 0 70px rgba(255,124,104,.28);animation:float 6s ease-in-out infinite}.planet:after{content:"";position:absolute;width:166px;height:42px;border:8px solid rgba(255,255,255,.45);border-left-color:transparent;border-right-color:transparent;border-radius:50%;left:-24px;top:38px;transform:rotate(-15deg)}.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(390px,.82fr);gap:72px;align-items:center}.eyebrow{margin:0 0 18px;color:var(--lime);font-size:.78rem;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.hero h1{margin:0;max-width:760px;font-size:clamp(3.4rem,7vw,6.5rem);line-height:.92;letter-spacing:-.075em}.hero h1 em{font-style:normal;color:var(--lime)}.lead{max-width:650px;margin:28px 0 0;color:#d7ddf3;font-size:clamp(1.08rem,1.6vw,1.28rem);line-height:1.58}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}.button{min-height:52px;display:inline-flex;align-items:center;justify-content:center;padding:0 20px;border-radius:16px;font-weight:850;transition:.2s}.button:hover{transform:translateY(-2px)}.primary{background:#fff;color:var(--night);box-shadow:0 16px 36px rgba(0,0,0,.24)}.ghost{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.07);color:#fff;backdrop-filter:blur(10px)}.notes{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}.notes span{padding:8px 11px;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:#cfd6ef;font-size:.81rem;background:rgba(255,255,255,.05)}.phone-stage{position:relative;min-height:610px;display:grid;place-items:center}.phone{position:relative;width:min(360px,90%);padding:11px;border-radius:47px;background:#050914;border:1px solid rgba(255,255,255,.17);box-shadow:0 50px 120px rgba(0,0,0,.48);transform:rotate(3deg)}.phone:before{content:"";position:absolute;z-index:4;top:17px;left:50%;width:105px;height:28px;border-radius:20px;background:#050914;transform:translateX(-50%)}.screen{min-height:600px;padding:48px 18px 20px;border-radius:38px;background:#f8f6f0;color:var(--ink);overflow:hidden}.app-head{display:flex;align-items:center;justify-content:space-between;font-weight:850}.avatar{display:grid;place-items:center;width:31px;height:31px;border-radius:50%;background:#e1e5ed;font-size:.78rem}.date{margin-top:18px;color:#858b9b;font-size:.68rem;font-weight:800;letter-spacing:.1em}.main-card{position:relative;overflow:hidden;margin-top:10px;min-height:240px;padding:24px;border-radius:27px;background:linear-gradient(145deg,#151e46,#273b8a);color:#fff;box-shadow:0 18px 38px rgba(38,56,126,.25)}.main-card:before{content:"";position:absolute;width:230px;height:230px;right:-92px;top:-76px;border:1px solid rgba(255,255,255,.25);border-radius:50%;box-shadow:0 0 0 27px rgba(255,255,255,.04),0 0 0 54px rgba(255,255,255,.03)}.label{position:relative;color:var(--lime);font-size:.68rem;font-weight:900;letter-spacing:.14em}.main-card h2{position:relative;max-width:260px;margin:36px 0 20px;font-size:1.48rem;line-height:1.08;letter-spacing:-.04em}.main-card span.cta{position:relative;display:inline-flex;padding:10px 13px;border-radius:12px;background:#fff;color:var(--night);font-size:.78rem;font-weight:850}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.mini{min-height:106px;padding:15px;border-radius:20px}.mini span{display:block;margin-bottom:18px;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.65}.mini strong{font-size:.92rem;line-height:1.2}.coral{background:#ffd9d1}.blue{background:#dfe7ff}.lime{background:#e7ffc2}.lilac{background:#e8e1ff}.chip{position:absolute;padding:12px 15px;border-radius:15px;background:rgba(255,255,255,.94);color:var(--ink);font-size:.82rem;font-weight:850;box-shadow:0 18px 44px rgba(0,0,0,.25);backdrop-filter:blur(12px)}.chip.one{left:-2%;top:24%}.chip.two{right:-4%;bottom:21%}.ticker{overflow:hidden;background:var(--lime);border-bottom:1px solid rgba(17,24,39,.12);color:var(--ink)}.track{display:flex;width:max-content;animation:ticker 24s linear infinite}.track span{padding:16px 0;font-size:.9rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}.section{padding:100px 0}.section-head{max-width:860px;margin-bottom:42px}.section-head .eyebrow{color:var(--blue)}.section h2{margin:0;font-size:clamp(2.7rem,5vw,5rem);line-height:.98;letter-spacing:-.065em}.bento{display:grid;grid-template-columns:1.18fr .82fr;grid-template-areas:"main natal" "main compat" "question question";gap:16px}.card{position:relative;overflow:hidden;padding:28px;border-radius:30px;border:1px solid var(--line);box-shadow:0 18px 55px rgba(17,24,39,.09);transition:.22s}.card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}.card h3{margin:7px 0 12px;font-size:clamp(1.7rem,3vw,3.2rem);line-height:1;letter-spacing:-.055em}.card p{max-width:560px;margin:0;color:var(--muted);line-height:1.58}.num{position:absolute;right:22px;top:18px;font-size:.75rem;font-weight:900;opacity:.45}.kicker{margin:0!important;color:inherit!important;font-size:.75rem!important;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.main-bento{grid-area:main;min-height:620px;display:flex;flex-direction:column;justify-content:flex-end;background:#fff}.main-bento:before{content:"";position:absolute;width:420px;height:420px;right:-130px;top:-120px;border:1px solid rgba(63,111,255,.2);border-radius:50%;box-shadow:0 0 0 42px rgba(63,111,255,.04),0 0 0 84px rgba(63,111,255,.03)}.main-bento h3{max-width:650px}.main-bento .more{display:inline-flex;margin-top:24px;font-weight:900}.natal-bento{grid-area:natal;min-height:300px;background:var(--lilac)}.compat-bento{grid-area:compat;min-height:300px;background:var(--coral)}.question-bento{grid-area:question;min-height:260px;background:var(--night);color:#fff}.question-bento p{color:#cdd4ec}.symbol{font-size:4.8rem;line-height:1;opacity:.9}.symbols{display:flex;gap:8px;margin-bottom:30px}.symbols span{display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.35);font-size:2.2rem}.voice{position:relative;overflow:hidden;background:var(--night);color:#fff}.voice:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 20%,rgba(63,111,255,.25),transparent 28%),radial-gradient(circle at 15% 85%,rgba(202,255,114,.11),transparent 26%)}.voice-grid{position:relative;display:grid;grid-template-columns:.82fr 1.18fr;gap:70px;align-items:center}.voice-copy p:last-child{color:#cfd6ed;line-height:1.65;font-size:1.08rem}.quote{margin:0;padding:42px;border:1px solid rgba(255,255,255,.15);border-radius:32px;background:rgba(255,255,255,.07);backdrop-filter:blur(14px);box-shadow:0 25px 80px rgba(0,0,0,.22)}.quote b{display:block;color:var(--lime);font-size:4rem;line-height:.6}.quote p{margin:22px 0 24px;font-size:clamp(1.8rem,3.4vw,3.3rem);line-height:1.08;letter-spacing:-.05em}.quote footer{color:#aeb7d3;font-size:.82rem}.zodiac-head p{max-width:560px;color:var(--muted);line-height:1.6}.zodiac{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.zodiac a{min-height:125px;display:flex;flex-direction:column;justify-content:space-between;padding:17px;border:1px solid var(--line);border-radius:20px;background:#fff;transition:.2s}.zodiac a:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(17,24,39,.1)}.zodiac span{font-size:2rem}.zodiac strong{font-size:.9rem}.final{padding:32px 0 70px}.final-card{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:42px;padding:52px;border-radius:36px;background:linear-gradient(135deg,#202b62,#11183c);color:#fff;box-shadow:var(--shadow)}.final-card:after{content:"";position:absolute;width:300px;height:300px;right:-80px;bottom:-180px;border-radius:50%;background:radial-gradient(circle,rgba(202,255,114,.32),transparent 68%)}.final-card h2{position:relative;margin:0;font-size:clamp(2.7rem,5vw,5.3rem);line-height:.95;letter-spacing:-.065em}.final-card p{position:relative;max-width:620px;color:#ccd4ed;line-height:1.6}.stores{position:relative;z-index:2;display:grid;gap:9px;min-width:190px}.store{padding:14px 18px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.07);color:#b9c1db;text-align:center;font-size:.86rem;font-weight:850}.footer{padding:28px 0 38px;border-top:1px solid var(--line);color:var(--muted);font-size:.82rem}.footer-row{display:flex;align-items:center;justify-content:space-between;gap:20px}.reveal{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s ease}.reveal.show{opacity:1;transform:none}@keyframes ticker{to{transform:translateX(-50%)}}@keyframes float{50%{transform:translateY(-13px) rotate(2deg)}}@media(max-width:980px){.nav{display:none}.hero-grid,.voice-grid{grid-template-columns:1fr}.hero{padding-top:130px}.phone-stage{min-height:580px}.planet{right:-20px;top:13%;width:92px;height:92px}.bento{grid-template-columns:1fr;grid-template-areas:"main" "natal" "compat" "question"}.main-bento{min-height:440px}.zodiac{grid-template-columns:repeat(4,1fr)}}@media(max-width:680px){:root{--shell:min(100% - 28px,1180px)}.header{inset:10px 10px auto;min-height:56px;padding-left:13px}.download{padding:9px 11px}.hero{min-height:auto;padding:118px 0 64px}.hero h1{font-size:clamp(3.1rem,15vw,5rem)}.lead{font-size:1.02rem}.hero-grid{gap:36px}.phone-stage{min-height:520px}.phone{width:min(330px,92%)}.screen{min-height:545px}.chip{display:none}.section{padding:72px 0}.section h2{font-size:clamp(2.5rem,12vw,4rem)}.card{padding:23px;border-radius:25px}.main-bento{min-height:390px}.voice-grid{gap:32px}.quote{padding:28px}.zodiac{grid-template-columns:repeat(3,1fr)}.zodiac a{min-height:104px}.final-card{display:block;padding:34px 25px}.stores{margin-top:28px}.footer-row{align-items:flex-start;flex-direction:column}}
+</style>
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand" href="#top" aria-label="Твой Гороскоп">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <span data-i18n="brand">Твой Гороскоп</span>
-    </a>
-
-    <nav class="nav" aria-label="Основная навигация">
-      <a href="#inside" data-i18n="navInside">Что внутри</a>
-      <a href="#voice" data-i18n="navVoice">Как говорит</a>
-      <a href="#zodiac" data-i18n="navZodiac">Знаки</a>
-    </nav>
-
-    <div class="header-actions">
-      <div class="lang-switcher" aria-label="Язык">
-        <button class="lang is-active" type="button" data-lang="ru">RU</button>
-        <button class="lang" type="button" data-lang="en">EN</button>
-        <button class="lang" type="button" data-lang="es">ES</button>
-      </div>
-      <a class="header-cta" href="#download" data-i18n="download">Скачать</a>
-    </div>
-  </header>
-
-  <main id="top">
-    <section class="hero">
-      <div class="stars stars-a" aria-hidden="true"></div>
-      <div class="stars stars-b" aria-hidden="true"></div>
-      <div class="orbit orbit-a" aria-hidden="true"></div>
-      <div class="orbit orbit-b" aria-hidden="true"></div>
-      <div class="planet" aria-hidden="true"><span></span></div>
-
-      <div class="shell hero-grid">
-        <div class="hero-copy reveal">
-          <p class="eyebrow" data-i18n="eyebrow">Астрология без театра судьбы</p>
-          <h1 data-i18n="heroTitle">Гороскоп — общий.<br><em>Этот разбор про тебя.</em></h1>
-          <p class="hero-lead" data-i18n="heroLead">Натальная карта, совместимость и личные разборы без страшилок и сахарной ваты. Приложение говорит прямо — и не решает за тебя.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#inside" data-i18n="showInside">Покажи, что внутри</a>
-            <a class="button button-ghost" href="#zodiac" data-i18n="chooseSign">Выбрать знак</a>
-          </div>
-          <div class="hero-notes" aria-label="Преимущества">
-            <span data-i18n="noteOne">По твоим данным</span>
-            <span data-i18n="noteTwo">Без фатализма</span>
-            <span data-i18n="noteThree">Нормальным языком</span>
-          </div>
-        </div>
-
-        <div class="phone-stage reveal" aria-label="Пример интерфейса приложения">
-          <div class="glow glow-blue" aria-hidden="true"></div>
-          <div class="glow glow-lime" aria-hidden="true"></div>
-          <div class="phone">
-            <div class="phone-top"><span>9:41</span><span class="phone-sensors"></span></div>
-            <div class="phone-screen">
-              <div class="app-head">
-                <span data-i18n="appHello">Привет, Миша</span>
-                <span class="avatar">М</span>
-              </div>
-              <div class="app-date" data-i18n="appDate">ПОНЕДЕЛЬНИК · 28 ИЮЛЯ</div>
-              <article class="app-hero-card">
-                <div class="card-orbit" aria-hidden="true"></div>
-                <span class="app-label" data-i18n="appMain">ГЛАВНОЕ</span>
-                <h2 data-i18n="appCardTitle">Не отвечай на автомате. Сначала пойми, чего хочешь ты.</h2>
-                <button type="button" data-i18n="appCardCta">Ладно, рассказывай</button>
-              </article>
-              <div class="mini-grid">
-                <article class="mini-card coral"><span data-i18n="love">Любовь</span><strong data-i18n="loveText">Скажи прямо</strong></article>
-                <article class="mini-card blue"><span data-i18n="work">Работа</span><strong data-i18n="workText">Закрой один хвост</strong></article>
-                <article class="mini-card lime"><span data-i18n="money">Деньги</span><strong data-i18n="moneyText">Без покупок назло</strong></article>
-                <article class="mini-card lilac"><span data-i18n="mood">Настроение</span><strong data-i18n="moodText">Не тащи чужое</strong></article>
-              </div>
-            </div>
-          </div>
-          <div class="float-chip chip-left" data-i18n="chipLeft">Натальная карта</div>
-          <div class="float-chip chip-right" data-i18n="chipRight">Совместимость</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="ticker" aria-label="Возможности приложения">
-      <div class="ticker-track">
-        <span data-i18n="ticker">Личный разбор • Натальная карта • Совместимость • Любовь • Работа • Деньги • Свои вопросы •</span>
-        <span aria-hidden="true" data-i18n="ticker">Личный разбор • Натальная карта • Совместимость • Любовь • Работа • Деньги • Свои вопросы •</span>
-      </div>
-    </section>
-
-    <section class="section section-paper" id="inside">
-      <div class="shell">
-        <div class="section-heading reveal">
-          <p class="eyebrow dark" data-i18n="insideEyebrow">Не комбайн на сто кнопок</p>
-          <h2 data-i18n="insideTitle">Выбираешь, что волнует.<br>Идёшь сразу туда.</h2>
-        </div>
-
-        <div class="bento">
-          <a class="bento-card bento-main reveal" href="#download">
-            <span class="bento-number">01</span>
-            <div>
-              <p class="bento-kicker" data-i18n="personal">Личный разбор</p>
-              <h3 data-i18n="personalTitle">Не «всем Овнам приготовиться».</h3>
-              <p data-i18n="personalBody">Дата, время и город рождения превращают общий текст в разбор именно твоей ситуации.</p>
-            </div>
-            <span class="bento-link" data-i18n="more">Что там дальше?</span>
-          </a>
-
-          <a class="bento-card bento-natal reveal" href="#download">
-            <span class="bento-number">02</span>
-            <div class="natal-wheel" aria-hidden="true"><i></i><i></i><i></i></div>
-            <div>
-              <p class="bento-kicker" data-i18n="natal">Натальная карта</p>
-              <h3 data-i18n="natalTitle">Разбор без учебника.</h3>
-              <p data-i18n="natalBody">Характер, привычные реакции и сильные стороны — без лекции на сорок экранов.</p>
-            </div>
-          </a>
-
-          <a class="bento-card bento-compat reveal" href="#download">
-            <span class="bento-number">03</span>
-            <div class="compat-visual" aria-hidden="true"><span>♈</span><span>♎</span></div>
-            <div>
-              <p class="bento-kicker" data-i18n="compat">Совместимость</p>
-              <h3 data-i18n="compatTitle">Не приговор отношениям.</h3>
-              <p data-i18n="compatBody">Где вас тянет друг к другу, а где вы снова спорите об одном и том же.</p>
-            </div>
-          </a>
-
-          <a class="bento-card bento-question reveal" href="#download">
-            <span class="bento-number">04</span>
-            <div>
-              <p class="bento-kicker" data-i18n="questions">Свои вопросы</p>
-              <h3 data-i18n="questionsTitle">Спроси прямо.</h3>
-              <p data-i18n="questionsBody">Работа, деньги, отношения, переезд — то, что правда сидит в голове.</p>
-            </div>
-            <span class="question-mark" aria-hidden="true">?</span>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <section class="section voice-section" id="voice">
-      <div class="shell voice-grid">
-        <div class="voice-copy reveal">
-          <p class="eyebrow" data-i18n="voiceEyebrow">Голос приложения</p>
-          <h2 data-i18n="voiceTitle">Не «энергия дня».<br>По-человечески.</h2>
-          <p data-i18n="voiceBody">Как добрый дерзкий друг: скажет правду, но не станет объявлять твою жизнь сломанной из-за ретроградного чего-нибудь.</p>
-        </div>
-        <blockquote class="voice-card reveal">
-          <span class="quote-mark">“</span>
-          <p data-i18n="quote">Ты не обязан отвечать сразу. Но делать вид, что вопроса нет, — тоже план так себе.</p>
-          <footer data-i18n="quoteFooter">Пример личного разбора</footer>
-        </blockquote>
-      </div>
-    </section>
-
-    <section class="section zodiac-section" id="zodiac">
-      <div class="shell">
-        <div class="section-heading compact reveal">
-          <p class="eyebrow dark" data-i18n="zodiacEyebrow">Хочется быстро?</p>
-          <h2 data-i18n="zodiacTitle">Начни со своего знака.</h2>
-          <p data-i18n="zodiacBody">Без анкеты и регистрации. Личный разбор добавишь потом.</p>
-        </div>
-        <div class="zodiac-grid reveal">
-          <a href="#download"><span>♈</span><strong data-i18n="aries">Овен</strong></a>
-          <a href="#download"><span>♉</span><strong data-i18n="taurus">Телец</strong></a>
-          <a href="#download"><span>♊</span><strong data-i18n="gemini">Близнецы</strong></a>
-          <a href="#download"><span>♋</span><strong data-i18n="cancer">Рак</strong></a>
-          <a href="#download"><span>♌</span><strong data-i18n="leo">Лев</strong></a>
-          <a href="#download"><span>♍</span><strong data-i18n="virgo">Дева</strong></a>
-          <a href="#download"><span>♎</span><strong data-i18n="libra">Весы</strong></a>
-          <a href="#download"><span>♏</span><strong data-i18n="scorpio">Скорпион</strong></a>
-          <a href="#download"><span>♐</span><strong data-i18n="sagittarius">Стрелец</strong></a>
-          <a href="#download"><span>♑</span><strong data-i18n="capricorn">Козерог</strong></a>
-          <a href="#download"><span>♒</span><strong data-i18n="aquarius">Водолей</strong></a>
-          <a href="#download"><span>♓</span><strong data-i18n="pisces">Рыбы</strong></a>
-        </div>
-      </div>
-    </section>
-
-    <section class="final-section" id="download">
-      <div class="shell final-card reveal">
-        <div class="final-stars" aria-hidden="true"></div>
-        <div>
-          <p class="eyebrow" data-i18n="finalEyebrow">Скоро в магазинах приложений</p>
-          <h2 data-i18n="finalTitle">Раз уж зашёл —<br>посмотри, что там про тебя.</h2>
-          <p data-i18n="finalBody">Google Play, RuStore и App Store появятся здесь сразу после публикации.</p>
-        </div>
-        <div class="store-stack">
-          <span class="store-button is-disabled">Google Play</span>
-          <span class="store-button is-disabled">RuStore</span>
-          <span class="store-button is-disabled">App Store</span>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="shell footer-row">
-      <div>
-        <strong data-i18n="brand">Твой Гороскоп</strong>
-        <p data-i18n="footerText">Без фатализма. Без сахарной ваты.</p>
-      </div>
-      <div class="footer-links">
-        <a href="privacy.html" data-i18n="privacy">Конфиденциальность</a>
-        <a href="terms.html" data-i18n="terms">Условия</a>
-        <a href="delete-account.html" data-i18n="delete">Удаление аккаунта</a>
-      </div>
-      <span>© 2026</span>
-    </div>
-  </footer>
-
-  <script src="script.js"></script>
+<header class="header"><a class="brand" href="#top"><span class="mark"></span>Твой Гороскоп</a><nav class="nav"><a href="#inside">Что внутри</a><a href="#voice">Как говорит</a><a href="#zodiac">Знаки</a></nav><a class="download" href="#download">Скачать</a></header>
+<main id="top">
+<section class="hero"><div class="orbit one"></div><div class="orbit two"></div><div class="planet"></div><div class="shell hero-grid"><div class="reveal"><p class="eyebrow">Астрология без театра судьбы</p><h1>Гороскоп — общий.<br><em>Этот разбор про тебя.</em></h1><p class="lead">Натальная карта, совместимость и личные разборы без страшилок и сахарной ваты. Приложение говорит прямо — и не решает за тебя.</p><div class="actions"><a class="button primary" href="#inside">Покажи, что внутри</a><a class="button ghost" href="#zodiac">Выбрать знак</a></div><div class="notes"><span>По твоим данным</span><span>Без фатализма</span><span>Нормальным языком</span></div></div><div class="phone-stage reveal"><div class="phone"><div class="screen"><div class="app-head"><span>Привет, Миша</span><span class="avatar">М</span></div><div class="date">ПОНЕДЕЛЬНИК · 28 ИЮЛЯ</div><article class="main-card"><span class="label">ГЛАВНОЕ</span><h2>Не отвечай на автомате. Сначала пойми, чего хочешь ты.</h2><span class="cta">Ладно, рассказывай</span></article><div class="mini-grid"><article class="mini coral"><span>Любовь</span><strong>Скажи прямо</strong></article><article class="mini blue"><span>Работа</span><strong>Закрой один хвост</strong></article><article class="mini lime"><span>Деньги</span><strong>Без покупок назло</strong></article><article class="mini lilac"><span>Настроение</span><strong>Не тащи чужое</strong></article></div></div></div><div class="chip one">Натальная карта</div><div class="chip two">Совместимость</div></div></div></section>
+<section class="ticker"><div class="track"><span>Личный разбор • Натальная карта • Совместимость • Любовь • Работа • Деньги • Свои вопросы •&nbsp;</span><span>Личный разбор • Натальная карта • Совместимость • Любовь • Работа • Деньги • Свои вопросы •&nbsp;</span></div></section>
+<section class="section" id="inside"><div class="shell"><div class="section-head reveal"><p class="eyebrow">Не комбайн на сто кнопок</p><h2>Выбираешь, что волнует.<br>Идёшь сразу туда.</h2></div><div class="bento"><a class="card main-bento reveal" href="#download"><span class="num">01</span><div><p class="kicker">Личный разбор</p><h3>Не «всем Овнам приготовиться».</h3><p>Дата, время и город рождения превращают общий текст в разбор именно твоей ситуации.</p><span class="more">Что там дальше? →</span></div></a><a class="card natal-bento reveal" href="#download"><span class="num">02</span><div class="symbol">◎</div><p class="kicker">Натальная карта</p><h3>Разбор без учебника.</h3><p>Характер, привычные реакции и сильные стороны — без лекции на сорок экранов.</p></a><a class="card compat-bento reveal" href="#download"><span class="num">03</span><div class="symbols"><span>♈</span><span>♎</span></div><p class="kicker">Совместимость</p><h3>Не приговор отношениям.</h3><p>Где вас тянет друг к другу, а где вы снова спорите об одном и том же.</p></a><a class="card question-bento reveal" href="#download"><span class="num">04</span><p class="kicker">Свои вопросы</p><h3>Спроси прямо.</h3><p>Работа, деньги, отношения, переезд — то, что правда сидит в голове.</p></a></div></div></section>
+<section class="section voice" id="voice"><div class="shell voice-grid"><div class="voice-copy reveal"><p class="eyebrow">Голос приложения</p><h2>Не «энергия дня».<br>По-человечески.</h2><p>Как добрый дерзкий друг: скажет правду, но не станет объявлять твою жизнь сломанной из-за ретроградного чего-нибудь.</p></div><blockquote class="quote reveal"><b>“</b><p>Ты не обязан отвечать сразу. Но делать вид, что вопроса нет, — тоже план так себе.</p><footer>Пример личного разбора</footer></blockquote></div></section>
+<section class="section" id="zodiac"><div class="shell"><div class="section-head zodiac-head reveal"><p class="eyebrow">Хочется быстро?</p><h2>Начни со своего знака.</h2><p>Без анкеты и регистрации. Личный разбор добавишь потом.</p></div><div class="zodiac reveal"><a href="#download"><span>♈</span><strong>Овен</strong></a><a href="#download"><span>♉</span><strong>Телец</strong></a><a href="#download"><span>♊</span><strong>Близнецы</strong></a><a href="#download"><span>♋</span><strong>Рак</strong></a><a href="#download"><span>♌</span><strong>Лев</strong></a><a href="#download"><span>♍</span><strong>Дева</strong></a><a href="#download"><span>♎</span><strong>Весы</strong></a><a href="#download"><span>♏</span><strong>Скорпион</strong></a><a href="#download"><span>♐</span><strong>Стрелец</strong></a><a href="#download"><span>♑</span><strong>Козерог</strong></a><a href="#download"><span>♒</span><strong>Водолей</strong></a><a href="#download"><span>♓</span><strong>Рыбы</strong></a></div></div></section>
+<section class="final" id="download"><div class="shell final-card reveal"><div><p class="eyebrow">Скоро в магазинах приложений</p><h2>Раз уж зашёл —<br>посмотри, что там про тебя.</h2><p>Google Play, RuStore и App Store появятся здесь сразу после публикации.</p></div><div class="stores"><span class="store">Google Play</span><span class="store">RuStore</span><span class="store">App Store</span></div></div></section>
+</main>
+<footer class="footer"><div class="shell footer-row"><strong>Твой Гороскоп</strong><span>Без фатализма. Без сахарной ваты.</span><span>© 2026</span></div></footer>
+<script>const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('show');io.unobserve(x.target)}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(x=>io.observe(x));</script>
 </body>
 </html>
