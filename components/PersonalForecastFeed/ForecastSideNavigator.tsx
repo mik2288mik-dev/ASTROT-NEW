@@ -1,6 +1,5 @@
 import React, {
   useEffect,
-  useId,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -39,14 +38,12 @@ export function ForecastSideNavigator({
   className,
   longPressMs = 320,
 }: ForecastSideNavigatorProps) {
-  const tocId = useId();
   const railRef = useRef<HTMLButtonElement | null>(null);
   const pointerIdRef = useRef<number | null>(null);
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPressRef = useRef(false);
   const suppressClickRef = useRef(false);
   const previewRef = useRef<Preview | null>(null);
-  const [tocOpen, setTocOpen] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
 
@@ -87,7 +84,6 @@ export function ForecastSideNavigator({
     if (navigate && didLongPressRef.current && previewRef.current) {
       suppressClickRef.current = true;
       onNavigate(previewRef.current.id);
-      setTocOpen(false);
     }
     pointerIdRef.current = null;
     didLongPressRef.current = false;
@@ -102,23 +98,21 @@ export function ForecastSideNavigator({
 
   useEffect(() => {
     if (sections.length) return;
-    setTocOpen(false);
     setScrubbing(false);
     setPreview(null);
   }, [sections.length]);
 
   useEffect(() => {
-    if (!tocOpen && !scrubbing) return;
+    if (!scrubbing) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       clearPressTimer();
-      setTocOpen(false);
       setScrubbing(false);
       setPreview(null);
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [scrubbing, tocOpen]);
+  }, [scrubbing]);
 
   if (!sections.length) return null;
 
@@ -136,8 +130,6 @@ export function ForecastSideNavigator({
         )}
         style={{ touchAction: 'none' }}
         aria-label={ariaLabel}
-        aria-expanded={tocOpen}
-        aria-controls={tocId}
         onContextMenu={(event) => event.preventDefault()}
         onPointerDown={(event) => {
           if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) {
@@ -176,7 +168,10 @@ export function ForecastSideNavigator({
             event.preventDefault();
             return;
           }
-          setTocOpen((current) => !current);
+          const target = updatePreview(event.clientY);
+          if (target) onNavigate(target.id);
+          previewRef.current = null;
+          setPreview(null);
         }}
       >
         <span className="forecast-side-navigator-marks" aria-hidden>
@@ -208,41 +203,6 @@ export function ForecastSideNavigator({
         ) : null}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {tocOpen ? (
-          <motion.div
-            id={tocId}
-            className="forecast-side-navigator-toc"
-            role="group"
-            aria-label={ariaLabel}
-            initial={{ opacity: 0, x: 8, scale: 0.98 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 8, scale: 0.98 }}
-            transition={{ duration: 0.16 }}
-          >
-            <ol className="forecast-side-navigator-toc-list">
-              {sections.map((section) => (
-                <li key={section.id} className="forecast-side-navigator-toc-item">
-                  <button
-                    type="button"
-                    className={classes(
-                      'forecast-side-navigator-toc-button',
-                      section.id === activeId && 'is-active',
-                    )}
-                    aria-current={section.id === activeId ? 'location' : undefined}
-                    onClick={() => {
-                      onNavigate(section.id);
-                      setTocOpen(false);
-                    }}
-                  >
-                    {section.title}
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
     </nav>
   );
 }
