@@ -23,6 +23,7 @@ import {
   type AdminPromptDetail,
   type AdminCmsRow,
   type AdminCmsDetail,
+  type AdminForecastQuestion,
   type AdminTicketRow,
   type AdminTicketDetail,
   type AdminSendResult,
@@ -869,8 +870,24 @@ function StatusBadge({ status }: { status: string }) {
     active: 'bg-[#56CA00]/12 text-[#56CA00]', published: 'bg-[#56CA00]/12 text-[#56CA00]',
     draft: 'bg-[#FFB400]/15 text-[#E6A200]', scheduled: 'bg-[#16B1FF]/12 text-[#16B1FF]',
     archived: 'bg-slate-100 text-slate-400',
+    pending: 'bg-[#FFB400]/15 text-[#A66F00]',
+    approved: 'bg-[#16B1FF]/12 text-[#087EAF]',
+    generating: 'bg-[#8C57FF]/12 text-[#7040D1]',
+    answered: 'bg-[#56CA00]/12 text-[#3C9200]',
+    rejected: 'bg-[#FF4C51]/12 text-[#C52F34]',
   };
-  const ru: Record<string, string> = { active: 'активен', published: 'опубликован', draft: 'черновик', scheduled: 'запланирован', archived: 'архив' };
+  const ru: Record<string, string> = {
+    active: 'активен',
+    published: 'опубликован',
+    draft: 'черновик',
+    scheduled: 'запланирован',
+    archived: 'архив',
+    pending: 'на проверке',
+    approved: 'одобрен',
+    generating: 'генерируется',
+    answered: 'есть ответ',
+    rejected: 'отклонён',
+  };
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${map[status] || 'bg-slate-100 text-slate-500'}`}>{ru[status] || status}</span>;
 }
 
@@ -1074,6 +1091,8 @@ function ContentSection({ me }: { me: AdminMe }) {
   const [body, setBody] = useState(''); const [title, setTitle] = useState(''); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const [nt, setNt] = useState(''); const [ntitle, setNtitle] = useState(''); const [nbody, setNbody] = useState('');
   const canEdit = me.permissions.includes('content.edit'); const canPublish = me.permissions.includes('content.publish');
+  const canModerateForecastQuestions =
+    canPublish && me.permissions.includes('user.pii.view');
   const load = () => admin2.listCms().then((d) => setRows(d.items)).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
   const open = async (id: number) => { setError(null); try { const c = await admin2.getCms(id); setSel(c); setBody(c.body); setTitle(c.title || ''); } catch (e: any) { setError(e.message); } };
@@ -1081,6 +1100,9 @@ function ContentSection({ me }: { me: AdminMe }) {
   return (
     <div className="space-y-4">
       {error ? <ErrorNote>{error}</ErrorNote> : null}
+      {canModerateForecastQuestions ? (
+        <ForecastQuestionModerationCard canPublish />
+      ) : null}
       <p className="text-[13px] text-slate-500">Авторский контент: онбординг, paywall, FAQ, тексты пушей и т.п. — со статусами черновик → опубликован → архив и версиями.</p>
       {canEdit ? (
         <Card title="Новый материал">
@@ -1127,6 +1149,140 @@ function ContentSection({ me }: { me: AdminMe }) {
         </table>
       </div>
     </div>
+  );
+}
+
+function ForecastQuestionModerationCard({
+  canPublish,
+}: {
+  canPublish: boolean;
+}) {
+  const [questions, setQuestions] = useState<AdminForecastQuestion[] | null>(null);
+  const [status, setStatus] =
+    useState<AdminForecastQuestion['status'] | 'all'>('pending');
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setError(null);
+    return admin2.listForecastQuestions({ status })
+      .then((result) => setQuestions(result.questions))
+      .catch((loadError) => setError(loadError.message));
+  }, [status]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const act = async (
+    question: AdminForecastQuestion,
+    action: 'approve' | 'reject' | 'retry',
+  ) => {
+    if (!canPublish) return;
+    let reason: string | undefined;
+    if (action === 'reject') {
+      const entered = window.prompt('Причина отклонения вопроса:', 'manual_rejected');
+      if (entered == null) return;
+      reason = entered.trim() || 'manual_rejected';
+    }
+    setBusyId(question.id);
+    setError(null);
+    try {
+      await admin2.moderateForecastQuestion(question.id, action, reason);
+      await load();
+    } catch (requestError: any) {
+      setError(requestError.message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Card title="Вопросы к персональному прогнозу">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-slate-500">
+            Сомнительные пользовательские вопросы ждут ручного решения. После одобрения ответ генерируется и появляется у пользователя с непрочитанным уведомлением.
+          </p>
+          <select
+            className={inputCls}
+            value={status}
+            onChange={(event) => setStatus(event.target.value as typeof status)}
+          >
+            <option value="pending">На проверке</option>
+            <option value="approved">Одобрены / ошибка генерации</option>
+            <option value="generating">Генерируются</option>
+            <option value="answered">Отвечены</option>
+            <option value="rejected">Отклонены</option>
+            <option value="all">Все</option>
+          </select>
+        </div>
+        {error ? <ErrorNote>{error}</ErrorNote> : null}
+        {!questions ? (
+          <p className="text-sm text-slate-400">Загрузка вопросов…</p>
+        ) : questions.length === 0 ? (
+          <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-400">
+            Вопросов с этим статусом нет.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {questions.map((question) => (
+              <div
+                key={question.id}
+                className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-800">{question.questionText}</p>
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      #{question.id} · user {question.userId} · {question.period} / {question.periodKey} · {question.language} · {fmtDate(question.createdAt)}
+                    </p>
+                    {question.lastError ? (
+                      <p className="mt-1 text-xs text-rose-600">{question.lastError}</p>
+                    ) : null}
+                  </div>
+                  <StatusBadge status={question.status} />
+                </div>
+                {canPublish ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {question.status === 'pending' ? (
+                      <>
+                        <button
+                          type="button"
+                          className={btnPrimary}
+                          disabled={busyId === question.id}
+                          onClick={() => void act(question, 'approve')}
+                        >
+                          {busyId === question.id ? 'Готовим ответ…' : 'Одобрить и ответить'}
+                        </button>
+                        <button
+                          type="button"
+                          className={btnGhost}
+                          disabled={busyId === question.id}
+                          onClick={() => void act(question, 'reject')}
+                        >
+                          Отклонить
+                        </button>
+                      </>
+                    ) : null}
+                    {question.status === 'approved' ? (
+                      <button
+                        type="button"
+                        className={btnPrimary}
+                        disabled={busyId === question.id}
+                        onClick={() => void act(question, 'retry')}
+                      >
+                        {busyId === question.id ? 'Повторяем…' : 'Повторить генерацию'}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 

@@ -1,9 +1,14 @@
 import type { NatalChartData } from '../types';
 import {
+  FORECAST_FIXED_TITLES,
+  FORECAST_WISHES_TITLES,
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
+  buildForecastLockedPreview,
   type ForecastEvidenceView,
-  type ForecastTopicText,
+  type ForecastSection,
+  type ForecastSectionKind,
+  type ForecastTopicKey,
   type PersonalForecastPackage,
 } from '../lib/personalForecastContract';
 import { APP_VOICE_VERSION } from '../lib/appVoice';
@@ -29,25 +34,56 @@ export const chartFixture = {
   aspects: [],
   timezone: 'Europe/Moscow',
   calculationVersion: 'swisseph-test-v1',
+  birthTimeQuality: 'exact',
+  chartQuality: {
+    birthTimeQuality: 'exact',
+    ascendantReliable: true,
+    housesReliable: true,
+    houseBasedPersonalization: true,
+    notes: [],
+  },
 } as unknown as NatalChartData;
 
 const evidenceView: ForecastEvidenceView = {
   id: 'e1',
-  factor: 'Марс — трин к Солнцу',
+  factor: 'Mars trine Sun',
   orb: 1.2,
   status: 'applying',
   period: '2026-07-26',
-  meaning: 'Фактор поддерживает тему.',
+  meaning: 'This calculated factor supports the section conclusion.',
 };
 
-export function topicFixture(id = 'e1'): ForecastTopicText {
+function sectionFixture(input: {
+  id: string;
+  kind: ForecastSectionKind;
+  title?: string;
+  text: string;
+  importance: number;
+  fixedKey?: ForecastSection['fixedKey'];
+  sourceTopicKey?: ForecastTopicKey;
+}): ForecastSection {
+  const premiumTeaser =
+    `Open the complete ${input.id} forecast section to see the calculated details.`;
   return {
-    card: 'Сейчас проще увидеть главный участок и принять точное решение.',
-    reading: 'Период подчёркивает одну конкретную задачу. Вывод основан на рассчитанном факторе и не обещает внешнее событие.',
-    astrology: {
-      explanation: 'Рассчитанный аспект усиливает тему и задаёт период её проявления.',
-      evidence_ids: [id],
-    },
+    id: input.id,
+    kind: input.kind,
+    status: 'ready',
+    diagnosticCode: null,
+    fixedKey: input.fixedKey,
+    sourceTopicKey: input.sourceTopicKey,
+    title: input.title,
+    text: input.text,
+    importance: input.importance,
+    visualTag: input.id,
+    premiumTeaser,
+    lockedPreview: buildForecastLockedPreview(input.text, premiumTeaser),
+    explanationAnchors: [{
+      id: `anchor:${input.id}`,
+      conclusion: 'The conclusion follows from the calculated period factor.',
+      explanation: 'The applying aspect strengthens this subject during the selected period.',
+      evidenceIds: ['e1'],
+    }],
+    inlineAstroAccent: null,
   };
 }
 
@@ -57,20 +93,90 @@ export function personalForecastFixture(): PersonalForecastPackage {
     periodKey: '2026-07-26',
     periodStart: '2026-07-26',
     periodEnd: '2026-07-26',
+    dateLabel: 'SUNDAY\n26 JULY',
     timezone: 'Europe/Moscow',
-    overview: topicFixture(),
-    love: topicFixture(),
-    work: topicFixture(),
-    money: topicFixture(),
-    mood_energy: topicFixture(),
-    communication: topicFixture(),
-    luck: topicFixture(),
-    dynamic: [
-      { key: 'business', title: 'Бизнес', text: topicFixture() },
-      { key: 'study', title: 'Учёба', text: topicFixture() },
+    overview: sectionFixture({
+      id: 'overview',
+      kind: 'overview',
+      text: 'The central issue now is choosing one practical priority.',
+      importance: 100,
+      sourceTopicKey: 'overview',
+    }),
+    sections: [
+      sectionFixture({
+        id: 'love',
+        kind: 'fixed',
+        fixedKey: 'love',
+        sourceTopicKey: 'love',
+        title: FORECAST_FIXED_TITLES.en.love,
+        text: 'A direct conversation can define the limits of this relationship.',
+        importance: 92,
+      }),
+      sectionFixture({
+        id: 'mood',
+        kind: 'fixed',
+        fixedKey: 'mood',
+        sourceTopicKey: 'mood',
+        title: FORECAST_FIXED_TITLES.en.mood,
+        text: 'Mental focus improves when the next task has exact boundaries.',
+        importance: 86,
+      }),
+      sectionFixture({
+        id: 'home_family',
+        kind: 'fixed',
+        fixedKey: 'home_family',
+        sourceTopicKey: 'home_family',
+        title: FORECAST_FIXED_TITLES.en.home_family,
+        text: 'A household decision benefits from specific roles and deadlines.',
+        importance: 80,
+      }),
+      sectionFixture({
+        id: 'friends',
+        kind: 'fixed',
+        fixedKey: 'friends',
+        sourceTopicKey: 'friends',
+        title: FORECAST_FIXED_TITLES.en.friends,
+        text: 'One useful exchange identifies who will support the concrete plan.',
+        importance: 78,
+      }),
+      sectionFixture({
+        id: 'work_money',
+        kind: 'fixed',
+        fixedKey: 'work_money',
+        sourceTopicKey: 'work_money',
+        title: FORECAST_FIXED_TITLES.en.work_money,
+        text: 'Work advances through a measurable decision about time and cost.',
+        importance: 88,
+      }),
+      sectionFixture({
+        id: 'wishes',
+        kind: 'wishes',
+        fixedKey: 'wishes',
+        sourceTopicKey: 'wishes',
+        title: FORECAST_WISHES_TITLES.en.day,
+        text: 'Use the strongest hours for the decision that already has evidence.',
+        importance: 70,
+      }),
+      sectionFixture({
+        id: 'dynamic:business',
+        kind: 'dynamic',
+        sourceTopicKey: 'business',
+        title: 'Business',
+        text: 'Commercial progress depends on verifying demand before increasing commitments.',
+        importance: 84,
+      }),
+      sectionFixture({
+        id: 'dynamic:study',
+        kind: 'dynamic',
+        sourceTopicKey: 'study',
+        title: 'Study',
+        text: 'A defined learning target produces a visible result this period.',
+        importance: 76,
+      }),
     ],
+    suggestedCrossPeriodLinks: [],
     evidence: { e1: evidenceView },
-    visual: { heroAssetId: null, topicAssetIds: {} },
+    visual: { sectionAssetIds: {} },
     meta: {
       model: 'gpt-4.1',
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
@@ -79,6 +185,11 @@ export function personalForecastFixture(): PersonalForecastPackage {
       generatedAt: '2026-07-26T10:00:00.000Z',
       status: 'ready',
       diagnosticCode: null,
+      freeSelection: {
+        strongestSectionId: 'love',
+        rotatedSectionId: 'mood',
+        sectionIds: ['love', 'mood'],
+      },
     },
   };
 }

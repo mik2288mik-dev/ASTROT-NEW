@@ -121,7 +121,7 @@ function transitLongitude(transit?: PlanetTransit | null): number | null {
 // Асцендент участвует только при надёжном времени рождения (как везде в коде).
 function hasReliableAscendant(chart: NatalChartData): boolean {
   const quality = (chart as any).chartQuality;
-  const btq = (chart as any).birthTimeQuality || quality?.birthTimeQuality || 'exact';
+  const btq = (chart as any).birthTimeQuality || quality?.birthTimeQuality || 'unknown';
   return btq === 'exact' && quality?.ascendantReliable !== false;
 }
 

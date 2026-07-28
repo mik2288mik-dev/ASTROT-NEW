@@ -69,7 +69,8 @@ describe('Lumia content prompt builders', () => {
   it('connects dedicated builders to active generators instead of one shared prompt', () => {
     expect(read('lib/horoscope/signDaily.ts')).toContain('buildSignDailyHoroscopePrompt');
     expect(read('lib/horoscope/signWeekly.ts')).toContain('buildSignWeeklyHoroscopePrompt');
-    expect(read('lib/personalForecastGeneration.ts')).toContain('buildPersonalForecastTopicPrompt');
+    expect(read('lib/personalForecastGeneration.ts')).toContain('buildPersonalForecastFeedPrompt');
+    expect(read('lib/personalForecastGeneration.ts')).not.toContain('buildPersonalForecastTopicPrompt');
     expect(read('lib/personalForecastGeneration.ts')).toContain('getAppSystemVoice');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('buildNatalSectionPrompt');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('buildBlindSpotPrompt');

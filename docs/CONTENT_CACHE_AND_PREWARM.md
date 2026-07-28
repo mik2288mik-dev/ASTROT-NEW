@@ -4,32 +4,33 @@
 
 | Layer | Storage | Policy |
 |---|---|---|
-| Primary natal chart | local chart cache + `natal_charts` | Reuse a valid local/server chart; recalculate only when birth input or calculation version changes |
-| Personal Day/Week/Month/Year | local storage + `content_interpretations` | One canonical package per user/chart/period key/language/version/model |
+| Primary natal chart | local chart cache + `natal_charts` | Reuse a valid chart; recalculate only when birth input or calculation version changes |
+| Personal Day/Week/Month/Year | local storage + `content_interpretations` | One canonical V3 feed per user/chart/period key/language/version/model |
+| Forecast questions | `personal_forecast_questions` | Reuse by exact feed input hash, user/chart fingerprint, period, question text, answer prompt and voice; store moderation and unread-answer state |
 | Sign horoscope (`Зодиак`) | `content_cache` | Shared by sign, period, language, and its own content versions |
 | Natal readings | local report cache + `content_interpretations` | Chart fingerprint and prompt/version scoped |
 | Premium synastry | `synastry_cache` and content rows | Pair-scoped by both chart versions/input hash |
 
 ## Personal forecast key
 
-The canonical key has the readable form:
+The V3 canonical key has the readable form:
 
 ```text
-personal-forecast-v2:<identity-hash>:<period>:<periodKey>
+personal-forecast-feed-v3:<identity-hash>:<period>:<periodKey>
 ```
 
-The identity hash includes:
+The identity includes:
 
 - authenticated user ID;
 - owned chart ID or primary-chart marker;
-- chart fingerprint and chart calculation version;
+- chart fingerprint, birth-time/chart-quality flags, and chart calculation version;
 - period and timezone-aware period key;
 - timezone and language;
 - `PERSONAL_FORECAST_PROMPT_VERSION`;
 - `APP_VOICE_VERSION`;
-- unified model ID from `getUnifiedContentModel()`.
+- model ID from the existing `getUnifiedContentModel()` resolver.
 
-The package input hash also includes `PERSONAL_FORECAST_CALCULATION_VERSION`. Any relevant chart, calculation, prompt, voice, language, timezone, or model change therefore creates a miss without deleting old rows.
+Both the canonical cache key and input hash include `PERSONAL_FORECAST_CALCULATION_VERSION`; the local cache identity includes it as well. Package metadata must match that version. Any relevant chart, calculation, prompt, voice, language, timezone, or model change creates a miss without deleting old rows.
 
 Storage variants are:
 
@@ -40,28 +41,31 @@ Storage variants are:
 | month | `monthly` | calendar-month start to next month |
 | year | `yearly` | calendar-year start to next year |
 
-Rows are canonical Premium packages; Free/Premium slicing happens after server entitlement resolution. This prevents duplicate GPT generation by access tier while keeping the response policy server-controlled.
+Rows contain canonical complete packages. Free/Premium slicing happens only after server entitlement resolution, so access tiers do not cause duplicate model generation.
 
 ## Read and generation flow
 
-1. Dashboard synchronously reads the V2 local cache and paints it if valid.
+1. Dashboard synchronously reads the V3 local cache and paints it when valid.
 2. `GET /api/content/forecast/personal` checks only the server cache.
-3. On a miss, the already visible Dashboard remains interactive.
-4. Background `POST /api/content/forecast/personal` generates under a content lock.
-5. The completed package replaces local/server state. Errors preserve the last usable package.
+3. A miss leaves Dashboard interactive and keeps any previous usable package visible.
+4. Background `POST /api/content/forecast/personal` generates the entire period feed once under a process-local lock plus a PostgreSQL advisory lock shared by all server replicas.
+5. The completed package replaces client/server state; an error preserves the last usable package.
 
-Client requests are deduplicated by the full local context key and request mode. Server generation uses `buildContentGenerationLockKey` with user, chart, canonical access tier, forecast surface, content variant, V2 cache key, and prompt version.
+Client requests are deduplicated by full context and request mode. The client validates period, period key, prompt/voice versions, and entitlement lock metadata before memory/local writes. It accepts stripped text only for IDs explicitly listed as locked.
 
-The local prefix is `tvoi-goroskop:personal-forecast-v2`; legacy personal local entries cannot validate as V2. Server legacy rows have different prompt/cache identities and remain untouched. This incompatibility is limited to the personal forecast screen; `Зодиак` caches are unchanged.
+The public generation endpoint accepts only the current timezone-aware period key. Free Week, Month, and Year responses contain only access-sliced personalized previews; their complete section text, evidence, and links remain server-redacted. Future boundary prewarm is an internal cron operation and calls the locked cache layer directly, so an authenticated client cannot request unbounded historical or future generation.
+
+The local prefix is `tvoi-goroskop:personal-forecast-feed-v3`. V2 and damaged payloads cannot validate as V3. Old server rows remain untouched and cannot match the V3 prompt/cache identity.
 
 ## Startup and prewarm
 
-Startup never awaits generation:
+Startup never awaits model generation:
 
-- after profile plus local/server chart resolution, Dashboard opens;
-- cache-only startup checks only the current `day` package needed by the first screen;
-- generate-missing runs in the background;
-- natal base-report prefetch is independent and non-blocking.
+- profile plus a usable local/server chart opens Dashboard;
+- cache-only startup checks only the current `day` feed required by the first screen;
+- generate-missing runs in the background with client/server deduplication;
+- natal base-report prefetch remains independent and non-blocking;
+- Week, Month, Year, questions, and secondary products are not mass-generated at startup.
 
 Server/cron prewarm cadence:
 
@@ -70,15 +74,28 @@ Server/cron prewarm cadence:
 - month: current month; next month during the final three calendar days;
 - year: current year; next year from December 20.
 
-Week, month, and year are not regenerated daily. Current packages are reused until their period boundary or a versioned input changes.
+Current packages are reused until their boundary or a versioned input changes.
+
+## Question identity and quotas
+
+Question records include user, chart ID/fingerprint, exact forecast input hash, period/key, language, source, stable catalog ID plus normalized catalog text or normalized custom text, answer-prompt version, and voice version.
+
+- An advisory transaction lock serializes quota checks for one user/day in the stable account profile timezone, independent of the selected chart.
+- Duplicate lookup happens before quota enforcement, so reopening a saved answer does not consume another slot.
+- At most 20 non-rejected answer requests and 3 custom submissions are accepted per user/day.
+- One record moves through pending/approved/generating/answered/rejected states; retries claim the same record.
+- Manual approval writes the cached answer and unread payload instead of starting a separate chat.
+- A pending question can read its exact expired period feed, but only when the stored cache/input identity still matches.
+- If chart, feed, answer prompt, or voice identity changed, the stale question is rejected as incompatible instead of remaining in an infinite retry loop.
 
 ## Retention and migrations
 
-- Packages are non-persistent cache rows with `valid_from`/`valid_to`; cache reads exclude expired rows.
-- This migration does not delete expired or legacy records and does not perform bulk regeneration.
-- `mvp_037_personal_forecast_yearly_variant` only expands existing database constraints to include `yearly`.
+- Forecast packages use `valid_from`/`valid_to`; normal reads exclude expired rows. The only expired reads are exact-identity previous-period rotation and saved-question grounding.
+- No migration deletes old content or triggers bulk generation.
+- `mvp_037_personal_forecast_yearly_variant` expands the permitted forecast variants.
+- `mvp_038_personal_forecast_questions` additively creates the V3 question workflow. Deleting a chart nulls its foreign key but preserves quota/history rows and their immutable chart/feed fingerprints.
 - Archive reads do not trigger generation.
 
 ## Visual cache boundary
 
-Text cache identity does not include art selection. The resolver uses `forecast-visual-v2`, so a manifest update can change deterministic visual assignments without regenerating GPT text.
+Text identity does not include art selection. The resolver uses `forecast-feed-visual-v3`, so a manifest/version update can change deterministic assignments without regenerating model text.

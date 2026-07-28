@@ -76,6 +76,7 @@ async function migrationReset(pool: Pool): Promise<void> {
   log.info('Applying full database reset...');
 
   const dropOrder = [
+    'personal_forecast_questions',
     'premium_entitlements',
     'content_unlocks',
     'content_cache',
@@ -1999,6 +2000,7 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'notification_events',
     'daily_cards',
     'pulse_day_entries',
+    'personal_forecast_questions',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -2644,6 +2646,141 @@ async function mvp037PersonalForecastYearlyVariant(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+/**
+ * Personal forecast feed V3 questions.
+ *
+ * This is intentionally a new persisted workflow. The removed astro_questions
+ * chat table stays removed and is not used as a compatibility layer.
+ */
+async function mvp038PersonalForecastQuestions(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_038_personal_forecast_questions';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS personal_forecast_questions (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE SET NULL,
+      chart_fingerprint TEXT NOT NULL,
+      forecast_input_hash TEXT NOT NULL,
+      period TEXT NOT NULL,
+      period_key TEXT NOT NULL,
+      usage_date DATE NOT NULL,
+      language TEXT NOT NULL,
+      source TEXT NOT NULL,
+      catalog_question_id TEXT,
+      question_text TEXT NOT NULL,
+      normalized_question TEXT NOT NULL,
+      status TEXT NOT NULL,
+      moderation_reason TEXT,
+      moderation_suggestions JSONB NOT NULL DEFAULT '[]'::jsonb,
+      answer_text TEXT,
+      answer_meta JSONB,
+      model_id TEXT,
+      prompt_version TEXT NOT NULL,
+      voice_version TEXT NOT NULL,
+      generation_started_at TIMESTAMP,
+      answered_at TIMESTAMP,
+      moderated_by BIGINT,
+      moderated_at TIMESTAMP,
+      notification_unread BOOLEAN NOT NULL DEFAULT FALSE,
+      notification_payload JSONB,
+      read_at TIMESTAMP,
+      last_error TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT personal_forecast_questions_period
+        CHECK (period IN ('day', 'week', 'month', 'year')),
+      CONSTRAINT personal_forecast_questions_language
+        CHECK (language IN ('ru', 'en')),
+      CONSTRAINT personal_forecast_questions_source
+        CHECK (source IN ('catalog', 'custom')),
+      CONSTRAINT personal_forecast_questions_status
+        CHECK (status IN ('pending', 'approved', 'generating', 'answered', 'rejected')),
+      CONSTRAINT personal_forecast_questions_catalog_source
+        CHECK (
+          (source = 'catalog' AND catalog_question_id IS NOT NULL)
+          OR (source = 'custom' AND catalog_question_id IS NULL)
+        ),
+      CONSTRAINT personal_forecast_questions_answer
+        CHECK (
+          status <> 'answered'
+          OR (answer_text IS NOT NULL AND answered_at IS NOT NULL)
+        ),
+      CONSTRAINT personal_forecast_questions_identity_nonempty
+        CHECK (
+          LENGTH(BTRIM(chart_fingerprint)) > 0
+          AND LENGTH(BTRIM(forecast_input_hash)) > 0
+          AND LENGTH(BTRIM(period_key)) > 0
+          AND LENGTH(BTRIM(question_text)) > 0
+          AND LENGTH(BTRIM(normalized_question)) > 0
+          AND LENGTH(BTRIM(prompt_version)) > 0
+          AND LENGTH(BTRIM(voice_version)) > 0
+        ),
+      CONSTRAINT personal_forecast_questions_unread_answered
+        CHECK (
+          notification_unread = FALSE
+          OR (status = 'answered' AND notification_payload IS NOT NULL)
+        )
+    )
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_personal_forecast_questions_catalog_once
+      ON personal_forecast_questions (
+        user_id,
+        chart_fingerprint,
+        forecast_input_hash,
+        period,
+        period_key,
+        language,
+        catalog_question_id,
+        normalized_question,
+        prompt_version,
+        voice_version
+      )
+      WHERE source = 'catalog'
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_personal_forecast_questions_custom_once
+      ON personal_forecast_questions (
+        user_id,
+        chart_fingerprint,
+        forecast_input_hash,
+        period,
+        period_key,
+        language,
+        normalized_question,
+        prompt_version,
+        voice_version
+      )
+      WHERE source = 'custom'
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_personal_forecast_questions_user_period
+      ON personal_forecast_questions (user_id, period, period_key, created_at DESC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_personal_forecast_questions_daily_usage
+      ON personal_forecast_questions (user_id, usage_date, source, status)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_personal_forecast_questions_moderation
+      ON personal_forecast_questions (status, created_at)
+      WHERE source = 'custom'
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_personal_forecast_questions_unread
+      ON personal_forecast_questions (user_id, created_at DESC)
+      WHERE notification_unread = TRUE
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2712,6 +2849,7 @@ export async function runMigrations(): Promise<void> {
   await lumia035FeatureFlags(pool);
   await mvp036SchemaCleanup(pool);
   await mvp037PersonalForecastYearlyVariant(pool);
+  await mvp038PersonalForecastQuestions(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

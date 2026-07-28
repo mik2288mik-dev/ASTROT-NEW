@@ -42,8 +42,8 @@ describe('yearly sign period remains a separate Zodiac product', () => {
     expect(dashboard).not.toContain('getCachedYearlySignHoroscope');
     expect(dashboard).not.toContain('ensureYearlySignHoroscope');
     expect(dashboard).toContain('loadPersonalForecast');
-    expect(dashboard).toContain('home-day-hero');
-    expect(dashboard).toContain('home-sphere-card');
+    expect(dashboard).toContain('forecast-feed-page');
+    expect(dashboard).toContain('ForecastSectionBlock');
     expect(read('lib/migrations.ts')).not.toContain('sign_yearly');
   });
 });

@@ -20,7 +20,7 @@ import {
 } from './lib/localHumanBaseReportCache';
 import { getMoscowTodayKey } from './lib/date-utils';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
-import { Dashboard, type PersonalForecastSelection } from './views/Dashboard';
+import { Dashboard } from './views/Dashboard';
 import { Header } from './components/Header';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { Loading } from './components/ui/Loading';
@@ -54,7 +54,6 @@ const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => m
 });
 const NatalMagazine = dynamic(() => import('./views/v2/NatalMagazine').then((module) => module.NatalMagazine), { ssr: false });
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
-const PersonalForecastScreen = dynamic(() => import('./views/PersonalForecastScreen').then((module) => module.PersonalForecastScreen), { ssr: false });
 const Settings = dynamic(() => import('./views/Settings').then((module) => module.Settings), { ssr: false });
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
 const PremiumPreview = dynamic(() => import('./components/PremiumPreview').then((module) => module.PremiumPreview), { ssr: false });
@@ -186,18 +185,17 @@ async function saveStartupProfileWithRetry(profile: UserProfile, maxAttempts = 3
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'dashboard',
     'horoscope',
-    'personal_daily',
     'synastry',
     'settings',
     'charts',
 ]);
 
 const LEGACY_NOTIFICATION_VIEW_ALIASES: Record<string, ViewState> = {
-    daily_love: 'personal_daily',
-    daily_money: 'personal_daily',
-    daily_work: 'personal_daily',
-    daily_goals: 'personal_daily',
-    personal_forecast: 'personal_daily',
+    daily_love: 'dashboard',
+    daily_money: 'dashboard',
+    daily_work: 'dashboard',
+    daily_goals: 'dashboard',
+    personal_forecast: 'dashboard',
 };
 
 /**
@@ -271,7 +269,6 @@ const App: React.FC = () => {
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
-    const [personalForecastSelection, setPersonalForecastSelection] = useState<PersonalForecastSelection | null>(null);
     const [currentDateKey, setCurrentDateKey] = useState(() => getMoscowTodayKey());
     const lastSessionPingRef = useRef(0);
     const prewarmCompletedKeyRef = useRef<string | null>(null);
@@ -284,6 +281,7 @@ const App: React.FC = () => {
     const requestedViewRef = useRef<ViewState | null>(null);
     const notificationLaunchRef = useRef<NotificationLaunchParams | null>(null);
     const notificationAttributionSentRef = useRef(false);
+    const premiumReturnInPlaceRef = useRef(false);
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
@@ -465,7 +463,6 @@ const App: React.FC = () => {
         setPrimaryChartId(null);
         setActiveChartId(undefined);
         setPreloadedHumanReport(null);
-        setPersonalForecastSelection(null);
     }, []);
 
     useEffect(() => {
@@ -1109,6 +1106,9 @@ const App: React.FC = () => {
        // Без выбранного тарифа ведём пользователя в 3-тарифный пейвол (месяц/3мес/год),
        // а не запускаем молча покупку недели. Тариф выбирается уже в пейволе.
        if (!planId) {
+           const returnInPlace = eventPayload?.returnInPlace === true;
+           premiumReturnInPlaceRef.current = returnInPlace;
+           if (returnInPlace) setPaywallTarget(viewRef.current);
            void recordUserAppEvent({
                eventType: 'paywall_view',
                section: 'premium',
@@ -1122,9 +1122,12 @@ const App: React.FC = () => {
        const success = await requestStarsPayment(profile, planId);
        if (success) {
            console.log('[App] Premium payment successful, refreshing profile...');
-           setLoading(true);
-           setLoadingMessage(profile.language === 'en' ? 'Preparing Premium' : 'Готовим Premium');
-           setLoadingProgress(15);
+           const returnInPlace = premiumReturnInPlaceRef.current;
+           if (!returnInPlace) {
+               setLoading(true);
+               setLoadingMessage(profile.language === 'en' ? 'Preparing Premium' : 'Готовим Premium');
+               setLoadingProgress(15);
+           }
            void recordUserAppEvent({
                eventType: 'natal_upgrade_success',
                section: source === 'natal_story_unlock' ? 'natal_story' : 'premium',
@@ -1154,28 +1157,41 @@ const App: React.FC = () => {
            const premiumProfile = refreshedProfile && hasActivePremium(refreshedProfile)
                ? refreshedProfile
                : { ...(refreshedProfile || profile), id: profile.id, isPremium: true };
-           setProfile(premiumProfile);
-            if (hasActivePremium(premiumProfile) && chartData) {
-                const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
-                if (activeChartId == null && chartId != null) setPrimaryChartId(chartId);
-                void prepareUserContentDbFirst({
-                    userId: String(premiumProfile.id),
-                    chartId,
-                    profile: premiumProfile,
-                   chartData,
-                   isPremium: true,
-                   dateKey: getMoscowTodayKey(),
-                   progressStart: 35,
-                   progressSpan: 60,
-                }).catch((prewarmError: any) => {
-                    console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
-                });
-           }
-           setShowPremiumPreview(false);
-           setLoadingProgress(100);
-           setLoadingMessage(undefined);
-           setLoading(false);
-           setView('dashboard');
+            setProfile(premiumProfile);
+            try {
+                if (hasActivePremium(premiumProfile) && chartData) {
+                    const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
+                    if (activeChartId == null && chartId != null) setPrimaryChartId(chartId);
+                    void prepareUserContentDbFirst({
+                        userId: String(premiumProfile.id),
+                        chartId,
+                        profile: premiumProfile,
+                        chartData,
+                        isPremium: true,
+                        dateKey: getMoscowTodayKey(),
+                        progressStart: 35,
+                        progressSpan: 60,
+                    }).catch((prewarmError: any) => {
+                        console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
+                    });
+                }
+            } catch (contentRefreshError: any) {
+                console.warn(
+                    '[App] Premium activated, but the background content refresh could not start:',
+                    contentRefreshError?.message || contentRefreshError,
+                );
+            } finally {
+                setShowPremiumPreview(false);
+                if (!returnInPlace) {
+                    setLoadingProgress(100);
+                    setLoadingMessage(undefined);
+                    setLoading(false);
+                }
+                const returnView = returnInPlace ? (paywallTarget || 'dashboard') : 'dashboard';
+                premiumReturnInPlaceRef.current = false;
+                setPaywallTarget(null);
+                setView(returnView);
+            }
        } else {
            console.log('[App] Premium payment cancelled or failed');
            setLoading(false);
@@ -1287,18 +1303,6 @@ const App: React.FC = () => {
         void recordUserAppEvent({ eventType: 'screen_view', section: view });
     }, [view, profile?.id]);
 
-    const openPersonalForecast = useCallback((selection: PersonalForecastSelection) => {
-        appDebugLog('navigation', {
-            action: 'open_personal_forecast',
-            from: viewRef.current,
-            to: 'personal_daily',
-            section: selection.topicKey,
-            historyBeforeSet: navigationHistoryRef.current,
-        });
-        setPersonalForecastSelection(selection);
-        navigateTo('personal_daily');
-    }, [navigateTo]);
-
     const refreshPrimaryChartState = useCallback(async () => {
         if (!profile?.id) return;
         try {
@@ -1310,7 +1314,6 @@ const App: React.FC = () => {
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
             clearHumanReadingSessionCache(String(profile.id));
-            setPersonalForecastSelection(null);
             clearLocalHumanBaseReport(profile, primaryChartId ?? undefined);
             setPreloadedHumanReport(null);
             if (freshChart) {
@@ -1482,10 +1485,6 @@ const App: React.FC = () => {
         navigateTo('synastry');
     }, [navigateTo]);
 
-    const openMatrix = useCallback(() => {
-        navigateTo('matrix');
-    }, [navigateTo]);
-
     // Свайп назад от левого края (как в iOS) — на всех экранах, кроме корневых/модальных
     const canSwipeBack =
         view !== 'dashboard' &&
@@ -1563,10 +1562,10 @@ const App: React.FC = () => {
         chartData,
         chartId: primaryChartId,
         currentDateKey,
-        onOpenPersonalForecast: openPersonalForecast,
         onCreateNatalChart: openBottomNatal,
         onOpenSynastry: openSynastryFromHome,
-        onOpenMatrix: openMatrix,
+        onOpenHoroscope: openBottomZodiac,
+        onRequestPremium: requestPremium,
     };
 
     return (
@@ -1590,8 +1589,18 @@ const App: React.FC = () => {
                     <Paywall
                         profile={profile}
                         onPurchase={(planId) => { void requestPremium('paywall', undefined, planId); }}
-                        onClose={() => { const t = paywallTarget; setPaywallTarget(null); setView(t ?? 'dashboard'); }}
-                        onContinueFree={() => { const t = paywallTarget; setPaywallTarget(null); setView(t ?? 'dashboard'); }}
+                        onClose={() => {
+                            const t = paywallTarget;
+                            premiumReturnInPlaceRef.current = false;
+                            setPaywallTarget(null);
+                            setView(t ?? 'dashboard');
+                        }}
+                        onContinueFree={() => {
+                            const t = paywallTarget;
+                            premiumReturnInPlaceRef.current = false;
+                            setPaywallTarget(null);
+                            setView(t ?? 'dashboard');
+                        }}
                     />
                 ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
@@ -1623,19 +1632,6 @@ const App: React.FC = () => {
                             onRequestPremium={requestPremium}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
                         />
-                    </div>
-                ) : view === 'personal_daily' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        {personalForecastSelection ? (
-                            <PersonalForecastScreen
-                                profile={profile}
-                                selection={personalForecastSelection}
-                                onBack={handleBack}
-                                requestPremium={requestPremium}
-                            />
-                        ) : (
-                            <Dashboard {...dashboardProps} />
-                        )}
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>

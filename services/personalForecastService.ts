@@ -4,11 +4,12 @@ import {
   APP_VOICE_VERSION,
 } from '../lib/appVoice';
 import {
+  PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildPersonalForecastChartFingerprint,
   getPersonalForecastPeriodKey,
+  isPersonalForecastPackage,
   normalizeForecastTimezone,
-  type ForecastTopicKey,
   type PersonalForecastAccessPayload,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
@@ -25,7 +26,8 @@ type LoadOptions = {
 export type PersonalForecastClientResult = {
   forecast: PersonalForecastPackage;
   accessTier: 'free' | 'premium';
-  lockedTopicKeys: ForecastTopicKey[];
+  lockedSectionIds: string[];
+  periodLocked: boolean;
   source: 'local' | 'cache' | 'generated';
 };
 
@@ -35,7 +37,7 @@ export type PersonalForecastClientError = Error & {
   retryAfterMs?: number;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-v2';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v3';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 
@@ -63,6 +65,7 @@ function contextKey(input: {
     hasActivePremium(input.profile) ? 'premium' : 'free',
     input.chartData.calculationVersion || 'unknown',
     buildPersonalForecastChartFingerprint(input.chartData),
+    PERSONAL_FORECAST_CALCULATION_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
     APP_VOICE_VERSION,
   ].join('|');
@@ -81,23 +84,121 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
   if (!value || typeof value !== 'object') return false;
   const result = value as PersonalForecastClientResult;
   const forecast = result.forecast;
-  return (
-    !!forecast
-    && typeof forecast === 'object'
-    && (['day', 'week', 'month', 'year'] as const).includes(forecast.period)
-    && forecast.meta?.promptVersion === PERSONAL_FORECAST_PROMPT_VERSION
-    && forecast.meta?.voiceVersion === APP_VOICE_VERSION
-    && forecast.meta?.status === 'ready'
-    && typeof forecast.overview?.card === 'string'
-    && !!forecast.overview.card.trim()
-    && Array.isArray(result.lockedTopicKeys)
-    && (result.accessTier === 'free' || result.accessTier === 'premium')
-  );
+  if (
+    !forecast
+    || typeof forecast !== 'object'
+    || !Array.isArray(forecast.sections)
+    || !forecast.overview
+    || typeof forecast.overview !== 'object'
+    || !Array.isArray(result.lockedSectionIds)
+    || result.lockedSectionIds.some((id) => typeof id !== 'string' || !id.trim())
+    || new Set(result.lockedSectionIds).size !== result.lockedSectionIds.length
+    || typeof result.periodLocked !== 'boolean'
+    || (result.accessTier !== 'free' && result.accessTier !== 'premium')
+    || !(['local', 'cache', 'generated'] as const).includes(result.source)
+  ) {
+    return false;
+  }
+
+  const allSections = [forecast.overview, ...forecast.sections];
+  if (allSections.some((section) => (
+    !section
+    || typeof section !== 'object'
+    || typeof section.id !== 'string'
+    || !section.id.trim()
+    || typeof section.text !== 'string'
+  ))) {
+    return false;
+  }
+  const allSectionIds = allSections.map((section) => section.id);
+  const allSectionIdSet = new Set(allSectionIds);
+  if (
+    allSectionIdSet.size !== allSectionIds.length
+    || result.lockedSectionIds.some((id) => !allSectionIdSet.has(id))
+  ) {
+    return false;
+  }
+
+  const freeSelectionIds = forecast.meta?.freeSelection?.sectionIds;
+  if (!Array.isArray(freeSelectionIds)) return false;
+  const expectedPeriodLocked = result.accessTier === 'free' && forecast.period !== 'day';
+  if (result.periodLocked !== expectedPeriodLocked) return false;
+
+  const expectedOpenIds = result.accessTier === 'premium'
+    ? new Set(allSectionIds)
+    : expectedPeriodLocked
+      ? new Set<string>()
+      : new Set(['overview', 'wishes', ...freeSelectionIds]);
+  const expectedLockedIds = allSectionIds.filter((id) => !expectedOpenIds.has(id));
+  const lockedIds = new Set(result.lockedSectionIds);
+  if (
+    expectedLockedIds.length !== lockedIds.size
+    || expectedLockedIds.some((id) => !lockedIds.has(id))
+  ) {
+    return false;
+  }
+
+  for (const section of allSections) {
+    if (lockedIds.has(section.id)) {
+      if (
+        section.text.trim()
+        || !Array.isArray(section.explanationAnchors)
+        || section.explanationAnchors.length
+        || section.inlineAstroAccent
+      ) {
+        return false;
+      }
+    } else if (!section.text.trim()) {
+      return false;
+    }
+  }
+
+  return isPersonalForecastPackage(forecast, {
+    redactedSectionIds: result.lockedSectionIds,
+  });
+}
+
+function invalidResponseError(): PersonalForecastClientError {
+  const error = new Error(
+    'Personal forecast response does not match the V3 contract',
+  ) as PersonalForecastClientError;
+  error.code = 'PERSONAL_FORECAST_RESPONSE_INVALID';
+  return error;
+}
+
+function parseAccessPayload(
+  value: unknown,
+  sourceOverride?: PersonalForecastClientResult['source'],
+  expected?: Pick<PersonalForecastPackage, 'period' | 'periodKey'>,
+): PersonalForecastClientResult {
+  if (!value || typeof value !== 'object') throw invalidResponseError();
+  const payload = value as PersonalForecastAccessPayload;
+  const result: PersonalForecastClientResult = {
+    forecast: payload.forecast,
+    accessTier: payload.accessTier,
+    lockedSectionIds: payload.lockedSectionIds,
+    periodLocked: payload.periodLocked,
+    source: sourceOverride || payload.source,
+  };
+  if (!isStoredResult(result)) throw invalidResponseError();
+  if (
+    expected
+    && (
+      result.forecast.period !== expected.period
+      || result.forecast.periodKey !== expected.periodKey
+    )
+  ) {
+    throw invalidResponseError();
+  }
+  return result;
 }
 
 function readStored(key: string): PersonalForecastClientResult | null {
   const memory = memoryCache.get(key);
-  if (memory) return memory;
+  if (memory) {
+    if (isStoredResult(memory)) return memory;
+    memoryCache.delete(key);
+  }
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(localStorageKey(key));
@@ -160,13 +261,8 @@ async function fetchCached(input: {
   });
   if (response.status === 404) return null;
   if (!response.ok) throw await parseError(response);
-  const payload = await response.json() as PersonalForecastAccessPayload;
-  return {
-    forecast: payload.forecast,
-    accessTier: payload.accessTier,
-    lockedTopicKeys: payload.lockedTopicKeys,
-    source: 'cache',
-  };
+  const payload = await response.json().catch(() => null);
+  return parseAccessPayload(payload, 'cache', input);
 }
 
 async function generate(input: {
@@ -205,13 +301,8 @@ async function generate(input: {
       continue;
     }
     if (!response.ok) throw await parseError(response);
-    const payload = await response.json() as PersonalForecastAccessPayload;
-    return {
-      forecast: payload.forecast,
-      accessTier: payload.accessTier,
-      lockedTopicKeys: payload.lockedTopicKeys,
-      source: payload.source,
-    };
+    const payload = await response.json().catch(() => null);
+    return parseAccessPayload(payload, undefined, input);
   }
   throw new Error('PERSONAL_FORECAST_GENERATION_FAILED');
 }

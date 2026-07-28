@@ -111,6 +111,23 @@ export type AdminPromptDetail = AdminPromptRow & { body: string; versions: Array
 export type AdminCmsRow = { id: number; type: string; locale: string; status: string; title: string | null; version: number; category: string | null; updatedAt: string | null; publishedAt: string | null };
 export type AdminCmsDetail = AdminCmsRow & { body: string; versions: Array<{ version: number; body: string; createdAt: string | null }> };
 
+export type AdminForecastQuestion = {
+  id: number;
+  userId: string;
+  chartId: number | null;
+  period: 'day' | 'week' | 'month' | 'year';
+  periodKey: string;
+  language: 'ru' | 'en';
+  source: 'catalog' | 'custom';
+  questionText: string;
+  status: 'pending' | 'approved' | 'generating' | 'answered' | 'rejected';
+  moderationReason: string | null;
+  answerText: string | null;
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminTicketRow = { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string; messages: number; updatedAt: string | null };
 export type AdminTicketDetail = { ticket: { id: number; userId: string | null; userName: string | null; subject: string; status: string; priority: string }; messages: Array<{ authorType: string; body: string; internal: boolean; createdAt: string | null }> };
 export type AdminSendResult = { ok: boolean; total: number; sent: number; failed: number; capped: boolean };
@@ -381,6 +398,29 @@ export const admin2 = {
   updateCms: (id: number, body: string, title?: string) => req<{ ok: boolean; version: number }>(`/api/admin/v2/cms/${id}`, { method: 'PATCH', body: { body, title } }),
   publishCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'publish' } }),
   archiveCms: (id: number) => req<{ ok: boolean }>(`/api/admin/v2/cms/${id}`, { method: 'POST', body: { action: 'archive' } }),
+  listForecastQuestions: (params: {
+    status?: AdminForecastQuestion['status'] | 'all';
+    period?: AdminForecastQuestion['period'] | 'all';
+    q?: string;
+  } = {}) => {
+    const search = new URLSearchParams();
+    if (params.status && params.status !== 'all') search.set('status', params.status);
+    if (params.period && params.period !== 'all') search.set('period', params.period);
+    if (params.q) search.set('q', params.q);
+    const suffix = search.toString() ? `?${search}` : '';
+    return req<{
+      questions: AdminForecastQuestion[];
+      pagination: { limit: number; offset: number; total: number };
+    }>(`/api/admin/v2/forecast-questions${suffix}`);
+  },
+  moderateForecastQuestion: (
+    id: number,
+    action: 'approve' | 'reject' | 'retry',
+    reason?: string,
+  ) => req<{ ok: boolean; question: AdminForecastQuestion }>(
+    `/api/admin/v2/forecast-questions/${id}`,
+    { method: 'POST', body: { action, ...(reason ? { reason } : {}) } },
+  ),
   // Communications
   sendPush: (body: { mode: 'user' | 'segment'; userId?: string; segment?: string; text: string }) => req<AdminSendResult>('/api/admin/v2/comms/send', { method: 'POST', body }),
   notifications: () => req<AdminNotificationsOverview>('/api/admin/v2/notifications'),

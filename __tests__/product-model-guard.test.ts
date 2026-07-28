@@ -132,10 +132,15 @@ describe('product model guard', () => {
       expect(route).toContain('getPremiumEntitlementState');
     });
 
-    it('keeps overview and one full reading available to Free users', () => {
+    it('keeps overview, wishes, strongest and rotated readings available to Free users', () => {
       const contract = fs.readFileSync(path.join(ROOT, 'lib/personalForecastContract.ts'), 'utf8');
-      expect(contract).toContain("PERSONAL_FORECAST_FREE_READING_TOPIC: FixedForecastTopicKey = 'love'");
-      expect(contract).toContain("key !== 'overview' && key !== PERSONAL_FORECAST_FREE_READING_TOPIC");
+      expect(contract).toContain("'overview'");
+      expect(contract).toContain("'wishes'");
+      expect(contract).toMatch(
+        /\.\.\.(?:forecast|navigableForecast)\.meta\.freeSelection\.sectionIds/,
+      );
+      expect(contract).toContain('strongestSectionId');
+      expect(contract).toContain('rotatedSectionId');
     });
 
     it('does not keep old personal daypart or fallback generators', () => {

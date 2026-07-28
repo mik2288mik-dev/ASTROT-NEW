@@ -131,11 +131,37 @@ describe('Premium-only product model', () => {
     }
   });
 
-  it('Personal forecast premium content routes non-premium users to Premium CTA', () => {
-    const personalForecast = fs.readFileSync(path.join(ROOT, 'views', 'PersonalForecastScreen.tsx'), 'utf8');
-    expect(personalForecast).toContain('Открыть Premium');
-    expect(personalForecast).toContain('requestPremium');
-    expect(personalForecast).not.toContain('requestStarsOneOffPayment');
+  it('Personal forecast premium content opens Premium in place from the continuous feed', () => {
+    const app = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
+    const dashboard = fs.readFileSync(path.join(ROOT, 'views', 'Dashboard.tsx'), 'utf8');
+    const sectionBlock = fs.readFileSync(
+      path.join(ROOT, 'components', 'PersonalForecastFeed', 'ForecastSectionBlock.tsx'),
+      'utf8',
+    );
+
+    expect(dashboard).toContain('const requestPremium = useCallback');
+    expect(dashboard).toContain("onRequestPremium?.('personal_forecast_feed'");
+    expect(dashboard).toContain('returnInPlace: true');
+    expect(dashboard).toContain('onRequestPremium={requestPremium}');
+    expect(dashboard).not.toContain("phase: 'needs_premium'");
+    expect(dashboard).not.toContain("!premium && activePeriod !== 'day'");
+    expect(dashboard).not.toContain('is-premium-required');
+    expect(dashboard).toContain('locked={lockedIds.has(forecast.overview.id)}');
+    expect(dashboard).toContain('accessContextRef.current !== requestContextKey');
+    expect(dashboard).toContain("loadPeriod(activePeriod, { retry: true })");
+    expect(sectionBlock).toContain('section.lockedPreview');
+    expect(sectionBlock).toContain("locked ? 'is-locked' : ''");
+    expect(sectionBlock).toContain('forecast-feed-locked-blur');
+    expect(sectionBlock).toMatch(
+      /className="forecast-feed-locked-teaser"[\s\S]*?onClick=\{onRequestPremium\}/,
+    );
+    expect(sectionBlock).toContain('forecast-feed-premium-cta');
+    expect(sectionBlock).toContain('onClick={onRequestPremium}');
+    expect(sectionBlock).toContain('Unlock with Premium');
+    expect(app).toContain('} finally {');
+    expect(app).toContain('Premium activated, but the background content refresh could not start');
+    expect(app).toContain('setView(returnView)');
+    expect(`${dashboard}\n${sectionBlock}`).not.toContain('requestStarsOneOffPayment');
   });
 
   it('removed Oracle chat runtime instead of routing it through payments', () => {

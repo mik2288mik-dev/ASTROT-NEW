@@ -111,7 +111,7 @@ describe('content cache architecture', () => {
       expect(PREMIUM_CONTENT_PREWARM_STATUS).toBe('implemented');
       const doc = fs.readFileSync(path.join(ROOT, 'docs/CONTENT_CACHE_AND_PREWARM.md'), 'utf8');
       expect(doc).toContain('Client requests are deduplicated');
-      expect(doc).toContain('Startup never awaits generation');
+      expect(doc).toContain('Startup never awaits model generation');
     });
   });
 
@@ -133,11 +133,14 @@ describe('content cache architecture', () => {
   });
 
   describe('no repeated generation on GET if interpretation exists', () => {
-    it('personal forecast GET only reads the canonical V2 cache', () => {
+    it('personal forecast GET only reads the canonical V3 cache', () => {
       const source = readApiSource('pages/api/content/forecast/personal.ts');
       assertNoGenerationBefore(source, 'ensurePersonalForecast');
       expect(source).toContain('getCachedPersonalForecast');
       expect(source).toContain('PERSONAL_FORECAST_NOT_READY');
+      expect(source).toContain('lockedSectionIds');
+      expect(source).toContain('periodLocked');
+      expect(source).not.toContain('lockedTopicKeys');
     });
 
     it('natal anchor GET does not call generateNatalAnchorReading', () => {

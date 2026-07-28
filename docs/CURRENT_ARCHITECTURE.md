@@ -2,112 +2,107 @@
 
 The active application is «Твой Гороскоп» / “Your Horoscope”.
 
+The existing global content architecture remains active: `accessMatrix` owns product access, `contentMatrix` owns content definitions, `contentPromptBuilders` serves the products that use those builders, and authenticated `/api/content/*` routes remain the server boundary. Feed V3 adds its stricter structured contract without replacing those unrelated layers.
+
 ## Runtime entry and startup
 
-- Identity is enforced by `requireAppUser`; feature access uses `accessMatrix`, content policy uses `contentMatrix`, and non-forecast prompt builders remain in `contentPromptBuilders`.
-- Product APIs live under `/api/content/*`.
-- `App.tsx` resolves the authenticated profile and immediately reuses the available local natal chart.
-- A usable local chart is enough to render `Dashboard`; personal forecast generation, natal text generation, and server chart refresh are not startup gates.
-- Startup runs a cache-only check for the current personal day package after the Dashboard is available, then starts missing-content generation in the background.
-- Dashboard uses stale-while-revalidate: local package first, server cache second, background generation only on a miss. A refresh never clears a usable package already on screen.
-- Client in-flight maps and server content-generation locks deduplicate parallel startup and screen requests.
+- `App.tsx` resolves the authenticated profile and immediately reuses a valid local natal chart.
+- A usable chart is enough to render `Dashboard`; personal forecast generation, natal text generation, and server chart refresh are not startup gates.
+- Startup checks only the current-day personal package in cache, then starts missing-content generation in the background.
+- The client uses stale-while-revalidate: local package first, server cache second, generation only on a miss. Refresh and background errors never remove a usable package already on screen.
+- Client in-flight maps, process-local locks, and PostgreSQL advisory locks deduplicate parallel startup and screen requests across server replicas.
+- Identity is enforced by `requireAppUser`; chart ownership, language, timezone, and Premium entitlement are resolved on the server.
 
-## Personal forecast V2
+## Personal Forecast Feed V3
 
-The personal Dashboard is one chart-based product for `day`, `week`, `month`, and `year`. All periods use `PersonalForecastPackage` from `lib/personalForecastContract.ts`.
+`Dashboard` is the only personal forecast screen for `day`, `week`, `month`, and `year`. There is no separate topic reader or `personal_daily` route.
 
-Each package contains exactly seven fixed topics:
+Every `PersonalForecastPackage` contains:
 
-1. `overview`
-2. `love`
-3. `work`
-4. `money`
-5. `mood_energy`
-6. `communication`
-7. `luck`
+1. one overview;
+2. the fixed life sections in this order: love, mood, home and family, friends, tasks/work/money, wishes;
+3. two to four simple life-dynamic sections selected from calculated evidence;
+4. separate astro-accent sections only for strong Moon, Mercury, or retrograde factors;
+5. weak factors as inline accents;
+6. local explanation anchors and verified evidence IDs;
+7. calculated cross-period links only when a factor really continues into another period.
 
-The server selects two or three additional static, localized dynamic topic keys from calculated evidence. The model never invents topic titles.
+Fixed and dynamic sections are interspersed into one vertical feed. The model cannot invent a section key, reorder the fixed sequence, invent an evidence ID, or add an unsupported date.
 
 The calculation and generation path is:
 
-1. `lib/personalForecastEvidence.ts` samples the complete requested period in the chart timezone.
-2. Swiss Ephemeris transit positions are converted into stable evidence IDs for transit-to-natal aspects, houses, lunations, ingresses, and stations.
-3. Evidence is weighted and assigned to topics in code; one continuing factor is grouped into one period window.
-4. `lib/personalForecastGeneration.ts` sends only a topic’s assigned evidence to GPT.
-5. GPT returns `card`, `reading`, `astrology.explanation`, and up to four supplied evidence IDs.
-6. The server validates IDs, dates, field limits, and app-voice rules, then builds exact evidence views from deterministic data.
+1. `lib/personalForecastEvidence.ts` samples the complete requested period in the chart timezone and calculates evidence with Swiss Ephemeris. Aspects and transit-house placements are split into contiguous episodes; short-lived noise is excluded from long periods.
+2. Code creates stable evidence IDs, assigns one unique primary factor per section, weights factors, chooses dynamics, and builds the ordered section plan. House evidence is disabled when birth-time quality does not support house personalization.
+3. `lib/personalForecastGeneration.ts` sends the compact natal chart, calculated evidence, and the complete section plan in one structured period request.
+4. The server validates the complete wire package: period boundaries, version metadata, canonical section identities, previews, evidence, visuals, cross-links, order, counts, dates, text limits, repetition, and app-voice rules.
+5. The complete canonical package is stored once and sliced by server-side entitlement at response time.
 
-All user-facing model calls use `getAppSystemVoice(language)`. Model selection uses `getUnifiedContentModel()` with the fixed default `gpt-4.1`. `lib/appVoice.ts` and `APP_VOICE_VERSION` were not changed by this migration.
+All user-facing model calls use `getAppSystemVoice(language)`. Model selection continues to use the existing production `getUnifiedContentModel()` resolver; Feed V3 does not change the configured model. `lib/appVoice.ts` remains the sole runtime voice source.
 
 The private endpoint is `/api/content/forecast/personal`:
 
 - `GET` is cache-only;
 - `POST` ensures a missing package under a generation lock;
-- profile, chart ownership, language, timezone, and Premium entitlement are resolved on the server;
-- the client cannot submit trusted chart or Premium data.
+- the client cannot submit trusted chart, calculation, or Premium data.
 
-## Access and reading UI
+## Feed UI and access
 
-- Overview and all short card texts remain visible to Free users.
-- `love` is the configured additional Free full reading.
-- Other full readings, dynamic readings, and detailed calculation rows are server-sliced and locked for Free.
-- `views/PersonalForecastScreen.tsx` renders the layers in order: `reading`, “Почему такой прогноз”, then collapsible exact evidence.
-- A missing or failed package shows a status only inside the affected cards and offers a retry. It never falls back to a sign horoscope or invented forecast text.
+- `views/Dashboard.tsx` renders overview, all period sections, native promos, questions, and the global “How it works” entry in one full-width vertical feed.
+- Full period tabs live at the top. Compact tabs appear as soon as the user scrolls upward and disappear on downward scrolling.
+- Important conclusions have local `i` explanations; exact verified evidence is shown in a bottom sheet only on request.
+- A thin side rail opens the section list on tap and supports long-press scrubbing.
+- Missing content reports status only inside the affected feed surface and offers a scoped retry.
+- A refresh keeps the last usable package visible.
 
-## Separate products
+Free/Premium slicing is enforced on the server:
 
-- General sign horoscopes remain a separate Free `Зодиак` product with shared sign/period/language caches.
-- Natal readings, sign compatibility, chart-based synastry, Matrix of Destiny, payments, archive, notification, support, and admin systems remain separate products.
-- The personal Dashboard does not call sign-horoscope endpoints.
+- Today Free: overview, wishes, the strongest calculated section, and one deterministic rotating section;
+- other Today sections retain a real 5–10-word lead, real blurred continuation, a real teaser, and an unlock action;
+- Week, Month, and Year are fully Premium, but their locked feed exposes a personalized preview and concrete benefit without exposing full section text;
+- questions are Premium for every period;
+- after purchase, Dashboard remains mounted and replaces the sliced package in place without resetting scroll.
 
-## Visual resolver
+## Questions
 
-`lib/personalForecastVisuals.ts` assigns the entire forecast screen in one deterministic pass using user, period, period key, topic, slot, and `forecast-visual-v2`.
+The approved catalog in `lib/personalForecastQuestionCatalog.ts` contains the audited 84 bilingual questions with stable IDs, themes, live search, and period support.
 
-- No `asset.path` can repeat on one screen.
-- Every real forecast asset belongs to one period only.
-- Day/week/month/year use separate hero pools.
-- Previous-period reuse is avoided when the pool has an alternative.
-- Missing or exhausted slots use the period-specific editorial CSS fallback and set `visualFallback`.
-- Visual assignments are independent of GPT content and can change with the manifest version alone.
+- Limits are 20 answers and 3 custom submissions per user per day.
+- Catalog questions and only high-confidence, period-framed relevant custom questions are approved automatically; a theme keyword by itself is never enough.
+- Unsafe, nonsensical, off-topic, or duplicate custom questions are rejected with approved alternatives.
+- Doubtful questions remain `pending` for manual moderation.
+- Manual approval generates an answer from the saved period feed, natal chart, and verified evidence, then creates an unread in-app notification.
+- Question identity includes the exact feed input hash, chart fingerprint, period/key, normalized wording, answer prompt, and voice. An expired saved feed is readable only by this exact identity; stale chart/content versions are rejected permanently rather than retried forever.
+- Question and saved-feed text are delimited as untrusted data in the task prompt. Answers must cite known evidence IDs and cannot add unsupported dates or guaranteed future events.
+- Pending, approved, answered, and retry states stay inside the current period block; there is no chat or separate “My questions” screen.
+- Persistence uses `personal_forecast_questions`; the removed `astro_questions` chat table is not restored.
 
-Current repository inventory:
+Admin moderation is available through `/api/admin/v2/forecast-questions` and the Content section of Admin v2. Raw questions, answers, user IDs, and chart IDs require both `content.publish` and `user.pii.view`.
 
-| Scope | WebP | SVG | Total |
-|---|---:|---:|---:|
-| Entire `public/` | 157 | 19 | 176 |
-| Forecast heroes | 5 | 0 | 5 |
-| Forecast personal topics | 18 | 0 | 18 |
-| Other card backgrounds: products/questions/strips/universal | 7 | 18 | 25 |
+## Native promos and visuals
 
-No image or `generated_images` file is added by this migration.
+- Each complete feed has exactly two mandatory native promos: natal chart and compatibility.
+- A Zodiac promo is added only when a strong astro-accent provides a relevant anchor; no product or visual format repeats in the same feed.
+- Sign-horoscope generation remains a separate `Зодиак` product and never powers personal periods.
 
-### Missing forecast asset slots
+`lib/personalForecastVisuals.ts` resolves `[overview, ...sections]` in one deterministic pass using existing manifest assets only.
 
-The current art is real and distinct, but it does not fill every unique period/topic slot. The exact follow-up inventory is 57 files:
+- assignments are keyed by section ID;
+- adjacent backgrounds do not repeat;
+- unused relevant assets are preferred before any reuse;
+- previous-period reuse is avoided when an alternative exists;
+- bounded calculated lookahead may create links to the current longer-period tab; no generation-time target period key is persisted;
+- responsive crop, scale, optional mirror, overlay preset, and CSS fallback are deterministic;
+- visual versioning is independent from text/prompt cache versioning.
 
-- hero rotation: `hero_week_02`, `hero_month_02`, `hero_year_02` — 3;
-- fixed topics — 12:
-  - love: week, month;
-  - work: week, year;
-  - money: day, year;
-  - mood_energy: week, month;
-  - communication: day, year;
-  - luck: day, month;
-- dynamic topics with no dedicated art yet — 36:
-  - business, study, creativity, travel_movement, documents_deals, purchases_property, rest_recovery, physical_activity, important_choice: one asset for each of day/week/month/year;
-- partially covered dynamic topics — 6:
-  - home_family: day, year;
-  - friends_social: week, month;
-  - public_visibility: week, month.
-
-Until those assets exist, the resolver uses CSS fallback rather than copying, renaming, or repeating another topic’s image.
+No image or `generated_images` file is created by Feed V3.
 
 ## Persistence and migration boundary
 
-- Personal packages are stored in `content_interpretations` as canonical chart/user-scoped Premium rows and sliced at response time.
-- The additive `mvp_037_personal_forecast_yearly_variant` migration permits the `yearly` content variant without deleting rows or rewriting migration history.
-- Legacy daily-canvas, personal period-extra, and sign-based Dashboard rows remain in storage but cannot match V2 cache keys.
-- Separate `Зодиак`, natal, compatibility, synastry, payment, and archive data is not invalidated.
+- Canonical forecast packages stay in `content_interpretations`, scoped by user/chart/period/language/chart fingerprint/chart calculation/forecast calculation/prompt/voice/model identity. `PERSONAL_FORECAST_CALCULATION_VERSION` is part of both server and local cache identity and must match package metadata.
+- Cross-period links retain immutable continuation timing and are exposed only when that continuation belongs to the target period currently reachable from Dashboard.
+- `mvp_037_personal_forecast_yearly_variant` permits the yearly content variant.
+- `mvp_038_personal_forecast_questions` additively creates the versioned question/moderation/notification workflow.
+- Old forecast, daily-canvas, period-extra, and sign-based Dashboard rows remain stored but cannot match V3 identities.
+- Natal, `Зодиак`, compatibility, synastry, payments, archive, and unrelated notification data are not invalidated.
 
 Removed pre-MVP product surfaces remain documented in `docs/MVP_LEGACY_REMOVAL_LOG.md`.

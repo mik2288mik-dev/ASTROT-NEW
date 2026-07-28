@@ -4,7 +4,7 @@ This is the product-level source of truth for «Твой Гороскоп» / �
 
 ## 1. MVP products
 
-- Personal forecast screen: `Сегодня / Неделя / Месяц / Год`.
+- Personal forecast feed: `Сегодня / Неделя / Месяц / Год`.
 - Separate general `Зодиак` product with sign-based forecasts.
 - Natal chart calculation and natal readings.
 - Free sign compatibility.
@@ -13,119 +13,106 @@ This is the product-level source of truth for «Твой Гороскоп» / �
 - Premium calendar/archive for saved personal readings.
 - Settings, onboarding, subscription, support, admin, notifications, and mobile-shell functionality required to operate the MVP.
 
-## 2. Personal forecast screen — active product
+## 2. Personal forecast feed — active product
 
-The implemented contract is documented in:
+The active contract is `docs/PERSONAL_FORECAST_FEED_V3_SPEC.md`.
 
-`docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md`
+All four periods use the user’s natal chart plus calculated influences for the selected interval. Sign horoscopes never power these tabs.
 
-All four periods are personal and use the user’s natal chart plus calculated influences for the selected interval. Sign horoscopes must not power these tabs.
+The feed contains, in order:
 
-Every period has the same seven fixed topics:
+1. a human overview;
+2. fixed sections for Love, Mood, Home and Family, Friends, Tasks/Work/Money, and period-specific Wishes;
+3. two to four evidence-selected life dynamics interspersed among the fixed sections;
+4. separate strong astro-accent sections when justified;
+5. native product promos, period questions, and the global calculation explanation.
 
-1. Твой день / Твоя неделя / Твой месяц / Твой год
-2. Любовь
-3. Работа и дела
-4. Деньги
-5. Настроение и силы
-6. Общение
-7. Удача
+Every section contains normal-language text, importance, a visual tag, a real locked preview, optional inline astro accent, and local explanation anchors referencing verified evidence. Strong conclusions can be explained locally without opening a separate reader.
 
-The server additionally selects 2–3 dynamic topics from calculated evidence. The model does not invent topic titles or life events.
-
-Each topic contains:
-
-- `card` — concise useful answer for the main screen;
-- `reading` — complete explanation of the selected topic;
-- `astrology.explanation` — human-readable reason for the result;
-- verified evidence references generated from server calculations.
-
-The personal screen uses one unified user-facing model resolver, default GPT-4.1. Astronomy and topic evidence are calculated in code; GPT only explains supplied evidence.
+Astronomy, section selection, fixed order, Premium slicing, visual selection, promos, and cross-period continuation are decided in code. One structured model request explains the supplied period evidence.
 
 ## 3. Runtime boundary
 
-- Today/Week/Month/Year all use the same chart-based `PersonalForecastPackage`.
-- The personal Dashboard has no daily-canvas, period-extra, or sign-horoscope consumer.
-- Missing personal content reports `generating`/`unavailable` locally and never substitutes a general sign forecast or static forecast copy.
-- General sign-horoscope generation remains active only for the separate `Зодиак` product.
-- Legacy personal rows are retained in storage but are incompatible with V2 keys.
+- `views/Dashboard.tsx` is the complete personal screen.
+- There is no personal topic-reader route, DailyCanvas consumer, period-extra consumer, or sign-horoscope fallback.
+- Missing content reports generating/unavailable state only in the affected feed surface.
+- General sign-horoscope generation remains active only in the separate `Зодиак` product.
+- Old personal rows remain stored but cannot match V3 identities.
 
 ## 4. Free and Premium
 
-The forecast-screen implementation must preserve the ability to enforce this product logic on the backend:
+Backend access policy:
 
-- overview of the selected period is fully Free;
-- short `card` text is visible to all users;
-- one additional fixed topic may be fully Free according to backend selection;
-- remaining full readings, dynamic topics, detailed evidence, and advanced period access may require Premium.
+- Today Free includes overview, wishes, the strongest calculated section, and one deterministic rotating section.
+- Other Today sections keep a real 5–10-word lead, real blurred continuation, a real teaser, and a Premium CTA.
+- Week, Month, and Year are fully Premium.
+- Free non-day responses remain fully locked and expose only a personalized preview and concrete Premium benefit; full section text and evidence are server-redacted.
+- Period questions are fully Premium.
+- The server returns only the access-sliced payload; frontend locks are presentation, not authority.
+- A successful purchase reveals the current feed in place and preserves scroll.
 
-Other products:
+Other products retain their separate policies:
 
-- `Зодиак`: general sign forecasts are Free unless product pricing is changed separately;
+- `Зодиак`: general sign forecasts are separate and Free unless pricing changes independently;
 - natal chart: calculation/basic entry Free, full interpretation Premium;
 - sign compatibility: Free and chart-free;
 - detailed relationship reading: Premium and chart-based;
 - Matrix of Destiny: short result Free, full report Premium;
 - archive/calendar: Premium.
 
-Frontend locks and CTAs are presentation only. Access truth is enforced by `lib/accessMatrix.ts`, `lib/contentAccessMatrix.ts`, `lib/contentArchitecture.ts`, and entitlement helpers.
+## 5. Questions
 
-## 5. Data and calculation path
+- The approved bilingual catalog has 84 stable-ID questions, live search, themes, and period filters.
+- Users can receive at most 20 answers and submit at most 3 custom questions per day.
+- Only high-confidence period-framed relevant questions are approved automatically; a theme keyword alone is insufficient, and doubtful questions wait for manual moderation.
+- Unsafe, nonsensical, off-topic, and duplicate questions are rejected with similar approved alternatives.
+- A manual approval generates from the saved feed and natal evidence, stores the answer, and exposes an unread bell deep-link to the period question.
+- Saved questions are exact-feed/chart/version scoped; untrusted question/feed text cannot override task instructions, and generated answers must cite known evidence without unsupported dates or guaranteed events.
+- Status and answer remain inside the current period block; the product has no chat or separate question-history screen.
+
+## 6. Data, calculation, and caching
 
 - App identity: `requireAppUser` / `lib/auth/appAuth.ts`.
-- Canonical chart APIs: `/api/charts/*`.
-- Chart calculation: `lib/swisseph-calculator.ts` and related deterministic calculation modules.
-- Personal forecast evidence: server-calculated natal/transit relationships for the requested period.
-- Product content APIs: `/api/content/*`.
-- Unified model selection: `getUnifiedContentModel()`.
-- Runtime voice source: `lib/appVoice.ts`.
-- Persistence: PostgreSQL through `lib/db.ts`; applied migrations remain immutable history.
+- Canonical charts: `/api/charts/*`.
+- Deterministic astronomy: `lib/swisseph-calculator.ts` and `lib/personalForecastEvidence.ts`.
+- Feed endpoint: `/api/content/forecast/personal`.
+- Question endpoint: `/api/content/forecast/questions`.
+- Unified production model resolver: `getUnifiedContentModel()`; Feed V3 does not select or change a model.
+- Runtime voice: `lib/appVoice.ts` via `getAppSystemVoice(language)`.
+- Persistence: PostgreSQL through `lib/db.ts`; applied migration history remains immutable.
 
-The model never calculates astronomy and never creates an aspect, orb, date, house activation, or period window that is absent from supplied evidence.
+The model never calculates astronomy and never creates an aspect, orb, date, house activation, period window, or biography absent from supplied data.
 
-## 6. Personal forecast cache and archive
-
-The V2 key format, lock identity, retention policy, and prewarm cadence are specified in `docs/CONTENT_CACHE_AND_PREWARM.md`.
-
-Legacy personal-screen packages are invalidated by versioned identity without deleting unrelated natal, `Зодиак`, synastry, compatibility, payment, or archive data. Past saved readings are not generated on archive read.
+V3 cache/lock identity and prewarm cadence are specified in `docs/CONTENT_CACHE_AND_PREWARM.md`.
 
 ## 7. Voice and content rules
 
-The app explains calculations calmly, confidently, directly, and in normal modern language.
+The only runtime source for shared voice rules is `lib/appVoice.ts`; `docs/APP_VOICE.md` documents the same contract.
+
+Task prompts define the output, supplied calculation, required theme, JSON shape, and technical limits. They do not define another character, astrologer, therapist, coach, friend, or mystical guide.
 
 Required order:
 
-1. answer the topic;
-2. explain the combined result;
-3. show the astrological basis separately when useful.
+1. human conclusion;
+2. clear explanation;
+3. astrological basis when useful.
 
-Generated text must not:
+Generated text must not invent events or biography, replace the answer with psychology, add automatic advice, or use generic wellness, mystical, coaching, or pseudo-profound filler.
 
-- invent conversations, purchases, work, partners, conflicts, documents, tasks, or events;
-- replace a forecast with a psychological portrait;
-- add advice automatically;
-- use generic wellness, mystical, coaching, or pseudo-profound filler;
-- pad fields to a target length;
-- create artificial hooks, hero headlines, or generated CTAs for the personal forecast cards.
+## 8. Visual and promo system
 
-The only runtime source for shared voice rules is `lib/appVoice.ts`. `docs/APP_VOICE.md` documents that contract.
-
-## 8. Visual system
-
-The personal screen has one design language but different visual families for Day/Week/Month/Year.
-
-- no duplicate `asset.path` on one screen;
-- period heroes differ when the asset pool allows it;
-- topic images are selected deterministically for the period;
-- GPT does not select images;
-- when a unique suitable asset is unavailable, use the approved design-system fallback rather than repeating an unrelated image;
-- the implementation report must include an asset inventory and missing slots.
+- The feed uses full-width existing manifest assets with deterministic responsive crop, scale, mirror, overlay, and CSS fallback.
+- Adjacent backgrounds do not repeat.
+- GPT never selects or generates images.
+- Each complete feed has mandatory natal and compatibility promos.
+- At most one relevant Zodiac promo is added for a strong astro factor.
+- Product and promo format never repeat within the same feed.
 
 ## 9. Active storage boundaries
 
-Core active storage includes users/sessions, natal charts, content interpretations/cache, synastry cache, unlocks, entitlements, payments, archive/check-in data, and operational notification/admin/support tables.
+Core storage includes users/sessions, natal charts, content interpretations/cache, `personal_forecast_questions`, synastry cache, unlocks, entitlements, payments, archive/check-in data, and operational notification/admin/support tables.
 
-Deprecated product tables are removed only through additive cleanup migrations. Do not delete applied migration history.
+Deprecated product data is removed only through additive migrations. V3 adds data structures without deleting old forecast content or restoring the removed chat table.
 
 ## 10. Architecture sources
 
@@ -136,4 +123,4 @@ The shipped architecture is maintained in:
 - `docs/CONTENT_CACHE_AND_PREWARM.md`;
 - `docs/NEXT_TASK_CONTEXT.md`.
 
-Dead legacy runtime and incompatible tests are removed only after all consumers use the personal forecast V2 contract. The historical task contract remains `docs/PERSONAL_FORECAST_SCREEN_V2_TASK.md`; do not add duplicate forecast task documents.
+The V3 specification remains `docs/PERSONAL_FORECAST_FEED_V3_SPEC.md`. Do not add duplicate task documents.

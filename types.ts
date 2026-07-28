@@ -1188,7 +1188,6 @@ export type ViewState =
   | 'dashboard'
   | 'chart'
   | 'horoscope'
-  | 'personal_daily'
   | 'synastry'
   | 'matrix'
   | 'settings'
