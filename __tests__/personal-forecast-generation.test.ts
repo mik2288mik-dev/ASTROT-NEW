@@ -280,6 +280,24 @@ describe('personal forecast V3 single-feed generation', () => {
     }
   });
 
+  it('keeps concise length ranges as generation guidance instead of failing the whole feed', () => {
+    const raw = validRawFeed(plans);
+    raw.overview.text =
+      'The main conclusion is clear now. It points to one practical priority and explains the reason without inventing an event.';
+    raw.sections[0].text = generatedText(
+      'This section stays readable even when the model slightly exceeds the preferred presentation range.',
+      460,
+    );
+    const validation = validateGeneratedForecastFeed({
+      raw,
+      period: 'day',
+      overviewPlan: plans.overview,
+      sectionPlans: plans.sections,
+    });
+
+    expect(validation.errors).toEqual([]);
+  });
+
   it('rejects wrong order, foreign evidence, unsupported dates and voice violations', () => {
     const wrongOrder = validRawFeed(plans);
     wrongOrder.sections.reverse();

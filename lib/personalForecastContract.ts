@@ -286,6 +286,13 @@ const SECTION_TEXT_MAX = 400;
 const EXPLANATION_TEXT_MIN = 120;
 const EXPLANATION_TEXT_MAX = 220;
 
+const SECTION_TEXT_HARD_LIMITS: Record<PersonalForecastPeriod, number> = {
+  day: 1_400,
+  week: 1_800,
+  month: 2_200,
+  year: 2_800,
+};
+
 const BANNED_DYNAMIC_TITLES = new Set([
   'публичность',
   'важный выбор',
@@ -751,14 +758,7 @@ function sectionValid(
     )
     || typeof section.text !== 'string'
     || (redacted ? !!section.text.trim() : !section.text.trim())
-    || (!redacted && section.status === 'ready' && (
-      section.text.length < (
-        section.kind === 'overview' ? OVERVIEW_TEXT_MIN : SECTION_TEXT_MIN
-      )
-      || section.text.length > (
-        section.kind === 'overview' ? OVERVIEW_TEXT_MAX : SECTION_TEXT_MAX
-      )
-    ))
+    || section.text.length > SECTION_TEXT_HARD_LIMITS[period]
     || !Number.isFinite(section.importance)
     || section.importance < 0
     || section.importance > 100
@@ -1356,8 +1356,7 @@ export function slicePersonalForecastForAccess(
 }
 
 export function personalForecastSectionTextLimit(period: PersonalForecastPeriod): number {
-  void period;
-  return SECTION_TEXT_MAX;
+  return SECTION_TEXT_HARD_LIMITS[period];
 }
 
 export function personalForecastExplanationLimit(period: PersonalForecastPeriod): number {
