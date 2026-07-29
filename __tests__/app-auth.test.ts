@@ -5,9 +5,17 @@ import { createAppSessionToken, createGuestIdentity, isGuestUserId, requireAppUs
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const req = (headers: Record<string, string> = {}) => ({ headers, query: {}, body: {} } as any);
+const originalDatabaseUrl = process.env.DATABASE_URL;
 
 describe('app auth providers and API security', () => {
-  beforeAll(() => { process.env.APP_SESSION_SECRET = 'test-app-session-secret-that-is-long-enough'; });
+  beforeAll(() => {
+    process.env.APP_SESSION_SECRET = 'test-app-session-secret-that-is-long-enough';
+    delete process.env.DATABASE_URL;
+  });
+  afterAll(() => {
+    if (originalDatabaseUrl) process.env.DATABASE_URL = originalDatabaseUrl;
+    else delete process.env.DATABASE_URL;
+  });
 
   it('creates and verifies a stable signed web guest session without trusting client userId', async () => {
     const identity = createGuestIdentity();
@@ -54,7 +62,7 @@ describe('app auth providers and API security', () => {
 
   it('never grants trial or trusts client Premium for a web guest', () => {
     expect(read('pages/api/users/[id].ts')).toContain('!existingUser && !appUser.isGuest');
-    expect(read('lib/contentArchitecture.ts')).toContain('if (isGuestUserId(userId)) return { isPremium: false');
+    expect(read('lib/contentArchitecture.ts')).toContain('user.is_guest !== false');
     expect(read('pages/api/content/natal/human-section.ts')).not.toContain('entitlement.isPremium || profile?.isPremium');
     expect(read('pages/api/content/forecast/personal.ts')).not.toContain('if (profile?.isPremium)');
   });

@@ -29,6 +29,7 @@ import type {
   DailyAstroSignalLayers,
   DailyAstroSignalPhase,
 } from '../types';
+import { isGuestUserId } from './userId';
 
 // Read DATABASE_URL from environment variables
 // This is set in Railway Variables or .env file
@@ -677,6 +678,7 @@ export const db = {
           gender: u.gender ?? null,
           is_premium: isPremium,
           is_setup: isSetup,
+          is_guest: u.is_guest ?? isGuestUserId(u.id),
           chart_slots: u.chart_slots ?? 1,
           is_blocked: u.is_blocked ?? false,
         };
