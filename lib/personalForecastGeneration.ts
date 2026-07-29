@@ -578,9 +578,16 @@ Technical constraints:
 - return every planned section exactly once and in the supplied order;
 - omit a generated title for fixed, wishes, overview, and astro_accent sections;
 - dynamic titles use one to seven ordinary words and must not use “Публичность”, “Важный выбор”, “Поездки и движение”, “Public visibility”, “Important choice”, or “Travel and movement”;
-- every text starts with the direct conclusion for the selected period, then shows how it can appear in ordinary life, then briefly explains why the supplied calculation supports it;
+- write every text as two or three short paragraphs separated by a blank line;
+- the first paragraph is exactly one direct, memorable conclusion for the selected period;
+- the second paragraph shows one recognisable ordinary-life manifestation through concrete behaviour, a conversation, a decision, a task, or a reaction, without inventing that an event has already happened;
+- when a third paragraph is justified, make it one concise practical choice, boundary, or action; never repeat the conclusion in different words;
+- keep the calculation reason in explanation_anchors instead of retelling it abstractly in the main text;
 - overview text is ${overviewRange.min}–${overviewRange.max} characters; every other section text is ${sectionRange.min}–${sectionRange.max} characters;
 - write with candid warmth and lively precision; no fatalism, self-help slogans, pseudo-psychology, filler, or repeated points;
+- prefer active verbs, concrete nouns, and recognisable situations over abstractions such as “inner tension”, “changes”, “difficulties”, or “opportunities” without an observable manifestation;
+- use no more than one uncertainty marker such as “может”, “возможно”, “may”, or “could” in a paragraph; do not stack hedges such as “возможны”, “не исключены”, and “есть шанс”;
+- do not begin several sections with the same construction, and do not repeatedly use “день требует”, “период требует”, “важно”, “сегодня важно”, “the day requires”, or “it is important”;
 - user-facing section text must not name planets, houses, aspects, or introduce a technical block such as “Основание:” or “Basis:”;
 - premium_teaser is 40–300 characters, starts from a real supplied conclusion, tells what the full text clarifies, and contains no invented intrigue;
 - explanation_anchors contain zero to two items; each explanation is ${explanationRange.min}–${explanationRange.max} characters, uses one to four evidence IDs assigned to that section, and gives a short human explanation of the calculation without orbs, weights, or service fields;

@@ -43,6 +43,46 @@ function overviewTitle(
   }[period];
 }
 
+function splitForecastSentences(value: string): string[] {
+  return value
+    .match(/[^.!?…]+(?:[.!?…]+|$)/gu)
+    ?.map((sentence) => sentence.trim())
+    .filter(Boolean) || [];
+}
+
+function buildEditorialParagraphs(text: string): string[] {
+  const explicitParagraphs = text
+    .split(/\n{2,}/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (explicitParagraphs.length > 1) {
+    const openingSentences = splitForecastSentences(explicitParagraphs[0]);
+    if (openingSentences.length > 1) {
+      return [
+        openingSentences[0],
+        openingSentences.slice(1).join(' '),
+        ...explicitParagraphs.slice(1),
+      ];
+    }
+    return explicitParagraphs;
+  }
+
+  const sentences = splitForecastSentences(text);
+  if (sentences.length <= 1) return explicitParagraphs;
+
+  return [
+    sentences[0],
+    ...sentences.slice(1).reduce<string[]>((groups, sentence, index) => {
+      const groupIndex = Math.floor(index / 2);
+      groups[groupIndex] = groups[groupIndex]
+        ? `${groups[groupIndex]} ${sentence}`
+        : sentence;
+      return groups;
+    }, []),
+  ];
+}
+
 function renderTextWithAnchors(
   section: ForecastSection,
   evidence: ForecastSectionBlockProps['evidence'],
@@ -53,22 +93,7 @@ function renderTextWithAnchors(
   const text = section.text.trim();
   if (!text) return null;
 
-  const explicitParagraphs = text
-    .split(/\n{2,}/u)
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const sentences = explicitParagraphs.length === 1
-    ? text.match(/[^.!?…]+(?:[.!?…]+|$)/gu)?.map((value) => value.trim()).filter(Boolean) || []
-    : [];
-  const paragraphs = explicitParagraphs.length > 1 || sentences.length <= 2
-    ? explicitParagraphs
-    : sentences.reduce<string[]>((groups, sentence, index) => {
-        const groupIndex = Math.floor(index / 2);
-        groups[groupIndex] = groups[groupIndex]
-          ? `${groups[groupIndex]} ${sentence}`
-          : sentence;
-        return groups;
-      }, []);
+  const paragraphs = buildEditorialParagraphs(text);
   const locatedAnchorIds = new Set(
     section.explanationAnchors
       .filter((anchor) => paragraphs.some((paragraph) => paragraph.includes(anchor.conclusion)))
@@ -129,7 +154,20 @@ function renderTextWithAnchors(
 
         return (
           <Fragment key={`${section.id}:${paragraphIndex}`}>
-            <p className="forecast-feed-section-text">
+            <p
+              className={[
+                'forecast-feed-section-text',
+                paragraphIndex === 0 ? 'is-lead' : 'is-body',
+                paragraphIndex > 0 && paragraphIndex === paragraphs.length - 1
+                  ? 'is-takeaway'
+                  : '',
+              ].filter(Boolean).join(' ')}
+              data-editorial-role={paragraphIndex === 0
+                ? 'lead'
+                : paragraphIndex === paragraphs.length - 1
+                  ? 'takeaway'
+                  : 'detail'}
+            >
               {parts}
               {paragraphFallback ? (
                 <button

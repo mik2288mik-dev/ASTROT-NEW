@@ -265,7 +265,7 @@ describe('personal forecast V3 contract', () => {
     expect(new Set(inputHashes).size).toBe(variants.length);
     expect(cacheKeys[0]).toMatch(/^personal-forecast-feed-v3:/);
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
-      'personal-forecast-feed.v4.3.overview-depth',
+      'personal-forecast-feed.v4.4.editorial-feed',
     );
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
     expect(personalForecastOverviewTextRange()).toEqual({ min: 450, max: 650 });

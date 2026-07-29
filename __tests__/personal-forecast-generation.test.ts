@@ -176,6 +176,15 @@ describe('personal forecast V3 single-feed generation', () => {
     expect(prompt).toContain('"overview"');
     expect(prompt).toContain('"sections"');
     expect(prompt).toContain('overview text is 450–650 characters');
+    expect(prompt).toContain(
+      'the first paragraph is exactly one direct, memorable conclusion',
+    );
+    expect(prompt).toContain(
+      'shows one recognisable ordinary-life manifestation',
+    );
+    expect(prompt).toContain(
+      'keep the calculation reason in explanation_anchors',
+    );
     for (const plan of [plans.overview, ...plans.sections]) {
       expect(prompt).toContain(`"id": "${plan.id}"`);
       expect(prompt).toContain(`"id": "${firstEvidenceId(plan)}"`);

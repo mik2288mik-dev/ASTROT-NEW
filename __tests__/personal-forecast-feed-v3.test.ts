@@ -84,6 +84,10 @@ describe('personal forecast feed V3 wiring', () => {
     expect(sectionBlock).not.toContain('overviewAnchor');
     expect(sectionBlock).not.toContain('forecast-feed-info-icon');
     expect(sectionBlock).toContain('forecast-feed-inline-explanation-toggle');
+    expect(sectionBlock).toContain('buildEditorialParagraphs');
+    expect(sectionBlock).toContain("data-editorial-role={paragraphIndex === 0");
+    expect(feedStyles).toContain('.forecast-feed-section-text.is-lead');
+    expect(feedStyles).toContain('.forecast-feed-section-text.is-takeaway');
     expect(sectionBlock).toContain('aria-expanded=');
     expect(sectionBlock).toContain('<ChevronDown');
     expect(feedStyles).toContain('justify-content: flex-start');
