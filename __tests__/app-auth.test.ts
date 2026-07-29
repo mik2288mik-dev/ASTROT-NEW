@@ -40,9 +40,17 @@ describe('app auth providers and API security', () => {
     expect(read('services/sessionService.ts')).toContain('getTelegramInitDataHeaders');
   });
 
-  it('keeps shared sign products public and protects private products with server identity', () => {
-    for (const file of ['pages/api/content/horoscope/sign-daily.ts', 'pages/api/content/horoscope/sign-weekly.ts', 'pages/api/content/synastry/sign-compatibility.ts']) {
+  it('keeps daily sign content public while protecting Premium sign periods with app identity', () => {
+    for (const file of ['pages/api/content/horoscope/sign-daily.ts', 'pages/api/content/synastry/sign-compatibility.ts']) {
       expect(read(file)).not.toContain('requireAppUser');
+    }
+    for (const file of ['pages/api/content/horoscope/sign-weekly.ts', 'pages/api/content/horoscope/sign-monthly.ts']) {
+      const source = read(file);
+      expect(source).toContain('requireAppUser(req, { allowGuest: true })');
+      expect(source).toContain('getPremiumEntitlementState(userId)');
+      expect(source).toContain("code: 'PREMIUM_REQUIRED'");
+      expect(source).toContain("accessTier: 'premium'");
+      expect(source).not.toContain("'Cache-Control', 'public");
     }
     expect(read('pages/api/content/forecast/personal.ts')).toContain('ensureValidContext');
     expect(read('pages/api/content/synastry/extended.ts')).toContain('requireAppUser');

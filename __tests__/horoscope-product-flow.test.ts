@@ -1,26 +1,42 @@
 import fs from 'fs';
 import path from 'path';
+import { ZODIAC_KEYS } from '../lib/zodiacKeys';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Horoscope product flow', () => {
-  it('keeps sign reader distinct from personal daily and supports sign picker', () => {
+  it('keeps sign reader distinct from personal daily and opens a selected sign from the 3 by 4 grid', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
-    // Inline horizontal sign selector (replaced the bottom-sheet picker)
-    expect(source).toContain('FreshSignCarousel');
+    const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
+    const styles = read('styles/zodiacReader.css');
+    expect(ZODIAC_KEYS).toHaveLength(12);
+    expect(source).toContain('ZodiacSignGrid');
+    expect(source).toContain('setHasReaderSelection(true)');
+    expect(picker).toContain('signs.map');
+    expect(picker).toContain('setExpanded(false)');
+    expect(picker).toContain('setExpanded(true)');
+    expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(source).toContain('ensureDailySignHoroscope');
     expect(source).toContain('getCachedDailySignHoroscope');
     expect(source).toContain('ensureWeeklySignHoroscope');
+    expect(source).toContain('ensureMonthlySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
+    expect(source).not.toContain('drag=');
+    expect(source).not.toContain('scrollIntoView');
     expect(source).not.toContain('loadHumanDailySection');
   });
 
-  it('uses sign persistence and profile update on sign change', () => {
+  it('keeps all twelve Today signs free and never replaces the profile own sign while browsing', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
-    expect(source).toContain('selectedZodiacSign: normalized');
-    expect(source).toContain('saveProfile(updated)');
-    expect(source).toContain('lumia:selected-zodiac-sign');
+    expect(source).toContain("period !== 'today'");
+    expect(source).toContain("canAccessFeature('weekly_sign_horoscope'");
+    expect(source).not.toContain('FREE_EXTRA_QUOTA');
+    expect(source).not.toContain('PREMIUM_EXTRA_QUOTA');
+    expect(source).not.toContain('lumia:horo-extra-signs');
+    expect(source).not.toContain('lumia:horo-own-opened');
+    expect(source).not.toContain('selectedZodiacSign: normalized');
+    expect(source).not.toContain('saveProfile(updated)');
   });
 
   it('exposes Zodiac and keeps Ask out of bottom tabs', () => {

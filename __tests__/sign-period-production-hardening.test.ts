@@ -30,6 +30,8 @@ const fullReading = {
 afterEach(() => {
   jest.resetModules();
   jest.dontMock('../lib/db');
+  jest.dontMock('../lib/auth/appAuth');
+  jest.dontMock('../lib/contentArchitecture');
   if (originalApiKey === undefined) delete process.env.OPENAI_API_KEY;
   else process.env.OPENAI_API_KEY = originalApiKey;
 });
@@ -83,6 +85,15 @@ describe('sign period production hardening', () => {
     }
   });
 
+  it('stores weekly and monthly shared cache rows as Premium content', () => {
+    expect(read('lib/horoscope/signWeekly.ts')).toContain(
+      "VALUES ('sign_weekly_horoscope', $1, $2, $3, 'pro'"
+    );
+    expect(read('lib/horoscope/signMonthly.ts')).toContain(
+      "VALUES ('sign_monthly_horoscope', $1, $2, $3, 'pro'"
+    );
+  });
+
   it.each([
     ['weekly', '../lib/horoscope/signWeekly', 'getCachedSignWeeklyHoroscope', 'getOrGenerateSignWeeklyHoroscope', '2026-W30', 'SIGN_WEEKLY_GENERATION_FAILED'],
     ['monthly', '../lib/horoscope/signMonthly', 'getCachedSignMonthlyHoroscope', 'getOrGenerateSignMonthlyHoroscope', '2026-07', 'SIGN_MONTHLY_GENERATION_FAILED'],
@@ -129,6 +140,22 @@ describe('sign period production hardening', () => {
     delete process.env.OPENAI_API_KEY;
     const query = jest.fn().mockResolvedValue({ rows: [] });
     jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    if (_label !== 'yearly') {
+      jest.doMock('../lib/auth/appAuth', () => ({
+        requireAppUser: jest.fn().mockResolvedValue({
+          userId: '42',
+          sessionId: 'premium-session',
+          provider: 'native',
+          isGuest: false,
+        }),
+      }));
+      jest.doMock('../lib/contentArchitecture', () => ({
+        getPremiumEntitlementState: jest.fn().mockResolvedValue({
+          isPremium: true,
+          entitlement: { id: 7 },
+        }),
+      }));
+    }
     const handler = require(modulePath).default;
 
     const foreign = mockResponse();
@@ -158,6 +185,83 @@ describe('sign period production hardening', () => {
       body: { code: errorCode },
     });
     expect(query.mock.calls.some(([sql]) => String(sql).includes('INSERT INTO content_cache'))).toBe(false);
+  });
+
+  it.each([
+    ['weekly', '../pages/api/content/horoscope/sign-weekly', getMoscowIsoWeekKey()],
+    ['monthly', '../pages/api/content/horoscope/sign-monthly', getMoscowMonthKey()],
+  ])('%s rejects a missing app session before reading the shared cache', async (
+    _label,
+    modulePath,
+    currentPeriod
+  ) => {
+    const query = jest.fn().mockResolvedValue({ rows: [{ payload: fullReading }] });
+    const { AdminAuthError } = require('../lib/adminAuth');
+    const requireAppUser = jest.fn().mockRejectedValue(
+      new AdminAuthError(401, 'APP_AUTH_REQUIRED', 'A valid app session is required')
+    );
+    const getPremiumEntitlementState = jest.fn();
+    jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    jest.doMock('../lib/auth/appAuth', () => ({ requireAppUser }));
+    jest.doMock('../lib/contentArchitecture', () => ({ getPremiumEntitlementState }));
+    const handler = require(modulePath).default;
+
+    const result = mockResponse();
+    await handler({
+      method: 'GET',
+      headers: {},
+      query: { sign: 'leo', periodKey: currentPeriod, language: 'ru' },
+    } as any, result.response);
+
+    expect(result.result).toMatchObject({
+      statusCode: 401,
+      body: { error: 'APP_AUTH_REQUIRED' },
+    });
+    expect(getPremiumEntitlementState).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['weekly', '../pages/api/content/horoscope/sign-weekly', getMoscowIsoWeekKey()],
+    ['monthly', '../pages/api/content/horoscope/sign-monthly', getMoscowMonthKey()],
+  ])('%s rejects a non-Premium guest before reading or generating content', async (
+    _label,
+    modulePath,
+    currentPeriod
+  ) => {
+    const query = jest.fn().mockResolvedValue({ rows: [{ payload: fullReading }] });
+    const requireAppUser = jest.fn().mockResolvedValue({
+      userId: '-42',
+      sessionId: 'guest-session',
+      provider: 'web_guest',
+      isGuest: true,
+    });
+    const getPremiumEntitlementState = jest.fn().mockResolvedValue({
+      isPremium: false,
+      entitlement: null,
+    });
+    jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
+    jest.doMock('../lib/auth/appAuth', () => ({ requireAppUser }));
+    jest.doMock('../lib/contentArchitecture', () => ({ getPremiumEntitlementState }));
+    const handler = require(modulePath).default;
+
+    const result = mockResponse();
+    await handler({
+      method: 'POST',
+      headers: {},
+      body: { sign: 'leo', periodKey: currentPeriod, language: 'ru' },
+    } as any, result.response);
+
+    expect(requireAppUser).toHaveBeenCalledWith(expect.anything(), { allowGuest: true });
+    expect(getPremiumEntitlementState).toHaveBeenCalledWith('-42');
+    expect(result.result).toMatchObject({
+      statusCode: 403,
+      body: {
+        code: 'PREMIUM_REQUIRED',
+        premiumRequired: true,
+      },
+    });
+    expect(query).not.toHaveBeenCalled();
   });
 
   it('keeps personal Dashboard lazy and scopes state by chart, period, language, and current key', () => {

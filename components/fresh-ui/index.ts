@@ -17,7 +17,7 @@ export {
 export { FreshTabs } from './FreshTabs';
 export type { TabItem } from './FreshTabs';
 
-export { FreshSignCarousel } from './FreshSignCarousel';
+export { ZodiacSignGrid } from './ZodiacSignGrid';
 export { FreshSignWheel } from './FreshSignWheel';
 
 export { InfoNote } from './InfoNote';

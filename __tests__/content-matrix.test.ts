@@ -15,10 +15,14 @@ describe('Lumia content matrix', () => {
       cacheTtl: 'forever', cacheScope: 'shared', generationPolicy: 'explicit_only',
     });
     expect(getContentPolicy('sign_weekly_horoscope')).toMatchObject({
-      words: { min: 0, max: 150 }, promptVersion: expect.stringContaining('sign_weekly_horoscope.v4'),
+      featureKey: 'weekly_sign_horoscope',
+      words: { min: 0, max: 150 },
+      promptVersion: expect.stringContaining('sign_weekly_horoscope.v4'),
     });
     expect(getContentPolicy('sign_monthly_horoscope')).toMatchObject({
-      words: { min: 0, max: 165 }, promptVersion: expect.stringContaining('sign_monthly_horoscope.v2'),
+      featureKey: 'weekly_sign_horoscope',
+      words: { min: 0, max: 165 },
+      promptVersion: expect.stringContaining('sign_monthly_horoscope.v2'),
     });
     expect(getContentPolicy('sign_yearly')).toMatchObject({
       words: { min: 0, max: 170 }, promptVersion: expect.stringContaining('sign_yearly.v2'),
@@ -30,6 +34,9 @@ describe('Lumia content matrix', () => {
   });
 
   it('delegates access decisions to accessMatrix', () => {
+    expect(getContentAccess('sign_daily_horoscope')).toMatchObject({ tier: 'free', needsChart: false });
+    expect(getContentAccess('sign_weekly_horoscope')).toMatchObject({ tier: 'pro', needsChart: false });
+    expect(getContentAccess('sign_monthly_horoscope')).toMatchObject({ tier: 'pro', needsChart: false });
     expect(getContentAccess('natal_section', { natalSection: 'basic_identity' })).toMatchObject({ tier: 'free', needsChart: true });
     expect(getContentAccess('natal_section', { natalSection: 'money' })).toMatchObject({ tier: 'pro', needsChart: true });
   });

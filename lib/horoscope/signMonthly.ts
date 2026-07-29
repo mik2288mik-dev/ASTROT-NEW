@@ -78,7 +78,7 @@ export async function getOrGenerateSignMonthlyHoroscope(
     const { validTo } = monthKeyToValidRangeUtc(periodKey);
     await getPool().query(
       `INSERT INTO content_cache (content_type, content_key, period_key, zodiac_sign, access_level, model_tier, model_used, prompt_version, payload, text, expires_at)
-       VALUES ('sign_monthly_horoscope', $1, $2, $3, 'free', $4, $5, $6, $7::jsonb, $8, $9)
+       VALUES ('sign_monthly_horoscope', $1, $2, $3, 'pro', $4, $5, $6, $7::jsonb, $8, $9)
        ON CONFLICT DO NOTHING`,
       [
         language,

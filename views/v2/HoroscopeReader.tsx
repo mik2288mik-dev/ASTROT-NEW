@@ -1,12 +1,12 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
 import { getMoscowTodayKey, getMoscowIsoWeekKey, getMoscowMonthKey, formatDisplayDate, formatWeekRangePretty, formatMonthPretty } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
+import { canAccessFeature, hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
 import {
   getCachedDailySignHoroscope,
   ensureDailySignHoroscope,
@@ -15,52 +15,12 @@ import {
   getCachedMonthlySignHoroscope,
   ensureMonthlySignHoroscope,
 } from '../../services/astrologyService';
-import { saveProfile } from '../../services/storageService';
 import { shareToTelegram } from '../../lib/botLink';
-import { FreshTabs, FreshSignCarousel, InfoNote } from '../../components/fresh-ui';
+import { FreshTabs, InfoNote, ZodiacSignGrid } from '../../components/fresh-ui';
 import { ZodiacIllustration } from '../../components/icons/ZodiacArt';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
-
-const LOCAL_SIGN_KEY = 'lumia:selected-zodiac-sign';
-
-/* Дневная квота «других» знаков: бесплатно 1, в Premium 3 (свой знак всегда доступен).
-   Знаки открываются по тапу — без авто-префетча, чтобы не жечь API. */
-const HORO_EXTRA_KEY = 'lumia:horo-extra-signs';
-const FREE_EXTRA_QUOTA = 1;
-// Премиум — все знаки без лимита (11 чужих + свой = 12); квота 12 фактически не упирается.
-const PREMIUM_EXTRA_QUOTA = 12;
-
-function readExtraSigns(today: string): string[] {
-  try {
-    const raw = window.localStorage.getItem(HORO_EXTRA_KEY);
-    if (!raw) return [];
-    const obj = JSON.parse(raw);
-    return obj && obj.date === today && Array.isArray(obj.signs) ? obj.signs.map((s: unknown) => String(s)) : [];
-  } catch { return []; }
-}
-
-function writeExtraSigns(today: string, signs: string[]) {
-  try { window.localStorage.setItem(HORO_EXTRA_KEY, JSON.stringify({ date: today, signs })); } catch { /* optional */ }
-}
-
-/* Свой знак тоже открывается ТОЛЬКО по кнопке — без авто-генерации при входе на экран
-   (экономим API/деньги). Запоминаем на текущий день, чтобы при возврате не жать снова. */
-const HORO_OWN_OPENED_KEY = 'lumia:horo-own-opened';
-
-function readOwnOpened(today: string, sign: string): boolean {
-  try {
-    const raw = window.localStorage.getItem(HORO_OWN_OPENED_KEY);
-    if (!raw) return false;
-    const obj = JSON.parse(raw);
-    return !!obj && obj.date === today && String(obj.sign) === sign;
-  } catch { return false; }
-}
-
-function writeOwnOpened(today: string, sign: string) {
-  try { window.localStorage.setItem(HORO_OWN_OPENED_KEY, JSON.stringify({ date: today, sign })); } catch { /* optional */ }
-}
 
 type Period = 'today' | 'week' | 'month';
 
@@ -93,17 +53,10 @@ function mondayKey(key: string): string {
   return `${dt.getUTCFullYear()}-${mm}-${dd}`;
 }
 
-const cardVariants = {
-  enter: (d: number) => ({ x: d > 0 ? 300 : d < 0 ? -300 : 0, opacity: 0, rotate: d > 0 ? 5 : d < 0 ? -5 : 0 }),
-  center: { x: 0, opacity: 1, rotate: 0 },
-  exit: (d: number) => ({ x: d > 0 ? -300 : d < 0 ? 300 : 0, opacity: 0, rotate: d > 0 ? -5 : d < 0 ? 5 : 0 }),
-};
-
 export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   profile,
   chartData,
   chartId,
-  onUpdateProfile,
   onOpenChart,
   onOpenPersonalForecast,
   onRequestPremium,
@@ -130,58 +83,29 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   }, [ownSign]);
 
   const [signIndex, setSignIndex] = useState(initialIndex);
-  const [dir, setDir] = useState(0);
+  const [hasReaderSelection, setHasReaderSelection] = useState(false);
   const [period, setPeriod] = useState<Period>('today');
   const [readings, setReadings] = useState<Record<string, ForecastDailyReading | null>>({});
+  const [loadRevision, setLoadRevision] = useState(0);
 
-  useEffect(() => { setSignIndex(initialIndex); }, [initialIndex]);
+  useEffect(() => {
+    setSignIndex(initialIndex);
+    setHasReaderSelection(false);
+  }, [initialIndex]);
 
   const sign = ZODIAC_KEYS[signIndex] as ZodiacKey;
   const keyOf = (s: string, p: Period) => `${s.toLowerCase()}|${p}`;
   const currentKey = keyOf(sign, period);
   const reading = readings[currentKey];
 
-  /* ── Доступ к знакам: свой знак всегда; «другие» — по дневной квоте, открываются КНОПКОЙ ── */
   const premium = hasActivePremium(profile);
-  const extraQuota = premium ? PREMIUM_EXTRA_QUOTA : FREE_EXTRA_QUOTA;
-  const [openedSigns, setOpenedSigns] = useState<string[]>(() => readExtraSigns(today));
-  // Свой знак открыт сегодня? (по кнопке, без авто-генерации при входе)
-  const [ownOpened, setOwnOpened] = useState<boolean>(() => readOwnOpened(today, ownSign));
-  useEffect(() => { setOwnOpened(readOwnOpened(today, ownSign)); }, [today, ownSign]);
+  const periodLocked = period !== 'today'
+    && !canAccessFeature('weekly_sign_horoscope', profile, null).allowed;
+  const loading = hasReaderSelection && !periodLocked && reading === undefined;
 
-  const current = sign.toLowerCase();
-  const isOwnSign = current === ownSign;
-  const isOpened = (isOwnSign && ownOpened) || openedSigns.includes(current);
-  const canOpenExtra = openedSigns.length < extraQuota;
-  // Свой знак можно открыть всегда (бесплатно); чужой — пока есть дневная квота.
-  const canOpen = isOwnSign || canOpenExtra;
-  const signState: 'open' | 'can-open' | 'locked' = isOpened ? 'open' : canOpen ? 'can-open' : 'locked';
-
-  // Free: только «Сегодня». Неделя и месяц — премиум.
-  const periodLocked = !premium && period !== 'today';
-
-  /* Открыть гороскоп по кнопке — никакого авто-фетча/авто-генерации (экономим API/деньги).
-     Свой знак — бесплатно; чужой — тратит дневную квоту. */
-  const openCurrent = () => {
-    if (isOpened) return;
-    if (isOwnSign) {
-      lumiaSelectionHaptic();
-      setOwnOpened(true);
-      writeOwnOpened(today, ownSign);
-      return;
-    }
-    if (!canOpenExtra) return;
-    lumiaSelectionHaptic();
-    const next = [...openedSigns, current];
-    setOpenedSigns(next);
-    writeExtraSigns(today, next);
-  };
-
-  const loading = isOpened && reading === undefined;
-
-  /* Загружаем только открытый знак и только текущий (без префетча соседей). */
+  /* Тап по знаку загружает только выбранный разбор, без префетча остальных 11. */
   useEffect(() => {
-    if (!isOpened || periodLocked) return;
+    if (!hasReaderSelection || periodLocked) return;
     let alive = true;
     const loadFor = async (s: string, p: Period) => {
       const kk = keyOf(s, p);
@@ -201,36 +125,24 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     void loadFor(sign, period);
     return () => { alive = false; };
-  }, [sign, period, language, today, isOpened, periodLocked]);
-
-  const goToIndex = (next: number, direction: number) => {
-    lumiaSelectionHaptic();
-    setDir(direction);
-    const idx = (next + 12) % 12;
-    setSignIndex(idx);
-    const normalized = ZODIAC_KEYS[idx];
-    // Сохраняем выбранный знак как «основной» только для премиума или для своего знака,
-    // чтобы бесплатный просмотр чужого знака не подменял знак на главной.
-    if (premium || normalized.toLowerCase() === ownSign) {
-      try { window.localStorage.setItem(LOCAL_SIGN_KEY, normalized); } catch { /* optional */ }
-      const updated = { ...profile, selectedZodiacSign: normalized };
-      onUpdateProfile?.(updated);
-      if (updated.id) void saveProfile(updated).catch(() => undefined);
-    }
-  };
-
-  const paginate = (delta: number) => goToIndex(signIndex + delta, delta);
+  }, [sign, period, language, today, hasReaderSelection, periodLocked, loadRevision]);
 
   const chooseSign = (picked: string) => {
     const idx = ZODIAC_KEYS.findIndex((s) => s.toLowerCase() === picked.toLowerCase());
-    if (idx < 0 || idx === signIndex) return;
-    goToIndex(idx, idx > signIndex ? 1 : -1);
+    if (idx < 0) return;
+    lumiaSelectionHaptic();
+    setSignIndex(idx);
+    setHasReaderSelection(true);
   };
 
-  const onDragEnd = (_e: unknown, info: PanInfo) => {
-    const power = info.offset.x + info.velocity.x * 0.2;
-    if (power < -70) paginate(1);
-    else if (power > 70) paginate(-1);
+  const retryCurrent = () => {
+    lumiaSelectionHaptic();
+    setReadings((prev) => {
+      const next = { ...prev };
+      delete next[currentKey];
+      return next;
+    });
+    setLoadRevision((value) => value + 1);
   };
 
   const signLabel = getZodiacSign(language, sign);
@@ -288,30 +200,135 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   };
 
   return (
-    <div className="fresh-page">
-      {/* Единый верх (как на всех экранах). Знак НЕ дублируем — он в селекторе и на карточке. */}
+    <div className="fresh-page horo-reader-page">
       <FreshInnerHeader title={language === 'ru' ? 'Гороскоп' : 'Horoscope'} subtitle={dateLine} />
 
-      {/* Личный гороскоп — премиум, наверху */}
-      <button type="button" className="horo-premium" onClick={openPersonal}>
-        <div className="horo-premium-text">
-          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный гороскоп' : 'Personal Horoscope'}</div>
-          <div className="horo-premium-title">{personalSubtitle}</div>
-        </div>
-        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
-      </button>
-
-      {/* Лента знаков — селектор: тап по любому знаку (активный по центру) */}
-      <FreshSignCarousel signs={ZODIAC_KEYS} active={sign} language={language} onPick={chooseSign} />
-
-      {/* Период */}
-      <FreshTabs
-        tabs={periodTabs}
-        activeTab={period}
-        onTabChange={(id) => { lumiaSelectionHaptic(); setDir(0); setPeriod(id as Period); }}
+      <ZodiacSignGrid
+        signs={ZODIAC_KEYS}
+        active={sign}
+        language={language}
+        onPick={chooseSign}
       />
 
-      <div style={{ padding: '0 20px' }}>
+      <FreshTabs
+        className="horo-period-tabs"
+        tabs={periodTabs}
+        activeTab={period}
+        onTabChange={(id) => {
+          lumiaSelectionHaptic();
+          setPeriod(id as Period);
+        }}
+      />
+
+      <div className="horo-uni-wrap">
+        <AnimatePresence initial={false} mode="wait">
+          {hasReaderSelection ? (
+            <motion.div
+              key={currentKey}
+              className="horo-uni"
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: reduce ? 0.08 : 0.18, ease: 'easeOut' }}
+            >
+              <div
+                className="horo-uni-hero"
+                style={{ backgroundColor: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)', backgroundImage: 'none' }}
+              >
+                <ZodiacIllustration sign={sign} className="horo-hero-illus" />
+                <div className="horo-hero-glyph" aria-hidden>
+                  <div className="horo-hero-date">{periodTag}</div>
+                </div>
+                <div className="horo-hero-stack">
+                  <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
+                    {!periodLocked
+                      ? (reading?.headline || (
+                          reading === null
+                            ? (language === 'ru' ? 'Не удалось загрузить' : 'Could not load')
+                            : (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')
+                        ))
+                      : signLabel}
+                  </div>
+                </div>
+              </div>
+              <div className="horo-uni-body">
+                {periodLocked ? (
+                  <div className="horo-lock">
+                    <div className="horo-lock-title">
+                      {period === 'week'
+                        ? (language === 'ru' ? 'Гороскоп на неделю — в Premium' : 'Weekly horoscope — Premium')
+                        : (language === 'ru' ? 'Гороскоп на месяц — в Premium' : 'Monthly horoscope — Premium')}
+                    </div>
+                    <p className="horo-lock-text">
+                      {language === 'ru'
+                        ? 'Сегодня доступны все 12 знаков бесплатно. Неделя и месяц открываются в Premium.'
+                        : 'All 12 signs are free today. Week and month open in Premium.'}
+                    </p>
+                    {onRequestPremium ? (
+                      <button
+                        type="button"
+                        className="fresh-btn-primary"
+                        style={{ marginTop: 12, width: '100%' }}
+                        onClick={() => {
+                          lumiaSelectionHaptic();
+                          onRequestPremium();
+                        }}
+                      >
+                        {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : reading === null ? (
+                  <div className="horo-lock">
+                    <div className="horo-lock-title">
+                      {language === 'ru' ? 'Разбор не загрузился' : 'The reading did not load'}
+                    </div>
+                    <p className="horo-lock-text">
+                      {language === 'ru'
+                        ? 'Попробуй ещё раз — повторно загрузится только выбранный знак и период.'
+                        : 'Try again — only the selected sign and period will be requested.'}
+                    </p>
+                    <button
+                      type="button"
+                      className="fresh-btn-primary"
+                      style={{ marginTop: 12, width: '100%' }}
+                      onClick={retryCurrent}
+                    >
+                      {language === 'ru' ? 'Повторить' : 'Try again'}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="horo-uni-summary">
+                      {loading
+                        ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…')
+                        : reading?.summary}
+                    </p>
+                    {!loading && reading?.advice?.length ? (
+                      <div className="horo-uni-advice">
+                        <div className="horo-uni-advice-title">{language === 'ru' ? 'Советы' : 'Advice'}</div>
+                        <ul>{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
+                      </div>
+                    ) : null}
+                    {!loading && reading ? (
+                      <HoroscopeActivityBar
+                        userId={profile.id ? String(profile.id) : undefined}
+                        sign={sign}
+                        date={period === 'week' ? mondayKey(today) : period === 'month' ? `${getMoscowMonthKey()}-01` : today}
+                        period={period}
+                        language={language}
+                        onShare={shareReading}
+                      />
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
+
+      <div className="horo-reader-info">
         <InfoNote title={language === 'ru' ? 'На чём основан гороскоп?' : 'What is this based on?'}>
           {language === 'ru'
             ? 'Это общий гороскоп по знаку Солнца — один ориентир на период для всех с этим знаком. Гороскоп по твоей дате, времени и месту рождения — в разделе «Личный гороскоп».'
@@ -319,118 +336,13 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         </InfoNote>
       </div>
 
-      {/* Единая свайп-карточка: весь гороскоп + советы вместе (свайп ← → меняет знак) */}
-      <div className="horo-uni-wrap">
-        <AnimatePresence custom={dir} initial={false} mode="popLayout">
-          <motion.div
-            key={currentKey}
-            className="horo-uni"
-            custom={dir}
-            variants={cardVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={reduce ? { duration: 0.15 } : { type: 'spring', stiffness: 320, damping: 34 }}
-            drag={reduce ? false : 'x'}
-            dragDirectionLock
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.5}
-            onDragEnd={onDragEnd}
-          >
-            <div
-              className="horo-uni-hero"
-              style={{ backgroundColor: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)', backgroundImage: 'none' }}
-            >
-              <ZodiacIllustration sign={sign} className="horo-hero-illus" />
-              <div className="horo-hero-glyph" aria-hidden>
-                {signState === 'open' ? <div className="horo-hero-date">{periodTag}</div> : null}
-              </div>
-              <div className="horo-hero-stack">
-                <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
-                  {signState === 'open' && !periodLocked ? (reading?.headline || (language === 'ru' ? 'Готовим разбор…' : 'Preparing…')) : signLabel}
-                </div>
-              </div>
-            </div>
-            <div className="horo-uni-body">
-              {periodLocked ? (
-                <div className="horo-lock">
-                  <div className="horo-lock-title">
-                    {period === 'week'
-                      ? (language === 'ru' ? 'Гороскоп на неделю — в Premium' : 'Weekly horoscope — Premium')
-                      : (language === 'ru' ? 'Гороскоп на месяц — в Premium' : 'Monthly horoscope — Premium')}
-                  </div>
-                  <p className="horo-lock-text">
-                    {language === 'ru' ? 'Бесплатно — гороскоп на сегодня. Неделя и месяц открываются в Premium.' : 'Free — today’s horoscope. Week and month open in Premium.'}
-                  </p>
-                  {onRequestPremium ? (
-                    <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={() => { lumiaSelectionHaptic(); onRequestPremium(); }}>
-                      {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
-                    </button>
-                  ) : null}
-                </div>
-              ) : signState === 'open' ? (
-                <>
-                  <p className="horo-uni-summary">
-                    {loading ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…') : reading?.summary}
-                  </p>
-                  {!loading && reading?.advice?.length ? (
-                    <div className="horo-uni-advice">
-                      <div className="horo-uni-advice-title">{language === 'ru' ? 'Советы' : 'Advice'}</div>
-                      <ul>{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
-                    </div>
-                  ) : null}
-                  {!loading && reading ? (
-                    <HoroscopeActivityBar
-                      userId={profile.id ? String(profile.id) : undefined}
-                      sign={sign}
-                      date={period === 'week' ? mondayKey(today) : period === 'month' ? `${getMoscowMonthKey()}-01` : today}
-                      period={period}
-                      language={language}
-                      onShare={shareReading}
-                    />
-                  ) : null}
-                </>
-              ) : signState === 'can-open' ? (
-                <div className="horo-lock">
-                  <div className="horo-lock-title">
-                    {isOwnSign
-                      ? (language === 'ru' ? 'Твой гороскоп' : 'Your horoscope')
-                      : (language === 'ru' ? 'Гороскоп на сегодня' : 'Today’s horoscope')}
-                  </div>
-                  <p className="horo-lock-text">
-                    {isOwnSign
-                      ? (language === 'ru' ? 'Откроется по кнопке — это твой знак.' : 'Tap to open — this is your sign.')
-                      : premium
-                        ? (language === 'ru' ? 'Откроется по кнопке — в Premium доступны все знаки.' : 'Tap to open — Premium opens every sign.')
-                        : (language === 'ru' ? 'Откроется по кнопке. Бесплатно — 1 другой знак в день.' : 'Tap to open. Free — 1 other sign a day.')}
-                  </p>
-                  <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={openCurrent}>
-                    {language === 'ru' ? 'Открыть гороскоп' : 'Open horoscope'}
-                  </button>
-                </div>
-              ) : (
-                <div className="horo-lock">
-                  <div className="horo-lock-title">
-                    {premium ? (language === 'ru' ? 'Лимит знаков на сегодня' : "Today's sign limit") : (language === 'ru' ? 'Другие знаки — в Premium' : 'Other signs — Premium')}
-                  </div>
-                  <p className="horo-lock-text">
-                    {premium
-                      ? (language === 'ru' ? 'В Premium доступны все знаки без лимита.' : 'Premium opens every sign, no limit.')
-                      : (language === 'ru' ? 'Бесплатно — свой знак и ещё 1 в день. Все знаки — в Premium.' : 'Free — your sign plus 1 a day. All signs in Premium.')}
-                  </p>
-                  {!premium && onRequestPremium ? (
-                    <button type="button" className="fresh-btn-primary" style={{ marginTop: 12, width: '100%' }} onClick={() => { lumiaSelectionHaptic(); onRequestPremium(); }}>
-                      {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
-                    </button>
-                  ) : null}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      <div className="horo-hint">{language === 'ru' ? 'Свайп ← → меняет знак' : 'Swipe ← → to change sign'}</div>
+      <button type="button" className="horo-premium horo-reader-personal" onClick={openPersonal}>
+        <div className="horo-premium-text">
+          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный гороскоп' : 'Personal Horoscope'}</div>
+          <div className="horo-premium-title">{personalSubtitle}</div>
+        </div>
+        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
+      </button>
     </div>
   );
 });
