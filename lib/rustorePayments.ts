@@ -131,8 +131,13 @@ async function upsertSubscription(input: RuStoreValidationInput, body: any, prod
         `UPDATE premium_entitlements
          SET status = CASE WHEN $2 = 'paused' THEN 'cancelled' ELSE 'expired' END,
              updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = $1 AND source = 'rustore' AND metadata->>'purchaseId' = $3`,
-        [input.userId, status, purchaseId],
+         WHERE user_id = $1
+           AND source = 'rustore'
+           AND (
+             metadata->>'purchaseId' = $3
+             OR metadata->>'productId' = $4
+           )`,
+        [input.userId, status, purchaseId, productId],
       );
     }
     await client.query('COMMIT');

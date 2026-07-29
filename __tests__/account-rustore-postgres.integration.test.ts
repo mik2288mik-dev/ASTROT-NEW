@@ -78,6 +78,10 @@ describePostgres('PostgreSQL account, session, deletion, and RuStore integration
     ).catch(() => undefined);
   });
 
+  afterAll(async () => {
+    await getPool().end();
+  });
+
   it('keeps one users.id while linking every provider and blocks identity conflicts', async () => {
     const userId = await createUser(true);
     const otherUserId = await createUser(true);

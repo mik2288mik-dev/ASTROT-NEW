@@ -4,8 +4,8 @@ import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.PluginMethod;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +25,10 @@ import ru.rustore.sdk.pay.model.SdkTheme;
  */
 @CapacitorPlugin(name = "RuStorePay")
 public class RuStorePayPlugin extends Plugin {
+    private Exception asException(Throwable error) {
+        return error instanceof Exception ? (Exception) error : new Exception(error);
+    }
+
     private RuStorePayClient client() {
         return RuStorePayClient.Companion.getInstance();
     }
@@ -45,7 +49,7 @@ public class RuStorePayPlugin extends Plugin {
                 if (!(result instanceof PurchaseAvailabilityResult.Available)) payload.put("reason", "RUSTORE_PAY_UNAVAILABLE");
                 call.resolve(payload);
             })
-            .addOnFailureListener(error -> call.reject("RUSTORE_AVAILABILITY_FAILED", null, error));
+            .addOnFailureListener(error -> call.reject("RUSTORE_AVAILABILITY_FAILED", asException(error)));
     }
 
     @PluginMethod
@@ -74,7 +78,7 @@ public class RuStorePayPlugin extends Plugin {
                 }
                 call.resolve(new JSObject().put("products", values));
             })
-            .addOnFailureListener(error -> call.reject("RUSTORE_PRODUCTS_FAILED", null, error));
+            .addOnFailureListener(error -> call.reject("RUSTORE_PRODUCTS_FAILED", asException(error)));
     }
 
     @PluginMethod
@@ -109,7 +113,7 @@ public class RuStorePayPlugin extends Plugin {
                 String code = error.getClass().getSimpleName().contains("Cancelled")
                     ? "RUSTORE_PURCHASE_CANCELLED"
                     : "RUSTORE_PURCHASE_FAILED";
-                call.reject(code, null, error);
+                call.reject(code, asException(error));
             });
     }
 
@@ -132,6 +136,6 @@ public class RuStorePayPlugin extends Plugin {
                 }
                 call.resolve(new JSObject().put("purchases", values));
             })
-            .addOnFailureListener(error -> call.reject("RUSTORE_PURCHASES_FAILED", null, error));
+            .addOnFailureListener(error -> call.reject("RUSTORE_PURCHASES_FAILED", asException(error)));
     }
 }
