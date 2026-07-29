@@ -135,14 +135,48 @@ function emptyPeriodState(): PeriodState {
   return { result: null, phase: 'idle' };
 }
 
-function groupBySection(
+type PersonalForecastPromoSlot = {
+  id: string;
+  afterSectionId: string;
+  layout: 'pair' | 'single';
+  placements: PersonalForecastPromoPlacement[];
+};
+
+function groupPromotionsBySection(
   placements: PersonalForecastPromoPlacement[],
-): Map<string, PersonalForecastPromoPlacement[]> {
-  const grouped = new Map<string, PersonalForecastPromoPlacement[]>();
+): Map<string, PersonalForecastPromoSlot[]> {
+  const grouped = new Map<string, PersonalForecastPromoSlot[]>();
+  const addSlot = (slot: PersonalForecastPromoSlot) => {
+    const current = grouped.get(slot.afterSectionId) || [];
+    current.push(slot);
+    grouped.set(slot.afterSectionId, current);
+  };
+
+  const mandatory = placements.filter(
+    (placement) => placement.placementType === 'mandatory',
+  );
+  if (mandatory.length) {
+    const anchor = mandatory.reduce((latest, placement) => (
+      placement.afterSectionIndex > latest.afterSectionIndex
+        ? placement
+        : latest
+    ));
+    addSlot({
+      id: mandatory.map((placement) => placement.id).join('|'),
+      afterSectionId: anchor.afterSectionId,
+      layout: mandatory.length > 1 ? 'pair' : 'single',
+      placements: mandatory,
+    });
+  }
+
   for (const placement of placements) {
-    const current = grouped.get(placement.afterSectionId) || [];
-    current.push(placement);
-    grouped.set(placement.afterSectionId, current);
+    if (placement.placementType !== 'contextual') continue;
+    addSlot({
+      id: placement.id,
+      afterSectionId: placement.afterSectionId,
+      layout: 'single',
+      placements: [placement],
+    });
   }
   return grouped;
 }
@@ -415,8 +449,8 @@ export const Dashboard = memo<DashboardProps>(({
       })),
     });
   }, [activePeriod, forecast, userId]);
-  const promotionsBySection = useMemo(
-    () => groupBySection(promotions),
+  const promotionSlotsBySection = useMemo(
+    () => groupPromotionsBySection(promotions),
     [promotions],
   );
 
@@ -554,7 +588,10 @@ export const Dashboard = memo<DashboardProps>(({
     });
   }, [activePeriod, onRequestPremium, periodKeys]);
 
-  const renderPromo = (placement: PersonalForecastPromoPlacement) => (
+  const renderPromo = (
+    placement: PersonalForecastPromoPlacement,
+    layout: 'tile' | 'wide',
+  ) => (
     <ForecastPromotion
       key={placement.id}
       placement={placement}
@@ -562,6 +599,7 @@ export const Dashboard = memo<DashboardProps>(({
       periodKey={periodKeys[activePeriod]}
       dayKey={periodKeys.day}
       language={language}
+      layout={layout}
       onOpenNatal={() => {
         lumiaSelectionHaptic();
         onCreateNatalChart?.();
@@ -575,6 +613,24 @@ export const Dashboard = memo<DashboardProps>(({
         onOpenHoroscope?.();
       }}
     />
+  );
+  const renderPromoSlot = (slot: PersonalForecastPromoSlot) => (
+    slot.layout === 'pair' ? (
+      <div
+        key={slot.id}
+        className="forecast-feed-promo-pair"
+        role="group"
+        aria-label={language === 'ru'
+          ? 'Перейти в другие разделы'
+          : 'Open other sections'}
+      >
+        {slot.placements.map((placement) => renderPromo(placement, 'tile'))}
+      </div>
+    ) : (
+      <React.Fragment key={slot.id}>
+        {renderPromo(slot.placements[0], 'wide')}
+      </React.Fragment>
+    )
   );
 
   const overviewCrossLinks = forecast?.suggestedCrossPeriodLinks.filter(
@@ -750,7 +806,7 @@ export const Dashboard = memo<DashboardProps>(({
             const crossLinks = forecast.suggestedCrossPeriodLinks.filter(
               (link) => link.fromSectionId === section.id,
             );
-            const sectionPromos = promotionsBySection.get(section.id) || [];
+            const sectionPromoSlots = promotionSlotsBySection.get(section.id) || [];
             return (
               <React.Fragment key={`${activePeriod}:${forecast.periodKey}:${section.id}`}>
                 <ForecastSectionBlock
@@ -778,7 +834,7 @@ export const Dashboard = memo<DashboardProps>(({
                     </button>
                   ))}
                 </ForecastSectionBlock>
-                {sectionPromos.map(renderPromo)}
+                {sectionPromoSlots.map(renderPromoSlot)}
               </React.Fragment>
             );
           })}

@@ -7,6 +7,7 @@ export const PROMO_BANNER_CATEGORIES = [
 ] as const;
 
 export type PromoBannerCategory = (typeof PROMO_BANNER_CATEGORIES)[number];
+export type PromoBannerLayout = 'standalone' | 'tile' | 'wide';
 
 export type PromoBannerResponsiveVersion = {
   filename: string;
@@ -90,17 +91,28 @@ export function selectPromoBanner(input: {
   userId: string;
   dayKey: string;
   placementKey: string;
+  layout?: PromoBannerLayout;
 }): PromoBannerAsset {
-  const assets = getPromoBannersByCategory(input.category);
-  if (!assets.length) {
+  const categoryAssets = getPromoBannersByCategory(input.category);
+  if (!categoryAssets.length) {
     throw new Error(`PROMO_BANNER_CATEGORY_EMPTY:${input.category}`);
   }
+  const layout = input.layout || 'standalone';
+  const preferredAssets = categoryAssets.filter((asset) => {
+    const ratio = asset.responsiveVersions.mobile.width
+      / asset.responsiveVersions.mobile.height;
+    if (layout === 'tile') return ratio <= 1.55;
+    if (layout === 'wide') return ratio >= 1.55;
+    return true;
+  });
+  const assets = preferredAssets.length ? preferredAssets : categoryAssets;
 
   const assignmentKey = [
     input.userId || 'guest',
     input.dayKey,
     input.placementKey,
     input.category,
+    layout,
   ].join('|');
   const state = readSession(input.dayKey);
   const assignedId = state.assignments[assignmentKey];

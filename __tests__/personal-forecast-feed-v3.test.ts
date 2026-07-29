@@ -31,6 +31,10 @@ describe('personal forecast feed V3 wiring', () => {
     expect(dashboard).toContain('ForecastSideNavigator');
     expect(dashboard).toContain('ForecastBottomSheet');
     expect(dashboard).toContain('ForecastPromotion');
+    expect(dashboard).toContain('groupPromotionsBySection');
+    expect(dashboard).toContain('className="forecast-feed-promo-pair"');
+    expect(dashboard).toContain("renderPromo(placement, 'tile')");
+    expect(dashboard).toContain("renderPromo(slot.placements[0], 'wide')");
     expect(dashboard).toContain('resolvePersonalForecastVisuals');
     expect(dashboard).toContain('evidence={forecast.evidence}');
     expect(sectionBlock).toContain('expandedAnchor.evidenceIds.map');

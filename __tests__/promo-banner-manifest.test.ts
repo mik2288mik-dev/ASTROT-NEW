@@ -75,4 +75,28 @@ describe('promo banner manifest and rotation', () => {
 
     expect(tomorrow.id).not.toBe(today.id);
   });
+
+  it('uses compact artwork for paired tiles and horizontal artwork for a single banner', () => {
+    const tile = selectPromoBanner({
+      category: 'natal',
+      userId: 'layout-filter',
+      dayKey: '2026-07-29',
+      placementKey: 'pair:natal',
+      layout: 'tile',
+    });
+    const wide = selectPromoBanner({
+      category: 'zodiac',
+      userId: 'layout-filter',
+      dayKey: '2026-07-29',
+      placementKey: 'single:zodiac',
+      layout: 'wide',
+    });
+    const tileRatio = tile.responsiveVersions.mobile.width
+      / tile.responsiveVersions.mobile.height;
+    const wideRatio = wide.responsiveVersions.mobile.width
+      / wide.responsiveVersions.mobile.height;
+
+    expect(tileRatio).toBeLessThanOrEqual(1.55);
+    expect(wideRatio).toBeGreaterThanOrEqual(1.55);
+  });
 });

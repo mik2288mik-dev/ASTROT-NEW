@@ -23,24 +23,36 @@ const resolve = (sections: PersonalForecastPromoSection[] = baseSections) =>
   });
 
 describe('personal forecast promo resolver', () => {
-  it('returns exactly two mandatory promos with valid semantic anchors', () => {
+  it('pairs two semantic promos and keeps Zodiac near the end without an astro accent', () => {
     const promotions = resolve();
-
-    expect(promotions).toHaveLength(2);
-    expect(promotions.every((item) => item.placementType === 'mandatory')).toBe(true);
-    expect(new Set(promotions.map((item) => item.product))).toEqual(
-      new Set(['compatibility', 'natal']),
+    const mandatory = promotions.filter(
+      (item) => item.placementType === 'mandatory',
     );
-    expect(new Set(promotions.map((item) => item.format)).size).toBe(2);
+    const contextual = promotions.filter(
+      (item) => item.placementType === 'contextual',
+    );
 
-    for (const promotion of promotions) {
+    expect(promotions).toHaveLength(3);
+    expect(mandatory).toHaveLength(2);
+    expect(new Set(promotions.map((item) => item.product))).toEqual(
+      new Set(['compatibility', 'natal', 'zodiac']),
+    );
+    expect(new Set(promotions.map((item) => item.format)).size).toBe(3);
+    expect(contextual).toEqual([
+      expect.objectContaining({
+        product: 'zodiac',
+        afterSectionId: 'wishes',
+      }),
+    ]);
+
+    for (const promotion of mandatory) {
       const anchor = baseSections[promotion.afterSectionIndex];
       expect(anchor.id).toBe(promotion.afterSectionId);
       expect(isPersonalForecastPromoAnchor(promotion.product, anchor)).toBe(true);
     }
   });
 
-  it('adds at most one contextual Zodiac promo after the strongest astro accent', () => {
+  it('places the single contextual Zodiac promo after the strongest astro accent', () => {
     const sections = [
       ...baseSections.slice(0, 3),
       {
