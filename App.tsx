@@ -10,6 +10,8 @@ import {
     runReferralFromStartParam,
     deleteCurrentAccount,
     logoutCurrentAccount,
+    startGuestAccount,
+    isProfileAuthenticationError,
 } from './services/storageService';
 import { clearAppSessionAndLocalData } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
@@ -51,8 +53,18 @@ import {
     getHumanBaseReportCached,
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
+import { clearPersonalForecastSessionCache } from './services/personalForecastService';
+import { clearPersonalForecastQuestionInFlight } from './services/personalForecastQuestionService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
-import { exchangeNativeLoginCode } from './services/accountAuthService';
+import { exchangeNativeLoginCode, loginWithTelegram } from './services/accountAuthService';
+import {
+    getAuthSessionMode,
+    hasTelegramMiniAppContext,
+    requiresExplicitAuthentication,
+    setAuthSessionMode,
+    shouldUseTelegramSession,
+    type AuthSessionMode,
+} from './services/authSessionIntent';
 
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
@@ -67,11 +79,11 @@ const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
 const MyCharts = dynamic(() => import('./views/MyCharts').then((module) => module.MyCharts), { ssr: false });
+const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => module.AuthGate), { ssr: false });
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const STARTUP_SAFETY_TIMEOUT_MS = 45_000;
-const NEW_USER_TRIAL_DAYS = 14;
 
 if (!OWNER_ID) {
     console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
@@ -114,36 +126,9 @@ function getTelegramDisplayName(tgUser?: TelegramWebAppUser | null): string {
     return username || 'Гость';
 }
 
-function getTrialWindow(): { trialStartedAt: string; premiumUntil: string } {
-    const startedAt = Date.now();
-    return {
-        trialStartedAt: new Date(startedAt).toISOString(),
-        premiumUntil: new Date(startedAt + NEW_USER_TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
-    };
-}
-
-function buildMinimalStartupProfile(tgId: string | number, tgUser?: TelegramWebAppUser | null): UserProfile {
-    const trial = getTrialWindow();
-    return {
-        id: String(tgId),
-        name: getTelegramDisplayName(tgUser),
-        birthDate: '',
-        birthTime: '',
-        birthPlace: '',
-        isSetup: false,
-        language: 'ru',
-        theme: 'light',
-        isPremium: true,
-        premiumUntil: trial.premiumUntil,
-        trialStartedAt: trial.trialStartedAt,
-        loginStreak: 0,
-        chartSlots: 1,
-    };
-}
-
 function normalizeStartupProfile(
     storedProfile: UserProfile,
-    tgId: string | number,
+    accountId: string | number,
     tgUser: TelegramWebAppUser | null | undefined,
     isAdmin: boolean
 ): UserProfile {
@@ -151,7 +136,7 @@ function normalizeStartupProfile(
     const accessProfile = { ...storedProfile, premiumUntil, isAdmin };
     return {
         ...storedProfile,
-        id: String(tgId),
+        id: String(accountId),
         name: storedProfile.name?.trim() || getTelegramDisplayName(tgUser),
         birthDate: storedProfile.birthDate || '',
         birthTime: storedProfile.birthTime || '',
@@ -168,25 +153,6 @@ function normalizeStartupProfile(
 function needsStartupProfileNormalizationSave(storedProfile: UserProfile): boolean {
     return !storedProfile.name?.trim() || !storedProfile.language || !storedProfile.theme;
 }
-
-async function saveStartupProfileWithRetry(profile: UserProfile, maxAttempts = 3): Promise<boolean> {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            await saveProfile(profile);
-            return true;
-        } catch (saveError: any) {
-            console.warn(
-                `[App] Startup profile save attempt ${attempt}/${maxAttempts} failed:`,
-                saveError?.message || saveError
-            );
-            if (attempt < maxAttempts) {
-                await new Promise((resolve) => setTimeout(resolve, 500));
-            }
-        }
-    }
-    return false;
-}
-
 
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'dashboard',
@@ -268,6 +234,8 @@ const App: React.FC = () => {
     const [loadingMessage, setLoadingMessage] = useState<string | undefined>(undefined);
     const [startupError, setStartupError] = useState<string | null>(null);
     const [startupRetryNonce, setStartupRetryNonce] = useState(0);
+    const [authSessionMode, setAuthSessionModeState] = useState<AuthSessionMode>('automatic');
+    const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
     // Когда задан — paywall показан после онбординга; close/«продолжить бесплатно» ведут сюда.
     const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
@@ -704,39 +672,31 @@ const App: React.FC = () => {
             setLoadingProgress(10);
             requestedViewRef.current = getRequestedViewFromQuery();
             notificationLaunchRef.current = getNotificationLaunchParams();
-            
-            // Ждём Telegram Web App (может загружаться асинхронно)
+
+            const sessionMode = getAuthSessionMode();
+            setAuthSessionModeState(sessionMode);
             const telegramWebApp = (window as any).Telegram?.WebApp;
             if (telegramWebApp) {
                 const initData = await waitForTelegramInitData({ maxAttempts: 8, delayMs: 250 });
                 if (!initData) {
-                    console.warn('[App] Telegram initData not available after bounded wait; proceeding with local profile fallback');
+                    console.warn('[App] Telegram initData not available after bounded wait');
                     logStartupMetric('startup_init_data_missing', true);
                 }
                 applyTelegramSafeAreaCssVars();
             }
             if (cancelled) return;
-            let tgId: string | number | undefined = telegramWebApp?.initDataUnsafe?.user?.id;
 
-            let webGuestProfile: UserProfile | null = null;
-            if (!isValidUserId(tgId)) {
-                console.log('[App] Telegram unavailable; bootstrapping signed web guest session');
-                try {
-                    webGuestProfile = await getProfile();
-                    tgId = webGuestProfile?.id;
-                } catch (guestError: any) {
-                    console.error('[App] Guest session bootstrap failed:', guestError?.message || guestError);
-                }
-            }
-            if (!isValidUserId(tgId)) {
+            if (requiresExplicitAuthentication(sessionMode)) {
+                startupVisible = true;
                 clearSafety();
-                setStartupError('Не удалось открыть гостевую сессию. Обнови страницу и попробуй ещё раз.');
+                setProfile(null);
+                resetPrimaryChartState();
+                setStartupError(null);
                 setLoadingProgress(100);
-                setView('dashboard');
+                setLoadingMessage(undefined);
                 setLoading(false);
                 return;
             }
-            const safeTgId = tgId as string | number;
 
             try {
                 setStartupError(null);
@@ -744,52 +704,86 @@ const App: React.FC = () => {
                 const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
 
                 setLoadingProgress(30);
-                const storedProfile = webGuestProfile || await getProfile();
+                let storedProfile: UserProfile | null = null;
+                try {
+                    storedProfile = await getProfile();
+                } catch (profileError) {
+                    if (!isProfileAuthenticationError(profileError)) throw profileError;
 
-                console.log('[App] Profile state loaded:', {
-                    hasProfile: !!storedProfile,
-                    isSetup: storedProfile?.isSetup,
-                });
-
-                let updatedProfile: UserProfile;
-                if (!storedProfile) {
-                    setLoadingProgress(42);
-                    const isAdmin = getFallbackAdminStatus(safeTgId, false);
-                    updatedProfile = {
-                        ...buildMinimalStartupProfile(safeTgId, tgUser),
-                        isAdmin,
-                    };
-                    console.log('[App] Creating minimal startup profile without natal setup');
-                    const profileSaved = await saveStartupProfileWithRetry(updatedProfile);
-                    if (!profileSaved) {
-                        console.warn('[App] Startup profile save failed; continuing with local profile');
-                        void saveProfile(updatedProfile).catch((saveError: any) => {
-                            console.warn('[App] Background startup profile save failed:', saveError?.message || saveError);
-                        });
-                    }
-                } else {
-                    const isAdmin = getFallbackAdminStatus(safeTgId, storedProfile.isAdmin);
-                    updatedProfile = normalizeStartupProfile(storedProfile, safeTgId, tgUser, isAdmin);
-                    if (needsStartupProfileNormalizationSave(storedProfile)) {
-                        void saveProfile(updatedProfile).catch((saveError: any) => {
-                            console.warn('[App] Startup profile normalization save failed:', saveError?.message || saveError);
-                        });
+                    if (shouldUseTelegramSession(sessionMode) && hasTelegramMiniAppContext()) {
+                        storedProfile = await loginWithTelegram();
+                    } else if (sessionMode === 'automatic' || sessionMode === 'guest') {
+                        setAuthSessionMode('guest');
+                        storedProfile = await startGuestAccount();
+                    } else {
+                        throw profileError;
                     }
                 }
 
+                // Legacy Telegram auth proves identity but does not provide the
+                // random, revocable app session used by the new login model.
+                if (
+                    storedProfile?.authProvider === 'telegram'
+                    && shouldUseTelegramSession(sessionMode)
+                    && hasTelegramMiniAppContext()
+                ) {
+                    storedProfile = await loginWithTelegram();
+                }
+
+                if (!storedProfile || !isValidUserId(storedProfile.id)) {
+                    if (sessionMode === 'automatic' || sessionMode === 'guest') {
+                        setAuthSessionMode('guest');
+                        storedProfile = await startGuestAccount();
+                    }
+                }
+                if (!storedProfile || !isValidUserId(storedProfile.id)) {
+                    throw new Error('PROFILE_NOT_FOUND');
+                }
+                if (cancelled) return;
+
+                const canonicalUserId = String(storedProfile.id);
+                const activeMode: AuthSessionMode = storedProfile.isGuest
+                    ? 'guest'
+                    : getAuthSessionMode() === 'telegram'
+                        ? 'telegram'
+                        : 'account';
+                setAuthSessionMode(activeMode);
+                setAuthSessionModeState(activeMode);
+                setAuthGateMessage(null);
+
+                console.log('[App] Profile state loaded:', {
+                    hasProfile: true,
+                    isSetup: storedProfile.isSetup,
+                });
+
+                const isAdmin = storedProfile.isGuest
+                    ? false
+                    : getFallbackAdminStatus(canonicalUserId, storedProfile.isAdmin);
+                const updatedProfile = normalizeStartupProfile(
+                    storedProfile,
+                    canonicalUserId,
+                    tgUser,
+                    isAdmin,
+                );
+                if (needsStartupProfileNormalizationSave(storedProfile)) {
+                    void saveProfile(updatedProfile).catch((saveError: any) => {
+                        console.warn('[App] Startup profile normalization save failed:', saveError?.message || saveError);
+                    });
+                }
+
                 setProfile(updatedProfile);
-                if (!isGuestUserId(String(safeTgId))) {
-                    void resolveAuthoritativeAdminStatus(safeTgId, updatedProfile.isAdmin)
+                if (!updatedProfile.isGuest && !isGuestUserId(canonicalUserId)) {
+                    void resolveAuthoritativeAdminStatus(canonicalUserId, updatedProfile.isAdmin)
                         .then((isAdmin) => {
                             if (cancelled) return;
-                            setProfile((current) => current && String(current.id) === String(safeTgId)
+                            setProfile((current) => current && String(current.id) === canonicalUserId
                                 ? { ...current, isAdmin }
                                 : current);
                         });
                 }
                 logStartupMetric('startup_profile_loaded_ms', startupElapsedMs());
 
-                runReferralFromStartParam(String(safeTgId), (r) => {
+                runReferralFromStartParam(canonicalUserId, (r) => {
                     if (r.ok) {
                         setProfile((p) => (p ? { ...p, referralApplied: true } : p));
                     } else if (r.status === 409) {
@@ -840,29 +834,27 @@ const App: React.FC = () => {
                     console.log('[App] Chart unavailable after startup load, going to dashboard');
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error('[App] Error loading user data:', error);
-                const tg = (window as any).Telegram?.WebApp;
-                const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
-                if (isValidUserId(safeTgId)) {
-                    const fallbackProfile = {
-                        ...buildMinimalStartupProfile(safeTgId, tgUser),
-                        isAdmin: getFallbackAdminStatus(safeTgId, false),
-                    };
-                    setProfile(fallbackProfile);
+                resetPrimaryChartState();
+                startupVisible = true;
+                if (isProfileAuthenticationError(error)) {
+                    setAuthSessionMode('signed_out');
+                    setAuthSessionModeState('signed_out');
+                    setAuthGateMessage('Сессия завершена. Войди снова — старый аккаунт и его данные никуда не пропали.');
                     setStartupError(null);
-                    resetPrimaryChartState();
-                    showStartupDashboard('dashboard');
                 } else {
-                    setStartupError('Не удалось загрузить профиль. Проверь, что приложение открыто внутри Telegram, и попробуй ещё раз.');
-                    resetPrimaryChartState();
-                    showStartupDashboard('dashboard');
+                    setStartupError(
+                        error?.message === 'PROFILE_NOT_FOUND'
+                            ? 'Аккаунт для этой сессии не найден. Выйди на экран входа и авторизуйся снова.'
+                            : 'Не удалось загрузить профиль. Проверь соединение и попробуй ещё раз.'
+                    );
                 }
+                setLoadingProgress(100);
+                setLoadingMessage(undefined);
+                setLoading(false);
             } finally {
                 clearSafety();
-                if (!cancelled && !startupVisible) {
-                    showStartupDashboard('dashboard');
-                }
             }
         };
         
@@ -878,21 +870,16 @@ const App: React.FC = () => {
         onboardingCompletionRef.current = true;
         console.log('[App] Onboarding completed');
 
-        const tg = (window as any).Telegram?.WebApp;
-        const tgUser = tg?.initDataUnsafe?.user;
-        const tgId = tgUser?.id;
-        const hasTelegramUserId = isValidUserId(tgId);
         const currentProfileId = profile?.id;
-        const hasGuestProfileId = isGuestUserId(currentProfileId);
-        if (!hasTelegramUserId && !hasGuestProfileId) {
-            console.error('[App] Cannot complete onboarding without a confirmed guest session');
+        if (!isValidUserId(currentProfileId)) {
+            console.error('[App] Cannot complete onboarding without an authenticated account');
             onboardingCompletionRef.current = false;
-            throw new Error('Не удалось подтвердить гостевую сессию. Обнови страницу и попробуй ещё раз.');
+            throw new Error('Сессия завершена. Войди снова и повтори создание карты.');
         }
-        // Telegram remains authoritative when present. A web guest may only use the
-        // identity loaded into the current profile from its signed server session.
-        const safeUserId = String(hasTelegramUserId ? tgId : currentProfileId);
-        const isGuestOnboarding = !hasTelegramUserId;
+        // The server profile is the canonical account. Telegram launch data is
+        // only login proof and must never replace a linked guest users.id.
+        const safeUserId = String(currentProfileId);
+        const isGuestOnboarding = profile?.isGuest === true || isGuestUserId(safeUserId);
         const isAdmin = isGuestOnboarding ? false : getFallbackAdminStatus(safeUserId, profile?.isAdmin);
         const retainedPremiumUntil = isGuestOnboarding
             ? null
@@ -1061,39 +1048,117 @@ const App: React.FC = () => {
     };
 
     const handleProfileUpdate = useCallback((updatedProfile: UserProfile) => {
+        if (profile && String(profile.id) !== String(updatedProfile.id)) {
+            clearLocalNatalChart(profile);
+            clearLocalHumanBaseReport(profile);
+            clearHumanReadingSessionCache(String(profile.id));
+            clearPersonalForecastSessionCache();
+            clearPersonalForecastQuestionInFlight();
+            resetPrimaryChartState();
+            const nextMode: AuthSessionMode = updatedProfile.isGuest ? 'guest' : 'account';
+            setAuthSessionMode(nextMode);
+            setAuthSessionModeState(nextMode);
+            setProfile(updatedProfile);
+            setLoadingProgress(0);
+            setLoading(true);
+            setStartupRetryNonce((value) => value + 1);
+            return;
+        }
         if (profile && getPrimaryChartLoadKey(profile) !== getPrimaryChartLoadKey(updatedProfile)) {
             clearLocalHumanBaseReport(profile);
         }
         setProfile(updatedProfile);
-    }, [profile]);
+    }, [profile, resetPrimaryChartState]);
 
-    const resetLocalAccountState = useCallback(async () => {
+    const resetLocalAccountState = useCallback(async (
+        nextMode: 'signed_out' | 'deleted',
+        message: string,
+    ) => {
         if (profile) {
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
+            clearHumanReadingSessionCache(String(profile.id));
         }
+        clearPersonalForecastSessionCache();
+        clearPersonalForecastQuestionInFlight();
         await clearAppSessionAndLocalData();
+        setAuthSessionMode(nextMode);
+        setAuthSessionModeState(nextMode);
+        setAuthGateMessage(message);
         setProfile(null);
-        setChartData(null);
-        setPrimaryChartId(null);
-        setActiveChartId(undefined);
+        resetPrimaryChartState();
+        restoredRuStoreUserRef.current = null;
+        prewarmCompletedKeyRef.current = null;
+        navigationHistoryRef.current = [];
         setStartupError(null);
-        setLoading(true);
-        setStartupRetryNonce((value) => value + 1);
-    }, [profile]);
+        setLoadingMessage(undefined);
+        setLoadingProgress(100);
+        setView('onboarding');
+        setLoading(false);
+    }, [profile, resetPrimaryChartState]);
 
     const handleDeleteAccount = useCallback(async () => {
         await deleteCurrentAccount();
-        await resetLocalAccountState();
+        await resetLocalAccountState(
+            'deleted',
+            'Аккаунт и связанные данные удалены. Можно войти снова или начать с нового гостевого профиля.',
+        );
     }, [resetLocalAccountState]);
 
     const handleLogout = useCallback(async () => {
-        try {
-            await logoutCurrentAccount();
-        } finally {
-            await resetLocalAccountState();
-        }
+        await logoutCurrentAccount();
+        await resetLocalAccountState(
+            'signed_out',
+            'Ты вышел с этого устройства. Войди снова, чтобы вернуть карту, историю и Premium.',
+        );
     }, [resetLocalAccountState]);
+
+    const resumeAuthenticatedStartup = useCallback((
+        nextProfile: UserProfile,
+        nextMode: 'telegram' | 'guest' | 'account',
+    ) => {
+        if (profile && String(profile.id) !== String(nextProfile.id)) {
+            clearLocalNatalChart(profile);
+            clearLocalHumanBaseReport(profile);
+            clearHumanReadingSessionCache(String(profile.id));
+            clearPersonalForecastSessionCache();
+            clearPersonalForecastQuestionInFlight();
+            resetPrimaryChartState();
+            restoredRuStoreUserRef.current = null;
+            prewarmCompletedKeyRef.current = null;
+        }
+        setAuthSessionMode(nextMode);
+        setAuthSessionModeState(nextMode);
+        setAuthGateMessage(null);
+        setStartupError(null);
+        setProfile(nextProfile);
+        setLoadingMessage(undefined);
+        setLoadingProgress(0);
+        setLoading(true);
+        setStartupRetryNonce((value) => value + 1);
+    }, [profile, resetPrimaryChartState]);
+
+    const handleTelegramLogin = useCallback(async () => {
+        const nextProfile = await loginWithTelegram();
+        resumeAuthenticatedStartup(nextProfile, 'telegram');
+    }, [resumeAuthenticatedStartup]);
+
+    const handleAccountLogin = useCallback((nextProfile: UserProfile) => {
+        resumeAuthenticatedStartup(nextProfile, 'account');
+    }, [resumeAuthenticatedStartup]);
+
+    const handleContinueAsGuest = useCallback(async () => {
+        const previousMode = getAuthSessionMode();
+        setAuthSessionMode('guest');
+        try {
+            const nextProfile = await startGuestAccount();
+            resumeAuthenticatedStartup(nextProfile, 'guest');
+        } catch (error) {
+            setAuthSessionMode(previousMode);
+            setAuthSessionModeState(previousMode);
+            throw error;
+        }
+    }, [resumeAuthenticatedStartup]);
 
     useEffect(() => {
         const userId = profile?.id ? String(profile.id) : '';
@@ -1460,15 +1525,24 @@ const App: React.FC = () => {
                 if (parsed.host !== 'auth' || parsed.pathname !== '/callback') return;
                 const code = parsed.searchParams.get('code');
                 if (!code) return;
-                void exchangeNativeLoginCode(code).then(() => {
-                    setStartupRetryNonce((value) => value + 1);
-                }).catch(() => undefined);
+                void exchangeNativeLoginCode(code)
+                    .then((nextProfile) => {
+                        resumeAuthenticatedStartup(nextProfile, 'account');
+                    })
+                    .catch((error: any) => {
+                        setAuthGateMessage(
+                            error?.message || 'Не удалось завершить вход. Попробуй снова.',
+                        );
+                        setAuthSessionMode('signed_out');
+                        setAuthSessionModeState('signed_out');
+                        setLoading(false);
+                    });
             } catch {
                 // Ignore unrelated malformed app links.
             }
         }).then((listener) => { remove = () => listener.remove(); });
         return () => { void remove?.(); };
-    }, []);
+    }, [resumeAuthenticatedStartup]);
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
@@ -1573,6 +1647,19 @@ const App: React.FC = () => {
         setStartupRetryNonce((value) => value + 1);
     };
 
+    if (!loading && requiresExplicitAuthentication(authSessionMode)) {
+        return (
+            <AuthGate
+                canUseTelegram={hasTelegramMiniAppContext()}
+                deleted={authSessionMode === 'deleted'}
+                message={authGateMessage}
+                onTelegramLogin={handleTelegramLogin}
+                onContinueGuest={handleContinueAsGuest}
+                onAccountLogin={handleAccountLogin}
+            />
+        );
+    }
+
     if (startupError) {
         return (
             <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
@@ -1601,7 +1688,19 @@ const App: React.FC = () => {
         );
     }
 
-    if (!profile || view === 'onboarding') {
+    if (!profile) {
+        return (
+            <AuthGate
+                canUseTelegram={hasTelegramMiniAppContext()}
+                message="Сессия не найдена. Войди в существующий аккаунт или продолжи как гость."
+                onTelegramLogin={handleTelegramLogin}
+                onContinueGuest={handleContinueAsGuest}
+                onAccountLogin={handleAccountLogin}
+            />
+        );
+    }
+
+    if (view === 'onboarding') {
         return (
             <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
                 <div className="relative z-10 h-full">
@@ -1746,7 +1845,7 @@ const App: React.FC = () => {
                             onRequestPremium={() => { void requestPremium('settings'); }}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
-                            onLogout={() => { void handleLogout(); }}
+                            onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
                         />
                     </div>

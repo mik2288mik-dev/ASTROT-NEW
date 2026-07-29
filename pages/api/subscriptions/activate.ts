@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { activatePremium } from '../../../services/premiumService';
 import { db } from '../../../lib/db';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { requireTelegramPaymentUser } from '../../../lib/auth/appAuth';
 import { getManagedPremiumPlan } from '../../../lib/premiumPlanSettings';
 
 const log = {
@@ -26,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'userId is required' });
   }
   try {
-    requireTelegramUserId(req, String(userId).trim());
+    await requireTelegramPaymentUser(req, String(userId).trim());
   } catch (error) {
     if (error instanceof AdminAuthError) {
       return handleAdminError(res, error);

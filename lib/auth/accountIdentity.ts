@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { db, getPool } from '../db';
+import type { PoolClient } from 'pg';
+import { getPool } from '../db';
 import { AdminAuthError } from '../adminAuth';
 
 export const EXTERNAL_AUTH_PROVIDERS = ['vk', 'yandex', 'google', 'email', 'telegram'] as const;
@@ -84,23 +85,26 @@ function oauthConfig(provider: Exclude<ExternalAuthProvider, 'email' | 'telegram
   };
 }
 
-async function createAccountUser(displayName?: string | null): Promise<string> {
-  const random = BigInt(`0x${crypto.randomBytes(8).toString('hex')}`) % 8_000_000_000_000_000_000n;
-  const userId = String(-(random + 1n));
-  await db.users.set(userId, {
-    name: displayName || 'Пользователь',
-    language: 'ru',
-    theme: 'light',
-    is_setup: false,
-    is_premium: false,
-    premium_until: null,
-    trial_started_at: null,
-  });
-  await getPool().query(
-    `UPDATE users SET is_guest = FALSE, auth_provider = 'native', platform = 'native' WHERE id = $1`,
-    [userId],
-  );
-  return userId;
+async function createAccountUser(
+  client: PoolClient,
+  displayName?: string | null,
+): Promise<string> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const random = BigInt(`0x${crypto.randomBytes(8).toString('hex')}`)
+      % 8_000_000_000_000_000_000n;
+    const userId = String(-(random + 1n));
+    const inserted = await client.query(
+      `INSERT INTO users
+       (id, name, language, theme, is_setup, premium_until,
+        trial_started_at, is_guest, auth_provider, platform)
+       VALUES ($1, $2, 'ru', 'light', FALSE, NULL, NULL, FALSE, 'native', 'native')
+       ON CONFLICT (id) DO NOTHING
+       RETURNING id`,
+      [userId, displayName || 'Пользователь'],
+    );
+    if (inserted.rowCount) return String(inserted.rows[0]?.id || userId);
+  }
+  throw new AdminAuthError(503, 'ACCOUNT_ID_ALLOCATION_FAILED', 'Could not allocate an account id');
 }
 
 /**
@@ -117,6 +121,10 @@ export async function resolveVerifiedIdentity(
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
+    await client.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+      [`account-identity:${identity.provider}:${subject}`],
+    );
     const existing = await client.query(
       `SELECT user_id FROM account_identities
        WHERE provider = $1 AND provider_subject = $2 FOR UPDATE`,
@@ -144,15 +152,13 @@ export async function resolveVerifiedIdentity(
     }
 
     let userId = currentUserId || null;
+    let upgradingGuest = false;
     if (userId) {
-      const user = await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+      const user = await client.query('SELECT id, is_guest FROM users WHERE id = $1 FOR UPDATE', [userId]);
       if (!user.rowCount) throw new AdminAuthError(404, 'ACCOUNT_NOT_FOUND', 'Account no longer exists');
+      upgradingGuest = user.rows[0].is_guest === true;
     } else {
-      // Create outside this transaction through the canonical user writer, then
-      // lock it here. This preserves every existing users.id consumer.
-      await client.query('ROLLBACK');
-      userId = await createAccountUser(identity.displayName);
-      return resolveVerifiedIdentity(identity, userId);
+      userId = await createAccountUser(client, identity.displayName);
     }
 
     await client.query(
@@ -168,6 +174,17 @@ export async function resolveVerifiedIdentity(
         JSON.stringify(identity.metadata || {}),
       ],
     );
+    if (upgradingGuest) {
+      // Linking the first verified identity upgrades the account in place. The
+      // anonymous session must not inherit registered privileges, so revoke all
+      // pre-link sessions in the same transaction before flipping is_guest.
+      await client.query(
+        `UPDATE app_sessions
+         SET revoked_at = CURRENT_TIMESTAMP, revoke_reason = 'identity_linked'
+         WHERE user_id = $1 AND revoked_at IS NULL`,
+        [userId],
+      );
+    }
     await client.query(
       `UPDATE users
        SET is_guest = FALSE, auth_provider = $2, updated_at = CURRENT_TIMESTAMP
@@ -184,6 +201,47 @@ export async function resolveVerifiedIdentity(
   }
 }
 
+/**
+ * Resolves a verified Telegram identity for an explicit sign-in.
+ *
+ * Current accounts use account_identities as the canonical mapping, including
+ * guests that later linked Telegram. The positive Telegram id is consulted only
+ * as a compatibility fallback for a pre-identity legacy account. If a
+ * concurrent request (or an older duplicate row) reveals that the identity
+ * already belongs elsewhere, the canonical identity owner wins.
+ */
+export async function resolveTelegramIdentityForLogin(
+  identity: Omit<VerifiedIdentity, 'provider'> & { provider: 'telegram' },
+  legacyTelegramUserId: string,
+): Promise<{ userId: string; linked: boolean; existing: boolean }> {
+  const normalizedLegacyId = String(legacyTelegramUserId || '').trim();
+  const legacy = normalizedLegacyId
+    ? await getPool().query(
+        `SELECT id
+         FROM users
+         WHERE id = $1
+           AND id > 0
+           AND is_guest = FALSE
+           AND COALESCE(auth_provider, 'telegram') = 'telegram'
+         LIMIT 1`,
+        [normalizedLegacyId],
+      )
+    : { rowCount: 0 };
+
+  if (legacy.rowCount) {
+    try {
+      return await resolveVerifiedIdentity(identity, normalizedLegacyId);
+    } catch (error) {
+      if (!(error instanceof AdminAuthError) || error.code !== 'IDENTITY_ALREADY_LINKED') {
+        throw error;
+      }
+      return resolveVerifiedIdentity(identity, null);
+    }
+  }
+
+  return resolveVerifiedIdentity(identity, null);
+}
+
 export async function listAccountIdentities(userId: string) {
   const result = await getPool().query(
     `SELECT provider, normalized_email, display_name, verified_at, last_used_at, created_at
@@ -197,6 +255,19 @@ export async function listAccountIdentities(userId: string) {
     verifiedAt: row.verified_at,
     lastUsedAt: row.last_used_at,
   }));
+}
+
+export async function telegramIdentityBelongsToUser(
+  userId: string,
+  telegramSubject: string,
+): Promise<boolean> {
+  const result = await getPool().query(
+    `SELECT 1 FROM account_identities
+     WHERE user_id = $1 AND provider = 'telegram' AND provider_subject = $2
+     LIMIT 1`,
+    [userId, telegramSubject],
+  );
+  return !!result.rowCount;
 }
 
 export async function unlinkAccountIdentity(userId: string, provider: ExternalAuthProvider): Promise<void> {

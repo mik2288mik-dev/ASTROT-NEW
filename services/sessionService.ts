@@ -1,13 +1,11 @@
-import { apiFetch } from './apiClient';
+import { apiFetch, isNativeAppRuntime } from './apiClient';
+import {
+  getActiveTelegramInitData,
+  getRawTelegramInitData,
+} from './authSessionIntent';
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
-
-function getTelegramInitData(): string | null {
-  if (typeof window === 'undefined') return null;
-  const initData = (window as any).Telegram?.WebApp?.initData;
-  return typeof initData === 'string' && initData.trim() ? initData : null;
-}
 
 /** Poll until Telegram WebApp exposes signed initData (required for API auth). */
 export async function waitForTelegramInitData(options?: {
@@ -20,7 +18,7 @@ export async function waitForTelegramInitData(options?: {
   const delayMs = options?.delayMs ?? 300;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const initData = getTelegramInitData();
+    const initData = getRawTelegramInitData();
     if (initData) return initData;
     if (attempt < maxAttempts - 1) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -32,7 +30,17 @@ export async function waitForTelegramInitData(options?: {
 
 /** Headers fragment for authenticated Telegram WebApp API calls */
 export function getTelegramInitDataHeaders(): Record<string, string> {
-  const initData = getTelegramInitData();
+  const initData = getActiveTelegramInitData();
+  return initData ? { [INIT_DATA_HEADER]: initData } : {};
+}
+
+/**
+ * Raw Telegram launch proof for a deliberate Telegram-only action such as
+ * login, identity linking, or Stars payment. Never use this as a global API
+ * fallback: the server must validate it alongside the canonical app session.
+ */
+export function getExplicitTelegramInitDataHeaders(): Record<string, string> {
+  const initData = getRawTelegramInitData();
   return initData ? { [INIT_DATA_HEADER]: initData } : {};
 }
 
@@ -57,7 +65,7 @@ export function getOrCreateAppSessionId(): string | null {
 export async function recordUserSession(telegramPlatform?: string | null): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  const initData = getTelegramInitData();
+  const initData = getActiveTelegramInitData();
   const sessionId = getOrCreateAppSessionId();
   if (!sessionId) return;
   // Пишем вход и для веб-гостей (авторизация по signed cookie), поэтому credentials:'include',
@@ -91,7 +99,7 @@ export async function recordNotificationAttribution(payload: {
 }): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  const initData = getTelegramInitData();
+  const initData = getActiveTelegramInitData();
   if (!initData) return;
 
   await apiFetch('/api/notifications/attribution', {
@@ -119,7 +127,7 @@ export async function recordUserAppEvent(payload: {
 
   // Считаем всех: Telegram (по initData-заголовку) И веб-гостей (по cookie-сессии,
   // поэтому credentials:'include'). Раньше при отсутствии initData событие терялось.
-  const initData = getTelegramInitData();
+  const initData = getActiveTelegramInitData();
   await apiFetch('/api/users/events', {
     method: 'POST',
     credentials: 'include',
@@ -146,7 +154,7 @@ export type UserNotificationSettings = {
 
 export async function getUserNotificationSettings(): Promise<UserNotificationSettings | null> {
   if (typeof window === 'undefined') return null;
-  const initData = getTelegramInitData();
+  const initData = getActiveTelegramInitData();
   if (!initData) return null;
   try {
     const response = await apiFetch('/api/users/notification-settings', {
@@ -173,7 +181,7 @@ export async function updateUserNotificationSettings(payload: {
 }): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
-  const initData = getTelegramInitData();
+  const initData = getActiveTelegramInitData();
   if (!initData) return false;
 
   try {
@@ -192,10 +200,13 @@ export async function updateUserNotificationSettings(payload: {
   }
 }
 
-/** Ensure a non-Telegram browser has a signed HttpOnly guest session. Telegram remains the priority provider. */
+/** Explicitly create or reuse a guest session, including inside Telegram. */
 export async function ensureWebGuestSession(): Promise<any | null> {
-  if (typeof window === 'undefined' || getTelegramInitData()) return null;
-  const response = await apiFetch('/api/auth/guest', { method: 'POST', credentials: 'include' });
+  if (typeof window === 'undefined') return null;
+  const response = await apiFetch(
+    isNativeAppRuntime() ? '/api/auth/native-guest' : '/api/auth/guest',
+    { method: 'POST', credentials: 'include' },
+  );
   if (!response.ok) throw new Error(`Guest session failed: ${response.status}`);
   const payload = await response.json();
   return payload?.profile || null;

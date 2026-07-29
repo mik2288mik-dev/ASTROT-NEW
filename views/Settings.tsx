@@ -11,10 +11,12 @@ import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig
 import {
     beginExternalAuth,
     getLinkedIdentities,
+    linkCurrentTelegramIdentity,
     requestEmailLoginCode,
     verifyEmailLoginCode,
     type LinkedIdentity,
 } from '../services/accountAuthService';
+import { hasTelegramMiniAppContext } from '../services/authSessionIntent';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -33,7 +35,21 @@ function notificationFlagsFor(frequency: NotificationFrequency) {
 }
 
 function localTimezone(): string {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'; } catch { return 'Europe/Moscow'; }
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'; } catch { return 'Europe/Moscow'; }
+}
+
+function readableIdentityError(error: unknown, language: 'ru' | 'en'): string {
+    const code = String((error as { code?: string; message?: string } | null)?.code
+        || (error as { message?: string } | null)?.message
+        || '');
+    if (code.includes('IDENTITY_ALREADY_LINKED')) {
+        return language === 'en'
+            ? 'This sign-in method already belongs to another account. Choose “Restore an existing account”; two filled profiles are never merged automatically.'
+            : 'Этот способ уже привязан к другому аккаунту. Выбери «Восстановить существующий аккаунт»: два заполненных профиля автоматически не объединяются.';
+    }
+    return language === 'en'
+        ? 'The sign-in method could not be updated. Try again.'
+        : 'Не удалось обновить способ входа. Попробуй ещё раз.';
 }
 
 interface SettingsProps {
@@ -43,7 +59,7 @@ interface SettingsProps {
     onRequestPremium?: () => void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
-    onLogout?: () => void;
+    onLogout?: () => Promise<void>;
     onDeleteAccount?: () => Promise<void>;
 }
 
@@ -112,6 +128,8 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [quietEnd, setQuietEnd] = useState('08:00');
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deletionError, setDeletionError] = useState('');
+    const [loggingOut, setLoggingOut] = useState(false);
+    const [logoutError, setLogoutError] = useState('');
     const [identities, setIdentities] = useState<LinkedIdentity[]>([]);
     const [identityError, setIdentityError] = useState('');
     const [emailValue, setEmailValue] = useState('');
@@ -143,7 +161,20 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         setIdentityError('');
         setIdentityBusy(true);
         void beginExternalAuth(provider, authPurpose)
-            .catch((error) => setIdentityError(String(error?.message || 'AUTH_LINK_FAILED')))
+            .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
+            .finally(() => setIdentityBusy(false));
+    };
+
+    const linkTelegram = () => {
+        setIdentityError('');
+        setIdentityBusy(true);
+        void linkCurrentTelegramIdentity()
+            .then(async (fresh) => {
+                onUpdate(fresh);
+                const result = await getLinkedIdentities();
+                setIdentities(result.identities);
+            })
+            .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
     };
 
@@ -152,7 +183,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         setIdentityBusy(true);
         void requestEmailLoginCode(emailValue, authPurpose)
             .then((result) => setEmailChallengeId(result.challengeId))
-            .catch((error) => setIdentityError(String(error?.message || 'EMAIL_CODE_REQUEST_FAILED')))
+            .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
     };
 
@@ -167,7 +198,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 setEmailChallengeId('');
                 setEmailCode('');
             })
-            .catch((error) => setIdentityError(String(error?.message || 'EMAIL_CODE_VERIFY_FAILED')))
+            .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
     };
 
@@ -276,12 +307,13 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         void updateUserNotificationSettings({ ...notificationFlagsFor(freq), timezone: localTimezone() });
     }, [profile.id, profile.notificationFrequency]);
 
+    const hasLinkedTelegram = identities.some((identity) => identity.provider === 'telegram');
     const profileDisplayName = (() => {
-        const u = tgUser;
+        const u = hasLinkedTelegram ? tgUser : null;
         const fromTg = [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim();
         return fromTg || profile.name || '—';
     })();
-    const profilePhotoUrl = tgUser?.photo_url;
+    const profilePhotoUrl = hasLinkedTelegram ? tgUser?.photo_url : undefined;
 
 
     const handleLanguageToggle = () => {
@@ -356,11 +388,13 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     )}
                     <div className="min-w-0">
                         <p className="serif text-2xl font-medium text-text-main truncate">{profileDisplayName}</p>
-                        {profile.id && (
-                            <p className="mt-0.5 text-xs text-text-muted/80">
-                                Telegram · ID {profile.id}
-                            </p>
-                        )}
+                        <p className="mt-0.5 text-xs text-text-muted/80">
+                            {profile.isGuest
+                                ? (profile.language === 'en' ? 'Guest account' : 'Гостевой аккаунт')
+                                : hasLinkedTelegram
+                                    ? (profile.language === 'en' ? 'Telegram linked' : 'Telegram подключён')
+                                    : (profile.language === 'en' ? 'Account' : 'Аккаунт')}
+                        </p>
                     </div>
                 </div>
             </section>
@@ -676,6 +710,16 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     </p>
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
+                    {hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
+                        <button
+                            type="button"
+                            className="fresh-btn-ghost"
+                            disabled={identityBusy || authPurpose === 'login'}
+                            onClick={linkTelegram}
+                        >
+                            Telegram
+                        </button>
+                    ) : null}
                     {(['vk', 'yandex', 'google'] as const).map((provider) => (
                         <button
                             key={provider}
@@ -735,7 +779,25 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Account and data' : 'Аккаунт и данные'}</h3>
                 <p className="lumia-muted mt-1 text-sm">{profile.language === 'en' ? 'Sign out from this device or permanently delete your account and related data.' : 'Можно выйти с этого устройства или навсегда удалить аккаунт и связанные данные.'}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" className="fresh-btn-ghost" onClick={onLogout}>{profile.language === 'en' ? 'Sign out' : 'Выйти'}</button>
+                    <button
+                        type="button"
+                        className="fresh-btn-ghost"
+                        disabled={loggingOut || deletingAccount}
+                        onClick={() => {
+                            if (!onLogout) return;
+                            setLogoutError('');
+                            setLoggingOut(true);
+                            void onLogout().catch(() => {
+                                setLogoutError(profile.language === 'en'
+                                    ? 'Sign out did not complete. This account is still active on the device.'
+                                    : 'Не удалось выйти. Аккаунт остаётся активным на этом устройстве.');
+                            }).finally(() => setLoggingOut(false));
+                        }}
+                    >
+                        {loggingOut
+                            ? (profile.language === 'en' ? 'Signing out…' : 'Выходим…')
+                            : (profile.language === 'en' ? 'Sign out' : 'Выйти')}
+                    </button>
                     <button type="button" disabled={deletingAccount} className="fresh-btn-ghost text-red-700" onClick={() => {
                         if (!window.confirm(profile.language === 'en' ? 'Delete your account and related data permanently?' : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
                         setDeletionError('');
@@ -747,6 +809,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         }).finally(() => setDeletingAccount(false));
                     }}>{deletingAccount ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…') : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}</button>
                 </div>
+                {logoutError ? <p role="alert" className="mt-2 text-sm text-red-700">{logoutError}</p> : null}
                 {deletionError ? <p role="alert" className="mt-2 text-sm text-red-700">{deletionError}</p> : null}
             </section>
 

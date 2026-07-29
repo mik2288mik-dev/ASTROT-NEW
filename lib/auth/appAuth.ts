@@ -6,7 +6,8 @@ import { isGuestUserId } from '../userId';
 import {
   assertAppSessionActive,
   persistAppSession,
-  resolveVerifiedIdentity,
+  resolveTelegramIdentityForLogin,
+  telegramIdentityBelongsToUser,
 } from './accountIdentity';
 
 export type AppAuthProvider = 'telegram' | 'web_guest' | 'native';
@@ -182,28 +183,15 @@ export async function createAppUserSession(input: {
 
 async function resolveTelegramUser(req: NextApiRequest): Promise<AppUserContext> {
   const telegram = getVerifiedTelegramUser(req);
-  let user = process.env.DATABASE_URL
-    ? await db.users.get(telegram.id, { hydratePrimaryChart: false })
-    : null;
-  if (process.env.DATABASE_URL && !user) {
-    await db.users.set(telegram.id, {
-      name: telegram.rawUser.first_name || 'Telegram',
-      language: telegram.rawUser.language_code || 'ru',
-      theme: 'light',
-      is_setup: false,
-      is_premium: false,
-    });
-    user = await db.users.get(telegram.id, { hydratePrimaryChart: false });
-  }
   const identity = process.env.DATABASE_URL
-    ? await resolveVerifiedIdentity(
+    ? await resolveTelegramIdentityForLogin(
         {
           provider: 'telegram',
           subject: telegram.id,
           displayName: [telegram.rawUser.first_name, telegram.rawUser.last_name].filter(Boolean).join(' ') || null,
           metadata: { username: telegram.rawUser.username || null },
         },
-        user ? telegram.id : null,
+        telegram.id,
       )
     : { userId: telegram.id };
   const rawInitData = header(req, 'x-telegram-init-data');
@@ -221,39 +209,79 @@ async function resolveTelegramUser(req: NextApiRequest): Promise<AppUserContext>
   };
 }
 
-export async function requireAppUser(req: NextApiRequest, options: { expectedUserId?: unknown; allowGuest?: boolean } = {}): Promise<AppUserContext> {
+export async function requireAppUser(req: NextApiRequest, options: {
+  expectedUserId?: unknown;
+  allowGuest?: boolean;
+  allowTelegramProof?: boolean;
+} = {}): Promise<AppUserContext> {
   let context: AppUserContext | null = null;
-  if (header(req, 'x-telegram-init-data')) {
-    context = await resolveTelegramUser(req);
-  } else {
-    const authorization = header(req, 'authorization');
-    const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
-    const payload = verifyAppSessionToken(bearer || cookie(req, APP_SESSION_COOKIE));
-    if (payload) {
-      if (await isRevokedSession(payload.sessionId)) {
-        throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
-      }
-      await assertAppSessionActive(payload.sessionId, payload.userId);
-      let accountIsGuest = isGuestUserId(payload.userId);
-      if (process.env.DATABASE_URL) {
-        const account = await getPool().query('SELECT is_guest FROM users WHERE id = $1', [payload.userId]);
-        const user = account.rowCount
-          ? await db.users.get(payload.userId, { hydratePrimaryChart: false })
-          : null;
-        if (!user) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This account no longer exists');
-        accountIsGuest = account.rows[0].is_guest === true;
-      }
-      context = {
-        userId: payload.userId,
-        provider: payload.provider,
-        isGuest: accountIsGuest,
-        sessionId: payload.sessionId,
-      };
+  const authorization = header(req, 'authorization').trim();
+  const cookieToken = cookie(req, APP_SESSION_COOKIE);
+  const explicitSessionSupplied = !!authorization || !!cookieToken;
+
+  if (explicitSessionSupplied) {
+    if (authorization && !authorization.startsWith('Bearer ')) {
+      throw new AdminAuthError(401, 'APP_SESSION_INVALID', 'The app session is invalid');
     }
+    const bearer = authorization ? authorization.slice(7).trim() : '';
+    const payload = verifyAppSessionToken(bearer || cookieToken);
+    if (!payload) {
+      throw new AdminAuthError(401, 'APP_SESSION_INVALID', 'The app session is invalid');
+    }
+    if (await isRevokedSession(payload.sessionId)) {
+      throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+    }
+    await assertAppSessionActive(payload.sessionId, payload.userId);
+    let accountIsGuest = isGuestUserId(payload.userId);
+    if (process.env.DATABASE_URL) {
+      const account = await getPool().query('SELECT is_guest FROM users WHERE id = $1', [payload.userId]);
+      const user = account.rowCount
+        ? await db.users.get(payload.userId, { hydratePrimaryChart: false })
+        : null;
+      if (!user) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This account no longer exists');
+      accountIsGuest = account.rows[0].is_guest === true;
+    }
+    context = {
+      userId: payload.userId,
+      provider: payload.provider,
+      isGuest: accountIsGuest,
+      sessionId: payload.sessionId,
+    };
+  } else if (options.allowTelegramProof !== false && header(req, 'x-telegram-init-data')) {
+    // Raw Telegram initData remains available for Telegram-only endpoints and
+    // older clients, but it must never replace an explicit app session.
+    context = await resolveTelegramUser(req);
   }
   if (!context) throw new AdminAuthError(401, 'APP_AUTH_REQUIRED', 'A valid Telegram, web guest, or native session is required');
   if (context.isGuest && !options.allowGuest) throw new AdminAuthError(403, 'REGISTERED_ACCOUNT_REQUIRED', 'This feature requires a registered account');
   const expected = String(Array.isArray(options.expectedUserId) ? options.expectedUserId[0] : options.expectedUserId ?? '').trim();
   if (expected && context.userId !== expected) throw new AdminAuthError(403, 'USER_ID_MISMATCH', 'Authenticated session does not match userId');
   return context;
+}
+
+/**
+ * Telegram Stars requires two independent facts: a canonical revocable app
+ * session and fresh Telegram-signed launch proof belonging to that account.
+ */
+export async function requireTelegramPaymentUser(
+  req: NextApiRequest,
+  expectedUserId: unknown,
+): Promise<AppUserContext> {
+  const telegram = getVerifiedTelegramUser(req);
+  const context = await requireAppUser(req, {
+    expectedUserId,
+    allowTelegramProof: false,
+  });
+
+  const ownsIdentity = process.env.DATABASE_URL
+    ? await telegramIdentityBelongsToUser(context.userId, telegram.id)
+    : context.userId === telegram.id;
+  if (!ownsIdentity) {
+    throw new AdminAuthError(
+      403,
+      'TELEGRAM_IDENTITY_NOT_LINKED',
+      'Link this Telegram account before paying with Telegram Stars',
+    );
+  }
+  return { ...context, telegramUserId: telegram.id };
 }

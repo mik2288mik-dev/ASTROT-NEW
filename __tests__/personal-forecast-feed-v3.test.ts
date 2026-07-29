@@ -53,6 +53,9 @@ describe('personal forecast feed V3 wiring', () => {
   it('uses real feed topics, hides the compact topic trigger from keyboard, and keeps info copy', () => {
     const dashboard = read('views/Dashboard.tsx');
     const feedStyles = read('styles/personalForecastFeed.css');
+    const sectionBlock = read(
+      'components/PersonalForecastFeed/ForecastSectionBlock.tsx',
+    );
     const topicNavigation = read(
       'components/PersonalForecastFeed/ForecastTopicNavigation.tsx',
     );
@@ -69,10 +72,14 @@ describe('personal forecast feed V3 wiring', () => {
     expect(topicNavigation).toContain("language === 'ru' ? 'Сейчас:' : 'Now:'");
     expect(topicNavigation).toContain('row.scrollTo({');
     expect(topicNavigation).not.toContain('scrollIntoView');
-    expect(read('components/PersonalForecastFeed/ForecastSectionBlock.tsx'))
-      .toContain("day: 'Личный гороскоп на сегодня'");
+    expect(sectionBlock).toContain("day: 'Личный гороскоп на сегодня'");
+    expect(sectionBlock).not.toContain('overviewAnchor');
+    expect(sectionBlock).not.toContain('forecast-feed-info-icon');
+    expect(sectionBlock).toContain('forecast-feed-inline-info');
     expect(feedStyles).toContain('justify-content: center');
     expect(feedStyles).toContain('text-align: center');
+    expect(feedStyles).not.toContain('content-visibility');
+    expect(feedStyles).not.toContain('contain-intrinsic-size');
     expect(dashboard).toContain('function personalForecastGreeting');
     expect(dashboard).toContain('timeZone: timezone');
     expect(dashboard).toContain(

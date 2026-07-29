@@ -4,6 +4,7 @@ import { db, getPool } from '../lib/db';
 import {
   assertAppSessionActive,
   persistAppSession,
+  resolveTelegramIdentityForLogin,
   resolveVerifiedIdentity,
   revokeSessions,
   userHasRecoveryIdentity,
@@ -80,6 +81,30 @@ describePostgres('PostgreSQL account, session, deletion, and RuStore integration
 
   afterAll(async () => {
     await getPool().end();
+  });
+
+  it('creates a first Telegram account against the real users schema', async () => {
+    const telegramId = String(Date.now() * 1000 + crypto.randomInt(1, 999));
+    const account = await resolveTelegramIdentityForLogin({
+      provider: 'telegram',
+      subject: telegramId,
+      displayName: 'Telegram integration',
+      metadata: { username: 'integration' },
+    }, telegramId);
+    users.add(account.userId);
+
+    expect(account).toMatchObject({ linked: true, existing: false });
+    expect(account.userId).not.toBe(telegramId);
+    await expect(getPool().query(
+      `SELECT u.id, i.provider_subject
+       FROM users u
+       JOIN account_identities i ON i.user_id = u.id
+       WHERE u.id = $1 AND i.provider = 'telegram'`,
+      [account.userId],
+    )).resolves.toMatchObject({
+      rowCount: 1,
+      rows: [expect.objectContaining({ provider_subject: telegramId })],
+    });
   });
 
   it('keeps one users.id while linking every provider and blocks identity conflicts', async () => {

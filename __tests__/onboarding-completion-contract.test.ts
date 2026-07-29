@@ -49,7 +49,12 @@ describe('existing onboarding completion flow', () => {
     expect(onboarding).not.toContain("setDate('')");
     expect(onboarding).not.toContain("setPlace('')");
 
-    expect(app).toContain('const hasGuestProfileId = isGuestUserId(currentProfileId)');
+    expect(app).toContain('if (!isValidUserId(currentProfileId))');
+    expect(app).toContain('const safeUserId = String(currentProfileId)');
+    expect(app).toContain(
+      "const isGuestOnboarding = profile?.isGuest === true || isGuestUserId(safeUserId)",
+    );
+    expect(app).not.toContain('hasTelegramUserId ? tgId : currentProfileId');
     expect(app).toContain('if (onboardingCompletionRef.current) return;');
     expect(app).toContain('onboardingCompletionRef.current = true;');
     expect(app).toContain('const pendingProfile = {');

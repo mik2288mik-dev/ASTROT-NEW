@@ -1,7 +1,7 @@
 import { UserProfile } from '../types';
 import { PREMIUM_PLANS, type PremiumPlanId } from '../lib/premiumPricing';
 import { canUseTelegramStars } from '../lib/distributionChannel';
-import { getTelegramInitDataHeaders } from './sessionService';
+import { getExplicitTelegramInitDataHeaders } from './sessionService';
 import { apiFetch, isNativeAppRuntime } from './apiClient';
 
 type PaymentPlanView = {
@@ -40,7 +40,7 @@ export const requestStarsPayment = async (profile: UserProfile, planId: PremiumP
   try {
     const res = await apiFetch('/api/telegram/create-invoice', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+      headers: { 'Content-Type': 'application/json', ...getExplicitTelegramInitDataHeaders() },
       body: JSON.stringify({ userId, type: planId }),
     });
     const data = await res.json();
@@ -141,7 +141,7 @@ async function activateSim(userId: string, payload: Record<string, any>): Promis
   if (isNativeAppRuntime()) return false;
   const res = await apiFetch('/api/subscriptions/activate', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
+    headers: { 'Content-Type': 'application/json', ...getExplicitTelegramInitDataHeaders() },
     body: JSON.stringify({ userId, ...payload }),
   });
   const data = await res.json();

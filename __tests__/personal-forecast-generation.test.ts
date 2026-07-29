@@ -175,6 +175,7 @@ describe('personal forecast V3 single-feed generation', () => {
     expect(prompt).toContain('Create one structured personal forecast feed');
     expect(prompt).toContain('"overview"');
     expect(prompt).toContain('"sections"');
+    expect(prompt).toContain('overview text is 450–650 characters');
     for (const plan of [plans.overview, ...plans.sections]) {
       expect(prompt).toContain(`"id": "${plan.id}"`);
       expect(prompt).toContain(`"id": "${firstEvidenceId(plan)}"`);
