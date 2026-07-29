@@ -54,7 +54,7 @@ export type ForecastVisualScreen = {
   visualFallback: boolean;
 };
 
-type Theme = 'general' | 'love' | 'mood' | 'work_money' | 'home_family' | 'friends' | 'opportunities' | 'decisions' | 'communication' | 'questions';
+type Theme = 'general' | 'love' | 'mood' | 'work_money' | 'home_family' | 'friends' | 'opportunities' | 'decisions' | 'communication' | 'questions' | 'moon' | 'mercury';
 type Lightness = 'light' | 'medium' | 'dark';
 type BackgroundAsset = {
   id: string;
@@ -93,7 +93,30 @@ function themeForIndex(index: number): Theme {
   return (['general', 'love', 'mood', 'questions', 'work_money', 'opportunities', 'decisions', 'mood', 'decisions', 'general'] as const)[slot];
 }
 
-export const PERSONAL_FORECAST_BACKGROUND_MANIFEST: readonly BackgroundAsset[] = Array.from({ length: 190 }, (_, index) => {
+const ASTRO_BACKGROUND_ASSETS: readonly BackgroundAsset[] = [
+  {
+    id: 'forecast-astro-moon-01',
+    file: '/assets/forecast-feed/forecast-astro-moon-01.webp',
+    themes: ['moon'],
+    series: 'pearl-moon-tides',
+    lightness: 'light',
+    periods: ALL_PERIODS,
+    priority: 320,
+    position: '62% 50%',
+  },
+  {
+    id: 'forecast-astro-mercury-01',
+    file: '/assets/forecast-feed/forecast-astro-mercury-01.webp',
+    themes: ['mercury'],
+    series: 'glass-mercury-signals',
+    lightness: 'light',
+    periods: ALL_PERIODS,
+    priority: 319,
+    position: '47% 50%',
+  },
+] as const;
+
+const LIFESTYLE_BACKGROUND_ASSETS: readonly BackgroundAsset[] = Array.from({ length: 190 }, (_, index) => {
   const theme = themeForIndex(index);
   const series = SERIES[Math.floor(index / 20)] || SERIES[SERIES.length - 1];
   const number = String(index + 1).padStart(3, '0');
@@ -109,12 +132,19 @@ export const PERSONAL_FORECAST_BACKGROUND_MANIFEST: readonly BackgroundAsset[] =
   };
 });
 
+export const PERSONAL_FORECAST_BACKGROUND_MANIFEST: readonly BackgroundAsset[] = [
+  ...ASTRO_BACKGROUND_ASSETS,
+  ...LIFESTYLE_BACKGROUND_ASSETS,
+] as const;
+
 const TAG_THEMES: Record<string, readonly Theme[]> = {
   overview: ['general'], love: ['love'], mood: ['mood'], home: ['home_family'], home_family: ['home_family'], friends: ['friends'],
   'work-money': ['work_money'], work_money: ['work_money'], wishes: ['opportunities'], career: ['work_money'], technology: ['communication'],
   business: ['work_money'], money: ['work_money'], 'career-change': ['opportunities'], career_change: ['opportunities'], study: ['communication'],
   creativity: ['mood'], relocation: ['opportunities'], property: ['home_family'], confidence: ['mood'], decision: ['decisions'], future: ['opportunities'],
   rest: ['mood'], movement: ['mood'], documents: ['communication'],
+  moon: ['moon'], luna: ['moon'], lunar: ['moon'],
+  mercury: ['mercury'], mercurial: ['mercury'], retrograde: ['mercury'],
 };
 const SOURCE_THEMES: Partial<Record<ForecastTopicKey, readonly Theme[]>> = {
   overview: ['general'], love: ['love'], mood: ['mood'], home_family: ['home_family'], friends: ['friends'], work_money: ['work_money'],
@@ -144,8 +174,17 @@ function fallbackAssignment(request: ForecastVisualRequest): ForecastVisualAssig
   return { sectionId: request.sectionId, assetId: null, path: null, sourceCategory: null, textSide: 'center', crop: { desktop: { position: '50% 50%', scale: 1 }, mobile: { position: '50% 50%', scale: 1 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: null, compositionTag: null, visualFallback: true };
 }
 function candidateAssets(request: ForecastVisualRequest) {
-  if (request.kind === 'astro_accent') return [] as BackgroundAsset[];
   const themes = themesFor(request);
+  if (request.kind === 'astro_accent') {
+    const astroThemes = themes.filter((theme): theme is 'moon' | 'mercury' => (
+      theme === 'moon' || theme === 'mercury'
+    ));
+    if (!astroThemes.length) return [] as BackgroundAsset[];
+    return PERSONAL_FORECAST_BACKGROUND_MANIFEST.filter(
+      (asset) => asset.periods.includes(request.period)
+        && asset.themes.some((theme) => astroThemes.includes(theme as 'moon' | 'mercury')),
+    );
+  }
   const exact = PERSONAL_FORECAST_BACKGROUND_MANIFEST.filter((asset) => asset.periods.includes(request.period) && asset.themes.some((theme) => themes.includes(theme)));
   return exact.length ? exact : PERSONAL_FORECAST_BACKGROUND_MANIFEST.filter((asset) => asset.periods.includes(request.period));
 }

@@ -18,7 +18,12 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain("if (!premium) { requestPremium(); return; }");
     expect(room).toContain('loadCompatHistory');
     expect(room).toContain('calculateExtendedSynastry');
+    expect(room).toContain('RelationshipContextPicker');
+    expect(room).toContain('buildLocalPersonSnapshot');
+    expect(room).toContain('selected.relationshipContext');
     expect(styles).toContain('.compat-editorial-page .compat-quick');
+    expect(styles).toContain('.compat-editorial-page .compat-context-picker');
+    expect(styles).toContain('.compat-editorial-page--result .compat-person-snapshot');
     expect(styles).toContain('.compat-editorial-page--result .compat-read-block');
     expect(styles).not.toMatch(/^\.fresh-page\s*\{/m);
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");

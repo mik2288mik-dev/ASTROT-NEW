@@ -17,7 +17,14 @@ import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
-import type { CompatGender } from '../../lib/synastry/localSignText';
+import { buildLocalPersonSnapshot, type CompatGender } from '../../lib/synastry/localSignText';
+import {
+  RELATIONSHIP_CONTEXT_OPTIONS,
+  getRelationshipContextLabel,
+  getRelationshipContextOption,
+  normalizeRelationshipContext,
+  type RelationshipContext,
+} from '../../lib/synastry/relationshipContext';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -41,6 +48,7 @@ type UnionRoomProps = {
 
 type Selected = {
   kind: 'sign' | 'person';
+  relationshipContext: RelationshipContext;
   youSign: string;
   youGender: CompatGender;
   themGender: CompatGender;
@@ -70,9 +78,91 @@ function genderWord(g: CompatGender, ru: boolean): string {
   return ru ? (g === 'male' ? 'Мужчина' : 'Женщина') : (g === 'male' ? 'Male' : 'Female');
 }
 
-const REL_BACKEND: Record<CompatDimension, string> = {
-  love: 'любовь', relationship: 'отношения', friendship: 'дружба', work: 'работа',
-};
+function RelationshipContextPicker({
+  value,
+  onChange,
+  ru,
+  compact = false,
+}: {
+  value: RelationshipContext;
+  onChange: (value: RelationshipContext) => void;
+  ru: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`compat-context-picker ${compact ? 'is-compact' : ''}`}>
+      {!compact ? (
+        <div className="compat-context-heading">
+          <span>{ru ? 'Какие у вас отношения?' : 'What is the relationship?'}</span>
+          <small>{ru ? 'Разбор будет говорить именно об этом' : 'The reading will stay in this context'}</small>
+        </div>
+      ) : null}
+      <div className="compat-context-options" role="radiogroup" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
+        {RELATIONSHIP_CONTEXT_OPTIONS.map((option) => {
+          const active = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              className={`compat-context-option ${active ? 'is-active' : ''}`}
+              onClick={() => {
+                lumiaSelectionHaptic();
+                onChange(option.value);
+              }}
+            >
+              <span>{ru ? option.label.ru : option.label.en}</span>
+              {!compact ? <small>{ru ? option.hint.ru : option.hint.en}</small> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function readingTitles(context: RelationshipContext, ru: boolean) {
+  if (context === 'friendship') {
+    return ru
+      ? ['Почему вам легко быть своими', 'Где дружба начинает трещать', 'Как не копить недосказанное']
+      : ['Why it feels easy to be yourselves', 'Where friendship starts to crack', 'How to avoid the unsaid'];
+  }
+  if (context === 'work') {
+    return ru
+      ? ['Где вы усиливаете друг друга', 'Что ломает совместную работу', 'Как договариваться без хаоса']
+      : ['Where you improve each other', 'What breaks the work', 'How to agree without chaos'];
+  }
+  if (context === 'family') {
+    return ru
+      ? ['Что держит вашу связь', 'Где включаются старые роли', 'Как говорить без семейного багажа']
+      : ['What holds the bond', 'Where old roles take over', 'How to speak without old baggage'];
+  }
+  return ru
+    ? ['Почему вас тянет друг к другу', 'Что может быть непросто', 'Как лучше понимать друг друга']
+    : ["Why you're drawn to each other", 'What can get tricky', 'How to understand each other'];
+}
+
+function deepReadingTitles(context: RelationshipContext, ru: boolean) {
+  if (context === 'friendship') {
+    return ru
+      ? ['На чём держится дружба', 'Что вас объединяет', 'Где появляются трения', 'Как сохранить взаимность']
+      : ['What holds the friendship', 'What unites you', 'Where friction starts', 'How to keep it mutual'];
+  }
+  if (context === 'work') {
+    return ru
+      ? ['Как вы работаете вместе', 'Где усиливаете результат', 'Что тормозит', 'Как сделать союз рабочим']
+      : ['How you work together', 'Where you improve the result', 'What slows you down', 'How to make it work'];
+  }
+  if (context === 'family') {
+    return ru
+      ? ['Как устроена ваша связь', 'Что помогает быть ближе', 'Из-за чего спор повторяется', 'Что меняет семейный сценарий']
+      : ['How the bond works', 'What helps you stay close', 'Why the argument repeats', 'What changes the family pattern'];
+  }
+  return ru
+    ? ['Какая у вас связь', 'Что вас сближает', 'Из-за чего бывают трения', 'Что сделает вас крепче']
+    : ['What your bond is like', 'What brings you closer', 'Where friction comes from', 'What makes you stronger'];
+}
 
 /* Цвет на каждую сферу — в общей серо-синей палитре приложения */
 const DIM_COLORS: Record<CompatDimension, string> = {
@@ -210,11 +300,12 @@ export function UnionRoom(props: UnionRoomProps) {
   const [youSign, setYouSign] = useState<string>(yourSun);
   const [youGender, setYouGender] = useState<CompatGender>(initialYouGender);
   const [themGender, setThemGender] = useState<CompatGender>(initialThemGender);
+  const [relationshipContext, setRelationshipContext] = useState<RelationshipContext>('romance');
   // Какую сторону сейчас крутит колесо знаков: «ты» или партнёр.
   const [activeSide, setActiveSide] = useState<'you' | 'them'>('them');
   const [selected, setSelected] = useState<Selected | null>(
     initialPrefill
-      ? { kind: 'person', youSign: yourSun, youGender: initialYouGender, themGender: initialThemGender, name: initialPrefill.partnerName || '', date: toDateInputValue(initialPrefill.partnerDate || ''), time: initialPrefill.partnerTime, place: initialPrefill.partnerPlace, chartId: initialPrefill.partnerChartId }
+      ? { kind: 'person', relationshipContext: 'romance', youSign: yourSun, youGender: initialYouGender, themGender: initialThemGender, name: initialPrefill.partnerName || '', date: toDateInputValue(initialPrefill.partnerDate || ''), time: initialPrefill.partnerTime, place: initialPrefill.partnerPlace, chartId: initialPrefill.partnerChartId }
       : null,
   );
 
@@ -245,7 +336,14 @@ export function UnionRoom(props: UnionRoomProps) {
     if (screen !== 'result' || !selected) return;
     setSignText(null); setDeep(null); setError(null);
     let alive = true;
-    void getSignCompatibility(leftSun, theirSun, lang, leftGender, rightGender)
+    void getSignCompatibility(
+      leftSun,
+      theirSun,
+      lang,
+      leftGender,
+      rightGender,
+      selected.relationshipContext,
+    )
       .then((r) => { if (alive) setSignText(r); })
       .catch(() => { /* optional */ });
     return () => { alive = false; };
@@ -262,9 +360,10 @@ export function UnionRoom(props: UnionRoomProps) {
     if (s.kind === 'person') {
       const sc = getCompatScore(s.youSign, their, lang);
       setHistory(addCompatHistory({
-        id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date),
+        id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date, s.relationshipContext),
         kind: s.kind, sign: s.sign, name: s.name, date: s.date, time: s.time, place: s.place, chartId: s.chartId,
-        yourSun: s.youSign, theirSun: their, yourGender: s.youGender, theirGender: s.themGender, overall: sc.overall, ts: Date.now(),
+        yourSun: s.youSign, theirSun: their, yourGender: s.youGender, theirGender: s.themGender,
+        relationshipContext: s.relationshipContext, overall: sc.overall, ts: Date.now(),
       }));
     }
   };
@@ -272,7 +371,9 @@ export function UnionRoom(props: UnionRoomProps) {
   const openFromHistory = (e: CompatHistoryEntry) => {
     const yg: CompatGender = e.yourGender === 'female' ? 'female' : 'male';
     const tg: CompatGender = e.theirGender === 'male' ? 'male' : 'female';
-    const base = { youSign: e.yourSun || yourSun, youGender: yg, themGender: tg };
+    const context = normalizeRelationshipContext(e.relationshipContext);
+    setRelationshipContext(context);
+    const base = { relationshipContext: context, youSign: e.yourSun || yourSun, youGender: yg, themGender: tg };
     if (e.kind === 'sign') openResult({ kind: 'sign', sign: e.sign, ...base });
     else openResult({ kind: 'person', name: e.name, date: e.date, time: e.time, place: e.place, chartId: e.chartId, ...base });
   };
@@ -296,7 +397,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const submitAdd = () => {
     if (!fName.trim() || !fDate) { setError(ru ? 'Добавь имя и дату рождения.' : 'Add a name and birth date.'); return; }
     setError(null);
-    openResult({ kind: 'person', name: fName.trim(), date: fDate, time: fTime || undefined, place: fPlace || undefined, youSign: yourSun, youGender, themGender: fGender });
+    openResult({ kind: 'person', relationshipContext, name: fName.trim(), date: fDate, time: fTime || undefined, place: fPlace || undefined, youSign: yourSun, youGender, themGender: fGender });
   };
 
   const runDeep = async () => {
@@ -305,7 +406,16 @@ export function UnionRoom(props: UnionRoomProps) {
     if (!premium) { requestPremium(); return; }
     setDeepLoading(true); setError(null);
     try {
-      const out = await calculateExtendedSynastry(profile, selected.name || '', selected.date || '', selected.time, selected.place, REL_BACKEND[score.strongest], selected.chartId);
+      const context = getRelationshipContextOption(selected.relationshipContext);
+      const out = await calculateExtendedSynastry(
+        profile,
+        selected.name || '',
+        selected.date || '',
+        selected.time,
+        selected.place,
+        context.backendValue,
+        selected.chartId,
+      );
       setDeep(out.result);
     } catch (e: any) {
       setError(e?.message || (ru ? 'Не удалось собрать полный разбор.' : 'Could not build the full reading.'));
@@ -329,6 +439,12 @@ export function UnionRoom(props: UnionRoomProps) {
               : 'The quick check uses both Sun signs — a general background of temperaments. A precise reading is built from two natal charts once you add the person’s birth date (ideally time and place too).'}
           </InfoNote>
         </div>
+
+        <RelationshipContextPicker
+          value={relationshipContext}
+          onChange={setRelationshipContext}
+          ru={ru}
+        />
 
         {/* Быстро по знакам — обе стороны выбираемы, с полом */}
         <div className="compat-quick">
@@ -357,7 +473,7 @@ export function UnionRoom(props: UnionRoomProps) {
             language={profile.language}
             onPick={(s) => { lumiaSelectionHaptic(); if (activeSide === 'you') setYouSign(s); else setPickSign(s); }}
           />
-          <button type="button" className="fresh-btn-primary compat-check-btn" onClick={() => openResult({ kind: 'sign', sign: pickSign, youSign, youGender, themGender })}>
+          <button type="button" className="fresh-btn-primary compat-check-btn" onClick={() => openResult({ kind: 'sign', relationshipContext, sign: pickSign, youSign, youGender, themGender })}>
             {ru ? 'Проверить' : 'Check'}
           </button>
         </div>
@@ -380,7 +496,11 @@ export function UnionRoom(props: UnionRoomProps) {
                   <span className="compat-hist-ico"><ZodiacIcon sign={e.theirSun} size={20} strokeWidth={1.5} /></span>
                   <span className="compat-hist-main">
                     <span className="compat-hist-name">{e.kind === 'sign' ? getZodiacSign(lang, e.theirSun) : (e.name || (ru ? 'Человек' : 'Person'))}</span>
-                    <span className="compat-hist-sub">{e.kind === 'person' ? getZodiacSign(lang, e.theirSun) : (ru ? 'по знаку' : 'by sign')}</span>
+                    <span className="compat-hist-sub">
+                      {e.kind === 'person'
+                        ? `${getZodiacSign(lang, e.theirSun)} · ${getRelationshipContextLabel(normalizeRelationshipContext(e.relationshipContext), lang)}`
+                        : (ru ? 'по знаку' : 'by sign')}
+                    </span>
                   </span>
                   <span className="compat-hist-score">{e.overall}</span>
                   <button type="button" className="compat-hist-del" aria-label={ru ? 'Удалить' : 'Delete'} onClick={(ev) => deleteHistory(e.id, ev)}>
@@ -399,7 +519,7 @@ export function UnionRoom(props: UnionRoomProps) {
               {people.map((c) => {
                 const s = getCompatScore(yourSun, sunSignFromDate(c.birth_date) || 'libra', lang);
                 return (
-                  <button key={c.id} type="button" className="people-card" onClick={() => openResult({ kind: 'person', name: c.name, date: toDateInputValue(c.birth_date), time: c.birth_time || undefined, place: c.birth_place || undefined, chartId: c.id, youSign: yourSun, youGender, themGender })}>
+                  <button key={c.id} type="button" className="people-card" onClick={() => openResult({ kind: 'person', relationshipContext, name: c.name, date: toDateInputValue(c.birth_date), time: c.birth_time || undefined, place: c.birth_place || undefined, chartId: c.id, youSign: yourSun, youGender, themGender })}>
                     <span className="people-card-score" style={{ color: 'var(--fresh-link)' }}>{s.overall}</span>
                     <span className="people-card-name">{c.name}</span>
                     <span className="people-card-sign">{getZodiacSign(lang, sunSignFromDate(c.birth_date) || '')}</span>
@@ -422,6 +542,13 @@ export function UnionRoom(props: UnionRoomProps) {
         <FreshInnerHeader
           title={ru ? 'Кто это?' : 'Who is this?'}
           onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
+        />
+
+        <RelationshipContextPicker
+          value={relationshipContext}
+          onChange={setRelationshipContext}
+          ru={ru}
+          compact
         />
 
         <div className="union-form" style={{ marginTop: 6 }}>
@@ -463,6 +590,13 @@ export function UnionRoom(props: UnionRoomProps) {
   const strongestLabel = score ? DIMENSION_LABELS[score.strongest][lang] : '';
   const dimsOrder: CompatDimension[] = ['love', 'relationship', 'friendship', 'work'];
   const isPerson = selected?.kind === 'person';
+  const resultContext = selected?.relationshipContext || relationshipContext;
+  const resultContextLabel = getRelationshipContextLabel(resultContext, lang);
+  const resultTitles = readingTitles(resultContext, ru);
+  const resultDeepTitles = deepReadingTitles(resultContext, ru);
+  const personSnapshot = isPerson
+    ? buildLocalPersonSnapshot(theirSun, lang, resultContext, rightGender)
+    : null;
 
   return (
     <div className="fresh-page compat-editorial-page compat-editorial-page--result">
@@ -470,6 +604,22 @@ export function UnionRoom(props: UnionRoomProps) {
         title={theirName}
         onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
       />
+
+      <div className="compat-result-context">
+        {ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong>
+      </div>
+
+      {personSnapshot ? (
+        <section className="compat-person-snapshot">
+          <div className="compat-person-snapshot-kicker">
+            {ru ? 'Сначала — кто перед тобой' : 'First — who this person is'}
+          </div>
+          <h2>{personSnapshot.headline}</h2>
+          <p>{personSnapshot.body}</p>
+          <p className="compat-person-snapshot-context">{personSnapshot.contextLine}</p>
+          <small>{personSnapshot.limitation}</small>
+        </section>
+      ) : null}
 
       <div className="people-split">
         <motion.div className="people-side" initial={reduce ? false : { x: -22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
@@ -507,9 +657,9 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {signText ? (
         <div className="compat-read" style={{ marginTop: 14 }}>
-          <CompatBlock title={ru ? 'Почему вас тянет друг к другу' : "Why you're drawn to each other"} color={DIM_COLORS.love} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
-          <CompatBlock title={ru ? 'Что может быть непросто' : 'What can get tricky'} color={DIM_COLORS.relationship} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
-          <CompatBlock title={ru ? 'Как лучше понимать друг друга' : 'How to understand each other'} color={DIM_COLORS.friendship} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
+          <CompatBlock title={resultTitles[0]} color={DIM_COLORS.love} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
+          <CompatBlock title={resultTitles[1]} color={DIM_COLORS.relationship} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
+          <CompatBlock title={resultTitles[2]} color={DIM_COLORS.friendship} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
         </div>
       ) : (
         <p className="union-pad" style={{ marginTop: 12, color: 'var(--fresh-muted)', fontSize: 14 }}>{ru ? 'Готовим разбор…' : 'Preparing…'}</p>
@@ -517,10 +667,10 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {deep ? (
         <div className="compat-read" style={{ marginTop: 18 }}>
-          <CompatBlock title={ru ? 'Какая у вас связь' : 'What your bond is like'} color={DIM_COLORS.work} index={0} reduce={reduce}>{deep.summary}</CompatBlock>
-          <CompatBlock title={ru ? 'Что вас сближает' : 'What brings you closer'} color={DIM_COLORS.love} index={1} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
-          <CompatBlock title={ru ? 'Из-за чего бывают трения' : 'Where friction comes from'} color={DIM_COLORS.relationship} index={2} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
-          <CompatBlock title={ru ? 'Что сделает вас крепче' : 'What makes you stronger'} color={DIM_COLORS.friendship} index={3} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[0]} color={DIM_COLORS.work} index={0} reduce={reduce}>{deep.summary}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[1]} color={DIM_COLORS.love} index={1} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[2]} color={DIM_COLORS.relationship} index={2} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[3]} color={DIM_COLORS.friendship} index={3} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
         </div>
       ) : isPerson ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} onClick={() => void runDeep()}>

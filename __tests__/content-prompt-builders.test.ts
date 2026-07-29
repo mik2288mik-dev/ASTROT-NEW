@@ -57,6 +57,8 @@ describe('Lumia content prompt builders', () => {
     expect(buildNatalSectionPrompt({ title: 'Как ты любишь' }).user).toContain('не больше 200 слов');
     expect(buildSignCompatibilityPrompt().user).toContain('без счёта совместимости');
     expect(buildSynastryPrompt().user).toContain('Не используй термин «синастрия»');
+    expect(buildSynastryPrompt().user).toContain('выбранный человеком тип связи');
+    expect(buildSynastryPrompt().user).toContain('не протаскивай романтическое притяжение');
   });
 
   it('uses a safe fallback for malformed model JSON', () => {

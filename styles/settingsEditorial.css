@@ -1,0 +1,163 @@
+/*
+ * Settings — the same light editorial system as Forecast, Natal and Compatibility.
+ * Functionality stays in views/Settings.tsx; this file only removes the stack-of-cards look.
+ */
+
+.fresh-page.settings-editorial-page {
+  --settings-bg: #fbfbfa;
+  --settings-ink: #17191d;
+  --settings-muted: #6f747c;
+  --settings-line: rgba(23, 25, 29, 0.09);
+  min-height: 100%;
+  background: var(--settings-bg);
+  color: var(--settings-ink);
+}
+
+.settings-editorial-page .fresh-inner-header {
+  position: relative;
+  z-index: 61;
+  padding-bottom: 13px;
+  background: rgba(251, 251, 250, 0.92);
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(14px) saturate(1.04);
+  backdrop-filter: blur(14px) saturate(1.04);
+}
+
+.settings-editorial-page .fresh-inner-title {
+  color: var(--settings-ink);
+  font-size: 20px;
+  font-weight: 760;
+  letter-spacing: -0.025em;
+}
+
+.settings-editorial-content {
+  width: min(calc(100% - 32px), 610px);
+  margin: 0 auto;
+  padding: 3px 0 calc(env(safe-area-inset-bottom, 0px) + 116px);
+}
+
+.settings-editorial-profile {
+  margin: 0;
+  padding: 15px 2px 19px;
+  border-bottom: 1px solid var(--settings-line);
+}
+
+.settings-editorial-profile .serif {
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.settings-editorial-profile > div > div:first-child {
+  background: #eef3f8;
+  color: #2468b2;
+}
+
+.settings-editorial-premium {
+  margin: 15px 0 2px;
+  padding: 15px 16px;
+  border: 1px solid rgba(20, 120, 255, 0.13);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(143, 202, 255, 0.34), transparent 38%),
+    linear-gradient(135deg, rgba(235, 245, 255, 0.94), rgba(246, 242, 255, 0.92));
+  box-shadow: 0 7px 22px rgba(31, 63, 102, 0.045);
+  color: var(--settings-ink);
+}
+
+.settings-editorial-premium [class*='text-white'] {
+  color: #536071;
+}
+
+.settings-editorial-premium .text-\[17px\] {
+  color: var(--settings-ink);
+}
+
+.settings-editorial-premium > div > span {
+  color: #1478ff;
+}
+
+.settings-editorial-section {
+  margin: 0;
+  padding: 23px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--settings-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.settings-editorial-section + .settings-editorial-section,
+.settings-editorial-section + .settings-editorial-row,
+.settings-editorial-row + .settings-editorial-section {
+  margin-top: 0;
+}
+
+.settings-editorial-section h2,
+.settings-editorial-section h3,
+.settings-editorial-row h3 {
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-weight: 740;
+  letter-spacing: -0.018em;
+}
+
+.settings-editorial-section h2 {
+  font-size: 20px;
+}
+
+.settings-editorial-section h3,
+.settings-editorial-row h3 {
+  font-size: 17px;
+}
+
+.settings-editorial-section .lumia-muted,
+.settings-editorial-row .lumia-muted {
+  color: var(--settings-muted);
+  line-height: 1.52;
+}
+
+.settings-editorial-section .fresh-input {
+  border: 0;
+  border-bottom: 1px solid rgba(23, 25, 29, 0.14);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.34);
+  box-shadow: none;
+}
+
+.settings-editorial-section .fresh-btn-ghost {
+  border-color: var(--settings-line);
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow: none;
+}
+
+.settings-editorial-row {
+  display: block;
+  margin: 0;
+  padding: 18px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--settings-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.settings-editorial-section.border-red-200 {
+  margin-top: 12px;
+  padding: 19px 16px;
+  border: 1px solid rgba(185, 28, 28, 0.13);
+  border-radius: 15px;
+  background: rgba(254, 242, 242, 0.56);
+}
+
+@media (max-width: 380px) {
+  .settings-editorial-content {
+    width: calc(100% - 28px);
+  }
+
+  .settings-editorial-premium {
+    padding-inline: 14px;
+  }
+}

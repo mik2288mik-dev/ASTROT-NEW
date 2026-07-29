@@ -29,6 +29,9 @@ const sections: ForecastVisualSectionInput[] = [
   section('love', 'fixed', 'love', { fixedKey: 'love', sourceTopicKey: 'love' }),
   section('mood', 'fixed', 'mood', { fixedKey: 'mood', sourceTopicKey: 'mood' }),
   section('astro:moon', 'astro_accent', 'moon', { sourceTopicKey: 'mood' }),
+  section('astro:mercury', 'astro_accent', 'mercury', {
+    sourceTopicKey: 'documents_agreements',
+  }),
   section('home_family', 'fixed', 'home', {
     fixedKey: 'home_family',
     sourceTopicKey: 'home_family',
@@ -119,7 +122,11 @@ describe('personal forecast V3 feed visual resolver', () => {
     expect(resolved.assignments.overview.path).toContain('/foni/horoscope-general-');
     expect(resolved.assignments.love.path).toContain('/foni/horoscope-love-');
     expect(resolved.assignments.mood.path).toContain('/foni/horoscope-mood-');
-    expect(resolved.assignments['astro:moon'].path).toBeNull();
+    expect(resolved.assignments['astro:moon'].path).toBe('/assets/forecast-feed/forecast-astro-moon-01.webp');
+    expect(resolved.assignments['astro:mercury'].path).toBe('/assets/forecast-feed/forecast-astro-mercury-01.webp');
+    expect(resolved.assignments['astro:moon'].compositionTag).not.toBe(
+      resolved.assignments['astro:mercury'].compositionTag,
+    );
     expect(resolved.assignments.home_family.path).toContain('/foni/horoscope-home-family-');
     expect(resolved.assignments.friends.path).toContain('/foni/horoscope-friends-');
   });

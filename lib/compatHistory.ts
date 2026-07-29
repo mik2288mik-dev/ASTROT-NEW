@@ -3,6 +3,7 @@
  * Реальное сохранение: пользователь видит, что уже проверял, может открыть снова и удалить.
  * Без бэкенда специально: это лёгкий журнал недавних проверок, не карты в БД.
  */
+import type { RelationshipContext } from './synastry/relationshipContext';
 
 export type CompatHistoryEntry = {
   /** Стабильный ключ для дедупликации: sign:<sign> или person:<name>:<date> */
@@ -19,6 +20,7 @@ export type CompatHistoryEntry = {
   /** Пол сторон (для гендерного текста). Необязательны — старые записи без них валидны. */
   yourGender?: 'male' | 'female' | null;
   theirGender?: 'male' | 'female' | null;
+  relationshipContext?: RelationshipContext;
   overall: number;
   ts: number;
 };
@@ -71,8 +73,15 @@ export function clearCompatHistory(): CompatHistoryEntry[] {
   return [];
 }
 
-export function buildCompatHistoryId(kind: 'sign' | 'person', sign?: string, name?: string, date?: string): string {
+export function buildCompatHistoryId(
+  kind: 'sign' | 'person',
+  sign?: string,
+  name?: string,
+  date?: string,
+  relationshipContext?: RelationshipContext,
+): string {
+  const contextSuffix = relationshipContext ? `:${relationshipContext}` : '';
   return kind === 'sign'
-    ? `sign:${String(sign || '').toLowerCase()}`
-    : `person:${String(name || '').trim().toLowerCase()}:${String(date || '')}`;
+    ? `sign:${String(sign || '').toLowerCase()}${contextSuffix}`
+    : `person:${String(name || '').trim().toLowerCase()}:${String(date || '')}${contextSuffix}`;
 }

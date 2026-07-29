@@ -12,6 +12,7 @@ import '../styles/personalForecastFeed.css';
 import '../styles/zodiacReader.css';
 import '../styles/natalEditorial.css';
 import '../styles/compatibilityEditorial.css';
+import '../styles/settingsEditorial.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 
 export default function App({ Component, pageProps }: AppProps) {

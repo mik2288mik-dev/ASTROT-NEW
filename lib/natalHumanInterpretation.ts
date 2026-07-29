@@ -341,6 +341,8 @@ Return valid NatalInterpretationReport JSON with exactly four freeSections in th
 base_portrait, strengths, growth_zones, main_advice.
 Each section needs title, subtitle, content, bullets, access "free", isLocked false.
 Also return shortCard with title, text, 4-5 keywords, advice. paidSections and premiumSections are empty.
+Make every section feel worth opening: start content with one sharp, specific conclusion; show how it appears in ordinary decisions, work or relationships; finish with a brief reason grounded in the supplied chart. Use 2-3 short paragraphs, not one wall of text.
+Be lively and direct, but never rude, fatalistic or theatrical. No coaching filler. Do not show technical labels such as "Basis:", aspect names, houses, or orb values in the visible copy.
 Use only the supplied calculations. Do not invent biography or events.
 
 ${JSON.stringify(summary, null, 2)}`;
@@ -350,6 +352,8 @@ ${JSON.stringify(summary, null, 2)}`;
 base_portrait, strengths, growth_zones, main_advice.
 У каждой секции нужны title, subtitle, content, bullets, access "free", isLocked false.
 Также верни shortCard: title, text, 4–5 keywords, advice. paidSections и premiumSections пустые.
+Каждая секция должна сразу давать сильный конкретный вывод, затем показывать, как он проявляется в обычных решениях, работе или отношениях, и коротко объяснять причину по переданной карте. Делай 2–3 коротких абзаца, а не стену текста.
+Пиши живо, прямо и чуть дерзко за счёт точности, но без грубости, фатализма и театральности. Без коучинговой воды. Не выводи в пользовательский текст «Основание:», названия аспектов, домов и значения орбисов.
 Используй только переданные расчёты. Не выдумывай биографию или события.
 
 ${JSON.stringify(summary, null, 2)}`;

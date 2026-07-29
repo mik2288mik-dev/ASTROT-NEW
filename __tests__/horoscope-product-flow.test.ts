@@ -25,6 +25,8 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('horo-reader-article');
     expect(source).toContain('horo-reader-headline');
     expect(styles).toContain('.horo-reader-page .horo-uni.horo-reader-article');
+    expect(styles).toContain('min-height: 92px');
+    expect(styles).toContain('margin-top: 11px');
     expect(styles).toContain('background: transparent');
     expect(styles).toContain('transform: none');
     expect(source).toContain('ensureDailySignHoroscope');

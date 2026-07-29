@@ -43,14 +43,29 @@ function mapFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: strin
   };
 }
 
-function buildSynastryFallback(langRu: boolean, firstName: string, partnerName: string): FullSynastryAIResponse & { summary: string } {
+function buildSynastryFallback(
+  langRu: boolean,
+  firstName: string,
+  partnerName: string,
+  relationship: string,
+): FullSynastryAIResponse & { summary: string } {
+  const normalized = relationship.toLowerCase();
+  const isWork = normalized.includes('работ') || normalized.includes('делов');
+  const isFriendship = normalized.includes('друж');
+  const isFamily = normalized.includes('сем');
+  const relationRu = isWork ? 'рабочего союза' : isFriendship ? 'дружбы' : isFamily ? 'семейной связи' : 'отношений';
+  const relationEn = isWork ? 'work partnership' : isFriendship ? 'friendship' : isFamily ? 'family bond' : 'relationship';
   return {
-    summary: langRu ? `Разбор связи для ${firstName} и ${partnerName}: притяжение, сложные места и способы договориться.` : `A relationship reading for ${firstName} and ${partnerName}: attraction, friction, and ways to communicate.`,
-    generalTheme: langRu ? 'Связь становится крепче, когда вы прямо говорите о своих ожиданиях.' : 'The bond grows stronger when you name expectations directly.',
-    attraction: langRu ? 'Вас тянет живой отклик и ощущение, что рядом можно увидеть привычное по-новому.' : 'You are drawn to the lively response and a fresh view of familiar things.',
+    summary: langRu
+      ? `Главная проверка ${relationRu} ${firstName} и ${partnerName} — не угадывать ожидания, а сверять их словами и поступками.`
+      : `The main test of the ${relationEn} between ${firstName} and ${partnerName} is replacing guesses with clear words and repeated actions.`,
+    generalTheme: langRu ? 'Связь держится крепче, когда ожидания названы прямо.' : 'The bond holds better when expectations are stated directly.',
+    attraction: langRu
+      ? (isWork ? 'Вместе вы можете замечать разные стороны одной задачи и быстрее находить рабочий вариант.' : isFriendship ? 'Контакт держится на живом отклике и ощущении, что рядом не нужно постоянно играть роль.' : isFamily ? 'Связь поддерживает знание привычек друг друга и способность замечать реальную помощь.' : 'Притяжение усиливает живой отклик и ощущение, что рядом привычное видно по-новому.')
+      : (isWork ? 'You can notice different sides of one task and reach a workable option faster together.' : isFriendship ? 'The connection is supported by a lively response and less need to perform.' : isFamily ? 'The bond is supported by knowing each other’s patterns and recognizing practical care.' : 'Attraction grows through a lively response and a fresh view of familiar things.'),
     difficulties: langRu ? 'Сложности начинаются, когда один торопится с выводом, а другой уходит от разговора.' : 'Friction starts when one rushes to a conclusion and the other avoids the conversation.',
     recommendations: langRu ? ['Сначала уточни, что человек имел в виду.', 'Говори о конкретной ситуации, а не о характере.', 'Договоритесь, когда вернуться к сложному разговору.'] : ['Clarify what the other person meant.', 'Discuss the situation, not their character.', 'Agree when to return to a hard conversation.'],
-    potential: langRu ? 'Эту связь укрепляет навык не угадывать, а спрашивать и договариваться.' : 'This bond is strengthened by asking and agreeing instead of guessing.',
+    potential: langRu ? 'Потенциал этой связи раскрывается там, где договорённость можно проверить действием.' : 'The bond’s potential shows where an agreement can be confirmed by action.',
   };
 }
 
@@ -289,7 +304,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   try {
     if (!openai) {
-      resultPayload = mapFullToSynastryResult(buildSynastryFallback(langRu, profile.name, partnerName));
+      resultPayload = mapFullToSynastryResult(buildSynastryFallback(langRu, profile.name, partnerName, rel));
     } else {
       const synastryAspects = computeSynastryAspects(userChartData, partnerChartData);
       const prompt = buildSynastryPrompt({
@@ -313,7 +328,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const content = completion.choices[0]?.message?.content || '{}';
       const parsed = parseModelJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
         content,
-        buildSynastryFallback(langRu, profile.name, partnerName)
+        buildSynastryFallback(langRu, profile.name, partnerName, rel)
       );
       resultPayload = mapFullToSynastryResult(parsed);
     }

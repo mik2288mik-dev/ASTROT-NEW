@@ -44,7 +44,7 @@
 .compat-editorial-page .compat-info-wrap {
   max-width: 36rem;
   margin: 0 auto;
-  padding: 0 20px 18px;
+  padding: 0 20px 10px;
 }
 
 .compat-editorial-page .compat-info-wrap .info-note-toggle {
@@ -71,11 +71,89 @@
   box-shadow: none;
 }
 
+.compat-editorial-page .compat-context-picker {
+  width: min(calc(100% - 40px), 36rem);
+  margin: 0 auto 12px;
+  padding: 12px 0 14px;
+  border-top: 1px solid var(--compat-editorial-line);
+}
+
+.compat-editorial-page .compat-context-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+
+.compat-editorial-page .compat-context-heading > span {
+  color: var(--compat-editorial-ink);
+  font-size: 15px;
+  font-weight: 740;
+}
+
+.compat-editorial-page .compat-context-heading > small {
+  color: var(--compat-editorial-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.compat-editorial-page .compat-context-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.compat-editorial-page .compat-context-option {
+  min-width: 0;
+  padding: 9px 5px 8px;
+  border: 1px solid var(--compat-editorial-line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--compat-editorial-ink);
+  text-align: center;
+}
+
+.compat-editorial-page .compat-context-option > span,
+.compat-editorial-page .compat-context-option > small {
+  display: block;
+}
+
+.compat-editorial-page .compat-context-option > span {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.compat-editorial-page .compat-context-option > small {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--compat-editorial-muted);
+  font-size: 9.5px;
+  line-height: 1.2;
+}
+
+.compat-editorial-page .compat-context-option.is-active {
+  border-color: rgba(20, 120, 255, 0.28);
+  background: rgba(224, 239, 255, 0.76);
+  color: #115fcb;
+}
+
+.compat-editorial-page .compat-context-picker.is-compact {
+  margin-bottom: 0;
+  padding: 10px 0 12px;
+  border-top: 0;
+}
+
+.compat-editorial-page .compat-context-picker.is-compact .compat-context-option {
+  padding-block: 9px;
+}
+
 .compat-editorial-page .compat-quick {
   position: relative;
   max-width: 38rem;
-  margin: 0 auto 27px;
-  padding: 24px 20px 26px;
+  margin: 0 auto 18px;
+  padding: 18px 20px 22px;
   overflow: visible;
   border: 0;
   border-top: 1px solid var(--compat-editorial-line);
@@ -296,8 +374,8 @@
   width: calc(100% - 40px);
   max-width: calc(38rem - 40px);
   min-height: 0;
-  margin: 0 auto 28px;
-  padding: 18px 4px;
+  margin: 0 auto 20px;
+  padding: 15px 4px;
   overflow: visible;
   border: 0;
   border-top: 1px solid var(--compat-editorial-line);
@@ -425,6 +503,67 @@
   max-width: 36rem;
   margin-right: auto;
   margin-left: auto;
+}
+
+.compat-editorial-page--result .compat-result-context {
+  width: min(calc(100% - 40px), 36rem);
+  margin: 0 auto;
+  padding: 3px 0 10px;
+  color: var(--compat-editorial-muted);
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+}
+
+.compat-editorial-page--result .compat-result-context strong {
+  color: #115fcb;
+  font-weight: 720;
+}
+
+.compat-editorial-page--result .compat-person-snapshot {
+  width: min(calc(100% - 40px), 36rem);
+  margin: 0 auto 8px;
+  padding: 19px 0 22px;
+  border-top: 1px solid var(--compat-editorial-line);
+  border-bottom: 1px solid var(--compat-editorial-line);
+}
+
+.compat-editorial-page--result .compat-person-snapshot-kicker {
+  margin-bottom: 7px;
+  color: #2468b2;
+  font-size: 10.5px;
+  font-weight: 740;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.compat-editorial-page--result .compat-person-snapshot h2 {
+  margin: 0 0 10px;
+  color: var(--compat-editorial-ink);
+  font-size: 21px;
+  font-weight: 770;
+  letter-spacing: -0.025em;
+  line-height: 1.17;
+}
+
+.compat-editorial-page--result .compat-person-snapshot p {
+  margin: 0;
+  color: #292c31;
+  font-size: 15.5px;
+  line-height: 1.64;
+}
+
+.compat-editorial-page--result .compat-person-snapshot .compat-person-snapshot-context {
+  margin-top: 10px;
+  color: #39485a;
+  font-weight: 650;
+}
+
+.compat-editorial-page--result .compat-person-snapshot small {
+  display: block;
+  margin-top: 12px;
+  color: var(--compat-editorial-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
 }
 
 .compat-editorial-page--result .people-split {

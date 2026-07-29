@@ -279,9 +279,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         }
         setTimeout(() => { setDailyPush('idle'); setDailyPushInfo(''); }, 9000);
     };
-    const sectionClass = 'fresh-card p-4 sm:p-[18px]';
+    const sectionClass = 'settings-editorial-section';
     const rowCardClass =
-        'w-full fresh-card p-4 text-left transition-transform active:scale-[0.99] sm:p-[18px]';
+        'settings-editorial-row w-full text-left transition-transform active:scale-[0.99]';
     const inlineActionClass = 'text-mono-muted text-[10px] uppercase tracking-wider hover:text-mono-ink transition-colors';
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
@@ -370,10 +370,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
 
     return (
-        <div className="fresh-page">
+        <div className="fresh-page settings-editorial-page">
           <FreshInnerHeader title={profile.language === 'en' ? 'Settings' : 'Настройки'} />
-          <div className="mx-auto max-w-reading-wide px-4 pt-2 pb-28">
-            <section className="fresh-card p-5 mb-4">
+          <div className="settings-editorial-content">
+            <section className="settings-editorial-profile">
                 <div className="flex items-center gap-4">
                     {profilePhotoUrl ? (
                         <img
@@ -403,8 +403,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
             <button
                 type="button"
                 onClick={() => onRequestPremium?.()}
-                className="mb-4 block w-full rounded-mono-card p-4 text-left text-white sm:p-[18px]"
-                style={{ background: 'linear-gradient(135deg, #0F172A, #1478FF)' }}
+                className="settings-editorial-premium block w-full text-left"
             >
                 <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">

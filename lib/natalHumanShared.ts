@@ -5,8 +5,8 @@ import type {
 import { withAppVoiceCacheKey, withAppVoiceVersion } from './appVoice';
 
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v2');
-export const HUMAN_BASE_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v5.lean-portrait');
-export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v4.paid-focus');
+export const HUMAN_BASE_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v6.direct-editorial');
+export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v5.direct-focus');
 export const HUMAN_BASE_CACHE_KEY = withAppVoiceCacheKey('human_v2.base');
 
 export const HUMAN_FREE_SECTION_KEYS = [

@@ -6,6 +6,7 @@ import { isValidUserId } from "../lib/userId";
 import type { NatalPlanetKey } from "../lib/natalPlanetMeta";
 import type { SignCompatibilityResult } from '../lib/synastry/signCompatibility';
 import { buildLocalSignCompatibility } from '../lib/synastry/localSignText';
+import type { RelationshipContext } from '../lib/synastry/relationshipContext';
 import { getTelegramInitDataHeaders } from "./sessionService";
 import type { SkyTodaySnapshot } from '../lib/skyToday';
 
@@ -845,14 +846,22 @@ export async function getSignCompatibility(
   language: 'ru' | 'en',
   genderA?: string | null,
   genderB?: string | null,
+  relationshipContext: RelationshipContext = 'romance',
 ): Promise<SignCompatibilityResult> {
   // Порядок и пол ВАЖНЫ для текста (м+ж ≠ ж+м), поэтому ключ кеша не сортируем и включаем пол.
   const g = (v?: string | null) => (v === 'male' || v === 'female' ? v : 'x');
-  const key = `${signA.toLowerCase()}:${g(genderA)}:${signB.toLowerCase()}:${g(genderB)}:${language}`;
+  const key = `${signA.toLowerCase()}:${g(genderA)}:${signB.toLowerCase()}:${g(genderB)}:${relationshipContext}:${language}`;
   const cachedLocal = signCompatibilityClientCache.get(key);
   if (cachedLocal) return cachedLocal;
   // Текст совместимости по знакам — из нашей базы (локальный композитор), без OpenAI.
-  const result = buildLocalSignCompatibility(signA, signB, language, genderA, genderB);
+  const result = buildLocalSignCompatibility(
+    signA,
+    signB,
+    language,
+    genderA,
+    genderB,
+    relationshipContext,
+  );
   if (!result) throw buildApiError('Sign compatibility content is missing');
   signCompatibilityClientCache.set(key, result);
   return result;

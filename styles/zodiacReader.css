@@ -10,7 +10,7 @@
 }
 
 .fresh-page.horo-reader-page .fresh-inner-header {
-  padding-bottom: 16px;
+  padding-bottom: 10px;
   background: transparent;
 }
 
@@ -24,7 +24,7 @@
 }
 
 .horo-reader-page .zodiac-sign-picker {
-  margin: 0 0 15px;
+  margin: 0 0 11px;
 }
 
 .horo-reader-page .zodiac-sign-selection {
@@ -170,11 +170,11 @@
 
 .horo-reader-page .zodiac-sign-summary {
   width: 100%;
-  min-height: 62px;
+  min-height: 54px;
   overflow: hidden;
   padding: 6px 11px 6px 7px;
   display: grid;
-  grid-template-columns: 51px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
   border: 1px solid var(--horo-reader-line);
@@ -193,8 +193,8 @@
 
 .horo-reader-page .zodiac-sign-summary-art {
   position: relative;
-  width: 51px;
-  height: 51px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
 }
@@ -287,7 +287,7 @@
 
 .horo-reader-page .horo-uni-wrap {
   position: relative;
-  margin-top: 20px;
+  margin-top: 11px;
   margin-bottom: 0;
 }
 
@@ -309,9 +309,9 @@
 
 .horo-reader-page .horo-uni-hero {
   position: relative;
-  min-height: 152px;
+  min-height: 92px;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 17px;
   background-image: none;
   isolation: isolate;
 }
@@ -323,23 +323,23 @@
 }
 
 .horo-reader-page .horo-hero-illus {
-  right: -10px;
-  height: 118%;
-  max-width: 58%;
-  opacity: 0.54;
+  right: -7px;
+  height: 120%;
+  max-width: 42%;
+  opacity: 0.46;
   filter: saturate(0.72) contrast(0.88);
 }
 
 .horo-reader-page .horo-hero-glyph {
   top: auto;
-  right: 17px;
-  bottom: 15px;
+  right: 11px;
+  bottom: 9px;
   transform: none;
   filter: none;
 }
 
 .horo-reader-page .horo-hero-date {
-  padding: 4px 9px;
+  padding: 3px 7px;
   border: 1px solid rgba(21, 24, 33, 0.07);
   background: rgba(255, 255, 255, 0.68);
   color: var(--horo-reader-muted);
@@ -354,7 +354,7 @@
   inset: 0;
   max-width: none;
   margin: 0;
-  padding: 25px 112px 24px 20px;
+  padding: 15px 90px 14px 16px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -368,19 +368,19 @@
   background: transparent;
   color: var(--horo-reader-ink);
   box-shadow: none;
-  font-size: clamp(18px, 5vw, 22px);
+  font-size: clamp(16px, 4.4vw, 19px);
   font-weight: 780;
   line-height: 1.28;
   transform: none;
   display: -webkit-box;
   overflow: hidden;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow-wrap: anywhere;
 }
 
 .horo-reader-page .horo-uni-body.horo-reader-reading {
-  padding: 26px 4px 24px;
+  padding: 18px 4px 20px;
   border-bottom: 1px solid var(--horo-reader-line);
   border-radius: 0;
   background: transparent;
@@ -438,7 +438,7 @@
 }
 
 .horo-reader-page .horo-reader-info {
-  padding: 22px 4px 0;
+  padding: 17px 4px 0;
 }
 
 .horo-reader-page .horo-reader-info .info-note {
@@ -459,9 +459,9 @@
 
 .horo-reader-page .horo-reader-personal {
   min-height: 0;
-  margin-top: 22px;
+  margin-top: 16px;
   margin-bottom: 0;
-  padding: 16px 17px;
+  padding: 13px 15px;
   border: 1px solid rgba(20, 120, 255, 0.12);
   border-radius: 16px;
   background: rgba(234, 242, 255, 0.58);
@@ -519,12 +519,12 @@
   }
 
   .horo-reader-page .horo-hero-stack {
-    padding-right: 94px;
-    padding-left: 17px;
+    padding-right: 78px;
+    padding-left: 14px;
   }
 
   .horo-reader-page .fresh-sticky.horo-reader-headline {
-    font-size: 17.5px;
+    font-size: 16.5px;
   }
 
   .horo-reader-page .horo-reader-personal {

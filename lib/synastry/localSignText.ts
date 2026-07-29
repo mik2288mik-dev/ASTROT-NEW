@@ -6,6 +6,7 @@ import type { Language } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { normalizeZodiacKey } from '../zodiacKeys';
 import type { SignCompatibilityResult } from './signCompatibility';
+import type { RelationshipContext } from './relationshipContext';
 
 type Element = 'fire' | 'earth' | 'air' | 'water';
 
@@ -90,58 +91,87 @@ function genderedSign(signName: string, gender: CompatGender | null, ru: boolean
   return `${gender === 'male' ? 'Male' : 'Female'} ${cap(signName)}`;
 }
 
-type ComboCopy = { attract: string; tension: string; talk: string };
+const CONTEXT_COPY = {
+  ru: {
+    romance: {
+      attraction: 'В любви одной искры мало — важно, выдерживает ли она обычную жизнь.',
+      difficulty: 'Химия не отменяет разницу характеров.',
+      communication: 'Не проверяй чувства догадками: здесь лучше один прямой вопрос, чем десять внутренних версий.',
+    },
+    friendship: {
+      attraction: 'В дружбе главное не эффектное знакомство, а можно ли рядом быть собой без постоянной игры.',
+      difficulty: 'Даже сильная дружба портится, когда один считает близость очевидной, а второй ждёт конкретных действий.',
+      communication: 'Говорите прямо о границах, времени и взаимности — дружба от этого не становится холоднее.',
+    },
+    work: {
+      attraction: 'В работе важна не симпатия, а то, усиливаете ли вы результат друг друга.',
+      difficulty: 'Главная проверка — темп, ответственность и отношение к договорённостям.',
+      communication: 'Фиксируйте роли и сроки словами: рабочую совместимость лучше не строить на телепатии.',
+    },
+    family: {
+      attraction: 'В семье связь уже дана, но качество контакта всё равно зависит от правил и уважения.',
+      difficulty: 'Старые роли легко включаются автоматически и заставляют спорить не о текущей ситуации.',
+      communication: 'Отделяйте конкретную просьбу от накопленной семейной истории — так разговор остаётся про настоящее.',
+    },
+  },
+  en: {
+    romance: {
+      attraction: 'In love, chemistry is only the start — the real question is whether it survives ordinary life.',
+      difficulty: 'Chemistry does not erase differences in character.',
+      communication: 'Do not test feelings with guesses: one direct question beats ten private theories.',
+    },
+    friendship: {
+      attraction: 'In friendship, the real test is whether you can be yourselves without constant performance.',
+      difficulty: 'Even a strong friendship frays when one assumes closeness and the other waits for concrete effort.',
+      communication: 'Name boundaries, time and reciprocity directly — honesty does not make friendship colder.',
+    },
+    work: {
+      attraction: 'At work, the useful question is not whether you click, but whether you improve each other’s result.',
+      difficulty: 'The real test is pace, ownership and respect for agreements.',
+      communication: 'Put roles and deadlines into words: professional compatibility should not rely on telepathy.',
+    },
+    family: {
+      attraction: 'Family creates a bond, but respect and clear rules still determine its quality.',
+      difficulty: 'Old roles can switch on automatically and turn a current issue into an old argument.',
+      communication: 'Separate the concrete request from the whole family history so the conversation stays in the present.',
+    },
+  },
+} as const;
 
-// Гендерный слой поверх базы по знакам/стихиям. 4 комбинации (м+ж, ж+м, м+м, ж+ж) —
-// тёплые, современные формулировки про динамику пары, без грубых стереотипов.
-const COMBO_RU: Record<'mf' | 'fm' | 'mm' | 'ff', ComboCopy> = {
-  mf: {
-    attract: 'Его инициатива и её чуткость хорошо дополняют друг друга — в этом контрасте много притяжения.',
-    tension: 'Ему чаще важны ясность и действия, ей — внимание к настроению: разный язык близости иногда путает.',
-    talk: 'Ему говори прямую просьбу, ей показывай, что её чувства замечены, — и держите оба этих слоя.',
-  },
-  fm: {
-    attract: 'Её энергия ведёт, его спокойная опора держит — баланс, где инициатива по очереди у каждого.',
-    tension: 'Ей может хотеться больше динамики, ему — устойчивости; молчаливая борьба за темп выматывает обоих.',
-    talk: 'Договоритесь, где ведёт она, а где он, — тогда роли перестанут соперничать.',
-  },
-  mm: {
-    attract: 'Двое мужчин понимают азарт и амбиции друг друга — союз на уважении, драйве и общем деле.',
-    tension: 'Сложнее всего с соперничеством и нежеланием первым показать слабое место.',
-    talk: 'Признавайте вклад друг друга вслух и не превращайте близость в соревнование.',
-  },
-  ff: {
-    attract: 'Две женщины дают паре глубину, эмпатию и тонкое чувствование друг друга почти без слов.',
-    tension: 'Риск — раствориться в эмоциях друг друга и копить недосказанное, пока не накопится.',
-    talk: 'Оставляйте друг другу воздух и говорите о потребностях прямо, без намёков.',
-  },
+export type LocalPersonSnapshot = {
+  headline: string;
+  body: string;
+  contextLine: string;
+  limitation: string;
 };
 
-const COMBO_EN: Record<'mf' | 'fm' | 'mm' | 'ff', ComboCopy> = {
-  mf: {
-    attract: 'His drive and her attunement complement each other — there’s real pull in that contrast.',
-    tension: 'He tends to want clarity and action, she wants attention to mood: two languages of closeness can confuse.',
-    talk: 'Give him a direct ask, show her that her feelings are seen — keep both layers.',
-  },
-  fm: {
-    attract: 'Her energy leads, his steady support holds — a balance where initiative takes turns.',
-    tension: 'She may want more momentum, he wants stability; a silent tug over pace drains both.',
-    talk: 'Agree where she leads and where he does — then the roles stop competing.',
-  },
-  mm: {
-    attract: 'Two men get each other’s drive and ambition — a bond built on respect and a shared mission.',
-    tension: 'The hard part is rivalry and not wanting to show a weak spot first.',
-    talk: 'Name each other’s contribution out loud and don’t turn closeness into a contest.',
-  },
-  ff: {
-    attract: 'Two women bring depth, empathy and a fine read on each other, almost without words.',
-    tension: 'The risk is dissolving into each other’s emotions and storing up the unsaid.',
-    talk: 'Leave each other air and state needs directly, without hints.',
-  },
-};
-
-function comboKey(gA: CompatGender, gB: CompatGender): 'mf' | 'fm' | 'mm' | 'ff' {
-  return `${gA === 'male' ? 'm' : 'f'}${gB === 'male' ? 'm' : 'f'}` as 'mf' | 'fm' | 'mm' | 'ff';
+export function buildLocalPersonSnapshot(
+  sign: string,
+  language: Language,
+  context: RelationshipContext,
+  gender?: string | null,
+): LocalPersonSnapshot | null {
+  const normalized = normalizeZodiacKey(sign);
+  if (!normalized) return null;
+  const key = normalized.toLowerCase();
+  const profile = P[key];
+  if (!profile) return null;
+  const ru = language !== 'en';
+  const label = genderedSign(getZodiacSign(language, key), asGender(gender), ru);
+  const copy = CONTEXT_COPY[ru ? 'ru' : 'en'][context];
+  return ru
+    ? {
+        headline: `${label}: сначала о человеке`,
+        body: `По солнечному знаку здесь сильнее всего видны ${profile.trait}. Это цепляет, но слабое место тоже заметное — ${profile.friction}. Не додумывай остальное за человека: смотри, совпадают ли слова и повторяющиеся поступки.`,
+        contextLine: copy.attraction,
+        limitation: 'Это честный общий портрет по дате рождения. Время и место добавят Луну, Венеру, дома и сделают вывод точнее.',
+      }
+    : {
+        headline: `${label}: the person first`,
+        body: `The Sun sign points most clearly to ${profile.traitEn}. That can be compelling, but the weak spot is visible too: ${profile.frictionEn}. Do not fill in the rest for them — compare words with repeated actions.`,
+        contextLine: copy.attraction,
+        limitation: 'This is an honest general portrait from the birth date. Time and place add the Moon, Venus and houses for a more precise reading.',
+      };
 }
 
 export function buildLocalSignCompatibility(
@@ -150,6 +180,7 @@ export function buildLocalSignCompatibility(
   language: Language,
   genderFirst?: string | null,
   genderSecond?: string | null,
+  context: RelationshipContext = 'romance',
 ): SignCompatibilityResult | null {
   const a = normalizeZodiacKey(first);
   const b = normalizeZodiacKey(second);
@@ -168,10 +199,9 @@ export function buildLocalSignCompatibility(
 
   const gA = asGender(genderFirst);
   const gB = asGender(genderSecond);
-  // Гендерный слой включаем только когда известны ОБА пола — иначе остаёмся нейтральными.
-  const combo = gA && gB ? (ru ? COMBO_RU : COMBO_EN)[comboKey(gA, gB)] : null;
   const labelA = genderedSign(nameA, gA, ru);
   const labelB = genderedSign(nameB, gB, ru);
+  const contextCopy = CONTEXT_COPY[ru ? 'ru' : 'en'][context];
 
   let attraction: string;
   let difficulty: string;
@@ -195,12 +225,9 @@ export function buildLocalSignCompatibility(
     communication = `To understand each other: ${pa.talkEn}; ${pb.talkEn}. ${dyn.adviceEn}`;
   }
 
-  // Вплетаем гендерный слой (если оба пола известны).
-  if (combo) {
-    attraction = `${attraction} ${combo.attract}`;
-    difficulty = `${difficulty} ${combo.tension}`;
-    communication = `${communication} ${combo.talk}`;
-  }
+  attraction = `${contextCopy.attraction} ${attraction}`;
+  difficulty = `${contextCopy.difficulty} ${difficulty}`;
+  communication = `${contextCopy.communication} ${communication}`;
 
   return {
     signA: a,
@@ -209,7 +236,7 @@ export function buildLocalSignCompatibility(
     difficulty,
     communication,
     limitation: ru
-      ? 'Это общий разбор по двум знакам с учётом пола. Время и место рождения, Луна и Венера могут заметно изменить картину.'
-      : 'A general two-sign reading that accounts for gender. Birth time and place, the Moon and Venus can change the picture.',
+      ? 'Это общий разбор по солнечным знакам. Пол не используется как «объяснение характера»: время и место рождения, Луна и Венера могут заметно изменить картину.'
+      : 'This is a general Sun-sign reading. Gender is not used to explain character; birth time and place, the Moon and Venus can change the picture.',
   };
 }
