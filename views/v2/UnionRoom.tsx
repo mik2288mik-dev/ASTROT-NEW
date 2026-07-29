@@ -317,7 +317,7 @@ export function UnionRoom(props: UnionRoomProps) {
   /* ── ХАБ ── */
   if (screen === 'hub') {
     return (
-      <div className="fresh-page compat-hub-page">
+      <div className="fresh-page compat-hub-page compat-editorial-page compat-editorial-page--hub">
         <FreshInnerHeader title={ru ? 'Совместимость' : 'Compatibility'} />
         <p className="compat-hub-intro">
           {ru ? 'Сравни по знакам за секунду — или разбери конкретного человека по дате рождения.' : 'Compare by signs in a second — or read a specific person by birth date.'}
@@ -418,7 +418,7 @@ export function UnionRoom(props: UnionRoomProps) {
   /* ── ДОБАВЛЕНИЕ ── */
   if (screen === 'add') {
     return (
-      <div className="fresh-page">
+      <div className="fresh-page compat-editorial-page compat-editorial-page--add">
         <FreshInnerHeader
           title={ru ? 'Кто это?' : 'Who is this?'}
           onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
@@ -465,7 +465,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const isPerson = selected?.kind === 'person';
 
   return (
-    <div className="fresh-page">
+    <div className="fresh-page compat-editorial-page compat-editorial-page--result">
       <FreshInnerHeader
         title={theirName}
         onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
