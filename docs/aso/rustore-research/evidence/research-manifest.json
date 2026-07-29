@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-07-29T19:20:02.055Z",
+  "counts": {
+    "product_truth": 15,
+    "wordstat_raw": 1006,
+    "wordstat_valid_broad": 1000,
+    "wordstat_clean": 838,
+    "dynamics": 76,
+    "autocomplete_queries": 61,
+    "autocomplete_rows": 135,
+    "rustore_serp_rows": 1220,
+    "competitors": 25,
+    "reviews": 307,
+    "keyword_master": 838
+  },
+  "checks": {
+    "min_clean_200": true,
+    "min_rustore_queries_50": true,
+    "min_serp_rows_1000": true,
+    "direct_competitors_15": true,
+    "adjacent_competitors_10": true,
+    "min_reviews_300": true,
+    "monthly_24": true,
+    "weekly_52": true
+  }
+}
