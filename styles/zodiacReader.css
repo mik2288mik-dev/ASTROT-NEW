@@ -1,29 +1,54 @@
+.fresh-page.horo-reader-page {
+  --horo-reader-bg: #fbfaf7;
+  --horo-reader-ink: #151821;
+  --horo-reader-muted: #69707d;
+  --horo-reader-line: rgba(21, 24, 33, 0.09);
+  min-height: 100%;
+  padding-bottom: 30px;
+  background: var(--horo-reader-bg);
+  color: var(--horo-reader-ink);
+}
+
+.fresh-page.horo-reader-page .fresh-inner-header {
+  padding-bottom: 16px;
+  background: transparent;
+}
+
+.horo-reader-page .horo-reader-controls,
+.horo-reader-page .horo-uni-wrap,
+.horo-reader-page .horo-reader-info,
+.horo-reader-page .horo-reader-personal {
+  width: min(calc(100% - 32px), 610px);
+  margin-right: auto;
+  margin-left: auto;
+}
+
 .horo-reader-page .zodiac-sign-picker {
-  margin: 2px var(--fresh-page-x, 16px) 12px;
+  margin: 0 0 14px;
 }
 
 .horo-reader-page .zodiac-sign-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 7px;
 }
 
 .horo-reader-page .zodiac-sign-option {
   min-width: 0;
-  min-height: 62px;
-  padding: 8px 5px 7px;
+  min-height: 58px;
+  padding: 7px 5px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  border: 1px solid rgba(17, 24, 39, 0.07);
-  border-radius: 14px;
-  background: rgba(247, 249, 252, 0.76);
+  gap: 4px;
+  border: 1px solid var(--horo-reader-line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.56);
   box-shadow: none;
-  color: var(--app-card-ink, #111827);
+  color: var(--horo-reader-ink);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 650;
   line-height: 1.1;
   cursor: pointer;
@@ -33,14 +58,13 @@
 
 .horo-reader-page .zodiac-sign-option svg {
   display: block;
-  color: #667085;
+  color: #737b89;
   transition: color 160ms ease, transform 160ms ease;
 }
 
 .horo-reader-page .zodiac-sign-option[data-active='true'] {
-  border-color: rgba(20, 120, 255, 0.25);
-  background:
-    linear-gradient(145deg, rgba(232, 243, 255, 0.96), rgba(247, 250, 255, 0.92));
+  border-color: rgba(20, 120, 255, 0.28);
+  background: rgba(232, 243, 255, 0.76);
   color: #115fcb;
 }
 
@@ -55,17 +79,17 @@
 
 .horo-reader-page .zodiac-sign-summary {
   width: 100%;
-  min-height: 54px;
-  padding: 7px 11px;
+  min-height: 52px;
+  padding: 6px 10px;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  border: 1px solid rgba(17, 24, 39, 0.07);
-  border-radius: 16px;
-  background: rgba(247, 249, 252, 0.82);
+  border: 1px solid var(--horo-reader-line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
   box-shadow: none;
-  color: var(--app-card-ink, #111827);
+  color: var(--horo-reader-ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -74,11 +98,11 @@
 }
 
 .horo-reader-page .zodiac-sign-summary-symbol {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 11px;
   background: rgba(20, 120, 255, 0.08);
   color: #1478ff;
 }
@@ -93,14 +117,14 @@
 }
 
 .horo-reader-page .zodiac-sign-summary-copy strong {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 750;
   line-height: 1.15;
 }
 
 .horo-reader-page .zodiac-sign-summary-copy small {
   margin-top: 2px;
-  color: var(--app-card-muted, #667085);
+  color: var(--horo-reader-muted);
   font-size: 11.5px;
   line-height: 1.2;
 }
@@ -108,7 +132,7 @@
 .horo-reader-page .zodiac-sign-summary-chevron {
   padding: 0 3px 5px;
   color: #1478ff;
-  font-size: 21px;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -118,16 +142,237 @@
   outline-offset: 2px;
 }
 
-.horo-reader-page .horo-period-tabs {
-  margin-top: 0;
+.horo-reader-page .fresh-tabs.horo-period-tabs {
+  min-height: 38px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid rgba(21, 24, 33, 0.06);
+  border-radius: 13px;
+  background: rgba(232, 233, 236, 0.72);
+  box-shadow: none;
+}
+
+.horo-reader-page .horo-period-tabs .fresh-tab {
+  min-height: 32px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  color: #5f6673;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.horo-reader-page .horo-period-tabs .fresh-tab.active,
+.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
+  background: #fff;
+  color: #1478ff;
+  box-shadow: 0 2px 8px rgba(21, 24, 33, 0.08);
+}
+
+.horo-reader-page .horo-uni-wrap {
+  position: relative;
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+.horo-reader-page .horo-uni.horo-reader-article {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--horo-reader-ink);
+  cursor: default;
+  touch-action: pan-y;
+  will-change: auto;
+}
+
+.horo-reader-page .horo-uni.horo-reader-article:active {
+  cursor: default;
+}
+
+.horo-reader-page .horo-uni-hero {
+  position: relative;
+  min-height: 152px;
+  overflow: hidden;
+  border-radius: 22px;
+  background-image: none;
+  isolation: isolate;
+}
+
+.horo-reader-page .horo-uni-hero::after {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 57%, rgba(255, 255, 255, 0.22) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(251, 250, 247, 0.72));
+}
+
+.horo-reader-page .horo-hero-illus {
+  right: -10px;
+  height: 118%;
+  max-width: 58%;
+  opacity: 0.54;
+  filter: saturate(0.72) contrast(0.88);
+}
+
+.horo-reader-page .horo-hero-glyph {
+  top: auto;
+  right: 17px;
+  bottom: 15px;
+  transform: none;
+  filter: none;
+}
+
+.horo-reader-page .horo-hero-date {
+  padding: 4px 9px;
+  border: 1px solid rgba(21, 24, 33, 0.07);
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--horo-reader-muted);
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+
+.horo-reader-page .horo-hero-stack {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  max-width: none;
+  margin: 0;
+  padding: 25px 112px 24px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.horo-reader-page .fresh-sticky.horo-reader-headline {
+  position: static;
+  max-width: 100%;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--horo-reader-ink);
+  box-shadow: none;
+  font-size: clamp(18px, 5vw, 22px);
+  font-weight: 780;
+  line-height: 1.28;
+  transform: none;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
+.horo-reader-page .horo-uni-body.horo-reader-reading {
+  padding: 26px 4px 24px;
+  border-bottom: 1px solid var(--horo-reader-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.horo-reader-page .horo-uni-summary {
+  margin: 0;
+  color: var(--horo-reader-ink);
+  font-size: 15.5px;
+  line-height: 1.68;
+  letter-spacing: -0.006em;
+}
+
+.horo-reader-page .horo-uni-advice {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-color: var(--horo-reader-line);
+}
+
+.horo-reader-page .horo-uni-advice-title {
+  margin-bottom: 10px;
+  color: var(--horo-reader-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.horo-reader-page .horo-uni-advice ul {
+  gap: 9px;
+  padding-left: 19px;
+}
+
+.horo-reader-page .horo-uni-advice li {
+  color: var(--horo-reader-ink);
+  font-size: 14.5px;
+  line-height: 1.58;
+}
+
+.horo-reader-page .horo-lock {
+  padding: 2px 0 4px;
+}
+
+.horo-reader-page .horo-lock-title {
+  color: var(--horo-reader-ink);
+}
+
+.horo-reader-page .horo-lock-text {
+  color: var(--horo-reader-muted);
+}
+
+.horo-reader-page .horo-act {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-color: var(--horo-reader-line);
 }
 
 .horo-reader-page .horo-reader-info {
-  padding: 0 20px;
+  padding: 22px 4px 0;
+}
+
+.horo-reader-page .horo-reader-info .info-note {
+  margin: 0;
+}
+
+.horo-reader-page .horo-reader-info .info-note-toggle {
+  color: #536071;
+  font-size: 11.5px;
+}
+
+.horo-reader-page .horo-reader-info .info-note-text {
+  max-width: 560px;
+  color: var(--horo-reader-muted);
+  font-size: 12.5px;
+  line-height: 1.58;
 }
 
 .horo-reader-page .horo-reader-personal {
-  margin-top: 18px;
+  min-height: 0;
+  margin-top: 22px;
+  margin-bottom: 0;
+  padding: 16px 17px;
+  border: 1px solid rgba(20, 120, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(234, 242, 255, 0.58);
+  box-shadow: none;
+  color: var(--horo-reader-ink);
+}
+
+.horo-reader-page .horo-reader-personal::after {
+  display: none;
+}
+
+.horo-reader-page .horo-reader-personal .horo-premium-kicker {
+  color: #115fcb;
+  font-size: 12.5px;
+}
+
+.horo-reader-page .horo-reader-personal .horo-premium-title {
+  max-width: 420px;
+  color: #4e5968;
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.horo-reader-page .horo-reader-personal .horo-premium-cta {
+  padding: 7px 9px;
+  background: rgba(20, 120, 255, 0.09);
+  color: #1478ff;
+  box-shadow: none;
 }
 
 @media (max-width: 360px) {
@@ -136,9 +381,23 @@
   }
 
   .horo-reader-page .zodiac-sign-option {
-    min-height: 58px;
+    min-height: 55px;
     padding-inline: 3px;
     font-size: 11.5px;
+  }
+
+  .horo-reader-page .horo-hero-stack {
+    padding-right: 94px;
+    padding-left: 17px;
+  }
+
+  .horo-reader-page .fresh-sticky.horo-reader-headline {
+    font-size: 17.5px;
+  }
+
+  .horo-reader-page .horo-reader-personal {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

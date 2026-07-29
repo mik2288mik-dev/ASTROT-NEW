@@ -203,29 +203,31 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     <div className="fresh-page horo-reader-page">
       <FreshInnerHeader title={language === 'ru' ? 'Гороскоп' : 'Horoscope'} subtitle={dateLine} />
 
-      <ZodiacSignGrid
-        signs={ZODIAC_KEYS}
-        active={sign}
-        language={language}
-        onPick={chooseSign}
-      />
+      <div className="horo-reader-controls">
+        <ZodiacSignGrid
+          signs={ZODIAC_KEYS}
+          active={sign}
+          language={language}
+          onPick={chooseSign}
+        />
 
-      <FreshTabs
-        className="horo-period-tabs"
-        tabs={periodTabs}
-        activeTab={period}
-        onTabChange={(id) => {
-          lumiaSelectionHaptic();
-          setPeriod(id as Period);
-        }}
-      />
+        <FreshTabs
+          className="horo-period-tabs"
+          tabs={periodTabs}
+          activeTab={period}
+          onTabChange={(id) => {
+            lumiaSelectionHaptic();
+            setPeriod(id as Period);
+          }}
+        />
+      </div>
 
       <div className="horo-uni-wrap">
         <AnimatePresence initial={false} mode="wait">
           {hasReaderSelection ? (
             <motion.div
               key={currentKey}
-              className="horo-uni"
+              className="horo-uni horo-reader-article"
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
@@ -240,7 +242,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                   <div className="horo-hero-date">{periodTag}</div>
                 </div>
                 <div className="horo-hero-stack">
-                  <div className="fresh-sticky" style={{ transform: 'rotate(-2deg)' }}>
+                  <div className="fresh-sticky horo-reader-headline">
                     {!periodLocked
                       ? (reading?.headline || (
                           reading === null
@@ -251,7 +253,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                   </div>
                 </div>
               </div>
-              <div className="horo-uni-body">
+              <div className="horo-uni-body horo-reader-reading">
                 {periodLocked ? (
                   <div className="horo-lock">
                     <div className="horo-lock-title">
