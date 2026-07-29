@@ -29,6 +29,7 @@ import type {
   DailyAstroSignalLayers,
   DailyAstroSignalPhase,
 } from '../types';
+import { isGuestUserId } from './userId';
 
 // Read DATABASE_URL from environment variables
 // This is set in Railway Variables or .env file
@@ -677,6 +678,7 @@ export const db = {
           gender: u.gender ?? null,
           is_premium: isPremium,
           is_setup: isSetup,
+          is_guest: u.is_guest ?? isGuestUserId(u.id),
           chart_slots: u.chart_slots ?? 1,
           is_blocked: u.is_blocked ?? false,
         };
@@ -2254,13 +2256,22 @@ export const db = {
   /** Content architecture v1 - premium periods */
   premium_entitlements: {
     async syncFromUsersTable(userId: string) {
-      const user = await db.users.get(userId);
-      if (!user?.premium_until || !DATABASE_URL) return null;
+      if (!DATABASE_URL) return null;
+      const id = toUserId(userId);
+      const dbPool = getPool();
+      // Read the legacy column directly. db.users.get() also projects active
+      // entitlements into premium_until, which must not be fed back into a
+      // synthetic users.premium_until entitlement.
+      const legacyResult = await dbPool.query(
+        `SELECT premium_until, created_at FROM users WHERE id = $1`,
+        [id],
+      );
+      const user = legacyResult.rows[0];
+      if (!user?.premium_until) return null;
 
       const endsAt = new Date(user.premium_until);
       if (Number.isNaN(endsAt.getTime())) return null;
 
-      const dbPool = getPool();
       const existing = await dbPool.query(
         `SELECT *
          FROM premium_entitlements
@@ -2269,7 +2280,7 @@ export const db = {
            AND ends_at = $2
            AND source = 'users.premium_until'
          LIMIT 1`,
-        [toUserId(userId), endsAt.toISOString()]
+        [id, endsAt.toISOString()]
       );
       if (existing.rows[0]) {
         return mapPremiumEntitlementRow(existing.rows[0]);
@@ -2280,7 +2291,7 @@ export const db = {
          VALUES ($1, 'premium', $2, 'users.premium_until', $3, $4, $5::jsonb)
          RETURNING *`,
         [
-          toUserId(userId),
+          id,
           endsAt.getTime() > Date.now() ? 'active' : 'expired',
           user.created_at || new Date().toISOString(),
           endsAt.toISOString(),

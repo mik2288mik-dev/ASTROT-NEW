@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 
 const BOT_TOKEN = 'test-telegram-bot-token';
+const originalDatabaseUrl = process.env.DATABASE_URL;
 const chartData = {
   sun: { sign: 'Pisces' },
   moon: { sign: 'Cancer' },
@@ -85,6 +86,12 @@ async function call(handler: any, body: any, headers: Record<string, string>) {
 describe('primary chart app auth', () => {
   beforeEach(() => {
     jest.resetModules();
+    delete process.env.DATABASE_URL;
+  });
+
+  afterAll(() => {
+    if (originalDatabaseUrl) process.env.DATABASE_URL = originalDatabaseUrl;
+    else delete process.env.DATABASE_URL;
   });
 
   it('allows a web guest with a signed app session to create a basic chart', async () => {

@@ -1,4 +1,7 @@
 const isMobileBuild = process.env.MOBILE_BUILD === '1';
+const distributionChannel = process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL;
+const excludesTelegramStars = isMobileBuild
+  && (distributionChannel === 'google_play' || distributionChannel === 'rustore');
 
 if (isMobileBuild && !process.env.NEXT_PUBLIC_API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL is required when MOBILE_BUILD=1');
@@ -36,6 +39,12 @@ const nextConfig = {
       config.plugins.push(new webpack.IgnorePlugin({
         resourceRegExp: /^\.\/lib\/notificationScheduler$/,
       }));
+    }
+    if (excludesTelegramStars) {
+      config.plugins.push(new webpack.NormalModuleReplacementPlugin(
+        /[\\/]services[\\/]telegramStarsPayment\.ts$/,
+        require.resolve('./services/telegramStarsPayment.disabled.ts'),
+      ));
     }
     if (!isServer) {
       // Исключаем Node.js модули из клиентского бандла

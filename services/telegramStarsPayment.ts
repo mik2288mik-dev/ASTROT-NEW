@@ -1,0 +1,1 @@
+export { requestStarsPayment } from './telegramService';

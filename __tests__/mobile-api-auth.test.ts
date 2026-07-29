@@ -9,6 +9,7 @@ import {
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const originalFetch = globalThis.fetch;
+const originalDatabaseUrl = process.env.DATABASE_URL;
 
 function mockResponse() {
   const result = { statusCode: 200, body: null as any, headers: {} as Record<string, string> };
@@ -44,12 +45,21 @@ async function setupNativeHandler() {
 }
 
 describe('mobile API and native auth', () => {
+  beforeEach(() => {
+    delete process.env.DATABASE_URL;
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
     jest.dontMock('../lib/db');
     Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true });
     delete process.env.NEXT_PUBLIC_MOBILE_BUILD;
     delete process.env.NEXT_PUBLIC_API_URL;
+  });
+
+  afterAll(() => {
+    if (originalDatabaseUrl) process.env.DATABASE_URL = originalDatabaseUrl;
+    else delete process.env.DATABASE_URL;
   });
 
   it('creates one signed native guest and reuses it on the next request', async () => {

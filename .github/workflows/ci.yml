@@ -2,11 +2,31 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
+      NODE_ENV: test
 
     steps:
       - name: Checkout
@@ -21,6 +41,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Apply PostgreSQL migrations
+        run: npm run migrate
+
       - name: Run tests
         run: npm test -- --runInBand
 
@@ -29,3 +52,147 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  android:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - channel: development
+            flavor: Development
+            apk_dir: development
+            apk_name: development
+          - channel: google_play
+            flavor: GooglePlay
+            apk_dir: googlePlay
+            apk_name: googlePlay
+          - channel: rustore
+            flavor: Rustore
+            apk_dir: rustore
+            apk_name: rustore
+    env:
+      NEXT_PUBLIC_MOBILE_BUILD: '1'
+      MOBILE_BUILD: '1'
+      NEXT_PUBLIC_API_URL: https://api.ci.example.invalid
+      NEXT_PUBLIC_DISTRIBUTION_CHANNEL: ${{ matrix.channel }}
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: ci.premium.month
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: ci.premium.quarter
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: ci.premium.year
+      RUSTORE_ALLOWED_PRODUCT_IDS: ci.premium.month,ci.premium.quarter,ci.premium.year
+      RUSTORE_CONSOLE_APP_ID: '100000'
+      RUSTORE_PACKAGE_NAME: com.yourhoroscope.app
+      RUSTORE_PAY_MODE: sandbox
+      APP_VERSION_CODE: '1'
+      APP_VERSION_NAME: 1.0.0-ci
+      NATIVE_AUTH_CALLBACK_SCHEME: yourhoroscope
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate channel configuration
+        run: npm run android:validate
+
+      - name: Confirm production release is blocked without owner secrets
+        shell: bash
+        run: |
+          if npm run android:validate:release > "$RUNNER_TEMP/release-blockers.txt" 2>&1; then
+            echo "Release validation unexpectedly accepted CI placeholders"
+            exit 1
+          fi
+          grep -q "final non-temporary application ID" "$RUNNER_TEMP/release-blockers.txt"
+          grep -q "RELEASE_STORE_FILE is required" "$RUNNER_TEMP/release-blockers.txt"
+
+      - name: Build web bundle and sync Capacitor
+        run: |
+          npm run build:mobile
+          npx cap sync android
+
+      - name: Verify channel bundle boundaries
+        shell: bash
+        run: |
+          if [ "${{ matrix.channel }}" != "development" ] &&
+             grep -R -F -q "/api/telegram/create-invoice" android/app/src/main/assets/public; then
+            echo "Telegram invoice runtime leaked into a store web bundle"
+            exit 1
+          fi
+          if [ "${{ matrix.channel }}" = "google_play" ]; then
+            cd android
+            chmod +x gradlew
+            ./gradlew --no-daemon app:dependencies \
+              --configuration googlePlayDebugRuntimeClasspath \
+              > "$RUNNER_TEMP/google-play-dependencies.txt"
+            if grep -E -q "ru\.rustore\.sdk:(pay|bom)" "$RUNNER_TEMP/google-play-dependencies.txt"; then
+              echo "RuStore Pay SDK leaked into Google Play runtime dependencies"
+              exit 1
+            fi
+          fi
+
+      - name: Create CI-only signing key
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$RUNNER_TEMP/ci-test-release.jks" \
+            -storepass ci-test-password \
+            -keypass ci-test-password \
+            -alias ci-test \
+            -keyalg RSA -keysize 2048 -validity 2 \
+            -dname "CN=CI Test, OU=CI, O=Not For Publication, C=XX"
+          echo "RELEASE_STORE_FILE=$RUNNER_TEMP/ci-test-release.jks" >> "$GITHUB_ENV"
+          echo "RELEASE_STORE_PASSWORD=ci-test-password" >> "$GITHUB_ENV"
+          echo "RELEASE_KEY_ALIAS=ci-test" >> "$GITHUB_ENV"
+          echo "RELEASE_KEY_PASSWORD=ci-test-password" >> "$GITHUB_ENV"
+
+      - name: Compile debug and CI-only minified release
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assemble${{ matrix.flavor }}Debug assemble${{ matrix.flavor }}Release
+
+      - name: Inspect APK boundaries and calculate SHA-256
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/${{ matrix.apk_dir }}/debug/app-${{ matrix.apk_name }}-debug.apk"
+          test -f "$APK"
+          unzip -l "$APK" > "$RUNNER_TEMP/apk-files.txt"
+          if [ "${{ matrix.channel }}" = "google_play" ] && grep -qi "rustore/sdk/pay" "$RUNNER_TEMP/apk-files.txt"; then
+            echo "RuStore Pay SDK leaked into Google Play APK"
+            exit 1
+          fi
+          unzip -p "$APK" | strings > "$RUNNER_TEMP/apk-strings.txt"
+          if grep -E "RUSTORE_PUBLIC_API_TOKEN|RUSTORE_NOTIFICATION_AES_KEY|RELEASE_STORE_PASSWORD" "$RUNNER_TEMP/apk-strings.txt"; then
+            echo "Server/release secret name found in APK payload"
+            exit 1
+          fi
+          sha256sum "$APK" | tee "$RUNNER_TEMP/${{ matrix.channel }}-apk-sha256.txt"
+          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
+
+      - name: Upload debug APK and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.channel }}-debug
+          path: |
+            ${{ env.APK_PATH }}
+            ${{ runner.temp }}/${{ matrix.channel }}-apk-sha256.txt

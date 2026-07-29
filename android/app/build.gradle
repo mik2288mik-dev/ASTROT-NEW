@@ -14,6 +14,9 @@ def releaseKeyPasswordValue = signingValue('RELEASE_KEY_PASSWORD')
 def releaseSigningReady = releaseStoreFileValue && releaseStorePasswordValue && releaseKeyAliasValue && releaseKeyPasswordValue
 def rustoreConsoleAppId = project.findProperty('RUSTORE_CONSOLE_APP_ID') ?: System.getenv('RUSTORE_CONSOLE_APP_ID') ?: 'RUSTORE_CONSOLE_APP_ID_REQUIRED'
 def rustoreScheme = project.findProperty('RUSTORE_PAY_SCHEME') ?: System.getenv('RUSTORE_PAY_SCHEME') ?: "${appPackageId}.rustore"
+def authCallbackScheme = project.findProperty('NATIVE_AUTH_CALLBACK_SCHEME') ?: System.getenv('NATIVE_AUTH_CALLBACK_SCHEME') ?: 'yourhoroscope'
+def appVersionCodeValue = System.getenv('APP_VERSION_CODE') ?: project.findProperty('APP_VERSION_CODE') ?: '1'
+def appVersionNameValue = System.getenv('APP_VERSION_NAME') ?: project.findProperty('APP_VERSION_NAME') ?: '1.0.0'
 def releaseTaskRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') && !it.toLowerCase().contains('lint') }
 
 if (releaseTaskRequested && !releaseSigningReady) {
@@ -27,11 +30,12 @@ android {
         applicationId appPackageId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (project.findProperty('APP_VERSION_CODE') ?: System.getenv('APP_VERSION_CODE') ?: '1').toInteger()
-        versionName (project.findProperty('APP_VERSION_NAME') ?: System.getenv('APP_VERSION_NAME') ?: '1.0.0')
+        versionCode Integer.parseInt(appVersionCodeValue.toString())
+        versionName appVersionNameValue.toString()
         manifestPlaceholders = [
             rustoreConsoleAppId: rustoreConsoleAppId,
             rustorePayScheme: rustoreScheme,
+            authCallbackScheme: authCallbackScheme,
         ]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -75,7 +79,9 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

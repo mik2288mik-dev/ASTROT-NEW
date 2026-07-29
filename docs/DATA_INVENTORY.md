@@ -6,7 +6,7 @@ not available in the repository.
 
 | Data | Source / required | Purpose / storage | Transfer | Deletion / status |
 |---|---|---|---|---|
-| Name; Telegram/native ID | profile/authentication; required for account | identity and access; `users` | Telegram when its WebApp channel is used | deleted with account; direct ID; Confirmed |
+| Name; Telegram/native/OAuth identifier; verified email | profile/authentication; required only for recovery | identity and access; `users`, `account_identities` | Telegram, VK ID, Yandex ID, Google, configured email adapter | deleted with account; direct ID; Confirmed |
 | Birth date, time, place, coordinates | user profile; required for personalised calculation | natal calculation; `users`, `natal_charts` | calculation/generation path must be reviewed before production | deleted with account; personalised; Confirmed storage, transfer PARTIAL |
 | Natal chart, forecasts and cache | derived from profile; required for the feature | personalised content; chart/content/cache tables | OpenAI only when the generation path calls it | deleted with account; personalised; PARTIAL |
 | Questions and AI answers | user input; optional | answer generation/history; `personal_forecast_questions` | OpenAI for approved generation | deleted with account; direct content; Confirmed |

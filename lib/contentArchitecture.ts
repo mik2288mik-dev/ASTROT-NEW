@@ -226,7 +226,15 @@ export async function unlockContentLayer(
 }
 
 export async function getPremiumEntitlementState(userId: string) {
-  if (isGuestUserId(userId)) return { isPremium: false, entitlement: null };
+  // Guest IDs stay stable when a recovery identity is linked, so a negative
+  // users.id is not by itself proof that the account is still a guest.
+  let user: Awaited<ReturnType<typeof db.users.get>> | null = null;
+  if (isGuestUserId(userId)) {
+    user = await db.users.get(userId);
+    if (!user || user.is_guest !== false) {
+      return { isPremium: false, entitlement: null };
+    }
+  }
 
   const ownerId = getConfiguredOwnerId();
   if (ownerId && String(userId) === String(ownerId)) {
@@ -253,7 +261,7 @@ export async function getPremiumEntitlementState(userId: string) {
     };
   }
 
-  const user = await db.users.get(userId);
+  user ||= await db.users.get(userId);
   if (user?.is_admin) {
     return {
       isPremium: true,

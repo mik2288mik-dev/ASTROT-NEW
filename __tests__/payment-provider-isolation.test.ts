@@ -1,4 +1,4 @@
-jest.mock('../services/telegramService', () => ({
+jest.mock('../services/telegramStarsPayment', () => ({
   requestStarsPayment: jest.fn(),
 }));
 jest.mock('../services/rustorePayService', () => ({
@@ -6,7 +6,7 @@ jest.mock('../services/rustorePayService', () => ({
 }));
 
 import { getPaymentProvider } from '../services/paymentProvider';
-import { requestStarsPayment } from '../services/telegramService';
+import { requestStarsPayment } from '../services/telegramStarsPayment';
 import { requestRuStorePayment } from '../services/rustorePayService';
 
 const profile = { id: '42', language: 'ru' } as any;

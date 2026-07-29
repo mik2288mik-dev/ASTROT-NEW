@@ -8,6 +8,13 @@ import { hasActivePremium } from '../lib/accessMatrix';
 import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
+import {
+    beginExternalAuth,
+    getLinkedIdentities,
+    requestEmailLoginCode,
+    verifyEmailLoginCode,
+    type LinkedIdentity,
+} from '../services/accountAuthService';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -105,6 +112,13 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [quietEnd, setQuietEnd] = useState('08:00');
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deletionError, setDeletionError] = useState('');
+    const [identities, setIdentities] = useState<LinkedIdentity[]>([]);
+    const [identityError, setIdentityError] = useState('');
+    const [emailValue, setEmailValue] = useState('');
+    const [emailChallengeId, setEmailChallengeId] = useState('');
+    const [emailCode, setEmailCode] = useState('');
+    const [identityBusy, setIdentityBusy] = useState(false);
+    const [authPurpose, setAuthPurpose] = useState<'link' | 'login'>('link');
 
     useEffect(() => {
         let alive = true;
@@ -116,6 +130,46 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
         });
         return () => { alive = false; };
     }, []);
+
+    useEffect(() => {
+        let alive = true;
+        void getLinkedIdentities()
+            .then((result) => { if (alive) setIdentities(result.identities); })
+            .catch(() => undefined);
+        return () => { alive = false; };
+    }, [profile.id]);
+
+    const linkOAuth = (provider: 'vk' | 'yandex' | 'google') => {
+        setIdentityError('');
+        setIdentityBusy(true);
+        void beginExternalAuth(provider, authPurpose)
+            .catch((error) => setIdentityError(String(error?.message || 'AUTH_LINK_FAILED')))
+            .finally(() => setIdentityBusy(false));
+    };
+
+    const requestEmailCode = () => {
+        setIdentityError('');
+        setIdentityBusy(true);
+        void requestEmailLoginCode(emailValue, authPurpose)
+            .then((result) => setEmailChallengeId(result.challengeId))
+            .catch((error) => setIdentityError(String(error?.message || 'EMAIL_CODE_REQUEST_FAILED')))
+            .finally(() => setIdentityBusy(false));
+    };
+
+    const confirmEmailCode = () => {
+        setIdentityError('');
+        setIdentityBusy(true);
+        void verifyEmailLoginCode(emailChallengeId, emailCode)
+            .then(async (fresh) => {
+                if (fresh) onUpdate(fresh);
+                const result = await getLinkedIdentities();
+                setIdentities(result.identities);
+                setEmailChallengeId('');
+                setEmailCode('');
+            })
+            .catch((error) => setIdentityError(String(error?.message || 'EMAIL_CODE_VERIFY_FAILED')))
+            .finally(() => setIdentityBusy(false));
+    };
 
     const saveNotif = (patch: { enabled?: boolean; quietHoursStart?: string; quietHoursEnd?: string }) => {
         void updateUserNotificationSettings({
@@ -586,6 +640,87 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     </div>
                 </button>
             )}
+
+            <section className={sectionClass}>
+                <h3 className="font-serif text-lg text-mono-ink">
+                    {profile.language === 'en' ? 'Sign-in methods' : 'Способы входа'}
+                </h3>
+                <p className="lumia-muted mt-1 text-sm">
+                    {profile.language === 'en'
+                        ? 'Link at least one method to restore this account and Premium on another device.'
+                        : 'Привяжи хотя бы один способ, чтобы восстановить этот аккаунт и Premium на другом устройстве.'}
+                </p>
+                {profile.isGuest ? (
+                    <button
+                        type="button"
+                        className="mt-2 text-sm font-medium text-mono-accent"
+                        onClick={() => setAuthPurpose((value) => value === 'link' ? 'login' : 'link')}
+                    >
+                        {authPurpose === 'link'
+                            ? (profile.language === 'en' ? 'Restore an existing account instead' : 'Восстановить существующий аккаунт')
+                            : (profile.language === 'en' ? 'Link this guest account instead' : 'Привязать текущий гостевой аккаунт')}
+                    </button>
+                ) : null}
+                {authPurpose === 'login' ? (
+                    <p className="mt-2 text-xs text-mono-muted">
+                        {profile.language === 'en'
+                            ? 'Signing in switches to the existing account; guest data is not merged automatically.'
+                            : 'Вход переключит приложение на существующий аккаунт. Данные гостя автоматически не объединяются.'}
+                    </p>
+                ) : null}
+                {identities.length ? (
+                    <p className="mt-2 text-sm text-mono-ink">
+                        {identities.map((identity) => identity.provider === 'email'
+                            ? identity.email || 'email'
+                            : identity.provider).join(' · ')}
+                    </p>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {(['vk', 'yandex', 'google'] as const).map((provider) => (
+                        <button
+                            key={provider}
+                            type="button"
+                            className="fresh-btn-ghost"
+                            disabled={identityBusy || identities.some((identity) => identity.provider === provider)}
+                            onClick={() => linkOAuth(provider)}
+                        >
+                            {provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс ID' : 'Google'}
+                        </button>
+                    ))}
+                </div>
+                {!identities.some((identity) => identity.provider === 'email') ? (
+                    <div className="mt-3 grid gap-2">
+                        <input
+                            className="fresh-input"
+                            type="email"
+                            autoComplete="email"
+                            value={emailValue}
+                            onChange={(event) => setEmailValue(event.target.value)}
+                            placeholder={profile.language === 'en' ? 'Email' : 'Email для входа'}
+                        />
+                        {emailChallengeId ? (
+                            <div className="flex gap-2">
+                                <input
+                                    className="fresh-input min-w-0 flex-1"
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    value={emailCode}
+                                    onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
+                                />
+                                <button type="button" className="fresh-btn-ghost" disabled={identityBusy || emailCode.length !== 6} onClick={confirmEmailCode}>
+                                    {profile.language === 'en' ? 'Confirm' : 'Подтвердить'}
+                                </button>
+                            </div>
+                        ) : (
+                            <button type="button" className="fresh-btn-ghost" disabled={identityBusy || !emailValue.trim()} onClick={requestEmailCode}>
+                                {profile.language === 'en' ? 'Send code' : 'Отправить код'}
+                            </button>
+                        )}
+                    </div>
+                ) : null}
+                {identityError ? <p role="alert" className="mt-2 text-sm text-red-700">{identityError}</p> : null}
+            </section>
 
             <section className={sectionClass}>
                 <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Legal and support' : 'Правовая информация и поддержка'}</h3>

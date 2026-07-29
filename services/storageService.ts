@@ -5,16 +5,18 @@ import {
 import { toDateInputValue } from "../lib/date-utils";
 import { isValidUserId } from "../lib/userId";
 import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
-import { apiFetch } from "./apiClient";
+import { apiFetch, clearAppSessionAndLocalData } from "./apiClient";
 
 export async function deleteCurrentAccount(): Promise<void> {
   const response = await apiFetch('/api/users/account', { method: 'DELETE' });
   if (!response.ok) throw new Error('ACCOUNT_DELETION_FAILED');
+  await clearAppSessionAndLocalData();
 }
 
 export async function logoutCurrentAccount(): Promise<void> {
   const response = await apiFetch('/api/users/session/logout', { method: 'POST' });
   if (!response.ok) throw new Error('LOGOUT_FAILED');
+  await clearAppSessionAndLocalData();
 }
 
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;

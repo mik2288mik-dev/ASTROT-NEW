@@ -25,6 +25,27 @@ export async function deleteAccountData(userId: string): Promise<AccountDeletion
       return { deleted: false, alreadyDeleted: true };
     }
 
+    // Preserve revocation evidence after app_sessions disappear through the
+    // users FK, so every previously issued signed token stays invalid.
+    await executeIfTable(
+      client,
+      'app_sessions',
+      `INSERT INTO app_session_revocations (session_id, expires_at, revoked_at)
+       SELECT session_id, expires_at, CURRENT_TIMESTAMP
+       FROM app_sessions WHERE user_id = $1
+       ON CONFLICT (session_id) DO UPDATE
+         SET expires_at = EXCLUDED.expires_at, revoked_at = CURRENT_TIMESTAMP`,
+      [userId],
+    );
+    await executeIfTable(
+      client,
+      'app_sessions',
+      `UPDATE app_sessions
+       SET revoked_at = CURRENT_TIMESTAMP, revoke_reason = 'account_deleted'
+       WHERE user_id = $1 AND revoked_at IS NULL`,
+      [userId],
+    );
+
     // Cancel before the user row is removed; these queued rows then disappear
     // through their FK and cannot be picked up by a scheduler.
     await executeIfTable(
@@ -39,6 +60,25 @@ export async function deleteAccountData(userId: string): Promise<AccountDeletion
     await executeIfTable(client, 'natal_content_legacy_archive', 'DELETE FROM natal_content_legacy_archive WHERE user_id = $1', [userId]);
     await executeIfTable(client, 'support_tickets', 'UPDATE support_tickets SET user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1', [userId]);
     await executeIfTable(client, 'support_messages', 'UPDATE support_messages SET author_id = NULL WHERE author_id = $1', [userId]);
+    await executeIfTable(
+      client,
+      'payment_provider_events',
+      `UPDATE payment_provider_events
+       SET external_purchase_id = NULL,
+           event_payload = CASE
+             WHEN event_payload IS NULL THEN NULL
+             ELSE jsonb_build_object(
+               'notificationType', event_payload->>'notificationType',
+               'status', event_payload->>'status',
+               'accountDeleted', TRUE
+             )
+           END
+       WHERE external_purchase_id IN (
+         SELECT external_purchase_id FROM store_purchases
+         WHERE user_id = $1 AND external_purchase_id IS NOT NULL
+       )`,
+      [userId],
+    );
     await executeIfTable(client, 'admin_users', 'UPDATE admin_users SET created_by = NULL WHERE created_by = $1', [userId]);
     await executeIfTable(client, 'admin_audit_log', 'DELETE FROM admin_audit_log WHERE entity_type = \'user\' AND entity_id = $1', [userId]);
     await executeIfTable(client, 'admin_audit_log', 'UPDATE admin_audit_log SET actor_user_id = NULL WHERE actor_user_id = $1', [userId]);

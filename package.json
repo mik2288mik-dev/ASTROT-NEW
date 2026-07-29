@@ -22,6 +22,7 @@
     "android:debug": "node scripts/android-debug.mjs",
     "android:validate": "node scripts/validate-store-release.mjs",
     "android:validate:release": "node scripts/validate-store-release.mjs --release",
+    "test:postgres": "jest --runInBand __tests__/account-rustore-postgres.integration.test.ts",
     "android:rustore:apk": "node scripts/android-release.mjs rustore-apk",
     "android:rustore:aab": "node scripts/android-release.mjs rustore-aab",
     "android:google-play:aab": "node scripts/android-release.mjs google-play-aab"
