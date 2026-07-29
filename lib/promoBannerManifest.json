@@ -1,0 +1,2125 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "compatibility-banner-001",
+      "filename": "/banners/optimized/compatibility-banner-001-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-001-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-001-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-002",
+      "filename": "/banners/optimized/compatibility-banner-002-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-002-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-002-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-003",
+      "filename": "/banners/optimized/compatibility-banner-003-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-003-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-003-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-004",
+      "filename": "/banners/optimized/compatibility-banner-004-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-004-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-004-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-005",
+      "filename": "/banners/optimized/compatibility-banner-005-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-005-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-005-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-006",
+      "filename": "/banners/optimized/compatibility-banner-006-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-006-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-006-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-007",
+      "filename": "/banners/optimized/compatibility-banner-007-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-007-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-007-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-008",
+      "filename": "/banners/optimized/compatibility-banner-008-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-008-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-008-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-009",
+      "filename": "/banners/optimized/compatibility-banner-009-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-009-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-009-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-010",
+      "filename": "/banners/optimized/compatibility-banner-010-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-010-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-010-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-011",
+      "filename": "/banners/optimized/compatibility-banner-011-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-011-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-011-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-012",
+      "filename": "/banners/optimized/compatibility-banner-012-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-012-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-012-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-013",
+      "filename": "/banners/optimized/compatibility-banner-013-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-013-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-013-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-014",
+      "filename": "/banners/optimized/compatibility-banner-014-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-014-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-014-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-015",
+      "filename": "/banners/optimized/compatibility-banner-015-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-015-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-015-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-016",
+      "filename": "/banners/optimized/compatibility-banner-016-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-016-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-016-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-017",
+      "filename": "/banners/optimized/compatibility-banner-017-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-017-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-017-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-018",
+      "filename": "/banners/optimized/compatibility-banner-018-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-018-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-018-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-019",
+      "filename": "/banners/optimized/compatibility-banner-019-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-019-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-019-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-020",
+      "filename": "/banners/optimized/compatibility-banner-020-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-020-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-020-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-021",
+      "filename": "/banners/optimized/compatibility-banner-021-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-021-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-021-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-022",
+      "filename": "/banners/optimized/compatibility-banner-022-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-022-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-022-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-023",
+      "filename": "/banners/optimized/compatibility-banner-023-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-023-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-023-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-024",
+      "filename": "/banners/optimized/compatibility-banner-024-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-024-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-024-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-025",
+      "filename": "/banners/optimized/compatibility-banner-025-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-025-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-025-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-026",
+      "filename": "/banners/optimized/compatibility-banner-026-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-026-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-026-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-027",
+      "filename": "/banners/optimized/compatibility-banner-027-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-027-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-027-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-028",
+      "filename": "/banners/optimized/compatibility-banner-028-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-028-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-028-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-029",
+      "filename": "/banners/optimized/compatibility-banner-029-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-029-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-029-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-030",
+      "filename": "/banners/optimized/compatibility-banner-030-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-030-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-030-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-031",
+      "filename": "/banners/optimized/compatibility-banner-031-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-031-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-031-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-032",
+      "filename": "/banners/optimized/compatibility-banner-032-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-032-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-032-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-001",
+      "filename": "/banners/optimized/natal-chart-banner-001-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-001-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-001-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-033",
+      "filename": "/banners/optimized/compatibility-banner-033-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-033-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-033-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-034",
+      "filename": "/banners/optimized/compatibility-banner-034-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-034-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-034-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-002",
+      "filename": "/banners/optimized/natal-chart-banner-002-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-002-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-002-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-003",
+      "filename": "/banners/optimized/natal-chart-banner-003-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-003-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-003-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-035",
+      "filename": "/banners/optimized/compatibility-banner-035-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-035-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-035-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-004",
+      "filename": "/banners/optimized/natal-chart-banner-004-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-004-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-004-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-036",
+      "filename": "/banners/optimized/compatibility-banner-036-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-036-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-036-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-005",
+      "filename": "/banners/optimized/natal-chart-banner-005-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-005-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-005-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-006",
+      "filename": "/banners/optimized/natal-chart-banner-006-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-006-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-006-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-037",
+      "filename": "/banners/optimized/compatibility-banner-037-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-037-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-037-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-007",
+      "filename": "/banners/optimized/natal-chart-banner-007-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-007-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-007-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-008",
+      "filename": "/banners/optimized/natal-chart-banner-008-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-008-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-008-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-001",
+      "filename": "/banners/optimized/zodiac-banner-001-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-001-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-001-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-038",
+      "filename": "/banners/optimized/compatibility-banner-038-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-038-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-038-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-002",
+      "filename": "/banners/optimized/zodiac-banner-002-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-002-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-002-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-003",
+      "filename": "/banners/optimized/zodiac-banner-003-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-003-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-003-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-039",
+      "filename": "/banners/optimized/compatibility-banner-039-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-039-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-039-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-009",
+      "filename": "/banners/optimized/natal-chart-banner-009-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-009-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-009-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-004",
+      "filename": "/banners/optimized/zodiac-banner-004-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-004-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-004-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-010",
+      "filename": "/banners/optimized/natal-chart-banner-010-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-010-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-010-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-011",
+      "filename": "/banners/optimized/natal-chart-banner-011-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-011-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-011-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-012",
+      "filename": "/banners/optimized/natal-chart-banner-012-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-012-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-012-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-013",
+      "filename": "/banners/optimized/natal-chart-banner-013-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-013-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-013-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-014",
+      "filename": "/banners/optimized/natal-chart-banner-014-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-014-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-014-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-015",
+      "filename": "/banners/optimized/natal-chart-banner-015-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-015-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-015-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-016",
+      "filename": "/banners/optimized/natal-chart-banner-016-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-016-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-016-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "compatibility-banner-040",
+      "filename": "/banners/optimized/compatibility-banner-040-960.webp",
+      "category": "compatibility",
+      "targetRoute": "/compatibility",
+      "width": 1448,
+      "height": 1086,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/compatibility-banner-040-640.webp",
+          "width": 640,
+          "height": 480
+        },
+        "desktop": {
+          "filename": "/banners/optimized/compatibility-banner-040-960.webp",
+          "width": 960,
+          "height": 720
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-017",
+      "filename": "/banners/optimized/natal-chart-banner-017-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-017-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-017-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-018",
+      "filename": "/banners/optimized/natal-chart-banner-018-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-018-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-018-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-019",
+      "filename": "/banners/optimized/natal-chart-banner-019-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-019-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-019-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-020",
+      "filename": "/banners/optimized/natal-chart-banner-020-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-020-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-020-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-021",
+      "filename": "/banners/optimized/natal-chart-banner-021-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-021-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-021-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-022",
+      "filename": "/banners/optimized/natal-chart-banner-022-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-022-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-022-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-005",
+      "filename": "/banners/optimized/zodiac-banner-005-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-005-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-005-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-006",
+      "filename": "/banners/optimized/zodiac-banner-006-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-006-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-006-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-007",
+      "filename": "/banners/optimized/zodiac-banner-007-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-007-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-007-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-008",
+      "filename": "/banners/optimized/zodiac-banner-008-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-008-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-008-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-009",
+      "filename": "/banners/optimized/zodiac-banner-009-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-009-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-009-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-023",
+      "filename": "/banners/optimized/natal-chart-banner-023-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-023-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-023-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-010",
+      "filename": "/banners/optimized/zodiac-banner-010-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-010-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-010-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-011",
+      "filename": "/banners/optimized/zodiac-banner-011-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-011-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-011-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-012",
+      "filename": "/banners/optimized/zodiac-banner-012-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-012-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-012-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-013",
+      "filename": "/banners/optimized/zodiac-banner-013-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-013-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-013-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-014",
+      "filename": "/banners/optimized/zodiac-banner-014-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-014-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-014-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-015",
+      "filename": "/banners/optimized/zodiac-banner-015-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-015-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-015-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-016",
+      "filename": "/banners/optimized/zodiac-banner-016-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-016-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-016-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-017",
+      "filename": "/banners/optimized/zodiac-banner-017-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-017-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-017-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-018",
+      "filename": "/banners/optimized/zodiac-banner-018-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-018-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-018-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-019",
+      "filename": "/banners/optimized/zodiac-banner-019-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-019-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-019-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-020",
+      "filename": "/banners/optimized/zodiac-banner-020-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-020-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-020-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-021",
+      "filename": "/banners/optimized/zodiac-banner-021-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-021-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-021-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-024",
+      "filename": "/banners/optimized/natal-chart-banner-024-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-024-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-024-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-022",
+      "filename": "/banners/optimized/zodiac-banner-022-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-022-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-022-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-023",
+      "filename": "/banners/optimized/zodiac-banner-023-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-023-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-023-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "zodiac-banner-024",
+      "filename": "/banners/optimized/zodiac-banner-024-960.webp",
+      "category": "zodiac",
+      "targetRoute": "/zodiac",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/zodiac-banner-024-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/zodiac-banner-024-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-025",
+      "filename": "/banners/optimized/natal-chart-banner-025-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-025-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-025-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-026",
+      "filename": "/banners/optimized/natal-chart-banner-026-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-026-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-026-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-027",
+      "filename": "/banners/optimized/natal-chart-banner-027-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-027-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-027-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-028",
+      "filename": "/banners/optimized/natal-chart-banner-028-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-028-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-028-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-029",
+      "filename": "/banners/optimized/natal-chart-banner-029-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-029-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-029-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-030",
+      "filename": "/banners/optimized/natal-chart-banner-030-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-030-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-030-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-031",
+      "filename": "/banners/optimized/natal-chart-banner-031-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1254,
+      "height": 1254,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-031-640.webp",
+          "width": 640,
+          "height": 640
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-031-960.webp",
+          "width": 960,
+          "height": 960
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-032",
+      "filename": "/banners/optimized/natal-chart-banner-032-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-032-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-032-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-033",
+      "filename": "/banners/optimized/natal-chart-banner-033-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-033-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-033-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-034",
+      "filename": "/banners/optimized/natal-chart-banner-034-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-034-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-034-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-035",
+      "filename": "/banners/optimized/natal-chart-banner-035-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-035-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-035-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-036",
+      "filename": "/banners/optimized/natal-chart-banner-036-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-036-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-036-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-037",
+      "filename": "/banners/optimized/natal-chart-banner-037-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1491,
+      "height": 1055,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-037-640.webp",
+          "width": 640,
+          "height": 453
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-037-960.webp",
+          "width": 960,
+          "height": 679
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-038",
+      "filename": "/banners/optimized/natal-chart-banner-038-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-038-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-038-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-039",
+      "filename": "/banners/optimized/natal-chart-banner-039-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-039-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-039-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-040",
+      "filename": "/banners/optimized/natal-chart-banner-040-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-040-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-040-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-041",
+      "filename": "/banners/optimized/natal-chart-banner-041-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-041-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-041-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    },
+    {
+      "id": "natal-chart-banner-042",
+      "filename": "/banners/optimized/natal-chart-banner-042-960.webp",
+      "category": "natal",
+      "targetRoute": "/natal-chart",
+      "width": 1672,
+      "height": 941,
+      "responsiveVersions": {
+        "mobile": {
+          "filename": "/banners/optimized/natal-chart-banner-042-640.webp",
+          "width": 640,
+          "height": 360
+        },
+        "desktop": {
+          "filename": "/banners/optimized/natal-chart-banner-042-960.webp",
+          "width": 960,
+          "height": 540
+        }
+      }
+    }
+  ]
+}

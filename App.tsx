@@ -25,6 +25,7 @@ import { getMoscowTodayKey } from './lib/date-utils';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { Header } from './components/Header';
+import { PromoBanner } from './components/PromoBanner';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
@@ -1661,6 +1662,14 @@ const App: React.FC = () => {
                             onCreateNatalChart={openBottomNatal}
                             onUpdateProfile={handleProfileUpdate}
                         />
+                        <PromoBanner
+                            category="natal"
+                            userId={String(profile.id || 'guest')}
+                            dayKey={currentDateKey}
+                            placementKey="screen:synastry:natal"
+                            language={profile.language === 'en' ? 'en' : 'ru'}
+                            onOpen={openBottomNatal}
+                        />
                     </div>
                 ) : view === 'matrix' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
@@ -1679,6 +1688,14 @@ const App: React.FC = () => {
                             onRequestPremium={requestPremium}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
                         />
+                        <PromoBanner
+                            category="compatibility"
+                            userId={String(profile.id || 'guest')}
+                            dayKey={currentDateKey}
+                            placementKey="screen:zodiac:compatibility"
+                            language={profile.language === 'en' ? 'en' : 'ru'}
+                            onOpen={openSynastryFromHome}
+                        />
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
@@ -1690,6 +1707,14 @@ const App: React.FC = () => {
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
                             onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
+                        />
+                        <PromoBanner
+                            category="zodiac"
+                            userId={String(profile.id || 'guest')}
+                            dayKey={currentDateKey}
+                            placementKey="screen:natal:zodiac"
+                            language={profile.language === 'en' ? 'en' : 'ru'}
+                            onOpen={openBottomZodiac}
                         />
                     </div>
                 ) : view === 'settings' ? (

@@ -45,6 +45,7 @@ describe('card background UI wiring', () => {
     const visuals = read('lib/personalForecastVisuals.ts');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
     const promotion = read('components/PersonalForecastFeed/ForecastPromotion.tsx');
+    const promoBanner = read('components/PromoBanner.tsx');
     const natal = read('views/v2/NatalMagazine.tsx');
     const compatibility = read('views/Synastry.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
@@ -60,8 +61,9 @@ describe('card background UI wiring', () => {
     expect(dashboard).toContain('visual?.assignments[section.id]');
     expect(sectionBlock).toContain("hasVisual ? 'has-visual' : 'has-visual-fallback'");
     expect(sectionBlock).toContain('style={style}');
-    expect(promotion).toContain('PROMO_ART');
-    expect(promotion).toContain('/assets/forecast-feed/banner-natal.png');
+    expect(promotion).toContain('<PromoBanner');
+    expect(promoBanner).toContain('selectPromoBanner');
+    expect(promoBanner).toContain('loading="lazy"');
     expect(dashboard).not.toMatch(
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );

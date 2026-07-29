@@ -576,6 +576,7 @@ export const Dashboard = memo<DashboardProps>(({
       placement={placement}
       userId={userId}
       periodKey={periodKeys[activePeriod]}
+      dayKey={periodKeys.day}
       language={language}
       onOpenNatal={() => {
         lumiaSelectionHaptic();
