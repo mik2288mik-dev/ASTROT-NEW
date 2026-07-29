@@ -144,7 +144,7 @@ const PaidTopicCard: React.FC<{
   const accent = TOPIC_ACCENTS[index % TOPIC_ACCENTS.length];
 
   return (
-    <div className="mt-2.5 overflow-hidden fresh-card first:mt-0" style={{ borderLeft: `3px solid ${accent}` }}>
+    <div className="natal-topic-row mt-2.5 overflow-hidden fresh-card first:mt-0" style={{ borderLeft: `3px solid ${accent}` }}>
       <button
         type="button"
         onClick={onToggle}
@@ -202,7 +202,7 @@ const PremiumTopicTeaser: React.FC<{
       type="button"
       onClick={onClick}
       whileTap={{ scale: 0.99 }}
-      className="group w-full border-t border-mono-line py-5 text-left first:border-t-0"
+      className="natal-topic-teaser group w-full border-t border-mono-line py-5 text-left first:border-t-0"
     >
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mono-plate text-mono-ink">
@@ -291,7 +291,7 @@ const TechnicalDetails: React.FC<{ chartData: NatalChartData }> = ({ chartData }
   }).filter(Boolean);
 
   return (
-    <details className="border-t border-[#eeeeee] py-6">
+    <details className="natal-technical-details border-t border-[#eeeeee] py-6">
       <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-medium text-[#3a3a3a]">
         <span>Подробные положения планет</span>
         <ChevronDown size={16} strokeWidth={1.7} />
@@ -445,7 +445,7 @@ export const HumanReport: React.FC<Props> = ({
   };
 
   return (
-    <article className="relative bg-white pb-16 pt-1">
+    <article className="natal-editorial-report relative bg-white pb-16 pt-1">
       {/* Встроенный режим (в NatalMagazine): текст на всю ширину экрана с общими боковыми
           отступами 16px — как big3 выше, без искусственно узкой колонки.
           Standalone (!hideIntro) сохраняет читательскую центрированную колонку. */}
@@ -491,7 +491,7 @@ export const HumanReport: React.FC<Props> = ({
           <ChartBalance chart={chartData} language={profile.language === 'en' ? 'en' : 'ru'} />
         ) : null}
 
-        <section className="border-t border-[#eeeeee] py-7">
+        <section className="natal-topics-section border-t border-[#eeeeee] py-7">
           <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Подробные темы по карте</p>
           {!isPremium ? (
             <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
@@ -548,7 +548,7 @@ export const HumanReport: React.FC<Props> = ({
           <p className="border-t border-[#eeeeee] py-4 text-[13px] leading-relaxed text-[#b05c5c]">{sectionError}</p>
         ) : null}
 
-        <section className="border-t border-[#eeeeee] py-6">
+        <section className="natal-disclaimer border-t border-[#eeeeee] py-6">
           <p className="font-sans text-[12.5px] leading-relaxed text-[#777]">
             Это ознакомательная интерпретация на основе астрологических расчетов по вашим данным рождения. Она не является прямым указанием к действию и не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.
           </p>
