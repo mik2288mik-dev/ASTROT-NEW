@@ -1,0 +1,319 @@
+/*
+ * Natal chart — light editorial flow.
+ *
+ * This stylesheet is intentionally scoped to .natal-editorial-page and loaded
+ * after the shared product styles. The chart data, Premium flow, navigation,
+ * and generated copy remain owned by their existing components.
+ */
+
+.fresh-page.natal-editorial-page {
+  --natal-editorial-bg: #fbfbfa;
+  --natal-editorial-ink: #17191d;
+  --natal-editorial-muted: #6f747c;
+  --natal-editorial-line: rgba(23, 25, 29, 0.09);
+  background: var(--natal-editorial-bg);
+  color: var(--natal-editorial-ink);
+}
+
+.fresh-page.natal-editorial-page .fresh-inner-header {
+  position: relative;
+  z-index: 61;
+  padding-bottom: 14px;
+  background: rgba(251, 251, 250, 0.92);
+  box-shadow: none;
+  backdrop-filter: blur(14px) saturate(1.04);
+  -webkit-backdrop-filter: blur(14px) saturate(1.04);
+}
+
+.natal-editorial-page .product-screen-cover--natal {
+  width: 100%;
+  min-height: 176px;
+  margin: 0 0 4px;
+  padding: 34px 20px 28px;
+  overflow: hidden;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}
+
+.natal-editorial-page .product-screen-cover--natal::before {
+  content: '';
+  position: absolute;
+  inset: -14px 0;
+  z-index: 0;
+  background-image: var(--card-bg-image);
+  background-position: var(--card-bg-position, center);
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: brightness(1.12) saturate(0.62) contrast(0.86);
+  opacity: 0.46;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 78%, transparent 100%);
+}
+
+.natal-editorial-page .product-screen-cover--natal::after {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(251, 251, 250, 0.96) 0%, rgba(251, 251, 250, 0.78) 52%, rgba(251, 251, 250, 0.36) 100%),
+    linear-gradient(180deg, var(--natal-editorial-bg) 0%, transparent 22%, transparent 74%, var(--natal-editorial-bg) 100%);
+}
+
+.natal-editorial-page .product-screen-cover-copy {
+  z-index: 2;
+  max-width: min(76%, 26rem);
+}
+
+.natal-editorial-page .product-screen-cover-title {
+  color: var(--natal-editorial-ink);
+  font-size: clamp(1.55rem, 6vw, 2rem);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.natal-editorial-page .product-screen-cover-text {
+  max-width: 24rem;
+  margin-top: 0.68rem;
+  color: var(--natal-editorial-muted);
+  font-size: clamp(0.91rem, 3.45vw, 1rem);
+  font-weight: 480;
+  line-height: 1.52;
+}
+
+.natal-editorial-page .natal-big3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0 20px;
+  padding: 15px 0 22px;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-bottom: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-big3-card {
+  min-width: 0;
+  min-height: 54px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 4px 9px;
+  border-left: 1px solid var(--natal-editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.natal-editorial-page .natal-big3-card:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.natal-editorial-page .natal-big3-card:last-child {
+  padding-right: 0;
+}
+
+.natal-editorial-page .natal-big3-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(20, 120, 255, 0.07);
+  color: #2468b2;
+}
+
+.natal-editorial-page .natal-big3-planet {
+  color: var(--natal-editorial-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.natal-editorial-page .natal-big3-sign {
+  margin-top: 3px;
+  color: var(--natal-editorial-ink);
+  font-size: clamp(0.75rem, 3.1vw, 0.86rem);
+  font-weight: 720;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.natal-editorial-page .natal-editorial-report {
+  padding-top: 0;
+  background: transparent;
+}
+
+.natal-editorial-page .natal-sec {
+  margin: 0;
+  padding: 30px 4px;
+  border: 0;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.natal-editorial-page .natal-sec:first-child {
+  padding-top: 30px;
+  border-top: 0;
+}
+
+.natal-editorial-page .natal-sec-title {
+  max-width: 27rem;
+  margin: 0;
+  color: var(--natal-editorial-ink);
+  font-size: clamp(1.35rem, 5.4vw, 1.58rem);
+  font-weight: 760;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+}
+
+.natal-editorial-page .natal-sec-body {
+  max-width: 34rem;
+  margin-top: 15px;
+}
+
+.natal-editorial-page .natal-sec-p {
+  margin: 0;
+  color: #292c31;
+  font-size: clamp(0.98rem, 3.75vw, 1.05rem);
+  font-weight: 430;
+  letter-spacing: 0;
+  line-height: 1.68;
+}
+
+.natal-editorial-page .natal-sec-p + .natal-sec-p {
+  margin-top: 0.9em;
+}
+
+.natal-editorial-page .natal-sec-bullets {
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.natal-editorial-page .natal-sec-bullets li {
+  padding-left: 16px;
+  color: var(--natal-editorial-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.natal-editorial-page .natal-sec-bullets li::before {
+  top: 0.58em;
+  width: 5px;
+  height: 5px;
+  background: #2468b2;
+}
+
+.natal-editorial-page .cib {
+  margin: 0;
+  padding: 28px 4px 30px;
+  border: 0;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.natal-editorial-page .cib-head {
+  margin-bottom: 14px;
+  color: var(--natal-editorial-ink);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.natal-editorial-page .cib-bar {
+  height: 8px;
+  background: #e9edf2;
+}
+
+.natal-editorial-page .cib-legend {
+  gap: 9px 14px;
+  margin-top: 14px;
+}
+
+.natal-editorial-page .cib-summary {
+  max-width: 34rem;
+  margin-top: 16px;
+  color: #363a40;
+  line-height: 1.62;
+}
+
+.natal-editorial-page .natal-topics-section {
+  padding: 30px 4px;
+  border-color: var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-topic-row {
+  margin-top: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--natal-editorial-line);
+  background: transparent;
+  box-shadow: none;
+}
+
+.natal-editorial-page .natal-topic-row:first-child {
+  border-top: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-topic-row > button {
+  padding: 18px 2px 18px 13px;
+}
+
+.natal-editorial-page .natal-topic-teaser {
+  border-color: var(--natal-editorial-line);
+  background: transparent;
+}
+
+.natal-editorial-page .natal-topic-teaser:first-child {
+  border-top: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-premium-card {
+  border: 1px solid rgba(20, 120, 255, 0.1);
+  background: linear-gradient(135deg, #f2f7fd 0%, #f8f6fc 100%);
+  box-shadow: none;
+}
+
+.natal-editorial-page .natal-premium-button {
+  box-shadow: 0 8px 18px rgba(20, 120, 255, 0.16);
+}
+
+.natal-editorial-page .natal-technical-details,
+.natal-editorial-page .natal-disclaimer {
+  border-color: var(--natal-editorial-line);
+}
+
+@media (max-width: 380px) {
+  .natal-editorial-page .product-screen-cover--natal {
+    width: 100%;
+    min-height: 166px;
+    margin-right: 0;
+    margin-left: 0;
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .natal-editorial-page .product-screen-cover-copy {
+    max-width: 82%;
+  }
+
+  .natal-editorial-page .natal-big3 {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .natal-editorial-page .natal-big3-card {
+    gap: 6px;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .natal-editorial-page .natal-big3-ico {
+    width: 27px;
+    height: 27px;
+  }
+}

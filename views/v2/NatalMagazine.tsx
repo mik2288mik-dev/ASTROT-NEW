@@ -38,7 +38,7 @@ export function NatalMagazine({
 
   if (!data) {
     return (
-      <div className="fresh-page">
+      <div className="fresh-page natal-editorial-page">
         <FreshPageTitle
           kicker={language === 'ru' ? 'Карта' : 'Chart'}
           title={language === 'ru' ? 'Создай натальную карту' : 'Create your natal chart'}
@@ -67,7 +67,7 @@ export function NatalMagazine({
   ];
 
   return (
-    <div className="fresh-page">
+    <div className="fresh-page natal-editorial-page">
       <ShimmerStyles />
 
       <FreshInnerHeader
