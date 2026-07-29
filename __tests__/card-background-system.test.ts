@@ -50,9 +50,8 @@ describe('card background UI wiring', () => {
     const matrix = read('views/v2/MatrixRoom.tsx');
     const app = read('pages/_app.tsx');
 
-    expect(visuals).toContain(
-      "import manifest from '../docs/design/card-background-system/card-background-manifest.json'",
-    );
+    expect(visuals).toContain('PERSONAL_FORECAST_BACKGROUND_MANIFEST');
+    expect(visuals).toContain("file: `/foni/horoscope-");
     expect(visuals).toContain('resolvePersonalForecastVisuals');
     expect(visuals).toContain("'--forecast-section-image'");
     expect(visuals).toContain("'--forecast-section-position-mobile'");
@@ -61,7 +60,8 @@ describe('card background UI wiring', () => {
     expect(dashboard).toContain('visual?.assignments[section.id]');
     expect(sectionBlock).toContain("hasVisual ? 'has-visual' : 'has-visual-fallback'");
     expect(sectionBlock).toContain('style={style}');
-    expect(promotion).toContain('getUniversalCardBackground');
+    expect(promotion).toContain('PROMO_ART');
+    expect(promotion).toContain('/assets/forecast-feed/banner-natal.png');
     expect(dashboard).not.toMatch(
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );

@@ -1,5 +1,5 @@
-import manifest from '../docs/design/card-background-system/card-background-manifest.json';
 import {
+  PERSONAL_FORECAST_BACKGROUND_MANIFEST,
   buildForecastVisualRequests,
   forecastVisualStyle,
   getForecastVisualAssignment,
@@ -98,7 +98,7 @@ describe('personal forecast V3 feed visual resolver', () => {
 
   it('uses only the existing image bank and avoids repeats inside a normal feed', () => {
     const resolved = screen('day', '2026-07-27');
-    const manifestPaths = new Set(manifest.assets.map((asset) => asset.path));
+    const manifestPaths = new Set(PERSONAL_FORECAST_BACKGROUND_MANIFEST.map((asset) => asset.file));
     const paths = resolved.sectionIds
       .map((id) => resolved.assignments[id].path)
       .filter((path): path is string => !!path);
@@ -116,12 +116,12 @@ describe('personal forecast V3 feed visual resolver', () => {
   it('maps V3 visual tags to semantic real assets', () => {
     const resolved = screen('day', '2026-07-27');
 
-    expect(resolved.assignments.overview.path).toContain('/hero/');
-    expect(resolved.assignments.love.path).toContain('/love_');
-    expect(resolved.assignments.mood.path).toContain('/energy_');
-    expect(resolved.assignments['astro:moon'].path).toContain('/strips/');
-    expect(resolved.assignments.home_family.path).toContain('/home_');
-    expect(resolved.assignments.friends.path).toContain('/friends_');
+    expect(resolved.assignments.overview.path).toContain('/foni/horoscope-general-');
+    expect(resolved.assignments.love.path).toContain('/foni/horoscope-love-');
+    expect(resolved.assignments.mood.path).toContain('/foni/horoscope-mood-');
+    expect(resolved.assignments['astro:moon'].path).toBeNull();
+    expect(resolved.assignments.home_family.path).toContain('/foni/horoscope-home-family-');
+    expect(resolved.assignments.friends.path).toContain('/foni/horoscope-friends-');
   });
 
   it('is deterministic and can avoid the same section asset from the previous period', () => {
@@ -162,7 +162,7 @@ describe('personal forecast V3 feed visual resolver', () => {
     );
     expect(typeof assignment.mirrorX).toBe('boolean');
     expect(assignment.overlay).toContain('linear-gradient');
-    expect(['deep', 'balanced', 'soft']).toContain(assignment.overlayPreset);
+    expect(assignment.overlayPreset).toBe('milky');
   });
 
   it('exports direct assignment lookup and section CSS variables with a safe fallback', () => {
@@ -172,7 +172,7 @@ describe('personal forecast V3 feed visual resolver', () => {
     expect(getForecastVisualAssignment(resolved, 'missing')).toBeNull();
 
     const style = forecastVisualStyle(assignment, 'week');
-    expect(style['--forecast-section-image']).toContain('/assets/card-backgrounds/');
+    expect(style['--forecast-section-image']).toContain('/foni/horoscope-love-');
     expect(style['--forecast-section-position']).toBe(
       assignment?.crop.desktop.position,
     );
