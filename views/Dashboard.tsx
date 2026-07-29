@@ -16,8 +16,6 @@ import {
   getPersonalForecastPeriodKey,
   normalizeForecastTimezone,
   resolvePersonalForecastWindow,
-  type ExplanationAnchor,
-  type ForecastSection,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
 import {
@@ -61,11 +59,6 @@ type DashboardProps = {
 type PeriodState = {
   result: PersonalForecastClientResult | null;
   phase: 'idle' | 'loading' | 'ready' | 'error';
-};
-
-type ExplanationSelection = {
-  section: ForecastSection;
-  anchor: ExplanationAnchor;
 };
 
 const PERIOD_TABS: ReadonlyArray<{
@@ -197,7 +190,6 @@ export const Dashboard = memo<DashboardProps>(({
   const [compactTabsVisible, setCompactTabsVisible] = useState(false);
   const [feedScrolling, setFeedScrolling] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState<string>('overview');
-  const [explanation, setExplanation] = useState<ExplanationSelection | null>(null);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const [unreadQuestions, setUnreadQuestions] =
     useState<PersonalForecastQuestionNotification[]>([]);
@@ -562,14 +554,6 @@ export const Dashboard = memo<DashboardProps>(({
     });
   }, [activePeriod, onRequestPremium, periodKeys]);
 
-  const openExplanation = useCallback((
-    section: ForecastSection,
-    anchor: ExplanationAnchor,
-  ) => {
-    lumiaSelectionHaptic();
-    setExplanation({ section, anchor });
-  }, []);
-
   const renderPromo = (placement: PersonalForecastPromoPlacement) => (
     <ForecastPromotion
       key={placement.id}
@@ -736,16 +720,17 @@ export const Dashboard = memo<DashboardProps>(({
       ) : (
         <>
           <ForecastSectionBlock
+            key={`${activePeriod}:${forecast.periodKey}:${forecast.overview.id}`}
             section={forecast.overview}
             period={activePeriod}
             language={language}
             locked={lockedIds.has(forecast.overview.id)}
+            evidence={forecast.evidence}
             style={forecastSectionVisualStyle(
               visual?.assignments[forecast.overview.id],
               activePeriod,
             )}
             hasVisual={!!visual?.assignments[forecast.overview.id]?.path}
-            onExplain={openExplanation}
             onRequestPremium={requestPremium}
           >
             {overviewCrossLinks.map((link) => (
@@ -767,18 +752,18 @@ export const Dashboard = memo<DashboardProps>(({
             );
             const sectionPromos = promotionsBySection.get(section.id) || [];
             return (
-              <React.Fragment key={section.id}>
+              <React.Fragment key={`${activePeriod}:${forecast.periodKey}:${section.id}`}>
                 <ForecastSectionBlock
                   section={section}
                   period={activePeriod}
                   language={language}
                   locked={lockedIds.has(section.id)}
+                  evidence={forecast.evidence}
                   style={forecastSectionVisualStyle(
                     visual?.assignments[section.id],
                     activePeriod,
                   )}
                   hasVisual={!!visual?.assignments[section.id]?.path}
-                  onExplain={openExplanation}
                   onRequestPremium={requestPremium}
                 >
                   {crossLinks.map((link) => (
@@ -824,34 +809,6 @@ export const Dashboard = memo<DashboardProps>(({
       )}
 
       <ForecastBottomSheet
-        open={!!explanation}
-        title={explanation?.anchor.conclusion || ''}
-        subtitle={explanation?.section.title}
-        closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
-        onClose={() => setExplanation(null)}
-      >
-        {explanation ? (
-          <>
-            <p className="forecast-feed-sheet-explanation">
-              {explanation.anchor.explanation}
-            </p>
-            <div className="forecast-feed-sheet-evidence">
-              {explanation.anchor.evidenceIds.map((id) => {
-                const evidence = forecast?.evidence[id];
-                if (!evidence) return null;
-                return (
-                  <div key={id} className="forecast-feed-sheet-evidence-row">
-                    <span>{evidence.meaning}</span>
-                    {evidence.period ? <small>{evidence.period}</small> : null}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : null}
-      </ForecastBottomSheet>
-
-      <ForecastBottomSheet
         open={howItWorksOpen}
         title={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
         closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
@@ -865,8 +822,8 @@ export const Dashboard = memo<DashboardProps>(({
           </p>
           <p>
             {language === 'ru'
-              ? 'Затем прогноз формулирует понятный вывод и объясняет его. Кнопка i рядом с выводом показывает конкретное астрологическое основание.'
-              : 'The forecast then states a clear conclusion and explains it. The i button beside a conclusion shows its specific astrological basis.'}
+              ? 'Затем прогноз формулирует понятный вывод и объясняет его. Стрелка рядом с выводом раскрывает конкретную причину прямо в ленте.'
+              : 'The forecast then states a clear conclusion and explains it. The arrow beside a conclusion expands its specific basis in the feed.'}
           </p>
               <p>
                 {language === 'ru'

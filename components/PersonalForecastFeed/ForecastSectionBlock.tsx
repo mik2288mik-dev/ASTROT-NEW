@@ -1,6 +1,12 @@
-import React, { Fragment, type CSSProperties, type ReactNode } from 'react';
+import React, {
+  Fragment,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
+import { ChevronDown } from 'lucide-react';
 import type {
-  ExplanationAnchor,
+  ForecastEvidenceView,
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
@@ -13,7 +19,7 @@ type ForecastSectionBlockProps = {
   style?: CSSProperties;
   hasVisual?: boolean;
   children?: ReactNode;
-  onExplain: (section: ForecastSection, anchor: ExplanationAnchor) => void;
+  evidence: Record<string, ForecastEvidenceView>;
   onRequestPremium: () => void;
 };
 
@@ -39,7 +45,9 @@ function overviewTitle(
 
 function renderTextWithAnchors(
   section: ForecastSection,
-  onExplain: ForecastSectionBlockProps['onExplain'],
+  evidence: ForecastSectionBlockProps['evidence'],
+  expandedAnchorId: string | null,
+  onToggleExplanation: (anchorId: string) => void,
   language: 'ru' | 'en',
 ): ReactNode {
   const text = section.text.trim();
@@ -80,6 +88,16 @@ function renderTextWithAnchors(
           }))
           .filter((entry) => entry.index >= 0)
           .sort((left, right) => left.index - right.index);
+        const paragraphFallback = !locatedAnchorIds.size && paragraphIndex === 0
+          ? fallbackAnchor
+          : null;
+        const paragraphAnchors = [
+          ...located.map(({ anchor }) => anchor),
+          ...(paragraphFallback ? [paragraphFallback] : []),
+        ];
+        const expandedAnchor = paragraphAnchors.find(
+          (anchor) => anchor.id === expandedAnchorId,
+        );
         const parts: ReactNode[] = [];
         let cursor = 0;
         for (const { anchor, index } of located) {
@@ -90,13 +108,18 @@ function renderTextWithAnchors(
               {anchor.conclusion}
               <button
                 type="button"
-                className="forecast-feed-inline-info"
+                className={[
+                  'forecast-feed-inline-explanation-toggle',
+                  expandedAnchorId === anchor.id ? 'is-expanded' : '',
+                ].filter(Boolean).join(' ')}
                 aria-label={language === 'ru'
-                  ? 'Показать, почему получился этот вывод'
-                  : 'Show why this conclusion was reached'}
-                onClick={() => onExplain(section, anchor)}
+                  ? `${expandedAnchorId === anchor.id ? 'Скрыть' : 'Показать'} объяснение вывода`
+                  : `${expandedAnchorId === anchor.id ? 'Hide' : 'Show'} the explanation`}
+                aria-expanded={expandedAnchorId === anchor.id}
+                aria-controls={`forecast-explanation-${section.id}-${anchor.id}`}
+                onClick={() => onToggleExplanation(anchor.id)}
               >
-                i
+                <ChevronDown size={15} strokeWidth={1.9} aria-hidden />
               </button>
             </Fragment>,
           );
@@ -105,21 +128,51 @@ function renderTextWithAnchors(
         if (cursor < paragraph.length) parts.push(paragraph.slice(cursor));
 
         return (
-          <p key={`${section.id}:${paragraphIndex}`} className="forecast-feed-section-text">
-            {parts}
-            {!locatedAnchorIds.size && paragraphIndex === 0 && fallbackAnchor ? (
-              <button
-                type="button"
-                className="forecast-feed-inline-info"
-                aria-label={language === 'ru'
-                  ? 'Показать, почему получился этот вывод'
-                  : 'Show why this conclusion was reached'}
-                onClick={() => onExplain(section, fallbackAnchor)}
+          <Fragment key={`${section.id}:${paragraphIndex}`}>
+            <p className="forecast-feed-section-text">
+              {parts}
+              {paragraphFallback ? (
+                <button
+                  type="button"
+                  className={[
+                    'forecast-feed-inline-explanation-toggle',
+                    expandedAnchorId === paragraphFallback.id ? 'is-expanded' : '',
+                  ].filter(Boolean).join(' ')}
+                  aria-label={language === 'ru'
+                    ? `${expandedAnchorId === paragraphFallback.id ? 'Скрыть' : 'Показать'} объяснение вывода`
+                    : `${expandedAnchorId === paragraphFallback.id ? 'Hide' : 'Show'} the explanation`}
+                  aria-expanded={expandedAnchorId === paragraphFallback.id}
+                  aria-controls={`forecast-explanation-${section.id}-${paragraphFallback.id}`}
+                  onClick={() => onToggleExplanation(paragraphFallback.id)}
+                >
+                  <ChevronDown size={15} strokeWidth={1.9} aria-hidden />
+                </button>
+              ) : null}
+            </p>
+            {expandedAnchor ? (
+              <div
+                id={`forecast-explanation-${section.id}-${expandedAnchor.id}`}
+                className="forecast-feed-inline-explanation"
+                aria-live="polite"
               >
-                i
-              </button>
+                <p>{expandedAnchor.explanation}</p>
+                {expandedAnchor.evidenceIds.some((id) => evidence[id]) ? (
+                  <div className="forecast-feed-inline-explanation-evidence">
+                    {expandedAnchor.evidenceIds.map((id) => {
+                      const item = evidence[id];
+                      if (!item) return null;
+                      return (
+                        <span key={id}>
+                          {item.meaning}
+                          {item.period ? <small>{item.period}</small> : null}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
             ) : null}
-          </p>
+          </Fragment>
         );
       })}
     </div>
@@ -134,9 +187,10 @@ export function ForecastSectionBlock({
   style,
   hasVisual = false,
   children,
-  onExplain,
+  evidence,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
+  const [expandedAnchorId, setExpandedAnchorId] = useState<string | null>(null);
   const isOverview = section.kind === 'overview';
   const title = isOverview
     ? overviewTitle(period, language)
@@ -193,7 +247,17 @@ export function ForecastSectionBlock({
             </button>
           </div>
         ) : (
-          renderTextWithAnchors(section, onExplain, language)
+          renderTextWithAnchors(
+            section,
+            evidence,
+            expandedAnchorId,
+            (anchorId) => {
+              setExpandedAnchorId((current) => (
+                current === anchorId ? null : anchorId
+              ));
+            },
+            language,
+          )
         )}
         {children}
       </div>
