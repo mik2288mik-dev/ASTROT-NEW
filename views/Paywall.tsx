@@ -4,7 +4,7 @@ import { PREMIUM_PLANS, type PremiumPlan, type PremiumPlanId } from '../lib/prem
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { apiFetch } from '../services/apiClient';
 import { resolveDistributionChannel } from '../lib/distributionChannel';
-import { getRuStoreProductId } from '../services/rustorePayService';
+import { getRuStoreProductId, loadRuStoreProducts } from '../services/rustorePayService';
 
 interface PaywallProps {
   profile: UserProfile;
@@ -50,6 +50,8 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
   const [selected, setSelected] = useState<PremiumPlanId>('premium_year');
   const [paying, setPaying] = useState(false);
   const [plans, setPlans] = useState<Record<PremiumPlanId, PaywallPlan>>(PREMIUM_PLANS);
+  const [rustoreLabels, setRustoreLabels] = useState<Partial<Record<PremiumPlanId, string>>>({});
+  const [rustoreProductsLoaded, setRustoreProductsLoaded] = useState(distributionChannel !== 'rustore');
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +70,23 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (distributionChannel !== 'rustore') return;
+    let cancelled = false;
+    void loadRuStoreProducts()
+      .then((products) => {
+        if (cancelled) return;
+        setRustoreLabels(Object.fromEntries(
+          Object.entries(products)
+            .filter(([, product]) => !!product?.amountLabel)
+            .map(([planId, product]) => [planId, product!.amountLabel!]),
+        ));
+      })
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setRustoreProductsLoaded(true); });
+    return () => { cancelled = true; };
+  }, [distributionChannel]);
 
   const visibleOrder = useMemo(() => {
     const ids = ORDER.filter((id) => plans[id]?.isActive !== false);
@@ -102,7 +121,11 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         { label: 'Yearly forecasts', free: false },
       ];
 
-  const priceText = (id: PremiumPlanId) => (ru ? `${plans[id].priceRub} ₽` : `$${plans[id].priceUsd}`);
+  const priceText = (id: PremiumPlanId) => (
+    distributionChannel === 'rustore'
+      ? (rustoreLabels[id] || '—')
+      : (ru ? `${plans[id].priceRub} ₽` : `$${plans[id].priceUsd}`)
+  );
   const savings = (id: PremiumPlanId) => {
     const base = plans.premium_month.priceRub;
     const months = plans[id].days / 30;
@@ -112,7 +135,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
 
   const buy = () => {
     const canPurchase = distributionChannel === 'telegram'
-      || (distributionChannel === 'rustore' && !!getRuStoreProductId(selected));
+      || (distributionChannel === 'rustore' && rustoreProductsLoaded && !!rustoreLabels[selected]);
     if (paying || !canPurchase) return;
     lumiaSelectionHaptic();
     setPaying(true);
@@ -176,10 +199,10 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         })}
       </div>
 
-      {(distributionChannel === 'telegram' || distributionChannel === 'rustore') ? <button type="button" className="pw2-cta" onClick={buy} disabled={paying || (distributionChannel === 'rustore' && !getRuStoreProductId(selected))}>
+      {(distributionChannel === 'telegram' || distributionChannel === 'rustore') ? <button type="button" className="pw2-cta" onClick={buy} disabled={paying || (distributionChannel === 'rustore' && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected)))}>
         {paying
           ? (ru ? 'Открываю оплату…' : 'Opening…')
-          : (distributionChannel === 'rustore' && !getRuStoreProductId(selected)
+          : (distributionChannel === 'rustore' && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected))
             ? (ru ? 'Покупка временно недоступна' : 'Purchase is temporarily unavailable')
             : `${ru ? 'Оформить Premium' : 'Get Premium'} · ${priceText(selected)}`)}
       </button> : <p className="pw2-foot">{ru ? 'Premium, который уже есть у аккаунта, доступен в этом приложении. Новые покупки здесь пока не подключены.' : 'Premium already linked to your account is available here. New purchases are not connected in this build yet.'}</p>}

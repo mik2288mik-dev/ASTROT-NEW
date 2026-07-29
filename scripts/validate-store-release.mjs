@@ -67,6 +67,24 @@ if (release) {
   for (const name of ['RELEASE_STORE_FILE', 'RELEASE_STORE_PASSWORD', 'RELEASE_KEY_ALIAS', 'RELEASE_KEY_PASSWORD']) {
     requireValue(name, process.env[name]);
   }
+  for (const name of [
+    'PUBLIC_APP_ORIGIN',
+    'NATIVE_AUTH_CALLBACK_SCHEME',
+    'VK_AUTH_CLIENT_ID',
+    'VK_AUTH_CLIENT_SECRET',
+    'YANDEX_AUTH_CLIENT_ID',
+    'YANDEX_AUTH_CLIENT_SECRET',
+    'GOOGLE_AUTH_CLIENT_ID',
+    'GOOGLE_AUTH_CLIENT_SECRET',
+    'EMAIL_OTP_DELIVERY_URL',
+    'EMAIL_OTP_DELIVERY_SECRET',
+  ]) requireValue(name, process.env[name]);
+  if (process.env.PUBLIC_APP_ORIGIN && !/^https:\/\//.test(process.env.PUBLIC_APP_ORIGIN)) {
+    errors.push('PUBLIC_APP_ORIGIN must use HTTPS');
+  }
+  if (process.env.EMAIL_OTP_DELIVERY_URL && !/^https:\/\//.test(process.env.EMAIL_OTP_DELIVERY_URL)) {
+    errors.push('EMAIL_OTP_DELIVERY_URL must use HTTPS');
+  }
 }
 
 if (channel === 'rustore') {

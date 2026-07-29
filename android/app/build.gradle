@@ -14,6 +14,7 @@ def releaseKeyPasswordValue = signingValue('RELEASE_KEY_PASSWORD')
 def releaseSigningReady = releaseStoreFileValue && releaseStorePasswordValue && releaseKeyAliasValue && releaseKeyPasswordValue
 def rustoreConsoleAppId = project.findProperty('RUSTORE_CONSOLE_APP_ID') ?: System.getenv('RUSTORE_CONSOLE_APP_ID') ?: 'RUSTORE_CONSOLE_APP_ID_REQUIRED'
 def rustoreScheme = project.findProperty('RUSTORE_PAY_SCHEME') ?: System.getenv('RUSTORE_PAY_SCHEME') ?: "${appPackageId}.rustore"
+def authCallbackScheme = project.findProperty('NATIVE_AUTH_CALLBACK_SCHEME') ?: System.getenv('NATIVE_AUTH_CALLBACK_SCHEME') ?: 'yourhoroscope'
 def releaseTaskRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') && !it.toLowerCase().contains('lint') }
 
 if (releaseTaskRequested && !releaseSigningReady) {
@@ -32,6 +33,7 @@ android {
         manifestPlaceholders = [
             rustoreConsoleAppId: rustoreConsoleAppId,
             rustorePayScheme: rustoreScheme,
+            authCallbackScheme: authCallbackScheme,
         ]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -75,7 +77,9 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

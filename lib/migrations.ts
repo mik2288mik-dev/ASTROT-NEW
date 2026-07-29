@@ -2844,6 +2844,126 @@ async function mvp039RuStorePay(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+/**
+ * Stable app accounts: multiple verified identities, revocable sessions,
+ * one-time login challenges, and a durable RuStore callback queue.
+ */
+async function mvp040AccountIdentitySessions(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_040_account_identity_sessions';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_guest BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`UPDATE users SET is_guest = TRUE WHERE id < 0`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS account_identities (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL,
+      provider_subject TEXT NOT NULL,
+      normalized_email TEXT,
+      display_name TEXT,
+      verified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_used_at TIMESTAMP,
+      metadata JSONB,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT account_identities_provider
+        CHECK (provider IN ('vk', 'yandex', 'google', 'email', 'telegram')),
+      CONSTRAINT account_identities_provider_subject UNIQUE (provider, provider_subject)
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_account_identities_user
+    ON account_identities(user_id, provider)`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_account_identities_user_provider
+    ON account_identities(user_id, provider)`);
+
+  // Existing Telegram users keep their users.id and become recoverable through
+  // an explicit Telegram identity without copying any profile data.
+  await pool.query(`
+    INSERT INTO account_identities (user_id, provider, provider_subject, last_used_at, metadata)
+    SELECT id, 'telegram', id::text, last_login, '{"backfilled":true}'::jsonb
+    FROM users
+    WHERE id > 0 AND COALESCE(auth_provider, 'telegram') = 'telegram'
+    ON CONFLICT (provider, provider_subject) DO NOTHING
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_sessions (
+      session_id TEXT PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      session_kind TEXT NOT NULL,
+      device_id TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      expires_at TIMESTAMP NOT NULL,
+      revoked_at TIMESTAMP,
+      revoke_reason TEXT,
+      CONSTRAINT app_sessions_kind CHECK (session_kind IN ('web', 'native', 'telegram'))
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_app_sessions_user_active
+    ON app_sessions(user_id, expires_at DESC) WHERE revoked_at IS NULL`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_challenges (
+      challenge_id TEXT PRIMARY KEY,
+      provider TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+      state_hash TEXT,
+      secret_hash TEXT,
+      redirect_uri TEXT,
+      metadata JSONB,
+      expires_at TIMESTAMP NOT NULL,
+      consumed_at TIMESTAMP,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT auth_challenges_provider
+        CHECK (provider IN ('vk', 'yandex', 'google', 'email', 'telegram')),
+      CONSTRAINT auth_challenges_purpose CHECK (purpose IN ('login', 'link'))
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_auth_challenges_expiry
+    ON auth_challenges(expires_at) WHERE consumed_at IS NULL`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_exchange_codes (
+      code_hash TEXT PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      session_kind TEXT NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      consumed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT auth_exchange_codes_kind CHECK (session_kind IN ('web', 'native'))
+    )
+  `);
+
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS processing_status TEXT NOT NULL DEFAULT 'pending'`);
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS last_error TEXT`);
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS next_attempt_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS failed_at TIMESTAMP`);
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS event_payload JSONB`);
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS sandbox BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_provider_events_pending
+    ON payment_provider_events(next_attempt_at, received_at)
+    WHERE processing_status = 'pending' AND processed_at IS NULL AND failed_at IS NULL`);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -2914,6 +3034,7 @@ export async function runMigrations(): Promise<void> {
   await mvp037PersonalForecastYearlyVariant(pool);
   await mvp038PersonalForecastQuestions(pool);
   await mvp039RuStorePay(pool);
+  await mvp040AccountIdentitySessions(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

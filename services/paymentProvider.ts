@@ -1,7 +1,7 @@
 import type { PremiumPlanId } from '../lib/premiumPricing';
 import { canUseRuStorePay, canUseTelegramStars, resolveDistributionChannel, type DistributionChannel } from '../lib/distributionChannel';
 import type { UserProfile } from '../types';
-import { requestStarsPayment } from './telegramService';
+import { requestStarsPayment } from './telegramStarsPayment';
 import { requestRuStorePayment } from './rustorePayService';
 
 export type PaymentResult =

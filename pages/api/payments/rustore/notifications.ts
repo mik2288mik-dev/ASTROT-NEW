@@ -9,7 +9,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await processRuStoreCallback(req.body || {});
     return res.status(200).json({ ok: true, ...result });
   } catch (error: any) {
-    // A non-2xx response intentionally asks RuStore to retry a transient or invalid callback.
+    // Valid events are already durable before 200. Invalid authentication is a
+    // client/configuration error; transient database failures ask for redelivery.
     const known = error instanceof RuStorePaymentError;
     return res.status(known ? 400 : 503).json({ error: known ? error.code : 'RUSTORE_CALLBACK_FAILED' });
   }

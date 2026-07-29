@@ -1,11 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
+import { userHasRecoveryIdentity } from '../../../../lib/auth/accountIdentity';
 import { RuStorePaymentError, validateRuStorePurchase } from '../../../../lib/rustorePayments';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   try {
     const auth = await requireAppUser(req);
+    if (!(await userHasRecoveryIdentity(auth.userId))) {
+      return res.status(403).json({
+        error: 'RECOVERY_IDENTITY_REQUIRED',
+        message: 'Link VK ID, Yandex ID, Google, or email before purchasing',
+      });
+    }
     const result = await validateRuStorePurchase({
       userId: auth.userId,
       productId: typeof req.body?.productId === 'string' ? req.body.productId : '',

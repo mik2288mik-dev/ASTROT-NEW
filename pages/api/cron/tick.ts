@@ -7,6 +7,7 @@ import {
 import {
   prewarmPersonalForecastsForActiveUsers,
 } from '../../../lib/personalForecastPrewarm';
+import { processPendingRuStoreEvents } from '../../../lib/rustorePayments';
 
 /**
  * Single entry point for an EXTERNAL cron (e.g. cron-job.org): hit this every few
@@ -85,6 +86,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.warn('[cron/tick] dispatch failed:', error instanceof Error ? error.message : error);
   }
+  let rustorePayments = null;
+  try {
+    rustorePayments = await processPendingRuStoreEvents(20);
+  } catch (error) {
+    console.warn('[cron/tick] RuStore payment queue failed:', error instanceof Error ? error.message : error);
+  }
 
   // 2) Prewarm the current personal periods. The resolver adds upcoming periods only
   // near their boundaries; cache keys and generation locks make repeated instances safe.
@@ -112,6 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ok: true,
     msk: `${dateKey} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
     dispatched,
+    rustorePayments,
     planners: ran,
   });
 }

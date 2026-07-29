@@ -12,7 +12,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         if ("rustore".equals(BuildConfig.DISTRIBUTION_CHANNEL)) {
             registerRuStorePlugin();
-            proceedRuStoreIntent(getIntent());
+            if (savedInstanceState == null) proceedRuStoreIntent(getIntent());
         }
     }
 

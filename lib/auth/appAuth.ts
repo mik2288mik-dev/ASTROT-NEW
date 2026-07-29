@@ -3,6 +3,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { AdminAuthError, getVerifiedTelegramUser } from '../adminAuth';
 import { db, getPool } from '../db';
 import { isGuestUserId } from '../userId';
+import {
+  assertAppSessionActive,
+  persistAppSession,
+  resolveVerifiedIdentity,
+} from './accountIdentity';
 
 export type AppAuthProvider = 'telegram' | 'web_guest' | 'native';
 export type AppUserContext = {
@@ -45,7 +50,6 @@ export function verifyAppSessionToken(token: string): SessionPayload | null {
     if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
     const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SessionPayload;
     if (!payload.userId || !payload.sessionId || !['web_guest', 'native'].includes(payload.provider)) return null;
-    if (payload.provider === 'web_guest' && !isGuestUserId(payload.userId)) return null;
     if (!Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {
@@ -96,6 +100,12 @@ export async function revokeAppSession(sessionId: string, expiresAt: number): Pr
      ON CONFLICT (session_id) DO UPDATE SET expires_at = EXCLUDED.expires_at, revoked_at = CURRENT_TIMESTAMP`,
     [sessionId, new Date(expiresAt * 1000).toISOString()],
   );
+  await getPool().query(
+    `UPDATE app_sessions
+     SET revoked_at = CURRENT_TIMESTAMP, revoke_reason = 'user_request'
+     WHERE session_id = $1 AND revoked_at IS NULL`,
+    [sessionId],
+  ).catch(() => undefined);
 }
 
 export function createGuestIdentity(): { userId: string; sessionId: string } {
@@ -112,6 +122,13 @@ export async function createGuestAppUser(res: NextApiResponse): Promise<AppUserC
     name: 'Гость', language: 'ru', theme: 'light', is_setup: false,
     is_premium: false, premium_until: null, trial_started_at: null,
   });
+  if (process.env.DATABASE_URL) {
+    await getPool().query(
+      `UPDATE users SET is_guest = TRUE, auth_provider = 'web_guest', platform = 'web' WHERE id = $1`,
+      [identity.userId],
+    );
+    await persistAppSession({ sessionId: identity.sessionId, userId: identity.userId, kind: 'web' });
+  }
   setAppSessionCookie(res, createAppSessionToken({ ...identity, provider: 'web_guest' }));
   return { userId: identity.userId, provider: 'web_guest', isGuest: true, sessionId: identity.sessionId };
 }
@@ -122,6 +139,13 @@ export async function createNativeGuestAppUser(): Promise<{ auth: AppUserContext
     name: 'Гость', language: 'ru', theme: 'light', is_setup: false,
     is_premium: false, premium_until: null, trial_started_at: null,
   });
+  if (process.env.DATABASE_URL) {
+    await getPool().query(
+      `UPDATE users SET is_guest = TRUE, auth_provider = 'native', platform = 'native' WHERE id = $1`,
+      [identity.userId],
+    );
+    await persistAppSession({ sessionId: identity.sessionId, userId: identity.userId, kind: 'native' });
+  }
   const token = createAppSessionToken({ ...identity, provider: 'native' });
   return {
     token,
@@ -134,11 +158,73 @@ export async function createNativeGuestAppUser(): Promise<{ auth: AppUserContext
   };
 }
 
+export async function createAppUserSession(input: {
+  userId: string;
+  kind: 'web' | 'native';
+  deviceId?: string | null;
+}): Promise<{ token: string; sessionId: string; expiresAt: number }> {
+  const sessionId = crypto.randomUUID();
+  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const provider = input.kind === 'native' ? 'native' : 'web_guest';
+  await persistAppSession({
+    sessionId,
+    userId: input.userId,
+    kind: input.kind,
+    deviceId: input.deviceId,
+    expiresAt,
+  });
+  return {
+    sessionId,
+    expiresAt,
+    token: createAppSessionToken({ userId: input.userId, sessionId, provider, exp: expiresAt }),
+  };
+}
+
+async function resolveTelegramUser(req: NextApiRequest): Promise<AppUserContext> {
+  const telegram = getVerifiedTelegramUser(req);
+  let user = process.env.DATABASE_URL
+    ? await db.users.get(telegram.id, { hydratePrimaryChart: false })
+    : null;
+  if (process.env.DATABASE_URL && !user) {
+    await db.users.set(telegram.id, {
+      name: telegram.rawUser.first_name || 'Telegram',
+      language: telegram.rawUser.language_code || 'ru',
+      theme: 'light',
+      is_setup: false,
+      is_premium: false,
+    });
+    user = await db.users.get(telegram.id, { hydratePrimaryChart: false });
+  }
+  const identity = process.env.DATABASE_URL
+    ? await resolveVerifiedIdentity(
+        {
+          provider: 'telegram',
+          subject: telegram.id,
+          displayName: [telegram.rawUser.first_name, telegram.rawUser.last_name].filter(Boolean).join(' ') || null,
+          metadata: { username: telegram.rawUser.username || null },
+        },
+        user ? telegram.id : null,
+      )
+    : { userId: telegram.id };
+  const rawInitData = header(req, 'x-telegram-init-data');
+  const sessionId = `telegram:${crypto.createHash('sha256').update(rawInitData).digest('hex')}`;
+  if (process.env.DATABASE_URL) {
+    await persistAppSession({ sessionId, userId: identity.userId, kind: 'telegram' });
+    await assertAppSessionActive(sessionId, identity.userId);
+  }
+  return {
+    userId: identity.userId,
+    provider: 'telegram',
+    isGuest: false,
+    telegramUserId: telegram.id,
+    sessionId,
+  };
+}
+
 export async function requireAppUser(req: NextApiRequest, options: { expectedUserId?: unknown; allowGuest?: boolean } = {}): Promise<AppUserContext> {
   let context: AppUserContext | null = null;
   if (header(req, 'x-telegram-init-data')) {
-    const telegram = getVerifiedTelegramUser(req);
-    context = { userId: telegram.id, provider: 'telegram', isGuest: false, telegramUserId: telegram.id };
+    context = await resolveTelegramUser(req);
   } else {
     const authorization = header(req, 'authorization');
     const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
@@ -147,14 +233,20 @@ export async function requireAppUser(req: NextApiRequest, options: { expectedUse
       if (await isRevokedSession(payload.sessionId)) {
         throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
       }
+      await assertAppSessionActive(payload.sessionId, payload.userId);
+      let accountIsGuest = isGuestUserId(payload.userId);
       if (process.env.DATABASE_URL) {
-        const user = await db.users.get(payload.userId, { hydratePrimaryChart: false });
+        const account = await getPool().query('SELECT is_guest FROM users WHERE id = $1', [payload.userId]);
+        const user = account.rowCount
+          ? await db.users.get(payload.userId, { hydratePrimaryChart: false })
+          : null;
         if (!user) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This account no longer exists');
+        accountIsGuest = account.rows[0].is_guest === true;
       }
       context = {
         userId: payload.userId,
         provider: payload.provider,
-        isGuest: isGuestUserId(payload.userId),
+        isGuest: accountIsGuest,
         sessionId: payload.sessionId,
       };
     }

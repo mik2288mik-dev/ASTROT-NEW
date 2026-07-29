@@ -3,9 +3,10 @@
 ## Current technical baseline
 
 - Capacitor 8.4.2; Android minSdk 24, compileSdk/targetSdk 36; AGP 8.13.0 and Gradle 8.14.3.
-- Flavors: `development`, `telegram`, `rustore`, `googlePlay`. Only `rustore` compiles RuStore Pay SDK (`ru.rustore.sdk:bom:2026.06.01` / `pay`); Google Play and Telegram do not include it.
+- Flavors: `development`, `telegram`, `rustore`, `googlePlay`. Only `rustore` compiles RuStore Pay SDK 10.5.0 (`ru.rustore.sdk:bom:2026.06.01` / `pay`); Google Play and Telegram do not include it. This is the stable Kotlin/Java version documented by RuStore on 29 July 2026.
 - `telegram` alone can invoke Telegram Stars. `google_play` has no checkout action until Google Play Billing is a separate project.
-- `rustore` uses a Capacitor native bridge, return deep link, server validation, and encrypted callback endpoint. Do not use the deprecated RuStore BillingClient.
+- `rustore` uses a Capacitor native bridge, return deep link, server validation, and encrypted callback endpoint. The callback durably enqueues work and returns before Public API validation; `/api/cron/rustore-payment-events` or the common cron tick processes retries. Do not use the deprecated RuStore BillingClient.
+- A guest may use all Free functions. Before RuStore purchase it must link VK ID, Yandex ID, Google, or verified email. The stable `users.id` is passed as `AppUserId`; Telegram alone does not satisfy Android recovery.
 - Release build has minification, `allowBackup=false`, cleartext disabled and requires signing. Debug remains available as `assembleDevelopmentDebug`.
 
 ## Owner values required before first upload
@@ -35,5 +36,15 @@ The release script validates channel, package consistency, versions, legal URLs,
 ## RuStore owner setup
 
 In RuStore Console: create the app with the final signed package, enable monetization, create the chosen subscriptions/products, copy their product IDs from **Monetization**, and insert them into `NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_*` and `RUSTORE_ALLOWED_PRODUCT_IDS`. Copy application ID from the Console URL into `RUSTORE_CONSOLE_APP_ID`, request a Public API token into server-only `RUSTORE_PUBLIC_API_TOKEN`, and configure the callback URL `https://<public-domain>/api/payments/rustore/notifications`. Save the AES-256 callback key only in `RUSTORE_NOTIFICATION_AES_KEY` server secret. Add test VK IDs in the Console before sandbox testing.
+
+## Account provider owner setup
+
+Register OAuth applications for VK ID, Yandex ID and Google. Add these exact HTTPS callbacks:
+
+- `https://<PUBLIC_APP_ORIGIN>/api/auth/oauth/vk/callback`
+- `https://<PUBLIC_APP_ORIGIN>/api/auth/oauth/yandex/callback`
+- `https://<PUBLIC_APP_ORIGIN>/api/auth/oauth/google/callback`
+
+Put client IDs and secrets only in the server variables listed in `.env.example`. Configure `EMAIL_OTP_DELIVERY_URL` and `EMAIL_OTP_DELIVERY_SECRET` for the server-side mail adapter. The Android return scheme is `NATIVE_AUTH_CALLBACK_SCHEME://auth/callback`; keep it aligned with the manifest before the first release.
 
 The callback payload is AES-256-GCM decrypted server-side. Premium is never granted by an APK response; it is granted after server validation of a permitted subscription and linked to one user/purchase ID only.

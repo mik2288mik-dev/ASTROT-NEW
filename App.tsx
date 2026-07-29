@@ -52,6 +52,7 @@ import {
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
+import { exchangeNativeLoginCode } from './services/accountAuthService';
 
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
@@ -1449,6 +1450,25 @@ const App: React.FC = () => {
         backButton.show?.();
         return () => { backButton.offClick?.(handler); };
     }, [view, handleBack]);
+
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        let remove: (() => Promise<void>) | null = null;
+        void CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+            try {
+                const parsed = new URL(url);
+                if (parsed.host !== 'auth' || parsed.pathname !== '/callback') return;
+                const code = parsed.searchParams.get('code');
+                if (!code) return;
+                void exchangeNativeLoginCode(code).then(() => {
+                    setStartupRetryNonce((value) => value + 1);
+                }).catch(() => undefined);
+            } catch {
+                // Ignore unrelated malformed app links.
+            }
+        }).then((listener) => { remove = () => listener.remove(); });
+        return () => { void remove?.(); };
+    }, []);
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;

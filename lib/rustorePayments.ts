@@ -180,49 +180,167 @@ export function decryptRuStoreCallback(payload: string): any {
   }
 }
 
-/** Stores each notification first; retries with the same id are safe. */
+/**
+ * Authenticates and durably queues a notification. It deliberately does not
+ * call RuStore Public API so the callback can acknowledge delivery quickly.
+ */
 export async function processRuStoreCallback(callback: RuStoreCallback) {
   const eventId = String(callback.id || '').trim();
   if (!eventId || !callback.payload) throw new RuStorePaymentError('RUSTORE_CALLBACK_INVALID');
   const payload = decryptRuStoreCallback(callback.payload);
   const appId = required('RUSTORE_CONSOLE_APP_ID');
-  if (String(payload.app_id) !== appId) throw new RuStorePaymentError('RUSTORE_CALLBACK_APP_MISMATCH');
+  if (String(payload.app_id || payload.appId || '') !== appId) {
+    throw new RuStorePaymentError('RUSTORE_CALLBACK_APP_MISMATCH');
+  }
   const data = typeof payload.data === 'string' ? JSON.parse(payload.data) : payload.data || {};
-  const purchaseId = String(data.purchase_id || '').trim();
-  const status = String(data.status_new || '').toLowerCase() || null;
+  const purchaseId = String(
+    data.purchase_id || data.purchaseId || data.purchase?.purchaseId || '',
+  ).trim();
+  const status = String(data.status_new || data.statusNew || data.status || '').toLowerCase() || null;
+  const sandbox = data.sandbox === true
+    || payload.sandbox === true
+    || String(payload.notification_type || '').endsWith('_SANDBOX');
   const pool = getPool();
   const inserted = await pool.query(
-    `INSERT INTO payment_provider_events (provider, external_event_id, event_type, external_purchase_id, status)
-     VALUES ('rustore', $1, $2, $3, $4)
+    `INSERT INTO payment_provider_events (
+       provider, external_event_id, event_type, external_purchase_id, status,
+       processing_status, next_attempt_at, event_payload, sandbox
+     )
+     VALUES ('rustore', $1, $2, $3, $4, 'pending', CURRENT_TIMESTAMP, $5::jsonb, $6)
      ON CONFLICT (provider, external_event_id) DO NOTHING RETURNING id`,
-    [eventId, String(payload.notification_type || 'unknown'), purchaseId || null, status],
+    [
+      eventId,
+      String(payload.notification_type || 'unknown'),
+      purchaseId || null,
+      status,
+      JSON.stringify({
+        notificationType: String(payload.notification_type || 'unknown'),
+        purchaseId: purchaseId || null,
+        status,
+      }),
+      sandbox,
+    ],
   );
   if (!inserted.rowCount) return { duplicate: true };
 
   // Connection tests have no purchase and must be acknowledged without creating entitlement.
   if (!purchaseId) {
-    await pool.query('UPDATE payment_provider_events SET processed_at = CURRENT_TIMESTAMP WHERE id = $1', [inserted.rows[0].id]);
+    await pool.query(
+      `UPDATE payment_provider_events
+       SET processed_at = CURRENT_TIMESTAMP, processing_status = 'processed'
+       WHERE id = $1`,
+      [inserted.rows[0].id],
+    );
     return { duplicate: false, test: true };
   }
 
-  const record = await pool.query(
-    `SELECT user_id, external_product_id, external_invoice_id FROM store_purchases
-     WHERE provider = 'rustore' AND external_purchase_id = $1 LIMIT 1`,
-    [purchaseId],
-  );
-  if (!record.rows[0]) {
-    // Never issue Premium from a callback alone. Client/server validation links a purchase to a user first.
-    await pool.query('UPDATE payment_provider_events SET processed_at = CURRENT_TIMESTAMP WHERE id = $1', [inserted.rows[0].id]);
-    return { duplicate: false, pendingValidation: true };
+  return { duplicate: false, queued: true };
+}
+
+function retryDelaySeconds(attempt: number): number {
+  return Math.min(6 * 60 * 60, 15 * (2 ** Math.max(0, attempt - 1)));
+}
+
+/**
+ * Durable queue worker. A row is claimed with SKIP LOCKED, then validated
+ * outside the claim transaction. Failures persist with bounded backoff.
+ */
+export async function processPendingRuStoreEvents(limit = 20): Promise<{
+  claimed: number;
+  processed: number;
+  retried: number;
+  failed: number;
+}> {
+  const pool = getPool();
+  const claimed: any[] = [];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const rows = await client.query(
+      `SELECT id, external_purchase_id, sandbox, attempts
+       FROM payment_provider_events
+       WHERE provider = 'rustore'
+         AND processing_status = 'pending'
+         AND processed_at IS NULL
+         AND failed_at IS NULL
+         AND next_attempt_at <= NOW()
+       ORDER BY received_at
+       FOR UPDATE SKIP LOCKED
+       LIMIT $1`,
+      [Math.max(1, Math.min(100, limit))],
+    );
+    for (const row of rows.rows) {
+      await client.query(
+        `UPDATE payment_provider_events
+         SET processing_status = 'processing', attempts = attempts + 1
+         WHERE id = $1`,
+        [row.id],
+      );
+      claimed.push({ ...row, attempts: Number(row.attempts || 0) + 1 });
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
   }
-  const row = record.rows[0];
-  await validateRuStorePurchase({
-    userId: String(row.user_id),
-    productId: String(row.external_product_id),
-    purchaseId,
-    invoiceId: row.external_invoice_id || undefined,
-    sandbox: String(payload.notification_type || '').endsWith('_SANDBOX'),
-  });
-  await pool.query('UPDATE payment_provider_events SET processed_at = CURRENT_TIMESTAMP WHERE id = $1', [inserted.rows[0].id]);
-  return { duplicate: false, processed: true };
+
+  let processed = 0;
+  let retried = 0;
+  let failed = 0;
+  for (const event of claimed) {
+    try {
+      const record = await pool.query(
+        `SELECT user_id, external_product_id, external_invoice_id
+         FROM store_purchases
+         WHERE provider = 'rustore' AND external_purchase_id = $1 LIMIT 1`,
+        [event.external_purchase_id],
+      );
+      if (!record.rows[0]) {
+        throw new RuStorePaymentError('RUSTORE_PURCHASE_NOT_LINKED');
+      }
+      const row = record.rows[0];
+      await validateRuStorePurchase({
+        userId: String(row.user_id),
+        productId: String(row.external_product_id),
+        purchaseId: String(event.external_purchase_id),
+        invoiceId: row.external_invoice_id || undefined,
+        sandbox: event.sandbox === true,
+      });
+      await pool.query(
+        `UPDATE payment_provider_events
+         SET processing_status = 'processed', processed_at = CURRENT_TIMESTAMP,
+             last_error = NULL
+         WHERE id = $1`,
+        [event.id],
+      );
+      processed += 1;
+    } catch (error) {
+      const message = error instanceof RuStorePaymentError
+        ? error.code
+        : (error instanceof Error ? error.message : 'RUSTORE_EVENT_PROCESSING_FAILED');
+      if (event.attempts >= 10) {
+        await pool.query(
+          `UPDATE payment_provider_events
+           SET processing_status = 'failed', failed_at = CURRENT_TIMESTAMP,
+               last_error = $2
+           WHERE id = $1`,
+          [event.id, message.slice(0, 500)],
+        );
+        failed += 1;
+      } else {
+        await pool.query(
+          `UPDATE payment_provider_events
+           SET processing_status = 'pending',
+               next_attempt_at = NOW() + ($2::text || ' seconds')::interval,
+               last_error = $3
+           WHERE id = $1`,
+          [event.id, retryDelaySeconds(event.attempts), message.slice(0, 500)],
+        );
+        retried += 1;
+      }
+    }
+  }
+  return { claimed: claimed.length, processed, retried, failed };
 }

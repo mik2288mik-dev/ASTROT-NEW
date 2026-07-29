@@ -27,6 +27,8 @@ describe('RuStore Pay integration contract', () => {
     expect(server).toContain('RUSTORE_PURCHASE_OWNED_BY_ANOTHER_USER');
     expect(server).toContain('FOR UPDATE');
     expect(server).toContain('ON CONFLICT (provider, external_event_id) DO NOTHING');
-    expect(server).toContain('Never issue Premium from a callback alone');
+    expect(server).toContain('durably queues a notification');
+    expect(server).toContain("processing_status = 'pending'");
+    expect(server).toContain('RUSTORE_PURCHASE_NOT_LINKED');
   });
 });

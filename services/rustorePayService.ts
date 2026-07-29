@@ -21,6 +21,12 @@ type RuStorePayBridge = {
 };
 
 const RuStorePay = registerPlugin<RuStorePayBridge>('RuStorePay');
+export type RuStoreProduct = {
+  productId: string;
+  title?: string;
+  amountLabel?: string;
+  type?: string;
+};
 
 const RUSTORE_PLAN_PRODUCT_IDS: Partial<Record<PremiumPlanId, string>> = {
   premium_month: process.env.NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH,
@@ -36,6 +42,30 @@ function bridge(): RuStorePayBridge | null {
 export function getRuStoreProductId(planId: PremiumPlanId): string | null {
   const productId = String(RUSTORE_PLAN_PRODUCT_IDS[planId] || '').trim();
   return productId && !productId.startsWith('RUSTORE_PRODUCT_') ? productId : null;
+}
+
+export async function loadRuStoreProducts(): Promise<Partial<Record<PremiumPlanId, RuStoreProduct>>> {
+  const nativeBridge = bridge();
+  if (!nativeBridge) return {};
+  const entries = Object.entries(RUSTORE_PLAN_PRODUCT_IDS)
+    .map(([planId, value]) => [planId as PremiumPlanId, String(value || '').trim()] as const)
+    .filter(([, productId]) => productId && !productId.startsWith('RUSTORE_PRODUCT_'));
+  if (!entries.length) return {};
+  const result = await nativeBridge.getProducts({ productIds: entries.map(([, productId]) => productId) });
+  const byId = new Map(result.products.map((product) => [product.productId, product]));
+  return Object.fromEntries(
+    entries
+      .map(([planId, productId]) => [planId, byId.get(productId)] as const)
+      .filter((entry): entry is [PremiumPlanId, RuStoreProduct] => !!entry[1]),
+  );
+}
+
+async function hasRecoveryIdentity(): Promise<boolean> {
+  const response = await apiFetch('/api/auth/identities');
+  if (!response.ok) return false;
+  const payload = await response.json().catch(() => ({}));
+  return Array.isArray(payload?.identities)
+    && payload.identities.some((identity: any) => ['vk', 'yandex', 'google', 'email'].includes(identity?.provider));
 }
 
 async function validateWithBackend(purchase: RuStorePurchase): Promise<PaymentResult> {
@@ -63,8 +93,15 @@ export async function requestRuStorePayment(profile: UserProfile, planId: Premiu
   if (!productId) return { status: 'unavailable', reason: 'RUSTORE_PRODUCT_NOT_CONFIGURED' };
 
   try {
+    if (!(await hasRecoveryIdentity())) {
+      return { status: 'unavailable', reason: 'RECOVERY_IDENTITY_REQUIRED' };
+    }
     const availability = await nativeBridge.getAvailability();
     if (!availability.available) return { status: 'unavailable', reason: availability.reason || 'RUSTORE_NOT_AVAILABLE' };
+    const products = await nativeBridge.getProducts({ productIds: [productId] });
+    if (!products.products.some((product) => product.productId === productId)) {
+      return { status: 'unavailable', reason: 'RUSTORE_PRODUCT_NOT_PUBLISHED' };
+    }
     const purchase = await nativeBridge.purchase({
       productId,
       appUserId: String(profile.id),
