@@ -52,11 +52,7 @@ export function PromoBanner({
   );
   const mobileRatio = banner.responsiveVersions.mobile.width
     / banner.responsiveVersions.mobile.height;
-  const shape = mobileRatio < 1.15
-    ? 'square'
-    : mobileRatio < 1.55
-      ? 'compact'
-      : 'wide';
+  const shape = mobileRatio < 1.55 ? 'compact' : 'wide';
 
   return (
     <aside

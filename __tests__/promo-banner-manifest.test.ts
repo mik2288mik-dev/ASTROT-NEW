@@ -10,9 +10,9 @@ import {
 const ROOT = path.resolve(__dirname, '..');
 
 describe('promo banner manifest and rotation', () => {
-  it('contains every optimized banner with two existing responsive files', () => {
-    expect(PROMO_BANNER_MANIFEST).toHaveLength(106);
-    expect(new Set(PROMO_BANNER_MANIFEST.map((asset) => asset.id)).size).toBe(106);
+  it('contains every eligible banner with two existing responsive files', () => {
+    expect(PROMO_BANNER_MANIFEST).toHaveLength(97);
+    expect(new Set(PROMO_BANNER_MANIFEST.map((asset) => asset.id)).size).toBe(97);
 
     for (const asset of PROMO_BANNER_MANIFEST) {
       expect(PROMO_BANNER_CATEGORIES).toContain(asset.category);
@@ -26,13 +26,17 @@ describe('promo banner manifest and rotation', () => {
         expect(version.height).toBeGreaterThan(0);
         expect(fs.existsSync(path.join(ROOT, 'public', version.filename))).toBe(true);
       }
+      expect(
+        asset.responsiveVersions.mobile.width
+          / asset.responsiveVersions.mobile.height,
+      ).toBeGreaterThanOrEqual(1.15);
     }
   });
 
   it('keeps categories separate and reserves different assets within a session', () => {
     expect(getPromoBannersByCategory('compatibility')).toHaveLength(40);
-    expect(getPromoBannersByCategory('natal')).toHaveLength(42);
-    expect(getPromoBannersByCategory('zodiac')).toHaveLength(24);
+    expect(getPromoBannersByCategory('natal')).toHaveLength(34);
+    expect(getPromoBannersByCategory('zodiac')).toHaveLength(23);
 
     const first = selectPromoBanner({
       category: 'natal',
@@ -97,6 +101,7 @@ describe('promo banner manifest and rotation', () => {
       / wide.responsiveVersions.mobile.height;
 
     expect(tileRatio).toBeLessThanOrEqual(1.55);
+    expect(tileRatio).toBeGreaterThanOrEqual(1.15);
     expect(wideRatio).toBeGreaterThanOrEqual(1.55);
   });
 });
