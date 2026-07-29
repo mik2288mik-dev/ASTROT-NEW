@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { getZodiacSign } from '../../constants';
 import type { Language } from '../../types';
-import { ZodiacSymbol } from '../icons/ZodiacArt';
+import { ZodiacIllustration, ZodiacSymbol } from '../icons/ZodiacArt';
+import { ChevronDownIcon } from '../icons/UiIcons';
 
 interface ZodiacSignGridProps {
   signs: readonly string[];
   active: string;
+  ownSign?: string;
   language: Language;
   onPick: (sign: string) => void;
 }
@@ -14,6 +16,7 @@ interface ZodiacSignGridProps {
 export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
   signs,
   active,
+  ownSign,
   language,
   onPick,
 }) => {
@@ -24,8 +27,8 @@ export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
   const transition = reduceMotion ? { duration: 0 } : { duration: 0.17, ease: 'easeOut' as const };
 
   const pick = (sign: string) => {
-    setExpanded(false);
     onPick(sign);
+    setExpanded(false);
   };
 
   return (
@@ -39,30 +42,55 @@ export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
         {expanded ? (
           <motion.div
             key="grid"
-            className="zodiac-sign-grid"
+            className="zodiac-sign-selection"
             initial={reduceMotion ? false : { opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             transition={transition}
           >
-            {signs.map((sign) => {
-              const isActive = sign.toLowerCase() === active.toLowerCase();
-              const label = getZodiacSign(lang, sign);
-              return (
-                <button
-                  key={sign}
-                  type="button"
-                  className="zodiac-sign-option"
-                  data-active={isActive}
-                  aria-label={label}
-                  aria-pressed={isActive}
-                  onClick={() => pick(sign)}
-                >
-                  <ZodiacSymbol sign={sign} size={25} />
-                  <span>{label}</span>
-                </button>
-              );
-            })}
+            <div className="zodiac-sign-picker-intro">
+              <strong>{lang === 'ru' ? 'Выбери знак' : 'Choose a sign'}</strong>
+              <span>
+                {lang === 'ru'
+                  ? 'Нажми — гороскоп на сегодня откроется сразу'
+                  : 'Tap once to open today’s horoscope'}
+              </span>
+            </div>
+
+            <div className="zodiac-sign-grid">
+              {signs.map((sign) => {
+                const isActive = sign.toLowerCase() === active.toLowerCase();
+                const isOwnSign = sign.toLowerCase() === ownSign?.toLowerCase();
+                const label = getZodiacSign(lang, sign);
+                return (
+                  <button
+                    key={sign}
+                    type="button"
+                    className="zodiac-sign-option"
+                    data-active={isActive}
+                    data-own={isOwnSign}
+                    aria-label={isOwnSign
+                      ? `${label}. ${lang === 'ru' ? 'Твой знак' : 'Your sign'}`
+                      : label}
+                    aria-pressed={isActive}
+                    onClick={() => pick(sign)}
+                  >
+                    {isOwnSign ? (
+                      <span className="zodiac-sign-own-badge">
+                        {lang === 'ru' ? 'Твой' : 'Yours'}
+                      </span>
+                    ) : null}
+                    <span className="zodiac-sign-option-art" aria-hidden>
+                      <ZodiacIllustration sign={sign} />
+                    </span>
+                    <span className="zodiac-sign-option-meta">
+                      <span>{label}</span>
+                      <ZodiacSymbol sign={sign} size={18} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </motion.div>
         ) : (
           <motion.button
@@ -78,14 +106,23 @@ export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
             transition={transition}
             onClick={() => setExpanded(true)}
           >
-            <span className="zodiac-sign-summary-symbol" aria-hidden>
-              <ZodiacSymbol sign={active} size={27} />
+            <span className="zodiac-sign-summary-art" aria-hidden>
+              <ZodiacIllustration sign={active} />
+              <span className="zodiac-sign-summary-symbol">
+                <ZodiacSymbol sign={active} size={19} />
+              </span>
             </span>
             <span className="zodiac-sign-summary-copy">
               <strong>{activeLabel}</strong>
-              <small>{lang === 'ru' ? 'Сменить знак' : 'Change sign'}</small>
+              <small>
+                {lang === 'ru'
+                  ? `${active.toLowerCase() === ownSign?.toLowerCase() ? 'Твой знак · ' : ''}Сменить знак`
+                  : `${active.toLowerCase() === ownSign?.toLowerCase() ? 'Your sign · ' : ''}Change sign`}
+              </small>
             </span>
-            <span className="zodiac-sign-summary-chevron" aria-hidden>⌄</span>
+            <span className="zodiac-sign-summary-chevron" aria-hidden>
+              <ChevronDownIcon size={19} />
+            </span>
           </motion.button>
         )}
       </AnimatePresence>

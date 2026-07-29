@@ -14,8 +14,12 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('ZodiacSignGrid');
     expect(source).toContain('setHasReaderSelection(true)');
     expect(picker).toContain('signs.map');
+    expect(picker).toContain('onClick={() => pick(sign)}');
+    expect(picker).toContain('onPick(sign)');
     expect(picker).toContain('setExpanded(false)');
     expect(picker).toContain('setExpanded(true)');
+    expect(picker).toContain('ZodiacIllustration');
+    expect(picker).toContain('Нажми — гороскоп на сегодня откроется сразу');
     expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(source).toContain('horo-reader-controls');
     expect(source).toContain('horo-reader-article');

@@ -207,19 +207,22 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         <ZodiacSignGrid
           signs={ZODIAC_KEYS}
           active={sign}
+          ownSign={ownSign}
           language={language}
           onPick={chooseSign}
         />
 
-        <FreshTabs
-          className="horo-period-tabs"
-          tabs={periodTabs}
-          activeTab={period}
-          onTabChange={(id) => {
-            lumiaSelectionHaptic();
-            setPeriod(id as Period);
-          }}
-        />
+        {hasReaderSelection ? (
+          <FreshTabs
+            className="horo-period-tabs"
+            tabs={periodTabs}
+            activeTab={period}
+            onTabChange={(id) => {
+              lumiaSelectionHaptic();
+              setPeriod(id as Period);
+            }}
+          />
+        ) : null}
       </div>
 
       <div className="horo-uni-wrap">
@@ -330,21 +333,25 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         </AnimatePresence>
       </div>
 
-      <div className="horo-reader-info">
-        <InfoNote title={language === 'ru' ? 'На чём основан гороскоп?' : 'What is this based on?'}>
-          {language === 'ru'
-            ? 'Это общий гороскоп по знаку Солнца — один ориентир на период для всех с этим знаком. Гороскоп по твоей дате, времени и месту рождения — в разделе «Личный гороскоп».'
-            : 'This is a general horoscope for your Sun sign — one shared cue for everyone with that sign. A horoscope based on your exact birth data is in “Personal Horoscope”.'}
-        </InfoNote>
-      </div>
+      {hasReaderSelection ? (
+        <>
+          <div className="horo-reader-info">
+            <InfoNote title={language === 'ru' ? 'На чём основан гороскоп?' : 'What is this based on?'}>
+              {language === 'ru'
+                ? 'Это общий гороскоп по знаку Солнца — один ориентир на период для всех с этим знаком. Гороскоп по твоей дате, времени и месту рождения — в разделе «Личный гороскоп».'
+                : 'This is a general horoscope for your Sun sign — one shared cue for everyone with that sign. A horoscope based on your exact birth data is in “Personal Horoscope”.'}
+            </InfoNote>
+          </div>
 
-      <button type="button" className="horo-premium horo-reader-personal" onClick={openPersonal}>
-        <div className="horo-premium-text">
-          <div className="horo-premium-kicker">{language === 'ru' ? 'Личный гороскоп' : 'Personal Horoscope'}</div>
-          <div className="horo-premium-title">{personalSubtitle}</div>
-        </div>
-        <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
-      </button>
+          <button type="button" className="horo-premium horo-reader-personal" onClick={openPersonal}>
+            <div className="horo-premium-text">
+              <div className="horo-premium-kicker">{language === 'ru' ? 'Личный гороскоп' : 'Personal Horoscope'}</div>
+              <div className="horo-premium-title">{personalSubtitle}</div>
+            </div>
+            <span className="horo-premium-cta">{personalCta}<ChevronRightIcon size={15} /></span>
+          </button>
+        </>
+      ) : null}
     </div>
   );
 });
