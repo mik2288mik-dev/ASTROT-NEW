@@ -180,6 +180,10 @@ describe('personal forecast V3 feed visual resolver', () => {
       assignment?.crop.mobile.position,
     );
     expect(style['--forecast-section-overlay']).toBe(assignment?.overlay);
+    expect(Number(style['--forecast-section-media-opacity'])).toBeGreaterThan(0);
+    expect(Number(style['--forecast-section-media-opacity'])).toBeLessThan(0.6);
+    expect(Number(style['--forecast-section-media-saturation'])).toBeLessThan(0.8);
+    expect(Number(style['--forecast-section-media-brightness'])).toBeGreaterThan(1);
 
     expect(forecastVisualStyle(null, 'week')).toMatchObject({
       '--forecast-section-fallback-accent': '#7ea9e8',

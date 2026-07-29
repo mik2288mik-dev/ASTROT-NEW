@@ -52,6 +52,17 @@ describe('Lumia content matrix', () => {
 
   it('keeps generic sign content chart-free and gates personal content', () => {
     expect(canAccessFeature('daily_sign_horoscope', null, null).allowed).toBe(true);
+    expect(canAccessFeature('weekly_sign_horoscope', null, null)).toMatchObject({
+      allowed: false,
+      status: 'needs_premium',
+      hasChart: false,
+    });
+    expect(canAccessFeature('weekly_sign_horoscope', { isPremium: true }, null))
+      .toMatchObject({
+        allowed: true,
+        status: 'allowed',
+        hasChart: false,
+      });
     expect(canAccessFeature('zodiac_compatibility', null, null).allowed).toBe(true);
     expect(canAccessFeature('personal_daily', { isPremium: true }, { primaryChartId: null })).toMatchObject({ status: 'needs_chart' });
   });

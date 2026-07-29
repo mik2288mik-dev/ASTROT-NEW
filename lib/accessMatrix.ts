@@ -62,7 +62,7 @@ export type FeatureAccessResult = {
 
 const FEATURE_ACCESS_MATRIX: FeatureAccessConfig[] = [
   { key: 'daily_sign_horoscope', tier: 'free', needsChart: false, label: 'Daily sign horoscope' },
-  { key: 'weekly_sign_horoscope', tier: 'free', needsChart: false, label: 'Weekly sign horoscope' },
+  { key: 'weekly_sign_horoscope', tier: 'pro', needsChart: false, label: 'Weekly and monthly sign horoscope' },
   { key: 'zodiac_compatibility', tier: 'free', needsChart: false, label: 'Zodiac compatibility' },
   { key: 'moon_calendar', tier: 'free', needsChart: false, label: 'Moon calendar' },
   { key: 'retrograde_tracker', tier: 'free', needsChart: false, label: 'Retrograde tracker' },

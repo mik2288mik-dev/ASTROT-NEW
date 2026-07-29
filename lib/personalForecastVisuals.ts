@@ -125,7 +125,15 @@ const SOURCE_THEMES: Partial<Record<ForecastTopicKey, readonly Theme[]>> = {
 const FALLBACK: Record<PersonalForecastPeriod, { accent: string; soft: string }> = {
   day: { accent: '#f59d83', soft: '#fff2e9' }, week: { accent: '#7ea9e8', soft: '#edf4ff' }, month: { accent: '#a88ac4', soft: '#f4eff9' }, year: { accent: '#c9974f', soft: '#fbf3e4' },
 };
-const MILKY_OVERLAY = 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.58) 20%, rgba(255,255,255,0.48) 72%, rgba(255,255,255,0.98) 100%)';
+const MILKY_OVERLAY = 'linear-gradient(180deg, rgba(251,250,247,1) 0%, rgba(251,250,247,0.86) 20%, rgba(251,250,247,0.58) 46%, rgba(251,250,247,0.64) 66%, rgba(251,250,247,0.9) 86%, rgba(251,250,247,1) 100%)';
+const VISUAL_TREATMENT: Record<
+  Lightness,
+  { opacity: number; saturation: number; brightness: number }
+> = {
+  light: { opacity: 0.52, saturation: 0.68, brightness: 1.08 },
+  medium: { opacity: 0.44, saturation: 0.58, brightness: 1.12 },
+  dark: { opacity: 0.34, saturation: 0.5, brightness: 1.18 },
+};
 
 function normalise(value: string) { return value.trim().toLowerCase().replace(/[\s/]+/g, '-'); }
 function themesFor(request: ForecastVisualRequest): readonly Theme[] {
@@ -172,9 +180,41 @@ export function resolvePersonalForecastVisuals(input: { userId: string; forecast
   return resolveForecastVisualScreen(buildForecastVisualRequests(input));
 }
 export function getForecastVisualAssignment(screen: ForecastVisualScreen, sectionId: string) { return screen.assignments[sectionId] || null; }
-type ForecastVisualStyle = CSSProperties & { '--forecast-section-image'?: string; '--forecast-section-position'?: string; '--forecast-section-position-mobile'?: string; '--forecast-section-scale'?: string; '--forecast-section-scale-mobile'?: string; '--forecast-section-mirror'?: string; '--forecast-section-overlay'?: string; '--forecast-section-fallback-accent'?: string; '--forecast-section-fallback-soft'?: string; };
+type ForecastVisualStyle = CSSProperties & {
+  '--forecast-section-image'?: string;
+  '--forecast-section-position'?: string;
+  '--forecast-section-position-mobile'?: string;
+  '--forecast-section-scale'?: string;
+  '--forecast-section-scale-mobile'?: string;
+  '--forecast-section-mirror'?: string;
+  '--forecast-section-overlay'?: string;
+  '--forecast-section-media-opacity'?: string;
+  '--forecast-section-media-saturation'?: string;
+  '--forecast-section-media-brightness'?: string;
+  '--forecast-section-fallback-accent'?: string;
+  '--forecast-section-fallback-soft'?: string;
+};
 export function forecastVisualStyle(assignment: ForecastVisualAssignment | null | undefined, period: PersonalForecastPeriod): ForecastVisualStyle {
-  if (assignment?.path) return { '--forecast-section-image': `url("${assignment.path}")`, '--forecast-section-position': assignment.crop.desktop.position, '--forecast-section-position-mobile': assignment.crop.mobile.position, '--forecast-section-scale': String(assignment.crop.desktop.scale), '--forecast-section-scale-mobile': String(assignment.crop.mobile.scale), '--forecast-section-mirror': '1', '--forecast-section-overlay': assignment.overlay };
+  if (assignment?.path) {
+    const treatment = VISUAL_TREATMENT[
+      assignment.paletteTag === 'light'
+        || assignment.paletteTag === 'dark'
+        ? assignment.paletteTag
+        : 'medium'
+    ];
+    return {
+      '--forecast-section-image': `url("${assignment.path}")`,
+      '--forecast-section-position': assignment.crop.desktop.position,
+      '--forecast-section-position-mobile': assignment.crop.mobile.position,
+      '--forecast-section-scale': String(assignment.crop.desktop.scale),
+      '--forecast-section-scale-mobile': String(assignment.crop.mobile.scale),
+      '--forecast-section-mirror': '1',
+      '--forecast-section-overlay': assignment.overlay,
+      '--forecast-section-media-opacity': String(treatment.opacity),
+      '--forecast-section-media-saturation': String(treatment.saturation),
+      '--forecast-section-media-brightness': String(treatment.brightness),
+    };
+  }
   const fallback = FALLBACK[period];
   return { '--forecast-section-fallback-accent': fallback.accent, '--forecast-section-fallback-soft': fallback.soft, '--forecast-section-overlay': MILKY_OVERLAY };
 }
