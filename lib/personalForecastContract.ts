@@ -199,7 +199,7 @@ export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
   'personal-forecast-feed.v4.2.tight-premium-feed',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v3';
-export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v4-premium-scenes';
+export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v5-foni-library';
 
 export const FORECAST_FIXED_TITLES: Record<
   'ru' | 'en',
