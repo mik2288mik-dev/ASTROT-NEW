@@ -22,6 +22,9 @@ describe('personal forecast feed V3 wiring', () => {
 
   it('renders sections, navigation, explanations and evidence inside the continuous Dashboard', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const sectionBlock = read(
+      'components/PersonalForecastFeed/ForecastSectionBlock.tsx',
+    );
 
     expect(exists('views/PersonalForecastScreen.tsx')).toBe(false);
     expect(dashboard).toContain('ForecastSectionBlock');
@@ -29,7 +32,8 @@ describe('personal forecast feed V3 wiring', () => {
     expect(dashboard).toContain('ForecastBottomSheet');
     expect(dashboard).toContain('ForecastPromotion');
     expect(dashboard).toContain('resolvePersonalForecastVisuals');
-    expect(dashboard).toContain('forecast?.evidence[id]');
+    expect(dashboard).toContain('evidence={forecast.evidence}');
+    expect(sectionBlock).toContain('expandedAnchor.evidenceIds.map');
     expect(dashboard).not.toMatch(/home-day-hero|home-sphere-card|pd-reading-card/);
     expect(dashboard).not.toContain('Показать расчёт');
   });
@@ -75,8 +79,11 @@ describe('personal forecast feed V3 wiring', () => {
     expect(sectionBlock).toContain("day: 'Личный гороскоп на сегодня'");
     expect(sectionBlock).not.toContain('overviewAnchor');
     expect(sectionBlock).not.toContain('forecast-feed-info-icon');
-    expect(sectionBlock).toContain('forecast-feed-inline-info');
-    expect(feedStyles).toContain('justify-content: center');
+    expect(sectionBlock).toContain('forecast-feed-inline-explanation-toggle');
+    expect(sectionBlock).toContain('aria-expanded=');
+    expect(sectionBlock).toContain('<ChevronDown');
+    expect(feedStyles).toContain('justify-content: flex-start');
+    expect(feedStyles).toContain('scroll-padding-inline: 18px');
     expect(feedStyles).toContain('text-align: center');
     expect(feedStyles).not.toContain('content-visibility');
     expect(feedStyles).not.toContain('contain-intrinsic-size');

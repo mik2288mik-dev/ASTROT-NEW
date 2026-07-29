@@ -46,6 +46,7 @@ describe('card background UI wiring', () => {
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
     const promotion = read('components/PersonalForecastFeed/ForecastPromotion.tsx');
     const promoBanner = read('components/PromoBanner.tsx');
+    const feedStyles = read('styles/personalForecastFeed.css');
     const natal = read('views/v2/NatalMagazine.tsx');
     const compatibility = read('views/Synastry.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
@@ -64,6 +65,9 @@ describe('card background UI wiring', () => {
     expect(promotion).toContain('<PromoBanner');
     expect(promoBanner).toContain('selectPromoBanner');
     expect(promoBanner).toContain('loading="lazy"');
+    expect(promoBanner).toContain('data-banner-shape={shape}');
+    expect(feedStyles).toContain("data-banner-shape='square'");
+    expect(feedStyles).toContain("data-banner-shape='compact'");
     expect(dashboard).not.toMatch(
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );
