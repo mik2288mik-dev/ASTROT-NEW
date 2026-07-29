@@ -738,7 +738,7 @@
   display: grid;
   width: min(calc(100% - 40px), 560px);
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  align-items: stretch;
   gap: 12px;
   margin: 20px auto 26px;
 }
@@ -756,10 +756,29 @@
   .forecast-feed-promo {
   width: 100%;
   max-width: none;
+  aspect-ratio: 4 / 3;
   border-radius: 12px;
+  background: rgba(245, 244, 241, 0.92);
   box-shadow:
     0 4px 13px rgba(23, 25, 35, 0.05),
     0 1px 0 rgba(255, 255, 255, 0.78) inset;
+}
+
+.forecast-feed-page
+  .forecast-feed-promo-pair
+  .forecast-feed-promo picture,
+.forecast-feed-page
+  .forecast-feed-promo-pair
+  .forecast-feed-promo img {
+  width: 100%;
+  height: 100%;
+}
+
+.forecast-feed-page
+  .forecast-feed-promo-pair
+  .forecast-feed-promo img {
+  max-height: none;
+  object-fit: contain;
 }
 
 .forecast-feed-page .forecast-feed-promo-space--wide {
@@ -1197,10 +1216,6 @@
 }
 
 @media (max-width: 639px) {
-  .forecast-feed-page .forecast-feed-promo[data-banner-shape='square'] {
-    max-width: 270px;
-  }
-
   .forecast-feed-page .forecast-feed-promo[data-banner-shape='compact'] {
     max-width: 300px;
   }

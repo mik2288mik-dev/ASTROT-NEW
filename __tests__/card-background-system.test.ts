@@ -67,9 +67,10 @@ describe('card background UI wiring', () => {
     expect(promoBanner).toContain('loading="lazy"');
     expect(promoBanner).toContain('data-banner-shape={shape}');
     expect(promoBanner).toContain('data-banner-layout={layout}');
-    expect(feedStyles).toContain("data-banner-shape='square'");
     expect(feedStyles).toContain("data-banner-shape='compact'");
     expect(feedStyles).toContain('.forecast-feed-promo-pair');
+    expect(feedStyles).toContain('aspect-ratio: 4 / 3');
+    expect(feedStyles).toContain('object-fit: contain');
     expect(dashboard).not.toMatch(
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );

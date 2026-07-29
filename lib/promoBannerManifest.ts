@@ -40,9 +40,18 @@ const manifest = rawManifest as {
   assets: PromoBannerAsset[];
 };
 
+const MIN_BANNER_ASPECT_RATIO = 1.15;
+
+function assetAspectRatio(asset: PromoBannerAsset): number {
+  return asset.responsiveVersions.mobile.width
+    / asset.responsiveVersions.mobile.height;
+}
+
 export const PROMO_BANNER_MANIFEST_VERSION = manifest.version;
 export const PROMO_BANNER_MANIFEST: readonly PromoBannerAsset[] =
-  manifest.assets;
+  manifest.assets.filter(
+    (asset) => assetAspectRatio(asset) >= MIN_BANNER_ASPECT_RATIO,
+  );
 
 function stableHash(value: string): number {
   let hash = 2166136261;
@@ -99,8 +108,7 @@ export function selectPromoBanner(input: {
   }
   const layout = input.layout || 'standalone';
   const preferredAssets = categoryAssets.filter((asset) => {
-    const ratio = asset.responsiveVersions.mobile.width
-      / asset.responsiveVersions.mobile.height;
+    const ratio = assetAspectRatio(asset);
     if (layout === 'tile') return ratio <= 1.55;
     if (layout === 'wide') return ratio >= 1.55;
     return true;
