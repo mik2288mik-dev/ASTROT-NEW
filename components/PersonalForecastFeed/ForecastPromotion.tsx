@@ -3,6 +3,7 @@ import { PromoBanner } from '../PromoBanner';
 import type {
   PersonalForecastPromoPlacement,
 } from '../../lib/personalForecastPromo';
+import type { PromoBannerLayout } from '../../lib/promoBannerManifest';
 
 type ForecastPromotionProps = {
   placement: PersonalForecastPromoPlacement;
@@ -10,6 +11,7 @@ type ForecastPromotionProps = {
   periodKey: string;
   dayKey: string;
   language: 'ru' | 'en';
+  layout: PromoBannerLayout;
   onOpenNatal: () => void;
   onOpenCompatibility: () => void;
   onOpenZodiac: () => void;
@@ -21,6 +23,7 @@ export function ForecastPromotion({
   periodKey,
   dayKey,
   language,
+  layout,
   onOpenNatal,
   onOpenCompatibility,
   onOpenZodiac,
@@ -38,6 +41,7 @@ export function ForecastPromotion({
       dayKey={dayKey}
       placementKey={`${periodKey}:${placement.id}`}
       language={language}
+      layout={layout}
       onOpen={open}
     />
   );

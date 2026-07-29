@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import {
   selectPromoBanner,
   type PromoBannerCategory,
+  type PromoBannerLayout,
 } from '../lib/promoBannerManifest';
 
 type PromoBannerProps = {
@@ -10,6 +11,7 @@ type PromoBannerProps = {
   dayKey: string;
   placementKey: string;
   language: 'ru' | 'en';
+  layout?: PromoBannerLayout;
   onOpen: () => void;
 };
 
@@ -35,6 +37,7 @@ export function PromoBanner({
   dayKey,
   placementKey,
   language,
+  layout = 'standalone',
   onOpen,
 }: PromoBannerProps) {
   const banner = useMemo(
@@ -43,8 +46,9 @@ export function PromoBanner({
       userId,
       dayKey,
       placementKey,
+      layout,
     }),
-    [category, dayKey, placementKey, userId],
+    [category, dayKey, layout, placementKey, userId],
   );
   const mobileRatio = banner.responsiveVersions.mobile.width
     / banner.responsiveVersions.mobile.height;
@@ -55,17 +59,24 @@ export function PromoBanner({
       : 'wide';
 
   return (
-    <aside className="forecast-feed-promo-space">
+    <aside
+      className={[
+        'forecast-feed-promo-space',
+        `forecast-feed-promo-space--${layout}`,
+      ].join(' ')}
+    >
       <button
         type="button"
         className={[
           'forecast-feed-promo',
           `forecast-feed-promo--${category}`,
+          `forecast-feed-promo--layout-${layout}`,
         ].join(' ')}
         aria-label={LABELS[language][category]}
         data-banner-id={banner.id}
         data-banner-route={banner.targetRoute}
         data-banner-shape={shape}
+        data-banner-layout={layout}
         onClick={onOpen}
       >
         <picture>

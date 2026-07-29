@@ -130,10 +130,9 @@ function assertValidSections(sections: readonly PersonalForecastPromoSection[]):
 }
 
 /**
- * Resolves the two required native promos and, when a strong astro-accent
- * section exists, one contextual Zodiac promo. Successful resolution always
- * has exactly two mandatory placements, no repeated product, and no repeated
- * visual format.
+ * Resolves two paired product promos and one later Zodiac transition.
+ * Zodiac follows the strongest astro-accent when one exists; otherwise it
+ * stays near the end of the feed. Products and visual formats never repeat.
  */
 export function resolvePersonalForecastPromotions(
   input: PersonalForecastPromoResolverInput,
@@ -167,14 +166,16 @@ export function resolvePersonalForecastPromotions(
     };
   });
 
-  const zodiacAnchor = chooseAnchor('zodiac', input.sections, seed);
-  if (zodiacAnchor) {
-    selected.push({
-      product: 'zodiac',
-      placementType: 'contextual',
-      ...zodiacAnchor,
-    });
-  }
+  const zodiacAnchor = chooseAnchor('zodiac', input.sections, seed)
+    || {
+      section: input.sections[input.sections.length - 1],
+      index: input.sections.length - 1,
+    };
+  selected.push({
+    product: 'zodiac',
+    placementType: 'contextual',
+    ...zodiacAnchor,
+  });
 
   selected.sort((left, right) => {
     if (left.index !== right.index) return left.index - right.index;
