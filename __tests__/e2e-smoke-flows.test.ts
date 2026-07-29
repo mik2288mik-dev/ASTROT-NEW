@@ -5,11 +5,14 @@ const ROOT = path.join(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('E2E smoke flow contracts', () => {
-  it('startup and onboarding flow waits for Telegram/session identity before profile and chart work', () => {
+  it('startup resolves an explicit app session before profile and chart work', () => {
     const app = read('App.tsx');
     expect(app).toContain('waitForTelegramInitData');
-    expect(app).toContain('buildMinimalStartupProfile');
-    expect(app).toContain('saveStartupProfileWithRetry');
+    expect(app).toContain('getAuthSessionMode');
+    expect(app).toContain('loginWithTelegram');
+    expect(app).toContain('startGuestAccount');
+    expect(app).toContain('const canonicalUserId = String(storedProfile.id)');
+    expect(app).not.toContain('buildMinimalStartupProfile');
     expect(app).toContain('getOrCalculateChart');
     expect(app).toContain('CACHE_ONLY_PREWARM_BUDGET_MS');
   });

@@ -141,7 +141,6 @@ export function ForecastSectionBlock({
   const title = isOverview
     ? overviewTitle(period, language)
     : section.title?.trim();
-  const overviewAnchor = isOverview ? section.explanationAnchors[0] : null;
   const preview = section.lockedPreview;
 
   return (
@@ -160,21 +159,7 @@ export function ForecastSectionBlock({
     >
       <div className="forecast-feed-section-content">
         {title ? (
-          <h2 className="forecast-feed-section-title">
-            {title}
-            {overviewAnchor ? (
-              <button
-                type="button"
-                className="forecast-feed-info-icon"
-                aria-label={language === 'ru'
-                  ? 'Показать, почему получился этот вывод'
-                  : 'Show why this conclusion was reached'}
-                onClick={() => onExplain(section, overviewAnchor)}
-              >
-                i
-              </button>
-            ) : null}
-          </h2>
+          <h2 className="forecast-feed-section-title">{title}</h2>
         ) : null}
         {locked ? (
           <div className="forecast-feed-locked">

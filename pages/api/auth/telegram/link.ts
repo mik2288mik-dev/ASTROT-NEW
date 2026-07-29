@@ -1,7 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getVerifiedTelegramUser, handleAdminError } from '../../../../lib/adminAuth';
-import { requireAppUser } from '../../../../lib/auth/appAuth';
+import {
+  createAppUserSession,
+  requireAppUser,
+  setAppSessionCookie,
+  type AppUserContext,
+} from '../../../../lib/auth/appAuth';
 import { resolveVerifiedIdentity } from '../../../../lib/auth/accountIdentity';
+import { toPublicAppProfile } from '../../../../lib/auth/profile';
+import { db } from '../../../../lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -27,7 +34,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       auth.userId,
     );
-    return res.status(200).json({ ok: true, userId: auth.userId });
+    let nextAuth: AppUserContext = { ...auth, isGuest: false };
+    let token: string | undefined;
+    if (auth.isGuest) {
+      const kind = auth.provider === 'native' ? 'native' : 'web';
+      const session = await createAppUserSession({ userId: auth.userId, kind });
+      if (kind === 'web') setAppSessionCookie(res, session.token);
+      else token = session.token;
+      nextAuth = {
+        userId: auth.userId,
+        provider: kind === 'native' ? 'native' : 'web_guest',
+        isGuest: false,
+        telegramUserId: telegram.id,
+        sessionId: session.sessionId,
+      };
+    }
+    const user = await db.users.get(auth.userId);
+    return res.status(200).json({
+      ok: true,
+      userId: auth.userId,
+      token,
+      profile: toPublicAppProfile(user, nextAuth),
+    });
   } catch (error) {
     return handleAdminError(res, error);
   }

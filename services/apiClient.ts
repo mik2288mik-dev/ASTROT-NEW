@@ -1,7 +1,10 @@
 import { nativeSessionStore } from './nativeSessionStore';
 import { assertNativeNetworkAvailable } from './nativeNetwork';
+import {
+  getAuthSessionMode,
+  requiresExplicitAuthentication,
+} from './authSessionIntent';
 
-const TELEGRAM_INIT_DATA_HEADER = 'x-telegram-init-data';
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 type NativeSessionResponse = {
@@ -33,14 +36,7 @@ export function apiUrl(path: string): string {
   return `${getApiBaseUrl()}${normalizedPath}`;
 }
 
-function telegramInitData(): string {
-  if (typeof window === 'undefined') return '';
-  const value = (window as any).Telegram?.WebApp?.initData;
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-async function requestNativeSession(forceNew = false): Promise<NativeSessionResponse> {
-  if (forceNew) await nativeSessionStore.clearToken();
+async function requestNativeSession(): Promise<NativeSessionResponse> {
   if (nativeSessionRequest) return nativeSessionRequest;
 
   nativeSessionRequest = (async () => {
@@ -72,12 +68,20 @@ async function requestNativeSession(forceNew = false): Promise<NativeSessionResp
 export async function getAppAuthHeaders(): Promise<Record<string, string>> {
   if (isNativeAppRuntime()) {
     const storedToken = await nativeSessionStore.getToken();
-    const token = storedToken || (await requestNativeSession()).token;
+    if (storedToken) return { Authorization: `Bearer ${storedToken}` };
+
+    const mode = getAuthSessionMode();
+    if (requiresExplicitAuthentication(mode) || (mode !== 'automatic' && mode !== 'guest')) {
+      return {};
+    }
+    const token = (await requestNativeSession()).token;
     return { Authorization: `Bearer ${token}` };
   }
 
-  const initData = telegramInitData();
-  return initData ? { [TELEGRAM_INIT_DATA_HEADER]: initData } : {};
+  // Web requests authenticate with the revocable HttpOnly app-session cookie.
+  // Telegram launch proof is attached only by explicit Telegram-only services
+  // (login, linking, notifications, Stars), never as a global fallback.
+  return {};
 }
 
 async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Promise<Response> {
@@ -115,12 +119,13 @@ export async function apiFetch(
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
   const response = await fetchOnce(path, init, timeoutMs);
-  if (!isNativeAppRuntime() || response.status !== 401 || path.includes('/api/auth/native-guest')) {
-    return response;
+  if (isNativeAppRuntime() && response.status === 401) {
+    // An invalid or revoked native token must return the user to the explicit
+    // sign-in choice. Silently creating a new guest here used to hide logout
+    // failures and could switch accounts behind the user's back.
+    await clearNativeSession();
   }
-
-  await requestNativeSession(true);
-  return fetchOnce(path, init, timeoutMs);
+  return response;
 }
 
 export async function clearNativeSession(): Promise<void> {

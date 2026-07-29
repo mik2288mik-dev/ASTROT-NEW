@@ -11,6 +11,32 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const originalFetch = globalThis.fetch;
 const originalDatabaseUrl = process.env.DATABASE_URL;
 
+function installBrowserStorage(): void {
+  const values = new Map<string, string>();
+  const localStorage = {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key: string) => values.get(key) ?? null,
+    key: (index: number) => Array.from(values.keys())[index] ?? null,
+    removeItem: (key: string) => {
+      values.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      values.set(key, String(value));
+    },
+  };
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    },
+  });
+}
+
 function mockResponse() {
   const result = { statusCode: 200, body: null as any, headers: {} as Record<string, string> };
   const response = {
@@ -55,6 +81,7 @@ describe('mobile API and native auth', () => {
     Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true });
     delete process.env.NEXT_PUBLIC_MOBILE_BUILD;
     delete process.env.NEXT_PUBLIC_API_URL;
+    delete (globalThis as any).window;
   });
 
   afterAll(() => {
@@ -104,7 +131,7 @@ describe('mobile API and native auth', () => {
     } as any, tampered.response);
     expect(tampered.result).toMatchObject({
       statusCode: 401,
-      body: { error: 'APP_AUTH_REQUIRED' },
+      body: { error: 'APP_SESSION_INVALID' },
     });
     expect(set).toHaveBeenCalledTimes(1);
 
@@ -118,7 +145,7 @@ describe('mobile API and native auth', () => {
     })).rejects.toMatchObject({ status: 403, code: 'USER_ID_MISMATCH' });
   });
 
-  it('uses the configured HTTPS API base, stores bearer auth, and retries one 401 only once', async () => {
+  it('uses the configured HTTPS API base and clears a rejected bearer without silently creating a new guest', async () => {
     jest.resetModules();
     process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test/';
@@ -135,13 +162,7 @@ describe('mobile API and native auth', () => {
       const url = String(input);
       const authorization = new Headers(init?.headers).get('Authorization');
       calls.push({ url, authorization });
-      if (url.endsWith('/api/auth/native-guest')) {
-        return new Response(JSON.stringify({ token: 'fresh-token', profile: { id: '-1' } }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      return new Response(null, { status: calls.filter((call) => call.url.endsWith('/api/data')).length === 1 ? 401 : 200 });
+      return new Response(null, { status: 401 });
     });
     Object.defineProperty(globalThis, 'fetch', { value: fetchMock, configurable: true });
 
@@ -149,22 +170,52 @@ describe('mobile API and native auth', () => {
     expect(getApiBaseUrl()).toBe('https://api.example.test');
     const response = await apiFetch('/api/data');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(401);
     expect(calls).toEqual([
       {
         url: 'https://api.example.test/api/data',
         authorization: 'Bearer expired-token',
       },
-      {
-        url: 'https://api.example.test/api/auth/native-guest',
-        authorization: null,
-      },
-      {
-        url: 'https://api.example.test/api/data',
-        authorization: 'Bearer fresh-token',
-      },
     ]);
+    expect(store.clearToken).toHaveBeenCalledTimes(1);
+    expect(store.setToken).not.toHaveBeenCalled();
   });
+
+  it.each(['signed_out', 'account'] as const)(
+    'does not create an implicit native guest in %s mode without a token',
+    async (mode) => {
+    jest.resetModules();
+    installBrowserStorage();
+    process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test';
+    const store = {
+      getToken: jest.fn(async () => null),
+      setToken: jest.fn(async () => undefined),
+      clearToken: jest.fn(async () => undefined),
+    };
+    jest.doMock('../services/nativeSessionStore', () => ({ nativeSessionStore: store }));
+
+    const intent = await import('../services/authSessionIntent');
+    intent.setAuthSessionMode(mode);
+    const calls: string[] = [];
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: jest.fn(async (input: RequestInfo | URL) => {
+        calls.push(String(input));
+        return new Response('{}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    });
+
+    const { apiFetch } = await import('../services/apiClient');
+    await expect(apiFetch('/api/auth/telegram/login', { method: 'POST' }))
+      .resolves.toMatchObject({ status: 200 });
+    expect(calls).toEqual(['https://api.example.test/api/auth/telegram/login']);
+    expect(store.setToken).not.toHaveBeenCalled();
+    },
+  );
 
   it('recognizes forwarded same-origin requests and standard Capacitor origins', () => {
     const origins = 'https://mobile.example.com';

@@ -26,9 +26,8 @@ describe('chart onboarding and lazy sections', () => {
   it('lets a signed web guest complete onboarding without trusting newProfile identity or granting trial', () => {
     const app = read('App.tsx');
     expect(app).toContain('const currentProfileId = profile?.id');
-    expect(app).toContain('const safeUserId = String(hasTelegramUserId ? tgId : currentProfileId)');
-    expect(app).toContain('const hasGuestProfileId = isGuestUserId(currentProfileId)');
-    expect(app).toContain('const isGuestOnboarding = !hasTelegramUserId');
+    expect(app).toContain('const safeUserId = String(currentProfileId)');
+    expect(app).toContain('const isGuestOnboarding = profile?.isGuest === true || isGuestUserId(safeUserId)');
     expect(app).toContain('id: safeUserId');
     expect(app).not.toContain('id: String(newProfile.id)');
     expect(app).toContain('isPremium: isGuestOnboarding');
@@ -37,11 +36,12 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).toContain('await getOrCalculateChart(pendingProfile)');
   });
 
-  it('keeps Telegram identity authoritative and reports an invalid guest session clearly', () => {
+  it('keeps the canonical server profile authoritative and reports a missing session clearly', () => {
     const app = read('App.tsx');
-    expect(app).toContain('hasTelegramUserId ? tgId : currentProfileId');
-    expect(app).toContain('Не удалось подтвердить гостевую сессию. Обнови страницу и попробуй ещё раз.');
-    expect(app).not.toContain('Открой Lumia через Telegram, чтобы приложение смогло сохранить профиль и карту.');
+    expect(app).toContain('The server profile is the canonical account');
+    expect(app).toContain('Cannot complete onboarding without an authenticated account');
+    expect(app).not.toContain('hasTelegramUserId ? tgId : currentProfileId');
+    expect(app).not.toContain('const safeUserId = String(newProfile.id)');
   });
 
   it('keeps one free basic identity and lazy-loads paid sections on open', () => {

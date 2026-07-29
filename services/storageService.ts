@@ -5,18 +5,40 @@ import {
 import { toDateInputValue } from "../lib/date-utils";
 import { isValidUserId } from "../lib/userId";
 import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
-import { apiFetch, clearAppSessionAndLocalData } from "./apiClient";
+import { apiFetch } from "./apiClient";
+
+export class ProfileLoadError extends Error {
+  status: number;
+  code: string;
+
+  constructor(status: number, code: string, message?: string) {
+    super(message || code);
+    this.name = 'ProfileLoadError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export function isProfileAuthenticationError(error: unknown): boolean {
+  return error instanceof ProfileLoadError && error.status === 401;
+}
 
 export async function deleteCurrentAccount(): Promise<void> {
   const response = await apiFetch('/api/users/account', { method: 'DELETE' });
   if (!response.ok) throw new Error('ACCOUNT_DELETION_FAILED');
-  await clearAppSessionAndLocalData();
 }
 
 export async function logoutCurrentAccount(): Promise<void> {
   const response = await apiFetch('/api/users/session/logout', { method: 'POST' });
   if (!response.ok) throw new Error('LOGOUT_FAILED');
-  await clearAppSessionAndLocalData();
+}
+
+export async function startGuestAccount(): Promise<UserProfile> {
+  const profile = await ensureWebGuestSession();
+  if (!profile || !isValidUserId(profile.id)) {
+    throw new Error('GUEST_SESSION_FAILED');
+  }
+  return profile as UserProfile;
 }
 
 const PROFILE_FETCH_TIMEOUT_MS = 20_000;
@@ -127,21 +149,7 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
  * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
 export const getProfile = async (): Promise<UserProfile | null> => {
-  const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
-  
-  if (!tgId) {
-      log.info('[getProfile] Telegram unavailable; resolving signed web guest session');
-      const me = await apiFetch('/api/users/me', { method: 'GET', credentials: 'include' }, PROFILE_FETCH_TIMEOUT_MS).catch(() => null);
-      if (me?.ok) return await me.json();
-      return await ensureWebGuestSession();
-  }
-  
-  const userId = tgId;
-  
-  log.info(`[getProfile] Starting fetch for user: ${userId}`, { userId, tgId });
-
-  const url = `/api/users/${userId}`;
+  const url = '/api/users/me';
 
   for (let attempt = 0; attempt < PROFILE_FETCH_ATTEMPTS; attempt++) {
     const delay = PROFILE_FETCH_RETRY_DELAYS_MS[attempt] ?? 0;
@@ -155,7 +163,7 @@ export const getProfile = async (): Promise<UserProfile | null> => {
       const startTime = Date.now();
       const response = await apiFetch(
         url,
-        { method: 'GET', headers: getTelegramInitDataHeaders() },
+        { method: 'GET', credentials: 'include' },
         PROFILE_FETCH_TIMEOUT_MS
       );
       const duration = Date.now() - startTime;
@@ -170,7 +178,7 @@ export const getProfile = async (): Promise<UserProfile | null> => {
       if (response.ok) {
         const profile = await response.json() as UserProfile;
         log.info(`[getProfile] Successfully loaded profile from database`, {
-          userId,
+          userId: profile.id,
           hasName: !!profile.name,
           isSetup: profile.isSetup,
         });
@@ -182,22 +190,30 @@ export const getProfile = async (): Promise<UserProfile | null> => {
         return null;
       }
 
-      if (response.status === 401) {
-        log.warn(`[getProfile] Auth failed (401) - initData may be missing or invalid`, { userId, attempt: attempt + 1 });
-      } else {
-        log.warn(`[getProfile] HTTP ${response.status}, will retry if attempts left`);
+      const payload = await response.json().catch(() => ({})) as {
+        code?: string;
+        error?: string;
+        message?: string;
+      };
+      if (response.status === 401 || response.status === 403) {
+        throw new ProfileLoadError(
+          response.status,
+          payload.code || payload.error || 'APP_AUTH_REQUIRED',
+          payload.message,
+        );
       }
+      log.warn(`[getProfile] HTTP ${response.status}, will retry if attempts left`);
     } catch (error: any) {
+      if (error instanceof ProfileLoadError) throw error;
       log.warn('[getProfile] Request failed, will retry if attempts left', {
         error: error?.message || error,
         attempt: attempt + 1,
-        userId,
       });
     }
   }
 
-  log.error('[getProfile] All fetch attempts failed', { userId });
-  return null;
+  log.error('[getProfile] All fetch attempts failed');
+  throw new ProfileLoadError(503, 'PROFILE_LOAD_FAILED', 'Не удалось загрузить профиль.');
 };
 
 export type ReferralClaimApiResult = {
@@ -258,15 +274,13 @@ export function runReferralFromStartParam(
  * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
 export const saveChartData = async (data: NatalChartData): Promise<void> => {
-  const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
-  
-  if (!tgId) {
-      log.error('[saveChartData] No Telegram ID found, cannot save chart');
+  const currentProfile = await getProfile();
+  const userId = currentProfile?.id;
+
+  if (!isValidUserId(userId)) {
+      log.error('[saveChartData] No authenticated account found, cannot save chart');
       throw new Error('User ID is required for saving chart');
   }
-
-  const userId = tgId;
 
   log.info(`[saveChartData] Starting save for user: ${userId}`, {
     userId,
@@ -329,17 +343,15 @@ export const saveChartData = async (data: NatalChartData): Promise<void> => {
  * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
 export const getChartData = async (): Promise<NatalChartData | null> => {
-  const tg = (window as any).Telegram?.WebApp;
-  const tgId = tg?.initDataUnsafe?.user?.id;
-  
-  if (!tgId) {
-      log.warn('[getChartData] No Telegram ID found, cannot fetch chart');
+  const currentProfile = await getProfile();
+  const userId = currentProfile?.id;
+
+  if (!isValidUserId(userId)) {
+      log.warn('[getChartData] No authenticated account found, cannot fetch chart');
       return null;
   }
-  
-  const userId = tgId;
 
-  log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId, tgId });
+  log.info(`[getChartData] Starting fetch for user: ${userId}`, { userId });
 
   try {
     // Always try to get from database via Next.js API

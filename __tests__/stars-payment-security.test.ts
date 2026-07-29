@@ -13,7 +13,9 @@ function mockTelegramAuth() {
       code = 'UNAUTHORIZED';
     },
     handleAdminError: jest.fn(),
-    requireTelegramUserId: jest.fn(),
+  }));
+  jest.doMock('../lib/auth/appAuth', () => ({
+    requireTelegramPaymentUser: jest.fn(async () => ({ userId: '100' })),
   }));
 }
 

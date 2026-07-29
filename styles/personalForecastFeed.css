@@ -340,8 +340,8 @@
 }
 
 .forecast-feed-section {
-  --forecast-section-pad-start: 38px;
-  --forecast-section-pad-end: 44px;
+  --forecast-section-pad-start: 24px;
+  --forecast-section-pad-end: 28px;
   position: relative;
   z-index: 1;
   width: 100%;
@@ -350,11 +350,6 @@
   isolation: isolate;
   background: transparent;
   color: #171923;
-}
-
-.forecast-feed-section.has-visual {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 360px;
 }
 
 .forecast-feed-section.has-visual::before,
@@ -437,43 +432,43 @@
 }
 
 .forecast-feed-section.is-overview .forecast-feed-section-content {
-  --forecast-section-pad-start: 52px;
-  --forecast-section-pad-end: 58px;
+  --forecast-section-pad-start: 34px;
+  --forecast-section-pad-end: 34px;
   max-width: 630px;
 }
 
 .forecast-feed-section--fixed {
-  --forecast-section-pad-start: 40px;
-  --forecast-section-pad-end: 46px;
+  --forecast-section-pad-start: 26px;
+  --forecast-section-pad-end: 30px;
 }
 
 .forecast-feed-section--dynamic {
-  --forecast-section-pad-start: 32px;
-  --forecast-section-pad-end: 38px;
+  --forecast-section-pad-start: 24px;
+  --forecast-section-pad-end: 28px;
 }
 
 .forecast-feed-section--astro_accent {
-  --forecast-section-pad-start: 28px;
-  --forecast-section-pad-end: 34px;
+  --forecast-section-pad-start: 22px;
+  --forecast-section-pad-end: 26px;
 }
 
 .forecast-feed-section--wishes {
-  --forecast-section-pad-start: 34px;
-  --forecast-section-pad-end: 44px;
+  --forecast-section-pad-start: 26px;
+  --forecast-section-pad-end: 32px;
 }
 
 .forecast-feed-section.has-visual-fallback {
-  --forecast-section-pad-start: 30px;
-  --forecast-section-pad-end: 36px;
+  --forecast-section-pad-start: 24px;
+  --forecast-section-pad-end: 28px;
 }
 
 .forecast-feed-section.is-overview.has-visual-fallback {
-  --forecast-section-pad-start: 44px;
-  --forecast-section-pad-end: 48px;
+  --forecast-section-pad-start: 32px;
+  --forecast-section-pad-end: 34px;
 }
 
 .forecast-feed-section-title {
-  margin: 0 0 11px;
+  margin: 0 0 16px;
   color: #161923;
   font-size: 17px;
   font-weight: 780;
@@ -483,7 +478,7 @@
 }
 
 .forecast-feed-section.is-overview .forecast-feed-section-title {
-  margin-bottom: 13px;
+  margin-bottom: 18px;
   font-size: 19px;
   letter-spacing: -0.018em;
 }
@@ -497,7 +492,7 @@
 
 .forecast-feed-section-copy {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
 }
 
@@ -528,8 +523,7 @@
   font-weight: 590;
 }
 
-.forecast-feed-inline-info,
-.forecast-feed-info-icon {
+.forecast-feed-inline-info {
   display: inline-flex;
   width: 18px;
   height: 18px;

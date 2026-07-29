@@ -33,10 +33,14 @@ describe('app auth providers and API security', () => {
     await expect(requireAppUser(request, { expectedUserId: '-42' })).rejects.toMatchObject({ status: 403, code: 'REGISTERED_ACCOUNT_REQUIRED' });
   });
 
-  it('keeps Telegram priority and prepares a native bearer provider', async () => {
+  it('uses revocable app sessions and prepares a native bearer provider', async () => {
     const native = createAppSessionToken({ userId: '123', sessionId: 'native-session', provider: 'native' });
     await expect(requireAppUser(req({ authorization: `Bearer ${native}` }), { expectedUserId: '123' })).resolves.toMatchObject({ provider: 'native', isGuest: false });
-    expect(read('lib/auth/appAuth.ts')).toContain("if (header(req, 'x-telegram-init-data'))");
+    expect(read('lib/auth/appAuth.ts')).toContain('const explicitSessionSupplied = !!authorization || !!cookieToken');
+    expect(read('lib/auth/appAuth.ts')).toContain('const payload = verifyAppSessionToken(bearer || cookieToken)');
+    expect(read('lib/auth/appAuth.ts')).toContain(
+      "} else if (options.allowTelegramProof !== false && header(req, 'x-telegram-init-data')) {"
+    );
     expect(read('services/sessionService.ts')).toContain('getTelegramInitDataHeaders');
   });
 
@@ -97,9 +101,11 @@ describe('app auth providers and API security', () => {
     );
   });
 
-  it('boots the dashboard through guest session when Telegram is unavailable', () => {
+  it('creates a guest only through an explicit startup or AuthGate choice', () => {
     expect(read('services/storageService.ts')).toContain('ensureWebGuestSession');
-    expect(read('App.tsx')).toContain('bootstrapping signed web guest session');
+    expect(read('App.tsx')).toContain('storedProfile = await startGuestAccount()');
+    expect(read('App.tsx')).toContain("sessionMode === 'automatic' || sessionMode === 'guest'");
+    expect(read('App.tsx')).toContain('onContinueGuest={handleContinueAsGuest}');
     expect(read('App.tsx')).not.toContain('Открой Lumia через Telegram Mini App и попробуй ещё раз');
   });
 

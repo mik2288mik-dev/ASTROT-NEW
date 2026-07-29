@@ -16,7 +16,7 @@ describe('startup profile bootstrap', () => {
 
   it('does not block startup on admin status or primary chart ID when local chart exists', () => {
     const app = read('App.tsx');
-    const profileLoaded = app.indexOf('const storedProfile = webGuestProfile || await getProfile()');
+    const profileLoaded = app.indexOf('storedProfile = await getProfile()');
     const localChart = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)', profileLoaded);
     const dashboard = app.indexOf("showStartupDashboard('dashboard')", localChart);
 
@@ -27,22 +27,23 @@ describe('startup profile bootstrap', () => {
     expect(app.slice(localChart, dashboard)).not.toContain('await getPrimaryChartId');
   });
 
-  it('uses retry helper instead of bare await saveProfile for new users', () => {
+  it('never invents a local profile when authentication is missing', () => {
     const app = read('App.tsx');
-    expect(app).toContain('saveStartupProfileWithRetry');
-    expect(app).toContain('await saveStartupProfileWithRetry(updatedProfile)');
-    expect(app).not.toMatch(
-      /Creating minimal startup profile without natal setup[\s\S]{0,240}await saveProfile\(updatedProfile\)/
-    );
+    expect(app).not.toContain('buildMinimalStartupProfile');
+    expect(app).not.toContain('saveStartupProfileWithRetry');
+    expect(app).toContain('storedProfile = await loginWithTelegram()');
+    expect(app).toContain('storedProfile = await startGuestAccount()');
+    expect(app).toContain("throw new Error('PROFILE_NOT_FOUND')");
   });
 
-  it('falls back to local profile in startup catch when user id is valid', () => {
+  it('returns authentication failures to the explicit sign-in gate', () => {
     const app = read('App.tsx');
     const loadDataIdx = app.indexOf('const loadData = async () => {');
-    const catchIdx = app.indexOf('} catch (error) {', loadDataIdx);
-    const fallbackIdx = app.indexOf('setProfile(fallbackProfile)', catchIdx);
+    const catchIdx = app.indexOf('} catch (error: any) {', loadDataIdx);
+    const signedOutIdx = app.indexOf("setAuthSessionMode('signed_out')", catchIdx);
     expect(catchIdx).toBeGreaterThan(loadDataIdx);
-    expect(fallbackIdx).toBeGreaterThan(catchIdx);
+    expect(signedOutIdx).toBeGreaterThan(catchIdx);
+    expect(app.slice(catchIdx, signedOutIdx)).not.toContain('buildMinimalStartupProfile');
   });
 
   it('shows retry button on startup error screen', () => {
@@ -54,8 +55,10 @@ describe('startup profile bootstrap', () => {
     expect(app).not.toContain('window.location.reload()');
   });
 
-  it('logs auth failures distinctly in getProfile', () => {
+  it('raises a typed auth failure from getProfile instead of returning a fake profile', () => {
     const storage = read('services/storageService.ts');
-    expect(storage).toContain('Auth failed (401)');
+    expect(storage).toContain('export class ProfileLoadError extends Error');
+    expect(storage).toContain('response.status === 401 || response.status === 403');
+    expect(storage).toContain('throw new ProfileLoadError(');
   });
 });
