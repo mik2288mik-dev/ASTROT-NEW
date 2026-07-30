@@ -41,7 +41,7 @@ export function NatalMagazine({
       <div className="fresh-page natal-editorial-page">
         <FreshPageTitle
           kicker={language === 'ru' ? 'Карта' : 'Chart'}
-          title={language === 'ru' ? 'Создай натальную карту' : 'Create your natal chart'}
+          title={language === 'ru' ? 'Рассчитай натальную карту' : 'Calculate your natal chart'}
         />
         <FreshHeroCard color="mint">
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -50,11 +50,11 @@ export function NatalMagazine({
         </FreshHeroCard>
         <p style={{ padding: '0 20px', margin: '0 0 18px', fontSize: 15, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
           {language === 'ru'
-            ? 'Астролог рассчитает карту по дате, времени и месту рождения.'
-            : 'The astrologer calculates your chart from birth date, time, and place.'}
+            ? 'Для расчёта нужны дата, время и место рождения.'
+            : 'The calculation needs your birth date, time, and place.'}
         </p>
         <button type="button" className="fresh-btn-primary" onClick={onCreateChart}>
-          {language === 'ru' ? 'Создать карту' : 'Create chart'}
+          {language === 'ru' ? 'Ввести данные' : 'Enter birth details'}
         </button>
       </div>
     );
@@ -84,8 +84,8 @@ export function NatalMagazine({
           <div className="product-screen-cover-title">{language === 'ru' ? 'Твоя карта рождения' : 'Your birth chart'}</div>
           <div className="product-screen-cover-text">
             {language === 'ru'
-              ? 'Характер, сильные стороны и повторяющиеся сценарии — по твоим данным рождения.'
-              : 'Character, strengths, and recurring patterns based on your birth data.'}
+              ? 'Характер, привычные реакции, отношения, деньги и работа — по данным рождения.'
+              : 'Character, usual reactions, relationships, money, and work based on your birth data.'}
           </div>
         </div>
       </section>
