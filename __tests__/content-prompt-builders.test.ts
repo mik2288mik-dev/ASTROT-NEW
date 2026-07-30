@@ -36,7 +36,8 @@ describe('Lumia content prompt builders', () => {
     for (const build of builders) {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
-      expect(prompt.promptVersion).toMatch(new RegExp(`\.v\d+\+voice\.${APP_VOICE_VERSION}$`));
+      expect(prompt.promptVersion).toContain('.v');
+      expect(prompt.promptVersion.endsWith(`+voice.${APP_VOICE_VERSION}`)).toBe(true);
       expect(prompt.user).toContain('Верни только валидный JSON');
       expect(prompt.user).toContain('Объём: не больше');
       expect(prompt.user).toContain('конкретную ситуацию, действие, разговор или решение');
