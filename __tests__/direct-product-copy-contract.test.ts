@@ -4,6 +4,7 @@ import path from 'path';
 const ROOT = path.resolve(__dirname, '..');
 
 const ACTIVE_COPY_FILES = [
+  'constants.ts',
   'views/Onboarding.tsx',
   'views/v2/NatalMagazine.tsx',
   'components/PremiumPreview.tsx',
