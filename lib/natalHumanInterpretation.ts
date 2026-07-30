@@ -6,7 +6,11 @@ import type {
   UserProfile,
 } from '../types';
 import { llmJson } from './anthropic';
-import { APP_VOICE_VERSION, getAppSystemVoice } from './appVoice';
+import {
+  APP_VOICE_VERSION,
+  getAppSystemVoice,
+  hasAppVoiceViolation,
+} from './appVoice';
 import {
   buildBlindSpotPrompt,
   buildNatalSectionPrompt,
@@ -61,8 +65,8 @@ const PAID_SECTION_FOCUS: Record<HumanPaidSectionKey, string> = {
   energy_recovery: 'Луна, Марс, 6-й дом и Сатурн. Без медицинских обещаний.',
   friendship_social: 'Асцендент, 11-й дом, Меркурий и Венера.',
   goals_actions: 'Марс, Солнце, сильные планеты, 1-й и 3-й дом.',
-  shadow_patterns: 'Плутон, Сатурн, Луна и напряжённые аспекты.',
-  potential_purpose: 'Солнце, MC, сильнейшая планета карты и Северный Узел.',
+  shadow_patterns: 'Плутон, Сатурн, Луна и напряжённые аспекты. Описывай защитные реакции, а не диагнозы.',
+  potential_purpose: 'Солнце, MC, сильнейшая планета карты и Северный Узел. Описывай подходящие задачи и роли, а не предназначение.',
 };
 
 function reliableHouses(chart: NatalChartData): boolean {
@@ -166,53 +170,53 @@ function baseFallbackSections(
   const ru = [
     {
       key: 'base_portrait',
-      title: 'Кто ты по сути',
-      subtitle: 'Главная внутренняя связка',
-      content: `Карта показывает сочетание самостоятельности и чувствительности к обстановке. Ты быстрее принимаешь решение, когда понимаешь конкретную цель и видишь, что зависит именно от тебя. В контакте важны ясные правила: неопределённость утомляет сильнее, чем сложная, но понятная задача. Основание вывода — положения ${basis || 'главных точек карты'} и связи между ними.`,
+      title: 'Как ты действуешь',
+      subtitle: 'Первое, что заметно',
+      content: `Тебе проще принять решение, когда цель понятна и ясно, что зависит именно от тебя. Неопределённость утомляет сильнее, чем сложная, но конкретная задача. В разговоре ты быстрее доверяешь прямому ответу, чем намёкам. Этот вывод основан на положениях ${basis || 'главных точек карты'} и связях между ними.`,
     },
     {
       key: 'strengths',
       title: 'Сильные стороны',
-      subtitle: 'На что можно опереться',
-      content: 'Твоя сильная сторона — замечать существенное и собирать разрозненные детали в решение. Это особенно полезно в работе, сложном разговоре или ситуации, где другим не хватает последовательности. Когда роль и критерий результата ясны, ты способен держать темп дольше, чем кажется со стороны.',
+      subtitle: 'Что у тебя получается лучше',
+      content: 'Ты умеешь замечать важные детали и собирать их в понятное решение. Это особенно заметно в работе, сложном разговоре или ситуации, где другим не хватает последовательности. Когда роль и критерий результата ясны, ты держишь темп дольше, чем от тебя ожидают.',
     },
     {
       key: 'growth_zones',
-      title: 'Где бывает трудно',
-      subtitle: 'Что требует внимания',
-      content: 'Сложность начинается, когда приходится долго действовать без понятной обратной связи. Тогда сомнения могут отнимать больше сил, чем сама задача, а реакция становится резче. Полезно отделять факт от предположения и проверять договорённость напрямую, пока напряжение не накопилось.',
+      title: 'Где начинаются проблемы',
+      subtitle: 'Что чаще всего мешает',
+      content: 'Долго работать без понятной обратной связи тебе тяжело. Сомнения начинают забирать больше сил, чем сама задача, а ответы становятся резче. Отделяй факт от догадки и проверяй договорённость прямо, пока раздражение не накопилось.',
     },
     {
       key: 'main_advice',
-      title: 'Как с этим жить',
-      subtitle: 'Практический ориентир',
-      content: 'Перед важным решением назови критерий результата и проверь, какие данные уже есть. Это помогает использовать точность карты как сильную сторону и не тратить силы на догадки. Если время рождения указано неточно, выводы о домах и Асценденте нужно считать ограниченными.',
+      title: 'Что помогает',
+      subtitle: 'Практический вывод',
+      content: 'Перед важным решением определи, какой результат тебе нужен, и проверь, какие данные уже есть. Так меньше времени уходит на догадки. Если время рождения указано примерно, выводы о домах и Асценденте нужно читать с учётом этой погрешности.',
     },
   ];
   const en = [
     {
       key: 'base_portrait',
-      title: 'Who you are at the core',
-      subtitle: 'Your central pattern',
-      content: `The chart combines independence with close attention to context. Decisions come more easily when the goal is concrete and your responsibility is clear. Uncertainty is often more tiring than a difficult but well-defined task. This conclusion is based on ${basis || 'the main chart placements'} and their connections.`,
+      title: 'How you act',
+      subtitle: 'The first thing that stands out',
+      content: `Decisions come more easily when the goal is clear and you know what depends on you. Uncertainty is more tiring than a difficult but specific task. In conversation, a direct answer earns your trust faster than hints. This conclusion is based on ${basis || 'the main chart placements'} and the connections between them.`,
     },
     {
       key: 'strengths',
       title: 'Strengths',
-      subtitle: 'What supports you',
-      content: 'A clear strength is the ability to notice what matters and turn separate details into a decision. This is useful in work, difficult conversations, and situations where others lose consistency. With a clear role and result, you can sustain effort longer than people expect.',
+      subtitle: 'What you do well',
+      content: 'You notice important details and turn them into a workable decision. This is most visible at work, in a difficult conversation, or when other people lose consistency. When the role and result are clear, you can keep going longer than people expect.',
     },
     {
       key: 'growth_zones',
-      title: 'Where it gets difficult',
-      subtitle: 'What needs attention',
-      content: 'Difficulty grows when you have to act for too long without clear feedback. Doubt can then consume more energy than the task itself, and reactions become sharper. Separating facts from assumptions and checking agreements early prevents unnecessary pressure.',
+      title: 'Where problems start',
+      subtitle: 'What usually gets in the way',
+      content: 'Working for too long without clear feedback is difficult for you. Doubt starts taking more energy than the task, and your answers become sharper. Separate facts from assumptions and check agreements directly before irritation builds up.',
     },
     {
       key: 'main_advice',
-      title: 'How to use this',
-      subtitle: 'A practical reference',
-      content: 'Before an important decision, define the result and list the information you actually have. This uses the chart’s precision as a strength and reduces guesswork. If the birth time is uncertain, house and Ascendant conclusions must remain limited.',
+      title: 'What helps',
+      subtitle: 'The practical conclusion',
+      content: 'Before an important decision, define the result and check which facts are already available. This cuts down the time spent guessing. If the birth time is approximate, read house and Ascendant conclusions with that limitation in mind.',
     },
   ];
   return (language === 'en' ? en : ru).map((section) => ({
@@ -251,23 +255,23 @@ export function buildHumanBaseFallback(
         ? 'You work best when the goal, responsibility, and result are clear.'
         : 'Ты сильнее всего там, где понятны цель, ответственность и результат.',
       advice: language === 'en'
-        ? 'Check facts before spending energy on assumptions.'
-        : 'Проверяй факты до того, как тратить силы на предположения.',
+        ? 'Check facts before spending time on assumptions.'
+        : 'Проверяй факты до того, как тратить время на догадки.',
     },
   };
 }
 
 const PAID_FALLBACK_TEXT: Record<HumanPaidSectionKey, string> = {
-  work_business: 'Карта показывает, что в работе тебе нужен понятный результат и достаточная самостоятельность. Сильнее всего ты проявляешься там, где можно отвечать за целый участок, видеть критерий качества и влиять на способ выполнения. Тормозит размытая ответственность: когда решение требуется от тебя, а полномочий нет. Перед новой ролью полезно уточнить три вещи — за что отвечаешь, как измеряется результат и кто принимает финальное решение.',
-  love_relationships: 'В отношениях для тебя важны последовательность и прямые договорённости. Симпатия сама по себе не заменяет надёжности: ты быстрее доверяешь человеку, чьи слова совпадают с действиями. Напряжение появляется, когда ожидания приходится угадывать или важный разговор откладывается. Карта советует оценивать не отдельный жест, а повторяющееся поведение и говорить о проблеме до того, как она превратится в накопленную претензию.',
-  money_stability: 'Финансовая устойчивость растёт, когда цена решения понятна заранее. Тебе легче обращаться с деньгами при конкретных правилах: лимит, срок, назначение покупки и критерий пользы. Слабое место — решение под давлением или из желания быстро снять напряжение. Перед крупной тратой полезно сравнить варианты и отдельно ответить, какую задачу покупка решает. Это не обещание дохода, а способ уменьшить необязательный риск.',
-  family_home: 'Дом для тебя связан с ощущением предсказуемости и правом на личное пространство. Бытовое напряжение растёт не из-за мелочей самих по себе, а когда обязанности и границы остаются неоговорёнными. Карта показывает потребность в ясных правилах, которые одинаково действуют для всех. Лучше заранее договориться о времени, территории и ответственности, чем ждать, что близкие поймут это без слов.',
-  communication_conflicts: 'В разговоре твоя сила — точность, но под давлением она может превращаться в резкость. Особенно сложно, когда собеседник уходит от предмета разговора или меняет договорённость задним числом. Рабочий формат — назвать факт, его последствия и конкретный следующий шаг. Это сохраняет прямоту, но не превращает спор в борьбу за последнее слово.',
-  energy_recovery: 'Нагрузка переносится лучше, когда задачи имеют границы и не требуют постоянного переключения. Утомляет не только объём, но и незакрытые мелкие обязательства, которые всё время напоминают о себе. Карта не даёт медицинских выводов, но показывает чувствительность к хаотичному ритму. Реалистичный способ восстановления — заранее ограничивать количество параллельных задач и завершать день с понятным списком незакрытого.',
-  friendship_social: 'В окружении тебе важнее качество контакта, чем количество знакомых. Ты хорошо замечаешь несоответствие между словами и поведением, поэтому поверхностная общительность быстро утомляет. Сильная сторона — выбирать людей, с которыми можно быть прямым и сохранять договорённости. Риск — слишком долго поддерживать контакт только из привычки. Оценивай взаимность по действиям, а не по частоте сообщений.',
-  goals_actions: 'Карта показывает способность долго работать над целью, если понятен смысл. Проблема возникает не из-за нехватки способностей, а когда одновременно выбрано слишком много равных направлений. Тогда усилие распределяется, а результат трудно увидеть. Полезно определить один проверяемый шаг, срок и условие завершения. Это переводит сильные качества из намерения в наблюдаемый результат.',
-  shadow_patterns: 'Под давлением ты можешь сначала удерживать реакцию, а затем резко закрывать контакт или усиливать контроль. Такая защита иногда оправдана, но становится проблемой, когда реальная угроза уже исчезла, а поведение осталось прежним. Слепая зона — считать молчание достаточным объяснением для другого человека. Точнее назвать границу и последствия заранее, пока разговор ещё можно вести спокойно.',
-  potential_purpose: 'Сильнее всего ты раскрываешься в задачах, где внимание к деталям соединяется с ответственностью за итог. Тебе подходит не абстрактная заметность, а роль, в которой качество решения действительно влияет на людей или процесс. Рост идёт через усложнение масштаба: сначала уверенно вести свой участок, затем связывать несколько участков и объяснять другим, почему выбран именно такой порядок.',
+  work_business: 'В работе тебе нужен понятный результат и достаточная самостоятельность. Лучше всего подходят задачи, где можно отвечать за целый участок, видеть критерий качества и влиять на способ выполнения. Размытая ответственность мешает: решение требуют от тебя, а полномочий не дают. Перед новой ролью уточни три вещи — за что отвечаешь, как измеряется результат и кто принимает финальное решение.',
+  love_relationships: 'В отношениях для тебя важны последовательность и прямые договорённости. Симпатия не заменяет надёжности: доверие быстрее появляется к человеку, у которого слова совпадают с действиями. Проблемы начинаются, когда ожидания приходится угадывать или важный разговор постоянно откладывается. Смотри не на один красивый жест, а на то, как человек ведёт себя из раза в раз, и обсуждай проблему до того, как она превратится в претензию.',
+  money_stability: 'С деньгами проще, когда цена решения понятна заранее. Тебе подходят конкретные правила: лимит, срок, назначение покупки и понятная польза. Слабое место — траты под давлением или ради быстрого облегчения. Перед крупной покупкой сравни варианты и отдельно ответь, какую задачу она решает. Это не обещание дохода, а способ убрать лишний риск.',
+  family_home: 'Дома тебе нужны предсказуемость и право на личное пространство. Бытовые конфликты растут, когда обязанности и границы никто не проговорил. Правила должны быть понятными и одинаковыми для всех. Лучше заранее договориться о времени, территории и ответственности, чем ждать, что близкие догадаются сами.',
+  communication_conflicts: 'Твоя сильная сторона в разговоре — точность, но под давлением она легко превращается в резкость. Особенно раздражает, когда собеседник уходит от вопроса или меняет договорённость задним числом. Рабочая схема простая: назови факт, его последствия и следующий шаг. Так прямота не превращается в борьбу за последнее слово.',
+  energy_recovery: 'Нагрузка переносится легче, когда у задач есть границы и не приходится постоянно переключаться. Утомляет не только объём, но и мелкие незакрытые обязательства, которые всё время напоминают о себе. Медицинских выводов здесь нет. Практический вывод — ограничивать количество параллельных задач и заканчивать день с понятным списком того, что осталось.',
+  friendship_social: 'В окружении тебе важнее качество контакта, чем количество знакомых. Ты быстро замечаешь, когда слова расходятся с поведением, поэтому поверхностное общение утомляет. Лучше всего складываются отношения с людьми, с которыми можно говорить прямо и соблюдать договорённости. Риск — слишком долго поддерживать контакт только по привычке. Смотри на взаимность по действиям, а не по количеству сообщений.',
+  goals_actions: 'Ты способен долго работать над задачей, если понимаешь, зачем она нужна. Проблемы начинаются, когда одновременно выбрано слишком много равных направлений. Усилие распыляется, а результат трудно заметить. Выбери один проверяемый шаг, срок и понятное условие завершения. Так намерение превращается в результат.',
+  shadow_patterns: 'Под давлением ты можешь сначала сдерживать реакцию, а потом резко закрыть разговор или усилить контроль. Иногда такая защита оправдана, но она мешает, когда реальной угрозы уже нет. Слабое место — считать молчание достаточным объяснением для другого человека. Границу и последствия лучше назвать заранее, пока разговор ещё можно вести нормально.',
+  potential_purpose: 'Лучший результат получается в задачах, где внимание к деталям соединяется с ответственностью за итог. Тебе подходит роль, в которой качество решения действительно влияет на людей или процесс. Следующий шаг обычно связан с масштабом: сначала уверенно вести свой участок, затем связывать несколько участков и объяснять другим, почему выбран именно такой порядок.',
 };
 
 export function buildHumanPaidFallback(
@@ -289,17 +293,27 @@ export function buildHumanPaidFallback(
   };
 }
 
+function cleanGeneratedText(value: unknown, fallback: string): string {
+  const text = String(value || '').trim();
+  if (!text || hasAppVoiceViolation(text)) return fallback;
+  return text;
+}
+
 function normalizeSection(
   raw: Partial<InterpretationSection> | null | undefined,
   fallback: InterpretationSection,
 ): InterpretationSection {
   return {
     ...fallback,
-    title: String(raw?.title || fallback.title).trim(),
-    subtitle: String(raw?.subtitle || fallback.subtitle || '').trim(),
-    content: String(raw?.content || fallback.content).trim(),
+    title: cleanGeneratedText(raw?.title, fallback.title),
+    subtitle: cleanGeneratedText(raw?.subtitle, fallback.subtitle || ''),
+    content: cleanGeneratedText(raw?.content, fallback.content),
     bullets: Array.isArray(raw?.bullets)
-      ? raw!.bullets!.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 4)
+      ? raw.bullets
+          .map(String)
+          .map((item) => item.trim())
+          .filter((item) => Boolean(item) && !hasAppVoiceViolation(item))
+          .slice(0, 4)
       : fallback.bullets || [],
   };
 }
@@ -322,11 +336,15 @@ function normalizeBaseReport(
       fallbackSections.get(key)!,
     )),
     shortCard: {
-      title: String(raw.shortCard?.title || fallback.shortCard.title).trim(),
-      text: String(raw.shortCard?.text || fallback.shortCard.text).trim(),
-      advice: String(raw.shortCard?.advice || fallback.shortCard.advice).trim(),
+      title: cleanGeneratedText(raw.shortCard?.title, fallback.shortCard.title),
+      text: cleanGeneratedText(raw.shortCard?.text, fallback.shortCard.text),
+      advice: cleanGeneratedText(raw.shortCard?.advice, fallback.shortCard.advice),
       keywords: Array.isArray(raw.shortCard?.keywords)
-        ? raw.shortCard!.keywords.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 5)
+        ? raw.shortCard.keywords
+            .map(String)
+            .map((item) => item.trim())
+            .filter((item) => Boolean(item) && !hasAppVoiceViolation(item))
+            .slice(0, 5)
         : fallback.shortCard.keywords,
     },
     paidSections: buildLockedPaidSections(),
@@ -341,8 +359,8 @@ Return valid NatalInterpretationReport JSON with exactly four freeSections in th
 base_portrait, strengths, growth_zones, main_advice.
 Each section needs title, subtitle, content, bullets, access "free", isLocked false.
 Also return shortCard with title, text, 4-5 keywords, advice. paidSections and premiumSections are empty.
-Make every section feel worth opening: start content with one sharp, specific conclusion; show how it appears in ordinary decisions, work or relationships; finish with a brief reason grounded in the supplied chart. Use 2-3 short paragraphs, not one wall of text.
-Be lively and direct, but never rude, fatalistic or theatrical. No coaching filler. Do not show technical labels such as "Basis:", aspect names, houses, or orb values in the visible copy.
+Start every section with a concrete conclusion. Then show one ordinary situation where it is noticeable. End with a short reason based on the supplied chart when useful. Use 2-3 short paragraphs, not one wall of text.
+Use ordinary language. Be direct, but never rude or fatalistic. Do not use coaching, therapy, mystical wording, slogans, or abstract introductions. Do not show labels such as "Basis:", orb values, or a list of technical chart terms in the visible copy.
 Use only the supplied calculations. Do not invent biography or events.
 
 ${JSON.stringify(summary, null, 2)}`;
@@ -352,8 +370,8 @@ ${JSON.stringify(summary, null, 2)}`;
 base_portrait, strengths, growth_zones, main_advice.
 У каждой секции нужны title, subtitle, content, bullets, access "free", isLocked false.
 Также верни shortCard: title, text, 4–5 keywords, advice. paidSections и premiumSections пустые.
-Каждая секция должна сразу давать сильный конкретный вывод, затем показывать, как он проявляется в обычных решениях, работе или отношениях, и коротко объяснять причину по переданной карте. Делай 2–3 коротких абзаца, а не стену текста.
-Пиши живо, прямо и чуть дерзко за счёт точности, но без грубости, фатализма и театральности. Без коучинговой воды. Не выводи в пользовательский текст «Основание:», названия аспектов, домов и значения орбисов.
+Каждая секция начинается с конкретного вывода. Затем покажи одну обычную ситуацию, где он заметен. В конце коротко объясни причину по переданному расчёту, если это действительно нужно. Делай 2–3 коротких абзаца, а не стену текста.
+Пиши обычными словами. Прямо, но без грубости и фатализма. Не используй коучинговый, психологический, мистический или рекламный язык. Не начинай с «мы нашли», «карта показывает», «тема проявляется» и других пустых вводных. Не выводи в пользовательский текст «Основание:», значения орбисов и длинный список терминов.
 Используй только переданные расчёты. Не выдумывай биографию или события.
 
 ${JSON.stringify(summary, null, 2)}`;
