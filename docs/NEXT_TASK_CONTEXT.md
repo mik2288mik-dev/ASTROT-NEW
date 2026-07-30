@@ -21,6 +21,20 @@ The active contract is `docs/PERSONAL_FORECAST_FEED_V3_SPEC.md`.
 
 Old database rows are retained. V3 cache, prompt, visual, and question identities prevent old personal content from being treated as current.
 
+## Voice boundary
+
+- Voice version 2 is the active contract.
+- The voice is direct, bold, calculation-led, and written in ordinary human language.
+- Natal copy is descriptive. Forecasts and question answers may be directive when the calculation supports a clear answer, action, condition, or risk.
+- Start with the actual conclusion. Then show an ordinary situation. Explain the calculation only when it adds value.
+- Static UI copy, fallbacks, onboarding, paywalls, notifications, prompts, and generated text use the same voice. This is not an AI-only rule.
+- Do not add pseudo-psychological, coaching, mystical, cosmic, therapeutic, or motivational filler.
+- Do not invent trauma, childhood, parental relationships, diagnoses, profession, income, events, or biography.
+- Do not promise guaranteed future events.
+- Reject phrases such as «карта сложилась», «это про тебя», «что сейчас активно», «внутренний рисунок», «повторяющиеся сценарии», «энергия дня», «замедлись», «прислушайся к себе», «позволь себе», «отпусти контроль», «побереги ресурс», and close paraphrases.
+- Avoid empty introductions such as «мы нашли», «карта показывает», «тема проявляется сильнее». State the concrete conclusion instead.
+- When changing user-facing copy, update a regression test that rejects the bad wording.
+
 ## Architecture boundaries
 
 - Root UI and navigation: `App.tsx`.
@@ -72,7 +86,8 @@ Also search for:
 - `personal_daily` view wiring;
 - local persona/tone instructions in V3 task prompts;
 - sign-horoscope endpoints or services in `views/Dashboard.tsx`;
-- new image or `generated_images` files.
+- new image or `generated_images` files;
+- pseudo-copy such as `карта показывает`, `мы нашли`, `активная тема`, `повторяющиеся сценарии`, `карта сложилась`, `это про тебя`, `замедлись`, `прислушайся к себе`, `позволь себе`, `отпусти контроль`, and `побереги ресурс`.
 
 ## Release manual QA
 
