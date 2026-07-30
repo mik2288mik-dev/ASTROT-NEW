@@ -12,7 +12,7 @@ describe('existing onboarding completion flow', () => {
     for (const preserved of [
       'const STORIES: Story[]',
       'onClick={nextStory}',
-      "onClick={() => setStep('birth')}>Пропустить",
+      "onClick={() => setStep('birth')}>Перейти к данным",
       'className="onb-card"',
       'className="onb-hero"',
       'className="onb-title"',
