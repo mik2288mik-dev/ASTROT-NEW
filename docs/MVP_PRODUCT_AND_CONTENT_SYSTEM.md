@@ -89,15 +89,26 @@ V3 cache/lock identity and prewarm cadence are specified in `docs/CONTENT_CACHE_
 
 The only runtime source for shared voice rules is `lib/appVoice.ts`; `docs/APP_VOICE.md` documents the same contract.
 
-Task prompts define the output, supplied calculation, required theme, JSON shape, and technical limits. They do not define another character, astrologer, therapist, coach, friend, or mystical guide.
+The product voice is direct, bold, calculation-led, and easy to understand. Natal text is descriptive. Forecasts and question answers may be directive when the calculation supports a clear action, risk, or condition.
 
 Required order:
 
-1. human conclusion;
-2. clear explanation;
-3. astrological basis when useful.
+1. a concrete conclusion in ordinary language;
+2. an observable situation, action, conversation, decision, or reaction;
+3. a short calculation-based explanation when useful.
 
-Generated text must not invent events or biography, replace the answer with psychology, add automatic advice, or use generic wellness, mystical, coaching, or pseudo-profound filler.
+Every sentence must add information. Delete introductions about what «we found», what «the chart shows», what is «active», or which vague «themes repeat». State the actual conclusion instead.
+
+Generated and static copy must not:
+
+- invent events, biography, trauma, childhood, parents, diagnoses, profession, or income;
+- replace the answer with psychology or coaching;
+- use mystical, cosmic, motivational, wellness, or pseudo-profound filler;
+- use generic formulas such as «замедлись», «прислушайся к себе», «позволь себе», «отпусти контроль», «побереги ресурс», «энергия дня», «внутренний рисунок», «повторяющиеся сценарии», «карта сложилась», or «это про тебя»;
+- promise guaranteed future events;
+- define another character, astrologer, therapist, coach, friend, mentor, or mystical guide inside a task prompt.
+
+Task prompts define only the output, supplied calculation, required subject, JSON shape, volume, and technical limits. Static UI copy, fallbacks, notifications, onboarding, paywalls, and generated text follow the same voice rules.
 
 ## 8. Visual and promo system
 

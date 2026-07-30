@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import { ForecastDailyReading, Language } from '../../types';
-import { getText } from '../../constants';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { READING_GLASS_SECTION_CLASS } from '../layout/ReadingLayout';
 
@@ -9,24 +8,54 @@ interface HoroscopeContentProps {
   language: Language;
 }
 
+const COPY = {
+  ru: {
+    readingTitle: 'Прогноз по знаку',
+    readingBody: 'Главный вывод для этого знака на выбранный период.',
+    mattersTitle: 'Коротко по делу',
+    mattersBody: 'Что может помочь, что может помешать и на чём лучше сосредоточиться.',
+    chance: 'Что поможет',
+    risk: 'Что помешает',
+    focus: 'На чём сосредоточиться',
+    contextTitle: 'Подробный разбор',
+    contextBody: 'Ниже — объяснение без обещаний и выдуманных событий.',
+    contextNote: 'Почему такой вывод',
+    adviceTitle: 'Что сделать',
+  },
+  en: {
+    readingTitle: 'Zodiac forecast',
+    readingBody: 'The main conclusion for this sign and selected period.',
+    mattersTitle: 'The practical part',
+    mattersBody: 'What may help, what may get in the way, and where to focus.',
+    chance: 'What may help',
+    risk: 'What may get in the way',
+    focus: 'Where to focus',
+    contextTitle: 'Full explanation',
+    contextBody: 'The reasoning below avoids guarantees and invented events.',
+    contextNote: 'Why this conclusion',
+    adviceTitle: 'What to do',
+  },
+} as const;
+
 export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language }) => {
+  const copy = COPY[language === 'en' ? 'en' : 'ru'];
   const tips = (reading.advice || [])
     .map((item) => String(item).trim())
     .filter(Boolean)
     .slice(0, 3);
 
   const matters = [
-    { label: getText(language, 'horoscope.chance_title'), value: reading.chance },
-    { label: getText(language, 'horoscope.risk_title'), value: reading.risk },
-    { label: getText(language, 'horoscope.focus_title'), value: reading.focus },
+    { label: copy.chance, value: reading.chance },
+    { label: copy.risk, value: reading.risk },
+    { label: copy.focus, value: reading.focus },
   ];
 
   return (
     <div className="space-y-0">
       <section className={READING_GLASS_SECTION_CLASS}>
-        <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.reading_title')}</p>
+        <p className="lumia-label tracking-[0.2em]">{copy.readingTitle}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">
-          {getText(language, 'horoscope.reading_body')}
+          {copy.readingBody}
         </p>
 
         <div className="mt-4 border-b border-astro-border/10 pb-4 text-center">
@@ -36,9 +65,9 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
       </section>
 
       <section className={READING_GLASS_SECTION_CLASS}>
-        <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.what_matters_title')}</p>
+        <p className="lumia-label tracking-[0.2em]">{copy.mattersTitle}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">
-          {getText(language, 'horoscope.what_matters_body')}
+          {copy.mattersBody}
         </p>
 
         <div className="mt-4 space-y-3">
@@ -52,9 +81,9 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
       </section>
 
       <section className={READING_GLASS_SECTION_CLASS}>
-        <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.context_title')}</p>
+        <p className="lumia-label tracking-[0.2em]">{copy.contextTitle}</p>
         <p className="lumia-muted mt-1.5 text-sm leading-relaxed">
-          {getText(language, 'horoscope.context_body')}
+          {copy.contextBody}
         </p>
 
         <div className="mt-4 mx-auto w-full max-w-reading-wide">
@@ -62,14 +91,14 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
         </div>
 
         <div className="mt-4 border-t border-astro-border/10 pt-4">
-          <p className="lumia-label text-[10px] tracking-[0.16em]">{getText(language, 'horoscope.context_note_title')}</p>
+          <p className="lumia-label text-[10px] tracking-[0.16em]">{copy.contextNote}</p>
           <p className="lumia-reading-body mt-1.5 text-astro-text">{reading.context}</p>
         </div>
       </section>
 
       {tips.length > 0 && (
         <section className={READING_GLASS_SECTION_CLASS}>
-          <p className="lumia-label tracking-[0.2em]">{getText(language, 'horoscope.advice_title')}</p>
+          <p className="lumia-label tracking-[0.2em]">{copy.adviceTitle}</p>
           <ol className="mt-3 space-y-3">
             {tips.map((line, index) => (
               <li

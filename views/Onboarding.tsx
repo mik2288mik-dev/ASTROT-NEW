@@ -21,10 +21,30 @@ const SparkIcon = ({ size = 52 }: { size?: number }) => (
 type Story = { color: string; icon: React.ReactNode; title: string; text: string };
 
 const STORIES: Story[] = [
-  { color: '#1478FF', icon: <NatalChartIcon size={52} />, title: 'Натальная карта', text: 'Узнай, кто ты на самом деле — характер, сильные стороны и зоны роста по дате рождения.' },
-  { color: '#2563EB', icon: <ZodiacIcon sign="leo" size={56} strokeWidth={1.2} />, title: 'Гороскоп каждый день', text: 'Разборы на сегодня, неделю, месяц и год. Коротко и по делу, без эзотерики.' },
-  { color: '#38BDF8', icon: <HeartIcon size={52} />, title: 'Совместимость и матрица', text: 'Проверь совместимость с другим человеком и загляни в матрицу по дате рождения.' },
-  { color: '#64748B', icon: <SparkIcon size={52} />, title: 'Личный гороскоп · Premium', text: 'Любовь, деньги, работа и другие темы дня — глубже по твоей карте.' },
+  {
+    color: '#1478FF',
+    icon: <NatalChartIcon size={52} />,
+    title: 'Разбор натальной карты',
+    text: 'Характер, привычные реакции, сильные и слабые места — по дате, времени и месту рождения.',
+  },
+  {
+    color: '#2563EB',
+    icon: <ZodiacIcon sign="leo" size={56} strokeWidth={1.2} />,
+    title: 'Личный гороскоп',
+    text: 'Прогнозы на сегодня, неделю, месяц и год рассчитываются по твоей натальной карте.',
+  },
+  {
+    color: '#38BDF8',
+    icon: <HeartIcon size={52} />,
+    title: 'Совместимость',
+    text: 'Сравни две карты: что помогает договориться, где чаще начинаются проблемы и что каждый понимает по-своему.',
+  },
+  {
+    color: '#64748B',
+    icon: <SparkIcon size={52} />,
+    title: 'Больше в Premium',
+    text: 'Подробные разборы отношений, денег и работы, все периоды прогноза и ответы на личные вопросы.',
+  },
 ];
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
@@ -73,7 +93,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
-    if (!name.trim()) { setError('Добавь имя, чтобы астролог обращался к тебе лично.'); focusField('name'); return; }
+    if (!name.trim()) { setError('Укажи имя.'); focusField('name'); return; }
     if (!date) { setError('Укажи дату рождения.'); focusField('date'); return; }
     if (!time) { setError('Укажи время рождения.'); focusField('time'); return; }
     if (!place.trim()) { setError('Укажи место рождения.'); focusField('place'); return; }
@@ -140,17 +160,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
           <div style={{ padding: '0 20px' }}>
             <button type="button" className="fresh-btn-primary" style={{ width: '100%', margin: 0 }} onClick={nextStory}>
-              {storyIndex < STORIES.length - 1 ? 'Дальше' : 'Создать мою карту'}
+              {storyIndex < STORIES.length - 1 ? 'Дальше' : 'Ввести данные рождения'}
             </button>
-            <button type="button" className="onb-skip" onClick={() => setStep('birth')}>Пропустить</button>
+            <button type="button" className="onb-skip" onClick={() => setStep('birth')}>Перейти к данным</button>
           </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flex: 1, flexDirection: 'column', maxWidth: '28rem', width: '100%', margin: '0 auto' }}>
           <div style={{ padding: '8px 20px 0' }}>
-            <h1 className="fresh-page-title" style={{ maxWidth: '16rem' }}>Данные для твоей карты</h1>
-            <p style={{ marginTop: 12, maxWidth: '20rem', fontSize: 14.5, lineHeight: 1.55, color: 'var(--fresh-muted)' }}>
-              Имя, дата, время и место рождения нужны, чтобы рассчитать карту точно.
+            <h1 className="fresh-page-title" style={{ maxWidth: '18rem' }}>Данные для расчёта</h1>
+            <p style={{ marginTop: 12, maxWidth: '21rem', fontSize: 14.5, lineHeight: 1.55, color: 'var(--fresh-muted)' }}>
+              Дата, время и место рождения нужны для натальной карты и личных прогнозов. Часовой пояс для этой даты определим сами.
             </p>
           </div>
 
@@ -171,15 +191,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <label>
-                <span className="fresh-field-label">Дата</span>
+                <span className="fresh-field-label">Дата рождения</span>
                 <input ref={dateRef} type="date" value={date} onChange={(e) => { setDate(e.target.value); if (error) setError(''); }} className="fresh-input" />
               </label>
               <label>
-                <span className="fresh-field-label">Время</span>
+                <span className="fresh-field-label">Время рождения</span>
                 <input ref={timeRef} type="time" value={time} onChange={(e) => { setTime(e.target.value); if (error) setError(''); }} className="fresh-input" />
               </label>
             </div>
-            {signHint ? <p style={{ margin: '-6px 0 0', fontSize: 13, fontWeight: 700, color: 'var(--fresh-link)' }}>Твой знак — {signHint}</p> : null}
+            {signHint ? <p style={{ margin: '-6px 0 0', fontSize: 13, fontWeight: 700, color: 'var(--fresh-link)' }}>Знак зодиака: {signHint}</p> : null}
 
             <label>
               <span className="fresh-field-label">Место рождения</span>
@@ -199,17 +219,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
             <button type="button" className="onb-notify" onClick={() => setNotify((v) => !v)}>
               <span className={`onb-check ${notify ? 'is-on' : ''}`} aria-hidden>{notify ? '✓' : ''}</span>
-              <span className="onb-notify-text">Присылать полезные напоминания о дне и карте</span>
+              <span className="onb-notify-text">Присылать уведомления о новых прогнозах</span>
             </button>
           </div>
 
           <div style={{ marginTop: 'auto', paddingTop: 22 }}>
             {error ? <p style={{ margin: '0 20px 12px', fontSize: 12.5, lineHeight: 1.45, color: '#B91C1C' }}>{error}</p> : null}
             <button type="button" className="fresh-btn-primary" disabled={!canSubmit || isSubmitting} onClick={() => void handleSubmit()}>
-              {isSubmitting ? 'Сохраняем…' : 'Открыть карту'}
+              {isSubmitting ? 'Рассчитываем…' : 'Рассчитать карту'}
             </button>
-            <p style={{ margin: '12px 20px 0', maxWidth: '20rem', fontSize: 10.5, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-              Расчёты «Твой Гороскоп» опираются на астрономические данные и Swiss Ephemeris, чтобы собрать карту по твоим данным, а не общий шаблон.
+            <p style={{ margin: '12px 20px 0', maxWidth: '21rem', fontSize: 10.5, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
+              Положения планет, дома и аспекты рассчитываются по Swiss Ephemeris. Текст готовится по результатам расчёта.
             </p>
           </div>
         </div>

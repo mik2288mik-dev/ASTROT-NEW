@@ -8,8 +8,8 @@ describe('chart onboarding and lazy sections', () => {
   it('shows a create-chart CTA instead of auto-starting onboarding from chart navigation', () => {
     const chart = read('views/v2/NatalMagazine.tsx');
     const app = read('App.tsx');
-    expect(chart).toContain('Создай натальную карту');
-    expect(chart).toContain('Астролог рассчитает карту по дате, времени и месту рождения');
+    expect(chart).toContain('Рассчитай натальную карту');
+    expect(chart).toContain('Для расчёта нужны дата, время и место рождения');
     expect(chart).toContain('onCreateChart');
     expect(app).not.toContain("if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart')");
     expect(app).toContain("onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}");
@@ -55,10 +55,18 @@ describe('chart onboarding and lazy sections', () => {
     expect(prompt).toContain("contentVariant: 'living'");
   });
 
-  it('uses human product names and exposes the personal forecast from Zodiac', () => {
+  it('uses direct product names and exposes the personal forecast from Zodiac', () => {
     const shared = read('lib/natalHumanShared.ts');
     const horoscope = read('views/v2/HoroscopeReader.tsx');
-    for (const title of ['Как ты любишь', 'Где твоя сила', 'Что тебя бесит', 'Тёмная сторона', 'Скрытые таланты', 'Деньги и решения', 'Как тебя видят другие']) {
+    for (const title of [
+      'Отношения',
+      'Сильные стороны в работе',
+      'Разговоры и конфликты',
+      'Слабые места',
+      'Как ты действуешь',
+      'Деньги и решения',
+      'Как тебя видят другие',
+    ]) {
       expect(shared).toContain(title);
     }
     expect(horoscope).toContain('onOpenPersonalForecast');
@@ -81,5 +89,4 @@ describe('chart onboarding and lazy sections', () => {
     expect(report).toContain("report?.userName || profile.name || 'Твоя карта'");
     expect(report).toContain('Интерпретация сейчас недоступна');
   });
-
 });

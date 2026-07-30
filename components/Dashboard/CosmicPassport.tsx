@@ -123,13 +123,15 @@ export const CosmicPassport = memo<CosmicPassportProps>(
 
           <div className="mt-4">
             <p className="max-w-[40ch] text-sm leading-relaxed text-astro-text/92">
-              {getText(lang, 'dashboard.identity_body')}
+              {lang === 'en'
+                ? 'Your natal chart is calculated from your birth details. Open today’s forecast, the chart reading, or compatibility.'
+                : 'Натальная карта рассчитана по твоим данным рождения. Открой прогноз на сегодня, разбор карты или совместимость.'}
             </p>
           </div>
         </div>
       </div>
     );
-  }
+  },
 );
 
 CosmicPassport.displayName = 'CosmicPassport';

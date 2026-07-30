@@ -36,33 +36,35 @@ describe('Lumia content prompt builders', () => {
     for (const build of builders) {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
-      expect(prompt.promptVersion).toMatch(new RegExp(`\\.v\\d+\\+voice\\.${APP_VOICE_VERSION}$`));
+      expect(prompt.promptVersion).toContain('.v');
+      expect(prompt.promptVersion.endsWith(`+voice.${APP_VOICE_VERSION}`)).toBe(true);
       expect(prompt.user).toContain('Верни только валидный JSON');
       expect(prompt.user).toContain('Объём: не больше');
-      expect(prompt.user).toContain('конкретный жизненный пример');
+      expect(prompt.user).toContain('конкретную ситуацию, действие, разговор или решение');
+      expect(prompt.user).toContain('Сразу отвечай по существу');
     }
   });
 
   it('keeps daily, weekly, natal, compatibility, and relationship prompts focused', () => {
     expect(buildSignDailyHoroscopePrompt().user).toContain('не больше 130 слов');
     expect(buildSignDailyHoroscopePrompt().user).toContain('Не перечисляй подряд любовь');
-    // Гороскоп по знаку опирается на реальный контекст дня (фаза Луны), а не «знак вообще».
     expect(buildSignDailyHoroscopePrompt().user).toContain('реальная фаза Луны');
     for (const prompt of [buildSignWeeklyHoroscopePrompt(), buildSignMonthlyHoroscopePrompt(), buildSignYearlyHoroscopePrompt()]) {
       for (const field of ['headline', 'summary', 'reading', 'focus', 'chance', 'risk', 'context', 'advice']) {
         expect(prompt.user).toContain(`"${field}"`);
       }
-      expect(prompt.user).toContain('Если мысль закончена, остановись');
+      expect(prompt.user).toContain('Если ответ уже закончен — остановись раньше');
     }
-    expect(buildNatalSectionPrompt({ title: 'Как ты любишь' }).user).toContain('не больше 200 слов');
+    expect(buildNatalSectionPrompt({ title: 'Отношения' }).user).toContain('не больше 200 слов');
+    expect(buildNatalSectionPrompt({ title: 'Отношения' }).user).toContain('Первое предложение — прямой вывод');
     expect(buildSignCompatibilityPrompt().user).toContain('без счёта совместимости');
     expect(buildSynastryPrompt().user).toContain('Не используй термин «синастрия»');
-    expect(buildSynastryPrompt().user).toContain('выбранный человеком тип связи');
-    expect(buildSynastryPrompt().user).toContain('не протаскивай романтическое притяжение');
+    expect(buildSynastryPrompt().user).toContain('В context.relationship передан тип связи');
+    expect(buildSynastryPrompt().user).toContain('не добавляй романтическое притяжение');
   });
 
   it('uses a safe fallback for malformed model JSON', () => {
-    const fallback = { headline: 'Спокойно проверь главное', text: 'Один ясный шаг полезнее спешки.' };
+    const fallback = { headline: 'Проверь главное', text: 'Сначала закончи один конкретный шаг.' };
     expect(parseModelJson('{broken', fallback)).toEqual(fallback);
     expect(parseModelJson('[]', fallback)).toEqual(fallback);
     expect(parseModelJson('{"headline":"Готово"}', fallback)).toEqual({ headline: 'Готово' });
