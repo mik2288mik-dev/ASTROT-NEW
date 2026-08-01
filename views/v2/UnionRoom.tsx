@@ -25,6 +25,13 @@ import {
   normalizeRelationshipContext,
   type RelationshipContext,
 } from '../../lib/synastry/relationshipContext';
+import { EditorialSticker } from '../../components/EditorialSticker';
+import { selectSynastryEditorialSticker } from '../../lib/personalForecastVisuals';
+import {
+  EditorialProse,
+  EditorialSectionHeading,
+  EditorialSummary,
+} from '../../components/EditorialReading';
 
 type SynastryPrefill = {
   source: 'saved-chart' | 'manual';
@@ -120,6 +127,49 @@ function RelationshipContextPicker({
       </div>
     </div>
   );
+}
+
+type CompatibilityVisualDynamic =
+  | 'adaptation'
+  | 'attention'
+  | 'communication'
+  | 'coordination'
+  | 'curiosity'
+  | 'light-tension'
+  | 'mutual-response'
+  | 'playfulness'
+  | 'reconnection'
+  | 'shared-moment'
+  | 'shared-pace'
+  | 'timing';
+
+function visualDynamicsForCompatibility(
+  score: CompatResult,
+  context: RelationshipContext,
+): CompatibilityVisualDynamic[] {
+  const strongest: Record<CompatDimension, readonly CompatibilityVisualDynamic[]> = {
+    love: ['attention', 'mutual-response', 'shared-pace'],
+    relationship: ['communication', 'coordination', 'timing'],
+    friendship: ['playfulness', 'curiosity', 'shared-moment'],
+    work: ['coordination', 'communication', 'timing'],
+  };
+  const contextual: Record<RelationshipContext, readonly CompatibilityVisualDynamic[]> = {
+    romance: ['mutual-response', 'attention', 'shared-moment'],
+    friendship: ['playfulness', 'curiosity', 'reconnection'],
+    family: ['attention', 'communication', 'adaptation'],
+    work: ['coordination', 'timing', 'communication'],
+  };
+  const pressure: readonly CompatibilityVisualDynamic[] = score.overall < 58
+    ? ['adaptation', 'light-tension', 'reconnection']
+    : score.overall < 70
+      ? ['adaptation', 'communication', 'timing']
+      : ['shared-pace', 'mutual-response', 'coordination'];
+
+  return [...new Set([
+    ...strongest[score.strongest],
+    ...contextual[context],
+    ...pressure,
+  ])];
 }
 
 function readingTitles(context: RelationshipContext, ru: boolean) {
@@ -218,9 +268,9 @@ function DimBar({ label, value, color, top, index, reduce }: {
   );
 }
 
-/* Блок разбора — просто текст с цветным заголовком, без рамок-«окон» */
-function CompatBlock({ title, color, index, reduce, children }: {
-  title: string; color: string; index: number; reduce: boolean | null; children: React.ReactNode;
+/* Один нумерованный редакционный раздел без цветной карточки. */
+function CompatBlock({ title, number, index, reduce, children }: {
+  title: string; number: number; index: number; reduce: boolean | null; children?: string | null;
 }) {
   if (!children) return null;
   return (
@@ -230,8 +280,8 @@ function CompatBlock({ title, color, index, reduce, children }: {
       animate={{ opacity: 1, y: 0 }}
       transition={reduce ? { duration: 0 } : { duration: 0.4, delay: 0.05 * index, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="compat-read-title" style={{ color }}>{title}</div>
-      <p className="compat-read-text">{children}</p>
+      <EditorialSectionHeading number={number} title={title} className="compat-read-heading" />
+      <EditorialProse text={children} className="compat-read-text" />
     </motion.section>
   );
 }
@@ -594,6 +644,21 @@ export function UnionRoom(props: UnionRoomProps) {
   const resultContextLabel = getRelationshipContextLabel(resultContext, lang);
   const resultTitles = readingTitles(resultContext, ru);
   const resultDeepTitles = deepReadingTitles(resultContext, ru);
+  const resultVisualDynamics = score
+    ? visualDynamicsForCompatibility(score, resultContext)
+    : [];
+  const resultSticker = selectSynastryEditorialSticker({
+    screenKey: 'compatibility-result',
+    contentKey: [
+      selected?.kind || 'sign',
+      selected?.chartId || 'none',
+      leftSun,
+      theirSun,
+      resultContext,
+    ].join('|'),
+    context: resultContext === 'romance' ? 'love' : resultContext,
+    dynamics: resultVisualDynamics,
+  });
   const personSnapshot = isPerson
     ? buildLocalPersonSnapshot(theirSun, lang, resultContext, rightGender)
     : null;
@@ -609,6 +674,16 @@ export function UnionRoom(props: UnionRoomProps) {
         {ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong>
       </div>
 
+      {score ? (
+        <EditorialSummary
+          label={ru ? 'Главный вывод' : 'Main takeaway'}
+          title={score.verdict}
+          className="compat-main-conclusion"
+        >
+          <p><strong>{ru ? 'Сильнее всего:' : 'Strongest:'}</strong> {strongestLabel}</p>
+        </EditorialSummary>
+      ) : null}
+
       {personSnapshot ? (
         <section className="compat-person-snapshot">
           <div className="compat-person-snapshot-kicker">
@@ -621,45 +696,54 @@ export function UnionRoom(props: UnionRoomProps) {
         </section>
       ) : null}
 
-      <div className="people-split">
-        <motion.div className="people-side" initial={reduce ? false : { x: -22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
-          <div className="people-side-ico"><ZodiacIcon sign={leftSun} size={32} strokeWidth={1.4} /></div>
-          <div className="people-side-name">{ru ? 'Вы' : 'You'}</div>
-          <div className="people-side-sign">{genderWord(leftGender, ru)} · {getZodiacSign(lang, leftSun)}</div>
-        </motion.div>
+      {resultSticker ? (
+        <EditorialSticker
+          asset={resultSticker}
+          className="compat-result-sticker"
+          priority
+        />
+      ) : null}
 
-        <div className="people-center">
-          {score ? <ScoreRing value={score.overall} /> : null}
-          <div className="people-verdict">{score?.verdict}</div>
+      <section className="compat-technical-data" aria-label={ru ? 'Данные сравнения' : 'Comparison data'}>
+        <div className="editorial-reading-panel-label">{ru ? 'Данные сравнения' : 'Comparison data'}</div>
+        <div className="people-split">
+          <motion.div className="people-side" initial={reduce ? false : { x: -22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
+            <div className="people-side-ico"><ZodiacIcon sign={leftSun} size={32} strokeWidth={1.4} /></div>
+            <div className="people-side-name">{ru ? 'Вы' : 'You'}</div>
+            <div className="people-side-sign">{genderWord(leftGender, ru)} · {getZodiacSign(lang, leftSun)}</div>
+          </motion.div>
+
+          <div className="people-center">
+            {score ? <ScoreRing value={score.overall} /> : null}
+          </div>
+
+          <motion.div className="people-side" initial={reduce ? false : { x: 22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
+            <div className="people-side-ico"><ZodiacIcon sign={theirSun} size={32} strokeWidth={1.4} /></div>
+            <div className="people-side-name">{theirName}</div>
+            <div className="people-side-sign">{genderWord(rightGender, ru)} · {getZodiacSign(lang, theirSun)}</div>
+          </motion.div>
         </div>
 
-        <motion.div className="people-side" initial={reduce ? false : { x: 22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
-          <div className="people-side-ico"><ZodiacIcon sign={theirSun} size={32} strokeWidth={1.4} /></div>
-          <div className="people-side-name">{theirName}</div>
-          <div className="people-side-sign">{genderWord(rightGender, ru)} · {getZodiacSign(lang, theirSun)}</div>
-        </motion.div>
-      </div>
-
-      <div className="people-dims">
-        {dimsOrder.map((k, i) => (
-          <DimBar
-            key={k}
-            label={DIMENSION_LABELS[k][lang]}
-            value={score?.dims[k] ?? 0}
-            color={DIM_COLORS[k]}
-            top={!!score && k === score.strongest}
-            index={i}
-            reduce={reduce}
-          />
-        ))}
-      </div>
-      <div className="people-strong">{ru ? 'Сильнее всего' : 'Strongest'} — {strongestLabel}</div>
+        <div className="people-dims">
+          {dimsOrder.map((k, i) => (
+            <DimBar
+              key={k}
+              label={DIMENSION_LABELS[k][lang]}
+              value={score?.dims[k] ?? 0}
+              color={DIM_COLORS[k]}
+              top={!!score && k === score.strongest}
+              index={i}
+              reduce={reduce}
+            />
+          ))}
+        </div>
+      </section>
 
       {signText ? (
         <div className="compat-read" style={{ marginTop: 14 }}>
-          <CompatBlock title={resultTitles[0]} color={DIM_COLORS.love} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
-          <CompatBlock title={resultTitles[1]} color={DIM_COLORS.relationship} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
-          <CompatBlock title={resultTitles[2]} color={DIM_COLORS.friendship} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
+          <CompatBlock title={resultTitles[0]} number={1} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
+          <CompatBlock title={resultTitles[1]} number={2} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
+          <CompatBlock title={resultTitles[2]} number={3} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
         </div>
       ) : (
         <p className="union-pad" style={{ marginTop: 12, color: 'var(--fresh-muted)', fontSize: 14 }}>{ru ? 'Готовим разбор…' : 'Preparing…'}</p>
@@ -667,10 +751,12 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {deep ? (
         <div className="compat-read" style={{ marginTop: 18 }}>
-          <CompatBlock title={resultDeepTitles[0]} color={DIM_COLORS.work} index={0} reduce={reduce}>{deep.summary}</CompatBlock>
-          <CompatBlock title={resultDeepTitles[1]} color={DIM_COLORS.love} index={1} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
-          <CompatBlock title={resultDeepTitles[2]} color={DIM_COLORS.relationship} index={2} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
-          <CompatBlock title={resultDeepTitles[3]} color={DIM_COLORS.friendship} index={3} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[1]} number={4} index={0} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[2]} number={5} index={1} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[3]} number={6} index={2} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
+          <EditorialSummary label={ru ? 'Итог' : 'Bottom line'} title={resultDeepTitles[0]} className="compat-final-summary">
+            <EditorialProse text={deep.summary} />
+          </EditorialSummary>
         </div>
       ) : isPerson ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} onClick={() => void runDeep()}>

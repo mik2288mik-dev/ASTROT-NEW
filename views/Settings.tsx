@@ -476,7 +476,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     <div className="min-w-0 pr-2">
                         <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Notifications' : 'Уведомления'}</h3>
                         <p className="lumia-muted mt-1 text-sm leading-snug">
-                            {profile.language === 'en' ? 'Warm nudges from the astrologer.' : 'Тёплые напоминания от астролога.'}
+                            {profile.language === 'en' ? 'Forecast and update notifications.' : 'Уведомления о прогнозах и обновлениях.'}
                         </p>
                     </div>
                     <button

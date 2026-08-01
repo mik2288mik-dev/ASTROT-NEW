@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react';
+import { selectMainEditorialSticker } from './personalForecastVisuals/editorialSelectors';
+import type { EditorialTopic } from './personalForecastVisuals/editorialTypes';
 import {
   PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION,
-  stableHash,
   type FixedForecastSectionKey,
   type ForecastSectionKind,
   type ForecastTopicKey,
@@ -173,46 +174,68 @@ function themesFor(request: ForecastVisualRequest): readonly Theme[] {
 function fallbackAssignment(request: ForecastVisualRequest): ForecastVisualAssignment {
   return { sectionId: request.sectionId, assetId: null, path: null, sourceCategory: null, textSide: 'center', crop: { desktop: { position: '50% 50%', scale: 1 }, mobile: { position: '50% 50%', scale: 1 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: null, compositionTag: null, visualFallback: true };
 }
-function candidateAssets(request: ForecastVisualRequest) {
-  const themes = themesFor(request);
-  if (request.kind === 'astro_accent') {
-    const astroThemes = themes.filter((theme): theme is 'moon' | 'mercury' => (
-      theme === 'moon' || theme === 'mercury'
-    ));
-    if (!astroThemes.length) return [] as BackgroundAsset[];
-    return PERSONAL_FORECAST_BACKGROUND_MANIFEST.filter(
-      (asset) => asset.periods.includes(request.period)
-        && asset.themes.some((theme) => astroThemes.includes(theme as 'moon' | 'mercury')),
-    );
-  }
-  const exact = PERSONAL_FORECAST_BACKGROUND_MANIFEST.filter((asset) => asset.periods.includes(request.period) && asset.themes.some((theme) => themes.includes(theme)));
-  return exact.length ? exact : PERSONAL_FORECAST_BACKGROUND_MANIFEST.filter((asset) => asset.periods.includes(request.period));
-}
-function selectAsset(request: ForecastVisualRequest, usedFiles: Set<string>, previousSeries: string | null) {
-  const candidates = candidateAssets(request).filter((asset) => !usedFiles.has(asset.file) && asset.series !== previousSeries);
-  const fallback = candidateAssets(request).filter((asset) => !usedFiles.has(asset.file));
-  const pool = candidates.length ? candidates : fallback;
-  if (!pool.length) return null;
-  const ordered = [...pool].sort((left, right) => right.priority - left.priority);
-  const seed = `${request.userId}|${request.period}|${request.periodKey}|${request.sectionId}|${request.visualTag}|${PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION}`;
-  return ordered[stableHash(seed) % ordered.length] || null;
-}
-
 export function buildForecastVisualRequests(input: { userId: string; forecast: ForecastVisualFeedInput }): ForecastVisualRequest[] {
   return [input.forecast.overview, ...input.forecast.sections].map((section, sectionIndex) => ({ ...section, userId: input.userId, period: input.forecast.period, periodKey: input.forecast.periodKey, sectionId: section.id, sectionIndex }));
 }
 export const buildForecastSectionVisualRequests = buildForecastVisualRequests;
 export function resolveForecastVisualScreen(requests: readonly ForecastVisualRequest[], _options?: { previousSectionAssetPaths?: Readonly<Record<string, string | null | undefined>> }): ForecastVisualScreen {
   const assignments: Record<string, ForecastVisualAssignment> = {};
-  const usedFiles = new Set<string>(); let previousSeries: string | null = null;
   const ordered = [...requests].sort((left, right) => left.sectionIndex - right.sectionIndex);
+  const visualRequest = ordered[0];
+  const editorialTopicMap: Record<Theme, EditorialTopic> = {
+    general: 'general',
+    love: 'love',
+    mood: 'mood',
+    work_money: 'work_money',
+    home_family: 'home_family',
+    friends: 'friends',
+    opportunities: 'opportunities',
+    decisions: 'decisions',
+    communication: 'communication',
+    questions: 'communication',
+    moon: 'moon',
+    mercury: 'mercury',
+  };
+  const editorialAsset = visualRequest
+    ? selectMainEditorialSticker({
+        screenKey: 'personal-forecast',
+        contentKey: `${visualRequest.period}|${visualRequest.periodKey}`,
+        userId: visualRequest.userId,
+        slot: 0,
+        topics: themesFor(visualRequest).map((theme) => editorialTopicMap[theme]),
+        allowedMedia: ['photo'],
+      })
+    : null;
   for (const request of ordered) {
-    const asset = selectAsset(request, usedFiles, previousSeries);
-    assignments[request.sectionId] = asset ? { sectionId: request.sectionId, assetId: asset.id, path: asset.file, sourceCategory: 'personal', textSide: 'center', crop: { desktop: { position: asset.position, scale: 1 }, mobile: { position: asset.position, scale: 1.04 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: asset.lightness, compositionTag: asset.series, visualFallback: false } : fallbackAssignment(request);
-    if (asset) { usedFiles.add(asset.file); previousSeries = asset.series; } else previousSeries = null;
+    const asset = request.sectionId === visualRequest?.sectionId ? editorialAsset : null;
+    assignments[request.sectionId] = asset
+      ? {
+          sectionId: request.sectionId,
+          assetId: asset.id,
+          path: asset.path,
+          sourceCategory: 'personal',
+          textSide: 'center',
+          crop: {
+            desktop: { position: '100% 100%', scale: 1 },
+            mobile: { position: '100% 100%', scale: 1 },
+          },
+          mirrorX: false,
+          overlayPreset: 'milky',
+          overlay: MILKY_OVERLAY,
+          paletteTag: 'medium',
+          compositionTag: asset.medium,
+          visualFallback: false,
+        }
+      : fallbackAssignment(request);
   }
   const sectionIds = ordered.map((request) => request.sectionId);
-  return { version: PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION, sectionIds, assignments, sectionAssetIds: Object.fromEntries(sectionIds.map((id) => [id, assignments[id]?.assetId || null])), visualFallback: Object.values(assignments).some((assignment) => assignment.visualFallback) };
+  return {
+    version: PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION,
+    sectionIds,
+    assignments,
+    sectionAssetIds: Object.fromEntries(sectionIds.map((id) => [id, assignments[id]?.assetId || null])),
+    visualFallback: !editorialAsset,
+  };
 }
 export const resolveForecastSectionVisuals = resolveForecastVisualScreen;
 export function resolvePersonalForecastVisuals(input: { userId: string; forecast: ForecastVisualFeedInput; previousSectionAssetPaths?: Readonly<Record<string, string | null | undefined>> }): ForecastVisualScreen {
@@ -258,3 +281,22 @@ export function forecastVisualStyle(assignment: ForecastVisualAssignment | null 
   return { '--forecast-section-fallback-accent': fallback.accent, '--forecast-section-fallback-soft': fallback.soft, '--forecast-section-overlay': MILKY_OVERLAY };
 }
 export const forecastSectionVisualStyle = forecastVisualStyle;
+
+export {
+  NEWSPAPER_VISUAL_MANIFEST_VERSION,
+  getNewspaperVisualCounts,
+  getZodiacEditorialSticker,
+  selectMainEditorialSticker,
+  selectSynastryEditorialSticker,
+} from './personalForecastVisuals/editorialSelectors';
+export type {
+  EditorialAssetBase,
+  EditorialMedium,
+  EditorialOrientation,
+  EditorialStickerAsset,
+  EditorialTone,
+  EditorialTopic,
+  MainEditorialAsset,
+  SynastryEditorialAsset,
+  ZodiacEditorialAsset,
+} from './personalForecastVisuals/editorialTypes';

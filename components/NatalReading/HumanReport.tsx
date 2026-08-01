@@ -29,6 +29,12 @@ import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { ChartBalance } from './ChartBalance';
+import {
+  EditorialBulletText,
+  EditorialProse,
+  EditorialSectionHeading,
+  EditorialSummary,
+} from '../EditorialReading';
 
 type Props = {
   profile: UserProfile;
@@ -104,9 +110,14 @@ const SectionText: React.FC<{ section: InterpretationSection; index?: number }> 
           }
         : {})}
       data-reading-section-key={section.key}
-      className="natal-sec"
+      className="natal-sec editorial-reading-section"
     >
-      <h3 className="natal-sec-title">{section.title}</h3>
+      <EditorialSectionHeading
+        number={index + 1}
+        title={section.title}
+        subtitle={section.subtitle}
+        className="natal-sec-heading"
+      />
       <div className="natal-sec-body">
         <FormattedAiText
           text={section.content}
@@ -117,7 +128,7 @@ const SectionText: React.FC<{ section: InterpretationSection; index?: number }> 
       {section.bullets?.length ? (
         <ul className="natal-sec-bullets">
           {section.bullets.map((item, bulletIndex) => (
-            <li key={`${section.key}-${bulletIndex}`}>{item}</li>
+            <li key={`${section.key}-${bulletIndex}`}><EditorialBulletText text={item} /></li>
           ))}
         </ul>
       ) : null}
@@ -175,7 +186,7 @@ const PaidTopicCard: React.FC<{
               </div>
               {reading.bullets?.length ? (
                 <ul className="natal-sec-bullets">
-                  {reading.bullets.map((item, i) => <li key={`${sectionKey}-${i}`}>{item}</li>)}
+                  {reading.bullets.map((item, i) => <li key={`${sectionKey}-${i}`}><EditorialBulletText text={item} /></li>)}
                 </ul>
               ) : null}
             </div>
@@ -335,6 +346,7 @@ export const HumanReport: React.FC<Props> = ({
   const [expandedKey, setExpandedKey] = useState<HumanPaidSectionKey | null>(null);
 
   const isPremium = hasActivePremium(profile);
+  const ru = profile.language !== 'en';
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
   const visibleFreeSections = useMemo(
     () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),
@@ -481,14 +493,32 @@ export const HumanReport: React.FC<Props> = ({
               <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Разбор карты подготавливается.'}</p>
             </section>
           ) : (
-            visibleFreeSections.map((section, index) => (
-              <SectionText key={section.key} section={{ ...section, title: section.key === 'base_portrait' ? 'Кто ты по карте' : section.title }} index={index} />
-            ))
+            <>
+              <EditorialSummary
+                label={ru ? 'Главный вывод' : 'Main takeaway'}
+                title={report.shortCard.title}
+                className="natal-reading-overview"
+              >
+                <EditorialProse text={report.shortCard.text} />
+              </EditorialSummary>
+              {visibleFreeSections.map((section, index) => (
+                <SectionText
+                  key={section.key}
+                  section={{ ...section, title: section.key === 'base_portrait' && ru ? 'Кто ты по карте' : section.title }}
+                  index={index}
+                />
+              ))}
+            </>
           )}
         </div>
 
         {!loading && !error && report ? (
-          <ChartBalance chart={chartData} language={profile.language === 'en' ? 'en' : 'ru'} />
+          <>
+            <ChartBalance chart={chartData} language={profile.language === 'en' ? 'en' : 'ru'} />
+            <EditorialSummary label={ru ? 'Итог' : 'Bottom line'} className="natal-reading-final">
+              <p>{report.shortCard.advice}</p>
+            </EditorialSummary>
+          </>
         ) : null}
 
         <section className="natal-topics-section border-t border-[#eeeeee] py-7">

@@ -778,6 +778,7 @@ export const Dashboard = memo<DashboardProps>(({
           <ForecastSectionBlock
             key={`${activePeriod}:${forecast.periodKey}:${forecast.overview.id}`}
             section={forecast.overview}
+            sectionNumber={1}
             period={activePeriod}
             language={language}
             locked={lockedIds.has(forecast.overview.id)}
@@ -802,7 +803,7 @@ export const Dashboard = memo<DashboardProps>(({
             ))}
           </ForecastSectionBlock>
 
-          {forecast.sections.map((section) => {
+          {forecast.sections.map((section, sectionIndex) => {
             const crossLinks = forecast.suggestedCrossPeriodLinks.filter(
               (link) => link.fromSectionId === section.id,
             );
@@ -811,6 +812,7 @@ export const Dashboard = memo<DashboardProps>(({
               <React.Fragment key={`${activePeriod}:${forecast.periodKey}:${section.id}`}>
                 <ForecastSectionBlock
                   section={section}
+                  sectionNumber={sectionIndex + 2}
                   period={activePeriod}
                   language={language}
                   locked={lockedIds.has(section.id)}

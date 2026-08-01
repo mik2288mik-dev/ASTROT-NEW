@@ -12,6 +12,16 @@
 /.next/
 /out/
 
+# generated newspaper-sticker contact sheets and QA scratch files
+/tmp/imagegen/
+/tmp/imagegen-main-*/
+/tmp/newspaper-alpha/
+/tmp/newspaper-review/
+/tmp/newspaper-source/
+/tmp/newspaper-split/
+/tmp/qa-sticker-review/
+/tmp/previews/
+
 # Android local build state and generated packages
 /android/local.properties
 /android/.gradle/

@@ -105,7 +105,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   };
 
   return (
-    <main className="fixed inset-0 h-[100dvh] overflow-y-auto bg-white text-[#111827]">
+    <main className="auth-editorial-page fixed inset-0 h-[100dvh] overflow-y-auto bg-white text-[#111827]">
       <div className="flex min-h-full w-full items-center justify-center px-6 py-10">
         <section className="w-full max-w-sm text-center">
         <p className="mb-7 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#6b7280]">

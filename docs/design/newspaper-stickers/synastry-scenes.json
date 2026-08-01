@@ -1,0 +1,4002 @@
+[
+  {
+    "id": "syn-001",
+    "slug": "tree-lined-coffee-walk",
+    "titleRu": "Кофе на аллее",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends walk with paper cups under trees, comparing which path looks more inviting.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-002",
+    "slug": "mural-crosswalk-pause",
+    "titleRu": "Пауза у мурала",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple pauses at a crosswalk while one points out a funny detail in a wall mural.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-003",
+    "slug": "shared-headphones-bench",
+    "titleRu": "Одна песня на двоих",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings share headphones on a park bench and react to the same song differently.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-004",
+    "slug": "lunch-stroll-sketches",
+    "titleRu": "Прогулка после обеда",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues stroll across a sunny plaza and compare playful doodles.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-005",
+    "slug": "fountain-step-laughter",
+    "titleRu": "Шаги через фонтан",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends step across dry fountain stones and laugh when their rhythm breaks.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-006",
+    "slug": "duck-pond-afternoon",
+    "titleRu": "День у пруда",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members sit near a pond and scatter birdseed while ducks gather.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-007",
+    "slug": "coin-toss-path",
+    "titleRu": "Монетка на развилке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple uses a coin toss to choose between two bright park paths.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-008",
+    "slug": "shadow-photo-game",
+    "titleRu": "Охота за тенями",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends photograph long geometric shadows on a city wall.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-009",
+    "slug": "stairs-escalator-race",
+    "titleRu": "Лестница против эскалатора",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues playfully take parallel stairs and escalator routes toward the same landing.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-010",
+    "slug": "open-air-books",
+    "titleRu": "Книги под открытым небом",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends browse an outdoor book table and silently pass interesting finds to each other.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-011",
+    "slug": "green-light-story",
+    "titleRu": "История на светофоре",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple waits for the walk signal while an animated story continues through hand gestures.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-012",
+    "slug": "colonnade-matched-steps",
+    "titleRu": "Шаг в шаг",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings match their steps beneath a long sunlit colonnade.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-013",
+    "slug": "street-music-claps",
+    "titleRu": "Разные ритмы",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues stop for a street musician and clap on different beats before finding one rhythm.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-014",
+    "slug": "sunglasses-swap",
+    "titleRu": "Обмен очками",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends trade sunglasses on a bright square and laugh at the new look.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-015",
+    "slug": "ice-cream-flavor-swap",
+    "titleRu": "Обмен вкусами",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult cousins exchange ice cream flavors on a shaded bench.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-016",
+    "slug": "dog-and-pigeons",
+    "titleRu": "Собака и голуби",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple walks a cheerful dog that keeps pulling toward pigeons in a public garden.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-017",
+    "slug": "bridge-echo-test",
+    "titleRu": "Эхо под мостом",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends take turns calling short sounds beneath a pedestrian bridge and listen for the echo.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-018",
+    "slug": "skatepark-spectators",
+    "titleRu": "У скейт-парка",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends sit on a low wall and react to the same skateboard trick in opposite ways.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-019",
+    "slug": "plaza-lunch-choice",
+    "titleRu": "Столик на площади",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues point toward different lunch tables before choosing one together.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-020",
+    "slug": "chalk-arrow-walk",
+    "titleRu": "Меловые стрелки",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members follow playful chalk arrows along a park path.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-021",
+    "slug": "folded-city-map",
+    "titleRu": "Карта на скамейке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends unfold a small city map on a bench and choose a spontaneous walking loop.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-022",
+    "slug": "windy-leaf-catch",
+    "titleRu": "Листья на ветру",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple tries to catch windblown leaves along a lively boulevard.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-023",
+    "slug": "photo-scavenger-walk",
+    "titleRu": "Фотоохота",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends search a neighborhood for shapes that match a playful photo challenge.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-024",
+    "slug": "drizzle-under-tree",
+    "titleRu": "Дождь под деревом",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings wait beneath a broad tree during a light drizzle and share a joke.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-025",
+    "slug": "golden-hour-storefront",
+    "titleRu": "Вечерняя витрина",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues slow their walk to admire a glowing storefront display.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-026",
+    "slug": "riverside-bike-cadence",
+    "titleRu": "Разный темп",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends cycle along a riverside path at different cadences and gradually match speed.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-027",
+    "slug": "viewpoint-water-break",
+    "titleRu": "Вода на смотровой",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings stop their bicycles at a viewpoint and pass one water bottle back and forth.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-028",
+    "slug": "bike-share-color-choice",
+    "titleRu": "Выбор велосипеда",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple at a bike-share dock points toward two different bicycle colors and laughs.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-029",
+    "slug": "tram-rain-window",
+    "titleRu": "Дождь за окном",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues ride a tram side by side and trace raindrop paths on the window.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-030",
+    "slug": "ferry-gull-spotting",
+    "titleRu": "Чайки над паромом",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends on a ferry deck point toward gulls flying beside the boat.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-031",
+    "slug": "road-song-duet",
+    "titleRu": "Песня в дороге",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple on a relaxed daytime drive sings along with the open landscape beyond the windows.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-032",
+    "slug": "platform-playlist",
+    "titleRu": "Плейлист на платформе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings compare songs on a quiet station platform with no bags in sight.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-033",
+    "slug": "bus-window-mime",
+    "titleRu": "Пантомима в автобусе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends on a city bus silently mimic shapes passing outside the window.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-034",
+    "slug": "promenade-scooters",
+    "titleRu": "Самокаты у моря",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple coasts on rented scooters along a broad seaside promenade.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-035",
+    "slug": "blossom-bike-ride",
+    "titleRu": "Велосипеды в цвету",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends ride bicycles beneath flowering trees and look up at falling petals.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-036",
+    "slug": "late-metro-joke",
+    "titleRu": "Шутка в метро",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues wait for an evening metro and laugh at a private joke.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-037",
+    "slug": "cafe-bike-route",
+    "titleRu": "Маршрут у кафе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple rests bicycles beside a cafe terrace and compares two easy routes on a phone.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-038",
+    "slug": "wrong-tram-laughter",
+    "titleRu": "Не тот трамвай",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends realize they boarded the wrong tram and burst into laughter.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-039",
+    "slug": "back-seat-word-game",
+    "titleRu": "Игра в слова",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult cousins play a word game in the back seat during a sunny drive.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-040",
+    "slug": "train-window-view",
+    "titleRu": "Вид из окна",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple shares a train window view as fields slide past.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-041",
+    "slug": "rural-stop-instant-photo",
+    "titleRu": "Снимок на остановке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings take playful instant photographs at a small rural stop.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-042",
+    "slug": "boat-deck-spray",
+    "titleRu": "Брызги на палубе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends on a calm sightseeing boat react when a light spray reaches the rail.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-043",
+    "slug": "cab-shortcut-gesture",
+    "titleRu": "Короткая дорога",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues in a taxi agree on a shortcut with a quick hand gesture.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-044",
+    "slug": "bikes-in-light-rain",
+    "titleRu": "Велосипеды под дождём",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple rides bicycles through light rain beneath leafy street trees.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-045",
+    "slug": "seaside-bike-fork",
+    "titleRu": "Развилка у моря",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends pause bicycles at a seaside fork and choose the brighter path.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-046",
+    "slug": "funicular-city-rise",
+    "titleRu": "Город поднимается",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple rides a funicular and watches the city open below.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-047",
+    "slug": "one-camera-walk",
+    "titleRu": "Одна камера",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends pass one compact camera back and forth during a sightseeing walk.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-048",
+    "slug": "scenic-driver-switch",
+    "titleRu": "Смена за рулём",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings switch drivers beside a parked car at a sunny scenic turnout.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-049",
+    "slug": "weekend-hill-highfive",
+    "titleRu": "Пять на вершине",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues finish an easy weekend bicycle climb and exchange a high-five.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-050",
+    "slug": "sand-spiral",
+    "titleRu": "Спираль на песке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends draw a large abstract spiral in wet beach sand with their feet.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-051",
+    "slug": "knee-deep-waves",
+    "titleRu": "Навстречу волне",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple wades knee-deep and steps over small incoming waves together.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-052",
+    "slug": "beach-paddleball",
+    "titleRu": "Пляжный мяч",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings play paddleball and chase a gentle mis-hit near the shore.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-053",
+    "slug": "windy-picnic-napkins",
+    "titleRu": "Пикник на ветру",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues at a picnic catch napkins lifted by a sea breeze and laugh.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-054",
+    "slug": "pool-noodle-drift",
+    "titleRu": "Разный дрейф",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends float on pool noodles and slowly drift in opposite directions.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-055",
+    "slug": "skip-stone-count",
+    "titleRu": "Счёт по воде",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple skips stones across a quiet lake and counts the bounces.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-056",
+    "slug": "shell-color-pattern",
+    "titleRu": "Узор из ракушек",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends arrange found shells into a simple color pattern on the sand.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-057",
+    "slug": "umbrella-in-gust",
+    "titleRu": "Зонт на ветру",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings steady a beach umbrella during a playful gust.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-058",
+    "slug": "beach-chess",
+    "titleRu": "Шахматы у воды",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple plays a small chess set on a beach blanket.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-059",
+    "slug": "dog-digs-sand",
+    "titleRu": "Собака-кладоискатель",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends watch a happy dog dig an enthusiastic hole in the sand.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-060",
+    "slug": "barefoot-speaker-dance",
+    "titleRu": "Танец босиком",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends dance barefoot near a small portable speaker at sunset.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-061",
+    "slug": "grass-frisbee",
+    "titleRu": "Фрисби на траве",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues toss a flying disc across a bright lawn.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-062",
+    "slug": "sand-constellations",
+    "titleRu": "Созвездия на песке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple traces imaginary constellation lines in smooth sand.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-063",
+    "slug": "calm-kayaks",
+    "titleRu": "Тихие каяки",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends paddle separate kayaks across calm clear water.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-064",
+    "slug": "picnic-fruit-choice",
+    "titleRu": "Фрукты для пикника",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members choose fruit from a colorful picnic spread.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-065",
+    "slug": "dock-reflections",
+    "titleRu": "Отражения у причала",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple sits on a low lakeside dock and compares mirrored cloud shapes.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-066",
+    "slug": "blanket-cloud-watch",
+    "titleRu": "Облака над пледом",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends lie on a picnic blanket and point at changing cloud forms.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-067",
+    "slug": "leaf-race-stream",
+    "titleRu": "Гонка листьев",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings float two leaves in a shallow stream and follow their race.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-068",
+    "slug": "dune-sunrise",
+    "titleRu": "Рассвет на дюне",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues sit on a safe low dune and watch sunrise brighten the water.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-069",
+    "slug": "shared-binoculars",
+    "titleRu": "Птица в бинокле",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple takes turns using compact binoculars to watch distant birds.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-070",
+    "slug": "deer-at-distance",
+    "titleRu": "Тихая встреча",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends quietly notice deer moving far across a meadow.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-071",
+    "slug": "pine-trail-scent",
+    "titleRu": "Запах сосен",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple pauses on an easy pine trail and breathes in the fresh scent.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-072",
+    "slug": "wildflower-crowns",
+    "titleRu": "Венки из цветов",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings make simple wildflower crowns during a meadow picnic.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-073",
+    "slug": "picnic-blanket-rain",
+    "titleRu": "Плед от дождя",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends hold a picnic blanket overhead during a brief warm shower.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-074",
+    "slug": "campsite-lemonade",
+    "titleRu": "Лимонад на закате",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members toast lemonade at a bright campsite before dusk.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-075",
+    "slug": "table-tennis-rally",
+    "titleRu": "Долгий розыгрыш",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends play a fast table tennis rally in a sunny recreation room.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-076",
+    "slug": "casual-basketball-pass",
+    "titleRu": "Передача мяча",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a group of adult friends plays casual basketball as one sends a clean bounce pass.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-077",
+    "slug": "bowling-early-cheer",
+    "titleRu": "Раннее празднование",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues bowl and one celebrates before the ball reaches the pins.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-078",
+    "slug": "park-badminton",
+    "titleRu": "Волан на ветру",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple plays badminton in a park and adjusts to a light breeze.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-079",
+    "slug": "mini-golf-angle",
+    "titleRu": "Спор об угле",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings lightly debate the angle of a mini-golf shot.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-080",
+    "slug": "roller-skate-rhythm",
+    "titleRu": "Ритм на роликах",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends roller skate side by side and find the same rhythm.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-081",
+    "slug": "lucky-pool-shot",
+    "titleRu": "Случайный удар",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple plays pool and laughs at an unexpectedly lucky shot.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-082",
+    "slug": "grass-volleyball",
+    "titleRu": "Волейбол на траве",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 colleagues play relaxed volleyball on a wide grass field.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-083",
+    "slug": "park-petanque",
+    "titleRu": "Шар у цели",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends play petanque beneath park trees and inspect a close throw.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-084",
+    "slug": "orange-juggling",
+    "titleRu": "Три апельсина",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple practices simple juggling with three oranges in a courtyard.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-085",
+    "slug": "dance-class-mirror",
+    "titleRu": "Шаг у зеркала",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two adult friends in a dance class mirror the same step with different expressions.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-086",
+    "slug": "tennis-tiebreak",
+    "titleRu": "Тай-брейк",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings play a friendly tennis tiebreak on an outdoor court.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-087",
+    "slug": "air-hockey-reaction",
+    "titleRu": "Аэрохоккей",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends react to a fast air-hockey rebound at an arcade.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-088",
+    "slug": "park-yoga-balance",
+    "titleRu": "Баланс на траве",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues try the same easy yoga balance in a park.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-089",
+    "slug": "indoor-bouldering-smile",
+    "titleRu": "Зацепка рядом",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple on beginner indoor climbing walls smiles across adjacent low routes with thick mats below.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-090",
+    "slug": "foosball-night",
+    "titleRu": "Настольный футбол",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends play foosball during a lively home gathering.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-091",
+    "slug": "disc-for-dog",
+    "titleRu": "Лови диск",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple throws a flying disc to an eager dog in an open field.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-092",
+    "slug": "outdoor-board-game",
+    "titleRu": "Игра на пледе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings play a compact board game on a picnic blanket.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-093",
+    "slug": "hula-hoop-try",
+    "titleRu": "Обруч не сдаётся",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues try hula hoops and laugh at their different techniques.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-094",
+    "slug": "pond-boat-race",
+    "titleRu": "Лодки на пруду",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends race small remote-control boats across a park pond.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-095",
+    "slug": "kitchen-salsa-step",
+    "titleRu": "Сальса на кухне",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple practices one salsa turn in a bright kitchen.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-096",
+    "slug": "charades-cousins",
+    "titleRu": "Пантомима",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult cousins play charades while friends guess from a sofa.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-097",
+    "slug": "double-dutch",
+    "titleRu": "Двойная скакалка",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult friends try double-dutch jump rope in a sunny courtyard.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-098",
+    "slug": "soft-tip-darts",
+    "titleRu": "Точный бросок",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues play soft-tip darts at a casual gathering.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-099",
+    "slug": "adult-swings",
+    "titleRu": "Качели после дождя",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple takes turns on park swings after a light rain.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-100",
+    "slug": "living-room-karaoke",
+    "titleRu": "Караоке дома",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends sing karaoke in a living room with playful confidence.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-101",
+    "slug": "playlist-truce",
+    "titleRu": "Мирный плейлист",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple lightly debates the playlist and then chooses one song together.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-102",
+    "slug": "guitar-and-shaker",
+    "titleRu": "Гитара и шейкер",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings play guitar and a small shaker on a balcony.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-103",
+    "slug": "house-party-dance",
+    "titleRu": "Танец на вечеринке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 colleagues dance at a relaxed apartment party.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-104",
+    "slug": "open-mic-pass",
+    "titleRu": "Передай микрофон",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends pass a microphone during a small informal open-mic evening.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-105",
+    "slug": "piano-bench-improv",
+    "titleRu": "Импровизация",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple shares a piano bench and improvises a simple tune.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-106",
+    "slug": "clap-rhythm-sync",
+    "titleRu": "Хлопки в ритм",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult friends clap different rhythms and gradually synchronize.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-107",
+    "slug": "record-choice",
+    "titleRu": "Следующая пластинка",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends choose the next vinyl record by cover art.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-108",
+    "slug": "pasta-dance",
+    "titleRu": "Танец у плиты",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple dances in the kitchen while pasta simmers nearby.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-109",
+    "slug": "cup-percussion",
+    "titleRu": "Музыка из чашек",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings make a playful percussion rhythm with empty cups.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-110",
+    "slug": "balcony-listening",
+    "titleRu": "Музыка с балкона",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues sit on a balcony and listen to music from the street below.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-111",
+    "slug": "line-dance-lesson",
+    "titleRu": "Общий шаг",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends learn a simple line-dance sequence at a home party.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-112",
+    "slug": "floor-speaker-listen",
+    "titleRu": "Между колонками",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple sits on the floor between speakers and compares favorite moments in a song.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-113",
+    "slug": "family-table-song",
+    "titleRu": "Песня за столом",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members sing together around a dining table.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-114",
+    "slug": "paper-streamers",
+    "titleRu": "Бумажные ленты",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends decorate a bright room with paper streamers before a party.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-115",
+    "slug": "party-bubbles",
+    "titleRu": "Мыльные пузыри",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple blows soap bubbles across a playful gathering.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-116",
+    "slug": "instant-party-portraits",
+    "titleRu": "Моментальные портреты",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings take candid instant photographs of each other at a party.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-117",
+    "slug": "quiz-win-highfive",
+    "titleRu": "Победа в викторине",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues celebrate a trivia answer with a high-five.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-118",
+    "slug": "quiet-party-headphones",
+    "titleRu": "Тихий угол",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends share headphones in a quiet corner of a lively party.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-119",
+    "slug": "park-fireworks",
+    "titleRu": "Салют из парка",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple watches distant fireworks from an open park lawn.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-120",
+    "slug": "shadow-puppets",
+    "titleRu": "Тени на стене",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult friends improvise funny shadow puppets on a plain wall.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-121",
+    "slug": "paper-hat-laughter",
+    "titleRu": "Бумажные шляпы",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends wear homemade paper hats and laugh around a table.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-122",
+    "slug": "switch-dance-lead",
+    "titleRu": "Смена ведущего",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple smoothly exchanges the lead during a dance.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-123",
+    "slug": "vinyl-cover-choice",
+    "titleRu": "Выбор по обложке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings choose a record by studying colorful cover art.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-124",
+    "slug": "cake-table-laughter",
+    "titleRu": "Смех у торта",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 colleagues gather around a simple cake and laugh at an off-camera joke.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-125",
+    "slug": "pancake-flip-plate",
+    "titleRu": "Блин в полёте",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple makes pancakes as one flips and the other readies a plate.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-126",
+    "slug": "colorful-salad",
+    "titleRu": "Салат на двоих",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends assemble a colorful salad at a sunny kitchen table.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-127",
+    "slug": "soup-taste-debate",
+    "titleRu": "Спор о вкусе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings taste soup and lightly disagree about the seasoning.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-128",
+    "slug": "sushi-roll-table",
+    "titleRu": "Роллы дома",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple rolls simple vegetable sushi together at the kitchen table.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-129",
+    "slug": "cookie-shapes",
+    "titleRu": "Разные печенья",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends bake cookies in deliberately different shapes.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-130",
+    "slug": "brunch-foam-game",
+    "titleRu": "Рисунок на пене",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues at weekend brunch compare playful patterns in coffee foam.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-131",
+    "slug": "mismatched-plates",
+    "titleRu": "Разные тарелки",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members set a table with cheerful mismatched plates.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-132",
+    "slug": "plant-mister-laugh",
+    "titleRu": "Дождь для растений",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple waters houseplants and accidentally mists each other.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-133",
+    "slug": "movie-cushion-choice",
+    "titleRu": "Место для фильма",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends rearrange sofa cushions and choose the best movie spot.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-134",
+    "slug": "pizza-topping-choice",
+    "titleRu": "Пицца пополам",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings divide homemade pizza toppings into two playful halves.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-135",
+    "slug": "laundry-dance",
+    "titleRu": "Танец с полотенцами",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple folds clean laundry while dancing to music.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-136",
+    "slug": "paper-airplanes",
+    "titleRu": "Самолёты по комнате",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends make paper airplanes on the floor and test gentle flights.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-137",
+    "slug": "board-game-night",
+    "titleRu": "Вечер настольных игр",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 colleagues gather around a colorful board game at home.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-138",
+    "slug": "cat-toy-follow",
+    "titleRu": "Кошка выбирает",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple moves two soft cat toys and watches which one the cat follows.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-139",
+    "slug": "dog-bath-splash",
+    "titleRu": "Брызги в ванной",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings give a cheerful dog a bath and laugh at the splash.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-140",
+    "slug": "fairy-light-tangle",
+    "titleRu": "Гирлянда распуталась",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends patiently untangle decorative fairy lights on a sofa.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-141",
+    "slug": "blanket-fort",
+    "titleRu": "Дом из пледов",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple builds a playful blanket fort in a living room.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-142",
+    "slug": "old-photo-smiles",
+    "titleRu": "Снимки на полу",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members look through old photographs and smile.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-143",
+    "slug": "funny-gift-wrap",
+    "titleRu": "Подарок в бумаге",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends wrap small gifts in bold patterned paper.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-144",
+    "slug": "color-swatch-choice",
+    "titleRu": "Выбор оттенка",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple compares bright color swatches in a sunlit room.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-145",
+    "slug": "hair-braid-evening",
+    "titleRu": "Коса у зеркала",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings braid each other's hair before going out.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-146",
+    "slug": "mocktail-mixing",
+    "titleRu": "Домашний моктейль",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends mix colorful alcohol-free drinks with fruit.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-147",
+    "slug": "bread-dough-together",
+    "titleRu": "Тесто на двоих",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple kneads bread dough together at a clean kitchen counter.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-148",
+    "slug": "windowsill-herbs",
+    "titleRu": "Травы на подоконнике",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues pot small kitchen herbs on a sunny windowsill.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-149",
+    "slug": "shared-cookbook",
+    "titleRu": "Одна книга рецептов",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends share one open cookbook and point to different dishes.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-150",
+    "slug": "color-bookshelf",
+    "titleRu": "Книги по цвету",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple arranges a small bookshelf by color and changes their minds.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-151",
+    "slug": "popcorn-catch",
+    "titleRu": "Попкорн в воздухе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings make popcorn and try to catch a few kernels in bowls.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-152",
+    "slug": "picnic-sandwiches",
+    "titleRu": "Сэндвичи для пикника",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends assemble simple picnic sandwiches together.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-153",
+    "slug": "rabbit-explores-room",
+    "titleRu": "Кролик в комнате",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple watches a pet rabbit explore a bright living room.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-154",
+    "slug": "kitchen-card-game",
+    "titleRu": "Карты на кухне",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members play cards around a kitchen table.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-155",
+    "slug": "cafe-chess",
+    "titleRu": "Шахматы в кафе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends play chess at a quiet cafe table.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-156",
+    "slug": "dessert-comparison",
+    "titleRu": "Два десерта",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple compares two desserts and swaps the first bites.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-157",
+    "slug": "napkin-doodles",
+    "titleRu": "Рисунки на салфетке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues make playful doodles on plain napkins.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-158",
+    "slug": "cafe-dominoes",
+    "titleRu": "Домино у окна",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings play dominoes beside a cafe window.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-159",
+    "slug": "tea-by-scent",
+    "titleRu": "Выбор чая",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends choose tea by smelling small open jars.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-160",
+    "slug": "back-to-back-pause",
+    "titleRu": "Пауза после спора",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple sits back-to-back after a light disagreement while cups cool nearby.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-161",
+    "slug": "trivia-expressions",
+    "titleRu": "Ответ без слов",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 colleagues exchange expressive looks during a casual trivia game.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-162",
+    "slug": "passerby-stories",
+    "titleRu": "Истории прохожих",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends invent gentle stories about passersby from a cafe terrace.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-163",
+    "slug": "umbrella-cafe",
+    "titleRu": "Зонт у столика",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple shares one umbrella at an outdoor cafe during light rain.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-164",
+    "slug": "cafe-cards",
+    "titleRu": "Карты в кафе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings play a compact card game at a corner table.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-165",
+    "slug": "sugar-packet-tower",
+    "titleRu": "Башня на столе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends stack plain sugar packets into a tiny tower.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-166",
+    "slug": "window-seat-swap",
+    "titleRu": "Место у окна",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple trades seats so each gets time by the window.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-167",
+    "slug": "sparkling-water-toast",
+    "titleRu": "Тост с водой",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues toast sparkling water after a funny story.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-168",
+    "slug": "raindrop-window-race",
+    "titleRu": "Гонки капель",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends watch raindrops race down a cafe window.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-169",
+    "slug": "pastry-halves",
+    "titleRu": "Пирожное пополам",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple carefully splits a pastry and then swaps halves.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-170",
+    "slug": "wordless-guessing",
+    "titleRu": "Игра без слов",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members play a wordless guessing game at a cafe.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-171",
+    "slug": "coaster-game",
+    "titleRu": "Игра из подставок",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends use plain coasters as tokens in an improvised table game.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-172",
+    "slug": "street-song-pause",
+    "titleRu": "Музыка за окном",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple pauses conversation to listen to street music outside.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-173",
+    "slug": "photobooth-strip",
+    "titleRu": "Полоса фотографий",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues laugh over a playful photobooth strip.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-174",
+    "slug": "phone-photo-comparison",
+    "titleRu": "Фото на телефоне",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings compare funny family photographs on a phone.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-175",
+    "slug": "bench-after-disagreement",
+    "titleRu": "Скамейка после спора",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends sit with a little space between them after a light disagreement, then share a small smile.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-176",
+    "slug": "mismatched-rain-umbrellas",
+    "titleRu": "Два зонта",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple walks in rain beneath two mismatched umbrellas.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-177",
+    "slug": "dog-during-thunder",
+    "titleRu": "Рядом с собакой",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings sit calmly near a nervous dog while distant thunder passes.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-178",
+    "slug": "last-pizza-slice",
+    "titleRu": "Последний кусок",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues silently offer each other the last slice of pizza.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-179",
+    "slug": "sunset-conversation-return",
+    "titleRu": "Разговор вернулся",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends return to an easy conversation after quietly watching sunset.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-180",
+    "slug": "umbrella-shift",
+    "titleRu": "Зонт ближе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple shifts one umbrella so both stay dry.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-181",
+    "slug": "apology-fistbump",
+    "titleRu": "Мирный кулак",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings end a small disagreement with a fist bump.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-182",
+    "slug": "dance-step-cheer",
+    "titleRu": "Получилось",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends cheer when one person finally catches a dance step.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-183",
+    "slug": "mock-serious-team-choice",
+    "titleRu": "Выбор команды",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 colleagues choose board-game teams with exaggerated seriousness.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-184",
+    "slug": "same-book-reach",
+    "titleRu": "Одна книга",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple laughs when both reach for the same book.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-185",
+    "slug": "cafe-cat-two-sides",
+    "titleRu": "Кошка между друзьями",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends pet a cafe cat from opposite sides of a chair.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-186",
+    "slug": "puppy-yard-play",
+    "titleRu": "Щенок во дворе",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members play with a puppy in a sunny yard.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-187",
+    "slug": "aquarium-mirror",
+    "titleRu": "У аквариума",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings watch fish and mirror their slow movements.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-188",
+    "slug": "dog-steals-napkin",
+    "titleRu": "Собака и салфетка",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends picnic as a playful dog steals one napkin.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-189",
+    "slug": "bridge-listening-pause",
+    "titleRu": "Разговор на мосту",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple pauses on a pedestrian bridge while one listens closely.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-190",
+    "slug": "evening-snack-walk",
+    "titleRu": "Вечерняя прогулка",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 colleagues walk through a bright evening street fair with simple snacks.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-191",
+    "slug": "birthday-candles",
+    "titleRu": "Свечи на торте",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends gather around a birthday cake as candles glow.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-192",
+    "slug": "warm-rain-steps",
+    "titleRu": "Тёплый дождь",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple sits on apartment steps during warm summer rain.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-193",
+    "slug": "windblown-umbrellas",
+    "titleRu": "Зонты на ветру",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult siblings laugh as their umbrellas tilt in a playful gust.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "bright and candid",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-194",
+    "slug": "street-dance-join",
+    "titleRu": "Танец на площади",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends join a spontaneous public dance on a city square.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "warm and playful",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  },
+  {
+    "id": "syn-195",
+    "slug": "quiet-dessert-after-party",
+    "titleRu": "Десерт после вечеринки",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two colleagues quietly share dessert after a lively gathering.",
+    "contexts": [
+      "work",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "calm and connected",
+    "composition": "close horizontal crop centered on hands, faces, and the shared activity",
+    "shape": "soft oval newspaper clipping",
+    "print": "black and warm gray press dots with a restrained brick-red spot color"
+  },
+  {
+    "id": "syn-196",
+    "slug": "cat-chooses-lap",
+    "titleRu": "Кошка выбирает колени",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple watches a cat decide which lap to choose.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "lively and natural",
+    "composition": "slightly elevated documentary angle with the setting clearly readable",
+    "shape": "irregular diagonal paper fragment",
+    "print": "archive-gray newspaper screen with light foxing and uneven ink density"
+  },
+  {
+    "id": "syn-197",
+    "slug": "silly-toast-applause",
+    "titleRu": "Аплодисменты тосту",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 adult family members applaud a deliberately silly toast.",
+    "contexts": [
+      "family",
+      "friendship"
+    ],
+    "dynamics": [
+      "attention",
+      "shared-pace",
+      "curiosity"
+    ],
+    "tone": "sunlit and easygoing",
+    "composition": "low diagonal candid angle that gives the action movement without drama",
+    "shape": "compact deckled rectangle",
+    "print": "high-contrast monochrome newsprint with one muted ochre accent and no gloss"
+  },
+  {
+    "id": "syn-198",
+    "slug": "swim-shadow-race",
+    "titleRu": "Гонка теней",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 friends walk back from a swim and race their long shadows.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "coordination",
+      "adaptation",
+      "shared-moment"
+    ],
+    "tone": "gentle and observant",
+    "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
+    "shape": "wavy-edged horizontal clipping",
+    "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame"
+  },
+  {
+    "id": "syn-199",
+    "slug": "before-group-photo",
+    "titleRu": "Перед общим снимком",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 a couple exchanges a small supportive gesture before joining a group photograph.",
+    "contexts": [
+      "love",
+      "friendship"
+    ],
+    "dynamics": [
+      "playfulness",
+      "timing",
+      "mutual-response"
+    ],
+    "tone": "energetic without posing",
+    "composition": "wide eye-level candid frame with both people naturally engaged in the action",
+    "shape": "wide torn panorama",
+    "print": "coarse black-and-white halftone on warm worn newsprint with a thin broken rule"
+  },
+  {
+    "id": "syn-200",
+    "slug": "park-bubble-wands",
+    "titleRu": "Пузыри в парке",
+    "ageGroup": "adults 20-45",
+    "conceptEn": "Adults aged 20 to 45 two friends wave bubble wands in a sunny park and follow the drifting bubbles with amused expressions.",
+    "contexts": [
+      "friendship",
+      "love"
+    ],
+    "dynamics": [
+      "communication",
+      "light-tension",
+      "reconnection"
+    ],
+    "tone": "quietly humorous",
+    "composition": "narrow vertical street-photo frame with gestures and full body language visible",
+    "shape": "narrow vertical rough cut",
+    "print": "faded sepia-gray local-paper print with soft ink gain and deckled edges"
+  }
+]

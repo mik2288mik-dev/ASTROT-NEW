@@ -29,7 +29,7 @@ jest.mock('../lib/personalForecastCache', () => ({
 }));
 jest.mock('../lib/personalForecastQuestionGeneration', () => ({
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION:
-    'personal-forecast-question.v4.concise-answer+voice.2',
+    'personal-forecast-question.v4.concise-answer+voice.3',
   generatePersonalForecastQuestionAnswer: (...args: unknown[]) =>
     mockGenerateAnswer(...args),
 }));
@@ -93,8 +93,8 @@ function question(
     answerText: null,
     answerMeta: null,
     modelId: null,
-    promptVersion: 'personal-forecast-question.v4.concise-answer+voice.2',
-    voiceVersion: '2',
+    promptVersion: 'personal-forecast-question.v4.concise-answer+voice.3',
+    voiceVersion: '3',
     generationStartedAt: null,
     answeredAt: null,
     moderatedBy: null,
@@ -320,7 +320,7 @@ describe('admin personal forecast question moderation API', () => {
       evidenceIds: ['e1'],
       model: 'gpt-4.1',
       promptVersion: generating.promptVersion,
-      voiceVersion: '2',
+      voiceVersion: '3',
       generatedAt: answered.answeredAt,
     });
     mockCompleteAnswer.mockResolvedValue(answered);

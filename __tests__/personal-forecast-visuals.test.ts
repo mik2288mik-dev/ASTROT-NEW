@@ -1,9 +1,9 @@
+import mainManifest from '../lib/personalForecastVisuals/main.manifest.json';
 import {
-  PERSONAL_FORECAST_BACKGROUND_MANIFEST,
   buildForecastVisualRequests,
   forecastVisualStyle,
   getForecastVisualAssignment,
-  resolveForecastVisualScreen,
+  getNewspaperVisualCounts,
   resolvePersonalForecastVisuals,
   type ForecastVisualFeedInput,
   type ForecastVisualSectionInput,
@@ -17,74 +17,35 @@ function section(
   visualTag: string,
   fields: Partial<ForecastVisualSectionInput> = {},
 ): ForecastVisualSectionInput {
-  return {
-    id,
-    kind,
-    visualTag,
-    ...fields,
-  };
+  return { id, kind, visualTag, ...fields };
 }
 
 const sections: ForecastVisualSectionInput[] = [
   section('love', 'fixed', 'love', { fixedKey: 'love', sourceTopicKey: 'love' }),
   section('mood', 'fixed', 'mood', { fixedKey: 'mood', sourceTopicKey: 'mood' }),
   section('astro:moon', 'astro_accent', 'moon', { sourceTopicKey: 'mood' }),
-  section('astro:mercury', 'astro_accent', 'mercury', {
-    sourceTopicKey: 'documents_agreements',
-  }),
   section('home_family', 'fixed', 'home', {
     fixedKey: 'home_family',
     sourceTopicKey: 'home_family',
   }),
-  section('friends', 'fixed', 'friends', {
-    fixedKey: 'friends',
-    sourceTopicKey: 'friends',
-  }),
-  section('dynamic:business', 'dynamic', 'business', { sourceTopicKey: 'business' }),
   section('work_money', 'fixed', 'work-money', {
     fixedKey: 'work_money',
     sourceTopicKey: 'work_money',
   }),
-  section('dynamic:documents', 'dynamic', 'documents', {
-    sourceTopicKey: 'documents_agreements',
-  }),
-  section('wishes', 'wishes', 'wishes', {
-    fixedKey: 'wishes',
-    sourceTopicKey: 'wishes',
-  }),
 ];
 
-function feed(
-  period: ForecastVisualFeedInput['period'],
-  periodKey: string,
-): ForecastVisualFeedInput {
+function feed(periodKey = '2026-07-31'): ForecastVisualFeedInput {
   return {
-    period,
+    period: 'day',
     periodKey,
-    overview: section('overview', 'overview', 'overview', {
-      sourceTopicKey: 'overview',
-    }),
+    overview: section('overview', 'overview', 'overview', { sourceTopicKey: 'overview' }),
     sections,
   };
 }
 
-function screen(
-  period: ForecastVisualFeedInput['period'],
-  periodKey: string,
-) {
-  return resolvePersonalForecastVisuals({
-    userId,
-    forecast: feed(period, periodKey),
-  });
-}
-
-describe('personal forecast V3 feed visual resolver', () => {
-  it('builds one ordered request for overview and every continuous section', () => {
-    const requests = buildForecastVisualRequests({
-      userId,
-      forecast: feed('day', '2026-07-27'),
-    });
-
+describe('personal forecast editorial visual resolver', () => {
+  it('keeps one ordered request for every section in the continuous feed', () => {
+    const requests = buildForecastVisualRequests({ userId, forecast: feed() });
     expect(requests.map((request) => request.sectionId)).toEqual([
       'overview',
       ...sections.map((item) => item.id),
@@ -92,109 +53,55 @@ describe('personal forecast V3 feed visual resolver', () => {
     expect(requests.map((request) => request.sectionIndex)).toEqual(
       requests.map((_, index) => index),
     );
-    expect(requests[2]).toMatchObject({
-      sectionId: 'mood',
-      kind: 'fixed',
-      visualTag: 'mood',
-    });
   });
 
-  it('uses only the existing image bank and avoids repeats inside a normal feed', () => {
-    const resolved = screen('day', '2026-07-27');
-    const manifestPaths = new Set(PERSONAL_FORECAST_BACKGROUND_MANIFEST.map((asset) => asset.file));
-    const paths = resolved.sectionIds
-      .map((id) => resolved.assignments[id].path)
-      .filter((path): path is string => !!path);
-
-    expect(paths.every((path) => manifestPaths.has(path))).toBe(true);
-    expect(new Set(paths).size).toBe(paths.length);
-    for (let index = 1; index < paths.length; index += 1) {
-      expect(paths[index]).not.toBe(paths[index - 1]);
-    }
-    expect(resolved.sectionAssetIds.overview).toBe(
-      resolved.assignments.overview.assetId,
+  it('assigns one stable newspaper photo to the overview and no image to text sections', () => {
+    const resolved = resolvePersonalForecastVisuals({ userId, forecast: feed() });
+    const overview = resolved.assignments.overview;
+    const manifestPaths = new Set(
+      (mainManifest.items as Array<{ path: string }>).map((asset) => asset.path),
     );
+
+    expect(overview.path).toMatch(
+      /^\/assets\/forecast-feed\/editorial-stickers\/main\/photo\//,
+    );
+    expect(manifestPaths.has(overview.path as string)).toBe(true);
+    expect(overview.compositionTag).toBe('photo');
+    expect(sections.every((item) => resolved.assignments[item.id].path === null)).toBe(true);
+    expect(
+      Object.values(resolved.assignments).filter((assignment) => assignment.path),
+    ).toHaveLength(1);
+    expect(resolved.visualFallback).toBe(false);
   });
 
-  it('maps V3 visual tags to semantic real assets', () => {
-    const resolved = screen('day', '2026-07-27');
-
-    expect(resolved.assignments.overview.path).toContain('/foni/horoscope-general-');
-    expect(resolved.assignments.love.path).toContain('/foni/horoscope-love-');
-    expect(resolved.assignments.mood.path).toContain('/foni/horoscope-mood-');
-    expect(resolved.assignments['astro:moon'].path).toBe('/assets/forecast-feed/forecast-astro-moon-01.webp');
-    expect(resolved.assignments['astro:mercury'].path).toBe('/assets/forecast-feed/forecast-astro-mercury-01.webp');
-    expect(resolved.assignments['astro:moon'].compositionTag).not.toBe(
-      resolved.assignments['astro:mercury'].compositionTag,
-    );
-    expect(resolved.assignments.home_family.path).toContain('/foni/horoscope-home-family-');
-    expect(resolved.assignments.friends.path).toContain('/foni/horoscope-friends-');
+  it('does not change the selected sticker on refresh', () => {
+    const first = resolvePersonalForecastVisuals({ userId, forecast: feed() });
+    const second = resolvePersonalForecastVisuals({ userId, forecast: feed() });
+    expect(second).toEqual(first);
   });
 
-  it('is deterministic and can avoid the same section asset from the previous period', () => {
-    const first = screen('day', '2026-07-27');
-    expect(screen('day', '2026-07-27')).toEqual(first);
+  it('uses a soft background treatment and keeps a safe fallback', () => {
+    const resolved = resolvePersonalForecastVisuals({ userId, forecast: feed() });
+    const assignment = getForecastVisualAssignment(resolved, 'overview');
+    const style = forecastVisualStyle(assignment, 'day');
 
-    const nextFeed = feed('day', '2026-07-28');
-    const next = resolveForecastVisualScreen(
-      buildForecastVisualRequests({ userId, forecast: nextFeed }),
-      {
-        previousSectionAssetPaths: {
-          overview: first.assignments.overview.path,
-          love: first.assignments.love.path,
-        },
-      },
-    );
-    expect(next.assignments.overview.path).not.toBe(first.assignments.overview.path);
-    expect(next.assignments.love.path).not.toBe(first.assignments.love.path);
-  });
-
-  it('keeps period-specific overview art and deterministic responsive treatments', () => {
-    const periodScreens = [
-      screen('day', '2026-07-27'),
-      screen('week', '2026-W31'),
-      screen('month', '2026-07'),
-      screen('year', '2026'),
-    ];
-    const heroPaths = periodScreens.map((value) => value.assignments.overview.path);
-    expect(heroPaths.every(Boolean)).toBe(true);
-    expect(new Set(heroPaths).size).toBe(4);
-
-    const assignment = periodScreens[0].assignments.love;
-    expect(assignment.crop.desktop.position).toMatch(/^\d+% \d+%$/);
-    expect(assignment.crop.mobile.position).toMatch(/^\d+% \d+%$/);
-    expect(assignment.crop.desktop.scale).toBeGreaterThanOrEqual(1);
-    expect(assignment.crop.mobile.scale).toBeGreaterThan(
-      assignment.crop.desktop.scale,
-    );
-    expect(typeof assignment.mirrorX).toBe('boolean');
-    expect(assignment.overlay).toContain('linear-gradient');
-    expect(assignment.overlayPreset).toBe('milky');
-  });
-
-  it('exports direct assignment lookup and section CSS variables with a safe fallback', () => {
-    const resolved = screen('week', '2026-W31');
-    const assignment = getForecastVisualAssignment(resolved, 'love');
-    expect(assignment).toBe(resolved.assignments.love);
-    expect(getForecastVisualAssignment(resolved, 'missing')).toBeNull();
-
-    const style = forecastVisualStyle(assignment, 'week');
-    expect(style['--forecast-section-image']).toContain('/foni/horoscope-love-');
-    expect(style['--forecast-section-position']).toBe(
-      assignment?.crop.desktop.position,
-    );
-    expect(style['--forecast-section-position-mobile']).toBe(
-      assignment?.crop.mobile.position,
-    );
-    expect(style['--forecast-section-overlay']).toBe(assignment?.overlay);
+    expect(style['--forecast-section-image']).toContain('/editorial-stickers/main/photo/');
     expect(Number(style['--forecast-section-media-opacity'])).toBeGreaterThan(0);
     expect(Number(style['--forecast-section-media-opacity'])).toBeLessThan(0.6);
     expect(Number(style['--forecast-section-media-saturation'])).toBeLessThan(0.8);
     expect(Number(style['--forecast-section-media-brightness'])).toBeGreaterThan(1);
-
+    expect(getForecastVisualAssignment(resolved, 'missing')).toBeNull();
     expect(forecastVisualStyle(null, 'week')).toMatchObject({
       '--forecast-section-fallback-accent': '#7ea9e8',
       '--forecast-section-fallback-soft': '#edf4ff',
+    });
+  });
+
+  it('publishes the complete deterministic library counts', () => {
+    expect(getNewspaperVisualCounts()).toEqual({
+      main: 788,
+      synastry: 200,
+      zodiac: 12,
     });
   });
 });

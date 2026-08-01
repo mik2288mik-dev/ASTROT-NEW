@@ -228,7 +228,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }
 
   return (
-    <div className="fresh-page">
+    <div className="fresh-page charts-editorial-page">
       <div className="mx-auto max-w-2xl space-y-4 px-4 pb-8">
         <MonoStagger>
           <MonoStaggerItem>

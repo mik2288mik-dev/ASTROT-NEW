@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import synastryScenes from '../docs/design/newspaper-stickers/synastry-scenes.json';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -27,5 +28,19 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page--result .compat-read-block');
     expect(styles).not.toMatch(/^\.fresh-page\s*\{/m);
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
+  });
+
+  it('selects result scenes only with dynamics present in the catalog', () => {
+    const room = read('views/v2/UnionRoom.tsx');
+    const start = room.indexOf('type CompatibilityVisualDynamic');
+    const end = room.indexOf('function readingTitles', start);
+    const visualDynamicsBlock = room.slice(start, end);
+    const requested = [...visualDynamicsBlock.matchAll(/'([^']+)'/g)].map((match) => match[1]);
+    const catalogDynamics = new Set(synastryScenes.flatMap((scene) => scene.dynamics));
+
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    expect(requested.length).toBeGreaterThan(12);
+    expect(requested.every((dynamic) => catalogDynamics.has(dynamic))).toBe(true);
   });
 });

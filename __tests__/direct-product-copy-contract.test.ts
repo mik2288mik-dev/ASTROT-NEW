@@ -6,6 +6,9 @@ const ROOT = path.resolve(__dirname, '..');
 const ACTIVE_COPY_FILES = [
   'constants.ts',
   'views/Onboarding.tsx',
+  'views/Settings.tsx',
+  'views/Paywall.tsx',
+  'views/v2/HoroscopeReader.tsx',
   'views/v2/NatalMagazine.tsx',
   'components/PremiumPreview.tsx',
   'components/Horoscope/HoroscopeContent.tsx',
@@ -30,6 +33,9 @@ const FORBIDDEN_COPY: Array<[string, RegExp]> = [
   ['побереги ресурс', /поберег[а-яё]*\s+(?:внутренн[а-яё]*\s+)?ресурс/iu],
   ['энергия дня', /энерги[яи]\s+дня/iu],
   ['вселенная', /\bвселенн[а-яё]*/iu],
+  ['твоё небо', /тво[её]\s+небо/iu],
+  ['тёплые напоминания', /т[её]пл[а-яё]*\s+напоминан|warm\s+nudges/iu],
+  ['больше про себя', /больше\s+про\s+себя|more\s+about\s+you/iu],
   ['проработай', /\bпроработ[а-яё]*/iu],
   ['раскрой потенциал', /раскр[а-яё]*\s+(?:свой\s+)?потенциал/iu],
 ];
@@ -54,7 +60,7 @@ describe('active product copy contract', () => {
     const questions = read('lib/personalForecastQuestionGeneration.ts');
     const forecast = read('lib/personalForecastGeneration.ts');
 
-    expect(voice).toContain("APP_VOICE_VERSION = '2'");
+    expect(voice).toContain("APP_VOICE_VERSION = '3'");
     expect(voice).toContain('hasAppVoiceViolation');
     expect(natal).toContain('hasAppVoiceViolation');
     expect(questions).toContain('hasAppVoiceViolation');

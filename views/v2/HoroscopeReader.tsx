@@ -21,6 +21,15 @@ import { ZodiacIllustration } from '../../components/icons/ZodiacArt';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
+import { getZodiacEditorialSticker } from '../../lib/personalForecastVisuals';
+import { EditorialSticker } from '../../components/EditorialSticker';
+import {
+  EditorialBulletText,
+  EditorialEvidence,
+  EditorialProse,
+  EditorialSectionHeading,
+  EditorialSummary,
+} from '../../components/EditorialReading';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -173,15 +182,16 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   /* Личный гороскоп — доступ по карте + Premium */
   const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const personalSubtitle = !hasChart
-    ? (language === 'ru' ? 'Сначала собери карту — тогда будет про тебя, не про знак вообще.' : 'Build your chart first — then it is about you, not just the sign.')
+    ? (language === 'ru' ? 'Сначала создай натальную карту: личный прогноз использует дату, время и место рождения.' : 'Create a natal chart first: the personal forecast uses birth date, time, and place.')
     : !premium
-      ? (language === 'ru' ? 'Хватит гадать по знаку — личный расклад ждёт в Premium.' : 'Stop guessing by sign — your personal read is in Premium.')
-      : (language === 'ru' ? 'Это про твоё небо, не про знак вообще. Точнее в разы — смотри сам.' : 'This is your sky, not the sign in general. Much sharper — see for yourself.');
+      ? (language === 'ru' ? 'Личный прогноз по натальной карте доступен в Premium.' : 'The personal forecast based on your natal chart is available with Premium.')
+      : (language === 'ru' ? 'Личный прогноз рассчитан по твоей натальной карте и выбранному периоду.' : 'The personal forecast uses your natal chart and selected period.');
   const personalCta = !hasChart
     ? (language === 'ru' ? 'Создать карту' : 'Create chart')
     : !premium
       ? (language === 'ru' ? 'Открыть Premium' : 'Open Premium')
       : (language === 'ru' ? 'Открыть' : 'Open');
+  const zodiacSticker = useMemo(() => getZodiacEditorialSticker(sign), [sign]);
 
   const openPersonal = () => {
     lumiaSelectionHaptic();
@@ -192,7 +202,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   /* Поделиться — короткая зазывалка (главное + приглашение), а не весь текст */
   const shareReading = () => {
-    const hook = reading?.headline || (language === 'ru' ? 'Узнай, что тебя ждёт' : 'See what is ahead');
+    const hook = reading?.headline || (language === 'ru' ? 'Главное на выбранный период' : 'The main point for this period');
     const text = language === 'ru'
       ? `Гороскоп · ${signLabel}\n«${hook}»\n\nУзнай свой в «Твой Гороскоп» — по дате рождения, бесплатно.`
       : `Horoscope · ${signLabel}\n“${hook}”\n\nGet yours in Your Horoscope — by birth date, free.`;
@@ -240,7 +250,15 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                 className="horo-uni-hero"
                 style={{ backgroundColor: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)', backgroundImage: 'none' }}
               >
-                <ZodiacIllustration sign={sign} className="horo-hero-illus" />
+                {zodiacSticker ? (
+                  <EditorialSticker
+                    asset={zodiacSticker}
+                    className="horo-zodiac-sticker"
+                    priority
+                  />
+                ) : (
+                  <ZodiacIllustration sign={sign} className="horo-hero-illus" />
+                )}
                 <div className="horo-hero-glyph" aria-hidden>
                   <div className="horo-hero-date">{periodTag}</div>
                 </div>
@@ -304,15 +322,74 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                   </div>
                 ) : (
                   <>
-                    <p className="horo-uni-summary">
-                      {loading
-                        ? (language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…')
-                        : reading?.summary}
-                    </p>
-                    {!loading && reading?.advice?.length ? (
-                      <div className="horo-uni-advice">
-                        <div className="horo-uni-advice-title">{language === 'ru' ? 'Советы' : 'Advice'}</div>
-                        <ul>{reading.advice.slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
+                    {loading ? (
+                      <p className="horo-uni-summary">
+                        {language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…'}
+                      </p>
+                    ) : reading ? (
+                      <div className="editorial-reading-flow horo-editorial-flow">
+                        <EditorialSummary label={language === 'ru' ? 'Главный вывод' : 'Main takeaway'} className="horo-editorial-intro">
+                          <p>{reading.summary}</p>
+                        </EditorialSummary>
+
+                        {reading.reading ? (
+                          <section className="editorial-reading-section">
+                            <EditorialSectionHeading
+                              number={1}
+                              title={language === 'ru' ? 'Что происходит' : 'What is happening'}
+                            />
+                            <EditorialProse text={reading.reading} />
+                          </section>
+                        ) : null}
+
+                        {reading.chance || reading.risk ? (
+                          <section className="editorial-reading-section">
+                            <EditorialSectionHeading
+                              number={2}
+                              title={language === 'ru' ? 'Где шанс, где риск' : 'Opportunity and risk'}
+                            />
+                            <ul className="editorial-reading-list editorial-reading-list--leads">
+                              {reading.chance ? (
+                                <li>
+                                  <strong>{language === 'ru' ? 'Шанс.' : 'Opportunity.'}</strong>
+                                  <span>{reading.chance}</span>
+                                </li>
+                              ) : null}
+                              {reading.risk ? (
+                                <li>
+                                  <strong>{language === 'ru' ? 'Риск.' : 'Risk.'}</strong>
+                                  <span>{reading.risk}</span>
+                                </li>
+                              ) : null}
+                            </ul>
+                          </section>
+                        ) : null}
+
+                        {reading.advice?.length ? (
+                          <section className="editorial-reading-section horo-uni-advice">
+                            <EditorialSectionHeading
+                              number={3}
+                              title={language === 'ru' ? 'Что делать' : 'What to do'}
+                            />
+                            <ul className="editorial-reading-list">
+                              {reading.advice.slice(0, 3).map((item) => (
+                                <li key={item}><EditorialBulletText text={item} /></li>
+                              ))}
+                            </ul>
+                          </section>
+                        ) : null}
+
+                        {reading.context ? (
+                          <EditorialEvidence label={language === 'ru' ? 'Основа разбора' : 'Basis of the reading'}>
+                            <p>{reading.context}</p>
+                          </EditorialEvidence>
+                        ) : null}
+
+                        {reading.focus ? (
+                          <EditorialSummary label={language === 'ru' ? 'Итог' : 'Bottom line'} className="horo-editorial-final">
+                            <p>{reading.focus}</p>
+                          </EditorialSummary>
+                        ) : null}
                       </div>
                     ) : null}
                     {!loading && reading ? (

@@ -13,6 +13,7 @@ import type {
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
+  sectionNumber: number;
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
@@ -219,6 +220,7 @@ function renderTextWithAnchors(
 
 export function ForecastSectionBlock({
   section,
+  sectionNumber,
   period,
   language,
   locked,
@@ -251,7 +253,12 @@ export function ForecastSectionBlock({
     >
       <div className="forecast-feed-section-content">
         {title ? (
-          <h2 className="forecast-feed-section-title">{title}</h2>
+          <h2 className="forecast-feed-section-title">
+            <span className="forecast-feed-section-number" aria-hidden="true">
+              {sectionNumber}.
+            </span>
+            <span>{title}</span>
+          </h2>
         ) : null}
         {locked ? (
           <div className="forecast-feed-locked">

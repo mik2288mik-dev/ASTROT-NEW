@@ -3,12 +3,19 @@ import { motion } from 'framer-motion';
 import type { UserProfile } from '../../types';
 import { computeMatrix } from '../../lib/matrixOfDestiny';
 import { getArcana, MATRIX_TITLE, MATRIX_SUBTITLE } from '../../lib/matrixArcana';
-import { getMoscowTodayKey, toDateInputValue } from '../../lib/date-utils';
-import { cardBackgroundStyle, getUniversalCardBackground } from '../../lib/cardBackgrounds';
+import { toDateInputValue } from '../../lib/date-utils';
+import { selectMainEditorialSticker } from '../../lib/personalForecastVisuals';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
+import { EditorialSticker } from '../../components/EditorialSticker';
+import {
+  EditorialEvidence,
+  EditorialProse,
+  EditorialSectionHeading,
+  EditorialSummary,
+} from '../../components/EditorialReading';
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
@@ -21,11 +28,6 @@ export function MatrixRoom({ profile, onBack }: Props) {
   void onBack;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
-  const today = useMemo(() => getMoscowTodayKey(), []);
-  const matrixBackground = useMemo(
-    () => getUniversalCardBackground('matrix', String(profile.id || 'guest'), today),
-    [profile.id, today],
-  );
 
   const initial = toDateInputValue(profile.birthDate || '');
   const [date, setDate] = useState(initial);
@@ -33,6 +35,16 @@ export function MatrixRoom({ profile, onBack }: Props) {
   const [noteOpen, setNoteOpen] = useState(false);
 
   const result = useMemo(() => (computedDate ? computeMatrix(computedDate, lang) : null), [computedDate, lang]);
+  const resultSticker = result && computedDate
+    ? selectMainEditorialSticker({
+        screenKey: 'matrix-result',
+        contentKey: computedDate,
+        userId: profile.id ? String(profile.id) : null,
+        topics: ['decisions', 'general'],
+        allowedMedia: ['associative', 'graphic', 'psychedelic-humor'],
+        slot: result.positions[0]?.arcana || 0,
+      })
+    : null;
   const calc = () => { lumiaSelectionHaptic(); setComputedDate(date); };
 
   const self = result?.positions.find((p) => p.key === 'self');
@@ -64,14 +76,10 @@ export function MatrixRoom({ profile, onBack }: Props) {
   };
 
   return (
-    <div className="fresh-page">
+    <div className="fresh-page matrix-editorial-page">
       <FreshInnerHeader title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en} />
 
-      <section
-        className={`product-screen-cover product-screen-cover--matrix${matrixBackground ? ' has-card-background' : ''}`}
-        style={cardBackgroundStyle(matrixBackground)}
-        aria-label={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}
-      >
+      <section className="product-screen-cover product-screen-cover--matrix" aria-label={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}>
         <div className="product-screen-cover-copy">
           <div className="product-screen-cover-title">{ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}</div>
           <div className="product-screen-cover-text">
@@ -101,50 +109,67 @@ export function MatrixRoom({ profile, onBack }: Props) {
       ) : (
         <div className="mtx-result">
           {self && selfArcana ? (
-            <motion.div className="mtx-hero" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-              <div className="mtx-hero-kicker">{cap(self.label)}</div>
-              <div className="mtx-hero-key">{cap(ru ? selfArcana.keyword : selfArcana.keywordEn)}</div>
-              <p className="mtx-hero-essence">{ru ? selfArcana.essence : selfArcana.essenceEn}</p>
-              {selfAlsoLabels.length ? (
-                <div className="mtx-hero-also">{ru ? 'Также проявляется: ' : 'Also shows in: '}{selfAlsoLabels.map(cap).join(' · ')}</div>
-              ) : null}
+            <motion.div className="mtx-hero-shell" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+              <EditorialSummary
+                label={ru ? 'Главный вывод' : 'Main takeaway'}
+                title={cap(ru ? selfArcana.keyword : selfArcana.keywordEn)}
+                className="mtx-hero"
+              >
+                <EditorialProse text={ru ? selfArcana.essence : selfArcana.essenceEn} className="mtx-hero-essence" />
+                <p className="mtx-hero-kicker"><strong>{cap(self.label)}</strong></p>
+                {selfAlsoLabels.length ? (
+                  <p className="mtx-hero-also"><strong>{ru ? 'Также проявляется:' : 'Also shows in:'}</strong> {selfAlsoLabels.map(cap).join(' · ')}</p>
+                ) : null}
+              </EditorialSummary>
             </motion.div>
           ) : null}
 
-          <div className="mtx-grid">
+          {resultSticker ? (
+            <EditorialSticker asset={resultSticker} className="matrix-result-sticker" />
+          ) : null}
+
+          <div className="mtx-grid mtx-editorial-sections">
             {themeGroups.map((g, i) => (
-              <motion.div
+              <motion.section
                 key={`${g.arcana.n}-${i}`}
-                className="mtx-card"
+                className="mtx-card editorial-reading-section"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.04 * i }}
               >
-                <div className="mtx-card-label">{cap(ru ? g.arcana.keyword : g.arcana.keywordEn)}</div>
-                <div className="mtx-areas">{g.labels.map(cap).join(' · ')}</div>
-                <p className="mtx-card-essence">{ru ? g.arcana.essence : g.arcana.essenceEn}</p>
-              </motion.div>
+                <EditorialSectionHeading
+                  number={i + 1}
+                  title={cap(ru ? g.arcana.keyword : g.arcana.keywordEn)}
+                  subtitle={g.labels.map(cap).join(' · ')}
+                  className="mtx-card-heading"
+                />
+                <EditorialProse text={ru ? g.arcana.essence : g.arcana.essenceEn} className="mtx-card-essence" />
+              </motion.section>
             ))}
           </div>
 
           {result.lifeAreas?.length ? (
             <>
-              <div className="mtx-life-head">{ru ? 'Сферы жизни' : 'Life areas'}</div>
-              <div className="mtx-grid">
+              <h2 className="mtx-life-head">{ru ? 'Сферы жизни' : 'Life areas'}</h2>
+              <div className="mtx-grid mtx-editorial-sections mtx-life-sections">
                 {result.lifeAreas.map((la, i) => {
                   const a = getArcana(la.arcana);
                   return (
-                    <motion.div
+                    <motion.section
                       key={la.key}
-                      className="mtx-card"
+                      className="mtx-card editorial-reading-section"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.04 * i }}
                     >
-                      <div className="mtx-card-label">{cap(la.label)}</div>
-                      <div className="mtx-areas">{cap(ru ? a.keyword : a.keywordEn)}</div>
-                      <p className="mtx-card-essence">{ru ? a.essence : a.essenceEn}</p>
-                    </motion.div>
+                      <EditorialSectionHeading
+                        number={themeGroups.length + i + 1}
+                        title={cap(la.label)}
+                        subtitle={cap(ru ? a.keyword : a.keywordEn)}
+                        className="mtx-card-heading"
+                      />
+                      <EditorialProse text={ru ? a.essence : a.essenceEn} className="mtx-card-essence" />
+                    </motion.section>
                   );
                 })}
               </div>
@@ -155,11 +180,13 @@ export function MatrixRoom({ profile, onBack }: Props) {
             {ru ? 'Что это значит?' : 'What does this mean?'}
           </button>
           {noteOpen ? (
-            <p className="mtx-note">
-              {ru
-                ? 'Матрица судьбы — это расклад из чисел твоей даты рождения. Каждое число описывает одну тему характера: сильные стороны, зону роста, отношения, цели. Это про самопонимание, а не предсказание. Если одна тема выпадает на нескольких позициях — она у тебя выражена сильнее.'
-                : 'The Destiny Matrix is a layout of numbers from your birth date. Each number describes one theme of character — strengths, growth, relationships, goals. It is for self-understanding, not prediction. If one theme appears in several positions, it is stronger for you.'}
-            </p>
+            <EditorialEvidence label={ru ? 'Основа расчёта' : 'Basis of the calculation'} className="mtx-note">
+              <EditorialProse
+                text={ru
+                  ? 'Матрица судьбы — это расклад из чисел твоей даты рождения. Каждое число описывает одну тему характера: сильные стороны, зону роста, отношения, цели. Это про самопонимание, а не предсказание. Если одна тема выпадает на нескольких позициях — она у тебя выражена сильнее.'
+                  : 'The Destiny Matrix is a layout of numbers from your birth date. Each number describes one theme of character — strengths, growth, relationships, goals. It is for self-understanding, not prediction. If one theme appears in several positions, it is stronger for you.'}
+              />
+            </EditorialEvidence>
           ) : null}
 
           <p className="mtx-share-hook">{ru ? 'Поделись матрицей — покажи, кто ты.' : 'Share your matrix — show who you are.'}</p>

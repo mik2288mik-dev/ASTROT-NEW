@@ -7,6 +7,9 @@ import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { getZodiacSign } from '../constants';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
+import { EditorialSticker } from '../components/EditorialSticker';
+import { selectMainEditorialSticker } from '../lib/personalForecastVisuals';
+import type { EditorialMedium, EditorialTopic } from '../lib/personalForecastVisuals/editorialTypes';
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => Promise<void>;
@@ -47,6 +50,16 @@ const STORIES: Story[] = [
   },
 ];
 
+const STORY_VISUALS: readonly {
+  topics: readonly EditorialTopic[];
+  media: readonly EditorialMedium[];
+}[] = [
+  { topics: ['general', 'home_family'], media: ['photo', 'associative'] },
+  { topics: ['opportunities', 'decisions'], media: ['associative', 'psychedelic-humor'] },
+  { topics: ['communication', 'friends'], media: ['photo', 'associative'] },
+  { topics: ['work_money', 'opportunities'], media: ['graphic', 'psychedelic-humor'] },
+];
+
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [step, setStep] = useState<'stories' | 'birth'>('stories');
   const [storyIndex, setStoryIndex] = useState(0);
@@ -80,6 +93,14 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const s = sunSignFromDate(date);
     return s ? getZodiacSign('ru', s) : '';
   }, [date]);
+  const storyVisual = STORY_VISUALS[storyIndex] || STORY_VISUALS[0];
+  const storySticker = selectMainEditorialSticker({
+    screenKey: 'onboarding-story',
+    contentKey: `story-${storyIndex}`,
+    slot: storyIndex,
+    topics: storyVisual.topics,
+    allowedMedia: storyVisual.media,
+  });
 
   const focusField = (field: FieldKey) => {
     const refMap: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = { name: nameRef, date: dateRef, time: timeRef, place: placeRef };
@@ -126,7 +147,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div
-      className="fresh-page lumia-main-scroll"
+      className="fresh-page lumia-main-scroll onboarding-editorial-page"
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 16px)' }}
     >
       <div style={{ padding: '4px 20px 0' }}>
@@ -149,8 +170,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 className="onb-card"
               >
-                <div className="onb-hero" style={{ background: STORIES[storyIndex].color }}>
-                  <span className="onb-hero-ico">{STORIES[storyIndex].icon}</span>
+                <div className="onb-hero">
+                  {storySticker ? (
+                    <EditorialSticker
+                      asset={storySticker}
+                      className="onb-story-sticker"
+                      priority
+                    />
+                  ) : (
+                    <span className="onb-hero-ico">{STORIES[storyIndex].icon}</span>
+                  )}
                 </div>
                 <h1 className="onb-title">{STORIES[storyIndex].title}</h1>
                 <p className="onb-text">{STORIES[storyIndex].text}</p>

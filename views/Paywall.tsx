@@ -152,7 +152,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       </div>
 
       <h1 className="pw2-title">{ru ? 'Тарифы' : 'Pricing'}</h1>
-      <p className="pw2-sub">{ru ? 'Пользуйся бесплатно. Premium — когда захочешь больше про себя.' : 'Use it free. Go Premium when you want more about you.'}</p>
+      <p className="pw2-sub">{ru ? 'Premium открывает личные прогнозы, полный натальный разбор и совместимость по двум картам.' : 'Premium unlocks personal forecasts, the full natal reading, and two-chart compatibility.'}</p>
 
       {trialActive ? (
         <div className="pw2-trial">

@@ -3,6 +3,8 @@ import React, { memo, useMemo } from 'react';
 function stripMdHeaders(line: string): { isHeading: boolean; text: string } {
   const m = line.match(/^(#{1,6})\s+(.+)$/);
   if (m) return { isHeading: true, text: m[2].trim() };
+  const numbered = line.match(/^(\d{1,2})[.)]\s+(.+)$/);
+  if (numbered) return { isHeading: true, text: `${numbered[1]}. ${numbered[2].trim()}` };
   return { isHeading: false, text: line };
 }
 
@@ -27,6 +29,12 @@ function isListLine(line: string): boolean {
 
 function listItemText(line: string): string {
   return line.replace(/^\s*[-*•]\s+/, '').replace(/^\s*\d+[\.)]\s+/, '').trim();
+}
+
+function technicalBlock(line: string): { label: string; text: string } | null {
+  const match = line.match(/^(Основание|Технические данные|Basis|Technical data)\s*[:—-]?\s*(.*)$/iu);
+  if (!match) return null;
+  return { label: match[1], text: match[2].trim() };
 }
 
 export interface FormattedAiTextProps {
@@ -60,8 +68,8 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
       : 'text-[16px] leading-[1.65]';
   const mdHeadingClass =
     variant === 'article'
-      ? 'font-serif text-left text-[1.85rem] font-semibold leading-[1.08] tracking-[-0.04em] text-astro-text [text-wrap:balance] sm:text-[2.3rem] sm:leading-[1.06]'
-      : 'font-sans text-[15px] font-semibold tracking-wide text-astro-text sm:text-base';
+      ? 'font-sans text-left text-[1.85rem] font-extrabold leading-[1.08] tracking-[-0.04em] text-astro-text [text-wrap:balance] sm:text-[2.3rem] sm:leading-[1.06]'
+      : 'font-sans text-[1.35rem] font-bold leading-tight tracking-[-0.025em] text-astro-text sm:text-[1.55rem]';
 
   const rootClass =
     variant === 'article'
@@ -79,11 +87,11 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
           return (
             <ul
               key={bi}
-              className={`list-none space-y-3 border-l-2 border-astro-highlight/25 pl-4 text-left text-astro-text sm:space-y-3.5 sm:pl-5 ${listText}`}
+              className={`list-none space-y-3 border-l border-black/15 pl-4 text-left text-astro-text sm:space-y-3.5 sm:pl-5 ${listText}`}
             >
               {lines.map((line, li) => (
                 <li key={li} className="relative pl-0 [text-wrap:pretty]">
-                  <span className="absolute -left-3 top-[0.55em] h-1 w-1 rounded-full bg-astro-highlight/50 sm:-left-3.5" aria-hidden />
+                  <span className="absolute -left-3 top-[0.55em] h-1 w-1 rounded-full bg-[#171717] sm:-left-3.5" aria-hidden />
                   {parseInlineFormatting(listItemText(line))}
                 </li>
               ))}
@@ -94,13 +102,52 @@ export const FormattedAiText = memo<FormattedAiTextProps>(({ text, className = '
         const first = lines[0];
         const { isHeading, text: headText } = stripMdHeaders(first);
         if (isHeading) {
-          const rest = lines.slice(1).join('\n');
+          const restLines = lines.slice(1);
+          const restIsList = restLines.length > 0 && restLines.every(isListLine);
+          const rest = restLines.join('\n');
           return (
             <div key={bi} className={variant === 'article' ? 'space-y-4 sm:space-y-5' : 'space-y-3'}>
               <h3 className={mdHeadingClass}>
                 {parseInlineFormatting(headText)}
               </h3>
-              {rest ? <p className={defaultP}>{parseInlineFormatting(rest)}</p> : null}
+              {restIsList ? (
+                <ul className={`list-none space-y-3 border-l border-black/15 pl-4 text-left text-astro-text ${listText}`}>
+                  {restLines.map((line, lineIndex) => (
+                    <li key={lineIndex} className="relative [text-wrap:pretty]">
+                      <span className="absolute -left-3 top-[0.55em] h-1 w-1 rounded-full bg-[#171717]" aria-hidden />
+                      {parseInlineFormatting(listItemText(line))}
+                    </li>
+                  ))}
+                </ul>
+              ) : rest ? <p className={defaultP}>{parseInlineFormatting(rest)}</p> : null}
+            </div>
+          );
+        }
+
+        const technical = technicalBlock(first);
+        if (technical) {
+          const body = [technical.text, ...lines.slice(1)].filter(Boolean).join(' ');
+          return (
+            <aside key={bi} className="border-y border-black/10 bg-[#f3f3f1] px-4 py-3 text-left text-[14px] leading-[1.65] text-[#4f4f4b] sm:px-5 sm:text-[15px]">
+              <strong className="mr-1 font-bold text-[#171717]">{technical.label}.</strong>
+              {parseInlineFormatting(body)}
+            </aside>
+          );
+        }
+
+        const trailingList = lines.length > 1 && lines.slice(1).every(isListLine);
+        if (trailingList) {
+          return (
+            <div key={bi} className="space-y-3">
+              <p className={defaultP}>{parseInlineFormatting(first)}</p>
+              <ul className={`list-none space-y-3 border-l border-black/15 pl-4 text-left text-astro-text ${listText}`}>
+                {lines.slice(1).map((line, lineIndex) => (
+                  <li key={lineIndex} className="relative [text-wrap:pretty]">
+                    <span className="absolute -left-3 top-[0.55em] h-1 w-1 rounded-full bg-[#171717]" aria-hidden />
+                    {parseInlineFormatting(listItemText(line))}
+                  </li>
+                ))}
+              </ul>
             </div>
           );
         }

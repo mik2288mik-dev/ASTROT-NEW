@@ -9,7 +9,8 @@ import React from 'react';
 export type PlanetKey =
   | 'sun' | 'moon' | 'mercury' | 'venus' | 'mars'
   | 'jupiter' | 'saturn' | 'uranus' | 'neptune' | 'pluto'
-  | 'chiron' | 'north-node' | 'south-node' | 'asc' | 'mc';
+  | 'chiron' | 'lilith' | 'north-node' | 'south-node'
+  | 'asc' | 'desc' | 'mc' | 'ic';
 
 const ALIASES: Record<string, PlanetKey> = {
   Sun: 'sun', Солнце: 'sun',
@@ -23,10 +24,13 @@ const ALIASES: Record<string, PlanetKey> = {
   Neptune: 'neptune', Нептун: 'neptune',
   Pluto: 'pluto', Плутон: 'pluto',
   Chiron: 'chiron', Хирон: 'chiron',
+  Lilith: 'lilith', Лилит: 'lilith', 'Black Moon': 'lilith',
   'North Node': 'north-node', 'Северный Узел': 'north-node',
   'South Node': 'south-node', 'Южный Узел': 'south-node',
   Ascendant: 'asc', Асцендент: 'asc', ASC: 'asc',
+  Descendant: 'desc', Десцендент: 'desc', DSC: 'desc', DESC: 'desc',
   Midheaven: 'mc', МС: 'mc', MC: 'mc',
+  'Imum Coeli': 'ic', IC: 'ic',
 };
 
 export function resolvePlanetKey(input?: string | null): PlanetKey | null {
@@ -114,6 +118,12 @@ const PATHS: Record<PlanetKey, React.ReactNode> = {
       <path d="M8 11 L16 14 M16 11 L8 14" />
     </>
   ),
+  lilith: (
+    <>
+      <path d="M15.5 5.5 A6 6 0 1 0 15.5 15.5 A4.7 4.7 0 1 1 15.5 5.5 Z" />
+      <path d="M12 16 V21 M9 19 H15" />
+    </>
+  ),
   'north-node': (
     <path d="M5 16 Q5 7 12 7 Q19 7 19 16 Q19 18 17 18 Q15 18 15 16 M5 16 Q5 18 7 18 Q9 18 9 16" />
   ),
@@ -126,10 +136,22 @@ const PATHS: Record<PlanetKey, React.ReactNode> = {
       <path d="M7 9 L12 4 L17 9" />
     </>
   ),
+  desc: (
+    <>
+      <path d="M12 4 V20" />
+      <path d="M7 15 L12 20 L17 15" />
+    </>
+  ),
   mc: (
     <>
       <path d="M5 17 V8 L9 14 L13 8 V17" />
       <path d="M16 17 V8 Q19 8 19 11 Q19 14 16 14" />
+    </>
+  ),
+  ic: (
+    <>
+      <path d="M7 6 V18" />
+      <path d="M11 6 V18 M11 6 H16 Q19 6 19 9 Q19 12 16 12 H11" />
     </>
   ),
 };

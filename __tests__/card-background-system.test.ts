@@ -40,7 +40,7 @@ describe('card background library', () => {
 });
 
 describe('card background UI wiring', () => {
-  it('connects real forecast visuals and product backgrounds to the continuous feed', () => {
+  it('connects newspaper visuals without restoring heavy product backgrounds', () => {
     const dashboard = read('views/Dashboard.tsx');
     const visuals = read('lib/personalForecastVisuals.ts');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
@@ -48,12 +48,11 @@ describe('card background UI wiring', () => {
     const promoBanner = read('components/PromoBanner.tsx');
     const feedStyles = read('styles/personalForecastFeed.css');
     const natal = read('views/v2/NatalMagazine.tsx');
-    const compatibility = read('views/Synastry.tsx');
+    const compatibility = read('views/v2/UnionRoom.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
     const app = read('pages/_app.tsx');
 
-    expect(visuals).toContain('PERSONAL_FORECAST_BACKGROUND_MANIFEST');
-    expect(visuals).toContain("file: `/foni/horoscope-");
+    expect(visuals).toContain('selectMainEditorialSticker');
     expect(visuals).toContain('resolvePersonalForecastVisuals');
     expect(visuals).toContain("'--forecast-section-image'");
     expect(visuals).toContain("'--forecast-section-position-mobile'");
@@ -75,12 +74,19 @@ describe('card background UI wiring', () => {
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );
     expect(dashboard).not.toMatch(/home-day-hero|home-sphere-card|pd-reading-card/);
-    expect(natal).toContain("getUniversalCardBackground('natal'");
-    expect(compatibility).toContain("getUniversalCardBackground('compatibility'");
-    expect(matrix).toContain("getUniversalCardBackground('matrix'");
+    expect(natal).toContain('getZodiacEditorialSticker');
+    expect(natal).toContain('<EditorialSticker');
+    expect(compatibility).toContain('selectSynastryEditorialSticker');
+    expect(compatibility).toContain('<EditorialSticker');
+    expect(matrix).toContain('selectMainEditorialSticker');
+    expect(matrix).toContain('<EditorialSticker');
+    expect(natal).not.toContain('getUniversalCardBackground');
+    expect(compatibility).not.toContain('getUniversalCardBackground');
+    expect(matrix).not.toContain('getUniversalCardBackground');
     expect(app).toContain("../styles/homeContentHierarchy.css");
     expect(app).toContain("../styles/readingBackgrounds.css");
     expect(app).toContain("../styles/personalForecastFeed.css");
+    expect(app).toContain("../styles/newspaperVisual.css");
   });
 
   it('does not generate a hero CTA or hook', () => {
