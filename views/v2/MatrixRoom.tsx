@@ -8,7 +8,7 @@ import { selectMainEditorialSticker } from '../../lib/personalForecastVisuals';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
-import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { EditorialSticker } from '../../components/EditorialSticker';
 import {
   EditorialEvidence,
@@ -77,7 +77,7 @@ export function MatrixRoom({ profile, onBack }: Props) {
 
   return (
     <div className="fresh-page matrix-editorial-page">
-      <FreshInnerHeader title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en} />
+      <AppTopBar title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en} />
 
       <section className="product-screen-cover product-screen-cover--matrix" aria-label={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}>
         <div className="product-screen-cover-copy">

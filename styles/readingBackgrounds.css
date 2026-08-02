@@ -77,9 +77,7 @@
     url('/assets/card-backgrounds/products/matrix_01.svg') center top / cover fixed;
 }
 
-.fresh-page:has(.product-screen-cover--natal) .fresh-inner-header,
-.fresh-page:has(.product-screen-cover--compatibility) .fresh-page-title-block,
-.fresh-page:has(.product-screen-cover--matrix) .fresh-inner-header {
+.fresh-page:has(.product-screen-cover--compatibility) .fresh-page-title-block {
   background: rgba(255, 255, 255, 0.64);
   backdrop-filter: blur(16px) saturate(1.12);
   -webkit-backdrop-filter: blur(16px) saturate(1.12);

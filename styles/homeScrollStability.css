@@ -51,8 +51,7 @@
   -webkit-transform: translate3d(0, 0, 0);
 }
 
-/* Keep the two liquid-glass chrome surfaces on their own stable layers as cards pass below. */
-.home-screen .home-logo-bar,
+/* Keep the floating bottom glass on a stable layer as cards pass below. */
 .lumia-bottom-tab-bar {
   transform: translate3d(0, 0, 0);
   -webkit-transform: translate3d(0, 0, 0);

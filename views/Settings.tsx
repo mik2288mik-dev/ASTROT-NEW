@@ -5,7 +5,7 @@ import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { updateUserNotificationSettings, getUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
 import { hasActivePremium } from '../lib/accessMatrix';
-import { FreshInnerHeader } from '../components/fresh-ui/FreshHeaders';
+import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
 import {
@@ -371,7 +371,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     return (
         <div className="fresh-page settings-editorial-page">
-          <FreshInnerHeader title={profile.language === 'en' ? 'Settings' : 'Настройки'} />
+          <AppTopBar title={profile.language === 'en' ? 'Settings' : 'Настройки'} />
           <div className="settings-editorial-content">
             <section className="settings-editorial-profile">
                 <div className="flex items-center gap-4">

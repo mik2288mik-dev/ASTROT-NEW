@@ -9,11 +9,6 @@
   color: var(--horo-reader-ink);
 }
 
-.fresh-page.horo-reader-page .fresh-inner-header {
-  padding-bottom: 10px;
-  background: transparent;
-}
-
 .horo-reader-page .horo-reader-controls,
 .horo-reader-page .horo-uni-wrap,
 .horo-reader-page .horo-reader-info,

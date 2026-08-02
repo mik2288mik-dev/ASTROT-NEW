@@ -15,16 +15,6 @@
   color: var(--natal-editorial-ink);
 }
 
-.fresh-page.natal-editorial-page .fresh-inner-header {
-  position: relative;
-  z-index: 61;
-  padding-bottom: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: none;
-  backdrop-filter: blur(14px) saturate(1.04);
-  -webkit-backdrop-filter: blur(14px) saturate(1.04);
-}
-
 .natal-editorial-page .product-screen-cover--natal {
   width: 100%;
   min-height: 176px;

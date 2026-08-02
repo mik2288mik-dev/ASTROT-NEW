@@ -14,23 +14,6 @@
   color: var(--compat-editorial-ink);
 }
 
-.fresh-page.compat-editorial-page .fresh-inner-header {
-  position: relative;
-  z-index: 61;
-  padding-bottom: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: none;
-  backdrop-filter: blur(14px) saturate(1.04);
-  -webkit-backdrop-filter: blur(14px) saturate(1.04);
-}
-
-.compat-editorial-page .fresh-inner-title {
-  color: var(--compat-editorial-ink);
-  font-size: 20px;
-  font-weight: 760;
-  letter-spacing: -0.025em;
-}
-
 .compat-editorial-page .compat-hub-intro {
   max-width: 36rem;
   margin: 0 auto;

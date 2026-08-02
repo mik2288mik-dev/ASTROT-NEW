@@ -5,7 +5,7 @@ import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
 import { MonoIllustChart } from '../../components/mono-ui';
-import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { FreshPageTitle } from '../../components/fresh-ui';
 import { PlanetIcon } from '../../components/icons/PlanetIcon';
 import { EditorialSticker } from '../../components/EditorialSticker';
@@ -36,7 +36,7 @@ export function NatalMagazine({
   if (!data) {
     return (
       <div className="fresh-page natal-editorial-page">
-        <FreshInnerHeader title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} />
+        <AppTopBar title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} />
         <FreshPageTitle
           kicker={language === 'ru' ? 'Карта' : 'Chart'}
           title={language === 'ru' ? 'Рассчитай натальную карту' : 'Calculate your natal chart'}
@@ -66,7 +66,7 @@ export function NatalMagazine({
     <div className="fresh-page natal-editorial-page">
       <ShimmerStyles />
 
-      <FreshInnerHeader
+      <AppTopBar
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
         subtitle={`${profile.name} · ${formatDisplayDate(profile.birthDate, language)}`}
       />

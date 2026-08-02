@@ -9,7 +9,6 @@ export { FreshListItem, FreshItemList } from './FreshListItem';
 export {
   FreshHeader,
   FreshPageTitle,
-  FreshInnerHeader,
   FreshSignRow,
   FreshSectionHeader,
 } from './FreshHeaders';

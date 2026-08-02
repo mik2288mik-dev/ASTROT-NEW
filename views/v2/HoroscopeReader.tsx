@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
-import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { getMoscowTodayKey, getMoscowIsoWeekKey, getMoscowMonthKey, formatDisplayDate, formatWeekRangePretty, formatMonthPretty } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { canAccessFeature, hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
@@ -211,7 +211,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   return (
     <div className="fresh-page horo-reader-page">
-      <FreshInnerHeader title={language === 'ru' ? 'Гороскоп' : 'Horoscope'} subtitle={dateLine} />
+      <AppTopBar title={language === 'ru' ? 'Гороскоп' : 'Horoscope'} subtitle={dateLine} />
 
       <div className="horo-reader-controls">
         <ZodiacSignGrid

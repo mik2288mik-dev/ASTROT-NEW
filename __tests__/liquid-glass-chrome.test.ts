@@ -25,7 +25,7 @@ describe('liquid glass application chrome', () => {
     const topBar = read('components/lumia-ui/AppTopBar.tsx');
     const freshHeaders = read('components/fresh-ui/FreshHeaders.tsx');
     const dashboard = read('views/Dashboard.tsx');
-    const legacyHeader = read('components/Header.tsx');
+    const application = read('App.tsx');
 
     expect(app.indexOf("import '../styles/liquidGlassChrome.css'")).toBeGreaterThan(
       app.indexOf("import '../styles/newspaperVisual.css'"),
@@ -45,13 +45,47 @@ describe('liquid glass application chrome', () => {
     expect(styles).not.toContain('will-change: backdrop-filter');
     expect(styles).toContain('@supports not');
     expect(styles).toContain('@media (prefers-reduced-transparency: reduce)');
-    expect(topBar).toContain("className={cn('home-logo-bar', 'app-top-bar', className)}");
+    expect(topBar).toContain('className="home-logo-bar app-top-bar"');
+    expect(topBar).not.toContain('className?: string');
     expect(topBar).toContain('app-top-bar-spacer');
     expect(topBar).toContain('reserveSpace = true');
-    expect(freshHeaders).toContain('<AppTopBar');
+    expect(freshHeaders).not.toContain('FreshInnerHeader');
     expect(dashboard).toContain('<AppTopBar');
     expect(dashboard).toContain('reserveSpace={false}');
-    expect(legacyHeader).toContain('return <AppTopBar');
+    expect(application).toContain("title={profile.language === 'en' ? 'My charts' : 'Мои карты'}");
+  });
+
+  it('uses the exact same AppTopBar component on every primary application screen', () => {
+    const primaryScreens = [
+      'views/Dashboard.tsx',
+      'views/v2/HoroscopeReader.tsx',
+      'views/v2/UnionRoom.tsx',
+      'views/v2/NatalMagazine.tsx',
+      'views/v2/MatrixRoom.tsx',
+      'views/Settings.tsx',
+    ];
+    const obsoleteHeaderStyles = [
+      'styles/globals.css',
+      'styles/zodiacReader.css',
+      'styles/natalEditorial.css',
+      'styles/compatibilityEditorial.css',
+      'styles/settingsEditorial.css',
+      'styles/readingBackgrounds.css',
+      'styles/newspaperVisual.css',
+      'styles/liquidGlassChrome.css',
+    ].map(read).join('\n');
+
+    primaryScreens.forEach((screen) => {
+      const source = read(screen);
+      expect(source).toContain('AppTopBar');
+      expect(source).toContain('<AppTopBar');
+      expect(source).not.toContain('FreshInnerHeader');
+    });
+
+    expect(obsoleteHeaderStyles).not.toContain('.fresh-inner-header');
+    expect(obsoleteHeaderStyles).not.toContain('.fresh-inner-title');
+    expect(obsoleteHeaderStyles).not.toContain('.fresh-inner-sub');
+    expect(obsoleteHeaderStyles).not.toContain('.fresh-back-btn');
   });
 
   it('uses a generous active glass lens that expands for Compatibility', () => {

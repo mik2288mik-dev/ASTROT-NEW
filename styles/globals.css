@@ -3636,47 +3636,6 @@ a,
 }
 
 /* ── Хедер внутренних экранов ── */
-.fresh-inner-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  /* Верх как на Главной (.fresh-header) + небольшой воздух, чтобы не липло к контролам. */
-  padding: 6px var(--fresh-page-x) 10px;
-}
-
-.fresh-back-btn {
-  width: 34px;
-  height: 34px;
-  background: var(--fresh-surface);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.fresh-inner-titles {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
-}
-.fresh-inner-title {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1.12;
-  color: var(--fresh-text);
-}
-.fresh-inner-sub {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fresh-muted);
-  margin-top: 2px;
-}
-
 /* ── Знак рядом с названием (гороскоп) ── */
 .fresh-sign-row {
   display: flex;
@@ -5983,17 +5942,6 @@ a,
     linear-gradient(180deg, #fff 0%, #fff 48%, #fff8ef 74%, #fff 100%);
 }
 
-.compat-hub-page .fresh-inner-header {
-  padding-bottom: 8px;
-}
-
-.compat-hub-page .fresh-inner-title {
-  font-size: 24px;
-  font-weight: 950;
-  letter-spacing: 0;
-  color: #16141f;
-}
-
 .compat-hub-intro {
   margin: 0;
   padding: 0 20px 14px;
@@ -7140,11 +7088,9 @@ a,
 
 .home-logo-wordmark,
 .home-top-greeting,
-.fresh-inner-title,
 .fresh-page-title,
 .horo-head-title,
-.fresh-sign-name,
-.compat-hub-page .fresh-inner-title {
+.fresh-sign-name {
   font-family: var(--fresh-font);
   letter-spacing: -0.02em;
   color: var(--app-card-ink);
@@ -7195,11 +7141,6 @@ a,
   overflow: visible;
 }
 
-.fresh-inner-header {
-  padding-bottom: 12px;
-}
-
-.fresh-back-btn,
 .signwheel-nav,
 .fresh-sign-chip,
 .compat-chip,

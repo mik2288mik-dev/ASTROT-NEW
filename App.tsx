@@ -26,8 +26,8 @@ import {
 import { getMoscowTodayKey } from './lib/date-utils';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
-import { Header } from './components/Header';
 import { PromoBanner } from './components/PromoBanner';
+import { AppTopBar } from './components/lumia-ui/AppTopBar';
 import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
@@ -1710,16 +1710,6 @@ const App: React.FC = () => {
         );
     }
 
-    const renderAppScrollHeader = () => (
-        <>
-            <Header
-                profile={profile}
-                view={view}
-                onBack={() => { void handleBack(); }}
-            />
-        </>
-    );
-
     const isPrimaryChartView = activeChartId == null;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
 
@@ -1850,7 +1840,10 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'charts' ? (
                     <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
-                        {renderAppScrollHeader()}
+                        <AppTopBar
+                            title={profile.language === 'en' ? 'My charts' : 'Мои карты'}
+                            onBack={() => { void handleBack(); }}
+                        />
                         <MyCharts 
                             profile={profile} 
                             onBack={() => {

@@ -13,23 +13,6 @@
   color: var(--settings-ink);
 }
 
-.settings-editorial-page .fresh-inner-header {
-  position: relative;
-  z-index: 61;
-  padding-bottom: 13px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: none;
-  -webkit-backdrop-filter: blur(14px) saturate(1.04);
-  backdrop-filter: blur(14px) saturate(1.04);
-}
-
-.settings-editorial-page .fresh-inner-title {
-  color: var(--settings-ink);
-  font-size: 20px;
-  font-weight: 760;
-  letter-spacing: -0.025em;
-}
-
 .settings-editorial-content {
   width: min(calc(100% - 32px), 610px);
   margin: 0 auto;

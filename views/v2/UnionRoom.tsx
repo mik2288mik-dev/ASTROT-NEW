@@ -16,7 +16,7 @@ import { ZODIAC_KEYS } from '../../lib/zodiacKeys';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
-import { FreshInnerHeader } from '../../components/fresh-ui/FreshHeaders';
+import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { buildLocalPersonSnapshot, type CompatGender } from '../../lib/synastry/localSignText';
 import {
   RELATIONSHIP_CONTEXT_OPTIONS,
@@ -478,7 +478,7 @@ export function UnionRoom(props: UnionRoomProps) {
   if (screen === 'hub') {
     return (
       <div className="fresh-page compat-hub-page compat-editorial-page compat-editorial-page--hub">
-        <FreshInnerHeader title={ru ? 'Совместимость' : 'Compatibility'} />
+        <AppTopBar title={ru ? 'Совместимость' : 'Compatibility'} />
         <p className="compat-hub-intro">
           {ru ? 'Сравни по знакам за секунду — или разбери конкретного человека по дате рождения.' : 'Compare by signs in a second — or read a specific person by birth date.'}
         </p>
@@ -589,7 +589,7 @@ export function UnionRoom(props: UnionRoomProps) {
   if (screen === 'add') {
     return (
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
-        <FreshInnerHeader
+        <AppTopBar
           title={ru ? 'Кто это?' : 'Who is this?'}
           onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
         />
@@ -665,7 +665,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
   return (
     <div className="fresh-page compat-editorial-page compat-editorial-page--result">
-      <FreshInnerHeader
+      <AppTopBar
         title={theirName}
         onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
       />

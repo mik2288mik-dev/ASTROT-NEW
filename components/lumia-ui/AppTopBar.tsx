@@ -1,13 +1,11 @@
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { cn } from '../../lib/cn';
 
 type AppTopBarProps = {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   rightAction?: React.ReactNode;
-  className?: string;
   reserveSpace?: boolean;
 };
 
@@ -20,12 +18,11 @@ export function AppTopBar({
   subtitle,
   onBack,
   rightAction,
-  className,
   reserveSpace = true,
 }: AppTopBarProps) {
   return (
     <>
-      <div className={cn('home-logo-bar', 'app-top-bar', className)}>
+      <div className="home-logo-bar app-top-bar">
         <div className="app-top-bar-side app-top-bar-side--start">
           {onBack ? (
             <button
