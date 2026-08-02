@@ -1,10 +1,10 @@
 import React from 'react';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
-import { Compass, MoreHorizontal } from 'lucide-react';
+import { BookOpenText, Handshake, MoreHorizontal } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
 import { cn } from '../../lib/cn';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { HeartIcon, HoroscopeIcon, NatalChartIcon } from '../icons/UiIcons';
+import { NatalChartIcon, ZodiacWheelIcon } from '../icons/UiIcons';
 
 type LumiaBottomTabBarProps = {
   profile: UserProfile;
@@ -21,7 +21,7 @@ const SHOW_ON: ViewState[] = ['dashboard', 'horoscope', 'chart', 'synastry', 'se
 function getBottomNavLabels(language: UserProfile['language']) {
   if (language === 'en') {
     return {
-      today: 'Today',
+      today: 'Diary',
       zodiac: 'Zodiac',
       chart: 'Map',
       union: 'Compatibility',
@@ -30,7 +30,7 @@ function getBottomNavLabels(language: UserProfile['language']) {
   }
 
   return {
-    today: 'Сегодня',
+    today: 'Дневник',
     zodiac: 'Зодиак',
     chart: 'Карта',
     union: 'Совместимость',
@@ -60,24 +60,24 @@ export function LumiaBottomTabBar({
     onClick: () => void;
   }> = [
     {
-      id: 'today',
+      id: 'diary',
       label: labels.today,
       active: view === 'dashboard',
-      icon: <Compass aria-hidden strokeWidth={1.75} />,
+      icon: <BookOpenText aria-hidden strokeWidth={1.7} />,
       onClick: onOpenToday,
     },
     {
       id: 'zodiac',
       label: labels.zodiac,
       active: view === 'horoscope',
-      icon: <HoroscopeIcon />,
+      icon: <ZodiacWheelIcon />,
       onClick: onOpenZodiac,
     },
     {
       id: 'union',
       label: labels.union,
       active: view === 'synastry',
-      icon: <HeartIcon />,
+      icon: <Handshake aria-hidden strokeWidth={1.7} />,
       onClick: onOpenSynastry,
     },
     {
@@ -99,7 +99,10 @@ export function LumiaBottomTabBar({
   return (
     <div className="lumia-bottom-tab-shell pointer-events-none">
       <LayoutGroup>
-        <nav className="lumia-bottom-tab-bar pointer-events-auto" aria-label="Твой Гороскоп">
+        <nav
+          className="lumia-bottom-tab-bar pointer-events-auto"
+          aria-label={profile.language === 'en' ? 'Primary navigation' : 'Основная навигация'}
+        >
           {items.map((item) => {
             return (
               <button

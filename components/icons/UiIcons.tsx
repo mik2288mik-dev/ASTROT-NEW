@@ -44,6 +44,18 @@ export function HoroscopeIcon({ size, ...rest }: IconProps) {
   );
 }
 
+/** Zodiac — a compact astrological wheel with a central guiding star. */
+export function ZodiacWheelIcon({ size, ...rest }: IconProps) {
+  return (
+    <svg {...base(size, rest)}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5.2" />
+      <path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.55 1.55M16.85 16.85l1.55 1.55M18.4 5.6l-1.55 1.55M7.15 16.85 5.6 18.4" />
+      <path d="m12 8.8.82 2.38 2.38.82-2.38.82L12 15.2l-.82-2.38L8.8 12l2.38-.82L12 8.8Z" />
+    </svg>
+  );
+}
+
 /** Союз / совместимость — сердце */
 export function HeartIcon({ size, ...rest }: IconProps) {
   return (
