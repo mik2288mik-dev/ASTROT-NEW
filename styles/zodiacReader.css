@@ -1,5 +1,5 @@
 .fresh-page.horo-reader-page {
-  --horo-reader-bg: #fbfaf7;
+  --horo-reader-bg: var(--app-canvas);
   --horo-reader-ink: #151821;
   --horo-reader-muted: #69707d;
   --horo-reader-line: rgba(21, 24, 33, 0.09);
@@ -319,7 +319,7 @@
 .horo-reader-page .horo-uni-hero::after {
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 57%, rgba(255, 255, 255, 0.22) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(251, 250, 247, 0.72));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.72));
 }
 
 .horo-reader-page .horo-hero-illus {

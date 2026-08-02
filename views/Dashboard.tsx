@@ -677,7 +677,7 @@ export const Dashboard = memo<DashboardProps>(({
                 aria-selected={tab.id === activePeriod}
                 onClick={() => selectPeriod(tab.id)}
               >
-                {tab[language]}
+                <span className="home-period-tab-label">{tab[language]}</span>
               </button>
             ))}
           </div>

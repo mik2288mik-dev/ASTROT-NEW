@@ -36,7 +36,7 @@ describe('active root newspaper visual contract', () => {
     }
 
     const styles = read('styles/newspaperVisual.css');
-    expect(styles).toContain('--news-paper: #ffffff');
+    expect(styles).toContain('--news-paper: var(--app-canvas)');
     expect(styles).toContain('--news-action: #1478ff');
     expect(styles).not.toContain('--news-action: #1d1d1b');
     expect(styles).toContain('.forecast-feed-page .forecast-feed-status button');

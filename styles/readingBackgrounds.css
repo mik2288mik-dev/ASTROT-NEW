@@ -5,7 +5,7 @@
   position: relative;
   isolation: isolate;
   padding: 0.35rem 0 1rem;
-  background-color: rgba(248, 250, 252, 0.92);
+  background-color: var(--app-canvas);
   background-position: center top;
   background-repeat: no-repeat;
   background-size: cover;
@@ -16,7 +16,7 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(248,250,252,0.92) 62%, #fff 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.92) 62%, #fff 100%);
   backdrop-filter: blur(22px) saturate(0.92);
   -webkit-backdrop-filter: blur(22px) saturate(0.92);
   pointer-events: none;

@@ -19,7 +19,7 @@ describe('liquid glass application chrome', () => {
     expect(icons).toContain('export function ZodiacWheelIcon');
   });
 
-  it('applies one frosted material to the top and bottom bars', () => {
+  it('keeps the fixed header pure white and applies live neutral glass to the bottom bar', () => {
     const styles = read('styles/liquidGlassChrome.css');
     const app = read('pages/_app.tsx');
     const topBar = read('components/lumia-ui/AppTopBar.tsx');
@@ -30,14 +30,19 @@ describe('liquid glass application chrome', () => {
     expect(app.indexOf("import '../styles/liquidGlassChrome.css'")).toBeGreaterThan(
       app.indexOf("import '../styles/newspaperVisual.css'"),
     );
-    expect(styles).toContain('--app-glass-filter: blur(36px) saturate(1.90) brightness(1.04)');
+    expect(styles).toContain('--app-glass-filter: blur(30px) saturate(1.60)');
+    expect(styles).not.toContain('brightness(');
+    expect(styles).toContain('rgba(255, 255, 255, 0.42)');
+    expect(styles).not.toContain('rgba(235, 244, 255');
+    expect(styles).not.toContain('rgba(220, 234, 251');
     expect(styles).toContain('.lumia-bottom-tab-bar');
     expect(styles).toContain('.fresh-page::before');
     expect(styles).toContain('.app-top-bar');
     expect(styles).toContain('backdrop-filter: var(--app-glass-filter)');
+    expect(styles).toContain('background: var(--app-canvas) !important');
     expect(styles).toContain('position: fixed');
     expect(styles).toContain('.forecast-feed-page::before');
-    expect(styles).toContain('will-change: backdrop-filter');
+    expect(styles).not.toContain('will-change: backdrop-filter');
     expect(styles).toContain('@supports not');
     expect(styles).toContain('@media (prefers-reduced-transparency: reduce)');
     expect(topBar).toContain("className={cn('home-logo-bar', 'app-top-bar', className)}");
@@ -59,5 +64,22 @@ describe('liquid glass application chrome', () => {
     expect(styles).toContain('width: min(calc(100% - 2px), 3.9rem)');
     expect(styles).toContain('height: 3.55rem');
     expect(styles).toContain('width: calc(100% - 2px)');
+    expect(styles).toContain('rgba(20, 120, 255, 0.24)');
+    expect(styles).toContain('color: #4b5563');
+    expect(styles).toContain('font-size: 8.75px');
+    expect(styles).toContain('font-size: 8.25px');
+    expect(styles).toContain('.lumia-bottom-tab-item:focus-visible');
+  });
+
+  it('preserves safe-area clearance, minimum tap targets and a single shared mount', () => {
+    const globals = read('styles/globals.css');
+    const app = read('App.tsx');
+
+    expect(globals).toContain('--lumia-bottom-tab-safe-bottom: max(env(safe-area-inset-bottom');
+    expect(globals).toContain('--lumia-bottom-tab-clearance: calc(');
+    expect(globals).toContain('.lumia-main-scroll.lumia-bottom-tab-scroll');
+    expect(globals).toContain('scroll-padding-bottom: var(--lumia-bottom-tab-clearance)');
+    expect(globals).toContain('min-height: 3.24rem');
+    expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
   });
 });

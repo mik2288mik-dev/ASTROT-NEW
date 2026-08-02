@@ -1,22 +1,20 @@
-/*
- * Shared application chrome material.
- * The top and bottom bars use one glass recipe while preserving their native shapes.
- */
+/* Shared application chrome: a pure-white fixed header and a live glass tab bar. */
 
 :root {
   --app-glass-background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(235, 244, 255, 0.16)),
-    rgba(220, 234, 251, 0.16);
-  --app-glass-border: rgba(255, 255, 255, 0.62);
-  --app-glass-filter: blur(36px) saturate(1.90) brightness(1.04);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)),
+    rgba(255, 255, 255, 0.42);
+  --app-glass-border: rgba(255, 255, 255, 0.72);
+  --app-glass-filter: blur(30px) saturate(1.60);
   --app-glass-shadow:
-    0 22px 52px rgba(25, 35, 52, 0.12),
-    0 7px 20px rgba(25, 35, 52, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.92) inset;
-  --app-glass-active: #0a74f5;
+    0 24px 56px rgba(20, 29, 43, 0.14),
+    0 8px 22px rgba(20, 29, 43, 0.07),
+    0 1px 0 rgba(255, 255, 255, 0.94) inset,
+    0 -1px 0 rgba(37, 52, 73, 0.08) inset;
+  --app-glass-active: #0877f9;
   --app-glass-active-surface:
-    linear-gradient(145deg, rgba(101, 181, 255, 0.30), rgba(20, 120, 255, 0.16)),
-    rgba(255, 255, 255, 0.12);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.56), rgba(111, 205, 255, 0.18)),
+    rgba(20, 120, 255, 0.24);
 }
 
 /* One fixed title bar for the diary and every primary section. */
@@ -42,31 +40,21 @@
     var(--fresh-page-x, 20px)
     13px;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.70);
-  background: var(--app-glass-background) !important;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.07);
+  background: var(--app-canvas) !important;
   background-size: auto !important;
-  box-shadow:
-    0 10px 26px rgba(25, 35, 52, 0.07),
-    0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
-  -webkit-backdrop-filter: var(--app-glass-filter);
-  backdrop-filter: var(--app-glass-filter);
+  box-shadow: 0 8px 22px rgba(17, 24, 39, 0.05) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   background-clip: padding-box;
   animation: none !important;
   isolation: isolate;
   transform: translateZ(0);
   backface-visibility: hidden;
-  will-change: backdrop-filter;
 }
 
 .app-top-bar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.36), transparent 46%),
-    linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.12) 50%, transparent 78%);
+  display: none;
 }
 
 .app-top-bar-side {
@@ -196,6 +184,7 @@
 .lumia-bottom-tab-bar {
   isolation: isolate;
   overflow: hidden;
+  width: min(100%, 29rem);
   border: 1px solid var(--app-glass-border);
   background: var(--app-glass-background);
   box-shadow: var(--app-glass-shadow);
@@ -203,7 +192,6 @@
   backdrop-filter: var(--app-glass-filter);
   background-clip: padding-box;
   transform: translateZ(0);
-  will-change: backdrop-filter;
 }
 
 .lumia-bottom-tab-bar::before,
@@ -229,7 +217,7 @@
   left: 9%;
   z-index: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(89, 117, 157, 0.18), transparent);
+  background: linear-gradient(90deg, transparent, rgba(37, 52, 73, 0.14), transparent);
 }
 
 .lumia-bottom-tab-active-pill-frame {
@@ -250,14 +238,14 @@
   height: 3.55rem;
   flex: 0 0 auto;
   border-radius: 1.58rem;
-  border: 1px solid rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.84);
   background: var(--app-glass-active-surface);
   box-shadow:
-    0 10px 24px rgba(20, 120, 255, 0.16),
+    0 10px 24px rgba(20, 120, 255, 0.22),
     0 1px 0 rgba(255, 255, 255, 0.78) inset,
     0 -1px 0 rgba(53, 128, 225, 0.08) inset;
-  -webkit-backdrop-filter: blur(24px) saturate(1.80) brightness(1.04);
-  backdrop-filter: blur(24px) saturate(1.80) brightness(1.04);
+  -webkit-backdrop-filter: blur(22px) saturate(1.65);
+  backdrop-filter: blur(22px) saturate(1.65);
 }
 
 .lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-active-pill {
@@ -266,12 +254,22 @@
 }
 
 .lumia-bottom-tab-item {
-  color: rgba(45, 55, 70, 0.68);
+  color: #4b5563;
+}
+
+.lumia-bottom-tab-item:focus-visible {
+  outline: 2px solid rgba(10, 116, 245, 0.68);
+  outline-offset: -2px;
 }
 
 .lumia-bottom-tab-item.is-active,
 .lumia-bottom-tab-item.is-active .lumia-bottom-tab-icon {
   color: var(--app-glass-active);
+}
+
+.lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-label {
+  font-size: 8.75px;
+  letter-spacing: -0.035em;
 }
 
 .lumia-bottom-tab-icon svg {
@@ -284,34 +282,40 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.54);
   background: linear-gradient(
     to bottom,
-    rgba(250, 252, 255, 0.78) 0%,
-    rgba(244, 248, 255, 0.48) 62%,
-    rgba(244, 248, 255, 0) 100%
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.48) 62%,
+    rgba(255, 255, 255, 0) 100%
   );
   -webkit-backdrop-filter: var(--app-glass-filter);
   backdrop-filter: var(--app-glass-filter);
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .lumia-bottom-tab-bar,
+  .lumia-bottom-tab-bar {
+    background: rgba(255, 255, 255, 0.88) !important;
+  }
+
   .app-top-bar {
-    background: rgba(248, 250, 253, 0.94) !important;
+    background: var(--app-canvas) !important;
   }
 
   .fresh-page::before {
     background: linear-gradient(
       to bottom,
-      rgba(248, 250, 253, 0.97),
-      rgba(248, 250, 253, 0.82) 62%,
+      rgba(255, 255, 255, 0.97),
+      rgba(255, 255, 255, 0.82) 62%,
       transparent
     );
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .lumia-bottom-tab-bar,
+  .lumia-bottom-tab-bar {
+    background: rgba(255, 255, 255, 0.88) !important;
+  }
+
   .app-top-bar {
-    background: rgba(248, 250, 253, 0.94) !important;
+    background: var(--app-canvas) !important;
   }
 }
 
@@ -334,6 +338,14 @@
   }
 
   .lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-label {
+    font-size: 8.25px;
+    letter-spacing: -0.035em;
+  }
+}
+
+@media (max-width: 340px) {
+  .lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-label {
     font-size: 7.25px;
+    letter-spacing: -0.035em;
   }
 }

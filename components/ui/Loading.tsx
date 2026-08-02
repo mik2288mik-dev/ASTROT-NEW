@@ -34,7 +34,7 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
   return (
     <div
       className="fixed inset-0 z-50 flex h-[100dvh] min-h-[100dvh] w-screen flex-col items-center justify-center overflow-hidden"
-      style={{ backgroundColor: '#FBFAF6' }}
+      style={{ backgroundColor: 'var(--app-canvas, #FFFFFF)' }}
       role="status"
       aria-live="polite"
       aria-label={LOADING_LABEL}

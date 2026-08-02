@@ -4,10 +4,11 @@ import path from 'path';
 const ROOT = path.join(__dirname, '..');
 
 describe('loading screen', () => {
-  it('renders a milky-white splash with the app name, no image', () => {
+  it('renders a pure-white splash with the app name, no image', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     expect(source).toContain('Твой Гороскоп');
-    expect(source).toContain('#FBFAF6');
+    expect(source).toContain("var(--app-canvas, #FFFFFF)");
+    expect(source).not.toContain('#FBFAF6');
     expect(source).toContain('min-h-[100dvh]');
     expect(source).not.toContain('/lumiastart.webp');
     expect(source).not.toContain('/lumia-logo.png');

@@ -5,7 +5,7 @@
 html,
 body,
 #__next {
-  background: #ffffff !important;
+  background: var(--app-canvas, #FFFFFF) !important;
 }
 
 @font-face {
@@ -17,6 +17,8 @@ body,
 }
 
 :root {
+  /* Single neutral canvas for application chrome and reading surfaces. */
+  --app-canvas: #FFFFFF;
   /* 
     THEME: MIDNIGHT FASHION (Default Dark)
   */
@@ -46,7 +48,7 @@ body,
   --lumia-brand-ink: #111317;
   --lumia-brand-muted: #606772;
   --lumia-brand-line: rgba(17, 19, 23, 0.1);
-  --lumia-brand-surface: #ffffff;
+  --lumia-brand-surface: var(--app-canvas);
   --lumia-brand-surface-soft: #f4f7fa;
   --lumia-pop-red: var(--lumia-brand-primary);
   --lumia-pop-yellow: var(--lumia-brand-positive);
@@ -54,9 +56,9 @@ body,
   --lumia-pop-green: var(--lumia-brand-positive);
   --lumia-pop-blue: var(--lumia-brand-primary);
   --lumia-pop-berry: #2347b8;
-  --lumia-home-bg: #ffffff;
-  --lumia-home-bg-wash: #ffffff;
-  --lumia-home-surface: #ffffff;
+  --lumia-home-bg: var(--app-canvas);
+  --lumia-home-bg-wash: var(--app-canvas);
+  --lumia-home-surface: var(--app-canvas);
   --lumia-home-surface-soft: var(--lumia-brand-surface-soft);
   --lumia-home-text: var(--lumia-brand-ink);
   --lumia-home-muted: var(--lumia-brand-muted);
@@ -98,7 +100,7 @@ body,
   --lumia-brand-tagline-gap: 0.16rem;
   /* Главный экран "Сегодня": строгий гротеск и бело-серая карточная система. */
   --home-editorial-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --today-screen-bg: #FFFFFF;
+  --today-screen-bg: var(--app-canvas);
   --today-hero-bg: #F3F4F6;
   --today-hero-bg-2: #FAFAFB;
   --today-hero-ink: #111827;
@@ -113,8 +115,8 @@ body,
   --today-card-shadow: 0 16px 36px rgba(17, 24, 39, 0.10), 0 2px 8px rgba(17, 24, 39, 0.04);
 
   /* Fresh 2026 skin — white surfaces, blue accent (synced with tailwind mono.* + --fresh-*) */
-  --mono-bg: #ffffff;
-  --mono-white: #ffffff;
+  --mono-bg: var(--app-canvas);
+  --mono-white: var(--app-canvas);
   --mono-plate: #f7f8fa;
   --mono-ink: #111827;
   --mono-muted: #6b7280;
@@ -129,7 +131,7 @@ body.theme-light {
   /* 
     THEME: PASTEL COFFEE / MORNING LATTE
   */
-  --bg-primary: #F5F2EB;  
+  --bg-primary: var(--app-canvas);
   --bg-card: #E6E0D5;     
   --text-main: #3C2F2F;   
   --text-sub: #8D7B68;    
@@ -2024,7 +2026,7 @@ body.theme-light .shadow-glow {
 /* Inner sheet for long-form reading (second layer) */
 .lumia-reading-inner-card {
   border-radius: 30px;
-  background-color: #faf9f6;
+  background-color: var(--app-canvas);
   padding: 1.95rem 1.15rem;
   box-shadow:
     0 18px 54px -32px rgba(0, 0, 0, 0.14),
@@ -3164,7 +3166,7 @@ a,
    ═══════════════════════════════════════════════════════════════ */
 :root {
   /* Фоны */
-  --fresh-bg: #FFFFFF;
+  --fresh-bg: var(--app-canvas);
   --fresh-surface: #F3F4F6;
   --fresh-border: rgba(17, 24, 39, 0.07);
   --fresh-border-light: rgba(0, 0, 0, 0.06);
@@ -3334,9 +3336,8 @@ a,
     calc(var(--home-safe-top) + 14px)
     var(--fresh-page-x)
     13px;
-  background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 248, 239, 0.98) 34%, rgba(241, 246, 255, 0.98) 68%, rgba(232, 229, 224, 0.98) 100%);
-  background-size: 240% 240%;
+  background: var(--app-canvas);
+  background-size: auto;
   box-shadow: 0 12px 30px rgba(17, 24, 39, 0.06);
   animation: homeLogoBarShift 18s ease-in-out infinite alternate;
 }
@@ -3410,8 +3411,9 @@ a,
   gap: 2px;
   margin-top: 12px;
   padding: 3px;
+  border: 1px solid rgba(17, 24, 39, 0.065);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--app-canvas);
   box-shadow:
     0 10px 24px rgba(24, 24, 27, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.92) inset;
@@ -3419,6 +3421,7 @@ a,
 
 .home-period-tab {
   position: relative;
+  isolation: isolate;
   display: inline-flex;
   min-width: 0;
   min-height: 26px;
@@ -3434,15 +3437,51 @@ a,
   letter-spacing: 0;
   line-height: 1.1;
   text-align: center;
-  cursor: default;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: color 170ms ease;
+}
+
+.home-period-tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 48%),
+    linear-gradient(135deg, #00bfae 0%, #1478ff 52%, #7a4dff 100%);
+  box-shadow:
+    0 8px 18px rgba(20, 120, 255, 0.24),
+    0 1px 0 rgba(255, 255, 255, 0.34) inset;
+  opacity: 0;
+  transform: scale(0.94);
+  transition:
+    opacity 160ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.home-period-tab-label {
+  position: relative;
+  z-index: 1;
 }
 
 .home-period-tab.is-active {
   color: #ffffff;
-  background: linear-gradient(135deg, #00bfae 0%, #1478ff 52%, #7a4dff 100%);
-  box-shadow: 0 8px 18px rgba(20, 120, 255, 0.24);
-  cursor: pointer;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-period-tab.is-active::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-period-tab,
+  .home-period-tab::before {
+    transition: none;
+  }
 }
 
 @media (max-width: 380px) {
@@ -7175,7 +7214,6 @@ a,
 .fresh-tab[data-active='true'],
 .fresh-sign-chip.active,
 .signwheel-dot.active,
-.home-period-tab.is-active,
 .fresh-btn-primary,
 .people-verdict,
 .compat-person-plus {
@@ -7192,10 +7230,6 @@ a,
 .compat-gender-btn,
 .compat-check-btn {
   font-family: var(--fresh-font);
-}
-
-.home-period-tab.is-active {
-  background: linear-gradient(135deg, #38BDF8 0%, #1478FF 100%);
 }
 
 .fresh-sticky,

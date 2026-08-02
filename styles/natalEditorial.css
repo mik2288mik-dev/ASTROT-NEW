@@ -7,7 +7,7 @@
  */
 
 .fresh-page.natal-editorial-page {
-  --natal-editorial-bg: #fbfbfa;
+  --natal-editorial-bg: var(--app-canvas);
   --natal-editorial-ink: #17191d;
   --natal-editorial-muted: #6f747c;
   --natal-editorial-line: rgba(23, 25, 29, 0.09);
@@ -19,7 +19,7 @@
   position: relative;
   z-index: 61;
   padding-bottom: 14px;
-  background: rgba(251, 251, 250, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: none;
   backdrop-filter: blur(14px) saturate(1.04);
   -webkit-backdrop-filter: blur(14px) saturate(1.04);
@@ -56,7 +56,7 @@
 .natal-editorial-page .product-screen-cover--natal::after {
   z-index: 1;
   background:
-    linear-gradient(90deg, rgba(251, 251, 250, 0.96) 0%, rgba(251, 251, 250, 0.78) 52%, rgba(251, 251, 250, 0.36) 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.78) 52%, rgba(255, 255, 255, 0.36) 100%),
     linear-gradient(180deg, var(--natal-editorial-bg) 0%, transparent 22%, transparent 74%, var(--natal-editorial-bg) 100%);
 }
 

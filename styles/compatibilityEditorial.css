@@ -6,7 +6,7 @@
  */
 
 .fresh-page.compat-editorial-page {
-  --compat-editorial-bg: #fbfbfa;
+  --compat-editorial-bg: var(--app-canvas);
   --compat-editorial-ink: #17191d;
   --compat-editorial-muted: #6f747c;
   --compat-editorial-line: rgba(23, 25, 29, 0.09);
@@ -18,7 +18,7 @@
   position: relative;
   z-index: 61;
   padding-bottom: 14px;
-  background: rgba(251, 251, 250, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: none;
   backdrop-filter: blur(14px) saturate(1.04);
   -webkit-backdrop-filter: blur(14px) saturate(1.04);

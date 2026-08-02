@@ -6,6 +6,7 @@ export default function Document() {
       <Head>
         <title>Твой Гороскоп</title>
         <meta name="application-name" content="Твой Гороскоп" />
+        <meta name="theme-color" content="#FFFFFF" />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"

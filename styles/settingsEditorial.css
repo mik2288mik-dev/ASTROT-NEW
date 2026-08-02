@@ -4,7 +4,7 @@
  */
 
 .fresh-page.settings-editorial-page {
-  --settings-bg: #fbfbfa;
+  --settings-bg: var(--app-canvas);
   --settings-ink: #17191d;
   --settings-muted: #6f747c;
   --settings-line: rgba(23, 25, 29, 0.09);
@@ -17,7 +17,7 @@
   position: relative;
   z-index: 61;
   padding-bottom: 13px;
-  background: rgba(251, 251, 250, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: none;
   -webkit-backdrop-filter: blur(14px) saturate(1.04);
   backdrop-filter: blur(14px) saturate(1.04);

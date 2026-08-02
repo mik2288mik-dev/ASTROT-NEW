@@ -4,7 +4,7 @@
  */
 
 :root {
-  --news-paper: #ffffff;
+  --news-paper: var(--app-canvas);
   --news-paper-soft: #f3f3f1;
   --news-paper-deep: #e8e8e4;
   --news-ink: #151515;
@@ -159,7 +159,6 @@
   --forecast-feed-copy: #252522;
 }
 
-.forecast-feed-page .home-period-tabs,
 .forecast-feed-page .forecast-topic-compact-trigger,
 .forecast-feed-page .forecast-topic-compact-menu {
   border-color: var(--news-rule) !important;
@@ -167,13 +166,6 @@
   box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-}
-
-.forecast-feed-page .home-period-tab.is-active {
-  border-color: var(--news-action) !important;
-  background: var(--news-action) !important;
-  color: #fff !important;
-  box-shadow: none !important;
 }
 
 .forecast-feed-page .forecast-feed-header-action:active,

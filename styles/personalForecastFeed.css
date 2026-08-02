@@ -1,5 +1,5 @@
 .forecast-feed-page {
-  --forecast-feed-base: #fbfaf7;
+  --forecast-feed-base: var(--app-canvas);
   --forecast-feed-copy: #242a36;
   --forecast-feed-reading-width: 610px;
   position: relative;
@@ -436,12 +436,12 @@
     --forecast-section-overlay,
     linear-gradient(
       180deg,
-      rgba(251, 250, 247, 1) 0%,
-      rgba(251, 250, 247, 0.86) 20%,
-      rgba(251, 250, 247, 0.58) 46%,
-      rgba(251, 250, 247, 0.64) 66%,
-      rgba(251, 250, 247, 0.9) 86%,
-      rgba(251, 250, 247, 1) 100%
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0.86) 20%,
+      rgba(255, 255, 255, 0.58) 46%,
+      rgba(255, 255, 255, 0.64) 66%,
+      rgba(255, 255, 255, 0.9) 86%,
+      rgba(255, 255, 255, 1) 100%
     )
   );
 }
@@ -450,12 +450,12 @@
   background:
     linear-gradient(
       180deg,
-      rgba(251, 250, 247, 1) 0%,
-      rgba(251, 250, 247, 0.9) 18%,
-      rgba(251, 250, 247, 0.68) 40%,
-      rgba(251, 250, 247, 0.72) 62%,
-      rgba(251, 250, 247, 0.93) 84%,
-      rgba(251, 250, 247, 1) 100%
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0.9) 18%,
+      rgba(255, 255, 255, 0.68) 40%,
+      rgba(255, 255, 255, 0.72) 62%,
+      rgba(255, 255, 255, 0.93) 84%,
+      rgba(255, 255, 255, 1) 100%
     );
 }
 
@@ -1217,7 +1217,7 @@
   max-height: min(84dvh, 760px);
   overflow: hidden;
   border-radius: 24px 24px 0 0;
-  background: #fff;
+  background: var(--app-canvas);
   box-shadow: 0 -16px 70px rgba(20, 25, 34, 0.18);
 }
 
