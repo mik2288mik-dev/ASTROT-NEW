@@ -2,19 +2,16 @@
 
 :root {
   --app-glass-background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)),
-    rgba(255, 255, 255, 0.42);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.36);
   --app-glass-border: rgba(255, 255, 255, 0.72);
-  --app-glass-filter: blur(30px) saturate(1.60);
+  --app-glass-filter: blur(30px) saturate(1.68) contrast(1.025);
   --app-glass-shadow:
     0 24px 56px rgba(20, 29, 43, 0.14),
     0 8px 22px rgba(20, 29, 43, 0.07),
     0 1px 0 rgba(255, 255, 255, 0.94) inset,
     0 -1px 0 rgba(37, 52, 73, 0.08) inset;
   --app-glass-active: #0877f9;
-  --app-glass-active-surface:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.56), rgba(111, 205, 255, 0.18)),
-    rgba(20, 120, 255, 0.24);
 }
 
 /* One fixed title bar for the diary and every primary section. */
@@ -191,6 +188,9 @@
   backdrop-filter: var(--app-glass-filter);
   background-clip: padding-box;
   transform: translateZ(0);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .lumia-bottom-tab-bar::before,
@@ -219,37 +219,66 @@
   background: linear-gradient(90deg, transparent, rgba(37, 52, 73, 0.14), transparent);
 }
 
-.lumia-bottom-tab-active-pill-frame {
+.lumia-bottom-tab-liquid-lens {
   position: absolute;
-  inset: 0;
-  z-index: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+  display: block;
+  height: 3.55rem;
+  margin-top: -1.775rem;
+  pointer-events: none;
+  transform-origin: center;
+  overflow: hidden;
+  border-radius: 1.62rem;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  background:
+    radial-gradient(120% 95% at 18% -8%, rgba(255, 255, 255, 0.82), transparent 42%),
+    radial-gradient(92% 120% at 82% 112%, rgba(28, 153, 255, 0.24), transparent 54%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.42), rgba(87, 184, 255, 0.12)),
+    rgba(20, 120, 255, 0.20);
+  box-shadow:
+    0 12px 28px rgba(20, 120, 255, 0.20),
+    0 3px 10px rgba(43, 105, 194, 0.10),
+    0 1px 0 rgba(255, 255, 255, 0.94) inset,
+    0 -1px 0 rgba(25, 96, 183, 0.10) inset;
+  -webkit-backdrop-filter: blur(18px) saturate(1.90) contrast(1.04);
+  backdrop-filter: blur(18px) saturate(1.90) contrast(1.04);
+  transition:
+    opacity 120ms ease,
+    box-shadow 180ms ease;
+}
+
+.lumia-bottom-tab-liquid-lens::before,
+.lumia-bottom-tab-liquid-lens::after {
+  content: '';
+  position: absolute;
   pointer-events: none;
 }
 
-.lumia-bottom-tab-active-pill {
-  position: relative;
-  inset: auto;
-  display: block;
-  width: min(calc(100% - 2px), 3.9rem);
-  height: 3.55rem;
-  flex: 0 0 auto;
-  border-radius: 1.58rem;
-  border: 1px solid rgba(255, 255, 255, 0.84);
-  background: var(--app-glass-active-surface);
-  box-shadow:
-    0 10px 24px rgba(20, 120, 255, 0.22),
-    0 1px 0 rgba(255, 255, 255, 0.78) inset,
-    0 -1px 0 rgba(53, 128, 225, 0.08) inset;
-  -webkit-backdrop-filter: blur(22px) saturate(1.65);
-  backdrop-filter: blur(22px) saturate(1.65);
+.lumia-bottom-tab-liquid-lens::before {
+  inset: 1px 8% auto;
+  height: 42%;
+  border-radius: 999px 999px 48% 48%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent);
+  filter: blur(3px);
+  opacity: 0.58;
 }
 
-.lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-active-pill {
-  width: calc(100% - 2px);
-  max-width: 5.3rem;
+.lumia-bottom-tab-liquid-lens::after {
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    8px 0 14px rgba(255, 255, 255, 0.22) inset,
+    -8px 0 14px rgba(33, 117, 224, 0.10) inset;
+}
+
+.lumia-bottom-tab-bar.is-dragging .lumia-bottom-tab-liquid-lens {
+  box-shadow:
+    0 15px 34px rgba(20, 120, 255, 0.24),
+    0 4px 12px rgba(43, 105, 194, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset,
+    0 -1px 0 rgba(25, 96, 183, 0.12) inset;
 }
 
 .lumia-bottom-tab-item {
@@ -262,8 +291,15 @@
 }
 
 .lumia-bottom-tab-item.is-active,
-.lumia-bottom-tab-item.is-active .lumia-bottom-tab-icon {
+.lumia-bottom-tab-item.is-active .lumia-bottom-tab-icon,
+.lumia-bottom-tab-item.is-lens-target,
+.lumia-bottom-tab-item.is-lens-target .lumia-bottom-tab-icon {
   color: var(--app-glass-active);
+}
+
+.lumia-bottom-tab-bar.is-dragging .lumia-bottom-tab-item.is-active:not(.is-lens-target),
+.lumia-bottom-tab-bar.is-dragging .lumia-bottom-tab-item.is-active:not(.is-lens-target) .lumia-bottom-tab-icon {
+  color: #4b5563;
 }
 
 .lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-label {
@@ -294,6 +330,10 @@
     background: rgba(255, 255, 255, 0.88) !important;
   }
 
+  .lumia-bottom-tab-liquid-lens {
+    background: rgba(225, 241, 255, 0.92);
+  }
+
   .app-top-bar {
     background: var(--app-canvas) !important;
   }
@@ -313,8 +353,31 @@
     background: rgba(255, 255, 255, 0.88) !important;
   }
 
+  .lumia-bottom-tab-liquid-lens {
+    background: rgba(225, 241, 255, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   .app-top-bar {
     background: var(--app-canvas) !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lumia-bottom-tab-bar {
+    border-color: rgba(17, 24, 39, 0.24);
+  }
+
+  .lumia-bottom-tab-liquid-lens {
+    border-color: rgba(8, 119, 249, 0.52);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lumia-bottom-tab-liquid-lens,
+  .lumia-bottom-tab-item {
+    transition: none;
   }
 }
 

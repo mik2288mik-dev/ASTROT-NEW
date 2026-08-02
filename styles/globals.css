@@ -795,17 +795,6 @@ body.theme-lumia-air #__next {
   transform: translateY(1px) scale(0.96);
 }
 
-.lumia-bottom-tab-active-pill {
-  position: absolute;
-  inset: 3px 2px;
-  z-index: 0;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #00bfae 0%, #1478ff 52%, #7a4dff 100%);
-  box-shadow:
-    0 10px 22px rgba(20, 120, 255, 0.22),
-    0 1px 0 rgba(255, 255, 255, 0.30) inset;
-}
-
 /* Thin line icon inside each tab item. */
 .lumia-bottom-tab-icon {
   position: relative;

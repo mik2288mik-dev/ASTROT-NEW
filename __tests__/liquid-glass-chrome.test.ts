@@ -30,9 +30,9 @@ describe('liquid glass application chrome', () => {
     expect(app.indexOf("import '../styles/liquidGlassChrome.css'")).toBeGreaterThan(
       app.indexOf("import '../styles/newspaperVisual.css'"),
     );
-    expect(styles).toContain('--app-glass-filter: blur(30px) saturate(1.60)');
+    expect(styles).toContain('--app-glass-filter: blur(30px) saturate(1.68) contrast(1.025)');
     expect(styles).not.toContain('brightness(');
-    expect(styles).toContain('rgba(255, 255, 255, 0.42)');
+    expect(styles).toContain('rgba(255, 255, 255, 0.36)');
     expect(styles).not.toContain('rgba(235, 244, 255');
     expect(styles).not.toContain('rgba(220, 234, 251');
     expect(styles).toContain('.lumia-bottom-tab-bar');
@@ -88,21 +88,34 @@ describe('liquid glass application chrome', () => {
     expect(obsoleteHeaderStyles).not.toContain('.fresh-back-btn');
   });
 
-  it('uses a generous active glass lens that expands for Compatibility', () => {
+  it('uses one draggable liquid lens with spring settling and preserved tab buttons', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const styles = read('styles/liquidGlassChrome.css');
+    const homeStyles = read('styles/homeMvpLayout.css');
+    const globals = read('styles/globals.css');
 
-    expect(tabs).toContain('lumia-bottom-tab-active-pill-frame');
-    expect(styles).toContain('.lumia-bottom-tab-active-pill-frame');
-    expect(styles).toContain(".lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-active-pill");
-    expect(styles).toContain('width: min(calc(100% - 2px), 3.9rem)');
+    expect(tabs).toContain('lumia-bottom-tab-liquid-lens');
+    expect(tabs).toContain('useMotionValue');
+    expect(tabs).toContain('onPointerMove={updateLiquidDrag}');
+    expect(tabs).toContain('setPointerCapture(event.pointerId)');
+    expect(tabs).toContain('const stretch = Math.min(Math.abs(velocityX) / 1800, 0.16)');
+    expect(tabs).toContain("type: 'spring' as const");
+    expect(tabs).toContain('items[nextIndex]?.onClick()');
+    expect(tabs).toContain('aria-current={item.active');
+    expect(styles).toContain('.lumia-bottom-tab-liquid-lens');
+    expect(styles).toContain('.lumia-bottom-tab-bar.is-dragging');
+    expect(styles).toContain('touch-action: pan-y');
     expect(styles).toContain('height: 3.55rem');
-    expect(styles).toContain('width: calc(100% - 2px)');
-    expect(styles).toContain('rgba(20, 120, 255, 0.24)');
+    expect(styles).toContain('blur(18px) saturate(1.90) contrast(1.04)');
     expect(styles).toContain('color: #4b5563');
     expect(styles).toContain('font-size: 8.75px');
     expect(styles).toContain('font-size: 8.25px');
     expect(styles).toContain('.lumia-bottom-tab-item:focus-visible');
+    expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(tabs).not.toContain('lumia-bottom-tab-active-pill');
+    expect(styles).not.toContain('lumia-bottom-tab-active-pill');
+    expect(homeStyles).not.toContain('lumia-bottom-tab-active-pill');
+    expect(globals).not.toContain('lumia-bottom-tab-active-pill');
   });
 
   it('preserves safe-area clearance, minimum tap targets and a single shared mount', () => {
