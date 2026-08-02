@@ -117,14 +117,16 @@ export function LumiaBottomTabBar({
                   item.onClick();
                 }}
               >
-                {item.active && !reduce ? (
-                  <motion.span
-                    layoutId="lumia-bottom-tab-pill"
-                    className="lumia-bottom-tab-active-pill"
-                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                  />
-                ) : null}
-                {item.active && reduce ? <span className="lumia-bottom-tab-active-pill" aria-hidden /> : null}
+                <span className="lumia-bottom-tab-active-pill-frame" aria-hidden>
+                  {item.active && !reduce ? (
+                    <motion.span
+                      layoutId="lumia-bottom-tab-pill"
+                      className="lumia-bottom-tab-active-pill"
+                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                    />
+                  ) : null}
+                  {item.active && reduce ? <span className="lumia-bottom-tab-active-pill" /> : null}
+                </span>
                 <span className="lumia-bottom-tab-icon">
                   {item.icon}
                 </span>

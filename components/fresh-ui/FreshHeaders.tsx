@@ -1,4 +1,5 @@
 import React from 'react';
+import { AppTopBar } from '../lumia-ui/AppTopBar';
 
 /* ── Главный хедер: аватар + приветствие (+ дата справа) ── */
 interface FreshHeaderProps {
@@ -87,22 +88,13 @@ export const FreshInnerHeader: React.FC<FreshInnerHeaderProps> = ({
   rightAction,
 }) => {
   return (
-    <div className="fresh-inner-header">
-      {onBack ? (
-        <button className="fresh-back-btn" onClick={onBack} type="button" aria-label="Назад">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 3L5 8L10 13" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      ) : (
-        <div style={{ width: 34 }} />
-      )}
-      <div className="fresh-inner-titles">
-        <div className="fresh-inner-title">{title}</div>
-        {subtitle ? <div className="fresh-inner-sub">{subtitle}</div> : null}
-      </div>
-      {rightAction || <div style={{ width: 34 }} />}
-    </div>
+    <AppTopBar
+      className="fresh-inner-header"
+      title={title}
+      subtitle={subtitle}
+      onBack={onBack}
+      rightAction={rightAction}
+    />
   );
 };
 

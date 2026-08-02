@@ -1,17 +1,17 @@
 import React from 'react';
 import type { UserProfile, ViewState } from '../types';
-import { LumiaAppHeader } from './lumia-ui/LumiaAppHeader';
+import { AppTopBar } from './lumia-ui/AppTopBar';
 
 interface HeaderProps {
   profile: UserProfile | null;
   view: ViewState;
-  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  onBack?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   profile,
   view,
-  scrollContainerRef,
+  onBack,
 }) => {
   if (!profile) return null;
 
@@ -22,11 +22,15 @@ export const Header: React.FC<HeaderProps> = ({
 
   if (isFunnel || isDashboard || isHoroscope || isAdmin) return null;
 
-  return (
-    <LumiaAppHeader
-      profile={profile}
-      view={view}
-      scrollContainerRef={scrollContainerRef}
-    />
-  );
+  const language = profile.language === 'en' ? 'en' : 'ru';
+  const titles: Partial<Record<ViewState, { ru: string; en: string }>> = {
+    chart: { ru: 'Натальная карта', en: 'Natal chart' },
+    synastry: { ru: 'Совместимость', en: 'Compatibility' },
+    matrix: { ru: 'Матрица судьбы', en: 'Destiny matrix' },
+    settings: { ru: 'Настройки', en: 'Settings' },
+    charts: { ru: 'Мои карты', en: 'My charts' },
+  };
+  const title = titles[view]?.[language] || (language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope');
+
+  return <AppTopBar title={title} onBack={onBack} />;
 };

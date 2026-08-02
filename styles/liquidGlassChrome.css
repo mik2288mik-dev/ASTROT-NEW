@@ -5,18 +5,179 @@
 
 :root {
   --app-glass-background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(244, 248, 255, 0.42)),
-    rgba(228, 237, 250, 0.30);
-  --app-glass-border: rgba(255, 255, 255, 0.76);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(240, 246, 255, 0.38)),
+    rgba(224, 235, 250, 0.24);
+  --app-glass-border: rgba(255, 255, 255, 0.72);
   --app-glass-filter: blur(30px) saturate(1.62);
   --app-glass-shadow:
-    0 22px 52px rgba(25, 35, 52, 0.14),
-    0 7px 20px rgba(25, 35, 52, 0.07),
+    0 22px 52px rgba(25, 35, 52, 0.12),
+    0 7px 20px rgba(25, 35, 52, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.92) inset;
   --app-glass-active: #0a74f5;
   --app-glass-active-surface:
     linear-gradient(145deg, rgba(92, 170, 255, 0.24), rgba(20, 120, 255, 0.12)),
     rgba(255, 255, 255, 0.20);
+}
+
+/* One fixed title bar for the diary and every primary section. */
+.app-top-bar {
+  --app-top-safe: max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-content-safe-area-inset-top, 0px),
+    var(--tg-safe-area-inset-top, 0px),
+    18px
+  );
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 70;
+  box-sizing: border-box;
+  display: grid;
+  height: calc(var(--app-top-safe) + 54px);
+  min-height: calc(var(--app-top-safe) + 54px);
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: end;
+  column-gap: 8px;
+  padding:
+    var(--app-top-safe)
+    max(var(--fresh-page-x, 20px), env(safe-area-inset-right, 0px))
+    8px
+    max(var(--fresh-page-x, 20px), env(safe-area-inset-left, 0px));
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.70);
+  background: var(--app-glass-background) !important;
+  background-size: auto !important;
+  box-shadow:
+    0 10px 26px rgba(25, 35, 52, 0.07),
+    0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
+  -webkit-backdrop-filter: var(--app-glass-filter);
+  backdrop-filter: var(--app-glass-filter);
+  animation: none !important;
+  isolation: isolate;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.app-top-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.62), transparent 46%),
+    linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.18) 50%, transparent 78%);
+}
+
+.app-top-bar-side {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+}
+
+.app-top-bar-side--end {
+  justify-content: flex-end;
+}
+
+.app-top-bar-center {
+  display: flex;
+  min-width: 0;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-top-bar-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #241f36;
+  font-family: var(--fresh-font);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-top-bar-action {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  color: #303746;
+  box-shadow:
+    0 5px 14px rgba(25, 35, 52, 0.07),
+    0 1px 0 rgba(255, 255, 255, 0.74) inset;
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-top-bar-action:active {
+  transform: scale(0.94);
+}
+
+.app-top-bar-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.app-top-bar-spacer {
+  --app-top-safe: max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-content-safe-area-inset-top, 0px),
+    var(--tg-safe-area-inset-top, 0px),
+    18px
+  );
+  width: 100%;
+  height: calc(var(--app-top-safe) + 54px);
+  flex: 0 0 calc(var(--app-top-safe) + 54px);
+  pointer-events: none;
+}
+
+.app-top-bar-context {
+  padding: 4px var(--fresh-page-x, 20px) 10px;
+  color: var(--fresh-muted, #737b89);
+  font-family: var(--fresh-font);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.home-top {
+  padding-top: 0;
+}
+
+.app-top-bar.home-logo-bar,
+.app-top-bar.fresh-inner-header {
+  display: grid;
+  min-height: calc(var(--app-top-safe) + 54px);
+  padding:
+    var(--app-top-safe)
+    max(var(--fresh-page-x, 20px), env(safe-area-inset-right, 0px))
+    8px
+    max(var(--fresh-page-x, 20px), env(safe-area-inset-left, 0px));
+}
+
+.forecast-feed-page,
+.natal-editorial-page,
+.matrix-editorial-page,
+.horo-reader-page,
+.compat-hub-page,
+.compat-editorial-page--add,
+.compat-editorial-page--result,
+.settings-editorial-page,
+.charts-editorial-page {
+  padding-top: 0;
 }
 
 /* Telegram/iOS-style floating glass tab bar. */
@@ -56,7 +217,24 @@
   background: linear-gradient(90deg, transparent, rgba(89, 117, 157, 0.18), transparent);
 }
 
+.lumia-bottom-tab-active-pill-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
 .lumia-bottom-tab-active-pill {
+  position: relative;
+  inset: auto;
+  display: block;
+  width: min(calc(100% - 4px), 3.45rem);
+  height: 3.3rem;
+  flex: 0 0 auto;
+  border-radius: 1.42rem;
   border: 1px solid rgba(255, 255, 255, 0.62);
   background: var(--app-glass-active-surface);
   box-shadow:
@@ -64,6 +242,11 @@
     0 1px 0 rgba(255, 255, 255, 0.68) inset;
   -webkit-backdrop-filter: blur(15px) saturate(1.5);
   backdrop-filter: blur(15px) saturate(1.5);
+}
+
+.lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-active-pill {
+  width: calc(100% - 2px);
+  max-width: 5.1rem;
 }
 
 .lumia-bottom-tab-item {
@@ -93,37 +276,9 @@
   backdrop-filter: var(--app-glass-filter);
 }
 
-/* Internal screen headers share the same material and remain readable while scrolling. */
-.fresh-page .fresh-inner-header {
-  position: sticky !important;
-  top: max(
-    env(safe-area-inset-top, 0px),
-    var(--tg-content-safe-area-inset-top, 0px),
-    0px
-  );
-  z-index: 65;
-  padding-top: 7px;
-  padding-bottom: 10px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.68);
-  background: var(--app-glass-background) !important;
-  box-shadow:
-    0 9px 24px rgba(25, 35, 52, 0.07),
-    0 1px 0 rgba(255, 255, 255, 0.86) inset !important;
-  -webkit-backdrop-filter: var(--app-glass-filter) !important;
-  backdrop-filter: var(--app-glass-filter) !important;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-.fresh-inner-header .fresh-back-btn {
-  border: 1px solid rgba(255, 255, 255, 0.66);
-  background: rgba(255, 255, 255, 0.42);
-  box-shadow: 0 4px 12px rgba(25, 35, 52, 0.07);
-}
-
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .lumia-bottom-tab-bar,
-  .fresh-page .fresh-inner-header {
+  .app-top-bar {
     background: rgba(248, 250, 253, 0.94) !important;
   }
 
@@ -139,7 +294,30 @@
 
 @media (prefers-reduced-transparency: reduce) {
   .lumia-bottom-tab-bar,
-  .fresh-page .fresh-inner-header {
+  .app-top-bar {
     background: rgba(248, 250, 253, 0.94) !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-top-bar,
+  .app-top-bar.home-logo-bar,
+  .app-top-bar.fresh-inner-header {
+    height: calc(var(--app-top-safe) + 52px);
+    min-height: calc(var(--app-top-safe) + 52px);
+    padding-bottom: 7px;
+  }
+
+  .app-top-bar-spacer {
+    height: calc(var(--app-top-safe) + 52px);
+    flex-basis: calc(var(--app-top-safe) + 52px);
+  }
+
+  .app-top-bar-title {
+    font-size: 16px;
+  }
+
+  .lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-label {
+    font-size: 7.25px;
   }
 }

@@ -36,6 +36,7 @@ export function NatalMagazine({
   if (!data) {
     return (
       <div className="fresh-page natal-editorial-page">
+        <FreshInnerHeader title={language === 'ru' ? 'Натальная карта' : 'Natal chart'} />
         <FreshPageTitle
           kicker={language === 'ru' ? 'Карта' : 'Chart'}
           title={language === 'ru' ? 'Рассчитай натальную карту' : 'Calculate your natal chart'}

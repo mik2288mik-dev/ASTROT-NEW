@@ -1715,9 +1715,8 @@ const App: React.FC = () => {
             <Header
                 profile={profile}
                 view={view}
-                scrollContainerRef={appScrollRef}
+                onBack={() => { void handleBack(); }}
             />
-            <div className="lumia-app-header-spacer" aria-hidden />
         </>
     );
 

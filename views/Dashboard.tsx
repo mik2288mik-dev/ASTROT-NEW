@@ -37,6 +37,7 @@ import { ForecastQuestions } from '../components/PersonalForecastFeed/ForecastQu
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
 import { ForecastSideNavigator } from '../components/PersonalForecastFeed/ForecastSideNavigator';
 import { ForecastTopicNavigation } from '../components/PersonalForecastFeed/ForecastTopicNavigation';
+import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import type {
   PersonalForecastQuestionNotification,
 } from '../services/personalForecastQuestionService';
@@ -657,11 +658,10 @@ export const Dashboard = memo<DashboardProps>(({
         className="home-top"
         aria-label={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
       >
-        <div className="home-logo-bar">
-          <span className="home-logo-wordmark">
-            {language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
-          </span>
-        </div>
+        <AppTopBar
+          className="home-logo-bar"
+          title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
+        />
         <div className="home-top-content">
           <div
             className="home-period-tabs"
