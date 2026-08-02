@@ -5,18 +5,18 @@
 
 :root {
   --app-glass-background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(240, 246, 255, 0.38)),
-    rgba(224, 235, 250, 0.24);
-  --app-glass-border: rgba(255, 255, 255, 0.72);
-  --app-glass-filter: blur(30px) saturate(1.62);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(235, 244, 255, 0.16)),
+    rgba(220, 234, 251, 0.16);
+  --app-glass-border: rgba(255, 255, 255, 0.62);
+  --app-glass-filter: blur(36px) saturate(1.90) brightness(1.04);
   --app-glass-shadow:
     0 22px 52px rgba(25, 35, 52, 0.12),
     0 7px 20px rgba(25, 35, 52, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.92) inset;
   --app-glass-active: #0a74f5;
   --app-glass-active-surface:
-    linear-gradient(145deg, rgba(92, 170, 255, 0.24), rgba(20, 120, 255, 0.12)),
-    rgba(255, 255, 255, 0.20);
+    linear-gradient(145deg, rgba(101, 181, 255, 0.30), rgba(20, 120, 255, 0.16)),
+    rgba(255, 255, 255, 0.12);
 }
 
 /* One fixed title bar for the diary and every primary section. */
@@ -53,10 +53,12 @@
     0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
   -webkit-backdrop-filter: var(--app-glass-filter);
   backdrop-filter: var(--app-glass-filter);
+  background-clip: padding-box;
   animation: none !important;
   isolation: isolate;
   transform: translateZ(0);
   backface-visibility: hidden;
+  will-change: backdrop-filter;
 }
 
 .app-top-bar::before {
@@ -66,8 +68,8 @@
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.62), transparent 46%),
-    linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.18) 50%, transparent 78%);
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.36), transparent 46%),
+    linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.12) 50%, transparent 78%);
 }
 
 .app-top-bar-side {
@@ -180,6 +182,22 @@
   padding-top: 0;
 }
 
+/* The shared glass is the only layer above content: scenes visibly scroll underneath it. */
+.forecast-feed-page::before,
+.natal-editorial-page::before,
+.matrix-editorial-page::before,
+.horo-reader-page::before,
+.compat-hub-page::before,
+.compat-editorial-page--add::before,
+.compat-editorial-page--result::before,
+.settings-editorial-page::before,
+.charts-editorial-page::before {
+  border: 0;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 /* Telegram/iOS-style floating glass tab bar. */
 .lumia-bottom-tab-bar {
   isolation: isolate;
@@ -189,6 +207,9 @@
   box-shadow: var(--app-glass-shadow);
   -webkit-backdrop-filter: var(--app-glass-filter);
   backdrop-filter: var(--app-glass-filter);
+  background-clip: padding-box;
+  transform: translateZ(0);
+  will-change: backdrop-filter;
 }
 
 .lumia-bottom-tab-bar::before,
@@ -203,9 +224,9 @@
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(circle at 18% -20%, rgba(255, 255, 255, 0.88), transparent 42%),
-    linear-gradient(105deg, transparent 10%, rgba(255, 255, 255, 0.22) 48%, transparent 76%);
-  opacity: 0.78;
+    radial-gradient(circle at 18% -20%, rgba(255, 255, 255, 0.52), transparent 42%),
+    linear-gradient(105deg, transparent 10%, rgba(255, 255, 255, 0.14) 48%, transparent 76%);
+  opacity: 0.52;
 }
 
 .lumia-bottom-tab-bar::after {
@@ -231,22 +252,23 @@
   position: relative;
   inset: auto;
   display: block;
-  width: min(calc(100% - 4px), 3.45rem);
-  height: 3.3rem;
+  width: min(calc(100% - 2px), 3.9rem);
+  height: 3.55rem;
   flex: 0 0 auto;
-  border-radius: 1.42rem;
-  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 1.58rem;
+  border: 1px solid rgba(255, 255, 255, 0.74);
   background: var(--app-glass-active-surface);
   box-shadow:
-    0 8px 20px rgba(20, 120, 255, 0.13),
-    0 1px 0 rgba(255, 255, 255, 0.68) inset;
-  -webkit-backdrop-filter: blur(15px) saturate(1.5);
-  backdrop-filter: blur(15px) saturate(1.5);
+    0 10px 24px rgba(20, 120, 255, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.78) inset,
+    0 -1px 0 rgba(53, 128, 225, 0.08) inset;
+  -webkit-backdrop-filter: blur(24px) saturate(1.80) brightness(1.04);
+  backdrop-filter: blur(24px) saturate(1.80) brightness(1.04);
 }
 
 .lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-active-pill {
   width: calc(100% - 2px);
-  max-width: 5.1rem;
+  max-width: 5.3rem;
 }
 
 .lumia-bottom-tab-item {

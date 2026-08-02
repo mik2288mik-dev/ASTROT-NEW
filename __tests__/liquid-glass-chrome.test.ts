@@ -30,12 +30,14 @@ describe('liquid glass application chrome', () => {
     expect(app.indexOf("import '../styles/liquidGlassChrome.css'")).toBeGreaterThan(
       app.indexOf("import '../styles/newspaperVisual.css'"),
     );
-    expect(styles).toContain('--app-glass-filter: blur(30px) saturate(1.62)');
+    expect(styles).toContain('--app-glass-filter: blur(36px) saturate(1.90) brightness(1.04)');
     expect(styles).toContain('.lumia-bottom-tab-bar');
     expect(styles).toContain('.fresh-page::before');
     expect(styles).toContain('.app-top-bar');
     expect(styles).toContain('backdrop-filter: var(--app-glass-filter)');
     expect(styles).toContain('position: fixed');
+    expect(styles).toContain('.forecast-feed-page::before');
+    expect(styles).toContain('will-change: backdrop-filter');
     expect(styles).toContain('@supports not');
     expect(styles).toContain('@media (prefers-reduced-transparency: reduce)');
     expect(topBar).toContain("className={cn('app-top-bar', className)}");
@@ -45,14 +47,15 @@ describe('liquid glass application chrome', () => {
     expect(legacyHeader).toContain('return <AppTopBar');
   });
 
-  it('uses a compact active glass lens that expands for Compatibility', () => {
+  it('uses a generous active glass lens that expands for Compatibility', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const styles = read('styles/liquidGlassChrome.css');
 
     expect(tabs).toContain('lumia-bottom-tab-active-pill-frame');
     expect(styles).toContain('.lumia-bottom-tab-active-pill-frame');
     expect(styles).toContain(".lumia-bottom-tab-item[data-tab-id='union'] .lumia-bottom-tab-active-pill");
-    expect(styles).toContain('width: min(calc(100% - 4px), 3.45rem)');
+    expect(styles).toContain('width: min(calc(100% - 2px), 3.9rem)');
+    expect(styles).toContain('height: 3.55rem');
     expect(styles).toContain('width: calc(100% - 2px)');
   });
 });
