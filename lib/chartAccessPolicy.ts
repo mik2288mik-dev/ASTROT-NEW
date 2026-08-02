@@ -1,5 +1,28 @@
 export const FREE_ACTIVE_CHART_LIMIT = 1;
-export const PREMIUM_ACTIVE_CHART_LIMIT = 5;
+export const PREMIUM_SAVED_PERSON_LIMIT = 5;
+export const PREMIUM_ACTIVE_CHART_LIMIT = FREE_ACTIVE_CHART_LIMIT + PREMIUM_SAVED_PERSON_LIMIT;
+
+const LOCKED_CALCULATION_FIELDS = [
+  'chart_data',
+  'sun',
+  'moon',
+  'ascendant',
+  'mercury',
+  'venus',
+  'mars',
+  'jupiter',
+  'saturn',
+  'houses',
+  'aspects',
+  'sun_sign',
+  'moon_sign',
+  'ascendant_sign',
+  'input_hash',
+  'calculation_version',
+  'latitude',
+  'longitude',
+  'timezone',
+] as const;
 
 export type ChartSubjectType = 'self' | 'saved_person';
 
@@ -128,10 +151,21 @@ export function exposeChartAccess<T extends ChartIdentityRecord>(
   access_locked: boolean;
 } {
   const subjectType = getChartSubjectType(chart);
-  return {
+  const accessLocked = subjectType === 'saved_person' && !isPremium;
+  const exposed = {
     ...chart,
     subject_type: subjectType,
     relation_label: normalizeRelationLabel(chart.relation_label),
-    access_locked: subjectType === 'saved_person' && !isPremium,
+    access_locked: accessLocked,
   };
+
+  // Premium expiry changes access, never persistence. Keep the saved person's
+  // identity visible in the list, but do not leak the locked calculation in
+  // the list response while the dedicated chart route correctly returns 403.
+  if (accessLocked) {
+    const redacted = exposed as Record<string, unknown>;
+    for (const field of LOCKED_CALCULATION_FIELDS) delete redacted[field];
+  }
+
+  return exposed;
 }

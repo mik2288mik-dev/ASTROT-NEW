@@ -29,7 +29,7 @@ import {
 interface MyChartsProps {
   profile: UserProfile;
   onBack: () => void;
-  onChartSelect?: (chartData: any, chartId?: number) => void;
+  onChartSelect?: (chart: ChartListItem) => void;
   onProfileUpdate?: (profile: UserProfile) => void;
   onUseInSynastry?: (chart: ChartListItem) => void;
   onPrimaryChartUpdated?: () => Promise<void> | void;
@@ -184,7 +184,18 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
     try {
       await deleteChart(chart.id, profile.id);
-      clearLocalHumanBaseReport(profile, chart.id);
+      clearLocalHumanBaseReport(profile, chart.id, {
+        subjectType: getChartSubjectType(chart),
+        subjectIdentity: {
+          name: chart.name,
+          birthDate: chart.birth_date,
+          birthTime: chart.birth_time,
+          birthPlace: chart.birth_place,
+        },
+        chartData: chart.chart_data,
+        inputHash: chart.input_hash,
+        calculationVersion: chart.calculation_version,
+      });
       await loadCharts();
     } catch (err: any) {
       setAddError(err?.message || getText(lang, 'charts.error_delete_failed'));
@@ -199,7 +210,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       return;
     }
     if (chart.chart_data && onChartSelect) {
-      onChartSelect(chart.chart_data, chart.id);
+      onChartSelect(chart);
     }
   };
 

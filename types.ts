@@ -486,6 +486,19 @@ export type InterpretationAccess = 'free' | 'paid' | 'premium';
 
 export type InterpretationSectionKey =
   | 'base_portrait'
+  | 'thinking'
+  | 'reactions'
+  | 'work_money'
+  | 'difficulties'
+  | 'inner_reactions'
+  | 'communication'
+  | 'relationships_deep'
+  | 'conflicts'
+  | 'work'
+  | 'money'
+  | 'abilities'
+  | 'central_contradictions'
+  | 'important_aspects'
   | 'main_formula'
   | 'sun_code'
   | 'moon_code'
@@ -531,6 +544,8 @@ export interface InterpretationSection {
   teaser?: string;
   content: string;
   bullets?: string[];
+  /** Calculation facts that support this section. Never rendered as prose automatically. */
+  evidenceIds?: string[];
   ctaLabel?: string;
   // Дневное полотно (только секция daily_overview): «сегодня в плюс» / «аккуратнее»
   // и оценка дня из расчёта. На остальных секциях эти поля отсутствуют.
@@ -556,6 +571,7 @@ export interface NatalInterpretationReport {
     keywords: string[];
     text: string;
     advice: string;
+    evidenceIds?: string[];
   };
 }
 

@@ -8,7 +8,7 @@ import type {
   PersonalForecastStationDirection,
 } from './personalForecastEvidence';
 
-export const PERSONAL_FORECAST_SEMANTICS_VERSION = 'personal-forecast-semantics-v1';
+export const PERSONAL_FORECAST_SEMANTICS_VERSION = 'personal-forecast-semantics-v2';
 
 export type ForecastSemanticDomain =
   | 'identity_priorities'
@@ -62,7 +62,8 @@ export type ForecastDynamicMechanism =
   | 'station_turn_retrograde'
   | 'station_pause'
   | 'new_cycle'
-  | 'culmination';
+  | 'culmination'
+  | 'low_signal';
 
 export type ForecastClaimAtom =
   | 'priorities_are_temporarily_active'
@@ -87,7 +88,9 @@ export type ForecastClaimAtom =
   | 'process_is_turning_retrograde'
   | 'process_is_near_a_station'
   | 'attention_cycle_is_beginning'
-  | 'attention_cycle_is_culminating';
+  | 'attention_cycle_is_culminating'
+  | 'no_single_theme_dominates_period'
+  | 'ordinary_priorities_can_remain_in_place';
 
 export type ForecastManifestationAtom =
   | 'priority_competition_becomes_visible'
@@ -122,7 +125,8 @@ export type ForecastManifestationAtom =
   | 'stalled_step_can_begin_to_move'
   | 'direction_is_not_yet_confirmed'
   | 'new_priority_becomes_visible'
-  | 'existing_development_reaches_a_visible_peak';
+  | 'existing_development_reaches_a_visible_peak'
+  | 'confirmed_signals_remain_distributed';
 
 export type ForecastRiskAtom =
   | 'defending_a_priority_before_checking_the_facts'
@@ -141,7 +145,8 @@ export type ForecastRiskAtom =
   | 'resuming_before_the_final_check'
   | 'assuming_direction_before_it_is_confirmed'
   | 'treating_context_as_a_guaranteed_event'
-  | 'treating_a_short_cycle_as_a_permanent_conclusion';
+  | 'treating_a_short_cycle_as_a_permanent_conclusion'
+  | 'forcing_a_story_from_weak_signals';
 
 export type ForecastActionAtom =
   | 'name_one_priority_and_one_tradeoff'
@@ -161,7 +166,8 @@ export type ForecastActionAtom =
   | 'wait_for_direction_to_confirm'
   | 'apply_the_factor_only_inside_the_reliable_context'
   | 'observe_the_transition_before_committing'
-  | 'name_one_observable_priority_for_the_cycle';
+  | 'name_one_observable_priority_for_the_cycle'
+  | 'keep_plans_proportional_to_confirmed_signals';
 
 export type ForecastForbiddenClaimClass =
   | 'permanent_personality'
@@ -279,6 +285,13 @@ const POINT_RULES: Record<string, DomainRule> = {
     manifestations: ['first_reaction_becomes_more_visible'],
     risk: 'reacting_before_reading_the_situation',
     action: 'observe_the_first_reaction_before_acting_on_it',
+  },
+  mc: {
+    domain: 'identity_priorities',
+    claim: 'priorities_are_temporarily_active',
+    manifestations: ['priority_competition_becomes_visible'],
+    risk: 'defending_a_priority_before_checking_the_facts',
+    action: 'name_one_priority_and_one_tradeoff',
   },
   uranus: {
     domain: 'change_autonomy',
@@ -532,6 +545,302 @@ function baseForbidden(
   ]);
 }
 
+type ForecastRankTopic =
+  | 'priorities'
+  | 'reactions'
+  | 'communication'
+  | 'relationships'
+  | 'decisions'
+  | 'workload'
+  | 'money'
+  | 'home'
+  | 'work'
+  | 'friends'
+  | 'private_life'
+  | 'cycle';
+
+type RankingCandidate = {
+  fact: ForecastSemanticFact;
+  evidence: PersonalForecastCalculatedEvidence;
+  evidenceCanonicals: string[];
+  topic: ForecastRankTopic;
+  score: number;
+  corroborationScore: number;
+};
+
+const ASPECT_ORB_LIMITS: Record<string, number> = {
+  conjunction: 8,
+  opposition: 8,
+  square: 6,
+  trine: 6,
+  sextile: 4,
+};
+
+const NATAL_TARGET_SCORES: Record<string, number> = {
+  sun: 25,
+  moon: 25,
+  rising: 25,
+  ascendant: 25,
+  mc: 25,
+  mercury: 22,
+  venus: 22,
+  mars: 22,
+  jupiter: 16,
+  saturn: 16,
+  uranus: 12,
+  neptune: 12,
+  pluto: 12,
+};
+
+const ASPECT_PRIORITY_SCORES: Record<string, number> = {
+  conjunction: 15,
+  opposition: 14,
+  square: 14,
+  trine: 11,
+  sextile: 8,
+};
+
+const PERIOD_PLANET_FACTORS: Record<PersonalForecastPeriod, Record<string, number>> = {
+  day: {
+    moon: 1,
+    mercury: 1,
+    venus: 0.98,
+    mars: 1,
+    sun: 0.86,
+    jupiter: 0.62,
+    saturn: 0.58,
+    uranus: 0.52,
+    neptune: 0.52,
+    pluto: 0.52,
+  },
+  week: {
+    moon: 0.58,
+    mercury: 1,
+    venus: 1,
+    mars: 1,
+    sun: 0.92,
+    jupiter: 0.78,
+    saturn: 0.75,
+    uranus: 0.68,
+    neptune: 0.68,
+    pluto: 0.68,
+  },
+  month: {
+    moon: 0.35,
+    mercury: 0.78,
+    venus: 0.84,
+    mars: 0.95,
+    sun: 0.7,
+    jupiter: 1,
+    saturn: 0.96,
+    uranus: 0.9,
+    neptune: 0.9,
+    pluto: 0.9,
+  },
+  year: {
+    moon: 0.15,
+    mercury: 0.35,
+    venus: 0.4,
+    mars: 0.45,
+    sun: 0.3,
+    jupiter: 1,
+    saturn: 1,
+    uranus: 1,
+    neptune: 1,
+    pluto: 1,
+  },
+};
+
+const STRONG_TOPIC_THRESHOLDS: Record<PersonalForecastPeriod, number> = {
+  day: 58,
+  week: 58,
+  month: 56,
+  year: 54,
+};
+
+const SINGLE_ASPECT_THRESHOLDS: Record<PersonalForecastPeriod, number> = {
+  day: 72,
+  week: 70,
+  month: 68,
+  year: 68,
+};
+
+const CORROBORATION_SUPPORT_THRESHOLDS: Record<PersonalForecastPeriod, number> = {
+  day: 48,
+  week: 48,
+  month: 46,
+  year: 44,
+};
+
+function isFastDailyTransit(planet: string | null): boolean {
+  return planet === 'moon'
+    || planet === 'mercury'
+    || planet === 'venus'
+    || planet === 'mars';
+}
+
+function exactnessScore(evidence: PersonalForecastCalculatedEvidence): number {
+  if (evidence.kind !== 'transit_to_natal' || typeof evidence.orb !== 'number') return 0;
+  const limit = ASPECT_ORB_LIMITS[evidence.aspect || ''] || 8;
+  return Math.max(0, Math.min(40, 40 * (1 - Math.max(0, evidence.orb) / limit)));
+}
+
+function phasePriorityScore(status: CalculatedAstroEvidence['status']): number {
+  if (status === 'exact') return 10;
+  if (status === 'applying') return 9;
+  if (status === 'separating') return 3;
+  if (status === 'active') return 2;
+  return 0;
+}
+
+function periodPlanetFactor(
+  period: PersonalForecastPeriod,
+  planet: string | null,
+  activatedByFastTransit: boolean,
+): number {
+  if (!planet) return 0.5;
+  const factor = PERIOD_PLANET_FACTORS[period][planet] ?? 0.55;
+  if (
+    period === 'day'
+    && !isFastDailyTransit(planet)
+    && activatedByFastTransit
+  ) {
+    return Math.max(factor, 0.78);
+  }
+  return factor;
+}
+
+function nonAspectBaseScore(
+  evidence: PersonalForecastCalculatedEvidence,
+  period: PersonalForecastPeriod,
+): number {
+  if (evidence.kind === 'station') {
+    const knownTurn = evidence.motion?.stationDirection
+      && evidence.motion.stationDirection !== 'unknown';
+    const byPeriod: Record<PersonalForecastPeriod, number> = {
+      day: 68,
+      week: 70,
+      month: 72,
+      year: 76,
+    };
+    return byPeriod[period] - (knownTurn ? 0 : 12);
+  }
+  if (evidence.kind === 'lunation') {
+    return ({ day: 66, week: 70, month: 72, year: 0 })[period];
+  }
+  if (evidence.kind === 'ingress') {
+    return ({ day: 32, week: 40, month: 54, year: 62 })[period];
+  }
+  if (evidence.kind === 'transit_house') return 22;
+  return 0;
+}
+
+function domainRankingTopic(fact: ForecastSemanticFact): ForecastRankTopic {
+  if (fact.natalPoint === 'mc') return 'work';
+  if (fact.domain === 'communication_decisions') return 'communication';
+  if (fact.domain === 'values_agreements') return 'relationships';
+  if (fact.domain === 'emotional_response') return 'reactions';
+  if (fact.domain === 'responsibility_limits') return 'workload';
+  if (fact.domain === 'identity_priorities') return 'priorities';
+  if (fact.domain === 'cycle_attention') return 'cycle';
+  return 'decisions';
+}
+
+function rankingTopic(fact: ForecastSemanticFact): ForecastRankTopic {
+  // For an aspect to the natal chart, the natal target defines what is
+  // activated. A reliable house only says where it may be noticed.
+  if (fact.sourceKind === 'transit_to_natal') return domainRankingTopic(fact);
+  if (fact.lifeContext === 'personal_resources' || fact.lifeContext === 'shared_resources') {
+    return 'money';
+  }
+  if (fact.lifeContext === 'home_foundation') return 'home';
+  if (fact.lifeContext === 'work_routines' || fact.lifeContext === 'career_public_role') {
+    return 'work';
+  }
+  if (fact.lifeContext === 'groups_networks') return 'friends';
+  if (fact.lifeContext === 'partnerships') return 'relationships';
+  if (fact.lifeContext === 'rest_private_life') return 'private_life';
+  if (fact.lifeContext === 'communication_learning' || fact.lifeContext === 'study_travel') {
+    return 'communication';
+  }
+  return domainRankingTopic(fact);
+}
+
+function rawPriorityScore(
+  evidence: PersonalForecastCalculatedEvidence,
+  period: PersonalForecastPeriod,
+  activatedByFastTransit: boolean,
+): number {
+  const planetFactor = periodPlanetFactor(
+    period,
+    evidence.transitPlanet || null,
+    activatedByFastTransit,
+  );
+  if (evidence.kind !== 'transit_to_natal') {
+    return Math.max(0, Math.min(100, nonAspectBaseScore(evidence, period) * planetFactor));
+  }
+  const score = (
+    exactnessScore(evidence)
+    + (NATAL_TARGET_SCORES[evidence.natalPoint || ''] || 8)
+    + (ASPECT_PRIORITY_SCORES[evidence.aspect || ''] || 0)
+    + phasePriorityScore(evidence.status)
+  );
+  return Math.max(0, Math.min(100, score * planetFactor));
+}
+
+function confidenceForRank(score: number): ForecastSemanticFact['confidence'] {
+  if (score >= 75) return 'high';
+  if (score >= 55) return 'medium';
+  return 'low';
+}
+
+function independentSupportSignature(candidate: RankingCandidate): string {
+  return [
+    candidate.fact.sourceKind,
+    candidate.fact.transitPlanet || '',
+    candidate.fact.natalPoint || '',
+  ].join('|');
+}
+
+function isMeaningfulIndependentSupport(
+  focal: RankingCandidate,
+  supporter: RankingCandidate,
+  period: PersonalForecastPeriod,
+): boolean {
+  if (
+    supporter.fact.sourceKind === 'transit_house'
+    || supporter.fact.sourceKind === 'ingress'
+    || supporter.fact.sourceKind === 'period_aggregate'
+    || independentSupportSignature(focal) === independentSupportSignature(supporter)
+  ) {
+    return false;
+  }
+  return rawPriorityScore(supporter.evidence, period, false)
+    >= CORROBORATION_SUPPORT_THRESHOLDS[period];
+}
+
+function topicIsStrong(
+  candidate: RankingCandidate,
+  period: PersonalForecastPeriod,
+): boolean {
+  if (candidate.score < STRONG_TOPIC_THRESHOLDS[period]) return false;
+  if (candidate.corroborationScore >= 5) return true;
+  if (candidate.fact.sourceKind === 'transit_to_natal') {
+    return candidate.score >= SINGLE_ASPECT_THRESHOLDS[period];
+  }
+  if (candidate.fact.sourceKind === 'station') {
+    return (
+      candidate.fact.mechanism.stationDirection !== null
+      && candidate.fact.mechanism.stationDirection !== 'unknown'
+      && candidate.score >= STRONG_TOPIC_THRESHOLDS[period] + 5
+    );
+  }
+  if (candidate.fact.sourceKind === 'lunation') {
+    return candidate.score >= STRONG_TOPIC_THRESHOLDS[period] + 8;
+  }
+  return false;
+}
+
 function compileOne(
   evidence: PersonalForecastCalculatedEvidence,
   period: PersonalForecastPeriod,
@@ -561,6 +870,7 @@ function compileOne(
   if (evidence.kind === 'transit_to_natal') {
     const natalPoint = evidence.natalPoint || '';
     if (natalPoint === 'rising' && !reliability.ascendantReliable) return null;
+    if (natalPoint === 'mc' && !reliability.housesReliable) return null;
     rule = POINT_RULES[natalPoint] || null;
     const transitRule = POINT_RULES[transitPlanet] || null;
     dynamic = evidence.aspect ? ASPECT_DYNAMICS[evidence.aspect] || null : null;
@@ -672,7 +982,9 @@ function compileOne(
     allowedRiskAtoms: unique(risks),
     allowedActionAtoms: unique(actions),
     forbiddenClaimClasses: baseForbidden(
-      !!contextRule || (evidence.natalPoint === 'rising' && reliability.ascendantReliable),
+      !!contextRule
+        || (evidence.natalPoint === 'rising' && reliability.ascendantReliable)
+        || (evidence.natalPoint === 'mc' && reliability.housesReliable),
       stationDirection,
     ),
     evidenceCanonical: sourceCanonical(evidence, effectiveHouse),
@@ -718,15 +1030,17 @@ export function compilePersonalForecastSemanticFacts(input: {
   void input.language;
   const bySemanticFingerprint = new Map<string, ForecastSemanticFact>();
   const evidenceCanonicals = new Map<string, string[]>();
+  const bestEvidence = new Map<string, PersonalForecastCalculatedEvidence>();
 
   for (const raw of input.evidence) {
+    const calculated = raw as PersonalForecastCalculatedEvidence;
     const draft = compileOne(
-      raw as PersonalForecastCalculatedEvidence,
+      calculated,
       input.period,
       input.chartData,
     );
     if (!draft) continue;
-    const semanticFingerprint = `pf-sem-v1:${stableHash(draft.semanticCanonical)}`;
+    const semanticFingerprint = `pf-sem-v2:${stableHash(draft.semanticCanonical)}`;
     const existing = bySemanticFingerprint.get(semanticFingerprint);
     const canonicals = evidenceCanonicals.get(semanticFingerprint) || [];
     canonicals.push(draft.evidenceCanonical);
@@ -747,6 +1061,7 @@ export function compilePersonalForecastSemanticFacts(input: {
         evidenceFingerprint: '',
         semanticFingerprint,
       });
+      bestEvidence.set(semanticFingerprint, calculated);
       continue;
     }
 
@@ -775,20 +1090,220 @@ export function compilePersonalForecastSemanticFacts(input: {
       existing.strength = draft.strength;
       existing.timing.phase = draft.timing.phase;
     }
+    const currentBest = bestEvidence.get(semanticFingerprint);
+    if (
+      !currentBest
+      || rawPriorityScore(calculated, input.period, false)
+        > rawPriorityScore(currentBest, input.period, false)
+      || (
+        rawPriorityScore(calculated, input.period, false)
+          === rawPriorityScore(currentBest, input.period, false)
+        && phaseRank(calculated.status) > phaseRank(currentBest.status)
+      )
+    ) {
+      bestEvidence.set(semanticFingerprint, calculated);
+    }
     if (confidenceRank(draft.confidence) > confidenceRank(existing.confidence)) {
       existing.confidence = draft.confidence;
     }
   }
 
-  return [...bySemanticFingerprint.values()]
-    .map((fact) => ({
-      ...fact,
-      evidenceFingerprint: `pf-evidence-v1:${stableHash(
-        [...(evidenceCanonicals.get(fact.semanticFingerprint) || [])].sort().join('||'),
-      )}`,
-    }))
-    .sort((a, b) => (
-      b.strength - a.strength
-      || a.semanticFingerprint.localeCompare(b.semanticFingerprint)
+  const candidates: RankingCandidate[] = [...bySemanticFingerprint.values()]
+    .flatMap((fact) => {
+      const evidence = bestEvidence.get(fact.semanticFingerprint);
+      if (!evidence) return [];
+      return [{
+        fact,
+        evidence,
+        evidenceCanonicals: evidenceCanonicals.get(fact.semanticFingerprint) || [],
+        topic: rankingTopic(fact),
+        score: 0,
+        corroborationScore: 0,
+      }];
+    });
+  const fastDailyTopics = new Set(
+    candidates
+      .filter((candidate) => (
+        candidate.fact.sourceKind === 'transit_to_natal'
+        && isFastDailyTransit(candidate.fact.transitPlanet)
+        && rawPriorityScore(candidate.evidence, 'day', false)
+          >= STRONG_TOPIC_THRESHOLDS.day
+      ))
+      .map((candidate) => candidate.topic),
+  );
+  const byTopic = new Map<ForecastRankTopic, RankingCandidate[]>();
+  for (const candidate of candidates) {
+    const items = byTopic.get(candidate.topic) || [];
+    items.push(candidate);
+    byTopic.set(candidate.topic, items);
+  }
+  for (const candidate of candidates) {
+    const supporters = (byTopic.get(candidate.topic) || []).filter((item) => (
+      item.fact.semanticFingerprint !== candidate.fact.semanticFingerprint
     ));
+    const meaningfulSupporters = supporters.filter((item) => (
+      isMeaningfulIndependentSupport(candidate, item, input.period)
+    ));
+    const aspectSupport = Math.min(10, meaningfulSupporters.filter((item) => (
+      item.fact.sourceKind === 'transit_to_natal'
+    )).length * 5);
+    const eventSupport = meaningfulSupporters.some((item) => (
+      item.fact.sourceKind === 'station' || item.fact.sourceKind === 'lunation'
+    )) ? 3 : 0;
+    candidate.corroborationScore = Math.min(
+      10,
+      aspectSupport + eventSupport,
+    );
+    const activatedByFastTransit = (
+      input.period === 'day'
+      && !isFastDailyTransit(candidate.fact.transitPlanet)
+      && fastDailyTopics.has(candidate.topic)
+    );
+    candidate.score = Math.max(0, Math.min(100, Math.round(
+      rawPriorityScore(candidate.evidence, input.period, activatedByFastTransit)
+      + candidate.corroborationScore,
+    )));
+    candidate.fact.strength = candidate.score;
+    candidate.fact.confidence = confidenceForRank(candidate.score);
+  }
+
+  const rankedTopics = [...byTopic.entries()]
+    .map(([topic, items]) => {
+      const hasFastDailyActivator = input.period === 'day' && fastDailyTopics.has(topic);
+      const ranked = [...items].sort((left, right) => (
+        (hasFastDailyActivator
+          ? Number(
+              right.fact.sourceKind === 'transit_to_natal'
+              && isFastDailyTransit(right.fact.transitPlanet)
+              && rawPriorityScore(right.evidence, 'day', false)
+                >= STRONG_TOPIC_THRESHOLDS.day,
+            ) - Number(
+              left.fact.sourceKind === 'transit_to_natal'
+              && isFastDailyTransit(left.fact.transitPlanet)
+              && rawPriorityScore(left.evidence, 'day', false)
+                >= STRONG_TOPIC_THRESHOLDS.day,
+            )
+          : 0)
+        || right.score - left.score
+        || phaseRank(right.fact.timing.phase) - phaseRank(left.fact.timing.phase)
+        || left.fact.semanticFingerprint.localeCompare(right.fact.semanticFingerprint)
+      ));
+      return { topic, candidates: ranked, primary: ranked[0] };
+    })
+    .filter((group) => !!group.primary)
+    .sort((left, right) => (
+      right.primary.score - left.primary.score
+      || left.topic.localeCompare(right.topic)
+    ));
+  const strongTopics = rankedTopics.filter((group) => topicIsStrong(
+    group.primary,
+    input.period,
+  ));
+
+  if (!strongTopics.length) {
+    const rankedCandidates = [...candidates].sort((left, right) => (
+      right.score - left.score
+      || left.fact.semanticFingerprint.localeCompare(right.fact.semanticFingerprint)
+    ));
+    const evidenceIds = unique(
+      rankedCandidates.flatMap((candidate) => candidate.fact.evidenceIds),
+    ).slice(0, 4);
+    const canonical = rankedCandidates
+      .flatMap((candidate) => candidate.evidenceCanonicals)
+      .sort()
+      .join('||');
+    const startsAt = rankedCandidates.reduce<string | null>(
+      (value, candidate) => earlierIso(value, candidate.fact.timing.startsAt),
+      null,
+    );
+    const endsAt = rankedCandidates.reduce<string | null>(
+      (value, candidate) => laterIso(value, candidate.fact.timing.endsAt),
+      null,
+    );
+    const semanticCanonical = [
+      PERSONAL_FORECAST_SEMANTICS_VERSION,
+      input.period,
+      'low_signal',
+      rankedCandidates.map((candidate) => candidate.fact.semanticFingerprint).sort().join('|'),
+    ].join('|');
+    const semanticFingerprint = `pf-sem-v2:${stableHash(semanticCanonical)}`;
+    return [{
+      id: `semantic:${semanticFingerprint}`,
+      semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+      evidenceIds,
+      evidenceFingerprint: `pf-evidence-v2:${stableHash(canonical || 'no-strong-evidence')}`,
+      semanticFingerprint,
+      sourceKind: 'period_aggregate',
+      transitPlanet: null,
+      natalPoint: null,
+      aspect: null,
+      house: null,
+      domain: 'cycle_attention',
+      lifeContext: null,
+      mechanism: {
+        transit: 'tempo_fluctuation',
+        dynamic: 'low_signal',
+        stationDirection: null,
+      },
+      timing: {
+        scope: 'temporary',
+        period: input.period,
+        phase: 'active',
+        startsAt,
+        endsAt,
+        exactAt: null,
+      },
+      confidence: 'low',
+      strength: Math.max(20, rankedCandidates[0]?.score || 20),
+      allowedClaimAtoms: [
+        'no_single_theme_dominates_period',
+        'ordinary_priorities_can_remain_in_place',
+      ],
+      allowedManifestationAtoms: ['confirmed_signals_remain_distributed'],
+      allowedRiskAtoms: ['forcing_a_story_from_weak_signals'],
+      allowedActionAtoms: ['keep_plans_proportional_to_confirmed_signals'],
+      forbiddenClaimClasses: baseForbidden(false, null),
+    }];
+  }
+
+  const selectedTopics = [strongTopics[0]];
+  const second = strongTopics[1];
+  if (
+    second
+    && strongTopics[0].primary.score - second.primary.score
+      <= (input.period === 'day' ? 8 : 10)
+  ) {
+    selectedTopics.push(second);
+  }
+
+  return selectedTopics.map((group) => {
+    const primary = group.primary;
+    const members = [
+      primary,
+      ...group.candidates.filter((candidate) => (
+        candidate.fact.semanticFingerprint !== primary.fact.semanticFingerprint
+        && isMeaningfulIndependentSupport(primary, candidate, input.period)
+      )),
+    ];
+    const semanticCanonical = [
+      PERSONAL_FORECAST_SEMANTICS_VERSION,
+      input.period,
+      group.topic,
+      members.map((candidate) => candidate.fact.semanticFingerprint).sort().join('|'),
+    ].join('|');
+    const semanticFingerprint = `pf-sem-v2:${stableHash(semanticCanonical)}`;
+    const canonical = members
+      .flatMap((candidate) => candidate.evidenceCanonicals)
+      .sort()
+      .join('||');
+    return {
+      ...primary.fact,
+      id: `semantic:${semanticFingerprint}`,
+      evidenceIds: unique(members.flatMap((candidate) => candidate.fact.evidenceIds)).slice(0, 4),
+      evidenceFingerprint: `pf-evidence-v2:${stableHash(canonical)}`,
+      semanticFingerprint,
+      confidence: confidenceForRank(primary.score),
+      strength: primary.score,
+    };
+  });
 }

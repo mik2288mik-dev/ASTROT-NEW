@@ -419,10 +419,12 @@ export interface ChartListItem {
   id: number;
   user_id: string;
   name: string;
-  chart_data: any;
+  chart_data: NatalChartData;
   birth_date: string;
   birth_time: string | null;
   birth_place: string;
+  input_hash?: string | null;
+  calculation_version?: string | null;
   is_primary: boolean;
   subject_type?: 'self' | 'saved_person';
   relation_label?: string | null;

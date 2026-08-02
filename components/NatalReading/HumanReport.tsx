@@ -29,6 +29,8 @@ import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { ChartBalance } from './ChartBalance';
+import { getNatalReliability } from '../../lib/natalSemanticCompiler';
+import type { ChartListItem } from '../../services/storageService';
 import {
   EditorialBulletText,
   EditorialProse,
@@ -40,6 +42,7 @@ type Props = {
   profile: UserProfile;
   chartData: NatalChartData;
   chartId?: number;
+  chartSubject?: ChartListItem | null;
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
@@ -289,10 +292,12 @@ export const NatalUnlockSheet: React.FC<{
 };
 
 const TechnicalDetails: React.FC<{ chartData: NatalChartData }> = ({ chartData }) => {
+  const reliability = getNatalReliability(chartData);
   const planets = PLANET_LABELS.map((item) => {
+    if (item.key === 'rising' && !reliability.anglesReliable) return null;
     const position = chartData[item.key] as any;
     if (!position?.sign) return null;
-    const house = position.house != null ? `${position.house} дом` : '';
+    const house = reliability.housesReliable && position.house != null ? `${position.house} дом` : '';
     return {
       ...item,
       sign: ruSign(position.sign),
@@ -328,14 +333,28 @@ export const HumanReport: React.FC<Props> = ({
   profile,
   chartData,
   chartId,
+  chartSubject,
   requestPremium,
   onUpdateProfile: _onUpdateProfile,
   preloadedReport,
   hideIntro,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
+  const cacheContext = useMemo(() => ({
+    subjectType: chartSubject?.subject_type || 'self' as const,
+    subjectIdentity: chartSubject ? {
+      name: chartSubject.name,
+      birthDate: chartSubject.birth_date,
+      birthTime: chartSubject.birth_time,
+      birthPlace: chartSubject.birth_place,
+    } : null,
+    chartData,
+    inputHash: chartSubject?.input_hash,
+    calculationVersion: chartSubject?.calculation_version,
+  }), [chartData, chartSubject]);
+  const subjectName = chartSubject?.name || profile.name;
   const initialReport = preloadedReport
-    || (userId ? getHumanBaseReportCached(userId, chartId) || readLocalHumanBaseReportWithFallback(profile, chartId) : null);
+    || (userId ? getHumanBaseReportCached(userId, chartId) || readLocalHumanBaseReportWithFallback(profile, chartId, cacheContext) : null);
   const [report, setReport] = useState<NatalInterpretationReport | null>(initialReport);
   const [loading, setLoading] = useState(!initialReport);
   const [error, setError] = useState<string | null>(null);
@@ -347,6 +366,7 @@ export const HumanReport: React.FC<Props> = ({
 
   const isPremium = hasActivePremium(profile);
   const ru = profile.language !== 'en';
+  const natalReliability = getNatalReliability(chartData);
   const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
   const visibleFreeSections = useMemo(
     () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),
@@ -355,18 +375,18 @@ export const HumanReport: React.FC<Props> = ({
 
   useEffect(() => {
     if (preloadedReport) {
-      writeLocalHumanBaseReport(profile, preloadedReport, chartId);
+      writeLocalHumanBaseReport(profile, preloadedReport, chartId, cacheContext);
       setReport(preloadedReport);
       setLoading(false);
       setError(null);
     }
-  }, [chartId, preloadedReport, profile]);
+  }, [cacheContext, chartId, preloadedReport, profile]);
 
   useEffect(() => {
     if (!userId || preloadedReport) return;
     let cancelled = false;
     const cached = getHumanBaseReportCached(userId, chartId)
-      || readLocalHumanBaseReportWithFallback(profile, chartId);
+      || readLocalHumanBaseReportWithFallback(profile, chartId, cacheContext);
 
     if (cached) {
       setReport(cached);
@@ -381,7 +401,7 @@ export const HumanReport: React.FC<Props> = ({
     // HUMAN_MAP_SECTION_KEYS remain click-only below and never trigger generation here.
     void ensureHumanBaseReport(userId, chartId)
       .then((nextReport) => {
-        writeLocalHumanBaseReport(profile, nextReport, chartId);
+        writeLocalHumanBaseReport(profile, nextReport, chartId, cacheContext);
         if (cancelled) return;
         setReport(nextReport);
         setError(null);
@@ -397,7 +417,7 @@ export const HumanReport: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [chartId, preloadedReport, profile, userId]);
+  }, [cacheContext, chartId, preloadedReport, profile, userId]);
 
   // Префетч платных тем в фоне после загрузки портрета (премиум): к моменту тапа разбор уже
   // в памяти/кэше и раскрывается мгновенно, а не запускает генерацию по клику.
@@ -469,13 +489,17 @@ export const HumanReport: React.FC<Props> = ({
                 Натальная карта
               </p>
               <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
-                {report?.userName || profile.name || 'Твоя карта'}, главный портрет
+                {report?.userName || subjectName || 'Твоя карта'}, главный портрет
               </h1>
             </>
           ) : null}
-          {((chartData as any).birthTimeQuality === 'unknown' || (chartData as any).chartQuality?.ascendantReliable === false) ? (
+          {natalReliability.birthTimeQuality !== 'exact' ? (
             <p className="rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
-              Время рождения указано неточно, поэтому Асцендент и дома могут отличаться. Солнце, Луна и общий портрет остаются полезной основой.
+              Время рождения недостаточно точное. Дома, Асцендент и MC в этом разборе не используются; выводы строятся по надёжным положениям планет и аспектам между ними.
+            </p>
+          ) : !natalReliability.housesReliable ? (
+            <p className="rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
+              Дома и MC недоступны в этом расчёте и не используются в тексте.
             </p>
           ) : null}
         </header>
@@ -525,7 +549,7 @@ export const HumanReport: React.FC<Props> = ({
           <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Подробные темы по карте</p>
           {!isPremium ? (
             <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
-              10 личных разделов по твоей карте — каждый написан под тебя. Загляни, что внутри.
+              9 отдельных глав по твоей карте: реакции, общение, отношения, конфликты, работа, деньги, способности, противоречия и важные аспекты.
             </p>
           ) : (
             <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
@@ -556,9 +580,9 @@ export const HumanReport: React.FC<Props> = ({
                   />
                 ))}
                 <div className="mt-6 overflow-hidden natal-premium-card p-5">
-                  <h3 className="font-sans text-[19px] font-semibold leading-tight">Открой все 10 разделов</h3>
+                  <h3 className="font-sans text-[19px] font-semibold leading-tight">Открой все 9 глав</h3>
                   <p className="mt-1.5 text-[13px] leading-relaxed text-[#667085]">
-                    Любовь, деньги, работа, тень, сила и предназначение — подробно по твоей карте.
+                    Не больше текста ради объёма, а отдельные выводы по самым сильным фактам карты.
                   </p>
                   <button
                     type="button"

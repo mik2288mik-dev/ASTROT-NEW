@@ -301,6 +301,7 @@ function factBlocks(
     station_pause: 'process_is_near_a_station',
     new_cycle: 'attention_cycle_is_beginning',
     culmination: 'attention_cycle_is_culminating',
+    low_signal: 'ordinary_priorities_can_remain_in_place',
   };
   const expectedDynamicClaim = dynamicClaimByMechanism[fact.mechanism.dynamic];
   const dynamicClaim = expectedDynamicClaim
@@ -313,6 +314,14 @@ function factBlocks(
     ['risk', fact.allowedRiskAtoms[0]],
     ['action', fact.allowedActionAtoms[0]],
   ];
+  if (fact.mechanism.dynamic === 'low_signal') {
+    return candidates
+      .filter(([role]) => role === 'lead' || role === 'action')
+      .map(([role, atomId], index) => (
+        atomId ? block(planId, role, fact, atomId, language, index) : null
+      ))
+      .filter((value): value is PlannedBlock => !!value);
+  }
   return candidates
     .map(([role, atomId], index) => (
       atomId ? block(planId, role, fact, atomId, language, index) : null
@@ -330,7 +339,9 @@ export function buildPersonalForecastSectionPlans(input: {
   const selected: ForecastSemanticFact[] = [];
   const selectedTopics = new Set<string>();
   for (const fact of sortFacts(input.facts)) {
-    const topic = fact.lifeContext || fact.domain;
+    const topic = fact.sourceKind === 'transit_to_natal'
+      ? (fact.natalPoint === 'mc' ? 'mc' : fact.domain)
+      : fact.lifeContext || fact.domain;
     if (selectedTopics.has(topic)) continue;
     selectedTopics.add(topic);
     selected.push(fact);

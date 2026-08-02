@@ -138,6 +138,86 @@ describe('personal forecast semantic writer', () => {
     expect(new Set(blocks.map((item) => item.writerBrief)).size).toBe(blocks.length);
   });
 
+  test('keeps natal-target topics separate when they share one house context', () => {
+    const communication = semanticFact({
+      lifeContext: 'personal_resources',
+      house: 2,
+    });
+    const agreements = semanticFact({
+      id: 'fact:venus-square-venus',
+      semanticFingerprint: 'semantic:agreements-friction',
+      transitPlanet: 'venus',
+      natalPoint: 'venus',
+      house: 2,
+      domain: 'values_agreements',
+      lifeContext: 'personal_resources',
+      mechanism: {
+        transit: 'value_alignment',
+        dynamic: 'friction',
+        stationDirection: null,
+      },
+      strength: 84,
+      allowedClaimAtoms: [
+        'values_and_agreements_are_temporarily_active',
+        'temporary_friction_requires_precision',
+      ],
+      allowedManifestationAtoms: ['agreement_terms_become_more_noticeable'],
+      allowedRiskAtoms: ['agreeing_before_terms_are_clear'],
+      allowedActionAtoms: ['state_terms_and_boundaries_explicitly'],
+    });
+    const built = buildPersonalForecastSectionPlans({
+      facts: [communication, agreements],
+      period: 'day',
+      language: 'en',
+    });
+
+    expect(built.sections).toHaveLength(2);
+    expect(built.sections.map((section) => section.title)).toEqual(expect.arrayContaining([
+      'Conversations and decisions',
+      'Terms and values',
+    ]));
+    expect(built.sections.map((section) => section.visualTag)).toEqual(expect.arrayContaining([
+      'communication_decisions',
+      'values_agreements',
+    ]));
+  });
+
+  test('keeps a low-signal period short instead of manufacturing extra themes', () => {
+    const calm = semanticFact({
+      id: 'fact:calm-period',
+      semanticFingerprint: 'semantic:calm-period',
+      sourceKind: 'period_aggregate',
+      transitPlanet: null,
+      natalPoint: null,
+      aspect: null,
+      domain: 'cycle_attention',
+      mechanism: {
+        transit: 'tempo_fluctuation',
+        dynamic: 'low_signal',
+        stationDirection: null,
+      },
+      confidence: 'low',
+      strength: 31,
+      allowedClaimAtoms: [
+        'no_single_theme_dominates_period',
+        'ordinary_priorities_can_remain_in_place',
+      ],
+      allowedManifestationAtoms: ['confirmed_signals_remain_distributed'],
+      allowedRiskAtoms: ['forcing_a_story_from_weak_signals'],
+      allowedActionAtoms: ['keep_plans_proportional_to_confirmed_signals'],
+    });
+    const built = buildPersonalForecastSectionPlans({
+      facts: [calm],
+      period: 'day',
+      language: 'en',
+    });
+
+    expect(built.overview.blocks).toHaveLength(1);
+    expect(built.sections).toHaveLength(1);
+    expect(built.sections[0].title).toBe('A calm period');
+    expect(built.sections[0].blocks.map((item) => item.role)).toEqual(['lead', 'action']);
+  });
+
   test('prompt sends an approved writing plan, not the natal chart', () => {
     const built = plans();
     const prompt = buildPersonalForecastFeedPrompt({

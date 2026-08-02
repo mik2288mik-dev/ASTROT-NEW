@@ -9,7 +9,7 @@ describe('human report local-cache flow', () => {
 
   it('uses local human-base synchronously before showing a loading state', () => {
     expect(source).toContain('const initialReport = preloadedReport');
-    expect(source).toContain('readLocalHumanBaseReportWithFallback(profile, chartId)');
+    expect(source).toContain('readLocalHumanBaseReportWithFallback(profile, chartId, cacheContext)');
     expect(source).toContain('const [loading, setLoading] = useState(!initialReport)');
   });
 
@@ -20,7 +20,7 @@ describe('human report local-cache flow', () => {
   });
 
   it('writes every successful human-base ensure result to local cache', () => {
-    expect(source).toContain('writeLocalHumanBaseReport(profile, nextReport, chartId)');
+    expect(source).toContain('writeLocalHumanBaseReport(profile, nextReport, chartId, cacheContext)');
   });
 
   it('keeps paid map sections click-only on initial render', () => {
@@ -37,7 +37,19 @@ describe('human report local-cache flow', () => {
     expect(app).toContain('writeLocalHumanBaseReport(targetProfile, report, chartId)');
     expect(app).toContain('writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId)');
     expect(app).toContain('clearLocalHumanBaseReport(fullProfile, primaryChartId)');
-    expect(charts).toContain('clearLocalHumanBaseReport(profile, chart.id)');
+    expect(charts).toContain('clearLocalHumanBaseReport(profile, chart.id, {');
+  });
+
+  it('passes the complete saved-chart subject and remounts before rendering its report', () => {
+    const app = read('App.tsx');
+    const charts = read('views/MyCharts.tsx');
+    const magazine = read('views/v2/NatalMagazine.tsx');
+    expect(charts).toContain('onChartSelect?: (chart: ChartListItem) => void');
+    expect(charts).toContain('onChartSelect(chart)');
+    expect(app).toContain('setActiveChartSubject(chart)');
+    expect(app).toContain('chartSubject={activeChartSubject}');
+    expect(magazine).toContain('key={reportSubjectKey}');
+    expect(magazine).toContain('chartSubject={chartSubject}');
   });
 
   it('shows the chart summary immediately while the human-base API is slow', () => {

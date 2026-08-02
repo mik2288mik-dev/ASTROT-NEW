@@ -190,6 +190,27 @@ describe('personal forecast deterministic evidence preparation', () => {
     detect.mockRestore();
   });
 
+  it('keeps a one-sample aspect neutral when no direction can be measured', () => {
+    const detect = jest.spyOn(transitAspects, 'detectTransitAspects');
+    detect.mockReturnValueOnce([{
+      transitPlanet: 'mars',
+      natalPlanet: 'mercury',
+      type: 'square',
+      orb: 1.2,
+      tone: 'pressure',
+    }]);
+    const result = buildPersonalForecastAspectEvidence(
+      chartWithHouses(),
+      'day',
+      '2026-08-02',
+      [snapshot('2026-08-02T12:00:00.000Z')],
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('active');
+    detect.mockRestore();
+  });
+
   it('builds transit-house evidence from contiguous house episodes, including a return episode', () => {
     const snapshots = [
       snapshot('2026-07-01T00:00:00.000Z', { mars: transit('mars', 15) }),

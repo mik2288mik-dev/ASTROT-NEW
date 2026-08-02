@@ -146,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
     return res.status(200).json({
       interpretation: cached,
-      source: 'human_v2',
+      source: 'human_v3_semantic',
       accessTier: access.accessTier,
     });
   }
@@ -180,7 +180,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       operation: `human-section-${sectionKey}`,
       readCached: async () => {
         const again = await getCachedReading<InterpretationSection>(ctx, cacheOpts);
-        return again ? { value: again, source: 'human_v2' } : null;
+        return again ? { value: again, source: 'human_v3_semantic' } : null;
       },
       generate: async () => {
         const section = await generateHumanPaidSection(ctx.profile, ctx.chartData!, sectionKey);
@@ -210,7 +210,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
     return res.status(200).json({
       interpretation: lockResult.value,
-      source: lockResult.fromCache ? (lockResult.source || 'human_v2') : 'generated',
+      source: lockResult.fromCache ? (lockResult.source || 'human_v3_semantic') : 'generated',
       accessTier: access.accessTier,
     });
   } catch (error) {

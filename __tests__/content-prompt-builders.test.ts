@@ -76,8 +76,9 @@ describe('Lumia content prompt builders', () => {
     expect(read('lib/personalForecastGeneration.ts')).toContain('buildPersonalForecastFeedPrompt');
     expect(read('lib/personalForecastGeneration.ts')).not.toContain('buildPersonalForecastTopicPrompt');
     expect(read('lib/personalForecastGeneration.ts')).toContain('getAppSystemVoice');
-    expect(read('lib/natalHumanInterpretation.ts')).toContain('buildNatalSectionPrompt');
-    expect(read('lib/natalHumanInterpretation.ts')).toContain('buildBlindSpotPrompt');
+    expect(read('lib/natalHumanInterpretation.ts')).toContain('compileNatalSemantics');
+    expect(read('lib/natalHumanInterpretation.ts')).toContain('natalPromptPayload');
+    expect(read('lib/natalHumanInterpretation.ts')).not.toContain('buildNatalSectionPrompt');
     expect(read('lib/synastry/signCompatibility.ts')).toContain('buildSignCompatibilityPrompt');
     expect(read('pages/api/content/synastry/extended.ts')).toContain('buildSynastryPrompt');
     expect(read('lib/synastryExtended.ts')).toContain("getContentPolicy('deep_report').promptVersion");

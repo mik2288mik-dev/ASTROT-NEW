@@ -54,7 +54,11 @@ const PLANET_RU: Record<string, string> = {
   mars: 'Марс',
   jupiter: 'Юпитер',
   saturn: 'Сатурн',
+  uranus: 'Уран',
+  neptune: 'Нептун',
+  pluto: 'Плутон',
   rising: 'Асцендент',
+  mc: 'MC',
 };
 
 // Транзитный планет — родовое согласование для «транзитный/транзитная».
@@ -66,6 +70,9 @@ const TRANSIT_ADJ_RU: Record<string, string> = {
   mars: 'Транзитный',
   jupiter: 'Транзитный',
   saturn: 'Транзитный',
+  uranus: 'Транзитный',
+  neptune: 'Транзитный',
+  pluto: 'Транзитный',
 };
 
 const ASPECT_RU: Record<TransitAspect['type'], string> = {
@@ -125,6 +132,32 @@ function hasReliableAscendant(chart: NatalChartData): boolean {
   return btq === 'exact' && quality?.ascendantReliable !== false;
 }
 
+function reliableMidheaven(chart: NatalChartData): PlanetPosition | null {
+  const quality = chart.chartQuality;
+  const birthTimeQuality = chart.birthTimeQuality
+    || quality?.birthTimeQuality
+    || 'unknown';
+  if (
+    birthTimeQuality !== 'exact'
+    || quality?.housesReliable === false
+    || quality?.houseBasedPersonalization === false
+    || !Array.isArray(chart.houses)
+    || chart.houses.length < 12
+  ) {
+    return null;
+  }
+  const tenthHouse = chart.houses.find((house) => house.house === 10);
+  if (!tenthHouse || !Number.isFinite(tenthHouse.longitude)) return null;
+  return {
+    planet: 'mc',
+    sign: tenthHouse.sign,
+    degree: tenthHouse.degree,
+    longitude: tenthHouse.longitude,
+    house: 10,
+    description: 'Midheaven',
+  };
+}
+
 const TRANSIT_PLANETS: Array<keyof CurrentTransits> = [
   'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn',
   'uranus', 'neptune', 'pluto',
@@ -148,10 +181,15 @@ export function detectTransitAspects(
     { key: 'mars', pos: chart.mars },
     { key: 'jupiter', pos: chart.jupiter },
     { key: 'saturn', pos: chart.saturn },
+    { key: 'uranus', pos: chart.uranus },
+    { key: 'neptune', pos: chart.neptune },
+    { key: 'pluto', pos: chart.pluto },
   ];
   if (hasReliableAscendant(chart)) {
     natalKeys.push({ key: 'rising', pos: chart.rising });
   }
+  const midheaven = reliableMidheaven(chart);
+  if (midheaven) natalKeys.push({ key: 'mc', pos: midheaven });
 
   const found: TransitAspect[] = [];
   for (const tKey of TRANSIT_PLANETS) {

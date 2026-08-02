@@ -3,45 +3,33 @@ import type {
   InterpretationSectionKey,
 } from '../types';
 import { withAppVoiceCacheKey, withAppVoiceVersion } from './appVoice';
+import {
+  FREE_NATAL_SECTION_KEYS,
+  NATAL_SEMANTIC_VERSION,
+  PREMIUM_NATAL_SECTION_KEYS,
+} from './natalSemanticCompiler';
 
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v2');
-export const HUMAN_BASE_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v6.direct-editorial');
-export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v5.direct-focus');
-export const HUMAN_BASE_CACHE_KEY = withAppVoiceCacheKey('human_v2.base');
+export const HUMAN_BASE_PROMPT_VERSION = withAppVoiceVersion(`lumia-human-v7.${NATAL_SEMANTIC_VERSION}.free-complete`);
+export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion(`lumia-human-v6.${NATAL_SEMANTIC_VERSION}.premium-depth`);
+export const HUMAN_BASE_CACHE_KEY = withAppVoiceCacheKey('human_v3.semantic.base');
 
-export const HUMAN_FREE_SECTION_KEYS = [
-  'base_portrait',
-  'strengths',
-  'growth_zones',
-  'main_advice',
-] as const satisfies readonly InterpretationSectionKey[];
+export const HUMAN_FREE_SECTION_KEYS = FREE_NATAL_SECTION_KEYS;
 
-export const HUMAN_PAID_SECTION_KEYS = [
-  'work_business',
-  'love_relationships',
-  'money_stability',
-  'family_home',
-  'communication_conflicts',
-  'energy_recovery',
-  'friendship_social',
-  'goals_actions',
-  'shadow_patterns',
-  'potential_purpose',
-] as const satisfies readonly InterpretationSectionKey[];
+export const HUMAN_PAID_SECTION_KEYS = PREMIUM_NATAL_SECTION_KEYS;
 
 export type HumanPaidSectionKey = (typeof HUMAN_PAID_SECTION_KEYS)[number];
 
 export const HUMAN_MAP_SECTION_KEYS = [
-  'love_relationships',
-  'money_stability',
-  'work_business',
-  'potential_purpose',
-  'shadow_patterns',
-  'goals_actions',
-  'communication_conflicts',
-  'energy_recovery',
-  'friendship_social',
-  'family_home',
+  'inner_reactions',
+  'communication',
+  'relationships_deep',
+  'conflicts',
+  'work',
+  'money',
+  'abilities',
+  'central_contradictions',
+  'important_aspects',
 ] as const satisfies readonly HumanPaidSectionKey[];
 
 export type HumanSectionMeta = {
@@ -53,65 +41,59 @@ export type HumanSectionMeta = {
 };
 
 export const HUMAN_PAID_SECTION_META: Record<HumanPaidSectionKey, HumanSectionMeta> = {
-  work_business: {
-    key: 'work_business',
-    title: 'Работа и бизнес',
-    subtitle: 'Подходящие задачи, ответственность и рост',
-    teaser: 'Какие задачи подходят, где проще зарабатывать и что мешает двигаться дальше.',
+  inner_reactions: {
+    key: 'inner_reactions',
+    title: 'Внутренние реакции',
+    subtitle: 'Что включается автоматически и как ты восстанавливаешься',
+    teaser: 'Что происходит внутри под давлением, как меняется реакция и что помогает вернуть ясность.',
   },
-  love_relationships: {
-    key: 'love_relationships',
-    title: 'Отношения',
-    subtitle: 'Как ты сближаешься, чего ждёшь и из-за чего споришь',
-    teaser: 'Что для тебя важно рядом с человеком, где начинаются конфликты и что помогает договориться.',
+  communication: {
+    key: 'communication',
+    title: 'Общение',
+    subtitle: 'Как ты думаешь, объясняешь и слышишь другого',
+    teaser: 'Как устроены твои речь и мышление, где ты особенно точен и где разговор может рассыпаться.',
   },
-  money_stability: {
-    key: 'money_stability',
-    title: 'Деньги и решения',
-    subtitle: 'Доход, траты и финансовые привычки',
-    teaser: 'Как ты принимаешь денежные решения, где рискуешь ошибиться и какие правила помогают.',
+  relationships_deep: {
+    key: 'relationships_deep',
+    title: 'Отношения подробно',
+    subtitle: 'Сближение, ожидания, границы и договорённости',
+    teaser: 'Как ты входишь в близкий контакт, чего ждёшь и где важно говорить прямо.',
   },
-  goals_actions: {
-    key: 'goals_actions',
-    title: 'Как ты действуешь',
-    subtitle: 'Что получается легко и где теряется результат',
-    teaser: 'Какие способы работы тебе подходят и что мешает доводить дело до конца.',
+  conflicts: {
+    key: 'conflicts',
+    title: 'Конфликты',
+    subtitle: 'Как ты споришь, защищаешь позицию и отвечаешь на давление',
+    teaser: 'Что делает ответ резким, когда ты закрываешь разговор и как сохранить точность без лишней борьбы.',
   },
-  friendship_social: {
-    key: 'friendship_social',
-    title: 'Как тебя видят другие',
-    subtitle: 'Первое впечатление, дружба и рабочее общение',
-    teaser: 'С кем тебе проще работать и дружить, а где контакт быстро становится тяжёлым.',
+  work: {
+    key: 'work',
+    title: 'Работа',
+    subtitle: 'Темп, ответственность и подходящие типы задач',
+    teaser: 'Какой способ работы даёт результат, где нужна самостоятельность и что мешает держать темп.',
   },
-  family_home: {
-    key: 'family_home',
-    title: 'Семья и дом',
-    subtitle: 'Быт, близкие, правила и личное пространство',
-    teaser: 'Что для тебя важно дома, где нужны чёткие договорённости и из-за чего растёт напряжение.',
+  money: {
+    key: 'money',
+    title: 'Деньги',
+    subtitle: 'Как ты оцениваешь ресурсы и принимаешь финансовые решения',
+    teaser: 'Где ты осторожен, где рискуешь и какие условия делают решение понятнее. Без обещаний дохода.',
   },
-  shadow_patterns: {
-    key: 'shadow_patterns',
-    title: 'Слабые места',
-    subtitle: 'Какие реакции мешают принимать решения',
-    teaser: 'Где ты сам усложняешь разговор, работу или отношения и не сразу это замечаешь.',
+  abilities: {
+    key: 'abilities',
+    title: 'Способности',
+    subtitle: 'Сильные сочетания навыков и подходящие задачи',
+    teaser: 'Что у тебя получается особенно хорошо и в каких задачах это реально полезно. Без назначения профессии.',
   },
-  potential_purpose: {
-    key: 'potential_purpose',
-    title: 'Сильные стороны в работе',
-    subtitle: 'Подходящие роли, задачи и уровень ответственности',
-    teaser: 'В каких задачах ты даёшь лучший результат и где твои качества действительно полезны.',
+  central_contradictions: {
+    key: 'central_contradictions',
+    title: 'Главные противоречия',
+    subtitle: 'Какие сильные части карты тянут решения в разные стороны',
+    teaser: 'Где внутри возникает реальный спор и почему одна универсальная стратегия не работает.',
   },
-  communication_conflicts: {
-    key: 'communication_conflicts',
-    title: 'Разговоры и конфликты',
-    subtitle: 'Как ты споришь, давишь, молчишь и договариваешься',
-    teaser: 'Из-за чего разговор срывается и как сказать прямо, не превращая спор в драку за последнее слово.',
-  },
-  energy_recovery: {
-    key: 'energy_recovery',
-    title: 'Нагрузка и отдых',
-    subtitle: 'Что быстрее утомляет и какой режим переносится легче',
-    teaser: 'Какие задачи забирают больше сил, где нужна пауза и как не перегружать день.',
+  important_aspects: {
+    key: 'important_aspects',
+    title: 'Важные аспекты',
+    subtitle: 'Самые точные связи карты без списка всего подряд',
+    teaser: 'Какие аспекты действительно меняют портрет и на каких выводах держится подробный разбор.',
   },
 };
 
@@ -122,7 +104,7 @@ export function isHumanPaidSectionKey(value: string): value is HumanPaidSectionK
 }
 
 export function humanPaidCacheKey(sectionKey: HumanPaidSectionKey): string {
-  return withAppVoiceCacheKey(`human_v2.paid.${sectionKey}`);
+  return withAppVoiceCacheKey(`human_v3.semantic.paid.${sectionKey}`);
 }
 
 export function buildLockedPaidSections(): InterpretationSection[] {

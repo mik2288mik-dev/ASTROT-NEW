@@ -107,7 +107,7 @@ describe('personal forecast V4 semantic contract', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-evidence-v4');
     expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v4');
-    expect(PERSONAL_FORECAST_SEMANTICS_VERSION).toBe('personal-forecast-semantics-v1');
+    expect(PERSONAL_FORECAST_SEMANTICS_VERSION).toBe('personal-forecast-semantics-v2');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v5.semantic-writer');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
 

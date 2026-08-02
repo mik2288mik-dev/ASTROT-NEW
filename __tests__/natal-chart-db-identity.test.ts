@@ -59,9 +59,11 @@ describe('natal chart database identity contract', () => {
     expect(archive).toContain('SET archived_at = CURRENT_TIMESTAMP');
     expect(archive).toContain("subject_type = 'saved_person'");
     expect(archive).not.toContain('DELETE FROM natal_charts');
+    expect(archive).not.toContain('DELETE FROM astrology_');
+    expect(archive).not.toContain('DELETE FROM content_interpretations');
   });
 
-  it('enforces the live Premium five-chart limit transactionally without users.chart_slots', () => {
+  it('enforces five additional Premium charts (six including self) transactionally without users.chart_slots', () => {
     const create = between('async create(userId:', 'async setIdentityMetadata(');
     expect(create).toContain("pg_advisory_xact_lock(hashtext('natal-chart-limit:'");
     expect(create).toContain('COUNT(*)::int AS total');

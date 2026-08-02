@@ -36,6 +36,8 @@ const CLAIMS: Record<ForecastClaimAtom, AtomLanguage> = {
   process_is_near_a_station: { ru: 'Направление процесса пока не закрепилось: сейчас важнее наблюдение, чем вывод.', en: 'The direction is not settled yet; observation matters more than a conclusion.' },
   attention_cycle_is_beginning: { ru: 'Начинается короткий цикл внимания к новой задаче или приоритету.', en: 'A short cycle of attention to a new task or priority is beginning.' },
   attention_cycle_is_culminating: { ru: 'Текущий цикл подходит к заметной точке результата или развязки.', en: 'The current cycle is approaching a visible result or turning point.' },
+  no_single_theme_dominates_period: { ru: 'Сильного единственного акцента нет: период не требует выжимать из него драму.', en: 'No single theme dominates: this period does not need manufactured drama.' },
+  ordinary_priorities_can_remain_in_place: { ru: 'Обычные приоритеты можно оставить на месте и действовать по фактам.', en: 'Ordinary priorities can stay in place; act on confirmed facts.' },
 };
 
 const MANIFESTATIONS: Record<ForecastManifestationAtom, AtomLanguage> = {
@@ -72,6 +74,7 @@ const MANIFESTATIONS: Record<ForecastManifestationAtom, AtomLanguage> = {
   direction_is_not_yet_confirmed: { ru: 'Первые признаки перемены уже есть, но направление ещё не подтверждено.', en: 'Early signs of change are present, but the direction is not confirmed yet.' },
   new_priority_becomes_visible: { ru: 'Новый приоритет становится заметным и требует места в расписании.', en: 'A new priority becomes visible and needs room in the schedule.' },
   existing_development_reaches_a_visible_peak: { ru: 'Уже начатый процесс доходит до заметной точки проверки или результата.', en: 'An existing process reaches a visible point of review or result.' },
+  confirmed_signals_remain_distributed: { ru: 'Расчёт не выделяет одну тему настолько сильно, чтобы перестраивать под неё весь период.', en: 'The calculation does not isolate one theme strongly enough to reorganize the whole period around it.' },
 };
 
 const RISKS: Record<ForecastRiskAtom, AtomLanguage> = {
@@ -92,6 +95,7 @@ const RISKS: Record<ForecastRiskAtom, AtomLanguage> = {
   assuming_direction_before_it_is_confirmed: { ru: 'Главный риск — решить, что направление уже определилось.', en: 'The main risk is assuming the direction is already settled.' },
   treating_context_as_a_guaranteed_event: { ru: 'Главный риск — превратить жизненный контекст в обещание конкретного события.', en: 'The main risk is turning a life context into a promise of a specific event.' },
   treating_a_short_cycle_as_a_permanent_conclusion: { ru: 'Главный риск — сделать постоянный вывод из короткого периода.', en: 'The main risk is making a permanent conclusion from a short cycle.' },
+  forcing_a_story_from_weak_signals: { ru: 'Главный риск — придумать большой сюжет там, где расчёт показывает только слабые сигналы.', en: 'The main risk is inventing a big story where the calculation shows only weak signals.' },
 };
 
 const ACTIONS: Record<ForecastActionAtom, AtomLanguage> = {
@@ -113,6 +117,7 @@ const ACTIONS: Record<ForecastActionAtom, AtomLanguage> = {
   apply_the_factor_only_inside_the_reliable_context: { ru: 'Применяй этот вывод только к надёжно рассчитанному контексту.', en: 'Apply this conclusion only inside the reliably calculated context.' },
   observe_the_transition_before_committing: { ru: 'Сначала проследи переход, затем принимай обязательство.', en: 'Observe the transition before making a commitment.' },
   name_one_observable_priority_for_the_cycle: { ru: 'Назови один наблюдаемый приоритет этого цикла.', en: 'Name one observable priority for this cycle.' },
+  keep_plans_proportional_to_confirmed_signals: { ru: 'Не меняй планы без причины: реагируй только на то, что реально проявилось.', en: 'Do not change plans without a reason; respond only to what actually appears.' },
 };
 
 const DOMAIN_TITLES: Record<ForecastSemanticDomain, AtomLanguage> = {
@@ -160,10 +165,20 @@ export function forecastSemanticTitle(
   fact: ForecastSemanticFact,
   language: ForecastWriterLanguage,
 ): string {
+  if (fact.mechanism.dynamic === 'low_signal') {
+    return language === 'ru' ? 'Спокойный период' : 'A calm period';
+  }
+  if (fact.sourceKind === 'transit_to_natal' && fact.natalPoint !== 'mc') {
+    return DOMAIN_TITLES[fact.domain][language];
+  }
   return (fact.lifeContext ? CONTEXT_TITLES[fact.lifeContext] : null)?.[language]
     || DOMAIN_TITLES[fact.domain][language];
 }
 
 export function forecastSemanticVisualTag(fact: ForecastSemanticFact): string {
+  if (fact.sourceKind === 'transit_to_natal') {
+    if (fact.natalPoint === 'mc') return 'career_public_role';
+    return fact.domain;
+  }
   return fact.lifeContext || fact.domain;
 }

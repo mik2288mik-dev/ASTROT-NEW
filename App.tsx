@@ -12,6 +12,7 @@ import {
     logoutCurrentAccount,
     startGuestAccount,
     isProfileAuthenticationError,
+    type ChartListItem,
 } from './services/storageService';
 import { clearAppSessionAndLocalData } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
@@ -228,6 +229,7 @@ const App: React.FC = () => {
     const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
+    const [activeChartSubject, setActiveChartSubject] = useState<ChartListItem | null>(null);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
@@ -437,6 +439,7 @@ const App: React.FC = () => {
         setChartLoadState('idle');
         setPrimaryChartId(null);
         setActiveChartId(undefined);
+        setActiveChartSubject(null);
         setPreloadedHumanReport(null);
     }, []);
 
@@ -1009,6 +1012,7 @@ const App: React.FC = () => {
             const targetView = isGuestOnboarding ? 'chart' : onboardingTargetViewRef.current || 'dashboard';
             if (targetView === 'chart') {
                 setActiveChartId(undefined);
+                setActiveChartSubject(null);
                 setChartReturnView('dashboard');
             }
             // Первая регистрация → показываем тарифы (триал уже активен). Повторное
@@ -1400,6 +1404,7 @@ const App: React.FC = () => {
 
         if (newView === 'chart') {
             setActiveChartId(undefined);
+            setActiveChartSubject(null);
             if (primaryChartDataRef.current) {
                 setChartData(primaryChartDataRef.current);
             }
@@ -1440,6 +1445,7 @@ const App: React.FC = () => {
             setChartLoadState(freshChart?.sun && freshChart?.moon ? 'ready' : 'error');
             setChartData(freshChart);
             setActiveChartId(undefined);
+            setActiveChartSubject(null);
             if (freshChart?.sun && freshChart?.moon && freshChart?.rising) {
                 void prepareUserContentDbFirst({
                     userId: String(profile.id),
@@ -1488,8 +1494,10 @@ const App: React.FC = () => {
                     setChartData(primaryChartDataRef.current);
                 }
                 setActiveChartId(undefined);
+                setActiveChartSubject(null);
             } else {
                 setActiveChartId(undefined);
+                setActiveChartSubject(null);
             }
 
             setChartReturnView('dashboard');
@@ -1710,7 +1718,9 @@ const App: React.FC = () => {
         );
     }
 
-    const isPrimaryChartView = activeChartId == null;
+    const isSavedPersonChartView = activeChartSubject?.subject_type === 'saved_person'
+        || activeChartSubject?.is_primary === false;
+    const isPrimaryChartView = !isSavedPersonChartView;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
 
     const dashboardProps = {
@@ -1811,6 +1821,7 @@ const App: React.FC = () => {
                             data={chartData}
                             profile={profile}
                             chartId={effectiveChartId}
+                            chartSubject={activeChartSubject}
                             requestPremium={requestPremium}
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
@@ -1862,16 +1873,17 @@ const App: React.FC = () => {
                                     partnerPlace: chart.birth_place,
                                 });
                             }}
-                            onChartSelect={(chartData, chartId) => {
+                            onChartSelect={(chart) => {
                                 appDebugLog('navigation', {
                                     action: 'select_saved_chart',
                                     from: viewRef.current,
                                     to: 'chart',
                                     returnView: 'charts',
-                                    chartId: !!chartId,
+                                    chartId: !!chart.id,
                                 });
-                                setChartData(chartData);
-                                setActiveChartId(chartId);
+                                setChartData(chart.chart_data);
+                                setActiveChartId(chart.id);
+                                setActiveChartSubject(chart);
                                 setChartReturnView('charts');
                                 pushReturnView(viewRef.current);
                                 setView('chart');

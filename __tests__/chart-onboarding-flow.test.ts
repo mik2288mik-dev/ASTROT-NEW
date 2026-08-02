@@ -46,26 +46,34 @@ describe('chart onboarding and lazy sections', () => {
 
   it('keeps one free basic identity and lazy-loads paid sections on open', () => {
     const shared = read('lib/natalHumanShared.ts');
+    const semantics = read('lib/natalSemanticCompiler.ts');
     const report = read('components/NatalReading/HumanReport.tsx');
     const prompt = read('lib/natalHumanInterpretation.ts');
-    expect(shared).toContain("'base_portrait'");
+    expect(semantics).toContain("'base_portrait'");
+    expect(semantics).toContain("'work_money'");
+    expect(shared).toContain('FREE_NATAL_SECTION_KEYS');
     expect(report).toContain('loadHumanPaidSection');
     expect(report).toContain('getCachedHumanPaidSection');
-    expect(prompt).toContain("getWordRangeInstruction('natal_section')");
-    expect(prompt).toContain("contentVariant: 'living'");
+    expect(prompt).toContain('natalPromptPayload({ ...compilation, sections: plans })');
+    expect(semantics).toContain('requiredBlocks');
+    expect(prompt).toContain('validateGeneratedNatalPayload');
+    expect(prompt).not.toContain('raw.freeSections');
+    expect(prompt).toContain("contentVariant: 'full'");
   });
 
   it('uses direct product names and exposes the personal forecast from Zodiac', () => {
     const shared = read('lib/natalHumanShared.ts');
     const horoscope = read('views/v2/HoroscopeReader.tsx');
     for (const title of [
-      'Отношения',
-      'Сильные стороны в работе',
-      'Разговоры и конфликты',
-      'Слабые места',
-      'Как ты действуешь',
-      'Деньги и решения',
-      'Как тебя видят другие',
+      'Внутренние реакции',
+      'Общение',
+      'Отношения подробно',
+      'Конфликты',
+      'Работа',
+      'Деньги',
+      'Способности',
+      'Главные противоречия',
+      'Важные аспекты',
     ]) {
       expect(shared).toContain(title);
     }
@@ -75,9 +83,11 @@ describe('chart onboarding and lazy sections', () => {
 
   it('passes the primary chart ID and report when no saved chart is active', () => {
     const app = read('App.tsx');
-    expect(app).toContain('const isPrimaryChartView = activeChartId == null');
+    expect(app).toContain("const isSavedPersonChartView = activeChartSubject?.subject_type === 'saved_person'");
+    expect(app).toContain('const isPrimaryChartView = !isSavedPersonChartView');
     expect(app).toContain('const effectiveChartId = activeChartId ?? primaryChartId ?? undefined');
     expect(app).toContain('chartId={effectiveChartId}');
+    expect(app).toContain('chartSubject={activeChartSubject}');
     expect(app).toContain('preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}');
   });
 
@@ -86,7 +96,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(report).not.toContain('if (loading) {');
     expect(report).toContain('data-testid="human-report-loading-area"');
     expect(report).toContain('<TechnicalDetails chartData={chartData} />');
-    expect(report).toContain("report?.userName || profile.name || 'Твоя карта'");
+    expect(report).toContain("report?.userName || subjectName || 'Твоя карта'");
     expect(report).toContain('Интерпретация сейчас недоступна');
   });
 });

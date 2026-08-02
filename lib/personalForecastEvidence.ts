@@ -62,6 +62,7 @@ const PLANET_LABELS: Record<'ru' | 'en', Record<string, string>> = {
     neptune: 'Нептун',
     pluto: 'Плутон',
     rising: 'Асцендент',
+    mc: 'MC',
   },
   en: {
     sun: 'Sun',
@@ -75,6 +76,7 @@ const PLANET_LABELS: Record<'ru' | 'en', Record<string, string>> = {
     neptune: 'Neptune',
     pluto: 'Pluto',
     rising: 'Ascendant',
+    mc: 'MC',
   },
 };
 
@@ -178,6 +180,7 @@ function hasReliableHousePersonalization(chart: NatalChartData): boolean {
 
 function natalHouse(chart: NatalChartData, point: string): number | null {
   if (!hasReliableHousePersonalization(chart)) return null;
+  if (point === 'mc') return 10;
   const raw = natalPosition(chart, point)?.house;
   const house = Number.parseInt(String(raw || ''), 10);
   return house >= 1 && house <= 12 ? house : null;
@@ -352,9 +355,11 @@ function groupAspectEvidence(
   const last = sorted[sorted.length - 1];
   const status: CalculatedAstroEvidence['status'] = exact.orb <= 0.3
     ? 'exact'
-    : last.orb < first.orb
-      ? 'applying'
-      : 'separating';
+    : sorted.length < 2 || last.orb === first.orb
+      ? 'active'
+      : last.orb < first.orb
+        ? 'applying'
+        : 'separating';
   const planetWeight = PLANET_WEIGHTS[first.transitPlanet] || 30;
   const durationBoost = Math.min(18, Math.max(0, sorted.length - 1) * 2);
   const exactness = Math.max(0, 28 - exact.orb * 4);

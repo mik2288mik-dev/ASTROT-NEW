@@ -48,11 +48,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!cached) {
       return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_BASE_NOT_READY' });
     }
-    return res.status(200).json({ interpretation: cached, source: 'human_v2' });
+    return res.status(200).json({ interpretation: cached, source: 'human_v3_semantic' });
   }
 
   if (cached) {
-    return res.status(200).json({ interpretation: cached, source: 'human_v2' });
+    return res.status(200).json({ interpretation: cached, source: 'human_v3_semantic' });
   }
 
   try {
@@ -69,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       operation: 'natal-human-base-generation',
       readCached: async () => {
         const again = await getCachedReading<NatalInterpretationReport>(ctx, cacheOpts);
-        return again ? { value: again, source: 'human_v2' } : null;
+        return again ? { value: again, source: 'human_v3_semantic' } : null;
       },
       generate: async () => {
         const report = await generateHumanBaseReport(ctx.profile, ctx.chartData!);
@@ -83,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       interpretation: lockResult.value,
-      source: lockResult.fromCache ? (lockResult.source || 'human_v2') : 'generated',
+      source: lockResult.fromCache ? (lockResult.source || 'human_v3_semantic') : 'generated',
     });
   } catch (error) {
     console.error('[natal/human-base] generation failed:', error instanceof Error ? error.message : error);

@@ -46,7 +46,7 @@ jest.mock('../lib/personalForecastEvidence', () => ({
 }));
 
 jest.mock('../lib/personalForecastSemantics', () => ({
-  PERSONAL_FORECAST_SEMANTICS_VERSION: 'personal-forecast-semantics-v1',
+  PERSONAL_FORECAST_SEMANTICS_VERSION: 'personal-forecast-semantics-v2',
 }));
 
 jest.mock('../lib/personalForecastContract', () => ({
@@ -173,7 +173,7 @@ describe('personal forecast durable history cache path', () => {
       periodKey: '2026-08-02',
       inputHash: 'input-v4',
       calculationVersion: 'personal-forecast-evidence-v4',
-      semanticVersion: 'personal-forecast-semantics-v1',
+      semanticVersion: 'personal-forecast-semantics-v2',
       ephemerisSource: 'swisseph',
       birthTimeStatus: 'exact',
       calculationPayload: {
@@ -198,7 +198,7 @@ describe('personal forecast durable history cache path', () => {
       semanticFingerprints: ['overview-semantic', 'section-semantic'],
       provider: 'openai',
       modelId: 'gpt-test',
-      semanticVersion: 'personal-forecast-semantics-v1',
+      semanticVersion: 'personal-forecast-semantics-v2',
       contractVersion: 'personal-forecast-feed-v4',
       validationStatus: 'valid',
       generationAttempts: 1,
