@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type CSSProperties } from 'react';
 import type { EditorialStickerAsset } from '../lib/personalForecastVisuals/editorialTypes';
 
 type Props = {
@@ -16,12 +16,19 @@ export function EditorialSticker({
   priority = false,
   caption,
 }: Props) {
+  const stickerStyle = {
+    '--editorial-sticker-ratio': `${asset.width} / ${asset.height}`,
+  } as CSSProperties;
+
   return (
     <figure
       className={['editorial-sticker', `editorial-sticker--${asset.orientation}`, className]
         .filter(Boolean)
         .join(' ')}
       data-editorial-sticker={asset.id}
+      data-editorial-collection={asset.collection}
+      data-editorial-orientation={asset.orientation}
+      style={stickerStyle}
     >
       <img
         src={asset.path}

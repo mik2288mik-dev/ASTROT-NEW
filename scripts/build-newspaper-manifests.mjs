@@ -10,7 +10,8 @@ const SOURCE_ROOT = path.join(ROOT, 'docs', 'design', 'newspaper-stickers');
 const MANIFEST_ROOT = path.join(ROOT, 'lib', 'personalForecastVisuals');
 // Keep the complete 1000-sticker library mobile-sized. The total budget remains
 // deliberately tight while the per-file p95 guard prevents isolated outliers.
-const MAX_TOTAL_BYTES = 65 * 1024 * 1024;
+const MAX_STICKER_EDGE = 512;
+const MAX_TOTAL_BYTES = 45 * 1024 * 1024;
 
 const readJson = async (file) => JSON.parse(await fs.readFile(file, 'utf8'));
 
@@ -111,7 +112,7 @@ async function buildMain() {
   const source = [...baseSource, ...humorSource];
   return mapConcurrent(source, 8, async (item) => {
     const relative = `/assets/forecast-feed/editorial-stickers/main/${item.medium}/${item.id}-${item.slug}.webp`;
-    const file = await inspectAsset(relative, 640);
+    const file = await inspectAsset(relative, MAX_STICKER_EDGE);
     return {
       id: item.id,
       collection: 'main',
@@ -138,7 +139,7 @@ async function buildSynastry() {
   if (source.length !== 200) throw new Error(`synastry: expected 200, received ${source.length}`);
   return mapConcurrent(source, 8, async (item) => {
     const relative = `/assets/forecast-feed/editorial-stickers/synastry/${item.id}-${item.slug}.webp`;
-    const file = await inspectAsset(relative, 640);
+    const file = await inspectAsset(relative, MAX_STICKER_EDGE);
     return {
       id: item.id,
       collection: 'synastry',
@@ -165,7 +166,7 @@ async function buildZodiac() {
   if (source.length !== 12) throw new Error(`zodiac: expected 12, received ${source.length}`);
   return mapConcurrent(source, 6, async (item) => {
     const relative = `/assets/forecast-feed/editorial-stickers/zodiac/${item.id}-${item.slug}.webp`;
-    const file = await inspectAsset(relative, 760);
+    const file = await inspectAsset(relative, MAX_STICKER_EDGE);
     return {
       id: item.id,
       collection: 'zodiac',
@@ -217,11 +218,11 @@ if (missingPaths.length || orphanPaths.length) {
 }
 const totalBytes = all.reduce((sum, item) => sum + item.bytes, 0);
 if (totalBytes > MAX_TOTAL_BYTES) {
-  throw new Error(`Newspaper assets exceed 65 MiB: ${(totalBytes / 1024 / 1024).toFixed(2)} MiB`);
+  throw new Error(`Newspaper assets exceed 45 MiB: ${(totalBytes / 1024 / 1024).toFixed(2)} MiB`);
 }
 const sizes = main.concat(synastry).map((item) => item.bytes).sort((a, b) => a - b);
 const p95 = sizes[Math.floor((sizes.length - 1) * 0.95)];
-if (p95 > 150 * 1024) throw new Error(`Main/synastry p95 exceeds 150 KiB: ${(p95 / 1024).toFixed(1)} KiB`);
+if (p95 > 130 * 1024) throw new Error(`Main/synastry p95 exceeds 130 KiB: ${(p95 / 1024).toFixed(1)} KiB`);
 
 const serialise = (items) => `${JSON.stringify({ version: 'newspaper-v2', items }, null, 2)}\n`;
 await Promise.all([

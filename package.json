@@ -14,6 +14,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "stickers:optimize": "node scripts/optimize-editorial-sticker-library.mjs && node scripts/build-newspaper-manifests.mjs",
     "audit:db": "tsx scripts/audit-db.ts",
     "migrate": "tsx scripts/migrate.ts",
     "repair:natal-charts": "tsx scripts/repair-canonical-natal-charts.ts",

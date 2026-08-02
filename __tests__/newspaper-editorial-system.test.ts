@@ -77,4 +77,35 @@ describe('newspaper editorial asset system', () => {
       expect(source).toContain('EditorialSticker');
     }
   });
+
+  it('keeps editorial stickers mobile-sized and renders them as restrained accents', () => {
+    const component = read('components/EditorialSticker.tsx');
+    const styles = read('styles/newspaperVisual.css');
+    const optimizer = read('scripts/optimize-editorial-sticker-library.mjs');
+    const assetReport = JSON.parse(
+      read('docs/design/newspaper-stickers/asset-optimization-report.json'),
+    ) as {
+      policy: { maxEdge: number; cssRole: string };
+      totals: { files: number; totalBytes: number; largestFileBytes: number };
+      items: Array<{ file: string; width: number; height: number; bytes: number }>;
+    };
+
+    expect(component).toContain("'--editorial-sticker-ratio'");
+    expect(component).toContain('data-editorial-orientation');
+    expect(styles).toContain('aspect-ratio: var(--editorial-sticker-ratio, auto)');
+    expect(styles).toContain('width: clamp(6rem, 26vw, 8.5rem)');
+    expect(styles).not.toContain('width: min(100%, 28rem)');
+    expect(optimizer).toContain('const MAX_EDGE = 512');
+    expect(optimizer).toContain("format: 'webp'");
+    expect(optimizer).toContain("cssRole: 'small editorial accent'");
+    expect(assetReport.policy).toMatchObject({
+      maxEdge: 512,
+      cssRole: 'small editorial accent',
+    });
+    expect(assetReport.totals.files).toBe(1000);
+    expect(assetReport.items).toHaveLength(1000);
+    expect(new Set(assetReport.items.map((item) => item.file))).toHaveProperty('size', 1000);
+    expect(Math.max(...assetReport.items.map((item) => Math.max(item.width, item.height)))).toBe(512);
+    expect(assetReport.items.every((item) => item.bytes > 0)).toBe(true);
+  });
 });

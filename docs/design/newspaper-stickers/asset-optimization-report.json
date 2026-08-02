@@ -1,0 +1,6018 @@
+{
+  "version": "editorial-stickers-mobile-v1",
+  "policy": {
+    "format": "webp",
+    "alpha": true,
+    "maxEdge": 512,
+    "quality": 78,
+    "alphaQuality": 96,
+    "cssRole": "small editorial accent"
+  },
+  "totals": {
+    "files": 1000,
+    "totalBytes": 42008722,
+    "largestFileBytes": 169902
+  },
+  "items": [
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-001-compass-over-torn-route.webp",
+      "width": 442,
+      "height": 512,
+      "bytes": 68550
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-002-keys-on-forked-timetable.webp",
+      "width": 385,
+      "height": 512,
+      "bytes": 45412
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-003-buttons-balanced-on-park-pencil.webp",
+      "width": 497,
+      "height": 309,
+      "bytes": 41444
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-004-scissors-cut-single-arrow.webp",
+      "width": 394,
+      "height": 512,
+      "bytes": 43016
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-005-ticket-stubs-as-stepping-stones.webp",
+      "width": 314,
+      "height": 512,
+      "bytes": 41474
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-006-door-handle-opens-sea-chart.webp",
+      "width": 344,
+      "height": 492,
+      "bytes": 40578
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-007-chair-casts-bicycle-umbrella-shadows.webp",
+      "width": 503,
+      "height": 390,
+      "bytes": 33076
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-008-tickets-form-playful-crossroads.webp",
+      "width": 453,
+      "height": 418,
+      "bytes": 42530
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-009-weather-vane-over-city-map.webp",
+      "width": 447,
+      "height": 404,
+      "bytes": 39634
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-010-thumbprint-becomes-tree-rings.webp",
+      "width": 500,
+      "height": 216,
+      "bytes": 34854
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-011-telephone-cord-river-map.webp",
+      "width": 435,
+      "height": 254,
+      "bytes": 31522
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-012-envelope-window-weather-chart.webp",
+      "width": 428,
+      "height": 512,
+      "bytes": 49498
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-013-two-receivers-one-ribbon.webp",
+      "width": 225,
+      "height": 512,
+      "bytes": 28724
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-014-speech-bubble-cut-from-map.webp",
+      "width": 502,
+      "height": 512,
+      "bytes": 62784
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-015-postcard-with-missing-corner.webp",
+      "width": 415,
+      "height": 512,
+      "bytes": 54860
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-016-radio-dial-over-mouth-photo.webp",
+      "width": 355,
+      "height": 512,
+      "bytes": 25672
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-017-paper-cup-string-city-plan.webp",
+      "width": 392,
+      "height": 512,
+      "bytes": 55066
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-018-punctuation-on-train-window.webp",
+      "width": 390,
+      "height": 512,
+      "bytes": 38674
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-019-carbon-copy-fading-lines.webp",
+      "width": 410,
+      "height": 442,
+      "bytes": 23310
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-020-megaphone-filled-with-small-print.webp",
+      "width": 388,
+      "height": 512,
+      "bytes": 39748
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-021-clock-face-over-station-plan.webp",
+      "width": 415,
+      "height": 512,
+      "bytes": 49806
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-022-shoelace-traces-commute.webp",
+      "width": 346,
+      "height": 512,
+      "bytes": 42402
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-023-calendar-kites-over-tram-map.webp",
+      "width": 398,
+      "height": 512,
+      "bytes": 39012
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-024-stopwatch-with-tide-table.webp",
+      "width": 414,
+      "height": 512,
+      "bytes": 46256
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-025-bicycle-wheel-compass-rose.webp",
+      "width": 368,
+      "height": 512,
+      "bytes": 46390
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-026-train-ticket-paper-airplane.webp",
+      "width": 351,
+      "height": 512,
+      "bytes": 33308
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-027-sand-in-route-pocket.webp",
+      "width": 357,
+      "height": 512,
+      "bytes": 53222
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-028-footprints-over-departure-board.webp",
+      "width": 338,
+      "height": 512,
+      "bytes": 41396
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-029-zipper-opens-road-map.webp",
+      "width": 373,
+      "height": 512,
+      "bytes": 41012
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-030-metronome-between-two-bus-tickets.webp",
+      "width": 512,
+      "height": 498,
+      "bytes": 62628
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-031-postcard-tide-line.webp",
+      "width": 430,
+      "height": 201,
+      "bytes": 18694
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-032-coins-as-traffic-jam.webp",
+      "width": 356,
+      "height": 512,
+      "bytes": 35280
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-033-tickets-to-bandstand.webp",
+      "width": 438,
+      "height": 351,
+      "bytes": 40656
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-034-cafe-chairs-orbit-map.webp",
+      "width": 273,
+      "height": 512,
+      "bytes": 29710
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-035-wallet-with-calendar-tabs.webp",
+      "width": 372,
+      "height": 512,
+      "bytes": 44254
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-036-paintbrush-rides-music-wave.webp",
+      "width": 354,
+      "height": 512,
+      "bytes": 22046
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-037-ticket-tags-on-park-branches.webp",
+      "width": 442,
+      "height": 499,
+      "bytes": 51034
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-038-weather-slips-in-glass-jar.webp",
+      "width": 400,
+      "height": 512,
+      "bytes": 36180
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-039-baseball-glove-catches-map-arrows.webp",
+      "width": 443,
+      "height": 201,
+      "bytes": 19626
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-040-bicycle-bells-on-abacus.webp",
+      "width": 509,
+      "height": 322,
+      "bytes": 42538
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-041-two-cups-separated-ruler.webp",
+      "width": 458,
+      "height": 512,
+      "bytes": 49638
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-042-paired-gloves-road-map.webp",
+      "width": 409,
+      "height": 512,
+      "bytes": 49256
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-043-shared-thread-through-buttons.webp",
+      "width": 348,
+      "height": 512,
+      "bytes": 35594
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-044-two-kites-over-split-park.webp",
+      "width": 284,
+      "height": 501,
+      "bytes": 32736
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-045-two-spoons-one-reflection.webp",
+      "width": 409,
+      "height": 512,
+      "bytes": 56614
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-046-postcards-stitched-border.webp",
+      "width": 509,
+      "height": 512,
+      "bytes": 65108
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-047-dominoes-pause-before-touch.webp",
+      "width": 512,
+      "height": 298,
+      "bytes": 32144
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-048-headphones-split-map.webp",
+      "width": 371,
+      "height": 512,
+      "bytes": 56746
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-049-empty-chairs-facing-shared-window.webp",
+      "width": 401,
+      "height": 417,
+      "bytes": 34850
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-050-handshake-with-bus-transfer.webp",
+      "width": 503,
+      "height": 445,
+      "bytes": 39398
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-051-raincoat-pocket-over-map-fork.webp",
+      "width": 410,
+      "height": 405,
+      "bytes": 35462
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-052-fence-post-weather-zigzag.webp",
+      "width": 477,
+      "height": 440,
+      "bytes": 39746
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-053-umbrella-casts-square-shadow.webp",
+      "width": 512,
+      "height": 467,
+      "bytes": 40666
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-054-garden-inside-sealed-envelope.webp",
+      "width": 487,
+      "height": 232,
+      "bytes": 26868
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-055-festival-ribbon-softens-crowd.webp",
+      "width": 506,
+      "height": 283,
+      "bytes": 46052
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-056-picnic-blanket-chalk-circle.webp",
+      "width": 369,
+      "height": 497,
+      "bytes": 55526
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-057-hula-hoop-open-garden-gate.webp",
+      "width": 377,
+      "height": 433,
+      "bytes": 36954
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-058-earplugs-on-radio-schedule.webp",
+      "width": 512,
+      "height": 443,
+      "bytes": 39014
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-059-mirror-fragment-reflects-balloons.webp",
+      "width": 462,
+      "height": 422,
+      "bytes": 49092
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-060-striped-ribbon-bow-house-plan.webp",
+      "width": 485,
+      "height": 419,
+      "bytes": 42418
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-061-tablecloth-becomes-blueprint.webp",
+      "width": 512,
+      "height": 506,
+      "bytes": 49434
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-062-house-key-under-family-photo.webp",
+      "width": 501,
+      "height": 512,
+      "bytes": 40692
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-063-recipe-card-city-map.webp",
+      "width": 491,
+      "height": 512,
+      "bytes": 50630
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-064-doorframe-growth-chart-ruler.webp",
+      "width": 473,
+      "height": 512,
+      "bytes": 38660
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-065-sewing-box-apartment-plan.webp",
+      "width": 511,
+      "height": 512,
+      "bytes": 45084
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-066-window-latch-over-weather-map.webp",
+      "width": 512,
+      "height": 407,
+      "bytes": 42272
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-067-family-calendar-missing-square.webp",
+      "width": 512,
+      "height": 488,
+      "bytes": 33918
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-068-plate-crack-river-delta.webp",
+      "width": 498,
+      "height": 512,
+      "bytes": 49806
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-069-clothing-labels-as-picnic-flags.webp",
+      "width": 512,
+      "height": 216,
+      "bytes": 31762
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-070-lamp-switch-city-evening-map.webp",
+      "width": 512,
+      "height": 280,
+      "bytes": 39004
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-071-window-cutout-over-sea.webp",
+      "width": 225,
+      "height": 499,
+      "bytes": 33356
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-072-seed-inside-calendar-date.webp",
+      "width": 489,
+      "height": 512,
+      "bytes": 31352
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-073-event-tickets-form-ladder.webp",
+      "width": 350,
+      "height": 494,
+      "bytes": 40946
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-074-film-negative-open-road.webp",
+      "width": 512,
+      "height": 374,
+      "bytes": 29422
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-075-picnic-tin-holds-horizon.webp",
+      "width": 411,
+      "height": 491,
+      "bytes": 49954
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-076-folded-chair-stage-ticket.webp",
+      "width": 429,
+      "height": 461,
+      "bytes": 41316
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-077-elevator-button-mountain-contours.webp",
+      "width": 512,
+      "height": 397,
+      "bytes": 43868
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-078-cracked-pavement-garden-plan.webp",
+      "width": 421,
+      "height": 512,
+      "bytes": 48730
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-079-blank-ticket-stamped-entry.webp",
+      "width": 512,
+      "height": 447,
+      "bytes": 38618
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-080-rope-bridge-from-measuring-tape.webp",
+      "width": 512,
+      "height": 220,
+      "bytes": 26764
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-081-magnifier-index-card-maze.webp",
+      "width": 512,
+      "height": 237,
+      "bytes": 24596
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-082-pencil-shavings-contour-lines.webp",
+      "width": 233,
+      "height": 509,
+      "bytes": 27560
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-083-book-spine-bar-chart.webp",
+      "width": 482,
+      "height": 454,
+      "bytes": 32290
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-084-ruler-reveals-weather-symbols.webp",
+      "width": 461,
+      "height": 431,
+      "bytes": 32256
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-085-paperclips-connect-footnotes.webp",
+      "width": 462,
+      "height": 457,
+      "bytes": 44812
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-086-eraser-reveals-map.webp",
+      "width": 467,
+      "height": 205,
+      "bytes": 19644
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-087-library-card-star-chart.webp",
+      "width": 512,
+      "height": 375,
+      "bytes": 38178
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-088-ink-bottle-reflects-diagram.webp",
+      "width": 418,
+      "height": 275,
+      "bytes": 25492
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-089-folded-glasses-focus-strip.webp",
+      "width": 512,
+      "height": 376,
+      "bytes": 31884
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-090-question-mark-built-from-tabs.webp",
+      "width": 228,
+      "height": 512,
+      "bytes": 27186
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-091-scissors-cut-spotlight.webp",
+      "width": 344,
+      "height": 512,
+      "bytes": 23240
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-092-tape-reel-city-route.webp",
+      "width": 410,
+      "height": 402,
+      "bytes": 33914
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-093-paintbrush-weather-front.webp",
+      "width": 437,
+      "height": 496,
+      "bytes": 32426
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-094-round-keys-as-music-windows.webp",
+      "width": 421,
+      "height": 206,
+      "bytes": 17792
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-095-music-sheet-folded-stairs.webp",
+      "width": 477,
+      "height": 489,
+      "bytes": 45842
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-096-needle-stitches-film-frames.webp",
+      "width": 471,
+      "height": 467,
+      "bytes": 44264
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-097-paint-tube-newspaper-river.webp",
+      "width": 512,
+      "height": 350,
+      "bytes": 40794
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-098-theatre-mask-event-collage.webp",
+      "width": 486,
+      "height": 504,
+      "bytes": 47774
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-099-camera-aperture-flower-plan.webp",
+      "width": 484,
+      "height": 492,
+      "bytes": 51018
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-100-chalk-skyline-on-music-map.webp",
+      "width": 491,
+      "height": 420,
+      "bytes": 47176
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-101-pillow-on-tide-table.webp",
+      "width": 491,
+      "height": 456,
+      "bytes": 41450
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-102-lamp-off-train-schedule.webp",
+      "width": 472,
+      "height": 500,
+      "bytes": 37070
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-103-teacup-steam-blank-column.webp",
+      "width": 491,
+      "height": 454,
+      "bytes": 63644
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-104-folded-blanket-city-grid.webp",
+      "width": 475,
+      "height": 481,
+      "bytes": 45204
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-105-sleep-mask-over-moon-chart.webp",
+      "width": 497,
+      "height": 480,
+      "bytes": 52176
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-106-hammock-between-calendar-pages.webp",
+      "width": 496,
+      "height": 426,
+      "bytes": 35194
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-107-empty-battery-on-picnic-photo.webp",
+      "width": 512,
+      "height": 437,
+      "bytes": 46642
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-108-slippers-on-departure-board.webp",
+      "width": 489,
+      "height": 490,
+      "bytes": 46602
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-109-closed-book-open-window.webp",
+      "width": 409,
+      "height": 504,
+      "bytes": 34262
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-110-bright-thermos-over-sound-map.webp",
+      "width": 483,
+      "height": 472,
+      "bytes": 54690
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-111-moon-phase-puddle-strip.webp",
+      "width": 505,
+      "height": 345,
+      "bytes": 37098
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-112-leaf-on-transit-loop.webp",
+      "width": 471,
+      "height": 494,
+      "bytes": 45696
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-113-shell-on-weather-isobar.webp",
+      "width": 449,
+      "height": 450,
+      "bytes": 39948
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-114-feather-river-delta.webp",
+      "width": 436,
+      "height": 493,
+      "bytes": 50926
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-115-pinecone-city-density-chart.webp",
+      "width": 481,
+      "height": 501,
+      "bytes": 50118
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-116-rain-gauge-calendar.webp",
+      "width": 374,
+      "height": 466,
+      "bytes": 28566
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-117-moth-over-night-map.webp",
+      "width": 512,
+      "height": 381,
+      "bytes": 43614
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-118-stone-stack-tide-graph.webp",
+      "width": 417,
+      "height": 460,
+      "bytes": 29962
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-119-dandelion-seeds-departure-dots.webp",
+      "width": 462,
+      "height": 493,
+      "bytes": 38546
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-120-tree-ring-house-calendar.webp",
+      "width": 455,
+      "height": 483,
+      "bytes": 45282
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-121-umbrella-filled-with-indoor-room.webp",
+      "width": 447,
+      "height": 464,
+      "bytes": 47244
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-122-shoe-filled-with-newspaper-birds.webp",
+      "width": 449,
+      "height": 467,
+      "bytes": 34078
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-123-kettle-spout-prints-road.webp",
+      "width": 479,
+      "height": 468,
+      "bytes": 44282
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-124-picnic-basket-card-catalog.webp",
+      "width": 447,
+      "height": 498,
+      "bytes": 47100
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-125-glove-holds-tiny-weather-system.webp",
+      "width": 444,
+      "height": 477,
+      "bytes": 41766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-126-chair-with-train-window-seat.webp",
+      "width": 444,
+      "height": 468,
+      "bytes": 43024
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-127-watering-can-pours-calendar-pages.webp",
+      "width": 512,
+      "height": 484,
+      "bytes": 45382
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-128-picnic-blanket-football-field.webp",
+      "width": 492,
+      "height": 487,
+      "bytes": 52696
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-129-alarm-bell-sprouts-roots.webp",
+      "width": 388,
+      "height": 491,
+      "bytes": 36234
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-130-bucket-holds-crescent-reflection.webp",
+      "width": 464,
+      "height": 459,
+      "bytes": 41262
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-131-chairs-circle-transit-map.webp",
+      "width": 488,
+      "height": 470,
+      "bytes": 38352
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-132-queue-tickets-picnic-blanket.webp",
+      "width": 458,
+      "height": 449,
+      "bytes": 36984
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-133-thread-connects-neighborhood-fun.webp",
+      "width": 506,
+      "height": 456,
+      "bytes": 56372
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-134-megaphone-vase-neighborhood.webp",
+      "width": 466,
+      "height": 485,
+      "bytes": 43078
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-135-bus-handles-round-table.webp",
+      "width": 442,
+      "height": 467,
+      "bytes": 29978
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-136-library-stamps-family-tree.webp",
+      "width": 453,
+      "height": 473,
+      "bytes": 31734
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-137-picnic-basket-community-calendar.webp",
+      "width": 512,
+      "height": 472,
+      "bytes": 51468
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-138-park-map-domino-circle.webp",
+      "width": 406,
+      "height": 419,
+      "bytes": 35090
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-139-apartment-bells-music-score.webp",
+      "width": 477,
+      "height": 460,
+      "bytes": 30772
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-140-hands-pass-newspaper-ribbon.webp",
+      "width": 501,
+      "height": 343,
+      "bytes": 41414
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-001-decision-tree-leisure-routes.webp",
+      "width": 476,
+      "height": 457,
+      "bytes": 39898
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-002-week-pressure-weather-map.webp",
+      "width": 484,
+      "height": 501,
+      "bytes": 56118
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-003-communication-signal-flow.webp",
+      "width": 503,
+      "height": 196,
+      "bytes": 22558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-004-apartment-music-rest-map.webp",
+      "width": 475,
+      "height": 392,
+      "bytes": 48818
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-005-leisure-paths-river-map.webp",
+      "width": 488,
+      "height": 464,
+      "bytes": 44230
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-006-opportunity-window-timetable.webp",
+      "width": 424,
+      "height": 512,
+      "bytes": 38876
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-007-friendship-network-thickness.webp",
+      "width": 469,
+      "height": 472,
+      "bytes": 35816
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-008-music-rest-tempo-chart.webp",
+      "width": 507,
+      "height": 390,
+      "bytes": 40390
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-009-lunar-tide-calendar.webp",
+      "width": 466,
+      "height": 485,
+      "bytes": 37448
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-010-observation-symbol-pyramid.webp",
+      "width": 504,
+      "height": 497,
+      "bytes": 38382
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-011-route-detour-comparison.webp",
+      "width": 475,
+      "height": 423,
+      "bytes": 46546
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-012-conversation-return-loop.webp",
+      "width": 477,
+      "height": 478,
+      "bytes": 38116
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-013-zine-collage-sequence.webp",
+      "width": 457,
+      "height": 512,
+      "bytes": 43872
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-014-public-square-flow-map.webp",
+      "width": 510,
+      "height": 508,
+      "bytes": 72958
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-015-home-change-before-after-plan.webp",
+      "width": 486,
+      "height": 330,
+      "bytes": 34816
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-016-playful-choice-matrix.webp",
+      "width": 450,
+      "height": 357,
+      "bytes": 28478
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-017-shared-festival-role-wheel.webp",
+      "width": 425,
+      "height": 486,
+      "bytes": 40038
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-018-transit-rhythm-timeline.webp",
+      "width": 512,
+      "height": 264,
+      "bytes": 23012
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-019-mood-variation-strip.webp",
+      "width": 512,
+      "height": 249,
+      "bytes": 28662
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-020-city-life-caricature-intersection.webp",
+      "width": 495,
+      "height": 508,
+      "bytes": 69970
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-001-crosswalk-map-pause.webp",
+      "width": 512,
+      "height": 316,
+      "bytes": 33394
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-002-friends-cafe-window.webp",
+      "width": 469,
+      "height": 350,
+      "bytes": 39042
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-003-weekend-market-fruit-choice.webp",
+      "width": 447,
+      "height": 512,
+      "bytes": 60810
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-004-dog-beach-splash.webp",
+      "width": 282,
+      "height": 448,
+      "bytes": 33300
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-005-foggy-road-pause.webp",
+      "width": 509,
+      "height": 512,
+      "bytes": 54418
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-006-letter-on-kitchen-table.webp",
+      "width": 408,
+      "height": 417,
+      "bytes": 32758
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-007-tram-sunstripe-seat.webp",
+      "width": 480,
+      "height": 434,
+      "bytes": 46666
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-008-trail-map-breeze.webp",
+      "width": 458,
+      "height": 512,
+      "bytes": 53852
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-009-bus-window-quiet-ride.webp",
+      "width": 512,
+      "height": 335,
+      "bytes": 36108
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-010-cyclist-drawbridge-wait.webp",
+      "width": 512,
+      "height": 339,
+      "bytes": 35376
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-011-library-note-exchange.webp",
+      "width": 512,
+      "height": 407,
+      "bytes": 62762
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-012-laundry-folding-race.webp",
+      "width": 384,
+      "height": 370,
+      "bytes": 34792
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-013-train-window-goodbye-wave.webp",
+      "width": 512,
+      "height": 312,
+      "bytes": 38820
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-014-market-fruit-tasting.webp",
+      "width": 483,
+      "height": 272,
+      "bytes": 35786
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-015-basketball-sunset-court.webp",
+      "width": 481,
+      "height": 375,
+      "bytes": 37238
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-016-friends-fishing-lake.webp",
+      "width": 273,
+      "height": 447,
+      "bytes": 27626
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-017-vinyl-living-room.webp",
+      "width": 419,
+      "height": 410,
+      "bytes": 36284
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-018-friends-map-roadside.webp",
+      "width": 512,
+      "height": 314,
+      "bytes": 35792
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-019-arcade-rain-shortcut.webp",
+      "width": 475,
+      "height": 430,
+      "bytes": 49386
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-020-apartment-letter-surprise.webp",
+      "width": 512,
+      "height": 425,
+      "bytes": 32722
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-021-table-tennis-courtyard-rally.webp",
+      "width": 373,
+      "height": 397,
+      "bytes": 35154
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-022-friends-split-cafe-bill.webp",
+      "width": 512,
+      "height": 369,
+      "bytes": 36142
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-023-apartment-dance-party.webp",
+      "width": 489,
+      "height": 248,
+      "bytes": 26644
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-024-evening-sketch-class.webp",
+      "width": 470,
+      "height": 341,
+      "bytes": 37130
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-025-ferry-seagull-rail.webp",
+      "width": 271,
+      "height": 439,
+      "bytes": 28586
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-026-cafe-chess-laugh.webp",
+      "width": 411,
+      "height": 405,
+      "bytes": 32524
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-027-park-runners-same-pace.webp",
+      "width": 486,
+      "height": 398,
+      "bytes": 39370
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-028-horse-meadow-stroll.webp",
+      "width": 358,
+      "height": 393,
+      "bytes": 33208
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-029-karaoke-shared-mic.webp",
+      "width": 472,
+      "height": 268,
+      "bytes": 30622
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-030-planetarium-seat-stars.webp",
+      "width": 491,
+      "height": 339,
+      "bytes": 32590
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-031-metro-escalator-wave.webp",
+      "width": 299,
+      "height": 431,
+      "bytes": 33732
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-032-brunch-table-sun.webp",
+      "width": 422,
+      "height": 415,
+      "bytes": 40472
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-033-cyclist-coast-riverside.webp",
+      "width": 508,
+      "height": 316,
+      "bytes": 37244
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-034-young-birdwatchers.webp",
+      "width": 329,
+      "height": 359,
+      "bytes": 28242
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-035-street-drum-rhythm.webp",
+      "width": 490,
+      "height": 247,
+      "bytes": 30516
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-036-clay-texture-stamps.webp",
+      "width": 480,
+      "height": 356,
+      "bytes": 39004
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-037-city-dog-at-crossing.webp",
+      "width": 325,
+      "height": 476,
+      "bytes": 37880
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-038-balcony-lemonade.webp",
+      "width": 434,
+      "height": 428,
+      "bytes": 35812
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-039-lake-swim-morning.webp",
+      "width": 492,
+      "height": 373,
+      "bytes": 34508
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-040-duck-pond-bench.webp",
+      "width": 373,
+      "height": 392,
+      "bytes": 37790
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-041-courtyard-music-evening.webp",
+      "width": 489,
+      "height": 304,
+      "bytes": 36970
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-042-button-box-color-sort.webp",
+      "width": 489,
+      "height": 355,
+      "bytes": 40630
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-043-riverside-bike-glide.webp",
+      "width": 297,
+      "height": 438,
+      "bytes": 34084
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-044-dumpling-folding-friends.webp",
+      "width": 436,
+      "height": 428,
+      "bytes": 35144
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-045-beach-volleyball-evening.webp",
+      "width": 501,
+      "height": 410,
+      "bytes": 37588
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-046-rabbit-community-garden.webp",
+      "width": 371,
+      "height": 401,
+      "bytes": 39298
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-047-shared-headphones.webp",
+      "width": 493,
+      "height": 264,
+      "bytes": 28154
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-048-home-movie-wall.webp",
+      "width": 484,
+      "height": 368,
+      "bytes": 30948
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-049-first-snow-bus-stop.webp",
+      "width": 310,
+      "height": 442,
+      "bytes": 33906
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-050-midnight-kitchen-toast.webp",
+      "width": 434,
+      "height": 389,
+      "bytes": 32050
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-051-runner-open-stadium-morning.webp",
+      "width": 512,
+      "height": 333,
+      "bytes": 43218
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-052-dog-ferry-breeze.webp",
+      "width": 496,
+      "height": 379,
+      "bytes": 35720
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-053-house-party-records.webp",
+      "width": 373,
+      "height": 370,
+      "bytes": 32854
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-054-home-gardener-first-sprout.webp",
+      "width": 409,
+      "height": 512,
+      "bytes": 51442
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-055-drummer-open-window-rehearsal.webp",
+      "width": 512,
+      "height": 457,
+      "bytes": 55058
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-056-street-snack-first-bite.webp",
+      "width": 493,
+      "height": 259,
+      "bytes": 26490
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-057-reader-finds-diagram.webp",
+      "width": 467,
+      "height": 512,
+      "bytes": 75760
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-058-cat-window-rain.webp",
+      "width": 500,
+      "height": 362,
+      "bytes": 36368
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-059-garage-band-neighbors.webp",
+      "width": 512,
+      "height": 293,
+      "bytes": 34744
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-060-park-stepping-stones-after-rain.webp",
+      "width": 431,
+      "height": 512,
+      "bytes": 52314
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-061-quiet-bus-window-dawn.webp",
+      "width": 512,
+      "height": 311,
+      "bytes": 39974
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-062-tea-on-floor-cushions.webp",
+      "width": 328,
+      "height": 462,
+      "bytes": 36464
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-063-cafe-window-after-rain.webp",
+      "width": 374,
+      "height": 512,
+      "bytes": 48822
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-064-friends-wild-berries.webp",
+      "width": 419,
+      "height": 440,
+      "bytes": 33934
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-065-morning-lake-swimmer.webp",
+      "width": 512,
+      "height": 350,
+      "bytes": 34566
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-066-couch-cat-nap.webp",
+      "width": 509,
+      "height": 381,
+      "bytes": 35624
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-067-footbridge-city-breeze.webp",
+      "width": 364,
+      "height": 377,
+      "bytes": 27894
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-068-bakery-window-choice.webp",
+      "width": 488,
+      "height": 299,
+      "bytes": 35366
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-069-tennis-rain-pause.webp",
+      "width": 474,
+      "height": 345,
+      "bytes": 39110
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-070-forest-mushroom-walk.webp",
+      "width": 293,
+      "height": 446,
+      "bytes": 29680
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-071-record-stall-listening.webp",
+      "width": 422,
+      "height": 435,
+      "bytes": 36808
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-072-pasta-kitchen-friends.webp",
+      "width": 512,
+      "height": 382,
+      "bytes": 40396
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-073-night-bus-friends.webp",
+      "width": 353,
+      "height": 337,
+      "bytes": 26684
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-074-picnic-bread-sharing.webp",
+      "width": 500,
+      "height": 276,
+      "bytes": 31938
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-075-rowing-calm-water.webp",
+      "width": 477,
+      "height": 320,
+      "bytes": 34000
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-076-lake-stone-skipping.webp",
+      "width": 290,
+      "height": 444,
+      "bytes": 30160
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-077-community-choir-young-adults.webp",
+      "width": 462,
+      "height": 419,
+      "bytes": 32240
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-078-rain-window-tea.webp",
+      "width": 483,
+      "height": 413,
+      "bytes": 34440
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-079-subway-map-high-five.webp",
+      "width": 344,
+      "height": 337,
+      "bytes": 26094
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-080-cafe-coin-game.webp",
+      "width": 483,
+      "height": 314,
+      "bytes": 33250
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-081-frisbee-dog-catch.webp",
+      "width": 484,
+      "height": 359,
+      "bytes": 42746
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-082-beach-tidepool-look.webp",
+      "width": 276,
+      "height": 456,
+      "bytes": 35228
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-083-handclap-rhythm.webp",
+      "width": 436,
+      "height": 431,
+      "bytes": 37816
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-084-balcony-morning-coffee.webp",
+      "width": 501,
+      "height": 400,
+      "bytes": 45076
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-085-bicycle-shadow-wall.webp",
+      "width": 373,
+      "height": 402,
+      "bytes": 39030
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-086-market-flowers-friends.webp",
+      "width": 495,
+      "height": 257,
+      "bytes": 34960
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-087-climbing-wall-friends.webp",
+      "width": 479,
+      "height": 365,
+      "bytes": 40024
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-088-kite-hill-wind.webp",
+      "width": 274,
+      "height": 461,
+      "bytes": 29536
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-089-park-ukulele.webp",
+      "width": 435,
+      "height": 430,
+      "bytes": 40232
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-090-rainy-kitchen-window-cup.webp",
+      "width": 502,
+      "height": 422,
+      "bytes": 39702
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-091-station-window-coffee.webp",
+      "width": 369,
+      "height": 364,
+      "bytes": 30506
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-092-noodle-slurp-laugh.webp",
+      "width": 493,
+      "height": 294,
+      "bytes": 35972
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-093-dance-circle-plaza.webp",
+      "width": 474,
+      "height": 362,
+      "bytes": 44168
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-094-summer-rain-under-tree.webp",
+      "width": 278,
+      "height": 460,
+      "bytes": 33868
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-095-reader-window-break.webp",
+      "width": 426,
+      "height": 512,
+      "bytes": 47670
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-096-evening-class-question.webp",
+      "width": 512,
+      "height": 271,
+      "bytes": 39730
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-097-pedestrian-bridge-breeze.webp",
+      "width": 394,
+      "height": 474,
+      "bytes": 32746
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-098-orange-peel-spiral.webp",
+      "width": 494,
+      "height": 365,
+      "bytes": 39876
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-099-observatory-telescope-laugh.webp",
+      "width": 512,
+      "height": 385,
+      "bytes": 59112
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-100-foggy-trail-pause.webp",
+      "width": 358,
+      "height": 369,
+      "bytes": 28558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-101-community-theatre-backstage.webp",
+      "width": 512,
+      "height": 351,
+      "bytes": 33992
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-102-friends-acoustic-rehearsal.webp",
+      "width": 512,
+      "height": 293,
+      "bytes": 46556
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-103-mural-color-first-section.webp",
+      "width": 512,
+      "height": 363,
+      "bytes": 39776
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-104-community-clay-second-try.webp",
+      "width": 512,
+      "height": 375,
+      "bytes": 44534
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-105-street-dance-light-rain.webp",
+      "width": 512,
+      "height": 423,
+      "bytes": 57664
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-106-community-film-projector-focus.webp",
+      "width": 512,
+      "height": 396,
+      "bytes": 64954
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-107-friends-sewing-pattern.webp",
+      "width": 512,
+      "height": 354,
+      "bytes": 47760
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-108-puzzle-table-evening.webp",
+      "width": 476,
+      "height": 284,
+      "bytes": 31552
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-109-parade-camera-confetti.webp",
+      "width": 512,
+      "height": 377,
+      "bytes": 57188
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-110-ice-cream-drip-laugh.webp",
+      "width": 484,
+      "height": 333,
+      "bytes": 37906
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-111-football-goalkeeper-grin.webp",
+      "width": 292,
+      "height": 443,
+      "bytes": 32522
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-112-camp-breakfast-pines.webp",
+      "width": 448,
+      "height": 447,
+      "bytes": 47200
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-113-friends-build-playlist.webp",
+      "width": 497,
+      "height": 367,
+      "bytes": 37856
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-114-board-game-floor.webp",
+      "width": 371,
+      "height": 385,
+      "bytes": 37468
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-115-open-air-bookstall.webp",
+      "width": 493,
+      "height": 297,
+      "bytes": 38562
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-116-rooftop-breakfast.webp",
+      "width": 483,
+      "height": 352,
+      "bytes": 42238
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-117-basketball-hoop-dusk.webp",
+      "width": 299,
+      "height": 441,
+      "bytes": 31212
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-118-muddy-dog-paw-print.webp",
+      "width": 449,
+      "height": 438,
+      "bytes": 43262
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-119-laundromat-dance.webp",
+      "width": 478,
+      "height": 396,
+      "bytes": 41164
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-120-photo-album-laugh.webp",
+      "width": 370,
+      "height": 387,
+      "bytes": 33322
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-121-weekend-tram-view.webp",
+      "width": 491,
+      "height": 277,
+      "bytes": 33050
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-122-cafe-rain-quiet.webp",
+      "width": 479,
+      "height": 326,
+      "bytes": 38860
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-123-park-steps-running-pair.webp",
+      "width": 303,
+      "height": 426,
+      "bytes": 37988
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-124-cat-cardboard-box.webp",
+      "width": 397,
+      "height": 390,
+      "bytes": 30658
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-125-beach-bonfire-guitar.webp",
+      "width": 504,
+      "height": 391,
+      "bytes": 37162
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-126-windowsill-plant-turn.webp",
+      "width": 361,
+      "height": 355,
+      "bytes": 32318
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-127-market-street-bread.webp",
+      "width": 493,
+      "height": 273,
+      "bytes": 32508
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-128-market-fruit-photo.webp",
+      "width": 480,
+      "height": 375,
+      "bytes": 46350
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-129-riverside-cycle-pair.webp",
+      "width": 333,
+      "height": 459,
+      "bytes": 41914
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-130-park-hammock-reading.webp",
+      "width": 397,
+      "height": 452,
+      "bytes": 38970
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-131-rooftop-string-lights.webp",
+      "width": 507,
+      "height": 373,
+      "bytes": 37116
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-132-bathroom-radio-song.webp",
+      "width": 364,
+      "height": 376,
+      "bytes": 32804
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-133-waterfront-bike-rest.webp",
+      "width": 476,
+      "height": 263,
+      "bytes": 29512
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-134-soup-steam-glasses.webp",
+      "width": 479,
+      "height": 392,
+      "bytes": 44766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-135-table-football-cafe.webp",
+      "width": 332,
+      "height": 473,
+      "bytes": 42752
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-136-aquarium-blue-light.webp",
+      "width": 422,
+      "height": 458,
+      "bytes": 36926
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-137-quiet-record-turntable.webp",
+      "width": 490,
+      "height": 452,
+      "bytes": 40432
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-138-dog-waits-by-door.webp",
+      "width": 354,
+      "height": 397,
+      "bytes": 33448
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-139-stadium-stair-run.webp",
+      "width": 512,
+      "height": 324,
+      "bytes": 50950
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-140-table-tennis-long-rally.webp",
+      "width": 465,
+      "height": 450,
+      "bytes": 47092
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-141-late-tram-quiet-stop.webp",
+      "width": 512,
+      "height": 314,
+      "bytes": 44946
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-142-botanical-greenhouse-stroll.webp",
+      "width": 486,
+      "height": 272,
+      "bytes": 47588
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-143-theatre-costume-table.webp",
+      "width": 486,
+      "height": 378,
+      "bytes": 47892
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-144-friends-assemble-bookshelf.webp",
+      "width": 299,
+      "height": 462,
+      "bytes": 35408
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-145-laundromat-sock-mixup.webp",
+      "width": 452,
+      "height": 512,
+      "bytes": 60900
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-146-home-cake-leaning.webp",
+      "width": 415,
+      "height": 434,
+      "bytes": 36010
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-147-bowling-lane-cheer.webp",
+      "width": 502,
+      "height": 385,
+      "bytes": 42552
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-148-waterfall-lookout.webp",
+      "width": 353,
+      "height": 361,
+      "bytes": 30584
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-149-friends-subway-map.webp",
+      "width": 512,
+      "height": 315,
+      "bytes": 40350
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-150-fish-tank-blue-hour.webp",
+      "width": 498,
+      "height": 246,
+      "bytes": 25422
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-151-streetlight-moth-watch.webp",
+      "width": 479,
+      "height": 350,
+      "bytes": 31448
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-152-picnic-ant-surprise.webp",
+      "width": 338,
+      "height": 446,
+      "bytes": 39280
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-153-promenade-rollerblades.webp",
+      "width": 456,
+      "height": 414,
+      "bytes": 36766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-154-snow-dog-tracks.webp",
+      "width": 483,
+      "height": 422,
+      "bytes": 38818
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-155-open-air-movie.webp",
+      "width": 382,
+      "height": 392,
+      "bytes": 30838
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-156-fire-escape-morning-coffee.webp",
+      "width": 485,
+      "height": 230,
+      "bytes": 25962
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-157-raincoat-crosswalk.webp",
+      "width": 496,
+      "height": 392,
+      "bytes": 53192
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-158-cafe-last-sunny-table.webp",
+      "width": 275,
+      "height": 448,
+      "bytes": 35578
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-159-pool-lap-morning.webp",
+      "width": 424,
+      "height": 418,
+      "bytes": 39332
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-160-seaside-fishing-pier.webp",
+      "width": 499,
+      "height": 355,
+      "bytes": 33648
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-161-folk-dance-hall.webp",
+      "width": 378,
+      "height": 388,
+      "bytes": 37510
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-162-friends-swap-houseplants.webp",
+      "width": 483,
+      "height": 280,
+      "bytes": 35702
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-163-morning-ferry-deck.webp",
+      "width": 482,
+      "height": 329,
+      "bytes": 36070
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-164-beach-snack-seagull.webp",
+      "width": 311,
+      "height": 460,
+      "bytes": 32336
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-165-skateboard-empty-square.webp",
+      "width": 462,
+      "height": 461,
+      "bytes": 37428
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-166-picnic-thermos-meadow.webp",
+      "width": 497,
+      "height": 413,
+      "bytes": 43908
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-167-costume-party-mirror.webp",
+      "width": 362,
+      "height": 395,
+      "bytes": 30718
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-168-grocery-unpack-colors.webp",
+      "width": 493,
+      "height": 331,
+      "bytes": 39594
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-169-mural-alley-stroll.webp",
+      "width": 477,
+      "height": 318,
+      "bytes": 37770
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-170-apartment-pasta-night.webp",
+      "width": 329,
+      "height": 445,
+      "bytes": 36558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-171-tandem-bike-park.webp",
+      "width": 420,
+      "height": 443,
+      "bytes": 36922
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-172-rooftop-herb-garden.webp",
+      "width": 493,
+      "height": 431,
+      "bytes": 46892
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-173-train-carriage-jam.webp",
+      "width": 364,
+      "height": 373,
+      "bytes": 33100
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-174-film-camera-loading.webp",
+      "width": 487,
+      "height": 310,
+      "bytes": 30894
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-175-night-tram-window-friends.webp",
+      "width": 482,
+      "height": 364,
+      "bytes": 39440
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-176-terrace-tea-sunset.webp",
+      "width": 269,
+      "height": 477,
+      "bytes": 29296
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-177-beach-football-barefoot.webp",
+      "width": 443,
+      "height": 442,
+      "bytes": 37114
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-178-autumn-leaves-dog.webp",
+      "width": 499,
+      "height": 448,
+      "bytes": 52862
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-179-adult-birthday-candles.webp",
+      "width": 352,
+      "height": 374,
+      "bytes": 30378
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-180-couch-afternoon-rest.webp",
+      "width": 500,
+      "height": 283,
+      "bytes": 31288
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-001-talon-dlya-golubya.webp",
+      "width": 498,
+      "height": 292,
+      "bytes": 40856
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-002-groza-v-prachechnoi.webp",
+      "width": 508,
+      "height": 462,
+      "bytes": 38716
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-003-lift-na-ulitsu.webp",
+      "width": 512,
+      "height": 444,
+      "bytes": 36760
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-004-avtobus-vyraschivaet-ostanovku.webp",
+      "width": 306,
+      "height": 512,
+      "bytes": 38368
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-005-chainik-daet-prognoz.webp",
+      "width": 294,
+      "height": 478,
+      "bytes": 34496
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-006-balcony-sails-with-sunflowers.webp",
+      "width": 438,
+      "height": 345,
+      "bytes": 35104
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-007-bright-umbrellas-paper-fish.webp",
+      "width": 233,
+      "height": 512,
+      "bytes": 20688
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-008-fridge-platform-kitchen-tunnel.webp",
+      "width": 406,
+      "height": 473,
+      "bytes": 39276
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-009-benches-cast-animal-shadow-queue.webp",
+      "width": 407,
+      "height": 512,
+      "bytes": 34884
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-010-kover-menyaet-marshrut.webp",
+      "width": 431,
+      "height": 447,
+      "bytes": 38766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-011-skameika-smotrit-match.webp",
+      "width": 411,
+      "height": 512,
+      "bytes": 43076
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-012-clouds-weigh-themselves.webp",
+      "width": 441,
+      "height": 327,
+      "bytes": 33874
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-013-dver-ushla-na-obed.webp",
+      "width": 509,
+      "height": 304,
+      "bytes": 27506
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-014-pylesos-sobiraet-ponedelnik.webp",
+      "width": 307,
+      "height": 505,
+      "bytes": 31540
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-015-slippers-wait-for-bus.webp",
+      "width": 502,
+      "height": 413,
+      "bytes": 37300
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-016-lampa-doprashivaet-stol.webp",
+      "width": 424,
+      "height": 433,
+      "bytes": 30704
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-017-shkaf-s-zapasnym-letom.webp",
+      "width": 509,
+      "height": 469,
+      "bytes": 37144
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-018-pochtovyi-yaschik-zevaet.webp",
+      "width": 444,
+      "height": 233,
+      "bytes": 22516
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-019-staircase-becomes-striped-bench.webp",
+      "width": 483,
+      "height": 408,
+      "bytes": 33262
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-020-kran-nalivaet-tishinu.webp",
+      "width": 203,
+      "height": 512,
+      "bytes": 22284
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-021-okno-menyaet-sosedei.webp",
+      "width": 402,
+      "height": 466,
+      "bytes": 32176
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-022-alarm-clock-chases-train.webp",
+      "width": 417,
+      "height": 434,
+      "bytes": 34100
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-023-stul-zanyal-ochered.webp",
+      "width": 426,
+      "height": 431,
+      "bytes": 37042
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-024-kastryulya-lovit-signal.webp",
+      "width": 426,
+      "height": 215,
+      "bytes": 19332
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-025-outlet-sunbathes-by-postcards.webp",
+      "width": 512,
+      "height": 334,
+      "bytes": 34558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-026-tramvai-vyazhet-marshrut.webp",
+      "width": 345,
+      "height": 506,
+      "bytes": 44906
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-027-peshehodnyi-perehod-plyvet.webp",
+      "width": 378,
+      "height": 437,
+      "bytes": 34336
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-028-svetofor-igraet-v-pryatki.webp",
+      "width": 469,
+      "height": 415,
+      "bytes": 42970
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-029-taksi-vezet-sobstvennuyu-kryshu.webp",
+      "width": 476,
+      "height": 386,
+      "bytes": 38764
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-030-tram-schedule-paper-swallow.webp",
+      "width": 436,
+      "height": 429,
+      "bytes": 46864
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-031-velosiped-sporit-s-kompasom.webp",
+      "width": 465,
+      "height": 304,
+      "bytes": 28766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-032-parom-perevozit-luzhu.webp",
+      "width": 291,
+      "height": 512,
+      "bytes": 27656
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-033-eskalator-uhodit-v-les.webp",
+      "width": 315,
+      "height": 512,
+      "bytes": 29570
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-034-samokat-obgonyaet-ten.webp",
+      "width": 468,
+      "height": 480,
+      "bytes": 35154
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-035-dorozhnyi-znak-somnevaetsya.webp",
+      "width": 471,
+      "height": 482,
+      "bytes": 39490
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-036-walking-bus-shelter.webp",
+      "width": 472,
+      "height": 236,
+      "bytes": 21224
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-037-metro-vyraschivaet-vetki.webp",
+      "width": 504,
+      "height": 295,
+      "bytes": 30842
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-038-chairs-choose-route-carousel.webp",
+      "width": 310,
+      "height": 512,
+      "bytes": 38154
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-039-shlagbaum-uchitsya-tantsevat.webp",
+      "width": 481,
+      "height": 443,
+      "bytes": 35212
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-040-tonnel-vozvraschaet-utro.webp",
+      "width": 487,
+      "height": 426,
+      "bytes": 35794
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-041-kater-vezet-perekrestok.webp",
+      "width": 465,
+      "height": 408,
+      "bytes": 32590
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-042-karta-prosit-podvezti.webp",
+      "width": 512,
+      "height": 225,
+      "bytes": 21788
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-043-koleso-obozreniya-sbezhalo.webp",
+      "width": 506,
+      "height": 372,
+      "bytes": 59624
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-044-sliding-platform-with-umbrellas.webp",
+      "width": 265,
+      "height": 502,
+      "bytes": 40390
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-045-most-zavyazyvaet-shnurki.webp",
+      "width": 509,
+      "height": 323,
+      "bytes": 41598
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-046-korabl-parkuetsya-u-kioska.webp",
+      "width": 428,
+      "height": 412,
+      "bytes": 45968
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-047-samolet-zhdet-zelenyi.webp",
+      "width": 440,
+      "height": 421,
+      "bytes": 40590
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-048-marshrutka-lovit-hvost.webp",
+      "width": 512,
+      "height": 211,
+      "bytes": 28528
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-049-relsy-vybirayut-storonu.webp",
+      "width": 434,
+      "height": 512,
+      "bytes": 33260
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-050-vokzal-upakovan-v-bilet.webp",
+      "width": 389,
+      "height": 430,
+      "bytes": 31086
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-051-golubi-provodyat-soveschanie.webp",
+      "width": 446,
+      "height": 471,
+      "bytes": 44766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-052-station-cat-checks-map.webp",
+      "width": 389,
+      "height": 242,
+      "bytes": 21740
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-053-sobaka-vygulivaet-dozhd.webp",
+      "width": 512,
+      "height": 278,
+      "bytes": 31058
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-054-loshad-zvonit-v-domofon.webp",
+      "width": 342,
+      "height": 496,
+      "bytes": 46988
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-055-utki-menyayut-ruslo.webp",
+      "width": 512,
+      "height": 395,
+      "bytes": 42212
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-056-squirrel-and-magpie-lockers.webp",
+      "width": 425,
+      "height": 403,
+      "bytes": 48734
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-057-korova-slushaet-radio.webp",
+      "width": 436,
+      "height": 444,
+      "bytes": 35976
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-058-seagulls-fold-newspaper-fish.webp",
+      "width": 512,
+      "height": 241,
+      "bytes": 26776
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-059-krolik-reguliruet-dvizhenie.webp",
+      "width": 510,
+      "height": 310,
+      "bytes": 38312
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-060-bear-cinema-ticket.webp",
+      "width": 277,
+      "height": 501,
+      "bytes": 36764
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-061-ryby-arenduyut-akvarium.webp",
+      "width": 502,
+      "height": 380,
+      "bytes": 41262
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-062-vorona-sobiraet-antennu.webp",
+      "width": 435,
+      "height": 390,
+      "bytes": 31880
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-063-ezh-perevozit-oblako.webp",
+      "width": 488,
+      "height": 423,
+      "bytes": 42760
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-064-kozel-chitaet-pravila.webp",
+      "width": 457,
+      "height": 260,
+      "bytes": 32060
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-065-lisa-menyaet-vyveski.webp",
+      "width": 512,
+      "height": 317,
+      "bytes": 45244
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-066-octopus-eight-radios.webp",
+      "width": 386,
+      "height": 504,
+      "bytes": 59376
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-067-cherepaha-obgonyaet-kalendar.webp",
+      "width": 494,
+      "height": 410,
+      "bytes": 42534
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-068-cash-register-orchestra-pelican.webp",
+      "width": 474,
+      "height": 433,
+      "bytes": 45348
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-069-sova-chinit-polden.webp",
+      "width": 462,
+      "height": 434,
+      "bytes": 44784
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-070-pes-vozvraschaet-hozyaina.webp",
+      "width": 512,
+      "height": 201,
+      "bytes": 22510
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-071-ants-arrange-route-markers.webp",
+      "width": 511,
+      "height": 274,
+      "bytes": 45496
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-072-kity-nad-rynkom.webp",
+      "width": 314,
+      "height": 489,
+      "bytes": 57074
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-073-petuh-vyklyuchaet-rassvet.webp",
+      "width": 424,
+      "height": 387,
+      "bytes": 42456
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-074-mol-vybiraet-palto.webp",
+      "width": 470,
+      "height": 390,
+      "bytes": 60996
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-075-bobr-perekryvaet-ofis.webp",
+      "width": 491,
+      "height": 386,
+      "bytes": 51054
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-076-cloud-chooses-model-rooftop.webp",
+      "width": 502,
+      "height": 313,
+      "bytes": 36948
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-077-derevo-menyaet-sezon.webp",
+      "width": 486,
+      "height": 366,
+      "bytes": 63850
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-078-luna-sushitsya-na-verevke.webp",
+      "width": 283,
+      "height": 491,
+      "bytes": 42736
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-079-reka-svorachivaetsya-v-chek.webp",
+      "width": 343,
+      "height": 460,
+      "bytes": 35686
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-080-sneg-idet-snizu.webp",
+      "width": 475,
+      "height": 392,
+      "bytes": 55456
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-081-mountain-waits-under-parasol.webp",
+      "width": 506,
+      "height": 291,
+      "bytes": 29734
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-082-wind-arranges-picnic-map.webp",
+      "width": 499,
+      "height": 237,
+      "bytes": 37338
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-083-solntse-ushlo-v-podval.webp",
+      "width": 397,
+      "height": 451,
+      "bytes": 33088
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-084-lightning-skips-rope.webp",
+      "width": 507,
+      "height": 190,
+      "bytes": 17916
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-085-ozero-primeryaet-ramku.webp",
+      "width": 492,
+      "height": 348,
+      "bytes": 35750
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-086-kamni-golosuyut-nogami.webp",
+      "width": 245,
+      "height": 512,
+      "bytes": 27066
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-087-iceberg-at-apartment-door.webp",
+      "width": 404,
+      "height": 512,
+      "bytes": 35638
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-088-lightning-tunes-rooftop-radio.webp",
+      "width": 375,
+      "height": 512,
+      "bytes": 33274
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-089-vodopad-idet-v-kran.webp",
+      "width": 431,
+      "height": 421,
+      "bytes": 40892
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-090-pesok-pereschityvaet-chasy.webp",
+      "width": 307,
+      "height": 512,
+      "bytes": 24710
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-091-rainbow-refills-cafe-awning.webp",
+      "width": 430,
+      "height": 255,
+      "bytes": 20746
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-092-puddle-rings-doorbell.webp",
+      "width": 184,
+      "height": 512,
+      "bytes": 22468
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-093-pole-zastegnuto-na-molniyu.webp",
+      "width": 434,
+      "height": 342,
+      "bytes": 39286
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-094-tucha-parkuetsya-v-garazhe.webp",
+      "width": 349,
+      "height": 500,
+      "bytes": 31390
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-095-skala-chitaet-prilivy.webp",
+      "width": 437,
+      "height": 467,
+      "bytes": 45680
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-096-sad-menyaet-ten.webp",
+      "width": 314,
+      "height": 512,
+      "bytes": 30092
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-097-luzha-pokazyvaet-okean.webp",
+      "width": 444,
+      "height": 349,
+      "bytes": 34188
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-098-ruchei-neset-lestnitsu.webp",
+      "width": 512,
+      "height": 208,
+      "bytes": 26242
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-099-friends-roll-sunset-at-bandstand.webp",
+      "width": 268,
+      "height": 512,
+      "bytes": 28592
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-100-sugrob-snimaet-kvartiru.webp",
+      "width": 426,
+      "height": 410,
+      "bytes": 29738
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-101-hleb-rezhet-nozh.webp",
+      "width": 512,
+      "height": 308,
+      "bytes": 27968
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-102-sup-chitaet-menyu.webp",
+      "width": 442,
+      "height": 459,
+      "bytes": 36228
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-103-apples-hold-talent-show.webp",
+      "width": 512,
+      "height": 458,
+      "bytes": 39846
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-104-kofe-budit-budilnik.webp",
+      "width": 497,
+      "height": 244,
+      "bytes": 24480
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-105-kapusta-hranit-arhiv.webp",
+      "width": 509,
+      "height": 274,
+      "bytes": 33984
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-106-morozhenoe-greet-ulitsu.webp",
+      "width": 286,
+      "height": 454,
+      "bytes": 29378
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-107-echoes-on-market-scales.webp",
+      "width": 462,
+      "height": 383,
+      "bytes": 33224
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-108-market-awnings-wear-weather.webp",
+      "width": 433,
+      "height": 364,
+      "bytes": 33670
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-109-chek-pokupaet-koshelek.webp",
+      "width": 491,
+      "height": 273,
+      "bytes": 28794
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-110-sahar-stroit-barrikadu.webp",
+      "width": 460,
+      "height": 489,
+      "bytes": 41240
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-111-lemon-slice-spotlight-lens.webp",
+      "width": 434,
+      "height": 224,
+      "bytes": 20402
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-112-buterbrod-sveryaet-kartu.webp",
+      "width": 235,
+      "height": 473,
+      "bytes": 33664
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-113-arbuz-lovit-radiovolnu.webp",
+      "width": 456,
+      "height": 459,
+      "bytes": 49352
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-114-makarony-chinyat-telefon.webp",
+      "width": 493,
+      "height": 255,
+      "bytes": 40066
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-115-banka-vypuskaet-piknik.webp",
+      "width": 419,
+      "height": 468,
+      "bytes": 52578
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-116-pirog-delit-nasledstvo.webp",
+      "width": 376,
+      "height": 512,
+      "bytes": 34130
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-117-sol-zametaet-sledy.webp",
+      "width": 435,
+      "height": 257,
+      "bytes": 25154
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-118-chainyi-paket-uhodit-na-glubinu.webp",
+      "width": 159,
+      "height": 512,
+      "bytes": 18268
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-119-kukuruza-nastraivaet-antennu.webp",
+      "width": 430,
+      "height": 424,
+      "bytes": 36014
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-120-moloko-vozvraschaet-korovu.webp",
+      "width": 435,
+      "height": 274,
+      "bytes": 26244
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-121-tort-sdaet-etazhi.webp",
+      "width": 363,
+      "height": 512,
+      "bytes": 41300
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-122-pepper-rings-bicycle-bell.webp",
+      "width": 354,
+      "height": 512,
+      "bytes": 27202
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-123-potato-chooses-carnival-costume.webp",
+      "width": 436,
+      "height": 215,
+      "bytes": 21658
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-124-floating-fish-stall.webp",
+      "width": 221,
+      "height": 512,
+      "bytes": 29226
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-125-vilka-ischet-rozetku.webp",
+      "width": 421,
+      "height": 469,
+      "bytes": 28008
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-126-futbolnye-vorota-uhodyat.webp",
+      "width": 435,
+      "height": 243,
+      "bytes": 23678
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-127-friends-stand-on-chessboard.webp",
+      "width": 440,
+      "height": 490,
+      "bytes": 47694
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-128-pool-drifts-with-flamingo.webp",
+      "width": 473,
+      "height": 510,
+      "bytes": 58858
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-129-tennisnyi-myach-vedet-schet.webp",
+      "width": 504,
+      "height": 237,
+      "bytes": 23132
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-130-lyzhi-zhdut-sneg.webp",
+      "width": 243,
+      "height": 455,
+      "bytes": 25710
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-131-bokser-sporit-s-ehom.webp",
+      "width": 477,
+      "height": 430,
+      "bytes": 41274
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-132-stadion-skladyvaetsya.webp",
+      "width": 507,
+      "height": 278,
+      "bytes": 39598
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-133-beach-ball-deck-chair.webp",
+      "width": 444,
+      "height": 418,
+      "bytes": 38978
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-134-svistok-vypuskaet-poezd.webp",
+      "width": 442,
+      "height": 490,
+      "bytes": 42314
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-135-marafon-zhdet-uchastnika.webp",
+      "width": 505,
+      "height": 240,
+      "bytes": 37466
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-136-bilyardnyi-shar-vybiraet-orbitu.webp",
+      "width": 221,
+      "height": 500,
+      "bytes": 29678
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-137-voleibolnaya-setka-lovit-oblako.webp",
+      "width": 461,
+      "height": 464,
+      "bytes": 53226
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-138-konki-rezhut-kalendar.webp",
+      "width": 507,
+      "height": 286,
+      "bytes": 44138
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-139-empty-stand-applauds-dog.webp",
+      "width": 500,
+      "height": 388,
+      "bytes": 50670
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-140-pole-vault-rainbow.webp",
+      "width": 468,
+      "height": 502,
+      "bytes": 31486
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-141-golf-lunka-pereezzhaet.webp",
+      "width": 502,
+      "height": 236,
+      "bytes": 26576
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-142-skakalka-izmeryaet-vremya.webp",
+      "width": 236,
+      "height": 468,
+      "bytes": 26866
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-143-kubok-prosit-revansh.webp",
+      "width": 485,
+      "height": 450,
+      "bytes": 46878
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-144-myach-zabivaet-vorota.webp",
+      "width": 505,
+      "height": 251,
+      "bytes": 32204
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-145-begovaya-dorozhka-vozvraschaet-lyudei.webp",
+      "width": 498,
+      "height": 432,
+      "bytes": 37390
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-146-baraban-zadaet-marshrut.webp",
+      "width": 363,
+      "height": 512,
+      "bytes": 30112
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-147-kinoekran-smotrit-zal.webp",
+      "width": 426,
+      "height": 245,
+      "bytes": 22088
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-148-biblioteka-shepchet-naruzhu.webp",
+      "width": 201,
+      "height": 512,
+      "bytes": 25024
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-149-fontan-schitaet-monety.webp",
+      "width": 430,
+      "height": 452,
+      "bytes": 40188
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-150-muzei-menyaet-posetitelei-mestami.webp",
+      "width": 422,
+      "height": 271,
+      "bytes": 25506
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-151-pelican-punches-ferry-tickets.webp",
+      "width": 385,
+      "height": 512,
+      "bytes": 31618
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-152-raccoon-sorts-umbrellas-by-weather.webp",
+      "width": 455,
+      "height": 472,
+      "bytes": 47026
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-153-fox-adjusts-street-clocks.webp",
+      "width": 480,
+      "height": 489,
+      "bytes": 44898
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-154-tortoise-advances-station-clocks.webp",
+      "width": 485,
+      "height": 305,
+      "bytes": 40604
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-155-magpies-sort-postcards.webp",
+      "width": 467,
+      "height": 360,
+      "bytes": 42074
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-156-donkey-tunes-hay-radio.webp",
+      "width": 494,
+      "height": 248,
+      "bytes": 33280
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-157-llamas-queue-at-photo-booth.webp",
+      "width": 437,
+      "height": 419,
+      "bytes": 38282
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-158-frogs-conduct-fountain-jets.webp",
+      "width": 504,
+      "height": 496,
+      "bytes": 54966
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-159-crab-measures-beach-shadow.webp",
+      "width": 507,
+      "height": 392,
+      "bytes": 47866
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-160-seal-balances-tram-tokens.webp",
+      "width": 457,
+      "height": 417,
+      "bytes": 42556
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-161-pigeons-play-rooftop-checkers.webp",
+      "width": 509,
+      "height": 229,
+      "bytes": 30262
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-162-otter-stamps-river-map.webp",
+      "width": 459,
+      "height": 496,
+      "bytes": 41338
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-163-peacock-opens-timetable-tail.webp",
+      "width": 509,
+      "height": 347,
+      "bytes": 53004
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-164-rabbit-sells-sunset-slices.webp",
+      "width": 234,
+      "height": 512,
+      "bytes": 28950
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-165-alpaca-hears-forecast-umbrella.webp",
+      "width": 371,
+      "height": 512,
+      "bytes": 35326
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-166-hedgehog-orders-cafe-cups.webp",
+      "width": 440,
+      "height": 174,
+      "bytes": 18454
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-167-parrot-repeats-traffic-colors.webp",
+      "width": 362,
+      "height": 512,
+      "bytes": 37790
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-168-marmot-builds-chair-circle.webp",
+      "width": 423,
+      "height": 512,
+      "bytes": 44932
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-169-goats-study-elevator-map.webp",
+      "width": 395,
+      "height": 512,
+      "bytes": 39774
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-170-sheep-reserve-bus-seats.webp",
+      "width": 487,
+      "height": 367,
+      "bytes": 44342
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-171-owl-runs-moon-photo-booth.webp",
+      "width": 509,
+      "height": 246,
+      "bytes": 28834
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-172-lobster-arranges-cutlery-routes.webp",
+      "width": 479,
+      "height": 498,
+      "bytes": 37958
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-173-boar-chooses-records.webp",
+      "width": 508,
+      "height": 446,
+      "bytes": 41956
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-174-flamingos-hold-fountain-umbrellas.webp",
+      "width": 502,
+      "height": 275,
+      "bytes": 36432
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-175-squirrels-trade-acorns-for-tokens.webp",
+      "width": 492,
+      "height": 421,
+      "bytes": 48962
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-176-duck-reads-reflection-map.webp",
+      "width": 425,
+      "height": 217,
+      "bytes": 23024
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-177-ferret-tunes-bicycle-bells.webp",
+      "width": 382,
+      "height": 512,
+      "bytes": 30766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-178-horses-play-square-dominoes.webp",
+      "width": 420,
+      "height": 475,
+      "bytes": 37388
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-179-cow-winds-town-clock.webp",
+      "width": 427,
+      "height": 279,
+      "bytes": 29690
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-180-moth-selects-lampshades.webp",
+      "width": 421,
+      "height": 493,
+      "bytes": 40174
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-181-lemur-operates-photo-booth.webp",
+      "width": 431,
+      "height": 219,
+      "bytes": 24138
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-182-seal-checks-tide-watch.webp",
+      "width": 439,
+      "height": 491,
+      "bytes": 40406
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-183-crow-hangs-traffic-light-fruit.webp",
+      "width": 495,
+      "height": 495,
+      "bytes": 51534
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-184-hare-delivers-garden-clouds.webp",
+      "width": 503,
+      "height": 344,
+      "bytes": 48940
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-185-camel-compares-footpaths.webp",
+      "width": 494,
+      "height": 437,
+      "bytes": 57154
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-186-swan-opens-cafe-parasol.webp",
+      "width": 502,
+      "height": 423,
+      "bytes": 62186
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-187-lizard-cools-tea.webp",
+      "width": 492,
+      "height": 469,
+      "bytes": 42576
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-188-elephants-compare-vinyl.webp",
+      "width": 498,
+      "height": 454,
+      "bytes": 49604
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-189-goat-conducts-cable-cars.webp",
+      "width": 510,
+      "height": 272,
+      "bytes": 35322
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-190-starfish-manages-five-teacups.webp",
+      "width": 455,
+      "height": 433,
+      "bytes": 47402
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-191-kingfisher-stamps-ferry-route.webp",
+      "width": 510,
+      "height": 388,
+      "bytes": 54542
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-192-penguins-align-beach-chairs.webp",
+      "width": 506,
+      "height": 215,
+      "bytes": 30192
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-193-mole-finds-map-station.webp",
+      "width": 456,
+      "height": 448,
+      "bytes": 53430
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-194-rooster-rings-sunrise-bell.webp",
+      "width": 422,
+      "height": 478,
+      "bytes": 35164
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-195-sheep-watch-wool-cloud-film.webp",
+      "width": 427,
+      "height": 283,
+      "bytes": 27810
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-196-monkeys-hold-banana-council.webp",
+      "width": 422,
+      "height": 424,
+      "bytes": 45560
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-197-whale-tunes-rooftop-antenna.webp",
+      "width": 429,
+      "height": 174,
+      "bytes": 15604
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-198-turtles-race-city-bus.webp",
+      "width": 419,
+      "height": 460,
+      "bytes": 31836
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-199-bees-queue-at-pollen-toll.webp",
+      "width": 434,
+      "height": 450,
+      "bytes": 41254
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-200-dog-checks-street-sundial.webp",
+      "width": 446,
+      "height": 284,
+      "bytes": 28230
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-201-cat-reserves-sunny-windows.webp",
+      "width": 439,
+      "height": 459,
+      "bytes": 45034
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-202-goat-inspects-park-sculpture.webp",
+      "width": 445,
+      "height": 190,
+      "bytes": 20198
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-203-herons-fold-tram-ticket-fish.webp",
+      "width": 408,
+      "height": 512,
+      "bytes": 32710
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-204-alpacas-order-clouds.webp",
+      "width": 444,
+      "height": 465,
+      "bytes": 36384
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-205-hamster-turns-ferris-clock.webp",
+      "width": 436,
+      "height": 392,
+      "bytes": 34042
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-206-crow-conducts-spoon-antenna.webp",
+      "width": 462,
+      "height": 443,
+      "bytes": 58272
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-207-deer-select-park-signposts.webp",
+      "width": 489,
+      "height": 464,
+      "bytes": 62050
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-208-raccoon-balances-cafe-receipt.webp",
+      "width": 453,
+      "height": 468,
+      "bytes": 43478
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-209-donkey-listens-through-payphone.webp",
+      "width": 463,
+      "height": 467,
+      "bytes": 60804
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-210-squirrel-prints-pinecone-weather.webp",
+      "width": 477,
+      "height": 386,
+      "bytes": 53716
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-211-apartment-windows-swap-floors.webp",
+      "width": 267,
+      "height": 450,
+      "bytes": 33150
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-212-tram-stop-sails-along-river.webp",
+      "width": 468,
+      "height": 507,
+      "bytes": 38896
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-213-clocktower-inspects-wristwatch.webp",
+      "width": 418,
+      "height": 512,
+      "bytes": 33384
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-214-crosswalk-ribbons-escape-to-park.webp",
+      "width": 464,
+      "height": 471,
+      "bytes": 44282
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-215-bridge-folds-like-accordion.webp",
+      "width": 466,
+      "height": 275,
+      "bytes": 27762
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-216-fountain-pours-upward-cloud.webp",
+      "width": 399,
+      "height": 512,
+      "bytes": 34936
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-217-streetlamps-bow-to-moon.webp",
+      "width": 463,
+      "height": 509,
+      "bytes": 37974
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-218-cinema-screen-opens-to-sea.webp",
+      "width": 330,
+      "height": 512,
+      "bytes": 27934
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-219-bus-route-ties-boulevard-bow.webp",
+      "width": 420,
+      "height": 456,
+      "bytes": 44088
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-220-balconies-exchange-plants.webp",
+      "width": 434,
+      "height": 326,
+      "bytes": 36194
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-221-subway-entrance-gramophone.webp",
+      "width": 429,
+      "height": 447,
+      "bytes": 41848
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-222-traffic-island-drifts-boulevard.webp",
+      "width": 211,
+      "height": 512,
+      "bytes": 27340
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-223-cafe-awning-catches-cloud.webp",
+      "width": 368,
+      "height": 512,
+      "bytes": 31896
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-224-elevator-opens-rooftop-picnic.webp",
+      "width": 429,
+      "height": 465,
+      "bytes": 37488
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-225-postbox-sprouts-route-arrows.webp",
+      "width": 436,
+      "height": 297,
+      "bytes": 29606
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-226-telephone-booth-greenhouse.webp",
+      "width": 340,
+      "height": 512,
+      "bytes": 43120
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-227-weather-kiosk-rotates-sunward.webp",
+      "width": 277,
+      "height": 512,
+      "bytes": 26082
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-228-fountain-chess-moves-itself.webp",
+      "width": 429,
+      "height": 420,
+      "bytes": 37434
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-229-clock-hands-cast-walking-shadows.webp",
+      "width": 426,
+      "height": 458,
+      "bytes": 36676
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-230-tram-rails-braid-and-separate.webp",
+      "width": 422,
+      "height": 224,
+      "bytes": 24084
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-231-park-gate-opens-onto-beach.webp",
+      "width": 424,
+      "height": 435,
+      "bytes": 42566
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-232-rooftop-antennas-tune-dawn.webp",
+      "width": 184,
+      "height": 512,
+      "bytes": 19708
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-233-city-map-rises-as-terrace.webp",
+      "width": 429,
+      "height": 458,
+      "bytes": 42902
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-234-ferry-docks-apartment-window.webp",
+      "width": 344,
+      "height": 512,
+      "bytes": 26896
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-235-bicycle-lane-loops-through-sky.webp",
+      "width": 393,
+      "height": 512,
+      "bytes": 33442
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-236-bus-shelter-blooms-parasol.webp",
+      "width": 497,
+      "height": 357,
+      "bytes": 39450
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-237-city-steps-become-dancefloor.webp",
+      "width": 278,
+      "height": 502,
+      "bytes": 34776
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-238-bridge-shadow-becomes-second-bridge.webp",
+      "width": 506,
+      "height": 357,
+      "bytes": 36280
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-239-windows-form-building-wink.webp",
+      "width": 449,
+      "height": 451,
+      "bytes": 31782
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-240-street-signs-migrate-corner.webp",
+      "width": 411,
+      "height": 422,
+      "bytes": 35440
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-241-market-canopy-floats-balloon.webp",
+      "width": 504,
+      "height": 467,
+      "bytes": 50558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-242-lamppost-holds-bench-umbrella.webp",
+      "width": 269,
+      "height": 503,
+      "bytes": 45424
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-243-tunnel-returns-upside-down-square.webp",
+      "width": 500,
+      "height": 491,
+      "bytes": 58086
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-244-roundabout-becomes-record-player.webp",
+      "width": 451,
+      "height": 480,
+      "bytes": 48482
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-245-exterior-staircase-enters-cloud.webp",
+      "width": 403,
+      "height": 486,
+      "bytes": 52108
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-246-courtyard-fills-paper-sailboats.webp",
+      "width": 491,
+      "height": 475,
+      "bytes": 56660
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-247-tram-wire-draws-constellation.webp",
+      "width": 276,
+      "height": 499,
+      "bytes": 43168
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-248-public-clock-pours-confetti-minutes.webp",
+      "width": 347,
+      "height": 512,
+      "bytes": 38742
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-249-street-kiosk-unfolds-bandstand.webp",
+      "width": 303,
+      "height": 512,
+      "bytes": 30250
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-250-pedestrian-tunnel-telescope.webp",
+      "width": 423,
+      "height": 461,
+      "bytes": 37298
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-251-park-path-zips-closed.webp",
+      "width": 465,
+      "height": 495,
+      "bytes": 51546
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-252-fountain-basin-compass.webp",
+      "width": 481,
+      "height": 485,
+      "bytes": 46776
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-253-ferry-route-stamped-in-sky.webp",
+      "width": 481,
+      "height": 454,
+      "bytes": 44984
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-254-rowhouses-share-striped-roof.webp",
+      "width": 491,
+      "height": 463,
+      "bytes": 47356
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-255-streetclock-trades-place-moon.webp",
+      "width": 463,
+      "height": 455,
+      "bytes": 40596
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-256-teapot-pours-table-cloud.webp",
+      "width": 500,
+      "height": 495,
+      "bytes": 39892
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-257-toast-pops-breakfast-sunrise.webp",
+      "width": 467,
+      "height": 446,
+      "bytes": 39030
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-258-umbrella-opens-indoor-beach.webp",
+      "width": 374,
+      "height": 490,
+      "bytes": 33598
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-259-refrigerator-opens-summer-garden.webp",
+      "width": 470,
+      "height": 462,
+      "bytes": 40798
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-260-alarm-clock-releases-paper-birds.webp",
+      "width": 459,
+      "height": 468,
+      "bytes": 37340
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-261-sewing-machine-stitches-river-map.webp",
+      "width": 481,
+      "height": 491,
+      "bytes": 46372
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-262-kettle-whistles-music-ribbon.webp",
+      "width": 479,
+      "height": 467,
+      "bytes": 44968
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-263-record-carries-groove-picnic.webp",
+      "width": 378,
+      "height": 483,
+      "bytes": 38038
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-264-bread-slices-become-rowhouses.webp",
+      "width": 507,
+      "height": 425,
+      "bytes": 42566
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-265-spoons-point-north-soup.webp",
+      "width": 468,
+      "height": 491,
+      "bytes": 43784
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-266-soap-bubbles-hold-weather-fronts.webp",
+      "width": 501,
+      "height": 511,
+      "bytes": 43448
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-267-socks-form-clothesline-routes.webp",
+      "width": 485,
+      "height": 472,
+      "bytes": 53102
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-268-mirror-reflects-room-as-park.webp",
+      "width": 392,
+      "height": 512,
+      "bytes": 36046
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-269-lampshade-projects-midnight-daylight.webp",
+      "width": 469,
+      "height": 420,
+      "bytes": 31258
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-270-sugar-stairway-to-coffee.webp",
+      "width": 501,
+      "height": 446,
+      "bytes": 30786
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-271-chairs-exchange-evening-shadows.webp",
+      "width": 486,
+      "height": 428,
+      "bytes": 33856
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-272-book-pages-become-cafe-awnings.webp",
+      "width": 470,
+      "height": 471,
+      "bytes": 45484
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-273-clockface-ripples-tea-saucer.webp",
+      "width": 443,
+      "height": 456,
+      "bytes": 40664
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-274-cupboard-shelves-curve-horizon.webp",
+      "width": 474,
+      "height": 446,
+      "bytes": 42738
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-275-bicycle-basket-grows-orchard.webp",
+      "width": 439,
+      "height": 457,
+      "bytes": 46886
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-276-tablecloth-folds-city-map.webp",
+      "width": 498,
+      "height": 485,
+      "bytes": 51126
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-277-pepper-mill-grinds-red-confetti.webp",
+      "width": 382,
+      "height": 493,
+      "bytes": 29766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-278-radio-dial-changes-wallpaper.webp",
+      "width": 473,
+      "height": 455,
+      "bytes": 47422
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-279-picnic-basket-sends-paper-butterflies.webp",
+      "width": 398,
+      "height": 473,
+      "bytes": 46644
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-280-doorbell-rings-color-circles.webp",
+      "width": 453,
+      "height": 493,
+      "bytes": 41742
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-281-six-windows-share-weather-cloud.webp",
+      "width": 503,
+      "height": 486,
+      "bytes": 30864
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-282-route-map-threaded-giant-needle.webp",
+      "width": 472,
+      "height": 498,
+      "bytes": 53198
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-283-cafe-receipts-become-harbor-birds.webp",
+      "width": 472,
+      "height": 474,
+      "bytes": 46362
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-284-clocks-orbit-park-carousel.webp",
+      "width": 459,
+      "height": 478,
+      "bytes": 48666
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-285-postcards-build-rooftop-staircase.webp",
+      "width": 446,
+      "height": 467,
+      "bytes": 37240
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-286-tram-tickets-tile-river-bridge.webp",
+      "width": 488,
+      "height": 497,
+      "bytes": 49250
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-287-market-fruit-becomes-traffic-lights.webp",
+      "width": 473,
+      "height": 505,
+      "bytes": 45096
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-288-umbrellas-puncture-weather-chart.webp",
+      "width": 393,
+      "height": 479,
+      "bytes": 37192
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-289-radio-antennas-join-windows.webp",
+      "width": 477,
+      "height": 389,
+      "bytes": 29914
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-290-cinema-seats-sprout-city-map.webp",
+      "width": 465,
+      "height": 470,
+      "bytes": 47146
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-291-bicycle-wheels-become-road-moons.webp",
+      "width": 453,
+      "height": 454,
+      "bytes": 26428
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-292-elevator-buttons-form-islands.webp",
+      "width": 501,
+      "height": 368,
+      "bytes": 42536
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-293-teacups-mark-tram-stations.webp",
+      "width": 351,
+      "height": 490,
+      "bytes": 33876
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-294-cloud-fragments-sewn-to-picnic.webp",
+      "width": 497,
+      "height": 465,
+      "bytes": 54914
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-295-street-photos-fold-paper-telescope.webp",
+      "width": 454,
+      "height": 452,
+      "bytes": 33638
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-296-fountain-splashes-printed-arrows.webp",
+      "width": 460,
+      "height": 482,
+      "bytes": 38232
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-297-curtains-map-wind-directions.webp",
+      "width": 499,
+      "height": 406,
+      "bytes": 37876
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-298-park-benches-punctuate-route.webp",
+      "width": 309,
+      "height": 497,
+      "bytes": 33322
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-299-doorways-stack-vertical-street.webp",
+      "width": 356,
+      "height": 465,
+      "bytes": 28278
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-300-photobooth-strips-align-street-day.webp",
+      "width": 506,
+      "height": 314,
+      "bytes": 34982
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-301-cormorant-counts-bridge-shells.webp",
+      "width": 469,
+      "height": 503,
+      "bytes": 42476
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-302-meerkats-sort-park-shadows.webp",
+      "width": 480,
+      "height": 494,
+      "bytes": 54766
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-303-yak-chooses-tram-seat.webp",
+      "width": 506,
+      "height": 381,
+      "bytes": 44066
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-304-puffins-stack-lighthouse-postcards.webp",
+      "width": 483,
+      "height": 504,
+      "bytes": 41046
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-305-armadillo-rolls-roundabout-marker.webp",
+      "width": 485,
+      "height": 462,
+      "bytes": 53994
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-306-crane-bird-opens-signal-fan.webp",
+      "width": 493,
+      "height": 459,
+      "bytes": 44340
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-307-walrus-reserves-pool-lane.webp",
+      "width": 493,
+      "height": 487,
+      "bytes": 36256
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-308-gazelles-compare-station-arrows.webp",
+      "width": 459,
+      "height": 489,
+      "bytes": 37354
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-309-porcupine-pins-city-map.webp",
+      "width": 371,
+      "height": 454,
+      "bytes": 35332
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-310-lynx-watches-three-cinema-windows.webp",
+      "width": 501,
+      "height": 390,
+      "bytes": 31558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-311-capybaras-host-tea-timetable.webp",
+      "width": 496,
+      "height": 437,
+      "bytes": 39466
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-312-salamander-tests-sun-parasols.webp",
+      "width": 415,
+      "height": 460,
+      "bytes": 30540
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-313-ibis-folds-napkin-sails.webp",
+      "width": 476,
+      "height": 497,
+      "bytes": 53358
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-314-tapir-uses-parking-meter.webp",
+      "width": 449,
+      "height": 509,
+      "bytes": 56832
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-315-chameleon-recolors-crosswalk.webp",
+      "width": 503,
+      "height": 260,
+      "bytes": 33966
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-316-penguin-guides-icecream-shade.webp",
+      "width": 495,
+      "height": 245,
+      "bytes": 31860
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-317-flamingo-rides-tram-strap.webp",
+      "width": 355,
+      "height": 476,
+      "bytes": 45098
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-318-skunk-chooses-windsock-scent.webp",
+      "width": 482,
+      "height": 440,
+      "bytes": 57560
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-319-geese-carry-one-park-map.webp",
+      "width": 478,
+      "height": 488,
+      "bytes": 61564
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-320-moose-tunes-street-organ.webp",
+      "width": 480,
+      "height": 479,
+      "bytes": 70192
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-321-mole-uses-fountain-periscope.webp",
+      "width": 492,
+      "height": 201,
+      "bytes": 27330
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-322-rabbits-rotate-sundial-umbrellas.webp",
+      "width": 512,
+      "height": 363,
+      "bytes": 47822
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-323-sealion-checkers-ferry-tokens.webp",
+      "width": 323,
+      "height": 452,
+      "bytes": 45790
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-324-stoat-compares-doorway-shapes.webp",
+      "width": 489,
+      "height": 433,
+      "bytes": 56688
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-325-jackdaw-orders-skyline-postcards.webp",
+      "width": 448,
+      "height": 385,
+      "bytes": 50782
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-326-ibis-balances-teacup-tramwire.webp",
+      "width": 507,
+      "height": 275,
+      "bytes": 32558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-327-panda-selects-bamboo-shadow-seat.webp",
+      "width": 501,
+      "height": 319,
+      "bytes": 41078
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-328-koala-checks-eucalyptus-clock.webp",
+      "width": 350,
+      "height": 476,
+      "bytes": 48530
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-329-macaw-rearranges-market-awnings.webp",
+      "width": 473,
+      "height": 377,
+      "bytes": 38810
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-330-wolf-photographs-zebra-crossing.webp",
+      "width": 447,
+      "height": 421,
+      "bytes": 47498
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-331-zebra-matches-street-stripes.webp",
+      "width": 496,
+      "height": 299,
+      "bytes": 42782
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-332-bat-hangs-transit-map-upside-down.webp",
+      "width": 512,
+      "height": 328,
+      "bytes": 32104
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-333-weasel-fans-park-umbrellas.webp",
+      "width": 340,
+      "height": 485,
+      "bytes": 51106
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-334-bison-turns-garden-carousel.webp",
+      "width": 512,
+      "height": 447,
+      "bytes": 53032
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-335-sparrows-divide-map-breadcrumb.webp",
+      "width": 444,
+      "height": 437,
+      "bytes": 44504
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-336-raven-mails-small-cloud.webp",
+      "width": 505,
+      "height": 438,
+      "bytes": 50114
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-337-antelope-compares-cycle-routes.webp",
+      "width": 480,
+      "height": 437,
+      "bytes": 65626
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-338-cats-vote-rooftop-weather.webp",
+      "width": 350,
+      "height": 473,
+      "bytes": 46038
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-339-tower-staircase-corkscrews-away.webp",
+      "width": 447,
+      "height": 512,
+      "bytes": 42002
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-340-tram-opens-picnic-table.webp",
+      "width": 490,
+      "height": 482,
+      "bytes": 61182
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-341-underpass-becomes-river-window.webp",
+      "width": 479,
+      "height": 411,
+      "bytes": 62744
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-342-balconies-play-dominoes.webp",
+      "width": 491,
+      "height": 472,
+      "bytes": 45170
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-343-busstop-shadow-leaves-first.webp",
+      "width": 277,
+      "height": 503,
+      "bytes": 40980
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-344-bridge-arch-blinks.webp",
+      "width": 487,
+      "height": 509,
+      "bytes": 61264
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-345-rooftop-tanks-orbit-clock.webp",
+      "width": 506,
+      "height": 512,
+      "bytes": 34236
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-346-market-stalls-exchange-roofs.webp",
+      "width": 483,
+      "height": 507,
+      "bytes": 56670
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-347-fountain-rolls-across-plaza.webp",
+      "width": 486,
+      "height": 474,
+      "bytes": 45658
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-348-subway-sign-grows-route-tree.webp",
+      "width": 506,
+      "height": 445,
+      "bytes": 40270
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-349-elevators-become-outdoor-balconies.webp",
+      "width": 478,
+      "height": 509,
+      "bytes": 39994
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-350-streetlamps-turn-sky-pages.webp",
+      "width": 508,
+      "height": 504,
+      "bytes": 36526
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-351-park-fence-musical-staff.webp",
+      "width": 488,
+      "height": 490,
+      "bytes": 44372
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-352-ferry-wake-stitches-riverbanks.webp",
+      "width": 502,
+      "height": 506,
+      "bytes": 40610
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-353-cinema-marquee-becomes-sunrise.webp",
+      "width": 511,
+      "height": 432,
+      "bytes": 39592
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-354-escalator-exits-bandstand.webp",
+      "width": 408,
+      "height": 507,
+      "bytes": 39536
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-355-city-map-waterfalls-down-steps.webp",
+      "width": 452,
+      "height": 494,
+      "bytes": 42742
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-356-phonebooths-hold-circle-meeting.webp",
+      "width": 512,
+      "height": 437,
+      "bytes": 34728
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-357-crosswalk-stripes-queue-kiosk.webp",
+      "width": 352,
+      "height": 512,
+      "bytes": 35996
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-358-round-window-sails-facade.webp",
+      "width": 406,
+      "height": 512,
+      "bytes": 34984
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-359-station-roof-folds-paper-bird.webp",
+      "width": 290,
+      "height": 512,
+      "bytes": 29560
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-360-chimneys-blow-striped-parasols.webp",
+      "width": 360,
+      "height": 512,
+      "bytes": 30808
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-361-canal-curves-teacup-handle.webp",
+      "width": 379,
+      "height": 512,
+      "bytes": 40178
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-362-kiosk-window-expands-cinema.webp",
+      "width": 492,
+      "height": 426,
+      "bytes": 40384
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-363-buses-park-like-books.webp",
+      "width": 512,
+      "height": 458,
+      "bytes": 48060
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-364-footbridge-ties-shoelace.webp",
+      "width": 459,
+      "height": 493,
+      "bytes": 32816
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-365-balconies-cast-chessboard.webp",
+      "width": 495,
+      "height": 487,
+      "bytes": 43556
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-366-lighthouse-projects-city-routes.webp",
+      "width": 512,
+      "height": 411,
+      "bytes": 37774
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-367-umbrella-pours-indoor-sunlight.webp",
+      "width": 389,
+      "height": 452,
+      "bytes": 33334
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-368-kettle-steams-miniature-tram.webp",
+      "width": 512,
+      "height": 395,
+      "bytes": 32360
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-369-pillow-unfolds-city-square.webp",
+      "width": 484,
+      "height": 509,
+      "bytes": 53936
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-370-tablefan-blows-newspaper-waves.webp",
+      "width": 512,
+      "height": 480,
+      "bytes": 47406
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-371-coffeegrinder-makes-small-clouds.webp",
+      "width": 508,
+      "height": 377,
+      "bytes": 42642
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-372-fridge-magnets-migrate-birds.webp",
+      "width": 494,
+      "height": 428,
+      "bytes": 31868
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-373-wardrobe-drawers-train-platforms.webp",
+      "width": 506,
+      "height": 439,
+      "bytes": 51800
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-374-teacups-swap-handles.webp",
+      "width": 372,
+      "height": 512,
+      "bytes": 23948
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-375-alarmclocks-bloom-flowers.webp",
+      "width": 509,
+      "height": 512,
+      "bytes": 49102
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-376-raincoat-hangs-cloud-on-hook.webp",
+      "width": 434,
+      "height": 503,
+      "bytes": 42894
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-377-toaster-prints-crosswalk-bread.webp",
+      "width": 512,
+      "height": 456,
+      "bytes": 35974
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-378-lampcord-draws-floor-river.webp",
+      "width": 466,
+      "height": 448,
+      "bytes": 45286
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-379-blanket-folds-picnic-mountains.webp",
+      "width": 480,
+      "height": 505,
+      "bytes": 37716
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-380-cupboard-opens-tiny-cinema.webp",
+      "width": 493,
+      "height": 512,
+      "bytes": 41906
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-381-ticket-fragments-form-tram-wing.webp",
+      "width": 447,
+      "height": 504,
+      "bytes": 48860
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-382-window-photos-weave-four-seasons.webp",
+      "width": 470,
+      "height": 506,
+      "bytes": 57204
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-383-cafe-tables-map-city-day.webp",
+      "width": 411,
+      "height": 505,
+      "bytes": 51036
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-384-ferry-photos-zipper-wake.webp",
+      "width": 475,
+      "height": 440,
+      "bytes": 49434
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-385-umbrellas-colorwheel-market-map.webp",
+      "width": 433,
+      "height": 439,
+      "bytes": 45338
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-386-doorbells-linked-subway-line.webp",
+      "width": 472,
+      "height": 432,
+      "bytes": 32216
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-387-park-shadows-cut-ticket-tabs.webp",
+      "width": 491,
+      "height": 351,
+      "bytes": 43052
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-388-weather-clippings-camera-aperture.webp",
+      "width": 506,
+      "height": 489,
+      "bytes": 49450
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-001-station-folded-in-half.webp",
+      "width": 471,
+      "height": 428,
+      "bytes": 49802
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-002-street-rises-as-wall.webp",
+      "width": 431,
+      "height": 496,
+      "bytes": 43960
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-003-apartment-block-drawer-open.webp",
+      "width": 475,
+      "height": 387,
+      "bytes": 43340
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-004-bridge-enters-newspaper-margin.webp",
+      "width": 506,
+      "height": 367,
+      "bytes": 28574
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-005-subway-car-through-living-room.webp",
+      "width": 465,
+      "height": 426,
+      "bytes": 41730
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-006-square-with-multiple-horizons.webp",
+      "width": 503,
+      "height": 340,
+      "bytes": 36996
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-007-staircase-returns-to-ground.webp",
+      "width": 470,
+      "height": 464,
+      "bytes": 64630
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-008-bus-stop-inside-map-fold.webp",
+      "width": 495,
+      "height": 468,
+      "bytes": 62876
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-009-market-aisle-becomes-river.webp",
+      "width": 472,
+      "height": 417,
+      "bytes": 58610
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-010-rooftops-open-like-picnic-baskets.webp",
+      "width": 504,
+      "height": 450,
+      "bytes": 68760
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-011-minute-hand-kite-over-station.webp",
+      "width": 365,
+      "height": 472,
+      "bytes": 47568
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-012-yesterday-tomorrow-same-bench.webp",
+      "width": 508,
+      "height": 391,
+      "bytes": 67348
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-013-calendar-sheets-fall-as-snow.webp",
+      "width": 455,
+      "height": 501,
+      "bytes": 73296
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-014-train-arrives-before-shadow.webp",
+      "width": 496,
+      "height": 466,
+      "bytes": 58750
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-015-clock-hands-rowboat.webp",
+      "width": 489,
+      "height": 474,
+      "bytes": 63036
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-016-queue-becomes-dance-sequence.webp",
+      "width": 499,
+      "height": 383,
+      "bytes": 62072
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-017-night-window-inside-noon.webp",
+      "width": 372,
+      "height": 447,
+      "bytes": 47540
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-018-running-track-mobius-loop.webp",
+      "width": 502,
+      "height": 449,
+      "bytes": 68192
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-019-hourglass-filled-with-tickets.webp",
+      "width": 487,
+      "height": 485,
+      "bytes": 71524
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-020-dinner-table-seasons-rotate.webp",
+      "width": 508,
+      "height": 489,
+      "bytes": 69796
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-021-crowd-all-hold-same-umbrella-shadow.webp",
+      "width": 505,
+      "height": 374,
+      "bytes": 56058
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-022-portrait-face-made-of-street-windows.webp",
+      "width": 387,
+      "height": 406,
+      "bytes": 39762
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-023-raincoat-shadow-dances.webp",
+      "width": 482,
+      "height": 466,
+      "bytes": 60570
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-024-mirror-with-rising-drizzle.webp",
+      "width": 512,
+      "height": 512,
+      "bytes": 36706
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-025-sky-gap-with-balloons.webp",
+      "width": 472,
+      "height": 466,
+      "bytes": 71502
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-026-hands-exchange-city-bubble.webp",
+      "width": 482,
+      "height": 439,
+      "bytes": 62960
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-027-person-unfolds-map-of-own-room.webp",
+      "width": 488,
+      "height": 422,
+      "bytes": 60726
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-028-shoes-walk-ahead-owner.webp",
+      "width": 500,
+      "height": 420,
+      "bytes": 60178
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-029-face-profile-becomes-coastline.webp",
+      "width": 470,
+      "height": 441,
+      "bytes": 55724
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-030-seated-person-two-opposite-shadows.webp",
+      "width": 507,
+      "height": 426,
+      "bytes": 50084
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-031-telephone-lines-tie-two-buildings.webp",
+      "width": 480,
+      "height": 429,
+      "bytes": 47056
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-032-conversation-words-become-pigeons.webp",
+      "width": 503,
+      "height": 456,
+      "bytes": 41988
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-033-shared-table-through-apartments.webp",
+      "width": 500,
+      "height": 395,
+      "bytes": 43614
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-034-park-handshake-becomes-tram-lines.webp",
+      "width": 462,
+      "height": 502,
+      "bytes": 44094
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-035-letters-swim-between-windows.webp",
+      "width": 478,
+      "height": 372,
+      "bytes": 32578
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-036-two-bus-seats-share-one-window.webp",
+      "width": 503,
+      "height": 340,
+      "bytes": 34408
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-037-megaphone-listens-back.webp",
+      "width": 468,
+      "height": 360,
+      "bytes": 46992
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-038-bridge-built-from-postcards.webp",
+      "width": 497,
+      "height": 359,
+      "bytes": 46528
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-039-radio-wave-visible-rope.webp",
+      "width": 482,
+      "height": 382,
+      "bytes": 43266
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-040-conversation-table-splits-rejoins.webp",
+      "width": 495,
+      "height": 408,
+      "bytes": 52484
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-041-open-gate-leads-back-inside.webp",
+      "width": 441,
+      "height": 359,
+      "bytes": 62352
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-042-tug-of-war-with-road.webp",
+      "width": 512,
+      "height": 319,
+      "bytes": 41480
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-043-traffic-sign-grows-branches.webp",
+      "width": 444,
+      "height": 485,
+      "bytes": 50076
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-044-chessboard-city-blocks-move.webp",
+      "width": 500,
+      "height": 469,
+      "bytes": 58018
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-045-wall-crack-opens-onto-stadium.webp",
+      "width": 436,
+      "height": 485,
+      "bytes": 46328
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-046-finish-line-keeps-moving.webp",
+      "width": 502,
+      "height": 456,
+      "bytes": 61742
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-047-stairs-cast-paper-plane-shadow.webp",
+      "width": 458,
+      "height": 443,
+      "bytes": 51392
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-048-argument-splits-weather-front.webp",
+      "width": 487,
+      "height": 469,
+      "bytes": 54312
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-049-empty-chair-wins-race.webp",
+      "width": 483,
+      "height": 449,
+      "bytes": 66752
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-050-square-folds-into-ribbon-maze.webp",
+      "width": 512,
+      "height": 437,
+      "bytes": 48068
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-051-friends-hold-moon-ribbon.webp",
+      "width": 483,
+      "height": 427,
+      "bytes": 56230
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-052-forest-reflected-as-city.webp",
+      "width": 512,
+      "height": 425,
+      "bytes": 45748
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-053-birds-carry-weather-map.webp",
+      "width": 512,
+      "height": 429,
+      "bytes": 57814
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-054-tree-roots-follow-subway-lines.webp",
+      "width": 415,
+      "height": 443,
+      "bytes": 53502
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-055-waves-turn-into-newspaper-crowd.webp",
+      "width": 503,
+      "height": 404,
+      "bytes": 63980
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-056-crescent-moon-as-park-bench.webp",
+      "width": 461,
+      "height": 396,
+      "bytes": 46136
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-057-rain-rises-to-striped-clouds.webp",
+      "width": 461,
+      "height": 489,
+      "bytes": 50302
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-058-mountain-opens-like-newspaper.webp",
+      "width": 512,
+      "height": 398,
+      "bytes": 48714
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-059-fish-swim-through-night-bus.webp",
+      "width": 505,
+      "height": 421,
+      "bytes": 57632
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-060-garden-shadow-shows-winter.webp",
+      "width": 491,
+      "height": 467,
+      "bytes": 51840
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-001-tree-lined-coffee-walk.webp",
+      "width": 487,
+      "height": 353,
+      "bytes": 40188
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-002-mural-crosswalk-pause.webp",
+      "width": 315,
+      "height": 497,
+      "bytes": 34920
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-003-shared-headphones-bench.webp",
+      "width": 488,
+      "height": 392,
+      "bytes": 36166
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-004-lunch-stroll-sketches.webp",
+      "width": 441,
+      "height": 442,
+      "bytes": 33230
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-005-fountain-step-laughter.webp",
+      "width": 448,
+      "height": 389,
+      "bytes": 43226
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-006-duck-pond-afternoon.webp",
+      "width": 504,
+      "height": 372,
+      "bytes": 45044
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-007-coin-toss-path.webp",
+      "width": 491,
+      "height": 390,
+      "bytes": 37796
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-008-shadow-photo-game.webp",
+      "width": 312,
+      "height": 470,
+      "bytes": 29838
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-009-stairs-escalator-race.webp",
+      "width": 488,
+      "height": 383,
+      "bytes": 34390
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-010-open-air-books.webp",
+      "width": 493,
+      "height": 385,
+      "bytes": 37328
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-011-green-light-story.webp",
+      "width": 454,
+      "height": 324,
+      "bytes": 29322
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-012-colonnade-matched-steps.webp",
+      "width": 450,
+      "height": 374,
+      "bytes": 32810
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-013-street-music-claps.webp",
+      "width": 488,
+      "height": 389,
+      "bytes": 39398
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-014-sunglasses-swap.webp",
+      "width": 337,
+      "height": 470,
+      "bytes": 32564
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-015-ice-cream-flavor-swap.webp",
+      "width": 501,
+      "height": 393,
+      "bytes": 36036
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-016-dog-and-pigeons.webp",
+      "width": 478,
+      "height": 438,
+      "bytes": 38498
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-017-bridge-echo-test.webp",
+      "width": 438,
+      "height": 389,
+      "bytes": 39440
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-018-skatepark-spectators.webp",
+      "width": 491,
+      "height": 408,
+      "bytes": 40422
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-019-plaza-lunch-choice.webp",
+      "width": 492,
+      "height": 397,
+      "bytes": 47590
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-020-chalk-arrow-walk.webp",
+      "width": 348,
+      "height": 472,
+      "bytes": 38934
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-021-folded-city-map.webp",
+      "width": 503,
+      "height": 427,
+      "bytes": 43936
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-022-windy-leaf-catch.webp",
+      "width": 492,
+      "height": 432,
+      "bytes": 32166
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-023-photo-scavenger-walk.webp",
+      "width": 367,
+      "height": 397,
+      "bytes": 35364
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-024-drizzle-under-tree.webp",
+      "width": 487,
+      "height": 384,
+      "bytes": 42724
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-025-golden-hour-storefront.webp",
+      "width": 487,
+      "height": 354,
+      "bytes": 43826
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-026-riverside-bike-cadence.webp",
+      "width": 351,
+      "height": 498,
+      "bytes": 41382
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-027-viewpoint-water-break.webp",
+      "width": 495,
+      "height": 390,
+      "bytes": 40090
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-028-bike-share-color-choice.webp",
+      "width": 492,
+      "height": 443,
+      "bytes": 48480
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-029-tram-rain-window.webp",
+      "width": 455,
+      "height": 367,
+      "bytes": 41772
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-030-ferry-gull-spotting.webp",
+      "width": 493,
+      "height": 375,
+      "bytes": 39126
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-031-road-song-duet.webp",
+      "width": 493,
+      "height": 395,
+      "bytes": 43880
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-032-platform-playlist.webp",
+      "width": 328,
+      "height": 480,
+      "bytes": 36578
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-033-bus-window-mime.webp",
+      "width": 511,
+      "height": 407,
+      "bytes": 40016
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-034-promenade-scooters.webp",
+      "width": 486,
+      "height": 440,
+      "bytes": 36016
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-035-blossom-bike-ride.webp",
+      "width": 426,
+      "height": 425,
+      "bytes": 50496
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-036-late-metro-joke.webp",
+      "width": 495,
+      "height": 346,
+      "bytes": 36336
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-037-cafe-bike-route.webp",
+      "width": 463,
+      "height": 392,
+      "bytes": 169902
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-038-wrong-tram-laughter.webp",
+      "width": 326,
+      "height": 477,
+      "bytes": 128842
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-039-back-seat-word-game.webp",
+      "width": 496,
+      "height": 354,
+      "bytes": 126042
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-040-train-window-view.webp",
+      "width": 488,
+      "height": 403,
+      "bytes": 132800
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-041-rural-stop-instant-photo.webp",
+      "width": 443,
+      "height": 420,
+      "bytes": 166774
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-042-boat-deck-spray.webp",
+      "width": 426,
+      "height": 381,
+      "bytes": 137580
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-043-cab-shortcut-gesture.webp",
+      "width": 498,
+      "height": 397,
+      "bytes": 58402
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-044-bikes-in-light-rain.webp",
+      "width": 361,
+      "height": 491,
+      "bytes": 56072
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-045-seaside-bike-fork.webp",
+      "width": 496,
+      "height": 419,
+      "bytes": 50750
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-046-funicular-city-rise.webp",
+      "width": 509,
+      "height": 437,
+      "bytes": 52248
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-047-one-camera-walk.webp",
+      "width": 381,
+      "height": 409,
+      "bytes": 43254
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-048-scenic-driver-switch.webp",
+      "width": 499,
+      "height": 401,
+      "bytes": 51658
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-049-weekend-hill-highfive.webp",
+      "width": 490,
+      "height": 364,
+      "bytes": 39040
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-050-sand-spiral.webp",
+      "width": 370,
+      "height": 472,
+      "bytes": 35124
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-051-knee-deep-waves.webp",
+      "width": 473,
+      "height": 414,
+      "bytes": 36982
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-052-beach-paddleball.webp",
+      "width": 512,
+      "height": 408,
+      "bytes": 31728
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-053-windy-picnic-napkins.webp",
+      "width": 430,
+      "height": 416,
+      "bytes": 41364
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-054-pool-noodle-drift.webp",
+      "width": 498,
+      "height": 349,
+      "bytes": 36732
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-055-skip-stone-count.webp",
+      "width": 504,
+      "height": 353,
+      "bytes": 31354
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-056-shell-color-pattern.webp",
+      "width": 292,
+      "height": 488,
+      "bytes": 29760
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-057-umbrella-in-gust.webp",
+      "width": 500,
+      "height": 369,
+      "bytes": 30726
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-058-beach-chess.webp",
+      "width": 512,
+      "height": 421,
+      "bytes": 31764
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-059-dog-digs-sand.webp",
+      "width": 458,
+      "height": 405,
+      "bytes": 39124
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-060-barefoot-speaker-dance.webp",
+      "width": 505,
+      "height": 381,
+      "bytes": 33022
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-061-grass-frisbee.webp",
+      "width": 492,
+      "height": 342,
+      "bytes": 41538
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-062-sand-constellations.webp",
+      "width": 293,
+      "height": 451,
+      "bytes": 29266
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-063-calm-kayaks.webp",
+      "width": 486,
+      "height": 419,
+      "bytes": 37486
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-064-picnic-fruit-choice.webp",
+      "width": 480,
+      "height": 432,
+      "bytes": 43320
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-065-dock-reflections.webp",
+      "width": 418,
+      "height": 430,
+      "bytes": 40362
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-066-blanket-cloud-watch.webp",
+      "width": 494,
+      "height": 377,
+      "bytes": 40594
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-067-leaf-race-stream.webp",
+      "width": 483,
+      "height": 400,
+      "bytes": 51960
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-068-dune-sunrise.webp",
+      "width": 324,
+      "height": 489,
+      "bytes": 39474
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-069-shared-binoculars.webp",
+      "width": 497,
+      "height": 406,
+      "bytes": 42098
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-070-deer-at-distance.webp",
+      "width": 498,
+      "height": 433,
+      "bytes": 44140
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-071-pine-trail-scent.webp",
+      "width": 438,
+      "height": 401,
+      "bytes": 47816
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-072-wildflower-crowns.webp",
+      "width": 478,
+      "height": 390,
+      "bytes": 51960
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-073-picnic-blanket-rain.webp",
+      "width": 498,
+      "height": 432,
+      "bytes": 54720
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-074-campsite-lemonade.webp",
+      "width": 349,
+      "height": 507,
+      "bytes": 40532
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-075-table-tennis-rally.webp",
+      "width": 504,
+      "height": 405,
+      "bytes": 37800
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-076-casual-basketball-pass.webp",
+      "width": 511,
+      "height": 384,
+      "bytes": 33710
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-077-bowling-early-cheer.webp",
+      "width": 462,
+      "height": 427,
+      "bytes": 42642
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-078-park-badminton.webp",
+      "width": 474,
+      "height": 409,
+      "bytes": 45612
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-079-mini-golf-angle.webp",
+      "width": 483,
+      "height": 403,
+      "bytes": 45104
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-080-roller-skate-rhythm.webp",
+      "width": 327,
+      "height": 454,
+      "bytes": 36030
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-081-lucky-pool-shot.webp",
+      "width": 492,
+      "height": 398,
+      "bytes": 35392
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-082-grass-volleyball.webp",
+      "width": 511,
+      "height": 415,
+      "bytes": 39538
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-083-park-petanque.webp",
+      "width": 419,
+      "height": 442,
+      "bytes": 47244
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-084-orange-juggling.webp",
+      "width": 478,
+      "height": 414,
+      "bytes": 47752
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-085-dance-class-mirror.webp",
+      "width": 489,
+      "height": 405,
+      "bytes": 37444
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-086-tennis-tiebreak.webp",
+      "width": 349,
+      "height": 499,
+      "bytes": 40950
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-087-air-hockey-reaction.webp",
+      "width": 507,
+      "height": 373,
+      "bytes": 35976
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-088-park-yoga-balance.webp",
+      "width": 512,
+      "height": 441,
+      "bytes": 44430
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-089-indoor-bouldering-smile.webp",
+      "width": 423,
+      "height": 456,
+      "bytes": 43128
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-090-foosball-night.webp",
+      "width": 503,
+      "height": 373,
+      "bytes": 42552
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-091-disc-for-dog.webp",
+      "width": 483,
+      "height": 397,
+      "bytes": 41212
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-092-outdoor-board-game.webp",
+      "width": 330,
+      "height": 472,
+      "bytes": 37544
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-093-hula-hoop-try.webp",
+      "width": 495,
+      "height": 401,
+      "bytes": 36838
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-094-pond-boat-race.webp",
+      "width": 467,
+      "height": 442,
+      "bytes": 43710
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-095-kitchen-salsa-step.webp",
+      "width": 409,
+      "height": 454,
+      "bytes": 41756
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-096-charades-cousins.webp",
+      "width": 492,
+      "height": 395,
+      "bytes": 42520
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-097-double-dutch.webp",
+      "width": 479,
+      "height": 404,
+      "bytes": 48146
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-098-soft-tip-darts.webp",
+      "width": 293,
+      "height": 490,
+      "bytes": 29810
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-099-adult-swings.webp",
+      "width": 490,
+      "height": 377,
+      "bytes": 41208
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-100-living-room-karaoke.webp",
+      "width": 484,
+      "height": 451,
+      "bytes": 37290
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-101-playlist-truce.webp",
+      "width": 425,
+      "height": 392,
+      "bytes": 36836
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-102-guitar-and-shaker.webp",
+      "width": 487,
+      "height": 398,
+      "bytes": 43082
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-103-house-party-dance.webp",
+      "width": 492,
+      "height": 401,
+      "bytes": 46888
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-104-open-mic-pass.webp",
+      "width": 323,
+      "height": 501,
+      "bytes": 38158
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-105-piano-bench-improv.webp",
+      "width": 477,
+      "height": 399,
+      "bytes": 40516
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-106-clap-rhythm-sync.webp",
+      "width": 512,
+      "height": 408,
+      "bytes": 35560
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-107-record-choice.webp",
+      "width": 396,
+      "height": 425,
+      "bytes": 42552
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-108-pasta-dance.webp",
+      "width": 495,
+      "height": 429,
+      "bytes": 49210
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-109-cup-percussion.webp",
+      "width": 487,
+      "height": 366,
+      "bytes": 149804
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-110-balcony-listening.webp",
+      "width": 305,
+      "height": 438,
+      "bytes": 118850
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-111-line-dance-lesson.webp",
+      "width": 459,
+      "height": 407,
+      "bytes": 133674
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-112-floor-speaker-listen.webp",
+      "width": 501,
+      "height": 379,
+      "bytes": 128786
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-113-family-table-song.webp",
+      "width": 456,
+      "height": 364,
+      "bytes": 145454
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-114-paper-streamers.webp",
+      "width": 462,
+      "height": 392,
+      "bytes": 158438
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-115-party-bubbles.webp",
+      "width": 499,
+      "height": 370,
+      "bytes": 39470
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-116-instant-party-portraits.webp",
+      "width": 354,
+      "height": 506,
+      "bytes": 39812
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-117-quiz-win-highfive.webp",
+      "width": 493,
+      "height": 379,
+      "bytes": 34840
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-118-quiet-party-headphones.webp",
+      "width": 510,
+      "height": 397,
+      "bytes": 35942
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-119-park-fireworks.webp",
+      "width": 416,
+      "height": 435,
+      "bytes": 42198
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-120-shadow-puppets.webp",
+      "width": 497,
+      "height": 383,
+      "bytes": 39764
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-121-paper-hat-laughter.webp",
+      "width": 490,
+      "height": 368,
+      "bytes": 43634
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-122-switch-dance-lead.webp",
+      "width": 311,
+      "height": 471,
+      "bytes": 36552
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-123-vinyl-cover-choice.webp",
+      "width": 511,
+      "height": 412,
+      "bytes": 42588
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-124-cake-table-laughter.webp",
+      "width": 512,
+      "height": 406,
+      "bytes": 38170
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-125-pancake-flip-plate.webp",
+      "width": 440,
+      "height": 430,
+      "bytes": 46554
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-126-colorful-salad.webp",
+      "width": 471,
+      "height": 416,
+      "bytes": 47784
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-127-soup-taste-debate.webp",
+      "width": 495,
+      "height": 382,
+      "bytes": 39132
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-128-sushi-roll-table.webp",
+      "width": 320,
+      "height": 468,
+      "bytes": 34130
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-129-cookie-shapes.webp",
+      "width": 500,
+      "height": 415,
+      "bytes": 42096
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-130-brunch-foam-game.webp",
+      "width": 511,
+      "height": 420,
+      "bytes": 38832
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-131-mismatched-plates.webp",
+      "width": 473,
+      "height": 392,
+      "bytes": 43016
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-132-plant-mister-laugh.webp",
+      "width": 485,
+      "height": 360,
+      "bytes": 40076
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-133-movie-cushion-choice.webp",
+      "width": 495,
+      "height": 366,
+      "bytes": 38048
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-134-pizza-topping-choice.webp",
+      "width": 293,
+      "height": 472,
+      "bytes": 33660
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-135-laundry-dance.webp",
+      "width": 499,
+      "height": 410,
+      "bytes": 38782
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-136-paper-airplanes.webp",
+      "width": 509,
+      "height": 431,
+      "bytes": 38140
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-137-board-game-night.webp",
+      "width": 450,
+      "height": 395,
+      "bytes": 40574
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-138-cat-toy-follow.webp",
+      "width": 471,
+      "height": 382,
+      "bytes": 41500
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-139-dog-bath-splash.webp",
+      "width": 487,
+      "height": 354,
+      "bytes": 36470
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-140-fairy-light-tangle.webp",
+      "width": 343,
+      "height": 489,
+      "bytes": 34200
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-141-blanket-fort.webp",
+      "width": 487,
+      "height": 372,
+      "bytes": 34922
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-142-old-photo-smiles.webp",
+      "width": 455,
+      "height": 408,
+      "bytes": 32674
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-143-funny-gift-wrap.webp",
+      "width": 462,
+      "height": 410,
+      "bytes": 44288
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-144-color-swatch-choice.webp",
+      "width": 466,
+      "height": 379,
+      "bytes": 37238
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-145-hair-braid-evening.webp",
+      "width": 480,
+      "height": 367,
+      "bytes": 146674
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-146-mocktail-mixing.webp",
+      "width": 339,
+      "height": 473,
+      "bytes": 134116
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-147-bread-dough-together.webp",
+      "width": 481,
+      "height": 386,
+      "bytes": 132542
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-148-windowsill-herbs.webp",
+      "width": 497,
+      "height": 378,
+      "bytes": 135638
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-149-shared-cookbook.webp",
+      "width": 397,
+      "height": 406,
+      "bytes": 134876
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-150-color-bookshelf.webp",
+      "width": 494,
+      "height": 361,
+      "bytes": 140600
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-151-popcorn-catch.webp",
+      "width": 490,
+      "height": 409,
+      "bytes": 46948
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-152-picnic-sandwiches.webp",
+      "width": 315,
+      "height": 470,
+      "bytes": 38008
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-153-rabbit-explores-room.webp",
+      "width": 495,
+      "height": 401,
+      "bytes": 33668
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-154-kitchen-card-game.webp",
+      "width": 512,
+      "height": 396,
+      "bytes": 35462
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-155-cafe-chess.webp",
+      "width": 389,
+      "height": 370,
+      "bytes": 32266
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-156-dessert-comparison.webp",
+      "width": 492,
+      "height": 371,
+      "bytes": 35572
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-157-napkin-doodles.webp",
+      "width": 495,
+      "height": 360,
+      "bytes": 36318
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-158-cafe-dominoes.webp",
+      "width": 337,
+      "height": 457,
+      "bytes": 33144
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-159-tea-by-scent.webp",
+      "width": 510,
+      "height": 374,
+      "bytes": 36994
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-160-back-to-back-pause.webp",
+      "width": 501,
+      "height": 393,
+      "bytes": 29370
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-161-trivia-expressions.webp",
+      "width": 452,
+      "height": 380,
+      "bytes": 37016
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-162-passerby-stories.webp",
+      "width": 495,
+      "height": 367,
+      "bytes": 39212
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-163-umbrella-cafe.webp",
+      "width": 491,
+      "height": 389,
+      "bytes": 44578
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-164-cafe-cards.webp",
+      "width": 344,
+      "height": 500,
+      "bytes": 40220
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-165-sugar-packet-tower.webp",
+      "width": 499,
+      "height": 412,
+      "bytes": 40638
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-166-window-seat-swap.webp",
+      "width": 488,
+      "height": 457,
+      "bytes": 38586
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-167-sparkling-water-toast.webp",
+      "width": 434,
+      "height": 420,
+      "bytes": 42762
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-168-raindrop-window-race.webp",
+      "width": 490,
+      "height": 406,
+      "bytes": 48424
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-169-pastry-halves.webp",
+      "width": 489,
+      "height": 419,
+      "bytes": 47638
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-170-wordless-guessing.webp",
+      "width": 314,
+      "height": 491,
+      "bytes": 38494
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-171-coaster-game.webp",
+      "width": 499,
+      "height": 378,
+      "bytes": 41802
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-172-street-song-pause.webp",
+      "width": 502,
+      "height": 425,
+      "bytes": 40250
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-173-photobooth-strip.webp",
+      "width": 407,
+      "height": 457,
+      "bytes": 44408
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-174-phone-photo-comparison.webp",
+      "width": 501,
+      "height": 387,
+      "bytes": 44118
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-175-bench-after-disagreement.webp",
+      "width": 484,
+      "height": 378,
+      "bytes": 43140
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-176-mismatched-rain-umbrellas.webp",
+      "width": 358,
+      "height": 469,
+      "bytes": 36852
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-177-dog-during-thunder.webp",
+      "width": 493,
+      "height": 411,
+      "bytes": 36032
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-178-last-pizza-slice.webp",
+      "width": 510,
+      "height": 421,
+      "bytes": 37490
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-179-sunset-conversation-return.webp",
+      "width": 461,
+      "height": 376,
+      "bytes": 32734
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-180-umbrella-shift.webp",
+      "width": 484,
+      "height": 353,
+      "bytes": 35456
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-181-apology-fistbump.webp",
+      "width": 472,
+      "height": 368,
+      "bytes": 38244
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-182-dance-step-cheer.webp",
+      "width": 322,
+      "height": 474,
+      "bytes": 33602
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-183-mock-serious-team-choice.webp",
+      "width": 490,
+      "height": 374,
+      "bytes": 38734
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-184-same-book-reach.webp",
+      "width": 462,
+      "height": 407,
+      "bytes": 36054
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-185-cafe-cat-two-sides.webp",
+      "width": 447,
+      "height": 396,
+      "bytes": 41724
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-186-puppy-yard-play.webp",
+      "width": 457,
+      "height": 378,
+      "bytes": 43530
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-187-aquarium-mirror.webp",
+      "width": 499,
+      "height": 342,
+      "bytes": 36460
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-188-dog-steals-napkin.webp",
+      "width": 346,
+      "height": 500,
+      "bytes": 39980
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-189-bridge-listening-pause.webp",
+      "width": 495,
+      "height": 427,
+      "bytes": 40180
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-190-evening-snack-walk.webp",
+      "width": 509,
+      "height": 450,
+      "bytes": 37788
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-191-birthday-candles.webp",
+      "width": 434,
+      "height": 401,
+      "bytes": 38558
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-192-warm-rain-steps.webp",
+      "width": 512,
+      "height": 384,
+      "bytes": 39736
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-193-windblown-umbrellas.webp",
+      "width": 499,
+      "height": 344,
+      "bytes": 37252
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-194-street-dance-join.webp",
+      "width": 374,
+      "height": 489,
+      "bytes": 42808
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-195-quiet-dessert-after-party.webp",
+      "width": 505,
+      "height": 380,
+      "bytes": 37252
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-196-cat-chooses-lap.webp",
+      "width": 487,
+      "height": 422,
+      "bytes": 40750
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-197-silly-toast-applause.webp",
+      "width": 449,
+      "height": 361,
+      "bytes": 36764
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-198-swim-shadow-race.webp",
+      "width": 504,
+      "height": 355,
+      "bytes": 46090
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-199-before-group-photo.webp",
+      "width": 482,
+      "height": 369,
+      "bytes": 43098
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/synastry/syn-200-park-bubble-wands.webp",
+      "width": 322,
+      "height": 442,
+      "bytes": 31822
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-aquarius-kite-lines-in-field.webp",
+      "width": 462,
+      "height": 328,
+      "bytes": 29780
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-aries-first-paper-boat.webp",
+      "width": 504,
+      "height": 350,
+      "bytes": 45448
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-cancer-blanket-in-warm-rain.webp",
+      "width": 507,
+      "height": 420,
+      "bytes": 45622
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-capricorn-steps-to-city-view.webp",
+      "width": 454,
+      "height": 465,
+      "bytes": 38614
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-gemini-two-conversations-courtyard.webp",
+      "width": 506,
+      "height": 442,
+      "bytes": 49052
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-leo-song-starts-the-square.webp",
+      "width": 461,
+      "height": 413,
+      "bytes": 50374
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-libra-seesaw-finds-balance.webp",
+      "width": 485,
+      "height": 341,
+      "bytes": 41988
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-pisces-birds-inside-reflection.webp",
+      "width": 448,
+      "height": 375,
+      "bytes": 32568
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-sagittarius-laughing-road-choice.webp",
+      "width": 488,
+      "height": 324,
+      "bytes": 30188
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-scorpio-reflection-under-water.webp",
+      "width": 287,
+      "height": 441,
+      "bytes": 26942
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-taurus-picnic-holds-in-breeze.webp",
+      "width": 359,
+      "height": 476,
+      "bytes": 45830
+    },
+    {
+      "file": "/assets/forecast-feed/editorial-stickers/zodiac/zodiac-virgo-fruit-pattern-picnic.webp",
+      "width": 506,
+      "height": 368,
+      "bytes": 45184
+    }
+  ]
+}

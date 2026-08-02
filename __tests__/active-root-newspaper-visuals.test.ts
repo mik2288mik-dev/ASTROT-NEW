@@ -37,6 +37,8 @@ describe('active root newspaper visual contract', () => {
 
     const styles = read('styles/newspaperVisual.css');
     expect(styles).toContain('--news-paper: #ffffff');
+    expect(styles).toContain('--news-action: #1478ff');
+    expect(styles).not.toContain('--news-action: #1d1d1b');
     expect(styles).toContain('.forecast-feed-page .forecast-feed-status button');
     expect(styles).toContain('background: var(--news-action) !important');
     expect(styles).toContain('.settings-editorial-page .fresh-btn-ghost');
@@ -46,6 +48,9 @@ describe('active root newspaper visual contract', () => {
     expect(styles).toContain('.compat-editorial-page .people-dim-val');
     expect(styles).toContain('.compat-editorial-page .people-dim-track');
     expect(styles).toContain('.compat-editorial-page .people-ring circle:first-child');
+    expect(styles).toContain('width: clamp(5rem, 22vw, 7.5rem)');
+    expect(styles).not.toContain('width: min(100%, 32rem)');
+    expect(styles).not.toContain('min-height: 24rem');
     expect(styles).not.toMatch(/\.lumia-bottom-(?:nav|bar)/);
   });
 

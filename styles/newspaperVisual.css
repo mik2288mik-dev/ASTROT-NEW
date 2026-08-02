@@ -11,7 +11,9 @@
   --news-muted: #6c6c68;
   --news-faint: #92928c;
   --news-rule: #deded9;
-  --news-action: #1d1d1b;
+  --news-action: #1478ff;
+  --news-action-pressed: #0b63d1;
+  --news-action-soft: rgba(20, 120, 255, 0.1);
   --news-danger: #9e2f2f;
 }
 
@@ -43,11 +45,13 @@
   border-color: var(--news-rule);
 }
 
-/* Generated cutouts already contain paper, frame and print wear. */
+/* Editorial cutouts are accents, not posters: one restrained image per reading surface. */
 .editorial-sticker {
   display: block;
-  width: min(100%, 28rem);
-  margin: 1.5rem auto;
+  width: clamp(5rem, 22vw, 7.5rem);
+  aspect-ratio: var(--editorial-sticker-ratio, auto);
+  margin: 1.15rem auto;
+  contain: layout paint;
   pointer-events: none;
 }
 
@@ -59,7 +63,7 @@
 }
 
 .editorial-sticker--portrait {
-  width: min(72%, 19rem);
+  width: clamp(4.5rem, 19vw, 6.5rem);
 }
 
 .editorial-sticker figcaption {
@@ -70,7 +74,7 @@
   text-align: center;
 }
 
-/* Shared interactive surfaces: flat paper, visible rules, black action. */
+/* Shared interactive surfaces: white paper, black type, blue primary action. */
 .forecast-feed-page .fresh-btn-primary,
 .horo-reader-page .fresh-btn-primary,
 .natal-editorial-page .fresh-btn-primary,
@@ -85,7 +89,7 @@
   border: 1px solid var(--news-action) !important;
   background: var(--news-action) !important;
   color: #fff !important;
-  box-shadow: none !important;
+  box-shadow: 0 0.55rem 1.25rem rgba(20, 120, 255, 0.16) !important;
 }
 
 .forecast-feed-page button,
@@ -99,6 +103,24 @@
 .auth-editorial-page button,
 .pw2 button {
   box-shadow: none !important;
+}
+
+:is(
+  .forecast-feed-page,
+  .horo-reader-page,
+  .natal-editorial-page,
+  .compat-editorial-page,
+  .matrix-editorial-page,
+  .settings-editorial-page,
+  .charts-editorial-page,
+  .onboarding-editorial-page,
+  .auth-editorial-page,
+  .pw2
+) .fresh-btn-primary:active,
+.auth-editorial-page button.bg-\[\#168de2\]:active,
+.pw2 .pw2-cta:active {
+  border-color: var(--news-action-pressed) !important;
+  background: var(--news-action-pressed) !important;
 }
 
 .forecast-feed-page .fresh-input,
@@ -126,8 +148,8 @@
 .charts-editorial-page .fresh-input:focus,
 .onboarding-editorial-page .fresh-input:focus,
 .auth-editorial-page input:focus {
-  border-color: var(--news-ink) !important;
-  outline: 1px solid var(--news-ink) !important;
+  border-color: var(--news-action) !important;
+  outline: 1px solid var(--news-action) !important;
   outline-offset: 1px;
 }
 
@@ -148,8 +170,8 @@
 }
 
 .forecast-feed-page .home-period-tab.is-active {
-  border-color: var(--news-ink) !important;
-  background: var(--news-ink) !important;
+  border-color: var(--news-action) !important;
+  background: var(--news-action) !important;
   color: #fff !important;
   box-shadow: none !important;
 }
@@ -186,13 +208,13 @@
 .forecast-feed-page .forecast-feed-cross-link span,
 .forecast-feed-page .forecast-feed-premium-cta {
   background: none !important;
-  color: var(--news-ink) !important;
+  color: var(--news-action) !important;
   -webkit-text-fill-color: currentColor;
 }
 
 .forecast-feed-page .forecast-topic-navigation-row button.is-active::before {
   height: 2px;
-  background: var(--news-ink);
+  background: var(--news-action);
 }
 
 .forecast-feed-page .forecast-topic-navigation-row button:not(:last-child)::after {
@@ -317,14 +339,14 @@
 
 .horo-reader-page .zodiac-sign-option[data-active='true'],
 .horo-reader-page .zodiac-sign-option[data-own='true'] {
-  border-color: var(--news-ink);
-  background: var(--news-paper-soft) !important;
+  border-color: var(--news-action);
+  background: var(--news-action-soft) !important;
 }
 
 .horo-reader-page .zodiac-sign-own-badge,
 .horo-reader-page .horo-period-tabs .fresh-tab.active,
 .horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
-  background: var(--news-ink) !important;
+  background: var(--news-action) !important;
   color: #fff !important;
 }
 
@@ -375,20 +397,20 @@
 }
 
 .horo-reader-page .horo-uni-hero:has(.horo-zodiac-sticker) {
-  min-height: 164px;
+  min-height: 10rem;
   overflow: visible;
 }
 
 .horo-reader-page .horo-zodiac-sticker {
   position: absolute;
   z-index: 1;
-  top: 0;
-  right: -0.5rem;
-  bottom: 0;
-  width: 48%;
-  max-width: 13rem;
+  top: 50%;
+  right: 0.6rem;
+  width: clamp(5.25rem, 23vw, 7.5rem);
+  max-width: none;
   margin: 0;
-  opacity: 0.82;
+  opacity: 0.92;
+  transform: translateY(-50%);
 }
 
 .horo-reader-page .horo-zodiac-sticker img {
@@ -398,7 +420,7 @@
 }
 
 .horo-reader-page .horo-uni-hero:has(.horo-zodiac-sticker) .horo-hero-stack {
-  padding-right: 48%;
+  padding-right: clamp(6.5rem, 29vw, 9rem);
 }
 
 .horo-reader-page .horo-uni-advice,
@@ -428,18 +450,18 @@
 
 .natal-editorial-page .product-screen-cover:has(.natal-zodiac-sticker) {
   position: relative;
-  min-height: 12rem;
-  padding-right: min(48%, 14rem);
+  min-height: 10rem;
+  padding-right: clamp(6.5rem, 29vw, 9rem);
   overflow: visible;
 }
 
 .natal-editorial-page .natal-zodiac-sticker {
   position: absolute;
-  top: 0.35rem;
-  right: 0;
-  bottom: 0.35rem;
-  width: min(46%, 13rem);
+  top: 50%;
+  right: 0.6rem;
+  width: clamp(5.25rem, 23vw, 7.5rem);
   margin: 0;
+  transform: translateY(-50%);
 }
 
 .natal-editorial-page .natal-zodiac-sticker img {
@@ -611,8 +633,8 @@
 }
 
 .compat-editorial-page .compat-result-sticker {
-  width: min(100%, 32rem);
-  margin: 1.25rem auto 1.75rem;
+  width: clamp(6rem, 26vw, 8.5rem);
+  margin: 1.35rem auto 1.7rem;
 }
 
 /* Matrix: plain calculation page; result groups read as an article, not cards. */
@@ -650,8 +672,8 @@
 }
 
 .matrix-editorial-page .matrix-result-sticker {
-  width: min(100%, 28rem);
-  margin: 1.5rem auto;
+  width: clamp(6rem, 26vw, 8.5rem);
+  margin: 1.35rem auto 1.7rem;
 }
 
 /* Long-form readings: one editorial column with a stable conclusion-to-evidence rhythm. */
@@ -1053,8 +1075,8 @@
 
 .settings-editorial-page button[class*='bg-mono-accent'],
 .settings-editorial-page button[class*='border-mono-accent'] {
-  border-color: var(--news-ink) !important;
-  background: var(--news-ink) !important;
+  border-color: var(--news-action) !important;
+  background: var(--news-action) !important;
   color: #fff !important;
 }
 
@@ -1063,8 +1085,8 @@
 }
 
 .charts-editorial-page button[class*='bg-mono-accent'] {
-  border-color: var(--news-ink) !important;
-  background: var(--news-ink) !important;
+  border-color: var(--news-action) !important;
+  background: var(--news-action) !important;
   color: #fff !important;
 }
 
@@ -1079,8 +1101,8 @@
 
 .charts-editorial-page input:focus,
 .charts-editorial-page select:focus {
-  border-color: var(--news-ink) !important;
-  outline: 1px solid var(--news-ink) !important;
+  border-color: var(--news-action) !important;
+  outline: 1px solid var(--news-action) !important;
   outline-offset: 1px;
 }
 
@@ -1101,7 +1123,7 @@
 }
 
 .onboarding-editorial-page .onb-hero {
-  height: 15rem;
+  height: 10rem;
   border: 0;
   border-radius: 0;
   background: #fff !important;
@@ -1110,7 +1132,7 @@
 
 .onboarding-editorial-page .onb-story-sticker {
   display: flex;
-  width: min(100%, 24rem);
+  width: clamp(7rem, 31vw, 10rem);
   height: 100%;
   margin: 0 auto;
   align-items: center;
@@ -1129,8 +1151,8 @@
 
 .onboarding-editorial-page .onb-dot.is-on,
 .onboarding-editorial-page .onb-check.is-on {
-  border-color: var(--news-ink) !important;
-  background: var(--news-ink) !important;
+  border-color: var(--news-action) !important;
+  background: var(--news-action) !important;
   color: #fff !important;
 }
 
@@ -1143,20 +1165,20 @@
 }
 
 .auth-editorial-page button[class*='bg-[#168de2]'] {
-  border-color: var(--news-ink) !important;
-  background: var(--news-ink) !important;
+  border-color: var(--news-action) !important;
+  background: var(--news-action) !important;
   color: #fff !important;
 }
 
 .pw2 .pw2-plan.is-sel,
 .pw2 .pw2-plan.is-best {
-  border-color: var(--news-ink) !important;
+  border-color: var(--news-action) !important;
   background: var(--news-paper-soft) !important;
 }
 
 .pw2 .pw2-plan-badge,
 .pw2 .pw2-trial-dot {
-  background: var(--news-ink) !important;
+  background: var(--news-action) !important;
   color: #fff !important;
 }
 
@@ -1169,12 +1191,12 @@
 
 @media (max-width: 420px) {
   .editorial-sticker {
-    width: min(100%, 24rem);
-    margin-block: 1.25rem;
+    width: clamp(4.75rem, 24vw, 6.5rem);
+    margin-block: 1rem;
   }
 
   .editorial-sticker--portrait {
-    width: min(76%, 17rem);
+    width: clamp(4.25rem, 21vw, 5.75rem);
   }
 
   .forecast-feed-page .forecast-feed-section.has-visual::before {
@@ -1183,20 +1205,19 @@
   }
 
   .horo-reader-page .horo-uni-hero:has(.horo-zodiac-sticker) {
-    min-height: 18rem;
+    min-height: 9.5rem;
   }
 
   .horo-reader-page .horo-zodiac-sticker {
-    top: 5.25rem;
-    right: 50%;
-    bottom: 0.5rem;
-    width: min(72%, 14rem);
+    top: 50%;
+    right: 0.5rem;
+    width: clamp(4.75rem, 24vw, 6.5rem);
     max-width: none;
-    transform: translateX(50%);
+    transform: translateY(-50%);
   }
 
   .horo-reader-page .horo-uni-hero:has(.horo-zodiac-sticker) .horo-hero-stack {
-    padding: 0.9rem 4.5rem 0.75rem 0.9rem;
+    padding: 0.9rem clamp(5.65rem, 30vw, 7.5rem) 0.75rem 0.9rem;
   }
 
   .horo-reader-page .horo-hero-glyph {
@@ -1206,8 +1227,8 @@
   }
 
   .natal-editorial-page .product-screen-cover:has(.natal-zodiac-sticker) {
-    min-height: 24rem;
-    padding: 1.5rem 1rem 12rem;
+    min-height: 10rem;
+    padding: 1.25rem clamp(5.65rem, 30vw, 7.5rem) 1.25rem 1rem;
   }
 
   .natal-editorial-page .product-screen-cover:has(.natal-zodiac-sticker) .product-screen-cover-copy {
@@ -1215,12 +1236,11 @@
   }
 
   .natal-editorial-page .natal-zodiac-sticker {
-    top: auto;
-    right: 50%;
-    bottom: 0.5rem;
-    width: min(72%, 15rem);
-    height: 11rem;
-    transform: translateX(50%);
+    top: 50%;
+    right: 0.5rem;
+    width: clamp(4.75rem, 24vw, 6.5rem);
+    height: auto;
+    transform: translateY(-50%);
   }
 }
 

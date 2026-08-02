@@ -16,11 +16,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-001-crosswalk-map-pause.webp",
-      "width": 640,
-      "height": 395,
+      "width": 512,
+      "height": 316,
       "orientation": "landscape",
-      "bytes": 56110,
-      "sha256": "70c5c0f8d24f5551966ce13369fd58284c63379f3ce6524ffe009e883f025fa2"
+      "bytes": 33394,
+      "sha256": "d46e177998b9d626232b61691bed816b3f1b6619f19d5f8a3ffd24692f99d187"
     },
     {
       "id": "main-photo-002",
@@ -58,11 +58,11 @@
       "print": "duotone",
       "composition": "medium",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-003-weekend-market-fruit-choice.webp",
-      "width": 559,
-      "height": 640,
+      "width": 447,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 114712,
-      "sha256": "8a65cee10a7eabbbc63d81f5eb6e4e509a90d156a0cf3606f150fb99db06ecc4"
+      "bytes": 60810,
+      "sha256": "a25ac4b86b98c53d505e8b53a0c68da4ce609852f22a9a39d9dc512e97f9d9ab"
     },
     {
       "id": "main-photo-004",
@@ -100,11 +100,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-005-foggy-road-pause.webp",
-      "width": 636,
-      "height": 640,
+      "width": 509,
+      "height": 512,
       "orientation": "square",
-      "bytes": 111210,
-      "sha256": "e3e8f2b097a67e1a716570690155d8c043fcf1fcaf1266c9750c54446244908b"
+      "bytes": 54418,
+      "sha256": "7ea615ea3d370265693645a41b60813b75c64a3b2fde664310f6928ab54e9b4e"
     },
     {
       "id": "main-photo-006",
@@ -163,11 +163,11 @@
       "print": "bw",
       "composition": "medium",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-008-trail-map-breeze.webp",
-      "width": 573,
-      "height": 640,
+      "width": 458,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 111986,
-      "sha256": "41a3f99ff29ab28345d6a730a2aadcc64b9de2794086fa18de37e52ff4e81f05"
+      "bytes": 53852,
+      "sha256": "1124cd5c7b492141630dedfe49813a46906d12c20be08c39ce93137db991d8f1"
     },
     {
       "id": "main-photo-009",
@@ -184,11 +184,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-009-bus-window-quiet-ride.webp",
-      "width": 640,
-      "height": 419,
+      "width": 512,
+      "height": 335,
       "orientation": "landscape",
-      "bytes": 70956,
-      "sha256": "a214c31cb0fd41743d0f1a3d7cfabca0d22afcd5dc0560c51522cd7598f2e8ba"
+      "bytes": 36108,
+      "sha256": "11543b8377a536f22988f6635f8a4ea54964a60a259182b4bc10b675c0149ed0"
     },
     {
       "id": "main-photo-010",
@@ -205,11 +205,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-010-cyclist-drawbridge-wait.webp",
-      "width": 640,
-      "height": 424,
+      "width": 512,
+      "height": 339,
       "orientation": "landscape",
-      "bytes": 65262,
-      "sha256": "956c7765a28f6e3bd3b9ce3977d866bc8b2eeaab38b680aa8456b8826b05827e"
+      "bytes": 35376,
+      "sha256": "4db3c2f36b1112f86d597765b9511d872c400a294d2746f8cbef4806618e5641"
     },
     {
       "id": "main-photo-011",
@@ -226,11 +226,11 @@
       "print": "bw",
       "composition": "close",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-011-library-note-exchange.webp",
-      "width": 640,
-      "height": 509,
+      "width": 512,
+      "height": 407,
       "orientation": "landscape",
-      "bytes": 125874,
-      "sha256": "faace909e5d1b6e236fa5fd6b15bcb3c26bd4edfdcfb4643a9ab5168ff0c7c2c"
+      "bytes": 62762,
+      "sha256": "5eb09cea2e1b71c4b43555e7fb5dc9c95d018b515f64141dda85acf8b5487a6f"
     },
     {
       "id": "main-photo-012",
@@ -268,11 +268,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-013-train-window-goodbye-wave.webp",
-      "width": 640,
-      "height": 390,
+      "width": 512,
+      "height": 312,
       "orientation": "landscape",
-      "bytes": 75276,
-      "sha256": "eeda618d2d288cf489d7c7cdaf746a51080c70293a935b40f6b3f94ccfc4b092"
+      "bytes": 38820,
+      "sha256": "bd7dd44a55626cdcc144777036a8c8db53eed09f4939d267b0fa5512020af118"
     },
     {
       "id": "main-photo-014",
@@ -373,11 +373,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-018-friends-map-roadside.webp",
-      "width": 640,
-      "height": 392,
+      "width": 512,
+      "height": 314,
       "orientation": "landscape",
-      "bytes": 67136,
-      "sha256": "7932d5e60c6e6be6e27e1eca126d788c1b5d8988a2f011eefd7e9f2c8767133f"
+      "bytes": 35792,
+      "sha256": "1455dd718e8a64b318a5ce6cbb9b945a5dd55d93becf46c1ff94324c49624036"
     },
     {
       "id": "main-photo-019",
@@ -415,11 +415,11 @@
       "print": "limited_color",
       "composition": "close",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-020-apartment-letter-surprise.webp",
-      "width": 553,
-      "height": 459,
+      "width": 512,
+      "height": 425,
       "orientation": "landscape",
-      "bytes": 40018,
-      "sha256": "7722ee42c91149df82607443ab10cbe014ad9352e2f32a231033798340663113"
+      "bytes": 32722,
+      "sha256": "954402267e59c0aae43324a73313c1f8884db95143269952ad9ea61932a432f9"
     },
     {
       "id": "main-photo-021",
@@ -457,11 +457,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-022-friends-split-cafe-bill.webp",
-      "width": 578,
-      "height": 417,
+      "width": 512,
+      "height": 369,
       "orientation": "landscape",
-      "bytes": 47576,
-      "sha256": "403394c973a599ac6344bfb3f549081bb438f786ef6fe24cd4f09e8f2639d12f"
+      "bytes": 36142,
+      "sha256": "814d564d0d18feb279a73a68dc98f9016133b01fd3a86e1bd6603370a4db019f"
     },
     {
       "id": "main-photo-023",
@@ -1066,11 +1066,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-051-runner-open-stadium-morning.webp",
-      "width": 640,
-      "height": 416,
+      "width": 512,
+      "height": 333,
       "orientation": "landscape",
-      "bytes": 86010,
-      "sha256": "3366dff17f5f594891600c28be651a9bcb122465ed93b0829bd4b11a0a869cb5"
+      "bytes": 43218,
+      "sha256": "5c2851ea3bcf60ec7e9a2ba7925920032e40130564d3f4cab02bcab74e23de78"
     },
     {
       "id": "main-photo-052",
@@ -1129,11 +1129,11 @@
       "print": "bw",
       "composition": "close",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-054-home-gardener-first-sprout.webp",
-      "width": 511,
-      "height": 640,
+      "width": 409,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 103016,
-      "sha256": "3f63ae4663fa679468763683148e4bf1b299423f5126a190c13862607d93ca00"
+      "bytes": 51442,
+      "sha256": "904fe575cf00c8f34e9fa06cb63c6a6372c1d52a81dc1a625be6b4a5bbbd3d8c"
     },
     {
       "id": "main-photo-055",
@@ -1150,11 +1150,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-055-drummer-open-window-rehearsal.webp",
-      "width": 640,
-      "height": 571,
+      "width": 512,
+      "height": 457,
       "orientation": "landscape",
-      "bytes": 110136,
-      "sha256": "83a0835f5cc5a13baa92d3460786960316778a3db0bb85c4ec9099af38873b38"
+      "bytes": 55058,
+      "sha256": "db5325fe94cbe3e2ce8a35dcab50a02c871cb476fee623aa9a96e050efdb584b"
     },
     {
       "id": "main-photo-056",
@@ -1192,11 +1192,11 @@
       "print": "duotone",
       "composition": "close",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-057-reader-finds-diagram.webp",
-      "width": 584,
-      "height": 640,
+      "width": 467,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 150866,
-      "sha256": "e1ab732c475dc237656a166217592d5607d0a6b4ba6f03214f8e17a67120825e"
+      "bytes": 75760,
+      "sha256": "2ab17d430debfb04199a4375d006e962d648ba88ab1a8ac80e430e258213304e"
     },
     {
       "id": "main-photo-058",
@@ -1234,11 +1234,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-059-garage-band-neighbors.webp",
-      "width": 640,
-      "height": 366,
+      "width": 512,
+      "height": 293,
       "orientation": "landscape",
-      "bytes": 61862,
-      "sha256": "cfce23cab7f461205ac05d646547983a739365a3b6a361abf075b1c172a84839"
+      "bytes": 34744,
+      "sha256": "a231a39c49e27228201bea655387fc1ae959bbde9255ab532629d5ab3a03291b"
     },
     {
       "id": "main-photo-060",
@@ -1255,11 +1255,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-060-park-stepping-stones-after-rain.webp",
-      "width": 539,
-      "height": 640,
+      "width": 431,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 97736,
-      "sha256": "88df8434adc7a958298a4ee7cdff22c93d0cd7bfcb58978cbfecac63fe7faf38"
+      "bytes": 52314,
+      "sha256": "e39206c8816fed73927520336457973ec13f3626f7cac0019eea21a1cb6d0fc4"
     },
     {
       "id": "main-photo-061",
@@ -1276,11 +1276,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-061-quiet-bus-window-dawn.webp",
-      "width": 640,
-      "height": 389,
+      "width": 512,
+      "height": 311,
       "orientation": "landscape",
-      "bytes": 79620,
-      "sha256": "56525a7dde96ebb1bc68854201653d5eb101862b9d20902fc5e3d8717ee4c698"
+      "bytes": 39974,
+      "sha256": "d2311de58bf5a89adba592937ed123b70e391cca3b4491fa09ac2d836873ab09"
     },
     {
       "id": "main-photo-062",
@@ -1318,11 +1318,11 @@
       "print": "duotone",
       "composition": "medium",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-063-cafe-window-after-rain.webp",
-      "width": 467,
-      "height": 640,
+      "width": 374,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 92342,
-      "sha256": "39dd034ea2c1c9f1ef7e4fcf1f1ae40f28af2eee8d9cb3fd32d559e8dd4fc607"
+      "bytes": 48822,
+      "sha256": "ffe4c86d669861a805cc6b6db69b75acb16a8fb45a502dae5a40897ded3b8cc0"
     },
     {
       "id": "main-photo-064",
@@ -1360,11 +1360,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-065-morning-lake-swimmer.webp",
-      "width": 640,
-      "height": 437,
+      "width": 512,
+      "height": 350,
       "orientation": "landscape",
-      "bytes": 70754,
-      "sha256": "08cb508f894c6b254b5f60a9a4d03ab47a0ee7126de1c98a2df80387372c17fd"
+      "bytes": 34566,
+      "sha256": "79f3e8e6218a86b0076ad5112062cd6b1c596a88a9c3df76de005d66f10a5bef"
     },
     {
       "id": "main-photo-066",
@@ -1990,11 +1990,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-095-reader-window-break.webp",
-      "width": 532,
-      "height": 640,
+      "width": 426,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 100244,
-      "sha256": "5dc63dc0c3e72acc22f5c85cc22442b4ea31a5821a65c30c2df2e9bd42864301"
+      "bytes": 47670,
+      "sha256": "60d645edf575f1ea0450f9ed8bc898783e470bde5b0b7881e8219d1b71d2322c"
     },
     {
       "id": "main-photo-096",
@@ -2011,11 +2011,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-096-evening-class-question.webp",
-      "width": 640,
-      "height": 339,
+      "width": 512,
+      "height": 271,
       "orientation": "landscape",
-      "bytes": 77258,
-      "sha256": "5a6de63e63a8f628a4ea5cf8340a14dbf96316915f6f0e4f8559f53f98a525b3"
+      "bytes": 39730,
+      "sha256": "156c113c73f9eae93bc5c74aec7b005d2295f6489c2d28d316c4df54bb27a281"
     },
     {
       "id": "main-photo-097",
@@ -2074,11 +2074,11 @@
       "print": "bw",
       "composition": "medium",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-099-observatory-telescope-laugh.webp",
-      "width": 640,
-      "height": 481,
+      "width": 512,
+      "height": 385,
       "orientation": "landscape",
-      "bytes": 117248,
-      "sha256": "6c7b7019839ae9714ea93cce01a5b16f5316f876faefb66ed61d15fab38f5a26"
+      "bytes": 59112,
+      "sha256": "68e9d8d9856df03a27f74c08d3ba218c8276cae6a1f949668e71c4dca3ed3de8"
     },
     {
       "id": "main-photo-100",
@@ -2116,11 +2116,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-101-community-theatre-backstage.webp",
-      "width": 640,
-      "height": 439,
+      "width": 512,
+      "height": 351,
       "orientation": "landscape",
-      "bytes": 64424,
-      "sha256": "d50739256589ecc2f4c194a28c12580a57f442b0854b65f37532634e09d8b908"
+      "bytes": 33992,
+      "sha256": "e91be0083ea82268dfd82eb5cc8114d13f0c09a640c686b52aba17abaf070174"
     },
     {
       "id": "main-photo-102",
@@ -2137,11 +2137,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-102-friends-acoustic-rehearsal.webp",
-      "width": 640,
-      "height": 366,
+      "width": 512,
+      "height": 293,
       "orientation": "landscape",
-      "bytes": 93834,
-      "sha256": "9384af53c0a2ae6c034416d547e405db850943de652bd68a5d2189f60458fdb8"
+      "bytes": 46556,
+      "sha256": "e27b8f56c68bccc096433bc76447c72167deb5bb1c97a8efcb303a0a979fb96c"
     },
     {
       "id": "main-photo-103",
@@ -2158,11 +2158,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-103-mural-color-first-section.webp",
-      "width": 640,
-      "height": 454,
+      "width": 512,
+      "height": 363,
       "orientation": "landscape",
-      "bytes": 75464,
-      "sha256": "73f9ec60e4f13f43aaf7b9ca4d0f65bf17c37387aae593ff2d9c8332ba9597bd"
+      "bytes": 39776,
+      "sha256": "fd3567b5a9231a83c275800fc46ad349e1daffc7c90319e10efc35d1a12052df"
     },
     {
       "id": "main-photo-104",
@@ -2179,11 +2179,11 @@
       "print": "bw",
       "composition": "close",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-104-community-clay-second-try.webp",
-      "width": 640,
-      "height": 469,
+      "width": 512,
+      "height": 375,
       "orientation": "landscape",
-      "bytes": 92092,
-      "sha256": "c8c4756a6d383052930447dc901e0dc7dba773690cfa06ae124b14b86151e654"
+      "bytes": 44534,
+      "sha256": "8e9b8dbe09476829f17acc26e27570a470abbf3df505fbdeaeaaa417514fecdb"
     },
     {
       "id": "main-photo-105",
@@ -2200,11 +2200,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-105-street-dance-light-rain.webp",
-      "width": 640,
-      "height": 529,
+      "width": 512,
+      "height": 423,
       "orientation": "landscape",
-      "bytes": 107248,
-      "sha256": "91a58e9b242aadbbdb19d1c0d10b60ca6f41bd3bde4b72b76eceb3f4bedcd175"
+      "bytes": 57664,
+      "sha256": "c7a3ab794be9950489c561e905d6a1eb6786ac7d31f458242c7e74a6d5213a33"
     },
     {
       "id": "main-photo-106",
@@ -2221,11 +2221,11 @@
       "print": "bw",
       "composition": "close",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-106-community-film-projector-focus.webp",
-      "width": 640,
-      "height": 495,
+      "width": 512,
+      "height": 396,
       "orientation": "landscape",
-      "bytes": 128514,
-      "sha256": "5ab9e1c1c1c6438902a0a520eace615a7f9c89bcbf0cd84f388d7c4c08884b75"
+      "bytes": 64954,
+      "sha256": "eac58a042495fa43592786a186f9c7683542840ca7e4577032aa39cc463c3d56"
     },
     {
       "id": "main-photo-107",
@@ -2242,11 +2242,11 @@
       "print": "duotone",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-107-friends-sewing-pattern.webp",
-      "width": 640,
-      "height": 442,
+      "width": 512,
+      "height": 354,
       "orientation": "landscape",
-      "bytes": 95656,
-      "sha256": "2c24ff6217dfa3a12f0e1875c7ec424c05c1db4f9fd53c72a8f612c92486c420"
+      "bytes": 47760,
+      "sha256": "83f35af0aff951a437c5287a423c73a6771ac757616ff6a14eea906a8c942880"
     },
     {
       "id": "main-photo-108",
@@ -2914,11 +2914,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-139-stadium-stair-run.webp",
-      "width": 640,
-      "height": 405,
+      "width": 512,
+      "height": 324,
       "orientation": "landscape",
-      "bytes": 99148,
-      "sha256": "30fdaffc547415876a33beae06b89a3c4337feaea7b7d27992de34e7b9f2343b"
+      "bytes": 50950,
+      "sha256": "1c623cc43e2de366355c7776c0549395cd704037b1bc2a47dde3d5c3baa62467"
     },
     {
       "id": "main-photo-140",
@@ -2956,11 +2956,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-141-late-tram-quiet-stop.webp",
-      "width": 640,
-      "height": 392,
+      "width": 512,
+      "height": 314,
       "orientation": "landscape",
-      "bytes": 85414,
-      "sha256": "3fe210b36c58caae24968cdabdb3a30f3d7925f54e3dbb645672fb2c984766c9"
+      "bytes": 44946,
+      "sha256": "278e38aeeff304cdfd8cf718b7ffd35bc083572e53d489b942f4db51709497b4"
     },
     {
       "id": "main-photo-142",
@@ -3040,11 +3040,11 @@
       "print": "limited_color",
       "composition": "medium",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-145-laundromat-sock-mixup.webp",
-      "width": 565,
-      "height": 640,
+      "width": 452,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 119270,
-      "sha256": "ab7e0210dfbec600c4955aeb5a9d22f1d21c7631aab1b8852dd7787b6d63e1ed"
+      "bytes": 60900,
+      "sha256": "81e929fe3e3564cde4fbdbdf252d938f6fb15e3f1dba6a7227bb9ddca5cd9732"
     },
     {
       "id": "main-photo-146",
@@ -3124,11 +3124,11 @@
       "print": "bw",
       "composition": "medium",
       "path": "/assets/forecast-feed/editorial-stickers/main/photo/main-photo-149-friends-subway-map.webp",
-      "width": 640,
-      "height": 394,
+      "width": 512,
+      "height": 315,
       "orientation": "landscape",
-      "bytes": 76626,
-      "sha256": "a8d7c43ebbd50046603c41126c41cffa23f47d01b53ce1346d2d24b9ca340e36"
+      "bytes": 40350,
+      "sha256": "b92d3b04facb8c653f9e3a6f5c5671d42dbbc0a84054bed118c90736ff65cb0b"
     },
     {
       "id": "main-photo-150",
@@ -3796,11 +3796,11 @@
       "print": "duotone",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-001-compass-over-torn-route.webp",
-      "width": 552,
-      "height": 640,
+      "width": 442,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 117820,
-      "sha256": "57a8a5b7a3738b29111eba7fd878efd6f6d9050086409ff23f09602d00d61e52"
+      "bytes": 68550,
+      "sha256": "5dcad50f1800fb2066832c9a363a76eeb5fbb6da9eef09f92cb14f8567888fea"
     },
     {
       "id": "main-associative-002",
@@ -3818,11 +3818,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-002-keys-on-forked-timetable.webp",
-      "width": 481,
-      "height": 640,
+      "width": 385,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 78240,
-      "sha256": "c742a15dc8befc3f200f9aa0cd3ac76c3dc4001c02116089f7536e58bcf93806"
+      "bytes": 45412,
+      "sha256": "6b4e16a1e3f414f4a0dfabdc7cd3f719059bab50bcc879cf3c09a588afddc7bf"
     },
     {
       "id": "main-associative-003",
@@ -3859,11 +3859,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-004-scissors-cut-single-arrow.webp",
-      "width": 492,
-      "height": 640,
+      "width": 394,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 80560,
-      "sha256": "cd4ef6455464f9a3af5cc8733303bb2a48bef728a15e6c45e073c475e5efcbf2"
+      "bytes": 43016,
+      "sha256": "94f81329d8b1153acd977a275925cafbc4aab959ae9f12ee1345f7c6b63395e3"
     },
     {
       "id": "main-associative-005",
@@ -3880,11 +3880,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-005-ticket-stubs-as-stepping-stones.webp",
-      "width": 393,
-      "height": 640,
+      "width": 314,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 68630,
-      "sha256": "c71c42dcbad0ea239f7ae2ba58d4feab44e9a002611ed24e5046bcf05acc2d48"
+      "bytes": 41474,
+      "sha256": "fce6054d5b015493cf5c143442c5959eb20d83092bc0fd95c251829c2cfdd595"
     },
     {
       "id": "main-associative-006",
@@ -4027,11 +4027,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-012-envelope-window-weather-chart.webp",
-      "width": 535,
-      "height": 640,
+      "width": 428,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 91570,
-      "sha256": "4238fb60563b8b8c1cea3f1b752da3a21b2d9e59b40fd4140b3fc4353cbe72bc"
+      "bytes": 49498,
+      "sha256": "7f9a4ff49b2d0b2299f91395cf44a2f917e0e662760529c4ebab176739af799d"
     },
     {
       "id": "main-associative-013",
@@ -4049,11 +4049,11 @@
       "print": "limited_color",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-013-two-receivers-one-ribbon.webp",
-      "width": 264,
-      "height": 600,
+      "width": 225,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 39974,
-      "sha256": "a380af7aa9813bcd210386f7a4a2658079c61ee58ddaa9bccb85d13d804075d2"
+      "bytes": 28724,
+      "sha256": "a5393d452e65adf9ce6dbf66ad68de45ba159b2055134edfda0f1164b2da121e"
     },
     {
       "id": "main-associative-014",
@@ -4071,11 +4071,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-014-speech-bubble-cut-from-map.webp",
-      "width": 628,
-      "height": 640,
+      "width": 502,
+      "height": 512,
       "orientation": "square",
-      "bytes": 116970,
-      "sha256": "6b1388636f03373a79a52405aa12e68605d2948777235bae051714efd02b8b27"
+      "bytes": 62784,
+      "sha256": "5b2b2ed788eb09a6831e02a86b8a20b66743d694b9f4774c9a28d402aa3c50b5"
     },
     {
       "id": "main-associative-015",
@@ -4092,11 +4092,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-015-postcard-with-missing-corner.webp",
-      "width": 519,
-      "height": 640,
+      "width": 415,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 99300,
-      "sha256": "589835bfd3916ee5ae2db8960d4706d54e4838afcec6b42c25ab7ef244bfea2b"
+      "bytes": 54860,
+      "sha256": "3684b8a26482674f75f5bc50d2843de243437b5808bb927d735c35280524af14"
     },
     {
       "id": "main-associative-016",
@@ -4114,11 +4114,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-016-radio-dial-over-mouth-photo.webp",
-      "width": 384,
-      "height": 554,
+      "width": 355,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 28822,
-      "sha256": "94cc779455005e0a068dd677164b4dad7c626528cd45577542f0a4f5d8901a36"
+      "bytes": 25672,
+      "sha256": "26669429ce070126865d0e0f3ba97906137e28939734d3617a07d6cda36a3770"
     },
     {
       "id": "main-associative-017",
@@ -4136,11 +4136,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-017-paper-cup-string-city-plan.webp",
-      "width": 490,
-      "height": 640,
+      "width": 392,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 96996,
-      "sha256": "919e69b293060ae85b8ef5b2c91e8f682c160a449565856764f20e627579257d"
+      "bytes": 55066,
+      "sha256": "faca24293d03a0a40948a867b650f2e83d605ac4dae9b1ac7d22d05530c0fe87"
     },
     {
       "id": "main-associative-018",
@@ -4158,11 +4158,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-018-punctuation-on-train-window.webp",
-      "width": 487,
-      "height": 640,
+      "width": 390,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 71142,
-      "sha256": "fe4bf10ef643d496cd54df667011ba310d5a764ba8ac1bf8d64632f42dc45604"
+      "bytes": 38674,
+      "sha256": "d9290d54712db4ed1e76a9c6e5549972dbd6ecd7d287922daf537e2fc7148916"
     },
     {
       "id": "main-associative-019",
@@ -4201,11 +4201,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-020-megaphone-filled-with-small-print.webp",
-      "width": 485,
-      "height": 640,
+      "width": 388,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 67968,
-      "sha256": "bbfc0005bf5047da5d1c9541053e73a2c55f54199500fb86fea9491d1ddfa7ea"
+      "bytes": 39748,
+      "sha256": "5f2814946c969e06dbb6e2b76a359b9052f98713bafc5b10d31308e5e65f8031"
     },
     {
       "id": "main-associative-021",
@@ -4222,11 +4222,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-021-clock-face-over-station-plan.webp",
-      "width": 519,
-      "height": 640,
+      "width": 415,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 88032,
-      "sha256": "2d61c42182770b840f68c365321f538600ef79b0f9376a0c0fde3ec5a0543586"
+      "bytes": 49806,
+      "sha256": "3691397f77a1662b1880dfc2804353a284cf145a3c6ad9af511d488c326cab0d"
     },
     {
       "id": "main-associative-022",
@@ -4243,11 +4243,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-022-shoelace-traces-commute.webp",
-      "width": 433,
-      "height": 640,
+      "width": 346,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 69294,
-      "sha256": "0873ddc46b07ee07ee078e682590861c49b44ee6321e33caf682bc0ed558f236"
+      "bytes": 42402,
+      "sha256": "10eb17b8308bee60b03ffbd374ab46992035e7270726431e0824f6936a556b83"
     },
     {
       "id": "main-associative-023",
@@ -4264,11 +4264,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-023-calendar-kites-over-tram-map.webp",
-      "width": 414,
-      "height": 532,
+      "width": 398,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 41844,
-      "sha256": "ddee1f052ab6813848c967af866d5bdc5c8b1d6746d3f35e869511573a87e9f2"
+      "bytes": 39012,
+      "sha256": "5adce2f59dc89713efd635ee5bec235c669892039d77ca851e41e2c55bed303f"
     },
     {
       "id": "main-associative-024",
@@ -4285,11 +4285,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-024-stopwatch-with-tide-table.webp",
-      "width": 518,
-      "height": 640,
+      "width": 414,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 82632,
-      "sha256": "dde8c6dbd6a860ef84784c5f0214303f96d18d82042e83151370bba5651b6f22"
+      "bytes": 46256,
+      "sha256": "26e8457f9f06ff6f9efd45d4be1fc99864e5ab5d8500c639f2130f4791da1e34"
     },
     {
       "id": "main-associative-025",
@@ -4306,11 +4306,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-025-bicycle-wheel-compass-rose.webp",
-      "width": 460,
-      "height": 640,
+      "width": 368,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 78766,
-      "sha256": "d6e3b450d7b9dad8dd76e25d7a41974a3d9476f410fe2e614739960542ffc17b"
+      "bytes": 46390,
+      "sha256": "15e871eb9877f831976e3afc5ef1a3d74cab2259940280b8d80af0f18b756d16"
     },
     {
       "id": "main-associative-026",
@@ -4327,11 +4327,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-026-train-ticket-paper-airplane.webp",
-      "width": 439,
-      "height": 640,
+      "width": 351,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 54876,
-      "sha256": "3f15c25918bc5be0e87a895909dcc15701960a0d336de0723bba3f673eaacdf2"
+      "bytes": 33308,
+      "sha256": "0c705945456c20f3469f9c7bca0125eb8ade459c9ab8e6ec9498459aeac580a7"
     },
     {
       "id": "main-associative-027",
@@ -4348,11 +4348,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-027-sand-in-route-pocket.webp",
-      "width": 446,
-      "height": 640,
+      "width": 357,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 94844,
-      "sha256": "67313cdcd568b234d83072a64b2adff7d53f55e5cc755c413979c8d18f3fdcf4"
+      "bytes": 53222,
+      "sha256": "af267df0d80dc0d243807156b42b6efc533606e927fa16ea450b49d6890c391f"
     },
     {
       "id": "main-associative-028",
@@ -4369,11 +4369,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-028-footprints-over-departure-board.webp",
-      "width": 423,
-      "height": 640,
+      "width": 338,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 70034,
-      "sha256": "bdf535972eada87d62dc7d7d91b60ad78475a1e4ebc0dff07ccd4dc2a0c7dfa0"
+      "bytes": 41396,
+      "sha256": "1d8bd2eef421fe3a00573f0dfbc2f04c6a7ac9781e3c744df8909ef4042a53cc"
     },
     {
       "id": "main-associative-029",
@@ -4390,11 +4390,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-029-zipper-opens-road-map.webp",
-      "width": 466,
-      "height": 640,
+      "width": 373,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 67066,
-      "sha256": "faf55c73e8146dc86c29b336b24434299bd16cb31de81dc7a1c71fdd0845a76e"
+      "bytes": 41012,
+      "sha256": "fa87cb40428743c56b4a084246d13f574b5338fe113975798ae57ff57d260838"
     },
     {
       "id": "main-associative-030",
@@ -4411,11 +4411,11 @@
       "print": "limited_color",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-030-metronome-between-two-bus-tickets.webp",
-      "width": 640,
-      "height": 623,
+      "width": 512,
+      "height": 498,
       "orientation": "square",
-      "bytes": 114504,
-      "sha256": "1aef628cfc3800182139178c77210b1016a47f525d323f6c8f3e58453f1b41a7"
+      "bytes": 62628,
+      "sha256": "77a49d1fbbf8cc4ffdf2387d036a6239cd512b597f8d2613a0164e0b4c962d3e"
     },
     {
       "id": "main-associative-031",
@@ -4453,11 +4453,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-032-coins-as-traffic-jam.webp",
-      "width": 445,
-      "height": 640,
+      "width": 356,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 60734,
-      "sha256": "2ac41c0a002ac1119b1053f26557c2cc46c54778e1994f0fa8aab37e54678c0a"
+      "bytes": 35280,
+      "sha256": "807d80e9d39e403058fc11049e35ee8d38834dcdbd2f9eb57ddff71bd8c17979"
     },
     {
       "id": "main-associative-033",
@@ -4495,11 +4495,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-034-cafe-chairs-orbit-map.webp",
-      "width": 316,
-      "height": 593,
+      "width": 273,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 40724,
-      "sha256": "dbcf457c046fe95f2b9298c9332cef36aadf34e5df4919b3d0fbfbb2e2957078"
+      "bytes": 29710,
+      "sha256": "05659d5409ae32863fdd7d2dbe048ec33a7c67471028207818713fc03558c5f2"
     },
     {
       "id": "main-associative-035",
@@ -4516,11 +4516,11 @@
       "print": "duotone",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-035-wallet-with-calendar-tabs.webp",
-      "width": 465,
-      "height": 640,
+      "width": 372,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 76548,
-      "sha256": "e819d0ac670c538ce38580a55d10cd55f3b6633e42e817e6b8be408158494706"
+      "bytes": 44254,
+      "sha256": "12960255110f855a702b48f36e00f295777b0e84e6596e977422eee86bb26174"
     },
     {
       "id": "main-associative-036",
@@ -4537,11 +4537,11 @@
       "print": "limited_color",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-036-paintbrush-rides-music-wave.webp",
-      "width": 355,
-      "height": 513,
+      "width": 354,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 23362,
-      "sha256": "dd82a1ea71572f60cb58e50a2420ca47ad0867d6455493c400c015e45d1954ec"
+      "bytes": 22046,
+      "sha256": "b5dab2c540d12f5538b4ac508866a2fae74ecdaef54ec3ce277ed700bc5e8e3a"
     },
     {
       "id": "main-associative-037",
@@ -4578,11 +4578,11 @@
       "print": "duotone",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-038-weather-slips-in-glass-jar.webp",
-      "width": 402,
-      "height": 515,
+      "width": 400,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 39218,
-      "sha256": "d4a91041fec60ae2b300d5f45ba74903323591714101de12d840e5a79b34b7c4"
+      "bytes": 36180,
+      "sha256": "c1d638394176160c8c8424b5607c14469c8638f9f50a3a091e39c9e46c5a9194"
     },
     {
       "id": "main-associative-039",
@@ -4640,11 +4640,11 @@
       "print": "duotone",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-041-two-cups-separated-ruler.webp",
-      "width": 573,
-      "height": 640,
+      "width": 458,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 95648,
-      "sha256": "5d4ed9021305f969a60c65d939d7dbe37599c74526d15a81133d18677fce8ad8"
+      "bytes": 49638,
+      "sha256": "4c532f5ce8974bb511e4a61ad41e0daf0715885c2f9322e3f2a30246b763c5de"
     },
     {
       "id": "main-associative-042",
@@ -4661,11 +4661,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-042-paired-gloves-road-map.webp",
-      "width": 511,
-      "height": 640,
+      "width": 409,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 86952,
-      "sha256": "d24f8f6b90985e34364fbcb3ad46d5a8dd8f67521648858aac8b369061177099"
+      "bytes": 49256,
+      "sha256": "27e0a1b0f5acc200efb08bd8cca86eab654122368f6c398a10be26c78d153fdb"
     },
     {
       "id": "main-associative-043",
@@ -4682,11 +4682,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-043-shared-thread-through-buttons.webp",
-      "width": 435,
-      "height": 640,
+      "width": 348,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 57082,
-      "sha256": "0b7104d7583a30435892b731f545e38f942bc7bf80da05acc98b2ba270229bba"
+      "bytes": 35594,
+      "sha256": "b4e2d3c97c2d29d0b3ccb7bdfed17b2b99933a2cd1b7313a8b61d43c8593f30b"
     },
     {
       "id": "main-associative-044",
@@ -4724,11 +4724,11 @@
       "print": "duotone",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-045-two-spoons-one-reflection.webp",
-      "width": 511,
-      "height": 640,
+      "width": 409,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 100348,
-      "sha256": "5bc82151d73ed17a6082295d43564a50a9710e2340acb3765a0e42aa87ff7ed2"
+      "bytes": 56614,
+      "sha256": "45aab3118a290a0a93eb40748f71ee3d32d5c45a41c7ac493720ec68dbe74d49"
     },
     {
       "id": "main-associative-046",
@@ -4746,11 +4746,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-046-postcards-stitched-border.webp",
-      "width": 636,
-      "height": 640,
+      "width": 509,
+      "height": 512,
       "orientation": "square",
-      "bytes": 113648,
-      "sha256": "dc78635ebf1a22829b03039c8ccaabc837d72bddc558fe12ec2f69830ea24024"
+      "bytes": 65108,
+      "sha256": "31e20e95fe1cb00c0c222e0d42f0f506776282ae258c9e410d2ea8abad75f596"
     },
     {
       "id": "main-associative-047",
@@ -4767,11 +4767,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-047-dominoes-pause-before-touch.webp",
-      "width": 640,
-      "height": 373,
+      "width": 512,
+      "height": 298,
       "orientation": "landscape",
-      "bytes": 60420,
-      "sha256": "ca52291d339e4000c60be4df24b794aaf7a9b9bcdb4d4fa3ce306e1f546ff3ce"
+      "bytes": 32144,
+      "sha256": "916da1cae11de4e63007d78fe8d14802ca3ebf035201814714bfc0e4c249be1c"
     },
     {
       "id": "main-associative-048",
@@ -4789,11 +4789,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-048-headphones-split-map.webp",
-      "width": 464,
-      "height": 640,
+      "width": 371,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 101850,
-      "sha256": "f261b6643452667e42539aff14e0ddfac7262b9bf7d0067b66079bdb2a6797c7"
+      "bytes": 56746,
+      "sha256": "cc3796ac4429c7f85c86b95a4d22dcf0fed61b6ab41886662b25fdf6054c12cf"
     },
     {
       "id": "main-associative-049",
@@ -4895,11 +4895,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-053-umbrella-casts-square-shadow.webp",
-      "width": 546,
-      "height": 498,
+      "width": 512,
+      "height": 467,
       "orientation": "landscape",
-      "bytes": 47872,
-      "sha256": "7d2babb424af14f79a3f32341ce04726a88dd58c4ea275eb38555df512e133f9"
+      "bytes": 40666,
+      "sha256": "1914cae9f83b3f0f8c25f7bac689dafc4e6b370e1439b030058602b07afa3b19"
     },
     {
       "id": "main-associative-054",
@@ -5001,11 +5001,11 @@
       "print": "duotone",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-058-earplugs-on-radio-schedule.webp",
-      "width": 582,
-      "height": 504,
+      "width": 512,
+      "height": 443,
       "orientation": "landscape",
-      "bytes": 51506,
-      "sha256": "f34297d10cb446c29f0456a78a5e548e6e5a7a2e3a6eb933ff0769ba23ff88ca"
+      "bytes": 39014,
+      "sha256": "f3e7714ad2bbd5f4530df10703b0e3b3f83089724c6325c0fdfe55a458b12440"
     },
     {
       "id": "main-associative-059",
@@ -5063,11 +5063,11 @@
       "print": "duotone",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-061-tablecloth-becomes-blueprint.webp",
-      "width": 562,
-      "height": 555,
+      "width": 512,
+      "height": 506,
       "orientation": "square",
-      "bytes": 63498,
-      "sha256": "0776222a2898b12c030b4bcf2bf54a0a0e0fe96ffa7eca8bd1ad7d6c35e57267"
+      "bytes": 49434,
+      "sha256": "24896d1606fb55ee960f3b1337e5529a2f12c186e762a144995315eeb1e25cd6"
     },
     {
       "id": "main-associative-062",
@@ -5084,11 +5084,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-062-house-key-under-family-photo.webp",
-      "width": 511,
-      "height": 522,
+      "width": 501,
+      "height": 512,
       "orientation": "square",
-      "bytes": 44216,
-      "sha256": "b873e1d2dc8e985d20b3f970645be80e6132c2d45227b5fba6bb7fb48582e206"
+      "bytes": 40692,
+      "sha256": "f7c5c2ccf2e5118a8dd4081f4378861af6753d1e39e6fabe8c1167a25613b55b"
     },
     {
       "id": "main-associative-063",
@@ -5105,11 +5105,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-063-recipe-card-city-map.webp",
-      "width": 519,
-      "height": 541,
+      "width": 491,
+      "height": 512,
       "orientation": "square",
-      "bytes": 58602,
-      "sha256": "f49ff1b2f419fe5843a14f6d17e08875ef379f321ecb0e0d20abbbc071082b2d"
+      "bytes": 50630,
+      "sha256": "9389a5845d62ae60235894351f0ed37dc5af25ee2c85ae581bd770ed4b794d05"
     },
     {
       "id": "main-associative-064",
@@ -5125,11 +5125,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-064-doorframe-growth-chart-ruler.webp",
-      "width": 502,
-      "height": 543,
+      "width": 473,
+      "height": 512,
       "orientation": "square",
-      "bytes": 45156,
-      "sha256": "2308d01147284df9b6336d84f90d82f882102109518bf5b1807de252dec57262"
+      "bytes": 38660,
+      "sha256": "20a4d5fdc3a4e574b8848afd6a5324b2790b30c03d6ec821bb5f1b43dd954258"
     },
     {
       "id": "main-associative-065",
@@ -5146,11 +5146,11 @@
       "print": "duotone",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-065-sewing-box-apartment-plan.webp",
-      "width": 532,
-      "height": 533,
+      "width": 511,
+      "height": 512,
       "orientation": "square",
-      "bytes": 51760,
-      "sha256": "117b709f70518208fccdff092c370b115add29c6ce5fdcfe3f1cca714a2a7a96"
+      "bytes": 45084,
+      "sha256": "029154f5add699bd958577498344cb0477119183b542b30c9d1899c536f2686a"
     },
     {
       "id": "main-associative-066",
@@ -5167,11 +5167,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-066-window-latch-over-weather-map.webp",
-      "width": 573,
-      "height": 455,
+      "width": 512,
+      "height": 407,
       "orientation": "landscape",
-      "bytes": 55476,
-      "sha256": "78e8f3d28a725230e463e11b6672536fd58c7c6769a1010d1a41e5e524048e7f"
+      "bytes": 42272,
+      "sha256": "9743461e0eca4605c87212573662498cd5e9aacabfb9204cb55fcbbf4a422667"
     },
     {
       "id": "main-associative-067",
@@ -5188,11 +5188,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-067-family-calendar-missing-square.webp",
-      "width": 524,
-      "height": 499,
+      "width": 512,
+      "height": 488,
       "orientation": "square",
-      "bytes": 38882,
-      "sha256": "c5be1d46bacb45d947db1af0b7f88e47b7edb23ad6c8ca2a792426a36a7783c7"
+      "bytes": 33918,
+      "sha256": "8666b9a4de4d60447b93041feefd6fdf1ff1af48635d15558341bf5a44b2109e"
     },
     {
       "id": "main-associative-068",
@@ -5209,11 +5209,11 @@
       "print": "duotone",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-068-plate-crack-river-delta.webp",
-      "width": 549,
-      "height": 565,
+      "width": 498,
+      "height": 512,
       "orientation": "square",
-      "bytes": 62724,
-      "sha256": "c276d5a48d09c9173d61661afe823a36bfb3b73979381b8756a1f7b330d97784"
+      "bytes": 49806,
+      "sha256": "736502926a564c0802bcbf2a5c520dbe1d9eccc1303c56bd32392fb0c12d5693"
     },
     {
       "id": "main-associative-069",
@@ -5229,11 +5229,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-069-clothing-labels-as-picnic-flags.webp",
-      "width": 513,
+      "width": 512,
       "height": 216,
       "orientation": "landscape",
-      "bytes": 32874,
-      "sha256": "e867248a83ab1f16ce1a402e2c8f56f2efb8046e0bed90710378e6c65e097562"
+      "bytes": 31762,
+      "sha256": "dea96e7d53faa5acbfaeeb8bcd82eaf3c4103c76cb9803a7237ac6e4897945c6"
     },
     {
       "id": "main-associative-070",
@@ -5250,11 +5250,11 @@
       "print": "limited_color",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-070-lamp-switch-city-evening-map.webp",
-      "width": 514,
-      "height": 281,
+      "width": 512,
+      "height": 280,
       "orientation": "landscape",
-      "bytes": 44594,
-      "sha256": "8738671cd92ce219884d5c748fca7810ea41939077a56e42831b039e1620cc26"
+      "bytes": 39004,
+      "sha256": "f71ac13bd7517e48911bf36ccaa6598098f3a4fb61333255ac8de03d0261248e"
     },
     {
       "id": "main-associative-071",
@@ -5292,11 +5292,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-072-seed-inside-calendar-date.webp",
-      "width": 530,
-      "height": 555,
+      "width": 489,
+      "height": 512,
       "orientation": "square",
-      "bytes": 35550,
-      "sha256": "87e9825c3463c3eb565efa68aff05ef3633fdffd2d15ba07758103392fc3f3c7"
+      "bytes": 31352,
+      "sha256": "07df0d5214d575a8925fb093b325a0d8f9cf401a489e3b01d1c7bf5b0d2a9b00"
     },
     {
       "id": "main-associative-073",
@@ -5335,11 +5335,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-074-film-negative-open-road.webp",
-      "width": 558,
-      "height": 408,
+      "width": 512,
+      "height": 374,
       "orientation": "landscape",
-      "bytes": 36016,
-      "sha256": "7225ad437ef990b43acd0c1160f004e50386d10105098c05c3c50cdcacc6b0d3"
+      "bytes": 29422,
+      "sha256": "0257e4984ca4fbeb4eeef5956689d95485cb0d382f70c5678686fc3d58ef57fd"
     },
     {
       "id": "main-associative-075",
@@ -5398,11 +5398,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-077-elevator-button-mountain-contours.webp",
-      "width": 550,
-      "height": 427,
+      "width": 512,
+      "height": 397,
       "orientation": "landscape",
-      "bytes": 52604,
-      "sha256": "bbe2fc91cb608c1cef79d6f0bb35fb1800599524c6e174e8ca9d48739e4a1e27"
+      "bytes": 43868,
+      "sha256": "35bfd05eb546c128d344fdc1e177e0bd3b6984bb6d78df8db7f83c372d01545d"
     },
     {
       "id": "main-associative-078",
@@ -5419,11 +5419,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-078-cracked-pavement-garden-plan.webp",
-      "width": 468,
-      "height": 569,
+      "width": 421,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 61496,
-      "sha256": "faac7171e34faad5d0458e8018ade5356c9ace39e944becf21390d8ceb4ff300"
+      "bytes": 48730,
+      "sha256": "4491342b0568044dcdddfca6f8a8fb3c1309b7471452db74708ef692b20fce57"
     },
     {
       "id": "main-associative-079",
@@ -5440,11 +5440,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-079-blank-ticket-stamped-entry.webp",
-      "width": 560,
-      "height": 489,
+      "width": 512,
+      "height": 447,
       "orientation": "landscape",
-      "bytes": 48528,
-      "sha256": "81e1ea51baab36ad5f1001b3e149a88f6c0dad9ae9d7f132d67c359e26cbf765"
+      "bytes": 38618,
+      "sha256": "63b0f3db70cd0125156a16b24bd192370042af8d5b87163e0c4f3525b15769c2"
     },
     {
       "id": "main-associative-080",
@@ -5462,11 +5462,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-080-rope-bridge-from-measuring-tape.webp",
-      "width": 519,
-      "height": 223,
+      "width": 512,
+      "height": 220,
       "orientation": "landscape",
-      "bytes": 30654,
-      "sha256": "f8f344fc36ab624194b36b2681070fae8cc009de0d37027b8928557b66bf354c"
+      "bytes": 26764,
+      "sha256": "dd3dea63cd4d3db9bf873fdb298c08fab67d7120e1e7e595f14bfd202de50d76"
     },
     {
       "id": "main-associative-081",
@@ -5483,11 +5483,11 @@
       "print": "duotone",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-081-magnifier-index-card-maze.webp",
-      "width": 515,
-      "height": 238,
+      "width": 512,
+      "height": 237,
       "orientation": "landscape",
-      "bytes": 28458,
-      "sha256": "124ba8fb01cdff3e915a09f3c8cb936c2b9fb0a1572ff7fd40d49a3943fd651d"
+      "bytes": 24596,
+      "sha256": "83f9c4cd6dc3bd1e2fde28c8386576b82bf389d8111d9148df75bf7ef3f86cdb"
     },
     {
       "id": "main-associative-082",
@@ -5610,11 +5610,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-087-library-card-star-chart.webp",
-      "width": 540,
-      "height": 395,
+      "width": 512,
+      "height": 375,
       "orientation": "landscape",
-      "bytes": 45054,
-      "sha256": "7563246b3802f5c9a036e2dbdde7f5763649870187aa961c885532bdf189b9cf"
+      "bytes": 38178,
+      "sha256": "d171e00df2cd9b946c9073d7708b21e0847847a10ded7a75fb7b736b85de19d3"
     },
     {
       "id": "main-associative-088",
@@ -5652,11 +5652,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-089-folded-glasses-focus-strip.webp",
-      "width": 578,
-      "height": 425,
+      "width": 512,
+      "height": 376,
       "orientation": "landscape",
-      "bytes": 40458,
-      "sha256": "08917fe5b4ad060a08e33652612aac7aad44fd9f70ff47a1626beb04f0a695ae"
+      "bytes": 31884,
+      "sha256": "7c74e7562241aa1fb5b9bff4e96c0b724c4cca30a955b36c04b9c833472d3bc9"
     },
     {
       "id": "main-associative-090",
@@ -5673,11 +5673,11 @@
       "print": "limited_color",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-090-question-mark-built-from-tabs.webp",
-      "width": 265,
-      "height": 594,
+      "width": 228,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 36094,
-      "sha256": "04d7f80de2d9b5a8a20269d51819e1e540db857547fae2d8b1d95d2c7d5768c2"
+      "bytes": 27186,
+      "sha256": "1f275ea826bab37a086ee545accb70f7286b975433b0d87d9a9f7ceed4bb925d"
     },
     {
       "id": "main-associative-091",
@@ -5693,11 +5693,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-091-scissors-cut-spotlight.webp",
-      "width": 354,
-      "height": 527,
+      "width": 344,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 24410,
-      "sha256": "82c8f6e50f7c485c54532b9f346e9695f80a5862f9fd476cc3ebc572501eee3a"
+      "bytes": 23240,
+      "sha256": "483bbfd64c1926efcb012feb4bcd2487ed17b18b3f279df2e81a123a4b0e2211"
     },
     {
       "id": "main-associative-092",
@@ -5819,11 +5819,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-097-paint-tube-newspaper-river.webp",
-      "width": 576,
-      "height": 394,
+      "width": 512,
+      "height": 350,
       "orientation": "landscape",
-      "bytes": 52066,
-      "sha256": "e560e3d719fc3cebe7d8d18f024a06e1c4c9f3fd7c656a0898e3ce621ec3ecc7"
+      "bytes": 40794,
+      "sha256": "bbbc6afd9a711ce23973819babe93c81522ad594559ead4ab9797b3b8f29a7b4"
     },
     {
       "id": "main-associative-098",
@@ -6029,11 +6029,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-107-empty-battery-on-picnic-photo.webp",
-      "width": 553,
-      "height": 472,
+      "width": 512,
+      "height": 437,
       "orientation": "landscape",
-      "bytes": 56592,
-      "sha256": "e573ef9e72ea92c0ce5df5bd5887bb619897f0f66c01d152f4c3219398565016"
+      "bytes": 46642,
+      "sha256": "6e3857f329a12e51887147a7c2402b021bbf7e75f6ec61be70143e8331df5ac6"
     },
     {
       "id": "main-associative-108",
@@ -6239,11 +6239,11 @@
       "print": "bw",
       "composition": "detail",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-117-moth-over-night-map.webp",
-      "width": 550,
-      "height": 409,
+      "width": 512,
+      "height": 381,
       "orientation": "landscape",
-      "bytes": 51222,
-      "sha256": "75bcaa0950328b8a68997390f567423b812a392189cbcb00716a50988ce1e1f1"
+      "bytes": 43614,
+      "sha256": "d5247faf21c7096aa479412feab5738bf5787f8b57642a9f3242d01b72f7d9ba"
     },
     {
       "id": "main-associative-118",
@@ -6449,11 +6449,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-127-watering-can-pours-calendar-pages.webp",
-      "width": 558,
-      "height": 528,
+      "width": 512,
+      "height": 484,
       "orientation": "square",
-      "bytes": 59884,
-      "sha256": "3a5da3c552f989c63cc602696715b6176b75879c617f30804e7b5db94597a8fe"
+      "bytes": 45382,
+      "sha256": "0c3f221b8aece5f29b1186b60a12c28f1b77048d0509d14faeed2211519c9e1f"
     },
     {
       "id": "main-associative-128",
@@ -6662,11 +6662,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/associative/main-associative-137-picnic-basket-community-calendar.webp",
-      "width": 513,
-      "height": 473,
+      "width": 512,
+      "height": 472,
       "orientation": "square",
-      "bytes": 59800,
-      "sha256": "c6d22351382ee1079cfe0d660fa5ac7e693852205ac78421a3338cac01774c7d"
+      "bytes": 51468,
+      "sha256": "50b12fa734a5da098ea2f8ee612e8620c21ca95c3bb3fa9d9e301c48adebb9c3"
     },
     {
       "id": "main-associative-138",
@@ -7229,11 +7229,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-024-mirror-with-rising-drizzle.webp",
-      "width": 532,
-      "height": 532,
+      "width": 512,
+      "height": 512,
       "orientation": "square",
-      "bytes": 45640,
-      "sha256": "f24d74d57e2853dbe28b0eb8714004593942583b72b4a2464f7de928a407d528"
+      "bytes": 36706,
+      "sha256": "a5e691e48426339f766f24604fb10f461272123c3c21dbef03fecabab11719bc"
     },
     {
       "id": "main-surreal-025",
@@ -7612,11 +7612,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-042-tug-of-war-with-road.webp",
-      "width": 518,
-      "height": 323,
+      "width": 512,
+      "height": 319,
       "orientation": "landscape",
-      "bytes": 48492,
-      "sha256": "bfdc02d94839407e75b54350c9568b4cf84421653de526607c7125a7fd7b4674"
+      "bytes": 41480,
+      "sha256": "66eb14af223fc53fcc1e77fa6837f9337a2cba75a0554edf8e42e916edd39323"
     },
     {
       "id": "main-surreal-043",
@@ -7780,11 +7780,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-050-square-folds-into-ribbon-maze.webp",
-      "width": 521,
-      "height": 445,
+      "width": 512,
+      "height": 437,
       "orientation": "landscape",
-      "bytes": 56494,
-      "sha256": "777ece211e79d620ac0eae39e14bf65e98acdf52b40bd8dbebce97d26af91f69"
+      "bytes": 48068,
+      "sha256": "567235c307209cff766e72b7814fb9a6d0a73ed967c7f82dbec4a6690b0b070c"
     },
     {
       "id": "main-surreal-051",
@@ -7822,11 +7822,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-052-forest-reflected-as-city.webp",
-      "width": 513,
-      "height": 426,
+      "width": 512,
+      "height": 425,
       "orientation": "landscape",
-      "bytes": 54752,
-      "sha256": "78d297c06acb93c928aa7b29e03b1a0c610605b74ef7d65af4f021e3ebcbc2a7"
+      "bytes": 45748,
+      "sha256": "1ec83f40c439d165aa57a66287e55d777385870f70f99975a74217e070c121b7"
     },
     {
       "id": "main-surreal-053",
@@ -7843,11 +7843,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-053-birds-carry-weather-map.webp",
-      "width": 513,
-      "height": 430,
+      "width": 512,
+      "height": 429,
       "orientation": "landscape",
-      "bytes": 69498,
-      "sha256": "98904ae9a039a7eee7e48e464f87f4224fc88c629f89b65cef8b66d44bc2fd19"
+      "bytes": 57814,
+      "sha256": "401db99929bd5cbaf67a3715b98db12fc7f4651c0a3280993da7da1f45f511ec"
     },
     {
       "id": "main-surreal-054",
@@ -7948,11 +7948,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/surreal/main-surreal-058-mountain-opens-like-newspaper.webp",
-      "width": 520,
-      "height": 404,
+      "width": 512,
+      "height": 398,
       "orientation": "landscape",
-      "bytes": 56296,
-      "sha256": "8dae7a123c40defceb0133c46d003f29f22976a1f56d710d6f5a05c70d05a8b1"
+      "bytes": 48714,
+      "sha256": "f1c17a4b80ad10c672a11a4e2971251680fac92a0cbd45b52b8068eb5e046333"
     },
     {
       "id": "main-surreal-059",
@@ -8115,11 +8115,11 @@
       "print": "bw",
       "composition": "overhead",
       "path": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-006-opportunity-window-timetable.webp",
-      "width": 426,
-      "height": 515,
+      "width": 424,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 47450,
-      "sha256": "61e3a85ab244187466a7e8d32fccc960fdbc04b240fbf559ac1a2b8deee64069"
+      "bytes": 38876,
+      "sha256": "e430c7c12184f8d200c9941221283c76049afa60a3d61f22374680a436a776bb"
     },
     {
       "id": "main-graphic-007",
@@ -8369,11 +8369,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-018-transit-rhythm-timeline.webp",
-      "width": 594,
-      "height": 306,
+      "width": 512,
+      "height": 264,
       "orientation": "landscape",
-      "bytes": 31152,
-      "sha256": "ca1fd52190df685bce042860aaae85f6f3487d2ca77b795d20dcf96af4d7b077"
+      "bytes": 23012,
+      "sha256": "7b38807fbb545b373d98ed47778ba71b84ea935787ca970a5b37b4eff96085b4"
     },
     {
       "id": "main-graphic-019",
@@ -8390,11 +8390,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/graphic/main-graphic-019-mood-variation-strip.webp",
-      "width": 514,
-      "height": 250,
+      "width": 512,
+      "height": 249,
       "orientation": "landscape",
-      "bytes": 32676,
-      "sha256": "a9f8d351d2b7b6dcb9638563637e4981d235d7c7cefdf6715348e568e3ae8b84"
+      "bytes": 28662,
+      "sha256": "4e8fb0b99c05185173e53f0c84a4bcac64206ea7ce18bda59f832771810f79f7"
     },
     {
       "id": "main-graphic-020",
@@ -8476,11 +8476,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-003-lift-na-ulitsu.webp",
-      "width": 591,
-      "height": 513,
+      "width": 512,
+      "height": 444,
       "orientation": "landscape",
-      "bytes": 48128,
-      "sha256": "b02aa0a357568bde3329087e3b9093fdd851138ca9bdaaedee43cbfd95c1caec"
+      "bytes": 36760,
+      "sha256": "e5ba7b69f9a652d8177a27ea3e2edef1ac915d6d0febbde78ff4d1d532663499"
     },
     {
       "id": "main-humor-004",
@@ -8497,11 +8497,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-004-avtobus-vyraschivaet-ostanovku.webp",
-      "width": 328,
-      "height": 548,
+      "width": 306,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 44950,
-      "sha256": "faf77d2daef2891b2631f5eae89a04d5757b106c9d9258df0065925fe4c47d8c"
+      "bytes": 38368,
+      "sha256": "227479fe6648d8b45ef354c3ad50b925b41c5274cfd962a55c3a6f6f1429b6da"
     },
     {
       "id": "main-humor-005",
@@ -8560,11 +8560,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-007-bright-umbrellas-paper-fish.webp",
-      "width": 277,
-      "height": 608,
+      "width": 233,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 27320,
-      "sha256": "5c7687fe83859310387fc1c5b053768b938910ecf419cbc676c1dad0cae5216a"
+      "bytes": 20688,
+      "sha256": "d52928d56a70437628d9e773ecde0e0b571be055fde15044a96e0a1508102f17"
     },
     {
       "id": "main-humor-008",
@@ -8602,11 +8602,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-009-benches-cast-animal-shadow-queue.webp",
-      "width": 410,
-      "height": 516,
+      "width": 407,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 35890,
-      "sha256": "853d99904b2db3e62567e1438e1a97123a5b98bfa9713e7f70038641e71817c0"
+      "bytes": 34884,
+      "sha256": "a3312470113bb32d37742ff58ba0251c3a6a0f012de497a47ba8a8f6fa56aaed"
     },
     {
       "id": "main-humor-010",
@@ -8644,11 +8644,11 @@
       "print": "duotone",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-011-skameika-smotrit-match.webp",
-      "width": 419,
-      "height": 522,
+      "width": 411,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 44046,
-      "sha256": "7eb2c7662344e5ed54637bb4f56f9bc3f57bbe063edd29fd49dc5fbfe53b0d25"
+      "bytes": 43076,
+      "sha256": "ba10e34b6c4609c5ec0fee390bbaa2c945e7a86fa332ef82ce34a99656576435"
     },
     {
       "id": "main-humor-012",
@@ -8833,11 +8833,11 @@
       "print": "duotone",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-020-kran-nalivaet-tishinu.webp",
-      "width": 235,
-      "height": 593,
+      "width": 203,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 31448,
-      "sha256": "99bfef02797ae5a9886c554eadeb40afa768c30f397163001d34d4ca0e8224c7"
+      "bytes": 22284,
+      "sha256": "06908d683c5c89a4c76ea674813673f1aff853393c89d32390731ec60b7981d2"
     },
     {
       "id": "main-humor-021",
@@ -8938,11 +8938,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-025-outlet-sunbathes-by-postcards.webp",
-      "width": 513,
-      "height": 335,
+      "width": 512,
+      "height": 334,
       "orientation": "landscape",
-      "bytes": 40266,
-      "sha256": "b71ab2c706a287f2c66b80d57caebf238194459761d9337c9e41d3c31ae2fbb7"
+      "bytes": 34558,
+      "sha256": "8359e2987ffff0ed41baa2ae379e0b50c0e5f7ab01e9c042598aaabcd009e304"
     },
     {
       "id": "main-humor-026",
@@ -9085,11 +9085,11 @@
       "print": "duotone",
       "composition": "centered",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-032-parom-perevozit-luzhu.webp",
-      "width": 314,
-      "height": 552,
+      "width": 291,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 32578,
-      "sha256": "5b9fcef6805d54e7c89f63e76f03a17531b6c73a6e9b4a4ce02a787874807fb6"
+      "bytes": 27656,
+      "sha256": "ec9be98fd1cda13ac79d98796b3df8e69a05047db1f2f89bd821d344851938d2"
     },
     {
       "id": "main-humor-033",
@@ -9106,11 +9106,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-033-eskalator-uhodit-v-les.webp",
-      "width": 337,
-      "height": 548,
+      "width": 315,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 32862,
-      "sha256": "1e4e188f8a7baf52bd1b400498c767514b060aefe0a05b74874fa1d8cf2bd11d"
+      "bytes": 29570,
+      "sha256": "79dccbebaf89d6fb8841a19ebda00640e02bd3fc3b08ba78bdc3de56e710c46d"
     },
     {
       "id": "main-humor-034",
@@ -9211,11 +9211,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-038-chairs-choose-route-carousel.webp",
-      "width": 362,
-      "height": 598,
+      "width": 310,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 54314,
-      "sha256": "69ebd81f5fc3aedcbf898807795f0425ffeaa6eee955353c06e7c3d717f030d6"
+      "bytes": 38154,
+      "sha256": "c4b37cf5c4ac46a63c47772ff008558b06d222931e0e8ca8bcac1d9bd7d02dcd"
     },
     {
       "id": "main-humor-039",
@@ -9295,11 +9295,11 @@
       "print": "limited_color",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-042-karta-prosit-podvezti.webp",
-      "width": 513,
+      "width": 512,
       "height": 225,
       "orientation": "landscape",
-      "bytes": 22292,
-      "sha256": "2b02da6ea0f5c6ef956d0363f65c4b409d716ef4f72ca4138074db42d3eeca62"
+      "bytes": 21788,
+      "sha256": "b2fe968940d83ec0aac2aa337fd63718a04c039f82d763f5ef5147190686c688"
     },
     {
       "id": "main-humor-043",
@@ -9421,11 +9421,11 @@
       "print": "limited_color",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-048-marshrutka-lovit-hvost.webp",
-      "width": 515,
-      "height": 212,
+      "width": 512,
+      "height": 211,
       "orientation": "landscape",
-      "bytes": 32528,
-      "sha256": "d48fddb1164472eb81e6035bb45e2aac2cc0422521d1420720956cc165497ee7"
+      "bytes": 28528,
+      "sha256": "a3730531b49c04afa7dfef7b17669063e08007b6d9014ddd1d5ff6c914fccada"
     },
     {
       "id": "main-humor-049",
@@ -9442,11 +9442,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-049-relsy-vybirayut-storonu.webp",
-      "width": 435,
-      "height": 513,
+      "width": 434,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 37488,
-      "sha256": "07b457d9f6b89faf35b0d122a39f1d9b0a18123d1d19b68acc6506b0bb477ffe"
+      "bytes": 33260,
+      "sha256": "c427f55e2e3cad1a2289bea37113ea4f70f0b12cb00149843e062750eed87558"
     },
     {
       "id": "main-humor-050",
@@ -9526,11 +9526,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-053-sobaka-vygulivaet-dozhd.webp",
-      "width": 513,
-      "height": 279,
+      "width": 512,
+      "height": 278,
       "orientation": "landscape",
-      "bytes": 36932,
-      "sha256": "0df57e288ab066a094d423d5b64a9a3afe152abd31e28696c16923ecf9338da3"
+      "bytes": 31058,
+      "sha256": "3fe10fcf76ac49b901c16399863f23ebd2c2df2e685421913e08f6aef7c520f5"
     },
     {
       "id": "main-humor-054",
@@ -9568,11 +9568,11 @@
       "print": "bw",
       "composition": "strip",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-055-utki-menyayut-ruslo.webp",
-      "width": 514,
-      "height": 397,
+      "width": 512,
+      "height": 395,
       "orientation": "landscape",
-      "bytes": 46836,
-      "sha256": "19b478e77e8e17b1ce58cb654ca7f03e7098550f77e04aaad0ff3afb110b4ef7"
+      "bytes": 42212,
+      "sha256": "5b2e00048bef2d6947f127087abdce29146997f73838d066e81ab1b34a0b8e72"
     },
     {
       "id": "main-humor-056",
@@ -9778,11 +9778,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-065-lisa-menyaet-vyveski.webp",
-      "width": 515,
-      "height": 319,
+      "width": 512,
+      "height": 317,
       "orientation": "landscape",
-      "bytes": 53420,
-      "sha256": "90a3258c10848ca1fc322eebb1a86de3cb565e9005c086fd48fe43b8ab6ec5bd"
+      "bytes": 45244,
+      "sha256": "9a2161743b0bd3b647750b2bfa064b4b8e64a4b2bb6b754a43480dbeec0a2818"
     },
     {
       "id": "main-humor-066",
@@ -9883,11 +9883,11 @@
       "print": "bw",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-070-pes-vozvraschaet-hozyaina.webp",
-      "width": 517,
-      "height": 203,
+      "width": 512,
+      "height": 201,
       "orientation": "landscape",
-      "bytes": 26030,
-      "sha256": "7f49cab6bb4589fffc65dbafa8e441bd1c2b99c58164d3a31689c0caa796f6c8"
+      "bytes": 22510,
+      "sha256": "5d5763b472daf67c9c74466388ffc4ad68250169b57ff308a545034b4e62295f"
     },
     {
       "id": "main-humor-071",
@@ -10219,11 +10219,11 @@
       "print": "duotone",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-086-kamni-golosuyut-nogami.webp",
-      "width": 287,
-      "height": 600,
+      "width": 245,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 40414,
-      "sha256": "a2a914df5a2a358c3caf0c72e5dc1879ea0d7a2f392ac978e0e485bf7c73b275"
+      "bytes": 27066,
+      "sha256": "d5fc3bd7aef99589effa7c3fc44d43acb21759f16c6294051a454d80ff1c0691"
     },
     {
       "id": "main-humor-087",
@@ -10240,11 +10240,11 @@
       "print": "limited_color",
       "composition": "centered",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-087-iceberg-at-apartment-door.webp",
-      "width": 414,
-      "height": 525,
+      "width": 404,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 42424,
-      "sha256": "9b6304383373ebe17c00b6bb368b208cbe65f028fa2710ec9e1299f92962ad49"
+      "bytes": 35638,
+      "sha256": "ab1949bee0e39e4b82dfdcba11b76fd2dabacf29977276886583ea68c04ce0af"
     },
     {
       "id": "main-humor-088",
@@ -10261,11 +10261,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-088-lightning-tunes-rooftop-radio.webp",
-      "width": 401,
-      "height": 548,
+      "width": 375,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 39084,
-      "sha256": "0bcfd740b61778e009b2a9fedd3bbdb6dce90f9ef124383592b87e687f06829b"
+      "bytes": 33274,
+      "sha256": "c9f64e06ed9dbf5ed96258856d2338f9b453df7d5f666223dad4ea058f365d24"
     },
     {
       "id": "main-humor-089",
@@ -10303,11 +10303,11 @@
       "print": "limited_color",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-090-pesok-pereschityvaet-chasy.webp",
-      "width": 350,
-      "height": 584,
+      "width": 307,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 31034,
-      "sha256": "b2c2d02b08642a85eea0ccbf1f0b123b72a0275452efd4ef953a358c39762d54"
+      "bytes": 24710,
+      "sha256": "deb41f0709fbea6a1a112269111ecf286fc4f773569308ce70fa1eec50f4d255"
     },
     {
       "id": "main-humor-091",
@@ -10345,11 +10345,11 @@
       "print": "duotone",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-092-puddle-rings-doorbell.webp",
-      "width": 201,
-      "height": 558,
+      "width": 184,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 28478,
-      "sha256": "93dfc34f3a5fe065db81e9552c1c45157e449be59febcc0efbd28805149e8973"
+      "bytes": 22468,
+      "sha256": "f80899b1e227cac734a99edeb03fae6d1fb7d85fa59daf740c5348b9e76d29f0"
     },
     {
       "id": "main-humor-093",
@@ -10429,11 +10429,11 @@
       "print": "limited_color",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-096-sad-menyaet-ten.webp",
-      "width": 348,
-      "height": 568,
+      "width": 314,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 35684,
-      "sha256": "6dacc7d8a016d7d0859d9a68f32999273ce55da248cb00131065d0ed58cebbae"
+      "bytes": 30092,
+      "sha256": "294e8f21ce857e8928c748e3406d29bce53fb0b060b0952061ed4f00b1780f8b"
     },
     {
       "id": "main-humor-097",
@@ -10471,11 +10471,11 @@
       "print": "duotone",
       "composition": "strip",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-098-ruchei-neset-lestnitsu.webp",
-      "width": 520,
-      "height": 211,
+      "width": 512,
+      "height": 208,
       "orientation": "landscape",
-      "bytes": 29622,
-      "sha256": "fb4f5887dfe9174d0ec0e5ae9bf1f3ab33c738ba0749b1b8aa3c3ff228983330"
+      "bytes": 26242,
+      "sha256": "74986dcbdc40fded352e64a09f00f1cca66ab74d929edd284fcb8defae1a5560"
     },
     {
       "id": "main-humor-099",
@@ -10492,11 +10492,11 @@
       "print": "limited_color",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-099-friends-roll-sunset-at-bandstand.webp",
-      "width": 270,
-      "height": 515,
+      "width": 268,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 33176,
-      "sha256": "0e69e418b890ba1fbbed9ba87ca8c399873920aa4408eb4455537dd0c3ea9db7"
+      "bytes": 28592,
+      "sha256": "4db5adb8a5f3cf17cb1b8d2b728e6c4a69ba2795796a0c3b22d0f087b04835bd"
     },
     {
       "id": "main-humor-100",
@@ -10534,11 +10534,11 @@
       "print": "duotone",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-101-hleb-rezhet-nozh.webp",
-      "width": 522,
-      "height": 314,
+      "width": 512,
+      "height": 308,
       "orientation": "landscape",
-      "bytes": 33776,
-      "sha256": "78fc673c37379ec31bfacdb884c168281e56b4bf219b8e7a239b344a215713f1"
+      "bytes": 27968,
+      "sha256": "e755e8d0755824bc913b4cefa8c51f44880c2094c7f321c3e8bd24751743686e"
     },
     {
       "id": "main-humor-102",
@@ -10576,11 +10576,11 @@
       "print": "bw",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-103-apples-hold-talent-show.webp",
-      "width": 518,
-      "height": 463,
+      "width": 512,
+      "height": 458,
       "orientation": "landscape",
-      "bytes": 43122,
-      "sha256": "d9f079595d8470ff1637e520877eb4495687ca2a39efff206de972722fef1f4f"
+      "bytes": 39846,
+      "sha256": "a70d674506372e91ec1650725c659fa2e7ea3bb6ac978669981861320679d821"
     },
     {
       "id": "main-humor-104",
@@ -10849,11 +10849,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-116-pirog-delit-nasledstvo.webp",
-      "width": 415,
-      "height": 565,
+      "width": 376,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 40556,
-      "sha256": "d5837a8463cf098c242259661d2663c4a6d73ee9099376fc478b817c3f0cdf0f"
+      "bytes": 34130,
+      "sha256": "d965973e7a3a27e5cbaf878d8d42e50f176d17a753feab15a31c3db42242cb5f"
     },
     {
       "id": "main-humor-117",
@@ -10891,11 +10891,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-118-chainyi-paket-uhodit-na-glubinu.webp",
-      "width": 181,
-      "height": 583,
+      "width": 159,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 23296,
-      "sha256": "97b00113305ca4c48fa0540961c67c9cc2955d034cfce65942fac56791fd0d3b"
+      "bytes": 18268,
+      "sha256": "52c4483c12eab5481cf0f6a8b5edc241af903f65a8d2fe35cd8600089ad5ce76"
     },
     {
       "id": "main-humor-119",
@@ -10954,11 +10954,11 @@
       "print": "bw",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-121-tort-sdaet-etazhi.webp",
-      "width": 402,
-      "height": 567,
+      "width": 363,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 51074,
-      "sha256": "65c1e5114b6284e2a2f88d977ef575130a726fdaee231c0dfd409c8cf1a4284b"
+      "bytes": 41300,
+      "sha256": "50c5497feac9c7153a83126edde1b1d7903cc0b128548fa850f6f64c40549699"
     },
     {
       "id": "main-humor-122",
@@ -10975,11 +10975,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-122-pepper-rings-bicycle-bell.webp",
-      "width": 389,
-      "height": 563,
+      "width": 354,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 30712,
-      "sha256": "a6802089936df989931a931527bb97103e8d56b47c152b4de6568176f70f7867"
+      "bytes": 27202,
+      "sha256": "14e9e38e5781169a630368836d8f6fa5c2876d267689e9842c74a17fb59865d7"
     },
     {
       "id": "main-humor-123",
@@ -11017,11 +11017,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-124-floating-fish-stall.webp",
-      "width": 258,
-      "height": 599,
+      "width": 221,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 38830,
-      "sha256": "13ffb8a7fc917d3c56bac0d4ef5fbf93aa1ee702a87376d172da77362e02b433"
+      "bytes": 29226,
+      "sha256": "b7467a6b38bac0ea4580e28c799f92cf1326937db114734f59d155a39ba8c57e"
     },
     {
       "id": "main-humor-125",
@@ -11479,11 +11479,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-146-baraban-zadaet-marshrut.webp",
-      "width": 420,
-      "height": 592,
+      "width": 363,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 37942,
-      "sha256": "209bb29abe1a6bc39262e4ada7c6ec46574fd71527ffc52c1f9cd451814e8d45"
+      "bytes": 30112,
+      "sha256": "52fac1c0b1f5c30530a90ef7c0ed4c97ed2126f23bdb301ee29a7a509a8f874e"
     },
     {
       "id": "main-humor-147",
@@ -11521,11 +11521,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-148-biblioteka-shepchet-naruzhu.webp",
-      "width": 232,
-      "height": 592,
+      "width": 201,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 32312,
-      "sha256": "19fdfaec1a5c5ec21bd13e3b5c0e2817d76a5966ffa7a6a8146509d812e5d84c"
+      "bytes": 25024,
+      "sha256": "8363c273026ec0cc5870caf2ec6073065cfcabb1cf3e59261ae7dae1312eaf83"
     },
     {
       "id": "main-humor-149",
@@ -11584,11 +11584,11 @@
       "print": "limited_color",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-151-pelican-punches-ferry-tickets.webp",
-      "width": 420,
-      "height": 559,
+      "width": 385,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 36732,
-      "sha256": "5892f062293f8c30a587dde7d6b9c55ab0dadb5b2769e71925b91534f481c8e7"
+      "bytes": 31618,
+      "sha256": "9f0e9075a1a0f15704c7fdbec5d77a27b5d851b2f8096c553aeae66f3a40e419"
     },
     {
       "id": "main-humor-152",
@@ -11857,11 +11857,11 @@
       "print": "limited_color",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-164-rabbit-sells-sunset-slices.webp",
-      "width": 271,
-      "height": 593,
+      "width": 234,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 42192,
-      "sha256": "5f75c0b605bcc12e64b4ce690199404e00cff11602533d29d6b4a28d97f31dec"
+      "bytes": 28950,
+      "sha256": "f73b9d71ad08520a50de554e607ddecad3e2d0c0191e9640b32e06592c93425c"
     },
     {
       "id": "main-humor-165",
@@ -11878,11 +11878,11 @@
       "print": "bw",
       "composition": "wavy",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-165-alpaca-hears-forecast-umbrella.webp",
-      "width": 420,
-      "height": 580,
+      "width": 371,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 54070,
-      "sha256": "f6864d55d05a85f7c5fc0b7c752105610e3ae7c0d70fbc06f14aab02314dc912"
+      "bytes": 35326,
+      "sha256": "4e1494eb907f3c83aa9ab9a57937ed3a5d06c6f07db6bed2c5a88f64ad55bc4b"
     },
     {
       "id": "main-humor-166",
@@ -11920,11 +11920,11 @@
       "print": "bw",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-167-parrot-repeats-traffic-colors.webp",
-      "width": 387,
-      "height": 547,
+      "width": 362,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 42538,
-      "sha256": "9c995790caaca011b5af2c7fe24e6c23ed684f1b615e13ad8c3fc50febd4038f"
+      "bytes": 37790,
+      "sha256": "b9c316626f858c322b59451f68eb5ac6f00cbe652742d26a123ce727968f70fa"
     },
     {
       "id": "main-humor-168",
@@ -11941,11 +11941,11 @@
       "print": "duotone",
       "composition": "starburst",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-168-marmot-builds-chair-circle.webp",
-      "width": 437,
-      "height": 529,
+      "width": 423,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 48828,
-      "sha256": "55a0b51e81dcb3a41a56ceab73027519b2d7974dae86183e9270b0d1fefa8f5e"
+      "bytes": 44932,
+      "sha256": "0d3aafbb35279eacf3fcd5ac2719527136852c2a2de8c1b3be3650bbca9f6afe"
     },
     {
       "id": "main-humor-169",
@@ -11962,11 +11962,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-169-goats-study-elevator-map.webp",
-      "width": 441,
-      "height": 572,
+      "width": 395,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 53580,
-      "sha256": "087bb89600b85594701eb7beb74faa0c13b68264a30445e2e709818c4181d33e"
+      "bytes": 39774,
+      "sha256": "8a5bdb026fa53fa91576ef18827a739cbc9a209b2b8759d0a23f8d3f24cb4dce"
     },
     {
       "id": "main-humor-170",
@@ -12130,11 +12130,11 @@
       "print": "bw",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-177-ferret-tunes-bicycle-bells.webp",
-      "width": 409,
-      "height": 548,
+      "width": 382,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 34758,
-      "sha256": "4532cde1bd06d790b00cd1fa24ac22a713f282842c4e32c4e74b0e1bf776cd02"
+      "bytes": 30766,
+      "sha256": "9f2af14ac93219f39e0b0bdc3f6e78532d8ecff2445fccb137b8a9578e0f19f5"
     },
     {
       "id": "main-humor-178",
@@ -12676,11 +12676,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-203-herons-fold-tram-ticket-fish.webp",
-      "width": 431,
-      "height": 541,
+      "width": 408,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 36204,
-      "sha256": "21487da13f0c907a9857fa70bef1f9de5aa5c6208ceb195edc74031071863a64"
+      "bytes": 32710,
+      "sha256": "52e71e5e6cb9b6ef6ace15f3cb9d5e5588da22aa9975fc9a7bfc656cc885a358"
     },
     {
       "id": "main-humor-204",
@@ -12886,11 +12886,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-213-clocktower-inspects-wristwatch.webp",
-      "width": 462,
-      "height": 566,
+      "width": 418,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 40998,
-      "sha256": "93886d4fb95a0a6621c109e9540e8d8746040cf5521e824e6eae3516a22ce63c"
+      "bytes": 33384,
+      "sha256": "028fcac3d1b9d21a37374aba0e9e3792e46e6ce7f60debed6b22d262c8092a99"
     },
     {
       "id": "main-humor-214",
@@ -12949,11 +12949,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-216-fountain-pours-upward-cloud.webp",
-      "width": 420,
-      "height": 539,
+      "width": 399,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 38878,
-      "sha256": "e90d8b0691beb53769b8d3222411840adc94ec44b06d1a36c40a855ac5ad340c"
+      "bytes": 34936,
+      "sha256": "614cce4b22e7083d07c36746456f5518b455cd9b6ecff96dad63b167a0e91c19"
     },
     {
       "id": "main-humor-217",
@@ -12991,11 +12991,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-218-cinema-screen-opens-to-sea.webp",
-      "width": 393,
-      "height": 610,
+      "width": 330,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 37560,
-      "sha256": "50e43ba9bb93d55ef2a3aa885f359335e7ec06a88ff819129cd444da8a1dcd9b"
+      "bytes": 27934,
+      "sha256": "485fb7909501696d7cb819c412f2a7e212b7a5d6f562b9f5d6b126a52e056d98"
     },
     {
       "id": "main-humor-219",
@@ -13075,11 +13075,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-222-traffic-island-drifts-boulevard.webp",
-      "width": 239,
-      "height": 579,
+      "width": 211,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 36056,
-      "sha256": "7e142a40fb09603d8809c4e7fe9035e48994e8ba089e6a9d6e79924a6ec94301"
+      "bytes": 27340,
+      "sha256": "bfc866e1d1ee13f14a330f5cc8f8b837080763236e55fc99206bbe3d85dda8b9"
     },
     {
       "id": "main-humor-223",
@@ -13096,11 +13096,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-223-cafe-awning-catches-cloud.webp",
-      "width": 411,
-      "height": 572,
+      "width": 368,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 39100,
-      "sha256": "21d83a0e83dbdf5162e4a624e59459d2ed8b2c4d8d402cbef4dfb108348b8c2f"
+      "bytes": 31896,
+      "sha256": "6fea69c7857aadb3ce5aeeb44bd89dc90d69aa10a338319dae1284d8d1645f00"
     },
     {
       "id": "main-humor-224",
@@ -13180,11 +13180,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-227-weather-kiosk-rotates-sunward.webp",
-      "width": 289,
-      "height": 535,
+      "width": 277,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 30874,
-      "sha256": "8a9c4f4002e6db328b499b7837cf69819d8eb8ec66d97cdedc3603b31d57d9a3"
+      "bytes": 26082,
+      "sha256": "be27d36e09fe56a45cc9877137f05efeb4bec54c7b9931691b3ad4d3f65989ad"
     },
     {
       "id": "main-humor-228",
@@ -13285,11 +13285,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-232-rooftop-antennas-tune-dawn.webp",
-      "width": 202,
-      "height": 561,
+      "width": 184,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 25240,
-      "sha256": "f9d2c53a1698bfa70ca89619541ce30d13f5271608456fea22d7897bce006ad0"
+      "bytes": 19708,
+      "sha256": "0cb3c99e8e1279abaf4e38cfd9c2da20e342799271fefad00d5e685ae881c276"
     },
     {
       "id": "main-humor-233",
@@ -13327,11 +13327,11 @@
       "print": "limited_color",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-234-ferry-docks-apartment-window.webp",
-      "width": 379,
-      "height": 564,
+      "width": 344,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 32224,
-      "sha256": "56b6d2c4ea50eb1fdd40ff9cbbb93d7f2d056727e61a774f30eed6520f82bede"
+      "bytes": 26896,
+      "sha256": "a9c29dde8ceaa2bc92cbb53c218697fecc69890b345e44f1a1c03e7c6a6b628a"
     },
     {
       "id": "main-humor-235",
@@ -13348,11 +13348,11 @@
       "print": "bw",
       "composition": "starburst",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-235-bicycle-lane-loops-through-sky.webp",
-      "width": 430,
-      "height": 560,
+      "width": 393,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 41332,
-      "sha256": "3713129b446fd2a451418db4677da391e0e6075c2dbd4ab12fdee0efeeb4b2c5"
+      "bytes": 33442,
+      "sha256": "b2223b5fc154198b0a0330f046496cae4dd0315a565a810af0c00a09e95d52d6"
     },
     {
       "id": "main-humor-236",
@@ -13621,11 +13621,11 @@
       "print": "duotone",
       "composition": "cloud",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-248-public-clock-pours-confetti-minutes.webp",
-      "width": 400,
-      "height": 591,
+      "width": 347,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 51030,
-      "sha256": "210fc06de7d57f9ee9990617db21e7437755aeeb5e6c70fdccb5e4dfbf1b1b71"
+      "bytes": 38742,
+      "sha256": "80a71e5d479fe8fccb80617532c21317fc5f8628d1352d2046d051b08028c77c"
     },
     {
       "id": "main-humor-249",
@@ -13642,11 +13642,11 @@
       "print": "limited_color",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-249-street-kiosk-unfolds-bandstand.webp",
-      "width": 360,
-      "height": 608,
+      "width": 303,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 40248,
-      "sha256": "dc76cbf352936f7a4882cd38db383c3697ae30f55f38d0779577a5566a2dbc96"
+      "bytes": 30250,
+      "sha256": "0413595503aa1f46c8f0ce02eed70630f8ce4441b04d054d403b0b61904ec9d7"
     },
     {
       "id": "main-humor-250",
@@ -14041,11 +14041,11 @@
       "print": "duotone",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-268-mirror-reflects-room-as-park.webp",
-      "width": 397,
-      "height": 519,
+      "width": 392,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 41940,
-      "sha256": "a0ef6bf3b865f1e77e5314860165d16cf6c9a26a954d95fac2a4510373b2e5aa"
+      "bytes": 36046,
+      "sha256": "9b31c10b1a8771515dce56ae7e5c38173d1b2b8f61bbb27413b34921ffe8b64a"
     },
     {
       "id": "main-humor-269",
@@ -15175,11 +15175,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-322-rabbits-rotate-sundial-umbrellas.webp",
-      "width": 516,
-      "height": 366,
+      "width": 512,
+      "height": 363,
       "orientation": "landscape",
-      "bytes": 55942,
-      "sha256": "23147c925e2cfec5b3bd26286b35dfe8e5de369b06482db1d27d9e403ca35ce5"
+      "bytes": 47822,
+      "sha256": "eab6be1b5b15434b08385fa32fcb3694e3bcfd52a3faaa7413c74713259e4639"
     },
     {
       "id": "main-humor-323",
@@ -15385,11 +15385,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-332-bat-hangs-transit-map-upside-down.webp",
-      "width": 516,
-      "height": 331,
+      "width": 512,
+      "height": 328,
       "orientation": "landscape",
-      "bytes": 36992,
-      "sha256": "24e6d12f1efdac37a6d40fe15f47cf8bd62929e639bee1f80d20e7fea756f28f"
+      "bytes": 32104,
+      "sha256": "8bb5cb841d910f5747f8995a55bd04ad0e1e3c954d1ba6f889a1c43a25b3cfb0"
     },
     {
       "id": "main-humor-333",
@@ -15427,11 +15427,11 @@
       "print": "bw",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-334-bison-turns-garden-carousel.webp",
-      "width": 517,
-      "height": 451,
+      "width": 512,
+      "height": 447,
       "orientation": "landscape",
-      "bytes": 59950,
-      "sha256": "465163c7f5d18ba8411a26f706cb36f9214fe2995f3312580fea2d346b3fad28"
+      "bytes": 53032,
+      "sha256": "f7ef838c6291033276ece7ae9807eac2fe1133a9f580d41bce5c448005b0838c"
     },
     {
       "id": "main-humor-335",
@@ -15532,11 +15532,11 @@
       "print": "duotone",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-339-tower-staircase-corkscrews-away.webp",
-      "width": 451,
-      "height": 517,
+      "width": 447,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 47402,
-      "sha256": "ca8a11a39415b3c139502bb55f233958a7e772f7769195000c6b6adc626ab4b6"
+      "bytes": 42002,
+      "sha256": "470a5ebef9bec8303d23e21c166c5cf27fcec3f25fc87b30381f11bed49b2645"
     },
     {
       "id": "main-humor-340",
@@ -15658,11 +15658,11 @@
       "print": "limited_color",
       "composition": "round",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-345-rooftop-tanks-orbit-clock.webp",
-      "width": 507,
-      "height": 513,
+      "width": 506,
+      "height": 512,
       "orientation": "square",
-      "bytes": 39742,
-      "sha256": "71d2860c3181f0365d78cbb92371db6dafc36989026813feb2ab29d01991b12c"
+      "bytes": 34236,
+      "sha256": "f040cd1f38edc4003c8d8621eefdd0ead7e2e2363d7da6976ed8fefacdb9ad77"
     },
     {
       "id": "main-humor-346",
@@ -15889,11 +15889,11 @@
       "print": "limited_color",
       "composition": "collage",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-356-phonebooths-hold-circle-meeting.webp",
-      "width": 520,
-      "height": 444,
+      "width": 512,
+      "height": 437,
       "orientation": "landscape",
-      "bytes": 40110,
-      "sha256": "0ebb6821a399d82e531b016e0ac6aea957bc094e68828e3e5b32bb3e77f370d4"
+      "bytes": 34728,
+      "sha256": "fcfd3df8929ac09fba8e36190b7f85c982082354da76d9a9fbbb10a3b3041c13"
     },
     {
       "id": "main-humor-357",
@@ -15910,11 +15910,11 @@
       "print": "limited_color",
       "composition": "starburst",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-357-crosswalk-stripes-queue-kiosk.webp",
-      "width": 412,
-      "height": 599,
+      "width": 352,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 48390,
-      "sha256": "9d115d9cd988bc9a121134696299bd06d801dc5abaa5f9706e9557e280d21b35"
+      "bytes": 35996,
+      "sha256": "6a46b7b430efa4288ef32aa9b8f5a6f2d1701b7b68a988d90aea7fd562ccca82"
     },
     {
       "id": "main-humor-358",
@@ -15931,11 +15931,11 @@
       "print": "bw",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-358-round-window-sails-facade.webp",
-      "width": 419,
-      "height": 529,
+      "width": 406,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 41382,
-      "sha256": "12d29f5c81d7adddfcd5eec2511c37c9148eba9799d21c7e8313e7308a39ac59"
+      "bytes": 34984,
+      "sha256": "f717646593abd966fcde8093529da3d4207fae83601e7f45a53247fa8fe9e269"
     },
     {
       "id": "main-humor-359",
@@ -15952,11 +15952,11 @@
       "print": "duotone",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-359-station-roof-folds-paper-bird.webp",
-      "width": 336,
-      "height": 594,
+      "width": 290,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 43240,
-      "sha256": "dfedc642dcb56f7a081faec0926e91e7ed089feb73ed08f1bb81d2b025b63a29"
+      "bytes": 29560,
+      "sha256": "20aee98775c44a1ac94ca2b2a9465b55f6d38e0dc4419c53c2850ca65ab8ad17"
     },
     {
       "id": "main-humor-360",
@@ -15973,11 +15973,11 @@
       "print": "limited_color",
       "composition": "diagonal",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-360-chimneys-blow-striped-parasols.webp",
-      "width": 428,
-      "height": 609,
+      "width": 360,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 40930,
-      "sha256": "e0c423ff62ff417be80a029851141e98b5c173d5a96fd2533abef731febd7ac9"
+      "bytes": 30808,
+      "sha256": "9da94b7d5394837a78768e5f8b40f9aaede0170276ef3868bdc4bb94c47fb15f"
     },
     {
       "id": "main-humor-361",
@@ -15994,11 +15994,11 @@
       "print": "limited_color",
       "composition": "cloud",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-361-canal-curves-teacup-handle.webp",
-      "width": 421,
-      "height": 569,
+      "width": 379,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 51292,
-      "sha256": "e7d6a0e7da4529e2b43704b059fa2ecbbc5d6c6090f285bdfaa58b4815ae55c1"
+      "bytes": 40178,
+      "sha256": "44ce76799a4df2191aae6dcf7961a393d03b2ecc0b734d01fa5456117b66262d"
     },
     {
       "id": "main-humor-362",
@@ -16099,11 +16099,11 @@
       "print": "bw",
       "composition": "wavy",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-366-lighthouse-projects-city-routes.webp",
-      "width": 514,
-      "height": 413,
+      "width": 512,
+      "height": 411,
       "orientation": "landscape",
-      "bytes": 47026,
-      "sha256": "2b867b6307994d303ec0c686e8fb79f4debf366a89af08fde53c6b38e87d3a57"
+      "bytes": 37774,
+      "sha256": "0f4a952b3ffc1e184798ea870cd991b78fea1ba6715442da90ec0ed9726d1e04"
     },
     {
       "id": "main-humor-367",
@@ -16141,11 +16141,11 @@
       "print": "limited_color",
       "composition": "wide",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-368-kettle-steams-miniature-tram.webp",
-      "width": 521,
-      "height": 402,
+      "width": 512,
+      "height": 395,
       "orientation": "landscape",
-      "bytes": 38192,
-      "sha256": "dec04bbc02e9f3b07110967f507b042a096e112804e7e1c1038f08ede59c5739"
+      "bytes": 32360,
+      "sha256": "485d8ee390f6e02feb72ac204ce45d46ab38e9a1ce19eb70ec05d0e249d159f2"
     },
     {
       "id": "main-humor-369",
@@ -16183,11 +16183,11 @@
       "print": "bw",
       "composition": "starburst",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-370-tablefan-blows-newspaper-waves.webp",
-      "width": 522,
-      "height": 489,
+      "width": 512,
+      "height": 480,
       "orientation": "square",
-      "bytes": 53786,
-      "sha256": "fbb7e22e12276583df481e7096e80b5825b7746e8557d9791cdd079536ca246a"
+      "bytes": 47406,
+      "sha256": "59d61e7aec4f83b5f1c51440be81c3669418b85fde5de4e309da9063f50dfccd"
     },
     {
       "id": "main-humor-371",
@@ -16267,11 +16267,11 @@
       "print": "bw",
       "composition": "vertical",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-374-teacups-swap-handles.webp",
-      "width": 384,
-      "height": 528,
+      "width": 372,
+      "height": 512,
       "orientation": "portrait",
-      "bytes": 27738,
-      "sha256": "35a22dafe1388672ea0af2842fde30d7902623bd6b0c22880323ef446731ab66"
+      "bytes": 23948,
+      "sha256": "7c2fc6df80bb6cf9901a6fad26a36ec912136f8bcd5fbc045506840b363a6f1b"
     },
     {
       "id": "main-humor-375",
@@ -16330,11 +16330,11 @@
       "print": "limited_color",
       "composition": "cloud",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-377-toaster-prints-crosswalk-bread.webp",
-      "width": 520,
-      "height": 463,
+      "width": 512,
+      "height": 456,
       "orientation": "landscape",
-      "bytes": 41182,
-      "sha256": "67290c4005d9126e82c3b539f6bd2e07e5d258bab32d743a86003696375981a8"
+      "bytes": 35974,
+      "sha256": "382f70b7b8c9c6df4e3afa9aa5a4aed018df7aad1f76049760ac29031ec55730"
     },
     {
       "id": "main-humor-378",
@@ -16393,11 +16393,11 @@
       "print": "limited_color",
       "composition": "starburst",
       "path": "/assets/forecast-feed/editorial-stickers/main/psychedelic-humor/main-humor-380-cupboard-opens-tiny-cinema.webp",
-      "width": 515,
-      "height": 535,
+      "width": 493,
+      "height": 512,
       "orientation": "square",
-      "bytes": 47108,
-      "sha256": "7f5ae850830abf2c518de1657ab96ef9442156393b898bf5db151289b41ceb22"
+      "bytes": 41906,
+      "sha256": "09867bfefdc1b852ed75288d6b50b8dbbf5dd0a0004dbc568a40fb162bd1d25b"
     },
     {
       "id": "main-humor-381",

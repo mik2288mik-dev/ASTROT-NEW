@@ -923,8 +923,8 @@
       "width": 463,
       "height": 392,
       "orientation": "landscape",
-      "bytes": 169220,
-      "sha256": "5a755be7fca1c5995848d38fdae40cd1eb2cad803e8dcc961893989efec9a892"
+      "bytes": 169902,
+      "sha256": "704f33646a22ec0c29d0dca28d84746644dad3cb7d4eef805f648379a21bd9fc"
     },
     {
       "id": "syn-038",
@@ -1023,8 +1023,8 @@
       "width": 443,
       "height": 420,
       "orientation": "square",
-      "bytes": 166068,
-      "sha256": "1ca810416e3463c0a3c5af956470ea2f5e6fb0e7ad0fad02a89b75ac87fc3992"
+      "bytes": 166774,
+      "sha256": "ad4e736a82e202d0c20c9c90503daf7692df822966d9432058d0e5dbad4f79bc"
     },
     {
       "id": "syn-042",
@@ -1295,11 +1295,11 @@
       "print": "archive-gray newspaper screen with light foxing and uneven ink density",
       "composition": "slightly elevated documentary angle with the setting clearly readable",
       "path": "/assets/forecast-feed/editorial-stickers/synastry/syn-052-beach-paddleball.webp",
-      "width": 515,
-      "height": 410,
+      "width": 512,
+      "height": 408,
       "orientation": "landscape",
-      "bytes": 37528,
-      "sha256": "41c33027b4627aeeb0741ba7e45441d5dfff478d681f13935c2b18aa031f5cdc"
+      "bytes": 31728,
+      "sha256": "cd2c1fc21de6b8482bafed847571157150f8c8b665a503ac5c4f9dffdf448ce9"
     },
     {
       "id": "syn-053",
@@ -1445,11 +1445,11 @@
       "print": "archive-gray newspaper screen with light foxing and uneven ink density",
       "composition": "slightly elevated documentary angle with the setting clearly readable",
       "path": "/assets/forecast-feed/editorial-stickers/synastry/syn-058-beach-chess.webp",
-      "width": 521,
-      "height": 428,
+      "width": 512,
+      "height": 421,
       "orientation": "landscape",
-      "bytes": 35942,
-      "sha256": "1a0f644254eeefdd58d0926451871454949f35f9126777b035b6b45e72435962"
+      "bytes": 31764,
+      "sha256": "6b85cee47557c741b2d2764a82e0ded9095038fa714aefb975c744a2817a5d4f"
     },
     {
       "id": "syn-059",
@@ -2645,11 +2645,11 @@
       "print": "archive-gray newspaper screen with light foxing and uneven ink density",
       "composition": "slightly elevated documentary angle with the setting clearly readable",
       "path": "/assets/forecast-feed/editorial-stickers/synastry/syn-106-clap-rhythm-sync.webp",
-      "width": 516,
-      "height": 411,
+      "width": 512,
+      "height": 408,
       "orientation": "landscape",
-      "bytes": 41898,
-      "sha256": "ae3cb005fd08eb4dc8df09128055a787f148bea7e22d05286810bee64389116a"
+      "bytes": 35560,
+      "sha256": "3f8b6bc21fd79c6b4360f53da4c5c84ccf8e9d097893388ef91a1b2755d66a9f"
     },
     {
       "id": "syn-107",
@@ -3095,11 +3095,11 @@
       "print": "archive-gray newspaper screen with light foxing and uneven ink density",
       "composition": "slightly elevated documentary angle with the setting clearly readable",
       "path": "/assets/forecast-feed/editorial-stickers/synastry/syn-124-cake-table-laughter.webp",
-      "width": 520,
-      "height": 412,
+      "width": 512,
+      "height": 406,
       "orientation": "landscape",
-      "bytes": 44318,
-      "sha256": "a1a65bda1d98d6fd160241430796e2cdc0c86b08e6aa1335ee21a07580bc7afd"
+      "bytes": 38170,
+      "sha256": "5a43cd260e9f18a3a628379ac9af228e895a962a21e6782609fe42db454e21a3"
     },
     {
       "id": "syn-125",
@@ -3845,11 +3845,11 @@
       "print": "archive-gray newspaper screen with light foxing and uneven ink density",
       "composition": "slightly elevated documentary angle with the setting clearly readable",
       "path": "/assets/forecast-feed/editorial-stickers/synastry/syn-154-kitchen-card-game.webp",
-      "width": 514,
-      "height": 398,
+      "width": 512,
+      "height": 396,
       "orientation": "landscape",
-      "bytes": 40418,
-      "sha256": "215c0242c77ee115b907f888a81c67a9dd59201bdef22319b2729e371306400b"
+      "bytes": 35462,
+      "sha256": "a4c13a115c376ffefe300046c792d736ab157bb8368333eabfd0feb29ca1b340"
     },
     {
       "id": "syn-155",
@@ -4795,11 +4795,11 @@
       "print": "soft charcoal-black halftone with pale paper grain and an imperfect single-line frame",
       "composition": "compact square-ish press photo with asymmetrical spacing and natural expressions",
       "path": "/assets/forecast-feed/editorial-stickers/synastry/syn-192-warm-rain-steps.webp",
-      "width": 514,
-      "height": 385,
+      "width": 512,
+      "height": 384,
       "orientation": "landscape",
-      "bytes": 46758,
-      "sha256": "fdd0a1176386b1a112a96bc346ee4eadd3c99f0e72f118f673105cb5cc3fe2d1"
+      "bytes": 39736,
+      "sha256": "b6524c5ceb71ffd7b2c4d5cb88e632d54ff8daf4142b334161fe6e099dbcb96b"
     },
     {
       "id": "syn-193",
