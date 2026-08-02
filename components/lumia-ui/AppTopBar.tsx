@@ -8,6 +8,7 @@ type AppTopBarProps = {
   onBack?: () => void;
   rightAction?: React.ReactNode;
   className?: string;
+  reserveSpace?: boolean;
 };
 
 /**
@@ -20,10 +21,11 @@ export function AppTopBar({
   onBack,
   rightAction,
   className,
+  reserveSpace = true,
 }: AppTopBarProps) {
   return (
     <>
-      <header className={cn('app-top-bar', className)}>
+      <div className={cn('home-logo-bar', 'app-top-bar', className)}>
         <div className="app-top-bar-side app-top-bar-side--start">
           {onBack ? (
             <button
@@ -37,16 +39,14 @@ export function AppTopBar({
           ) : null}
         </div>
 
-        <div className="app-top-bar-center">
-          <span className="app-top-bar-title">{title}</span>
-        </div>
+        <span className="home-logo-wordmark app-top-bar-title">{title}</span>
 
         <div className="app-top-bar-side app-top-bar-side--end">
           {rightAction}
         </div>
-      </header>
-      <div className="app-top-bar-spacer" aria-hidden />
-      {subtitle ? <div className="app-top-bar-context">{subtitle}</div> : null}
+      </div>
+      {reserveSpace ? <div className="app-top-bar-spacer" aria-hidden /> : null}
+      {reserveSpace && subtitle ? <div className="app-top-bar-context">{subtitle}</div> : null}
     </>
   );
 }

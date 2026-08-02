@@ -659,8 +659,8 @@ export const Dashboard = memo<DashboardProps>(({
         aria-label={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
       >
         <AppTopBar
-          className="home-logo-bar"
           title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
+          reserveSpace={false}
         />
         <div className="home-top-content">
           <div

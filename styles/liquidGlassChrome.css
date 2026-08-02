@@ -21,7 +21,7 @@
 
 /* One fixed title bar for the diary and every primary section. */
 .app-top-bar {
-  --app-top-safe: max(
+  --home-safe-top: max(
     env(safe-area-inset-top, 0px),
     var(--tg-content-safe-area-inset-top, 0px),
     var(--tg-safe-area-inset-top, 0px),
@@ -33,17 +33,14 @@
   left: 0;
   z-index: 70;
   box-sizing: border-box;
-  display: grid;
-  height: calc(var(--app-top-safe) + 54px);
-  min-height: calc(var(--app-top-safe) + 54px);
-  grid-template-columns: 38px minmax(0, 1fr) 38px;
-  align-items: end;
-  column-gap: 8px;
+  display: flex;
+  min-height: calc(var(--home-safe-top) + 54px);
+  align-items: center;
+  justify-content: center;
   padding:
-    var(--app-top-safe)
-    max(var(--fresh-page-x, 20px), env(safe-area-inset-right, 0px))
-    8px
-    max(var(--fresh-page-x, 20px), env(safe-area-inset-left, 0px));
+    calc(var(--home-safe-top) + 14px)
+    var(--fresh-page-x, 20px)
+    13px;
   border: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.70);
   background: var(--app-glass-background) !important;
@@ -73,6 +70,8 @@
 }
 
 .app-top-bar-side {
+  position: absolute;
+  bottom: 10px;
   display: flex;
   width: 38px;
   height: 38px;
@@ -80,15 +79,12 @@
 }
 
 .app-top-bar-side--end {
+  right: var(--fresh-page-x, 20px);
   justify-content: flex-end;
 }
 
-.app-top-bar-center {
-  display: flex;
-  min-width: 0;
-  height: 38px;
-  align-items: center;
-  justify-content: center;
+.app-top-bar-side--start {
+  left: var(--fresh-page-x, 20px);
 }
 
 .app-top-bar-title {
@@ -133,15 +129,15 @@
 }
 
 .app-top-bar-spacer {
-  --app-top-safe: max(
+  --home-safe-top: max(
     env(safe-area-inset-top, 0px),
     var(--tg-content-safe-area-inset-top, 0px),
     var(--tg-safe-area-inset-top, 0px),
     18px
   );
   width: 100%;
-  height: calc(var(--app-top-safe) + 54px);
-  flex: 0 0 calc(var(--app-top-safe) + 54px);
+  height: calc(var(--home-safe-top) + 54px);
+  flex: 0 0 calc(var(--home-safe-top) + 54px);
   pointer-events: none;
 }
 
@@ -156,21 +152,19 @@
 }
 
 .home-top {
-  padding-top: 0;
+  padding: var(--home-fixed-logo-offset) 0 10px;
 }
 
 .app-top-bar.home-logo-bar,
 .app-top-bar.fresh-inner-header {
-  display: grid;
-  min-height: calc(var(--app-top-safe) + 54px);
+  display: flex;
+  min-height: calc(var(--home-safe-top) + 54px);
   padding:
-    var(--app-top-safe)
-    max(var(--fresh-page-x, 20px), env(safe-area-inset-right, 0px))
-    8px
-    max(var(--fresh-page-x, 20px), env(safe-area-inset-left, 0px));
+    calc(var(--home-safe-top) + 14px)
+    var(--fresh-page-x, 20px)
+    13px;
 }
 
-.forecast-feed-page,
 .natal-editorial-page,
 .matrix-editorial-page,
 .horo-reader-page,
@@ -325,14 +319,14 @@
   .app-top-bar,
   .app-top-bar.home-logo-bar,
   .app-top-bar.fresh-inner-header {
-    height: calc(var(--app-top-safe) + 52px);
-    min-height: calc(var(--app-top-safe) + 52px);
-    padding-bottom: 7px;
+    min-height: calc(var(--home-safe-top) + 52px);
+    padding-top: calc(var(--home-safe-top) + 13px);
+    padding-bottom: 12px;
   }
 
   .app-top-bar-spacer {
-    height: calc(var(--app-top-safe) + 52px);
-    flex-basis: calc(var(--app-top-safe) + 52px);
+    height: calc(var(--home-safe-top) + 52px);
+    flex-basis: calc(var(--home-safe-top) + 52px);
   }
 
   .app-top-bar-title {

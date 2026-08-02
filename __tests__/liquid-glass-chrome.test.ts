@@ -40,10 +40,12 @@ describe('liquid glass application chrome', () => {
     expect(styles).toContain('will-change: backdrop-filter');
     expect(styles).toContain('@supports not');
     expect(styles).toContain('@media (prefers-reduced-transparency: reduce)');
-    expect(topBar).toContain("className={cn('app-top-bar', className)}");
+    expect(topBar).toContain("className={cn('home-logo-bar', 'app-top-bar', className)}");
     expect(topBar).toContain('app-top-bar-spacer');
+    expect(topBar).toContain('reserveSpace = true');
     expect(freshHeaders).toContain('<AppTopBar');
     expect(dashboard).toContain('<AppTopBar');
+    expect(dashboard).toContain('reserveSpace={false}');
     expect(legacyHeader).toContain('return <AppTopBar');
   });
 
