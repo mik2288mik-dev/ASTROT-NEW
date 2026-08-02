@@ -5,6 +5,7 @@ import {
 } from '../lib/appVoice';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
+  PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildPersonalForecastChartFingerprint,
   getPersonalForecastPeriodKey,
@@ -14,6 +15,7 @@ import {
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
+import { PERSONAL_FORECAST_SEMANTICS_VERSION } from '../lib/personalForecastSemantics';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
 
@@ -37,7 +39,7 @@ export type PersonalForecastClientError = Error & {
   retryAfterMs?: number;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v3';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v4';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 
@@ -66,6 +68,8 @@ function contextKey(input: {
     input.chartData.calculationVersion || 'unknown',
     buildPersonalForecastChartFingerprint(input.chartData),
     PERSONAL_FORECAST_CALCULATION_VERSION,
+    PERSONAL_FORECAST_SEMANTICS_VERSION,
+    PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
     APP_VOICE_VERSION,
   ].join('|');
@@ -128,7 +132,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
     ? new Set(allSectionIds)
     : expectedPeriodLocked
       ? new Set<string>()
-      : new Set(['overview', 'wishes', ...freeSelectionIds]);
+    : new Set(['overview', ...freeSelectionIds]);
   const expectedLockedIds = allSectionIds.filter((id) => !expectedOpenIds.has(id));
   const lockedIds = new Set(result.lockedSectionIds);
   if (
@@ -160,7 +164,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
 
 function invalidResponseError(): PersonalForecastClientError {
   const error = new Error(
-    'Personal forecast response does not match the V3 contract',
+    'Personal forecast response does not match the V4 contract',
   ) as PersonalForecastClientError;
   error.code = 'PERSONAL_FORECAST_RESPONSE_INVALID';
   return error;
@@ -224,13 +228,11 @@ function writeStored(key: string, result: PersonalForecastClientResult): void {
 }
 
 function buildUrl(input: {
-  profile: UserProfile;
   chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }): string {
   const params = new URLSearchParams({
-    userId: userId(input.profile),
     period: input.period,
     periodKey: input.periodKey,
   });
@@ -280,7 +282,6 @@ async function generate(input: {
         ...getTelegramInitDataHeaders(),
       },
       body: JSON.stringify({
-        userId: userId(input.profile),
         chartId: input.chartId,
         period: input.period,
         periodKey: input.periodKey,

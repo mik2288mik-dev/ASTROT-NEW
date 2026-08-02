@@ -53,7 +53,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const fallback = buildPortraitFallback(serializeChartForPrompt(ctx.profile, ctx.chartData!));
     const fallbackTtl = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6h, then retry
     try {
-      const saved = await saveReading(ctx, { ...cacheOpts, validTo: fallbackTtl, isPersistent: false }, fallback);
+      const saved = await saveReading(ctx, {
+        ...cacheOpts,
+        validTo: fallbackTtl,
+        isPersistent: false,
+        history: { source: 'deterministic_fallback', generationAttempts: 0 },
+      }, fallback);
       return res.status(200).json({ interpretation: saved, source: 'fallback' });
     } catch {
       return res.status(200).json({

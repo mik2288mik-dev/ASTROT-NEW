@@ -16,13 +16,14 @@ import {
 import { buildPlanetInsight } from '../../../../lib/planetInsightContent';
 import { type NatalPlanetKey } from '../../../../lib/natalPlanetMeta';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
     id: user.id,
     name: fallback?.name || user.name || '',
     birthDate: fallback?.birthDate || user.birth_date || '',
-    birthTime: fallback?.birthTime || user.birth_time || '12:00',
+    birthTime: fallback?.birthTime ?? user.birth_time ?? '',
     birthPlace: fallback?.birthPlace || user.birth_place || '',
     isSetup: user.is_setup ?? true,
     language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
@@ -207,14 +208,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     generate: async () => {
       const profileForGeneration: UserProfile = { ...context.profile, isPremium };
       const reading = await generatePlanetInsight(profileForGeneration, chartData, planetRequest.planetId);
-      const { modelTier } = await getOpenAIModelForContent({
+      const { model, modelTier } = await getOpenAIModelForContent({
         accessTier,
         contentSurface: 'natal',
         contentVariant: 'planet_insight',
       });
 
-      return context.chartId != null
-        ? await db.content_interpretations.upsertByChart(context.chartId, {
+      if (context.chartId == null) {
+        return db.content_interpretations.upsertByUser(safeUserId, {
+          accessTier,
+          contentSurface: 'natal',
+          contentVariant: 'planet_insight',
+          cacheKey: planetRequest.cacheKey,
+          inputHash: planetRequest.cacheKey,
+          content: reading,
+          modelTier,
+          promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
+          calculationVersion: chartData.calculationVersion || null,
+          isPersistent: false,
+          legacySource: 'natal_v2.planet_insight',
+        });
+      }
+
+      const saved = await db.content_interpretations.upsertByChart(context.chartId, {
             accessTier,
             contentSurface: 'natal',
             contentVariant: 'planet_insight',
@@ -226,20 +242,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             calculationVersion: chartData.calculationVersion || null,
             isPersistent: false,
             legacySource: 'natal_v2.planet_insight',
-          }, safeUserId)
-        : await db.content_interpretations.upsertByUser(safeUserId, {
-            accessTier,
-            contentSurface: 'natal',
-            contentVariant: 'planet_insight',
-            cacheKey: planetRequest.cacheKey,
-            inputHash: planetRequest.cacheKey,
-            content: reading,
-            modelTier,
-            promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
-            calculationVersion: chartData.calculationVersion || null,
-            isPersistent: false,
-            legacySource: 'natal_v2.planet_insight',
-          });
+          }, safeUserId);
+      await persistNatalReadingHistory({
+        userId: safeUserId,
+        chartId: context.chartId,
+        chart: chartData,
+        rawBirthTime: context.profile.birthTime,
+        language,
+        accessTier,
+        contentVariant: 'planet_insight',
+        cacheKey: planetRequest.cacheKey,
+        inputHash: planetRequest.cacheKey,
+        promptVersion: PLANET_INSIGHT_PROMPT_VERSION,
+        content: reading,
+        generation: { modelId: model },
+      }).catch((error) => {
+        console.error('[natal/history] planet insight history append failed:', error);
+      });
+      return saved;
     },
     });
   } catch {

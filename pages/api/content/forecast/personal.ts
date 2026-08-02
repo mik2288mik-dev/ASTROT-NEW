@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' });
   }
-  const ready = await ensureValidContext(req, res);
+  const ready = await ensureValidContext(req, res, { requireSelfChart: true });
   if (!ready) return;
   const { userId, ctx } = ready;
   if (!ctx.chartData) {
@@ -123,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[personal-forecast-feed-v3] request failed:', message);
+    console.error('[personal-forecast-feed-v4] request failed:', message);
     return res.status(503).json({
       error: 'Personal forecast unavailable',
       code: 'PERSONAL_FORECAST_GENERATION_FAILED',

@@ -371,11 +371,30 @@ function convertLocalTimeToUTC(
 }
 
 /** Часовой пояс по координатам — локально (tz-lookup), без сети. */
+export function isValidIanaTimezone(value: unknown): value is string {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value.trim() }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function resolveTimezone(lat: number, lon: number): string {
   try {
-    return tzLookup(lat, lon);
-  } catch {
-    return 'Europe/Moscow';
+    const timezone = tzLookup(lat, lon);
+    if (!isValidIanaTimezone(timezone)) {
+      throw new Error(`Invalid IANA timezone: ${timezone}`);
+    }
+    return timezone;
+  } catch (error: any) {
+    const wrapped: any = new Error(
+      `Could not determine a reliable timezone for coordinates ${lat}, ${lon}`,
+    );
+    wrapped.code = 'TIMEZONE_LOOKUP_FAILED';
+    wrapped.cause = error;
+    throw wrapped;
   }
 }
 
@@ -461,7 +480,13 @@ export async function resolveBirthCoordinates(
     !(lat === 0 && lon === 0);
 
   if (hasValidCoords) {
-    const timezone = (provided?.timezone && String(provided.timezone).trim()) || resolveTimezone(lat, lon);
+    const suppliedTimezone = provided?.timezone && String(provided.timezone).trim();
+    if (suppliedTimezone && !isValidIanaTimezone(suppliedTimezone)) {
+      const error: any = new Error(`Invalid IANA timezone: ${suppliedTimezone}`);
+      error.code = 'INVALID_TIMEZONE';
+      throw error;
+    }
+    const timezone = suppliedTimezone || resolveTimezone(lat, lon);
     log.info('Using client-provided birth coordinates', { placeName, lat, lon, timezone });
     return { lat, lon, timezone };
   }
@@ -542,14 +567,8 @@ async function geocodeViaNominatim(placeName: string, retryCount = 0): Promise<C
       throw new Error(`Некорректные координаты для места "${placeName}".`);
     }
 
-    let timezone: string;
-    try {
-      timezone = tzLookup(lat, lon);
-      log.info('Timezone determined accurately', { lat, lon, timezone, placeName });
-    } catch (tzError: any) {
-      log.warn('Failed to determine timezone, using Europe/Moscow as fallback', { error: tzError.message });
-      timezone = 'Europe/Moscow'; // Более разумный fallback для русскоязычных пользователей
-    }
+    const timezone = resolveTimezone(lat, lon);
+    log.info('Timezone determined accurately', { lat, lon, timezone, placeName });
 
     log.info('Coordinates and timezone found', { lat, lon, timezone, placeName, displayName: location.display_name });
 
@@ -724,14 +743,20 @@ function calculateAnglesAndHouses(
   julday: number,
   lat: number,
   lon: number
-): { ascendant: PlanetPosition; houses: NatalHouseData[] } | null {
+): {
+  ascendant: PlanetPosition;
+  houses: NatalHouseData[];
+  houseSystem: 'placidus' | 'whole_sign';
+} | null {
   try {
     // Placidus ('P') не определён за полярным кругом (|lat| > ~66°) — там swe_houses
     // не возвращает корректный асцендент. Фолбэк на Whole Sign ('W'), который
     // работает на любой широте, чтобы карта строилась и у северных пользователей.
+    let houseSystem: 'placidus' | 'whole_sign' = 'placidus';
     let result = housesWithSystem(swe, julday, lat, lon, 'P');
     if (!result) {
       result = housesWithSystem(swe, julday, lat, lon, 'W');
+      houseSystem = 'whole_sign';
       if (result) log.warn('Placidus houses unavailable (polar latitude?), fell back to Whole Sign');
     }
 
@@ -771,6 +796,7 @@ function calculateAnglesAndHouses(
         description: 'Your outer personality and first impressions.'
       },
       houses,
+      houseSystem,
     };
   } catch (error: any) {
     log.error('Error calculating ascendant', error);
@@ -996,6 +1022,11 @@ export interface NatalChartResult {
   houses: NatalHouseData[];
   aspects: NatalAspectData[];
   calculationVersion: string;
+  calculationMetadata: {
+    ephemerisMode: 'swisseph' | 'moshier';
+    houseSystem: 'placidus' | 'whole_sign';
+    housesComputedFrom: 'exact_time' | 'default_noon';
+  };
   birthTimeQuality: BirthTimeQuality;
   chartQuality: ChartQuality;
   summary: string;
@@ -1089,18 +1120,16 @@ export async function calculateNatalChart(
     let birthHour = 12;
     let birthMinute = 0;
     if (birthTime && birthTime.trim().length > 0) {
-      const timeParts = birthTime.split(':');
-      birthHour = parseInt(timeParts[0], 10);
-      birthMinute = parseInt(timeParts[1] || '0', 10);
+      const match = birthTime.trim().match(/^(\d{1,2}):([0-5]\d)$/);
+      if (!match) {
+        throw new Error('Invalid birth time format. Expected HH:MM in 24-hour time');
+      }
+      birthHour = Number(match[1]);
+      birthMinute = Number(match[2]);
       
       // Валидация времени
-      if (isNaN(birthHour) || birthHour < 0 || birthHour > 23) {
-        log.warn(`Invalid hour ${birthHour}, using 12:00`);
-        birthHour = 12;
-      }
-      if (isNaN(birthMinute) || birthMinute < 0 || birthMinute > 59) {
-        log.warn(`Invalid minute ${birthMinute}, using 0`);
-        birthMinute = 0;
+      if (birthHour < 0 || birthHour > 23) {
+        throw new Error('Birth hour must be between 0 and 23');
       }
     }
 
@@ -1262,9 +1291,16 @@ export async function calculateNatalChart(
       houses,
       aspects,
       calculationVersion: CANONICAL_NATAL_CALCULATION_VERSION,
+      calculationMetadata: {
+        ephemerisMode: useMoshier ? 'moshier' : 'swisseph',
+        houseSystem: angleData.houseSystem,
+        housesComputedFrom: birthTimeQuality === 'exact' ? 'exact_time' : 'default_noon',
+      },
       birthTimeQuality,
       chartQuality,
-      summary: `Natal chart for ${name}, born on ${birthDate} at ${birthTime || '12:00'} in ${birthPlace}. Your chart reveals a ${element} dominant personality with ${sunWithHouse.sign} Sun, ${moonWithHouse.sign} Moon, and ${ascendantWithHouse.sign} Rising.`
+      summary: birthTimeQuality === 'exact'
+        ? `Natal calculation for ${name}: ${sunWithHouse.sign} Sun, ${moonWithHouse.sign} Moon, and ${ascendantWithHouse.sign} Ascendant.`
+        : `Natal calculation for ${name}: ${sunWithHouse.sign} Sun and ${moonWithHouse.sign} Moon. Ascendant and houses are omitted from interpretation because birth time is unknown.`
     };
 
     // Дополнительная валидация знака Солнца (для логирования)

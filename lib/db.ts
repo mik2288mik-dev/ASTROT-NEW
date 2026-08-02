@@ -21,6 +21,10 @@ import {
   normalizeBirthPlaceInput,
   normalizeBirthTimeInput,
 } from './natalChartCanonical';
+import {
+  normalizeRelationLabel,
+  PREMIUM_ACTIVE_CHART_LIMIT,
+} from './chartAccessPolicy';
 import type {
   AdminNotificationTargetSegment,
   DailyCheckIn,
@@ -326,6 +330,18 @@ function getAdminUserSortSql(sortBy: AdminDbUserSortBy, sortOrder: AdminDbSortOr
 
 function normalizeBirthTimeValue(value?: string | null): string {
   return normalizeBirthTimeInput(value);
+}
+
+function normalizeStoredBirthTime(value?: string | null): string | null {
+  const rawValue = trimText(value, 8);
+  return rawValue ? normalizeBirthTimeInput(rawValue) : null;
+}
+
+function normalizeChartIdentityName(value?: string | null): string {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('ru-RU');
 }
 
 function normalizeBirthDateValue(value?: string | Date | null): string {
@@ -975,7 +991,8 @@ export const db = {
       sun_sign, moon_sign, ascendant_sign,
       input_hash, calculation_version,
       birth_date, birth_time, birth_place,
-      is_primary, created_at, updated_at
+      is_primary, subject_type, relation_label, archived_at,
+      created_at, updated_at
     `,
 
     _hydrateChartData(row: any) {
@@ -1029,6 +1046,9 @@ export const db = {
         input_hash: row.input_hash,
         calculation_version: row.calculation_version || chartData.calculationVersion || null,
         is_primary: row.is_primary ?? true,
+        subject_type: row.subject_type === 'self' ? 'self' : 'saved_person',
+        relation_label: row.relation_label || null,
+        archived_at: row.archived_at || null,
         calculated_at: row.updated_at || row.created_at,
         created_at: row.created_at,
         updated_at: row.updated_at || row.created_at,
@@ -1042,13 +1062,13 @@ export const db = {
       }
 
       const normalizedBirthDate = normalizeBirthDateValue(data.birthDate);
-      const normalizedBirthTime = normalizeBirthTimeValue(data.birthTime);
+      const normalizedBirthTime = normalizeStoredBirthTime(data.birthTime);
       const normalizedBirthPlace = normalizeBirthPlaceInput(data.birthPlace);
 
       return {
         name: trimText(data.name, 120) || 'Моя карта',
         birthDate: normalizedBirthDate || data.birthDate,
-        birthTime: normalizedBirthTime || data.birthTime || '12:00',
+        birthTime: normalizedBirthTime,
         birthPlace: normalizedBirthPlace || data.birthPlace,
         inputHash: data.inputHash,
         chartData,
@@ -1079,17 +1099,33 @@ export const db = {
       return this._rowToChart(result.rows[0]);
     },
 
-    async findByInputHash(userId: string, inputHash: string) {
+    async findByInputHash(
+      userId: string,
+      inputHash: string,
+      identity?: { subjectType?: 'self' | 'saved_person'; name?: string },
+    ) {
       const id = toUserId(userId);
       if (!DATABASE_URL || !inputHash) return null;
       try {
+        const params: any[] = [id, inputHash];
+        const filters = ['user_id = $1', 'input_hash = $2', 'archived_at IS NULL'];
+        if (identity?.subjectType) {
+          params.push(identity.subjectType);
+          filters.push(`subject_type = $${params.length}`);
+        }
+        if (identity?.name !== undefined) {
+          params.push(normalizeChartIdentityName(identity.name));
+          filters.push(
+            `LOWER(REGEXP_REPLACE(BTRIM(COALESCE(name, '')), '[[:space:]]+', ' ', 'g')) = $${params.length}`,
+          );
+        }
         return await this._queryOne(
           `SELECT ${this._selectColumns}
            FROM natal_charts
-           WHERE user_id = $1 AND input_hash = $2
+           WHERE ${filters.join(' AND ')}
            ORDER BY is_primary DESC NULLS LAST, id ASC
            LIMIT 1`,
-          [id, inputHash]
+          params,
         );
       } catch (error: any) {
         log.error('[DB] Error finding chart by input hash', { error: error.message, userId });
@@ -1104,7 +1140,7 @@ export const db = {
         return await this._queryOne(
           `SELECT ${this._selectColumns}
            FROM natal_charts
-           WHERE user_id = $1
+           WHERE user_id = $1 AND subject_type = 'self' AND archived_at IS NULL
            ORDER BY is_primary DESC NULLS LAST, id ASC
            LIMIT 1`,
           [id]
@@ -1123,7 +1159,7 @@ export const db = {
         const result = await dbPool.query(
           `SELECT ${this._selectColumns}
            FROM natal_charts
-           WHERE user_id = $1
+           WHERE user_id = $1 AND archived_at IS NULL
            ORDER BY is_primary DESC NULLS LAST, id ASC`,
           [id]
         );
@@ -1140,7 +1176,7 @@ export const db = {
         return await this._queryOne(
           `SELECT ${this._selectColumns}
            FROM natal_charts
-           WHERE id = $1`,
+           WHERE id = $1 AND archived_at IS NULL`,
           [chartId]
         );
       } catch (error: any) {
@@ -1178,6 +1214,7 @@ export const db = {
              is_primary = $24,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $25
+           AND archived_at IS NULL
          RETURNING ${this._selectColumns}`,
         [
           payload.name,
@@ -1207,10 +1244,17 @@ export const db = {
           chartId
         ]
       );
+      if (!result.rows[0]) throw new Error('Chart not found');
       return this._rowToChart(result.rows[0]);
     },
 
-    async _insertChartRow(client: any, userId: string, payload: any, isPrimary: boolean) {
+    async _insertChartRow(
+      client: any,
+      userId: string,
+      payload: any,
+      isPrimary: boolean,
+      identity: { subjectType: 'self' | 'saved_person'; relationLabel?: string | null },
+    ) {
       const id = toUserId(userId);
       const result = await client.query(
         `INSERT INTO natal_charts (
@@ -1221,7 +1265,7 @@ export const db = {
           sun_sign, moon_sign, ascendant_sign,
           input_hash, calculation_version,
           birth_date, birth_time, birth_place,
-          is_primary
+          is_primary, subject_type, relation_label
         ) VALUES (
           $1, $2,
           $3, $4, $5, $6, $7, $8, $9, $10,
@@ -1230,7 +1274,7 @@ export const db = {
           $17, $18, $19,
           $20, $21,
           $22, $23, $24,
-          $25
+          $25, $26, $27
         )
         RETURNING ${this._selectColumns}`,
         [
@@ -1258,7 +1302,9 @@ export const db = {
           payload.birthDate,
           payload.birthTime,
           payload.birthPlace,
-          isPrimary
+          isPrimary,
+          identity.subjectType,
+          identity.subjectType === 'self' ? null : normalizeRelationLabel(identity.relationLabel),
         ]
       );
       return this._rowToChart(result.rows[0]);
@@ -1272,11 +1318,18 @@ export const db = {
 
       try {
         await client.query('BEGIN');
+        await client.query(
+          `SELECT pg_advisory_xact_lock(hashtext('natal-chart-self:' || $1::text))`,
+          [id],
+        );
 
         const sameHashResult = await client.query(
           `SELECT ${this._selectColumns}
            FROM natal_charts
-           WHERE user_id = $1 AND input_hash = $2
+           WHERE user_id = $1
+             AND input_hash = $2
+             AND subject_type = 'self'
+             AND archived_at IS NULL
            ORDER BY is_primary DESC NULLS LAST, id ASC
            LIMIT 1`,
           [id, payload.inputHash]
@@ -1287,6 +1340,8 @@ export const db = {
           `SELECT ${this._selectColumns}
            FROM natal_charts
            WHERE user_id = $1
+             AND subject_type = 'self'
+             AND archived_at IS NULL
            ORDER BY is_primary DESC NULLS LAST, id ASC
            LIMIT 1`,
           [id]
@@ -1295,13 +1350,32 @@ export const db = {
         const previousInputHash = primary?.input_hash ?? null;
         const chartIdToInvalidate = primary?.id ?? null;
 
-        await client.query('UPDATE natal_charts SET is_primary = FALSE WHERE user_id = $1', [id]);
+        await client.query(
+          `UPDATE natal_charts
+           SET is_primary = FALSE
+           WHERE user_id = $1 AND subject_type = 'self'`,
+          [id],
+        );
 
         const saved = sameHash
           ? await this._updateChartRow(client, sameHash.id, payload, true)
           : primary
             ? await this._updateChartRow(client, primary.id, payload, true)
-            : await this._insertChartRow(client, userId, payload, true);
+            : await this._insertChartRow(client, userId, payload, true, {
+                subjectType: 'self',
+                relationLabel: null,
+              });
+
+        await client.query(
+          `UPDATE natal_charts
+           SET subject_type = 'self',
+               relation_label = NULL,
+               archived_at = NULL,
+               is_primary = TRUE,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [saved.id],
+        );
 
         if (
           chartIdToInvalidate != null
@@ -1361,32 +1435,81 @@ export const db = {
 
       try {
         await client.query('BEGIN');
+        await client.query(
+          `SELECT pg_advisory_xact_lock(hashtext('natal-chart-limit:' || $1::text))`,
+          [id],
+        );
+
+        const countResult = await client.query(
+          `SELECT
+             COUNT(*)::int AS total,
+             BOOL_OR(subject_type = 'self') AS has_self
+           FROM natal_charts
+           WHERE user_id = $1 AND archived_at IS NULL`,
+          [id],
+        );
+        const chartsCount = countResult.rows[0]?.total ?? 0;
+        if (!countResult.rows[0]?.has_self) {
+          throw new Error('Self chart is required before adding a saved person.');
+        }
+
+        const entitlementResult = await client.query(
+          `SELECT
+             u.is_admin,
+             (u.premium_until > CURRENT_TIMESTAMP) AS has_current_premium_until,
+             EXISTS (
+               SELECT 1
+               FROM premium_entitlements pe
+               WHERE pe.user_id = u.id
+                 AND pe.status = 'active'
+                 AND pe.ends_at > CURRENT_TIMESTAMP
+             ) AS has_active_entitlement
+           FROM users u
+           WHERE u.id = $1
+           FOR UPDATE`,
+          [id],
+        );
+        const entitlement = entitlementResult.rows[0] || {};
+        const configuredOwnerId = process.env.NEXT_PUBLIC_OWNER_ID || process.env.OWNER_ID || '';
+        const isPremium = (
+          String(id) === String(configuredOwnerId)
+          || entitlement.is_admin === true
+          || entitlement.has_active_entitlement === true
+          || entitlement.has_current_premium_until === true
+        );
+        if (!isPremium) {
+          throw new Error('Premium is required to add a saved person.');
+        }
 
         const existingSameHashResult = await client.query(
           `SELECT ${this._selectColumns}
            FROM natal_charts
-           WHERE user_id = $1 AND input_hash = $2
-           ORDER BY is_primary DESC NULLS LAST, id ASC
+           WHERE user_id = $1
+             AND input_hash = $2
+             AND subject_type = 'saved_person'
+             AND archived_at IS NULL
+             AND LOWER(REGEXP_REPLACE(BTRIM(COALESCE(name, '')), '[[:space:]]+', ' ', 'g')) = $3
+           ORDER BY id ASC
            LIMIT 1`,
-          [id, payload.inputHash]
+          [id, payload.inputHash, normalizeChartIdentityName(payload.name)],
         );
 
         if (existingSameHashResult.rows.length > 0) {
           const existing = this._rowToChart(existingSameHashResult.rows[0]);
-          const saved = await this._updateChartRow(client, existing.id, payload, existing.is_primary);
+          const saved = await this._updateChartRow(client, existing.id, payload, false);
           await client.query('COMMIT');
           return saved;
         }
 
-        const countResult = await client.query('SELECT COUNT(*)::int AS total FROM natal_charts WHERE user_id = $1', [id]);
-        const chartsCount = countResult.rows[0]?.total ?? 0;
-        const user = await db.users.get(userId);
-        const slots = user?.chart_slots ?? 1;
+        const slots = PREMIUM_ACTIVE_CHART_LIMIT;
         if (chartsCount >= slots) {
-          throw new Error(`Chart slots limit reached (${slots}). Upgrade to Premium for more slots.`);
+          throw new Error(`Chart slots limit reached (${slots}).`);
         }
 
-        const saved = await this._insertChartRow(client, userId, payload, chartsCount === 0);
+        const saved = await this._insertChartRow(client, userId, payload, false, {
+          subjectType: 'saved_person',
+          relationLabel: null,
+        });
         await client.query('COMMIT');
         return saved;
       } catch (error) {
@@ -1397,39 +1520,80 @@ export const db = {
       }
     },
 
+    async setIdentityMetadata(
+      chartId: number,
+      subjectType: 'self' | 'saved_person',
+      relationLabel?: string | null,
+    ) {
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      if (subjectType !== 'self' && subjectType !== 'saved_person') {
+        throw new Error('Invalid chart subject type');
+      }
+      try {
+        const dbPool = getPool();
+        const chart = await this.getById(chartId);
+        if (!chart) throw new Error('Chart not found');
+        if (chart.subject_type !== subjectType) {
+          throw new Error('Chart subject identity is immutable');
+        }
+        const normalizedRelationLabel = subjectType === 'self'
+          ? null
+          : normalizeRelationLabel(relationLabel);
+        const result = await dbPool.query(
+          `UPDATE natal_charts
+           SET subject_type = $2,
+               relation_label = CASE WHEN $2 = 'self' THEN NULL ELSE $3 END,
+               is_primary = ($2 = 'self'),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1 AND archived_at IS NULL
+           RETURNING ${this._selectColumns}`,
+          [chartId, subjectType, normalizedRelationLabel],
+        );
+        if (!result.rows[0]) throw new Error('Chart not found');
+        return this._rowToChart(result.rows[0]);
+      } catch (error: any) {
+        log.error('[DB] Error setting chart identity', { error: error.message, chartId });
+        throw error;
+      }
+    },
+
     async setPrimary(chartId: number) {
+      const chart = await this.getById(chartId);
+      if (!chart) throw new Error('Chart not found');
+      if (chart.subject_type !== 'self') {
+        throw new Error('Saved people cannot replace the self chart');
+      }
+      return { success: true };
+    },
+
+    async archive(chartId: number) {
       if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
       try {
         const dbPool = getPool();
         const chart = await this.getById(chartId);
         if (!chart) throw new Error('Chart not found');
-        await dbPool.query('UPDATE natal_charts SET is_primary = FALSE WHERE user_id = $1', [chart.user_id]);
-        await dbPool.query('UPDATE natal_charts SET is_primary = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [chartId]);
-        return { success: true };
+        if (chart.subject_type === 'self') throw new Error('Self chart cannot be archived');
+        const result = await dbPool.query(
+          `UPDATE natal_charts
+           SET archived_at = CURRENT_TIMESTAMP,
+               is_primary = FALSE,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1
+             AND subject_type = 'saved_person'
+             AND archived_at IS NULL
+           RETURNING id`,
+          [chartId],
+        );
+        if (!result.rows[0]) throw new Error('Chart not found');
+        return { success: true, archived: true };
       } catch (error: any) {
-        log.error('[DB] Error setting primary chart', { error: error.message, chartId });
+        log.error('[DB] Error archiving chart', { error: error.message, chartId });
         throw error;
       }
     },
 
     async delete(chartId: number) {
-      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-      try {
-        const dbPool = getPool();
-        const chart = await this.getById(chartId);
-        if (!chart) throw new Error('Chart not found');
-        await dbPool.query('DELETE FROM natal_charts WHERE id = $1', [chartId]);
-        if (chart.is_primary) {
-          const remaining = await this.getAll(String(chart.user_id));
-          if (remaining.length > 0) {
-            await dbPool.query('UPDATE natal_charts SET is_primary = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [remaining[0].id]);
-          }
-        }
-        return { success: true };
-      } catch (error: any) {
-        log.error('[DB] Error deleting chart', { error: error.message, chartId });
-        throw error;
-      }
+      return this.archive(chartId);
     },
 
     async get(userId: string) {
@@ -1512,13 +1676,14 @@ export const db = {
                u.id AS user_id,
                COALESCE(nc.name, u.name, 'Chart') AS display_name,
                COALESCE(nc.birth_date, u.birth_date) AS birth_date,
-               COALESCE(nc.birth_time, u.birth_time, '12:00') AS birth_time,
+               COALESCE(nc.birth_time, u.birth_time) AS birth_time,
                COALESCE(nc.birth_place, u.birth_place) AS birth_place,
                nc.id AS chart_id
              FROM users u
              JOIN natal_charts nc ON nc.user_id = u.id
              WHERE COALESCE(nc.birth_date, u.birth_date) IS NOT NULL
                AND COALESCE(nc.birth_place, u.birth_place) IS NOT NULL
+               AND nc.archived_at IS NULL
                AND (
                  nc.latitude IS NULL OR
                  nc.longitude IS NULL OR
@@ -1534,14 +1699,18 @@ export const db = {
                u.id AS user_id,
                COALESCE(u.name, 'Chart') AS display_name,
                u.birth_date,
-               COALESCE(u.birth_time, '12:00') AS birth_time,
+               u.birth_time,
                u.birth_place,
                NULL::bigint AS chart_id
              FROM users u
              WHERE u.birth_date IS NOT NULL
                AND u.birth_place IS NOT NULL
                AND NOT EXISTS (
-                 SELECT 1 FROM natal_charts nc WHERE nc.user_id = u.id
+                 SELECT 1
+                 FROM natal_charts nc
+                 WHERE nc.user_id = u.id
+                   AND nc.subject_type = 'self'
+                   AND nc.archived_at IS NULL
                )
            )
            SELECT *
@@ -1558,7 +1727,7 @@ export const db = {
           userId: String(row.user_id),
           name: row.display_name || 'Chart',
           birthDate: row.birth_date ? normalizeBirthDateValue(row.birth_date) : '',
-          birthTime: normalizeBirthTimeValue(row.birth_time || '12:00'),
+          birthTime: normalizeStoredBirthTime(row.birth_time) || '',
           birthPlace: row.birth_place || '',
           chartId: row.chart_id ? Number(row.chart_id) : null,
         }));

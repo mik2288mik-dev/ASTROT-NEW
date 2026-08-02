@@ -421,19 +421,31 @@ export const Dashboard = memo<DashboardProps>(({
     () => new Set(result?.lockedSectionIds || []),
     [result?.lockedSectionIds],
   );
+  const readySections = useMemo(
+    () => (
+      forecast?.meta.status === 'ready'
+        ? forecast.sections.filter((section) => section.status === 'ready')
+        : []
+    ),
+    [forecast],
+  );
 
   const visual = useMemo(() => {
-    if (!forecast || forecast.meta.status !== 'ready') return null;
+    if (
+      !forecast
+      || forecast.meta.status !== 'ready'
+      || forecast.overview.status !== 'ready'
+    ) return null;
     return resolvePersonalForecastVisuals({
       userId,
       forecast: {
         period: forecast.period,
         periodKey: forecast.periodKey,
         overview: forecast.overview,
-        sections: forecast.sections,
+        sections: readySections,
       },
     });
-  }, [forecast, userId]);
+  }, [forecast, readySections, userId]);
 
   const promotions = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
@@ -441,7 +453,7 @@ export const Dashboard = memo<DashboardProps>(({
       userId,
       period: activePeriod,
       periodKey: forecast.periodKey,
-      sections: forecast.sections.map((section) => ({
+      sections: readySections.map((section) => ({
         id: section.id,
         kind: section.kind,
         fixedKey: section.fixedKey,
@@ -449,7 +461,7 @@ export const Dashboard = memo<DashboardProps>(({
         hasStrongAstro: section.kind === 'astro_accent',
       })),
     });
-  }, [activePeriod, forecast, userId]);
+  }, [activePeriod, forecast, readySections, userId]);
   const promotionSlotsBySection = useMemo(
     () => groupPromotionsBySection(promotions),
     [promotions],
@@ -463,16 +475,18 @@ export const Dashboard = memo<DashboardProps>(({
   const topicSections = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
     return [
-      {
-        id: 'overview',
-        title: language === 'ru' ? 'Общее' : 'Overview',
-      },
-      ...forecast.sections.flatMap((section) => {
+      ...(forecast.overview.status === 'ready'
+        ? [{
+            id: 'overview',
+            title: language === 'ru' ? 'Общее' : 'Overview',
+          }]
+        : []),
+      ...readySections.flatMap((section) => {
         const title = section.title?.trim();
         return title ? [{ id: section.id, title }] : [];
       }),
     ];
-  }, [forecast, language]);
+  }, [forecast, language, readySections]);
 
   const sideSections = useMemo(() => {
     if (!topicSections.length) return [];
@@ -778,7 +792,6 @@ export const Dashboard = memo<DashboardProps>(({
           <ForecastSectionBlock
             key={`${activePeriod}:${forecast.periodKey}:${forecast.overview.id}`}
             section={forecast.overview}
-            sectionNumber={1}
             period={activePeriod}
             language={language}
             locked={lockedIds.has(forecast.overview.id)}
@@ -803,7 +816,7 @@ export const Dashboard = memo<DashboardProps>(({
             ))}
           </ForecastSectionBlock>
 
-          {forecast.sections.map((section, sectionIndex) => {
+          {readySections.map((section) => {
             const crossLinks = forecast.suggestedCrossPeriodLinks.filter(
               (link) => link.fromSectionId === section.id,
             );
@@ -812,7 +825,6 @@ export const Dashboard = memo<DashboardProps>(({
               <React.Fragment key={`${activePeriod}:${forecast.periodKey}:${section.id}`}>
                 <ForecastSectionBlock
                   section={section}
-                  sectionNumber={sectionIndex + 2}
                   period={activePeriod}
                   language={language}
                   locked={lockedIds.has(section.id)}
@@ -880,8 +892,8 @@ export const Dashboard = memo<DashboardProps>(({
           </p>
           <p>
             {language === 'ru'
-              ? 'Затем прогноз формулирует понятный вывод и объясняет его. Стрелка рядом с выводом раскрывает конкретную причину прямо в ленте.'
-              : 'The forecast then states a clear conclusion and explains it. The arrow beside a conclusion expands its specific basis in the feed.'}
+              ? 'Затем прогноз формулирует понятный вывод. Значок i рядом с ним открывает рассчитанный фактор и его смысл.'
+              : 'The forecast then states a clear conclusion. The info icon beside it opens the calculated factor and its plain-language meaning.'}
           </p>
               <p>
                 {language === 'ru'

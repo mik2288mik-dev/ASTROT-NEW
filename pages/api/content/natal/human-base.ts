@@ -90,7 +90,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const fallback = buildHumanBaseFallback(ctx.profile, ctx.chartData!);
     const saved = await saveReading(
       ctx,
-      { ...cacheOpts, isPersistent: false, validTo: new Date(Date.now() + 6 * 60 * 60 * 1000) },
+      {
+        ...cacheOpts,
+        isPersistent: false,
+        validTo: new Date(Date.now() + 6 * 60 * 60 * 1000),
+        history: { source: 'deterministic_fallback', generationAttempts: 0 },
+      },
       fallback
     ).catch(() => null);
     return res.status(200).json({

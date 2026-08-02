@@ -1,48 +1,17 @@
 import {
-  assignPersonalForecastPrimaryEvidence,
   buildPersonalForecastAspectEvidence,
   buildPersonalForecastContinuationSampleDates,
   buildPersonalForecastHouseEvidence,
   buildPersonalForecastIngressAndStationEvidence,
   buildPersonalForecastSampleDates,
-  selectPersonalForecastDynamicTopics,
-  validatePersonalForecastEvidenceTopicKeys,
 } from '../lib/personalForecastEvidence';
 import * as transitAspects from '../lib/transitAspects';
 import type {
   CurrentTransits,
   PlanetTransit,
 } from '../lib/transits-calculator';
-import {
-  DYNAMIC_FORECAST_TOPIC_KEYS,
-  resolvePersonalForecastWindow,
-  type CalculatedAstroEvidence,
-  type DynamicForecastTopicKey,
-  type ForecastTopicKey,
-} from '../lib/personalForecastContract';
+import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
 import type { NatalChartData } from '../types';
-
-function evidence(
-  id: string,
-  strength: number,
-  topicKeys: ForecastTopicKey[],
-): CalculatedAstroEvidence {
-  return {
-    id,
-    kind: 'transit_to_natal',
-    transitPlanet: 'saturn',
-    natalPoint: 'sun',
-    aspect: 'trine',
-    orb: 1,
-    status: 'applying',
-    startsAt: '2026-07-01T00:00:00.000Z',
-    endsAt: '2026-07-31T23:59:59.000Z',
-    strength,
-    polarity: 'supporting',
-    topicKeys,
-    calculationSource: 'test:swisseph',
-  };
-}
 
 function transit(
   planet: string,
@@ -178,67 +147,6 @@ describe('personal forecast deterministic evidence preparation', () => {
     ).toEqual([]);
   });
 
-  it('rejects legacy or unknown topic keys in calculated evidence', () => {
-    const invalid = evidence(
-      'legacy-topic',
-      80,
-      ['mood_energy' as ForecastTopicKey],
-    );
-    expect(validatePersonalForecastEvidenceTopicKeys([invalid]))
-      .toEqual(['mood_energy']);
-    expect(validatePersonalForecastEvidenceTopicKeys([
-      evidence('mood', 80, ['mood']),
-      evidence('decision', 80, ['important_decision']),
-    ])).toEqual([]);
-  });
-
-  it('selects exactly two dynamics when a third does not clear the evidence threshold', () => {
-    const selected = selectPersonalForecastDynamicTopics([
-      evidence('business', 80, ['business']),
-      evidence('study', 70, ['study']),
-      evidence('weak-creativity', 20, ['creativity']),
-    ]);
-    expect(selected).toEqual(['business', 'study']);
-  });
-
-  it('expands to three or four dynamics only when calculated strength remains close', () => {
-    const three = selectPersonalForecastDynamicTopics([
-      evidence('business', 80, ['business']),
-      evidence('study', 72, ['study']),
-      evidence('creativity', 65, ['creativity']),
-      evidence('weak-relocation', 20, ['relocation']),
-    ]);
-    expect(three).toEqual(['business', 'study', 'creativity']);
-
-    const four = selectPersonalForecastDynamicTopics([
-      evidence('business', 80, ['business']),
-      evidence('study', 75, ['study']),
-      evidence('creativity', 70, ['creativity']),
-      evidence('relocation', 66, ['relocation']),
-      evidence('documents', 30, ['documents_agreements']),
-    ]);
-    expect(four).toEqual([
-      'business',
-      'study',
-      'creativity',
-      'relocation',
-    ]);
-    expect(four).toHaveLength(4);
-    expect(four.every((key) => DYNAMIC_FORECAST_TOPIC_KEYS.includes(key))).toBe(true);
-  });
-
-  it('uses the previous period only as a deterministic novelty tie-breaker', () => {
-    const selected = selectPersonalForecastDynamicTopics(
-      [
-        evidence('business', 70, ['business']),
-        evidence('study', 70, ['study']),
-        evidence('creativity', 15, ['creativity']),
-      ],
-      ['business'] satisfies DynamicForecastTopicKey[],
-    );
-    expect(selected.slice(0, 2)).toEqual(['study', 'business']);
-  });
-
   it('splits a recurring transit aspect into contiguous episodes with unique ids', () => {
     const aspect = {
       transitPlanet: 'saturn',
@@ -331,7 +239,6 @@ describe('personal forecast deterministic evidence preparation', () => {
       snapshots,
     );
     expect(aspects[0].house).toBeNull();
-    expect(aspects[0].topicKeys).not.toContain('physical_activity');
     expect(buildPersonalForecastHouseEvidence(
       unreliableChart,
       'month',
@@ -423,36 +330,4 @@ describe('personal forecast deterministic evidence preparation', () => {
     expect(monthly.some((item) => item.transitPlanet === 'moon')).toBe(false);
   });
 
-  it('assigns primary evidence one-to-one, deterministically, without fallback reuse', () => {
-    const shared = evidence('shared', 100, ['overview', 'love', 'mood']);
-    const loveOnly = evidence('love-only', 80, ['love']);
-    const moodOnly = evidence('mood-only', 70, ['mood']);
-    const topics: ForecastTopicKey[] = ['overview', 'love', 'mood'];
-    const assigned = assignPersonalForecastPrimaryEvidence(
-      topics,
-      [moodOnly, shared, loveOnly],
-    );
-    const reordered = assignPersonalForecastPrimaryEvidence(
-      topics,
-      [loveOnly, moodOnly, shared],
-    );
-
-    expect(Object.fromEntries(
-      [...assigned].map(([topic, item]) => [topic, item.id]),
-    )).toEqual({
-      overview: 'shared',
-      love: 'love-only',
-      mood: 'mood-only',
-    });
-    expect([...assigned.values()].map((item) => item.id)).toEqual(
-      [...reordered.values()].map((item) => item.id),
-    );
-
-    const insufficient = assignPersonalForecastPrimaryEvidence(
-      ['overview', 'love'],
-      [evidence('only-one', 100, ['overview', 'love'])],
-    );
-    expect(insufficient.size).toBe(1);
-    expect(new Set([...insufficient.values()].map((item) => item.id)).size).toBe(1);
-  });
 });

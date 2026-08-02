@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { NatalChartData, UserProfile } from '../types';
+import type { AstrologyHistoryContext } from './astrologyHistoryStore';
 import {
   APP_VOICE_VERSION,
   getAppSystemVoice,
@@ -7,1182 +8,786 @@ import {
 } from './appVoice';
 import { buildOpenAIChatParams } from './openaiChat';
 import {
-  DYNAMIC_FORECAST_FOCUS_LABELS,
-  FIXED_FORECAST_SECTION_KEYS,
-  FORECAST_FIXED_TITLES,
-  FORECAST_WISHES_TITLES,
   PERSONAL_FORECAST_CALCULATION_VERSION,
+  PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
-  isSimpleDynamicTitle,
-  personalForecastExplanationTextRange,
-  personalForecastOverviewTextRange,
-  personalForecastSectionTextLimit,
-  personalForecastSectionTextRange,
   selectTodayFreeSections,
+  stableHash,
   validateForecastSectionRepetition,
-  type CalculatedAstroEvidence,
   type CrossPeriodLink,
-  type DynamicForecastTopicKey,
   type ExplanationAnchor,
-  type FixedForecastSectionKey,
-  type ForecastInlineAstroAccent,
+  type ForecastContentBlock,
+  type ForecastContentBlockRole,
+  type ForecastEvidenceView,
   type ForecastSection,
-  type ForecastSectionKind,
-  type ForecastTopicKey,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
   type PersonalForecastWindow,
-  type TopicEvidence,
 } from './personalForecastContract';
 import {
   calculatePersonalForecastEvidence,
-  resolvePersonalForecastChartReliability,
   type EvidenceCalculationResult,
 } from './personalForecastEvidence';
+import {
+  PERSONAL_FORECAST_SEMANTICS_VERSION,
+  compilePersonalForecastSemanticFacts,
+  type ForecastClaimAtom,
+  type ForecastSemanticFact,
+} from './personalForecastSemantics';
+import {
+  forecastAtomText,
+  forecastSemanticTitle,
+  forecastSemanticVisualTag,
+  type ForecastWriterLanguage,
+} from './personalForecastSemanticLanguage';
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-type ForecastSectionPlan = {
+export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
+const MAX_SEMANTIC_SECTIONS = 4;
+
+type PlannedBlock = {
   id: string;
-  kind: ForecastSectionKind;
-  fixedKey?: FixedForecastSectionKey;
-  sourceTopicKey: ForecastTopicKey;
-  staticTitle?: string;
-  focusLabel: string;
+  role: ForecastContentBlockRole;
+  semanticFactId: string;
+  atomId: string;
+  writerBrief: string;
+};
+
+export type ForecastSectionPlan = {
+  id: string;
+  title?: string;
   importance: number;
   visualTag: string;
-  evidence: TopicEvidence;
-  inlineEvidenceIds: string[];
+  semanticFactIds: string[];
+  semanticFingerprint: string;
+  facts: ForecastSemanticFact[];
+  blocks: PlannedBlock[];
 };
 
-type GeneratedAnchorPayload = {
+type GeneratedBlockPayload = {
   id?: unknown;
-  conclusion?: unknown;
-  explanation?: unknown;
-  evidence_ids?: unknown;
-};
-
-type GeneratedInlineAccentPayload = {
+  role?: unknown;
+  semantic_fact_id?: unknown;
+  atom_id?: unknown;
   text?: unknown;
-  evidence_ids?: unknown;
 };
 
 type GeneratedSectionPayload = {
   id?: unknown;
-  title?: unknown;
-  text?: unknown;
-  premium_teaser?: unknown;
-  explanation_anchors?: unknown;
-  inline_astro_accent?: GeneratedInlineAccentPayload | null;
+  blocks?: unknown;
 };
 
 type GeneratedFeedPayload = {
-  overview?: GeneratedSectionPayload;
   sections?: unknown;
 };
 
-type DateReference = {
-  raw: string;
-  isoDate?: string;
-  monthDay?: string;
+type ValidatedWriterResult = {
+  blocksBySectionId: Map<string, ForecastContentBlock[]>;
+  errors: string[];
 };
 
-const MONTH_BY_NAME: Record<string, number> = {
-  января: 1,
-  февраля: 2,
-  марта: 3,
-  апреля: 4,
-  мая: 5,
-  июня: 6,
-  июля: 7,
-  августа: 8,
-  сентября: 9,
-  октября: 10,
-  ноября: 11,
-  декабря: 12,
-  january: 1,
-  february: 2,
-  march: 3,
-  april: 4,
-  may: 5,
-  june: 6,
-  july: 7,
-  august: 8,
-  september: 9,
-  october: 10,
-  november: 11,
-  december: 12,
+type GenerationResult = {
+  overview: ForecastSection;
+  sections: ForecastSection[];
+  generationAttempts: 0 | 1 | 2;
+  validationStatus: 'valid' | 'deterministic_fallback';
 };
 
-const DYNAMIC_INSERT_AFTER: Record<DynamicForecastTopicKey, FixedForecastSectionKey> = {
-  professional_path: 'work_money',
-  it_direction: 'work_money',
-  business: 'work_money',
-  income_growth: 'work_money',
-  work_change: 'work_money',
-  study: 'work_money',
-  creativity: 'friends',
-  relocation: 'home_family',
-  property_decision: 'home_family',
-  self_confidence: 'mood',
-  important_decision: 'work_money',
-  future_direction: 'work_money',
-  rest_recovery: 'mood',
-  physical_activity: 'mood',
-  documents_agreements: 'work_money',
+type EvidenceCalculatedHookResult = {
+  calculationSnapshotId?: number | null;
+} | void;
+
+const FORBIDDEN_GENERATED_PATTERNS = [
+  /\b(?:ты\s+(?:всегда|никогда|по\s+натуре|склонен|склонна|не\s+терпишь)|твой\s+характер)\b/iu,
+  /\b(?:you\s+(?:always|never|are\s+naturally|tend\s+to)|your\s+character)\b/iu,
+  /\b(?:гарантированно|обязательно\s+произойд[её]т|точно\s+случится|неизбежно)\b/iu,
+  /\b(?:guaranteed|will\s+definitely\s+happen|inevitable)\b/iu,
+  /\b(?:диагноз|травм[аы]|беременн\w*|увольнен\w*|расставан\w*|переезд\w*)\b/iu,
+  /\b(?:diagnos\w*|trauma\w*|pregnan\w*|fired|dismissal|breakup|relocation)\b/iu,
+  /\b(?:солнце|луна|меркурий|венера|марс|юпитер|сатурн|уран|нептун|плутон|аспект|транзит|дом)\b/iu,
+  /\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|aspect|transit|house)\b/iu,
+  /\b(?:you\s+are\s+(?:impulsive|stubborn|impatient|emotional|sensitive|controlling|jealous|anxious|indecisive)|your\s+personality)\b/iu,
+  /\b(?:С‚С‹\s+(?:РёРјРїСѓР»СЊСЃРёРІРЅ\w*|СѓРїСЂСЏРј\w*|РЅРµС‚РµСЂРїРµР»РёРІ\w*|СЌРјРѕС†РёРѕРЅР°Р»СЊРЅ\w*|С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅ\w*|СЂРµРІРЅРёРІ\w*|С‚СЂРµРІРѕР¶РЅ\w*)|С‚РІРѕСЏ\s+Р»РёС‡РЅРѕСЃС‚СЊ)\b/iu,
+];
+
+const SAFE_HISTORY_FACT_VALUES: Readonly<Record<string, readonly string[]>> = {
+  preferred_pace: [
+    'fast', 'quick', 'measured', 'slow', 'slower pace', 'flexible', 'structured',
+    'one step at a time', 'step by step',
+    'Р±С‹СЃС‚СЂС‹Р№', 'Р±С‹СЃС‚СЂРѕ', 'СЂР°Р·РјРµСЂРµРЅРЅС‹Р№', 'РјРµРґР»РµРЅРЅС‹Р№', 'РіРёР±РєРёР№',
+    'СЃС‚СЂСѓРєС‚СѓСЂРёСЂРѕРІР°РЅРЅС‹Р№', 'РїРѕ С€Р°РіР°Рј',
+  ],
+  preferred_decision_style: [
+    'direct', 'analytical', 'intuitive', 'collaborative', 'needs time',
+    'one step at a time', 'step by step',
+    'РїСЂСЏРјРѕР№', 'Р°РЅР°Р»РёС‚РёС‡РµСЃРєРёР№', 'РёРЅС‚СѓРёС‚РёРІРЅС‹Р№', 'СЃРѕРІРјРµСЃС‚РЅС‹Р№',
+    'РЅСѓР¶РЅРѕ РІСЂРµРјСЏ', 'РїРѕ С€Р°РіР°Рј',
+  ],
+  preferred_communication_style: [
+    'direct', 'concise', 'detailed', 'gentle',
+    'РїСЂСЏРјРѕР№', 'РєСЂР°С‚РєРёР№', 'РїРѕРґСЂРѕР±РЅС‹Р№', 'РјСЏРіРєРёР№',
+  ],
+  preferred_explanation_depth: [
+    'concise', 'balanced', 'detailed',
+    'РєСЂР°С‚РєРѕ', 'СЃР±Р°Р»Р°РЅСЃРёСЂРѕРІР°РЅРЅРѕ', 'РїРѕРґСЂРѕР±РЅРѕ',
+  ],
+  preferred_forecast_focus: [
+    'risk', 'action', 'timing', 'overview',
+    'СЂРёСЃРє', 'РґРµР№СЃС‚РІРёРµ', 'СЃСЂРѕРєРё', 'РѕР±С‰РёР№ РІС‹РІРѕРґ',
+  ],
 };
 
-const VISUAL_TAG_BY_FIXED: Record<FixedForecastSectionKey, string> = {
-  love: 'love',
-  mood: 'mood',
-  home_family: 'home',
-  friends: 'friends',
-  work_money: 'work-money',
-  wishes: 'wishes',
-};
+const COPY_STOP_WORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'before', 'between', 'but', 'by',
+  'can', 'for', 'from', 'in', 'is', 'it', 'more', 'not', 'of', 'on', 'one',
+  'or', 'right', 'than', 'that', 'the', 'this', 'to', 'under', 'with', 'you',
+  'your', 'now', 'currently', 'may',
+  'Р°', 'Р±РµР·', 'Р±РѕР»СЊС€Рµ', 'РІ', 'РґР»СЏ', 'РґРѕ', 'Рё', 'РёР»Рё', 'РјРµР¶РґСѓ', 'РЅР°',
+  'РЅРµ', 'РЅРѕ', 'РѕС‚', 'РїРѕ', 'РїСЂРё', 'СЃ', 'СЃРµР№С‡Р°СЃ', 'С‡РµРј', 'С‡С‚Рѕ', 'СЌС‚Рѕ',
+  'С‚С‹', 'С‚РІРѕР№', 'С‚РІРѕСЏ', 'С‚РІРѕРё', 'РјРѕР¶РµС‚', 'РѕСЃРѕР±РµРЅРЅРѕ',
+]);
 
-const VISUAL_TAG_BY_DYNAMIC: Record<DynamicForecastTopicKey, string> = {
-  professional_path: 'career',
-  it_direction: 'technology',
-  business: 'business',
-  income_growth: 'money',
-  work_change: 'career-change',
-  study: 'study',
-  creativity: 'creativity',
-  relocation: 'relocation',
-  property_decision: 'property',
-  self_confidence: 'confidence',
-  important_decision: 'decision',
-  future_direction: 'future',
-  rest_recovery: 'rest',
-  physical_activity: 'movement',
-  documents_agreements: 'documents',
-};
+const LIFE_AREA_GATES: ReadonlyArray<{
+  pattern: RegExp;
+  contexts: readonly ForecastSemanticFact['lifeContext'][];
+}> = [
+  {
+    pattern: /\b(?:love|romance|relationship|partner|boyfriend|girlfriend|husband|wife|Р»СЋР±РѕРІ\w*|СЂРѕРјР°РЅ\w*|РѕС‚РЅРѕС€РµРЅ\w*|РїР°СЂС‚РЅ[С‘Рµ]СЂ\w*|РјСѓР¶|Р¶РµРЅР°)\b/iu,
+    contexts: ['partnerships'],
+  },
+  {
+    pattern: /\b(?:money|income|salary|profit|purchase|property|rent|loan|debt|wealth|РґРµРЅСЊРі\w*|РґРѕС…РѕРґ\w*|Р·Р°СЂРїР»Р°С‚\w*|РїСЂРёР±С‹Р»\w*|РїРѕРєСѓРї\w*|РёРјСѓС‰РµСЃС‚РІ\w*|РєСЂРµРґРёС‚\w*|РґРѕР»Рі\w*)\b/iu,
+    contexts: ['personal_resources', 'shared_resources'],
+  },
+  {
+    pattern: /\b(?:job|career|boss|workplace|colleague|РєР°СЂСЊРµСЂ\w*|СЂР°Р±РѕС‚РѕРґР°С‚РµР»\w*|РЅР°С‡Р°Р»СЊРЅРёРє\w*|РєРѕР»Р»РµРі\w*)\b/iu,
+    contexts: ['work_routines', 'career_public_role'],
+  },
+  {
+    pattern: /\b(?:home|family|parent|child|РґРѕРј|СЃРµРјСЊ\w*|СЂРѕРґРёС‚РµР»\w*|СЂРµР±[С‘Рµ]РЅ\w*)\b/iu,
+    contexts: ['home_foundation'],
+  },
+  {
+    pattern: /\b(?:friend|team|community|group|РґСЂСѓРі\w*|РєРѕРјР°РЅРґ\w*|СЃРѕРѕР±С‰РµСЃС‚РІ\w*|РіСЂСѓРїРї\w*)\b/iu,
+    contexts: ['groups_networks'],
+  },
+  {
+    pattern: /\b(?:travel|trip|flight|journey|С‚СѓСЂРёР·Рј\w*|РїРѕРµР·Рґ\w*|РїРµСЂРµР»С‘С‚\w*|РїСѓС‚РµС€РµСЃС‚РІ\w*)\b/iu,
+    contexts: ['communication_learning', 'study_travel'],
+  },
+  {
+    pattern: /\b(?:health|illness|treatment|body|Р·РґРѕСЂРѕРІ\w*|Р±РѕР»РµР·РЅ\w*|Р»РµС‡РµРЅ\w*|С‚РµР»Рѕ)\b/iu,
+    contexts: [],
+  },
+];
 
-function unique<T>(values: T[]): T[] {
-  return [...new Set(values)];
+function confidenceRank(value: ForecastSemanticFact['confidence']): number {
+  if (value === 'high') return 3;
+  if (value === 'medium') return 2;
+  return 1;
 }
 
-function compactEvidence(evidence: TopicEvidence) {
-  const compact = (items: CalculatedAstroEvidence[]) => items.map((item) => ({
-    id: item.id,
-    kind: item.kind,
-    transitPlanet: item.transitPlanet ?? null,
-    natalPoint: item.natalPoint ?? null,
-    aspect: item.aspect ?? null,
-    house: item.house ?? null,
-    orb: item.orb ?? null,
-    status: item.status,
-    exactAt: item.exactAt ?? null,
-    startsAt: item.startsAt ?? null,
-    endsAt: item.endsAt ?? null,
-    strength: item.strength,
-    polarity: item.polarity,
-  }));
+function sortFacts(facts: ForecastSemanticFact[]): ForecastSemanticFact[] {
+  return [...facts].sort((left, right) => (
+    right.strength - left.strength
+    || confidenceRank(right.confidence) - confidenceRank(left.confidence)
+    || left.semanticFingerprint.localeCompare(right.semanticFingerprint)
+  ));
+}
+
+function normalizedHistoryValue(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+  return normalized || null;
+}
+
+function safeHistoryFactValue(key: string, value: unknown): string | null {
+  const allowed = SAFE_HISTORY_FACT_VALUES[key];
+  const normalized = normalizedHistoryValue(value);
+  if (!allowed || !normalized) return null;
+  return allowed.includes(normalized) ? normalized : null;
+}
+
+function tokenStem(token: string): string {
+  let value = token.toLocaleLowerCase();
+  if (/^[a-z]+$/u.test(value) && value.length > 4) {
+    value = value
+      .replace(/(?:ingly|edly|ing|ed|es|s)$/u, '')
+      .replace(/(?:tion|ment)$/u, '');
+  }
+  if (value.length <= 5) return value;
+  return value.slice(0, 6);
+}
+
+function contentStems(value: string): Set<string> {
+  const tokens = value.toLocaleLowerCase().match(/\p{L}+/gu) || [];
+  return new Set(
+    tokens
+      .filter((token) => token.length >= 3 && !COPY_STOP_WORDS.has(token))
+      .map(tokenStem)
+      .filter((token) => token.length >= 3),
+  );
+}
+
+function hasUnsupportedLifeArea(
+  text: string,
+  fact: ForecastSemanticFact,
+): boolean {
+  return LIFE_AREA_GATES.some((gate) => (
+    gate.pattern.test(text)
+    && !gate.contexts.includes(fact.lifeContext)
+  ));
+}
+
+function copyMeaningIsGrounded(input: {
+  text: string;
+  exactMeaning: string;
+  fact: ForecastSemanticFact;
+}): boolean {
+  if (hasUnsupportedLifeArea(input.text, input.fact)) return false;
+  const approved = contentStems(input.exactMeaning);
+  const candidate = contentStems(input.text);
+  if (!approved.size || !candidate.size) return false;
+  const overlap = [...candidate].filter((token) => approved.has(token)).length;
+  return overlap >= 1 && overlap / candidate.size >= 0.45;
+}
+
+function block(
+  planId: string,
+  role: ForecastContentBlockRole,
+  fact: ForecastSemanticFact,
+  atomId: string,
+  language: ForecastWriterLanguage,
+  index: number,
+): PlannedBlock | null {
+  const writerBrief = forecastAtomText(role, atomId, language).trim();
+  if (!writerBrief) return null;
   return {
-    primary: compact(evidence.primary),
-    supporting: compact(evidence.supporting),
-    conflicting: compact(evidence.conflicting),
-    confidence: evidence.confidence,
+    id: `${planId}:${role}:${index + 1}`,
+    role,
+    semanticFactId: fact.id,
+    atomId,
+    writerBrief,
   };
 }
 
-function compactNatalChart(chart: NatalChartData) {
-  const reliability = resolvePersonalForecastChartReliability(chart);
-  const point = (key: keyof NatalChartData) => {
-    const value = chart[key] as {
-      sign?: string;
-      degree?: number;
-      house?: string | number;
-    } | null | undefined;
-    if (!value || typeof value !== 'object') return null;
-    return {
-      sign: value.sign || null,
-      degree: Number.isFinite(value.degree) ? Number(value.degree).toFixed(2) : null,
-      house: (
-        reliability.houseBasedPersonalization
-        && value.house != null
-      )
-        ? String(value.house)
-        : null,
-    };
+function factBlocks(
+  planId: string,
+  fact: ForecastSemanticFact,
+  language: ForecastWriterLanguage,
+): PlannedBlock[] {
+  const primaryManifestation = fact.allowedManifestationAtoms[0];
+  const contextualManifestation = fact.lifeContext
+    ? fact.allowedManifestationAtoms.at(-1)
+    : undefined;
+  const dynamicClaimByMechanism: Partial<Record<
+    ForecastSemanticFact['mechanism']['dynamic'],
+    ForecastClaimAtom
+  >> = {
+    concentration: 'temporary_focus_is_concentrated',
+    opening: 'temporary_support_is_available',
+    flow: 'temporary_support_is_available',
+    friction: 'temporary_friction_requires_precision',
+    polarization: 'two_sides_temporarily_require_balance',
+    ongoing_activation: 'house_context_is_temporarily_active',
+    sign_transition: 'context_is_entering_a_new_phase',
+    station_turn_direct: 'process_is_turning_direct',
+    station_turn_retrograde: 'process_is_turning_retrograde',
+    station_pause: 'process_is_near_a_station',
+    new_cycle: 'attention_cycle_is_beginning',
+    culmination: 'attention_cycle_is_culminating',
   };
-  return {
-    sun: point('sun'),
-    moon: point('moon'),
-    rising: reliability.ascendantReliable ? point('rising') : null,
-    mercury: point('mercury'),
-    venus: point('venus'),
-    mars: point('mars'),
-    jupiter: point('jupiter'),
-    saturn: point('saturn'),
-    uranus: point('uranus'),
-    neptune: point('neptune'),
-    pluto: point('pluto'),
-    houses: reliability.houseBasedPersonalization
-      ? (chart.houses || []).map((house) => ({
-          house: house.house,
-          sign: house.sign,
-        }))
-      : [],
-    birthTimeQuality: reliability.birthTimeQuality,
-    chartQuality: {
-      ascendantReliable: reliability.ascendantReliable,
-      housesReliable: reliability.housesReliable,
-      houseBasedPersonalization: reliability.houseBasedPersonalization,
-    },
-    calculationVersion: chart.calculationVersion || null,
-  };
-}
-
-function evidenceImportance(evidence: TopicEvidence): number {
-  const all = [
-    ...evidence.primary,
-    ...evidence.supporting,
-    ...evidence.conflicting,
+  const expectedDynamicClaim = dynamicClaimByMechanism[fact.mechanism.dynamic];
+  const dynamicClaim = expectedDynamicClaim
+    && fact.allowedClaimAtoms.includes(expectedDynamicClaim)
+    ? expectedDynamicClaim
+    : undefined;
+  const candidates: Array<[ForecastContentBlockRole, string | undefined]> = [
+    ['lead', dynamicClaim],
+    ['detail', contextualManifestation || primaryManifestation],
+    ['risk', fact.allowedRiskAtoms[0]],
+    ['action', fact.allowedActionAtoms[0]],
   ];
-  if (!all.length) return 0;
-  const primary = evidence.primary[0]?.strength || 0;
-  const supporting = all.slice(1, 4).reduce((sum, item) => sum + item.strength, 0);
-  return Math.max(1, Math.min(100, Math.round(primary * 0.78 + supporting * 0.12)));
-}
-
-function topicEvidenceFor(
-  calculated: EvidenceCalculationResult,
-  key: ForecastTopicKey,
-): TopicEvidence {
-  return calculated.topicEvidence[key] || {
-    primary: [],
-    supporting: [],
-    conflicting: [],
-    confidence: 'low',
-  };
-}
-
-function astroTitle(
-  evidence: CalculatedAstroEvidence,
-  language: 'ru' | 'en',
-): string {
-  const planet = String(evidence.transitPlanet || '').toLowerCase();
-  const planetNames: Record<'ru' | 'en', Record<string, string>> = {
-    ru: {
-      sun: 'Солнце',
-      moon: 'Луна',
-      mercury: 'Меркурий',
-      venus: 'Венера',
-      mars: 'Марс',
-      jupiter: 'Юпитер',
-      saturn: 'Сатурн',
-      uranus: 'Уран',
-      neptune: 'Нептун',
-      pluto: 'Плутон',
-    },
-    en: {
-      sun: 'Sun',
-      moon: 'Moon',
-      mercury: 'Mercury',
-      venus: 'Venus',
-      mars: 'Mars',
-      jupiter: 'Jupiter',
-      saturn: 'Saturn',
-      uranus: 'Uranus',
-      neptune: 'Neptune',
-      pluto: 'Pluto',
-    },
-  };
-  const names = {
-    ru: {
-      newMoon: 'Новолуние задаёт заметный ритм',
-      fullMoon: 'Полнолуние задаёт заметный ритм',
-      moon: 'Луна выходит на первый план',
-      mercury: evidence.kind === 'station'
-        ? 'Меркурий меняет направление'
-        : 'Меркурий выходит на первый план',
-    },
-    en: {
-      newMoon: 'The New Moon sets a noticeable pace',
-      fullMoon: 'The Full Moon sets a noticeable pace',
-      moon: 'The Moon comes to the foreground',
-      mercury: evidence.kind === 'station'
-        ? 'Mercury changes direction'
-        : 'Mercury comes to the foreground',
-    },
-  };
-  if (evidence.kind === 'lunation') {
-    return evidence.aspect === 'opposition'
-      ? names[language].fullMoon
-      : names[language].newMoon;
-  }
-  if (planet === 'moon' || planet === 'mercury') {
-    return names[language][planet];
-  }
-  const label = planetNames[language][planet]
-    || (language === 'ru' ? 'Планета' : 'Planet');
-  if (evidence.kind === 'station') {
-    return language === 'ru'
-      ? `${label} меняет направление`
-      : `${label} changes direction`;
-  }
-  return language === 'ru'
-    ? `${label}: важный акцент периода`
-    : `${label}: an important period accent`;
-}
-
-function astroVisualTag(evidence: CalculatedAstroEvidence): string {
-  const planet = String(evidence.transitPlanet || '').toLowerCase();
-  if (evidence.kind === 'lunation' || planet === 'moon') return 'moon';
-  if (planet === 'mercury') return evidence.kind === 'station' ? 'retrograde' : 'mercury';
-  if (evidence.kind === 'station') return 'retrograde';
-  return 'astro';
-}
-
-function evidenceBundle(items: CalculatedAstroEvidence[]): TopicEvidence {
-  return {
-    primary: items.slice(0, 1),
-    supporting: items.slice(1, 3),
-    conflicting: items.filter((item) => item.polarity === 'challenging').slice(0, 1),
-    confidence: (items[0]?.strength || 0) >= 70 ? 'high' : 'medium',
-  };
-}
-
-function chooseStrongAstroEvidence(
-  evidence: CalculatedAstroEvidence[],
-): CalculatedAstroEvidence[] {
-  return evidence
-    .filter((item) => (
-      item.strength >= 68
-      && (
-        item.kind === 'lunation'
-        || item.kind === 'station'
-        || item.transitPlanet === 'moon'
-        || item.transitPlanet === 'mercury'
-      )
+  return candidates
+    .map(([role, atomId], index) => (
+      atomId ? block(planId, role, fact, atomId, language, index) : null
     ))
-    .sort((a, b) => b.strength - a.strength)
-    .filter((item, index, all) => (
-      all.findIndex((candidate) => (
-        candidate.kind === item.kind
-        && candidate.transitPlanet === item.transitPlanet
-      )) === index
-    ))
-    .slice(0, 2);
-}
-
-function fixedFocusLabel(
-  key: FixedForecastSectionKey,
-  language: 'ru' | 'en',
-  period: PersonalForecastPeriod,
-): string {
-  if (key === 'wishes') return FORECAST_WISHES_TITLES[language][period];
-  return FORECAST_FIXED_TITLES[language][key];
+    .filter((value): value is PlannedBlock => !!value)
+    .slice(0, 4);
 }
 
 export function buildPersonalForecastSectionPlans(input: {
-  calculated: EvidenceCalculationResult;
+  facts: ForecastSemanticFact[];
   period: PersonalForecastPeriod;
-  language: 'ru' | 'en';
-}): {
-  overview: ForecastSectionPlan;
-  sections: ForecastSectionPlan[];
-} {
-  const { calculated, language, period } = input;
-  const overviewEvidence = topicEvidenceFor(calculated, 'overview');
+  language: ForecastWriterLanguage;
+}): { overview: ForecastSectionPlan; sections: ForecastSectionPlan[] } {
+  void input.period;
+  const selected: ForecastSemanticFact[] = [];
+  const selectedTopics = new Set<string>();
+  for (const fact of sortFacts(input.facts)) {
+    const topic = fact.lifeContext || fact.domain;
+    if (selectedTopics.has(topic)) continue;
+    selectedTopics.add(topic);
+    selected.push(fact);
+    if (selected.length >= MAX_SEMANTIC_SECTIONS) break;
+  }
+  if (!selected.length) throw new Error('PERSONAL_FORECAST_SEMANTICS_EMPTY');
+
+  const usedOverviewAtoms = new Set<string>();
+  const overviewEntries: Array<{ fact: ForecastSemanticFact; atomId: string }> = [];
+  for (const fact of selected.slice(0, Math.min(2, selected.length))) {
+    const atomId = fact.allowedClaimAtoms.find((candidate) => (
+      !usedOverviewAtoms.has(candidate)
+    ));
+    if (!atomId) continue;
+    usedOverviewAtoms.add(atomId);
+    overviewEntries.push({ fact, atomId });
+  }
+  const overviewFacts = overviewEntries.map((entry) => entry.fact);
+  const overviewBlocks = overviewEntries
+    .map(({ fact, atomId }, index) => block(
+      'overview',
+      'lead',
+      fact,
+      atomId,
+      input.language,
+      index,
+    ))
+    .filter((value): value is PlannedBlock => !!value);
+  if (!overviewBlocks.length) throw new Error('PERSONAL_FORECAST_OVERVIEW_EMPTY');
+
+  const overviewFingerprint = `overview:${stableHash(
+    overviewFacts.map((fact) => fact.semanticFingerprint).join('|'),
+  ).toString(36)}`;
   const overview: ForecastSectionPlan = {
     id: 'overview',
-    kind: 'overview',
-    sourceTopicKey: 'overview',
-    focusLabel: language === 'ru' ? 'главный разбор периода' : 'main period overview',
-    importance: evidenceImportance(overviewEvidence),
-    visualTag: 'overview',
-    evidence: overviewEvidence,
-    inlineEvidenceIds: [],
+    importance: overviewFacts[0]?.strength || 0,
+    visualTag: forecastSemanticVisualTag(overviewFacts[0]),
+    semanticFactIds: overviewFacts.map((fact) => fact.id),
+    semanticFingerprint: overviewFingerprint,
+    facts: overviewFacts,
+    blocks: overviewBlocks,
   };
 
-  const dynamicPlans = calculated.dynamicTopicKeys.map((key): ForecastSectionPlan => {
-    const evidence = topicEvidenceFor(calculated, key);
+  const sections = selected.map((fact): ForecastSectionPlan => {
+    const id = `semantic:${fact.semanticFingerprint.slice(0, 28)}`;
+    const blocks = factBlocks(id, fact, input.language);
+    if (!blocks.length) throw new Error('PERSONAL_FORECAST_SECTION_ATOMS_EMPTY');
     return {
-      id: `dynamic:${key}`,
-      kind: 'dynamic',
-      sourceTopicKey: key,
-      focusLabel: DYNAMIC_FORECAST_FOCUS_LABELS[language][key],
-      importance: evidenceImportance(evidence),
-      visualTag: VISUAL_TAG_BY_DYNAMIC[key],
-      evidence,
-      inlineEvidenceIds: [],
+      id,
+      title: forecastSemanticTitle(fact, input.language),
+      importance: Math.max(0, Math.min(100, Math.round(fact.strength))),
+      visualTag: forecastSemanticVisualTag(fact),
+      semanticFactIds: [fact.id],
+      semanticFingerprint: fact.semanticFingerprint,
+      facts: [fact],
+      blocks,
     };
   });
-
-  const strongAstro = chooseStrongAstroEvidence(calculated.evidence);
-  const strongAstroIds = new Set(strongAstro.map((item) => item.id));
-  const weakAstro = calculated.evidence
-    .filter((item) => !strongAstroIds.has(item.id))
-    .filter((item) => (
-      item.strength >= 36
-      && (
-        item.kind === 'lunation'
-        || item.kind === 'station'
-        || item.transitPlanet === 'moon'
-        || item.transitPlanet === 'mercury'
-      )
-    ))
-    .sort((a, b) => b.strength - a.strength);
-
-  const fixedPlans = FIXED_FORECAST_SECTION_KEYS.map((key): ForecastSectionPlan => {
-    const evidence = topicEvidenceFor(calculated, key);
-    const weak = weakAstro.find((item) => item.topicKeys.includes(key));
-    return {
-      id: key,
-      kind: key === 'wishes' ? 'wishes' : 'fixed',
-      fixedKey: key,
-      sourceTopicKey: key,
-      staticTitle: fixedFocusLabel(key, language, period),
-      focusLabel: fixedFocusLabel(key, language, period),
-      importance: evidenceImportance(evidence),
-      visualTag: VISUAL_TAG_BY_FIXED[key],
-      evidence,
-      inlineEvidenceIds: weak ? [weak.id] : [],
-    };
-  });
-
-  const astroPlans = strongAstro.map((item): ForecastSectionPlan => ({
-    id: `astro:${item.id}`,
-    kind: 'astro_accent',
-    sourceTopicKey: item.topicKeys.find((key) => key !== 'overview' && key !== 'wishes')
-      || 'overview',
-    staticTitle: astroTitle(item, language),
-    focusLabel: astroTitle(item, language),
-    importance: Math.min(100, Math.round(item.strength)),
-    visualTag: astroVisualTag(item),
-    evidence: evidenceBundle([
-      item,
-      ...calculated.evidence
-        .filter((candidate) => (
-          candidate.id !== item.id
-          && (
-            candidate.transitPlanet === item.transitPlanet
-            || candidate.kind === item.kind
-          )
-        ))
-        .slice(0, 2),
-    ]),
-    inlineEvidenceIds: [],
-  }));
-
-  const sections: ForecastSectionPlan[] = [];
-  for (const fixed of fixedPlans) {
-    sections.push(fixed);
-    if (fixed.fixedKey === 'mood') {
-      sections.push(...astroPlans.filter((plan) => (
-        plan.visualTag === 'moon'
-        || plan.visualTag === 'mercury'
-        || plan.visualTag === 'retrograde'
-      )));
-    }
-    sections.push(...dynamicPlans.filter((plan) => (
-      DYNAMIC_INSERT_AFTER[plan.sourceTopicKey as DynamicForecastTopicKey] === fixed.fixedKey
-    )));
-  }
-  const placedAstro = new Set(sections.filter((plan) => plan.kind === 'astro_accent').map((plan) => plan.id));
-  const unplacedAstro = astroPlans.filter((plan) => !placedAstro.has(plan.id));
-  const wishesIndex = sections.findIndex((plan) => plan.fixedKey === 'wishes');
-  if (unplacedAstro.length && wishesIndex >= 0) {
-    sections.splice(wishesIndex, 0, ...unplacedAstro);
-  }
 
   return { overview, sections };
 }
 
-function promptPlan(plan: ForecastSectionPlan) {
+function safeHistoryContext(history?: AstrologyHistoryContext | null) {
+  if (!history) return { explicit_facts: [], previous_semantic_fingerprints: [] };
+  const explicitFacts = history.explicitFacts
+    .filter((fact) => fact.operation === 'assert')
+    .map((fact) => ({
+      key: fact.factKey.trim(),
+      value: safeHistoryFactValue(fact.factKey.trim(), fact.factValue),
+    }))
+    .filter((fact): fact is { key: string; value: string } => fact.value !== null)
+    .slice(0, 8)
+    .map((fact) => ({ key: fact.key, value: fact.value }));
   return {
-    id: plan.id,
-    kind: plan.kind,
-    fixedTitle: plan.staticTitle || null,
-    lifeFocus: plan.focusLabel,
-    importance: plan.importance,
-    evidence: compactEvidence(plan.evidence),
-    inlineEvidenceIds: plan.inlineEvidenceIds,
+    explicit_facts: explicitFacts,
+    previous_semantic_fingerprints: history.artifactContinuity
+      .flatMap((artifact) => artifact.semanticFingerprints)
+      .filter(Boolean)
+      .slice(0, 20),
   };
 }
 
 export function buildPersonalForecastFeedPrompt(input: {
-  language: 'ru' | 'en';
+  language: ForecastWriterLanguage;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  chartData: NatalChartData;
-  overview: ForecastSectionPlan;
-  sections: ForecastSectionPlan[];
+  overviewPlan: ForecastSectionPlan;
+  sectionPlans: ForecastSectionPlan[];
+  historyContext?: AstrologyHistoryContext | null;
   repairErrors?: string[];
 }): string {
-  const overviewRange = personalForecastOverviewTextRange();
-  const sectionRange = personalForecastSectionTextRange();
-  const explanationRange = personalForecastExplanationTextRange();
-  const repair = input.repairErrors?.length
-    ? `\nThe previous JSON was rejected:\n- ${input.repairErrors.join('\n- ')}\nReturn a corrected complete object.`
-    : '';
-  const languageInstruction = input.language === 'en'
-    ? 'Write all user-facing text in English.'
-    : 'Весь пользовательский текст напиши на русском языке.';
-  return `Create one structured personal forecast feed for the supplied period.
-
-${languageInstruction}
-Period: ${input.period}
-Calculated interval: ${input.window.periodStart} — ${input.window.periodEnd}
-Timezone: ${input.window.timezone}
-
-The natal chart and all period evidence below were calculated by the server. Do not calculate astrology, infer missing aspects, or add biographical facts.
-Natal chart:
-${JSON.stringify(compactNatalChart(input.chartData), null, 2)}
-
-Overview plan:
-${JSON.stringify(promptPlan(input.overview), null, 2)}
-
-Ordered section plans:
-${JSON.stringify(input.sections.map(promptPlan), null, 2)}
-
-Return exactly one JSON object:
-{
-  "overview": {
-    "id": "overview",
-    "text": "complete main period analysis",
-    "premium_teaser": "specific teaser grounded in supplied evidence",
-    "explanation_anchors": [
-      {
-        "id": "overview-conclusion-1",
-        "conclusion": "one important human conclusion",
-        "explanation": "plain-language reason for that exact conclusion",
-        "evidence_ids": ["only IDs assigned to overview"]
-      }
-    ],
-    "inline_astro_accent": null
-  },
-  "sections": [
-    {
-      "id": "exact id from the ordered plan",
-      "title": "only for dynamic sections; a simple life title",
-      "text": "full section text",
-      "premium_teaser": "specific value of the full section",
-      "explanation_anchors": [],
-      "inline_astro_accent": {
-        "text": "short plain-language insert only when inlineEvidenceIds were supplied",
-        "evidence_ids": ["only supplied inlineEvidenceIds"]
-      }
-    }
-  ]
-}
-
-Technical constraints:
-- return every planned section exactly once and in the supplied order;
-- omit a generated title for fixed, wishes, overview, and astro_accent sections;
-- dynamic titles use one to seven ordinary words and must not use “Публичность”, “Важный выбор”, “Поездки и движение”, “Public visibility”, “Important choice”, or “Travel and movement”;
-- write every text as two or three short paragraphs separated by a blank line;
-- the first paragraph is exactly one direct, memorable conclusion for the selected period;
-- the second paragraph shows one recognisable ordinary-life manifestation through concrete behaviour, a conversation, a decision, a task, or a reaction, without inventing that an event has already happened;
-- when a third paragraph is justified, make it one concise practical choice, boundary, or action; never repeat the conclusion in different words;
-- keep the calculation reason in explanation_anchors instead of retelling it abstractly in the main text;
-- overview text is ${overviewRange.min}–${overviewRange.max} characters; every other section text is ${sectionRange.min}–${sectionRange.max} characters;
-- write with candid warmth and lively precision; no fatalism, self-help slogans, pseudo-psychology, filler, or repeated points;
-- prefer active verbs, concrete nouns, and recognisable situations over abstractions such as “inner tension”, “changes”, “difficulties”, or “opportunities” without an observable manifestation;
-- use no more than one uncertainty marker such as “может”, “возможно”, “may”, or “could” in a paragraph; do not stack hedges such as “возможны”, “не исключены”, and “есть шанс”;
-- do not begin several sections with the same construction, and do not repeatedly use “день требует”, “период требует”, “важно”, “сегодня важно”, “the day requires”, or “it is important”;
-- user-facing section text must not name planets, houses, aspects, or introduce a technical block such as “Основание:” or “Basis:”;
-- premium_teaser is 40–300 characters, starts from a real supplied conclusion, tells what the full text clarifies, and contains no invented intrigue;
-- explanation_anchors contain zero to two items; each explanation is ${explanationRange.min}–${explanationRange.max} characters, uses one to four evidence IDs assigned to that section, and gives a short human explanation of the calculation without orbs, weights, or service fields;
-- overview must contain at least one explanation anchor;
-- inline_astro_accent is null unless inlineEvidenceIds are supplied; when supplied it uses only those IDs;
-- no duplicate titles, duplicate opening sentences, templated introductions, markdown, technical field names, or fields outside the schema;
-- never mention orbs, internal weights, applying/separating status, JSON, evidence, or service terminology in user-facing text;
-- do not invent an event, person, job, purchase, conflict, biography, or guaranteed future outcome;
-- mention a date only when it is present in the supplied calculations.${repair}`;
-}
-
-function dateReference(
-  raw: string,
-  day: number,
-  month: number,
-  year?: number,
-): DateReference | null {
-  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
-  const monthDay = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  return {
-    raw,
-    monthDay,
-    isoDate: year ? `${year}-${monthDay}` : undefined,
-  };
-}
-
-function datesInText(value: string): DateReference[] {
-  const references: DateReference[] = (value.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [])
-    .map((raw) => ({ raw, isoDate: raw, monthDay: raw.slice(5) }));
-  const numericDayFirst = /(?:^|[^\d])(\d{1,2})([./])(\d{1,2})\2(\d{4})(?!\d)/gu;
-  for (const match of value.matchAll(numericDayFirst)) {
-    const raw = `${match[1]}${match[2]}${match[3]}${match[2]}${match[4]}`;
-    const parsed = dateReference(
-      raw,
-      Number(match[1]),
-      Number(match[3]),
-      Number(match[4]),
-    );
-    if (parsed) references.push(parsed);
-  }
-  const russian = /(?:^|[^\p{L}\d])(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+(\d{4}))?/giu;
-  for (const match of value.matchAll(russian)) {
-    const raw = `${match[1]} ${match[2]}${match[3] ? ` ${match[3]}` : ''}`;
-    const parsed = dateReference(
-      raw,
-      Number(match[1]),
-      MONTH_BY_NAME[match[2].toLowerCase()],
-      match[3] ? Number(match[3]) : undefined,
-    );
-    if (parsed) references.push(parsed);
-  }
-  const englishMonthFirst = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:,?\s+(\d{4}))?\b/giu;
-  for (const match of value.matchAll(englishMonthFirst)) {
-    const parsed = dateReference(
-      match[0],
-      Number(match[2]),
-      MONTH_BY_NAME[match[1].toLowerCase()],
-      match[3] ? Number(match[3]) : undefined,
-    );
-    if (parsed) references.push(parsed);
-  }
-  const englishDayFirst = /\b(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s*,?\s*(\d{4}))?\b/giu;
-  for (const match of value.matchAll(englishDayFirst)) {
-    const parsed = dateReference(
-      match[0],
-      Number(match[1]),
-      MONTH_BY_NAME[match[2].toLowerCase()],
-      match[3] ? Number(match[3]) : undefined,
-    );
-    if (parsed) references.push(parsed);
-  }
-  return references;
-}
-
-function evidenceIdsForPlan(plan: ForecastSectionPlan): Set<string> {
-  return new Set([
-    ...plan.evidence.primary,
-    ...plan.evidence.supporting,
-    ...plan.evidence.conflicting,
-  ].map((item) => item.id));
-}
-
-function allowedDates(plans: ForecastSectionPlan[]): Set<string> {
-  return new Set(
-    plans
-      .flatMap((plan) => [
-        ...plan.evidence.primary,
-        ...plan.evidence.supporting,
-        ...plan.evidence.conflicting,
-      ])
-      .flatMap((item) => [item.exactAt, item.startsAt, item.endsAt])
-      .filter((value): value is string => typeof value === 'string')
-      .map((value) => value.slice(0, 10)),
-  );
-}
-
-function validateDates(value: string, dateWhitelist: Set<string>): string[] {
-  return datesInText(value)
-    .filter((date) => (
-      date.isoDate
-        ? !dateWhitelist.has(date.isoDate)
-        : ![...dateWhitelist].some((allowed) => allowed.endsWith(date.monthDay || ''))
-    ))
-    .map((date) => date.raw);
-}
-
-function hasGuaranteedFutureClaim(value: string): boolean {
-  return [
-    /\b(?:will|shall)\s+(?:definitely|certainly|inevitably)\b/iu,
-    /\b(?:definitely|certainly|inevitably)\s+(?:will|shall)\b/iu,
-    /\b(?:is|are)\s+guaranteed\s+to\b/iu,
-    /\b(?:must|will)\s+(?:happen|occur)\s+(?:for sure|without fail)\b/iu,
-    /\b(?:точно|обязательно|гарантированно|непременно)\s+(?:произойд[её]т|случится|будет|получишь|получите)\b/iu,
-    /\b(?:произойд[её]т|случится)\s+(?:точно|обязательно|гарантированно|непременно)\b/iu,
-  ].some((pattern) => pattern.test(value));
-}
-
-function parseAnchors(input: {
-  raw: unknown;
-  plan: ForecastSectionPlan;
-  period: PersonalForecastPeriod;
-  dateWhitelist: Set<string>;
-  errors: string[];
-}): ExplanationAnchor[] {
-  const explanationRange = personalForecastExplanationTextRange();
-  if (!Array.isArray(input.raw)) return [];
-  const supplied = evidenceIdsForPlan(input.plan);
-  const anchors: ExplanationAnchor[] = [];
-  const anchorIds = new Set<string>();
-  input.raw.slice(0, 2).forEach((item) => {
-    const raw = (item || {}) as GeneratedAnchorPayload;
-    const id = typeof raw.id === 'string' ? raw.id.trim() : '';
-    const conclusion = typeof raw.conclusion === 'string' ? raw.conclusion.trim() : '';
-    const explanation = typeof raw.explanation === 'string' ? raw.explanation.trim() : '';
-    const evidenceIds = Array.isArray(raw.evidence_ids)
-      ? unique(raw.evidence_ids.filter((value): value is string => typeof value === 'string'))
-      : [];
-    const anchorText = `${conclusion}\n${explanation}`;
-    if (anchorIds.has(id)) {
-      input.errors.push(`${input.plan.id}: explanation anchor id is duplicated`);
-      return;
-    }
-    if (
-      evidenceIds.length < 1
-      || evidenceIds.length > 4
-      || evidenceIds.some((value) => !supplied.has(value))
-    ) {
-      input.errors.push(`${input.plan.id}: explanation anchor evidence_ids are invalid`);
-      return;
-    }
-    const valid = (
-      !!id
-      && !!conclusion
-      && conclusion.length <= 220
-      && !!explanation
-    );
-    if (
-      !valid
-      || explanation.length < explanationRange.min
-      || explanation.length > explanationRange.max
-      || validateDates(anchorText, input.dateWhitelist).length > 0
-      || hasGuaranteedFutureClaim(anchorText)
-      || hasAppVoiceViolation(anchorText)
-    ) return;
-    anchorIds.add(id);
-    anchors.push({ id, conclusion, explanation, evidenceIds });
-  });
-  return anchors;
-}
-
-function parseInlineAccent(input: {
-  raw: GeneratedInlineAccentPayload | null | undefined;
-  plan: ForecastSectionPlan;
-  errors: string[];
-}): ForecastInlineAstroAccent | null {
-  if (!input.plan.inlineEvidenceIds.length) {
-    if (input.raw) input.errors.push(`${input.plan.id}: unexpected inline_astro_accent`);
-    return null;
-  }
-  if (!input.raw) {
-    input.errors.push(`${input.plan.id}: inline_astro_accent is required`);
-    return null;
-  }
-  const text = typeof input.raw.text === 'string' ? input.raw.text.trim() : '';
-  const evidenceIds = Array.isArray(input.raw.evidence_ids)
-    ? unique(input.raw.evidence_ids.filter((value): value is string => typeof value === 'string'))
-    : [];
-  if (!text || text.length > 360) {
-    input.errors.push(`${input.plan.id}: inline_astro_accent text is invalid`);
-  }
-  if (
-    evidenceIds.length < 1
-    || evidenceIds.some((id) => !input.plan.inlineEvidenceIds.includes(id))
-  ) {
-    input.errors.push(`${input.plan.id}: inline_astro_accent evidence_ids are invalid`);
-  }
-  return { text, evidenceIds };
-}
-
-function parseSection(input: {
-  raw: GeneratedSectionPayload;
-  plan: ForecastSectionPlan;
-  period: PersonalForecastPeriod;
-  dateWhitelist: Set<string>;
-  errors: string[];
-}): ForecastSection {
-  const id = typeof input.raw.id === 'string' ? input.raw.id.trim() : '';
-  const title = typeof input.raw.title === 'string' ? input.raw.title.trim() : '';
-  const text = typeof input.raw.text === 'string' ? input.raw.text.trim() : '';
-  const premiumTeaser = typeof input.raw.premium_teaser === 'string'
-    ? input.raw.premium_teaser.trim()
-    : '';
-  const lockedPreview = buildForecastLockedPreview(text, premiumTeaser);
-  if (id !== input.plan.id) input.errors.push(`${input.plan.id}: returned id does not match`);
-  if (!text || text.length > personalForecastSectionTextLimit(input.period)) {
-    input.errors.push(`${input.plan.id}: text is invalid`);
-  }
-  if (
-    !premiumTeaser
-    || premiumTeaser.length < 40
-    || premiumTeaser.length > 300
-  ) {
-    input.errors.push(`${input.plan.id}: premium_teaser is invalid`);
-  }
-  if (!lockedPreview.blurred.trim()) {
-    input.errors.push(
-      `${input.plan.id}: text is too short for an honest locked preview`,
-    );
-  }
-  if (input.plan.kind === 'dynamic') {
-    if (!isSimpleDynamicTitle(title)) input.errors.push(`${input.plan.id}: dynamic title is invalid`);
-  } else if (title) {
-    input.errors.push(`${input.plan.id}: generated title is not allowed`);
-  }
-  const anchors = parseAnchors({
-    raw: input.raw.explanation_anchors,
-    plan: input.plan,
-    period: input.period,
-    dateWhitelist: input.dateWhitelist,
-    errors: input.errors,
-  });
-  const inlineAstroAccent = parseInlineAccent({
-    raw: input.raw.inline_astro_accent,
-    plan: input.plan,
-    errors: input.errors,
-  });
-  const unsupportedDates = validateDates(
-    [
-      title,
-      text,
-      premiumTeaser,
-      inlineAstroAccent?.text || '',
-    ].join('\n'),
-    input.dateWhitelist,
-  );
-  if (unsupportedDates.length) {
-    input.errors.push(`${input.plan.id}: unsupported dates ${unique(unsupportedDates).join(', ')}`);
-  }
-  const userFacingText = [
-    title,
-    text,
-    premiumTeaser,
-    inlineAstroAccent?.text || '',
-  ].join('\n');
-  if (hasGuaranteedFutureClaim(userFacingText)) {
-    input.errors.push(`${input.plan.id}: guaranteed future outcome`);
-  }
-  if (hasAppVoiceViolation(userFacingText)) {
-    input.errors.push(`${input.plan.id}: app voice violation`);
-  }
-  return {
-    id: input.plan.id,
-    kind: input.plan.kind,
-    status: 'ready',
-    diagnosticCode: null,
-    fixedKey: input.plan.fixedKey,
-    sourceTopicKey: input.plan.sourceTopicKey,
-    title: input.plan.staticTitle || title || undefined,
-    text,
-    importance: input.plan.importance,
-    visualTag: input.plan.visualTag,
-    premiumTeaser,
-    lockedPreview,
-    explanationAnchors: anchors,
-    inlineAstroAccent,
-  };
-}
-
-const UNAVAILABLE_SECTION_COPY = {
-  ru: {
-    text: 'Этот раздел временно недоступен: его текст не прошёл проверку.',
-    teaser: 'Раздел появится после успешной проверки текста; остальные выводы периода уже доступны.',
-    dynamicTitle: 'Личная тема',
-  },
-  en: {
-    text: 'This section is temporarily unavailable because its text did not pass validation.',
-    teaser: 'The section will return after its text passes validation; the other period conclusions remain available.',
-    dynamicTitle: 'Personal topic',
-  },
-} as const;
-
-function sentenceCase(value: string, language: 'ru' | 'en'): string {
-  const trimmed = value.trim();
-  if (!trimmed) return trimmed;
-  return `${trimmed[0].toLocaleUpperCase(language === 'ru' ? 'ru-RU' : 'en-US')}${trimmed.slice(1)}`;
-}
-
-function unavailableForecastSection(
-  plan: ForecastSectionPlan,
-  language: 'ru' | 'en',
-): ForecastSection {
-  const copy = UNAVAILABLE_SECTION_COPY[language];
-  const focusTitle = sentenceCase(plan.focusLabel, language);
-  const dynamicTitle = isSimpleDynamicTitle(focusTitle)
-    ? focusTitle
-    : copy.dynamicTitle;
-  return {
+  const plans = [input.overviewPlan, ...input.sectionPlans].map((plan) => ({
     id: plan.id,
-    kind: plan.kind,
-    status: 'unavailable',
-    diagnosticCode: 'PERSONAL_FORECAST_SECTION_UNAVAILABLE',
-    fixedKey: plan.fixedKey,
-    sourceTopicKey: plan.sourceTopicKey,
-    title: plan.staticTitle || (plan.kind === 'dynamic' ? dynamicTitle : undefined),
-    text: copy.text,
-    importance: plan.importance,
-    visualTag: plan.visualTag,
-    premiumTeaser: copy.teaser,
-    lockedPreview: buildForecastLockedPreview(copy.text, copy.teaser),
-    explanationAnchors: [],
-    inlineAstroAccent: null,
-  };
+    title: plan.title || null,
+    semantic_facts: plan.facts.map((fact) => ({
+      id: fact.id,
+      domain: fact.domain,
+      life_context: fact.lifeContext,
+      timing: fact.timing,
+      confidence: fact.confidence,
+      forbidden_claim_classes: fact.forbiddenClaimClasses,
+    })),
+    required_blocks: plan.blocks.map((item) => ({
+      id: item.id,
+      role: item.role,
+      semantic_fact_id: item.semanticFactId,
+      atom_id: item.atomId,
+      exact_meaning_to_rephrase: item.writerBrief,
+    })),
+  }));
+  const repair = input.repairErrors?.length
+    ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
+    : '';
+  return `You are the final copy editor, not the astrologer and not the calculator.
+
+Write in ${input.language === 'ru' ? 'Russian, addressing the reader as "ты"' : 'English, addressing the reader as "you"'}.
+Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}.
+
+Hard rules:
+- Return JSON only: {"sections":[{"id":"...","blocks":[{"id":"...","role":"...","semantic_fact_id":"...","atom_id":"...","text":"..."}]}]}.
+- Return every supplied section and block exactly once. Echo every id, role, semantic_fact_id, and atom_id exactly.
+- Rephrase only exact_meaning_to_rephrase. Do not add a fact, life area, event, motive, biography, or prediction.
+- Keep the concrete nouns and verbs from exact_meaning_to_rephrase; at least half of the content words in your block must come from that supplied meaning.
+- A forecast is temporary. Never turn it into personality: no "you always", "you never", "you are the kind of person" or equivalents.
+- Do not name planets, aspects, houses, transits, degrees, or calculation terms in the main text.
+- Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
+- Keep each block to one or two short sentences, 25–240 characters. Plain text only; no markdown, lists, headings, slogans, or filler.
+- Explicit history may only sharpen wording inside the supplied semantic domain. It cannot create a new domain or fact.
+
+Approved semantic writing plan:
+${JSON.stringify(plans, null, 2)}
+
+Bounded non-generative history context:
+${JSON.stringify(safeHistoryContext(input.historyContext), null, 2)}${repair}`;
+}
+
+function generatedTextValid(text: string): boolean {
+  const trimmed = text.trim();
+  return (
+    trimmed.length >= 25
+    && trimmed.length <= 240
+    && !/[#*_`]/.test(trimmed)
+    && !hasAppVoiceViolation(trimmed)
+    && FORBIDDEN_GENERATED_PATTERNS.every((pattern) => !pattern.test(trimmed))
+  );
+}
+
+function planMap(overviewPlan: ForecastSectionPlan, sectionPlans: ForecastSectionPlan[]) {
+  return new Map(
+    [overviewPlan, ...sectionPlans].map((plan) => [plan.id, plan]),
+  );
 }
 
 export function validateGeneratedForecastFeed(input: {
   raw: GeneratedFeedPayload;
-  period: PersonalForecastPeriod;
   overviewPlan: ForecastSectionPlan;
   sectionPlans: ForecastSectionPlan[];
-  language?: 'ru' | 'en';
-  allowPartialFallback?: boolean;
-}): {
-  overview: ForecastSection | null;
-  sections: ForecastSection[];
-  errors: string[];
-} {
+}): ValidatedWriterResult {
   const errors: string[] = [];
-  const structuralErrors: string[] = [];
-  const rawSections = Array.isArray(input.raw.sections)
+  const expectedPlans = planMap(input.overviewPlan, input.sectionPlans);
+  const rawSections = Array.isArray(input.raw?.sections)
     ? input.raw.sections as GeneratedSectionPayload[]
     : [];
-  if (!input.raw.overview || typeof input.raw.overview !== 'object') {
-    structuralErrors.push('overview is missing');
+  if (rawSections.length !== expectedPlans.size) {
+    errors.push(`expected ${expectedPlans.size} sections, received ${rawSections.length}`);
   }
-  if (!Array.isArray(input.raw.sections)) {
-    structuralErrors.push('sections must be an array');
-  }
-  const expectedIds = input.sectionPlans.map((plan) => plan.id);
-  const expectedIdSet = new Set(expectedIds);
-  const rawIds = rawSections.map((raw) => (
-    raw && typeof raw === 'object' && typeof raw.id === 'string'
-      ? raw.id.trim()
-      : ''
-  ));
-  const knownRawIds = rawIds.filter((id) => expectedIdSet.has(id));
-  const missingIds = expectedIds.filter((id) => !knownRawIds.includes(id));
-  const unknownOrEmptyIds = rawIds.filter((id) => !expectedIdSet.has(id));
-  const duplicateIds = knownRawIds.filter(
-    (id, index) => knownRawIds.indexOf(id) !== index,
-  );
-  const oneMissingSection = (
-    rawSections.length === input.sectionPlans.length - 1
-    && missingIds.length === 1
-    && unknownOrEmptyIds.length === 0
-    && duplicateIds.length === 0
-  );
-  if (
-    rawSections.length !== input.sectionPlans.length
-    && !oneMissingSection
-  ) {
-    structuralErrors.push('sections count does not match the plan');
-  }
-  if (unknownOrEmptyIds.length || duplicateIds.length) {
-    structuralErrors.push('sections contain unknown or duplicate ids');
-  }
-  if (
-    rawSections.length === input.sectionPlans.length
-    && rawIds.some((id, index) => id !== expectedIds[index])
-  ) {
-    rawIds.forEach((id, index) => {
-      if (id !== expectedIds[index]) {
-        structuralErrors.push(`${expectedIds[index]}: returned id does not match`);
-      }
-    });
-  }
-  const dateWhitelist = allowedDates([input.overviewPlan, ...input.sectionPlans]);
-  const overviewErrors: string[] = [];
-  const overview = input.raw.overview && typeof input.raw.overview === 'object'
-    ? parseSection({
-        raw: input.raw.overview,
-        plan: input.overviewPlan,
-        period: input.period,
-        dateWhitelist,
-        errors: overviewErrors,
-      })
-    : null;
-  const rawById = new Map(
-    rawSections
-      .filter((raw): raw is GeneratedSectionPayload & { id: string } => (
-        !!raw
-        && typeof raw === 'object'
-        && typeof raw.id === 'string'
-        && expectedIdSet.has(raw.id.trim())
-      ))
-      .map((raw) => [raw.id.trim(), raw]),
-  );
-  const invalidSections: Array<{
-    plan: ForecastSectionPlan;
-    section: ForecastSection;
-    errors: string[];
-  }> = [];
-  const sections = input.sectionPlans.map((plan) => {
-    const sectionErrors: string[] = [];
-    const raw = rawById.get(plan.id);
-    if (!raw) sectionErrors.push(`${plan.id}: section is missing`);
-    const section = parseSection({
-      raw: raw || {},
-      plan,
-      period: input.period,
-      dateWhitelist,
-      errors: sectionErrors,
-    });
-    if (sectionErrors.length) {
-      invalidSections.push({ plan, section, errors: sectionErrors });
+
+  const blocksBySectionId = new Map<string, ForecastContentBlock[]>();
+  const seenSectionIds = new Set<string>();
+  for (const rawSection of rawSections) {
+    const id = typeof rawSection?.id === 'string' ? rawSection.id.trim() : '';
+    const plan = expectedPlans.get(id);
+    if (!id || !plan || seenSectionIds.has(id)) {
+      errors.push(`unexpected or duplicate section id: ${id || '<empty>'}`);
+      continue;
     }
-    return section;
-  });
-
-  errors.push(...structuralErrors, ...overviewErrors);
-  if (
-    input.allowPartialFallback
-    && !structuralErrors.length
-    && !overviewErrors.length
-    && invalidSections.length === 1
-  ) {
-    const invalid = invalidSections[0];
-    const index = input.sectionPlans.findIndex((plan) => plan.id === invalid.plan.id);
-    sections[index] = unavailableForecastSection(
-      invalid.plan,
-      input.language || 'en',
-    );
-  } else {
-    errors.push(...invalidSections.flatMap((item) => item.errors));
-  }
-  if (overview && !errors.length) {
-    errors.push(...validateForecastSectionRepetition([overview, ...sections]));
-  }
-  return { overview, sections, errors };
-}
-
-function nextPeriod(period: PersonalForecastPeriod): PersonalForecastPeriod | null {
-  if (period === 'day') return 'week';
-  if (period === 'week') return 'month';
-  if (period === 'month') return 'year';
-  return null;
-}
-
-export function buildCrossPeriodLinks(input: {
-  period: PersonalForecastPeriod;
-  window: PersonalForecastWindow;
-  sections: ForecastSection[];
-  plans: ForecastSectionPlan[];
-  continuationEvidence: CalculatedAstroEvidence[];
-  language: 'ru' | 'en';
-}): CrossPeriodLink[] {
-  const targetPeriod = nextPeriod(input.period);
-  if (!targetPeriod) return [];
-  const byId = new Map(input.plans.map((plan) => [plan.id, plan]));
-  const continuation = input.sections
-    .map((section) => ({ section, plan: byId.get(section.id) }))
-    .filter((item): item is { section: ForecastSection; plan: ForecastSectionPlan } => !!item.plan)
-    // Cross-period targets must be stable in the destination feed. Dynamic and
-    // astro-accent sections are selected independently for every period, while
-    // fixed life sections always retain the same IDs.
-    .filter(({ section }) => (
-      section.status === 'ready'
-      &&
-      section.kind === 'fixed'
-      && !!section.fixedKey
-      && section.fixedKey !== 'wishes'
-    ))
-    .map(({ section, plan }) => {
-      const evidence = input.continuationEvidence.find((item) => {
-        const start = item.startsAt || item.exactAt || item.endsAt;
-        const end = item.endsAt || item.exactAt;
-        const startTime = start ? new Date(start).getTime() : Number.NaN;
-        const endTime = end ? new Date(end).getTime() : Number.NaN;
-        const continuationTime = Math.max(
-          input.window.endsAt.getTime() + 1,
-          startTime,
-        );
-        return (
-          item.topicKeys.includes(plan.sourceTopicKey)
-          && item.strength >= 62
-          && Number.isFinite(continuationTime)
-          && Number.isFinite(endTime)
-          && continuationTime <= endTime
-        );
+    seenSectionIds.add(id);
+    const rawBlocks = Array.isArray(rawSection.blocks)
+      ? rawSection.blocks as GeneratedBlockPayload[]
+      : [];
+    if (rawBlocks.length !== plan.blocks.length) {
+      errors.push(`${id}: expected ${plan.blocks.length} blocks, received ${rawBlocks.length}`);
+      continue;
+    }
+    const validated: ForecastContentBlock[] = [];
+    for (let index = 0; index < plan.blocks.length; index += 1) {
+      const expected = plan.blocks[index];
+      const rawBlock = rawBlocks[index];
+      const text = typeof rawBlock?.text === 'string' ? rawBlock.text.trim() : '';
+      const expectedFact = plan.facts.find(
+        (fact) => fact.id === expected.semanticFactId,
+      );
+      if (
+        rawBlock?.id !== expected.id
+        || rawBlock?.role !== expected.role
+        || rawBlock?.semantic_fact_id !== expected.semanticFactId
+        || rawBlock?.atom_id !== expected.atomId
+      ) {
+        errors.push(`${id}: block ${index + 1} changed the approved semantic identity`);
+        continue;
+      }
+      if (!generatedTextValid(text)) {
+        errors.push(`${id}: block ${expected.id} failed independent copy validation`);
+        continue;
+      }
+      if (!expectedFact || !copyMeaningIsGrounded({
+        text,
+        exactMeaning: expected.writerBrief,
+        fact: expectedFact,
+      })) {
+        errors.push(`${id}: block ${expected.id} is not grounded in its approved meaning`);
+        continue;
+      }
+      validated.push({
+        id: expected.id,
+        role: expected.role,
+        text,
+        semanticFactId: expected.semanticFactId,
+        atomId: expected.atomId,
+        explanationAnchorId: index === 0 ? `anchor:${id}` : null,
       });
-      if (!evidence) return null;
-      const start = evidence.startsAt || evidence.exactAt || evidence.endsAt;
-      const continuationAt = new Date(Math.max(
-        input.window.endsAt.getTime() + 1,
-        new Date(start as string).getTime(),
-      )).toISOString();
-      return { section, evidence, continuationAt };
-    })
-    .filter((item): item is {
-      section: ForecastSection;
-      evidence: CalculatedAstroEvidence;
-      continuationAt: string;
-    } => !!item)
-    .sort((a, b) => b.evidence.strength - a.evidence.strength)
-    .slice(0, 2);
-  return continuation.map(({ section, continuationAt }, index) => ({
-    id: `${input.period}:${section.id}:${targetPeriod}:${index}`,
-    fromSectionId: section.id,
-    targetPeriod,
-    targetSectionId: section.id,
-    continuationAt,
-    label: input.language === 'ru'
-      ? `Продолжение темы — в периоде «${targetPeriod === 'week' ? 'Неделя' : targetPeriod === 'month' ? 'Месяц' : 'Год'}»`
-      : `Continue this topic in ${targetPeriod === 'week' ? 'Week' : targetPeriod === 'month' ? 'Month' : 'Year'}`,
+    }
+    if (validated.length === plan.blocks.length) blocksBySectionId.set(id, validated);
+  }
+  for (const id of expectedPlans.keys()) {
+    if (!seenSectionIds.has(id)) errors.push(`missing section: ${id}`);
+  }
+  return { blocksBySectionId, errors };
+}
+
+function deterministicBlocks(plan: ForecastSectionPlan): ForecastContentBlock[] {
+  return plan.blocks.map((item, index) => ({
+    id: item.id,
+    role: item.role,
+    text: item.writerBrief,
+    semanticFactId: item.semanticFactId,
+    atomId: item.atomId,
+    explanationAnchorId: index === 0 ? `anchor:${plan.id}` : null,
   }));
 }
 
+function evidenceForPlan(
+  plan: ForecastSectionPlan,
+  evidenceViews: Record<string, ForecastEvidenceView>,
+): ForecastEvidenceView[] {
+  const ids = new Set(plan.facts.flatMap((fact) => fact.evidenceIds));
+  return [...ids]
+    .map((id) => evidenceViews[id])
+    .filter((item): item is ForecastEvidenceView => !!item)
+    .slice(0, 4);
+}
+
+function buildAnchor(
+  plan: ForecastSectionPlan,
+  blocks: ForecastContentBlock[],
+  evidenceViews: Record<string, ForecastEvidenceView>,
+): ExplanationAnchor[] {
+  const evidence = evidenceForPlan(plan, evidenceViews);
+  if (!evidence.length || !blocks.length) return [];
+  const explanation = evidence
+    .map((item) => `${item.factor}. ${item.meaning}`)
+    .join(' ')
+    .slice(0, 220)
+    .trim();
+  if (explanation.length < 40) return [];
+  return [{
+    id: `anchor:${plan.id}`,
+    conclusion: blocks[0].text.slice(0, 220),
+    explanation,
+    evidenceIds: evidence.map((item) => item.id),
+  }];
+}
+
+function premiumTeaser(plan: ForecastSectionPlan, language: ForecastWriterLanguage): string {
+  const title = plan.title || (language === 'ru' ? 'главного вывода' : 'the main conclusion');
+  return language === 'ru'
+    ? `В полном разборе «${title}» — конкретное проявление, главный риск и рабочий следующий шаг.`
+    : `The full “${title}” reading gives the concrete manifestation, main risk, and practical next step.`;
+}
+
+function materializeSection(input: {
+  plan: ForecastSectionPlan;
+  blocks: ForecastContentBlock[];
+  evidenceViews: Record<string, ForecastEvidenceView>;
+  language: ForecastWriterLanguage;
+  overview: boolean;
+}): ForecastSection {
+  const anchors = buildAnchor(input.plan, input.blocks, input.evidenceViews);
+  const anchorIds = new Set(anchors.map((anchor) => anchor.id));
+  const blocks = input.blocks.map((item) => ({
+    ...item,
+    explanationAnchorId: item.explanationAnchorId && anchorIds.has(item.explanationAnchorId)
+      ? item.explanationAnchorId
+      : null,
+  }));
+  const text = blocks.map((item) => item.text.trim()).join('\n\n');
+  const teaser = premiumTeaser(input.plan, input.language);
+  return {
+    id: input.plan.id,
+    kind: input.overview ? 'overview' : 'dynamic',
+    status: 'ready',
+    diagnosticCode: null,
+    title: input.overview ? undefined : input.plan.title,
+    sourceTopicKey: input.overview ? 'overview' : undefined,
+    text,
+    contentBlocks: blocks,
+    semanticFactIds: input.plan.semanticFactIds,
+    semanticFingerprint: input.plan.semanticFingerprint,
+    importance: input.plan.importance,
+    visualTag: input.plan.visualTag,
+    premiumTeaser: teaser,
+    lockedPreview: buildForecastLockedPreview(text, teaser),
+    explanationAnchors: anchors,
+    inlineAstroAccent: null,
+  };
+}
+
 async function requestGeneratedFeed(input: {
-  language: 'ru' | 'en';
+  language: ForecastWriterLanguage;
   model: string;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  chartData: NatalChartData;
   overviewPlan: ForecastSectionPlan;
   sectionPlans: ForecastSectionPlan[];
-}): Promise<{ overview: ForecastSection; sections: ForecastSection[] }> {
-  if (!openai) throw new Error('OPENAI_CONTENT_NOT_CONFIGURED');
-  let repairErrors: string[] = [];
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const prompt = buildPersonalForecastFeedPrompt({
-      language: input.language,
-      period: input.period,
-      window: input.window,
-      chartData: input.chartData,
-      overview: input.overviewPlan,
-      sections: input.sectionPlans,
-      repairErrors,
-    });
-    const completion = await openai.chat.completions.create(buildOpenAIChatParams(input.model, {
-      messages: [
-        { role: 'system', content: getAppSystemVoice(input.language) },
-        { role: 'user', content: prompt },
-      ],
-      maxTokens: 9_000,
-      temperature: 0.42,
-      jsonMode: true,
-    }));
-    const content = completion.choices[0]?.message?.content || '{}';
-    let raw: GeneratedFeedPayload = {};
+  evidenceViews: Record<string, ForecastEvidenceView>;
+  historyContext?: AstrologyHistoryContext | null;
+}): Promise<GenerationResult> {
+  if (!openai) {
+    const overviewBlocks = deterministicBlocks(input.overviewPlan);
+    return {
+      overview: materializeSection({
+        plan: input.overviewPlan,
+        blocks: overviewBlocks,
+        evidenceViews: input.evidenceViews,
+        language: input.language,
+        overview: true,
+      }),
+      sections: input.sectionPlans.map((plan) => materializeSection({
+        plan,
+        blocks: deterministicBlocks(plan),
+        evidenceViews: input.evidenceViews,
+        language: input.language,
+        overview: false,
+      })),
+      generationAttempts: 0,
+      validationStatus: 'deterministic_fallback',
+    };
+  }
+
+  let errors: string[] = [];
+  for (
+    let attempt = 1;
+    attempt <= PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS;
+    attempt += 1
+  ) {
+    let content = '';
+    try {
+      const response = await openai.chat.completions.create(buildOpenAIChatParams(input.model, {
+        messages: [
+          { role: 'system', content: getAppSystemVoice(input.language) },
+          {
+            role: 'user',
+            content: buildPersonalForecastFeedPrompt({
+              language: input.language,
+              period: input.period,
+              window: input.window,
+              overviewPlan: input.overviewPlan,
+              sectionPlans: input.sectionPlans,
+              historyContext: input.historyContext,
+              repairErrors: attempt === 2 ? errors : undefined,
+            }),
+          },
+        ],
+        maxTokens: 2600,
+        temperature: 0.35,
+        jsonMode: true,
+      }));
+      content = response.choices[0]?.message?.content?.trim() || '';
+    } catch {
+      errors = ['writer request failed'];
+      continue;
+    }
+    let raw: GeneratedFeedPayload;
     try {
       raw = JSON.parse(content) as GeneratedFeedPayload;
     } catch {
-      repairErrors = ['response is not valid JSON'];
+      errors = ['response is not valid JSON'];
       continue;
     }
     const validation = validateGeneratedForecastFeed({
       raw,
-      period: input.period,
       overviewPlan: input.overviewPlan,
       sectionPlans: input.sectionPlans,
-      language: input.language,
-      allowPartialFallback: attempt === 1,
     });
-    if (validation.overview && !validation.errors.length) {
+    if (!validation.errors.length) {
+      const overviewBlocks = validation.blocksBySectionId.get(input.overviewPlan.id);
+      if (!overviewBlocks) {
+        errors = ['overview blocks are missing after validation'];
+        continue;
+      }
+      const sections = input.sectionPlans.map((plan) => {
+        const blocks = validation.blocksBySectionId.get(plan.id);
+        if (!blocks) throw new Error(`PERSONAL_FORECAST_VALIDATED_SECTION_MISSING:${plan.id}`);
+        return materializeSection({
+          plan,
+          blocks,
+          evidenceViews: input.evidenceViews,
+          language: input.language,
+          overview: false,
+        });
+      });
+      const overview = materializeSection({
+        plan: input.overviewPlan,
+        blocks: overviewBlocks,
+        evidenceViews: input.evidenceViews,
+        language: input.language,
+        overview: true,
+      });
+      const repetitionErrors = validateForecastSectionRepetition([overview, ...sections]);
+      if (repetitionErrors.length) {
+        errors = repetitionErrors;
+        continue;
+      }
       return {
-        overview: validation.overview,
-        sections: validation.sections,
+        overview,
+        sections,
+        generationAttempts: attempt as 1 | 2,
+        validationStatus: 'valid',
       };
     }
-    repairErrors = validation.errors;
+    errors = validation.errors;
   }
-  const error = new Error('PERSONAL_FORECAST_FEED_INVALID') as Error & {
-    validationErrors?: string[];
+
+  const overview = materializeSection({
+    plan: input.overviewPlan,
+    blocks: deterministicBlocks(input.overviewPlan),
+    evidenceViews: input.evidenceViews,
+    language: input.language,
+    overview: true,
+  });
+  const sections = input.sectionPlans.map((plan) => materializeSection({
+    plan,
+    blocks: deterministicBlocks(plan),
+    evidenceViews: input.evidenceViews,
+    language: input.language,
+    overview: false,
+  }));
+  return {
+    overview,
+    sections,
+    generationAttempts: 2,
+    validationStatus: 'deterministic_fallback',
   };
-  error.validationErrors = repairErrors;
-  throw error;
+}
+
+export function buildCrossPeriodLinks(_input?: unknown): CrossPeriodLink[] {
+  return [];
 }
 
 export async function generatePersonalForecastPackage(input: {
@@ -1192,24 +797,30 @@ export async function generatePersonalForecastPackage(input: {
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
   previousForecast?: PersonalForecastPackage | null;
+  historyContext?: AstrologyHistoryContext | null;
+  onEvidenceCalculated?: (payload: {
+    calculated: EvidenceCalculationResult;
+    semanticFacts: ForecastSemanticFact[];
+  }) => Promise<EvidenceCalculatedHookResult>;
 }): Promise<PersonalForecastPackage> {
-  const language = input.profile.language === 'en' ? 'en' : 'ru';
+  const language: ForecastWriterLanguage = input.profile.language === 'en' ? 'en' : 'ru';
   const calculated = await calculatePersonalForecastEvidence({
     chartData: input.chartData,
     period: input.period,
     window: input.window,
     language,
-    previousDynamicKeys: input.previousForecast?.sections
-      .filter((section) => section.kind === 'dynamic')
-      .map((section) => section.sourceTopicKey)
-      .filter((key): key is DynamicForecastTopicKey => (
-        typeof key === 'string'
-        && key !== 'overview'
-        && !FIXED_FORECAST_SECTION_KEYS.includes(key as FixedForecastSectionKey)
-      )),
   });
+  const semanticFacts = compilePersonalForecastSemanticFacts({
+    evidence: calculated.evidence,
+    period: input.period,
+    chartData: input.chartData,
+    language,
+  });
+  if (input.onEvidenceCalculated) {
+    await input.onEvidenceCalculated({ calculated, semanticFacts });
+  }
   const plans = buildPersonalForecastSectionPlans({
-    calculated,
+    facts: semanticFacts,
     period: input.period,
     language,
   });
@@ -1218,9 +829,10 @@ export async function generatePersonalForecastPackage(input: {
     model: input.model,
     period: input.period,
     window: input.window,
-    chartData: input.chartData,
     overviewPlan: plans.overview,
     sectionPlans: plans.sections,
+    evidenceViews: calculated.evidenceViews,
+    historyContext: input.historyContext,
   });
   const freeSelection = input.period === 'day'
     ? selectTodayFreeSections({
@@ -1234,14 +846,7 @@ export async function generatePersonalForecastPackage(input: {
         rotatedSectionId: null,
         sectionIds: [],
       };
-  const links = buildCrossPeriodLinks({
-    period: input.period,
-    window: input.window,
-    sections: generated.sections,
-    plans: plans.sections,
-    continuationEvidence: calculated.continuationEvidence,
-    language,
-  });
+
   return {
     period: input.period,
     periodKey: input.window.periodKey,
@@ -1251,7 +856,7 @@ export async function generatePersonalForecastPackage(input: {
     timezone: input.window.timezone,
     overview: generated.overview,
     sections: generated.sections,
-    suggestedCrossPeriodLinks: links,
+    suggestedCrossPeriodLinks: [],
     evidence: calculated.evidenceViews,
     visual: {
       sectionAssetIds: Object.fromEntries(
@@ -1263,6 +868,10 @@ export async function generatePersonalForecastPackage(input: {
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
       voiceVersion: APP_VOICE_VERSION,
       calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
+      semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+      contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
+      generationAttempts: generated.generationAttempts,
+      validationStatus: generated.validationStatus,
       generatedAt: new Date().toISOString(),
       status: 'ready',
       diagnosticCode: null,

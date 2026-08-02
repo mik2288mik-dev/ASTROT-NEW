@@ -5,20 +5,19 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('active root newspaper visual contract', () => {
-  it('numbers the continuous personal forecast without changing section data', () => {
+  it('keeps the continuous semantic forecast unnumbered and evidence-led', () => {
     const dashboard = read('views/Dashboard.tsx');
     const sectionBlock = read(
       'components/PersonalForecastFeed/ForecastSectionBlock.tsx',
     );
     const styles = read('styles/newspaperVisual.css');
 
-    expect(dashboard).toContain('sectionNumber={1}');
-    expect(dashboard).toContain('forecast.sections.map((section, sectionIndex)');
-    expect(dashboard).toContain('sectionNumber={sectionIndex + 2}');
-    expect(sectionBlock).toContain('sectionNumber: number');
-    expect(sectionBlock).toContain('className="forecast-feed-section-number"');
-    expect(styles).toContain('.forecast-feed-page .forecast-feed-section-number');
-    expect(styles).toContain('grid-template-columns: 2.7rem minmax(0, 1fr)');
+    expect(dashboard).toContain('readySections.map((section)');
+    expect(dashboard).not.toContain('sectionNumber=');
+    expect(sectionBlock).not.toContain('sectionNumber: number');
+    expect(sectionBlock).not.toContain('forecast-feed-section-number');
+    expect(styles).not.toContain('.forecast-feed-page .forecast-feed-section-number');
+    expect(styles).not.toContain('grid-template-columns: 2.7rem minmax(0, 1fr)');
   });
 
   it('scopes the white paper skin to every active non-v2 root', () => {

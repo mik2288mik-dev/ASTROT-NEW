@@ -5,7 +5,6 @@ import {
   createChart,
   deleteChart,
   getCharts,
-  setPrimaryChart,
   type ChartListItem,
   type ChartsResponse,
 } from '../services/storageService';
@@ -15,8 +14,8 @@ import { formatDisplayDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import { hasActivePremium } from '../lib/accessMatrix';
-import { clearLocalNatalChart } from '../lib/localNatalChartCache';
 import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
+import { getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
 import {
   MonoButton,
   MonoFadeIn,
@@ -43,7 +42,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   onChartSelect,
   onProfileUpdate: _onProfileUpdate,
   onUseInSynastry,
-  onPrimaryChartUpdated,
+  onPrimaryChartUpdated: _onPrimaryChartUpdated,
   onRequestPremium,
 }) => {
   void onBack;
@@ -54,8 +53,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [addName, setAddName] = useState('');
   const [addDate, setAddDate] = useState('');
-  const [addTime, setAddTime] = useState('12:00');
+  const [addTime, setAddTime] = useState('');
   const [addPlace, setAddPlace] = useState('');
+  const [addRelation, setAddRelation] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [listFilter, setListFilter] = useState<'all' | 'primary' | 'partners'>('all');
@@ -66,8 +66,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     setShowAddForm(false);
     setAddName('');
     setAddDate('');
-    setAddTime('12:00');
+    setAddTime('');
     setAddPlace('');
+    setAddRelation('');
   }, []);
 
   useEffect(() => {
@@ -100,17 +101,21 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }, [loadCharts]);
 
   const charts = data?.charts ?? [];
-  const canAddMore = data?.canAddMore ?? true;
+  const canAddMore = data?.canAddSavedPeople ?? data?.canAddMore ?? true;
   const chartSlots = data?.chartSlots ?? (profile.chartSlots ?? 1);
-  const partnerCharts = charts.filter((chart) => !chart.is_primary);
+  const partnerCharts = charts.filter((chart) => getChartSubjectType(chart) === 'saved_person');
+  const accessibleChartCount = charts.filter((chart) => !chart.access_locked).length;
+  const lockedChartCount = charts.length - accessibleChartCount;
   const isSingleChartState = charts.length === 1 && chartSlots > 1;
-  const showPremiumSlotsCta = !canAddMore && !hasActivePremium(profile) && !!onRequestPremium;
+  const hasPremiumAccess = data?.isPremium ?? hasActivePremium(profile);
+  const showPremiumSlotsCta = !canAddMore && !hasPremiumAccess && !!onRequestPremium;
 
   const filteredCharts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return charts.filter((chart) => {
-      if (listFilter === 'primary' && !chart.is_primary) return false;
-      if (listFilter === 'partners' && chart.is_primary) return false;
+      const self = isSelfChart(chart);
+      if (listFilter === 'primary' && !self) return false;
+      if (listFilter === 'partners' && self) return false;
       if (!q) return true;
       const hay = `${chart.name} ${chart.birth_place || ''}`.toLowerCase();
       return hay.includes(q);
@@ -150,21 +155,17 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     setAddError(null);
 
     try {
-      const createdChart = await createChart(profile.id, {
+      await createChart(profile.id, {
         name: addName.trim() || getText(lang, 'charts.default_chart_name'),
         birthDate: addDate,
-        birthTime: addTime || '12:00',
+        birthTime: addTime,
         birthPlace: addPlace.trim(),
         language: lang,
+        relationLabel: addRelation.trim() || null,
       });
 
       resetAddForm();
       await loadCharts();
-
-      if (createdChart.is_primary) {
-        clearLocalNatalChart(profile);
-        await onPrimaryChartUpdated?.();
-      }
     } catch (err: any) {
       setAddError(err?.message || getText(lang, 'charts.error_create_failed'));
     } finally {
@@ -172,26 +173,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     }
   };
 
-  const handleSetPrimary = async (chartId: number) => {
-    if (!profile.id) return;
-
-    setActionLoading(`primary-${chartId}`);
-    setAddError(null);
-
-    try {
-      await setPrimaryChart(chartId, profile.id);
-      clearLocalNatalChart(profile);
-      await loadCharts();
-      await onPrimaryChartUpdated?.();
-    } catch (err: any) {
-      setAddError(err?.message || getText(lang, 'charts.error_generic'));
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const handleDelete = async (chart: ChartListItem) => {
-    if (!profile.id) return;
+    if (!profile.id || isSelfChart(chart)) return;
 
     const msg = `${getText(lang, 'charts.delete')} "${chart.name}"?`;
     if (!confirm(msg)) return;
@@ -201,15 +184,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
     try {
       await deleteChart(chart.id, profile.id);
-      clearLocalHumanBaseReport(profile, chart.is_primary ? undefined : chart.id);
-      if (chart.is_primary) {
-        clearLocalNatalChart(profile);
-      }
+      clearLocalHumanBaseReport(profile, chart.id);
       await loadCharts();
-
-      if (chart.is_primary) {
-        await onPrimaryChartUpdated?.();
-      }
     } catch (err: any) {
       setAddError(err?.message || getText(lang, 'charts.error_delete_failed'));
     } finally {
@@ -218,6 +194,10 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   };
 
   const handleSelectChart = (chart: ChartListItem) => {
+    if (chart.access_locked) {
+      onRequestPremium?.();
+      return;
+    }
     if (chart.chart_data && onChartSelect) {
       onChartSelect(chart.chart_data, chart.id);
     }
@@ -241,7 +221,10 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                 {getText(lang, 'charts.action_body')}
               </p>
               <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.1em] text-mono-muted">
-                {getText(lang, 'charts.slots')}: {charts.length} / {chartSlots}
+                {getText(lang, 'charts.slots')}: {accessibleChartCount} / {chartSlots}
+                {lockedChartCount > 0
+                  ? ` · ${lockedChartCount} ${lang === 'ru' ? 'сохранено с Premium' : 'saved with Premium'}`
+                  : ''}
               </p>
 
               {canAddMore ? (
@@ -289,9 +272,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             {filteredCharts.map((chart) => {
               const sunSign = chart.chart_data?.sun?.sign;
               const signLabel = sunSign ? getZodiacSign(lang, sunSign) : '-';
-              const isPrimary = chart.is_primary ?? false;
-              const isBusy =
-                actionLoading === `primary-${chart.id}` || actionLoading === `delete-${chart.id}`;
+              const isPrimary = isSelfChart(chart);
+              const isLocked = chart.access_locked === true;
+              const isBusy = actionLoading === `delete-${chart.id}`;
               const formattedBirthDate = formatDisplayDate(chart.birth_date, lang) || chart.birth_date;
 
               return (
@@ -307,9 +290,14 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                       {isPrimary ? (
                         <MonoTag dark className="!bg-white/15">{getText(lang, 'charts.primary_badge')}</MonoTag>
                       ) : null}
+                      {isLocked ? (
+                        <MonoTag>{lang === 'ru' ? 'Premium' : 'Premium'}</MonoTag>
+                      ) : null}
                     </div>
                     <p className={`mt-1 text-[13px] ${isPrimary ? 'text-white/70' : 'text-mono-muted'}`}>
-                      {isPrimary ? getText(lang, 'charts.primary_role') : getText(lang, 'charts.saved_role')}
+                      {isPrimary
+                        ? getText(lang, 'charts.primary_role')
+                        : chart.relation_label || getText(lang, 'charts.saved_role')}
                     </p>
                     <p className={`mt-2 text-[13px] ${isPrimary ? 'text-white/65' : 'text-mono-muted'}`}>
                       {formattedBirthDate} · {chart.birth_place}
@@ -323,27 +311,26 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                     <div className="mt-4 flex flex-wrap gap-2">
                       {onChartSelect ? (
                         <MonoButton variant={isPrimary ? 'ghost' : 'outline'} className="!min-h-[36px] !px-3 !text-[11px]" onClick={() => handleSelectChart(chart)}>
-                          {getText(lang, 'charts.open_chart')}
+                          {isLocked
+                            ? (lang === 'ru' ? 'Открыть с Premium' : 'Unlock with Premium')
+                            : getText(lang, 'charts.open_chart')}
                         </MonoButton>
                       ) : null}
-                      {!isPrimary && onUseInSynastry ? (
+                      {!isPrimary && onUseInSynastry && !isLocked ? (
                         <MonoButton variant="outline" className="!min-h-[36px] !px-3 !text-[11px]" onClick={() => onUseInSynastry(chart)}>
                           {getText(lang, 'charts.use_in_synastry')}
                         </MonoButton>
                       ) : null}
                       {!isPrimary ? (
-                        <MonoButton variant="outline" className="!min-h-[36px] !px-3 !text-[11px]" disabled={isBusy} onClick={() => handleSetPrimary(chart.id)}>
-                          {isBusy ? '...' : getText(lang, 'charts.set_primary')}
-                        </MonoButton>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(chart)}
+                          disabled={isBusy}
+                          className="rounded-mono-pill border border-red-200 px-3 py-2 text-[11px] font-semibold text-red-600 disabled:opacity-50"
+                        >
+                          {getText(lang, 'charts.delete')}
+                        </button>
                       ) : null}
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(chart)}
-                        disabled={isBusy}
-                        className="rounded-mono-pill border border-red-200 px-3 py-2 text-[11px] font-semibold text-red-600 disabled:opacity-50"
-                      >
-                        {getText(lang, 'charts.delete')}
-                      </button>
                     </div>
                   </motion.div>
                 </MonoStaggerItem>
@@ -362,7 +349,18 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             <MonoInput label={getText(lang, 'charts.field_name')} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={getText(lang, 'charts.default_chart_name')} />
             <MonoInput label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} />
             <MonoInput label={getText(lang, 'charts.field_birth_time')} type="time" value={addTime} onChange={(e) => setAddTime(e.target.value)} />
+            <p className="-mt-2 text-[12px] leading-relaxed text-mono-muted">
+              {lang === 'ru'
+                ? 'Не знаешь точное время — оставь поле пустым. Дома и Асцендент не будут выдаваться за точные.'
+                : 'Leave this blank if the exact time is unknown. Houses and Ascendant will not be presented as exact.'}
+            </p>
             <MonoInput label={getText(lang, 'charts.field_birth_place')} value={addPlace} onChange={(e) => setAddPlace(e.target.value)} placeholder={getText(lang, 'charts.field_birth_place_placeholder')} />
+            <MonoInput
+              label={lang === 'ru' ? 'Кем этот человек тебе приходится (необязательно)' : 'Relation (optional)'}
+              value={addRelation}
+              onChange={(e) => setAddRelation(e.target.value)}
+              placeholder={lang === 'ru' ? 'Друг, сестра, коллега' : 'Friend, sister, colleague'}
+            />
             <div className="flex gap-2">
               <MonoButton className="flex-1" disabled={actionLoading === 'add'} onClick={handleAddChart}>
                 {actionLoading === 'add' ? getText(lang, 'charts.creating') : getText(lang, 'charts.create')}

@@ -7,7 +7,7 @@ import {
   normalizeBirthPlaceInput,
   normalizeBirthTimeInput,
 } from './natalChartCanonical';
-import type { BirthTimeQuality, ChartQuality } from '../types';
+import type { BirthTimeQuality } from '../types';
 
 // Координаты, разрешённые на стороне клиента (автокомплит города). Если переданы —
 // сервер не геокодит место заново. Опционально: при отсутствии — обычный геокодинг.
@@ -42,30 +42,6 @@ function inferBirthTimeQuality(rawBirthTime?: string | null): BirthTimeQuality {
   return /^\d{1,2}:\d{2}/.test(value) ? 'exact' : 'approximate';
 }
 
-function buildChartQuality(birthTimeQuality: BirthTimeQuality): ChartQuality {
-  const timed = birthTimeQuality === 'exact';
-  return {
-    birthTimeQuality,
-    ascendantReliable: timed,
-    housesReliable: timed,
-    houseBasedPersonalization: timed,
-    notes: timed
-      ? []
-      : ['Birth time is not exact; Ascendant and houses are not precise enough for exact personalization.'],
-  };
-}
-
-function ensureChartQuality(chartData: any, birthTimeQuality: BirthTimeQuality) {
-  if (!chartData || typeof chartData !== 'object') return chartData;
-  const existingQuality = chartData.birthTimeQuality || chartData.chartQuality?.birthTimeQuality;
-  if (existingQuality) return chartData;
-  return {
-    ...chartData,
-    birthTimeQuality,
-    chartQuality: buildChartQuality(birthTimeQuality),
-  };
-}
-
 async function ensureMinimalUser(args: EnsurePrimaryArgs) {
   const existingUser = await db.users.get(args.userId);
   if (existingUser) return existingUser;
@@ -73,7 +49,7 @@ async function ensureMinimalUser(args: EnsurePrimaryArgs) {
   await db.users.set(args.userId, {
     name: args.name,
     birth_date: args.birthDate,
-    birth_time: normalizeBirthTimeInput(args.birthTime),
+    birth_time: String(args.birthTime || '').trim() || null,
     birth_place: normalizeBirthPlaceInput(args.birthPlace),
     is_setup: false,
     language: args.language || 'ru',
@@ -109,7 +85,9 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
     timezone: coordinates.timezone,
   });
 
-  const existingSameHash = await db.natal_charts.findByInputHash(args.userId, inputHash);
+  const existingSameHash = await db.natal_charts.findByInputHash(args.userId, inputHash, {
+    subjectType: 'self',
+  });
   if (!args.forceRecalculate && isStoredCanonicalChart(existingSameHash)) {
     const canonicalChart = existingSameHash!;
     if (!canonicalChart.is_primary) {
@@ -135,7 +113,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
   const savedChart = await db.natal_charts.persistPrimary(args.userId, {
     name: args.name,
     birthDate: normalizedBirthDate,
-    birthTime: normalizedBirthTime,
+    birthTime: String(args.birthTime || '').trim() || undefined,
     birthPlace: normalizedBirthPlace,
     inputHash,
     chartData,
@@ -163,7 +141,10 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
     timezone: coordinates.timezone,
   });
 
-  const existingSameHash = await db.natal_charts.findByInputHash(args.userId, inputHash);
+  const existingSameHash = await db.natal_charts.findByInputHash(args.userId, inputHash, {
+    subjectType: 'saved_person',
+    name: args.name,
+  });
   if (isStoredCanonicalChart(existingSameHash)) {
     return { chart: existingSameHash, reused: true };
   }
@@ -172,26 +153,27 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
     userId: args.userId,
     name: args.name,
     birthDate: normalizedBirthDate,
-    birthTime: normalizedBirthTime,
+    birthTime: String(args.birthTime || '').trim() || undefined,
     birthPlace: normalizedBirthPlace,
     language: args.language,
     forceRecalculate: false,
   });
 
-  const chartData = isCanonicalNatalChartDataComplete(args.chartData)
-    ? ensureChartQuality(args.chartData, birthTimeQuality)
-    : await calculateNatalChart(
-        args.name,
-        normalizedBirthDate,
-        normalizedBirthTime,
-        normalizedBirthPlace,
-        { coordinates, birthTimeQuality }
-      );
+  // A client may carry a local preview, but it is never authoritative. Saved
+  // charts must come from the server-side Swiss calculation so a forged
+  // calculation version or birth-time quality cannot enter durable history.
+  const chartData = await calculateNatalChart(
+    args.name,
+    normalizedBirthDate,
+    normalizedBirthTime,
+    normalizedBirthPlace,
+    { coordinates, birthTimeQuality }
+  );
 
   const savedChart = await db.natal_charts.create(args.userId, {
     name: args.name,
     birthDate: normalizedBirthDate,
-    birthTime: normalizedBirthTime,
+    birthTime: String(args.birthTime || '').trim() || undefined,
     birthPlace: normalizedBirthPlace,
     chartData,
     inputHash,

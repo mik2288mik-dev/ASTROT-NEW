@@ -2,9 +2,15 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../../lib/db';
 import { createOrReuseCanonicalChart } from '../../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
-import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
+import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import {
+  assertChartCanBeArchived,
+  assertChartReadable,
+  ChartAccessPolicyError,
+  exposeChartAccess,
+} from '../../../../lib/chartAccessPolicy';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/charts/chart] ${msg}`, data || ''),
@@ -12,57 +18,60 @@ const log = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { chartId } = req.query;
-  const id = parseInt(String(chartId), 10);
-  if (isNaN(id)) {
+  const id = Number.parseInt(String(req.query.chartId), 10);
+  if (!Number.isFinite(id)) {
     return res.status(400).json({ error: 'Invalid chartId' });
   }
 
-  const userId = (req.query.userId as string) || req.body?.userId;
-
   try {
-    await requireAppUser(req, { expectedUserId: userId, allowGuest: true });
+    const auth = await requireAppUser(req, { allowGuest: true });
+    const userId = auth.userId;
+    const entitlement = await getPremiumEntitlementState(userId);
 
     if (req.method === 'GET') {
       let chart = await db.natal_charts.getById(id);
-      if (!chart) return res.status(404).json({ error: 'Chart not found' });
-      if (userId && !isValidUserId(userId)) {
-        return res.status(400).json(invalidUserIdPayload('ru'));
+      if (!chart || String(chart.user_id) !== userId) {
+        return res.status(404).json({ error: 'Chart not found' });
       }
-      if (userId && String(chart.user_id) !== String(userId)) {
-        return res.status(403).json({ error: 'Chart does not belong to user' });
-      }
+      assertChartReadable(chart, entitlement.isPremium);
+
       if (!isCanonicalNatalChartDataComplete(chart.chart_data) && chart.birth_date && chart.birth_place) {
         const repaired = await createOrReuseCanonicalChart({
-          userId: String(chart.user_id),
-          name: chart.name || 'Моя карта',
+          userId,
+          name: chart.name || 'Saved person',
           birthDate: chart.birth_date,
-          birthTime: chart.birth_time || '12:00',
+          birthTime: chart.birth_time || '',
           birthPlace: chart.birth_place,
         });
         chart = repaired.chart || chart;
       }
-      return res.status(200).json(chart);
+
+      return res.status(200).json(exposeChartAccess(chart!, entitlement.isPremium));
     }
 
     if (req.method === 'DELETE') {
-      if (!isValidUserId(userId)) {
-        return res.status(400).json(invalidUserIdPayload('ru'));
-      }
       const chart = await db.natal_charts.getById(id);
-      if (!chart) return res.status(404).json({ error: 'Chart not found' });
-      if (String(chart.user_id) !== String(userId)) {
-        return res.status(403).json({ error: 'Chart does not belong to user' });
+      if (!chart || String(chart.user_id) !== userId) {
+        return res.status(404).json({ error: 'Chart not found' });
       }
-      await db.natal_charts.delete(id);
-      log.info('Chart deleted', { chartId: id, userId });
-      return res.status(200).json({ success: true });
+      assertChartCanBeArchived(chart);
+
+      const archive = (db.natal_charts as any).archive;
+      if (typeof archive !== 'function') {
+        throw new Error('Chart archive persistence is not available');
+      }
+      await archive.call(db.natal_charts, id);
+      log.info('Chart archived', { chartId: id, userId });
+      return res.status(200).json({ success: true, archived: true });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
     if (error instanceof AdminAuthError) {
       return handleAdminError(res, error);
+    }
+    if (error instanceof ChartAccessPolicyError) {
+      return res.status(error.status).json({ error: error.message, code: error.code });
     }
     log.error('Error', { error: error.message });
     return res.status(500).json({ error: error.message });

@@ -29,13 +29,20 @@ const log = {
 
 const calculationInFlight = new Map<string, Promise<NatalChartData>>();
 
+function selectSelfChart(payload: any): any | null {
+  const charts = Array.isArray(payload?.charts) ? payload.charts : [];
+  return charts.find((row: { subject_type?: string }) => row.subject_type === 'self')
+    || charts.find((row: { is_primary?: boolean }) => row.is_primary === true)
+    || null;
+}
+
 /**
  * Load primary chart from DB.
  * Returns null only for a real 404. Any other failure is treated as a storage error.
  */
 export async function getPrimaryChartId(userId: string): Promise<number | null> {
-  const safeUserId = assertValidUserId(userId);
-  const url = `/api/charts?userId=${encodeURIComponent(safeUserId)}`;
+  assertValidUserId(userId);
+  const url = '/api/charts';
 
   try {
     const response = await apiFetch(
@@ -48,9 +55,7 @@ export async function getPrimaryChartId(userId: string): Promise<number | null> 
       return null;
     }
     const payload = await response.json();
-    const charts = Array.isArray(payload?.charts) ? payload.charts : [];
-    const primary = charts.find((row: { is_primary?: boolean }) => row.is_primary) || charts[0];
-    const id = primary?.id;
+    const id = selectSelfChart(payload)?.id;
     return typeof id === 'number' && Number.isFinite(id) ? id : null;
   } catch (error: any) {
     log.warn('[getPrimaryChartId] Failed', { error: error?.message || error });
@@ -59,10 +64,10 @@ export async function getPrimaryChartId(userId: string): Promise<number | null> 
 }
 
 export async function getChartFromDB(userId: string): Promise<NatalChartData | null> {
-  const safeUserId = assertValidUserId(userId);
+  assertValidUserId(userId);
   log.info(`[getChartFromDB] userId=${userId}`);
 
-  const url = `/api/charts/${safeUserId}`;
+  const url = '/api/charts';
   let response: Response;
   try {
     response = await apiFetch(
@@ -77,11 +82,6 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
     throw new Error('Не удалось загрузить сохранённую карту из базы.');
   }
 
-  if (response.status === 404) {
-    log.info('[getChartFromDB] DB_MISS: no chart in DB');
-    return null;
-  }
-
   if (!response.ok) {
     log.error('[getChartFromDB] Non-OK response', { status: response.status });
     throw new Error(`Не удалось загрузить карту из базы: ${response.status}`);
@@ -91,7 +91,12 @@ export async function getChartFromDB(userId: string): Promise<NatalChartData | n
   let chartData: NatalChartData;
   try {
     payload = await response.json();
-    chartData = (payload?.chart_data || payload?.chartData || payload) as NatalChartData;
+    const selfChart = selectSelfChart(payload);
+    if (!selfChart) {
+      log.info('[getChartFromDB] DB_MISS: no self chart in DB');
+      return null;
+    }
+    chartData = (selfChart.chart_data || selfChart.chartData) as NatalChartData;
   } catch {
     log.error('[getChartFromDB] Invalid JSON from storage');
     throw new Error('Хранилище карты вернуло некорректный ответ.');
@@ -134,7 +139,6 @@ async function calculateChart(profile: UserProfile): Promise<NatalChartData> {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
         body: JSON.stringify({
-          userId: safeUserId,
           name: profile.name,
           birthDate: profile.birthDate,
           birthTime: profile.birthTime,
@@ -247,7 +251,6 @@ export async function forceRecalculateChart(profile: UserProfile): Promise<Natal
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
       body: JSON.stringify({
-        userId,
         name: profile.name,
         birthDate: profile.birthDate,
         birthTime: profile.birthTime,

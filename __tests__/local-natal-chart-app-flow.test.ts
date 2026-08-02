@@ -62,11 +62,12 @@ describe('local natal chart app flow', () => {
     expect(chartService).toContain('writeLocalNatalChart(profile, chartData)');
   });
 
-  it('clears or refreshes cache when multi-chart primary changes', () => {
+  it('keeps the self cache stable because saved people cannot become primary', () => {
     const myCharts = read('views/MyCharts.tsx');
     const app = read('App.tsx');
 
-    expect(myCharts).toContain('clearLocalNatalChart(profile)');
+    expect(myCharts).not.toContain('clearLocalNatalChart(profile)');
+    expect(myCharts).not.toContain('setPrimaryChart');
     expect(app).toContain('writeLocalNatalChart(profile, freshChart, freshPrimaryChartId ?? undefined)');
     expect(app).toContain('clearLocalNatalChart(profile)');
   });

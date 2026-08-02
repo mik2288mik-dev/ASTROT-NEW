@@ -8,6 +8,8 @@ const mockFailGeneration = jest.fn();
 const mockResolveReadingContext = jest.fn();
 const mockGetCachedForecast = jest.fn();
 const mockGenerateAnswer = jest.fn();
+const mockPrepareQuestionHistory = jest.fn();
+const mockAppendAnswerHistory = jest.fn();
 
 jest.mock('../lib/db', () => ({
   getPool: jest.fn(),
@@ -29,7 +31,11 @@ jest.mock('../lib/personalForecastCache', () => ({
 }));
 jest.mock('../lib/personalForecastQuestionGeneration', () => ({
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION:
-    'personal-forecast-question.v4.concise-answer+voice.3',
+    'personal-forecast-question.v5.semantic-writer+voice.3',
+  preparePersonalForecastQuestionHistory: (...args: unknown[]) =>
+    mockPrepareQuestionHistory(...args),
+  appendPersonalForecastQuestionAnswerHistory: (...args: unknown[]) =>
+    mockAppendAnswerHistory(...args),
   generatePersonalForecastQuestionAnswer: (...args: unknown[]) =>
     mockGenerateAnswer(...args),
 }));
@@ -93,7 +99,7 @@ function question(
     answerText: null,
     answerMeta: null,
     modelId: null,
-    promptVersion: 'personal-forecast-question.v4.concise-answer+voice.3',
+    promptVersion: 'personal-forecast-question.v5.semantic-writer+voice.3',
     voiceVersion: '3',
     generationStartedAt: null,
     answeredAt: null,
@@ -152,6 +158,19 @@ describe('admin personal forecast question moderation API', () => {
       model: 'gpt-4.1',
       cacheKey: 'forecast-cache-v1',
       inputHash: 'forecast-input-v1',
+    });
+    mockPrepareQuestionHistory.mockResolvedValue({
+      threadId: 901,
+      historyContext: {
+        calculations: [],
+        explicitFacts: [],
+        userMessages: [],
+        artifactContinuity: [],
+      },
+    });
+    mockAppendAnswerHistory.mockResolvedValue({
+      threadId: 901,
+      generatedArtifactId: 902,
     });
   });
 
@@ -317,10 +336,17 @@ describe('admin personal forecast question moderation API', () => {
     });
     mockGenerateAnswer.mockResolvedValue({
       answer: answered.answerText,
+      semanticFactIds: ['fact:communication'],
       evidenceIds: ['e1'],
+      atomIds: ['details_require_review'],
+      domainKeys: ['communication_decisions'],
+      personalizationFactKeys: [],
+      userMessageIds: [],
+      semanticFingerprints: ['semantic:communication'],
       model: 'gpt-4.1',
       promptVersion: generating.promptVersion,
       voiceVersion: '3',
+      generationAttempts: 1,
       generatedAt: answered.answeredAt,
     });
     mockCompleteAnswer.mockResolvedValue(answered);
@@ -351,6 +377,16 @@ describe('admin personal forecast question moderation API', () => {
         period: 'month',
         periodKey: '2026-07',
       },
+    }));
+    expect(mockPrepareQuestionHistory).toHaveBeenCalledWith(expect.objectContaining({
+      userId: '1001',
+      chartId: 7,
+      questionRecordId: 77,
+    }));
+    expect(mockAppendAnswerHistory).toHaveBeenCalledWith(expect.objectContaining({
+      userId: '1001',
+      chartId: 7,
+      questionRecordId: 77,
     }));
     expect(mockRecordAdminAction).toHaveBeenCalledWith(expect.objectContaining({
       action: 'content_published',

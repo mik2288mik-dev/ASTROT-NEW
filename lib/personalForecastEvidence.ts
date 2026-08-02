@@ -6,40 +6,43 @@ import {
   type PlanetTransit,
 } from './transits-calculator';
 import {
-  DYNAMIC_FORECAST_TOPIC_KEYS,
-  FIXED_FORECAST_SECTION_KEYS,
   PERSONAL_FORECAST_CALCULATION_VERSION,
   type CalculatedAstroEvidence,
-  type DynamicForecastTopicKey,
   type ForecastEvidenceView,
-  type ForecastTopicKey,
   type PersonalForecastPeriod,
   type PersonalForecastWindow,
-  type TopicEvidence,
 } from './personalForecastContract';
 
 export type EvidenceCalculationResult = {
-  evidence: CalculatedAstroEvidence[];
-  continuationEvidence: CalculatedAstroEvidence[];
-  topicEvidence: Record<ForecastTopicKey, TopicEvidence>;
-  dynamicTopicKeys: DynamicForecastTopicKey[];
+  evidence: PersonalForecastCalculatedEvidence[];
+  continuationEvidence: PersonalForecastCalculatedEvidence[];
   evidenceViews: Record<string, ForecastEvidenceView>;
 };
 
-const VALID_FORECAST_TOPIC_KEYS = new Set<string>([
-  'overview',
-  ...FIXED_FORECAST_SECTION_KEYS,
-  ...DYNAMIC_FORECAST_TOPIC_KEYS,
-]);
+export type PersonalForecastMotionDirection = 'direct' | 'retrograde';
 
-export function validatePersonalForecastEvidenceTopicKeys(
-  evidence: readonly CalculatedAstroEvidence[],
-): string[] {
-  return [...new Set(
-    evidence.flatMap((item) => item.topicKeys)
-      .filter((key) => !VALID_FORECAST_TOPIC_KEYS.has(key)),
-  )];
-}
+export type PersonalForecastStationDirection =
+  | 'direct'
+  | 'retrograde'
+  | 'unknown';
+
+export type PersonalForecastMotionMetadata = {
+  directionBefore: PersonalForecastMotionDirection;
+  directionAfter: PersonalForecastMotionDirection;
+  speedLongitudeBefore: number;
+  speedLongitudeAfter: number;
+  directionChanged: boolean;
+  stationDirection: PersonalForecastStationDirection;
+};
+
+/** Raw calculation evidence. Life domains are assigned only by the compiler. */
+export type PersonalForecastCalculatedEvidence = CalculatedAstroEvidence & {
+  motion?: PersonalForecastMotionMetadata;
+  ingress?: {
+    fromSign: string;
+    toSign: string;
+  };
+};
 
 export type PersonalForecastAspectObservation = TransitAspect & {
   at: Date;
@@ -104,60 +107,6 @@ const PLANET_WEIGHTS: Record<string, number> = {
   neptune: 66,
   pluto: 72,
 };
-
-const PLANET_TOPIC_KEYS: Record<string, ForecastTopicKey[]> = {
-  sun: ['overview', 'work_money', 'mood', 'professional_path', 'self_confidence', 'creativity', 'future_direction'],
-  moon: ['overview', 'love', 'mood', 'home_family', 'rest_recovery'],
-  mercury: [
-    'work_money',
-    'study',
-    'it_direction',
-    'documents_agreements',
-    'friends',
-    'professional_path',
-  ],
-  venus: ['love', 'work_money', 'income_growth', 'creativity', 'home_family', 'property_decision'],
-  mars: ['work_money', 'business', 'physical_activity', 'important_decision', 'work_change'],
-  jupiter: [
-    'work_money',
-    'income_growth',
-    'professional_path',
-    'business',
-    'study',
-    'relocation',
-    'future_direction',
-  ],
-  saturn: [
-    'work_money',
-    'business',
-    'documents_agreements',
-    'property_decision',
-    'important_decision',
-    'professional_path',
-  ],
-  uranus: ['work_money', 'it_direction', 'relocation', 'important_decision', 'work_change', 'future_direction'],
-  neptune: ['mood', 'creativity', 'rest_recovery', 'self_confidence', 'future_direction'],
-  pluto: ['work_money', 'income_growth', 'important_decision', 'self_confidence', 'work_change'],
-};
-
-const HOUSE_TOPIC_KEYS: Record<number, ForecastTopicKey[]> = {
-  1: ['overview', 'mood', 'physical_activity', 'self_confidence'],
-  2: ['work_money', 'income_growth', 'business', 'property_decision'],
-  3: ['friends', 'study', 'it_direction', 'documents_agreements'],
-  4: ['home_family', 'relocation', 'property_decision', 'rest_recovery'],
-  5: ['love', 'creativity', 'self_confidence'],
-  6: ['work_money', 'work_change', 'physical_activity', 'rest_recovery'],
-  7: ['love', 'friends', 'documents_agreements'],
-  8: ['work_money', 'income_growth', 'love', 'property_decision', 'important_decision'],
-  9: ['study', 'relocation', 'future_direction'],
-  10: ['work_money', 'business', 'professional_path', 'work_change'],
-  11: ['friends', 'it_direction', 'future_direction'],
-  12: ['mood', 'rest_recovery', 'creativity', 'self_confidence'],
-};
-
-function unique<T>(values: T[]): T[] {
-  return [...new Set(values)];
-}
 
 function normalizeDegree(value: number): number {
   const result = value % 360;
@@ -248,18 +197,6 @@ function houseForLongitude(longitude: number, houses?: NatalHouseData[]): number
   return null;
 }
 
-function topicsFor(
-  transitPlanet?: string | null,
-  natalPoint?: string | null,
-  house?: number | null,
-): ForecastTopicKey[] {
-  const topics: ForecastTopicKey[] = ['overview', 'wishes'];
-  if (transitPlanet) topics.push(...(PLANET_TOPIC_KEYS[transitPlanet] || []));
-  if (natalPoint) topics.push(...(PLANET_TOPIC_KEYS[natalPoint] || []));
-  if (house) topics.push(...(HOUSE_TOPIC_KEYS[house] || []));
-  return unique(topics);
-}
-
 function iso(value: Date | null | undefined): string | null {
   return value ? value.toISOString() : null;
 }
@@ -300,9 +237,14 @@ function evidenceView(
       ? `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet}: смена знака`
       : `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet}: sign ingress`;
   } else if (evidence.kind === 'station') {
-    factor = language === 'ru'
-      ? `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet}: станция`
-      : `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet}: station`;
+    const stationDirection = (evidence as PersonalForecastCalculatedEvidence)
+      .motion?.stationDirection;
+    const directionLabel = stationDirection === 'retrograde'
+      ? (language === 'ru' ? 'разворот в ретроградное движение' : 'turns retrograde')
+      : stationDirection === 'direct'
+        ? (language === 'ru' ? 'разворот в директное движение' : 'turns direct')
+        : (language === 'ru' ? 'около станции' : 'near station');
+    factor = `${planets[evidence.transitPlanet || ''] || evidence.transitPlanet}: ${directionLabel}`;
   } else {
     factor = language === 'ru' ? 'Совокупность факторов периода' : 'Period factor aggregate';
   }
@@ -402,7 +344,7 @@ function groupAspectEvidence(
   period: PersonalForecastPeriod,
   periodKey: string,
   observations: PersonalForecastAspectObservation[],
-): CalculatedAstroEvidence | null {
+): PersonalForecastCalculatedEvidence | null {
   if (!observations.length || !shouldKeepAspect(period, observations)) return null;
   const sorted = [...observations].sort((a, b) => a.at.getTime() - b.at.getTime());
   const exact = [...sorted].sort((a, b) => a.orb - b.orb)[0];
@@ -434,7 +376,6 @@ function groupAspectEvidence(
     endsAt: iso(last.at),
     strength,
     polarity,
-    topicKeys: topicsFor(first.transitPlanet, first.natalPlanet, house),
     calculationSource: `${PERSONAL_FORECAST_CALCULATION_VERSION}:swisseph`,
   };
 }
@@ -484,11 +425,11 @@ export function buildPersonalForecastAspectEvidence(
   period: PersonalForecastPeriod,
   periodKey: string,
   snapshots: Array<{ at: Date; transits: CurrentTransits }>,
-): CalculatedAstroEvidence[] {
+): PersonalForecastCalculatedEvidence[] {
   return [...collectAspectObservationGroups(chart, snapshots).values()]
     .flatMap((group) => segmentPersonalForecastAspectEpisodes(group))
     .map((episode) => groupAspectEvidence(chart, period, periodKey, episode))
-    .filter((item): item is CalculatedAstroEvidence => !!item);
+    .filter((item): item is PersonalForecastCalculatedEvidence => !!item);
 }
 
 function buildContinuationAspectEvidence(
@@ -497,7 +438,7 @@ function buildContinuationAspectEvidence(
   periodKey: string,
   snapshots: Array<{ at: Date; transits: CurrentTransits }>,
   boundary: Date,
-): CalculatedAstroEvidence[] {
+): PersonalForecastCalculatedEvidence[] {
   if (period === 'year') return [];
   const boundaryTime = boundary.getTime();
   const maxBridgeHours = period === 'day' ? 6 : period === 'week' ? 24 : 120;
@@ -519,7 +460,7 @@ function buildContinuationAspectEvidence(
       );
     })
     .map((episode) => groupAspectEvidence(chart, period, periodKey, episode))
-    .filter((item): item is CalculatedAstroEvidence => (
+    .filter((item): item is PersonalForecastCalculatedEvidence => (
       !!item
       && !!item.endsAt
       && new Date(item.endsAt).getTime() > boundaryTime
@@ -557,8 +498,8 @@ export function buildPersonalForecastIngressAndStationEvidence(
   period: PersonalForecastPeriod,
   periodKey: string,
   snapshots: Array<{ at: Date; transits: CurrentTransits }>,
-): CalculatedAstroEvidence[] {
-  const result: CalculatedAstroEvidence[] = [];
+): PersonalForecastCalculatedEvidence[] {
+  const result: PersonalForecastCalculatedEvidence[] = [];
   const useHouses = hasReliableHousePersonalization(chart);
   for (const planet of TRANSIT_KEYS) {
     if (!shouldIncludeLongPeriodTransit(period, planet)) continue;
@@ -583,7 +524,10 @@ export function buildPersonalForecastIngressAndStationEvidence(
           endsAt: iso(snapshots[index].at),
           strength: Math.min(90, (PLANET_WEIGHTS[planet] || 30) + 12),
           polarity: 'neutral',
-          topicKeys: topicsFor(planet, null, house),
+          ingress: {
+            fromSign: previous.sign,
+            toSign: current.sign,
+          },
           calculationSource: `${PERSONAL_FORECAST_CALCULATION_VERSION}:swisseph`,
         });
       }
@@ -603,7 +547,16 @@ export function buildPersonalForecastIngressAndStationEvidence(
           endsAt: iso(snapshots[index].at),
           strength: Math.min(96, (PLANET_WEIGHTS[planet] || 30) + 20),
           polarity: 'mixed',
-          topicKeys: topicsFor(planet, null, house),
+          motion: {
+            directionBefore: previous.retrograde ? 'retrograde' : 'direct',
+            directionAfter: current.retrograde ? 'retrograde' : 'direct',
+            speedLongitudeBefore: Number(previous.speedLongitude || 0),
+            speedLongitudeAfter: Number(current.speedLongitude || 0),
+            directionChanged: changedDirection,
+            stationDirection: changedDirection
+              ? (current.retrograde ? 'retrograde' : 'direct')
+              : 'unknown',
+          },
           calculationSource: `${PERSONAL_FORECAST_CALCULATION_VERSION}:swisseph`,
         });
       }
@@ -616,7 +569,7 @@ function buildLunationEvidence(
   period: PersonalForecastPeriod,
   periodKey: string,
   snapshots: Array<{ at: Date; transits: CurrentTransits }>,
-): CalculatedAstroEvidence[] {
+): PersonalForecastCalculatedEvidence[] {
   if (period === 'year') return [];
   const candidates = snapshots.flatMap((snapshot) => {
     const sun = transitLongitude(snapshot.transits.sun);
@@ -663,13 +616,6 @@ function buildLunationEvidence(
       endsAt: iso(items[items.length - 1].at),
       strength: Math.max(35, Math.round(65 - exact.orb * 3)),
       polarity: 'mixed' as const,
-      topicKeys: [
-        'overview',
-        'mood',
-        'love',
-        'home_family',
-        'important_decision',
-      ],
       calculationSource: `${PERSONAL_FORECAST_CALCULATION_VERSION}:swisseph`,
     };
   });
@@ -704,9 +650,9 @@ export function buildPersonalForecastHouseEvidence(
   period: PersonalForecastPeriod,
   periodKey: string,
   snapshots: Array<{ at: Date; transits: CurrentTransits }>,
-): CalculatedAstroEvidence[] {
+): PersonalForecastCalculatedEvidence[] {
   if (!hasReliableHousePersonalization(chart)) return [];
-  const result: CalculatedAstroEvidence[] = [];
+  const result: PersonalForecastCalculatedEvidence[] = [];
   for (const planet of TRANSIT_KEYS) {
     if (!shouldIncludeLongPeriodTransit(period, planet)) continue;
     const observations = snapshots.flatMap((snapshot, sampleIndex) => {
@@ -731,7 +677,6 @@ export function buildPersonalForecastHouseEvidence(
         endsAt: iso(last.at),
         strength: Math.min(82, (PLANET_WEIGHTS[planet] || 30) + 8),
         polarity: 'neutral',
-        topicKeys: topicsFor(planet, null, first.house),
         calculationSource: `${PERSONAL_FORECAST_CALCULATION_VERSION}:swisseph`,
       });
     }
@@ -739,8 +684,10 @@ export function buildPersonalForecastHouseEvidence(
   return result;
 }
 
-function dedupeEvidence(values: CalculatedAstroEvidence[]): CalculatedAstroEvidence[] {
-  const byId = new Map<string, CalculatedAstroEvidence>();
+function dedupeEvidence(
+  values: PersonalForecastCalculatedEvidence[],
+): PersonalForecastCalculatedEvidence[] {
+  const byId = new Map<string, PersonalForecastCalculatedEvidence>();
   for (const value of values) {
     const current = byId.get(value.id);
     if (!current || value.strength > current.strength) byId.set(value.id, value);
@@ -748,121 +695,11 @@ function dedupeEvidence(values: CalculatedAstroEvidence[]): CalculatedAstroEvide
   return [...byId.values()].sort((a, b) => b.strength - a.strength);
 }
 
-export function selectPersonalForecastDynamicTopics(
-  evidence: CalculatedAstroEvidence[],
-  previousDynamicKeys: DynamicForecastTopicKey[] = [],
-): DynamicForecastTopicKey[] {
-  const previous = new Set(previousDynamicKeys);
-  const scores = DYNAMIC_FORECAST_TOPIC_KEYS.map((key) => {
-    const relevant = evidence
-      .filter((item) => item.topicKeys.includes(key))
-      .sort((a, b) => b.strength - a.strength);
-    const raw = relevant.reduce((sum, item) => sum + item.strength, 0);
-    const strongest = relevant[0]?.strength || 0;
-    const noveltyTieBreaker = previous.has(key) ? -0.01 : 0;
-    return { key, score: raw + strongest * 0.35 + noveltyTieBreaker, strongest };
-  }).sort((a, b) => b.score - a.score);
-
-  const eligible = scores.filter((item) => item.strongest > 0 && item.score > 0);
-  if (eligible.length < 2) return eligible.map((item) => item.key);
-  const selected = eligible.slice(0, 2);
-  const third = eligible[2];
-  if (third && third.score >= selected[1].score * 0.82 && third.strongest >= 38) {
-    selected.push(third);
-  }
-  const fourth = eligible[3];
-  if (
-    fourth
-    && selected.length === 3
-    && fourth.score >= selected[2].score * 0.9
-    && fourth.strongest >= 48
-  ) {
-    selected.push(fourth);
-  }
-  return selected.map((item) => item.key);
-}
-
-export function assignPersonalForecastPrimaryEvidence(
-  topics: ForecastTopicKey[],
-  evidence: CalculatedAstroEvidence[],
-): Map<ForecastTopicKey, CalculatedAstroEvidence> {
-  const topicOrder = new Map(topics.map((topic, index) => [topic, index]));
-  const candidates = new Map(topics.map((topic) => [
-    topic,
-    evidence
-      .filter((item) => item.topicKeys.includes(topic))
-      .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id)),
-  ]));
-  const orderedTopics = [...topics].sort((a, b) => (
-    (candidates.get(a)?.length || 0) - (candidates.get(b)?.length || 0)
-    || (topicOrder.get(a) || 0) - (topicOrder.get(b) || 0)
-  ));
-  const assignedByTopic = new Map<ForecastTopicKey, CalculatedAstroEvidence>();
-  const ownerByEvidenceId = new Map<string, ForecastTopicKey>();
-
-  const assign = (
-    topic: ForecastTopicKey,
-    visitedEvidenceIds: Set<string>,
-    visitedTopics: Set<ForecastTopicKey>,
-  ): boolean => {
-    if (visitedTopics.has(topic)) return false;
-    visitedTopics.add(topic);
-    for (const candidate of candidates.get(topic) || []) {
-      if (visitedEvidenceIds.has(candidate.id)) continue;
-      visitedEvidenceIds.add(candidate.id);
-      const owner = ownerByEvidenceId.get(candidate.id);
-      if (
-        !owner
-        || assign(owner, visitedEvidenceIds, visitedTopics)
-      ) {
-        assignedByTopic.set(topic, candidate);
-        ownerByEvidenceId.set(candidate.id, topic);
-        return true;
-      }
-    }
-    return false;
-  };
-
-  for (const topic of orderedTopics) {
-    assign(topic, new Set<string>(), new Set<ForecastTopicKey>());
-  }
-  return assignedByTopic;
-}
-
-function classifyTopicEvidence(
-  topic: ForecastTopicKey,
-  evidence: CalculatedAstroEvidence[],
-  primaryCandidate: CalculatedAstroEvidence | undefined,
-  assignedPrimaryIds: Set<string>,
-): TopicEvidence {
-  const candidates = evidence
-    .filter((item) => item.topicKeys.includes(topic))
-    .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
-  const remaining = candidates.filter((item) => (
-    item.id !== primaryCandidate?.id && !assignedPrimaryIds.has(item.id)
-  ));
-  const supporting = remaining
-    .filter((item) => item.polarity !== 'challenging')
-    .slice(0, 3);
-  const conflicting = remaining
-    .filter((item) => item.polarity === 'challenging')
-    .slice(0, 2);
-  const totalStrength = (primaryCandidate?.strength || 0)
-    + supporting.reduce((sum, item) => sum + item.strength * 0.4, 0);
-  return {
-    primary: primaryCandidate ? [primaryCandidate] : [],
-    supporting,
-    conflicting,
-    confidence: totalStrength >= 105 ? 'high' : totalStrength >= 60 ? 'medium' : 'low',
-  };
-}
-
 export async function calculatePersonalForecastEvidence(input: {
   chartData: NatalChartData;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
   language: 'ru' | 'en';
-  previousDynamicKeys?: DynamicForecastTopicKey[];
 }): Promise<EvidenceCalculationResult> {
   const periodDates = buildPersonalForecastSampleDates(input.period, input.window);
   const continuationDates = buildPersonalForecastContinuationSampleDates(
@@ -897,58 +734,10 @@ export async function calculatePersonalForecastEvidence(input: {
     snapshots,
     input.window.endsAt,
   ));
-  const unknownTopicKeys = validatePersonalForecastEvidenceTopicKeys([
-    ...evidence,
-    ...continuationEvidence,
-  ]);
-  if (unknownTopicKeys.length) {
-    throw new Error(
-      `PERSONAL_FORECAST_EVIDENCE_TOPIC_INVALID:${unknownTopicKeys.join(',')}`,
-    );
-  }
-  const dynamicTopicKeys = selectPersonalForecastDynamicTopics(
-    evidence,
-    input.previousDynamicKeys,
-  );
-  if (dynamicTopicKeys.length < 2) {
-    throw new Error('PERSONAL_FORECAST_DYNAMIC_EVIDENCE_INSUFFICIENT');
-  }
-
-  const selectedTopics = [
-    'overview',
-    ...FIXED_FORECAST_SECTION_KEYS,
-    ...dynamicTopicKeys,
-  ] as ForecastTopicKey[];
-  const primaryByTopic = assignPersonalForecastPrimaryEvidence(
-    selectedTopics,
-    evidence,
-  );
-  const assignedPrimaryIds = new Set(
-    [...primaryByTopic.values()].map((item) => item.id),
-  );
-  const topicEvidence = {} as Record<ForecastTopicKey, TopicEvidence>;
-  for (const topic of selectedTopics) {
-    topicEvidence[topic] = classifyTopicEvidence(
-      topic,
-      evidence,
-      primaryByTopic.get(topic),
-      assignedPrimaryIds,
-    );
-    if (!topicEvidence[topic].primary.length) {
-      throw new Error(`PERSONAL_FORECAST_TOPIC_EVIDENCE_MISSING:${topic}`);
-    }
-  }
-  for (const topic of DYNAMIC_FORECAST_TOPIC_KEYS) {
-    if (!topicEvidence[topic]) {
-      topicEvidence[topic] = { primary: [], supporting: [], conflicting: [], confidence: 'low' };
-    }
-  }
 
   return {
     evidence,
     continuationEvidence,
-    topicEvidence,
-    dynamicTopicKeys,
     evidenceViews: Object.fromEntries(
       evidence.map((item) => [item.id, evidenceView(item, input.language)]),
     ),

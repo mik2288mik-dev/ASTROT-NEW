@@ -12,6 +12,15 @@ describe('canonical natal chart persistence flow', () => {
     expect(persistence).toContain('await calculateNatalChart(');
     expect(persistence).toContain('await db.natal_charts.persistPrimary');
     expect(api).toContain('ensureCanonicalPrimaryChart({');
-    expect(api).toContain('return res.status(200).json(result.chart);');
+    expect(api).toContain("persistChartIdentity(result.chart, 'self', null)");
+  });
+
+  it('never accepts a client chart payload as the canonical calculation', () => {
+    const persistence = read('lib/natalChartPersistence.ts');
+    const legacyApi = read('pages/api/charts/[id].ts');
+
+    expect(persistence).not.toContain('isCanonicalNatalChartDataComplete(args.chartData)');
+    expect(legacyApi).toContain('ensureCanonicalPrimaryChart({');
+    expect(legacyApi).not.toContain('db.natal_charts.set(');
   });
 });

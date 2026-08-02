@@ -1858,7 +1858,7 @@ const App: React.FC = () => {
                                     partnerChartId: chart.id,
                                     partnerName: chart.name,
                                     partnerDate: chart.birth_date,
-                                    partnerTime: chart.birth_time,
+                                    partnerTime: chart.birth_time || undefined,
                                     partnerPlace: chart.birth_place,
                                 });
                             }}

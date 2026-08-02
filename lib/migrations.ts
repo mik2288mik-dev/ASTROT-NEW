@@ -76,6 +76,11 @@ async function migrationReset(pool: Pool): Promise<void> {
   log.info('Applying full database reset...');
 
   const dropOrder = [
+    'personalization_facts',
+    'astrology_messages',
+    'astrology_threads',
+    'generated_artifacts',
+    'astrology_calculation_snapshots',
     'personal_forecast_questions',
     'premium_entitlements',
     'content_unlocks',
@@ -2001,6 +2006,11 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'daily_cards',
     'pulse_day_entries',
     'personal_forecast_questions',
+    'astrology_calculation_snapshots',
+    'generated_artifacts',
+    'astrology_threads',
+    'astrology_messages',
+    'personalization_facts',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -2964,6 +2974,329 @@ async function mvp040AccountIdentitySessions(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+/**
+ * Durable, append-only astrology history and explicit chart ownership.
+ *
+ * Generated text is retained for display and continuity only. It is never
+ * eligible to become factual evidence; only calculation snapshots and
+ * explicit personalization facts can enter the factual history context.
+ */
+async function mvp041AstrologyHistoryFoundation(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_041_astrology_history_foundation';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`
+    ALTER TABLE natal_charts
+      ADD COLUMN IF NOT EXISTS subject_type TEXT,
+      ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS relation_label TEXT
+  `);
+
+  // Select exactly one active legacy chart per account as "self". The order is
+  // deterministic even when legacy rows incorrectly have multiple primaries.
+  await pool.query(`
+    WITH ranked AS (
+      SELECT
+        id,
+        ROW_NUMBER() OVER (
+          PARTITION BY user_id
+          ORDER BY is_primary DESC NULLS LAST, created_at ASC NULLS LAST, id ASC
+        ) AS position
+      FROM natal_charts
+      WHERE archived_at IS NULL
+    )
+    UPDATE natal_charts AS chart
+    SET subject_type = CASE WHEN ranked.position = 1 THEN 'self' ELSE 'saved_person' END
+    FROM ranked
+    WHERE chart.id = ranked.id
+  `);
+  await pool.query(`
+    UPDATE natal_charts
+    SET subject_type = COALESCE(subject_type, 'saved_person')
+    WHERE subject_type IS NULL
+  `);
+  await pool.query(`
+    UPDATE natal_charts
+    SET
+      is_primary = (subject_type = 'self' AND archived_at IS NULL),
+      relation_label = CASE
+        WHEN subject_type = 'self' THEN NULL
+        ELSE COALESCE(NULLIF(BTRIM(relation_label), ''), 'other')
+      END
+  `);
+  await pool.query(`
+    ALTER TABLE natal_charts
+      ALTER COLUMN subject_type SET DEFAULT 'saved_person',
+      ALTER COLUMN subject_type SET NOT NULL,
+      DROP CONSTRAINT IF EXISTS natal_charts_subject_type
+  `);
+  await pool.query(`
+    ALTER TABLE natal_charts
+      ADD CONSTRAINT natal_charts_subject_type
+      CHECK (subject_type IN ('self', 'saved_person'))
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_natal_charts_one_active_self
+      ON natal_charts(user_id)
+      WHERE subject_type = 'self' AND archived_at IS NULL
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_natal_charts_user_subject_active
+      ON natal_charts(user_id, subject_type, created_at, id)
+      WHERE archived_at IS NULL
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS astrology_calculation_snapshots (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_chart_id BIGINT NOT NULL REFERENCES natal_charts(id) ON DELETE CASCADE,
+      counterpart_chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      surface TEXT NOT NULL,
+      period TEXT,
+      period_key TEXT,
+      input_hash TEXT NOT NULL,
+      calculation_version TEXT NOT NULL,
+      semantic_version TEXT,
+      ephemeris_source TEXT NOT NULL,
+      house_system TEXT,
+      birth_time_status TEXT NOT NULL,
+      calculation_payload JSONB NOT NULL,
+      evidence_payload JSONB NOT NULL,
+      provenance JSONB NOT NULL DEFAULT '{}'::jsonb,
+      schema_version TEXT NOT NULL,
+      calculated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT astrology_calc_surface
+        CHECK (surface IN ('natal', 'forecast', 'synastry', 'question')),
+      CONSTRAINT astrology_calc_birth_time_status
+        CHECK (birth_time_status IN ('exact', 'approximate', 'unknown')),
+      CONSTRAINT astrology_calc_distinct_charts
+        CHECK (counterpart_chart_id IS NULL OR counterpart_chart_id <> subject_chart_id),
+      CONSTRAINT astrology_calc_identity_nonempty
+        CHECK (
+          LENGTH(BTRIM(input_hash)) > 0
+          AND LENGTH(BTRIM(calculation_version)) > 0
+          AND LENGTH(BTRIM(ephemeris_source)) > 0
+          AND LENGTH(BTRIM(schema_version)) > 0
+        )
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_astro_calc_user_chart_created
+      ON astrology_calculation_snapshots(user_id, subject_chart_id, created_at DESC, id DESC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_astro_calc_input_hash
+      ON astrology_calculation_snapshots(user_id, subject_chart_id, input_hash, created_at DESC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_astro_calc_counterpart
+      ON astrology_calculation_snapshots(user_id, counterpart_chart_id, created_at DESC)
+      WHERE counterpart_chart_id IS NOT NULL
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS generated_artifacts (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_chart_id BIGINT NOT NULL REFERENCES natal_charts(id) ON DELETE CASCADE,
+      counterpart_chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      calculation_snapshot_id BIGINT
+        REFERENCES astrology_calculation_snapshots(id) ON DELETE SET NULL,
+      surface TEXT NOT NULL,
+      variant TEXT NOT NULL,
+      period TEXT,
+      period_key TEXT,
+      language TEXT NOT NULL,
+      content_payload JSONB NOT NULL,
+      semantic_fingerprints JSONB NOT NULL DEFAULT '[]'::jsonb,
+      provider TEXT NOT NULL,
+      model_id TEXT NOT NULL,
+      prompt_version TEXT NOT NULL,
+      voice_version TEXT NOT NULL,
+      semantic_version TEXT NOT NULL,
+      contract_version TEXT NOT NULL,
+      validation_status TEXT NOT NULL,
+      generation_attempts INTEGER NOT NULL,
+      input_hash TEXT NOT NULL,
+      provenance JSONB NOT NULL DEFAULT '{}'::jsonb,
+      schema_version TEXT NOT NULL,
+      is_factual_evidence BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT generated_artifacts_surface
+        CHECK (surface IN ('natal', 'forecast', 'synastry', 'question')),
+      CONSTRAINT generated_artifacts_language CHECK (language IN ('ru', 'en')),
+      CONSTRAINT generated_artifacts_validation
+        CHECK (validation_status IN ('valid', 'deterministic_fallback', 'legacy_unvalidated')),
+      CONSTRAINT generated_artifacts_attempts CHECK (generation_attempts BETWEEN 0 AND 2),
+      CONSTRAINT generated_artifacts_display_only CHECK (is_factual_evidence = FALSE),
+      CONSTRAINT generated_artifacts_distinct_charts
+        CHECK (counterpart_chart_id IS NULL OR counterpart_chart_id <> subject_chart_id),
+      CONSTRAINT generated_artifacts_identity_nonempty
+        CHECK (
+          LENGTH(BTRIM(variant)) > 0
+          AND LENGTH(BTRIM(provider)) > 0
+          AND LENGTH(BTRIM(model_id)) > 0
+          AND LENGTH(BTRIM(prompt_version)) > 0
+          AND LENGTH(BTRIM(voice_version)) > 0
+          AND LENGTH(BTRIM(semantic_version)) > 0
+          AND LENGTH(BTRIM(contract_version)) > 0
+          AND LENGTH(BTRIM(input_hash)) > 0
+          AND LENGTH(BTRIM(schema_version)) > 0
+        )
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_generated_artifacts_user_chart_created
+      ON generated_artifacts(user_id, subject_chart_id, created_at DESC, id DESC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_generated_artifacts_period
+      ON generated_artifacts(user_id, subject_chart_id, surface, period, period_key, created_at DESC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_generated_artifacts_snapshot
+      ON generated_artifacts(calculation_snapshot_id)
+      WHERE calculation_snapshot_id IS NOT NULL
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS astrology_threads (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_chart_id BIGINT NOT NULL REFERENCES natal_charts(id) ON DELETE CASCADE,
+      counterpart_chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      thread_kind TEXT NOT NULL,
+      title TEXT,
+      provenance JSONB NOT NULL DEFAULT '{}'::jsonb,
+      schema_version TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT astrology_threads_distinct_charts
+        CHECK (counterpart_chart_id IS NULL OR counterpart_chart_id <> subject_chart_id),
+      CONSTRAINT astrology_threads_identity_nonempty
+        CHECK (LENGTH(BTRIM(thread_kind)) > 0 AND LENGTH(BTRIM(schema_version)) > 0)
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_astro_threads_user_chart_created
+      ON astrology_threads(user_id, subject_chart_id, created_at DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS astrology_messages (
+      id BIGSERIAL PRIMARY KEY,
+      thread_id BIGINT NOT NULL REFERENCES astrology_threads(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      subject_chart_id BIGINT NOT NULL REFERENCES natal_charts(id) ON DELETE CASCADE,
+      counterpart_chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content_text TEXT NOT NULL,
+      content_payload JSONB,
+      generated_artifact_id BIGINT REFERENCES generated_artifacts(id) ON DELETE SET NULL,
+      provenance JSONB NOT NULL DEFAULT '{}'::jsonb,
+      schema_version TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT astrology_messages_role CHECK (role IN ('user', 'assistant')),
+      CONSTRAINT astrology_messages_content_nonempty CHECK (LENGTH(BTRIM(content_text)) > 0),
+      CONSTRAINT astrology_messages_schema_nonempty CHECK (LENGTH(BTRIM(schema_version)) > 0),
+      CONSTRAINT astrology_messages_artifact_role
+        CHECK (generated_artifact_id IS NULL OR role = 'assistant'),
+      CONSTRAINT astrology_messages_distinct_charts
+        CHECK (counterpart_chart_id IS NULL OR counterpart_chart_id <> subject_chart_id)
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_astro_messages_thread_created
+      ON astrology_messages(thread_id, created_at ASC, id ASC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_astro_messages_user_chart_created
+      ON astrology_messages(user_id, subject_chart_id, created_at DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS personalization_facts (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      chart_id BIGINT REFERENCES natal_charts(id) ON DELETE CASCADE,
+      scope TEXT NOT NULL,
+      fact_key TEXT NOT NULL,
+      fact_value JSONB,
+      operation TEXT NOT NULL,
+      provenance_type TEXT NOT NULL,
+      provenance JSONB NOT NULL DEFAULT '{}'::jsonb,
+      source_message_id BIGINT REFERENCES astrology_messages(id) ON DELETE SET NULL,
+      calculation_snapshot_id BIGINT
+        REFERENCES astrology_calculation_snapshots(id) ON DELETE SET NULL,
+      provenance_version TEXT NOT NULL,
+      schema_version TEXT NOT NULL,
+      recorded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT personalization_facts_scope
+        CHECK (
+          (scope = 'account' AND chart_id IS NULL)
+          OR (scope = 'chart' AND chart_id IS NOT NULL)
+        ),
+      CONSTRAINT personalization_facts_operation CHECK (operation IN ('assert', 'retract')),
+      CONSTRAINT personalization_facts_provenance
+        CHECK (provenance_type IN ('user_statement', 'verified_profile', 'calculation')),
+      CONSTRAINT personalization_facts_calculation_source
+        CHECK (
+          provenance_type <> 'calculation'
+          OR (scope = 'chart' AND calculation_snapshot_id IS NOT NULL)
+        ),
+      CONSTRAINT personalization_facts_message_source
+        CHECK (source_message_id IS NULL OR provenance_type = 'user_statement'),
+      CONSTRAINT personalization_facts_value
+        CHECK (operation = 'retract' OR fact_value IS NOT NULL),
+      CONSTRAINT personalization_facts_identity_nonempty
+        CHECK (
+          LENGTH(BTRIM(fact_key)) > 0
+          AND LENGTH(BTRIM(provenance_version)) > 0
+          AND LENGTH(BTRIM(schema_version)) > 0
+        )
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_personalization_facts_user_chart_key
+      ON personalization_facts(user_id, chart_id, fact_key, recorded_at DESC, id DESC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_personalization_facts_user_scope_created
+      ON personalization_facts(user_id, scope, recorded_at DESC, id DESC)
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
+/**
+ * A calculation hash identifies astronomical inputs, not a person. Different
+ * saved people may legitimately share those inputs (for example twins), so it
+ * cannot remain a per-account uniqueness constraint.
+ */
+async function mvp042SavedPersonIdentity(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_042_saved_person_identity';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`DROP INDEX IF EXISTS idx_natal_charts_user_input_hash`);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_natal_charts_active_identity_hash
+      ON natal_charts(user_id, subject_type, input_hash, id)
+      WHERE archived_at IS NULL AND input_hash IS NOT NULL
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3035,6 +3368,8 @@ export async function runMigrations(): Promise<void> {
   await mvp038PersonalForecastQuestions(pool);
   await mvp039RuStorePay(pool);
   await mvp040AccountIdentitySessions(pool);
+  await mvp041AstrologyHistoryFoundation(pool);
+  await mvp042SavedPersonIdentity(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

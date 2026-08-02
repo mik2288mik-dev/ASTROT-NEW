@@ -19,7 +19,9 @@ import {
 } from '../../../../lib/personalForecastQuestionCatalog';
 import {
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION,
+  appendPersonalForecastQuestionAnswerHistory,
   generatePersonalForecastQuestionAnswer,
+  preparePersonalForecastQuestionHistory,
 } from '../../../../lib/personalForecastQuestionGeneration';
 import {
   moderatePersonalForecastCustomQuestion,
@@ -252,6 +254,7 @@ async function generateAndSave(input: {
 }): Promise<StoredPersonalForecastQuestion> {
   try {
     if (!input.ctx.chartData) throw new Error('PERSONAL_FORECAST_CHART_REQUIRED');
+    if (input.ctx.chartId == null) throw new Error('PERSONAL_FORECAST_CHART_REQUIRED');
     const contextLanguage = input.ctx.profile.language === 'en' ? 'en' : 'ru';
     const contextFingerprint = buildPersonalForecastChartFingerprint(
       input.ctx.chartData,
@@ -280,20 +283,49 @@ async function generateAndSave(input: {
     if (cached.inputHash !== input.question.forecastInputHash) {
       throw new Error('PERSONAL_FORECAST_VERSION_CHANGED');
     }
+    const historySession = await preparePersonalForecastQuestionHistory({
+      userId: input.question.userId,
+      chartId: input.ctx.chartId,
+      questionRecordId: input.question.id,
+      question: input.question.questionText,
+      period: input.question.period as PersonalForecastPeriod,
+      periodKey: input.question.periodKey,
+      source: input.question.source,
+    });
     const generated = await generatePersonalForecastQuestionAnswer({
       question: input.question.questionText,
       language: input.question.language,
       period: input.question.period as PersonalForecastPeriod,
       periodKey: input.question.periodKey,
-      profile: input.ctx.profile,
-      chartData: input.ctx.chartData,
       forecast: cached.forecast,
+      historyContext: historySession.historyContext,
+    });
+    const history = await appendPersonalForecastQuestionAnswerHistory({
+      userId: input.question.userId,
+      chartId: input.ctx.chartId,
+      questionRecordId: input.question.id,
+      source: input.question.source,
+      period: input.question.period as PersonalForecastPeriod,
+      periodKey: input.question.periodKey,
+      forecastInputHash: cached.inputHash,
+      language: input.question.language,
+      session: historySession,
+      generated,
     });
     const saved = await completePersonalForecastQuestionAnswer({
       id: input.question.id,
       answerText: generated.answer,
       answerMeta: {
         evidenceIds: generated.evidenceIds,
+        semanticFactIds: generated.semanticFactIds,
+        atomIds: generated.atomIds,
+        domainKeys: generated.domainKeys,
+        personalizationFactKeys: generated.personalizationFactKeys,
+        userMessageIds: generated.userMessageIds,
+        semanticFingerprints: generated.semanticFingerprints,
+        generationAttempts: generated.generationAttempts,
+        astrologyThreadId: history.threadId,
+        generatedArtifactId: history.generatedArtifactId,
         generatedAt: generated.generatedAt,
         promptVersion: generated.promptVersion,
         voiceVersion: generated.voiceVersion,

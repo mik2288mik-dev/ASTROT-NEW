@@ -71,6 +71,9 @@ async function setup() {
     withRateLimit: (routeHandler: any) => routeHandler,
     RATE_LIMIT_CONFIGS: { FREE: { windowMs: 60_000, maxRequests: 10 } },
   }));
+  jest.doMock('../lib/contentArchitecture', () => ({
+    getPremiumEntitlementState: jest.fn().mockResolvedValue({ isPremium: false }),
+  }));
 
   const { createAppSessionToken } = await import('../lib/auth/appAuth');
   const { default: handler } = await import('../pages/api/charts/index');
@@ -120,7 +123,7 @@ describe('primary chart app auth', () => {
     expect(ensureCanonicalPrimaryChart).toHaveBeenCalledWith(expect.objectContaining({ userId: validBody.userId }));
   });
 
-  it('returns 403 when body.userId does not match the authenticated app user', async () => {
+  it('uses the authenticated owner and ignores an untrusted body userId', async () => {
     const { createAppSessionToken, ensureCanonicalPrimaryChart, handler } = await setup();
     const token = createAppSessionToken({ userId: '-42', sessionId: 'guest-session', provider: 'web_guest' });
 
@@ -128,18 +131,17 @@ describe('primary chart app auth', () => {
       cookie: `lumia_app_session=${token}`,
     });
 
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'USER_ID_MISMATCH' }));
-    expect(ensureCanonicalPrimaryChart).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(ensureCanonicalPrimaryChart).toHaveBeenCalledWith(expect.objectContaining({ userId: '-42' }));
   });
 
-  it('returns 400 for an invalid userId before chart calculation', async () => {
+  it('requires an authenticated session instead of accepting a request userId', async () => {
     const { ensureCanonicalPrimaryChart, handler } = await setup();
 
     const res = await call(handler, { ...validBody, userId: 'undefined' }, {});
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'INVALID_USER_ID' }));
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'APP_AUTH_REQUIRED' }));
     expect(ensureCanonicalPrimaryChart).not.toHaveBeenCalled();
   });
 

@@ -344,6 +344,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const [screen, setScreen] = useState<'hub' | 'add' | 'result'>(initialPrefill ? 'result' : 'hub');
   const [people, setPeople] = useState<ChartListItem[]>([]);
+  const [peopleLoaded, setPeopleLoaded] = useState(false);
   const [history, setHistory] = useState<CompatHistoryEntry[]>([]);
   const [pickSign, setPickSign] = useState<string>(() => ZODIAC_KEYS.find((s) => s.toLowerCase() !== yourSun) || ZODIAC_KEYS[0]);
   // «Твой» знак теперь можно менять (не жёстко из карты). По умолчанию — солнечный знак из карты.
@@ -368,8 +369,23 @@ export function UnionRoom(props: UnionRoomProps) {
 
   useEffect(() => {
     if (!profile.id) return;
-    void getCharts(profile.id).then((d) => setPeople((d.charts || []).filter((c) => !c.is_primary))).catch(() => setPeople([]));
+    setPeopleLoaded(false);
+    void getCharts(profile.id)
+      .then((d) => setPeople((d.charts || []).filter((chart) => (
+        chart.subject_type === 'saved_person'
+        && !chart.archived_at
+        && !chart.access_locked
+      ))))
+      .catch(() => setPeople([]))
+      .finally(() => setPeopleLoaded(true));
   }, [profile.id]);
+
+  useEffect(() => {
+    if (!peopleLoaded || selected?.kind !== 'person' || selected.chartId == null) return;
+    if (people.some((chart) => chart.id === selected.chartId)) return;
+    setSelected(null);
+    setScreen('hub');
+  }, [peopleLoaded, people, selected]);
 
   // История — ТОЛЬКО по конкретным людям (имя+дата+разбор). Проверки по знакам не храним.
   useEffect(() => { setHistory(loadCompatHistory().filter((e) => e.kind === 'person')); }, []);
@@ -454,6 +470,14 @@ export function UnionRoom(props: UnionRoomProps) {
     if (!selected || selected.kind !== 'person' || !score) return;
     if (!hasChart) { onCreateNatalChart?.(); return; }
     if (!premium) { requestPremium(); return; }
+    if (
+      selected.chartId != null
+      && (!peopleLoaded || !people.some((chart) => chart.id === selected.chartId))
+    ) {
+      setSelected(null);
+      setScreen('hub');
+      return;
+    }
     setDeepLoading(true); setError(null);
     try {
       const context = getRelationshipContextOption(selected.relationshipContext);

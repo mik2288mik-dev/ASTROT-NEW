@@ -114,6 +114,12 @@ export interface ChartQuality {
   notes: string[];
 }
 
+export interface NatalCalculationMetadata {
+  ephemerisMode: 'swisseph' | 'moshier';
+  houseSystem: 'placidus' | 'whole_sign';
+  housesComputedFrom: 'exact_time' | 'default_noon';
+}
+
 export interface NatalChartData {
   sun: PlanetPosition;
   moon: PlanetPosition;
@@ -137,6 +143,7 @@ export interface NatalChartData {
   houses?: NatalHouseData[];
   aspects?: NatalAspectData[];
   calculationVersion?: string;
+  calculationMetadata?: NatalCalculationMetadata;
   birthTimeQuality?: BirthTimeQuality;
   chartQuality?: ChartQuality;
   

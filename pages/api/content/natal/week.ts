@@ -43,6 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptVersion: NATAL_READING_WEEK_PROMPT,
     isPersistent: false,
     validTo,
+    history: { period: 'week', periodKey: cacheKey },
   };
 
   const cached = await getCachedReading<NatalReadingWeek>(ctx, cacheOpts);
@@ -70,7 +71,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const fallback = buildWeekFallback(serializeChartForPrompt(ctx.profile, ctx.chartData!));
     // Week cache anyway expires at end of week, so we just keep the original validTo
     try {
-      const saved = await saveReading(ctx, cacheOpts, fallback);
+      const saved = await saveReading(ctx, {
+        ...cacheOpts,
+        history: {
+          source: 'deterministic_fallback',
+          generationAttempts: 0,
+          period: 'week',
+          periodKey: cacheKey,
+        },
+      }, fallback);
       return res.status(200).json({ interpretation: saved, source: 'fallback' });
     } catch {
       return res.status(200).json({

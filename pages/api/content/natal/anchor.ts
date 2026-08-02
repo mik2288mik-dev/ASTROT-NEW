@@ -15,13 +15,14 @@ import {
   NATAL_ANCHOR_PROMPT_VERSION,
 } from '../../../../lib/natalReadings';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
     id: user.id,
     name: fallback?.name || user.name || '',
     birthDate: fallback?.birthDate || user.birth_date || '',
-    birthTime: fallback?.birthTime || user.birth_time || '12:00',
+    birthTime: fallback?.birthTime ?? user.birth_time ?? '',
     birthPlace: fallback?.birthPlace || user.birth_place || '',
     isSetup: user.is_setup ?? true,
     language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
@@ -183,14 +184,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
     generate: async () => {
       const reading = await generateNatalAnchorReading(context.profile, chartData);
-      const { modelTier } = await getOpenAIModelForContent({
+      const { model, modelTier } = await getOpenAIModelForContent({
         accessTier: 'free',
         contentSurface: 'natal',
         contentVariant: 'anchor',
       });
 
-      return context.chartId != null
-        ? await db.content_interpretations.upsertByChart(context.chartId, {
+      if (context.chartId == null) {
+        return db.content_interpretations.upsertByUser(userId.trim(), {
+          accessTier: 'free',
+          contentSurface: 'natal',
+          contentVariant: 'anchor',
+          cacheKey: NATAL_ANCHOR_CACHE_KEY,
+          inputHash: NATAL_ANCHOR_CACHE_KEY,
+          content: reading,
+          modelTier,
+          promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+          calculationVersion: chartData.calculationVersion || null,
+          isPersistent: true,
+          legacySource: 'natal_content_unified_v4',
+        });
+      }
+
+      const saved = await db.content_interpretations.upsertByChart(context.chartId, {
             accessTier: 'free',
             contentSurface: 'natal',
             contentVariant: 'anchor',
@@ -202,20 +218,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             calculationVersion: chartData.calculationVersion || null,
             isPersistent: true,
             legacySource: 'natal_content_unified_v4',
-          }, userId.trim())
-        : await db.content_interpretations.upsertByUser(userId.trim(), {
-            accessTier: 'free',
-            contentSurface: 'natal',
-            contentVariant: 'anchor',
-            cacheKey: NATAL_ANCHOR_CACHE_KEY,
-            inputHash: NATAL_ANCHOR_CACHE_KEY,
-            content: reading,
-            modelTier,
-            promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
-            calculationVersion: chartData.calculationVersion || null,
-            isPersistent: true,
-            legacySource: 'natal_content_unified_v4',
-          });
+          }, userId.trim());
+      await persistNatalReadingHistory({
+        userId: userId.trim(),
+        chartId: context.chartId,
+        chart: chartData,
+        rawBirthTime: context.profile.birthTime,
+        language: context.profile.language === 'en' ? 'en' : 'ru',
+        accessTier: 'free',
+        contentVariant: 'anchor',
+        cacheKey: NATAL_ANCHOR_CACHE_KEY,
+        inputHash: NATAL_ANCHOR_CACHE_KEY,
+        promptVersion: NATAL_ANCHOR_PROMPT_VERSION,
+        content: reading,
+        generation: { modelId: model },
+      }).catch((error) => {
+        console.error('[natal/history] anchor history append failed:', error);
+      });
+      return saved;
     },
   });
 

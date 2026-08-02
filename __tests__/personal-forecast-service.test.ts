@@ -4,7 +4,6 @@ jest.mock('../services/apiClient', () => ({
 
 import { apiFetch } from '../services/apiClient';
 import {
-  FORECAST_WISHES_TITLES,
   slicePersonalForecastForAccess,
 } from '../lib/personalForecastContract';
 import {
@@ -63,11 +62,7 @@ function weeklyForecastFixture() {
     periodKey: '2026-W30',
     periodStart: '2026-07-20',
     periodEnd: '2026-07-26',
-    sections: fixture.sections.map((section) => (
-      section.id === 'wishes'
-        ? { ...section, title: FORECAST_WISHES_TITLES.en.week }
-        : section
-    )),
+    sections: fixture.sections,
     meta: {
       ...fixture.meta,
       freeSelection: {
@@ -125,7 +120,7 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     })).resolves.toMatchObject({ source: expect.stringMatching(/local|cache/) });
     expect(mockedApiFetch).not.toHaveBeenCalled();
     expect([...storage.keys()]).toEqual([
-      expect.stringMatching(/^tvoi-goroskop:personal-forecast-feed-v3:/),
+      expect.stringMatching(/^tvoi-goroskop:personal-forecast-feed-v4:/),
     ]);
   });
 
@@ -187,7 +182,7 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     expect(mockedApiFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('accepts a valid Free V3 slice and keeps its section lock metadata', async () => {
+  it('accepts a valid Free V4 slice and keeps its section lock metadata', async () => {
     const sliced = slicePersonalForecastForAccess(personalForecastFixture(), false);
     mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
       forecast: sliced.forecast,
@@ -205,15 +200,13 @@ describe('personal forecast stale-while-revalidate client cache', () => {
       options: { cacheOnly: true },
     })).resolves.toMatchObject({
       lockedSectionIds: expect.arrayContaining([
-        'home_family',
-        'work_money',
-        'dynamic:business',
+        'semantic:workload',
       ]),
       periodLocked: false,
       forecast: {
         overview: { text: personalForecastFixture().overview.text },
         sections: expect.arrayContaining([
-          expect.objectContaining({ id: 'work_money', text: '' }),
+          expect.objectContaining({ id: 'semantic:workload', text: '' }),
         ]),
       },
     });
@@ -231,6 +224,37 @@ describe('personal forecast stale-while-revalidate client cache', () => {
       forecast: {
         ...personalForecastFixture(),
         overview: { card: 'legacy V2 content' },
+      },
+      accessTier: 'premium',
+      lockedSectionIds: [],
+      periodLocked: false,
+      source: 'cache',
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await expect(loadPersonalForecast({
+      ...request,
+      options: { cacheOnly: true },
+    })).rejects.toMatchObject({
+      code: 'PERSONAL_FORECAST_RESPONSE_INVALID',
+    });
+    expect(readLocalPersonalForecast(request)).toBeNull();
+    expect(storage.size).toBe(0);
+  });
+
+  it('rejects a structurally complete V3 package from the server cache', async () => {
+    const legacy = personalForecastFixture();
+    mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      forecast: {
+        ...legacy,
+        meta: {
+          ...legacy.meta,
+          calculationVersion: 'personal-forecast-evidence-v3',
+          semanticVersion: 'legacy-topic-routing',
+          contractVersion: 'personal-forecast-feed-v3',
+        },
       },
       accessTier: 'premium',
       lockedSectionIds: [],

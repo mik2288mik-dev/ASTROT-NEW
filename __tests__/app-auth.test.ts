@@ -67,7 +67,10 @@ describe('app auth providers and API security', () => {
     expect(me).not.toContain('req.query.userId');
     expect(me).not.toContain('req.body?.userId');
     for (const file of ['pages/api/charts/index.ts', 'pages/api/charts/[id].ts', 'pages/api/charts/chart/[chartId].ts', 'pages/api/charts/set-primary.ts']) expect(read(file)).toContain('requireAppUser');
-    expect(read('pages/api/charts/chart/[chartId].ts')).toContain('Chart does not belong to user');
+    const chartById = read('pages/api/charts/chart/[chartId].ts');
+    expect(chartById).toContain('String(chart.user_id) !== userId');
+    expect(chartById).toContain("return res.status(404).json({ error: 'Chart not found' });");
+    expect(read('pages/api/charts/index.ts')).not.toContain('expectedUserId: userId');
     expect(read('lib/natalReading/apiHelper.ts')).toContain('String(chart.user_id) === String(userId)');
     expect(read('lib/dailyAstroSignalResolver.ts')).not.toContain('chartDataFallback || primaryChart?.chart_data');
   });

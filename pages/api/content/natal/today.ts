@@ -39,6 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptVersion: NATAL_READING_TODAY_PROMPT,
     isPersistent: false,
     validTo,
+    history: { period: 'day', periodKey: cacheKey },
   };
 
   const cached = await getCachedReading<NatalReadingToday>(ctx, cacheOpts);
@@ -66,7 +67,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const fallback = buildTodayFallback(serializeChartForPrompt(ctx.profile, ctx.chartData!));
     // Today cache anyway expires at end of day
     try {
-      const saved = await saveReading(ctx, cacheOpts, fallback);
+      const saved = await saveReading(ctx, {
+        ...cacheOpts,
+        history: {
+          source: 'deterministic_fallback',
+          generationAttempts: 0,
+          period: 'day',
+          periodKey: cacheKey,
+        },
+      }, fallback);
       return res.status(200).json({ interpretation: saved, source: 'fallback' });
     } catch {
       return res.status(200).json({

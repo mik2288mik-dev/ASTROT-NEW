@@ -40,15 +40,30 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
   const [mode, setMode] = useState<'signs' | 'personal'>(initialPrefill ? 'personal' : (initialMode ?? 'signs'));
   const [signA, setSignA] = useState('aries'); const [signB, setSignB] = useState('libra');
   const [signResult, setSignResult] = useState<SignCompatibilityResult | null>(null);
-  const [savedCharts, setSavedCharts] = useState<ChartListItem[]>([]); const [partnerChartId, setPartnerChartId] = useState<number | null>(null);
+  const [savedCharts, setSavedCharts] = useState<ChartListItem[]>([]); const [chartsLoaded, setChartsLoaded] = useState(false); const [partnerChartId, setPartnerChartId] = useState<number | null>(null);
   const [partnerName, setPartnerName] = useState(''); const [partnerDate, setPartnerDate] = useState(''); const [partnerTime, setPartnerTime] = useState(''); const [partnerPlace, setPartnerPlace] = useState('');
   const [result, setResult] = useState<SynastryResult | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { if (!profile.id) return; void getCharts(profile.id).then((data) => setSavedCharts(data.charts || [])).catch(() => setSavedCharts([])); }, [profile.id]);
-  const partners = useMemo(() => savedCharts.filter((chart) => !chart.is_primary), [savedCharts]);
+  useEffect(() => {
+    if (!profile.id) return;
+    setChartsLoaded(false);
+    void getCharts(profile.id)
+      .then((data) => setSavedCharts(data.charts || []))
+      .catch(() => setSavedCharts([]))
+      .finally(() => setChartsLoaded(true));
+  }, [profile.id]);
+  const partners = useMemo(() => savedCharts.filter((chart) => (
+    chart.subject_type === 'saved_person'
+    && !chart.archived_at
+    && !chart.access_locked
+  )), [savedCharts]);
   useEffect(() => {
     if (!initialPrefill) return; setMode('personal'); setPartnerChartId(initialPrefill.partnerChartId || null); setPartnerName(initialPrefill.partnerName || ''); setPartnerDate(toDateInputValue(initialPrefill.partnerDate || '')); setPartnerTime(initialPrefill.partnerTime || ''); setPartnerPlace(initialPrefill.partnerPlace || '');
   }, [initialPrefill]);
+  useEffect(() => {
+    if (!chartsLoaded || partnerChartId == null) return;
+    if (!partners.some((item) => item.id === partnerChartId)) setPartnerChartId(null);
+  }, [chartsLoaded, partnerChartId, partners]);
   useEffect(() => { const chart = partners.find((item) => item.id === partnerChartId); if (!chart) return; setPartnerName(chart.name); setPartnerDate(toDateInputValue(chart.birth_date)); setPartnerTime(chart.birth_time || ''); setPartnerPlace(chart.birth_place || ''); }, [partnerChartId, partners]);
 
   async function runSigns() { setLoading(true); setError(null); try { setSignResult(await getSignCompatibility(signA, signB, language)); } catch { setError(ru ? 'Не удалось загрузить разбор. Попробуй ещё раз.' : 'Could not load the reading. Try again.'); } finally { setLoading(false); } }
@@ -149,20 +164,20 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
           <div className="union-form">
             <div>
               <label className="fresh-field-label">{ru ? 'Имя' : 'Name'}</label>
-              <input className="fresh-input" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} placeholder={ru ? 'Имя человека' : 'Person name'} />
+              <input className="fresh-input" value={partnerName} readOnly={partnerChartId != null} onChange={(e) => setPartnerName(e.target.value)} placeholder={ru ? 'Имя человека' : 'Person name'} />
             </div>
             <div>
               <label className="fresh-field-label">{ru ? 'Дата рождения' : 'Birth date'}</label>
-              <input className="fresh-input" type="date" value={partnerDate} onChange={(e) => setPartnerDate(e.target.value)} />
+              <input className="fresh-input" type="date" value={partnerDate} readOnly={partnerChartId != null} onChange={(e) => setPartnerDate(e.target.value)} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div>
                 <label className="fresh-field-label">{ru ? 'Время' : 'Time'}</label>
-                <input className="fresh-input" type="time" value={partnerTime} onChange={(e) => setPartnerTime(e.target.value)} />
+                <input className="fresh-input" type="time" value={partnerTime} readOnly={partnerChartId != null} onChange={(e) => setPartnerTime(e.target.value)} />
               </div>
               <div>
                 <label className="fresh-field-label">{ru ? 'Место' : 'Place'}</label>
-                <input className="fresh-input" value={partnerPlace} onChange={(e) => setPartnerPlace(e.target.value)} placeholder={ru ? 'Город' : 'City'} />
+                <input className="fresh-input" value={partnerPlace} readOnly={partnerChartId != null} onChange={(e) => setPartnerPlace(e.target.value)} placeholder={ru ? 'Город' : 'City'} />
               </div>
             </div>
             {accuracy ? <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--fresh-muted)' }}>{accuracy}</p> : null}

@@ -16,13 +16,14 @@ import {
   NATAL_LIVING_PROMPT_VERSION,
 } from '../../../../lib/natalReadings';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
     id: user.id,
     name: fallback?.name || user.name || '',
     birthDate: fallback?.birthDate || user.birth_date || '',
-    birthTime: fallback?.birthTime || user.birth_time || '12:00',
+    birthTime: fallback?.birthTime ?? user.birth_time ?? '',
     birthPlace: fallback?.birthPlace || user.birth_place || '',
     isSetup: user.is_setup ?? true,
     language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
@@ -220,15 +221,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
     generate: async () => {
       const reading = await generateNatalLivingReading(context.profile, chartData, periodKey);
-      const { modelTier } = await getOpenAIModelForContent({
+      const { model, modelTier } = await getOpenAIModelForContent({
         accessTier: 'premium',
         contentSurface: 'natal',
         contentVariant: 'living',
       });
       const periodWindow = getMoscowPeriodWindow(periodKey);
 
-      return context.chartId != null
-        ? await db.content_interpretations.upsertByChart(context.chartId, {
+      if (context.chartId == null) {
+        return db.content_interpretations.upsertByUser(userId.trim(), {
+          accessTier: 'premium',
+          contentSurface: 'natal',
+          contentVariant: 'living',
+          cacheKey,
+          inputHash: cacheKey,
+          content: reading,
+          modelTier,
+          promptVersion: NATAL_LIVING_PROMPT_VERSION,
+          calculationVersion: chartData.calculationVersion || null,
+          validFrom: periodWindow.validFrom,
+          validTo: periodWindow.validTo,
+          isPersistent: false,
+          legacySource: 'natal_content_unified_v3',
+        });
+      }
+
+      const saved = await db.content_interpretations.upsertByChart(context.chartId, {
             accessTier: 'premium',
             contentSurface: 'natal',
             contentVariant: 'living',
@@ -242,22 +260,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             validTo: periodWindow.validTo,
             isPersistent: false,
             legacySource: 'natal_content_unified_v3',
-          }, userId.trim())
-        : await db.content_interpretations.upsertByUser(userId.trim(), {
-            accessTier: 'premium',
-            contentSurface: 'natal',
-            contentVariant: 'living',
-            cacheKey,
-            inputHash: cacheKey,
-            content: reading,
-            modelTier,
-            promptVersion: NATAL_LIVING_PROMPT_VERSION,
-            calculationVersion: chartData.calculationVersion || null,
-            validFrom: periodWindow.validFrom,
-            validTo: periodWindow.validTo,
-            isPersistent: false,
-            legacySource: 'natal_content_unified_v3',
-          });
+          }, userId.trim());
+      await persistNatalReadingHistory({
+        userId: userId.trim(),
+        chartId: context.chartId,
+        chart: chartData,
+        rawBirthTime: context.profile.birthTime,
+        language: context.profile.language === 'en' ? 'en' : 'ru',
+        accessTier: 'premium',
+        contentVariant: 'living',
+        cacheKey,
+        inputHash: cacheKey,
+        promptVersion: NATAL_LIVING_PROMPT_VERSION,
+        content: reading,
+        generation: {
+          modelId: model,
+          period: 'day',
+          periodKey,
+        },
+      }).catch((error) => {
+        console.error('[natal/history] living history append failed:', error);
+      });
+      return saved;
     },
   });
 

@@ -889,7 +889,6 @@ export const calculateExtendedSynastry = async (
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
     body: JSON.stringify({
-      profile,
       partnerName,
       partnerDate,
       partnerTime,

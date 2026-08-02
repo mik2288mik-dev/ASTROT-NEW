@@ -10,6 +10,8 @@ const mockCompleteAnswer = jest.fn();
 const mockGetCachedForecast = jest.fn();
 const mockGenerateAnswer = jest.fn();
 const mockClaimGeneration = jest.fn();
+const mockPrepareQuestionHistory = jest.fn();
+const mockAppendAnswerHistory = jest.fn();
 
 jest.mock('../lib/db', () => ({
   getPool: jest.fn(),
@@ -29,7 +31,11 @@ jest.mock('../lib/personalForecastCache', () => ({
 }));
 jest.mock('../lib/personalForecastQuestionGeneration', () => ({
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION:
-    'personal-forecast-question.v4.concise-answer+voice.3',
+    'personal-forecast-question.v5.semantic-writer+voice.3',
+  preparePersonalForecastQuestionHistory: (...args: unknown[]) =>
+    mockPrepareQuestionHistory(...args),
+  appendPersonalForecastQuestionAnswerHistory: (...args: unknown[]) =>
+    mockAppendAnswerHistory(...args),
   generatePersonalForecastQuestionAnswer: (...args: unknown[]) =>
     mockGenerateAnswer(...args),
 }));
@@ -93,7 +99,7 @@ function questionRow(
     answerText: null,
     answerMeta: null,
     modelId: null,
-    promptVersion: 'personal-forecast-question.v4.concise-answer+voice.3',
+    promptVersion: 'personal-forecast-question.v5.semantic-writer+voice.3',
     voiceVersion: '3',
     generationStartedAt: null,
     answeredAt: null,
@@ -150,6 +156,8 @@ const usage = {
 
 describe('personal forecast questions API', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-07-27T12:00:00.000Z'));
     jest.clearAllMocks();
     mockEnsureValidContext.mockResolvedValue(context());
     mockResolveReadingContext.mockResolvedValue(context().ctx);
@@ -168,6 +176,23 @@ describe('personal forecast questions API', () => {
       cacheKey: 'forecast-cache-v1',
       inputHash: 'forecast-input-v1',
     });
+    mockPrepareQuestionHistory.mockResolvedValue({
+      threadId: 901,
+      historyContext: {
+        calculations: [],
+        explicitFacts: [],
+        userMessages: [],
+        artifactContinuity: [],
+      },
+    });
+    mockAppendAnswerHistory.mockResolvedValue({
+      threadId: 901,
+      generatedArtifactId: 902,
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('parses only the documented periods and actions', () => {
@@ -271,7 +296,7 @@ describe('personal forecast questions API', () => {
         chartFingerprint: buildPersonalForecastChartFingerprint(chartFixture),
         forecastInputHash: 'forecast-input-v1',
         language: 'ru',
-        promptVersion: 'personal-forecast-question.v4.concise-answer+voice.3',
+        promptVersion: 'personal-forecast-question.v5.semantic-writer+voice.3',
         voiceVersion: '3',
       }),
     }));
@@ -279,7 +304,7 @@ describe('personal forecast questions API', () => {
       identity: expect.objectContaining({
         chartFingerprint: buildPersonalForecastChartFingerprint(chartFixture),
         language: 'ru',
-        promptVersion: 'personal-forecast-question.v4.concise-answer+voice.3',
+        promptVersion: 'personal-forecast-question.v5.semantic-writer+voice.3',
         voiceVersion: '3',
       }),
     }));
@@ -409,10 +434,17 @@ describe('personal forecast questions API', () => {
     });
     mockGenerateAnswer.mockResolvedValue({
       answer: answered.answerText,
+      semanticFactIds: ['fact:communication'],
       evidenceIds: ['e1'],
+      atomIds: ['details_require_review'],
+      domainKeys: ['communication_decisions'],
+      personalizationFactKeys: [],
+      userMessageIds: [],
+      semanticFingerprints: ['semantic:communication'],
       model: 'gpt-4.1',
       promptVersion: generating.promptVersion,
       voiceVersion: '3',
+      generationAttempts: 1,
       generatedAt: answered.answeredAt,
     });
     mockCompleteAnswer.mockResolvedValue(answered);
@@ -436,6 +468,16 @@ describe('personal forecast questions API', () => {
     await handler(req, res);
 
     expect(mockGenerateAnswer).toHaveBeenCalledTimes(1);
+    expect(mockPrepareQuestionHistory).toHaveBeenCalledWith(expect.objectContaining({
+      userId: '1001',
+      chartId: 7,
+      questionRecordId: generating.id,
+    }));
+    expect(mockAppendAnswerHistory).toHaveBeenCalledWith(expect.objectContaining({
+      userId: '1001',
+      chartId: 7,
+      questionRecordId: generating.id,
+    }));
     expect(mockCompleteAnswer).toHaveBeenCalledWith(expect.objectContaining({
       id: generating.id,
       notificationUnread: false,
@@ -474,10 +516,17 @@ describe('personal forecast questions API', () => {
     mockClaimGeneration.mockResolvedValue(generating);
     mockGenerateAnswer.mockResolvedValue({
       answer: answered.answerText,
+      semanticFactIds: ['fact:communication'],
       evidenceIds: ['e1'],
+      atomIds: ['details_require_review'],
+      domainKeys: ['communication_decisions'],
+      personalizationFactKeys: [],
+      userMessageIds: [],
+      semanticFingerprints: ['semantic:communication'],
       model: 'gpt-4.1',
       promptVersion: generating.promptVersion,
       voiceVersion: generating.voiceVersion,
+      generationAttempts: 1,
       generatedAt: answered.answeredAt,
     });
     mockCompleteAnswer.mockResolvedValue(answered);

@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 
 const ROOT = path.resolve(__dirname, '..');
-const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+const read = (file: string) => fs
+  .readFileSync(path.join(ROOT, file), 'utf8')
+  .replace(/\r\n/g, '\n');
 
 describe('explicit authentication flow contracts', () => {
   it('keeps logout and deletion on an explicit AuthGate across reloads', () => {

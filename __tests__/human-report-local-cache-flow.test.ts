@@ -37,7 +37,7 @@ describe('human report local-cache flow', () => {
     expect(app).toContain('writeLocalHumanBaseReport(targetProfile, report, chartId)');
     expect(app).toContain('writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId)');
     expect(app).toContain('clearLocalHumanBaseReport(fullProfile, primaryChartId)');
-    expect(charts).toContain('clearLocalHumanBaseReport(profile, chart.is_primary ? undefined : chart.id)');
+    expect(charts).toContain('clearLocalHumanBaseReport(profile, chart.id)');
   });
 
   it('shows the chart summary immediately while the human-base API is slow', () => {

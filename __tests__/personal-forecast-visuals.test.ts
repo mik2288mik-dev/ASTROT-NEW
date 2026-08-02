@@ -80,6 +80,20 @@ describe('personal forecast editorial visual resolver', () => {
     expect(second).toEqual(first);
   });
 
+  it('selects the overview sticker from the compiled semantic topic', () => {
+    const semanticFeed: ForecastVisualFeedInput = {
+      ...feed('2026-08-02'),
+      overview: section('overview', 'overview', 'communication_decisions'),
+    };
+    const resolved = resolvePersonalForecastVisuals({ userId, forecast: semanticFeed });
+    const asset = (mainManifest.items as Array<{
+      path: string;
+      topics: string[];
+    }>).find((item) => item.path === resolved.assignments.overview.path);
+
+    expect(asset?.topics).toContain('communication');
+  });
+
   it('uses a soft background treatment and keeps a safe fallback', () => {
     const resolved = resolvePersonalForecastVisuals({ userId, forecast: feed() });
     const assignment = getForecastVisualAssignment(resolved, 'overview');

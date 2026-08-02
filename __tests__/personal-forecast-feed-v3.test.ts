@@ -5,7 +5,7 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const exists = (file: string) => fs.existsSync(path.join(ROOT, file));
 
-describe('personal forecast feed V3 wiring', () => {
+describe('personal forecast feed V4 semantic wiring', () => {
   it('Dashboard uses one continuous personal contract for all periods and no Zodiac forecasts', () => {
     const dashboard = read('views/Dashboard.tsx');
     const contract = read('lib/personalForecastContract.ts');
@@ -14,8 +14,10 @@ describe('personal forecast feed V3 wiring', () => {
     expect(dashboard).toContain('loadPersonalForecast');
     expect(dashboard).toContain('readLocalPersonalForecast');
     expect(dashboard).toContain('forecast.overview');
-    expect(dashboard).toContain('forecast.sections.map');
-    expect(contract).toContain('FIXED_FORECAST_SECTION_KEYS');
+    expect(dashboard).toContain('readySections.map');
+    expect(contract).toContain('PERSONAL_FORECAST_SEMANTICS_VERSION');
+    expect(contract).toContain("section.id.startsWith('semantic:')");
+    expect(contract).not.toContain('selectPersonalForecastDynamicTopics');
     expect(dashboard).not.toMatch(/DailyCanvas|periodExtras|ensurePeriodExtras/);
     expect(dashboard).not.toMatch(/SignHoroscope|selectedSign|sunSignFromDate/);
   });
@@ -37,7 +39,13 @@ describe('personal forecast feed V3 wiring', () => {
     expect(dashboard).toContain("renderPromo(slot.placements[0], 'wide')");
     expect(dashboard).toContain('resolvePersonalForecastVisuals');
     expect(dashboard).toContain('evidence={forecast.evidence}');
-    expect(sectionBlock).toContain('expandedAnchor.evidenceIds.map');
+    expect(dashboard).toContain(
+      "forecast.sections.filter((section) => section.status === 'ready')",
+    );
+    expect(sectionBlock).toContain("if (section.status !== 'ready') return null");
+    expect(sectionBlock).toContain('activeAnchor.evidenceIds.map');
+    expect(sectionBlock).toContain('<strong>{item.factor}</strong>');
+    expect(sectionBlock).toContain('<span>{item.meaning}</span>');
     expect(dashboard).not.toMatch(/home-day-hero|home-sphere-card|pd-reading-card/);
     expect(dashboard).not.toContain('Показать расчёт');
   });
@@ -82,14 +90,17 @@ describe('personal forecast feed V3 wiring', () => {
     expect(topicNavigation).not.toContain('scrollIntoView');
     expect(sectionBlock).toContain("day: 'Личный гороскоп на сегодня'");
     expect(sectionBlock).not.toContain('overviewAnchor');
-    expect(sectionBlock).not.toContain('forecast-feed-info-icon');
+    expect(sectionBlock).toContain('<ForecastBottomSheet');
     expect(sectionBlock).toContain('forecast-feed-inline-explanation-toggle');
-    expect(sectionBlock).toContain('buildEditorialParagraphs');
-    expect(sectionBlock).toContain("data-editorial-role={paragraphIndex === 0");
+    expect(sectionBlock).toContain('section.contentBlocks.map((block)');
+    expect(sectionBlock).toContain('block.explanationAnchorId');
+    expect(sectionBlock).toContain('data-editorial-role={block.role}');
+    expect(sectionBlock).not.toContain('buildEditorialParagraphs');
+    expect(sectionBlock).not.toContain('splitForecastSentences');
     expect(feedStyles).toContain('.forecast-feed-section-text.is-lead');
     expect(feedStyles).toContain('.forecast-feed-section-text.is-takeaway');
     expect(sectionBlock).toContain('aria-expanded=');
-    expect(sectionBlock).toContain('<ChevronDown');
+    expect(sectionBlock).toContain('<Info');
     expect(feedStyles).toContain('justify-content: flex-start');
     expect(feedStyles).toContain('scroll-padding-inline: 18px');
     expect(feedStyles).toContain('text-align: center');
@@ -102,6 +113,10 @@ describe('personal forecast feed V3 wiring', () => {
     );
     expect(dashboard).toContain('className="forecast-feed-date-zone"');
     expect(dashboard).toContain('className="forecast-feed-global-info"');
+    expect(dashboard).toContain(
+      'Значок i рядом с ним открывает рассчитанный фактор и его смысл.',
+    );
+    expect(dashboard).not.toContain('Стрелка рядом с выводом');
     expect(dashboard).toContain('const retained = options?.retry ? null');
     expect(feedStyles).toContain('.forecast-feed-page .home-period-tabs');
     expect(feedStyles).toContain('margin-top: 0');

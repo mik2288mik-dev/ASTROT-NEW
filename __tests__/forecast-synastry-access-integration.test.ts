@@ -1,0 +1,121 @@
+import fs from 'fs';
+import path from 'path';
+
+const mockApiFetch = jest.fn();
+
+jest.mock('../services/apiClient', () => ({
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+}));
+jest.mock('../services/sessionService', () => ({
+  getTelegramInitDataHeaders: () => ({ 'X-Telegram-Init-Data': 'signed' }),
+}));
+jest.mock('../lib/localNatalChartCache', () => ({
+  writeLocalNatalChart: jest.fn(),
+}));
+
+import { getChartFromDB, getPrimaryChartId } from '../services/chartService';
+
+const ROOT = path.resolve(__dirname, '..');
+const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+function chartData(sign: string) {
+  return {
+    sun: { sign },
+    moon: { sign },
+    rising: { sign },
+  };
+}
+
+describe('forecast and synastry chart access integration', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('loads only the session-owned self chart without putting a user id in the request URL', async () => {
+    const savedPerson = {
+      id: 20,
+      subject_type: 'saved_person',
+      is_primary: false,
+      chart_data: chartData('Libra'),
+    };
+    const self = {
+      id: 10,
+      subject_type: 'self',
+      is_primary: true,
+      chart_data: chartData('Aries'),
+    };
+    mockApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ charts: [savedPerson, self] }),
+    });
+
+    await expect(getPrimaryChartId('1001')).resolves.toBe(10);
+    await expect(getChartFromDB('1001')).resolves.toMatchObject({
+      sun: { sign: 'Aries' },
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledTimes(2);
+    for (const [url, options] of mockApiFetch.mock.calls) {
+      expect(url).toBe('/api/charts');
+      expect(String(url)).not.toContain('1001');
+      expect(options).toMatchObject({
+        method: 'GET',
+        credentials: 'include',
+      });
+    }
+  });
+
+  it('requires the authenticated self chart for personal forecasts', () => {
+    const route = read('pages/api/content/forecast/personal.ts');
+    expect(route).toContain('ensureValidContext(req, res, { requireSelfChart: true })');
+    expect(route).not.toContain('expectedUserId');
+
+    const service = read('services/personalForecastService.ts');
+    const buildUrlStart = service.indexOf('function buildUrl');
+    const parseErrorStart = service.indexOf('async function parseError', buildUrlStart);
+    const buildUrl = service.slice(buildUrlStart, parseErrorStart);
+    expect(buildUrl).not.toContain('userId:');
+    expect(buildUrl).not.toContain("params.set('userId'");
+
+    const generateStart = service.indexOf('async function generate');
+    const loadStart = service.indexOf('export async function loadPersonalForecast', generateStart);
+    const generate = service.slice(generateStart, loadStart);
+    expect(generate).not.toContain('userId:');
+  });
+
+  it('derives synastry identity from the session and validates the saved person on the server', () => {
+    const route = read('pages/api/content/synastry/extended.ts');
+    expect(route).toContain('auth = await requireAppUser(req)');
+    expect(route).not.toContain('claimedUserId');
+    expect(route).not.toContain('expectedUserId');
+    expect(route).toContain('String(partnerChartRecord.user_id) !== userId');
+    expect(route).toContain('assertChartReadable(partnerChartRecord, isPremium)');
+    expect(route).toContain('!isSelfChart(primaryChartRecord)');
+    expect(route).toContain('partnerChartRecord?.birth_date || partnerDate');
+
+    const service = read('services/astrologyService.ts');
+    const start = service.indexOf('export const calculateExtendedSynastry');
+    const end = service.indexOf('export const updateUserEvolution', start);
+    const request = service.slice(start, end);
+    expect(request).not.toContain('userId:');
+    expect(request).not.toContain('profile,\n');
+    expect(request).toContain('partnerChartId');
+  });
+
+  it('does not offer self, archived, or locked people in the synastry selector', () => {
+    const view = read('views/Synastry.tsx');
+    expect(view).toContain("chart.subject_type === 'saved_person'");
+    expect(view).toContain('!chart.archived_at');
+    expect(view).toContain('!chart.access_locked');
+    expect(view).toContain('readOnly={partnerChartId != null}');
+
+    const unionRoom = read('views/v2/UnionRoom.tsx');
+    expect(unionRoom).toContain("chart.subject_type === 'saved_person'");
+    expect(unionRoom).toContain('!chart.archived_at');
+    expect(unionRoom).toContain('!chart.access_locked');
+    expect(unionRoom).toContain("selected?.kind !== 'person'");
+    expect(unionRoom).toContain('setSelected(null)');
+    expect(unionRoom).toContain("setScreen('hub')");
+  });
+});

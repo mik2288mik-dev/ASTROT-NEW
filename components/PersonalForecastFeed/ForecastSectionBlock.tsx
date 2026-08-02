@@ -1,19 +1,14 @@
-import React, {
-  Fragment,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useState, type CSSProperties, type ReactNode } from 'react';
+import { Info } from 'lucide-react';
 import type {
   ForecastEvidenceView,
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
+import { ForecastBottomSheet } from './ForecastBottomSheet';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
-  sectionNumber: number;
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
@@ -44,174 +39,49 @@ function overviewTitle(
   }[period];
 }
 
-function splitForecastSentences(value: string): string[] {
-  return value
-    .match(/[^.!?…]+(?:[.!?…]+|$)/gu)
-    ?.map((sentence) => sentence.trim())
-    .filter(Boolean) || [];
-}
-
-function buildEditorialParagraphs(text: string): string[] {
-  const explicitParagraphs = text
-    .split(/\n{2,}/u)
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  if (explicitParagraphs.length > 1) {
-    const openingSentences = splitForecastSentences(explicitParagraphs[0]);
-    if (openingSentences.length > 1) {
-      return [
-        openingSentences[0],
-        openingSentences.slice(1).join(' '),
-        ...explicitParagraphs.slice(1),
-      ];
-    }
-    return explicitParagraphs;
-  }
-
-  const sentences = splitForecastSentences(text);
-  if (sentences.length <= 1) return explicitParagraphs;
-
-  return [
-    sentences[0],
-    ...sentences.slice(1).reduce<string[]>((groups, sentence, index) => {
-      const groupIndex = Math.floor(index / 2);
-      groups[groupIndex] = groups[groupIndex]
-        ? `${groups[groupIndex]} ${sentence}`
-        : sentence;
-      return groups;
-    }, []),
-  ];
-}
-
-function renderTextWithAnchors(
+function renderContentBlocks(
   section: ForecastSection,
-  evidence: ForecastSectionBlockProps['evidence'],
-  expandedAnchorId: string | null,
-  onToggleExplanation: (anchorId: string) => void,
+  activeAnchorId: string | null,
+  onOpenExplanation: (anchorId: string) => void,
   language: 'ru' | 'en',
 ): ReactNode {
-  const text = section.text.trim();
-  if (!text) return null;
-
-  const paragraphs = buildEditorialParagraphs(text);
-  const locatedAnchorIds = new Set(
-    section.explanationAnchors
-      .filter((anchor) => paragraphs.some((paragraph) => paragraph.includes(anchor.conclusion)))
-      .map((anchor) => anchor.id),
-  );
-  const fallbackAnchor = section.explanationAnchors.find(
-    (anchor) => !locatedAnchorIds.has(anchor.id),
-  );
-
   return (
     <div className="forecast-feed-section-copy">
-      {paragraphs.map((paragraph, paragraphIndex) => {
-        const located = section.explanationAnchors
-          .map((anchor) => ({
-            anchor,
-            index: paragraph.indexOf(anchor.conclusion),
-          }))
-          .filter((entry) => entry.index >= 0)
-          .sort((left, right) => left.index - right.index);
-        const paragraphFallback = !locatedAnchorIds.size && paragraphIndex === 0
-          ? fallbackAnchor
+      {section.contentBlocks.map((block) => {
+        const explanationAnchor = block.explanationAnchorId
+          ? section.explanationAnchors.find(
+              (anchor) => anchor.id === block.explanationAnchorId,
+            )
           : null;
-        const paragraphAnchors = [
-          ...located.map(({ anchor }) => anchor),
-          ...(paragraphFallback ? [paragraphFallback] : []),
-        ];
-        const expandedAnchor = paragraphAnchors.find(
-          (anchor) => anchor.id === expandedAnchorId,
-        );
-        const parts: ReactNode[] = [];
-        let cursor = 0;
-        for (const { anchor, index } of located) {
-          if (index < cursor) continue;
-          if (index > cursor) parts.push(paragraph.slice(cursor, index));
-          parts.push(
-            <Fragment key={anchor.id}>
-              {anchor.conclusion}
+        return (
+          <p
+            key={block.id}
+            className={[
+              'forecast-feed-section-text',
+              block.role === 'lead' ? 'is-lead' : 'is-body',
+              block.role === 'action' ? 'is-takeaway' : '',
+            ].filter(Boolean).join(' ')}
+            data-editorial-role={block.role}
+          >
+            {block.text}
+            {explanationAnchor ? (
               <button
                 type="button"
                 className={[
                   'forecast-feed-inline-explanation-toggle',
-                  expandedAnchorId === anchor.id ? 'is-expanded' : '',
+                  activeAnchorId === explanationAnchor.id ? 'is-expanded' : '',
                 ].filter(Boolean).join(' ')}
                 aria-label={language === 'ru'
-                  ? `${expandedAnchorId === anchor.id ? 'Скрыть' : 'Показать'} объяснение вывода`
-                  : `${expandedAnchorId === anchor.id ? 'Hide' : 'Show'} the explanation`}
-                aria-expanded={expandedAnchorId === anchor.id}
-                aria-controls={`forecast-explanation-${section.id}-${anchor.id}`}
-                onClick={() => onToggleExplanation(anchor.id)}
+                  ? 'Показать, на чём основан вывод'
+                  : 'Show what this conclusion is based on'}
+                aria-haspopup="dialog"
+                aria-expanded={activeAnchorId === explanationAnchor.id}
+                onClick={() => onOpenExplanation(explanationAnchor.id)}
               >
-                <ChevronDown size={15} strokeWidth={1.9} aria-hidden />
+                <Info size={15} strokeWidth={1.9} aria-hidden />
               </button>
-            </Fragment>,
-          );
-          cursor = index + anchor.conclusion.length;
-        }
-        if (cursor < paragraph.length) parts.push(paragraph.slice(cursor));
-
-        return (
-          <Fragment key={`${section.id}:${paragraphIndex}`}>
-            <p
-              className={[
-                'forecast-feed-section-text',
-                paragraphIndex === 0 ? 'is-lead' : 'is-body',
-                paragraphIndex > 0 && paragraphIndex === paragraphs.length - 1
-                  ? 'is-takeaway'
-                  : '',
-              ].filter(Boolean).join(' ')}
-              data-editorial-role={paragraphIndex === 0
-                ? 'lead'
-                : paragraphIndex === paragraphs.length - 1
-                  ? 'takeaway'
-                  : 'detail'}
-            >
-              {parts}
-              {paragraphFallback ? (
-                <button
-                  type="button"
-                  className={[
-                    'forecast-feed-inline-explanation-toggle',
-                    expandedAnchorId === paragraphFallback.id ? 'is-expanded' : '',
-                  ].filter(Boolean).join(' ')}
-                  aria-label={language === 'ru'
-                    ? `${expandedAnchorId === paragraphFallback.id ? 'Скрыть' : 'Показать'} объяснение вывода`
-                    : `${expandedAnchorId === paragraphFallback.id ? 'Hide' : 'Show'} the explanation`}
-                  aria-expanded={expandedAnchorId === paragraphFallback.id}
-                  aria-controls={`forecast-explanation-${section.id}-${paragraphFallback.id}`}
-                  onClick={() => onToggleExplanation(paragraphFallback.id)}
-                >
-                  <ChevronDown size={15} strokeWidth={1.9} aria-hidden />
-                </button>
-              ) : null}
-            </p>
-            {expandedAnchor ? (
-              <div
-                id={`forecast-explanation-${section.id}-${expandedAnchor.id}`}
-                className="forecast-feed-inline-explanation"
-                aria-live="polite"
-              >
-                <p>{expandedAnchor.explanation}</p>
-                {expandedAnchor.evidenceIds.some((id) => evidence[id]) ? (
-                  <div className="forecast-feed-inline-explanation-evidence">
-                    {expandedAnchor.evidenceIds.map((id) => {
-                      const item = evidence[id];
-                      if (!item) return null;
-                      return (
-                        <span key={id}>
-                          {item.meaning}
-                          {item.period ? <small>{item.period}</small> : null}
-                        </span>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
             ) : null}
-          </Fragment>
+          </p>
         );
       })}
     </div>
@@ -220,7 +90,6 @@ function renderTextWithAnchors(
 
 export function ForecastSectionBlock({
   section,
-  sectionNumber,
   period,
   language,
   locked,
@@ -230,12 +99,17 @@ export function ForecastSectionBlock({
   evidence,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
-  const [expandedAnchorId, setExpandedAnchorId] = useState<string | null>(null);
+  const [activeAnchorId, setActiveAnchorId] = useState<string | null>(null);
   const isOverview = section.kind === 'overview';
   const title = isOverview
     ? overviewTitle(period, language)
     : section.title?.trim();
   const preview = section.lockedPreview;
+  const activeAnchor = section.explanationAnchors.find(
+    (anchor) => anchor.id === activeAnchorId,
+  ) || null;
+
+  if (section.status !== 'ready') return null;
 
   return (
     <section
@@ -254,9 +128,6 @@ export function ForecastSectionBlock({
       <div className="forecast-feed-section-content">
         {title ? (
           <h2 className="forecast-feed-section-title">
-            <span className="forecast-feed-section-number" aria-hidden="true">
-              {sectionNumber}.
-            </span>
             <span>{title}</span>
           </h2>
         ) : null}
@@ -292,20 +163,45 @@ export function ForecastSectionBlock({
             </button>
           </div>
         ) : (
-          renderTextWithAnchors(
+          renderContentBlocks(
             section,
-            evidence,
-            expandedAnchorId,
+            activeAnchorId,
             (anchorId) => {
-              setExpandedAnchorId((current) => (
-                current === anchorId ? null : anchorId
-              ));
+              setActiveAnchorId(anchorId);
             },
             language,
           )
         )}
         {children}
       </div>
+      <ForecastBottomSheet
+        open={!!activeAnchor}
+        title={language === 'ru' ? 'Почему такой вывод' : 'Why this conclusion'}
+        subtitle={activeAnchor?.conclusion}
+        closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
+        onClose={() => setActiveAnchorId(null)}
+      >
+        {activeAnchor ? (
+          <div className="forecast-feed-how-copy">
+            <p>{activeAnchor.explanation}</p>
+            {activeAnchor.evidenceIds.some((id) => evidence[id]) ? (
+              <div className="forecast-feed-inline-explanation-evidence">
+                {activeAnchor.evidenceIds.map((id) => {
+                  const item = evidence[id];
+                  if (!item) return null;
+                  return (
+                    <span key={id}>
+                      <strong>{item.factor}</strong>
+                      <span>{item.meaning}</span>
+                      {item.period ? <small>{item.period}</small> : null}
+                    </span>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </ForecastBottomSheet>
     </section>
   );
 }

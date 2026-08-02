@@ -9,7 +9,9 @@ import { requireAdminPermission } from '../../../../../lib/admin/rbac';
 import { getCachedPersonalForecast } from '../../../../../lib/personalForecastCache';
 import {
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION,
+  appendPersonalForecastQuestionAnswerHistory,
   generatePersonalForecastQuestionAnswer,
+  preparePersonalForecastQuestionHistory,
 } from '../../../../../lib/personalForecastQuestionGeneration';
 import {
   claimPersonalForecastQuestionGeneration,
@@ -86,20 +88,56 @@ async function generateApprovedAnswer(
         'The saved question belongs to a different forecast version.',
       );
     }
+    if (ctx.chartId == null) {
+      throw new AdminAuthError(
+        409,
+        'PERSONAL_FORECAST_CHART_REQUIRED',
+        'The saved natal chart is unavailable.',
+      );
+    }
+    const historySession = await preparePersonalForecastQuestionHistory({
+      userId: question.userId,
+      chartId: ctx.chartId,
+      questionRecordId: question.id,
+      question: question.questionText,
+      period: question.period as PersonalForecastPeriod,
+      periodKey: question.periodKey,
+      source: question.source,
+    });
     const generated = await generatePersonalForecastQuestionAnswer({
       question: question.questionText,
       language: question.language,
       period: question.period as PersonalForecastPeriod,
       periodKey: question.periodKey,
-      profile: ctx.profile,
-      chartData: ctx.chartData,
       forecast: cached.forecast,
+      historyContext: historySession.historyContext,
+    });
+    const history = await appendPersonalForecastQuestionAnswerHistory({
+      userId: question.userId,
+      chartId: ctx.chartId,
+      questionRecordId: question.id,
+      source: question.source,
+      period: question.period as PersonalForecastPeriod,
+      periodKey: question.periodKey,
+      forecastInputHash: cached.inputHash,
+      language: question.language,
+      session: historySession,
+      generated,
     });
     const saved = await completePersonalForecastQuestionAnswer({
       id: question.id,
       answerText: generated.answer,
       answerMeta: {
         evidenceIds: generated.evidenceIds,
+        semanticFactIds: generated.semanticFactIds,
+        atomIds: generated.atomIds,
+        domainKeys: generated.domainKeys,
+        personalizationFactKeys: generated.personalizationFactKeys,
+        userMessageIds: generated.userMessageIds,
+        semanticFingerprints: generated.semanticFingerprints,
+        generationAttempts: generated.generationAttempts,
+        astrologyThreadId: history.threadId,
+        generatedArtifactId: history.generatedArtifactId,
         generatedAt: generated.generatedAt,
         promptVersion: generated.promptVersion,
         voiceVersion: generated.voiceVersion,

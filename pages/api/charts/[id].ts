@@ -1,9 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
-import { buildCanonicalNatalInputHash, isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
+import { isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
+import { ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
 
 const log = {
   info: (message: string, data?: any) => {
@@ -39,19 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'POST' || req.method === 'PUT') {
-      const chartData = req.body;
       const user = await db.users.get(userId);
       const birthDate = user?.birth_date;
       const birthTime = user?.birth_time || '';
-      const normalizedBirthTime = birthTime || '12:00';
       const birthPlace = user?.birth_place;
-
-      if (!chartData || !chartData.sun || !chartData.moon || !chartData.rising) {
-        return res.status(400).json({
-          error: 'Invalid chart data',
-          message: 'Chart data must contain sun, moon, and rising positions',
-        });
-      }
 
       if (!birthDate || !birthPlace) {
         return res.status(400).json({
@@ -60,24 +52,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      if (typeof chartData.latitude !== 'number' || typeof chartData.longitude !== 'number' || typeof chartData.timezone !== 'string') {
-        return res.status(400).json({
-          error: 'Missing canonical natal data',
-          message: 'Chart data must include latitude, longitude, and timezone',
-        });
-      }
-
-      const inputHash = buildCanonicalNatalInputHash({
+      const result = await ensureCanonicalPrimaryChart({
+        userId,
+        name: user?.name || 'My Chart',
         birthDate,
-        birthTime: normalizedBirthTime,
-        birthTimeQuality: chartData.birthTimeQuality || chartData.chartQuality?.birthTimeQuality || undefined,
-        latitude: chartData.latitude,
-        longitude: chartData.longitude,
-        timezone: chartData.timezone,
+        birthTime,
+        birthPlace,
+        language: user?.language || 'ru',
+        forceRecalculate: false,
       });
-
-      const savedChart = await db.natal_charts.set(userId, chartData, birthDate, normalizedBirthTime, birthPlace, inputHash);
-      return res.status(200).json(savedChart.chart_data);
+      return res.status(200).json(result.chart.chart_data);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

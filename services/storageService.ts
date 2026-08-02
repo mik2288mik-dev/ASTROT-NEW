@@ -413,7 +413,7 @@ export const getChartData = async (): Promise<NatalChartData | null> => {
   return null;
 };
 
-// --- Multi-chart API (chart slots flow) ---
+// --- Multi-chart API (live entitlement policy) ---
 
 export interface ChartListItem {
   id: number;
@@ -421,9 +421,13 @@ export interface ChartListItem {
   name: string;
   chart_data: any;
   birth_date: string;
-  birth_time: string;
+  birth_time: string | null;
   birth_place: string;
   is_primary: boolean;
+  subject_type?: 'self' | 'saved_person';
+  relation_label?: string | null;
+  archived_at?: string | null;
+  access_locked?: boolean;
   created_at?: string;
 }
 
@@ -431,6 +435,8 @@ export interface ChartsResponse {
   charts: ChartListItem[];
   chartSlots: number;
   canAddMore: boolean;
+  canAddSavedPeople?: boolean;
+  isPremium?: boolean;
 }
 
 const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
@@ -443,7 +449,7 @@ const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
  */
 export const getCharts = async (userId: string): Promise<ChartsResponse> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `/api/charts?userId=${encodeURIComponent(userId)}`;
+  const url = '/api/charts';
   const res = await apiFetch(url, { headers: getTelegramInitDataHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -457,18 +463,26 @@ export const getCharts = async (userId: string): Promise<ChartsResponse> => {
 };
 
 /**
- * Create a new chart (enforces chart_slots limit)
+ * Create a saved-person chart (server derives the limit from live entitlement)
  */
 export const createChart = async (
   userId: string,
-  data: { name: string; birthDate: string; birthTime?: string; birthPlace: string; chartData?: any; language?: string }
+  data: {
+    name: string;
+    birthDate: string;
+    birthTime?: string;
+    birthPlace: string;
+    chartData?: any;
+    language?: string;
+    relationLabel?: string | null;
+  }
 ): Promise<ChartListItem> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
   const url = '/api/charts';
   const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-    body: JSON.stringify({ userId, ...data }),
+    body: JSON.stringify({ ...data, subjectType: 'saved_person' }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -479,32 +493,15 @@ export const createChart = async (
 };
 
 /**
- * Delete a chart (reassigns primary if needed)
+ * Archive a saved person. The self chart is immutable.
  */
 export const deleteChart = async (chartId: number, userId: string): Promise<void> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = `/api/charts/chart/${chartId}?userId=${encodeURIComponent(userId)}`;
+  const url = `/api/charts/chart/${chartId}`;
   const res = await apiFetch(url, { method: 'DELETE', headers: getTelegramInitDataHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed to delete chart: ${res.status}`);
-  }
-};
-
-/**
- * Set a chart as primary
- */
-export const setPrimaryChart = async (chartId: number, userId: string): Promise<void> => {
-  if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = '/api/charts/set-primary';
-  const res = await apiFetch(url, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-    body: JSON.stringify({ chartId, userId }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Failed to set primary: ${res.status}`);
   }
 };
 

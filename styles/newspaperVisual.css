@@ -240,10 +240,7 @@
 
 .forecast-feed-page .forecast-feed-section-title,
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-section-title {
-  display: grid;
-  grid-template-columns: 2.7rem minmax(0, 1fr);
-  gap: 0.7rem;
-  align-items: start;
+  display: block;
   margin: 0 0 1.15rem;
   color: var(--news-ink);
   font-size: clamp(1.45rem, 5.9vw, 1.85rem);
@@ -252,15 +249,6 @@
   line-height: 1.08;
   text-align: left;
   text-wrap: balance;
-}
-
-.forecast-feed-page .forecast-feed-section-number {
-  color: var(--news-ink);
-  font-size: clamp(1.72rem, 6.8vw, 2.1rem);
-  font-weight: 860;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.07em;
-  line-height: 0.95;
 }
 
 .forecast-feed-page .forecast-feed-section-title > span:last-child {

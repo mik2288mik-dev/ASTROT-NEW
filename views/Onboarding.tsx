@@ -88,7 +88,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     ensureTelegramFullscreen();
   }, []);
 
-  const canSubmit = useMemo(() => Boolean(name.trim() && date && time && place.trim()), [date, name, place, time]);
+  const canSubmit = useMemo(() => Boolean(name.trim() && date && place.trim()), [date, name, place]);
   const signHint = useMemo(() => {
     const s = sunSignFromDate(date);
     return s ? getZodiacSign('ru', s) : '';
@@ -116,7 +116,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     if (submittingRef.current) return;
     if (!name.trim()) { setError('Укажи имя.'); focusField('name'); return; }
     if (!date) { setError('Укажи дату рождения.'); focusField('date'); return; }
-    if (!time) { setError('Укажи время рождения.'); focusField('time'); return; }
     if (!place.trim()) { setError('Укажи место рождения.'); focusField('place'); return; }
     submittingRef.current = true;
     setIsSubmitting(true);
@@ -224,10 +223,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 <input ref={dateRef} type="date" value={date} onChange={(e) => { setDate(e.target.value); if (error) setError(''); }} className="fresh-input" />
               </label>
               <label>
-                <span className="fresh-field-label">Время рождения</span>
+                <span className="fresh-field-label">Время рождения — если знаешь</span>
                 <input ref={timeRef} type="time" value={time} onChange={(e) => { setTime(e.target.value); if (error) setError(''); }} className="fresh-input" />
               </label>
             </div>
+            {!time ? (
+              <p style={{ margin: '-6px 0 0', fontSize: 13, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
+                Без точного времени Асцендент и дома не используются. Планеты и аспекты всё равно рассчитываются.
+              </p>
+            ) : null}
             {signHint ? <p style={{ margin: '-6px 0 0', fontSize: 13, fontWeight: 700, color: 'var(--fresh-link)' }}>Знак зодиака: {signHint}</p> : null}
 
             <label>

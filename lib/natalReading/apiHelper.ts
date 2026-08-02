@@ -8,12 +8,26 @@ import { db } from '../db';
 import { getContentLayer, getPremiumEntitlementState } from '../contentArchitecture';
 import { AdminAuthError, handleAdminError } from '../adminAuth';
 import { requireAppUser } from '../auth/appAuth';
+import {
+  assertChartReadable,
+  ChartAccessPolicyError,
+  getChartSubjectType,
+  isActiveChart,
+  isSelfChart,
+  type ChartSubjectType,
+} from '../chartAccessPolicy';
+import {
+  persistNatalReadingHistory,
+  type NatalHistoryGeneration,
+} from '../astrologyHistoryPersistence';
 
 export type ReadingContext = {
   user: any;
   profile: UserProfile;
   chartId: number | null;
   chartData: NatalChartData | null;
+  chartSubjectType?: ChartSubjectType | null;
+  relationLabel?: string | null;
 };
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
@@ -21,7 +35,7 @@ function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
     id: user.id,
     name: fallback?.name || user.name || '',
     birthDate: fallback?.birthDate || user.birth_date || '',
-    birthTime: fallback?.birthTime || user.birth_time || '12:00',
+    birthTime: fallback?.birthTime ?? user.birth_time ?? '',
     birthPlace: fallback?.birthPlace || user.birth_place || '',
     isSetup: user.is_setup ?? true,
     language: (fallback?.language as 'ru' | 'en') || user.language || 'ru',
@@ -66,12 +80,26 @@ export async function resolveReadingContext(
   const chart = chartId != null
     ? await db.natal_charts.getById(chartId)
     : await db.natal_charts.getPrimary(userId);
-  const ownedChart = chart && String(chart.user_id) === String(userId) ? chart : null;
+  const ownedChart = chart &&
+    String(chart.user_id) === String(userId) &&
+    isActiveChart(chart) &&
+    (chartId != null || isSelfChart(chart))
+      ? chart
+      : null;
+  const chartProfile = ownedChart ? {
+    ...profileFallback,
+    name: ownedChart.name || profileFallback?.name,
+    birthDate: ownedChart.birth_date || profileFallback?.birthDate,
+    birthTime: ownedChart.birth_time ?? profileFallback?.birthTime ?? '',
+    birthPlace: ownedChart.birth_place || profileFallback?.birthPlace,
+  } : profileFallback;
   return {
     user,
-    profile: toProfile(user, profileFallback),
+    profile: toProfile(user, chartProfile),
     chartId: ownedChart?.id ?? null,
     chartData: (ownedChart?.chart_data || null) as NatalChartData | null,
+    chartSubjectType: ownedChart ? getChartSubjectType(ownedChart) : null,
+    relationLabel: (ownedChart as any)?.relation_label || null,
   };
 }
 
@@ -96,6 +124,7 @@ export type CachedReadingOptions = {
   isPersistent?: boolean;
   validFrom?: Date | null;
   validTo?: Date | null;
+  history?: NatalHistoryGeneration;
 };
 
 /**
@@ -152,11 +181,33 @@ export async function saveReading<T>(
   };
 
   if (ctx.chartId != null) {
-    return (await db.content_interpretations.upsertByChart(
+    const saved = (await db.content_interpretations.upsertByChart(
       ctx.chartId,
       payload as any,
       String(ctx.profile.id)
     )) as ContentInterpretation<T>;
+    try {
+      await persistNatalReadingHistory({
+        userId: String(ctx.profile.id),
+        chartId: ctx.chartId,
+        chart: ctx.chartData!,
+        rawBirthTime: ctx.profile.birthTime,
+        language: ctx.profile.language === 'en' ? 'en' : 'ru',
+        accessTier: opts.accessTier,
+        contentVariant: opts.contentVariant,
+        cacheKey: opts.cacheKey,
+        inputHash: opts.inputHash ?? opts.cacheKey,
+        promptVersion: opts.promptVersion,
+        content,
+        generation: opts.history,
+      });
+    } catch (error) {
+      console.error(
+        '[natal/history] saved reading could not be appended to durable history:',
+        error instanceof Error ? error.message : error,
+      );
+    }
+    return saved;
   }
   return (await db.content_interpretations.upsertByUser(
     String(ctx.profile.id),
@@ -192,6 +243,7 @@ export async function isPremium(userId: string): Promise<boolean> {
 
 type EnsureValidContextOptions = {
   allowGuest?: boolean;
+  requireSelfChart?: boolean;
   onAuthSuccess?: (detail: { userId: string }) => void;
   onAuthFailed?: (detail: { userId?: string | null; status: number; code: string; error?: unknown }) => void;
   onChartResolved?: (detail: { userId: string; chartId: number | null; hasChartData: boolean }) => void;
@@ -213,24 +265,15 @@ export async function ensureValidContext(
     res.status(405).json({ error: 'Method not allowed' });
     return null;
   }
-  const userId = await readUserId(req);
-  if (!userId) {
-    options.onAuthFailed?.({
-      userId: null,
-      status: 400,
-      code: 'USER_ID_REQUIRED',
-      error: new Error('userId is required'),
-    });
-    res.status(400).json({ error: 'Bad request', message: 'userId is required' });
-    return null;
-  }
+  let userId: string | null = null;
   try {
-    await requireAppUser(req, { expectedUserId: userId, allowGuest: options.allowGuest });
+    const auth = await requireAppUser(req, { allowGuest: options.allowGuest });
+    userId = auth.userId;
     options.onAuthSuccess?.({ userId });
   } catch (error) {
     if (error instanceof AdminAuthError) {
       options.onAuthFailed?.({
-        userId,
+        userId: null,
         status: error.status,
         code: error.code,
         error,
@@ -239,14 +282,56 @@ export async function ensureValidContext(
       return null;
     }
     options.onAuthFailed?.({
-      userId,
+      userId: null,
       status: 500,
       code: 'AUTH_UNEXPECTED_ERROR',
       error,
     });
     throw error;
   }
+  if (!userId) {
+    throw new Error('Authenticated user id is missing');
+  }
   const chartId = await readChartId(req);
+  if (chartId != null) {
+    const requestedChart = await db.natal_charts.getById(chartId);
+    if (!requestedChart || String(requestedChart.user_id) !== userId || !isActiveChart(requestedChart)) {
+      options.onChartFailed?.({
+        userId,
+        chartId,
+        status: 404,
+        code: 'CHART_NOT_FOUND',
+        error: new Error('Chart not found'),
+      });
+      res.status(404).json({ error: 'CHART_NOT_FOUND', message: 'Chart not found' });
+      return null;
+    }
+    if (options.requireSelfChart && !isSelfChart(requestedChart)) {
+      options.onChartFailed?.({
+        userId,
+        chartId,
+        status: 409,
+        code: 'SELF_CHART_REQUIRED',
+        error: new Error('This feature uses your own chart.'),
+      });
+      res.status(409).json({
+        error: 'SELF_CHART_REQUIRED',
+        message: 'This feature uses your own chart.',
+      });
+      return null;
+    }
+    try {
+      const entitlement = await getPremiumEntitlementState(userId);
+      assertChartReadable(requestedChart, entitlement.isPremium);
+    } catch (error) {
+      if (error instanceof ChartAccessPolicyError) {
+        options.onChartFailed?.({ userId, chartId, status: error.status, code: error.code, error });
+        res.status(error.status).json({ error: error.code, message: error.message });
+        return null;
+      }
+      throw error;
+    }
+  }
   const ctx = await resolveReadingContext(
     userId,
     chartId,

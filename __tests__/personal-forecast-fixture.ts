@@ -1,17 +1,16 @@
 import type { NatalChartData } from '../types';
+import { APP_VOICE_VERSION } from '../lib/appVoice';
 import {
-  FORECAST_FIXED_TITLES,
-  FORECAST_WISHES_TITLES,
   PERSONAL_FORECAST_CALCULATION_VERSION,
+  PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildForecastLockedPreview,
+  type ForecastContentBlockRole,
   type ForecastEvidenceView,
   type ForecastSection,
-  type ForecastSectionKind,
-  type ForecastTopicKey,
   type PersonalForecastPackage,
 } from '../lib/personalForecastContract';
-import { APP_VOICE_VERSION } from '../lib/appVoice';
+import { PERSONAL_FORECAST_SEMANTICS_VERSION } from '../lib/personalForecastSemantics';
 
 export const chartFixture = {
   sun: { planet: 'Sun', sign: 'Aries', degree: 10, longitude: 10, house: 1 },
@@ -50,52 +49,48 @@ const evidenceView: ForecastEvidenceView = {
   orb: 1.2,
   status: 'applying',
   period: '2026-07-26',
-  meaning: 'This calculated factor supports the section conclusion.',
+  meaning: 'This calculated factor supports a temporary increase in direct action.',
 };
-
-function expandedFixtureText(seed: string, minimum: number): string {
-  const continuation =
-    ' It connects the main conclusion with an ordinary choice, keeps the outcome conditional, and explains the practical reason without adding an unsupported event.';
-  let value = seed;
-  while (value.length < minimum) value += continuation;
-  return value.slice(0, minimum + 18);
-}
 
 function sectionFixture(input: {
   id: string;
-  kind: ForecastSectionKind;
   title?: string;
-  text: string;
   importance: number;
-  fixedKey?: ForecastSection['fixedKey'];
-  sourceTopicKey?: ForecastTopicKey;
+  fingerprint: string;
+  factId: string;
+  blocks: Array<{ role: ForecastContentBlockRole; atomId: string; text: string }>;
+  overview?: boolean;
 }): ForecastSection {
-  const text = expandedFixtureText(
-    input.text,
-    input.kind === 'overview' ? 450 : 250,
-  );
-  const premiumTeaser =
-    `Open the complete ${input.id} forecast section to see the calculated details.`;
+  const anchorId = `anchor:${input.id}`;
+  const contentBlocks = input.blocks.map((item, index) => ({
+    id: `${input.id}:${item.role}:${index + 1}`,
+    role: item.role,
+    text: item.text,
+    semanticFactId: input.factId,
+    atomId: item.atomId,
+    explanationAnchorId: index === 0 ? anchorId : null,
+  }));
+  const text = contentBlocks.map((item) => item.text).join('\n\n');
+  const premiumTeaser = `Open the full ${input.title || 'forecast'} reading for the concrete risk and next step.`;
   return {
     id: input.id,
-    kind: input.kind,
+    kind: input.overview ? 'overview' : 'dynamic',
     status: 'ready',
     diagnosticCode: null,
-    fixedKey: input.fixedKey,
-    sourceTopicKey: input.sourceTopicKey,
     title: input.title,
+    sourceTopicKey: input.overview ? 'overview' : undefined,
     text,
+    contentBlocks,
+    semanticFactIds: [input.factId],
+    semanticFingerprint: input.fingerprint,
     importance: input.importance,
-    visualTag: input.id,
+    visualTag: input.title?.toLowerCase().replace(/\s+/g, '-') || 'overview',
     premiumTeaser,
     lockedPreview: buildForecastLockedPreview(text, premiumTeaser),
     explanationAnchors: [{
-      id: `anchor:${input.id}`,
-      conclusion: 'The conclusion follows from the calculated period factor.',
-      explanation: expandedFixtureText(
-        'The supplied calculation strengthens this subject during the selected period.',
-        120,
-      ).slice(0, 180),
+      id: anchorId,
+      conclusion: contentBlocks[0].text,
+      explanation: 'Mars trine Sun. This is a temporary calculated factor for the selected period.',
       evidenceIds: ['e1'],
     }],
     inlineAstroAccent: null,
@@ -112,81 +107,52 @@ export function personalForecastFixture(): PersonalForecastPackage {
     timezone: 'Europe/Moscow',
     overview: sectionFixture({
       id: 'overview',
-      kind: 'overview',
-      text: 'The central issue now is choosing one practical priority.',
       importance: 100,
-      sourceTopicKey: 'overview',
+      fingerprint: 'overview:fixture',
+      factId: 'fact:overview',
+      overview: true,
+      blocks: [{
+        role: 'lead',
+        atomId: 'communication_and_decisions_are_temporarily_active',
+        text: 'Conversations and decisions require extra precision right now.',
+      }],
     }),
     sections: [
       sectionFixture({
-        id: 'mood',
-        kind: 'fixed',
-        fixedKey: 'mood',
-        sourceTopicKey: 'mood',
-        title: FORECAST_FIXED_TITLES.en.mood,
-        text: 'Mental focus improves when the next task has exact boundaries.',
-        importance: 86,
-      }),
-      sectionFixture({
-        id: 'love',
-        kind: 'fixed',
-        fixedKey: 'love',
-        sourceTopicKey: 'love',
-        title: FORECAST_FIXED_TITLES.en.love,
-        text: 'A direct conversation can define the limits of this relationship.',
+        id: 'semantic:communication',
+        title: 'Conversations and decisions',
         importance: 92,
+        fingerprint: 'semantic:communication',
+        factId: 'fact:communication',
+        blocks: [
+          { role: 'detail', atomId: 'details_require_review', text: 'Wording, numbers, and sequence need another check before you answer.' },
+          { role: 'risk', atomId: 'impulsive_reply_or_missed_detail', text: 'The main risk is an impulsive reply or a missed detail.' },
+          { role: 'action', atomId: 'verify_wording_numbers_and_sequence', text: 'Check the wording, numbers, and order of steps.' },
+        ],
       }),
       sectionFixture({
-        id: 'home_family',
-        kind: 'fixed',
-        fixedKey: 'home_family',
-        sourceTopicKey: 'home_family',
-        title: FORECAST_FIXED_TITLES.en.home_family,
-        text: 'A household decision benefits from specific roles and deadlines.',
-        importance: 80,
+        id: 'semantic:boundaries',
+        title: 'Action and boundaries',
+        importance: 86,
+        fingerprint: 'semantic:boundaries',
+        factId: 'fact:boundaries',
+        blocks: [
+          { role: 'lead', atomId: 'action_and_boundaries_are_temporarily_active', text: 'Pace of action and personal boundaries are the central issue now.' },
+          { role: 'detail', atomId: 'boundary_response_becomes_more_noticeable', text: 'Pressure is more likely to trigger a direct response or refusal.' },
+          { role: 'action', atomId: 'choose_the_next_action_not_the_whole_battle', text: 'Choose the next concrete action, not the whole battle.' },
+        ],
       }),
       sectionFixture({
-        id: 'friends',
-        kind: 'fixed',
-        fixedKey: 'friends',
-        sourceTopicKey: 'friends',
-        title: FORECAST_FIXED_TITLES.en.friends,
-        text: 'One useful exchange identifies who will support the concrete plan.',
+        id: 'semantic:workload',
+        title: 'Work and workload',
         importance: 78,
-      }),
-      sectionFixture({
-        id: 'work_money',
-        kind: 'fixed',
-        fixedKey: 'work_money',
-        sourceTopicKey: 'work_money',
-        title: FORECAST_FIXED_TITLES.en.work_money,
-        text: 'Work advances through a measurable decision about time and cost.',
-        importance: 88,
-      }),
-      sectionFixture({
-        id: 'wishes',
-        kind: 'wishes',
-        fixedKey: 'wishes',
-        sourceTopicKey: 'wishes',
-        title: FORECAST_WISHES_TITLES.en.day,
-        text: 'Use the strongest hours for the decision that already has evidence.',
-        importance: 70,
-      }),
-      sectionFixture({
-        id: 'dynamic:business',
-        kind: 'dynamic',
-        sourceTopicKey: 'business',
-        title: 'Business',
-        text: 'Commercial progress depends on verifying demand before increasing commitments.',
-        importance: 84,
-      }),
-      sectionFixture({
-        id: 'dynamic:study',
-        kind: 'dynamic',
-        sourceTopicKey: 'study',
-        title: 'Study',
-        text: 'A defined learning target produces a visible result this period.',
-        importance: 76,
+        fingerprint: 'semantic:workload',
+        factId: 'fact:workload',
+        blocks: [
+          { role: 'lead', atomId: 'limits_and_commitments_are_temporarily_active', text: 'Limits and commitments cannot be left unchecked right now.' },
+          { role: 'detail', atomId: 'routine_or_workload_context_becomes_more_noticeable', text: 'The main manifestations come through schedules, workload, and daily routines.' },
+          { role: 'risk', atomId: 'ignoring_a_real_limit_or_commitment', text: 'The main risk is ignoring a real limit or commitment.' },
+        ],
       }),
     ],
     suggestedCrossPeriodLinks: [],
@@ -197,13 +163,17 @@ export function personalForecastFixture(): PersonalForecastPackage {
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
       voiceVersion: APP_VOICE_VERSION,
       calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
+      semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+      contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
+      generationAttempts: 1,
+      validationStatus: 'valid',
       generatedAt: '2026-07-26T10:00:00.000Z',
       status: 'ready',
       diagnosticCode: null,
       freeSelection: {
-        strongestSectionId: 'love',
-        rotatedSectionId: 'mood',
-        sectionIds: ['love', 'mood'],
+        strongestSectionId: 'semantic:communication',
+        rotatedSectionId: 'semantic:boundaries',
+        sectionIds: ['semantic:communication', 'semantic:boundaries'],
       },
     },
   };

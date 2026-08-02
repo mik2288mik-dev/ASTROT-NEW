@@ -1,494 +1,242 @@
 import { APP_VOICE_VERSION } from '../lib/appVoice';
 import {
-  FIXED_FORECAST_SECTION_KEYS,
-  FORECAST_WISHES_TITLES,
   PERSONAL_FORECAST_CALCULATION_VERSION,
+  PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
-  buildForecastLockedPreview,
   buildPersonalForecastCacheKey,
   buildPersonalForecastChartFingerprint,
   buildPersonalForecastInputHash,
-  filterPersonalForecastCrossPeriodLinksForCurrentTargets,
+  formatPersonalForecastDateLabel,
   getNextPersonalForecastPeriodKey,
   getPersonalForecastPeriodKey,
-  getPreviousPersonalForecastPeriodKey,
   isPersonalForecastPackage,
-  personalForecastOverviewTextRange,
   resolvePersonalForecastWindow,
   slicePersonalForecastForAccess,
   type ForecastSection,
   type PersonalForecastPackage,
+  type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
-import {
-  chartFixture,
-  personalForecastFixture,
-} from './personal-forecast-fixture';
+import { PERSONAL_FORECAST_SEMANTICS_VERSION } from '../lib/personalForecastSemantics';
+import { chartFixture, personalForecastFixture } from './personal-forecast-fixture';
 
-function dynamicSection(
-  source: ForecastSection,
-  id: string,
-  title: string,
-  text: string,
-): ForecastSection {
-  let expandedText = text;
-  const continuation =
-    ' It connects the conclusion with an ordinary practical choice and a clear, conditional reason from the supplied period calculation.';
-  while (expandedText.length < 250) expandedText += continuation;
-  expandedText = expandedText.slice(0, 320);
-  return {
-    ...source,
-    id,
-    sourceTopicKey: id.replace(/^dynamic:/, '') as ForecastSection['sourceTopicKey'],
-    title,
-    text: expandedText,
-    visualTag: id,
-    premiumTeaser: `The complete ${title} section explains the calculated direction in detail.`,
-    lockedPreview: buildForecastLockedPreview(
-      expandedText,
-      `The complete ${title} section explains the calculated direction in detail.`,
-    ),
-    explanationAnchors: source.explanationAnchors.map((anchor) => ({
-      ...anchor,
-      id: `anchor:${id}`,
-    })),
-  };
-}
-
-function forecastForPeriod(
-  period: PersonalForecastPackage['period'],
-): PersonalForecastPackage {
+function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPackage {
   const base = personalForecastFixture();
-  if (period === 'day') return base;
-  const periodKey = period === 'week' ? '2026-W30' : period === 'month' ? '2026-07' : '2026';
-  const window = resolvePersonalForecastWindow(period, periodKey, base.timezone);
+  const key = period === 'day'
+    ? '2026-07-26'
+    : period === 'week'
+      ? '2026-W30'
+      : period === 'month'
+        ? '2026-07'
+        : '2026';
+  const window = resolvePersonalForecastWindow(period, key, base.timezone);
   return {
     ...base,
     period,
-    periodKey,
+    periodKey: key,
     periodStart: window.periodStart,
     periodEnd: window.periodEnd,
-    dateLabel: period.toUpperCase(),
-    sections: base.sections.map((section) => (
-      section.fixedKey === 'wishes'
-        ? { ...section, title: FORECAST_WISHES_TITLES.en[period] }
-        : section
-    )),
+    dateLabel: formatPersonalForecastDateLabel(window, 'en'),
     meta: {
       ...base.meta,
-      freeSelection: {
-        strongestSectionId: null,
-        rotatedSectionId: null,
-        sectionIds: [],
-      },
+      freeSelection: period === 'day'
+        ? base.meta.freeSelection
+        : { strongestSectionId: null, rotatedSectionId: null, sectionIds: [] },
     },
   };
 }
 
-describe('personal forecast V3 contract', () => {
-  it('keeps the exact fixed order and accepts only two to four dynamic sections', () => {
-    expect(FIXED_FORECAST_SECTION_KEYS).toEqual([
-      'mood',
-      'love',
-      'home_family',
-      'friends',
-      'work_money',
-      'wishes',
-    ]);
+function cloneSemanticSection(source: ForecastSection, suffix: string): ForecastSection {
+  const id = `semantic:${suffix}`;
+  const anchorId = `anchor:${id}`;
+  return {
+    ...source,
+    id,
+    title: `Subject ${suffix}`,
+    semanticFingerprint: `semantic:${suffix}`,
+    semanticFactIds: [`fact:${suffix}`],
+    contentBlocks: source.contentBlocks.map((block, index) => ({
+      ...block,
+      id: `${id}:${block.role}:${index + 1}`,
+      semanticFactId: `fact:${suffix}`,
+      explanationAnchorId: index === 0 ? anchorId : null,
+    })),
+    explanationAnchors: source.explanationAnchors.map((anchor) => ({
+      ...anchor,
+      id: anchorId,
+    })),
+  };
+}
 
+describe('personal forecast V4 semantic contract', () => {
+  test('accepts only supported semantic sections without mandatory rubrics', () => {
     const base = personalForecastFixture();
     expect(isPersonalForecastPackage(base)).toBe(true);
-    expect(
-      base.sections
-        .filter((section) => section.kind === 'fixed' || section.kind === 'wishes')
-        .map((section) => section.fixedKey),
-    ).toEqual(FIXED_FORECAST_SECTION_KEYS);
+    expect(base.sections.every((section) => section.kind === 'dynamic')).toBe(true);
+    expect(base.sections.some((section) => section.fixedKey)).toBe(false);
 
-    const dynamics = base.sections.filter((section) => section.kind === 'dynamic');
-    const withoutOneDynamic = {
-      ...base,
-      sections: base.sections.filter((section) => section.id !== dynamics[1].id),
-    };
-    expect(isPersonalForecastPackage(withoutOneDynamic)).toBe(false);
+    expect(isPersonalForecastPackage({ ...base, sections: [] })).toBe(false);
+    const tooMany = [
+      ...base.sections,
+      cloneSemanticSection(base.sections[0], 'extra-a'),
+      cloneSemanticSection(base.sections[0], 'extra-b'),
+      cloneSemanticSection(base.sections[0], 'extra-c'),
+    ];
+    expect(isPersonalForecastPackage({ ...base, sections: tooMany })).toBe(false);
 
-    const third = dynamicSection(
-      dynamics[0],
-      'dynamic:creativity',
-      'Creative Project',
-      'Creative work benefits from a defined scope and a measurable finish.',
-    );
-    const fourth = dynamicSection(
-      dynamics[0],
-      'dynamic:relocation',
-      'Relocation',
-      'A relocation decision needs verified costs and a concrete schedule.',
-    );
-    const withFourDynamics = {
-      ...base,
-      sections: [...base.sections, third, fourth],
-    };
-    expect(isPersonalForecastPackage(withFourDynamics)).toBe(true);
-
-    const fifth = dynamicSection(
-      dynamics[0],
-      'dynamic:documents_agreements',
-      'Documents',
-      'Document terms require exact wording before any final agreement.',
-    );
-    expect(isPersonalForecastPackage({
-      ...base,
-      sections: [...withFourDynamics.sections, fifth],
-    })).toBe(false);
-
-    const wrongFixedOrder = {
-      ...base,
-      sections: [
-        base.sections[1],
-        base.sections[0],
-        ...base.sections.slice(2),
-      ],
-    };
-    expect(isPersonalForecastPackage(wrongFixedOrder)).toBe(false);
+    const duplicate = structuredClone(base);
+    duplicate.sections[1].semanticFingerprint = duplicate.sections[0].semanticFingerprint;
+    expect(isPersonalForecastPackage(duplicate)).toBe(false);
   });
 
-  it('rejects explanation anchors that reference evidence outside the package', () => {
-    const missing = personalForecastFixture();
-    const love = missing.sections.find((section) => section.id === 'love');
-    expect(love).toBeDefined();
-    love!.explanationAnchors[0].evidenceIds = ['missing'];
-    expect(isPersonalForecastPackage(missing)).toBe(false);
-  });
-
-  it('rejects malformed wire metadata, evidence, visuals, links, and previews', () => {
+  test('requires block identities and evidence-backed explanation anchors', () => {
     const base = personalForecastFixture();
-    expect(isPersonalForecastPackage({
-      ...base,
-      periodStart: '2026-07-25',
-    })).toBe(false);
-    expect(isPersonalForecastPackage({
-      ...base,
-      evidence: {
-        ...base.evidence,
-        e1: { ...base.evidence.e1, id: 'other' },
-      },
-    })).toBe(false);
-    expect(isPersonalForecastPackage({
-      ...base,
-      visual: { sectionAssetIds: { missing: '/asset.svg' } },
-    })).toBe(false);
-    expect(isPersonalForecastPackage({
-      ...base,
-      suggestedCrossPeriodLinks: [{
-        id: 'bad-link',
-        fromSectionId: 'dynamic:business',
-        targetPeriod: 'month',
-        targetSectionId: 'dynamic:business',
-        continuationAt: 'not-a-date',
-        label: 'Invalid',
-      }],
-    })).toBe(false);
+    const missingEvidence = structuredClone(base);
+    missingEvidence.sections[0].explanationAnchors[0].evidenceIds = ['missing'];
+    expect(isPersonalForecastPackage(missingEvidence)).toBe(false);
 
-    const love = base.sections.find((section) => section.id === 'love')!;
-    expect(isPersonalForecastPackage({
-      ...base,
-      sections: base.sections.map((section) => (
-        section.id === 'love'
-          ? {
-              ...love,
-              lockedPreview: {
-                ...love.lockedPreview,
-                blurred: `${love.lockedPreview.blurred} injected premium text`,
-              },
-            }
-          : section
-      )),
-    })).toBe(false);
+    const changedText = structuredClone(base);
+    changedText.sections[0].contentBlocks[0].text = 'Different text that is not reflected in the section projection.';
+    expect(isPersonalForecastPackage(changedText)).toBe(false);
+
+    const changedFact = structuredClone(base);
+    changedFact.sections[0].contentBlocks[0].semanticFactId = 'fact:not-approved';
+    expect(isPersonalForecastPackage(changedFact)).toBe(false);
   });
 
-  it('rejects a package produced by a stale forecast calculation algorithm', () => {
-    const current = personalForecastFixture();
-    expect(PERSONAL_FORECAST_CALCULATION_VERSION)
-      .toBe('personal-forecast-evidence-v3');
-    expect(current.meta.calculationVersion).toBe(PERSONAL_FORECAST_CALCULATION_VERSION);
-    expect(isPersonalForecastPackage({
-      ...current,
-      meta: {
-        ...current.meta,
-        calculationVersion: 'personal-forecast-evidence-stale',
-      },
-    })).toBe(false);
+  test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
+    const base = personalForecastFixture();
+    expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-evidence-v4');
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v4');
+    expect(PERSONAL_FORECAST_SEMANTICS_VERSION).toBe('personal-forecast-semantics-v1');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v5.semantic-writer');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
+
+    for (const patch of [
+      { calculationVersion: 'legacy' },
+      { semanticVersion: 'legacy' },
+      { contractVersion: 'legacy' },
+      { promptVersion: 'legacy' },
+      { voiceVersion: 'legacy' },
+    ]) {
+      expect(isPersonalForecastPackage({
+        ...base,
+        meta: { ...base.meta, ...patch },
+      })).toBe(false);
+    }
   });
 
-  it('uses timezone-aware day, ISO week, month and year keys', () => {
-    const instant = new Date('2026-12-31T22:30:00.000Z');
-    expect(getPersonalForecastPeriodKey('day', instant, 'Europe/Moscow')).toBe('2027-01-01');
-    expect(getPersonalForecastPeriodKey('month', instant, 'Europe/Moscow')).toBe('2027-01');
-    expect(getPersonalForecastPeriodKey('year', instant, 'Europe/Moscow')).toBe('2027');
-    expect(getPersonalForecastPeriodKey('week', instant, 'Europe/Moscow')).toMatch(/^2026-W53$|^2027-W01$/);
+  test('uses timezone-aware period keys and exact windows', () => {
+    const instant = new Date('2026-01-01T22:30:00.000Z');
+    expect(getPersonalForecastPeriodKey('day', instant, 'Europe/Moscow')).toBe('2026-01-02');
+    expect(getPersonalForecastPeriodKey('month', instant, 'America/New_York')).toBe('2026-01');
+    expect(getPersonalForecastPeriodKey('year', instant, 'America/New_York')).toBe('2026');
+
+    const week = resolvePersonalForecastWindow('week', '2026-W30', 'Europe/Moscow');
+    expect(week.periodStart).toBe('2026-07-20');
+    expect(week.periodEnd).toBe('2026-07-26');
+    expect(getNextPersonalForecastPeriodKey('week', '2026-W30', 'Europe/Moscow')).toBe('2026-W31');
   });
 
-  it('resolves full period boundaries and adjacent period keys', () => {
-    const month = resolvePersonalForecastWindow('month', '2026-02', 'Europe/Moscow');
-    expect(month.periodStart).toBe('2026-02-01');
-    expect(month.periodEnd).toBe('2026-02-28');
-    expect(getNextPersonalForecastPeriodKey('month', '2026-02', 'Europe/Moscow')).toBe('2026-03');
-    expect(getPreviousPersonalForecastPeriodKey('month', '2026-02', 'Europe/Moscow')).toBe('2026-01');
-  });
-
-  it('versions cache and input identities by chart, period, language, model and voice', () => {
-    const base = {
-      userId: '42',
+  test('versions both cache identities with the V4 semantic contract', () => {
+    const shared = {
+      userId: 'u1',
       chartId: 7,
       chartData: chartFixture,
       period: 'day' as const,
       periodKey: '2026-07-26',
       timezone: 'Europe/Moscow',
-      language: 'ru' as const,
-      modelId: 'gpt-4.1',
+      language: 'en' as const,
+      modelId: 'gpt-5.4-mini',
     };
-    const variants = [
-      base,
-      { ...base, periodKey: '2026-07-27' },
-      { ...base, language: 'en' as const },
-      { ...base, modelId: 'gpt-4.1-mini' },
-      {
-        ...base,
-        chartData: {
-          ...chartFixture,
-          calculationVersion: 'changed',
-        },
-      },
-    ];
-    const cacheKeys = variants.map(buildPersonalForecastCacheKey);
-    const inputHashes = variants.map(buildPersonalForecastInputHash);
-
-    expect(new Set(cacheKeys).size).toBe(variants.length);
-    expect(new Set(inputHashes).size).toBe(variants.length);
-    expect(cacheKeys[0]).toMatch(/^personal-forecast-feed-v3:/);
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
-      'personal-forecast-feed.v4.4.editorial-feed',
-    );
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
-    expect(personalForecastOverviewTextRange()).toEqual({ min: 450, max: 650 });
-    expect(buildPersonalForecastChartFingerprint(chartFixture)).toBe(
-      buildPersonalForecastChartFingerprint(chartFixture),
-    );
+    const cacheKey = buildPersonalForecastCacheKey(shared);
+    const inputHash = buildPersonalForecastInputHash(shared);
+    expect(cacheKey).toMatch(/^personal-forecast-feed-v4:/);
+    expect(inputHash).toMatch(/^[a-z0-9]+$/);
+    expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
+    expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);
   });
 
-  it('includes birth-time and chart-quality metadata in the chart fingerprint', () => {
-    const exactChart = {
+  test('includes birth-time reliability in the chart fingerprint', () => {
+    const exact = buildPersonalForecastChartFingerprint(chartFixture);
+    const unknown = buildPersonalForecastChartFingerprint({
       ...chartFixture,
-      birthTimeQuality: 'exact' as const,
+      birthTimeQuality: 'unknown',
       chartQuality: {
-        birthTimeQuality: 'exact' as const,
-        ascendantReliable: true,
-        housesReliable: true,
-        houseBasedPersonalization: true,
-        notes: ['Exact recorded time'],
+        ...chartFixture.chartQuality,
+        birthTimeQuality: 'unknown',
+        housesReliable: false,
+        ascendantReliable: false,
+        houseBasedPersonalization: false,
+        notes: [],
       },
-    };
-    const variants = [
-      exactChart,
-      { ...exactChart, birthTimeQuality: 'approximate' as const },
-      {
-        ...exactChart,
-        chartQuality: {
-          ...exactChart.chartQuality,
-          birthTimeQuality: 'approximate' as const,
-        },
-      },
-      {
-        ...exactChart,
-        chartQuality: {
-          ...exactChart.chartQuality,
-          ascendantReliable: false,
-        },
-      },
-      {
-        ...exactChart,
-        chartQuality: {
-          ...exactChart.chartQuality,
-          housesReliable: false,
-        },
-      },
-      {
-        ...exactChart,
-        chartQuality: {
-          ...exactChart.chartQuality,
-          houseBasedPersonalization: false,
-        },
-      },
-      {
-        ...exactChart,
-        chartQuality: {
-          ...exactChart.chartQuality,
-          notes: ['Approximate recorded time'],
-        },
-      },
-    ];
-
-    expect(new Set(variants.map(buildPersonalForecastChartFingerprint)).size).toBe(variants.length);
+    });
+    expect(unknown).not.toBe(exact);
   });
 
-  it('requires an exact valid pair of Free selections for Today', () => {
+  test('accepts one or two valid Free sections for Today', () => {
     const base = personalForecastFixture();
-    const withSelection = (freeSelection: unknown) => ({
+    expect(isPersonalForecastPackage(base)).toBe(true);
+
+    const one = {
       ...base,
       meta: {
         ...base.meta,
-        freeSelection,
+        freeSelection: {
+          strongestSectionId: 'semantic:communication',
+          rotatedSectionId: null,
+          sectionIds: ['semantic:communication'],
+        },
       },
-    });
+    };
+    expect(isPersonalForecastPackage(one)).toBe(true);
 
-    expect(isPersonalForecastPackage(base)).toBe(true);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: 'love',
-      rotatedSectionId: 'love',
-      sectionIds: ['love', 'love'],
-    }))).toBe(false);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: 'love',
-      rotatedSectionId: 'mood',
-      sectionIds: ['love'],
-    }))).toBe(false);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: 'love',
-      rotatedSectionId: 'mood',
-      sectionIds: ['mood', 'love'],
-    }))).toBe(false);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: 'wishes',
-      rotatedSectionId: 'mood',
-      sectionIds: ['wishes', 'mood'],
-    }))).toBe(false);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: 'overview',
-      rotatedSectionId: 'mood',
-      sectionIds: ['overview', 'mood'],
-    }))).toBe(false);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: 'mood',
-      rotatedSectionId: 'love',
-      sectionIds: ['mood', 'love'],
-    }))).toBe(false);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: null,
-      rotatedSectionId: 'mood',
-      sectionIds: ['love', 'mood'],
-    }))).toBe(false);
-    expect(isPersonalForecastPackage(withSelection({
-      strongestSectionId: 'love',
-      rotatedSectionId: 42,
-      sectionIds: ['love', 42],
-    }))).toBe(false);
+    expect(isPersonalForecastPackage({
+      ...base,
+      meta: {
+        ...base.meta,
+        freeSelection: {
+          strongestSectionId: 'semantic:communication',
+          rotatedSectionId: 'semantic:communication',
+          sectionIds: ['semantic:communication', 'semantic:communication'],
+        },
+      },
+    })).toBe(false);
   });
 
-  it('requires an empty Free selection outside Today', () => {
+  test('requires an empty Free selection outside Today', () => {
     const month = forecastForPeriod('month');
     expect(isPersonalForecastPackage(month)).toBe(true);
-
     expect(isPersonalForecastPackage({
       ...month,
-      meta: {
-        ...month.meta,
-        freeSelection: {
-          strongestSectionId: 'love',
-          rotatedSectionId: null,
-          sectionIds: [],
-        },
-      },
-    })).toBe(false);
-    expect(isPersonalForecastPackage({
-      ...month,
-      meta: {
-        ...month.meta,
-        freeSelection: {
-          strongestSectionId: null,
-          rotatedSectionId: null,
-          sectionIds: ['love'],
-        },
-      },
+      meta: { ...month.meta, freeSelection: personalForecastFixture().meta.freeSelection },
     })).toBe(false);
   });
 
-  it('keeps a continuation link only when it opens the current target period', () => {
+  test('opens Today overview and selected sections while redacting every other section', () => {
     const base = personalForecastFixture();
-    const forecast: PersonalForecastPackage = {
-      ...base,
-      suggestedCrossPeriodLinks: [{
-        id: 'day:love:week:0',
-        fromSectionId: 'love',
-        targetPeriod: 'week',
-        targetSectionId: 'love',
-        continuationAt: '2026-07-26T21:00:00.000Z',
-        label: 'Continue this topic in Week',
-      }],
-    };
-
-    expect(isPersonalForecastPackage(forecast)).toBe(true);
-    expect(filterPersonalForecastCrossPeriodLinksForCurrentTargets(
-      forecast,
-      new Date('2026-07-26T12:00:00.000Z'),
-    ).suggestedCrossPeriodLinks).toEqual([]);
-    expect(filterPersonalForecastCrossPeriodLinksForCurrentTargets(
-      forecast,
-      new Date('2026-07-27T12:00:00.000Z'),
-    ).suggestedCrossPeriodLinks).toHaveLength(1);
-  });
-
-  it('opens Today overview, wishes and the selected Free sections without losing previews', () => {
-    const full = personalForecastFixture();
-    const sliced = slicePersonalForecastForAccess(full, false);
-    const openIds = new Set([
-      'overview',
-      'wishes',
-      ...full.meta.freeSelection.sectionIds,
-    ]);
-
+    const sliced = slicePersonalForecastForAccess(base, false);
     expect(sliced.periodLocked).toBe(false);
-    expect(sliced.lockedSectionIds).toEqual(
-      [full.overview, ...full.sections]
-        .filter((section) => !openIds.has(section.id))
-        .map((section) => section.id),
-    );
-    for (const section of [sliced.forecast.overview, ...sliced.forecast.sections]) {
-      if (openIds.has(section.id)) {
-        expect(section.text).toBeTruthy();
-      } else {
-        const original = [full.overview, ...full.sections]
-          .find((candidate) => candidate.id === section.id)!;
-        expect(section.text).toBe('');
-        expect(section.explanationAnchors).toEqual([]);
-        expect(section.lockedPreview).toEqual(original.lockedPreview);
-        expect(section.lockedPreview.lead).toBeTruthy();
-        expect(section.lockedPreview.blurred).toBeTruthy();
-        expect(section.lockedPreview.teaser).toBeTruthy();
-      }
-    }
+    expect(sliced.lockedSectionIds).toEqual(['semantic:workload']);
+    expect(sliced.forecast.overview.text).not.toBe('');
+    expect(sliced.forecast.sections[0].text).not.toBe('');
+    expect(sliced.forecast.sections[2].text).toBe('');
+    expect(sliced.forecast.sections[2].contentBlocks).toEqual([]);
+    expect(isPersonalForecastPackage(sliced.forecast, {
+      redactedSectionIds: sliced.lockedSectionIds,
+    })).toBe(true);
   });
 
-  it('locks every non-day section for Free and keeps every section open for Premium', () => {
-    const full = forecastForPeriod('month');
-    const free = slicePersonalForecastForAccess(full, false);
-    const premium = slicePersonalForecastForAccess(full, true);
-    const allIds = [full.overview, ...full.sections].map((section) => section.id);
-
+  test('locks every non-day section for Free and keeps Premium complete', () => {
+    const month = forecastForPeriod('month');
+    const free = slicePersonalForecastForAccess(month, false);
     expect(free.periodLocked).toBe(true);
-    expect(free.lockedSectionIds).toEqual(allIds);
-    for (const section of [free.forecast.overview, ...free.forecast.sections]) {
-      const original = [full.overview, ...full.sections]
-        .find((candidate) => candidate.id === section.id)!;
-      expect(section.text).toBe('');
-      expect(section.title).toBe(original.title);
-      expect(section.premiumTeaser).toBe(original.premiumTeaser);
-      expect(section.lockedPreview).toEqual(original.lockedPreview);
-      expect(section.explanationAnchors).toEqual([]);
-      expect(section.inlineAstroAccent).toBeNull();
-    }
-    expect(free.forecast.suggestedCrossPeriodLinks).toEqual([]);
+    expect(free.lockedSectionIds).toHaveLength(month.sections.length + 1);
+    expect(free.forecast.overview.text).toBe('');
     expect(free.forecast.evidence).toEqual({});
 
+    const premium = slicePersonalForecastForAccess(month, true);
     expect(premium.periodLocked).toBe(false);
     expect(premium.lockedSectionIds).toEqual([]);
-    expect(premium.forecast).toBe(full);
+    expect(premium.forecast).toEqual(month);
   });
 });

@@ -5,6 +5,7 @@ import {
   hasAppVoiceViolation,
   withAppVoiceVersion,
 } from './appVoice';
+import { PERSONAL_FORECAST_SEMANTICS_VERSION } from './personalForecastSemantics';
 
 export type PersonalForecastPeriod = 'day' | 'week' | 'month' | 'year';
 
@@ -65,15 +66,7 @@ export type CalculatedAstroEvidence = {
   endsAt?: string | null;
   strength: number;
   polarity: 'supporting' | 'challenging' | 'mixed' | 'neutral';
-  topicKeys: ForecastTopicKey[];
   calculationSource: string;
-};
-
-export type TopicEvidence = {
-  primary: CalculatedAstroEvidence[];
-  supporting: CalculatedAstroEvidence[];
-  conflicting: CalculatedAstroEvidence[];
-  confidence: 'high' | 'medium' | 'low';
 };
 
 export type ForecastEvidenceView = {
@@ -103,6 +96,22 @@ export type ForecastLockedPreview = {
   teaser: string;
 };
 
+export type ForecastContentBlockRole = 'lead' | 'detail' | 'risk' | 'action';
+
+/**
+ * A writer may phrase an approved semantic atom, but it may not invent a new
+ * claim. Keeping the atom and fact identifiers beside the rendered sentence
+ * makes that boundary independently verifiable.
+ */
+export type ForecastContentBlock = {
+  id: string;
+  role: ForecastContentBlockRole;
+  text: string;
+  semanticFactId: string;
+  atomId: string;
+  explanationAnchorId?: string | null;
+};
+
 export type ForecastSection = {
   id: string;
   kind: ForecastSectionKind;
@@ -112,6 +121,9 @@ export type ForecastSection = {
   sourceTopicKey?: ForecastTopicKey;
   title?: string;
   text: string;
+  contentBlocks: ForecastContentBlock[];
+  semanticFactIds: string[];
+  semanticFingerprint: string;
   importance: number;
   visualTag: string;
   premiumTeaser: string;
@@ -148,6 +160,10 @@ export type PersonalForecastPackage = {
     promptVersion: string;
     voiceVersion: string;
     calculationVersion: string | null;
+    semanticVersion: string;
+    contractVersion: string;
+    generationAttempts: 0 | 1 | 2;
+    validationStatus: 'valid' | 'deterministic_fallback';
     generatedAt: string;
     status: 'ready' | 'generating' | 'unavailable';
     diagnosticCode?: string | null;
@@ -196,9 +212,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v4.4.editorial-feed',
+  'personal-forecast-feed.v5.semantic-writer',
 );
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v3';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v4';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -283,7 +300,7 @@ const OVERVIEW_TEXT_MIN = 450;
 const OVERVIEW_TEXT_MAX = 650;
 const SECTION_TEXT_MIN = 180;
 const SECTION_TEXT_MAX = 280;
-const EXPLANATION_TEXT_MIN = 120;
+const EXPLANATION_TEXT_MIN = 40;
 const EXPLANATION_TEXT_MAX = 220;
 
 const SECTION_TEXT_HARD_LIMITS: Record<PersonalForecastPeriod, number> = {
@@ -563,6 +580,7 @@ export function buildPersonalForecastChartFingerprint(chart: NatalChartData): st
         }
       : null,
     calculationVersion: chart.calculationVersion || null,
+    calculationMetadata: chart.calculationMetadata || null,
   });
   return stableHash(value).toString(36);
 }
@@ -596,11 +614,13 @@ export function buildPersonalForecastCacheKey(input: {
     input.chartData.calculationVersion || 'unknown',
     buildPersonalForecastChartFingerprint(input.chartData),
     PERSONAL_FORECAST_CALCULATION_VERSION,
+    PERSONAL_FORECAST_SEMANTICS_VERSION,
+    PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
     APP_VOICE_VERSION,
     input.modelId,
   ].join('|');
-  return `personal-forecast-feed-v3:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
+  return `personal-forecast-feed-v4:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
 }
 
 export function buildPersonalForecastInputHash(input: {
@@ -617,6 +637,8 @@ export function buildPersonalForecastInputHash(input: {
     ...input,
     chartData: buildPersonalForecastChartFingerprint(input.chartData),
     calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
+    semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+    contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
     promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     voiceVersion: APP_VOICE_VERSION,
   })).toString(36);
@@ -738,6 +760,64 @@ function previewValid(input: {
   );
 }
 
+function contentBlocksValid(
+  section: ForecastSection,
+  redacted: boolean,
+): boolean {
+  if (
+    !Array.isArray(section.contentBlocks)
+    || !Array.isArray(section.semanticFactIds)
+    || typeof section.semanticFingerprint !== 'string'
+  ) {
+    return false;
+  }
+  if (redacted || section.status === 'unavailable') {
+    return (
+      section.contentBlocks.length === 0
+      && section.semanticFactIds.length === 0
+      && section.semanticFingerprint === ''
+    );
+  }
+  if (
+    section.contentBlocks.length < 1
+    || section.contentBlocks.length > 4
+    || section.semanticFactIds.length < 1
+    || section.semanticFactIds.length > 3
+    || new Set(section.semanticFactIds).size !== section.semanticFactIds.length
+    || !section.semanticFingerprint.trim()
+  ) {
+    return false;
+  }
+  const blockIds = new Set<string>();
+  const anchorIds = new Set(section.explanationAnchors.map((anchor) => anchor.id));
+  for (const block of section.contentBlocks) {
+    if (
+      !block
+      || typeof block !== 'object'
+      || typeof block.id !== 'string'
+      || !block.id.trim()
+      || blockIds.has(block.id)
+      || !(['lead', 'detail', 'risk', 'action'] as const).includes(block.role)
+      || typeof block.text !== 'string'
+      || !block.text.trim()
+      || block.text.length > 520
+      || typeof block.semanticFactId !== 'string'
+      || !section.semanticFactIds.includes(block.semanticFactId)
+      || typeof block.atomId !== 'string'
+      || !block.atomId.trim()
+      || (
+        block.explanationAnchorId !== undefined
+        && block.explanationAnchorId !== null
+        && !anchorIds.has(block.explanationAnchorId)
+      )
+    ) {
+      return false;
+    }
+    blockIds.add(block.id);
+  }
+  return section.text === section.contentBlocks.map((block) => block.text.trim()).join('\n\n');
+}
+
 function sectionValid(
   value: unknown,
   period: PersonalForecastPeriod,
@@ -749,7 +829,9 @@ function sectionValid(
   if (
     typeof section.id !== 'string'
     || !section.id.trim()
-    || !(['overview', 'fixed', 'dynamic', 'astro_accent', 'wishes'] as const).includes(section.kind)
+    || !(['overview', 'dynamic'] as const).includes(
+      section.kind as 'overview' | 'dynamic',
+    )
     || !(['ready', 'unavailable'] as const).includes(section.status)
     || (
       section.status === 'ready'
@@ -785,6 +867,7 @@ function sectionValid(
     || (redacted
       ? section.explanationAnchors.length > 0
       : section.explanationAnchors.some((anchor) => !anchorValid(anchor, evidenceIds, period)))
+    || !contentBlocksValid(section, redacted)
   ) {
     return false;
   }
@@ -819,6 +902,7 @@ function sectionValid(
   const voiceText = [
     section.title || '',
     section.text,
+    ...section.contentBlocks.map((block) => block.text),
     section.premiumTeaser,
     section.lockedPreview.lead,
     section.lockedPreview.blurred,
@@ -874,96 +958,26 @@ function evidenceRecordValid(value: unknown): value is Record<string, ForecastEv
 
 function canonicalSectionIdentityValid(
   section: ForecastSection,
-  period: PersonalForecastPeriod,
+  _period: PersonalForecastPeriod,
 ): boolean {
-  if (section.kind === 'fixed' || section.kind === 'wishes') {
-    if (!section.fixedKey) return false;
-    const expectedTitles = section.fixedKey === 'wishes'
-      ? [
-          FORECAST_WISHES_TITLES.ru[period],
-          FORECAST_WISHES_TITLES.en[period],
-        ]
-      : [
-          FORECAST_FIXED_TITLES.ru[section.fixedKey],
-          FORECAST_FIXED_TITLES.en[section.fixedKey],
-        ];
-    return (
-      section.id === section.fixedKey
-      && section.sourceTopicKey === section.fixedKey
-      && section.kind === (section.fixedKey === 'wishes' ? 'wishes' : 'fixed')
-      && typeof section.title === 'string'
-      && expectedTitles.includes(section.title)
-    );
-  }
   if (section.kind === 'dynamic') {
     return (
-      !!section.sourceTopicKey
-      && DYNAMIC_FORECAST_TOPIC_KEYS.includes(
-        section.sourceTopicKey as DynamicForecastTopicKey,
-      )
-      && section.id === `dynamic:${section.sourceTopicKey}`
-      && section.fixedKey === undefined
-    );
-  }
-  if (section.kind === 'astro_accent') {
-    return (
-      section.id.startsWith('astro:')
-      && !!section.sourceTopicKey
-      && VALID_FORECAST_SECTION_TOPIC_KEYS.has(section.sourceTopicKey)
+      section.id.startsWith('semantic:')
       && typeof section.title === 'string'
-      && !!section.title.trim()
-      && section.title.length <= 96
+      && isSimpleDynamicTitle(section.title)
       && section.fixedKey === undefined
+      && section.sourceTopicKey === undefined
     );
   }
   return false;
 }
 
-const VALID_FORECAST_SECTION_TOPIC_KEYS = new Set<ForecastTopicKey>([
-  'overview',
-  ...FIXED_FORECAST_SECTION_KEYS,
-  ...DYNAMIC_FORECAST_TOPIC_KEYS,
-]);
-
 function crossPeriodLinksValid(
   value: unknown,
-  window: PersonalForecastWindow,
-  sections: ForecastSection[],
+  _window: PersonalForecastWindow,
+  _sections: ForecastSection[],
 ): value is CrossPeriodLink[] {
-  if (!Array.isArray(value) || value.length > 2) return false;
-  const expectedTarget = nextPersonalForecastPeriod(window.period);
-  const stableSections = new Set(
-    sections
-      .filter((section) => section.kind === 'fixed' && section.fixedKey !== 'wishes')
-      .map((section) => section.id),
-  );
-  const ids = new Set<string>();
-  return value.every((raw, index) => {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
-    const link = raw as CrossPeriodLink;
-    if (
-      typeof link.id !== 'string'
-      || !link.id.trim()
-      || ids.has(link.id)
-      || link.id !== `${window.period}:${link.fromSectionId}:${expectedTarget}:${index}`
-      || link.targetPeriod !== expectedTarget
-      || typeof link.fromSectionId !== 'string'
-      || !stableSections.has(link.fromSectionId)
-      || link.targetSectionId !== link.fromSectionId
-      || typeof link.label !== 'string'
-      || !link.label.trim()
-      || ![
-        `Продолжение темы — в периоде «${expectedTarget === 'week' ? 'Неделя' : expectedTarget === 'month' ? 'Месяц' : 'Год'}»`,
-        `Continue this topic in ${expectedTarget === 'week' ? 'Week' : expectedTarget === 'month' ? 'Month' : 'Year'}`,
-      ].includes(link.label)
-      || !validIsoTimestamp(link.continuationAt)
-      || new Date(link.continuationAt).getTime() <= window.endsAt.getTime()
-    ) {
-      return false;
-    }
-    ids.add(link.id);
-    return true;
-  });
+  return Array.isArray(value) && value.length === 0;
 }
 
 function visualValid(
@@ -1002,6 +1016,12 @@ export function isPersonalForecastPackage(
     || forecast.meta?.promptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
     || forecast.meta?.voiceVersion !== APP_VOICE_VERSION
     || forecast.meta?.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
+    || forecast.meta?.semanticVersion !== PERSONAL_FORECAST_SEMANTICS_VERSION
+    || forecast.meta?.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
+    || !([0, 1, 2] as const).includes(forecast.meta?.generationAttempts)
+    || !(['valid', 'deterministic_fallback'] as const).includes(
+      forecast.meta?.validationStatus,
+    )
     || forecast.meta?.status !== 'ready'
     || !validIsoTimestamp(forecast.meta.generatedAt)
     || (
@@ -1083,25 +1103,17 @@ export function isPersonalForecastPackage(
   ) {
     return false;
   }
-  const fixedOrder = forecast.sections
-    .filter((section) => section.kind === 'fixed' || section.kind === 'wishes')
-    .map((section) => section.fixedKey);
-  if (
-    fixedOrder.length !== FIXED_FORECAST_SECTION_KEYS.length
-    || fixedOrder.some((key, index) => key !== FIXED_FORECAST_SECTION_KEYS[index])
-  ) {
+  if (forecast.sections.length < 1 || forecast.sections.length > 5) {
     return false;
   }
-  const dynamic = forecast.sections.filter((section) => section.kind === 'dynamic');
-  const dynamicTopics = dynamic.map((section) => section.sourceTopicKey);
-  const astroAccents = forecast.sections.filter(
-    (section) => section.kind === 'astro_accent',
-  );
   if (
-    dynamic.length < 2
-    || dynamic.length > 4
-    || new Set(dynamicTopics).size !== dynamicTopics.length
-    || astroAccents.length > 2
+    forecast.sections.some((section) => section.status !== 'ready')
+    || new Set(
+      [forecast.overview, ...forecast.sections]
+        .filter((section) => !redactedSectionIds.has(section.id))
+        .map((section) => section.semanticFingerprint),
+    ).size !== [forecast.overview, ...forecast.sections]
+      .filter((section) => !redactedSectionIds.has(section.id)).length
   ) {
     return false;
   }
@@ -1118,14 +1130,19 @@ export function isPersonalForecastPackage(
     const rotatedSectionId = freeSelection.rotatedSectionId;
     if (
       typeof strongestSectionId !== 'string'
-      || typeof rotatedSectionId !== 'string'
-      || strongestSectionId === rotatedSectionId
-      || freeSelection.sectionIds.length !== 2
+      || freeSelection.sectionIds.length < 1
+      || freeSelection.sectionIds.length > 2
       || freeSelection.sectionIds[0] !== strongestSectionId
-      || freeSelection.sectionIds[1] !== rotatedSectionId
-      || new Set(freeSelection.sectionIds).size !== 2
+      || (freeSelection.sectionIds.length === 2
+        ? (
+          typeof rotatedSectionId !== 'string'
+          || strongestSectionId === rotatedSectionId
+          || freeSelection.sectionIds[1] !== rotatedSectionId
+        )
+        : rotatedSectionId !== null)
+      || new Set(freeSelection.sectionIds).size !== freeSelection.sectionIds.length
       || !eligibleIds.has(strongestSectionId)
-      || !eligibleIds.has(rotatedSectionId)
+      || (rotatedSectionId !== null && !eligibleIds.has(rotatedSectionId))
       || candidates[0]?.id !== strongestSectionId
     ) {
       return false;
@@ -1143,7 +1160,7 @@ export function isPersonalForecastPackage(
 function freeCandidates(sections: ForecastSection[]): ForecastSection[] {
   return sections
     .filter((section) => section.status === 'ready')
-    .filter((section) => section.kind === 'fixed' || section.kind === 'dynamic')
+    .filter((section) => section.kind !== 'astro_accent')
     .filter((section) => section.fixedKey !== 'wishes')
     .sort((a, b) => b.importance - a.importance || a.id.localeCompare(b.id));
 }
@@ -1166,7 +1183,7 @@ export function selectTodayFreeSections(input: {
     .filter((section) => !previous.has(section.id));
   const pool = fresh.length ? fresh : candidates.slice(1, 6);
   const rotated = pool.length
-    ? pool[stableHash(`${input.userId}|${input.periodKey}|free-rotation-v3`) % pool.length].id
+    ? pool[stableHash(`${input.userId}|${input.periodKey}|free-rotation-v4`) % pool.length].id
     : null;
   return {
     strongestSectionId: strongest,
@@ -1188,6 +1205,9 @@ function emptySection(
     fixedKey,
     sourceTopicKey: fixedKey || 'overview',
     text: '',
+    contentBlocks: [],
+    semanticFactIds: [],
+    semanticFingerprint: '',
     importance: 0,
     visualTag: fixedKey || 'overview',
     premiumTeaser: '',
@@ -1214,12 +1234,7 @@ export function createUnavailablePersonalForecast(
     dateLabel: formatPersonalForecastDateLabel(window, language),
     timezone: window.timezone,
     overview: emptySection('overview', 'overview'),
-    sections: FIXED_FORECAST_SECTION_KEYS.map((key) => ({
-      ...emptySection(key, key === 'wishes' ? 'wishes' : 'fixed', key),
-      title: key === 'wishes'
-        ? FORECAST_WISHES_TITLES[language][period]
-        : FORECAST_FIXED_TITLES[language][key],
-    })),
+    sections: [],
     suggestedCrossPeriodLinks: [],
     evidence: {},
     visual: { sectionAssetIds: {} },
@@ -1228,6 +1243,10 @@ export function createUnavailablePersonalForecast(
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
       voiceVersion: APP_VOICE_VERSION,
       calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
+      semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+      contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
+      generationAttempts: 0,
+      validationStatus: 'deterministic_fallback',
       generatedAt: new Date().toISOString(),
       status,
       diagnosticCode,
@@ -1248,6 +1267,9 @@ function stripLockedSection(
     ...section,
     title: preserveTodayPreview ? section.title : undefined,
     text: '',
+    contentBlocks: [],
+    semanticFactIds: [],
+    semanticFingerprint: '',
     premiumTeaser: preserveTodayPreview ? section.premiumTeaser : '',
     lockedPreview: preserveTodayPreview
       ? section.lockedPreview
@@ -1322,7 +1344,6 @@ export function slicePersonalForecastForAccess(
     ? new Set<string>()
     : new Set<string>([
         'overview',
-        'wishes',
         ...navigableForecast.meta.freeSelection.sectionIds,
       ]);
   const lockedSectionIds = allSections
