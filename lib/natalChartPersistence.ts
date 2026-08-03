@@ -1,4 +1,5 @@
 import { db } from './db';
+import { birthProfileRepository } from './birthProfileRepository';
 import { natalChartV2Repository } from './natalChartV2Repository';
 import { calculateNatalChart, resolveBirthCoordinates } from './swisseph-calculator';
 import {
@@ -44,21 +45,19 @@ function normalizeInput(args: ChartInput) {
 
 async function ensureMinimalUser(args: ChartInput, normalized: ReturnType<typeof normalizeInput>) {
   const existing = await db.users.get(args.userId);
-  if (existing) return existing;
-  await db.users.set(args.userId, {
-    name: args.name,
-    birth_date: normalized.birthDate,
-    birth_time: normalized.time.localTime,
-    birth_time_mode: normalized.time.mode,
-    birth_time_uncertainty_minutes: normalized.time.uncertaintyMinutes,
-    birth_time_range_start: normalized.time.rangeStart,
-    birth_time_range_end: normalized.time.rangeEnd,
-    birth_place: normalized.birthPlace,
-    is_setup: false,
-    language: args.language || 'ru',
-    theme: 'light',
-    is_admin: false,
-  });
+  if (!existing) {
+    await db.users.set(args.userId, {
+      name: args.name,
+      birth_date: normalized.birthDate,
+      birth_time: normalized.time.localTime,
+      birth_place: normalized.birthPlace,
+      is_setup: false,
+      language: args.language || 'ru',
+      theme: 'light',
+      is_admin: false,
+    });
+  }
+  await birthProfileRepository.set(args.userId, normalized.time);
   return db.users.get(args.userId);
 }
 
@@ -129,6 +128,7 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
 
 export async function repairCanonicalChartForUser(userId:string) {
   const user = await db.users.get(userId);
+  const birthSettings = await birthProfileRepository.get(userId);
   const chart = await natalChartV2Repository.getPrimary(userId);
   const birthDate = normalizeBirthDateInput(chart?.birth_date || user?.birth_date);
   const birthPlace = normalizeBirthPlaceInput(chart?.birth_place || user?.birth_place);
@@ -138,10 +138,10 @@ export async function repairCanonicalChartForUser(userId:string) {
     name:(user?.name || chart?.name || 'Chart').trim(),
     birthDate,
     birthTime:chart?.birth_time || user?.birth_time || '',
-    birthTimeMode:chart?.birth_time_mode || user?.birth_time_mode || undefined,
-    birthTimeUncertaintyMinutes:chart?.birth_time_uncertainty_minutes ?? user?.birth_time_uncertainty_minutes ?? null,
-    birthTimeRangeStart:chart?.birth_time_range_start || user?.birth_time_range_start || null,
-    birthTimeRangeEnd:chart?.birth_time_range_end || user?.birth_time_range_end || null,
+    birthTimeMode:chart?.birth_time_mode || birthSettings?.birth_time_mode || undefined,
+    birthTimeUncertaintyMinutes:chart?.birth_time_uncertainty_minutes ?? birthSettings?.birth_time_uncertainty_minutes ?? null,
+    birthTimeRangeStart:chart?.birth_time_range_start || birthSettings?.birth_time_range_start || null,
+    birthTimeRangeEnd:chart?.birth_time_range_end || birthSettings?.birth_time_range_end || null,
     birthPlace,
     language:user?.language || 'ru',
   });
