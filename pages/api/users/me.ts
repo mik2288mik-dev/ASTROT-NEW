@@ -2,17 +2,17 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { toPublicAppProfile } from '../../../lib/auth/profile';
 import { db } from '../../../lib/db';
+import { birthProfileRepository } from '../../../lib/birthProfileRepository';
 import { handleAdminError } from '../../../lib/adminAuth';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  try {
-    const auth = await requireAppUser(req, { allowGuest: true });
-    const user = await db.users.get(auth.userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if ((user as { is_blocked?: boolean }).is_blocked) {
-      return res.status(403).json({ error: 'ACCOUNT_BLOCKED', code: 'ACCOUNT_BLOCKED', message: 'Аккаунт заблокирован.' });
-    }
-    return res.status(200).json(toPublicAppProfile(user, auth));
-  } catch (error) { return handleAdminError(res, error); }
+export default async function handler(req:NextApiRequest,res:NextApiResponse){
+  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
+  try{
+    const auth=await requireAppUser(req,{allowGuest:true});
+    const user=await db.users.get(auth.userId);
+    if(!user)return res.status(404).json({error:'User not found'});
+    if((user as {is_blocked?:boolean}).is_blocked)return res.status(403).json({error:'ACCOUNT_BLOCKED',code:'ACCOUNT_BLOCKED',message:'Аккаунт заблокирован.'});
+    const birthSettings=await birthProfileRepository.get(auth.userId);
+    return res.status(200).json(toPublicAppProfile({...user,...birthSettings},auth));
+  }catch(error){return handleAdminError(res,error);}
 }
