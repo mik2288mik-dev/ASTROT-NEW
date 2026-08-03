@@ -1,0 +1,1 @@
+Temporary CI probe for natal chart v2 after main fixes.
