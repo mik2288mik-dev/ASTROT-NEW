@@ -1,20 +1,8 @@
-import type { BirthTimeInput, BirthTimeInterval, BirthTimeMode } from './birthTime';
+import type { BirthTimeInput, BirthTimeInterval, BirthTimeMode, BirthTimeUncertaintyMinutes } from './birthTime';
 
 export type NatalBodyKey =
-  | 'sun'
-  | 'moon'
-  | 'mercury'
-  | 'venus'
-  | 'mars'
-  | 'jupiter'
-  | 'saturn'
-  | 'uranus'
-  | 'neptune'
-  | 'pluto'
-  | 'chiron'
-  | 'northNode'
-  | 'southNode';
-
+  | 'sun' | 'moon' | 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn'
+  | 'uranus' | 'neptune' | 'pluto' | 'chiron' | 'northNode' | 'southNode';
 export type NatalAngleKey = 'ascendant' | 'mc' | 'descendant' | 'ic';
 export type NatalReliability = 'exact' | 'stable_in_range' | 'variable_in_range';
 
@@ -38,11 +26,7 @@ export interface NatalPositionV2 {
   house: number | null;
   source: 'swisseph' | 'derived';
   reliability: NatalReliability;
-  stable: {
-    sign: boolean;
-    retrograde: boolean;
-    house: boolean;
-  };
+  stable: { sign: boolean; retrograde: boolean; house: boolean };
   range?: LongitudeRange;
   description?: string;
 }
@@ -84,10 +68,7 @@ export interface NatalAspectV2 {
   angle: number;
   angularDistance: number;
   orb: number;
-  orbRange: {
-    min: number;
-    max: number;
-  };
+  orbRange: { min: number; max: number };
   from: string;
   to: string;
   fromKey: NatalBodyKey | NatalAngleKey;
@@ -150,7 +131,6 @@ export interface NatalChartDataV2 {
   chartQuality: NatalChartQualityV2;
   calculationMetadata: NatalCalculationMetadataV2;
   calculationVersion: string;
-
   sun: NatalPositionV2;
   moon: NatalPositionV2;
   mercury: NatalPositionV2;
@@ -170,11 +150,27 @@ export interface NatalChartDataV2 {
   longitude: number;
   timezone: string;
   birthTimeQuality: 'exact' | 'approximate' | 'unknown';
-
-  // Old text fields are intentionally not produced. Optional declarations only
-  // keep the current UI compiling until the professional report layer replaces it.
   element?: string;
   rulingPlanet?: string;
   summary?: string;
   keywords?: { love: string; career: string; karma: string };
+}
+
+declare module '../types' {
+  interface UserProfile {
+    birthTimeMode?: BirthTimeMode;
+    birthTimeUncertaintyMinutes?: BirthTimeUncertaintyMinutes | null;
+    birthTimeRangeStart?: string | null;
+    birthTimeRangeEnd?: string | null;
+  }
+
+  interface NatalChartData {
+    schemaVersion?: 'natal-chart-data-v2';
+    birth?: NatalBirthContextV2;
+    positions?: Record<NatalBodyKey, NatalPositionV2>;
+    angles?: Record<NatalAngleKey, NatalAngleV2 | null>;
+    northNode?: NatalPositionV2 | null;
+    southNode?: NatalPositionV2 | null;
+    mc?: NatalAngleV2 | null;
+  }
 }
