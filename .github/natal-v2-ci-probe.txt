@@ -1,0 +1,1 @@
+Temporary CI probe for the natal chart v2 calculation migration.
