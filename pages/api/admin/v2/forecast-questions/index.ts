@@ -21,7 +21,6 @@ const PERIODS = new Set<PersonalForecastQuestionPeriod>([
   'day',
   'week',
   'month',
-  'year',
 ]);
 const SOURCES = new Set<PersonalForecastQuestionSource>(['catalog', 'custom']);
 

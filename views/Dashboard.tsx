@@ -70,7 +70,6 @@ const PERIOD_TABS: ReadonlyArray<{
   { id: 'day', ru: 'Сегодня', en: 'Today' },
   { id: 'week', ru: 'Неделя', en: 'Week' },
   { id: 'month', ru: 'Месяц', en: 'Month' },
-  { id: 'year', ru: 'Год', en: 'Year' },
 ] as const;
 
 function periodTabLabel(
@@ -89,14 +88,12 @@ function personalForecastIntro(
       day: 'A personal forecast for today based on your natal chart and today’s calculations.',
       week: 'A personal forecast for this week based on your natal chart and weekly calculations.',
       month: 'A personal forecast for this month based on your natal chart and monthly calculations.',
-      year: 'A personal forecast for this year based on your natal chart and yearly calculations.',
     }[period];
   }
   return {
     day: 'Личный прогноз на сегодня по твоей натальной карте и расчётам дня.',
     week: 'Личный прогноз на неделю по твоей натальной карте и расчётам недели.',
     month: 'Личный прогноз на месяц по твоей натальной карте и расчётам месяца.',
-    year: 'Личный прогноз на год по твоей натальной карте и расчётам года.',
   }[period];
 }
 
@@ -220,7 +217,6 @@ export const Dashboard = memo<DashboardProps>(({
     day: emptyPeriodState(),
     week: emptyPeriodState(),
     month: emptyPeriodState(),
-    year: emptyPeriodState(),
   });
   const [compactTabsVisible, setCompactTabsVisible] = useState(false);
   const [feedScrolling, setFeedScrolling] = useState(false);
@@ -240,7 +236,6 @@ export const Dashboard = memo<DashboardProps>(({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
     week: getPersonalForecastPeriodKey('week', new Date(), timezone),
     month: getPersonalForecastPeriodKey('month', new Date(), timezone),
-    year: getPersonalForecastPeriodKey('year', new Date(), timezone),
   }), [currentDateKey, timezone]);
 
   const contextKey = useMemo(() => [
@@ -271,7 +266,6 @@ export const Dashboard = memo<DashboardProps>(({
         day: emptyPeriodState(),
         week: emptyPeriodState(),
         month: emptyPeriodState(),
-        year: emptyPeriodState(),
       });
       return;
     }
@@ -286,7 +280,6 @@ export const Dashboard = memo<DashboardProps>(({
       day: { result: day, phase: day ? 'ready' : 'idle' },
       week: emptyPeriodState(),
       month: emptyPeriodState(),
-      year: emptyPeriodState(),
     });
   }, [
     chartData,
@@ -900,8 +893,8 @@ export const Dashboard = memo<DashboardProps>(({
               </p>
           <p>
             {language === 'ru'
-              ? 'Сегодня обновляется каждый день, Неделя — по границе недели, Месяц и Год — по календарной границе. Изменение данных рождения или версии расчёта создаёт новый разбор.'
-              : 'Today updates daily, Week at the week boundary, and Month and Year at their calendar boundaries. Changing birth data or the calculation version creates a new reading.'}
+              ? 'Сегодня обновляется каждый день, Неделя — по границе недели, Месяц — по календарной границе. Изменение данных рождения или версии расчёта создаёт новый разбор.'
+              : 'Today updates daily, Week at the week boundary, and Month at its calendar boundary. Changing birth data or the calculation version creates a new reading.'}
           </p>
           <p>
             {language === 'ru'

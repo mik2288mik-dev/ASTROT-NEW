@@ -121,10 +121,10 @@ describe('personal forecast approved question catalog', () => {
       'ru',
       'month',
     );
-    const career = searchApprovedPersonalForecastQuestions('car', 'en', 'year');
+    const career = searchApprovedPersonalForecastQuestions('car', 'en', 'month');
     const itQuestions = getApprovedPersonalForecastQuestions({
       language: 'ru',
-      period: 'year',
+      period: 'month',
       query: 'IT',
       themes: ['it'],
     });

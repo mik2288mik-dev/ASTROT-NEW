@@ -35,7 +35,6 @@ const DAILY_PERIODIC: Array<{ surface: string; variant: string }> = [
   { surface: 'forecast', variant: 'daily' },
   { surface: 'forecast', variant: 'weekly' },
   { surface: 'forecast', variant: 'monthly' },
-  { surface: 'forecast', variant: 'yearly' },
 ];
 
 const TODAY = getMoscowTodayKey();
@@ -94,7 +93,6 @@ describe('content cache architecture', () => {
       expect(getDefaultCacheKeyForContent('forecast', 'daily')).toBe(TODAY);
       expect(getDefaultCacheKeyForContent('forecast', 'weekly')).toBe(ISO_WEEK);
       expect(getDefaultCacheKeyForContent('forecast', 'monthly')).toBe(MONTH);
-      expect(getDefaultCacheKeyForContent('forecast', 'yearly')).toMatch(/^\d{4}$/);
     });
   });
 

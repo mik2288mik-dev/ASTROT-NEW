@@ -160,7 +160,6 @@ describe('personal forecast V4 semantic contract', () => {
     const instant = new Date('2026-01-01T22:30:00.000Z');
     expect(getPersonalForecastPeriodKey('day', instant, 'Europe/Moscow')).toBe('2026-01-02');
     expect(getPersonalForecastPeriodKey('month', instant, 'America/New_York')).toBe('2026-01');
-    expect(getPersonalForecastPeriodKey('year', instant, 'America/New_York')).toBe('2026');
 
     const week = resolvePersonalForecastWindow('week', '2026-W30', 'Europe/Moscow');
     expect(week.periodStart).toBe('2026-07-20');

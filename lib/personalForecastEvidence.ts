@@ -294,7 +294,7 @@ export function buildPersonalForecastSampleDates(
 ): Date[] {
   const start = window.startsAt.getTime();
   const end = window.endsAt.getTime();
-  const stepHours = period === 'day' ? 3 : period === 'week' ? 24 : period === 'month' ? 24 : 120;
+  const stepHours = period === 'day' ? 3 : 24;
   const step = stepHours * 60 * 60 * 1000;
   const values: Date[] = [];
   for (let timestamp = start; timestamp <= end; timestamp += step) {
@@ -310,7 +310,6 @@ export function buildPersonalForecastContinuationSampleDates(
   period: PersonalForecastPeriod,
   window: PersonalForecastWindow,
 ): Date[] {
-  if (period === 'year') return [];
   const lookaheadDays = period === 'day' ? 7 : period === 'week' ? 31 : 90;
   const stepHours = period === 'day' ? 6 : period === 'week' ? 24 : 120;
   const step = stepHours * 60 * 60 * 1000;
@@ -332,9 +331,6 @@ function shouldKeepAspect(
 ): boolean {
   const transit = observations[0]?.transitPlanet;
   const minOrb = Math.min(...observations.map((item) => item.orb));
-  if (period === 'year' && (transit === 'moon' || transit === 'sun' || transit === 'mercury' || transit === 'venus')) {
-    return false;
-  }
   if (period === 'month' && transit === 'moon') return false;
   if (period === 'week' && transit === 'moon') {
     return observations.length >= 2 || minOrb <= 0.5;
@@ -444,7 +440,6 @@ function buildContinuationAspectEvidence(
   snapshots: Array<{ at: Date; transits: CurrentTransits }>,
   boundary: Date,
 ): PersonalForecastCalculatedEvidence[] {
-  if (period === 'year') return [];
   const boundaryTime = boundary.getTime();
   const maxBridgeHours = period === 'day' ? 6 : period === 'week' ? 24 : 120;
   const maxBridgeMs = maxBridgeHours * 60 * 60 * 1000;
@@ -489,12 +484,6 @@ function shouldIncludeLongPeriodTransit(
   period: PersonalForecastPeriod,
   planet: typeof TRANSIT_KEYS[number],
 ): boolean {
-  if (
-    period === 'year'
-    && ['moon', 'sun', 'mercury', 'venus'].includes(planet)
-  ) {
-    return false;
-  }
   return period !== 'month' || planet !== 'moon';
 }
 
@@ -575,7 +564,6 @@ function buildLunationEvidence(
   periodKey: string,
   snapshots: Array<{ at: Date; transits: CurrentTransits }>,
 ): PersonalForecastCalculatedEvidence[] {
-  if (period === 'year') return [];
   const candidates = snapshots.flatMap((snapshot) => {
     const sun = transitLongitude(snapshot.transits.sun);
     const moon = transitLongitude(snapshot.transits.moon);

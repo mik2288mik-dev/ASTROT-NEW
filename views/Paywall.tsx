@@ -109,7 +109,6 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         { label: 'Полный разбор натала — 10 тем', free: false },
         { label: 'Совместимость по двум картам', free: false },
         { label: 'Гороскоп на неделю и месяц для всех знаков', free: false },
-        { label: 'Годовые прогнозы', free: false },
       ]
     : [
         { label: 'Daily sign horoscope', free: true },
@@ -118,7 +117,6 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         { label: 'Full natal reading — 10 topics', free: false },
         { label: 'Two-chart compatibility', free: false },
         { label: 'Weekly and monthly horoscope for every sign', free: false },
-        { label: 'Yearly forecasts', free: false },
       ];
 
   const priceText = (id: PremiumPlanId) => (

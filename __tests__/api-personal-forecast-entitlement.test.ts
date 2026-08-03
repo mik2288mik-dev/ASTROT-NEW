@@ -57,7 +57,7 @@ describe('personal forecast API entitlement', () => {
     mockGetCachedPersonalForecast.mockResolvedValue(null);
   });
 
-  it.each(['week', 'month', 'year'])(
+  it.each(['week', 'month'])(
     'returns a personalized redacted %s preview to Free without exposing full text',
     async (period) => {
       const forecast = {

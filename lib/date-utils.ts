@@ -59,7 +59,6 @@ function getDateOnlyParts(value: DateLike) {
     day: String(date.getUTCDate()).padStart(2, '0'),
   };
 }
-
 export function getMoscowTodayKey(now: Date = new Date()): string {
   const { year, month, day } = getDatePartsForTimeZone(now, MOSCOW_TIME_ZONE);
   return `${year}-${month}-${day}`;
@@ -107,14 +106,8 @@ export function getMoscowMonthKey(now: Date = new Date()): string {
   return `${year}-${month}`;
 }
 
-/** Calendar year in Moscow `YYYY`. */
-export function getMoscowYearKey(now: Date = new Date()): string {
-  return getDatePartsForTimeZone(now, MOSCOW_TIME_ZONE).year;
-}
-
 const ISO_WEEK_KEY = /^(\d{4})-W(\d{2})$/;
 const MONTH_KEY = /^(\d{4})-(\d{2})$/;
-const YEAR_KEY = /^(\d{4})$/;
 
 export function isValidMoscowIsoWeekKey(key: string): boolean {
   return ISO_WEEK_KEY.test(String(key || '').trim());
@@ -125,10 +118,6 @@ export function isValidMoscowMonthKey(key: string): boolean {
   if (!m) return false;
   const mo = Number(m[2]);
   return mo >= 1 && mo <= 12;
-}
-
-export function isValidMoscowYearKey(key: string): boolean {
-  return YEAR_KEY.test(String(key || '').trim());
 }
 
 function utcDateKey(d: Date): string {
@@ -166,12 +155,6 @@ export function formatMonthPeriodLabel(periodKey: string, language: Language | s
     year: 'numeric',
     timeZone: 'UTC',
   }).format(d);
-}
-
-export function formatYearPeriodLabel(periodKey: string, language: Language | string = 'ru'): string {
-  return isValidMoscowYearKey(periodKey)
-    ? (language === 'ru' ? `${periodKey} год` : periodKey)
-    : periodKey;
 }
 
 /** Диапазон недели датами: «с 22 по 28 июня 2026 г.» (без дней недели). */
@@ -222,7 +205,6 @@ export function isoWeekToValidRangeUtc(periodKey: string): { validFrom: string; 
     validTo: `${utcDateKey(end)}T23:59:59.999Z`,
   };
 }
-
 export function monthKeyToValidRangeUtc(periodKey: string): { validFrom: string; validTo: string } {
   const m = MONTH_KEY.exec(periodKey.trim());
   if (!m) {
@@ -239,13 +221,3 @@ export function monthKeyToValidRangeUtc(periodKey: string): { validFrom: string;
   };
 }
 
-export function yearKeyToValidRangeUtc(periodKey: string): { validFrom: string; validTo: string } {
-  if (!isValidMoscowYearKey(periodKey)) {
-    const today = getMoscowTodayKey();
-    return { validFrom: `${today}T00:00:00.000Z`, validTo: `${today}T23:59:59.999Z` };
-  }
-  return {
-    validFrom: `${periodKey}-01-01T00:00:00.000Z`,
-    validTo: `${periodKey}-12-31T23:59:59.999Z`,
-  };
-}

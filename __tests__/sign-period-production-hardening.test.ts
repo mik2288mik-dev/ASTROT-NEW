@@ -3,12 +3,10 @@ import path from 'path';
 import {
   buildSignMonthlyHoroscopePrompt,
   buildSignWeeklyHoroscopePrompt,
-  buildSignYearlyHoroscopePrompt,
 } from '../lib/contentPromptBuilders';
 import {
   getMoscowIsoWeekKey,
   getMoscowMonthKey,
-  getMoscowYearKey,
 } from '../lib/date-utils';
 import { normalizeSignPeriodReading } from '../lib/horoscope/signPeriodShared';
 
@@ -71,11 +69,10 @@ describe('sign period production hardening', () => {
     expect(reading.context).toBe(fullReading.context);
   });
 
-  it('asks week, month, and year for the complete existing response shape without wellness filler', () => {
+  it('asks week and month for the complete existing response shape without wellness filler', () => {
     const prompts = [
       buildSignWeeklyHoroscopePrompt().user,
       buildSignMonthlyHoroscopePrompt().user,
-      buildSignYearlyHoroscopePrompt().user,
     ];
     for (const prompt of prompts) {
       for (const field of ['headline', 'summary', 'reading', 'focus', 'chance', 'risk', 'context', 'advice']) {
@@ -97,7 +94,6 @@ describe('sign period production hardening', () => {
   it.each([
     ['weekly', '../lib/horoscope/signWeekly', 'getCachedSignWeeklyHoroscope', 'getOrGenerateSignWeeklyHoroscope', '2026-W30', 'SIGN_WEEKLY_GENERATION_FAILED'],
     ['monthly', '../lib/horoscope/signMonthly', 'getCachedSignMonthlyHoroscope', 'getOrGenerateSignMonthlyHoroscope', '2026-07', 'SIGN_MONTHLY_GENERATION_FAILED'],
-    ['yearly', '../lib/horoscope/signYearly', 'getCachedSignYearlyHoroscope', 'getOrGenerateSignYearlyHoroscope', '2026', 'SIGN_YEARLY_GENERATION_FAILED'],
   ])('%s keeps the full cached shape and never inserts a fallback after model failure', async (
     _label,
     modulePath,
@@ -117,9 +113,7 @@ describe('sign period production hardening', () => {
     expect(cached).toEqual({
       date: periodKey,
       ...fullReading,
-      context: _label === 'yearly'
-        ? 'Это общий разбор для твоего знака. Личная картина начинается с натальной карты.'
-        : fullReading.context,
+      context: fullReading.context,
     });
     await expect(module[generateExport]('leo', periodKey, 'ru')).rejects.toMatchObject({
       code: errorCode,
@@ -130,7 +124,6 @@ describe('sign period production hardening', () => {
   it.each([
     ['weekly', '../pages/api/content/horoscope/sign-weekly', getMoscowIsoWeekKey(), 'SIGN_WEEKLY_GENERATION_FAILED'],
     ['monthly', '../pages/api/content/horoscope/sign-monthly', getMoscowMonthKey(), 'SIGN_MONTHLY_GENERATION_FAILED'],
-    ['yearly', '../pages/api/content/horoscope/sign-yearly', getMoscowYearKey(), 'SIGN_YEARLY_GENERATION_FAILED'],
   ])('%s handler rejects foreign periods, accepts current GET, and returns controlled 503', async (
     _label,
     modulePath,
@@ -140,22 +133,20 @@ describe('sign period production hardening', () => {
     delete process.env.OPENAI_API_KEY;
     const query = jest.fn().mockResolvedValue({ rows: [] });
     jest.doMock('../lib/db', () => ({ getPool: () => ({ query }) }));
-    if (_label !== 'yearly') {
-      jest.doMock('../lib/auth/appAuth', () => ({
-        requireAppUser: jest.fn().mockResolvedValue({
-          userId: '42',
-          sessionId: 'premium-session',
-          provider: 'native',
-          isGuest: false,
-        }),
-      }));
-      jest.doMock('../lib/contentArchitecture', () => ({
-        getPremiumEntitlementState: jest.fn().mockResolvedValue({
-          isPremium: true,
-          entitlement: { id: 7 },
-        }),
-      }));
-    }
+    jest.doMock('../lib/auth/appAuth', () => ({
+      requireAppUser: jest.fn().mockResolvedValue({
+        userId: '42',
+        sessionId: 'premium-session',
+        provider: 'native',
+        isGuest: false,
+      }),
+    }));
+    jest.doMock('../lib/contentArchitecture', () => ({
+      getPremiumEntitlementState: jest.fn().mockResolvedValue({
+        isPremium: true,
+        entitlement: { id: 7 },
+      }),
+    }));
     const handler = require(modulePath).default;
 
     const foreign = mockResponse();

@@ -6,7 +6,7 @@ Your Horoscope is a Next.js/React Telegram Mini App with PostgreSQL-backed chart
 
 ## Personal Forecast Feed
 
-The active personal forecast experience lives in `views/Dashboard.tsx`. Today, Week, Month, and Year are periods of one feed; the screen is not a set of reader pages or forecast cards.
+The active personal forecast experience lives in `views/Dashboard.tsx`. Today, Week, and Month are periods of one feed; the screen is not a set of reader pages or forecast cards.
 
 - UI components: `components/PersonalForecastFeed/`
 - Contract, cache identity, access slicing: `lib/personalForecastContract.ts`

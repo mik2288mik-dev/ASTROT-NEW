@@ -69,8 +69,8 @@ function periodLabel(
     }
   }
   const labels = language === 'ru'
-    ? { week: 'Неделя', month: 'Месяц', year: 'Год' }
-    : { week: 'Week', month: 'Month', year: 'Year' };
+    ? { week: 'Неделя', month: 'Месяц' }
+    : { week: 'Week', month: 'Month' };
   return `${labels[record.period as keyof typeof labels] || record.period} · ${record.periodKey}`;
 }
 

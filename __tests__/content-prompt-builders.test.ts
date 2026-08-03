@@ -10,7 +10,6 @@ import {
   buildSignDailyHoroscopePrompt,
   buildSignMonthlyHoroscopePrompt,
   buildSignWeeklyHoroscopePrompt,
-  buildSignYearlyHoroscopePrompt,
   buildSynastryPrompt,
   parseModelJson,
 } from '../lib/contentPromptBuilders';
@@ -23,7 +22,6 @@ const builders = [
   buildSignDailyHoroscopePrompt,
   buildSignWeeklyHoroscopePrompt,
   buildSignMonthlyHoroscopePrompt,
-  buildSignYearlyHoroscopePrompt,
   buildBlindSpotPrompt,
   buildNatalSectionPrompt,
   buildSignCompatibilityPrompt,
@@ -32,7 +30,7 @@ const builders = [
 
 describe('Lumia content prompt builders', () => {
   it('provides a dedicated versioned JSON prompt for every requested content shape', () => {
-    expect(builders).toHaveLength(10);
+    expect(builders).toHaveLength(9);
     for (const build of builders) {
       const prompt = build({ context: { example: 'разговор после работы' } });
       expect(prompt.responseFormat).toBe('json_object');
@@ -49,7 +47,7 @@ describe('Lumia content prompt builders', () => {
     expect(buildSignDailyHoroscopePrompt().user).toContain('не больше 130 слов');
     expect(buildSignDailyHoroscopePrompt().user).toContain('Не перечисляй подряд любовь');
     expect(buildSignDailyHoroscopePrompt().user).toContain('реальная фаза Луны');
-    for (const prompt of [buildSignWeeklyHoroscopePrompt(), buildSignMonthlyHoroscopePrompt(), buildSignYearlyHoroscopePrompt()]) {
+    for (const prompt of [buildSignWeeklyHoroscopePrompt(), buildSignMonthlyHoroscopePrompt()]) {
       for (const field of ['headline', 'summary', 'reading', 'focus', 'chance', 'risk', 'context', 'advice']) {
         expect(prompt.user).toContain(`"${field}"`);
       }

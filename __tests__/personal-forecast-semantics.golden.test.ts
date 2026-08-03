@@ -179,7 +179,7 @@ describe('personal forecast semantic compiler golden fixtures', () => {
     };
     const slowAspect: PersonalForecastCalculatedEvidence = {
       ...evidence[0],
-      id: 'fixture:slow-annual-aspect',
+      id: 'fixture:slow-outer-aspect',
       transitPlanet: 'pluto',
       natalPoint: 'sun',
       aspect: 'conjunction',
@@ -198,7 +198,7 @@ describe('personal forecast semantic compiler golden fixtures', () => {
       status: 'active',
       strength: 100,
     };
-    const rankedByPeriod = (['day', 'week', 'month', 'year'] as const).map((period) => (
+    const rankedByPeriod = (['day', 'week', 'month'] as const).map((period) => (
       compilePersonalForecastSemanticFacts({
         evidence: [slowAspect, houseOnly, fastAspect],
         period,
@@ -212,9 +212,6 @@ describe('personal forecast semantic compiler golden fixtures', () => {
     expect(rankedByPeriod[2].map((fact) => fact.transitPlanet)).toEqual(
       expect.arrayContaining(['mars', 'pluto']),
     );
-    expect(rankedByPeriod[3]).toHaveLength(1);
-    expect(rankedByPeriod[3][0].transitPlanet).toBe('pluto');
-
     const targetLedTopics = compilePersonalForecastSemanticFacts({
       evidence: [
         {

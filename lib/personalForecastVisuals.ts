@@ -68,7 +68,7 @@ type BackgroundAsset = {
   position: string;
 };
 
-const ALL_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month', 'year'];
+const ALL_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];
 const SERIES: ReadonlyArray<{ name: string; lightness: Lightness; position: string }> = [
   { name: 'sunset-social', lightness: 'medium', position: '50% 50%' },
   { name: 'feather-abstract', lightness: 'medium', position: '50% 50%' },
@@ -177,7 +177,7 @@ const SOURCE_THEMES: Partial<Record<ForecastTopicKey, readonly Theme[]>> = {
   self_confidence: ['mood'], important_decision: ['decisions'], future_direction: ['opportunities'], rest_recovery: ['mood'], physical_activity: ['mood'], documents_agreements: ['communication'],
 };
 const FALLBACK: Record<PersonalForecastPeriod, { accent: string; soft: string }> = {
-  day: { accent: '#f59d83', soft: '#fff2e9' }, week: { accent: '#7ea9e8', soft: '#edf4ff' }, month: { accent: '#a88ac4', soft: '#f4eff9' }, year: { accent: '#c9974f', soft: '#fbf3e4' },
+  day: { accent: '#f59d83', soft: '#fff2e9' }, week: { accent: '#7ea9e8', soft: '#edf4ff' }, month: { accent: '#a88ac4', soft: '#f4eff9' },
 };
 const MILKY_OVERLAY = 'linear-gradient(180deg, rgba(251,250,247,1) 0%, rgba(251,250,247,0.86) 20%, rgba(251,250,247,0.58) 46%, rgba(251,250,247,0.64) 66%, rgba(251,250,247,0.9) 86%, rgba(251,250,247,1) 100%)';
 const VISUAL_TREATMENT: Record<

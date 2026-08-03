@@ -8,7 +8,6 @@ export type GeneratedContentType =
   | 'sign_daily_horoscope'
   | 'sign_weekly_horoscope'
   | 'sign_monthly_horoscope'
-  | 'sign_yearly'
   | 'sign_compatibility'
   | 'blind_spot'
   | 'personal_daily'
@@ -72,12 +71,6 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
     cacheTtl: '30d', cacheScope: 'shared', promptVersion: 'sign_monthly_horoscope.v2', purpose: 'Общий гороскоп по знаку на месяц',
     style: 'Одна ясная тема месяца, конкретный разбор и до трёх разных ориентиров без повторов и фатализма.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
   },
-  sign_yearly: {
-    type: 'sign_yearly', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 0, max: 170 },
-    cacheTtl: 'forever', cacheScope: 'shared', promptVersion: 'sign_yearly.v2', purpose: 'Общий гороскоп по знаку на календарный год',
-    style: 'Одна тема года, короткий законченный разбор и до трёх неповторяющихся ориентиров; без помесячного перечисления и гарантий.',
-    placements: ['home', 'horoscope'], generationPolicy: 'explicit_only', batchSize: 12,
-  },
   sign_compatibility: {
     type: 'sign_compatibility', featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },
     cacheTtl: 'forever', cacheScope: 'shared', promptVersion: 'sign_compatibility.v2', purpose: 'Бесплатная совместимость двух знаков',
@@ -100,7 +93,7 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
   },
   deep_report: {
     type: 'deep_report', featureKey: 'deep_report', modelTier: 'deep', words: { min: 800, max: 1500 },
-    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'deep_report.v3', purpose: 'Полный натальный, синастрический или годовой отчёт',
+    cacheTtl: 'forever_until_chart_changes', cacheScope: 'chart_version', promptVersion: 'deep_report.v3', purpose: 'Полный натальный или синастрический отчёт',
     style: 'Полный структурированный отчёт; никогда не генерировать при старте приложения.', placements: ['report', 'natal', 'synastry'], generationPolicy: 'explicit_only',
   },
 };

@@ -2,8 +2,7 @@ import type { ForecastDailyReading } from '../../types';
 
 export type SignPeriodGenerationErrorCode =
   | 'SIGN_WEEKLY_GENERATION_FAILED'
-  | 'SIGN_MONTHLY_GENERATION_FAILED'
-  | 'SIGN_YEARLY_GENERATION_FAILED';
+  | 'SIGN_MONTHLY_GENERATION_FAILED';
 
 export class SignPeriodGenerationError extends Error {
   readonly code: SignPeriodGenerationErrorCode;

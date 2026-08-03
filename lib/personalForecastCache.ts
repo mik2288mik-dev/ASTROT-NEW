@@ -45,7 +45,6 @@ const VARIANT_BY_PERIOD = {
   day: 'daily',
   week: 'weekly',
   month: 'monthly',
-  year: 'yearly',
 } as const;
 
 export type PersonalForecastCacheContext = {

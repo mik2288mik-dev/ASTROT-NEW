@@ -16,7 +16,7 @@ const COPY = {
     close: 'Закрыть',
     features: [
       {
-        title: 'Сегодня, неделя, месяц и год',
+        title: 'Сегодня, неделя и месяц',
         desc: 'Готовые личные прогнозы по твоей натальной карте и выбранному периоду.',
       },
       {
@@ -40,7 +40,7 @@ const COPY = {
     close: 'Close',
     features: [
       {
-        title: 'Today, week, month, and year',
+        title: 'Today, week, and month',
         desc: 'Ready-to-read personal forecasts based on your natal chart and selected period.',
       },
       {

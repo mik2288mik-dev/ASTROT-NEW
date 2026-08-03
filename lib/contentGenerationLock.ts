@@ -4,7 +4,7 @@ import { releaseLock, tryAcquireLock } from './serverLocks';
 
 export const CONTENT_GENERATION_RETRY_AFTER_MS = 1500;
 
-export type ContentGenerationVariant = ContentVariant | 'yearly';
+export type ContentGenerationVariant = ContentVariant;
 
 export type ContentGenerationLockKeyInput = {
   userId: string;

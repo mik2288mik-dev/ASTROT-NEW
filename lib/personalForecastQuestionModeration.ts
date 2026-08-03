@@ -109,8 +109,8 @@ const THEME_KEYWORDS: Readonly<
     'decision', 'choice', 'risk', 'agreement', 'contract', 'start', 'launch',
   ],
   future: [
-    'будущ', 'вперед', 'вперёд', 'ближайшие месяцы', 'год', 'future', 'ahead',
-    'coming months', 'year',
+    'будущ', 'вперед', 'вперёд', 'ближайшие месяцы', 'future', 'ahead',
+    'coming months',
   ],
   strengths: [
     'сильн', 'способност', 'талант', 'навык', 'strength', 'ability', 'talent', 'skill',
@@ -175,11 +175,11 @@ const OFF_TOPIC_PATTERNS = [
 // a forecast about a period, direction, probability, or calculated influence.
 // Everything readable but uncertain stays pending for human moderation.
 const FORECAST_FRAME_PATTERNS = [
-  /(?:сегодня|завтра|на\s+этой\s+недел|на\s+следующей\s+недел|в\s+этом\s+месяц|в\s+следующем\s+месяц|в\s+этом\s+году|в\s+следующем\s+году|ближайш\w+\s+(?:дн|недел|месяц|год)|этот\s+период|сейчас)/iu,
+  /(?:сегодня|завтра|на\s+этой\s+недел|на\s+следующей\s+недел|в\s+этом\s+месяц|в\s+следующем\s+месяц|ближайш\w+\s+(?:дн|недел|месяц)|этот\s+период|сейчас)/iu,
   /(?:январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр)/iu,
   /(?:как|что|какие|какой|когда|стоит\s+ли|можно\s+ли|подходит\s+ли|будет\s+ли|есть\s+ли|повлияет\s+ли)\b[^?]{0,240}(?:влияет|повлияет|проявится|изменится|станет|ожидать|перспектив|тенденц|вероят|период|срок|момент|направлен)/iu,
   /(?:стоит\s+ли|можно\s+ли|подходит\s+ли|будет\s+ли|есть\s+ли|когда)\b/iu,
-  /(?:today|tomorrow|this\s+week|next\s+week|this\s+month|next\s+month|this\s+year|next\s+year|coming\s+(?:days?|weeks?|months?|years?)|this\s+period|right\s+now)/iu,
+  /(?:today|tomorrow|this\s+week|next\s+week|this\s+month|next\s+month|coming\s+(?:days?|weeks?|months?)|this\s+period|right\s+now)/iu,
   /(?:january|february|march|april|may|june|july|august|september|october|november|december)/iu,
   /(?:how|what|which|when|should|would|will|can|could|is|are|do|does)\b[^?]{0,240}(?:affect|influence|change|develop|become|expect|prospect|trend|likely|probab|period|timing|direction)/iu,
   /(?:should\s+i|would\s+it|will\s+there|is\s+this\s+period|when\s+(?:will|should|can))\b/iu,

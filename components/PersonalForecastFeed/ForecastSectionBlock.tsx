@@ -28,14 +28,12 @@ function overviewTitle(
       day: 'Your horoscope for today',
       week: 'Your horoscope for the week',
       month: 'Your horoscope for the month',
-      year: 'Your horoscope for the year',
     }[period];
   }
   return {
     day: 'Личный гороскоп на сегодня',
     week: 'Личный гороскоп на неделю',
     month: 'Личный гороскоп на месяц',
-    year: 'Личный гороскоп на год',
   }[period];
 }
 

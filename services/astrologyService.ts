@@ -126,13 +126,8 @@ async function fetchContentApi<T>(
 const signDailyClientCache = new Map<string, ForecastDailyReading>();
 const signWeeklyClientCache = new Map<string, ForecastDailyReading>();
 const signMonthlyClientCache = new Map<string, ForecastDailyReading>();
-const signYearlyClientCache = new Map<string, ForecastDailyReading>();
 
 function signWeeklyClientCacheKey(sign: string, periodKey: string, language: 'ru' | 'en') {
-  return `${sign.toLowerCase()}:${periodKey}:${language}`;
-}
-
-function signYearlyClientCacheKey(sign: string, periodKey: string, language: 'ru' | 'en') {
   return `${sign.toLowerCase()}:${periodKey}:${language}`;
 }
 
@@ -295,47 +290,6 @@ export const ensureMonthlySignHoroscope = async (
   const payload = await response.json();
   if (!payload?.reading) throw buildApiError('Monthly sign horoscope content is missing');
   signMonthlyClientCache.set(signWeeklyClientCacheKey(sign, periodKey, language), payload.reading);
-  return payload.reading as ForecastDailyReading;
-};
-
-export const getCachedYearlySignHoroscope = async (
-  sign: string,
-  periodKey: string,
-  language: 'ru' | 'en' = 'ru'
-): Promise<ForecastDailyReading | null> => {
-  const key = signYearlyClientCacheKey(sign, periodKey, language);
-  const memory = signYearlyClientCache.get(key);
-  if (memory) return memory;
-  const params = new URLSearchParams({ sign, periodKey, language });
-  const response = await apiFetch(
-    `${API_BASE_URL}/api/content/horoscope/sign-yearly?${params}`,
-    { method: 'GET', cache: 'no-store' },
-    4500
-  );
-  if (response.status === 404) return null;
-  if (!response.ok) throw buildApiError(`Yearly sign horoscope failed: ${response.status}`, response.status);
-  const payload = await response.json();
-  if (!payload?.reading) throw buildApiError('Yearly sign horoscope content is missing');
-  signYearlyClientCache.set(key, payload.reading);
-  return payload.reading as ForecastDailyReading;
-};
-
-export const ensureYearlySignHoroscope = async (
-  sign: string,
-  periodKey: string,
-  language: 'ru' | 'en' = 'ru'
-): Promise<ForecastDailyReading> => {
-  const cached = await getCachedYearlySignHoroscope(sign, periodKey, language);
-  if (cached) return cached;
-  const response = await apiFetch(`${API_BASE_URL}/api/content/horoscope/sign-yearly`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-    body: JSON.stringify({ sign, periodKey, language }),
-  }, 15000);
-  if (!response.ok) throw buildApiError(`Yearly sign horoscope failed: ${response.status}`, response.status);
-  const payload = await response.json();
-  if (!payload?.reading) throw buildApiError('Yearly sign horoscope content is missing');
-  signYearlyClientCache.set(signYearlyClientCacheKey(sign, periodKey, language), payload.reading);
   return payload.reading as ForecastDailyReading;
 };
 

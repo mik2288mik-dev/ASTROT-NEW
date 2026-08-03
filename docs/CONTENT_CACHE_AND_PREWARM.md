@@ -5,7 +5,7 @@
 | Layer | Storage | Policy |
 |---|---|---|
 | Primary natal chart | local chart cache + `natal_charts` | Reuse a valid chart; recalculate only when birth input or calculation version changes |
-| Personal Day/Week/Month/Year | local storage + `content_interpretations` | One canonical V3 feed per user/chart/period key/language/version/model |
+| Personal Day/Week/Month | local storage + `content_interpretations` | One canonical V3 feed per user/chart/period key/language/version/model |
 | Forecast questions | `personal_forecast_questions` | Reuse by exact feed input hash, user/chart fingerprint, period, question text, answer prompt and voice; store moderation and unread-answer state |
 | Sign horoscope (`Зодиак`) | `content_cache` | Shared by sign, period, language, and its own content versions |
 | Natal readings | local report cache + `content_interpretations` | Chart fingerprint and prompt/version scoped |
@@ -39,7 +39,6 @@ Storage variants are:
 | day | `daily` | local midnight to next local midnight |
 | week | `weekly` | ISO-week start to next ISO-week start |
 | month | `monthly` | calendar-month start to next month |
-| year | `yearly` | calendar-year start to next year |
 
 Rows contain canonical complete packages. Free/Premium slicing happens only after server entitlement resolution, so access tiers do not cause duplicate model generation.
 
@@ -53,7 +52,7 @@ Rows contain canonical complete packages. Free/Premium slicing happens only afte
 
 Client requests are deduplicated by full context and request mode. The client validates period, period key, prompt/voice versions, and entitlement lock metadata before memory/local writes. It accepts stripped text only for IDs explicitly listed as locked.
 
-The public generation endpoint accepts only the current timezone-aware period key. Free Week, Month, and Year responses contain only access-sliced personalized previews; their complete section text, evidence, and links remain server-redacted. Future boundary prewarm is an internal cron operation and calls the locked cache layer directly, so an authenticated client cannot request unbounded historical or future generation.
+The public generation endpoint accepts only the current timezone-aware period key. Free Week and Month responses contain only access-sliced personalized previews; their complete section text, evidence, and links remain server-redacted. Future boundary prewarm is an internal cron operation and calls the locked cache layer directly, so an authenticated client cannot request unbounded historical or future generation.
 
 The local prefix is `tvoi-goroskop:personal-forecast-feed-v3`. V2 and damaged payloads cannot validate as V3. Old server rows remain untouched and cannot match the V3 prompt/cache identity.
 
@@ -65,14 +64,13 @@ Startup never awaits model generation:
 - cache-only startup checks only the current `day` feed required by the first screen;
 - generate-missing runs in the background with client/server deduplication;
 - natal base-report prefetch remains independent and non-blocking;
-- Week, Month, Year, questions, and secondary products are not mass-generated at startup.
+- Week, Month, questions, and secondary products are not mass-generated at startup.
 
 Server/cron prewarm cadence:
 
 - day: current day; next day after 20:00 in the chart timezone;
 - week: current week; next week Friday through Sunday;
 - month: current month; next month during the final three calendar days;
-- year: current year; next year from December 20.
 
 Current packages are reused until their boundary or a versioned input changes.
 
@@ -92,7 +90,6 @@ Question records include user, chart ID/fingerprint, exact forecast input hash, 
 
 - Forecast packages use `valid_from`/`valid_to`; normal reads exclude expired rows. The only expired reads are exact-identity previous-period rotation and saved-question grounding.
 - No migration deletes old content or triggers bulk generation.
-- `mvp_037_personal_forecast_yearly_variant` expands the permitted forecast variants.
 - `mvp_038_personal_forecast_questions` additively creates the V3 question workflow. Deleting a chart nulls its foreign key but preserves quota/history rows and their immutable chart/feed fingerprints.
 - Archive reads do not trigger generation.
 

@@ -2626,36 +2626,6 @@ async function mvp036SchemaCleanup(pool: Pool): Promise<void> {
   log.info('Migration mvp_036_schema_cleanup applied');
 }
 
-async function mvp037PersonalForecastYearlyVariant(pool: Pool): Promise<void> {
-  const migrationName = 'mvp_037_personal_forecast_yearly_variant';
-  if (await isMigrationApplied(pool, migrationName)) {
-    log.info(`Migration ${migrationName} already applied`);
-    return;
-  }
-
-  await pool.query(`
-    ALTER TABLE content_interpretations
-      DROP CONSTRAINT IF EXISTS content_interpretations_variant
-  `);
-  await pool.query(`
-    ALTER TABLE content_interpretations
-      ADD CONSTRAINT content_interpretations_variant
-      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'yearly', 'brief', 'full'))
-  `);
-  await pool.query(`
-    ALTER TABLE content_unlocks
-      DROP CONSTRAINT IF EXISTS content_unlocks_variant
-  `);
-  await pool.query(`
-    ALTER TABLE content_unlocks
-      ADD CONSTRAINT content_unlocks_variant
-      CHECK (content_variant IN ('anchor', 'living', 'planet_insight', 'daily', 'morning', 'day', 'evening', 'weekly', 'monthly', 'yearly', 'brief', 'full'))
-  `);
-
-  await markMigrationApplied(pool, migrationName);
-  log.info(`Migration ${migrationName} applied`);
-}
-
 /**
  * Personal forecast feed V3 questions.
  *
@@ -2703,7 +2673,7 @@ async function mvp038PersonalForecastQuestions(pool: Pool): Promise<void> {
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT personal_forecast_questions_period
-        CHECK (period IN ('day', 'week', 'month', 'year')),
+        CHECK (period IN ('day', 'week', 'month')),
       CONSTRAINT personal_forecast_questions_language
         CHECK (language IN ('ru', 'en')),
       CONSTRAINT personal_forecast_questions_source
@@ -3364,7 +3334,6 @@ export async function runMigrations(): Promise<void> {
   await lumia034Support(pool);
   await lumia035FeatureFlags(pool);
   await mvp036SchemaCleanup(pool);
-  await mvp037PersonalForecastYearlyVariant(pool);
   await mvp038PersonalForecastQuestions(pool);
   await mvp039RuStorePay(pool);
   await mvp040AccountIdentitySessions(pool);

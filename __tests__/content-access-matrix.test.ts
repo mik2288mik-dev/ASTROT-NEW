@@ -75,7 +75,7 @@ describe('contentAccessMatrix', () => {
   });
 
   describe('personal forecast surfaces', () => {
-    it.each(['daily', 'weekly', 'monthly', 'yearly'] as const)(
+    it.each(['daily', 'weekly', 'monthly'] as const)(
       'keeps forecast/%s available before topic-level server slicing',
       (variant) => {
         const config = getContentAccessConfig('forecast', variant);
@@ -147,7 +147,6 @@ describe('contentAccessMatrix', () => {
       ['forecast', 'daily'],
       ['forecast', 'weekly'],
       ['forecast', 'monthly'],
-      ['forecast', 'yearly'],
       ['synastry', 'brief'],
     ];
 
@@ -194,7 +193,6 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(freeUser, 'natal', 'living')).toBe(false);
       expect(canAccessContent(freeUser, 'forecast', 'weekly')).toBe(true);
       expect(canAccessContent(freeUser, 'forecast', 'monthly')).toBe(true);
-      expect(canAccessContent(freeUser, 'forecast', 'yearly')).toBe(true);
       expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
     });
 
@@ -208,7 +206,6 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'natal', 'living')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'weekly')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'monthly')).toBe(true);
-      expect(canAccessContent(premiumUser, 'forecast', 'yearly')).toBe(true);
       expect(canAccessContent(premiumUser, 'synastry', 'full')).toBe(true);
     });
   });

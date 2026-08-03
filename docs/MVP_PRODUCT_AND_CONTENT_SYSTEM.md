@@ -4,7 +4,7 @@ This is the product-level source of truth for «Твой Гороскоп» / �
 
 ## 1. MVP products
 
-- Personal forecast feed: `Сегодня / Неделя / Месяц / Год`.
+- Personal forecast feed: `Сегодня / Неделя / Месяц`.
 - Separate general `Зодиак` product with sign-based forecasts.
 - Natal chart calculation and natal readings.
 - Free sign compatibility.
@@ -45,7 +45,7 @@ Backend access policy:
 
 - Today Free includes overview, wishes, the strongest calculated section, and one deterministic rotating section.
 - Other Today sections keep a real 5–10-word lead, real blurred continuation, a real teaser, and a Premium CTA.
-- Week, Month, and Year are fully Premium.
+- Week and Month are fully Premium.
 - Free non-day responses remain fully locked and expose only a personalized preview and concrete Premium benefit; full section text and evidence are server-redacted.
 - Period questions are fully Premium.
 - The server returns only the access-sliced payload; frontend locks are presentation, not authority.

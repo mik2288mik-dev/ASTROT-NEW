@@ -105,16 +105,6 @@ export function buildSignMonthlyHoroscopePrompt(input: PromptInput = {}): AppCon
   );
 }
 
-export function buildSignYearlyHoroscopePrompt(input: PromptInput = {}): AppContentPrompt {
-  return buildPrompt(
-    'sign_yearly',
-    '{ "headline": "...", "summary": "...", "focus": "...", "chance": "...", "risk": "...", "reading": "...", "context": "...", "advice": ["...", "...", "..."] }',
-    'Напиши короткий общий гороскоп по знаку на календарный год. Не выдавай его за персональный прогноз.',
-    input,
-    '- Выбери один главный сюжет года. Не разбивай текст по месяцам. Не обещай брак, развод, увольнение, новую работу, доход, болезнь, переезд, встречу, точные даты, гарантированную удачу или гарантированную проблему. summary — 1–2 коротких предложения; focus, chance и risk отвечают каждый на свой вопрос; reading — короткий законченный разбор; context прямо говорит, что это общий прогноз знака; advice — до трёх разных конкретных действий. Пиши гендерно-нейтрально.',
-  );
-}
-
 export function buildBlindSpotPrompt(input: PromptInput & { focus?: string } = {}): AppContentPrompt {
   const focusLine = input.focus ? ` Используй только эти данные: ${input.focus}` : '';
   return buildPrompt(

@@ -75,7 +75,7 @@ describe('personal forecast delivery fallback', () => {
     jest.clearAllMocks();
   });
 
-  it.each(['day', 'week', 'month', 'year'] as const)(
+  it.each(['day', 'week', 'month'] as const)(
     'assembles a contract-valid model-independent %s package',
     async (period) => {
       mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(

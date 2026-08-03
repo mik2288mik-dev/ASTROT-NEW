@@ -420,7 +420,6 @@ export function buildPersonalForecastFeedPrompt(input: {
     day: 'Build one complete forecast for this day. Use one main theme and up to two supplied secondary themes. Mention parts of the day only when supplied timing changes inside the day.',
     week: 'Explain what matters from the first through the last day of this week. Name only supplied dates or intervals that differ meaningfully.',
     month: 'Explain the important themes and the supplied dates or stretches of this month. Do not invent a story for every week.',
-    year: 'Explain the major periods and supplied turning points of the year. Do not manufacture a separate story for every month.',
   };
   const plans = [input.overviewPlan, ...input.sectionPlans].map((plan) => ({
     id: plan.id,
@@ -473,7 +472,7 @@ Hard rules:
 - Write a coherent forecast from the approved meanings and calculation basis. Do not add a fact, life area, event, motive, biography, or prediction.
 - The strongest theme is the centre of the forecast, not a one-line summary. Explain its manifestation, risk and practical action fully. Add secondary themes only because they are supplied.
 - There is no target word count. Write every useful point supported by the calculation, then remove repetition and filler. Use short readable paragraphs; a block may contain several sentences when the supplied facts justify them.
-- For day, mention morning, daytime or evening only when the supplied local timing changes inside that day. For week, month and year, name only the supplied dates or intervals that actually stand out.
+- For day, mention morning, daytime or evening only when the supplied local timing changes inside that day. For week and month, name only the supplied dates or intervals that actually stand out.
 - A forecast is temporary. Never turn it into personality: no "you always", "you never", "you are the kind of person" or equivalents.
 - Do not name planets, aspects, houses, transits, degrees, or calculation terms in the main text.
 - Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
@@ -725,7 +724,7 @@ async function requestGeneratedFeed(input: {
             }),
           },
         ],
-        maxTokens: ({ day: 3_000, week: 3_400, month: 3_800, year: 4_200 } as const)[input.period],
+        maxTokens: ({ day: 3_000, week: 3_400, month: 3_800 } as const)[input.period],
         temperature: 0.35,
         jsonMode: true,
       }));

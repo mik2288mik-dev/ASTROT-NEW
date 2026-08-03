@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { db } from './db';
 import { getConfiguredOwnerId } from './adminAuth';
-import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey, getMoscowYearKey } from './date-utils';
+import { getMoscowIsoWeekKey, getMoscowMonthKey, getMoscowTodayKey } from './date-utils';
 import { getCurrentNatalPeriodKey } from './natalReadings';
 import { isGuestUserId } from './userId';
 
@@ -46,7 +46,6 @@ function getDefaultCacheKey(surface: ContentSurface, variant: ContentVariant) {
   if (surface === 'forecast' && variant === 'daily') return getMoscowTodayKey();
   if (surface === 'forecast' && variant === 'weekly') return getMoscowIsoWeekKey();
   if (surface === 'forecast' && variant === 'monthly') return getMoscowMonthKey();
-  if (surface === 'forecast' && variant === 'yearly') return getMoscowYearKey();
   if (surface === 'natal' && variant === 'anchor') return 'base';
   if (surface === 'natal' && variant === 'full') return 'personality';
   if (surface === 'natal' && variant === 'living') return getCurrentNatalPeriodKey();

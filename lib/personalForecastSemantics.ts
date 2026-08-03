@@ -637,39 +637,24 @@ const PERIOD_PLANET_FACTORS: Record<PersonalForecastPeriod, Record<string, numbe
     neptune: 0.9,
     pluto: 0.9,
   },
-  year: {
-    moon: 0.15,
-    mercury: 0.35,
-    venus: 0.4,
-    mars: 0.45,
-    sun: 0.3,
-    jupiter: 1,
-    saturn: 1,
-    uranus: 1,
-    neptune: 1,
-    pluto: 1,
-  },
 };
 
 const STRONG_TOPIC_THRESHOLDS: Record<PersonalForecastPeriod, number> = {
   day: 58,
   week: 58,
   month: 56,
-  year: 54,
 };
 
 const SINGLE_ASPECT_THRESHOLDS: Record<PersonalForecastPeriod, number> = {
   day: 72,
   week: 70,
   month: 68,
-  year: 68,
 };
 
 const CORROBORATION_SUPPORT_THRESHOLDS: Record<PersonalForecastPeriod, number> = {
   day: 48,
   week: 48,
   month: 46,
-  year: 44,
 };
 
 function isFastDailyTransit(planet: string | null): boolean {
@@ -721,15 +706,14 @@ function nonAspectBaseScore(
       day: 68,
       week: 70,
       month: 72,
-      year: 76,
     };
     return byPeriod[period] - (knownTurn ? 0 : 12);
   }
   if (evidence.kind === 'lunation') {
-    return ({ day: 66, week: 70, month: 72, year: 0 })[period];
+    return ({ day: 66, week: 70, month: 72 })[period];
   }
   if (evidence.kind === 'ingress') {
-    return ({ day: 32, week: 40, month: 54, year: 62 })[period];
+    return ({ day: 32, week: 40, month: 54 })[period];
   }
   if (evidence.kind === 'transit_house') return 22;
   return 0;
@@ -1270,7 +1254,6 @@ export function compilePersonalForecastSemanticFacts(input: {
     day: 10,
     week: 12,
     month: 14,
-    year: 16,
   };
   const strongestScore = strongTopics[0].primary.score;
   const selectedTopics = strongTopics

@@ -113,14 +113,6 @@ describe('personal forecast deterministic evidence preparation', () => {
     expect(samples[samples.length - 1].toISOString()).toBe(window.endsAt.toISOString());
   });
 
-  it('samples the full year while filtering daily noise later in calculation', () => {
-    const window = resolvePersonalForecastWindow('year', '2026', 'Europe/Moscow');
-    const samples = buildPersonalForecastSampleDates('year', window);
-    expect(samples.length).toBeGreaterThan(70);
-    expect(samples[0].toISOString()).toBe(window.startsAt.toISOString());
-    expect(samples[samples.length - 1].toISOString()).toBe(window.endsAt.toISOString());
-  });
-
   it('uses a bounded lookahead only for cross-period continuation evidence', () => {
     const dayWindow = resolvePersonalForecastWindow(
       'day',
@@ -137,14 +129,6 @@ describe('personal forecast deterministic evidence preparation', () => {
     expect(continuation[continuation.length - 1].getTime()).toBe(
       dayWindow.endsAt.getTime() + 7 * 24 * 60 * 60 * 1000,
     );
-    const yearWindow = resolvePersonalForecastWindow(
-      'year',
-      '2026',
-      'Europe/Moscow',
-    );
-    expect(
-      buildPersonalForecastContinuationSampleDates('year', yearWindow),
-    ).toEqual([]);
   });
 
   it('splits a recurring transit aspect into contiguous episodes with unique ids', () => {
@@ -305,7 +289,7 @@ describe('personal forecast deterministic evidence preparation', () => {
     ).toBe(true);
   });
 
-  it('filters short-lived ingress and station noise for long periods and keeps sampled events non-exact', () => {
+  it('filters lunar ingress noise for the month and keeps sampled events non-exact', () => {
     const first = snapshot('2026-01-01T00:00:00.000Z', {
       sun: transit('sun', 29),
       moon: transit('moon', 29),
@@ -323,25 +307,6 @@ describe('personal forecast deterministic evidence preparation', () => {
       jupiter: transit('jupiter', 31),
     });
 
-    const yearly = buildPersonalForecastIngressAndStationEvidence(
-      chartWithHouses(),
-      'year',
-      '2026',
-      [first, second],
-    );
-    expect(yearly.some((item) => (
-      ['moon', 'sun', 'mercury', 'venus'].includes(item.transitPlanet || '')
-    ))).toBe(false);
-    const sampledStation = yearly.find((item) => (
-      item.kind === 'station' && item.transitPlanet === 'mars'
-    ));
-    expect(sampledStation).toMatchObject({
-      status: 'active',
-      exactAt: null,
-      startsAt: first.at.toISOString(),
-      endsAt: second.at.toISOString(),
-    });
-
     const monthly = buildPersonalForecastIngressAndStationEvidence(
       chartWithHouses(),
       'month',
@@ -349,6 +314,14 @@ describe('personal forecast deterministic evidence preparation', () => {
       [first, second],
     );
     expect(monthly.some((item) => item.transitPlanet === 'moon')).toBe(false);
+    expect(monthly.find((item) => (
+      item.kind === 'station' && item.transitPlanet === 'mars'
+    ))).toMatchObject({
+      status: 'active',
+      exactAt: null,
+      startsAt: first.at.toISOString(),
+      endsAt: second.at.toISOString(),
+    });
   });
 
 });

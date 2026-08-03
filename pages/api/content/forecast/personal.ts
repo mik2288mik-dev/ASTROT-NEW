@@ -20,7 +20,7 @@ export const config = { maxDuration: 180 };
 
 function readPeriod(req: NextApiRequest): PersonalForecastPeriod | null {
   const raw = String(req.method === 'GET' ? req.query.period || '' : req.body?.period || '').trim();
-  return (['day', 'week', 'month', 'year'] as const).includes(raw as PersonalForecastPeriod)
+  return (['day', 'week', 'month'] as const).includes(raw as PersonalForecastPeriod)
     ? raw as PersonalForecastPeriod
     : null;
 }

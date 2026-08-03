@@ -1,4 +1,4 @@
-export type PersonalForecastQuestionPeriod = 'day' | 'week' | 'month' | 'year';
+export type PersonalForecastQuestionPeriod = 'day' | 'week' | 'month';
 
 export type PersonalForecastQuestionTheme =
   | 'daily'
@@ -32,11 +32,11 @@ export type LocalizedPersonalForecastQuestion = {
   text: string;
 };
 
-const ALL_PERIODS = ['day', 'week', 'month', 'year'] as const;
+const ALL_PERIODS = ['day', 'week', 'month'] as const;
 const SHORT_PERIODS = ['day', 'week'] as const;
 const MEDIUM_PERIODS = ['week', 'month'] as const;
-const LONG_PERIODS = ['month', 'year'] as const;
-const PLANNING_PERIODS = ['week', 'month', 'year'] as const;
+const LONG_PERIODS = ['month'] as const;
+const PLANNING_PERIODS = ['week', 'month'] as const;
 
 /**
  * Audited V3 successor to the 84 RU/EN presets from commit b6cffd7.
@@ -326,15 +326,6 @@ export const APPROVED_PERSONAL_FORECAST_QUESTIONS = [
     },
   },
   {
-    id: 'pfq_032_career_year',
-    theme: 'career',
-    periods: ['year'],
-    text: {
-      ru: 'Какое направление определяет мою карьеру в этом году?',
-      en: 'Which direction defines my career this year?',
-    },
-  },
-  {
     id: 'pfq_033_profession_fit',
     theme: 'profession',
     periods: LONG_PERIODS,
@@ -530,15 +521,6 @@ export const APPROVED_PERSONAL_FORECAST_QUESTIONS = [
     text: {
       ru: 'Какой бизнес-приоритет выбрать в этом месяце?',
       en: 'Which business priority should I choose this month?',
-    },
-  },
-  {
-    id: 'pfq_055_business_year',
-    theme: 'business',
-    periods: ['year'],
-    text: {
-      ru: 'Какое направление определяет мой бизнес в этом году?',
-      en: 'Which direction defines my business this year?',
     },
   },
   {
@@ -740,30 +722,12 @@ export const APPROVED_PERSONAL_FORECAST_QUESTIONS = [
     },
   },
   {
-    id: 'pfq_078_future_year',
-    theme: 'future',
-    periods: ['year'],
-    text: {
-      ru: 'Какое направление станет главным для меня в этом году?',
-      en: 'Which direction will matter most for me this year?',
-    },
-  },
-  {
     id: 'pfq_079_next_stage',
     theme: 'future',
     periods: LONG_PERIODS,
     text: {
       ru: 'Какой следующий этап обозначается в моей жизни?',
       en: 'Which next stage is taking shape in my life?',
-    },
-  },
-  {
-    id: 'pfq_080_long_direction',
-    theme: 'future',
-    periods: ['year'],
-    text: {
-      ru: 'Какое долгосрочное направление сейчас подтверждено сильнее других?',
-      en: 'Which long-term direction is supported most strongly now?',
     },
   },
   {

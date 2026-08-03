@@ -15,7 +15,7 @@ The existing global content architecture remains active: `accessMatrix` owns pro
 
 ## Personal Forecast Feed V3
 
-`Dashboard` is the only personal forecast screen for `day`, `week`, `month`, and `year`. There is no separate topic reader or `personal_daily` route.
+`Dashboard` is the only personal forecast screen for `day`, `week`, and `month`. There is no separate topic reader or `personal_daily` route.
 
 Every `PersonalForecastPackage` contains:
 
@@ -58,7 +58,7 @@ Free/Premium slicing is enforced on the server:
 
 - Today Free: overview, wishes, the strongest calculated section, and one deterministic rotating section;
 - other Today sections retain a real 5–10-word lead, real blurred continuation, a real teaser, and an unlock action;
-- Week, Month, and Year are fully Premium, but their locked feed exposes a personalized preview and concrete benefit without exposing full section text;
+- Week and Month are fully Premium, but their locked feed exposes a personalized preview and concrete benefit without exposing full section text;
 - questions are Premium for every period;
 - after purchase, Dashboard remains mounted and replaces the sliced package in place without resetting scroll.
 
@@ -100,7 +100,6 @@ Generated, reviewed Feed source assets are committed under `public/assets/foreca
 
 - Canonical forecast packages stay in `content_interpretations`, scoped by user/chart/period/language/chart fingerprint/chart calculation/forecast calculation/prompt/voice/model identity. `PERSONAL_FORECAST_CALCULATION_VERSION` is part of both server and local cache identity and must match package metadata.
 - Cross-period links retain immutable continuation timing and are exposed only when that continuation belongs to the target period currently reachable from Dashboard.
-- `mvp_037_personal_forecast_yearly_variant` permits the yearly content variant.
 - `mvp_038_personal_forecast_questions` additively creates the versioned question/moderation/notification workflow.
 - Old forecast, daily-canvas, period-extra, and sign-based Dashboard rows remain stored but cannot match V3 identities.
 - Natal, `Зодиак`, compatibility, synastry, payments, archive, and unrelated notification data are not invalidated.

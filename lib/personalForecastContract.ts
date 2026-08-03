@@ -7,7 +7,7 @@ import {
 } from './appVoice';
 import { PERSONAL_FORECAST_SEMANTICS_VERSION } from './personalForecastSemantics';
 
-export type PersonalForecastPeriod = 'day' | 'week' | 'month' | 'year';
+export type PersonalForecastPeriod = 'day' | 'week' | 'month';
 
 export type FixedForecastSectionKey =
   | 'love'
@@ -246,13 +246,11 @@ export const FORECAST_WISHES_TITLES: Record<
     day: 'Пожелания на день',
     week: 'Пожелания на неделю',
     month: 'Пожелания на месяц',
-    year: 'Пожелания на год',
   },
   en: {
     day: 'Wishes for the day',
     week: 'Wishes for the week',
     month: 'Wishes for the month',
-    year: 'Wishes for the year',
   },
 };
 
@@ -373,7 +371,6 @@ export function getPersonalForecastPeriodKey(
   const { year, month, day } = datePartsInTimezone(date, safeTimezone);
   if (period === 'day') return isoDate(year, month, day);
   if (period === 'month') return `${year}-${pad2(month)}`;
-  if (period === 'year') return String(year);
   const iso = isoWeekFromDate(year, month, day);
   return `${iso.weekYear}-W${pad2(iso.week)}`;
 }
@@ -414,9 +411,7 @@ function parsePeriodKey(period: PersonalForecastPeriod, periodKey: string) {
     if (!match) return null;
     return { year: Number(match[1]), month: Number(match[2]), day: 1 };
   }
-  const match = /^(\d{4})$/.exec(periodKey);
-  if (!match) return null;
-  return { year: Number(match[1]), month: 1, day: 1 };
+  return null;
 }
 
 export function resolvePersonalForecastWindow(
@@ -433,7 +428,6 @@ export function resolvePersonalForecastWindow(
   if (period === 'day') endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
   if (period === 'week') endExclusive.setUTCDate(endExclusive.getUTCDate() + 7);
   if (period === 'month') endExclusive.setUTCMonth(endExclusive.getUTCMonth() + 1);
-  if (period === 'year') endExclusive.setUTCFullYear(endExclusive.getUTCFullYear() + 1);
 
   const endDay = new Date(endExclusive);
   endDay.setUTCDate(endDay.getUTCDate() - 1);
@@ -517,7 +511,6 @@ export function formatPersonalForecastDateLabel(
       timeZone: 'UTC',
     }).format(start).toLocaleUpperCase(locale);
   }
-  if (window.period === 'year') return String(start.getUTCFullYear());
   const fmt = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
@@ -996,7 +989,7 @@ export function getPersonalForecastPackageValidationError(
   }
   const forecast = value as PersonalForecastPackage;
   if (
-    !(['day', 'week', 'month', 'year'] as const).includes(forecast.period)
+    !(['day', 'week', 'month'] as const).includes(forecast.period)
     || typeof forecast.periodKey !== 'string'
     || typeof forecast.periodStart !== 'string'
     || typeof forecast.periodEnd !== 'string'
@@ -1308,7 +1301,6 @@ function nextPersonalForecastPeriod(
 ): PersonalForecastPeriod | null {
   if (period === 'day') return 'week';
   if (period === 'week') return 'month';
-  if (period === 'month') return 'year';
   return null;
 }
 

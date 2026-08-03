@@ -61,7 +61,7 @@ export function parsePersonalForecastQuestionPeriod(
   value: unknown,
 ): PersonalForecastQuestionPeriod | null {
   const period = String(value || '').trim();
-  return (['day', 'week', 'month', 'year'] as const).includes(
+  return (['day', 'week', 'month'] as const).includes(
     period as PersonalForecastQuestionPeriod,
   )
     ? period as PersonalForecastQuestionPeriod

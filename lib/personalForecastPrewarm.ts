@@ -53,7 +53,7 @@ export function buildPersonalForecastPrewarmTargets(
 ): ForecastTarget[] {
   const safeTimezone = normalizeForecastTimezone(timezone);
   const parts = localParts(now, safeTimezone);
-  const periods: PersonalForecastPeriod[] = ['day', 'week', 'month', 'year'];
+  const periods: PersonalForecastPeriod[] = ['day', 'week', 'month'];
   const current = Object.fromEntries(
     periods.map((period) => [
       period,
@@ -78,7 +78,6 @@ export function buildPersonalForecastPrewarmTargets(
   if (parts.hour >= 20) addNext('day');
   if (parts.weekday >= 5 || parts.weekday === 0) addNext('week');
   if (daysInMonth(parts.year, parts.month) - parts.day <= 3) addNext('month');
-  if (parts.month === 12 && parts.day >= 20) addNext('year');
   return targets;
 }
 

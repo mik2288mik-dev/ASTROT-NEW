@@ -33,11 +33,11 @@ describe('personal forecast custom question moderation', () => {
   });
 
   it('rejects an already submitted custom question without depending on storage', () => {
-    const existing = 'Какие у меня перспективы бизнеса на следующий год?';
+    const existing = 'Какие у меня перспективы бизнеса на следующий месяц?';
     const result = moderatePersonalForecastCustomQuestion({
-      question: 'Какие у меня перспективы бизнеса на следующий год!!!',
+      question: 'Какие у меня перспективы бизнеса на следующий месяц!!!',
       language: 'ru',
-      period: 'year',
+      period: 'month',
       existingCustomQuestions: [existing],
     });
 
@@ -151,7 +151,7 @@ describe('personal forecast custom question moderation', () => {
     const duplicate = moderatePersonalForecastCustomQuestion({
       question: 'IS THIS PERIOD SUITABLE FOR RELOCATION?',
       language: 'en',
-      period: 'year',
+      period: 'month',
     });
     const relevant = moderatePersonalForecastCustomQuestion({
       question: 'Would remote work improve my results next month?',

@@ -164,23 +164,6 @@ const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
     },
   },
   {
-    surface: 'forecast',
-    variant: 'yearly',
-    label: 'Прогноз на год',
-    description: 'Годовой персональный прогноз.',
-    calculationRequired: true,
-    shouldPersistCalculation: false,
-    shouldPersistInterpretation: true,
-    defaultAccessTier: 'free',
-    unlockOptions: ['free'],
-    lockedBehavior: {
-      showPreview: false,
-      showTeaser: false,
-      showLockedCard: false,
-      requirePremium: false,
-    },
-  },
-  {
     surface: 'synastry',
     variant: 'brief',
     label: 'Краткий разбор отношений',
