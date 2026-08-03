@@ -6,7 +6,10 @@ import type {
 } from '../../types';
 import { db } from '../db';
 import { isCanonicalNatalChartDataComplete } from '../natalChartCanonical';
-import { repairCanonicalChartRecord } from '../natalChartPersistence';
+import {
+  repairCanonicalChartForUser,
+  repairCanonicalChartRecord,
+} from '../natalChartPersistence';
 import { getContentLayer, getPremiumEntitlementState } from '../contentArchitecture';
 import { AdminAuthError, handleAdminError } from '../adminAuth';
 import { requireAppUser } from '../auth/appAuth';
@@ -89,6 +92,17 @@ export async function resolveReadingContext(
       ? chart
       : null;
   let resolvedChart = ownedChart;
+  const profileHasBirthData = Boolean(
+    (resolvedChart?.birth_date || user.birth_date)
+    && (resolvedChart?.birth_place || user.birth_place),
+  );
+  if (!resolvedChart && chartId == null && profileHasBirthData) {
+    console.info('[natal/context] restoring missing primary V2 chart from birth profile', { userId });
+    const repaired = await repairCanonicalChartForUser(userId);
+    if (repaired?.chart && isCanonicalNatalChartDataComplete(repaired.chart.chart_data)) {
+      resolvedChart = repaired.chart;
+    }
+  }
   if (
     resolvedChart
     && !isCanonicalNatalChartDataComplete(resolvedChart.chart_data)
@@ -306,21 +320,46 @@ export async function ensureValidContext(
   if (!userId) {
     throw new Error('Authenticated user id is missing');
   }
-  const chartId = await readChartId(req);
+  let chartId = await readChartId(req);
   if (chartId != null) {
-    const requestedChart = await db.natal_charts.getById(chartId);
-    if (!requestedChart || String(requestedChart.user_id) !== userId || !isActiveChart(requestedChart)) {
-      options.onChartFailed?.({
-        userId,
-        chartId,
-        status: 404,
-        code: 'CHART_NOT_FOUND',
-        error: new Error('Chart not found'),
-      });
-      res.status(404).json({ error: 'CHART_NOT_FOUND', message: 'Chart not found' });
-      return null;
+    let effectiveChart = await db.natal_charts.getById(chartId);
+    if (!effectiveChart || String(effectiveChart.user_id) !== userId || !isActiveChart(effectiveChart)) {
+      if (options.requireSelfChart) {
+        console.info('[natal/context] replacing stale requested chart id with repaired primary chart', {
+          userId,
+          requestedChartId: chartId,
+        });
+        const repaired = await repairCanonicalChartForUser(userId);
+        if (repaired?.chart && isCanonicalNatalChartDataComplete(repaired.chart.chart_data)) {
+          chartId = repaired.chart.id;
+          effectiveChart = repaired.chart;
+        } else {
+          options.onChartFailed?.({
+            userId,
+            chartId,
+            status: 404,
+            code: 'CHART_NOT_FOUND',
+            error: new Error('Chart not found'),
+          });
+          res.status(404).json({ error: 'CHART_NOT_FOUND', message: 'Chart not found' });
+          return null;
+        }
+      } else {
+        options.onChartFailed?.({
+          userId,
+          chartId,
+          status: 404,
+          code: 'CHART_NOT_FOUND',
+          error: new Error('Chart not found'),
+        });
+        res.status(404).json({ error: 'CHART_NOT_FOUND', message: 'Chart not found' });
+        return null;
+      }
     }
-    if (options.requireSelfChart && !isSelfChart(requestedChart)) {
+    if (!effectiveChart) {
+      throw new Error('CHART_REPAIR_RETURNED_EMPTY');
+    }
+    if (options.requireSelfChart && !isSelfChart(effectiveChart)) {
       options.onChartFailed?.({
         userId,
         chartId,
@@ -336,7 +375,7 @@ export async function ensureValidContext(
     }
     try {
       const entitlement = await getPremiumEntitlementState(userId);
-      assertChartReadable(requestedChart, entitlement.isPremium);
+      assertChartReadable(effectiveChart, entitlement.isPremium);
     } catch (error) {
       if (error instanceof ChartAccessPolicyError) {
         options.onChartFailed?.({ userId, chartId, status: error.status, code: error.code, error });

@@ -21,8 +21,11 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     await requireAppUser(req,{expectedUserId:userId,allowGuest:true});
     if(req.method==='GET'){
       let chart=await natalChartV2Repository.getPrimary(userId);
-      if(!chart)return res.status(404).json({error:'Chart not found'});
-      if(!isCanonicalNatalChartDataComplete(chart.chart_data)){
+      if(!chart||!isCanonicalNatalChartDataComplete(chart.chart_data)){
+        console.info('[API/charts] restoring primary V2 chart from birth profile',{
+          userId,
+          reason:chart?'invalid_chart_data':'primary_chart_missing',
+        });
         const repaired=await repairCanonicalChartForUser(userId);
         chart=repaired?.chart||null;
       }
