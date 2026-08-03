@@ -705,32 +705,30 @@ const App: React.FC = () => {
                 setStartupError(null);
                 const tg = (window as any).Telegram?.WebApp;
                 const tgUser = tg?.initDataUnsafe?.user as TelegramWebAppUser | undefined;
+                const shouldAuthenticateTelegram =
+                    shouldUseTelegramSession(sessionMode) && hasTelegramMiniAppContext();
 
                 setLoadingProgress(30);
                 let storedProfile: UserProfile | null = null;
-                try {
-                    storedProfile = await getProfile();
-                } catch (profileError) {
-                    if (!isProfileAuthenticationError(profileError)) throw profileError;
-
-                    if (shouldUseTelegramSession(sessionMode) && hasTelegramMiniAppContext()) {
-                        storedProfile = await loginWithTelegram();
-                    } else if (sessionMode === 'automatic' || sessionMode === 'guest') {
-                        setAuthSessionMode('guest');
-                        storedProfile = await startGuestAccount();
-                    } else {
-                        throw profileError;
-                    }
-                }
-
-                // Legacy Telegram auth proves identity but does not provide the
-                // random, revocable app session used by the new login model.
-                if (
-                    storedProfile?.authProvider === 'telegram'
-                    && shouldUseTelegramSession(sessionMode)
-                    && hasTelegramMiniAppContext()
-                ) {
+                if (shouldAuthenticateTelegram) {
+                    // A stale guest cookie must not win over a verified Telegram
+                    // launch. The login endpoint resolves account_identities by
+                    // Telegram user id and replaces that cookie with the canonical
+                    // account session.
                     storedProfile = await loginWithTelegram();
+                } else {
+                    try {
+                        storedProfile = await getProfile();
+                    } catch (profileError) {
+                        if (!isProfileAuthenticationError(profileError)) throw profileError;
+
+                        if (sessionMode === 'automatic' || sessionMode === 'guest') {
+                            setAuthSessionMode('guest');
+                            storedProfile = await startGuestAccount();
+                        } else {
+                            throw profileError;
+                        }
+                    }
                 }
 
                 if (!storedProfile || !isValidUserId(storedProfile.id)) {

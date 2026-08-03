@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import type { PoolClient } from 'pg';
 import { getPool } from '../db';
-import { AdminAuthError } from '../adminAuth';
+import { AdminAuthError, getConfiguredOwnerId } from '../adminAuth';
 
 export const EXTERNAL_AUTH_PROVIDERS = ['vk', 'yandex', 'google', 'email', 'telegram'] as const;
 export type ExternalAuthProvider = typeof EXTERNAL_AUTH_PROVIDERS[number];
@@ -215,6 +215,7 @@ export async function resolveTelegramIdentityForLogin(
   legacyTelegramUserId: string,
 ): Promise<{ userId: string; linked: boolean; existing: boolean }> {
   const normalizedLegacyId = String(legacyTelegramUserId || '').trim();
+  let resolved: { userId: string; linked: boolean; existing: boolean };
   const legacy = normalizedLegacyId
     ? await getPool().query(
         `SELECT id
@@ -230,16 +231,28 @@ export async function resolveTelegramIdentityForLogin(
 
   if (legacy.rowCount) {
     try {
-      return await resolveVerifiedIdentity(identity, normalizedLegacyId);
+      resolved = await resolveVerifiedIdentity(identity, normalizedLegacyId);
     } catch (error) {
       if (!(error instanceof AdminAuthError) || error.code !== 'IDENTITY_ALREADY_LINKED') {
         throw error;
       }
-      return resolveVerifiedIdentity(identity, null);
+      resolved = await resolveVerifiedIdentity(identity, null);
     }
+  } else {
+    resolved = await resolveVerifiedIdentity(identity, null);
   }
 
-  return resolveVerifiedIdentity(identity, null);
+  // users.id can be a stable internal account id after an identity migration.
+  // OWNER_ID still names the verified Telegram user, so persist the resulting
+  // effective admin flag on that canonical account.
+  if (normalizedLegacyId && normalizedLegacyId === getConfiguredOwnerId()) {
+    await getPool().query(
+      `UPDATE users SET is_admin = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [resolved.userId],
+    );
+  }
+
+  return resolved;
 }
 
 export async function listAccountIdentities(userId: string) {

@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const auth: AppUserContext = {
       userId: identity.userId,
-      provider: kind === 'native' ? 'native' : 'web_guest',
+      provider: 'telegram',
       isGuest: false,
       telegramUserId: telegram.id,
       sessionId: session.sessionId,

@@ -88,9 +88,19 @@ function normalizeRole(raw: unknown): AdminRole {
  */
 export async function getAdminContext(req: NextApiRequest): Promise<AdminContext> {
   const telegramUser = getVerifiedTelegramUser(req);
-  const userId = telegramUser.id;
+  const telegramUserId = telegramUser.id;
   const ownerId = getConfiguredOwnerId();
-  const isOwner = !!ownerId && userId === String(ownerId);
+  const isOwner = !!ownerId && telegramUserId === String(ownerId);
+
+  // Telegram is the authenticated principal, while account_identities owns the
+  // stable internal users.id used by admin_users after account migrations.
+  const identity = await getPool().query(
+    `SELECT user_id FROM account_identities
+     WHERE provider = 'telegram' AND provider_subject = $1
+     LIMIT 1`,
+    [telegramUserId],
+  );
+  const userId = String(identity.rows[0]?.user_id || telegramUserId);
 
   if (isOwner) {
     return { userId, role: 'super_admin', isOwner: true, permissions: permissionsForRole('super_admin') };
