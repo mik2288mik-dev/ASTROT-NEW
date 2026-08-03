@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../../../types';
+import type { NatalChartDataV2 } from '../../../../lib/natalChartV2Types';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
@@ -29,6 +30,8 @@ import {
 import { persistSavedSynastryHistory } from '../../../../lib/astrologyHistoryPersistence';
 
 const SCOPE = 'synastry-extended';
+
+type SynastryChartData = NatalChartData | NatalChartDataV2;
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -175,11 +178,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   let primaryChartRecord: any = null;
   let partnerChartRecord: any = null;
-  let userChartData: NatalChartData | null = null;
-  let partnerChartData: NatalChartData | null = null;
+  let userChartData: SynastryChartData | null = null;
+  let partnerChartData: SynastryChartData | null = null;
 
   primaryChartRecord = await db.natal_charts.getPrimary(userId);
-  userChartData = (primaryChartRecord?.chart_data as NatalChartData) || null;
+  userChartData = (primaryChartRecord?.chart_data as SynastryChartData) || null;
 
   if (!primaryChartRecord?.id || !userChartData || !isSelfChart(primaryChartRecord)) {
     return res.status(409).json({
@@ -219,7 +222,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         code: 'PARTNER_CHART_REQUIRED',
       });
     }
-    partnerChartData = (partnerChartRecord.chart_data as NatalChartData) || null;
+    partnerChartData = (partnerChartRecord.chart_data as SynastryChartData) || null;
   }
 
   const resolvedPartnerName = String(partnerChartRecord?.name || partnerName || '').trim();

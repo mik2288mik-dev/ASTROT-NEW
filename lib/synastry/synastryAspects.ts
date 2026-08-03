@@ -1,4 +1,5 @@
 import type { NatalChartData, PlanetPosition } from '../../types';
+import type { NatalChartDataV2, NatalPositionV2 } from '../natalChartV2Types';
 
 /**
  * Реальные межкартовые (синастрические) аспекты: какие планеты двух карт стоят в
@@ -21,7 +22,7 @@ const ASPECTS: Array<{ name: string; angle: number; orb: number }> = [
   { name: 'оппозиция', angle: 180, orb: 8 },
 ];
 
-function longitudeOf(p: PlanetPosition | null | undefined): number | null {
+function longitudeOf(p: PlanetPosition | NatalPositionV2 | null | undefined): number | null {
   if (!p || typeof p.longitude !== 'number' || !Number.isFinite(p.longitude)) return null;
   return ((p.longitude % 360) + 360) % 360;
 }
@@ -29,7 +30,10 @@ function longitudeOf(p: PlanetPosition | null | undefined): number | null {
 export type SynastryAspect = { a: string; b: string; aspect: string; orb: number };
 
 /** Межкартовые аспекты двух карт, отсортированные от самых точных (до 12 шт.). */
-export function computeSynastryAspects(a: NatalChartData | null, b: NatalChartData | null): SynastryAspect[] {
+export function computeSynastryAspects(
+  a: NatalChartData | NatalChartDataV2 | null,
+  b: NatalChartData | NatalChartDataV2 | null,
+): SynastryAspect[] {
   if (!a || !b) return [];
   const out: SynastryAspect[] = [];
   for (const pa of PLANETS) {

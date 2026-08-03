@@ -4,6 +4,7 @@ import type {
   PlanetPosition,
   SynastryResult,
 } from '../types';
+import type { NatalAngleV2, NatalChartDataV2, NatalPositionV2 } from './natalChartV2Types';
 import { APP_VOICE_VERSION } from './appVoice';
 import { getOpenAIModelForContent } from './appSettings';
 import {
@@ -44,7 +45,10 @@ export type NatalHistoryGeneration = {
   periodKey?: string | null;
 };
 
-function factualPlanet(position: PlanetPosition | null | undefined) {
+type NatalHistoryChart = NatalChartData | NatalChartDataV2;
+type NatalHistoryPosition = PlanetPosition | NatalPositionV2 | NatalAngleV2;
+
+function factualPlanet(position: NatalHistoryPosition | null | undefined) {
   if (!position) return null;
   return {
     planet: position.planet,
@@ -61,7 +65,7 @@ function factualPlanet(position: PlanetPosition | null | undefined) {
  * History calculations are an allow-listed technical projection. Generated
  * summaries, descriptions and keyword prose never enter factual continuity.
  */
-export function factualNatalCalculation(chart: NatalChartData) {
+export function factualNatalCalculation(chart: NatalHistoryChart) {
   const placements = Object.fromEntries(
     PLANET_KEYS.map((key) => [key, factualPlanet(chart[key])]),
   );
@@ -101,7 +105,7 @@ export function factualNatalCalculation(chart: NatalChartData) {
 }
 
 export function resolveHistoryBirthTimeStatus(
-  chart: NatalChartData,
+  chart: NatalHistoryChart,
   rawBirthTime?: string | null,
 ): BirthTimeStatus {
   const explicit = chart.birthTimeQuality || chart.chartQuality?.birthTimeQuality;
@@ -199,8 +203,8 @@ export async function persistSavedSynastryHistory(input: {
   userId: string;
   subjectChartId: number;
   counterpartChartId: number;
-  subjectChart: NatalChartData;
-  counterpartChart: NatalChartData;
+  subjectChart: NatalHistoryChart;
+  counterpartChart: NatalHistoryChart;
   subjectBirthTime?: string | null;
   counterpartBirthTime?: string | null;
   inputHash: string;
