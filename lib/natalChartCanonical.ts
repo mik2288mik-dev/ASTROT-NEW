@@ -22,9 +22,9 @@ export function normalizeBirthDateInput(value?: string | Date | null): string {
 }
 
 /** Keeps an unknown time empty. It never inserts 12:00. */
-export function normalizeBirthTimeInput(value?: string | null): string | null {
+export function normalizeBirthTimeInput(value?: string | null): string {
   const trimmed = String(value || '').trim();
-  if (!trimmed) return null;
+  if (!trimmed) return '';
   const match = trimmed.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
   return match ? `${match[1]}:${match[2]}` : trimmed;
 }
