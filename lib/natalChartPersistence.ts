@@ -1,4 +1,5 @@
 import { db } from './db';
+import { natalChartV2Repository } from './natalChartV2Repository';
 import { calculateNatalChart, resolveBirthCoordinates } from './swisseph-calculator';
 import {
   buildCanonicalNatalInputHash,
@@ -98,7 +99,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
   const normalized = normalizeInput(args);
   const coordinates = await resolveBirthCoordinates(normalized.birthPlace, args.coordinates);
   const inputHash = hashInput(normalized, coordinates);
-  const existing = await db.natal_charts.findByInputHash(args.userId, inputHash, { subjectType:'self' });
+  const existing = await natalChartV2Repository.findByInputHash(args.userId, inputHash, { subjectType:'self' });
   if (!args.forceRecalculate && isStoredCanonicalChart(existing)) return { chart:existing, source:'cache' };
 
   await ensureMinimalUser(args, normalized);
@@ -106,7 +107,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
     coordinates,
     birthTime: normalized.time,
   });
-  const chart = await db.natal_charts.persistPrimary(args.userId, persistencePayload(args, normalized, inputHash, chartData));
+  const chart = await natalChartV2Repository.persistPrimary(args.userId, persistencePayload(args, normalized, inputHash, chartData));
   return { chart, source: existing ? 'repaired' : 'calculated' };
 }
 
@@ -114,7 +115,7 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
   const normalized = normalizeInput(args);
   const coordinates = await resolveBirthCoordinates(normalized.birthPlace, args.coordinates);
   const inputHash = hashInput(normalized, coordinates);
-  const existing = await db.natal_charts.findByInputHash(args.userId, inputHash, { subjectType:'saved_person', name:args.name });
+  const existing = await natalChartV2Repository.findByInputHash(args.userId, inputHash, { subjectType:'saved_person', name:args.name });
   if (isStoredCanonicalChart(existing)) return { chart:existing, reused:true };
 
   await ensureMinimalUser(args, normalized);
@@ -122,13 +123,13 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
     coordinates,
     birthTime: normalized.time,
   });
-  const chart = await db.natal_charts.create(args.userId, persistencePayload(args, normalized, inputHash, chartData));
+  const chart = await natalChartV2Repository.create(args.userId, persistencePayload(args, normalized, inputHash, chartData));
   return { chart, reused:false };
 }
 
 export async function repairCanonicalChartForUser(userId:string) {
   const user = await db.users.get(userId);
-  const chart = await db.natal_charts.getPrimary(userId);
+  const chart = await natalChartV2Repository.getPrimary(userId);
   const birthDate = normalizeBirthDateInput(chart?.birth_date || user?.birth_date);
   const birthPlace = normalizeBirthPlaceInput(chart?.birth_place || user?.birth_place);
   if (!birthDate || !birthPlace) return null;
@@ -148,7 +149,7 @@ export async function repairCanonicalChartForUser(userId:string) {
 
 export async function repairCanonicalChartRecord(userId:string, chartId?:number|null) {
   if (!chartId) return repairCanonicalChartForUser(userId);
-  const chart = await db.natal_charts.getById(chartId);
+  const chart = await natalChartV2Repository.getById(chartId);
   if (!chart) return null;
   if (chart.is_primary) return repairCanonicalChartForUser(userId);
   const result = await createOrReuseCanonicalChart({
