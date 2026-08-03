@@ -13,6 +13,8 @@ import {
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
+  getPersonalForecastPackageValidationError,
+  isPersonalForecastPackage,
   selectTodayFreeSections,
   stableHash,
   validateForecastSectionRepetition,
@@ -845,48 +847,105 @@ export async function generatePersonalForecastPackage(input: {
     evidenceViews: calculated.evidenceViews,
     historyContext: input.historyContext,
   });
-  const freeSelection = input.period === 'day'
-    ? selectTodayFreeSections({
-        sections: generated.sections,
-        userId: String(input.profile.id || 'guest'),
-        periodKey: input.window.periodKey,
-        previousSectionIds: input.previousForecast?.meta.freeSelection.sectionIds,
-      })
-    : {
-        strongestSectionId: null,
-        rotatedSectionId: null,
-        sectionIds: [],
-      };
-
-  return {
-    period: input.period,
-    periodKey: input.window.periodKey,
-    periodStart: input.window.periodStart,
-    periodEnd: input.window.periodEnd,
-    dateLabel: formatPersonalForecastDateLabel(input.window, language),
-    timezone: input.window.timezone,
-    overview: generated.overview,
-    sections: generated.sections,
-    suggestedCrossPeriodLinks: [],
-    evidence: calculated.evidenceViews,
-    visual: {
-      sectionAssetIds: Object.fromEntries(
-        [generated.overview, ...generated.sections].map((section) => [section.id, null]),
-      ),
-    },
-    meta: {
-      model: input.model,
-      promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-      voiceVersion: APP_VOICE_VERSION,
-      calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-      semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
-      contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
-      generationAttempts: generated.generationAttempts,
-      validationStatus: generated.validationStatus,
-      generatedAt: new Date().toISOString(),
-      status: 'ready',
-      diagnosticCode: null,
-      freeSelection,
-    },
+  const materializePackage = (
+    result: GenerationResult,
+    diagnosticCode: string | null,
+  ): PersonalForecastPackage => {
+    const referencedEvidenceIds = new Set(
+      [result.overview, ...result.sections]
+        .flatMap((section) => section.explanationAnchors)
+        .flatMap((anchor) => anchor.evidenceIds),
+    );
+    const evidence = Object.fromEntries(
+      [...referencedEvidenceIds]
+        .map((id) => [id, calculated.evidenceViews[id]] as const)
+        .filter((entry): entry is readonly [string, ForecastEvidenceView] => !!entry[1]),
+    );
+    const freeSelection = input.period === 'day'
+      ? selectTodayFreeSections({
+          sections: result.sections,
+          userId: String(input.profile.id || 'guest'),
+          periodKey: input.window.periodKey,
+          previousSectionIds: input.previousForecast?.meta.freeSelection.sectionIds,
+        })
+      : {
+          strongestSectionId: null,
+          rotatedSectionId: null,
+          sectionIds: [],
+        };
+    return {
+      period: input.period,
+      periodKey: input.window.periodKey,
+      periodStart: input.window.periodStart,
+      periodEnd: input.window.periodEnd,
+      dateLabel: formatPersonalForecastDateLabel(input.window, language),
+      timezone: input.window.timezone,
+      overview: result.overview,
+      sections: result.sections,
+      suggestedCrossPeriodLinks: [],
+      evidence,
+      visual: {
+        sectionAssetIds: Object.fromEntries(
+          [result.overview, ...result.sections].map((section) => [section.id, null]),
+        ),
+      },
+      meta: {
+        model: input.model,
+        promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
+        voiceVersion: APP_VOICE_VERSION,
+        calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
+        semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+        contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
+        generationAttempts: result.generationAttempts,
+        validationStatus: result.validationStatus,
+        generatedAt: new Date().toISOString(),
+        status: 'ready',
+        diagnosticCode,
+        freeSelection,
+      },
+    };
   };
+
+  const primary = materializePackage(generated, null);
+  if (isPersonalForecastPackage(primary)) return primary;
+  const primaryValidationError = getPersonalForecastPackageValidationError(primary)
+    || 'PACKAGE_UNKNOWN_INVALID';
+
+  // The model is optional. If its final materialization violates the display
+  // contract, rebuild a small package from the strongest approved fact only.
+  // This keeps the calculation honest while making a blank forecast impossible.
+  const fallbackPlans = buildPersonalForecastSectionPlans({
+    facts: semanticFacts.slice(0, 1),
+    period: input.period,
+    language,
+  });
+  const fallbackResult: GenerationResult = {
+    overview: materializeSection({
+      plan: fallbackPlans.overview,
+      blocks: deterministicBlocks(fallbackPlans.overview),
+      evidenceViews: calculated.evidenceViews,
+      language,
+      overview: true,
+    }),
+    sections: fallbackPlans.sections.map((plan) => materializeSection({
+      plan,
+      blocks: deterministicBlocks(plan),
+      evidenceViews: calculated.evidenceViews,
+      language,
+      overview: false,
+    })),
+    generationAttempts: generated.generationAttempts,
+    validationStatus: 'deterministic_fallback',
+  };
+  const fallback = materializePackage(
+    fallbackResult,
+    `PERSONAL_FORECAST_CONTRACT_FALLBACK:${primaryValidationError}`,
+  );
+  const fallbackValidationError = getPersonalForecastPackageValidationError(fallback);
+  if (fallbackValidationError) {
+    throw new Error(
+      `PERSONAL_FORECAST_DETERMINISTIC_FALLBACK_INVALID:${fallbackValidationError}`,
+    );
+  }
+  return fallback;
 }

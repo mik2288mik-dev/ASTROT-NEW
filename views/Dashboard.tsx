@@ -311,17 +311,15 @@ export const Dashboard = memo<DashboardProps>(({
     if (requestsRef.current[period]) return;
 
     const periodKey = periodKeys[period];
-    const local = options?.retry
-      ? null
-      : readLocalPersonalForecast({
-          profile,
-          chartData,
-          chartId,
-          period,
-          periodKey,
-        });
+    const local = readLocalPersonalForecast({
+      profile,
+      chartData,
+      chartId,
+      period,
+      periodKey,
+    });
     setPeriodStates((current) => {
-      const retained = options?.retry ? null : current[period]?.result || local;
+      const retained = current[period]?.result || local;
       return {
         ...current,
         [period]: {
@@ -374,7 +372,7 @@ export const Dashboard = memo<DashboardProps>(({
       } catch {
         if (accessContextRef.current !== requestContextKey) return;
         setPeriodStates((current) => {
-          const retained = options?.retry ? null : current[period]?.result || local;
+          const retained = current[period]?.result || local;
           return {
             ...current,
             [period]: {
@@ -408,11 +406,6 @@ export const Dashboard = memo<DashboardProps>(({
   useEffect(() => {
     loadPeriod(activePeriod);
   }, [activePeriod, loadPeriod]);
-
-  useEffect(() => {
-    if (!premium) return;
-    loadPeriod(activePeriod, { retry: true });
-  }, [activePeriod, loadPeriod, premium]);
 
   const state = periodStates[activePeriod];
   const result = state.result;

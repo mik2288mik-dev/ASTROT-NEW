@@ -117,7 +117,9 @@ describe('personal forecast feed V4 semantic wiring', () => {
       'Значок i рядом с ним открывает рассчитанный фактор и его смысл.',
     );
     expect(dashboard).not.toContain('Стрелка рядом с выводом');
-    expect(dashboard).toContain('const retained = options?.retry ? null');
+    expect(dashboard).toContain('const retained = current[period]?.result || local');
+    expect(dashboard).not.toContain('const retained = options?.retry ? null');
+    expect(dashboard).not.toContain("loadPeriod(activePeriod, { retry: true });");
     expect(feedStyles).toContain('.forecast-feed-page .home-period-tabs');
     expect(feedStyles).toContain('margin-top: 0');
     expect(dashboard).toContain('Точное время рождения влияет на Асцендент и дома.');

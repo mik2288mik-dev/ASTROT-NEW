@@ -274,4 +274,79 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     expect(readLocalPersonalForecast(request)).toBeNull();
     expect(storage.size).toBe(0);
   });
+
+  it('continues to one generation request after a retryable cache read failure', async () => {
+    mockedApiFetch
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: 'Cache temporarily unavailable',
+        code: 'CACHE_UNAVAILABLE',
+      }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(cachedResponse());
+
+    await expect(loadPersonalForecast({
+      ...request,
+      options: { force: true },
+    })).resolves.toMatchObject({ forecast: { period: 'day' } });
+
+    expect(mockedApiFetch).toHaveBeenCalledTimes(2);
+    expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
+  });
+
+  it('does not turn an authorization failure into a generation request', async () => {
+    mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      error: 'Forbidden',
+      code: 'FORBIDDEN',
+    }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await expect(loadPersonalForecast({
+      ...request,
+      options: { force: true },
+    })).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' });
+    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockedApiFetch.mock.calls[0][1]?.method).toBe('GET');
+  });
+
+  it('bounds an in-progress generation to one POST and two cache polls', async () => {
+    jest.useFakeTimers();
+    mockedApiFetch
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        code: 'GENERATION_IN_PROGRESS',
+        retryAfterMs: 500,
+      }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+    try {
+      const pending = loadPersonalForecast({
+        ...request,
+        options: { force: true, maxInProgressRetries: 99 },
+      });
+      const expectation = expect(pending).rejects.toMatchObject({
+        status: 202,
+        code: 'GENERATION_IN_PROGRESS',
+      });
+      await jest.advanceTimersByTimeAsync(1_000);
+      await expectation;
+    } finally {
+      jest.useRealTimers();
+    }
+
+    expect(mockedApiFetch).toHaveBeenCalledTimes(4);
+    expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual([
+      'GET',
+      'POST',
+      'GET',
+      'GET',
+    ]);
+  });
 });

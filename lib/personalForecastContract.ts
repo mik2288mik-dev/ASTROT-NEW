@@ -993,11 +993,13 @@ function visualValid(
   ));
 }
 
-export function isPersonalForecastPackage(
+export function getPersonalForecastPackageValidationError(
   value: unknown,
   options: { redactedSectionIds?: readonly string[] } = {},
-): value is PersonalForecastPackage {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return 'PACKAGE_NOT_OBJECT';
+  }
   const forecast = value as PersonalForecastPackage;
   if (
     !(['day', 'week', 'month', 'year'] as const).includes(forecast.period)
@@ -1009,7 +1011,11 @@ export function isPersonalForecastPackage(
     || typeof forecast.timezone !== 'string'
     || !forecast.timezone.trim()
     || forecast.timezone !== normalizeForecastTimezone(forecast.timezone)
-    || !forecast.meta
+  ) {
+    return 'PACKAGE_IDENTITY_INVALID';
+  }
+  if (
+    !forecast.meta
     || typeof forecast.meta !== 'object'
     || typeof forecast.meta.model !== 'string'
     || !forecast.meta.model.trim()
@@ -1033,11 +1039,17 @@ export function isPersonalForecastPackage(
       forecast.meta.visualFallback !== undefined
       && typeof forecast.meta.visualFallback !== 'boolean'
     )
-    || !evidenceRecordValid(forecast.evidence)
-    || !Array.isArray(forecast.sections)
+  ) {
+    return 'PACKAGE_META_INVALID';
+  }
+  if (!evidenceRecordValid(forecast.evidence)) {
+    return 'PACKAGE_EVIDENCE_INVALID';
+  }
+  if (
+    !Array.isArray(forecast.sections)
     || !Array.isArray(forecast.suggestedCrossPeriodLinks)
   ) {
-    return false;
+    return 'PACKAGE_COLLECTIONS_INVALID';
   }
 
   let expectedWindow: PersonalForecastWindow;
@@ -1048,13 +1060,13 @@ export function isPersonalForecastPackage(
       forecast.timezone,
     );
   } catch {
-    return false;
+    return 'PACKAGE_WINDOW_INVALID';
   }
   if (
     forecast.periodStart !== expectedWindow.periodStart
     || forecast.periodEnd !== expectedWindow.periodEnd
   ) {
-    return false;
+    return 'PACKAGE_WINDOW_MISMATCH';
   }
 
   const redactedSectionIds = new Set(options.redactedSectionIds || []);
@@ -1064,7 +1076,7 @@ export function isPersonalForecastPackage(
     forecast.period,
     evidenceIds,
     redactedSectionIds.has('overview'),
-  )) return false;
+  )) return 'PACKAGE_OVERVIEW_INVALID';
   if (
     forecast.overview.kind !== 'overview'
     || forecast.overview.id !== 'overview'
@@ -1072,39 +1084,48 @@ export function isPersonalForecastPackage(
     || forecast.overview.fixedKey !== undefined
     || forecast.overview.title !== undefined
   ) {
-    return false;
+    return 'PACKAGE_OVERVIEW_IDENTITY_INVALID';
   }
-  if (forecast.sections.some((section) => !sectionValid(
-    section,
-    forecast.period,
-    evidenceIds,
-    redactedSectionIds.has(
-      section && typeof section === 'object' ? String(section.id || '') : '',
-    ),
-  ))) {
-    return false;
+  for (const section of forecast.sections) {
+    const sectionDiagnosticId = section && typeof section === 'object'
+      ? String(section.id || 'unknown')
+      : 'unknown';
+    if (!sectionValid(
+      section,
+      forecast.period,
+      evidenceIds,
+      redactedSectionIds.has(
+        sectionDiagnosticId,
+      ),
+    )) {
+      return `PACKAGE_SECTION_INVALID:${sectionDiagnosticId}`;
+    }
   }
   const ids = new Set<string>(['overview']);
   for (const section of forecast.sections) {
-    if (ids.has(section.id)) return false;
+    if (ids.has(section.id)) return `PACKAGE_SECTION_ID_DUPLICATE:${section.id}`;
     ids.add(section.id);
   }
-  if (
-    [...redactedSectionIds].some((id) => !ids.has(id))
-    || forecast.sections.some(
-      (section) => !canonicalSectionIdentityValid(section, forecast.period),
-    )
-    || !visualValid(forecast.visual, ids)
-    || !crossPeriodLinksValid(
-      forecast.suggestedCrossPeriodLinks,
-      expectedWindow,
-      forecast.sections,
-    )
-  ) {
-    return false;
+  if ([...redactedSectionIds].some((id) => !ids.has(id))) {
+    return 'PACKAGE_REDACTED_SECTION_UNKNOWN';
+  }
+  if (forecast.sections.some(
+    (section) => !canonicalSectionIdentityValid(section, forecast.period),
+  )) {
+    return 'PACKAGE_SECTION_IDENTITY_INVALID';
+  }
+  if (!visualValid(forecast.visual, ids)) {
+    return 'PACKAGE_VISUAL_INVALID';
+  }
+  if (!crossPeriodLinksValid(
+    forecast.suggestedCrossPeriodLinks,
+    expectedWindow,
+    forecast.sections,
+  )) {
+    return 'PACKAGE_CROSS_PERIOD_LINKS_INVALID';
   }
   if (forecast.sections.length < 1 || forecast.sections.length > 5) {
-    return false;
+    return 'PACKAGE_SECTION_COUNT_INVALID';
   }
   if (
     forecast.sections.some((section) => section.status !== 'ready')
@@ -1115,13 +1136,15 @@ export function isPersonalForecastPackage(
     ).size !== [forecast.overview, ...forecast.sections]
       .filter((section) => !redactedSectionIds.has(section.id)).length
   ) {
-    return false;
+    return 'PACKAGE_SECTION_STATUS_OR_FINGERPRINT_INVALID';
   }
   if (validateForecastSectionRepetition([forecast.overview, ...forecast.sections]).length) {
-    return false;
+    return 'PACKAGE_SECTION_REPETITION';
   }
   const freeSelection = forecast.meta.freeSelection;
-  if (!freeSelection || !Array.isArray(freeSelection.sectionIds)) return false;
+  if (!freeSelection || !Array.isArray(freeSelection.sectionIds)) {
+    return 'PACKAGE_FREE_SELECTION_MISSING';
+  }
 
   if (forecast.period === 'day') {
     const candidates = freeCandidates(forecast.sections);
@@ -1145,16 +1168,23 @@ export function isPersonalForecastPackage(
       || (rotatedSectionId !== null && !eligibleIds.has(rotatedSectionId))
       || candidates[0]?.id !== strongestSectionId
     ) {
-      return false;
+      return 'PACKAGE_FREE_SELECTION_INVALID';
     }
   } else if (
     freeSelection.strongestSectionId !== null
     || freeSelection.rotatedSectionId !== null
     || freeSelection.sectionIds.length !== 0
   ) {
-    return false;
+    return 'PACKAGE_NON_DAY_FREE_SELECTION_INVALID';
   }
-  return true;
+  return null;
+}
+
+export function isPersonalForecastPackage(
+  value: unknown,
+  options: { redactedSectionIds?: readonly string[] } = {},
+): value is PersonalForecastPackage {
+  return getPersonalForecastPackageValidationError(value, options) === null;
 }
 
 function freeCandidates(sections: ForecastSection[]): ForecastSection[] {

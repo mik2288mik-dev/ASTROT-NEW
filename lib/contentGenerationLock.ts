@@ -86,6 +86,7 @@ export async function withContentGenerationLock<T>(options: {
   readCached: () => Promise<CachedContentLayer<T> | null>;
   generate: () => Promise<T>;
   waitMs?: number;
+  allowLocalLockFallback?: boolean;
   onLockAcquired?: () => void;
   onLockBusy?: () => void;
 }): Promise<ContentGenerationLockResult<T>> {
@@ -108,7 +109,16 @@ export async function withContentGenerationLock<T>(options: {
 
   let distributedLock: DistributedLock | null = null;
   try {
-    distributedLock = await tryAcquireDistributedLock(options.lockKey);
+    try {
+      distributedLock = await tryAcquireDistributedLock(options.lockKey);
+    } catch (error) {
+      if (!options.allowLocalLockFallback) throw error;
+      console.error(
+        `[${options.operation}] distributed generation lock unavailable; using process lock:`,
+        error instanceof Error ? error.message : String(error),
+      );
+      distributedLock = { acquired: true, release: async () => undefined };
+    }
     if (!distributedLock.acquired) {
       options.onLockBusy?.();
       releaseLock(options.lockKey);

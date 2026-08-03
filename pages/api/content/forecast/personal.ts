@@ -83,7 +83,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const entitlement = await getPremiumEntitlementState(userId);
 
   try {
-    const cached = await getCachedPersonalForecast(cacheInput);
+    const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
+      if (req.method === 'GET') throw error;
+      console.error(
+        '[personal-forecast-feed-v4] initial cache read failed; generating directly:',
+        error instanceof Error ? error.message : String(error),
+      );
+      return null;
+    });
     if (cached) {
       return res.status(200).json(responsePayload(cached.forecast, entitlement.isPremium, 'cache'));
     }

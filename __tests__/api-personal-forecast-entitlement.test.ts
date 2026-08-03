@@ -101,4 +101,36 @@ describe('personal forecast API entitlement', () => {
       )).toBe(true);
     },
   );
+
+  it('generates on POST when the initial cache read is temporarily unavailable', async () => {
+    const forecast = personalForecastFixture();
+    mockGetCachedPersonalForecast.mockRejectedValueOnce(new Error('cache read offline'));
+    mockEnsurePersonalForecast.mockResolvedValueOnce({
+      status: 'ready',
+      value: forecast,
+      fromCache: false,
+    });
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { res, status, json } = responseMock();
+    const req = {
+      method: 'POST',
+      query: {},
+      body: {
+        userId: '1001',
+        chartId: 7,
+        period: 'day',
+      },
+      headers: {},
+    } as unknown as NextApiRequest;
+
+    try {
+      await handler(req, res);
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(mockEnsurePersonalForecast).toHaveBeenCalledTimes(1);
+    expect(json.mock.calls[0][0]).toMatchObject({ source: 'generated' });
+  });
 });

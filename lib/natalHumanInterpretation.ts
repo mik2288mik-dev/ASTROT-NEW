@@ -77,7 +77,7 @@ function deterministicShortCard(
   const difficulty = sections.find((section) => section.key === 'difficulties') || sections.at(-1)!;
   const portraitPlan = compilation.sections.find((section) => section.key === 'base_portrait') || compilation.sections[0];
   return {
-    title: language === 'en' ? 'The main pattern' : 'Главный рисунок характера',
+    title: language === 'en' ? 'The main point' : 'Коротко о главном',
     keywords: portraitPlan.facts.map((fact) => fact.label).slice(0, 4),
     text: portrait?.content.split(/\n\n+/u)[0] || '',
     advice: difficulty?.content.split(/\n\n+/u)[0] || '',
@@ -168,10 +168,11 @@ Hard rules:
 - Return every supplied section and block exactly once and in the supplied order.
 - Echo every section id, block id, role, semantic_fact_id, and evidence_id exactly.
 - Rephrase only exactMeaningToRephrase. Do not add another fact, life sphere, biography, trauma, profession, event, diagnosis, relationship history, or promised outcome.
+- The same semantic_fact_id may support several relevant chapters. Follow each block's section-specific meaning and never reuse the same sentence or paragraph in another chapter.
 - Preserve the concrete meaning: at least 45% of the content words in each block must come from its approved meaning.
 - Keep each block to one or two short sentences, 25-520 characters. Plain text only; no markdown, headings, bullets, slogans, or filler.
 - Technical basis stays outside the main prose. Do not name planets, signs, aspects, houses, Ascendant, or MC in text.
-- If a block says there is no separate strong indicator, state that honestly; do not fill the gap with another topic.
+- Never manufacture a block for a section that has no supplied strong fact. Empty block plans stay empty.
 
 AUTHORITATIVE SEMANTIC WRITING PLAN:
 ${JSON.stringify(natalPromptPayload({ ...compilation, sections: plans }), null, 2)}`;

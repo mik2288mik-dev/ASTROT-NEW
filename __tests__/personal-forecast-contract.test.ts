@@ -7,6 +7,7 @@ import {
   buildPersonalForecastChartFingerprint,
   buildPersonalForecastInputHash,
   formatPersonalForecastDateLabel,
+  getPersonalForecastPackageValidationError,
   getNextPersonalForecastPeriodKey,
   getPersonalForecastPeriodKey,
   isPersonalForecastPackage,
@@ -101,6 +102,36 @@ describe('personal forecast V4 semantic contract', () => {
     const changedFact = structuredClone(base);
     changedFact.sections[0].contentBlocks[0].semanticFactId = 'fact:not-approved';
     expect(isPersonalForecastPackage(changedFact)).toBe(false);
+  });
+
+  test('reports the rule that rejected a complete package', () => {
+    const base = personalForecastFixture();
+    const missingEvidence = structuredClone(base);
+    missingEvidence.sections[0].explanationAnchors[0].evidenceIds = ['missing'];
+
+    expect(getPersonalForecastPackageValidationError(base)).toBeNull();
+    expect(getPersonalForecastPackageValidationError(missingEvidence)).toBe(
+      'PACKAGE_SECTION_INVALID:semantic:communication',
+    );
+    expect(getPersonalForecastPackageValidationError({
+      ...base,
+      visual: { sectionAssetIds: { missing: null } },
+    })).toBe('PACKAGE_VISUAL_INVALID');
+  });
+
+  test('keeps the hard voice rule on user-visible evidence and explanation sheets', () => {
+    const clicheEvidence = structuredClone(personalForecastFixture());
+    clicheEvidence.evidence.e1.meaning = 'Это может проявляться сильнее, поэтому не спеши.';
+    expect(getPersonalForecastPackageValidationError(clicheEvidence)).toBe(
+      'PACKAGE_EVIDENCE_INVALID',
+    );
+
+    const clicheExplanation = structuredClone(personalForecastFixture());
+    clicheExplanation.sections[0].explanationAnchors[0].explanation =
+      'Не спеши: активная тема может проявляться сильнее.';
+    expect(getPersonalForecastPackageValidationError(clicheExplanation)).toBe(
+      'PACKAGE_SECTION_INVALID:semantic:communication',
+    );
   });
 
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {

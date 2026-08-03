@@ -57,12 +57,14 @@ describe('active product copy contract', () => {
   it('keeps the runtime voice versioned and enforced', () => {
     const voice = read('lib/appVoice.ts');
     const natal = read('lib/natalHumanInterpretation.ts');
+    const natalSemantics = read('lib/natalSemanticCompiler.ts');
     const questions = read('lib/personalForecastQuestionGeneration.ts');
     const forecast = read('lib/personalForecastGeneration.ts');
 
-    expect(voice).toContain("APP_VOICE_VERSION = '3'");
+    expect(voice).toContain("APP_VOICE_VERSION = '4'");
     expect(voice).toContain('hasAppVoiceViolation');
-    expect(natal).toContain('hasAppVoiceViolation');
+    expect(natal).toContain('validateGeneratedNatalPayload');
+    expect(natalSemantics).toContain('hasAppVoiceViolation');
     expect(questions).toContain('hasAppVoiceViolation');
     expect(forecast).toContain('hasAppVoiceViolation');
   });

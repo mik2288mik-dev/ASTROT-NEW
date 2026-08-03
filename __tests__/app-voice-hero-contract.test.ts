@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { getAppSystemVoice } from '../lib/appVoice';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -8,7 +9,7 @@ describe('single app voice contract', () => {
   it('keeps generated content direct, calculation-led, and free of personas', () => {
     const voice = read('lib/appVoice.ts');
 
-    expect(voice).toContain("export const APP_VOICE_VERSION = '3'");
+    expect(voice).toContain("export const APP_VOICE_VERSION = '4'");
     expect(voice).toContain('прямо, уверенно, конкретно, по расчёту');
     expect(voice).toContain('Каждая фраза должна сообщать конкретную информацию');
     expect(voice).toContain('обращайся к пользователю на «ты»');
@@ -30,7 +31,9 @@ describe('single app voice contract', () => {
 
     expect(voice).toContain('Сначала объясняй смысл, затем показывай расчёт');
     expect(voice).toContain('СТРУКТУРА ДЛИННЫХ РАЗБОРОВ');
-    expect(voice).toContain('разбивай его на крупные нумерованные разделы');
+    expect(voice).toContain('дели его на смысловые разделы');
+    expect(voice).toContain('Нумеруй их только тогда, когда это прямо требует интерфейс');
+    expect(voice).not.toContain('Ты долго терпишь');
     expect(voice).toContain('Не вставляй все эти части механически');
     expect(voice).toContain('короткой жирной вводной фразы');
     expect(voice).toContain('Жизненные сферы называй прямо');
@@ -40,13 +43,16 @@ describe('single app voice contract', () => {
 
   it('explicitly rejects coaching, mysticism, and empty machine wording', () => {
     const voice = read('lib/appVoice.ts');
+    const runtimeVoice = getAppSystemVoice('ru');
 
-    expect(voice).toContain('«прислушайся к себе»');
-    expect(voice).toContain('«позволь себе»');
-    expect(voice).toContain('«отпусти контроль»');
-    expect(voice).toContain('«повторяющиеся сценарии»');
-    expect(voice).toContain('«карта сложилась»');
-    expect(voice).toContain('«это про тебя»');
+    expect(runtimeVoice).toContain('универсальные коучинговые команды');
+    expect(runtimeVoice).toContain('не следуют из переданных факторов');
+    expect(runtimeVoice).not.toContain('«прислушайся к себе»');
+    expect(runtimeVoice).not.toContain('«позволь себе»');
+    expect(runtimeVoice).not.toContain('«отпусти контроль»');
+    expect(runtimeVoice).not.toContain('«повторяющиеся сценарии»');
+    expect(runtimeVoice).not.toContain('«карта сложилась»');
+    expect(runtimeVoice).not.toContain('«это про тебя»');
     expect(voice).toContain('псевдопсихологии и эзотерической воды');
   });
 });

@@ -205,4 +205,32 @@ describe('content generation lock', () => {
     expect(release).toHaveBeenCalledTimes(1);
     expect(generate).toHaveBeenCalledTimes(1);
   });
+
+  it('can keep a forecast calculation available when the distributed lock is offline', async () => {
+    mockedTryAcquireLock.mockReturnValue(true);
+    mockedHasDatabaseUrl.mockReturnValue(true);
+    mockedGetPool.mockReturnValue({
+      connect: jest.fn().mockRejectedValue(new Error('database offline')),
+    } as any);
+    const generate = jest.fn().mockResolvedValue({ id: 11 });
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      await expect(withContentGenerationLock({
+        lockKey: 'content-generation:forecast-fallback',
+        operation: 'personal-forecast-feed-v4-day',
+        readCached: jest.fn().mockResolvedValue(null),
+        generate,
+        allowLocalLockFallback: true,
+      })).resolves.toMatchObject({
+        status: 'ready',
+        value: { id: 11 },
+        fromCache: false,
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
 });

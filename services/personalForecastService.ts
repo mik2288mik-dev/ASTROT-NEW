@@ -274,38 +274,39 @@ async function generate(input: {
   periodKey: string;
   maxInProgressRetries: number;
 }): Promise<PersonalForecastClientResult> {
-  for (let attempt = 0; attempt <= input.maxInProgressRetries; attempt += 1) {
-    const response = await apiFetch('/api/content/forecast/personal', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getTelegramInitDataHeaders(),
-      },
-      body: JSON.stringify({
-        chartId: input.chartId,
-        period: input.period,
-        periodKey: input.periodKey,
-      }),
-    });
-    if (response.status === 202) {
-      const payload = await response.json().catch(() => ({}));
-      if (attempt >= input.maxInProgressRetries) {
-        const error = new Error('Personal forecast generation is still in progress') as PersonalForecastClientError;
-        error.status = 202;
-        error.code = 'GENERATION_IN_PROGRESS';
-        error.retryAfterMs = Number(payload?.retryAfterMs) || 1500;
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, Number(payload?.retryAfterMs) || 1500));
-      const cached = await fetchCached(input);
-      if (cached) return cached;
-      continue;
-    }
+  const response = await apiFetch('/api/content/forecast/personal', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getTelegramInitDataHeaders(),
+    },
+    body: JSON.stringify({
+      chartId: input.chartId,
+      period: input.period,
+      periodKey: input.periodKey,
+    }),
+  });
+  if (response.status !== 202) {
     if (!response.ok) throw await parseError(response);
     const payload = await response.json().catch(() => null);
     return parseAccessPayload(payload, undefined, input);
   }
-  throw new Error('PERSONAL_FORECAST_GENERATION_FAILED');
+
+  const payload = await response.json().catch(() => ({}));
+  const retryAfterMs = Math.min(
+    3_000,
+    Math.max(500, Number(payload?.retryAfterMs) || 1500),
+  );
+  for (let attempt = 0; attempt < input.maxInProgressRetries; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+    const cached = await fetchCached(input);
+    if (cached) return cached;
+  }
+  const error = new Error('Personal forecast generation is still in progress') as PersonalForecastClientError;
+  error.status = 202;
+  error.code = 'GENERATION_IN_PROGRESS';
+  error.retryAfterMs = retryAfterMs;
+  throw error;
 }
 
 export function readLocalPersonalForecast(input: {
@@ -345,7 +346,11 @@ export async function loadPersonalForecast(input: {
   if (current) return current;
 
   const request = (async () => {
-    const serverCached = await fetchCached(resolved);
+    const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
+      const retryableCacheFailure = Number(error.status) >= 500;
+      if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
+      return null;
+    });
     if (serverCached) {
       writeStored(key, serverCached);
       return serverCached;
@@ -358,7 +363,10 @@ export async function loadPersonalForecast(input: {
     }
     const generated = await generate({
       ...resolved,
-      maxInProgressRetries: input.options?.maxInProgressRetries ?? 4,
+      maxInProgressRetries: Math.min(
+        2,
+        Math.max(0, input.options?.maxInProgressRetries ?? 2),
+      ),
     });
     writeStored(key, generated);
     return generated;

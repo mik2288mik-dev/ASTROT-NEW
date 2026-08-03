@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { hasAppVoiceViolation } from './appVoice';
 
-export const NATAL_SEMANTIC_VERSION = 'natal-semantics-v1';
+export const NATAL_SEMANTIC_VERSION = 'natal-semantics-v2';
 
 export const FREE_NATAL_SECTION_KEYS = [
   'base_portrait',
@@ -56,11 +56,12 @@ type SemanticTopic = NatalSemanticSectionKey | 'general';
 
 export type NatalSemanticFact = {
   id: string;
-  kind: 'placement' | 'aspect' | 'aggregate';
+  kind: 'placement' | 'aspect';
   score: number;
   topics: SemanticTopic[];
   label: string;
   claim: string;
+  sectionClaims?: Partial<Record<NatalSemanticSectionKey, string>>;
   planet?: PlanetKey;
   sign?: string;
   house?: number | null;
@@ -230,39 +231,129 @@ const PLANET_WEIGHTS: Record<PlanetKey, number> = {
 };
 
 const PLANET_TOPICS: Record<PlanetKey, SemanticTopic[]> = {
-  sun: ['general', 'base_portrait', 'work', 'abilities', 'central_contradictions'],
-  moon: ['general', 'reactions', 'love_relationships', 'inner_reactions', 'relationships_deep', 'central_contradictions'],
-  mercury: ['thinking', 'communication', 'conflicts', 'abilities'],
+  sun: ['general', 'base_portrait', 'strengths', 'work', 'abilities'],
+  moon: ['general', 'reactions', 'love_relationships', 'inner_reactions', 'relationships_deep'],
+  mercury: ['thinking', 'communication', 'strengths', 'abilities'],
   venus: ['love_relationships', 'work_money', 'relationships_deep', 'money'],
   mars: ['base_portrait', 'work_money', 'difficulties', 'conflicts', 'work'],
   jupiter: ['strengths', 'work_money', 'work', 'money', 'abilities'],
-  saturn: ['work_money', 'difficulties', 'work', 'money', 'central_contradictions'],
-  uranus: ['abilities', 'central_contradictions'],
-  neptune: ['reactions', 'inner_reactions', 'central_contradictions'],
-  pluto: ['difficulties', 'conflicts', 'central_contradictions'],
+  saturn: ['work_money', 'difficulties', 'work', 'money'],
+  uranus: ['strengths', 'abilities'],
+  neptune: ['reactions', 'inner_reactions', 'abilities'],
+  pluto: ['strengths', 'difficulties', 'conflicts'],
   chiron: ['difficulties', 'inner_reactions'],
   rising: ['base_portrait', 'communication'],
   mc: ['work_money', 'work', 'abilities'],
 };
 
-type SignMeaning = { styleRu: string; riskRu: string; styleEn: string; riskEn: string; ruPrep: string };
+type SignElement = 'fire' | 'earth' | 'air' | 'water';
+type SignModality = 'cardinal' | 'fixed' | 'mutable';
+type SignKey = keyof typeof SIGN_STRUCTURE;
+type LocalizedMeaning = { ru: string; en: string };
 
-const SIGN_MEANINGS: Record<string, SignMeaning> = {
-  Aries: { ruPrep: 'Овне', styleRu: 'прямой и быстрый способ включаться', riskRu: 'поторопить решение', styleEn: 'a direct, fast way of engaging', riskEn: 'rushing the decision' },
-  Taurus: { ruPrep: 'Тельце', styleRu: 'устойчивый и практичный темп', riskRu: 'слишком долго держаться за привычное', styleEn: 'a steady, practical pace', riskEn: 'holding on to the familiar for too long' },
-  Gemini: { ruPrep: 'Близнецах', styleRu: 'гибкость, вопросы и быстрый обмен идеями', riskRu: 'распылиться между вариантами', styleEn: 'flexibility, questions, and rapid exchange of ideas', riskEn: 'scattering attention across options' },
-  Cancer: { ruPrep: 'Раке', styleRu: 'чуткость к атмосфере и защиту своего круга', riskRu: 'закрыться вместо прямого ответа', styleEn: 'sensitivity to atmosphere and protection of close ties', riskEn: 'withdrawing instead of answering directly' },
-  Leo: { ruPrep: 'Льве', styleRu: 'выразительность и ориентацию на заметный результат', riskRu: 'защищать самолюбие вместо сути', styleEn: 'expressiveness and focus on a visible result', riskEn: 'protecting pride instead of addressing the point' },
-  Virgo: { ruPrep: 'Деве', styleRu: 'точность, проверку деталей и улучшение системы', riskRu: 'перепроверять дольше, чем нужно', styleEn: 'precision, detail checking, and system improvement', riskEn: 'checking longer than necessary' },
-  Libra: { ruPrep: 'Весах', styleRu: 'сравнение позиций и поиск рабочей договорённости', riskRu: 'откладывать выбор ради идеального баланса', styleEn: 'comparing positions and seeking workable agreement', riskEn: 'delaying a choice in search of perfect balance' },
-  Scorpio: { ruPrep: 'Скорпионе', styleRu: 'глубину, собранность и настойчивость', riskRu: 'усилить контроль там, где нужен разговор', styleEn: 'depth, focus, and persistence', riskEn: 'increasing control where a conversation is needed' },
-  Sagittarius: { ruPrep: 'Стрельце', styleRu: 'широкий взгляд, прямоту и интерес к новому', riskRu: 'пообещать больше, чем позволяет ситуация', styleEn: 'a broad view, candor, and interest in new ground', riskEn: 'promising more than the situation allows' },
-  Capricorn: { ruPrep: 'Козероге', styleRu: 'структуру, дисциплину и длинный горизонт', riskRu: 'сделать правило слишком жёстким', styleEn: 'structure, discipline, and a long horizon', riskEn: 'making the rule too rigid' },
-  Aquarius: { ruPrep: 'Водолее', styleRu: 'самостоятельность и нестандартный взгляд на систему', riskRu: 'отстраниться от человеческой стороны вопроса', styleEn: 'independence and an unconventional view of systems', riskEn: 'detaching from the human side of the issue' },
-  Pisces: { ruPrep: 'Рыбах', styleRu: 'интуитивное считывание ситуации и гибкость', riskRu: 'оставить границы и условия неясными', styleEn: 'intuitive reading of the situation and flexibility', riskEn: 'leaving boundaries and terms unclear' },
+const SIGN_STRUCTURE = {
+  Aries: { ruPrep: 'Овне', element: 'fire', modality: 'cardinal' },
+  Taurus: { ruPrep: 'Тельце', element: 'earth', modality: 'fixed' },
+  Gemini: { ruPrep: 'Близнецах', element: 'air', modality: 'mutable' },
+  Cancer: { ruPrep: 'Раке', element: 'water', modality: 'cardinal' },
+  Leo: { ruPrep: 'Льве', element: 'fire', modality: 'fixed' },
+  Virgo: { ruPrep: 'Деве', element: 'earth', modality: 'mutable' },
+  Libra: { ruPrep: 'Весах', element: 'air', modality: 'cardinal' },
+  Scorpio: { ruPrep: 'Скорпионе', element: 'water', modality: 'fixed' },
+  Sagittarius: { ruPrep: 'Стрельце', element: 'fire', modality: 'mutable' },
+  Capricorn: { ruPrep: 'Козероге', element: 'earth', modality: 'cardinal' },
+  Aquarius: { ruPrep: 'Водолее', element: 'air', modality: 'fixed' },
+  Pisces: { ruPrep: 'Рыбах', element: 'water', modality: 'mutable' },
+} as const satisfies Record<string, { ruPrep: string; element: SignElement; modality: SignModality }>;
+
+const PLANET_ELEMENT_MEANINGS: Record<PlanetKey, Record<SignElement, LocalizedMeaning>> = {
+  sun: {
+    fire: { ru: 'направление выбирается через личную инициативу и видимую цель', en: 'direction is chosen through personal initiative and a visible aim' },
+    earth: { ru: 'направление закрепляется через конкретный результат и проверяемую опору', en: 'direction is secured through concrete results and verifiable support' },
+    air: { ru: 'направление уточняется через идеи, сравнение позиций и обратную связь', en: 'direction is refined through ideas, comparison, and feedback' },
+    water: { ru: 'направление сверяется с внутренней реакцией и значимостью для близкого круга', en: 'direction is checked against inner response and meaning for close ties' },
+  },
+  moon: {
+    fire: { ru: 'эмоциональная реакция быстрее разряжается через действие и прямой отклик', en: 'emotional response discharges faster through action and direct response' },
+    earth: { ru: 'спокойствие возвращается через предсказуемый ритм и ощутимую устойчивость', en: 'calm returns through predictable rhythm and tangible stability' },
+    air: { ru: 'реакцию легче понять через слова, вопросы и смену точки зрения', en: 'reactions are easier to understand through words, questions, and reframing' },
+    water: { ru: 'реакция тонко улавливает атмосферу и требует времени на внутреннюю переработку', en: 'response closely reads the atmosphere and needs time for inner processing' },
+  },
+  mercury: {
+    fire: { ru: 'мысль быстрее превращается в тезис, решение или прямой вопрос', en: 'thought turns quickly into a position, decision, or direct question' },
+    earth: { ru: 'информация проверяется по фактам, последовательности и практической применимости', en: 'information is checked against facts, sequence, and practical use' },
+    air: { ru: 'мышление работает через связи, аргументы и обмен несколькими версиями', en: 'thinking works through connections, arguments, and exchange among alternatives' },
+    water: { ru: 'смысл считывается не только из слов, но и из контекста, пауз и интонации', en: 'meaning is read not only from words but also from context, pauses, and tone' },
+  },
+  venus: {
+    fire: { ru: 'симпатия проявляется через заметный интерес, инициативу и живой отклик', en: 'attachment shows through visible interest, initiative, and lively response' },
+    earth: { ru: 'ценность подтверждается надёжностью, поступками и устойчивым присутствием', en: 'value is confirmed through reliability, actions, and steady presence' },
+    air: { ru: 'близость строится через разговор, взаимный интерес и понятные договорённости', en: 'closeness grows through conversation, shared interest, and clear agreements' },
+    water: { ru: 'сближение зависит от эмоциональной безопасности и тонкого взаимного отклика', en: 'closeness depends on emotional safety and subtle mutual response' },
+  },
+  mars: {
+    fire: { ru: 'действие набирает силу через быстрый старт, конкуренцию и прямую инициативу', en: 'action gains force through a quick start, competition, and direct initiative' },
+    earth: { ru: 'усилие направляется в конкретную задачу и держится до измеримого результата', en: 'effort is directed into a concrete task and sustained to a measurable result' },
+    air: { ru: 'напор включается через спор, стратегию, переговоры и интеллектуальный вызов', en: 'assertion activates through debate, strategy, negotiation, and intellectual challenge' },
+    water: { ru: 'действие зависит от внутреннего импульса, доверия и защищённости границ', en: 'action depends on inner impulse, trust, and protected boundaries' },
+  },
+  jupiter: {
+    fire: { ru: 'возможности расширяются через смелую пробу, обучение действием и широкий замысел', en: 'opportunity expands through bold trials, learning by doing, and broad aims' },
+    earth: { ru: 'рост строится через накопление компетенции, ресурсов и устойчивой практики', en: 'growth is built through accumulated skill, resources, and steady practice' },
+    air: { ru: 'масштаб появляется через знания, связи и сопоставление разных систем', en: 'scale develops through knowledge, networks, and comparing different systems' },
+    water: { ru: 'рост связан с доверием, смыслом и пониманием невысказанных потребностей', en: 'growth is tied to trust, meaning, and understanding unspoken needs' },
+  },
+  saturn: {
+    fire: { ru: 'ответственность требует управлять личной инициативой и доводить импульс до формы', en: 'responsibility means governing initiative and carrying impulse into form' },
+    earth: { ru: 'ответственность выражается через правила, сроки и устойчивую систему действий', en: 'responsibility is expressed through rules, deadlines, and a durable system' },
+    air: { ru: 'границы устанавливаются через точные условия, аргументы и распределение ролей', en: 'boundaries are set through precise terms, reasoning, and role allocation' },
+    water: { ru: 'выдержка формируется через ясные эмоциональные границы и надёжные обязательства', en: 'endurance develops through clear emotional boundaries and dependable commitments' },
+  },
+  uranus: {
+    fire: { ru: 'перемены запускаются резким экспериментом и отказом ждать готового разрешения', en: 'change begins through sudden experiment and refusal to wait for permission' },
+    earth: { ru: 'новшество проверяется тем, улучшает ли оно реальную систему и результат', en: 'innovation is tested by whether it improves a real system and result' },
+    air: { ru: 'независимость выражается через новые связи, концепции и способы координации', en: 'independence is expressed through new connections, concepts, and coordination' },
+    water: { ru: 'перемена начинается, когда привычная эмоциональная схема перестаёт работать', en: 'change begins when a familiar emotional pattern stops working' },
+  },
+  neptune: {
+    fire: { ru: 'воображение питается образом будущего и эмоционально заряженной целью', en: 'imagination is fed by a vision of the future and an emotionally charged aim' },
+    earth: { ru: 'неясный образ становится понятнее через форму, ремесло и конкретный процесс', en: 'an unclear image becomes clearer through form, craft, and concrete process' },
+    air: { ru: 'воображение работает через язык, символы и множество возможных трактовок', en: 'imagination works through language, symbols, and multiple interpretations' },
+    water: { ru: 'чувствительность легко улавливает подтекст, настроение и размытые границы', en: 'sensitivity easily catches subtext, mood, and blurred boundaries' },
+  },
+  pluto: {
+    fire: { ru: 'давление усиливает потребность вернуть влияние через решительное действие', en: 'pressure intensifies the need to regain influence through decisive action' },
+    earth: { ru: 'контроль сосредоточен на ресурсах, устойчивости и реальных рычагах системы', en: 'control focuses on resources, stability, and the system’s concrete levers' },
+    air: { ru: 'сила проявляется через информацию, аргументацию и управление связями', en: 'power works through information, argument, and control of connections' },
+    water: { ru: 'глубокая перестройка затрагивает доверие, привязанность и эмоциональные границы', en: 'deep restructuring affects trust, attachment, and emotional boundaries' },
+  },
+  chiron: {
+    fire: { ru: 'чувствительная тема касается права действовать, пробовать и занимать место', en: 'the sensitive theme concerns the right to act, try, and take up space' },
+    earth: { ru: 'чувствительная тема касается полезности, надёжности и права на ошибку в практике', en: 'the sensitive theme concerns usefulness, reliability, and room for practical error' },
+    air: { ru: 'чувствительная тема касается права говорить, быть понятым и менять мнение', en: 'the sensitive theme concerns the right to speak, be understood, and revise a view' },
+    water: { ru: 'чувствительная тема касается доверия к собственной реакции и личным границам', en: 'the sensitive theme concerns trust in one’s own response and personal boundaries' },
+  },
+  rising: {
+    fire: { ru: 'первое движение заметно через инициативу и готовность обозначить себя', en: 'the first move is visible through initiative and readiness to state a position' },
+    earth: { ru: 'первое впечатление строится на собранности, практичности и понятном темпе', en: 'first impression rests on composure, practicality, and a clear pace' },
+    air: { ru: 'контакт начинается через наблюдение, вопрос и настройку способа общения', en: 'contact begins through observation, questions, and adjusting communication' },
+    water: { ru: 'первый отклик учитывает атмосферу, безопасность и эмоциональную дистанцию', en: 'the first response accounts for atmosphere, safety, and emotional distance' },
+  },
+  mc: {
+    fire: { ru: 'публичный результат требует личной инициативы и заметной ответственности за курс', en: 'visible results require initiative and clear ownership of direction' },
+    earth: { ru: 'публичный результат строится на компетенции, системе и измеримом качестве', en: 'visible results rest on competence, systems, and measurable quality' },
+    air: { ru: 'публичная роль развивается через знания, коммуникацию и координацию людей', en: 'public role develops through knowledge, communication, and coordination' },
+    water: { ru: 'публичная роль связана с пониманием контекста, доверия и скрытых потребностей', en: 'public role is tied to understanding context, trust, and unspoken needs' },
+  },
 };
 
-const SIGN_ALIASES: Record<string, keyof typeof SIGN_MEANINGS> = {
+const MODALITY_MEANINGS: Record<SignModality, LocalizedMeaning> = {
+  cardinal: { ru: 'Функция быстрее проявляется через самостоятельный старт и обозначение курса.', en: 'The function appears fastest through an independent start and a stated direction.' },
+  fixed: { ru: 'Функция раскрывается через удержание выбранного курса и накопление устойчивости.', en: 'The function develops through holding a chosen course and building stability.' },
+  mutable: { ru: 'Функция раскрывается через корректировку, обучение и смену способа действия.', en: 'The function develops through adjustment, learning, and changing the method.' },
+};
+
+const SIGN_ALIASES: Record<string, SignKey> = {
   aries: 'Aries', 'овен': 'Aries', 'овне': 'Aries',
   taurus: 'Taurus', 'телец': 'Taurus', 'тельце': 'Taurus',
   gemini: 'Gemini', 'близнецы': 'Gemini', 'близнецах': 'Gemini',
@@ -316,7 +407,7 @@ const SECTION_META: Record<NatalSemanticSectionKey, { ru: [string, string]; en: 
   work_money: { ru: ['Работа и деньги', 'Показать общий способ работать, брать ответственность и принимать решения о ресурсах без обещаний дохода.'], en: ['Work and money', 'Show the broad approach to work, responsibility, and resource decisions without income promises.'] },
   strengths: { ru: ['Сильные стороны', 'Выделить способности, которые подтверждены несколькими сильными факторами.'], en: ['Strengths', 'Highlight abilities supported by the strongest chart factors.'] },
   difficulties: { ru: ['Сложности', 'Назвать реальные напряжения карты без диагнозов, травм и фатализма.'], en: ['Difficulties', 'Name genuine chart tensions without diagnoses, trauma claims, or fatalism.'] },
-  inner_reactions: { ru: ['Внутренние реакции', 'Подробно разобрать эмоциональный автоматизм, восстановление и реакцию под давлением.'], en: ['Inner reactions', 'Examine emotional reflexes, recovery, and pressure response in detail.'] },
+  inner_reactions: { ru: ['Внутренние реакции', 'Разобрать скорость реакции, способ обработки сильных впечатлений и условия восстановления.'], en: ['Inner reactions', 'Examine response speed, processing of strong impressions, and recovery conditions.'] },
   communication: { ru: ['Общение', 'Отдельно разобрать речь, обработку информации, объяснение и слушание.'], en: ['Communication', 'Examine speech, information handling, explaining, and listening as a separate chapter.'] },
   relationships_deep: { ru: ['Отношения подробно', 'Углубить базовый раздел: сближение, ожидания, границы и способ договариваться.'], en: ['Relationships in depth', 'Extend the base section into closeness, expectations, boundaries, and negotiation.'] },
   conflicts: { ru: ['Конфликты', 'Показать реакцию на давление, спор и необходимость отстаивать позицию.'], en: ['Conflict', 'Show the response to pressure, disagreement, and the need to assert a position.'] },
@@ -327,12 +418,51 @@ const SECTION_META: Record<NatalSemanticSectionKey, { ru: [string, string]; en: 
   important_aspects: { ru: ['Важные аспекты', 'Объяснить только самые точные и значимые связи карты отдельной технически спокойной главой.'], en: ['Important aspects', 'Explain only the most exact and consequential chart connections in a restrained technical chapter.'] },
 };
 
+const SECTION_LENSES: Record<NatalSemanticSectionKey, LocalizedMeaning> = {
+  base_portrait: { ru: 'Общий способ действовать', en: 'Overall way of acting' },
+  thinking: { ru: 'Мышление и решения', en: 'Thinking and decisions' },
+  reactions: { ru: 'Автоматическая реакция', en: 'Automatic response' },
+  love_relationships: { ru: 'Базовый способ сближаться', en: 'Basic way of building closeness' },
+  work_money: { ru: 'Работа, ответственность и ресурсы', en: 'Work, responsibility, and resources' },
+  strengths: { ru: 'Практическая сильная сторона', en: 'Practical strength' },
+  difficulties: { ru: 'Зона, где нужна осознанная корректировка', en: 'Area requiring deliberate adjustment' },
+  inner_reactions: { ru: 'Первая реакция и восстановление', en: 'First response and recovery' },
+  communication: { ru: 'Речь, объяснение и слушание', en: 'Speech, explanation, and listening' },
+  relationships_deep: { ru: 'Ожидания, границы и договорённости в отношениях', en: 'Expectations, boundaries, and agreements in relationships' },
+  conflicts: { ru: 'Ответ на спор и давление', en: 'Response to disagreement and pressure' },
+  work: { ru: 'Рабочий темп и тип задач', en: 'Work pace and task type' },
+  money: { ru: 'Решения о деньгах и ресурсах', en: 'Money and resource decisions' },
+  abilities: { ru: 'Способность, полезная в конкретных задачах', en: 'Ability useful in concrete tasks' },
+  central_contradictions: { ru: 'Главное внутреннее противоречие', en: 'Central inner contradiction' },
+  important_aspects: { ru: 'Связь, которая заметно меняет общий портрет', en: 'Connection that materially changes the overall portrait' },
+};
+
 function normalizePlanet(value: string | null | undefined): PlanetKey | null {
   return PLANET_ALIASES[String(value || '').trim().toLowerCase()] || null;
 }
 
-function normalizeSign(value: string | null | undefined): keyof typeof SIGN_MEANINGS | null {
+function normalizeSign(value: string | null | undefined): SignKey | null {
   return SIGN_ALIASES[String(value || '').trim().toLowerCase()] || null;
+}
+
+function sentenceCase(value: string): string {
+  if (!value) return value;
+  return value[0].toLocaleUpperCase() + value.slice(1);
+}
+
+function buildSectionClaims(
+  topics: SemanticTopic[],
+  coreMeaning: string,
+  supportingMeaning: string | null,
+  language: NatalSemanticLanguage,
+): Partial<Record<NatalSemanticSectionKey, string>> {
+  const claims: Partial<Record<NatalSemanticSectionKey, string>> = {};
+  for (const topic of topics) {
+    if (topic === 'general') continue;
+    const lens = SECTION_LENSES[topic][language];
+    claims[topic] = `${lens}: ${sentenceCase(coreMeaning)}.${supportingMeaning ? ` ${supportingMeaning}` : ''}`;
+  }
+  return claims;
 }
 
 function birthTimeQuality(chart: NatalChartData): BirthTimeQuality {
@@ -362,27 +492,43 @@ function placementClaim(
   position: PlanetPosition,
   language: NatalSemanticLanguage,
   housesReliable: boolean,
-): { label: string; claim: string; sign: string; house: number | null } | null {
+): {
+  label: string;
+  claim: string;
+  sectionClaims: Partial<Record<NatalSemanticSectionKey, string>>;
+  sign: string;
+  house: number | null;
+} | null {
   const sign = normalizeSign(position.sign);
   if (!sign) return null;
-  const meaning = SIGN_MEANINGS[sign];
+  const structure = SIGN_STRUCTURE[sign];
   const planetLabel = PLANET_LABELS[planet][language];
-  const fn = PLANET_FUNCTIONS[planet][language];
   const house = housesReliable ? numberHouse(position) : null;
   const houseLabel = house ? HOUSE_THEMES[house]?.[language] : null;
+  const coreMeaning = PLANET_ELEMENT_MEANINGS[planet][structure.element][language];
+  const modalityMeaning = MODALITY_MEANINGS[structure.modality][language];
+  const houseMeaning = houseLabel
+    ? language === 'ru'
+      ? `При точном времени рождения эта функция особенно заметна в сфере «${houseLabel}».`
+      : `With an exact birth time, this function is especially visible in ${houseLabel}.`
+    : null;
+  const supportingMeaning = [modalityMeaning, houseMeaning].filter(Boolean).join(' ');
+  const topics = PLANET_TOPICS[planet];
   if (language === 'ru') {
     return {
       sign,
       house,
-      label: `${planetLabel} в ${meaning.ruPrep}${house ? ` · ${house} дом` : ''}`,
-      claim: `${planetLabel} в ${meaning.ruPrep}: в теме «${fn}» чаще заметны ${meaning.styleRu}. Под давлением риск — ${meaning.riskRu}.${houseLabel ? ` При точном времени рождения это особенно относится к сфере «${houseLabel}».` : ''}`,
+      label: `${planetLabel} в ${structure.ruPrep}${house ? ` · ${house} дом` : ''}`,
+      claim: `${planetLabel} в ${structure.ruPrep}: ${sentenceCase(coreMeaning)}. ${supportingMeaning}`.trim(),
+      sectionClaims: buildSectionClaims(topics, coreMeaning, supportingMeaning, language),
     };
   }
   return {
     sign,
     house,
     label: `${planetLabel} in ${sign}${house ? ` · house ${house}` : ''}`,
-    claim: `${planetLabel} in ${sign}: ${fn} tends to use ${meaning.styleEn}. Under pressure, the risk is ${meaning.riskEn}.${houseLabel ? ` With an exact birth time, this is especially relevant to ${houseLabel}.` : ''}`,
+    claim: `${planetLabel} in ${sign}: ${sentenceCase(coreMeaning)}. ${supportingMeaning}`.trim(),
+    sectionClaims: buildSectionClaims(topics, coreMeaning, supportingMeaning, language),
   };
 }
 
@@ -418,6 +564,7 @@ function placementFact(
     topics: PLANET_TOPICS[planet],
     label: rendered.label,
     claim: rendered.claim,
+    sectionClaims: rendered.sectionClaims,
     planet,
     sign: rendered.sign,
     house: rendered.house,
@@ -487,17 +634,22 @@ function aspectFact(
   const fromLabel = PLANET_LABELS[from][language];
   const toLabel = PLANET_LABELS[to][language];
   const dynamic = ASPECT_DYNAMICS[aspect.type][language];
+  const topics = aspectTopics(from, to);
+  const semanticMeaning = language === 'ru'
+    ? `Связь тем «${PLANET_FUNCTIONS[from].ru}» и «${PLANET_FUNCTIONS[to].ru}» означает, что ${dynamic}`
+    : `The link between ${PLANET_FUNCTIONS[from].en} and ${PLANET_FUNCTIONS[to].en} means that ${dynamic}`;
   const claim = language === 'ru'
-    ? `${config.ru} ${fromLabel} и ${toLabel} связывает ${PLANET_FUNCTIONS[from].ru} с темой «${PLANET_FUNCTIONS[to].ru}»: ${dynamic}.`
-    : `${config.en} between ${fromLabel} and ${toLabel} connects ${PLANET_FUNCTIONS[from].en} with ${PLANET_FUNCTIONS[to].en}: ${dynamic}.`;
+    ? `${config.ru} ${fromLabel} и ${toLabel}: ${semanticMeaning}.`
+    : `${config.en} between ${fromLabel} and ${toLabel}: ${semanticMeaning}.`;
   return {
     fact: {
       id: `natal:aspect:${from}:${aspect.type}:${to}`,
       kind: 'aspect',
       score,
-      topics: aspectTopics(from, to),
+      topics,
       label: `${fromLabel} · ${config[language]} · ${toLabel} · ${orb.toFixed(1)}°`,
       claim,
+      sectionClaims: buildSectionClaims(topics, semanticMeaning, null, language),
       aspectType: aspect.type,
       orb,
       from,
@@ -531,21 +683,9 @@ function prefersFact(key: NatalSemanticSectionKey, fact: NatalSemanticFact): num
   return 0;
 }
 
-function neutralFactForSection(
-  key: NatalSemanticSectionKey,
-  language: NatalSemanticLanguage,
-): NatalSemanticFact {
-  const title = SECTION_META[key][language][0];
-  return {
-    id: `natal:aggregate:${key}:no-strong-indicator`,
-    kind: 'aggregate',
-    score: 0,
-    topics: [key],
-    label: language === 'ru' ? `${title}: нет отдельного сильного показателя` : `${title}: no separate strong indicator`,
-    claim: language === 'ru'
-      ? `Для темы «${title}» не выбран отдельный достаточно сильный показатель. Здесь нельзя усиливать вывод за счёт слабых или чужих по смыслу факторов.`
-      : `No separate sufficiently strong indicator was selected for “${title}”. Weak or unrelated factors must not be inflated into a conclusion here.`,
-  };
+function factIsStrongEnough(fact: NatalSemanticFact): boolean {
+  if (fact.kind === 'aspect') return true;
+  return !!fact.planet && PLANET_WEIGHTS[fact.planet] >= 14;
 }
 
 function sectionPlan(
@@ -558,16 +698,14 @@ function sectionPlan(
   const candidates = facts
     .filter((fact) => key === 'important_aspects'
       ? fact.kind === 'aspect' && fact.topics.includes(key)
-      : fact.topics.includes(key) || (key === 'base_portrait' && fact.topics.includes('general')))
+      : factIsStrongEnough(fact)
+        && (fact.topics.includes(key) || (key === 'base_portrait' && fact.topics.includes('general'))))
     .sort((a, b) => (
-      b.score + prefersFact(key, b)
+      b.score + prefersFact(key, b) - ((usage.get(b.id) || 0) * 10)
     ) - (
-      a.score + prefersFact(key, a)
+      a.score + prefersFact(key, a) - ((usage.get(a.id) || 0) * 10)
     ));
-  const eligible = key === 'important_aspects'
-    ? candidates
-    : candidates.filter((fact) => !usage.has(fact.id));
-  const selected = (eligible.length ? eligible : [neutralFactForSection(key, language)]).slice(0, limit);
+  const selected = candidates.slice(0, limit);
   for (const fact of selected) usage.set(fact.id, (usage.get(fact.id) || 0) + 1);
   const meta = SECTION_META[key][language];
   const blocks: NatalSemanticBlockPlan[] = selected.map((fact, index) => ({
@@ -575,7 +713,7 @@ function sectionPlan(
     role: index === 0 ? 'conclusion' : 'detail',
     semanticFactId: fact.id,
     evidenceId: fact.id,
-    exactMeaning: fact.claim,
+    exactMeaning: fact.sectionClaims?.[key] || fact.claim,
   }));
   return {
     key,
@@ -774,6 +912,7 @@ export function validateGeneratedNatalPayload(input: {
   }
   const blocksBySectionId = new Map<string, ValidatedNatalBlock[]>();
   const seenSections = new Set<string>();
+  const seenCopyBySemanticFact = new Map<string, Set<string>>();
   for (let sectionIndex = 0; sectionIndex < input.plans.length; sectionIndex += 1) {
     const plan = input.plans[sectionIndex];
     const rawSection = rawSections[sectionIndex];
@@ -811,6 +950,14 @@ export function validateGeneratedNatalPayload(input: {
         errors.push(`${plan.key}: block ${expected.id} is not grounded in its approved meaning`);
         continue;
       }
+      const copyFingerprint = text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+      const previousCopies = seenCopyBySemanticFact.get(expected.semanticFactId) || new Set<string>();
+      if (previousCopies.has(copyFingerprint)) {
+        errors.push(`${plan.key}: block ${expected.id} duplicates copy already used for the same semantic fact`);
+        continue;
+      }
+      previousCopies.add(copyFingerprint);
+      seenCopyBySemanticFact.set(expected.semanticFactId, previousCopies);
       validated.push({
         id: expected.id,
         role: expected.role,

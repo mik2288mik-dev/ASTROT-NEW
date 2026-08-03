@@ -21,6 +21,7 @@ import {
   buildPersonalForecastCacheKey,
   buildPersonalForecastInputHash,
   getPreviousPersonalForecastPeriodKey,
+  getPersonalForecastPackageValidationError,
   isPersonalForecastPackage,
   resolvePersonalForecastWindow,
   type PersonalForecastPackage,
@@ -284,9 +285,18 @@ export async function ensurePersonalForecast(
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     }),
     operation: `personal-forecast-feed-v4-${input.period}`,
+    allowLocalLockFallback: true,
     readCached: async () => {
-      const cached = await getCachedPersonalForecast(input);
-      return cached ? { value: cached.forecast, source: 'cache' } : null;
+      try {
+        const cached = await getCachedPersonalForecast(input);
+        return cached ? { value: cached.forecast, source: 'cache' } : null;
+      } catch (error) {
+        console.error(
+          '[personal-forecast-feed-v4] cache read failed; continuing with calculation:',
+          error instanceof Error ? error.message : String(error),
+        );
+        return null;
+      }
     },
     generate: async () => {
       const historyContext = await getAstrologyHistoryContext({
@@ -297,6 +307,12 @@ export async function ensurePersonalForecast(
         factLimit: 20,
         messageLimit: 12,
         artifactLimit: 20,
+      }).catch((error) => {
+        console.error(
+          '[personal-forecast-feed-v4] history context unavailable:',
+          error instanceof Error ? error.message : String(error),
+        );
+        return null;
       });
       const previousPeriodKey = getPreviousPersonalForecastPeriodKey(
         input.period,
@@ -306,7 +322,13 @@ export async function ensurePersonalForecast(
       const previous = await getCachedPersonalForecast({
         ...input,
         periodKey: previousPeriodKey,
-      }, { allowExpired: true });
+      }, { allowExpired: true }).catch((error) => {
+        console.error(
+          '[personal-forecast-feed-v4] previous forecast unavailable:',
+          error instanceof Error ? error.message : String(error),
+        );
+        return null;
+      });
       let calculationSnapshotId: number | null = null;
       const forecast = await generatePersonalForecastPackage({
         profile: input.ctx.profile,
@@ -317,28 +339,50 @@ export async function ensurePersonalForecast(
         previousForecast: previous?.forecast ?? null,
         historyContext,
         onEvidenceCalculated: async ({ calculated, semanticFacts }) => {
-          calculationSnapshotId = await appendForecastCalculationSnapshot({
-            cache: input,
-            identity,
-            calculated,
-            semanticFacts,
-          });
+          try {
+            calculationSnapshotId = await appendForecastCalculationSnapshot({
+              cache: input,
+              identity,
+              calculated,
+              semanticFacts,
+            });
+          } catch (error) {
+            console.error(
+              '[personal-forecast-feed-v4] calculation history write failed:',
+              error instanceof Error ? error.message : String(error),
+            );
+          }
           return { calculationSnapshotId };
         },
       });
       if (!isPersonalForecastPackage(forecast)) {
-        throw new Error('PERSONAL_FORECAST_PACKAGE_INVALID');
+        throw new Error(
+          `PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`,
+        );
       }
-      if (calculationSnapshotId == null) {
-        throw new Error('PERSONAL_FORECAST_CALCULATION_HISTORY_MISSING');
+      try {
+        await savePersonalForecast(input, forecast, identity);
+      } catch (error) {
+        console.error(
+          '[personal-forecast-feed-v4] cache write failed; returning calculated forecast:',
+          error instanceof Error ? error.message : String(error),
+        );
       }
-      await appendForecastGeneratedArtifact({
-        cache: input,
-        identity,
-        forecast,
-        calculationSnapshotId,
-      });
-      await savePersonalForecast(input, forecast, identity);
+      if (calculationSnapshotId != null) {
+        try {
+          await appendForecastGeneratedArtifact({
+            cache: input,
+            identity,
+            forecast,
+            calculationSnapshotId,
+          });
+        } catch (error) {
+          console.error(
+            '[personal-forecast-feed-v4] generated history write failed:',
+            error instanceof Error ? error.message : String(error),
+          );
+        }
+      }
       return forecast;
     },
   });

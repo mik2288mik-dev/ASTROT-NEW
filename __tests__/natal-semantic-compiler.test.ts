@@ -144,12 +144,35 @@ describe('deterministic natal semantic compiler', () => {
         }),
       ]),
     );
-    const chapterFactIds = result.sections
-      .filter((section) => section.key !== 'important_aspects')
-      .flatMap((section) => section.facts)
-      .filter((fact) => fact.kind !== 'aggregate')
-      .map((fact) => fact.id);
-    expect(new Set(chapterFactIds).size).toBe(chapterFactIds.length);
+    const reusedFacts = new Map<string, string[]>();
+    for (const section of result.sections) {
+      for (const fact of section.facts) {
+        reusedFacts.set(fact.id, [...(reusedFacts.get(fact.id) || []), section.key]);
+      }
+    }
+    expect([...reusedFacts.values()].some((sectionKeys) => sectionKeys.length > 1)).toBe(true);
+
+    const repeatedFactorBlocks = result.sections
+      .flatMap((section) => section.blocks)
+      .filter((block) => block.semanticFactId === 'natal:aspect:mercury:square:mars');
+    expect(repeatedFactorBlocks.length).toBeGreaterThan(1);
+    expect(new Set(repeatedFactorBlocks.map((block) => block.exactMeaning)).size).toBe(repeatedFactorBlocks.length);
+  });
+
+  it('renders a placement through the specific planet function instead of one sign stereotype', () => {
+    const input = chart('unknown');
+    input.moon = planet('Moon', 'Aries', 1);
+    input.mercury = planet('Mercury', 'Aries', 1);
+    const result = compileNatalSemantics(input, 'free', 'ru');
+    const sun = result.facts.find((fact) => fact.planet === 'sun');
+    const moon = result.facts.find((fact) => fact.planet === 'moon');
+    const mercury = result.facts.find((fact) => fact.planet === 'mercury');
+
+    expect(sun?.claim.toLocaleLowerCase()).toContain('направление выбирается');
+    expect(moon?.claim.toLocaleLowerCase()).toContain('эмоциональная реакция');
+    expect(mercury?.claim.toLocaleLowerCase()).toContain('мысль быстрее превращается');
+    expect(new Set([sun?.claim, moon?.claim, mercury?.claim]).size).toBe(3);
+    expect(JSON.stringify([sun, moon, mercury])).not.toContain('Под давлением риск');
   });
 
   it('drops weak aspects before they can become model input', () => {
@@ -212,7 +235,7 @@ describe('deterministic natal semantic compiler', () => {
     const changedIdentity = structuredClone(valid) as {
       sections: Array<{ blocks: Array<{ evidence_id: string }> }>;
     };
-    changedIdentity.sections[0].blocks[0].evidence_id = result.sections[1].evidenceIds[0];
+    changedIdentity.sections[0].blocks[0].evidence_id = 'natal:invented:evidence';
     expect(validateGeneratedNatalPayload({
       raw: changedIdentity,
       plans: result.sections,
@@ -277,20 +300,45 @@ describe('deterministic natal semantic compiler', () => {
     ]));
   });
 
-  it('uses an honest topic-specific aggregate instead of an unrelated global fallback', () => {
+  it('leaves unsupported optional chapters empty instead of exposing a no-indicator filler', () => {
     const input = chart('unknown');
-    input.venus = null as unknown as PlanetPosition;
     input.aspects = [];
     const result = compileNatalSemantics(input, 'premium', 'ru');
-    const relationships = result.sections.find((section) => section.key === 'relationships_deep');
+    const contradictions = result.sections.find((section) => section.key === 'central_contradictions');
+    const importantAspects = result.sections.find((section) => section.key === 'important_aspects');
 
-    expect(relationships?.facts).toEqual([
-      expect.objectContaining({
-        kind: 'aggregate',
-        id: 'natal:aggregate:relationships_deep:no-strong-indicator',
-      }),
-    ]);
-    expect(relationships?.facts[0].claim).toContain('не выбран отдельный достаточно сильный показатель');
+    expect(contradictions?.facts).toEqual([]);
+    expect(contradictions?.blocks).toEqual([]);
+    expect(importantAspects?.facts).toEqual([]);
+    expect(importantAspects?.blocks).toEqual([]);
+    expect(JSON.stringify(natalPromptPayload(result))).not.toMatch(/no strong indicator|нет отдельного сильного показателя/iu);
+    expect(result.sections.find((section) => section.key === 'communication')?.facts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ planet: 'mercury' })]),
+    );
+  });
+
+  it('rejects copied prose when one strong fact supports several chapters', () => {
+    const result = compileNatalSemantics(chart(), 'premium', 'ru');
+    const occurrences = result.sections
+      .flatMap((section, sectionIndex) => section.blocks.map((block, blockIndex) => ({ sectionIndex, blockIndex, block })))
+      .filter((item) => item.block.semanticFactId === 'natal:aspect:mercury:square:mars');
+    expect(occurrences.length).toBeGreaterThan(1);
+
+    const raw = writerPayload(result) as {
+      sections: Array<{ blocks: Array<{ text: string }> }>;
+    };
+    const first = occurrences[0];
+    const second = occurrences[1];
+    const copied = raw.sections[first.sectionIndex].blocks[first.blockIndex].text;
+    raw.sections[second.sectionIndex].blocks[second.blockIndex].text = copied;
+
+    expect(validateGeneratedNatalPayload({
+      raw,
+      plans: result.sections,
+      reliability: result.reliability,
+    }).errors).toEqual(expect.arrayContaining([
+      expect.stringContaining('duplicates copy'),
+    ]));
   });
 });
 
@@ -312,7 +360,8 @@ describe('active human natal products', () => {
     expect(base.paidSections).toHaveLength(9);
     expect(premium.key).toBe('communication');
     expect(premium.evidenceIds?.length).toBeGreaterThan(0);
-    expect(premium.content).toContain('Меркурий');
+    expect(premium.subtitle).toContain('Меркурий');
+    expect(premium.content).toContain('Речь, объяснение и слушание');
   });
 
   it('sends only exact semantic blocks to one writer call and keeps identity out of the prompt', async () => {
@@ -330,7 +379,7 @@ describe('active human natal products', () => {
     expect(call.user).not.toContain(profile.birthDate);
     expect(call.user).not.toContain(profile.birthPlace);
     expect(call.temperature).toBeLessThanOrEqual(0.35);
-    expect(report.shortCard.title).toBe('Главный рисунок характера');
+    expect(report.shortCard.title).toBe('Коротко о главном');
     expect(report.shortCard.text).toBe(report.freeSections[0].content.split(/\n\n+/u)[0]);
   });
 

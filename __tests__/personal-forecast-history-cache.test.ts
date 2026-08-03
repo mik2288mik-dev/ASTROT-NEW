@@ -210,4 +210,64 @@ describe('personal forecast durable history cache path', () => {
     }));
     expect(mockContentInterpretations.upsertByChart).toHaveBeenCalledTimes(1);
   });
+
+  it('returns the calculated forecast when history and cache persistence are unavailable', async () => {
+    const forecast = {
+      overview: { semanticFingerprint: 'overview-semantic' },
+      sections: [{ semanticFingerprint: 'section-semantic' }],
+      meta: {
+        validationStatus: 'deterministic_fallback',
+        generationAttempts: 0,
+      },
+    };
+    const calculated = {
+      evidence: [],
+      continuationEvidence: [],
+      evidenceViews: {},
+    };
+    mockGetAstrologyHistoryContext.mockRejectedValueOnce(new Error('history read offline'));
+    mockAppendCalculationSnapshot.mockRejectedValueOnce(new Error('history write offline'));
+    mockContentInterpretations.getByChart.mockRejectedValueOnce(new Error('cache read offline'));
+    mockContentInterpretations.upsertByChart.mockRejectedValueOnce(new Error('cache write offline'));
+    mockGeneratePersonalForecastPackage.mockImplementationOnce(async (input: {
+      onEvidenceCalculated: (payload: unknown) => Promise<unknown>;
+      historyContext: unknown;
+    }) => {
+      expect(input.historyContext).toBeNull();
+      await input.onEvidenceCalculated({ calculated, semanticFacts: [] });
+      return forecast;
+    });
+
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(ensurePersonalForecast({
+        ctx: {
+          user: { id: '42' },
+          profile: {
+            id: '42',
+            name: 'Private name',
+            birthDate: '1990-01-01',
+            birthTime: '12:00',
+            birthPlace: 'Private place',
+            language: 'ru',
+          } as never,
+          chartId: 7,
+          chartData: {
+            timezone: 'Europe/Moscow',
+            calculationVersion: 'swisseph-v2',
+            birthTimeQuality: 'exact',
+          } as never,
+        },
+        period: 'day',
+        periodKey: '2026-08-02',
+      })).resolves.toMatchObject({
+        status: 'ready',
+        value: forecast,
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    expect(mockAppendGeneratedArtifact).not.toHaveBeenCalled();
+  });
 });
