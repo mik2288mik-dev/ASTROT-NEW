@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { formatValidationErrors, validateNatalChartInput } from '../../../lib/validation';
-import { db } from '../../../lib/db';
+import { natalChartV2Repository } from '../../../lib/natalChartV2Repository';
 import { createOrReuseCanonicalChart, ensureCanonicalPrimaryChart, repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanonical';
 import { normalizeBirthTimeInput } from '../../../lib/birthTime';
@@ -15,10 +15,7 @@ const log={info:(msg:string,data?:any)=>console.log(`[API/charts] ${msg}`,data||
 
 async function persistChartIdentity(chart:any,subjectType:'self'|'saved_person',relationLabel:string|null) {
   if (!chart?.id) return chart;
-  const setter=(db.natal_charts as any).setIdentityMetadata;
-  if (typeof setter!=='function') return chart;
-  await setter.call(db.natal_charts,chart.id,subjectType,relationLabel);
-  return (await db.natal_charts.getById(chart.id))||{...chart,subject_type:subjectType,relation_label:relationLabel};
+  return (await natalChartV2Repository.setIdentityMetadata(chart.id,subjectType,relationLabel))||{...chart,subject_type:subjectType,relation_label:relationLabel};
 }
 
 export default async function handler(req:NextApiRequest,res:NextApiResponse) {
@@ -28,7 +25,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
     const entitlement=await getPremiumEntitlementState(userId); const chartSlots=getEffectiveChartLimit(entitlement.isPremium);
 
     if (req.method==='GET') {
-      const charts=getActiveCharts(await db.natal_charts.getAll(userId));
+      const charts=getActiveCharts(await natalChartV2Repository.getAll(userId));
       return res.status(200).json({charts:charts.map((chart)=>exposeChartAccess(chart,entitlement.isPremium)),chartSlots,canAddMore:charts.length<chartSlots,canAddSavedPeople:entitlement.isPremium&&charts.length<chartSlots&&!!getSelfChart(charts),isPremium:entitlement.isPremium});
     }
 
@@ -71,7 +68,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
     if (!tryAcquireLock(lockKey,'saved-chart-create')) return res.status(409).json({error:'Chart creation is already in progress',code:'CHART_CREATION_IN_PROGRESS'});
     let result;
     try {
-      const active=getActiveCharts(await db.natal_charts.getAll(userId)); assertCanCreateSavedPerson(active,entitlement.isPremium);
+      const active=getActiveCharts(await natalChartV2Repository.getAll(userId)); assertCanCreateSavedPerson(active,entitlement.isPremium);
       result=await createOrReuseCanonicalChart({...common,name:body.name||'Saved person'});
       if (result.reused&&getSelfChart(active)?.id===result.chart.id) return res.status(409).json({error:'This is already your own chart.',code:'SELF_CHART_ALREADY_EXISTS'});
       result.chart=await persistChartIdentity(result.chart,'saved_person',normalizeRelationLabel(body.relationLabel));
@@ -82,7 +79,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
     if (error instanceof AdminAuthError) return handleAdminError(res,error);
     if (error instanceof ChartAccessPolicyError) return res.status(error.status).json({error:error.message,code:error.code});
     log.error('Error',{error:error.message,code:error.code});
-    const status=['GEOCODING_FAILED','INVALID_TIMEZONE','TIMEZONE_LOOKUP_FAILED'].includes(error.code)?400:500;
+    const status=['GEOCODING_FAILED','INVALID_TIMEZONE','TIMEZONE_LOOKUP_FAILED','INVALID_BIRTH_TIME'].includes(error.code)?400:500;
     return res.status(status).json({error:error.message,code:error.code});
   }
 }
