@@ -268,9 +268,9 @@ function DimBar({ label, value, color, top, index, reduce }: {
   );
 }
 
-/* Один нумерованный редакционный раздел без цветной карточки. */
-function CompatBlock({ title, number, index, reduce, children }: {
-  title: string; number: number; index: number; reduce: boolean | null; children?: string | null;
+/* Один редакционный раздел без цветной карточки. */
+function CompatBlock({ title, index, reduce, children }: {
+  title: string; index: number; reduce: boolean | null; children?: string | null;
 }) {
   if (!children) return null;
   return (
@@ -280,7 +280,7 @@ function CompatBlock({ title, number, index, reduce, children }: {
       animate={{ opacity: 1, y: 0 }}
       transition={reduce ? { duration: 0 } : { duration: 0.4, delay: 0.05 * index, ease: [0.22, 1, 0.36, 1] }}
     >
-      <EditorialSectionHeading number={number} title={title} className="compat-read-heading" />
+      <EditorialSectionHeading title={title} className="compat-read-heading" />
       <EditorialProse text={children} className="compat-read-text" />
     </motion.section>
   );
@@ -765,9 +765,9 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {signText ? (
         <div className="compat-read" style={{ marginTop: 14 }}>
-          <CompatBlock title={resultTitles[0]} number={1} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
-          <CompatBlock title={resultTitles[1]} number={2} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
-          <CompatBlock title={resultTitles[2]} number={3} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
+          <CompatBlock title={resultTitles[0]} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
+          <CompatBlock title={resultTitles[1]} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
+          <CompatBlock title={resultTitles[2]} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
         </div>
       ) : (
         <p className="union-pad" style={{ marginTop: 12, color: 'var(--fresh-muted)', fontSize: 14 }}>{ru ? 'Готовим разбор…' : 'Preparing…'}</p>
@@ -775,9 +775,9 @@ export function UnionRoom(props: UnionRoomProps) {
 
       {deep ? (
         <div className="compat-read" style={{ marginTop: 18 }}>
-          <CompatBlock title={resultDeepTitles[1]} number={4} index={0} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
-          <CompatBlock title={resultDeepTitles[2]} number={5} index={1} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
-          <CompatBlock title={resultDeepTitles[3]} number={6} index={2} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[1]} index={0} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[2]} index={1} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
+          <CompatBlock title={resultDeepTitles[3]} index={2} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
           <EditorialSummary label={ru ? 'Итог' : 'Bottom line'} title={resultDeepTitles[0]} className="compat-final-summary">
             <EditorialProse text={deep.summary} />
           </EditorialSummary>

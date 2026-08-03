@@ -46,14 +46,14 @@ jest.mock('../lib/personalForecastEvidence', () => ({
 }));
 
 jest.mock('../lib/personalForecastSemantics', () => ({
-  PERSONAL_FORECAST_SEMANTICS_VERSION: 'personal-forecast-semantics-v2',
+  PERSONAL_FORECAST_SEMANTICS_VERSION: 'personal-forecast-semantics-v3',
 }));
 
 jest.mock('../lib/personalForecastContract', () => ({
   PERSONAL_FORECAST_CALCULATION_VERSION: 'personal-forecast-evidence-v4',
-  PERSONAL_FORECAST_CONTRACT_VERSION: 'personal-forecast-feed-v4',
-  PERSONAL_FORECAST_PROMPT_VERSION: 'personal-forecast-feed.v5.semantic-writer+voice-test',
-  buildPersonalForecastCacheKey: jest.fn(() => 'personal-forecast-feed-v4:key:day:2026-08-02'),
+  PERSONAL_FORECAST_CONTRACT_VERSION: 'personal-forecast-feed-v5',
+  PERSONAL_FORECAST_PROMPT_VERSION: 'personal-forecast-feed.v6.editorial-writer+voice-test',
+  buildPersonalForecastCacheKey: jest.fn(() => 'personal-forecast-feed-v5:key:day:2026-08-02'),
   buildPersonalForecastInputHash: jest.fn(() => 'input-v4'),
   buildPersonalForecastChartFingerprint: jest.fn(() => 'chart-v4'),
   getPreviousPersonalForecastPeriodKey: jest.fn(() => '2026-08-01'),
@@ -173,7 +173,7 @@ describe('personal forecast durable history cache path', () => {
       periodKey: '2026-08-02',
       inputHash: 'input-v4',
       calculationVersion: 'personal-forecast-evidence-v4',
-      semanticVersion: 'personal-forecast-semantics-v2',
+      semanticVersion: 'personal-forecast-semantics-v3',
       ephemerisSource: 'swisseph',
       birthTimeStatus: 'exact',
       calculationPayload: {
@@ -198,8 +198,8 @@ describe('personal forecast durable history cache path', () => {
       semanticFingerprints: ['overview-semantic', 'section-semantic'],
       provider: 'openai',
       modelId: 'gpt-test',
-      semanticVersion: 'personal-forecast-semantics-v2',
-      contractVersion: 'personal-forecast-feed-v4',
+      semanticVersion: 'personal-forecast-semantics-v3',
+      contractVersion: 'personal-forecast-feed-v5',
       validationStatus: 'valid',
       generationAttempts: 1,
       provenance: {

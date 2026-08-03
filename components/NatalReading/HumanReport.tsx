@@ -116,7 +116,6 @@ const SectionText: React.FC<{ section: InterpretationSection; index?: number }> 
       className="natal-sec editorial-reading-section"
     >
       <EditorialSectionHeading
-        number={index + 1}
         title={section.title}
         subtitle={section.subtitle}
         className="natal-sec-heading"

@@ -138,7 +138,6 @@ export function MatrixRoom({ profile, onBack }: Props) {
                 transition={{ duration: 0.3, delay: 0.04 * i }}
               >
                 <EditorialSectionHeading
-                  number={i + 1}
                   title={cap(ru ? g.arcana.keyword : g.arcana.keywordEn)}
                   subtitle={g.labels.map(cap).join(' · ')}
                   className="mtx-card-heading"
@@ -163,7 +162,6 @@ export function MatrixRoom({ profile, onBack }: Props) {
                       transition={{ duration: 0.3, delay: 0.04 * i }}
                     >
                       <EditorialSectionHeading
-                        number={themeGroups.length + i + 1}
                         title={cap(la.label)}
                         subtitle={cap(ru ? a.keyword : a.keywordEn)}
                         className="mtx-card-heading"

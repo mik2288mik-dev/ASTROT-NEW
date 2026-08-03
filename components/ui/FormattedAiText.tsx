@@ -4,7 +4,7 @@ function stripMdHeaders(line: string): { isHeading: boolean; text: string } {
   const m = line.match(/^(#{1,6})\s+(.+)$/);
   if (m) return { isHeading: true, text: m[2].trim() };
   const numbered = line.match(/^(\d{1,2})[.)]\s+(.+)$/);
-  if (numbered) return { isHeading: true, text: `${numbered[1]}. ${numbered[2].trim()}` };
+  if (numbered) return { isHeading: true, text: numbered[2].trim() };
   return { isHeading: false, text: line };
 }
 

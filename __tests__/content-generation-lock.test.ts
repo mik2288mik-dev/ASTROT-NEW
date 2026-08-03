@@ -218,7 +218,7 @@ describe('content generation lock', () => {
     try {
       await expect(withContentGenerationLock({
         lockKey: 'content-generation:forecast-fallback',
-        operation: 'personal-forecast-feed-v4-day',
+        operation: 'personal-forecast-feed-v5-day',
         readCached: jest.fn().mockResolvedValue(null),
         generate,
         allowLocalLockFallback: true,

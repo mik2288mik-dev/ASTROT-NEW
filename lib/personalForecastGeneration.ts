@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
 import type { AstrologyHistoryContext } from './astrologyHistoryStore';
 import {
@@ -35,7 +36,6 @@ import {
 import {
   PERSONAL_FORECAST_SEMANTICS_VERSION,
   compilePersonalForecastSemanticFacts,
-  type ForecastClaimAtom,
   type ForecastSemanticFact,
 } from './personalForecastSemantics';
 import {
@@ -50,7 +50,7 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
-const MAX_SEMANTIC_SECTIONS = 4;
+const MAX_SEMANTIC_SECTIONS = 3;
 
 type PlannedBlock = {
   id: string;
@@ -111,8 +111,8 @@ const FORBIDDEN_GENERATED_PATTERNS = [
   /\b(?:guaranteed|will\s+definitely\s+happen|inevitable)\b/iu,
   /\b(?:диагноз|травм[аы]|беременн\w*|увольнен\w*|расставан\w*|переезд\w*)\b/iu,
   /\b(?:diagnos\w*|trauma\w*|pregnan\w*|fired|dismissal|breakup|relocation)\b/iu,
-  /\b(?:солнце|луна|меркурий|венера|марс|юпитер|сатурн|уран|нептун|плутон|аспект|транзит|дом)\b/iu,
-  /\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|aspect|transit|house)\b/iu,
+  /\b(?:солнце|луна|меркурий|венера|марс|юпитер|сатурн|уран|нептун|плутон|аспект|транзит)\b|\b(?:\d{1,2}[-–—]?(?:й|ый)?\s+дом|астрологическ\w*\s+дом)\b/iu,
+  /\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|aspect|transit)\b|\b(?:house\s+\d{1,2}|astrological\s+house)\b/iu,
   /\b(?:you\s+are\s+(?:impulsive|stubborn|impatient|emotional|sensitive|controlling|jealous|anxious|indecisive)|your\s+personality)\b/iu,
   /\b(?:С‚С‹\s+(?:РёРјРїСѓР»СЊСЃРёРІРЅ\w*|СѓРїСЂСЏРј\w*|РЅРµС‚РµСЂРїРµР»РёРІ\w*|СЌРјРѕС†РёРѕРЅР°Р»СЊРЅ\w*|С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅ\w*|СЂРµРІРЅРёРІ\w*|С‚СЂРµРІРѕР¶РЅ\w*)|С‚РІРѕСЏ\s+Р»РёС‡РЅРѕСЃС‚СЊ)\b/iu,
 ];
@@ -256,25 +256,50 @@ function copyMeaningIsGrounded(input: {
   const candidate = contentStems(input.text);
   if (!approved.size || !candidate.size) return false;
   const overlap = [...candidate].filter((token) => approved.has(token)).length;
-  return overlap >= 1 && overlap / candidate.size >= 0.45;
+  return overlap >= Math.min(2, approved.size);
+}
+
+function roleMeanings(
+  role: ForecastContentBlockRole,
+  fact: ForecastSemanticFact,
+  language: ForecastWriterLanguage,
+): string[] {
+  const atomIds = role === 'lead'
+    ? fact.allowedClaimAtoms
+    : role === 'detail'
+      ? fact.allowedManifestationAtoms
+      : role === 'risk'
+        ? fact.allowedRiskAtoms
+        : fact.allowedActionAtoms;
+  return [...new Set(
+    atomIds
+      .map((atomId) => forecastAtomText(role, atomId, language).trim())
+      .filter(Boolean),
+  )];
 }
 
 function block(
   planId: string,
   role: ForecastContentBlockRole,
   fact: ForecastSemanticFact,
-  atomId: string,
   language: ForecastWriterLanguage,
   index: number,
+  options?: { overview?: boolean },
 ): PlannedBlock | null {
-  const writerBrief = forecastAtomText(role, atomId, language).trim();
+  const meanings = roleMeanings(role, fact, language);
+  if (options?.overview && role === 'lead') {
+    meanings.push(...roleMeanings('detail', fact, language).slice(0, 1));
+  }
+  const writerBrief = meanings.join(' ').trim();
   if (!writerBrief) return null;
   return {
     id: `${planId}:${role}:${index + 1}`,
     role,
     semanticFactId: fact.id,
-    atomId,
-    writerBrief,
+    atomId: `approved:${role}:${fact.id}`,
+    writerBrief: options?.overview
+      ? `${language === 'ru' ? 'Главный вывод периода' : 'Main period conclusion'}: ${writerBrief}`
+      : writerBrief,
   };
 }
 
@@ -283,51 +308,9 @@ function factBlocks(
   fact: ForecastSemanticFact,
   language: ForecastWriterLanguage,
 ): PlannedBlock[] {
-  const primaryManifestation = fact.allowedManifestationAtoms[0];
-  const contextualManifestation = fact.lifeContext
-    ? fact.allowedManifestationAtoms.at(-1)
-    : undefined;
-  const dynamicClaimByMechanism: Partial<Record<
-    ForecastSemanticFact['mechanism']['dynamic'],
-    ForecastClaimAtom
-  >> = {
-    concentration: 'temporary_focus_is_concentrated',
-    opening: 'temporary_support_is_available',
-    flow: 'temporary_support_is_available',
-    friction: 'temporary_friction_requires_precision',
-    polarization: 'two_sides_temporarily_require_balance',
-    ongoing_activation: 'house_context_is_temporarily_active',
-    sign_transition: 'context_is_entering_a_new_phase',
-    station_turn_direct: 'process_is_turning_direct',
-    station_turn_retrograde: 'process_is_turning_retrograde',
-    station_pause: 'process_is_near_a_station',
-    new_cycle: 'attention_cycle_is_beginning',
-    culmination: 'attention_cycle_is_culminating',
-    low_signal: 'ordinary_priorities_can_remain_in_place',
-  };
-  const expectedDynamicClaim = dynamicClaimByMechanism[fact.mechanism.dynamic];
-  const dynamicClaim = expectedDynamicClaim
-    && fact.allowedClaimAtoms.includes(expectedDynamicClaim)
-    ? expectedDynamicClaim
-    : undefined;
-  const candidates: Array<[ForecastContentBlockRole, string | undefined]> = [
-    ['lead', dynamicClaim],
-    ['detail', contextualManifestation || primaryManifestation],
-    ['risk', fact.allowedRiskAtoms[0]],
-    ['action', fact.allowedActionAtoms[0]],
-  ];
-  if (fact.mechanism.dynamic === 'low_signal') {
-    return candidates
-      .filter(([role]) => role === 'lead' || role === 'action')
-      .map(([role, atomId], index) => (
-        atomId ? block(planId, role, fact, atomId, language, index) : null
-      ))
-      .filter((value): value is PlannedBlock => !!value);
-  }
-  return candidates
-    .map(([role, atomId], index) => (
-      atomId ? block(planId, role, fact, atomId, language, index) : null
-    ))
+  const roles: ForecastContentBlockRole[] = ['lead', 'detail', 'risk', 'action'];
+  return roles
+    .map((role, index) => block(planId, role, fact, language, index))
     .filter((value): value is PlannedBlock => !!value)
     .slice(0, 4);
 }
@@ -351,25 +334,15 @@ export function buildPersonalForecastSectionPlans(input: {
   }
   if (!selected.length) throw new Error('PERSONAL_FORECAST_SEMANTICS_EMPTY');
 
-  const usedOverviewAtoms = new Set<string>();
-  const overviewEntries: Array<{ fact: ForecastSemanticFact; atomId: string }> = [];
-  for (const fact of selected.slice(0, Math.min(2, selected.length))) {
-    const atomId = fact.allowedClaimAtoms.find((candidate) => (
-      !usedOverviewAtoms.has(candidate)
-    ));
-    if (!atomId) continue;
-    usedOverviewAtoms.add(atomId);
-    overviewEntries.push({ fact, atomId });
-  }
-  const overviewFacts = overviewEntries.map((entry) => entry.fact);
-  const overviewBlocks = overviewEntries
-    .map(({ fact, atomId }, index) => block(
+  const overviewFacts = selected.slice(0, 3);
+  const overviewBlocks = overviewFacts
+    .map((fact, index) => block(
       'overview',
       'lead',
       fact,
-      atomId,
       input.language,
       index,
+      { overview: true },
     ))
     .filter((value): value is PlannedBlock => !!value);
   if (!overviewBlocks.length) throw new Error('PERSONAL_FORECAST_OVERVIEW_EMPTY');
@@ -426,15 +399,29 @@ function safeHistoryContext(history?: AstrologyHistoryContext | null) {
   };
 }
 
+function localForecastTimestamp(value: string | null, timezone: string): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return formatInTimeZone(date, timezone, 'yyyy-MM-dd HH:mm');
+}
+
 export function buildPersonalForecastFeedPrompt(input: {
   language: ForecastWriterLanguage;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
   overviewPlan: ForecastSectionPlan;
   sectionPlans: ForecastSectionPlan[];
+  evidenceViews?: Record<string, ForecastEvidenceView>;
   historyContext?: AstrologyHistoryContext | null;
   repairErrors?: string[];
 }): string {
+  const periodInstruction: Record<PersonalForecastPeriod, string> = {
+    day: 'Build one complete forecast for this day. Use one main theme and up to two supplied secondary themes. Mention parts of the day only when supplied timing changes inside the day.',
+    week: 'Explain what matters from the first through the last day of this week. Name only supplied dates or intervals that differ meaningfully.',
+    month: 'Explain the important themes and the supplied dates or stretches of this month. Do not invent a story for every week.',
+    year: 'Explain the major periods and supplied turning points of the year. Do not manufacture a separate story for every month.',
+  };
   const plans = [input.overviewPlan, ...input.sectionPlans].map((plan) => ({
     id: plan.id,
     title: plan.title || null,
@@ -442,8 +429,25 @@ export function buildPersonalForecastFeedPrompt(input: {
       id: fact.id,
       domain: fact.domain,
       life_context: fact.lifeContext,
-      timing: fact.timing,
+      timing: {
+        phase: fact.timing.phase,
+        timezone: input.window.timezone,
+        starts_at_local: localForecastTimestamp(fact.timing.startsAt, input.window.timezone),
+        exact_at_local: localForecastTimestamp(fact.timing.exactAt, input.window.timezone),
+        ends_at_local: localForecastTimestamp(fact.timing.endsAt, input.window.timezone),
+      },
       confidence: fact.confidence,
+      importance: fact.strength,
+      calculation_basis: {
+        source_kind: fact.sourceKind,
+        transit_planet: fact.transitPlanet,
+        natal_point: fact.natalPoint,
+        aspect: fact.aspect,
+        reliable_house: fact.house,
+        evidence: fact.evidenceIds
+          .map((id) => input.evidenceViews?.[id])
+          .filter(Boolean),
+      },
       forbidden_claim_classes: fact.forbiddenClaimClasses,
     })),
     required_blocks: plan.blocks.map((item) => ({
@@ -460,17 +464,20 @@ export function buildPersonalForecastFeedPrompt(input: {
   return `You are the final copy editor, not the astrologer and not the calculator.
 
 Write in ${input.language === 'ru' ? 'Russian, addressing the reader as "ты"' : 'English, addressing the reader as "you"'}.
-Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}.
+Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}. Timezone: ${input.window.timezone}.
+Period instruction: ${periodInstruction[input.period]}
 
 Hard rules:
 - Return JSON only: {"sections":[{"id":"...","blocks":[{"id":"...","role":"...","semantic_fact_id":"...","atom_id":"...","text":"..."}]}]}.
 - Return every supplied section and block exactly once. Echo every id, role, semantic_fact_id, and atom_id exactly.
-- Rephrase only exact_meaning_to_rephrase. Do not add a fact, life area, event, motive, biography, or prediction.
-- Keep the concrete nouns and verbs from exact_meaning_to_rephrase; at least half of the content words in your block must come from that supplied meaning.
+- Write a coherent forecast from the approved meanings and calculation basis. Do not add a fact, life area, event, motive, biography, or prediction.
+- The strongest theme is the centre of the forecast, not a one-line summary. Explain its manifestation, risk and practical action fully. Add secondary themes only because they are supplied.
+- There is no target word count. Write every useful point supported by the calculation, then remove repetition and filler. Use short readable paragraphs; a block may contain several sentences when the supplied facts justify them.
+- For day, mention morning, daytime or evening only when the supplied local timing changes inside that day. For week, month and year, name only the supplied dates or intervals that actually stand out.
 - A forecast is temporary. Never turn it into personality: no "you always", "you never", "you are the kind of person" or equivalents.
 - Do not name planets, aspects, houses, transits, degrees, or calculation terms in the main text.
 - Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
-- Keep each block to one or two short sentences, 25–240 characters. Plain text only; no markdown, lists, headings, slogans, or filler.
+- Plain text only; no markdown, headings, slogans, section numbering, or filler.
 - Explicit history may only sharpen wording inside the supplied semantic domain. It cannot create a new domain or fact.
 
 Approved semantic writing plan:
@@ -483,8 +490,8 @@ ${JSON.stringify(safeHistoryContext(input.historyContext), null, 2)}${repair}`;
 function generatedTextValid(text: string): boolean {
   const trimmed = text.trim();
   return (
-    trimmed.length >= 25
-    && trimmed.length <= 240
+    trimmed.length >= 15
+    && trimmed.length <= 6_000
     && !/[#*_`]/.test(trimmed)
     && !hasAppVoiceViolation(trimmed)
     && FORBIDDEN_GENERATED_PATTERNS.every((pattern) => !pattern.test(trimmed))
@@ -593,7 +600,7 @@ function evidenceForPlan(
   return [...ids]
     .map((id) => evidenceViews[id])
     .filter((item): item is ForecastEvidenceView => !!item)
-    .slice(0, 4);
+    .slice(0, 8);
 }
 
 function buildAnchor(
@@ -606,12 +613,12 @@ function buildAnchor(
   const explanation = evidence
     .map((item) => `${item.factor}. ${item.meaning}`)
     .join(' ')
-    .slice(0, 220)
+    .slice(0, 1_200)
     .trim();
   if (explanation.length < 40) return [];
   return [{
     id: `anchor:${plan.id}`,
-    conclusion: blocks[0].text.slice(0, 220),
+    conclusion: blocks[0].text.slice(0, 600),
     explanation,
     evidenceIds: evidence.map((item) => item.id),
   }];
@@ -712,12 +719,13 @@ async function requestGeneratedFeed(input: {
               window: input.window,
               overviewPlan: input.overviewPlan,
               sectionPlans: input.sectionPlans,
+              evidenceViews: input.evidenceViews,
               historyContext: input.historyContext,
               repairErrors: attempt === 2 ? errors : undefined,
             }),
           },
         ],
-        maxTokens: 2600,
+        maxTokens: ({ day: 3_000, week: 3_400, month: 3_800, year: 4_200 } as const)[input.period],
         temperature: 0.35,
         jsonMode: true,
       }));

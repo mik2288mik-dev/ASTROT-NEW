@@ -212,10 +212,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v5.semantic-writer',
+  'personal-forecast-feed.v6.editorial-writer',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v4';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v5';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -296,19 +296,13 @@ export const DYNAMIC_FORECAST_FOCUS_LABELS: Record<
   },
 };
 
-const OVERVIEW_TEXT_MIN = 450;
-const OVERVIEW_TEXT_MAX = 650;
-const SECTION_TEXT_MIN = 180;
-const SECTION_TEXT_MAX = 280;
 const EXPLANATION_TEXT_MIN = 40;
-const EXPLANATION_TEXT_MAX = 220;
+const EXPLANATION_TEXT_MAX = 1_200;
 
-const SECTION_TEXT_HARD_LIMITS: Record<PersonalForecastPeriod, number> = {
-  day: 1_400,
-  week: 1_800,
-  month: 2_200,
-  year: 2_800,
-};
+// Storage/transport safety limits only. They are deliberately not editorial
+// targets: the calculation decides how much text the period needs.
+const FORECAST_SECTION_SAFETY_LIMIT = 20_000;
+const FORECAST_BLOCK_SAFETY_LIMIT = 6_000;
 
 const BANNED_DYNAMIC_TITLES = new Set([
   'публичность',
@@ -620,7 +614,7 @@ export function buildPersonalForecastCacheKey(input: {
     APP_VOICE_VERSION,
     input.modelId,
   ].join('|');
-  return `personal-forecast-feed-v4:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
+  return `personal-forecast-feed-v5:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
 }
 
 export function buildPersonalForecastInputHash(input: {
@@ -721,14 +715,14 @@ function anchorValid(
     && !!anchor.id.trim()
     && typeof anchor.conclusion === 'string'
     && !!anchor.conclusion.trim()
-    && anchor.conclusion.length <= 220
+    && anchor.conclusion.length <= 600
     && typeof anchor.explanation === 'string'
     && !!anchor.explanation.trim()
     && anchor.explanation.length >= EXPLANATION_TEXT_MIN
     && anchor.explanation.length <= EXPLANATION_TEXT_MAX
     && Array.isArray(anchor.evidenceIds)
     && anchor.evidenceIds.length >= 1
-    && anchor.evidenceIds.length <= 4
+    && anchor.evidenceIds.length <= 8
     && new Set(anchor.evidenceIds).size === anchor.evidenceIds.length
     && anchor.evidenceIds.every((id) => evidenceIds.has(id))
   );
@@ -800,7 +794,7 @@ function contentBlocksValid(
       || !(['lead', 'detail', 'risk', 'action'] as const).includes(block.role)
       || typeof block.text !== 'string'
       || !block.text.trim()
-      || block.text.length > 520
+      || block.text.length > FORECAST_BLOCK_SAFETY_LIMIT
       || typeof block.semanticFactId !== 'string'
       || !section.semanticFactIds.includes(block.semanticFactId)
       || typeof block.atomId !== 'string'
@@ -840,7 +834,7 @@ function sectionValid(
     )
     || typeof section.text !== 'string'
     || (redacted ? !!section.text.trim() : !section.text.trim())
-    || section.text.length > SECTION_TEXT_HARD_LIMITS[period]
+    || section.text.length > FORECAST_SECTION_SAFETY_LIMIT
     || !Number.isFinite(section.importance)
     || section.importance < 0
     || section.importance > 100
@@ -1404,34 +1398,4 @@ export function slicePersonalForecastForAccess(
       .filter(([id]) => visibleEvidenceIds.has(id)),
   );
   return { forecast: next, lockedSectionIds, periodLocked };
-}
-
-export function personalForecastSectionTextLimit(period: PersonalForecastPeriod): number {
-  return SECTION_TEXT_HARD_LIMITS[period];
-}
-
-export function personalForecastExplanationLimit(period: PersonalForecastPeriod): number {
-  void period;
-  return EXPLANATION_TEXT_MAX;
-}
-
-export function personalForecastOverviewTextRange(): Readonly<{
-  min: number;
-  max: number;
-}> {
-  return { min: OVERVIEW_TEXT_MIN, max: OVERVIEW_TEXT_MAX };
-}
-
-export function personalForecastSectionTextRange(): Readonly<{
-  min: number;
-  max: number;
-}> {
-  return { min: SECTION_TEXT_MIN, max: SECTION_TEXT_MAX };
-}
-
-export function personalForecastExplanationTextRange(): Readonly<{
-  min: number;
-  max: number;
-}> {
-  return { min: EXPLANATION_TEXT_MIN, max: EXPLANATION_TEXT_MAX };
 }

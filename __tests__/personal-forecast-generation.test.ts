@@ -133,7 +133,7 @@ describe('personal forecast semantic writer', () => {
     expect(built.sections).toHaveLength(1);
     expect(built.sections[0].semanticFactIds).toEqual(['fact:mercury-square-mars']);
     expect(built.overview.blocks.map((item) => item.atomId)).toEqual([
-      'communication_and_decisions_are_temporarily_active',
+      'approved:lead:fact:mercury-square-mars',
     ]);
     expect(new Set(blocks.map((item) => item.writerBrief)).size).toBe(blocks.length);
   });
@@ -182,7 +182,7 @@ describe('personal forecast semantic writer', () => {
     ]));
   });
 
-  test('keeps a low-signal period short instead of manufacturing extra themes', () => {
+  test('keeps a low-signal period honest without manufacturing extra themes', () => {
     const calm = semanticFact({
       id: 'fact:calm-period',
       semanticFingerprint: 'semantic:calm-period',
@@ -215,7 +215,12 @@ describe('personal forecast semantic writer', () => {
     expect(built.overview.blocks).toHaveLength(1);
     expect(built.sections).toHaveLength(1);
     expect(built.sections[0].title).toBe('A calm period');
-    expect(built.sections[0].blocks.map((item) => item.role)).toEqual(['lead', 'action']);
+    expect(built.sections[0].blocks.map((item) => item.role)).toEqual([
+      'lead',
+      'detail',
+      'risk',
+      'action',
+    ]);
   });
 
   test('prompt sends an approved writing plan, not the natal chart', () => {
@@ -230,6 +235,7 @@ describe('personal forecast semantic writer', () => {
 
     expect(prompt).toContain('final copy editor, not the astrologer');
     expect(prompt).toContain('exact_meaning_to_rephrase');
+    expect(prompt).toContain('There is no target word count');
     expect(prompt).toContain('fact:mercury-square-mars');
     expect(prompt).toContain('Never turn it into personality');
     expect(prompt).not.toContain('birthDate');

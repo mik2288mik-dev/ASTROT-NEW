@@ -284,7 +284,7 @@ export async function ensurePersonalForecast(
       cacheKey: identity.cacheKey,
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     }),
-    operation: `personal-forecast-feed-v4-${input.period}`,
+    operation: `personal-forecast-feed-v5-${input.period}`,
     allowLocalLockFallback: true,
     readCached: async () => {
       try {
@@ -292,7 +292,7 @@ export async function ensurePersonalForecast(
         return cached ? { value: cached.forecast, source: 'cache' } : null;
       } catch (error) {
         console.error(
-          '[personal-forecast-feed-v4] cache read failed; continuing with calculation:',
+          '[personal-forecast-feed-v5] cache read failed; continuing with calculation:',
           error instanceof Error ? error.message : String(error),
         );
         return null;
@@ -309,7 +309,7 @@ export async function ensurePersonalForecast(
         artifactLimit: 20,
       }).catch((error) => {
         console.error(
-          '[personal-forecast-feed-v4] history context unavailable:',
+          '[personal-forecast-feed-v5] history context unavailable:',
           error instanceof Error ? error.message : String(error),
         );
         return null;
@@ -324,7 +324,7 @@ export async function ensurePersonalForecast(
         periodKey: previousPeriodKey,
       }, { allowExpired: true }).catch((error) => {
         console.error(
-          '[personal-forecast-feed-v4] previous forecast unavailable:',
+          '[personal-forecast-feed-v5] previous forecast unavailable:',
           error instanceof Error ? error.message : String(error),
         );
         return null;
@@ -348,7 +348,7 @@ export async function ensurePersonalForecast(
             });
           } catch (error) {
             console.error(
-              '[personal-forecast-feed-v4] calculation history write failed:',
+              '[personal-forecast-feed-v5] calculation history write failed:',
               error instanceof Error ? error.message : String(error),
             );
           }
@@ -364,7 +364,7 @@ export async function ensurePersonalForecast(
         await savePersonalForecast(input, forecast, identity);
       } catch (error) {
         console.error(
-          '[personal-forecast-feed-v4] cache write failed; returning calculated forecast:',
+          '[personal-forecast-feed-v5] cache write failed; returning calculated forecast:',
           error instanceof Error ? error.message : String(error),
         );
       }
@@ -378,7 +378,7 @@ export async function ensurePersonalForecast(
           });
         } catch (error) {
           console.error(
-            '[personal-forecast-feed-v4] generated history write failed:',
+            '[personal-forecast-feed-v5] generated history write failed:',
             error instanceof Error ? error.message : String(error),
           );
         }

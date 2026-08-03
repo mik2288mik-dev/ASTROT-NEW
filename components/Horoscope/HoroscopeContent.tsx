@@ -99,19 +99,16 @@ export const HoroscopeContent = memo<HoroscopeContentProps>(({ reading, language
       {tips.length > 0 && (
         <section className={READING_GLASS_SECTION_CLASS}>
           <p className="lumia-label tracking-[0.2em]">{copy.adviceTitle}</p>
-          <ol className="mt-3 space-y-3">
-            {tips.map((line, index) => (
+          <ul className="mt-3 space-y-3">
+            {tips.map((line) => (
               <li
-                key={index}
-                className="flex gap-3 border-b border-astro-border/10 pb-3 text-[15px] leading-relaxed text-astro-text last:border-b-0 last:pb-0 sm:text-base"
+                key={line}
+                className="border-b border-astro-border/10 pb-3 text-[15px] leading-relaxed text-astro-text last:border-b-0 last:pb-0 sm:text-base"
               >
-                <span className="shrink-0 text-[12px] font-semibold text-astro-highlight/80">
-                  {index + 1}.
-                </span>
-                <span className="min-w-0 [text-wrap:pretty]">{line}</span>
+                <span className="[text-wrap:pretty]">{line}</span>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
       )}
     </div>

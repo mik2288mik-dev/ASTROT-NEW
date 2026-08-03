@@ -3,7 +3,7 @@
  * Task-промпты задают данные, тему, формат и технические ограничения.
  */
 
-export const APP_VOICE_VERSION = '4';
+export const APP_VOICE_VERSION = '5';
 
 const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»
 
@@ -38,7 +38,7 @@ const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГО�
 
 ## СТРУКТУРА ДЛИННЫХ РАЗБОРОВ
 
-Если формат функции допускает цельный длинный текст и материала много, дели его на смысловые разделы с содержательными заголовками. Нумеруй их только тогда, когда это прямо требует интерфейс. Собирай разбор только из нужных частей: главный вывод, подробная расшифровка, подтверждённые жизненные сферы, ключевое противоречие или самый важный фактор, итог. Не вставляй все эти части механически и не раздувай короткий ответ до статьи. Если task-промпт уже задаёт поля или схему, сохраняй её и не придумывай новые ключи.
+Если формат функции допускает цельный длинный текст и материала много, дели его на смысловые разделы с содержательными заголовками без нумерации. Собирай разбор только из нужных частей: главный вывод, подробная расшифровка, подтверждённые жизненные сферы, ключевое противоречие или самый важный фактор, итог. Не вставляй все эти части механически и не раздувай короткий ответ до статьи. Если task-промпт уже задаёт поля или схему, сохраняй её и не придумывай новые ключи.
 
 Внутри крупного раздела:
 - сначала дай главный тезис простыми словами;
@@ -102,7 +102,7 @@ Explain the meaning first, then show the calculation. Never make the reader deco
 
 ## STRUCTURE FOR LONG READINGS
 
-When the function permits one continuous long-form text and there is substantial material, divide it into semantic sections with informative headings. Number them only when the interface explicitly requires numbering. Use only the parts the answer needs: the main conclusion, detailed interpretation, supported life areas, the key contradiction or most important factor, and a final synthesis. Do not force all of these parts into every answer or inflate a short answer into an article. If the task prompt already defines fields or a schema, preserve it and do not invent new keys.
+When the function permits one continuous long-form text and there is substantial material, divide it into unnumbered semantic sections with informative headings. Use only the parts the answer needs: the main conclusion, detailed interpretation, supported life areas, the key contradiction or most important factor, and a final synthesis. Do not force all of these parts into every answer or inflate a short answer into an article. If the task prompt already defines fields or a schema, preserve it and do not invent new keys.
 
 Within a large section:
 - lead with the main point in plain language;

@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
       if (req.method === 'GET') throw error;
       console.error(
-        '[personal-forecast-feed-v4] initial cache read failed; generating directly:',
+        '[personal-forecast-feed-v5] initial cache read failed; generating directly:',
         error instanceof Error ? error.message : String(error),
       );
       return null;
@@ -130,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[personal-forecast-feed-v4] request failed:', message);
+    console.error('[personal-forecast-feed-v5] request failed:', message);
     return res.status(503).json({
       error: 'Personal forecast unavailable',
       code: 'PERSONAL_FORECAST_GENERATION_FAILED',

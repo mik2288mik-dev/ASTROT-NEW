@@ -335,7 +335,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                         {reading.reading ? (
                           <section className="editorial-reading-section">
                             <EditorialSectionHeading
-                              number={1}
                               title={language === 'ru' ? 'Что происходит' : 'What is happening'}
                             />
                             <EditorialProse text={reading.reading} />
@@ -345,7 +344,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                         {reading.chance || reading.risk ? (
                           <section className="editorial-reading-section">
                             <EditorialSectionHeading
-                              number={2}
                               title={language === 'ru' ? 'Где шанс, где риск' : 'Opportunity and risk'}
                             />
                             <ul className="editorial-reading-list editorial-reading-list--leads">
@@ -368,7 +366,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                         {reading.advice?.length ? (
                           <section className="editorial-reading-section horo-uni-advice">
                             <EditorialSectionHeading
-                              number={3}
                               title={language === 'ru' ? 'Что делать' : 'What to do'}
                             />
                             <ul className="editorial-reading-list">

@@ -1,7 +1,6 @@
 import React from 'react';
 
 type EditorialSectionHeadingProps = {
-  number: number | string;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   level?: 2 | 3;
@@ -26,10 +25,6 @@ type EditorialBulletTextProps = {
 
 function classes(...values: Array<string | undefined | false>): string {
   return values.filter(Boolean).join(' ');
-}
-
-function displayNumber(value: number | string): string {
-  return typeof value === 'number' ? String(value).padStart(2, '0') : value;
 }
 
 function proseParagraphs(text: string): string[] {
@@ -58,7 +53,6 @@ function proseParagraphs(text: string): string[] {
 }
 
 export function EditorialSectionHeading({
-  number,
   title,
   subtitle,
   level = 2,
@@ -68,7 +62,6 @@ export function EditorialSectionHeading({
 
   return (
     <header className={classes('editorial-reading-heading', className)}>
-      <span className="editorial-reading-number" aria-hidden="true">{displayNumber(number)}</span>
       <div className="editorial-reading-heading-copy">
         <Heading>{title}</Heading>
         {subtitle ? <p>{subtitle}</p> : null}

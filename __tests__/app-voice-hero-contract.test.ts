@@ -9,7 +9,7 @@ describe('single app voice contract', () => {
   it('keeps generated content direct, calculation-led, and free of personas', () => {
     const voice = read('lib/appVoice.ts');
 
-    expect(voice).toContain("export const APP_VOICE_VERSION = '4'");
+    expect(voice).toContain("export const APP_VOICE_VERSION = '5'");
     expect(voice).toContain('прямо, уверенно, конкретно, по расчёту');
     expect(voice).toContain('Каждая фраза должна сообщать конкретную информацию');
     expect(voice).toContain('обращайся к пользователю на «ты»');
@@ -32,7 +32,7 @@ describe('single app voice contract', () => {
     expect(voice).toContain('Сначала объясняй смысл, затем показывай расчёт');
     expect(voice).toContain('СТРУКТУРА ДЛИННЫХ РАЗБОРОВ');
     expect(voice).toContain('дели его на смысловые разделы');
-    expect(voice).toContain('Нумеруй их только тогда, когда это прямо требует интерфейс');
+    expect(voice).toContain('содержательными заголовками без нумерации');
     expect(voice).not.toContain('Ты долго терпишь');
     expect(voice).toContain('Не вставляй все эти части механически');
     expect(voice).toContain('короткой жирной вводной фразы');

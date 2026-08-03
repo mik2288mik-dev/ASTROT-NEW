@@ -39,7 +39,7 @@ export type PersonalForecastClientError = Error & {
   retryAfterMs?: number;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v4';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v5';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 

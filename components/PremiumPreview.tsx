@@ -90,10 +90,10 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClos
         <p className="mt-3 mb-8 text-center text-sm leading-relaxed text-astro-subtext">{copy.subtitle}</p>
 
         <div className="space-y-4 mb-8">
-          {copy.features.map((feature, index) => (
+          {copy.features.map((feature) => (
             <div key={feature.title} className="flex items-center gap-4 bg-astro-card p-3 rounded-lg border border-astro-border">
               <div className="w-8 h-8 rounded-full bg-accent-gold/15 flex items-center justify-center text-[10px] font-semibold uppercase tracking-widest text-accent-gold shrink-0">
-                {String(index + 1).padStart(2, '0')}
+                <span aria-hidden="true">•</span>
               </div>
               <div className="min-w-0">
                 <h4 className="text-astro-text text-sm font-bold">{feature.title}</h4>

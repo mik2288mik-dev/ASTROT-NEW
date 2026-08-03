@@ -120,7 +120,7 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     })).resolves.toMatchObject({ source: expect.stringMatching(/local|cache/) });
     expect(mockedApiFetch).not.toHaveBeenCalled();
     expect([...storage.keys()]).toEqual([
-      expect.stringMatching(/^tvoi-goroskop:personal-forecast-feed-v4:/),
+      expect.stringMatching(/^tvoi-goroskop:personal-forecast-feed-v5:/),
     ]);
   });
 

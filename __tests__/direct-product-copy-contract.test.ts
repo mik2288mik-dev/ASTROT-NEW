@@ -61,7 +61,7 @@ describe('active product copy contract', () => {
     const questions = read('lib/personalForecastQuestionGeneration.ts');
     const forecast = read('lib/personalForecastGeneration.ts');
 
-    expect(voice).toContain("APP_VOICE_VERSION = '4'");
+    expect(voice).toContain("APP_VOICE_VERSION = '5'");
     expect(voice).toContain('hasAppVoiceViolation');
     expect(natal).toContain('validateGeneratedNatalPayload');
     expect(natalSemantics).toContain('hasAppVoiceViolation');

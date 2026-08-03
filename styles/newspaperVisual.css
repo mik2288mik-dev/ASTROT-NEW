@@ -677,20 +677,8 @@
 }
 
 :is(.horo-reader-page, .natal-editorial-page, .compat-editorial-page, .matrix-editorial-page) .editorial-reading-heading {
-  display: grid;
-  grid-template-columns: 2.35rem minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: start;
+  display: block;
   margin: 0 0 1rem;
-}
-
-:is(.horo-reader-page, .natal-editorial-page, .compat-editorial-page, .matrix-editorial-page) .editorial-reading-number {
-  color: var(--news-ink);
-  font-size: clamp(1.7rem, 7vw, 2.15rem);
-  font-weight: 850;
-  letter-spacing: -0.07em;
-  line-height: 0.95;
-  font-variant-numeric: tabular-nums;
 }
 
 :is(.horo-reader-page, .natal-editorial-page, .compat-editorial-page, .matrix-editorial-page) .editorial-reading-heading h2,
@@ -989,11 +977,6 @@
 }
 
 @media (max-width: 380px) {
-  :is(.horo-reader-page, .natal-editorial-page, .compat-editorial-page, .matrix-editorial-page) .editorial-reading-heading {
-    grid-template-columns: 2rem minmax(0, 1fr);
-    gap: 0.6rem;
-  }
-
   :is(.horo-reader-page, .natal-editorial-page, .compat-editorial-page, .matrix-editorial-page) .editorial-reading-summary,
   :is(.horo-reader-page, .natal-editorial-page, .compat-editorial-page, .matrix-editorial-page) .editorial-reading-evidence {
     padding-right: 0.9rem;

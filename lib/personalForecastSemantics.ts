@@ -8,7 +8,7 @@ import type {
   PersonalForecastStationDirection,
 } from './personalForecastEvidence';
 
-export const PERSONAL_FORECAST_SEMANTICS_VERSION = 'personal-forecast-semantics-v2';
+export const PERSONAL_FORECAST_SEMANTICS_VERSION = 'personal-forecast-semantics-v3';
 
 export type ForecastSemanticDomain =
   | 'identity_priorities'
@@ -1207,7 +1207,7 @@ export function compilePersonalForecastSemanticFacts(input: {
     ));
     const evidenceIds = unique(
       rankedCandidates.flatMap((candidate) => candidate.fact.evidenceIds),
-    ).slice(0, 4);
+    ).slice(0, 8);
     const canonical = rankedCandidates
       .flatMap((candidate) => candidate.evidenceCanonicals)
       .sort()
@@ -1266,15 +1266,22 @@ export function compilePersonalForecastSemanticFacts(input: {
     }];
   }
 
-  const selectedTopics = [strongTopics[0]];
-  const second = strongTopics[1];
-  if (
-    second
-    && strongTopics[0].primary.score - second.primary.score
-      <= (input.period === 'day' ? 8 : 10)
-  ) {
-    selectedTopics.push(second);
-  }
+  const additionalThemeGap: Record<PersonalForecastPeriod, number> = {
+    day: 10,
+    week: 12,
+    month: 14,
+    year: 16,
+  };
+  const strongestScore = strongTopics[0].primary.score;
+  const selectedTopics = strongTopics
+    .filter((group, index) => (
+      index === 0
+      || (
+        index < 3
+        && strongestScore - group.primary.score <= additionalThemeGap[input.period]
+      )
+    ))
+    .slice(0, 3);
 
   return selectedTopics.map((group) => {
     const primary = group.primary;
@@ -1299,7 +1306,7 @@ export function compilePersonalForecastSemanticFacts(input: {
     return {
       ...primary.fact,
       id: `semantic:${semanticFingerprint}`,
-      evidenceIds: unique(members.flatMap((candidate) => candidate.fact.evidenceIds)).slice(0, 4),
+      evidenceIds: unique(members.flatMap((candidate) => candidate.fact.evidenceIds)).slice(0, 8),
       evidenceFingerprint: `pf-evidence-v2:${stableHash(canonical)}`,
       semanticFingerprint,
       confidence: confidenceForRank(primary.score),
