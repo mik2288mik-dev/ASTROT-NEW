@@ -6,7 +6,10 @@ import { isCanonicalNatalChartDataComplete } from '../../../lib/natalChartCanoni
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
-import { ensureCanonicalPrimaryChart } from '../../../lib/natalChartPersistence';
+import {
+  ensureCanonicalPrimaryChart,
+  repairCanonicalChartForUser,
+} from '../../../lib/natalChartPersistence';
 
 const log={error:(message:string,error?:any)=>console.error(`[API/charts] ERROR: ${message}`,error||'')};
 
@@ -17,8 +20,18 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
   try{
     await requireAppUser(req,{expectedUserId:userId,allowGuest:true});
     if(req.method==='GET'){
-      const chart=await natalChartV2Repository.getPrimary(userId);
-      if(!chart||!isCanonicalNatalChartDataComplete(chart.chart_data))return res.status(404).json({error:'Chart not found'});
+      let chart=await natalChartV2Repository.getPrimary(userId);
+      if(!chart)return res.status(404).json({error:'Chart not found'});
+      if(!isCanonicalNatalChartDataComplete(chart.chart_data)){
+        const repaired=await repairCanonicalChartForUser(userId);
+        chart=repaired?.chart||null;
+      }
+      if(!chart||!isCanonicalNatalChartDataComplete(chart.chart_data)){
+        return res.status(409).json({
+          error:'Chart recalculation required',
+          code:'CHART_RECALCULATION_REQUIRED',
+        });
+      }
       res.setHeader('X-Chart-Source','database');
       res.setHeader('X-Chart-Calculated-At',chart.updated_at||chart.created_at||'unknown');
       return res.status(200).json(chart.chart_data);

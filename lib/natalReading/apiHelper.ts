@@ -5,6 +5,8 @@ import type {
   UserProfile,
 } from '../../types';
 import { db } from '../db';
+import { isCanonicalNatalChartDataComplete } from '../natalChartCanonical';
+import { repairCanonicalChartRecord } from '../natalChartPersistence';
 import { getContentLayer, getPremiumEntitlementState } from '../contentArchitecture';
 import { AdminAuthError, handleAdminError } from '../adminAuth';
 import { requireAppUser } from '../auth/appAuth';
@@ -86,20 +88,32 @@ export async function resolveReadingContext(
     (chartId != null || isSelfChart(chart))
       ? chart
       : null;
-  const chartProfile = ownedChart ? {
+  let resolvedChart = ownedChart;
+  if (
+    resolvedChart
+    && !isCanonicalNatalChartDataComplete(resolvedChart.chart_data)
+    && resolvedChart.birth_date
+    && resolvedChart.birth_place
+  ) {
+    const repaired = await repairCanonicalChartRecord(userId, resolvedChart.id);
+    if (repaired?.chart && isCanonicalNatalChartDataComplete(repaired.chart.chart_data)) {
+      resolvedChart = repaired.chart;
+    }
+  }
+  const chartProfile = resolvedChart ? {
     ...profileFallback,
-    name: ownedChart.name || profileFallback?.name,
-    birthDate: ownedChart.birth_date || profileFallback?.birthDate,
-    birthTime: ownedChart.birth_time ?? profileFallback?.birthTime ?? '',
-    birthPlace: ownedChart.birth_place || profileFallback?.birthPlace,
+    name: resolvedChart.name || profileFallback?.name,
+    birthDate: resolvedChart.birth_date || profileFallback?.birthDate,
+    birthTime: resolvedChart.birth_time ?? profileFallback?.birthTime ?? '',
+    birthPlace: resolvedChart.birth_place || profileFallback?.birthPlace,
   } : profileFallback;
   return {
     user,
     profile: toProfile(user, chartProfile),
-    chartId: ownedChart?.id ?? null,
-    chartData: (ownedChart?.chart_data || null) as NatalChartData | null,
-    chartSubjectType: ownedChart ? getChartSubjectType(ownedChart) : null,
-    relationLabel: (ownedChart as any)?.relation_label || null,
+    chartId: resolvedChart?.id ?? null,
+    chartData: (resolvedChart?.chart_data || null) as NatalChartData | null,
+    chartSubjectType: resolvedChart ? getChartSubjectType(resolvedChart) : null,
+    relationLabel: (resolvedChart as any)?.relation_label || null,
   };
 }
 
