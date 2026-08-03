@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { loadEnvConfig } from '@next/env';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import { resolveDatabaseUrl } from '../lib/database-url';
 
 loadEnvConfig(process.cwd());
@@ -8,8 +8,8 @@ loadEnvConfig(process.cwd());
 const MIGRATION='natal_v2_clean_calculation_storage_20260803';
 const LOCK_KEY=2026080318;
 
-async function tableExists(pool:Pool,name:string):Promise<boolean>{
-  const result=await pool.query(`SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=$1) AS exists`,[name]);
+async function tableExists(client:PoolClient,name:string):Promise<boolean>{
+  const result=await client.query(`SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=$1) AS exists`,[name]);
   return result.rows[0]?.exists===true;
 }
 
@@ -25,38 +25,29 @@ async function main(){
     if(applied.rowCount){console.log('[natal-v2-migrate] already applied');return;}
     await client.query('BEGIN');
 
-    if(await tableExists(pool,'users')){
+    if(await tableExists(client,'users')){
       await client.query(`ALTER TABLE users
         ADD COLUMN IF NOT EXISTS birth_time_mode TEXT,
         ADD COLUMN IF NOT EXISTS birth_time_uncertainty_minutes INTEGER,
         ADD COLUMN IF NOT EXISTS birth_time_range_start TIME,
         ADD COLUMN IF NOT EXISTS birth_time_range_end TIME`);
     }
-    if(await tableExists(pool,'natal_charts')){
+
+    if(await tableExists(client,'natal_charts')){
       await client.query(`ALTER TABLE natal_charts
         ADD COLUMN IF NOT EXISTS birth_time_mode TEXT,
         ADD COLUMN IF NOT EXISTS birth_time_uncertainty_minutes INTEGER,
         ADD COLUMN IF NOT EXISTS birth_time_range_start TIME,
         ADD COLUMN IF NOT EXISTS birth_time_range_end TIME`);
 
-      // All existing charts are test data built by the old contract. Delete them
-      // instead of pretending that their hidden-noon values are valid v2 data.
-      await client.query('DELETE FROM natal_charts');
+      // Every current chart is test data made by the old calculation contract.
+      // CASCADE removes only data linked to those charts: old readings, forecasts,
+      // history snapshots, synastry and unlock rows. Accounts and payments stay.
+      await client.query('TRUNCATE TABLE natal_charts RESTART IDENTITY CASCADE');
     }
 
-    // Old chart-scoped text and evidence are no longer valid after the calculation contract changes.
-    for(const statement of [
-      `DELETE FROM content_interpretations WHERE chart_id IS NOT NULL`,
-      `DELETE FROM interpretations WHERE chart_id IS NOT NULL`,
-      `DELETE FROM daily_natal_cards`,
-      `DELETE FROM synastry_cache`,
-    ]){
-      try{await client.query(statement);}catch(error:any){if(error?.code!=='42P01'&&error?.code!=='42703')throw error;}
-    }
-
-    if(await tableExists(pool,'users')){
-      // Test accounts remain, but birth inputs are cleared so every chart is created again
-      // through the new explicit time screen.
+    if(await tableExists(client,'users')){
+      // Force every test account through the new explicit birth-time screen.
       await client.query(`UPDATE users SET
         birth_date=NULL,
         birth_time=NULL,
@@ -72,8 +63,17 @@ async function main(){
     await client.query('INSERT INTO migrations(name) VALUES($1)',[MIGRATION]);
     await client.query('COMMIT');
     console.log('[natal-v2-migrate] applied');
-  }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error;}
-  finally{await client.query('SELECT pg_advisory_unlock($1)',[LOCK_KEY]).catch(()=>{});client.release();await pool.end();}
+  }catch(error){
+    await client.query('ROLLBACK').catch(()=>{});
+    throw error;
+  }finally{
+    await client.query('SELECT pg_advisory_unlock($1)',[LOCK_KEY]).catch(()=>{});
+    client.release();
+    await pool.end();
+  }
 }
 
-main().catch((error)=>{console.error('[natal-v2-migrate] failed',error);process.exit(1);});
+main().catch((error)=>{
+  console.error('[natal-v2-migrate] failed',error);
+  process.exit(1);
+});
