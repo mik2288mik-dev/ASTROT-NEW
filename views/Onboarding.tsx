@@ -10,11 +10,9 @@ import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 import { EditorialSticker } from '../components/EditorialSticker';
 import { selectMainEditorialSticker } from '../lib/personalForecastVisuals';
 import type { EditorialMedium, EditorialTopic } from '../lib/personalForecastVisuals/editorialTypes';
+import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 
-interface OnboardingProps {
-  onComplete: (profile: UserProfile) => Promise<void>;
-}
-
+interface OnboardingProps { onComplete: (profile: UserProfile) => Promise<void>; }
 type FieldKey = 'name' | 'date' | 'time' | 'place';
 
 const SparkIcon = ({ size = 52 }: { size?: number }) => (
@@ -22,251 +20,97 @@ const SparkIcon = ({ size = 52 }: { size?: number }) => (
 );
 
 type Story = { color: string; icon: React.ReactNode; title: string; text: string };
-
 const STORIES: Story[] = [
-  {
-    color: '#1478FF',
-    icon: <NatalChartIcon size={52} />,
-    title: 'Разбор натальной карты',
-    text: 'Характер, привычные реакции, сильные и слабые места — по дате, времени и месту рождения.',
-  },
-  {
-    color: '#2563EB',
-    icon: <ZodiacIcon sign="leo" size={56} strokeWidth={1.2} />,
-    title: 'Личный гороскоп',
-    text: 'Прогнозы на сегодня, неделю и месяц рассчитываются по твоей натальной карте.',
-  },
-  {
-    color: '#38BDF8',
-    icon: <HeartIcon size={52} />,
-    title: 'Совместимость',
-    text: 'Сравни две карты: что помогает договориться, где чаще начинаются проблемы и что каждый понимает по-своему.',
-  },
-  {
-    color: '#64748B',
-    icon: <SparkIcon size={52} />,
-    title: 'Больше в Premium',
-    text: 'Подробные разборы отношений, денег и работы, все периоды прогноза и ответы на личные вопросы.',
-  },
+  { color:'#1478FF', icon:<NatalChartIcon size={52}/>, title:'Разбор натальной карты', text:'Характер, привычные реакции, сильные и слабые места — по дате, времени и месту рождения.' },
+  { color:'#2563EB', icon:<ZodiacIcon sign="leo" size={56} strokeWidth={1.2}/>, title:'Личный гороскоп', text:'Прогнозы на сегодня, неделю и месяц рассчитываются по твоей натальной карте.' },
+  { color:'#38BDF8', icon:<HeartIcon size={52}/>, title:'Совместимость', text:'Сравни две карты: что помогает договориться, где чаще начинаются проблемы и что каждый понимает по-своему.' },
+  { color:'#64748B', icon:<SparkIcon size={52}/>, title:'Больше в Premium', text:'Подробные разборы отношений, денег и работы, все периоды прогноза и ответы на личные вопросы.' },
+];
+const STORY_VISUALS: readonly { topics:readonly EditorialTopic[]; media:readonly EditorialMedium[] }[] = [
+  {topics:['general','home_family'],media:['photo','associative']},
+  {topics:['opportunities','decisions'],media:['associative','psychedelic-humor']},
+  {topics:['communication','friends'],media:['photo','associative']},
+  {topics:['work_money','opportunities'],media:['graphic','psychedelic-humor']},
 ];
 
-const STORY_VISUALS: readonly {
-  topics: readonly EditorialTopic[];
-  media: readonly EditorialMedium[];
-}[] = [
-  { topics: ['general', 'home_family'], media: ['photo', 'associative'] },
-  { topics: ['opportunities', 'decisions'], media: ['associative', 'psychedelic-humor'] },
-  { topics: ['communication', 'friends'], media: ['photo', 'associative'] },
-  { topics: ['work_money', 'opportunities'], media: ['graphic', 'psychedelic-humor'] },
-];
+export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
+  const [step,setStep]=useState<'stories'|'birth'>('stories');
+  const [storyIndex,setStoryIndex]=useState(0);
+  const [name,setName]=useState('');
+  const [gender,setGender]=useState<'male'|'female'|'unspecified'>('unspecified');
+  const [date,setDate]=useState('');
+  const [time,setTime]=useState('');
+  const [timeMode,setTimeMode]=useState<Exclude<BirthTimeMode,'range'>>('exact');
+  const [uncertainty,setUncertainty]=useState<BirthTimeUncertaintyMinutes|null>(null);
+  const [place,setPlace]=useState('');
+  const [placeCoords,setPlaceCoords]=useState<{lat:number;lon:number;timezone?:string}|null>(null);
+  const [notify,setNotify]=useState(true);
+  const [error,setError]=useState('');
+  const [isSubmitting,setIsSubmitting]=useState(false);
+  const submittingRef=useRef(false);
+  const nameRef=useRef<HTMLInputElement|null>(null);
+  const dateRef=useRef<HTMLInputElement|null>(null);
+  const timeRef=useRef<HTMLInputElement|null>(null);
+  const placeRef=useRef<HTMLInputElement|null>(null);
 
-export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
-  const [step, setStep] = useState<'stories' | 'birth'>('stories');
-  const [storyIndex, setStoryIndex] = useState(0);
+  useEffect(()=>{ const tg=(window as any).Telegram?.WebApp; if(tg?.initDataUnsafe?.user)setName(tg.initDataUnsafe.user.first_name||''); ensureTelegramFullscreen(); },[]);
 
-  const [name, setName] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>('unspecified');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [place, setPlace] = useState('');
-  // Координаты, разрешённые автокомплитом при выборе города. Если юзер выбрал город
-  // из подсказок — отдаём их серверу, и он не геокодит место заново (надёжнее).
-  const [placeCoords, setPlaceCoords] = useState<{ lat: number; lon: number; timezone?: string } | null>(null);
-  const [notify, setNotify] = useState(true);
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const submittingRef = useRef(false);
+  const timeValid=timeMode==='unknown'||Boolean(time&&(timeMode==='exact'||uncertainty));
+  const canSubmit=useMemo(()=>Boolean(name.trim()&&date&&place.trim()&&timeValid),[date,name,place,timeValid]);
+  const signHint=useMemo(()=>{const sign=sunSignFromDate(date);return sign?getZodiacSign('ru',sign):'';},[date]);
+  const storyVisual=STORY_VISUALS[storyIndex]||STORY_VISUALS[0];
+  const storySticker=selectMainEditorialSticker({screenKey:'onboarding-story',contentKey:`story-${storyIndex}`,slot:storyIndex,topics:storyVisual.topics,allowedMedia:storyVisual.media});
 
-  const nameRef = useRef<HTMLInputElement | null>(null);
-  const dateRef = useRef<HTMLInputElement | null>(null);
-  const timeRef = useRef<HTMLInputElement | null>(null);
-  const placeRef = useRef<HTMLInputElement | null>(null);
+  const focusField=(field:FieldKey)=>{const refs:Record<FieldKey,React.RefObject<HTMLInputElement|null>>={name:nameRef,date:dateRef,time:timeRef,place:placeRef};refs[field].current?.focus();};
+  const nextStory=()=>storyIndex<STORIES.length-1?setStoryIndex((value)=>value+1):setStep('birth');
+  const chooseTimeMode=(mode:Exclude<BirthTimeMode,'range'>)=>{setTimeMode(mode);setError('');if(mode==='unknown'){setTime('');setUncertainty(null);}else if(mode==='exact'){setUncertainty(null);}};
 
-  useEffect(() => {
-    const tg = (window as any).Telegram?.WebApp;
-    if (tg?.initDataUnsafe?.user) setName(tg.initDataUnsafe.user.first_name || '');
-    ensureTelegramFullscreen();
-  }, []);
-
-  const canSubmit = useMemo(() => Boolean(name.trim() && date && place.trim()), [date, name, place]);
-  const signHint = useMemo(() => {
-    const s = sunSignFromDate(date);
-    return s ? getZodiacSign('ru', s) : '';
-  }, [date]);
-  const storyVisual = STORY_VISUALS[storyIndex] || STORY_VISUALS[0];
-  const storySticker = selectMainEditorialSticker({
-    screenKey: 'onboarding-story',
-    contentKey: `story-${storyIndex}`,
-    slot: storyIndex,
-    topics: storyVisual.topics,
-    allowedMedia: storyVisual.media,
-  });
-
-  const focusField = (field: FieldKey) => {
-    const refMap: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = { name: nameRef, date: dateRef, time: timeRef, place: placeRef };
-    refMap[field].current?.focus();
-  };
-
-  const nextStory = () => {
-    if (storyIndex < STORIES.length - 1) setStoryIndex((i) => i + 1);
-    else setStep('birth');
-  };
-
-  const handleSubmit = async () => {
-    if (submittingRef.current) return;
-    if (!name.trim()) { setError('Укажи имя.'); focusField('name'); return; }
-    if (!date) { setError('Укажи дату рождения.'); focusField('date'); return; }
-    if (!place.trim()) { setError('Укажи место рождения.'); focusField('place'); return; }
-    submittingRef.current = true;
-    setIsSubmitting(true);
-    setError('');
-    try {
+  const handleSubmit=async()=>{
+    if(submittingRef.current)return;
+    if(!name.trim()){setError('Укажи имя.');focusField('name');return;}
+    if(!date){setError('Укажи дату рождения.');focusField('date');return;}
+    if(timeMode!=='unknown'&&!time){setError('Укажи время рождения.');focusField('time');return;}
+    if(timeMode==='approximate'&&!uncertainty){setError('Укажи погрешность времени.');return;}
+    if(!place.trim()){setError('Укажи место рождения.');focusField('place');return;}
+    submittingRef.current=true;setIsSubmitting(true);setError('');
+    try{
       await onComplete({
-        name: name.trim(),
-        gender,
-        birthDate: date,
-        birthTime: time,
-        birthPlace: place.trim(),
-        birthLatitude: placeCoords?.lat ?? null,
-        birthLongitude: placeCoords?.lon ?? null,
-        birthTimezone: placeCoords?.timezone ?? null,
-        isSetup: false,
-        language: 'ru',
-        theme: 'light',
-        isPremium: false,
-        notificationFrequency: notify ? 'daily' : 'important',
+        name:name.trim(),gender,birthDate:date,birthTime:timeMode==='unknown'?'':time,
+        birthTimeMode:timeMode,birthTimeUncertaintyMinutes:timeMode==='approximate'?uncertainty:null,
+        birthTimeRangeStart:null,birthTimeRangeEnd:null,birthPlace:place.trim(),
+        birthLatitude:placeCoords?.lat??null,birthLongitude:placeCoords?.lon??null,birthTimezone:placeCoords?.timezone??null,
+        isSetup:false,language:'ru',theme:'light',isPremium:false,notificationFrequency:notify?'daily':'important',
       });
-    } catch (submitError: any) {
-      setError(submitError?.message || 'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.');
-    } finally {
-      submittingRef.current = false;
-      setIsSubmitting(false);
-    }
+    }catch(submitError:any){setError(submitError?.message||'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.');}
+    finally{submittingRef.current=false;setIsSubmitting(false);}
   };
 
-  return (
-    <div
-      className="fresh-page lumia-main-scroll onboarding-editorial-page"
-      style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 16px)' }}
-    >
-      <div style={{ padding: '4px 20px 0' }}>
-        <p className="lumia-brand-wordmark">Твой Гороскоп</p>
+  return <div className="fresh-page lumia-main-scroll onboarding-editorial-page" style={{display:'flex',flexDirection:'column',minHeight:'100dvh',paddingBottom:'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 16px)'}}>
+    <div style={{padding:'4px 20px 0'}}><p className="lumia-brand-wordmark">Твой Гороскоп</p></div>
+    {step==='stories'?<div style={{display:'flex',flex:1,flexDirection:'column',maxWidth:'28rem',width:'100%',margin:'0 auto'}}>
+      <div className="onb-dots">{STORIES.map((_,index)=><span key={index} className={`onb-dot ${index===storyIndex?'is-on':''}`}/>)}</div>
+      <div className="onb-stage" onClick={nextStory}><AnimatePresence mode="wait"><motion.div key={storyIndex} initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-40}} transition={{duration:.28,ease:[.22,1,.36,1]}} className="onb-card">
+        <div className="onb-hero">{storySticker?<EditorialSticker asset={storySticker} className="onb-story-sticker" priority/>:<span className="onb-hero-ico">{STORIES[storyIndex].icon}</span>}</div>
+        <h1 className="onb-title">{STORIES[storyIndex].title}</h1><p className="onb-text">{STORIES[storyIndex].text}</p>
+      </motion.div></AnimatePresence></div>
+      <div style={{padding:'0 20px'}}><button type="button" className="fresh-btn-primary" style={{width:'100%',margin:0}} onClick={nextStory}>{storyIndex<STORIES.length-1?'Дальше':'Ввести данные рождения'}</button><button type="button" className="onb-skip" onClick={()=>setStep('birth')}>Перейти к данным</button></div>
+    </div>:<div style={{display:'flex',flex:1,flexDirection:'column',maxWidth:'28rem',width:'100%',margin:'0 auto'}}>
+      <div style={{padding:'8px 20px 0'}}><h1 className="fresh-page-title" style={{maxWidth:'18rem'}}>Данные для расчёта</h1><p style={{marginTop:12,maxWidth:'21rem',fontSize:14.5,lineHeight:1.55,color:'var(--fresh-muted)'}}>Дата, время и место рождения нужны для точного расчёта. Часовой пояс определим по городу и дате.</p></div>
+      <div style={{display:'flex',flexDirection:'column',gap:18,padding:'22px 20px 0'}}>
+        <label><span className="fresh-field-label">Имя</span><input ref={nameRef} type="text" value={name} onChange={(event)=>{setName(event.target.value);setError('');}} className="fresh-input" placeholder="Как к тебе обращаться"/></label>
+        <div><span className="fresh-field-label">Пол</span><div style={{display:'flex',gap:8,marginTop:6}}>{([['male','Мужской'],['female','Женский'],['unspecified','Не указывать']] as const).map(([value,label])=><button key={value} type="button" onClick={()=>setGender(value)} className={`onb-gender ${gender===value?'is-on':''}`}>{label}</button>)}</div></div>
+        <label><span className="fresh-field-label">Дата рождения</span><input ref={dateRef} type="date" value={date} onChange={(event)=>{setDate(event.target.value);setError('');}} className="fresh-input"/></label>
+        <div><span className="fresh-field-label">Время рождения</span><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:6}}>
+          {([['exact','Знаю точно'],['approximate','Знаю примерно'],['unknown','Не знаю']] as const).map(([value,label])=><button key={value} type="button" onClick={()=>chooseTimeMode(value)} className={`onb-gender ${timeMode===value?'is-on':''}`}>{label}</button>)}
+        </div></div>
+        {timeMode!=='unknown'?<label><span className="fresh-field-label">Часы и минуты</span><input ref={timeRef} type="time" step={60} value={time} onChange={(event)=>{setTime(event.target.value);setError('');}} className="fresh-input"/></label>:null}
+        {timeMode==='approximate'?<div><span className="fresh-field-label">Погрешность</span><div style={{display:'flex',gap:8,marginTop:6}}>{([15,30,60] as const).map((minutes)=><button key={minutes} type="button" onClick={()=>{setUncertainty(minutes);setError('');}} className={`onb-gender ${uncertainty===minutes?'is-on':''}`}>{minutes===60?'до 1 часа':`до ${minutes} минут`}</button>)}</div></div>:null}
+        {timeMode==='unknown'?<p style={{margin:'-6px 0 0',fontSize:13,lineHeight:1.45,color:'var(--fresh-muted)'}}>Время не подставляем. Дома, Асцендент и MC не считаем.</p>:timeMode==='approximate'?<p style={{margin:'-6px 0 0',fontSize:13,lineHeight:1.45,color:'var(--fresh-muted)'}}>Проверим весь диапазон и отметим только то, что в нём не меняется.</p>:null}
+        {signHint?<p style={{margin:'-6px 0 0',fontSize:13,fontWeight:700,color:'var(--fresh-link)'}}>Знак зодиака: {signHint}</p>:null}
+        <label><span className="fresh-field-label">Место рождения</span><CityAutocomplete value={place} inputRef={placeRef} placeholder="Начни вводить город…" onChange={(value,coords)=>{setPlace(value);setPlaceCoords(coords??null);setError('');}}/></label>
+        <button type="button" className="onb-notify" onClick={()=>setNotify((value)=>!value)}><span className={`onb-check ${notify?'is-on':''}`} aria-hidden>{notify?'✓':''}</span><span className="onb-notify-text">Присылать уведомления о новых прогнозах</span></button>
       </div>
-
-      {step === 'stories' ? (
-        <div style={{ display: 'flex', flex: 1, flexDirection: 'column', maxWidth: '28rem', width: '100%', margin: '0 auto' }}>
-          <div className="onb-dots">
-            {STORIES.map((_, i) => <span key={i} className={`onb-dot ${i === storyIndex ? 'is-on' : ''}`} />)}
-          </div>
-
-          <div className="onb-stage" onClick={nextStory}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={storyIndex}
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                className="onb-card"
-              >
-                <div className="onb-hero">
-                  {storySticker ? (
-                    <EditorialSticker
-                      asset={storySticker}
-                      className="onb-story-sticker"
-                      priority
-                    />
-                  ) : (
-                    <span className="onb-hero-ico">{STORIES[storyIndex].icon}</span>
-                  )}
-                </div>
-                <h1 className="onb-title">{STORIES[storyIndex].title}</h1>
-                <p className="onb-text">{STORIES[storyIndex].text}</p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <div style={{ padding: '0 20px' }}>
-            <button type="button" className="fresh-btn-primary" style={{ width: '100%', margin: 0 }} onClick={nextStory}>
-              {storyIndex < STORIES.length - 1 ? 'Дальше' : 'Ввести данные рождения'}
-            </button>
-            <button type="button" className="onb-skip" onClick={() => setStep('birth')}>Перейти к данным</button>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flex: 1, flexDirection: 'column', maxWidth: '28rem', width: '100%', margin: '0 auto' }}>
-          <div style={{ padding: '8px 20px 0' }}>
-            <h1 className="fresh-page-title" style={{ maxWidth: '18rem' }}>Данные для расчёта</h1>
-            <p style={{ marginTop: 12, maxWidth: '21rem', fontSize: 14.5, lineHeight: 1.55, color: 'var(--fresh-muted)' }}>
-              Дата, время и место рождения нужны для натальной карты и личных прогнозов. Часовой пояс для этой даты определим сами.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '22px 20px 0' }}>
-            <label>
-              <span className="fresh-field-label">Имя</span>
-              <input ref={nameRef} type="text" value={name} onChange={(e) => { setName(e.target.value); if (error) setError(''); }} className="fresh-input" placeholder="Как к тебе обращаться" />
-            </label>
-
-            <div>
-              <span className="fresh-field-label">Пол</span>
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                {([['male', 'Мужской'], ['female', 'Женский'], ['unspecified', 'Не указывать']] as const).map(([val, label]) => (
-                  <button key={val} type="button" onClick={() => setGender(val)} className={`onb-gender ${gender === val ? 'is-on' : ''}`}>{label}</button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <label>
-                <span className="fresh-field-label">Дата рождения</span>
-                <input ref={dateRef} type="date" value={date} onChange={(e) => { setDate(e.target.value); if (error) setError(''); }} className="fresh-input" />
-              </label>
-              <label>
-                <span className="fresh-field-label">Время рождения — если знаешь</span>
-                <input ref={timeRef} type="time" value={time} onChange={(e) => { setTime(e.target.value); if (error) setError(''); }} className="fresh-input" />
-              </label>
-            </div>
-            {!time ? (
-              <p style={{ margin: '-6px 0 0', fontSize: 13, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-                Без точного времени Асцендент и дома не используются. Планеты и аспекты всё равно рассчитываются.
-              </p>
-            ) : null}
-            {signHint ? <p style={{ margin: '-6px 0 0', fontSize: 13, fontWeight: 700, color: 'var(--fresh-link)' }}>Знак зодиака: {signHint}</p> : null}
-
-            <label>
-              <span className="fresh-field-label">Место рождения</span>
-              <CityAutocomplete
-                value={place}
-                inputRef={placeRef}
-                placeholder="Начни вводить город…"
-                onChange={(v, coords) => {
-                  setPlace(v);
-                  // coords приходят только при выборе города из подсказок; при ручном
-                  // вводе их нет — тогда сбрасываем, чтобы не отправить устаревшие.
-                  setPlaceCoords(coords ?? null);
-                  if (error) setError('');
-                }}
-              />
-            </label>
-
-            <button type="button" className="onb-notify" onClick={() => setNotify((v) => !v)}>
-              <span className={`onb-check ${notify ? 'is-on' : ''}`} aria-hidden>{notify ? '✓' : ''}</span>
-              <span className="onb-notify-text">Присылать уведомления о новых прогнозах</span>
-            </button>
-          </div>
-
-          <div style={{ marginTop: 'auto', paddingTop: 22 }}>
-            {error ? <p style={{ margin: '0 20px 12px', fontSize: 12.5, lineHeight: 1.45, color: '#B91C1C' }}>{error}</p> : null}
-            <button type="button" className="fresh-btn-primary" disabled={!canSubmit || isSubmitting} onClick={() => void handleSubmit()}>
-              {isSubmitting ? 'Рассчитываем…' : 'Рассчитать карту'}
-            </button>
-            <p style={{ margin: '12px 20px 0', maxWidth: '21rem', fontSize: 10.5, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-              Положения планет, дома и аспекты рассчитываются по Swiss Ephemeris. Текст готовится по результатам расчёта.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+      <div style={{marginTop:'auto',paddingTop:22}}>{error?<p style={{margin:'0 20px 12px',fontSize:12.5,lineHeight:1.45,color:'#B91C1C'}}>{error}</p>:null}<button type="button" className="fresh-btn-primary" disabled={!canSubmit||isSubmitting} onClick={()=>void handleSubmit()}>{isSubmitting?'Рассчитываем…':'Рассчитать карту'}</button><p style={{margin:'12px 20px 0',maxWidth:'21rem',fontSize:10.5,lineHeight:1.45,color:'var(--fresh-muted)'}}>Положения считаются по Swiss Ephemeris. Неизвестное время не заменяется выдуманным.</p></div>
+    </div>}
+  </div>;
 };
