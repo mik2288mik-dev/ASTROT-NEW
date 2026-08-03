@@ -942,7 +942,9 @@ const App: React.FC = () => {
             
             const generatedChart = await getOrCalculateChart(pendingProfile);
             
-            if (!generatedChart || !generatedChart.sun || !generatedChart.moon || !generatedChart.rising) {
+            const birthTimeUnknown = generatedChart?.birthTimeQuality === 'unknown'
+                || generatedChart?.birth?.time?.mode === 'unknown';
+            if (!generatedChart || !generatedChart.sun || !generatedChart.moon || (!birthTimeUnknown && !generatedChart.rising)) {
                 throw new Error('Не удалось получить данные карты. Попробуйте ещё раз.');
             }
             
