@@ -1,6 +1,5 @@
 import type { AppProps } from 'next/app';
 import '../styles/globals.css';
-import '../styles/stickers.css';
 import '../styles/cardBackgrounds.css';
 import '../styles/cardBackgroundPolish.css';
 import '../styles/homeMvpLayout.css';
