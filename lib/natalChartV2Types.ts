@@ -27,13 +27,14 @@ export interface LongitudeRange {
 
 export interface NatalPositionV2 {
   object: string;
+  planet: string;
   key: NatalBodyKey;
   kind: 'planet' | 'lunar_node';
-  longitude: number | null;
-  sign: string | null;
-  degree: number | null;
+  longitude: number;
+  sign: string;
+  degree: number;
   retrograde: boolean | null;
-  speedLongitude: number | null;
+  speedLongitude: number;
   house: number | null;
   source: 'swisseph' | 'derived';
   reliability: NatalReliability;
@@ -43,25 +44,31 @@ export interface NatalPositionV2 {
     house: boolean;
   };
   range?: LongitudeRange;
+  description?: string;
 }
 
 export interface NatalAngleV2 {
   key: NatalAngleKey;
   object: string;
-  longitude: number | null;
-  sign: string | null;
-  degree: number | null;
+  planet: string;
+  longitude: number;
+  sign: string;
+  degree: number;
   source: 'swisseph' | 'derived';
   reliability: NatalReliability;
   stableSign: boolean;
   range?: LongitudeRange;
+  house?: number | null;
+  retrograde?: false;
+  speedLongitude?: 0;
+  description?: string;
 }
 
 export interface NatalHouseV2 {
   house: number;
-  longitude: number | null;
-  sign: string | null;
-  degree: number | null;
+  longitude: number;
+  sign: string;
+  degree: number;
   reliability: NatalReliability;
   stableSign: boolean;
   range?: LongitudeRange;
@@ -74,8 +81,9 @@ export interface NatalAspectV2 {
   id: string;
   type: NatalAspectType;
   exactAngle: number;
-  angularDistance: number | null;
-  orb: number | null;
+  angle: number;
+  angularDistance: number;
+  orb: number;
   orbRange: {
     min: number;
     max: number;
@@ -108,6 +116,7 @@ export interface NatalCalculationMetadataV2 {
   coordinateCenter: 'geocentric';
   houseSystem: 'placidus' | 'whole_sign' | null;
   houseFallbackUsed: boolean;
+  housesComputedFrom: 'exact_time' | 'time_range' | 'not_computed';
   aspectRulesVersion: string;
   calculationVersion: string;
   calculatedAt: string;
@@ -116,9 +125,13 @@ export interface NatalCalculationMetadataV2 {
 
 export interface NatalChartQualityV2 {
   birthTimeMode: BirthTimeMode;
+  birthTimeQuality: 'exact' | 'approximate' | 'unknown';
   exactTime: boolean;
   anglesAvailable: boolean;
   housesAvailable: boolean;
+  ascendantReliable: boolean;
+  housesReliable: boolean;
+  houseBasedPersonalization: boolean;
   stableHousePlacements: NatalBodyKey[];
   variableBodies: NatalBodyKey[];
   variableAngles: NatalAngleKey[];
@@ -138,7 +151,6 @@ export interface NatalChartDataV2 {
   calculationMetadata: NatalCalculationMetadataV2;
   calculationVersion: string;
 
-  // Compatibility accessors used by the current UI and forecast code.
   sun: NatalPositionV2;
   moon: NatalPositionV2;
   mercury: NatalPositionV2;
@@ -158,4 +170,11 @@ export interface NatalChartDataV2 {
   longitude: number;
   timezone: string;
   birthTimeQuality: 'exact' | 'approximate' | 'unknown';
+
+  // Old text fields are intentionally not produced. Optional declarations only
+  // keep the current UI compiling until the professional report layer replaces it.
+  element?: string;
+  rulingPlanet?: string;
+  summary?: string;
+  keywords?: { love: string; career: string; karma: string };
 }
