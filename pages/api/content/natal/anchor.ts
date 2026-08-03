@@ -16,6 +16,7 @@ import {
 } from '../../../../lib/natalReadings';
 import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
 import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
+import { buildCanonicalNatalReport, isNatalChartDataV2 } from '../../../../lib/natal/canonicalReport';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
   return {
@@ -119,6 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const chartData = context.chartData;
+  const baseReport = isNatalChartDataV2(chartData) ? buildCanonicalNatalReport(chartData) : undefined;
 
   const existing = await getContentLayer({
     userId: userId.trim(),
@@ -145,6 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: existing.source,
       chartId: existing.chartId,
       cacheKey: existing.cacheKey,
+      ...(baseReport ? { baseReport } : {}),
     });
   }
 
@@ -154,6 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: existing.source,
       chartId: existing.chartId,
       cacheKey: existing.cacheKey,
+      ...(baseReport ? { baseReport } : {}),
     });
   }
 
@@ -248,5 +252,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     source: lockResult.fromCache ? (lockResult.source || 'content_v1') : 'generated',
     chartId: context.chartId,
     cacheKey: NATAL_ANCHOR_CACHE_KEY,
+    ...(baseReport ? { baseReport } : {}),
   });
 }

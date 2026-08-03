@@ -1,6 +1,9 @@
 /** Prompts for the long-scroll natal interpretation screen. */
 
 import type { SerializedChartForPrompt } from './chartSerializer';
+import type { CanonicalNatalReport } from '../natal/canonicalReport';
+
+export type NatalReadingPromptSource = SerializedChartForPrompt | CanonicalNatalReport;
 
 const NATAL_READING_TASK_RULES = `ТЕХНИЧЕСКИЕ ПРАВИЛА:
 - Используй только переданные данные карты.
@@ -14,9 +17,25 @@ const NATAL_READING_TASK_RULES = `ТЕХНИЧЕСКИЕ ПРАВИЛА:
 - Соблюдай заданный формат вывода строго.
 - Не добавляй комментариев до и после, не используй Markdown-заголовки внутри JSON-полей.`;
 
-function chartHeader(chart: SerializedChartForPrompt): string {
+function chartHeader(chart: NatalReadingPromptSource): string {
   return `ДАННЫЕ КАРТЫ:
 ${JSON.stringify(chart, null, 2)}`;
+}
+
+function promptContext(chart: NatalReadingPromptSource): string {
+  if ('schemaVersion' in chart && chart.schemaVersion === 'canonical-natal-report-v1') {
+    const facts = {
+      CoreIdentity: chart.CoreIdentity,
+      DominantPatterns: chart.DominantPatterns,
+      MajorAspects: chart.MajorAspects,
+      ...(chart.HousePlacements ? { HousePlacements: chart.HousePlacements } : {}),
+    };
+    const timeRule = chart.HousePlacements
+      ? 'Use houses and angles only when they are present in this Base Report. Low-reliability placements are not exact.'
+      : 'Birth time is unknown. Do not mention houses, Ascendant, MC, house rulers, cusps, or time-dependent angular placements.';
+    return `CANONICAL BASE REPORT — use only these facts:\n${JSON.stringify(facts, null, 2)}\n\n${timeRule}`;
+  }
+  return chartHeader(chart);
 }
 
 /**
@@ -24,10 +43,10 @@ ${JSON.stringify(chart, null, 2)}`;
  * Generates: 5 short labels + subtitles, portrait, overlooked trait,
  * two competing traits + synthesis.
  */
-export function buildPortraitPrompt(chart: SerializedChartForPrompt): string {
+export function buildPortraitPrompt(chart: NatalReadingPromptSource): string {
   return `${NATAL_READING_TASK_RULES}
 
-${chartHeader(chart)}
+${promptContext(chart)}
 
 ЗАДАЧА: создать короткий и точный портрет человека по этой натальной карте.
 
@@ -63,10 +82,10 @@ ${chartHeader(chart)}
  * Aspects prompt — JSON output.
  * 5 key calculated factors of the chart with badges + a closing summary.
  */
-export function buildAspectsPrompt(chart: SerializedChartForPrompt): string {
+export function buildAspectsPrompt(chart: NatalReadingPromptSource): string {
   return `${NATAL_READING_TASK_RULES}
 
-${chartHeader(chart)}
+${promptContext(chart)}
 
 ЗАДАЧА: выбери 5 самых важных рассчитанных факторов этой карты. Не перечисляй всё подряд. Бери только сильные положения, скопления, точные аспекты, угловые точки или явно выделенные дома, которые действительно меняют общий вывод.
 
@@ -103,12 +122,12 @@ ${chartHeader(chart)}
  * Frames the upcoming 7 days through this person's chart, not generic horoscope.
  */
 export function buildWeekPrompt(
-  chart: SerializedChartForPrompt,
+  chart: NatalReadingPromptSource,
   weekDates: { from: string; to: string }
 ): string {
   return `${NATAL_READING_TASK_RULES}
 
-${chartHeader(chart)}
+${promptContext(chart)}
 
 КОНТЕКСТ ВРЕМЕНИ: текущая неделя с ${weekDates.from} по ${weekDates.to}.
 
@@ -123,12 +142,12 @@ ${chartHeader(chart)}
 
 /** Today prompt — JSON output. Premium content. */
 export function buildTodayPrompt(
-  chart: SerializedChartForPrompt,
+  chart: NatalReadingPromptSource,
   dateLabel: string
 ): string {
   return `${NATAL_READING_TASK_RULES}
 
-${chartHeader(chart)}
+${promptContext(chart)}
 
 КОНТЕКСТ ВРЕМЕНИ: сегодня ${dateLabel}.
 
@@ -180,12 +199,12 @@ export const DEEP_DIVE_TOPICS: Record<DeepDiveTopic['key'], DeepDiveTopic> = {
 };
 
 export function buildDeepDivePrompt(
-  chart: SerializedChartForPrompt,
+  chart: NatalReadingPromptSource,
   topic: DeepDiveTopic
 ): string {
   return `${NATAL_READING_TASK_RULES}
 
-${chartHeader(chart)}
+${promptContext(chart)}
 
 ТЕМА: ${topic.title}.
 ФОКУС: ${topic.brief}

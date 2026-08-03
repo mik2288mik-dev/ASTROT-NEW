@@ -1,6 +1,8 @@
 import { llmJson, llmTagged } from '../anthropic';
 import type { NatalChartData, UserProfile } from '../../types';
+import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { getAppSystemVoice } from '../appVoice';
+import { buildCanonicalNatalReport } from '../natal/canonicalReport';
 import { serializeChartForPrompt } from './chartSerializer';
 import {
   buildAspectsPrompt,
@@ -11,6 +13,7 @@ import {
   parsePortraitTags,
   DEEP_DIVE_TOPICS,
   type DeepDiveTopic,
+  type NatalReadingPromptSource,
 } from './prompts';
 import type {
   NatalReadingAspects,
@@ -28,11 +31,21 @@ function clamp(text: string | undefined, max: number): string {
   return trimmed.slice(0, max - 1).trim() + '…';
 }
 
+function isNatalChartDataV2(chart: NatalChartData | NatalChartDataV2): chart is NatalChartDataV2 {
+  return 'schemaVersion' in chart && chart.schemaVersion === 'natal-chart-data-v2';
+}
+
+function promptSource(profile: UserProfile, chart: NatalChartData | NatalChartDataV2): NatalReadingPromptSource {
+  return isNatalChartDataV2(chart)
+    ? buildCanonicalNatalReport(chart)
+    : serializeChartForPrompt(profile, chart);
+}
+
 export async function generatePortrait(
   profile: UserProfile,
-  chart: NatalChartData
+  chart: NatalChartData | NatalChartDataV2
 ): Promise<NatalReadingPortrait> {
-  const serialized = serializeChartForPrompt(profile, chart);
+  const serialized = promptSource(profile, chart);
   const raw = await llmTagged({
     system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildPortraitPrompt(serialized),
@@ -63,9 +76,9 @@ export async function generatePortrait(
 
 export async function generateAspects(
   profile: UserProfile,
-  chart: NatalChartData
+  chart: NatalChartData | NatalChartDataV2
 ): Promise<NatalReadingAspects> {
-  const serialized = serializeChartForPrompt(profile, chart);
+  const serialized = promptSource(profile, chart);
   const result = await llmJson<NatalReadingAspects>({
     system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildAspectsPrompt(serialized),
@@ -93,9 +106,9 @@ export async function generateAspects(
 
 export async function generateWeek(
   profile: UserProfile,
-  chart: NatalChartData
+  chart: NatalChartData | NatalChartDataV2
 ): Promise<NatalReadingWeek> {
-  const serialized = serializeChartForPrompt(profile, chart);
+  const serialized = promptSource(profile, chart);
   const now = new Date();
   const day = now.getDay();
   const monday = new Date(now);
@@ -122,9 +135,9 @@ export async function generateWeek(
 
 export async function generateToday(
   profile: UserProfile,
-  chart: NatalChartData
+  chart: NatalChartData | NatalChartDataV2
 ): Promise<NatalReadingToday> {
-  const serialized = serializeChartForPrompt(profile, chart);
+  const serialized = promptSource(profile, chart);
   const now = new Date();
   const dateLabel = now.toLocaleDateString('ru-RU', {
     day: 'numeric',
@@ -153,11 +166,11 @@ export async function generateToday(
 
 export async function generateDeepDive(
   profile: UserProfile,
-  chart: NatalChartData,
+  chart: NatalChartData | NatalChartDataV2,
   key: NatalReadingDeepDiveKey
 ): Promise<NatalReadingDeepDive> {
   const topic: DeepDiveTopic = DEEP_DIVE_TOPICS[key];
-  const serialized = serializeChartForPrompt(profile, chart);
+  const serialized = promptSource(profile, chart);
   const result = await llmJson<NatalReadingDeepDive>({
     system: getAppSystemVoice(profile.language === 'en' ? 'en' : 'ru'),
     user: buildDeepDivePrompt(serialized, topic),
