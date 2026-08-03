@@ -1,25 +1,33 @@
 import fs from 'fs';
 import path from 'path';
+import { buildBirthTimeInterval, normalizeBirthTimeInput } from '../lib/birthTime';
 
-const ROOT = path.resolve(__dirname, '..');
-const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+const ROOT=path.resolve(__dirname,'..');
+const read=(file:string)=>fs.readFileSync(path.join(ROOT,file),'utf8');
 
-describe('birth-time honesty', () => {
-  it('keeps an unknown time nullable in the legacy self-chart route', () => {
-    const route = read('pages/api/charts/[id].ts');
-
-    expect(route).toContain("const birthTime = user?.birth_time || ''");
-    expect(route).toContain('birthTime,');
-    expect(route).not.toContain("birthTime || '12:00'");
-    expect(route).not.toContain('normalizedBirthTime');
+describe('birth-time honesty',()=>{
+  it('never inserts noon for unknown time',()=>{
+    const canonical=read('lib/natalChartCanonical.ts');
+    const calculator=read('lib/swisseph-calculator.ts');
+    expect(canonical).not.toContain("return '12:00'");
+    expect(calculator).not.toContain('default_noon');
+    expect(calculator).not.toContain("birthHour = 12");
   });
 
-  it('uses noon only as a disclosed calculation reference and never repairs invalid input', () => {
-    const calculator = read('lib/swisseph-calculator.ts');
+  it('stores unknown time as a full-day interval without angles or houses',()=>{
+    const input=normalizeBirthTimeInput({mode:'unknown',legacyBirthTime:''});
+    const interval=buildBirthTimeInterval('1989-03-06','Europe/Moscow',input);
+    expect(input.localTime).toBeNull();
+    expect(interval.referenceUtc).toBeNull();
+    expect(interval.sampleUtc.length).toBeGreaterThan(2);
+    const calculator=read('lib/swisseph-calculator.ts');
+    expect(calculator).toContain("const includeHouses=time.mode!=='unknown'");
+  });
 
-    expect(calculator).toContain("housesComputedFrom: birthTimeQuality === 'exact' ? 'exact_time' : 'default_noon'");
-    expect(calculator).toContain("throw new Error('Invalid birth time format. Expected HH:MM in 24-hour time')");
-    expect(calculator).toContain('Ascendant and houses are omitted from interpretation because birth time is unknown.');
-    expect(calculator).not.toContain('using 12:00');
+  it('accepts only the approved approximate uncertainties',()=>{
+    expect(normalizeBirthTimeInput({mode:'approximate',localTime:'23:15',uncertaintyMinutes:15}).uncertaintyMinutes).toBe(15);
+    expect(normalizeBirthTimeInput({mode:'approximate',localTime:'23:15',uncertaintyMinutes:30}).uncertaintyMinutes).toBe(30);
+    expect(normalizeBirthTimeInput({mode:'approximate',localTime:'23:15',uncertaintyMinutes:60}).uncertaintyMinutes).toBe(60);
+    expect(()=>normalizeBirthTimeInput({mode:'approximate',localTime:'23:15',uncertaintyMinutes:45})).toThrow();
   });
 });
