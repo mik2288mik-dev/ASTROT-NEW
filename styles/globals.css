@@ -22,12 +22,12 @@ body,
   /* 
     THEME: MIDNIGHT FASHION (Default Dark)
   */
-  --bg-primary: #050505;  
-  --bg-card: #121212;     
-  --text-main: #EAEAEA;   
-  --text-sub: #a8a8a8;
-  --accent-primary: #FFFFFF; 
-  --accent-secondary: #2A2A2A;
+  --bg-primary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --text-main: #111317;
+  --text-sub: #606772;
+  --accent-primary: #111317;
+  --accent-secondary: #FFFFFF;
   --highlight: #BFA1FF;   
   --border-color: rgba(255, 255, 255, 0.055);
   --orbit-color: rgba(255, 255, 255, 0.12);
@@ -49,7 +49,7 @@ body,
   --lumia-brand-muted: #606772;
   --lumia-brand-line: rgba(17, 19, 23, 0.1);
   --lumia-brand-surface: var(--app-canvas);
-  --lumia-brand-surface-soft: #f4f7fa;
+  --lumia-brand-surface-soft: #ffffff;
   --lumia-pop-red: var(--lumia-brand-primary);
   --lumia-pop-yellow: var(--lumia-brand-positive);
   --lumia-pop-orange: #0f766e;
@@ -101,8 +101,8 @@ body,
   /* Главный экран "Сегодня": строгий гротеск и бело-серая карточная система. */
   --home-editorial-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --today-screen-bg: var(--app-canvas);
-  --today-hero-bg: #F3F4F6;
-  --today-hero-bg-2: #FAFAFB;
+  --today-hero-bg: #FFFFFF;
+  --today-hero-bg-2: #FFFFFF;
   --today-hero-ink: #111827;
   --today-hero-muted: #667085;
   --today-hero-accent: #1478FF;
@@ -117,7 +117,7 @@ body,
   /* Fresh 2026 skin — white surfaces, blue accent (synced with tailwind mono.* + --fresh-*) */
   --mono-bg: var(--app-canvas);
   --mono-white: var(--app-canvas);
-  --mono-plate: #f7f8fa;
+  --mono-plate: #ffffff;
   --mono-ink: #111827;
   --mono-muted: #6b7280;
   --mono-line: rgba(17, 24, 39, 0.08);
@@ -132,7 +132,7 @@ body.theme-light {
     THEME: PASTEL COFFEE / MORNING LATTE
   */
   --bg-primary: var(--app-canvas);
-  --bg-card: #E6E0D5;     
+  --bg-card: #FFFFFF;
   --text-main: #3C2F2F;   
   --text-sub: #8D7B68;    
   --accent-primary: #5D4037;
