@@ -25,7 +25,18 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
     const entitlement=await getPremiumEntitlementState(userId); const chartSlots=getEffectiveChartLimit(entitlement.isPremium);
 
     if (req.method==='GET') {
-      const charts=getActiveCharts(await natalChartV2Repository.getAll(userId));
+      let charts=getActiveCharts(await natalChartV2Repository.getAll(userId));
+      const selfChart=getSelfChart(charts);
+      if (!selfChart||!isCanonicalNatalChartDataComplete(selfChart.chart_data)) {
+        console.info('[API/charts] restoring primary V2 chart for chart-list request', {
+          userId,
+          reason:selfChart?'invalid_chart_data':'primary_chart_missing',
+        });
+        const repaired=await repairCanonicalChartForUser(userId);
+        if (isCanonicalNatalChartDataComplete(repaired?.chart?.chart_data)) {
+          charts=getActiveCharts(await natalChartV2Repository.getAll(userId));
+        }
+      }
       return res.status(200).json({charts:charts.map((chart)=>exposeChartAccess(chart,entitlement.isPremium)),chartSlots,canAddMore:charts.length<chartSlots,canAddSavedPeople:entitlement.isPremium&&charts.length<chartSlots&&!!getSelfChart(charts),isPremium:entitlement.isPremium});
     }
 

@@ -14,11 +14,18 @@ import {
 const log={error:(message:string,error?:any)=>console.error(`[API/charts] ERROR: ${message}`,error||'')};
 
 export default async function handler(req:NextApiRequest,res:NextApiResponse){
-  const rawUserId=Array.isArray(req.query.id)?req.query.id[0]:req.query.id;
-  if(!isValidUserId(rawUserId))return res.status(400).json(invalidUserIdPayload('ru'));
-  const userId=String(rawUserId).trim();
+  const requestedUserId=Array.isArray(req.query.id)?req.query.id[0]:req.query.id;
+  let userId='';
   try{
-    await requireAppUser(req,{expectedUserId:userId,allowGuest:true});
+    const auth=await requireAppUser(req,{allowGuest:true});
+    userId=auth.userId;
+    if(!isValidUserId(userId))return res.status(400).json(invalidUserIdPayload('ru'));
+    if (isValidUserId(requestedUserId) && String(requestedUserId).trim()!==userId) {
+      console.info('[API/charts] ignoring legacy URL user id in favor of authenticated session', {
+        requestedUserId:String(requestedUserId).trim(),
+        sessionUserId:userId,
+      });
+    }
     if(req.method==='GET'){
       let chart=await natalChartV2Repository.getPrimary(userId);
       if(!chart||!isCanonicalNatalChartDataComplete(chart.chart_data)){
