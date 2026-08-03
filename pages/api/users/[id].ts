@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db, getPool } from '../../../lib/db';
+import { birthProfileRepository } from '../../../lib/birthProfileRepository';
 import { AdminAuthError, getConfiguredOwnerId, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
 import { hasDatabaseUrl } from '../../../lib/database-url';
@@ -41,9 +42,10 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
       if(!hasDatabaseUrl())return res.status(404).json({error:'User not found'});
       const user=await db.users.get(userId,{hydratePrimaryChart:false});
       if(!user)return res.status(404).json({error:'User not found'});
+      const birthSettings=await birthProfileRepository.get(userId);
       let refCode=normalizeNullableString(user.ref_code)?.toUpperCase()||null;
       if(!refCode){try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}}
-      return res.status(200).json(publicUser(user,userId,normalizeNotificationFrequency(user.notification_frequency),refCode));
+      return res.status(200).json(publicUser({...user,...birthSettings},userId,normalizeNotificationFrequency(user.notification_frequency),refCode));
     }
     if(req.method!=='POST'&&req.method!=='PUT')return res.status(405).json({error:'Method not allowed'});
     if(!hasDatabaseUrl())return res.status(500).json({error:'Database not configured',message:'DATABASE_URL is not set.'});
@@ -55,15 +57,18 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     }catch(error:any){return res.status(400).json({error:'Invalid birth time',message:error.message});}
     const dbUser:Record<string,any>={
       name:normalizeNullableString(data.name),birth_date:normalizeNullableString(data.birthDate),birth_time:time.localTime,
-      birth_time_mode:time.mode,birth_time_uncertainty_minutes:time.uncertaintyMinutes,birth_time_range_start:time.rangeStart,birth_time_range_end:time.rangeEnd,
       birth_place:normalizeNullableString(data.birthPlace),is_setup:!!data.isSetup,language:data.language||'ru',theme:data.theme||'light',
     };
     if(data.selectedZodiacSign!==undefined||data.selected_zodiac_sign!==undefined)dbUser.selected_zodiac_sign=normalizeNullableString(data.selectedZodiacSign??data.selected_zodiac_sign);
     if(data.gender!==undefined){const gender=String(data.gender??'');dbUser.gender=['male','female','unspecified'].includes(gender)?gender:null;}
     if(!existing&&!appUser.isGuest){const trial=trialWindow();dbUser.trial_started_at=trial.trialStartedAt;dbUser.premium_until=trial.premiumUntil;}
-    const saved=await db.users.set(userId,dbUser); await saveNotificationFrequency(userId,data.notificationFrequency); const refreshed=await db.users.get(userId);
+    const saved=await db.users.set(userId,dbUser);
+    await birthProfileRepository.set(userId,time);
+    await saveNotificationFrequency(userId,data.notificationFrequency);
+    const refreshed=await db.users.get(userId);
+    const birthSettings=await birthProfileRepository.get(userId);
     let refCode:string|null=null;try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}
-    return res.status(200).json(publicUser({...refreshed,...saved},userId,await getNotificationFrequency(userId),refCode));
+    return res.status(200).json(publicUser({...refreshed,...saved,...birthSettings},userId,await getNotificationFrequency(userId),refCode));
   }catch(error:any){
     if(error instanceof AdminAuthError)return handleAdminError(res,error);
     log.error('Error processing request',{error:error.message,userId});return res.status(500).json({error:'Internal server error',message:error.message});
