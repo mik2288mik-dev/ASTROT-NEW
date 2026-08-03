@@ -13,6 +13,13 @@ import {
 
 const log={error:(message:string,error?:any)=>console.error(`[API/charts] ERROR: ${message}`,error||'')};
 
+function missingBirthProfileFields(user:any): string[] {
+  return [
+    !user?.birth_date && 'birthDate',
+    !String(user?.birth_place || '').trim() && 'birthPlace',
+  ].filter(Boolean) as string[];
+}
+
 export default async function handler(req:NextApiRequest,res:NextApiResponse){
   const requestedUserId=Array.isArray(req.query.id)?req.query.id[0]:req.query.id;
   let userId='';
@@ -37,6 +44,17 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
         chart=repaired?.chart||null;
       }
       if(!chart||!isCanonicalNatalChartDataComplete(chart.chart_data)){
+        const user=await db.users.get(userId);
+        const missingFields=missingBirthProfileFields(user);
+        if (missingFields.length) {
+          console.warn('[API/charts] primary chart unavailable: birth profile is incomplete', { userId, missingFields });
+          return res.status(422).json({
+            error:'Birth profile is incomplete',
+            code:'BIRTH_PROFILE_INCOMPLETE',
+            missingFields,
+            message:'Заполни дату и место рождения в профиле, чтобы рассчитать натальную карту.',
+          });
+        }
         return res.status(409).json({
           error:'Chart recalculation required',
           code:'CHART_RECALCULATION_REQUIRED',
@@ -64,6 +82,11 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
   }catch(error:any){
     if(error instanceof AdminAuthError)return handleAdminError(res,error);
     log.error('Error processing request',{error:error.message,userId});
+    if (error?.code==='EPHEMERIS_UNAVAILABLE') return res.status(503).json({
+      error:'Chart calculation service is unavailable',
+      code:'EPHEMERIS_UNAVAILABLE',
+      message:'Сервис расчёта натальной карты временно недоступен. Попробуй позже.',
+    });
     return res.status(500).json({error:'Internal server error',message:error.message});
   }
 }

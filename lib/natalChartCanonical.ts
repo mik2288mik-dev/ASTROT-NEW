@@ -25,7 +25,7 @@ export function normalizeBirthDateInput(value?: string | Date | null): string {
 export function normalizeBirthTimeInput(value?: string | null): string {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '';
-  const match = trimmed.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  const match = trimmed.match(/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d(?:\.\d+)?)?$/);
   return match ? `${match[1]}:${match[2]}` : trimmed;
 }
 

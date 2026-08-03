@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { db } from '../../../lib/db';
 import { formatValidationErrors, validateNatalChartInput } from '../../../lib/validation';
 import { natalChartV2Repository } from '../../../lib/natalChartV2Repository';
 import { createOrReuseCanonicalChart, ensureCanonicalPrimaryChart, repairCanonicalChartForUser } from '../../../lib/natalChartPersistence';
@@ -12,6 +13,13 @@ import { getPremiumEntitlementState } from '../../../lib/contentArchitecture';
 import { assertCanCreateSavedPerson, ChartAccessPolicyError, exposeChartAccess, getActiveCharts, getEffectiveChartLimit, getSelfChart, normalizeRelationLabel } from '../../../lib/chartAccessPolicy';
 
 const log={info:(msg:string,data?:any)=>console.log(`[API/charts] ${msg}`,data||''),error:(msg:string,err?:any)=>console.error(`[API/charts] ERROR: ${msg}`,err||'')};
+
+function missingBirthProfileFields(user:any): string[] {
+  return [
+    !user?.birth_date && 'birthDate',
+    !String(user?.birth_place || '').trim() && 'birthPlace',
+  ].filter(Boolean) as string[];
+}
 
 async function persistChartIdentity(chart:any,subjectType:'self'|'saved_person',relationLabel:string|null) {
   if (!chart?.id) return chart;
@@ -35,6 +43,19 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
         const repaired=await repairCanonicalChartForUser(userId);
         if (isCanonicalNatalChartDataComplete(repaired?.chart?.chart_data)) {
           charts=getActiveCharts(await natalChartV2Repository.getAll(userId));
+        }
+      }
+      if (!getSelfChart(charts)) {
+        const user=await db.users.get(userId);
+        const missingFields=missingBirthProfileFields(user);
+        if (missingFields.length) {
+          console.warn('[API/charts] chart list unavailable: birth profile is incomplete', { userId, missingFields });
+          return res.status(422).json({
+            error:'Birth profile is incomplete',
+            code:'BIRTH_PROFILE_INCOMPLETE',
+            missingFields,
+            message:'Заполни дату и место рождения в профиле, чтобы рассчитать натальную карту.',
+          });
         }
       }
       return res.status(200).json({charts:charts.map((chart)=>exposeChartAccess(chart,entitlement.isPremium)),chartSlots,canAddMore:charts.length<chartSlots,canAddSavedPeople:entitlement.isPremium&&charts.length<chartSlots&&!!getSelfChart(charts),isPremium:entitlement.isPremium});
@@ -90,6 +111,11 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
     if (error instanceof AdminAuthError) return handleAdminError(res,error);
     if (error instanceof ChartAccessPolicyError) return res.status(error.status).json({error:error.message,code:error.code});
     log.error('Error',{error:error.message,code:error.code});
+    if (error?.code==='EPHEMERIS_UNAVAILABLE') return res.status(503).json({
+      error:'Chart calculation service is unavailable',
+      code:'EPHEMERIS_UNAVAILABLE',
+      message:'Сервис расчёта натальной карты временно недоступен. Попробуй позже.',
+    });
     const status=['GEOCODING_FAILED','INVALID_TIMEZONE','TIMEZONE_LOOKUP_FAILED','INVALID_BIRTH_TIME'].includes(error.code)?400:500;
     return res.status(status).json({error:error.message,code:error.code});
   }
