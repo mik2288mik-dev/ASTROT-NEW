@@ -43,7 +43,7 @@ function normalizeInput(args: ChartInput) {
   return { birthDate, birthPlace, birthTime: time.localTime || '', time };
 }
 
-async function ensureMinimalUser(args: ChartInput, normalized: ReturnType<typeof normalizeInput>) {
+async function ensureMinimalUser(args: ChartInput, normalized: ReturnType<typeof normalizeInput>, syncSelfBirthTime: boolean) {
   const existing = await db.users.get(args.userId);
   if (!existing) {
     await db.users.set(args.userId, {
@@ -56,8 +56,10 @@ async function ensureMinimalUser(args: ChartInput, normalized: ReturnType<typeof
       theme: 'light',
       is_admin: false,
     });
+    await birthProfileRepository.set(args.userId, normalized.time);
+  } else if (syncSelfBirthTime) {
+    await birthProfileRepository.set(args.userId, normalized.time);
   }
-  await birthProfileRepository.set(args.userId, normalized.time);
   return db.users.get(args.userId);
 }
 
@@ -101,7 +103,7 @@ export async function ensureCanonicalPrimaryChart(args: EnsurePrimaryArgs): Prom
   const existing = await natalChartV2Repository.findByInputHash(args.userId, inputHash, { subjectType:'self' });
   if (!args.forceRecalculate && isStoredCanonicalChart(existing)) return { chart:existing, source:'cache' };
 
-  await ensureMinimalUser(args, normalized);
+  await ensureMinimalUser(args, normalized, true);
   const chartData = await calculateNatalChart(args.name, normalized.birthDate, normalized.birthTime, normalized.birthPlace, {
     coordinates,
     birthTime: normalized.time,
@@ -117,7 +119,7 @@ export async function createOrReuseCanonicalChart(args: CreateOrReuseArgs): Prom
   const existing = await natalChartV2Repository.findByInputHash(args.userId, inputHash, { subjectType:'saved_person', name:args.name });
   if (isStoredCanonicalChart(existing)) return { chart:existing, reused:true };
 
-  await ensureMinimalUser(args, normalized);
+  await ensureMinimalUser(args, normalized, false);
   const chartData = await calculateNatalChart(args.name, normalized.birthDate, normalized.birthTime, normalized.birthPlace, {
     coordinates,
     birthTime: normalized.time,
