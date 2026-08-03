@@ -212,7 +212,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v6.editorial-writer',
+  'personal-forecast-feed.v7.canonical-natal-v2-writer',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v5';
@@ -607,7 +607,7 @@ export function buildPersonalForecastCacheKey(input: {
     APP_VOICE_VERSION,
     input.modelId,
   ].join('|');
-  return `personal-forecast-feed-v5:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
+  return `personal-forecast-feed-v2:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
 }
 
 export function buildPersonalForecastInputHash(input: {

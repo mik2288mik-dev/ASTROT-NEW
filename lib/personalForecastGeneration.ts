@@ -1,6 +1,11 @@
 import OpenAI from 'openai';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
+import {
+  buildCanonicalNatalReport,
+  isNatalChartDataV2,
+  type CanonicalNatalReport,
+} from './natal/canonicalReport';
 import type { AstrologyHistoryContext } from './astrologyHistoryStore';
 import {
   APP_VOICE_VERSION,
@@ -413,6 +418,7 @@ export function buildPersonalForecastFeedPrompt(input: {
   overviewPlan: ForecastSectionPlan;
   sectionPlans: ForecastSectionPlan[];
   evidenceViews?: Record<string, ForecastEvidenceView>;
+  canonicalNatalReport?: CanonicalNatalReport;
   historyContext?: AstrologyHistoryContext | null;
   repairErrors?: string[];
 }): string {
@@ -478,6 +484,11 @@ Hard rules:
 - Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
 - Plain text only; no markdown, headings, slogans, section numbering, or filler.
 - Explicit history may only sharpen wording inside the supplied semantic domain. It cannot create a new domain or fact.
+- The canonical natal report is factual background only. The supplied semantic plan and its dated transit evidence determine this ${input.period} forecast; do not reuse a generic natal template.
+- If the canonical natal report has no HousePlacements, do not infer or mention the Ascendant, houses, rulers, cusps, or other time-dependent placements.
+
+Canonical natal report (V2 facts when available):
+${JSON.stringify(input.canonicalNatalReport ?? null, null, 2)}
 
 Approved semantic writing plan:
 ${JSON.stringify(plans, null, 2)}
@@ -675,6 +686,7 @@ async function requestGeneratedFeed(input: {
   overviewPlan: ForecastSectionPlan;
   sectionPlans: ForecastSectionPlan[];
   evidenceViews: Record<string, ForecastEvidenceView>;
+  canonicalNatalReport?: CanonicalNatalReport;
   historyContext?: AstrologyHistoryContext | null;
 }): Promise<GenerationResult> {
   if (!openai) {
@@ -719,6 +731,7 @@ async function requestGeneratedFeed(input: {
               overviewPlan: input.overviewPlan,
               sectionPlans: input.sectionPlans,
               evidenceViews: input.evidenceViews,
+              canonicalNatalReport: input.canonicalNatalReport,
               historyContext: input.historyContext,
               repairErrors: attempt === 2 ? errors : undefined,
             }),
@@ -824,6 +837,9 @@ export async function generatePersonalForecastPackage(input: {
   }) => Promise<EvidenceCalculatedHookResult>;
 }): Promise<PersonalForecastPackage> {
   const language: ForecastWriterLanguage = input.profile.language === 'en' ? 'en' : 'ru';
+  const canonicalNatalReport = isNatalChartDataV2(input.chartData)
+    ? buildCanonicalNatalReport(input.chartData)
+    : undefined;
   const calculated = await calculatePersonalForecastEvidence({
     chartData: input.chartData,
     period: input.period,
@@ -852,6 +868,7 @@ export async function generatePersonalForecastPackage(input: {
     overviewPlan: plans.overview,
     sectionPlans: plans.sections,
     evidenceViews: calculated.evidenceViews,
+    canonicalNatalReport,
     historyContext: input.historyContext,
   });
   const materializePackage = (
