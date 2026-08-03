@@ -1,87 +1,101 @@
 import crypto from 'crypto';
+import { birthTimeFingerprint, normalizeBirthTimeInput as normalizeBirthTimeContract } from './birthTime';
 
-export const CANONICAL_NATAL_CALCULATION_VERSION = 'swisseph-canonical-v1';
+export const CANONICAL_NATAL_CALCULATION_VERSION = 'swisseph-canonical-v2';
+export const NATAL_CHART_SCHEMA_VERSION = 'natal-chart-data-v2';
 
 export function normalizeBirthDateInput(value?: string | Date | null): string {
   if (!value) return '';
-
   if (value instanceof Date) {
     return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
   }
 
   const trimmed = String(value).trim();
   const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (match) {
-    return `${match[1]}-${match[2]}-${match[3]}`;
-  }
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
 
   const parsed = new Date(trimmed);
   if (!Number.isNaN(parsed.getTime())) {
     return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, '0')}-${String(parsed.getUTCDate()).padStart(2, '0')}`;
   }
-
   return trimmed;
 }
 
-export function normalizeBirthTimeInput(value?: string | null): string {
-  if (!value) return '12:00';
-  const trimmed = String(value).trim();
-  const match = trimmed.match(/^(\d{2}):(\d{2})/);
-  if (match) {
-    return `${match[1]}:${match[2]}`;
-  }
-  return trimmed;
+/** Keeps an unknown time empty. It never inserts 12:00. */
+export function normalizeBirthTimeInput(value?: string | null): string | null {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  return match ? `${match[1]}:${match[2]}` : trimmed;
 }
 
 export function normalizeBirthPlaceInput(value?: string | null): string {
-  return String(value || '')
-    .trim()
-    .replace(/\s+/g, ' ');
+  return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
 export function normalizeCoordinateForStorage(value: number): number {
-  return Number(value.toFixed(5));
+  return Number(value.toFixed(6));
 }
 
 export function buildCanonicalNatalInputHash(input: {
   birthDate: string;
   birthTime?: string | null;
+  birthTimeMode?: string | null;
+  birthTimeUncertaintyMinutes?: number | null;
+  birthTimeRangeStart?: string | null;
+  birthTimeRangeEnd?: string | null;
   birthTimeQuality?: string | null;
   latitude: number;
   longitude: number;
   timezone: string;
 }): string {
   const normalizedBirthDate = normalizeBirthDateInput(input.birthDate);
-  const normalizedBirthTime = normalizeBirthTimeInput(input.birthTime);
-  const timezone = String(input.timezone || '').trim() || 'UTC';
-  const birthTimeQuality = input.birthTimeQuality ? String(input.birthTimeQuality).trim() : '';
-  const latitude = normalizeCoordinateForStorage(input.latitude).toFixed(5);
-  const longitude = normalizeCoordinateForStorage(input.longitude).toFixed(5);
-  const qualityPart = birthTimeQuality ? `|${birthTimeQuality}` : '';
-  const raw = `${normalizedBirthDate}|${normalizedBirthTime}${qualityPart}|${latitude}|${longitude}|${timezone}`;
+  const time = normalizeBirthTimeContract({
+    mode: input.birthTimeMode || input.birthTimeQuality,
+    localTime: input.birthTime,
+    uncertaintyMinutes: input.birthTimeUncertaintyMinutes,
+    rangeStart: input.birthTimeRangeStart,
+    rangeEnd: input.birthTimeRangeEnd,
+    legacyBirthTime: input.birthTime,
+  });
+  const timezone = String(input.timezone || '').trim();
+  const latitude = normalizeCoordinateForStorage(input.latitude).toFixed(6);
+  const longitude = normalizeCoordinateForStorage(input.longitude).toFixed(6);
+  const raw = [
+    CANONICAL_NATAL_CALCULATION_VERSION,
+    normalizedBirthDate,
+    birthTimeFingerprint(time),
+    latitude,
+    longitude,
+    timezone,
+  ].join('|');
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+function parseJson(value: any): any {
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return null; }
+}
+
 export function isCanonicalNatalChartDataComplete(chartData: any): boolean {
-  if (!chartData || typeof chartData !== 'object') return false;
-  if (!chartData.sun || !chartData.moon || !chartData.rising) return false;
-  if (typeof chartData.latitude !== 'number' || Number.isNaN(chartData.latitude)) return false;
-  if (typeof chartData.longitude !== 'number' || Number.isNaN(chartData.longitude)) return false;
-  if (!chartData.timezone || typeof chartData.timezone !== 'string') return false;
-  if (!Array.isArray(chartData.houses) || chartData.houses.length < 12) return false;
-  if (!Array.isArray(chartData.aspects)) return false;
-  if (!chartData.calculationVersion || chartData.calculationVersion !== CANONICAL_NATAL_CALCULATION_VERSION) return false;
+  const data = parseJson(chartData);
+  if (!data || typeof data !== 'object') return false;
+  if (data.schemaVersion !== NATAL_CHART_SCHEMA_VERSION) return false;
+  if (data.calculationVersion !== CANONICAL_NATAL_CALCULATION_VERSION) return false;
+  if (!data.birth || !data.positions || !data.angles || !data.chartQuality || !data.calculationMetadata) return false;
+  if (!data.positions.sun || !data.positions.moon || !data.positions.chiron || !data.positions.northNode) return false;
+  if (!Array.isArray(data.houses) || !Array.isArray(data.aspects)) return false;
+  if (data.birth.time?.mode === 'exact') {
+    if (!data.angles.ascendant || !data.angles.mc || data.houses.length !== 12) return false;
+  } else if (data.birth.time?.mode === 'unknown') {
+    if (data.angles.ascendant || data.angles.mc || data.houses.length !== 0) return false;
+  }
   return true;
 }
 
 export function hasCanonicalNatalRowFields(row: any): boolean {
   if (!row || typeof row !== 'object') return false;
-  if (typeof row.latitude !== 'number' || Number.isNaN(row.latitude)) return false;
-  if (typeof row.longitude !== 'number' || Number.isNaN(row.longitude)) return false;
-  if (!row.timezone || typeof row.timezone !== 'string') return false;
-  if (!row.sun_sign || !row.moon_sign || !row.ascendant_sign) return false;
-  if (!row.calculation_version || row.calculation_version !== CANONICAL_NATAL_CALCULATION_VERSION) return false;
-  if (!row.sun || !row.moon || !row.ascendant) return false;
-  if (!row.houses || !row.aspects) return false;
-  return true;
+  if (!row.input_hash) return false;
+  if (row.calculation_version !== CANONICAL_NATAL_CALCULATION_VERSION) return false;
+  return isCanonicalNatalChartDataComplete(row.chart_data);
 }
