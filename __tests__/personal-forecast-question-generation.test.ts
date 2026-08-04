@@ -90,7 +90,7 @@ describe('personal forecast question semantic answer generation', () => {
     expect(prompt).toContain('"key":"preferred_decision_style"');
     expect(prompt).toContain('"id":"71"');
     expect(prompt).toContain('semantic:previous');
-    expect(prompt).not.toContain('GENERATED PROSE MUST NEVER');
+    expect(prompt).toContain('GENERATED PROSE MUST NEVER ENTER THE NEXT MODEL PROMPT.');
     expect(prompt).not.toContain('birth_city');
     expect(prompt).not.toContain('Moscow');
     expect(prompt).not.toMatch(/NATAL_CALCULATION|latitude|longitude|timezone|birthTime/i);

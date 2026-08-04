@@ -88,6 +88,7 @@ type GeneratedBlockPayload = {
 
 type GeneratedSectionPayload = {
   id?: unknown;
+  title?: unknown;
   blocks?: unknown;
 };
 
@@ -97,6 +98,21 @@ type GeneratedFeedPayload = {
 
 type ValidatedWriterResult = {
   blocksBySectionId: Map<string, ForecastContentBlock[]>;
+  errors: string[];
+};
+
+type FreeGeneratedBlock = {
+  text: string;
+  astroEvidence: string | null;
+};
+
+type FreeGeneratedSection = {
+  title: string | null;
+  blocks: FreeGeneratedBlock[];
+};
+
+type ValidatedFreeWriterResult = {
+  sections: FreeGeneratedSection[];
   errors: string[];
 };
 
@@ -609,6 +625,53 @@ export function validateGeneratedForecastFeed(input: {
   return { blocksBySectionId, errors };
 }
 
+/**
+ * The writer is free to choose its section and block identifiers.  The package
+ * keeps stable identifiers during materialization; they are not part of the
+ * model's authoring contract.
+ */
+export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): ValidatedFreeWriterResult {
+  const errors: string[] = [];
+  const rawSections = Array.isArray(raw?.sections)
+    ? raw.sections as GeneratedSectionPayload[]
+    : [];
+  if (rawSections.length < 2 || rawSections.length > MAX_SEMANTIC_SECTIONS + 1) {
+    errors.push(`expected 2-${MAX_SEMANTIC_SECTIONS + 1} sections, received ${rawSections.length}`);
+  }
+
+  const sections: FreeGeneratedSection[] = [];
+  for (const [sectionIndex, rawSection] of rawSections.entries()) {
+    const rawBlocks = Array.isArray(rawSection?.blocks)
+      ? rawSection.blocks as GeneratedBlockPayload[]
+      : [];
+    if (rawBlocks.length < 1 || rawBlocks.length > 3) {
+      errors.push(`section ${sectionIndex + 1}: expected 1-3 blocks, received ${rawBlocks.length}`);
+      continue;
+    }
+    const blocks: FreeGeneratedBlock[] = [];
+    for (const [blockIndex, rawBlock] of rawBlocks.entries()) {
+      const text = typeof rawBlock?.text === 'string' ? rawBlock.text.trim() : '';
+      const astroEvidence = typeof rawBlock?.astro_evidence === 'string'
+        ? rawBlock.astro_evidence.trim().slice(0, 240) || null
+        : null;
+      if (!generatedTextValid(text)) {
+        errors.push(`section ${sectionIndex + 1}, block ${blockIndex + 1}: invalid text`);
+        continue;
+      }
+      blocks.push({ text, astroEvidence });
+    }
+    if (blocks.length === rawBlocks.length) {
+      sections.push({
+        title: typeof rawSection?.title === 'string'
+          ? rawSection.title.trim().slice(0, 120) || null
+          : null,
+        blocks,
+      });
+    }
+  }
+  return { sections, errors };
+}
+
 function deterministicBlocks(plan: ForecastSectionPlan): ForecastContentBlock[] {
   return plan.blocks.map((item, index) => ({
     id: item.id,
@@ -698,6 +761,35 @@ function materializeSection(input: {
   };
 }
 
+function materializeFreeSection(input: {
+  section: FreeGeneratedSection;
+  plan: ForecastSectionPlan;
+  evidenceViews: Record<string, ForecastEvidenceView>;
+  language: ForecastWriterLanguage;
+  overview: boolean;
+}): ForecastSection {
+  const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => ({
+    id: `${input.plan.id}:generated:${index + 1}`,
+    role: 'insight',
+    text: block.text,
+    semanticFactId: input.plan.semanticFactIds[index] || input.plan.semanticFactIds[0],
+    atomId: `generated:${input.plan.id}:${index + 1}`,
+    astro_evidence: block.astroEvidence || evidenceForPlan(input.plan, input.evidenceViews)[0]?.factor || null,
+    explanationAnchorId: index === 0 ? `anchor:${input.plan.id}` : null,
+  }));
+  const materialized = materializeSection({
+    plan: {
+      ...input.plan,
+      title: input.overview ? undefined : input.section.title || input.plan.title,
+    },
+    blocks,
+    evidenceViews: input.evidenceViews,
+    language: input.language,
+    overview: input.overview,
+  });
+  return materialized;
+}
+
 async function requestGeneratedFeed(input: {
   language: ForecastWriterLanguage;
   model: string;
@@ -773,35 +865,27 @@ async function requestGeneratedFeed(input: {
       errors = ['response is not valid JSON'];
       continue;
     }
-    const validation = validateGeneratedForecastFeed({
-      raw,
-      overviewPlan: input.overviewPlan,
-      sectionPlans: input.sectionPlans,
-    });
+    const validation = validateFreeGeneratedForecastFeed(raw);
     if (!validation.errors.length) {
-      const overviewBlocks = validation.blocksBySectionId.get(input.overviewPlan.id);
-      if (!overviewBlocks) {
-        errors = ['overview blocks are missing after validation'];
+      const [rawOverview, ...rawSections] = validation.sections;
+      if (!rawOverview) {
+        errors = ['overview section is missing after validation'];
         continue;
       }
-      const sections = input.sectionPlans.map((plan) => {
-        const blocks = validation.blocksBySectionId.get(plan.id);
-        if (!blocks) throw new Error(`PERSONAL_FORECAST_VALIDATED_SECTION_MISSING:${plan.id}`);
-        return materializeSection({
-          plan,
-          blocks,
-          evidenceViews: input.evidenceViews,
-          language: input.language,
-          overview: false,
-        });
-      });
-      const overview = materializeSection({
+      const overview = materializeFreeSection({
+        section: rawOverview,
         plan: input.overviewPlan,
-        blocks: overviewBlocks,
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: true,
       });
+      const sections = rawSections.map((section, index) => materializeFreeSection({
+        section,
+        plan: input.sectionPlans[index] || input.sectionPlans[input.sectionPlans.length - 1],
+        evidenceViews: input.evidenceViews,
+        language: input.language,
+        overview: false,
+      }));
       const repetitionErrors = validateForecastSectionRepetition([overview, ...sections]);
       if (repetitionErrors.length) {
         errors = repetitionErrors;

@@ -23,10 +23,7 @@ import {
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from './personalForecastContract';
-import {
-  forecastAtomText,
-  type ForecastWriterLanguage,
-} from './personalForecastSemanticLanguage';
+import { type ForecastWriterLanguage } from './personalForecastSemanticLanguage';
 import { PERSONAL_FORECAST_SEMANTICS_VERSION } from './personalForecastSemantics';
 
 const openai = process.env.OPENAI_API_KEY
@@ -261,7 +258,11 @@ function buildApprovedQuestionContext(input: {
     const anchorEvidenceIds = section.explanationAnchors
       .flatMap((anchor) => anchor.evidenceIds)
       .filter((id) => !!input.forecast.evidence[id]);
-    for (const factId of section.semanticFactIds) {
+    // Generated forecast blocks are the approved reader-facing context. Their
+    // technical fact ids are package metadata, not a writer contract.
+    for (const factId of section.semanticFactIds.length
+      ? section.semanticFactIds
+      : [section.id]) {
       const current = factMap.get(factId) || {
         domainKeys: new Set<string>(),
         evidenceIds: new Set<string>(),
@@ -274,14 +275,12 @@ function buildApprovedQuestionContext(input: {
         current.fingerprints.add(section.semanticFingerprint.trim());
       }
       for (const block of section.contentBlocks) {
-        if (block.semanticFactId !== factId) continue;
-        const exactMeaning = block.role === 'insight'
-          ? block.text.trim()
-          : forecastAtomText(block.role, block.atomId, input.language).trim();
+        const exactMeaning = block.text.trim();
         if (!exactMeaning) continue;
-        current.atoms.set(block.atomId, {
-          role: block.role,
-          atomId: block.atomId,
+        const atomId = block.atomId.trim() || block.id.trim();
+        current.atoms.set(atomId, {
+          role: 'insight',
+          atomId,
           exactMeaning,
         });
       }
