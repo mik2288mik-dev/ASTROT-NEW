@@ -96,7 +96,7 @@ export type ForecastLockedPreview = {
   teaser: string;
 };
 
-export type ForecastContentBlockRole = 'lead' | 'detail' | 'risk' | 'action';
+export type ForecastContentBlockRole = 'insight' | 'lead' | 'detail' | 'risk' | 'action';
 
 /**
  * A writer may phrase an approved semantic atom, but it may not invent a new
@@ -109,6 +109,7 @@ export type ForecastContentBlock = {
   text: string;
   semanticFactId: string;
   atomId: string;
+  astro_evidence?: string | null;
   explanationAnchorId?: string | null;
 };
 
@@ -767,7 +768,7 @@ function contentBlocksValid(
   }
   if (
     section.contentBlocks.length < 1
-    || section.contentBlocks.length > 4
+    || section.contentBlocks.length > 3
     || section.semanticFactIds.length < 1
     || section.semanticFactIds.length > 3
     || new Set(section.semanticFactIds).size !== section.semanticFactIds.length
@@ -784,7 +785,7 @@ function contentBlocksValid(
       || typeof block.id !== 'string'
       || !block.id.trim()
       || blockIds.has(block.id)
-      || !(['lead', 'detail', 'risk', 'action'] as const).includes(block.role)
+      || !(['insight', 'lead', 'detail', 'risk', 'action'] as const).includes(block.role)
       || typeof block.text !== 'string'
       || !block.text.trim()
       || block.text.length > FORECAST_BLOCK_SAFETY_LIMIT
@@ -792,6 +793,9 @@ function contentBlocksValid(
       || !section.semanticFactIds.includes(block.semanticFactId)
       || typeof block.atomId !== 'string'
       || !block.atomId.trim()
+      || (block.astro_evidence !== undefined && block.astro_evidence !== null && (
+        typeof block.astro_evidence !== 'string' || block.astro_evidence.length > 240
+      ))
       || (
         block.explanationAnchorId !== undefined
         && block.explanationAnchorId !== null

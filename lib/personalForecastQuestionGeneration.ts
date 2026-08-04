@@ -275,11 +275,9 @@ function buildApprovedQuestionContext(input: {
       }
       for (const block of section.contentBlocks) {
         if (block.semanticFactId !== factId) continue;
-        const exactMeaning = forecastAtomText(
-          block.role,
-          block.atomId,
-          input.language,
-        ).trim();
+        const exactMeaning = block.role === 'insight'
+          ? block.text.trim()
+          : forecastAtomText(block.role, block.atomId, input.language).trim();
         if (!exactMeaning) continue;
         current.atoms.set(block.atomId, {
           role: block.role,

@@ -63,6 +63,7 @@ type PlannedBlock = {
   semanticFactId: string;
   atomId: string;
   writerBrief: string;
+  astroEvidence: string | null;
 };
 
 export type ForecastSectionPlan = {
@@ -82,6 +83,7 @@ type GeneratedBlockPayload = {
   semantic_fact_id?: unknown;
   atom_id?: unknown;
   text?: unknown;
+  astro_evidence?: unknown;
 };
 
 type GeneratedSectionPayload = {
@@ -265,7 +267,7 @@ function copyMeaningIsGrounded(input: {
 }
 
 function roleMeanings(
-  role: ForecastContentBlockRole,
+  role: Exclude<ForecastContentBlockRole, 'insight'>,
   fact: ForecastSemanticFact,
   language: ForecastWriterLanguage,
 ): string[] {
@@ -291,7 +293,13 @@ function block(
   index: number,
   options?: { overview?: boolean },
 ): PlannedBlock | null {
-  const meanings = roleMeanings(role, fact, language);
+  const meanings = role === 'insight'
+    ? [
+        ...roleMeanings('lead', fact, language),
+        ...roleMeanings('detail', fact, language).slice(0, 1),
+        ...roleMeanings('risk', fact, language).slice(0, 1),
+      ]
+    : roleMeanings(role, fact, language);
   if (options?.overview && role === 'lead') {
     meanings.push(...roleMeanings('detail', fact, language).slice(0, 1));
   }
@@ -305,6 +313,12 @@ function block(
     writerBrief: options?.overview
       ? `${language === 'ru' ? 'Главный вывод периода' : 'Main period conclusion'}: ${writerBrief}`
       : writerBrief,
+    astroEvidence: [
+      fact.transitPlanet,
+      fact.aspect,
+      fact.natalPoint,
+      fact.house ? `house ${fact.house}` : null,
+    ].filter(Boolean).join(' ') || null,
   };
 }
 
@@ -313,7 +327,7 @@ function factBlocks(
   fact: ForecastSemanticFact,
   language: ForecastWriterLanguage,
 ): PlannedBlock[] {
-  const roles: ForecastContentBlockRole[] = ['lead', 'detail', 'risk', 'action'];
+  const roles: ForecastContentBlockRole[] = ['insight'];
   return roles
     .map((role, index) => block(planId, role, fact, language, index))
     .filter((value): value is PlannedBlock => !!value)
@@ -460,29 +474,31 @@ export function buildPersonalForecastFeedPrompt(input: {
       role: item.role,
       semantic_fact_id: item.semanticFactId,
       atom_id: item.atomId,
-      exact_meaning_to_rephrase: item.writerBrief,
+      meaning_seed: item.writerBrief,
+      astro_evidence: item.astroEvidence,
     })),
   }));
   const repair = input.repairErrors?.length
     ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
     : '';
-  return `You are the final copy editor, not the astrologer and not the calculator.
+  return `You write a dense personal forecast from supplied calculations.
 
 Write in ${input.language === 'ru' ? 'Russian, addressing the reader as "ты"' : 'English, addressing the reader as "you"'}.
 Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}. Timezone: ${input.window.timezone}.
 Period instruction: ${periodInstruction[input.period]}
 
 Hard rules:
-- Return JSON only: {"sections":[{"id":"...","blocks":[{"id":"...","role":"...","semantic_fact_id":"...","atom_id":"...","text":"..."}]}]}.
-- Return every supplied section and block exactly once. Echo every id, role, semantic_fact_id, and atom_id exactly.
-- Write a coherent forecast from the approved meanings and calculation basis. Do not add a fact, life area, event, motive, biography, or prediction.
-- The strongest theme is the centre of the forecast, not a one-line summary. Explain its manifestation, risk and practical action fully. Add secondary themes only because they are supplied.
+- Return JSON only: {"sections":[{"id":"...","blocks":[{"id":"...","role":"...","semantic_fact_id":"...","atom_id":"...","astro_evidence":"...","text":"..."}]}]}.
+- Return every supplied section and block exactly once. Echo every id, role, semantic_fact_id, atom_id, and astro_evidence exactly.
+- Write a short, dense block for each supplied sphere. Start with one precise living image, then show its ordinary-life manifestation. The image must clarify the situation, not decorate it.
+- Use the meaning_seed as calculation grounding, not wording to paraphrase. Do not add a fact, life area, event, motive, biography, or prediction.
+- Prefer concrete spheres: work and money, relationships and communication, inner state. Do not force all spheres when they are not supplied.
 - There is no target word count. Write every useful point supported by the calculation, then remove repetition and filler. Use short readable paragraphs; a block may contain several sentences when the supplied facts justify them.
 - For day, mention morning, daytime or evening only when the supplied local timing changes inside that day. For week and month, name only the supplied dates or intervals that actually stand out.
 - A forecast is temporary. Never turn it into personality: no "you always", "you never", "you are the kind of person" or equivalents.
 - Do not name planets, aspects, houses, transits, degrees, or calculation terms in the main text.
 - Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
-- Plain text only; no markdown, headings, slogans, section numbering, or filler.
+- Plain text only; no markdown, headings, slogans, section numbering, coaching language, cheap slang, or filler.
 - Explicit history may only sharpen wording inside the supplied semantic domain. It cannot create a new domain or fact.
 - The canonical natal report is factual background only. The supplied semantic plan and its dated transit evidence determine this ${input.period} forecast; do not reuse a generic natal template.
 - If the canonical natal report has no HousePlacements, do not infer or mention the Ascendant, houses, rulers, cusps, or other time-dependent placements.
@@ -558,6 +574,7 @@ export function validateGeneratedForecastFeed(input: {
         || rawBlock?.role !== expected.role
         || rawBlock?.semantic_fact_id !== expected.semanticFactId
         || rawBlock?.atom_id !== expected.atomId
+        || rawBlock?.astro_evidence !== expected.astroEvidence
       ) {
         errors.push(`${id}: block ${index + 1} changed the approved semantic identity`);
         continue;
@@ -580,6 +597,7 @@ export function validateGeneratedForecastFeed(input: {
         text,
         semanticFactId: expected.semanticFactId,
         atomId: expected.atomId,
+        astro_evidence: expected.astroEvidence,
         explanationAnchorId: index === 0 ? `anchor:${id}` : null,
       });
     }
@@ -598,6 +616,7 @@ function deterministicBlocks(plan: ForecastSectionPlan): ForecastContentBlock[] 
     text: item.writerBrief,
     semanticFactId: item.semanticFactId,
     atomId: item.atomId,
+    astro_evidence: item.astroEvidence,
     explanationAnchorId: index === 0 ? `anchor:${plan.id}` : null,
   }));
 }
@@ -655,6 +674,7 @@ function materializeSection(input: {
     explanationAnchorId: item.explanationAnchorId && anchorIds.has(item.explanationAnchorId)
       ? item.explanationAnchorId
       : null,
+    astro_evidence: item.astro_evidence || evidenceForPlan(input.plan, input.evidenceViews)[0]?.factor || null,
   }));
   const text = blocks.map((item) => item.text.trim()).join('\n\n');
   const teaser = premiumTeaser(input.plan, input.language);
