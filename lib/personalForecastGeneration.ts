@@ -769,14 +769,15 @@ function materializeDirectSection(input: {
   overview: boolean;
 }): ForecastSection {
   const evidence = evidenceForBasis(input.basis, input.evidenceViews);
+  const sectionId = input.overview ? 'overview' : input.basis.id;
   const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => ({
-    id: `${input.basis.id}:generated:${index + 1}`,
+    id: `${sectionId}:generated:${index + 1}`,
     role: 'insight',
     text: block.text,
     semanticFactId: input.basis.id,
-    atomId: `generated:${input.basis.id}:${index + 1}`,
+    atomId: `generated:${sectionId}:${index + 1}`,
     astro_evidence: block.astroEvidence || evidence[0]?.factor || null,
-    explanationAnchorId: index === 0 ? `anchor:${input.basis.id}` : null,
+    explanationAnchorId: index === 0 ? `anchor:${sectionId}` : null,
   }));
   const text = blocks.map((block) => block.text).join('\n\n');
   const title = input.section.title || (input.language === 'ru' ? 'Главное' : 'Main focus');
@@ -785,14 +786,14 @@ function materializeDirectSection(input: {
     : `The full “${title}” reading gives the concrete manifestations and important conditions of the period.`;
   const anchors: ExplanationAnchor[] = evidence.length && blocks.length
     ? [{
-        id: `anchor:${input.basis.id}`,
+        id: `anchor:${sectionId}`,
         conclusion: blocks[0].text.slice(0, 600),
         explanation: evidence.map((item) => `${item.factor}. ${item.meaning}`).join(' ').slice(0, 1_200),
         evidenceIds: evidence.map((item) => item.id),
       }]
     : [];
   return {
-    id: input.basis.id,
+    id: sectionId,
     kind: input.overview ? 'overview' : 'dynamic',
     status: 'ready', diagnosticCode: null,
     title: input.overview ? undefined : title,
@@ -1056,7 +1057,7 @@ export async function generatePersonalForecastPackage(input: {
 
   // The model is optional. If its final materialization violates the display
   // contract, rebuild from the strongest calculated evidence only.
-  const fallbackBases = buildDirectSectionBases(calculated.evidence.slice(0, 1));
+  const fallbackBases = buildDirectSectionBases(calculated.evidence);
   const fallbackBasis = fallbackBases[0];
   if (!fallbackBasis) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
   const fallbackRaw: FreeGeneratedSection = {
@@ -1074,7 +1075,19 @@ export async function generatePersonalForecastPackage(input: {
       language,
       overview: true,
     }),
-    sections: [],
+    sections: fallbackBases.slice(1, 2).map((basis) => materializeDirectSection({
+      section: {
+        title: null,
+        blocks: [{
+          text: calculated.evidenceViews[basis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.',
+          astroEvidence: calculated.evidenceViews[basis.evidenceIds[0]]?.factor || null,
+        }],
+      },
+      basis,
+      evidenceViews: calculated.evidenceViews,
+      language,
+      overview: false,
+    })),
     generationAttempts: generated.generationAttempts,
     validationStatus: 'deterministic_fallback',
   };
