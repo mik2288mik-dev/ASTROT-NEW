@@ -778,7 +778,9 @@ function buildDirectSectionBases(
     .sort((left, right) => right.strength - left.strength)
     .slice(0, 3)
     .map((item, index) => ({
-      id: `direct:${item.id || index + 1}`,
+      // The display contract reserves the semantic: namespace for every
+      // dynamic section, including sections written directly from evidence.
+      id: `semantic:direct:${item.id || index + 1}`,
       evidenceIds: [item.id],
       importance: Math.max(0, Math.min(100, Math.round(item.strength))),
       visualTag: item.kind,
