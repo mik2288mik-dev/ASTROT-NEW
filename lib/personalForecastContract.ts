@@ -213,7 +213,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v7.canonical-natal-v2-writer',
+  'personal-forecast-feed.v8.direct-swiss-evidence-writer',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v6';

@@ -146,7 +146,7 @@ describe('personal forecast V4 semantic contract', () => {
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-evidence-v4');
     expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v6');
     expect(PERSONAL_FORECAST_SEMANTICS_VERSION).toBe('personal-forecast-semantics-v3');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v7.canonical-natal-v2-writer');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v8.direct-swiss-evidence-writer');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
 
     for (const patch of [

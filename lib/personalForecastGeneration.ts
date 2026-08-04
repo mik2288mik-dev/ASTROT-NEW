@@ -116,6 +116,14 @@ type ValidatedFreeWriterResult = {
   errors: string[];
 };
 
+type DirectSectionBasis = {
+  id: string;
+  evidenceIds: string[];
+  importance: number;
+  visualTag: string;
+  semanticFingerprint: string;
+};
+
 type GenerationResult = {
   overview: ForecastSection;
   sections: ForecastSection[];
@@ -445,55 +453,35 @@ export function buildPersonalForecastFeedPrompt(input: {
   language: ForecastWriterLanguage;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  overviewPlan: ForecastSectionPlan;
-  sectionPlans: ForecastSectionPlan[];
-  evidenceViews?: Record<string, ForecastEvidenceView>;
+  calculatedEvidence: EvidenceCalculationResult['evidence'];
   canonicalNatalReport?: CanonicalNatalReport;
   historyContext?: AstrologyHistoryContext | null;
   repairErrors?: string[];
 }): string {
   const periodInstruction: Record<PersonalForecastPeriod, string> = {
-    day: 'Build one complete forecast for this day. Use one main theme and up to two supplied secondary themes. Mention parts of the day only when supplied timing changes inside the day.',
-    week: 'Explain what matters from the first through the last day of this week. Name only supplied dates or intervals that differ meaningfully.',
-    month: 'Explain the important themes and the supplied dates or stretches of this month. Do not invent a story for every week.',
+    day: 'Give a short slice of this day: its central pressure or opening, the clearest manifestation, and what to avoid. Mention a part of the day only when the calculation gives a real timing change.',
+    week: 'Give the week\'s main vector and two or three real focal points. Show how the pressure develops across the supplied window without inventing daily bustle.',
+    month: 'Give a strategic reading of the month: the large movements in the relevant spheres and the genuinely important timing windows. Do not turn it into a daily diary.',
   };
-  const plans = [input.overviewPlan, ...input.sectionPlans].map((plan) => ({
-    id: plan.id,
-    title: plan.title || null,
-    semantic_facts: plan.facts.map((fact) => ({
-      id: fact.id,
-      domain: fact.domain,
-      life_context: fact.lifeContext,
-      timing: {
-        phase: fact.timing.phase,
-        timezone: input.window.timezone,
-        starts_at_local: localForecastTimestamp(fact.timing.startsAt, input.window.timezone),
-        exact_at_local: localForecastTimestamp(fact.timing.exactAt, input.window.timezone),
-        ends_at_local: localForecastTimestamp(fact.timing.endsAt, input.window.timezone),
-      },
-      confidence: fact.confidence,
-      importance: fact.strength,
-      calculation_basis: {
-        source_kind: fact.sourceKind,
-        transit_planet: fact.transitPlanet,
-        natal_point: fact.natalPoint,
-        aspect: fact.aspect,
-        reliable_house: fact.house,
-        evidence: fact.evidenceIds
-          .map((id) => input.evidenceViews?.[id])
-          .filter(Boolean),
-      },
-      forbidden_claim_classes: fact.forbiddenClaimClasses,
-    })),
-    required_blocks: plan.blocks.map((item) => ({
+  const evidence = input.calculatedEvidence
+    .slice(0, 16)
+    .map((item) => ({
       id: item.id,
-      role: item.role,
-      semantic_fact_id: item.semanticFactId,
-      atom_id: item.atomId,
-      meaning_seed: item.writerBrief,
-      astro_evidence: item.astroEvidence,
-    })),
-  }));
+      kind: item.kind,
+      transit_planet: item.transitPlanet || null,
+      natal_point: item.natalPoint || null,
+      aspect: item.aspect || null,
+      house: item.house || null,
+      orb: item.orb || null,
+      status: item.status,
+      strength: item.strength,
+      polarity: item.polarity,
+      starts_at_local: localForecastTimestamp(item.startsAt || null, input.window.timezone),
+      exact_at_local: localForecastTimestamp(item.exactAt || null, input.window.timezone),
+      ends_at_local: localForecastTimestamp(item.endsAt || null, input.window.timezone),
+      motion: item.motion || null,
+      ingress: item.ingress || null,
+    }));
   const repair = input.repairErrors?.length
     ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
     : '';
@@ -504,26 +492,26 @@ Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.
 Period instruction: ${periodInstruction[input.period]}
 
 Hard rules:
-- Return JSON only: {"sections":[{"id":"...","blocks":[{"id":"...","role":"...","semantic_fact_id":"...","atom_id":"...","astro_evidence":"...","text":"..."}]}]}.
-- Return every supplied section and block exactly once. Echo every id, role, semantic_fact_id, atom_id, and astro_evidence exactly.
-- Write a short, dense block for each supplied sphere. Start with one precise living image, then show its ordinary-life manifestation. The image must clarify the situation, not decorate it.
-- Use the meaning_seed as calculation grounding, not wording to paraphrase. Do not add a fact, life area, event, motive, biography, or prediction.
-- Prefer concrete spheres: work and money, relationships and communication, inner state. Do not force all spheres when they are not supplied.
-- There is no target word count. Write every useful point supported by the calculation, then remove repetition and filler. Use short readable paragraphs; a block may contain several sentences when the supplied facts justify them.
+- Return JSON only: {"sections":[{"title":"...","blocks":[{"text":"...","astro_evidence":"..."}]}]}. Return 2 or 3 sections; the first is the compact overview.
+- Each block needs a short, exact astro_evidence that names the supplied calculation behind it (for example, "Mars in the 2nd house"). It is UI metadata; never name it in text.
+- Build the sections freely from the calculated evidence. Do not use canned labels such as "Reactions", "First step", "Actions and boundaries", or "Conversations and decisions".
+- Start each block with one precise, living image and immediately show a concrete ordinary-life manifestation. The image must clarify, never decorate.
+- Prefer concrete spheres only when the calculation supports them: work and money, relationships and communication, inner state. Do not manufacture a sphere, event, motive, biography, or prediction.
+- No filler, coaching language, or cheap slang. Never use "background processes", "put things in order", "resources", "do not force events", or close paraphrases. Write a sharp, compact, psychologically literate analysis in ordinary language.
 - For day, mention morning, daytime or evening only when the supplied local timing changes inside that day. For week and month, name only the supplied dates or intervals that actually stand out.
 - A forecast is temporary. Never turn it into personality: no "you always", "you never", "you are the kind of person" or equivalents.
 - Do not name planets, aspects, houses, transits, degrees, or calculation terms in the main text.
 - Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
 - Plain text only; no markdown, headings, slogans, section numbering, coaching language, cheap slang, or filler.
 - Explicit history may only sharpen wording inside the supplied semantic domain. It cannot create a new domain or fact.
-- The canonical natal report is factual background only. The supplied semantic plan and its dated transit evidence determine this ${input.period} forecast; do not reuse a generic natal template.
+- The canonical natal report is factual background only. The dated calculation evidence determines this ${input.period} forecast; do not reuse a generic natal template.
 - If the canonical natal report has no HousePlacements, do not infer or mention the Ascendant, houses, rulers, cusps, or other time-dependent placements.
 
 Canonical natal report (V2 facts when available):
 ${JSON.stringify(input.canonicalNatalReport ?? null, null, 2)}
 
-Approved semantic writing plan:
-${JSON.stringify(plans, null, 2)}
+Direct Swiss Ephemeris calculation evidence:
+${JSON.stringify(evidence, null, 2)}
 
 Bounded non-generative history context:
 ${JSON.stringify(safeHistoryContext(input.historyContext), null, 2)}${repair}`;
@@ -672,18 +660,6 @@ export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): Va
   return { sections, errors };
 }
 
-function deterministicBlocks(plan: ForecastSectionPlan): ForecastContentBlock[] {
-  return plan.blocks.map((item, index) => ({
-    id: item.id,
-    role: item.role,
-    text: item.writerBrief,
-    semanticFactId: item.semanticFactId,
-    atomId: item.atomId,
-    astro_evidence: item.astroEvidence,
-    explanationAnchorId: index === 0 ? `anchor:${plan.id}` : null,
-  }));
-}
-
 function evidenceForPlan(
   plan: ForecastSectionPlan,
   evidenceViews: Record<string, ForecastEvidenceView>,
@@ -723,7 +699,7 @@ function premiumTeaser(plan: ForecastSectionPlan, language: ForecastWriterLangua
     : `The full “${title}” reading gives the concrete manifestation, main risk, and practical next step.`;
 }
 
-function materializeSection(input: {
+function _materializeSection(input: {
   plan: ForecastSectionPlan;
   blocks: ForecastContentBlock[];
   evidenceViews: Record<string, ForecastEvidenceView>;
@@ -761,33 +737,76 @@ function materializeSection(input: {
   };
 }
 
-function materializeFreeSection(input: {
+function buildDirectSectionBases(
+  evidence: EvidenceCalculationResult['evidence'],
+): DirectSectionBasis[] {
+  return [...evidence]
+    .sort((left, right) => right.strength - left.strength)
+    .slice(0, 3)
+    .map((item, index) => ({
+      id: `direct:${item.id || index + 1}`,
+      evidenceIds: [item.id],
+      importance: Math.max(0, Math.min(100, Math.round(item.strength))),
+      visualTag: item.kind,
+      semanticFingerprint: `direct:${stableHash(`${item.id}:${item.kind}:${item.strength}`).toString(36)}`,
+    }));
+}
+
+function evidenceForBasis(
+  basis: DirectSectionBasis,
+  evidenceViews: Record<string, ForecastEvidenceView>,
+): ForecastEvidenceView[] {
+  return basis.evidenceIds
+    .map((id) => evidenceViews[id])
+    .filter((item): item is ForecastEvidenceView => !!item);
+}
+
+function materializeDirectSection(input: {
   section: FreeGeneratedSection;
-  plan: ForecastSectionPlan;
+  basis: DirectSectionBasis;
   evidenceViews: Record<string, ForecastEvidenceView>;
   language: ForecastWriterLanguage;
   overview: boolean;
 }): ForecastSection {
+  const evidence = evidenceForBasis(input.basis, input.evidenceViews);
   const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => ({
-    id: `${input.plan.id}:generated:${index + 1}`,
+    id: `${input.basis.id}:generated:${index + 1}`,
     role: 'insight',
     text: block.text,
-    semanticFactId: input.plan.semanticFactIds[index] || input.plan.semanticFactIds[0],
-    atomId: `generated:${input.plan.id}:${index + 1}`,
-    astro_evidence: block.astroEvidence || evidenceForPlan(input.plan, input.evidenceViews)[0]?.factor || null,
-    explanationAnchorId: index === 0 ? `anchor:${input.plan.id}` : null,
+    semanticFactId: input.basis.id,
+    atomId: `generated:${input.basis.id}:${index + 1}`,
+    astro_evidence: block.astroEvidence || evidence[0]?.factor || null,
+    explanationAnchorId: index === 0 ? `anchor:${input.basis.id}` : null,
   }));
-  const materialized = materializeSection({
-    plan: {
-      ...input.plan,
-      title: input.overview ? undefined : input.section.title || input.plan.title,
-    },
-    blocks,
-    evidenceViews: input.evidenceViews,
-    language: input.language,
-    overview: input.overview,
-  });
-  return materialized;
+  const text = blocks.map((block) => block.text).join('\n\n');
+  const title = input.section.title || (input.language === 'ru' ? 'Главное' : 'Main focus');
+  const teaser = input.language === 'ru'
+    ? `В полном разборе «${title}» — конкретные проявления и важные условия периода.`
+    : `The full “${title}” reading gives the concrete manifestations and important conditions of the period.`;
+  const anchors: ExplanationAnchor[] = evidence.length && blocks.length
+    ? [{
+        id: `anchor:${input.basis.id}`,
+        conclusion: blocks[0].text.slice(0, 600),
+        explanation: evidence.map((item) => `${item.factor}. ${item.meaning}`).join(' ').slice(0, 1_200),
+        evidenceIds: evidence.map((item) => item.id),
+      }]
+    : [];
+  return {
+    id: input.basis.id,
+    kind: input.overview ? 'overview' : 'dynamic',
+    status: 'ready', diagnosticCode: null,
+    title: input.overview ? undefined : title,
+    sourceTopicKey: input.overview ? 'overview' : undefined,
+    text, contentBlocks: blocks,
+    semanticFactIds: [input.basis.id],
+    semanticFingerprint: input.basis.semanticFingerprint,
+    importance: input.basis.importance,
+    visualTag: input.basis.visualTag,
+    premiumTeaser: teaser,
+    lockedPreview: buildForecastLockedPreview(text, teaser),
+    explanationAnchors: anchors,
+    inlineAstroAccent: null,
+  };
 }
 
 async function requestGeneratedFeed(input: {
@@ -795,25 +814,27 @@ async function requestGeneratedFeed(input: {
   model: string;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  overviewPlan: ForecastSectionPlan;
-  sectionPlans: ForecastSectionPlan[];
+  calculatedEvidence: EvidenceCalculationResult['evidence'];
   evidenceViews: Record<string, ForecastEvidenceView>;
   canonicalNatalReport?: CanonicalNatalReport;
   historyContext?: AstrologyHistoryContext | null;
 }): Promise<GenerationResult> {
+  const bases = buildDirectSectionBases(input.calculatedEvidence);
+  if (!bases.length) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
   if (!openai) {
-    const overviewBlocks = deterministicBlocks(input.overviewPlan);
+    const fallbackSections = bases.slice(0, 3).map((basis) => ({
+      title: null,
+      blocks: [{ text: input.evidenceViews[basis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.', astroEvidence: input.evidenceViews[basis.evidenceIds[0]]?.factor || null }],
+    }));
     return {
-      overview: materializeSection({
-        plan: input.overviewPlan,
-        blocks: overviewBlocks,
+      overview: materializeDirectSection({
+        section: fallbackSections[0], basis: bases[0],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: true,
       }),
-      sections: input.sectionPlans.map((plan) => materializeSection({
-        plan,
-        blocks: deterministicBlocks(plan),
+      sections: fallbackSections.slice(1).map((section, index) => materializeDirectSection({
+        section, basis: bases[index + 1],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: false,
@@ -840,9 +861,7 @@ async function requestGeneratedFeed(input: {
               language: input.language,
               period: input.period,
               window: input.window,
-              overviewPlan: input.overviewPlan,
-              sectionPlans: input.sectionPlans,
-              evidenceViews: input.evidenceViews,
+              calculatedEvidence: input.calculatedEvidence,
               canonicalNatalReport: input.canonicalNatalReport,
               historyContext: input.historyContext,
               repairErrors: attempt === 2 ? errors : undefined,
@@ -872,16 +891,16 @@ async function requestGeneratedFeed(input: {
         errors = ['overview section is missing after validation'];
         continue;
       }
-      const overview = materializeFreeSection({
+      const overview = materializeDirectSection({
         section: rawOverview,
-        plan: input.overviewPlan,
+        basis: bases[0],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: true,
       });
-      const sections = rawSections.map((section, index) => materializeFreeSection({
+      const sections = rawSections.map((section, index) => materializeDirectSection({
         section,
-        plan: input.sectionPlans[index] || input.sectionPlans[input.sectionPlans.length - 1],
+        basis: bases[index + 1] || bases[bases.length - 1],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: false,
@@ -901,16 +920,18 @@ async function requestGeneratedFeed(input: {
     errors = validation.errors;
   }
 
-  const overview = materializeSection({
-    plan: input.overviewPlan,
-    blocks: deterministicBlocks(input.overviewPlan),
+  const fallbackSections = bases.slice(0, 3).map((basis) => ({
+    title: null,
+    blocks: [{ text: input.evidenceViews[basis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.', astroEvidence: input.evidenceViews[basis.evidenceIds[0]]?.factor || null }],
+  }));
+  const overview = materializeDirectSection({
+    section: fallbackSections[0], basis: bases[0],
     evidenceViews: input.evidenceViews,
     language: input.language,
     overview: true,
   });
-  const sections = input.sectionPlans.map((plan) => materializeSection({
-    plan,
-    blocks: deterministicBlocks(plan),
+  const sections = fallbackSections.slice(1).map((section, index) => materializeDirectSection({
+    section, basis: bases[index + 1],
     evidenceViews: input.evidenceViews,
     language: input.language,
     overview: false,
@@ -959,18 +980,12 @@ export async function generatePersonalForecastPackage(input: {
   if (input.onEvidenceCalculated) {
     await input.onEvidenceCalculated({ calculated, semanticFacts });
   }
-  const plans = buildPersonalForecastSectionPlans({
-    facts: semanticFacts,
-    period: input.period,
-    language,
-  });
   const generated = await requestGeneratedFeed({
     language,
     model: input.model,
     period: input.period,
     window: input.window,
-    overviewPlan: plans.overview,
-    sectionPlans: plans.sections,
+    calculatedEvidence: calculated.evidence,
     evidenceViews: calculated.evidenceViews,
     canonicalNatalReport,
     historyContext: input.historyContext,
@@ -1040,28 +1055,26 @@ export async function generatePersonalForecastPackage(input: {
     || 'PACKAGE_UNKNOWN_INVALID';
 
   // The model is optional. If its final materialization violates the display
-  // contract, rebuild a small package from the strongest approved fact only.
-  // This keeps the calculation honest while making a blank forecast impossible.
-  const fallbackPlans = buildPersonalForecastSectionPlans({
-    facts: semanticFacts.slice(0, 1),
-    period: input.period,
-    language,
-  });
+  // contract, rebuild from the strongest calculated evidence only.
+  const fallbackBases = buildDirectSectionBases(calculated.evidence.slice(0, 1));
+  const fallbackBasis = fallbackBases[0];
+  if (!fallbackBasis) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
+  const fallbackRaw: FreeGeneratedSection = {
+    title: null,
+    blocks: [{
+      text: calculated.evidenceViews[fallbackBasis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.',
+      astroEvidence: calculated.evidenceViews[fallbackBasis.evidenceIds[0]]?.factor || null,
+    }],
+  };
   const fallbackResult: GenerationResult = {
-    overview: materializeSection({
-      plan: fallbackPlans.overview,
-      blocks: deterministicBlocks(fallbackPlans.overview),
+    overview: materializeDirectSection({
+      section: fallbackRaw,
+      basis: fallbackBasis,
       evidenceViews: calculated.evidenceViews,
       language,
       overview: true,
     }),
-    sections: fallbackPlans.sections.map((plan) => materializeSection({
-      plan,
-      blocks: deterministicBlocks(plan),
-      evidenceViews: calculated.evidenceViews,
-      language,
-      overview: false,
-    })),
+    sections: [],
     generationAttempts: generated.generationAttempts,
     validationStatus: 'deterministic_fallback',
   };
