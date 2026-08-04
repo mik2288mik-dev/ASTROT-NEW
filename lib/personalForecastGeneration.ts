@@ -660,6 +660,40 @@ export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): Va
   return { sections, errors };
 }
 
+export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload | null {
+  const unwrapped = content
+    .trim()
+    .replace(/^```(?:json)?\s*/iu, '')
+    .replace(/\s*```$/u, '')
+    .trim();
+  const candidates = [unwrapped];
+  const firstObject = unwrapped.indexOf('{');
+  const lastObject = unwrapped.lastIndexOf('}');
+  if (firstObject >= 0 && lastObject > firstObject) {
+    candidates.push(unwrapped.slice(firstObject, lastObject + 1));
+  }
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      const payload = Array.isArray(parsed)
+        ? { sections: parsed }
+        : parsed && typeof parsed === 'object'
+          ? parsed as Record<string, unknown>
+          : null;
+      if (!payload) continue;
+      const nested = [payload, payload.data, payload.result, payload.output, payload.response]
+        .find((value) => value && typeof value === 'object' && (
+          Array.isArray(value) || Array.isArray((value as { sections?: unknown }).sections)
+        ));
+      if (Array.isArray(nested)) return { sections: nested };
+      if (nested && typeof nested === 'object') return nested as GeneratedFeedPayload;
+    } catch {
+      // Try the next safe JSON representation.
+    }
+  }
+  return null;
+}
+
 function evidenceForPlan(
   plan: ForecastSectionPlan,
   evidenceViews: Record<string, ForecastEvidenceView>,
@@ -874,14 +908,12 @@ async function requestGeneratedFeed(input: {
         jsonMode: true,
       }));
       content = response.choices[0]?.message?.content?.trim() || '';
-    } catch {
-      errors = ['writer request failed'];
+    } catch (error) {
+      errors = [`writer request failed: ${error instanceof Error ? error.message : String(error)}`];
       continue;
     }
-    let raw: GeneratedFeedPayload;
-    try {
-      raw = JSON.parse(content) as GeneratedFeedPayload;
-    } catch {
+    const raw = parseGeneratedFeedPayload(content);
+    if (!raw) {
       errors = ['response is not valid JSON'];
       continue;
     }

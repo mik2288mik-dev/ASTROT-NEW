@@ -1,6 +1,7 @@
 import {
   PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS,
   buildPersonalForecastFeedPrompt,
+  parseGeneratedFeedPayload,
   validateFreeGeneratedForecastFeed,
 } from '../lib/personalForecastGeneration';
 import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
@@ -74,5 +75,14 @@ describe('personal forecast direct evidence writer', () => {
       ],
     });
     expect(invalid.errors.join(' ')).toContain('invalid text');
+  });
+
+  test('unwraps fenced and provider-wrapped JSON responses', () => {
+    const payload = { data: { sections: [
+      { blocks: [{ text: 'A reply needs a second look before it turns into an obligation.', astro_evidence: 'Mars square Mercury' }] },
+      { blocks: [{ text: 'A number without a condition is an open door; close it before agreeing.', astro_evidence: 'Mars in the 2nd house' }] },
+    ] } };
+    const parsed = parseGeneratedFeedPayload(`\`\`\`json\n${JSON.stringify(payload)}\n\`\`\``);
+    expect(parsed).toEqual(payload.data);
   });
 });
