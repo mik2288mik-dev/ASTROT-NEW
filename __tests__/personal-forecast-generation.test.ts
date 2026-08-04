@@ -1,6 +1,7 @@
 import {
   PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS,
   buildPersonalForecastFeedPrompt,
+  getPersonalForecastSystemPrompt,
   parseGeneratedFeedPayload,
   validateFreeGeneratedForecastFeed,
 } from '../lib/personalForecastGeneration';
@@ -24,6 +25,13 @@ const evidence = [{
 }];
 
 describe('personal forecast direct evidence writer', () => {
+  test('uses the app voice with a direct practical forecast instruction', () => {
+    const system = getPersonalForecastSystemPrompt('en');
+    expect(system).toContain('lively, direct, bold astro analyst');
+    expect(system).toContain('exactly two concrete practical pointers');
+    expect(system).toContain('No esoteric language, coaching, corporate filler, or slang');
+  });
+
   test('sends direct Swiss evidence and V2 factual context without a semantic writing plan', () => {
     const prompt = buildPersonalForecastFeedPrompt({
       language: 'en',

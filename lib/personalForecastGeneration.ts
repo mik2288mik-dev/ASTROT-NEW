@@ -57,6 +57,15 @@ const openai = process.env.OPENAI_API_KEY
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
 const MAX_SEMANTIC_SECTIONS = 3;
 
+export function getPersonalForecastSystemPrompt(
+  language: ForecastWriterLanguage,
+): string {
+  const task = language === 'ru'
+    ? `Ты — живой, прямой и дерзкий астро-аналитик. Разбирай только переданные расчётные данные: транзиты, аспекты, дома и сроки. Пиши о реальной жизни — деньгах, делах, контактах и сбоях. Никакой эзотерики, «опор», «точек напряжения», коучинга или канцелярита. Дай точный расклад и ровно два конкретных практических совета: что сделать и чего избегать. Дерзость — в точном выводе, не в грубости и не в сленге.`
+    : `You are a lively, direct, bold astro analyst. Read only the supplied calculations: transits, aspects, houses, and timing. Write about real life: money, work, contacts, and disruptions. No esoteric language, coaching, corporate filler, or slang. Give a precise reading and exactly two concrete practical pointers: what to do and what to avoid. Bold means precise, never rude.`;
+  return `${getAppSystemVoice(language)}\n\nFORECAST-SPECIFIC SYSTEM INSTRUCTION:\n${task}`;
+}
+
 type PlannedBlock = {
   id: string;
   role: ForecastContentBlockRole;
@@ -891,7 +900,7 @@ async function requestGeneratedFeed(input: {
     try {
       const response = await openai.chat.completions.create(buildOpenAIChatParams(input.model, {
         messages: [
-          { role: 'system', content: getAppSystemVoice(input.language) },
+          { role: 'system', content: getPersonalForecastSystemPrompt(input.language) },
           {
             role: 'user',
             content: buildPersonalForecastFeedPrompt({
