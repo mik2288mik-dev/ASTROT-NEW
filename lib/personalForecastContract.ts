@@ -216,7 +216,7 @@ export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
   'personal-forecast-feed.v7.canonical-natal-v2-writer',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v5';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v6';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -608,7 +608,7 @@ export function buildPersonalForecastCacheKey(input: {
     APP_VOICE_VERSION,
     input.modelId,
   ].join('|');
-  return `personal-forecast-feed-v2:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
+  return `${PERSONAL_FORECAST_CONTRACT_VERSION}:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
 }
 
 export function buildPersonalForecastInputHash(input: {
@@ -785,14 +785,19 @@ function contentBlocksValid(
       || typeof block.id !== 'string'
       || !block.id.trim()
       || blockIds.has(block.id)
-      || !(['insight', 'lead', 'detail', 'risk', 'action'] as const).includes(block.role)
+      // A block may use a free semantic label. Generation is no longer limited
+      // to the legacy lead/detail/risk/action rubric.
+      || typeof block.role !== 'string'
+      || !block.role.trim()
+      || block.role.length > 64
       || typeof block.text !== 'string'
       || !block.text.trim()
       || block.text.length > FORECAST_BLOCK_SAFETY_LIMIT
-      || typeof block.semanticFactId !== 'string'
-      || !section.semanticFactIds.includes(block.semanticFactId)
-      || typeof block.atomId !== 'string'
-      || !block.atomId.trim()
+      || (block.semanticFactId !== undefined && (
+        typeof block.semanticFactId !== 'string'
+        || (section.semanticFactIds.length > 0 && !section.semanticFactIds.includes(block.semanticFactId))
+      ))
+      || (block.atomId !== undefined && (typeof block.atomId !== 'string' || !block.atomId.trim()))
       || (block.astro_evidence !== undefined && block.astro_evidence !== null && (
         typeof block.astro_evidence !== 'string' || block.astro_evidence.length > 240
       ))

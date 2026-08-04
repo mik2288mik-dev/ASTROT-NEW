@@ -104,6 +104,13 @@ describe('personal forecast V4 semantic contract', () => {
     expect(isPersonalForecastPackage(changedFact)).toBe(false);
   });
 
+  test('accepts a free block label with UI astro evidence', () => {
+    const base = structuredClone(personalForecastFixture());
+    base.sections[0].contentBlocks[0].role = 'work_money' as any;
+    base.sections[0].contentBlocks[0].astro_evidence = 'Mars square natal Mercury';
+    expect(isPersonalForecastPackage(base)).toBe(true);
+  });
+
   test('reports the rule that rejected a complete package', () => {
     const base = personalForecastFixture();
     const missingEvidence = structuredClone(base);
@@ -137,9 +144,9 @@ describe('personal forecast V4 semantic contract', () => {
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-evidence-v4');
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v5');
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v6');
     expect(PERSONAL_FORECAST_SEMANTICS_VERSION).toBe('personal-forecast-semantics-v3');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v6.editorial-writer');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v7.canonical-natal-v2-writer');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
 
     for (const patch of [
@@ -180,7 +187,7 @@ describe('personal forecast V4 semantic contract', () => {
     };
     const cacheKey = buildPersonalForecastCacheKey(shared);
     const inputHash = buildPersonalForecastInputHash(shared);
-    expect(cacheKey).toMatch(/^personal-forecast-feed-v5:/);
+    expect(cacheKey).toMatch(/^personal-forecast-feed-v6:/);
     expect(inputHash).toMatch(/^[a-z0-9]+$/);
     expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
     expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);
