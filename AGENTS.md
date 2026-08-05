@@ -1,40 +1,61 @@
 # Repository working rules
 
-## Start safely
+## Local-only execution
 
-- Before changing code, run `git fetch origin`, switch to `main`, and use `git pull --ff-only origin main`.
-- Preserve untracked local folders such as `.preview/`, `.qwen/`, and `.vscode/`; never add them implicitly.
-- Keep changes scoped to the user request. Do not combine a UI task with backend, model, database, or deployment changes unless asked.
+- All tasks are performed in the current local checkout.
+- Do not run `git fetch`, `git pull`, `git push`, GitHub Actions, remote workflows, or PR commands unless the user explicitly requests that exact remote action.
+- Preserve unrelated local changes and untracked files; never add them implicitly.
+- Keep every change scoped to the user request and its explicit allowlist.
 
-## Product boundaries
+## Product navigation architecture
 
-- `views/Dashboard.tsx` is the only Personal Forecast Feed screen. Keep it one continuous scrollable feed.
-- Do not change the global header, bottom navigation, generation model, astrology calculations, server access control, or Free/Premium contract without explicit approval.
-- Feed explanations use existing local `i` bottom sheets. Do not expose calculation internals, weights, or service fields in the main text.
-- Premium previews stay in place in the feed; do not replace them with a lock screen or generic placeholder.
+- The bottom navigation is not part of the target architecture.
+- Primary navigation lives in the left slide-out panel. Its only items are:
+  1. Дневник
+  2. Гороскоп по знакам
+  3. Совместимость
+  4. Карта
+- The bottom of the panel contains a profile block linking to Settings.
+- Сегодня, Неделя, and Месяц are internal tabs of Дневник, not separate primary sections.
+- Do not create separate primary sections for those periods.
 
-## Voice and copy — hard rule
+## Astrologer questions
 
-- `lib/appVoice.ts` is the only runtime source of the generated-content voice. `docs/APP_VOICE.md` documents the same contract.
-- The voice is direct, bold, calculation-led, and easy to understand. Use ordinary human language.
-- Natal text is descriptive. Forecasts and question answers may be directive when the calculation supports a clear action, risk, or condition.
-- Every sentence must add concrete information. Delete filler that can be removed without changing the meaning.
-- Do not add pseudo-psychological, coaching, mystical, cosmic, therapeutic, or inspirational language.
-- Do not invent trauma, childhood, parental relationships, diagnoses, profession, income, events, or biography.
-- Do not promise guaranteed future events. Show conditions, risks, likely developments, and available choices.
-- Do not write slogans such as «карта сложилась», «это про тебя», «что сейчас активно», «внутренний рисунок», «повторяющиеся сценарии», «энергия дня», «замедлись», «прислушайся к себе», «позволь себе», «отпусти контроль», «побереги ресурс», or close paraphrases.
-- Avoid abstract transitions such as «мы нашли», «карта показывает» or «тема проявляется сильнее». State the actual conclusion instead.
-- Static UI copy, fallbacks, prompts, notifications, paywalls, onboarding, and generated text follow the same rule. Do not treat the voice as an AI-only concern.
-- When changing user-facing copy, add or update a regression test that rejects the bad phrasing.
+- «Задать вопрос астрологу» is an in-product action, not a primary tab.
+- Open the question flow in a bottom sheet.
+- Do not turn the application into a chat-interface clone.
+- Do not add a separate full-screen chat without the user's direct instruction.
 
-## Visual work
+## Version-one boundaries
 
-- Forecast sections are text-led. Images are soft background scenes with fades into the white feed, never forecast cards or full-screen posters.
-- Keep generated visual assets under `public/assets/forecast-feed/` and reference them through `lib/personalForecastVisuals.ts`.
-- Native navigation promos may be banner cards; forecast sections themselves may not.
+- Do not implement friends, a messenger, or a social feed yet.
+- Do not add them as navigation placeholders.
 
-## Verification and publishing
+## Visual rules
 
-- For a focused feed change, run targeted Jest tests, `npx tsc --noEmit`, `npx eslint` on changed files, and `git diff --check`.
-- Stage only task files. Verify the staged path list before committing.
-- When direct publication to `main` is explicitly requested, make one scoped commit, push `git push origin main:main`, then verify local `HEAD`, `origin/main`, and `git ls-remote origin refs/heads/main` match.
+- System navigation remains clean and free of stickers.
+- Newspaper-psychedelic imagery is used rarely.
+- A forecast usually has no more than one strong image.
+- Some screens should remain image-free.
+- Never place an image behind text, over text, or inside an additional UI frame.
+- Straight, torn, round, oval, and free paper-like shapes are allowed.
+
+## Voice and calculation rules
+
+- The application is an ally: it supports the user without blindly agreeing.
+- A heading or notification may sometimes be sharp, ironic, or playful.
+- The main forecast remains serious, concrete, and short.
+- Do not use artificial youth slang.
+- Do not make anxiety, conflict, or problems the default subject.
+- Positive possibilities, calm, confidence, and support must be considered alongside risks.
+- Calculated astrology is not invented, altered, or overridden by the model.
+- `lib/appVoice.ts` is the runtime source of generated-content voice.
+
+## Verification and file boundaries
+
+- Run only checks explicitly listed in the concrete task.
+- Do not fix unrelated failing tests or diagnostics.
+- Do not modify files outside the task allowlist.
+- If another file is required, stop and report its path; do not modify it autonomously.
+- Before committing, verify that only allowlisted files are staged.
+- Remote publication is forbidden unless the user explicitly requests it.
