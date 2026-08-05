@@ -86,7 +86,7 @@ body,
   --lumia-bottom-tab-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px));
   --lumia-bottom-tab-bottom-gap: 0.65rem;
   /* Floating bottom bar clearance: bar height + safe-area + breathing room. */
-  --lumia-bottom-tab-clearance: calc(var(--lumia-bottom-tab-height) + var(--lumia-bottom-tab-safe-bottom) + var(--lumia-bottom-tab-bottom-gap) + 0.65rem);
+  --lumia-bottom-tab-clearance: var(--lumia-bottom-tab-safe-bottom);
   --lumia-home-nav-height: var(--lumia-bottom-tab-height);
   --lumia-home-shadow-card: 0 16px 34px rgba(17, 19, 23, 0.08);
   --lumia-home-shadow-lifted: 0 14px 30px rgba(21, 94, 239, 0.22);
@@ -354,6 +354,157 @@ body.theme-lumia-air #__next {
 .lumia-main-scroll.lumia-bottom-tab-scroll {
   padding-bottom: var(--lumia-bottom-tab-clearance);
   scroll-padding-bottom: var(--lumia-bottom-tab-clearance);
+}
+
+.lumia-side-drawer-root {
+  --lumia-side-drawer-width: min(82vw, 324px);
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  pointer-events: none;
+}
+
+.lumia-side-drawer-root.is-open {
+  pointer-events: auto;
+}
+
+.lumia-side-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: rgba(17, 24, 39, 0.18);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.lumia-side-drawer-root.is-open .lumia-side-drawer-backdrop {
+  opacity: 1;
+}
+
+.lumia-side-drawer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  width: var(--lumia-side-drawer-width);
+  flex-direction: column;
+  padding: max(1rem, env(safe-area-inset-top, 0px)) 0 max(1rem, env(safe-area-inset-bottom, 0px));
+  background: #ffffff;
+  box-shadow: 8px 0 24px rgba(17, 24, 39, 0.08);
+  transform: translateX(-100%);
+  transition: transform 180ms ease;
+}
+
+.lumia-side-drawer-root.is-open .lumia-side-drawer {
+  transform: translateX(0);
+}
+
+.lumia-side-drawer-nav {
+  display: grid;
+  gap: 0.25rem;
+  padding: 3.5rem 0.85rem 1rem;
+}
+
+.lumia-side-drawer-item,
+.lumia-side-drawer-profile {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #4b5563;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lumia-side-drawer-item {
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.96rem;
+  font-weight: 560;
+}
+
+.lumia-side-drawer-item.is-active {
+  background: #f1f1f1;
+  color: #171717;
+}
+
+.lumia-side-drawer-item:active,
+.lumia-side-drawer-profile:active {
+  background: #eaeaea;
+}
+
+.lumia-side-drawer-profile {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: auto 0.85rem 0;
+  padding: 0.85rem 0.8rem;
+}
+
+.lumia-side-drawer-profile-name {
+  color: #171717;
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.lumia-side-drawer-profile-caption {
+  color: #6b7280;
+  font-size: 0.78rem;
+}
+
+.lumia-side-drawer-menu-button {
+  position: fixed;
+  top: max(0.65rem, env(safe-area-inset-top, 0px));
+  left: max(0.75rem, env(safe-area-inset-left, 0px));
+  z-index: 120;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #171717;
+  cursor: pointer;
+}
+
+.lumia-side-drawer-menu-button:active {
+  background: #f1f1f1;
+}
+
+.lumia-side-drawer-menu-icon {
+  display: grid;
+  width: 1.25rem;
+  gap: 0.22rem;
+}
+
+.lumia-side-drawer-menu-icon span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.lumia-app-shell > main {
+  transform-origin: left center;
+  transition: transform 180ms ease;
+}
+
+.lumia-app-shell.side-drawer-open > main {
+  transform: translateX(min(82vw, 324px)) scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lumia-side-drawer,
+  .lumia-side-drawer-backdrop,
+  .lumia-app-shell > main {
+    transition: none;
+  }
 }
 
 .lumia-home-scroll-content {

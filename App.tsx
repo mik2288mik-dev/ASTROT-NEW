@@ -29,7 +29,7 @@ import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
-import { LumiaBottomTabBar } from './components/lumia-ui/LumiaBottomTabBar';
+import { LumiaSideDrawer } from './components/lumia-ui/LumiaSideDrawer';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import { getPaymentProvider } from './services/paymentProvider';
@@ -239,6 +239,7 @@ const App: React.FC = () => {
     const [authSessionMode, setAuthSessionModeState] = useState<AuthSessionMode>('automatic');
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
+    const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
     // Когда задан — paywall показан после онбординга; close/«продолжить бесплатно» ведут сюда.
     const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
@@ -1465,6 +1466,10 @@ const App: React.FC = () => {
     }, [prefetchBaseReportForChart, prepareUserContentDbFirst, primaryChartId, profile]);
 
     const handleBack = useCallback(async () => {
+        if (sideDrawerOpen) {
+            setSideDrawerOpen(false);
+            return;
+        }
         const currentView = viewRef.current;
         const fallbackView =
             currentView === 'admin'
@@ -1505,7 +1510,19 @@ const App: React.FC = () => {
             return;
         }
         setView(returnView);
-    }, [activeChartId, chartReturnView, chartsReturnView]);
+    }, [activeChartId, chartReturnView, chartsReturnView, sideDrawerOpen]);
+
+    useEffect(() => {
+        setSideDrawerOpen(false);
+    }, [view]);
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setSideDrawerOpen(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
 
     // Нативная кнопка «назад» Telegram заменяет нижний таб-бар:
     // на главной скрыта, на остальных экранах показывается и ведёт назад.
@@ -1514,7 +1531,7 @@ const App: React.FC = () => {
         const backButton = tg?.BackButton;
         if (!backButton) return;
         const handler = () => { void handleBack(); };
-        const isRoot = view === 'dashboard' || view === 'onboarding';
+        const isRoot = (view === 'dashboard' || view === 'onboarding') && !sideDrawerOpen;
         if (isRoot) {
             backButton.hide?.();
             return;
@@ -1522,7 +1539,7 @@ const App: React.FC = () => {
         backButton.onClick?.(handler);
         backButton.show?.();
         return () => { backButton.offClick?.(handler); };
-    }, [view, handleBack]);
+    }, [view, handleBack, sideDrawerOpen]);
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
@@ -1561,6 +1578,10 @@ const App: React.FC = () => {
         let lastRootBackAt = 0;
 
         void CapacitorApp.addListener('backButton', () => {
+            if (sideDrawerOpen) {
+                setSideDrawerOpen(false);
+                return;
+            }
             if (showPremiumPreview) {
                 setShowPremiumPreview(false);
                 return;
@@ -1601,7 +1622,7 @@ const App: React.FC = () => {
             void backHandle?.remove();
             void appStateHandle?.remove();
         };
-    }, [handleBack, showPremiumPreview]);
+    }, [handleBack, showPremiumPreview, sideDrawerOpen]);
 
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
@@ -1634,6 +1655,27 @@ const App: React.FC = () => {
         setSynastryPrefill(null);
         navigateTo('synastry');
     }, [navigateTo]);
+
+    const openDrawerDiary = useCallback(() => {
+        setSideDrawerOpen(false);
+        openBottomToday();
+    }, [openBottomToday]);
+    const openDrawerHoroscope = useCallback(() => {
+        setSideDrawerOpen(false);
+        openBottomZodiac();
+    }, [openBottomZodiac]);
+    const openDrawerCompatibility = useCallback(() => {
+        setSideDrawerOpen(false);
+        openSynastryFromHome();
+    }, [openSynastryFromHome]);
+    const openDrawerNatalChart = useCallback(() => {
+        setSideDrawerOpen(false);
+        openBottomNatal();
+    }, [openBottomNatal]);
+    const openDrawerSettings = useCallback(() => {
+        setSideDrawerOpen(false);
+        openBottomAvatar();
+    }, [openBottomAvatar]);
 
     // Свайп назад от левого края (как в iOS) — на всех экранах, кроме корневых/модальных
     const canSwipeBack =
@@ -1737,9 +1779,22 @@ const App: React.FC = () => {
     return (
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
+                sideDrawerOpen ? 'side-drawer-open' : ''
+            } ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
+            {profile && !loading && !showPremiumPreview && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
+                <button
+                    type="button"
+                    className="lumia-side-drawer-menu-button"
+                    aria-label={profile.language === 'en' ? 'Open navigation' : 'Открыть навигацию'}
+                    aria-expanded={sideDrawerOpen}
+                    onClick={() => setSideDrawerOpen(true)}
+                >
+                    <span aria-hidden="true" className="lumia-side-drawer-menu-icon"><span /><span /><span /></span>
+                </button>
+            )}
             <main
                 className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
             >
@@ -1896,17 +1951,17 @@ const App: React.FC = () => {
             {showPremiumPreview && (
                 <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
             )}
-            {!showPremiumPreview && (
-                <LumiaBottomTabBar
-                    profile={profile}
-                    view={view}
-                    onOpenToday={openBottomToday}
-                    onOpenZodiac={openBottomZodiac}
-                    onOpenNatal={openBottomNatal}
-                    onOpenSynastry={openSynastryFromHome}
-                    onOpenMore={openBottomAvatar}
-                />
-            )}
+            <LumiaSideDrawer
+                open={sideDrawerOpen}
+                currentView={view}
+                profile={profile}
+                onClose={() => setSideDrawerOpen(false)}
+                onOpenDiary={openDrawerDiary}
+                onOpenSignHoroscope={openDrawerHoroscope}
+                onOpenCompatibility={openDrawerCompatibility}
+                onOpenNatalChart={openDrawerNatalChart}
+                onOpenSettings={openDrawerSettings}
+            />
         </div>
     );
 };
