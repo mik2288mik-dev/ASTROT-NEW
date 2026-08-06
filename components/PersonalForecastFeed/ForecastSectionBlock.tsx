@@ -99,9 +99,16 @@ export function ForecastSectionBlock({
 }: ForecastSectionBlockProps) {
   const [activeAnchorId, setActiveAnchorId] = useState<string | null>(null);
   const isOverview = section.kind === 'overview';
-  const title = isOverview
-    ? overviewTitle(period, language)
-    : section.title?.trim();
+  const rawTitle = section.title?.trim() || '';
+  const technicalTitles = new Set([
+    'Личный гороскоп на сегодня',
+    'Личный гороскоп на неделю',
+    'Личный гороскоп на месяц',
+    'Your horoscope for today',
+    'Your horoscope for the week',
+    'Your horoscope for the month',
+  ]);
+  const title = rawTitle && !technicalTitles.has(rawTitle) ? rawTitle : '';
   const preview = section.lockedPreview;
   const activeAnchor = section.explanationAnchors.find(
     (anchor) => anchor.id === activeAnchorId,
