@@ -770,6 +770,7 @@ export const Dashboard = memo<DashboardProps>(({
               activePeriod,
             )}
             hasVisual={!!visual?.assignments[forecast.overview.id]?.path}
+            editorialStickerPath={visual?.assignments[forecast.overview.id]?.path}
             onRequestPremium={requestPremium}
           >
             {overviewCrossLinks.map((link) => (

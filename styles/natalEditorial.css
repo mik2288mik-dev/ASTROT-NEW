@@ -43,6 +43,19 @@
   mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 78%, transparent 100%);
 }
 
+.natal-editorial-page .product-screen-cover--natal::before,
+.natal-editorial-page .product-screen-cover--natal::after {
+  display: none;
+}
+
+.natal-editorial-page .natal-zodiac-sticker--inline {
+  width: 33%;
+  margin: 1.5rem 24px 0 auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .natal-editorial-page .product-screen-cover--natal::after {
   z-index: 1;
   background:

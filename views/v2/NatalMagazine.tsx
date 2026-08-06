@@ -99,13 +99,6 @@ export function NatalMagazine({
               : 'Character, usual reactions, relationships, money, and work based on your birth data.'}
           </div>
         </div>
-        {natalSticker ? (
-          <EditorialSticker
-            asset={natalSticker}
-            className="natal-zodiac-sticker"
-            priority
-          />
-        ) : null}
       </section>
 
       <div className="natal-big3">
@@ -131,6 +124,9 @@ export function NatalMagazine({
         preloadedReport={preloadedReport}
         hideIntro
       />
+      {natalSticker ? (
+        <EditorialSticker asset={natalSticker} className="natal-zodiac-sticker natal-zodiac-sticker--inline" />
+      ) : null}
     </div>
   );
 }

@@ -66,6 +66,19 @@
   width: clamp(4.5rem, 19vw, 6.5rem);
 }
 
+.forecast-feed-page .forecast-feed-editorial-sticker,
+.horo-reader-page .horo-zodiac-sticker--inline,
+.natal-editorial-page .natal-zodiac-sticker--inline {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.horo-reader-page .horo-zodiac-sticker--inline {
+  width: 38%;
+  margin: 1.5rem 0 0 auto;
+}
+
 .editorial-sticker figcaption {
   margin-top: 0.35rem;
   color: var(--news-faint);

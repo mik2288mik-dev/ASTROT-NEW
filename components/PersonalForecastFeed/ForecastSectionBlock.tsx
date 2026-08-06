@@ -14,6 +14,7 @@ type ForecastSectionBlockProps = {
   locked: boolean;
   style?: CSSProperties;
   hasVisual?: boolean;
+  editorialStickerPath?: string | null;
   children?: ReactNode;
   evidence: Record<string, ForecastEvidenceView>;
   onRequestPremium: () => void;
@@ -93,6 +94,7 @@ export function ForecastSectionBlock({
   locked,
   style,
   hasVisual = false,
+  editorialStickerPath,
   children,
   evidence,
   onRequestPremium,
@@ -179,6 +181,9 @@ export function ForecastSectionBlock({
             language,
           )
         )}
+        {editorialStickerPath ? (
+          <img className="forecast-feed-editorial-sticker" src={editorialStickerPath} alt="" aria-hidden />
+        ) : null}
         {children}
       </div>
       <ForecastBottomSheet

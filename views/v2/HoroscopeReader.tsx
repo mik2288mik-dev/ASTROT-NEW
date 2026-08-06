@@ -250,13 +250,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                 className="horo-uni-hero"
                 style={{ backgroundColor: ELEMENT_COLOR[sign.toLowerCase()] || 'var(--fresh-sky)', backgroundImage: 'none' }}
               >
-                {zodiacSticker ? (
-                  <EditorialSticker
-                    asset={zodiacSticker}
-                    className="horo-zodiac-sticker"
-                    priority
-                  />
-                ) : (
+                {zodiacSticker ? null : (
                   <ZodiacIllustration sign={sign} className="horo-hero-illus" />
                 )}
                 <div className="horo-hero-glyph" aria-hidden>
@@ -386,6 +380,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                           <EditorialSummary label={language === 'ru' ? 'Итог' : 'Bottom line'} className="horo-editorial-final">
                             <p>{reading.focus}</p>
                           </EditorialSummary>
+                        ) : null}
+                        {zodiacSticker ? (
+                          <EditorialSticker asset={zodiacSticker} className="horo-zodiac-sticker horo-zodiac-sticker--inline" />
                         ) : null}
                       </div>
                     ) : null}

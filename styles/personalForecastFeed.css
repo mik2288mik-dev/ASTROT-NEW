@@ -531,6 +531,22 @@
   max-width: 580px;
 }
 
+.forecast-feed-section.has-visual::before,
+.forecast-feed-section.has-visual::after,
+.forecast-feed-section.has-visual-fallback::before,
+.forecast-feed-section.has-visual-fallback::after {
+  display: none !important;
+}
+
+.forecast-feed-editorial-sticker {
+  display: block;
+  width: 65%;
+  max-width: 420px;
+  height: auto;
+  margin: 1.25rem auto 0;
+  object-fit: contain;
+}
+
 .forecast-feed-section--fixed {
   --forecast-section-pad-start: 24px;
   --forecast-section-pad-end: 26px;
