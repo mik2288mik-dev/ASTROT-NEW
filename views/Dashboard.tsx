@@ -681,8 +681,41 @@ export const Dashboard = memo<DashboardProps>(({
               <Info size={16} aria-hidden />
             </button>
           </div>
+          <ForecastTopicNavigation
+            sections={topicSections}
+            activeId={activeSectionId}
+            compactVisible={compactTabsVisible}
+            language={language}
+            onNavigate={scrollToSection}
+          />
         </div>
       </section>
+
+      <div className="forecast-feed-intro">
+        <div className="forecast-feed-greeting-row">
+          <p className="home-top-greeting">
+            {greeting}
+          </p>
+          <div className="forecast-feed-header-actions">
+            {unreadQuestions.length > 0 ? (
+              <button
+                type="button"
+                className="forecast-feed-header-action has-notification"
+                aria-label={language === 'ru'
+                  ? `Новых ответов: ${unreadQuestions.length}`
+                  : `New answers: ${unreadQuestions.length}`}
+                onClick={openQuestionNotification}
+              >
+                <Bell size={16} aria-hidden />
+                <span className="forecast-feed-notification-dot" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <p className="forecast-feed-intro-copy">
+          {personalForecastIntro(activePeriod, language)}
+        </p>
+      </div>
       <div className="forecast-feed-ambient" aria-hidden />
 
       {!hasChart ? (

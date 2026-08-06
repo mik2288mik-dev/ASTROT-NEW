@@ -104,16 +104,6 @@
   padding-top: 0;
 }
 
-.forecast-feed-page .forecast-topic-navigation,
-.forecast-feed-page .forecast-feed-intro,
-.forecast-feed-page .forecast-feed-ambient {
-  display: none;
-}
-
-.forecast-feed-page .home-top {
-  padding-bottom: 0;
-}
-
 .forecast-feed-page .home-period-tabs {
   width: min(calc(100% - 48px), 330px);
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1393,39 +1383,4 @@
     animation: none;
     transform: translateX(60%);
   }
-}
-
-.forecast-feed-section {
-  margin-bottom: 48px;
-  padding: 0 24px;
-  border: 0;
-  background: #ffffff;
-  box-shadow: none;
-}
-
-.forecast-feed-section::before,
-.forecast-feed-section::after,
-.forecast-feed-section.has-visual::before,
-.forecast-feed-section.has-visual::after {
-  display: none !important;
-}
-
-.forecast-feed-section-content {
-  width: min(100%, 610px);
-  margin: 0 auto;
-}
-
-.forecast-feed-section-title {
-  margin: 0 0 18px;
-  font-size: clamp(25px, 7vw, 31px);
-  line-height: 1.08;
-  font-weight: 700;
-}
-
-.forecast-feed-section-text {
-  margin: 0 0 16px;
-  color: #171717;
-  font-size: 18px;
-  line-height: 1.55;
-  font-weight: 400;
 }
