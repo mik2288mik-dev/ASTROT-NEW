@@ -53,7 +53,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                             tabIndex={open ? 0 : -1}
                             onClick={onClick}
                         >
-                            <Icon aria-hidden="true" size={19} strokeWidth={1.8} />
+                            <Icon aria-hidden="true" size={24} strokeWidth={1.8} />
                             <span>{label}</span>
                         </button>
                     ))}

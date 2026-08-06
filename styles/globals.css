@@ -403,8 +403,8 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-nav {
   display: grid;
-  gap: 0.25rem;
-  padding: 3.5rem 0.85rem 1rem;
+  gap: 6px;
+  padding: clamp(88px, 11vh, 104px) 16px 1rem;
 }
 
 .lumia-side-drawer-item,
@@ -421,11 +421,12 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-side-drawer-item {
-  gap: 0.75rem;
-  min-height: 3rem;
-  padding: 0.65rem 0.8rem;
-  font-size: 0.96rem;
-  font-weight: 560;
+  gap: 16px;
+  min-height: 56px;
+  padding: 0.65rem 12px;
+  font-size: 17px;
+  font-weight: 520;
+  line-height: 1.25;
 }
 
 .lumia-side-drawer-item.is-active {
@@ -448,13 +449,13 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-profile-name {
   color: #171717;
-  font-size: 0.92rem;
+  font-size: 17px;
   font-weight: 650;
 }
 
 .lumia-side-drawer-profile-caption {
   color: #6b7280;
-  font-size: 0.78rem;
+  font-size: 14px;
 }
 
 .lumia-side-drawer-menu-button {
@@ -463,15 +464,22 @@ body.theme-lumia-air #__next {
   left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + 14px);
   z-index: 120;
   display: grid;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  padding: 0;
+  box-sizing: border-box;
   place-items: center;
   border: 0;
   border-radius: 999px;
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.14);
+  box-shadow: 0 2px 7px rgba(17, 24, 39, 0.10);
   color: #171717;
   cursor: pointer;
+  transition: transform 180ms ease;
 }
 
 .lumia-side-drawer-menu-button:active {
@@ -493,6 +501,11 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-menu-button.is-telegram {
   top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 50px);
+}
+
+.lumia-app-shell.side-drawer-open .lumia-side-drawer-menu-button {
+  transform: translateX(calc(min(82vw, 324px) - 8px));
+  transition: transform 180ms ease;
 }
 
 .lumia-app-shell > main {

@@ -1531,7 +1531,7 @@ const App: React.FC = () => {
         const backButton = tg?.BackButton;
         if (!backButton) return;
         const handler = () => { void handleBack(); };
-        const isRoot = (view === 'dashboard' || view === 'onboarding') && !sideDrawerOpen;
+        const isRoot = view === 'dashboard' || view === 'onboarding';
         if (isRoot) {
             backButton.hide?.();
             return;
@@ -1785,13 +1785,15 @@ const App: React.FC = () => {
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
-            {profile && !loading && !showPremiumPreview && !sideDrawerOpen && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
+            {profile && !loading && !showPremiumPreview && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
                 <button
                     type="button"
                     className={`lumia-side-drawer-menu-button${isTelegramMiniApp ? ' is-telegram' : ''}`}
-                    aria-label={profile.language === 'en' ? 'Open navigation' : 'Открыть навигацию'}
+                    aria-label={sideDrawerOpen
+                        ? (profile.language === 'en' ? 'Close navigation' : 'Закрыть навигацию')
+                        : (profile.language === 'en' ? 'Open navigation' : 'Открыть навигацию')}
                     aria-expanded={sideDrawerOpen}
-                    onClick={() => setSideDrawerOpen(true)}
+                    onClick={() => setSideDrawerOpen((open) => !open)}
                 >
                     <svg aria-hidden="true" className="lumia-side-drawer-menu-icon" viewBox="0 0 24 24" fill="none">
                         <line x1="1.25" y1="8" x2="23" y2="8" />
