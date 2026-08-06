@@ -459,7 +459,7 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-menu-button {
   position: fixed;
-  top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 12px);
+  top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 10px);
   left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + 14px);
   z-index: 120;
   display: grid;
@@ -479,24 +479,20 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-side-drawer-menu-icon {
-  display: grid;
-  width: 24px;
-  gap: 5px;
-}
-
-.lumia-side-drawer-menu-icon span {
   display: block;
-  height: 3px;
-  border-radius: 2px;
-  background: currentColor;
-}
-
-.lumia-side-drawer-menu-icon span:first-child {
   width: 24px;
+  height: 24px;
+  overflow: visible;
 }
 
-.lumia-side-drawer-menu-icon span:last-child {
-  width: 16px;
+.lumia-side-drawer-menu-icon line {
+  stroke: currentColor;
+  stroke-width: 2.75;
+  stroke-linecap: round;
+}
+
+.lumia-side-drawer-menu-button.is-telegram {
+  top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 50px);
 }
 
 .lumia-app-shell > main {

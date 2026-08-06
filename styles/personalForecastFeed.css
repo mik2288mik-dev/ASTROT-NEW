@@ -116,6 +116,12 @@
   box-shadow: none;
 }
 
+.lumia-app-shell.telegram-diary-menu-offset .forecast-feed-page .home-period-tabs {
+  width: min(calc(100% - 72px), 310px);
+  margin-left: 72px;
+  margin-right: auto;
+}
+
 .forecast-feed-page .home-period-tab {
   min-height: 31px;
   border-radius: 999px;

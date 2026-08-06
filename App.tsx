@@ -1764,6 +1764,7 @@ const App: React.FC = () => {
         || activeChartSubject?.is_primary === false;
     const isPrimaryChartView = !isSavedPersonChartView;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
+    const isTelegramMiniApp = hasTelegramMiniAppContext();
 
     const dashboardProps = {
         profile,
@@ -1780,19 +1781,22 @@ const App: React.FC = () => {
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
                 sideDrawerOpen ? 'side-drawer-open' : ''
-            } ${
+            } ${isTelegramMiniApp && view === 'dashboard' ? 'telegram-diary-menu-offset' : ''} ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
-            {profile && !loading && !showPremiumPreview && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
+            {profile && !loading && !showPremiumPreview && !sideDrawerOpen && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
                 <button
                     type="button"
-                    className="lumia-side-drawer-menu-button"
+                    className={`lumia-side-drawer-menu-button${isTelegramMiniApp ? ' is-telegram' : ''}`}
                     aria-label={profile.language === 'en' ? 'Open navigation' : 'Открыть навигацию'}
                     aria-expanded={sideDrawerOpen}
                     onClick={() => setSideDrawerOpen(true)}
                 >
-                    <span aria-hidden="true" className="lumia-side-drawer-menu-icon"><span /><span /></span>
+                    <svg aria-hidden="true" className="lumia-side-drawer-menu-icon" viewBox="0 0 24 24" fill="none">
+                        <line x1="1.25" y1="8" x2="23" y2="8" />
+                        <line x1="1.25" y1="16" x2="15.25" y2="16" />
+                    </svg>
                 </button>
             )}
             <main
