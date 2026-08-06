@@ -681,21 +681,11 @@ export const Dashboard = memo<DashboardProps>(({
               <Info size={16} aria-hidden />
             </button>
           </div>
-          <ForecastTopicNavigation
-            sections={topicSections}
-            activeId={activeSectionId}
-            compactVisible={compactTabsVisible}
-            language={language}
-            onNavigate={scrollToSection}
-          />
         </div>
       </section>
 
       <div className="forecast-feed-intro">
         <div className="forecast-feed-greeting-row">
-          <p className="home-top-greeting">
-            {greeting}
-          </p>
           <div className="forecast-feed-header-actions">
             {unreadQuestions.length > 0 ? (
               <button
@@ -712,9 +702,6 @@ export const Dashboard = memo<DashboardProps>(({
             ) : null}
           </div>
         </div>
-        <p className="forecast-feed-intro-copy">
-          {personalForecastIntro(activePeriod, language)}
-        </p>
       </div>
       <div className="forecast-feed-ambient" aria-hidden />
 

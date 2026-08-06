@@ -104,6 +104,16 @@
   padding-top: 0;
 }
 
+.forecast-feed-page .forecast-topic-navigation,
+.forecast-feed-page .forecast-feed-intro,
+.forecast-feed-page .forecast-feed-ambient {
+  display: none;
+}
+
+.forecast-feed-page .home-top {
+  padding-bottom: 0;
+}
+
 .forecast-feed-page .home-period-tabs {
   width: min(calc(100% - 48px), 330px);
   grid-template-columns: repeat(3, minmax(0, 1fr));
