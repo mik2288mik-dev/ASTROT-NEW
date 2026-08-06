@@ -2,6 +2,8 @@
 
 /** Curated list: GPT-4 family through GPT-5.5 variants (exact API ids depend on OpenAI account). */
 export const INTERPRETATION_MODEL_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
+  { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro' },
   { id: 'gpt-4o', label: 'GPT-4o' },
   { id: 'gpt-4o-mini', label: 'GPT-4o mini' },
   { id: 'gpt-4.1', label: 'GPT-4.1' },

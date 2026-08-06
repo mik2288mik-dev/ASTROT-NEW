@@ -1,8 +1,8 @@
-import OpenAI from 'openai';
 import type { ForecastDailyReading, Language } from '../../types';
 import { getModelForTier } from '../appSettings';
 import { getContentPolicy } from '../contentMatrix';
 import { buildOpenAIChatParams } from '../openaiChat';
+import { getContentAiClient } from '../contentAiClient';
 import { buildSignDailyHoroscopePrompt, parseModelJson } from '../contentPromptBuilders';
 import { db } from '../db';
 import { getZodiacSign } from '../../constants';
@@ -26,9 +26,6 @@ function dayContext(date: string, language: Language) {
   };
 }
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 export const SIGN_HOROSCOPE_PROMPT_VERSION = getContentPolicy('sign_daily_horoscope').promptVersion;
 
@@ -177,6 +174,8 @@ async function generateSignReading(
 ): Promise<ForecastDailyReading> {
   const fallback = buildSignDailyFallback(sign, date, language);
   const allowStaticFallback = options?.allowStaticFallback !== false;
+  const model = await getModelForTier(getContentPolicy('sign_daily_horoscope').modelTier);
+  const openai = getContentAiClient(model);
   if (!openai) {
     if (!allowStaticFallback) {
       const error = new Error('OpenAI content generation is not configured') as Error & { code?: string; status?: number };
@@ -191,7 +190,6 @@ async function generateSignReading(
   const prompt = buildSignDailyHoroscopePrompt({ language, context: { sign: signLabel, date, moon: dayContext(date, language) } });
 
   try {
-    const model = await getModelForTier(getContentPolicy('sign_daily_horoscope').modelTier);
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [
         { role: 'system', content: prompt.system },

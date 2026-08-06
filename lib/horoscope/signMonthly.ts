@@ -1,16 +1,15 @@
-import OpenAI from 'openai';
 import type { ForecastDailyReading, Language } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { getModelForTier } from '../appSettings';
 import { getContentPolicy } from '../contentMatrix';
 import { buildOpenAIChatParams } from '../openaiChat';
+import { getContentAiClient } from '../contentAiClient';
 import { buildSignMonthlyHoroscopePrompt, parseModelJson } from '../contentPromptBuilders';
 import { getPool } from '../db';
 import { monthKeyToValidRangeUtc } from '../date-utils';
 import { normalizeZodiacKey, type ZodiacKey } from './signDaily';
 import { normalizeSignPeriodReading, SignPeriodGenerationError } from './signPeriodShared';
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const policy = getContentPolicy('sign_monthly_horoscope');
 const GENERATION_ERROR = 'SIGN_MONTHLY_GENERATION_FAILED' as const;
 
@@ -39,13 +38,14 @@ export async function getCachedSignMonthlyHoroscope(
 }
 
 async function generate(sign: ZodiacKey, periodKey: string, language: Language): Promise<ForecastDailyReading> {
+  const model = await getModelForTier(policy.modelTier);
+  const openai = getContentAiClient(model);
   if (!openai) throw new SignPeriodGenerationError(GENERATION_ERROR);
   const prompt = buildSignMonthlyHoroscopePrompt({
     language,
     context: { sign: getZodiacSign(language, sign), periodKey },
   });
   try {
-    const model = await getModelForTier(policy.modelTier);
     const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
       messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }],
       temperature: 0.72,

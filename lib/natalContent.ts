@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import type {
   NatalAnchorReading,
   NatalChartData,
@@ -18,6 +17,7 @@ import {
 import { getAppSystemVoice } from './appVoice';
 import { getModelForTier } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
+import { getContentAiClient } from './contentAiClient';
 import { getContentPolicy } from './contentMatrix';
 import { getCurrentTransits } from './transits-calculator';
 import {
@@ -34,9 +34,6 @@ import {
   validateNatalHumanSections,
 } from './natalReadings';
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 async function getNatalModel(kind: 'anchor' | 'full' | 'living') {
   const policy = getContentPolicy(kind === 'full' ? 'deep_report' : kind === 'living' ? 'personal_daily' : 'natal_section');
@@ -44,6 +41,7 @@ async function getNatalModel(kind: 'anchor' | 'full' | 'living') {
 }
 
 async function isFlaggedByModeration(content: unknown): Promise<boolean> {
+  const openai = getContentAiClient(await getNatalModel('anchor').then((value) => value.model));
   if (!openai) return false;
 
   try {
@@ -70,6 +68,7 @@ async function createJsonCompletion<T>({
   temperature: number;
   language: 'ru' | 'en';
 }): Promise<T> {
+  const openai = getContentAiClient(model);
   if (!openai) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
@@ -93,15 +92,16 @@ export async function generateNatalAnchorReading(
   chartData: NatalChartData
 ): Promise<NatalAnchorReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const evidence = buildNatalAstroEvidence(chartData, lang).slice(0, 8);
+  const evidence = buildNatalAstroEvidence(chartData, lang);
+  const { model } = await getNatalModel('anchor');
 
+  const openai = getContentAiClient(model);
   if (!openai) {
     return buildNatalAnchorFallback(lang, chartData);
   }
 
   try {
     const prompt = addLanguageInstruction(createNatalAnchorPromptV3(chartData, profile, evidence), lang);
-    const { model } = await getNatalModel('anchor');
     const parsed = await createJsonCompletion<NatalAnchorAIResponse>({
       model,
       prompt,
@@ -129,7 +129,9 @@ export async function generateNatalFullReading(
   chartData: NatalChartData
 ): Promise<NatalFullReading> {
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const evidence = buildNatalAstroEvidence(chartData, lang).slice(0, 8);
+  const evidence = buildNatalAstroEvidence(chartData, lang);
+  const { model } = await getNatalModel('full');
+  const openai = getContentAiClient(model);
 
   if (!openai) {
     return buildNatalFullFallback(lang, chartData);
@@ -137,7 +139,6 @@ export async function generateNatalFullReading(
 
   try {
     const prompt = addLanguageInstruction(createNatalFullPrompt(chartData, profile, evidence), lang);
-    const { model } = await getNatalModel('full');
     const parsed = await createJsonCompletion<NatalFullAIResponse>({
       model,
       prompt,
@@ -177,7 +178,9 @@ export async function generateNatalLivingReading(
     console.error('[NatalContent] Transit calculation failed', error);
   }
 
-  const evidence = buildDailyAstroEvidence(chartData, transits, lang).slice(0, 5);
+  const evidence = buildDailyAstroEvidence(chartData, transits, lang);
+  const { model } = await getNatalModel('living');
+  const openai = getContentAiClient(model);
 
   if (!openai) {
     return buildNatalLivingFallback(lang, periodKey, chartData, evidence);

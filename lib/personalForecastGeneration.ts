@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
 import {
@@ -13,6 +12,7 @@ import {
   hasAppVoiceViolation,
 } from './appVoice';
 import { buildOpenAIChatParams } from './openaiChat';
+import { getContentAiClient } from './contentAiClient';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -50,9 +50,6 @@ import {
   type ForecastWriterLanguage,
 } from './personalForecastSemanticLanguage';
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
 const MAX_SEMANTIC_SECTIONS = 3;
@@ -473,7 +470,6 @@ export function buildPersonalForecastFeedPrompt(input: {
     month: 'Give a strategic reading of the month: the large movements in the relevant spheres and the genuinely important timing windows. Do not turn it into a daily diary.',
   };
   const evidence = input.calculatedEvidence
-    .slice(0, 16)
     .map((item) => ({
       id: item.id,
       kind: item.kind,
@@ -867,6 +863,7 @@ async function requestGeneratedFeed(input: {
 }): Promise<GenerationResult> {
   const bases = buildDirectSectionBases(input.calculatedEvidence);
   if (!bases.length) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
+  const openai = getContentAiClient(input.model);
   if (!openai) {
     const fallbackSections = bases.slice(0, 3).map((basis) => ({
       title: null,

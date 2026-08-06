@@ -19,7 +19,7 @@ import { normalizeInterpretationModelId } from './openai-models';
  * Legacy per-slot DB/env values are intentionally ignored so different product
  * surfaces cannot silently drift to different voices again.
  */
-export const UNIFIED_CONTENT_MODEL_SETTING_KEY = 'openai_content_model';
+export const UNIFIED_CONTENT_MODEL_SETTING_KEY = 'ai_content_model';
 export const DEFAULT_UNIFIED_CONTENT_MODEL = 'gpt-4.1';
 
 let cachedContentModel: string | null = null;
@@ -38,7 +38,9 @@ export const MODEL_SLOT_SETTING_KEYS: Record<ModelSlot, string> = {
 };
 
 function getUnifiedContentModelFromEnv(): string {
-  return normalizeInterpretationModelId(process.env.OPENAI_CONTENT_MODEL)
+  return normalizeInterpretationModelId(process.env.AI_CONTENT_MODEL)
+    || normalizeInterpretationModelId(process.env.OPENAI_CONTENT_MODEL)
+    || (process.env.DEEPSEEK_API_KEY ? 'deepseek-v4-flash' : null)
     || DEFAULT_UNIFIED_CONTENT_MODEL;
 }
 
@@ -46,7 +48,8 @@ export async function getUnifiedContentModel(): Promise<string> {
   if (cachedContentModel) return cachedContentModel;
 
   try {
-    const row = await db.app_settings.get(UNIFIED_CONTENT_MODEL_SETTING_KEY);
+    const row = await db.app_settings.get(UNIFIED_CONTENT_MODEL_SETTING_KEY)
+      || await db.app_settings.get('openai_content_model');
     const configured = normalizeInterpretationModelId(row?.value);
     if (configured) {
       cachedContentModel = configured;

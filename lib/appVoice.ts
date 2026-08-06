@@ -162,7 +162,8 @@ const APP_VOICE_CLICHE_PATTERNS: readonly RegExp[] = [
 ];
 
 export function getAppSystemVoice(language: 'ru' | 'en' = 'ru'): string {
-  return language === 'en' ? APP_SYSTEM_VOICE_EN : APP_SYSTEM_VOICE_RU;
+  const base = language === 'en' ? APP_SYSTEM_VOICE_EN : APP_SYSTEM_VOICE_RU;
+  return `${base}\n\nNever use the headings "Общий фон", "Личный гороскоп", "Главное", "Энергия дня", "Что делать", or "Вечер" (or their translations). The application supports the user without blindly agreeing: name positive opportunities as directly as risks. Keep titles short, exact, and occasionally witty without slang.`;
 }
 
 export function hasAppVoiceMysticism(text: string): boolean {

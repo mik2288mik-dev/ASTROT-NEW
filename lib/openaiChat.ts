@@ -1,4 +1,5 @@
 import type OpenAI from 'openai';
+import { isDeepSeekModel } from './contentAiClient';
 
 type CreateParams = OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming;
 type ChatMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
@@ -23,12 +24,17 @@ export function buildOpenAIChatParams(
   }
 ): CreateParams {
   const isReasoningModel = /^(gpt-5|o[1-9])/i.test(model);
+  const isDeepSeek = isDeepSeekModel(model);
   const params: CreateParams = {
     model,
     messages: opts.messages,
   };
   if (opts.jsonMode) params.response_format = { type: 'json_object' };
-  if (isReasoningModel) {
+  if (isDeepSeek) {
+    params.max_tokens = opts.maxTokens ?? 1800;
+    params.temperature = 1.1;
+    (params as any).thinking = { type: 'disabled' };
+  } else if (isReasoningModel) {
     params.max_completion_tokens = opts.maxTokens ?? 1800;
   } else {
     params.max_tokens = opts.maxTokens ?? 1800;
