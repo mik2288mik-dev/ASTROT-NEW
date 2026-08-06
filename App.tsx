@@ -1792,7 +1792,7 @@ const App: React.FC = () => {
                     aria-expanded={sideDrawerOpen}
                     onClick={() => setSideDrawerOpen(true)}
                 >
-                    <span aria-hidden="true" className="lumia-side-drawer-menu-icon"><span /><span /><span /></span>
+                    <span aria-hidden="true" className="lumia-side-drawer-menu-icon"><span /><span /></span>
                 </button>
             )}
             <main
