@@ -670,7 +670,16 @@ export const Dashboard = memo<DashboardProps>(({
         <div className="home-top-content">
           <div className="forecast-feed-date-zone">
             <p className="forecast-feed-date">
-              {dateLabel.split('\n').map((line) => <span key={line}>{line}</span>)}
+              {dateLabel.split('\n').map((line, index) => (
+                <span
+                  key={line}
+                  className={dateLabel.includes('\n') && index === 0
+                    ? 'forecast-feed-date-weekday'
+                    : 'forecast-feed-date-value'}
+                >
+                  {line}
+                </span>
+              ))}
             </p>
             <button
               type="button"
