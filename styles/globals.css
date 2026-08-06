@@ -434,6 +434,31 @@ body.theme-lumia-air #__next {
   color: #171717;
 }
 
+.lumia-side-drawer-periods {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 6px 40px;
+}
+
+.lumia-side-drawer-period {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 520;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.lumia-side-drawer-period.is-active {
+  background: #f1f1f1;
+  color: #171717;
+}
+
 .lumia-side-drawer-item:active,
 .lumia-side-drawer-profile:active {
   background: #eaeaea;

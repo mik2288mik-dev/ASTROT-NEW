@@ -50,6 +50,7 @@ type DashboardProps = {
   onCreateNatalChart?: () => void;
   onOpenSynastry?: () => void;
   onOpenHoroscope?: () => void;
+  requestedPeriod?: PersonalForecastPeriod;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -195,6 +196,7 @@ export const Dashboard = memo<DashboardProps>(({
   onCreateNatalChart,
   onOpenSynastry,
   onOpenHoroscope,
+  requestedPeriod,
   onRequestPremium,
   scrollRef,
 }) => {
@@ -212,6 +214,9 @@ export const Dashboard = memo<DashboardProps>(({
     ? buildPersonalForecastChartFingerprint(chartData)
     : 'none';
   const [activePeriod, setActivePeriod] = useState<PersonalForecastPeriod>('day');
+  useEffect(() => {
+    if (requestedPeriod) setActivePeriod(requestedPeriod);
+  }, [requestedPeriod]);
   const [greetingVariant] = useState(() => Math.floor(Math.random() * 3));
   const [periodStates, setPeriodStates] = useState<Record<PersonalForecastPeriod, PeriodState>>({
     day: emptyPeriodState(),
@@ -663,24 +668,6 @@ export const Dashboard = memo<DashboardProps>(({
           reserveSpace={false}
         />
         <div className="home-top-content">
-          <div
-            className="home-period-tabs"
-            role="tablist"
-            aria-label={language === 'ru' ? 'Период' : 'Period'}
-          >
-            {PERIOD_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`home-period-tab${tab.id === activePeriod ? ' is-active' : ''}`}
-                role="tab"
-                aria-selected={tab.id === activePeriod}
-                onClick={() => selectPeriod(tab.id)}
-              >
-                <span className="home-period-tab-label">{tab[language]}</span>
-              </button>
-            ))}
-          </div>
           <div className="forecast-feed-date-zone">
             <p className="forecast-feed-date">
               {dateLabel.split('\n').map((line) => <span key={line}>{line}</span>)}

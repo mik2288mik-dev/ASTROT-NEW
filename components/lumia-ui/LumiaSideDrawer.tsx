@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, HeartHandshake, Sparkles, Star } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
+import type { PersonalForecastPeriod } from '../../lib/personalForecastContract';
 
 interface LumiaSideDrawerProps {
     open: boolean;
@@ -8,6 +9,8 @@ interface LumiaSideDrawerProps {
     profile: UserProfile | null;
     onClose: () => void;
     onOpenDiary: () => void;
+    activePeriod: PersonalForecastPeriod;
+    onSelectPeriod: (period: PersonalForecastPeriod) => void;
     onOpenSignHoroscope: () => void;
     onOpenCompatibility: () => void;
     onOpenNatalChart: () => void;
@@ -20,6 +23,8 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     profile,
     onClose,
     onOpenDiary,
+    activePeriod,
+    onSelectPeriod,
     onOpenSignHoroscope,
     onOpenCompatibility,
     onOpenNatalChart,
@@ -30,7 +35,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
         { view: 'dashboard' as ViewState, label: isEnglish ? 'Diary' : 'Дневник', Icon: BookOpen, onClick: onOpenDiary },
         { view: 'horoscope' as ViewState, label: isEnglish ? 'Sign horoscope' : 'Гороскоп по знакам', Icon: Sparkles, onClick: onOpenSignHoroscope },
         { view: 'synastry' as ViewState, label: isEnglish ? 'Compatibility' : 'Совместимость', Icon: HeartHandshake, onClick: onOpenCompatibility },
-        { view: 'chart' as ViewState, label: isEnglish ? 'Chart' : 'Карта', Icon: Star, onClick: onOpenNatalChart },
+        { view: 'chart' as ViewState, label: isEnglish ? 'Natal chart' : 'Натальная карта', Icon: Star, onClick: onOpenNatalChart },
     ];
 
     return (
@@ -57,6 +62,20 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                             <span>{label}</span>
                         </button>
                     ))}
+                    <div className="lumia-side-drawer-periods">
+                        {(['day', 'week', 'month'] as const).map((period) => (
+                            <button
+                                key={period}
+                                type="button"
+                                className={`lumia-side-drawer-period${activePeriod === period ? ' is-active' : ''}`}
+                                aria-current={activePeriod === period ? 'page' : undefined}
+                                tabIndex={open ? 0 : -1}
+                                onClick={() => onSelectPeriod(period)}
+                            >
+                                {period === 'day' ? (isEnglish ? 'Today' : 'Сегодня') : period === 'week' ? (isEnglish ? 'Week' : 'Неделя') : (isEnglish ? 'Month' : 'Месяц')}
+                            </button>
+                        ))}
+                    </div>
                 </nav>
                 <button
                     type="button"

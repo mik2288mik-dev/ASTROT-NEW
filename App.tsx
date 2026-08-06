@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { UserProfile, NatalChartData, ViewState, NatalInterpretationReport } from './types';
+import type { PersonalForecastPeriod } from './lib/personalForecastContract';
 import {
     getProfile,
     saveProfile,
@@ -240,6 +241,7 @@ const App: React.FC = () => {
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
     const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
+    const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     // Когда задан — paywall показан после онбординга; close/«продолжить бесплатно» ведут сюда.
     const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
@@ -1660,6 +1662,11 @@ const App: React.FC = () => {
         setSideDrawerOpen(false);
         openBottomToday();
     }, [openBottomToday]);
+    const openDrawerPeriod = useCallback((period: PersonalForecastPeriod) => {
+        setDashboardPeriod(period);
+        setSideDrawerOpen(false);
+        openBottomToday();
+    }, [openBottomToday]);
     const openDrawerHoroscope = useCallback(() => {
         setSideDrawerOpen(false);
         openBottomZodiac();
@@ -1808,7 +1815,7 @@ const App: React.FC = () => {
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
                     aria-hidden={view !== 'dashboard'}
                 >
-                    <Dashboard {...dashboardProps} scrollRef={dashboardScrollRef} />
+                    <Dashboard {...dashboardProps} requestedPeriod={dashboardPeriod} scrollRef={dashboardScrollRef} />
                 </div>
                 {view === 'admin' ? (
                     <AdminApp onClose={() => { void handleBack(); }} />
@@ -1963,6 +1970,8 @@ const App: React.FC = () => {
                 profile={profile}
                 onClose={() => setSideDrawerOpen(false)}
                 onOpenDiary={openDrawerDiary}
+                activePeriod={dashboardPeriod}
+                onSelectPeriod={openDrawerPeriod}
                 onOpenSignHoroscope={openDrawerHoroscope}
                 onOpenCompatibility={openDrawerCompatibility}
                 onOpenNatalChart={openDrawerNatalChart}
