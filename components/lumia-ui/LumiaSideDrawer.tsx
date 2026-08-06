@@ -49,7 +49,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
             />
             <aside className="lumia-side-drawer" aria-label={isEnglish ? 'Main navigation' : 'Основная навигация'}>
                 <nav className="lumia-side-drawer-nav">
-                    {items.map(({ view, label, Icon, onClick }) => (
+                    {items.slice(0, 1).map(({ view, label, Icon, onClick }) => (
                         <button
                             key={view}
                             type="button"
@@ -76,6 +76,19 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                             </button>
                         ))}
                     </div>
+                    {items.slice(1).map(({ view, label, Icon, onClick }) => (
+                        <button
+                            key={view}
+                            type="button"
+                            className={`lumia-side-drawer-item${currentView === view ? ' is-active' : ''}`}
+                            aria-current={currentView === view ? 'page' : undefined}
+                            tabIndex={open ? 0 : -1}
+                            onClick={onClick}
+                        >
+                            <Icon aria-hidden="true" size={24} strokeWidth={1.8} />
+                            <span>{label}</span>
+                        </button>
+                    ))}
                 </nav>
                 <button
                     type="button"

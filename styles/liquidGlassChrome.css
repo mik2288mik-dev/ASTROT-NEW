@@ -37,12 +37,12 @@
     var(--fresh-page-x, 20px)
     13px;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.78);
-  background: var(--app-canvas) !important;
+  border-bottom: 0;
+  background: rgba(255, 255, 255, 0.62) !important;
   background-size: auto !important;
-  box-shadow: 0 8px 22px rgba(17, 24, 39, 0.05) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(1.55);
-  backdrop-filter: blur(22px) saturate(1.55);
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.035) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.45);
+  backdrop-filter: blur(22px) saturate(1.45);
   background-clip: padding-box;
   animation: none !important;
   isolation: isolate;
