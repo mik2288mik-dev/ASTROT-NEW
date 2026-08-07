@@ -13,7 +13,9 @@ import {
   slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
   type PersonalForecastPeriod,
+  resolvePersonalForecastWindow,
 } from '../../../../lib/personalForecastContract';
+import { generatePersonalForecastPackage } from '../../../../lib/personalForecastGeneration';
 import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
 
 export const config = { maxDuration: 180 };
@@ -80,9 +82,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
   const cacheInput = { ctx, period, periodKey };
+  const previewModel = req.method === 'POST' ? String(req.body?.previewModel || '').trim() : '';
+  const isPreview = previewModel === 'deepseek-v4-flash' || previewModel === 'gpt-5.6-luna';
+  if (previewModel && !isPreview) return res.status(400).json({ error: 'Invalid preview model', code: 'PREVIEW_MODEL_INVALID' });
+  if (isPreview && (!ctx.profile.isAdmin || period !== 'day')) return res.status(403).json({ error: 'Admin TODAY preview only', code: 'PREVIEW_FORBIDDEN' });
 
   try {
     const entitlement = await getPremiumEntitlementState(userId);
+    if (isPreview) {
+      let metrics = { model: previewModel, inputTokens: 0, outputTokens: 0, latencyMs: 0, validationPassed: false };
+      const forecast = await generatePersonalForecastPackage({
+        profile: ctx.profile,
+        chartData: ctx.chartData,
+        model: previewModel,
+        period,
+        window: resolvePersonalForecastWindow(period, periodKey, timezone),
+        onMetrics: (next) => { metrics = { ...metrics, ...next }; },
+      });
+      return res.status(200).json({ ...responsePayload(forecast, entitlement.isPremium, 'generated'), preview: metrics });
+    }
     const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
       if (req.method === 'GET') throw error;
       console.error(

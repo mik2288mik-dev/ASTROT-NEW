@@ -860,6 +860,7 @@ async function requestGeneratedFeed(input: {
   evidenceViews: Record<string, ForecastEvidenceView>;
   canonicalNatalReport?: CanonicalNatalReport;
   historyContext?: AstrologyHistoryContext | null;
+  onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
 }): Promise<GenerationResult> {
   const bases = buildDirectSectionBases(input.calculatedEvidence);
   if (!bases.length) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
@@ -894,6 +895,8 @@ async function requestGeneratedFeed(input: {
     attempt += 1
   ) {
     let content = '';
+    const startedAt = Date.now();
+    let usage = { inputTokens: 0, outputTokens: 0 };
     try {
       const response = await openai.chat.completions.create(buildOpenAIChatParams(input.model, {
         messages: [
@@ -916,6 +919,7 @@ async function requestGeneratedFeed(input: {
         jsonMode: true,
       }));
       content = response.choices[0]?.message?.content?.trim() || '';
+      usage = { inputTokens: response.usage?.prompt_tokens || 0, outputTokens: response.usage?.completion_tokens || 0 };
     } catch (error) {
       errors = [`writer request failed: ${error instanceof Error ? error.message : String(error)}`];
       continue;
@@ -951,6 +955,7 @@ async function requestGeneratedFeed(input: {
         errors = repetitionErrors;
         continue;
       }
+      input.onMetrics?.({ model: input.model, ...usage, latencyMs: Date.now() - startedAt, validationPassed: true });
       return {
         overview,
         sections,
@@ -958,6 +963,7 @@ async function requestGeneratedFeed(input: {
         validationStatus: 'valid',
       };
     }
+    input.onMetrics?.({ model: input.model, ...usage, latencyMs: Date.now() - startedAt, validationPassed: false });
     errors = validation.errors;
   }
 
@@ -997,6 +1003,7 @@ export async function generatePersonalForecastPackage(input: {
   window: PersonalForecastWindow;
   previousForecast?: PersonalForecastPackage | null;
   historyContext?: AstrologyHistoryContext | null;
+  onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
   onEvidenceCalculated?: (payload: {
     calculated: EvidenceCalculationResult;
     semanticFacts: ForecastSemanticFact[];
@@ -1030,6 +1037,7 @@ export async function generatePersonalForecastPackage(input: {
     evidenceViews: calculated.evidenceViews,
     canonicalNatalReport,
     historyContext: input.historyContext,
+    onMetrics: input.onMetrics,
   });
   const materializePackage = (
     result: GenerationResult,

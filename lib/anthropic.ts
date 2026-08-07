@@ -16,6 +16,7 @@ import type {
 } from '../types';
 import { getOpenAIModelForContent } from './appSettings';
 import { buildOpenAIChatParams } from './openaiChat';
+import { getContentAiClient } from './contentAiClient';
 
 let cachedClient: OpenAI | null = null;
 
@@ -43,6 +44,12 @@ export type ReadingCallOptions = {
   temperature?: number;
   /** Explicit model id that bypasses per-content resolution. */
   modelOverride?: string;
+  onMetrics?: (metrics: {
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    latencyMs: number;
+  }) => void;
 };
 
 function readingMessages(opts: ReadingCallOptions) {
@@ -53,8 +60,9 @@ function readingMessages(opts: ReadingCallOptions) {
 }
 
 export async function llmJson<T = any>(opts: ReadingCallOptions): Promise<T> {
-  const client = getClient();
   const model = opts.modelOverride || (await getOpenAIModelForContent(opts.model)).model;
+  const client = getContentAiClient(model) || getClient();
+  const startedAt = Date.now();
 
   const completion = await client.chat.completions.create(
     buildOpenAIChatParams(model, {
@@ -66,6 +74,12 @@ export async function llmJson<T = any>(opts: ReadingCallOptions): Promise<T> {
   );
 
   const text = completion.choices[0]?.message?.content || '{}';
+  opts.onMetrics?.({
+    model,
+    inputTokens: completion.usage?.prompt_tokens || 0,
+    outputTokens: completion.usage?.completion_tokens || 0,
+    latencyMs: Date.now() - startedAt,
+  });
   return parseModelJson<T>(text);
 }
 

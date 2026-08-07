@@ -181,6 +181,11 @@ ${JSON.stringify(natalPromptPayload({ ...compilation, sections: plans }), null, 
 export async function generateHumanBaseReport(
   profile: UserProfile,
   chart: NatalChartData,
+  options?: {
+    modelOverride?: string;
+    onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number }) => void;
+    onValidation?: (passed: boolean) => void;
+  },
 ): Promise<NatalInterpretationReport> {
   const language: Locale = profile.language === 'en' ? 'en' : 'ru';
   const compilation = compileNatalSemantics(chart, 'free', language);
@@ -195,8 +200,14 @@ export async function generateHumanBaseReport(
     },
     maxTokens: 2400,
     temperature: 0.25,
+    modelOverride: options?.modelOverride,
+    onMetrics: options?.onMetrics,
   });
-  return materializeBaseReport(raw, fallback, compilation);
+  const validation = validateGeneratedNatalPayload({ raw, plans: compilation.sections, reliability: compilation.reliability });
+  options?.onValidation?.(validation.errors.length === 0);
+  return validation.errors.length === 0
+    ? materializeBaseReport(raw, fallback, compilation)
+    : fallback;
 }
 
 export async function generateHumanPaidSection(
