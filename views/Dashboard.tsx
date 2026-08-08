@@ -214,7 +214,6 @@ export const Dashboard = memo<DashboardProps>(({
     ? buildPersonalForecastChartFingerprint(chartData)
     : 'none';
   const [activePeriod, setActivePeriod] = useState<PersonalForecastPeriod>('day');
-  const [previewModel, setPreviewModel] = useState<'deepseek-v4-flash' | 'gpt-5.6-luna' | null>(null);
   useEffect(() => {
     if (requestedPeriod) setActivePeriod(requestedPeriod);
   }, [requestedPeriod]);
@@ -304,7 +303,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   const loadPeriod = useCallback((
     period: PersonalForecastPeriod,
-    options?: { retry?: boolean; previewModel?: 'deepseek-v4-flash' | 'gpt-5.6-luna' },
+    options?: { retry?: boolean },
   ) => {
     if (!chartData || !hasChart) return;
     if (requestsRef.current[period]) return;
@@ -332,9 +331,7 @@ export const Dashboard = memo<DashboardProps>(({
     const request = (async () => {
       try {
         let next: PersonalForecastClientResult;
-        if (options?.previewModel) {
-          next = await loadPersonalForecast({ profile, chartData, chartId, period, periodKey, options: { force: true, previewModel: options.previewModel } });
-        } else if (options?.retry) {
+        if (options?.retry) {
           next = await loadPersonalForecast({
             profile,
             chartData,
@@ -716,22 +713,6 @@ export const Dashboard = memo<DashboardProps>(({
         </div>
       </div>
       <div className="forecast-feed-ambient" aria-hidden />
-
-      {profile.isAdmin && activePeriod === 'day' ? (
-        <div className="mx-auto flex max-w-[610px] items-center gap-2 px-6 pb-3 text-xs text-[#667085]">
-          {(['deepseek-v4-flash', 'gpt-5.6-luna'] as const).map((model) => (
-            <button
-              key={model}
-              type="button"
-              className={`rounded-full px-3 py-1.5 ${previewModel === model ? 'bg-[#e5e7eb] text-[#171717]' : 'bg-[#f7f7f7]'}`}
-              onClick={() => { setPreviewModel(model); loadPeriod('day', { previewModel: model }); }}
-            >
-              {model === 'deepseek-v4-flash' ? 'DeepSeek' : 'Luna'}
-            </button>
-          ))}
-          {state.result?.preview ? <span>{state.result.preview.inputTokens}/{state.result.preview.outputTokens} · {state.result.preview.latencyMs}ms · {state.result.preview.validationPassed ? 'OK' : 'FAIL'}</span> : null}
-        </div>
-      ) : null}
 
       {!hasChart ? (
         <section className="forecast-feed-status">

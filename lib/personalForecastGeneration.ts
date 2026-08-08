@@ -58,7 +58,7 @@ export function getPersonalForecastSystemPrompt(
 ): string {
   const task = language === 'ru'
     ? `Ты — живой, прямой и дерзкий астро-аналитик. Разбирай только переданные расчётные данные: транзиты, аспекты, дома и сроки. Пиши о реальной жизни — деньгах, делах, контактах и сбоях. Никакой эзотерики, «опор», «точек напряжения», коучинга или канцелярита. Дай точный расклад и ровно два конкретных практических совета: что сделать и чего избегать. Дерзость — в точном выводе, не в грубости и не в сленге.`
-    : `You are a lively, direct, bold astro analyst. Read only the supplied calculations: transits, aspects, houses, and timing. Write about real life: money, work, contacts, and disruptions. No esoteric language, coaching, corporate filler, or slang. Give a precise reading and exactly two concrete practical pointers: what to do and what to avoid. Bold means precise, never rude.`;
+    : `You are a lively, direct, bold astro analyst. Read only the supplied calculations: transits, aspects, houses, and timing. Write about real life: money, work, contacts, and disruptions. No esoteric language, coaching, corporate filler, or slang. Give a precise reading with practical conclusions when the calculation supports them. Bold means precise, never rude.`;
   return `${getAppSystemVoice(language)}\n\nFORECAST-SPECIFIC SYSTEM INSTRUCTION:\n${task}`;
 }
 
@@ -778,18 +778,11 @@ function _materializeSection(input: {
 function buildDirectSectionBases(
   evidence: EvidenceCalculationResult['evidence'],
 ): DirectSectionBasis[] {
-  return [...evidence]
-    .sort((left, right) => right.strength - left.strength)
-    .slice(0, 3)
-    .map((item, index) => ({
-      // The display contract reserves the semantic: namespace for every
-      // dynamic section, including sections written directly from evidence.
-      id: `semantic:direct:${item.id || index + 1}`,
-      evidenceIds: [item.id],
-      importance: Math.max(0, Math.min(100, Math.round(item.strength))),
-      visualTag: item.kind,
-      semanticFingerprint: `direct:${stableHash(`${item.id}:${item.kind}:${item.strength}`).toString(36)}`,
-    }));
+  const evidenceIds = evidence.map((item) => item.id).filter(Boolean);
+  return evidenceIds.length ? [{
+    id: 'direct:calculated-evidence', evidenceIds, importance: 100,
+    visualTag: 'calculated', semanticFingerprint: `direct:${stableHash(evidenceIds.join(':')).toString(36)}`,
+  }] : [];
 }
 
 function evidenceForBasis(

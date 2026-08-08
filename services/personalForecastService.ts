@@ -23,7 +23,6 @@ type LoadOptions = {
   cacheOnly?: boolean;
   force?: boolean;
   maxInProgressRetries?: number;
-  previewModel?: 'deepseek-v4-flash' | 'gpt-5.6-luna';
 };
 
 export type PersonalForecastClientResult = {
@@ -32,7 +31,6 @@ export type PersonalForecastClientResult = {
   lockedSectionIds: string[];
   periodLocked: boolean;
   source: 'local' | 'cache' | 'generated';
-  preview?: { model: 'deepseek-v4-flash' | 'gpt-5.6-luna'; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean };
 };
 
 export type PersonalForecastClientError = Error & {
@@ -185,7 +183,6 @@ function parseAccessPayload(
     lockedSectionIds: payload.lockedSectionIds,
     periodLocked: payload.periodLocked,
     source: sourceOverride || payload.source,
-    preview: (value as any).preview,
   };
   if (!isStoredResult(result)) throw invalidResponseError();
   if (
@@ -276,7 +273,6 @@ async function generate(input: {
   period: PersonalForecastPeriod;
   periodKey: string;
   maxInProgressRetries: number;
-  previewModel?: 'deepseek-v4-flash' | 'gpt-5.6-luna';
 }): Promise<PersonalForecastClientResult> {
   const response = await apiFetch('/api/content/forecast/personal', {
     method: 'POST',
@@ -288,7 +284,6 @@ async function generate(input: {
       chartId: input.chartId,
       period: input.period,
       periodKey: input.periodKey,
-      previewModel: input.previewModel,
     }),
   });
   if (response.status !== 202) {
@@ -343,9 +338,6 @@ export async function loadPersonalForecast(input: {
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
   const resolved = { ...input, periodKey };
-  if (input.options?.previewModel) {
-    return generate({ ...resolved, maxInProgressRetries: 0, previewModel: input.options.previewModel });
-  }
   const key = contextKey(resolved);
   const local = input.options?.force ? null : readStored(key);
   if (input.options?.cacheOnly && local) return local;

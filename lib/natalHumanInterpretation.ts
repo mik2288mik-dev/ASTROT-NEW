@@ -28,9 +28,11 @@ import { buildPersonalForecastChartFingerprint } from './personalForecastContrac
 
 type Locale = 'ru' | 'en';
 
-const DIRECT_BASE_SECTION_KEYS = [
-  'base_portrait', 'thinking', 'reactions', 'work_money', 'difficulties', 'inner_reactions', 'communication',
-] as const;
+// Rendering adapter only: the model chooses its own sections, while the legacy
+// report contract still needs stable client keys.
+const MATERIALIZED_NATAL_KEYS: InterpretationSection['key'][] = [
+  'base_portrait', 'thinking', 'reactions', 'love_relationships', 'work_money', 'strengths', 'difficulties',
+];
 
 type DirectNatalPayload = {
   sections?: Array<{
@@ -42,14 +44,14 @@ type DirectNatalPayload = {
 
 function directBaseFallback(profile: UserProfile, chart: NatalChartData): NatalInterpretationReport {
   const language: Locale = profile.language === 'en' ? 'en' : 'ru';
-  const emptySection = (key: typeof DIRECT_BASE_SECTION_KEYS[number]): InterpretationSection => ({
-    key,
-    title: key.replace(/_/g, ' '),
+  const emptySection: InterpretationSection = ({
+    key: 'base_portrait',
+    title: language === 'ru' ? 'Твоя карта' : 'Your chart',
     subtitle: '', access: 'free', isLocked: false, teaser: '',
     content: language === 'ru' ? 'Расчёт карты готов; текстовый разбор временно недоступен.' : 'The chart calculation is ready; the written reading is temporarily unavailable.',
     bullets: [], evidenceIds: [], ctaLabel: '',
   });
-  const freeSections = DIRECT_BASE_SECTION_KEYS.map(emptySection);
+  const freeSections = [emptySection];
   return {
     userName: profile.name || (language === 'en' ? 'friend' : 'друг'),
     birthData: { birthDate: profile.birthDate || '', birthTime: profile.birthTime || null, birthPlace: profile.birthPlace || '' },
@@ -64,9 +66,8 @@ function directBasePrompt(language: Locale, chart: NatalChartData): string {
   const languageRule = language === 'ru' ? 'Write in Russian and address the reader as «ты».' : 'Write in English and address the reader as "you".';
   return `You are an astrologer writing a natal reading from calculated chart data. ${languageRule}
 
-Return JSON only: {"sections":[{"id":"base_portrait","title":"...","blocks":[{"text":"...","evidence_ids":["..."]}]}]}.
-Return exactly these seven ids once, in this order: ${DIRECT_BASE_SECTION_KEYS.join(', ')}.
-Each section has one to three concise blocks. Choose the important links yourself from the supplied calculation. Do not invent placements, events, biography, diagnoses, or promises. Keep technical astrology out of prose. evidence_ids must refer only to existing calculated data paths or point names.
+Return JSON only: {"sections":[{"id":"...","title":"...","blocks":[{"text":"...","evidence_ids":["..."]}]}]}.
+Return 2 to 7 sections, with one to three concise blocks each. You choose the section count, titles, order, and important links yourself from the supplied calculation. Do not invent placements, events, biography, diagnoses, or promises. Keep technical astrology out of prose. evidence_ids must refer only to existing calculated data paths or point names.
 
 DIRECT CALCULATED NATAL CHART (authoritative; do not recalculate):
 ${JSON.stringify(chart, null, 2)}`;
@@ -77,18 +78,17 @@ function materializeDirectBaseReport(
   fallback: NatalInterpretationReport,
 ): { report: NatalInterpretationReport; valid: boolean } {
   const sections = Array.isArray(raw?.sections) ? raw.sections : [];
-  const byId = new Map(sections.map((section) => [typeof section?.id === 'string' ? section.id : '', section]));
+  if (sections.length < 2 || sections.length > 7) return { report: fallback, valid: false };
   const freeSections: InterpretationSection[] = [];
-  for (const key of DIRECT_BASE_SECTION_KEYS) {
-    const source = byId.get(key);
+  for (const [index, source] of sections.entries()) {
     const blocks = Array.isArray(source?.blocks) ? source.blocks : [];
     const text = blocks.map((block) => typeof block?.text === 'string' ? block.text.trim() : '').filter((value) => value.length >= 15).join('\n\n');
     if (!text) return { report: fallback, valid: false };
     const evidenceIds = blocks.flatMap((block) => Array.isArray(block?.evidence_ids) ? block.evidence_ids : [])
       .filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
     freeSections.push({
-      key,
-      title: typeof source?.title === 'string' && source.title.trim() ? source.title.trim().slice(0, 120) : key.replace(/_/g, ' '),
+      key: MATERIALIZED_NATAL_KEYS[index] || 'base_portrait',
+      title: typeof source?.title === 'string' && source.title.trim() ? source.title.trim().slice(0, 120) : '',
       subtitle: '', access: 'free', isLocked: false, teaser: '', content: text, bullets: [], evidenceIds: [...new Set(evidenceIds)], ctaLabel: '',
     });
   }

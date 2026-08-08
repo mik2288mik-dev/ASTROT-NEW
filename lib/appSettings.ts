@@ -20,7 +20,7 @@ import { normalizeInterpretationModelId } from './openai-models';
  * surfaces cannot silently drift to different voices again.
  */
 export const UNIFIED_CONTENT_MODEL_SETTING_KEY = 'ai_content_model';
-export const DEFAULT_UNIFIED_CONTENT_MODEL = 'gpt-4.1';
+export const DEFAULT_UNIFIED_CONTENT_MODEL = 'deepseek-v4-flash';
 
 let cachedContentModel: string | null = null;
 
@@ -46,6 +46,8 @@ function getUnifiedContentModelFromEnv(): string {
 
 export async function getUnifiedContentModel(): Promise<string> {
   if (cachedContentModel) return cachedContentModel;
+  cachedContentModel = DEFAULT_UNIFIED_CONTENT_MODEL;
+  return cachedContentModel;
 
   try {
     const row = await db.app_settings.get(UNIFIED_CONTENT_MODEL_SETTING_KEY)
@@ -53,14 +55,14 @@ export async function getUnifiedContentModel(): Promise<string> {
     const configured = normalizeInterpretationModelId(row?.value);
     if (configured) {
       cachedContentModel = configured;
-      return configured;
+      return configured || DEFAULT_UNIFIED_CONTENT_MODEL;
     }
   } catch {
     // DB unavailable — use environment/default fallback.
   }
 
   cachedContentModel = getUnifiedContentModelFromEnv();
-  return cachedContentModel;
+  return cachedContentModel || DEFAULT_UNIFIED_CONTENT_MODEL;
 }
 
 /** Backward-compatible resolver used by older generation code. */

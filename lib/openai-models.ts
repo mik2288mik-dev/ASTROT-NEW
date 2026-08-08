@@ -21,7 +21,6 @@ export const INTERPRETATION_MODEL_OPTIONS: Array<{ id: string; label: string }> 
   { id: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
   { id: 'gpt-5.4-nano', label: 'GPT-5.4 nano' },
   { id: 'gpt-5.5', label: 'GPT-5.5' },
-  { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
 ];
 
 const ALLOWED_IDS = new Set(INTERPRETATION_MODEL_OPTIONS.map((m) => m.id));

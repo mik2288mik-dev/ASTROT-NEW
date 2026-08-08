@@ -16,16 +16,6 @@ type HumanEndpoint = 'human-base' | 'human-section';
 export type HumanReadingResult<T> = {
   content: T;
   accessTier?: ContentAccessTier;
-  preview?: HumanPreviewMetrics;
-};
-
-export type HumanPreviewModel = 'deepseek-v4-flash' | 'gpt-5.6-luna';
-export type HumanPreviewMetrics = {
-  model: HumanPreviewModel;
-  inputTokens: number;
-  outputTokens: number;
-  latencyMs: number;
-  validationPassed: boolean;
 };
 
 export type HumanReadingError = Error & {
@@ -197,7 +187,7 @@ function ensureContent<T>(payload: any): HumanReadingResult<T> {
     error.status = 502;
     throw error;
   }
-  return { content, accessTier: payload.accessTier, preview: payload.preview };
+  return { content, accessTier: payload.accessTier };
 }
 
 async function getHuman<T>(
@@ -222,7 +212,6 @@ async function postHuman<T>(
     chartId?: number;
     sectionKey?: HumanPaidSectionKey;
     accessTier?: 'premium';
-    previewModel?: HumanPreviewModel;
   },
 ): Promise<HumanReadingResult<T>> {
   const response = await apiFetch(buildHumanUrl(endpoint, userId, options), {
@@ -236,7 +225,6 @@ async function postHuman<T>(
       chartId: options?.chartId,
       sectionKey: options?.sectionKey,
       accessTier: options?.accessTier,
-      previewModel: options?.previewModel,
     }),
   }, HUMAN_GENERATION_TIMEOUT_MS);
   if (!response.ok) throw await readHumanError(response, `Failed (${response.status})`);
@@ -275,14 +263,6 @@ export async function ensureHumanBaseReport(
     });
   baseReportInFlight.set(key, request);
   return request;
-}
-
-export async function loadHumanBaseReportPreview(
-  userId: string,
-  previewModel: HumanPreviewModel,
-  chartId?: number,
-): Promise<HumanReadingResult<NatalInterpretationReport>> {
-  return postHuman<NatalInterpretationReport>('human-base', userId, { chartId, previewModel });
 }
 
 export const loadHumanBaseReport = ensureHumanBaseReport;

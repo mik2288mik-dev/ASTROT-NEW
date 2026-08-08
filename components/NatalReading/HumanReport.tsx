@@ -18,9 +18,6 @@ import {
   getCachedHumanPaidSection,
   getHumanBaseReportCached,
   loadHumanPaidSection,
-  loadHumanBaseReportPreview,
-  type HumanPreviewMetrics,
-  type HumanPreviewModel,
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { hasActivePremium } from '../../lib/accessMatrix';
@@ -365,8 +362,6 @@ export const HumanReport: React.FC<Props> = ({
   const [sectionError, setSectionError] = useState<string | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
   const [expandedKey, setExpandedKey] = useState<HumanPaidSectionKey | null>(null);
-  const [previewModel, setPreviewModel] = useState<HumanPreviewModel | null>(null);
-  const [previewMetrics, setPreviewMetrics] = useState<HumanPreviewMetrics | null>(null);
 
   const isPremium = hasActivePremium(profile);
   const ru = profile.language !== 'en';
@@ -473,22 +468,6 @@ export const HumanReport: React.FC<Props> = ({
     setUnlockTarget(key);
   };
 
-  const selectPreviewModel = async (model: HumanPreviewModel) => {
-    if (!profile.isAdmin || !userId) return;
-    setPreviewModel(model);
-    setLoading(true);
-    try {
-      const preview = await loadHumanBaseReportPreview(userId, model, chartId);
-      setReport(preview.content);
-      setPreviewMetrics(preview.preview || null);
-      setError(null);
-    } catch (err) {
-      setError(formatError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Премиум: тап по карточке темы раскрывает/сворачивает её разбор; грузим текст при первом открытии.
   const toggleTopic = (key: HumanPaidSectionKey) => {
     if (expandedKey === key) { setExpandedKey(null); return; }
@@ -525,16 +504,6 @@ export const HumanReport: React.FC<Props> = ({
         </header>
 
         <div aria-live="polite">
-          {profile.isAdmin ? (
-            <div className="mb-5 flex flex-wrap items-center gap-2 text-xs text-[#667085]">
-              {(['deepseek-v4-flash', 'gpt-5.6-luna'] as const).map((model) => (
-                <button key={model} type="button" onClick={() => void selectPreviewModel(model)} className={`rounded-full px-3 py-1.5 ${previewModel === model ? 'bg-[#e5e7eb] text-[#171717]' : 'bg-[#f7f7f7]'}`}>
-                  {model === 'deepseek-v4-flash' ? 'DeepSeek' : 'Luna'}
-                </button>
-              ))}
-              {previewMetrics ? <span>{previewMetrics.model} · {previewMetrics.inputTokens}/{previewMetrics.outputTokens} · {previewMetrics.latencyMs}ms · {previewMetrics.validationPassed ? 'OK' : 'FAIL'}</span> : null}
-            </div>
-          ) : null}
           {loading ? (
             <section data-testid="human-report-loading-area" className="border-t border-[#eeeeee] py-5">
               <p className="rounded-[16px] bg-[#faf8fc] px-4 py-3 text-[13px] leading-relaxed text-[#6f6478]">
