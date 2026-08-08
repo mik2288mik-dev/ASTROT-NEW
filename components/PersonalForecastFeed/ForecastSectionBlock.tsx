@@ -43,44 +43,58 @@ function renderContentBlocks(
   activeAnchorId: string | null,
   onOpenExplanation: (anchorId: string) => void,
   language: 'ru' | 'en',
+  editorialStickerPath?: string | null,
 ): ReactNode {
+  const stickerAfterIndex = Math.min(1, section.contentBlocks.length - 1);
   return (
     <div className="forecast-feed-section-copy">
-      {section.contentBlocks.map((block) => {
+      {section.contentBlocks.map((block, index) => {
         const explanationAnchor = block.explanationAnchorId
           ? section.explanationAnchors.find(
               (anchor) => anchor.id === block.explanationAnchorId,
             )
           : null;
         return (
-          <p
-            key={block.id}
-            className={[
-              'forecast-feed-section-text',
-              block.role === 'lead' ? 'is-lead' : 'is-body',
-              block.role === 'action' ? 'is-takeaway' : '',
-            ].filter(Boolean).join(' ')}
-            data-editorial-role={block.role}
-          >
-            {block.text}
-            {explanationAnchor ? (
-              <button
-                type="button"
-                className={[
-                  'forecast-feed-inline-explanation-toggle',
-                  activeAnchorId === explanationAnchor.id ? 'is-expanded' : '',
-                ].filter(Boolean).join(' ')}
-                aria-label={language === 'ru'
-                  ? 'Показать, на чём основан вывод'
-                  : 'Show what this conclusion is based on'}
-                aria-haspopup="dialog"
-                aria-expanded={activeAnchorId === explanationAnchor.id}
-                onClick={() => onOpenExplanation(explanationAnchor.id)}
-              >
-                <Info size={15} strokeWidth={1.9} aria-hidden />
-              </button>
+          <React.Fragment key={block.id}>
+            <p
+              className={[
+                'forecast-feed-section-text',
+                block.role === 'lead' ? 'is-lead' : 'is-body',
+                block.role === 'action' ? 'is-takeaway' : '',
+              ].filter(Boolean).join(' ')}
+              data-editorial-role={block.role}
+            >
+              {block.text}
+              {explanationAnchor ? (
+                <button
+                  type="button"
+                  className={[
+                    'forecast-feed-inline-explanation-toggle',
+                    activeAnchorId === explanationAnchor.id ? 'is-expanded' : '',
+                  ].filter(Boolean).join(' ')}
+                  aria-label={language === 'ru'
+                    ? 'Показать, на чём основан вывод'
+                    : 'Show what this conclusion is based on'}
+                  aria-haspopup="dialog"
+                  aria-expanded={activeAnchorId === explanationAnchor.id}
+                  onClick={() => onOpenExplanation(explanationAnchor.id)}
+                >
+                  <Info size={15} strokeWidth={1.9} aria-hidden />
+                </button>
+              ) : null}
+            </p>
+            {editorialStickerPath && index === stickerAfterIndex ? (
+              <img
+                className="forecast-feed-editorial-sticker"
+                src={editorialStickerPath}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+              />
             ) : null}
-          </p>
+          </React.Fragment>
         );
       })}
     </div>
@@ -179,11 +193,9 @@ export function ForecastSectionBlock({
               setActiveAnchorId(anchorId);
             },
             language,
+            editorialStickerPath,
           )
         )}
-        {editorialStickerPath ? (
-          <img className="forecast-feed-editorial-sticker" src={editorialStickerPath} alt="" aria-hidden />
-        ) : null}
         {children}
       </div>
       <ForecastBottomSheet

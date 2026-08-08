@@ -53,9 +53,12 @@ describe('app auth providers and API security', () => {
       expect(source).toContain('requireAppUser(req, { allowGuest: true })');
       expect(source).toContain('getPremiumEntitlementState(userId)');
       expect(source).toContain("code: 'PREMIUM_REQUIRED'");
-      expect(source).toContain("accessTier: 'premium'");
+      expect(source).toContain('buildSignHoroscopeBatchLockKey');
       expect(source).not.toContain("'Cache-Control', 'public");
     }
+    expect(read('lib/horoscope/signGenerationLock.ts')).toContain(
+      "period === 'day' ? 'free' : 'premium'",
+    );
     expect(read('pages/api/content/forecast/personal.ts')).toContain('ensureValidContext');
     expect(read('pages/api/content/synastry/extended.ts')).toContain('requireAppUser');
     expect(read('lib/natalReading/apiHelper.ts')).toContain('requireAppUser');

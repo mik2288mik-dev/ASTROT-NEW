@@ -4,12 +4,10 @@ import type { UserProfile } from '../../types';
 import { computeMatrix } from '../../lib/matrixOfDestiny';
 import { getArcana, MATRIX_TITLE, MATRIX_SUBTITLE } from '../../lib/matrixArcana';
 import { toDateInputValue } from '../../lib/date-utils';
-import { selectMainEditorialSticker } from '../../lib/personalForecastVisuals';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
-import { EditorialSticker } from '../../components/EditorialSticker';
 import {
   EditorialEvidence,
   EditorialProse,
@@ -35,16 +33,6 @@ export function MatrixRoom({ profile, onBack }: Props) {
   const [noteOpen, setNoteOpen] = useState(false);
 
   const result = useMemo(() => (computedDate ? computeMatrix(computedDate, lang) : null), [computedDate, lang]);
-  const resultSticker = result && computedDate
-    ? selectMainEditorialSticker({
-        screenKey: 'matrix-result',
-        contentKey: computedDate,
-        userId: profile.id ? String(profile.id) : null,
-        topics: ['decisions', 'general'],
-        allowedMedia: ['associative', 'graphic', 'psychedelic-humor'],
-        slot: result.positions[0]?.arcana || 0,
-      })
-    : null;
   const calc = () => { lumiaSelectionHaptic(); setComputedDate(date); };
 
   const self = result?.positions.find((p) => p.key === 'self');
@@ -122,10 +110,6 @@ export function MatrixRoom({ profile, onBack }: Props) {
                 ) : null}
               </EditorialSummary>
             </motion.div>
-          ) : null}
-
-          {resultSticker ? (
-            <EditorialSticker asset={resultSticker} className="matrix-result-sticker" />
           ) : null}
 
           <div className="mtx-grid mtx-editorial-sections">

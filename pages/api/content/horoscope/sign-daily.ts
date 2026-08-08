@@ -7,12 +7,13 @@ import {
   normalizeZodiacKey,
 } from '../../../../lib/horoscope/signDaily';
 import {
-  buildContentGenerationLockKey,
   generationInProgressPayload,
   withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
+import { buildSignHoroscopeBatchLockKey } from '../../../../lib/horoscope/signGenerationLock';
+import { hasDatabaseUrl } from '../../../../lib/database-url';
 
-export const config = { maxDuration: 45 };
+export const config = { maxDuration: 90 };
 
 function readDate(req: NextApiRequest): string {
   const raw = String((req.method === 'GET' ? req.query.date : req.body?.date) || '').trim();
@@ -24,11 +25,6 @@ function readLanguage(req: NextApiRequest): Language {
   return raw === 'en' ? 'en' : 'ru';
 }
 
-function readStrict(req: NextApiRequest): boolean {
-  const raw = req.method === 'GET' ? req.query.strict : req.body?.strict;
-  return raw === true || raw === 'true' || raw === '1';
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -37,7 +33,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const sign = normalizeZodiacKey(String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''));
   const date = readDate(req);
   const language = readLanguage(req);
-  const strict = readStrict(req);
+
+  // Today is public Free content, but callers may only access the current
+  // Moscow day. Tomorrow is warmed through the authenticated cron path.
+  if (date !== getMoscowTodayKey()) {
+    return res.status(400).json({ error: 'PERIOD_NOT_CURRENT', code: 'PERIOD_NOT_CURRENT' });
+  }
 
   if (!sign) {
     return res.status(400).json({
@@ -54,23 +55,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ reading: cached, source: 'cache' });
   }
 
+  if (!hasDatabaseUrl()) {
+    return res.status(503).json({
+      error: 'CONTENT_CACHE_UNAVAILABLE',
+      code: 'CONTENT_CACHE_UNAVAILABLE',
+    });
+  }
+
   try {
     const lockResult = await withContentGenerationLock({
-      lockKey: buildContentGenerationLockKey({
-        userId: `sign:${sign}:${language}`,
-        accessTier: 'free',
-        contentSurface: 'forecast',
-        contentVariant: 'daily',
-        cacheKey: `sign_daily:${date}:${sign}:${language}`,
-      }),
-      operation: `sign-daily-${sign}-${language}`,
+      lockKey: buildSignHoroscopeBatchLockKey('day', date, language),
+      operation: `sign-daily-batch-${language}-${date}`,
       readCached: async () => {
         const cached = await getCachedSignDailyHoroscope(sign, date, language);
         return cached ? { value: cached, source: 'cache' } : null;
       },
-      generate: () => getOrGenerateSignDailyHoroscope(sign, date, language, {
-        allowStaticFallback: !strict,
-      }),
+      generate: () => getOrGenerateSignDailyHoroscope(sign, date, language),
     });
 
     if (lockResult.status === 'in_progress') {
@@ -82,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       source: lockResult.fromCache ? (lockResult.source || 'cache') : 'generated',
     });
   } catch (error: any) {
-    const status = error?.status === 503 ? 503 : 500;
+    const status = Number(error?.status) || 500;
     const code = error?.code || (status === 503 ? 'CONTENT_GENERATION_UNAVAILABLE' : 'SIGN_HOROSCOPE_FAILED');
     return res.status(status).json({
       error: code,

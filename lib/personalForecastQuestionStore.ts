@@ -247,10 +247,26 @@ async function usageWith(
 ): Promise<PersonalForecastQuestionUsage> {
   const result = await queryable.query(
     `SELECT
-       COUNT(*) FILTER (WHERE status <> 'rejected')::int AS answers_used,
-       COUNT(*) FILTER (WHERE source = 'custom')::int AS custom_used
-     FROM personal_forecast_questions
-     WHERE user_id = $1 AND usage_date = $2::date`,
+       (
+         SELECT COUNT(*) FILTER (WHERE status <> 'rejected')::int
+         FROM personal_forecast_questions
+         WHERE user_id = $1 AND usage_date = $2::date
+       ) AS answers_used,
+       (
+         SELECT COUNT(*) FILTER (
+           WHERE source = 'custom' AND status <> 'rejected'
+         )::int
+         FROM personal_forecast_questions
+         WHERE user_id = $1 AND usage_date = $2::date
+       ) + (
+         SELECT COUNT(*)::int
+         FROM astrology_messages AS message
+         JOIN astrology_threads AS thread ON thread.id = message.thread_id
+         WHERE message.user_id = $1
+           AND message.role = 'user'
+           AND thread.thread_kind = 'natal-question-v1'
+           AND message.content_payload ->> 'usageDate' = $2
+       ) AS custom_used`,
     [userId, usageDate],
   );
   return buildPersonalForecastQuestionUsage({

@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { getText } from '../constants';
+import { CosmicSheet } from './lumia-ui/CosmicSheet';
 
 interface PremiumPreviewProps {
   language: 'ru' | 'en';
@@ -63,53 +63,36 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClos
   const copy = COPY[language];
 
   return (
-    <div
-      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-lg flex items-center justify-center p-4"
-      style={{
-        paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) + 1rem)',
-        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 1rem)',
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-astro-bg w-full max-w-md rounded-2xl border border-astro-border p-6 relative overflow-hidden"
-      >
-        <div className="absolute -top-20 -right-20 w-56 h-56 bg-accent-gold/10 rounded-full blur-3xl pointer-events-none" aria-hidden />
-
+    <CosmicSheet
+      open
+      title={copy.title}
+      subtitle={copy.tagline}
+      closeLabel={copy.close}
+      className="premium-preview-cosmic"
+      contentClassName="premium-preview-cosmic-content"
+      onClose={onClose}
+      footer={(
         <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-astro-subtext hover:text-astro-text"
-          aria-label={copy.close}
+          type="button"
+          onClick={onPurchase}
+          className="premium-preview-cosmic-cta"
         >
-          ×
+          {getText(language, 'premium_preview.cta')}
         </button>
-
-        <h2 className="text-2xl font-bold font-serif text-astro-text mb-2 text-center">{copy.title}</h2>
-        <p className="text-center text-[10px] uppercase tracking-widest text-accent-gold">{copy.tagline}</p>
-        <p className="mt-3 mb-8 text-center text-sm leading-relaxed text-astro-subtext">{copy.subtitle}</p>
-
-        <div className="space-y-4 mb-8">
+      )}
+    >
+        <p className="premium-preview-cosmic-intro">{copy.subtitle}</p>
+        <div className="premium-preview-cosmic-features">
           {copy.features.map((feature) => (
-            <div key={feature.title} className="flex items-center gap-4 bg-astro-card p-3 rounded-lg border border-astro-border">
-              <div className="w-8 h-8 rounded-full bg-accent-gold/15 flex items-center justify-center text-[10px] font-semibold uppercase tracking-widest text-accent-gold shrink-0">
-                <span aria-hidden="true">•</span>
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-astro-text text-sm font-bold">{feature.title}</h4>
-                <p className="text-astro-subtext text-xs">{feature.desc}</p>
+            <div key={feature.title} className="premium-preview-cosmic-feature">
+              <span className="premium-preview-cosmic-mark" aria-hidden="true">•</span>
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.desc}</p>
               </div>
             </div>
           ))}
         </div>
-
-        <button
-          onClick={onPurchase}
-          className="w-full bg-accent-gold text-white py-4 rounded-full font-bold uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-md ring-1 ring-black/10"
-        >
-          {getText(language, 'premium_preview.cta')}
-        </button>
-      </motion.div>
-    </div>
+    </CosmicSheet>
   );
 };

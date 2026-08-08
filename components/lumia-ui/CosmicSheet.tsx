@@ -1,0 +1,207 @@
+import React, {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
+import { CosmicSurface } from './CosmicSurface';
+
+export type CosmicSheetProps = {
+  open: boolean;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  closeLabel?: string;
+  className?: string;
+  contentClassName?: string;
+  onClose: () => void;
+};
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+function classNames(...values: Array<string | undefined | false>): string {
+  return values.filter(Boolean).join(' ');
+}
+
+export function CosmicSheet({
+  open,
+  title,
+  subtitle,
+  children,
+  footer,
+  closeLabel = 'Close',
+  className,
+  contentClassName,
+  onClose,
+}: CosmicSheetProps) {
+  const [portalReady, setPortalReady] = useState(false);
+  const titleId = useId();
+  const subtitleId = useId();
+  const panelRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open || !portalReady || typeof document === 'undefined') return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const frame = window.requestAnimationFrame(() => {
+      closeButtonRef.current?.focus({ preventScroll: true });
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((element) => !element.hasAttribute('hidden'));
+      if (!focusable.length) {
+        event.preventDefault();
+        panel.focus({ preventScroll: true });
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !panel.contains(active))) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    };
+
+    const handleNativeBack = (event: Event) => {
+      const nativeEvent = event as CustomEvent<NativeBackEventDetail>;
+      if (nativeEvent.detail?.handled) return;
+      if (nativeEvent.detail) nativeEvent.detail.handled = true;
+      onCloseRef.current();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+      document.body.style.overflow = previousOverflow;
+      previousFocusRef.current?.focus({ preventScroll: true });
+      previousFocusRef.current = null;
+    };
+  }, [open, portalReady]);
+
+  if (!portalReady || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="cosmic-sheet-layer forecast-bottom-sheet-layer"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.18 }}
+        >
+          <motion.button
+            type="button"
+            className="cosmic-sheet-backdrop forecast-bottom-sheet-backdrop"
+            aria-label={closeLabel}
+            tabIndex={-1}
+            onClick={() => onCloseRef.current()}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+          <motion.div
+            className="cosmic-sheet-motion"
+            initial={reduceMotion ? false : { y: '100%' }}
+            animate={{ y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { y: '100%' }}
+            transition={reduceMotion
+              ? { duration: 0 }
+              : { type: 'spring', stiffness: 380, damping: 36 }}
+          >
+            <CosmicSurface
+              as="section"
+              ref={panelRef as React.Ref<HTMLElement>}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              aria-describedby={subtitle ? subtitleId : undefined}
+              className={classNames('cosmic-sheet-panel', className)}
+              planeClassName="cosmic-sheet-plane"
+              tabIndex={-1}
+              variant="sheet"
+            >
+              <div className="cosmic-sheet-handle forecast-bottom-sheet-handle" aria-hidden="true" />
+              <header className="cosmic-sheet-header forecast-bottom-sheet-header">
+                <div className="cosmic-sheet-heading forecast-bottom-sheet-heading">
+                  <h2 id={titleId} className="cosmic-sheet-title forecast-bottom-sheet-title">{title}</h2>
+                  {subtitle ? (
+                    <p id={subtitleId} className="cosmic-sheet-subtitle forecast-bottom-sheet-subtitle">{subtitle}</p>
+                  ) : null}
+                </div>
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  className="cosmic-sheet-close forecast-bottom-sheet-close"
+                  aria-label={closeLabel}
+                  onClick={() => onCloseRef.current()}
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path
+                      d="M5 5L15 15M15 5L5 15"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              </header>
+              <div className={classNames('cosmic-sheet-content', contentClassName)}>
+                {children}
+              </div>
+              {footer ? <footer className="cosmic-sheet-footer forecast-bottom-sheet-footer">{footer}</footer> : null}
+            </CosmicSurface>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>,
+    document.body,
+  );
+}

@@ -74,12 +74,12 @@ describe('card background UI wiring', () => {
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );
     expect(dashboard).not.toMatch(/home-day-hero|home-sphere-card|pd-reading-card/);
-    expect(natal).toContain('getZodiacEditorialSticker');
-    expect(natal).toContain('<EditorialSticker');
+    expect(natal).toContain('selectNatalEditorialSticker');
+    expect(natal).toContain('editorialSticker={natalSticker}');
     expect(compatibility).toContain('selectSynastryEditorialSticker');
     expect(compatibility).toContain('<EditorialSticker');
-    expect(matrix).toContain('selectMainEditorialSticker');
-    expect(matrix).toContain('<EditorialSticker');
+    expect(matrix).not.toContain('selectMainEditorialSticker');
+    expect(matrix).not.toContain('EditorialSticker');
     expect(natal).not.toContain('getUniversalCardBackground');
     expect(compatibility).not.toContain('getUniversalCardBackground');
     expect(matrix).not.toContain('getUniversalCardBackground');

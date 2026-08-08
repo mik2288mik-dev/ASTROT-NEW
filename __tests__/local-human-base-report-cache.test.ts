@@ -7,7 +7,7 @@ import {
   writeLocalHumanBaseReport,
   type HumanBaseReportCacheContext,
 } from '../lib/localHumanBaseReportCache';
-import { HUMAN_BASE_PROMPT_VERSION } from '../lib/natalHumanShared';
+import { NATAL_PERMANENT_FREE_PROMPT_VERSION } from '../lib/natalReading/permanentReport';
 
 const profile: UserProfile = {
   id: 'user-1', name: 'Owner', birthDate: '1990-01-02', birthTime: '03:04', birthPlace: 'Moscow',
@@ -54,14 +54,15 @@ describe('local human-base report cache', () => {
     writeLocalHumanBaseReport(profile, report, 42, context);
     const raw = window.localStorage.getItem(buildLocalHumanBaseReportCacheKey(profile, 42, context));
     expect(JSON.parse(raw as string)).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       ownerUserId: 'user-1',
+      language: 'ru',
       subjectScope: 'saved:42',
       chartAlias: 42,
       subjectName: 'Alex',
       inputHash: 'hash-Alex',
       calculationVersion: 'natal-v1',
-      promptVersion: HUMAN_BASE_PROMPT_VERSION,
+      promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
       report,
     });
     expect(readLocalHumanBaseReport(profile, 42, context)).toEqual(report);
@@ -84,6 +85,12 @@ describe('local human-base report cache', () => {
   it('does not collide saved people with different chart IDs', () => {
     writeLocalHumanBaseReport(profile, report, 42, savedContext('Alex'));
     expect(readLocalHumanBaseReport(profile, 43, savedContext('Alex'))).toBeNull();
+  });
+
+  it('does not reuse a permanent reading across languages', () => {
+    const context = savedContext('Alex');
+    writeLocalHumanBaseReport(profile, report, 42, context);
+    expect(readLocalHumanBaseReport({ ...profile, language: 'en' }, 42, context)).toBeNull();
   });
 
   it('clears only the requested subject scope', () => {

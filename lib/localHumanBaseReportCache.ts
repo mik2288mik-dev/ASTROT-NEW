@@ -1,9 +1,9 @@
 import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../types';
 import type { ChartSubjectType } from './chartAccessPolicy';
-import { HUMAN_BASE_PROMPT_VERSION } from './natalHumanShared';
+import { NATAL_PERMANENT_FREE_PROMPT_VERSION } from './natalReading/permanentReport';
 import { buildPersonalForecastChartFingerprint } from './personalForecastContract';
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const CACHE_PREFIX = `lumia:natal-human-base:v${SCHEMA_VERSION}`;
 
 export type HumanBaseReportSubjectIdentity = {
@@ -24,6 +24,7 @@ export type HumanBaseReportCacheContext = {
 type LocalHumanBaseReportEntry = {
   schemaVersion: typeof SCHEMA_VERSION;
   ownerUserId: string;
+  language: 'ru' | 'en';
   subjectScope: 'self' | `saved:${number}`;
   chartAlias: number | 'primary';
   subjectName: string;
@@ -72,6 +73,7 @@ function resolveCacheIdentity(
 
   return {
     ownerUserId: normalizeText(profile.id),
+    language: (profile.language === 'en' ? 'en' : 'ru') as 'ru' | 'en',
     subjectScope: (savedChartId != null ? `saved:${savedChartId}` : 'self') as 'self' | `saved:${number}`,
     chartAlias: chartId ?? 'primary' as number | 'primary',
     subjectName: normalizeText(subject.name),
@@ -97,6 +99,7 @@ export function buildLocalHumanBaseReportCacheKey(
   return [
     CACHE_PREFIX,
     keyPart(identity.ownerUserId),
+    keyPart(identity.language),
     keyPart(identity.subjectScope),
     keyPart(identity.chartAlias),
     keyPart(identity.subjectName),
@@ -106,7 +109,7 @@ export function buildLocalHumanBaseReportCacheKey(
     keyPart(identity.chartFingerprint),
     keyPart(identity.inputHash),
     keyPart(identity.calculationVersion),
-    keyPart(HUMAN_BASE_PROMPT_VERSION),
+    keyPart(NATAL_PERMANENT_FREE_PROMPT_VERSION),
   ].join(':');
 }
 
@@ -121,6 +124,7 @@ function isValidEntry(
   const identity = resolveCacheIdentity(profile, chartId, context);
   return value.schemaVersion === SCHEMA_VERSION
     && value.ownerUserId === identity.ownerUserId
+    && value.language === identity.language
     && value.subjectScope === identity.subjectScope
     && value.chartAlias === identity.chartAlias
     && value.subjectName === identity.subjectName
@@ -130,7 +134,7 @@ function isValidEntry(
     && value.chartFingerprint === identity.chartFingerprint
     && value.inputHash === identity.inputHash
     && value.calculationVersion === identity.calculationVersion
-    && value.promptVersion === HUMAN_BASE_PROMPT_VERSION
+    && value.promptVersion === NATAL_PERMANENT_FREE_PROMPT_VERSION
     && !!value.report
     && typeof value.report === 'object';
 }
@@ -180,7 +184,7 @@ export function writeLocalHumanBaseReport(
   const entry: LocalHumanBaseReportEntry = {
     schemaVersion: SCHEMA_VERSION,
     ...identity,
-    promptVersion: HUMAN_BASE_PROMPT_VERSION,
+    promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
     report,
     updatedAt: new Date().toISOString(),
   };
@@ -202,6 +206,7 @@ export function clearLocalHumanBaseReport(
   const prefix = [
     CACHE_PREFIX,
     keyPart(identity.ownerUserId),
+    keyPart(identity.language),
     keyPart(identity.subjectScope),
     keyPart(identity.chartAlias),
     '',

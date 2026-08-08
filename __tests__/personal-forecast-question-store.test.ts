@@ -177,6 +177,13 @@ describe('personal forecast question store', () => {
     expect(
       mock.queries.some((sql) => sql.includes('pg_advisory_xact_lock')),
     ).toBe(true);
+    expect(mock.client.query).toHaveBeenCalledWith(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      ['personal-forecast-question:1001:2026-07-27'],
+    );
+    expect(
+      mock.queries.some((sql) => sql.includes("thread.thread_kind = 'natal-question-v1'")),
+    ).toBe(true);
     expect(mock.queries).toContain('COMMIT');
     expect(mock.client.release).toHaveBeenCalledTimes(1);
   });

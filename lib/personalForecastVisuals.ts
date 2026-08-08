@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { selectMainEditorialSticker } from './personalForecastVisuals/editorialSelectors';
+import { selectDiaryEditorialSticker } from './personalForecastVisuals/editorialSelectors';
 import type { EditorialTopic } from './personalForecastVisuals/editorialTypes';
 import {
   PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION,
@@ -220,13 +220,10 @@ export function resolveForecastVisualScreen(requests: readonly ForecastVisualReq
     mercury: 'mercury',
   };
   const editorialAsset = visualRequest
-    ? selectMainEditorialSticker({
-        screenKey: 'personal-forecast',
+    ? selectDiaryEditorialSticker({
         contentKey: `${visualRequest.period}|${visualRequest.periodKey}`,
         userId: visualRequest.userId,
-        slot: 0,
         topics: themesFor(visualRequest).map((theme) => editorialTopicMap[theme]),
-        allowedMedia: ['photo'],
       })
     : null;
   for (const request of ordered) {
@@ -307,10 +304,15 @@ export const forecastSectionVisualStyle = forecastVisualStyle;
 
 export {
   NEWSPAPER_VISUAL_MANIFEST_VERSION,
+  EDITORIAL_PLACEMENT_POLICY,
   getNewspaperVisualCounts,
   getZodiacEditorialSticker,
+  selectCalmSynastryEditorialSticker,
+  selectDiaryEditorialSticker,
   selectMainEditorialSticker,
+  selectNatalEditorialSticker,
   selectSynastryEditorialSticker,
+  selectZodiacEditorialSticker,
 } from './personalForecastVisuals/editorialSelectors';
 export type {
   EditorialAssetBase,

@@ -8,11 +8,16 @@ import {
   NATAL_SEMANTIC_VERSION,
   PREMIUM_NATAL_SECTION_KEYS,
 } from './natalSemanticCompiler';
+import {
+  NATAL_PERMANENT_FREE_CACHE_KEY,
+  NATAL_PERMANENT_FREE_PROMPT_VERSION,
+} from './natalReading/permanentReport';
 
 export const HUMAN_INTERPRETATION_PROMPT_VERSION = withAppVoiceVersion('lumia-human-v2');
-export const HUMAN_BASE_PROMPT_VERSION = withAppVoiceVersion(`lumia-human-v7.${NATAL_SEMANTIC_VERSION}.free-complete`);
+/** Compatibility alias. The active base-report path is the direct permanent V2 report. */
+export const HUMAN_BASE_PROMPT_VERSION = NATAL_PERMANENT_FREE_PROMPT_VERSION;
 export const HUMAN_PAID_PROMPT_VERSION = withAppVoiceVersion(`lumia-human-v6.${NATAL_SEMANTIC_VERSION}.premium-depth`);
-export const HUMAN_BASE_CACHE_KEY = withAppVoiceCacheKey('human_v3.semantic.base');
+export const HUMAN_BASE_CACHE_KEY = NATAL_PERMANENT_FREE_CACHE_KEY;
 
 export const HUMAN_FREE_SECTION_KEYS = FREE_NATAL_SECTION_KEYS;
 

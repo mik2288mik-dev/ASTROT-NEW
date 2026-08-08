@@ -31,8 +31,10 @@ describe('E2E smoke flow contracts', () => {
 
   it('keeps Zodiac chart-free and slices personal forecast access server-side', () => {
     const signDaily = read('pages/api/content/horoscope/sign-daily.ts');
+    const signLocks = read('lib/horoscope/signGenerationLock.ts');
     const personal = read('pages/api/content/forecast/personal.ts');
-    expect(signDaily).toContain("accessTier: 'free'");
+    expect(signDaily).toContain("buildSignHoroscopeBatchLockKey('day'");
+    expect(signLocks).toContain("period === 'day' ? 'free' : 'premium'");
     expect(personal).toContain('getPremiumEntitlementState');
     expect(personal).toContain('slicePersonalForecastForAccess');
     expect(personal).toContain("accessTier: isPremium ? 'premium' : 'free'");

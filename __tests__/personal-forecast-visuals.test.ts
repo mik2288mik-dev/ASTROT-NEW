@@ -55,23 +55,26 @@ describe('personal forecast editorial visual resolver', () => {
     );
   });
 
-  it('assigns one stable newspaper photo to the overview and no image to text sections', () => {
-    const resolved = resolvePersonalForecastVisuals({ userId, forecast: feed() });
-    const overview = resolved.assignments.overview;
+  it('assigns at most one sparse sticker to the overview and none to text sections', () => {
     const manifestPaths = new Set(
       (mainManifest.items as Array<{ path: string }>).map((asset) => asset.path),
     );
+    const samples = Array.from({ length: 120 }, (_, index) => resolvePersonalForecastVisuals({
+      userId: `${userId}-${index}`,
+      forecast: feed(),
+    }));
+    const shown = samples.find((sample) => !!sample.assignments.overview.path);
+    const hidden = samples.find((sample) => !sample.assignments.overview.path);
 
-    expect(overview.path).toMatch(
-      /^\/assets\/forecast-feed\/editorial-stickers\/main\/photo\//,
-    );
-    expect(manifestPaths.has(overview.path as string)).toBe(true);
-    expect(overview.compositionTag).toBe('photo');
-    expect(sections.every((item) => resolved.assignments[item.id].path === null)).toBe(true);
-    expect(
-      Object.values(resolved.assignments).filter((assignment) => assignment.path),
-    ).toHaveLength(1);
-    expect(resolved.visualFallback).toBe(false);
+    expect(shown).toBeDefined();
+    expect(hidden).toBeDefined();
+    expect(manifestPaths.has(shown!.assignments.overview.path as string)).toBe(true);
+    for (const resolved of samples) {
+      expect(sections.every((item) => resolved.assignments[item.id].path === null)).toBe(true);
+      expect(Object.values(resolved.assignments).filter((assignment) => assignment.path).length)
+        .toBeLessThanOrEqual(1);
+      expect(resolved.visualFallback).toBe(!resolved.assignments.overview.path);
+    }
   });
 
   it('does not change the selected sticker on refresh', () => {
@@ -85,7 +88,10 @@ describe('personal forecast editorial visual resolver', () => {
       ...feed('2026-08-02'),
       overview: section('overview', 'overview', 'communication_decisions'),
     };
-    const resolved = resolvePersonalForecastVisuals({ userId, forecast: semanticFeed });
+    const resolved = Array.from({ length: 120 }, (_, index) => resolvePersonalForecastVisuals({
+      userId: `${userId}-semantic-${index}`,
+      forecast: semanticFeed,
+    })).find((sample) => !!sample.assignments.overview.path)!;
     const asset = (mainManifest.items as Array<{
       path: string;
       topics: string[];
@@ -95,11 +101,14 @@ describe('personal forecast editorial visual resolver', () => {
   });
 
   it('uses a soft background treatment and keeps a safe fallback', () => {
-    const resolved = resolvePersonalForecastVisuals({ userId, forecast: feed() });
+    const resolved = Array.from({ length: 120 }, (_, index) => resolvePersonalForecastVisuals({
+      userId: `${userId}-style-${index}`,
+      forecast: feed(),
+    })).find((sample) => !!sample.assignments.overview.path)!;
     const assignment = getForecastVisualAssignment(resolved, 'overview');
     const style = forecastVisualStyle(assignment, 'day');
 
-    expect(style['--forecast-section-image']).toContain('/editorial-stickers/main/photo/');
+    expect(style['--forecast-section-image']).toContain('/editorial-stickers/main/');
     expect(Number(style['--forecast-section-media-opacity'])).toBeGreaterThan(0);
     expect(Number(style['--forecast-section-media-opacity'])).toBeLessThan(0.6);
     expect(Number(style['--forecast-section-media-saturation'])).toBeLessThan(0.8);

@@ -6,36 +6,37 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('human report local-cache flow', () => {
   const source = read('components/NatalReading/HumanReport.tsx');
+  const app = read('App.tsx');
 
-  it('uses local human-base synchronously before showing a loading state', () => {
-    expect(source).toContain('const initialReport = preloadedReport');
-    expect(source).toContain('readLocalHumanBaseReportWithFallback(profile, chartId, cacheContext)');
-    expect(source).toContain('const [loading, setLoading] = useState(!initialReport)');
+  it('uses the chart-scoped local human-base synchronously before showing a loading state', () => {
+    expect(app).toContain('const cacheContext = { chartData: targetChartData || null };');
+    expect(app).toContain('readLocalHumanBaseReportWithFallback(targetProfile, targetChartId, cacheContext)');
+    expect(source).toContain('const initialBase = isNatalPermanentFreeReport(preloadedReport)');
+    expect(source).toContain('const [loading, setLoading] = useState(!initialBase)');
   });
 
-  it('does not clear an existing report when chartId resolves and refreshes quietly', () => {
-    expect(source).not.toContain('setReport(null)');
-    expect(source).toContain('} else if (!report) {');
-    expect(source).toContain('A chartId resolution (primary -> numeric ID) must only refresh the text quietly.');
+  it('keeps language-specific service caches and only clears text when language changes', () => {
+    expect(source).toContain('getHumanBaseReportCached(userId, chartId, language)');
+    expect(source).toContain('const languageChanged = baseLanguageRef.current !== language;');
+    expect(source).toContain('else if (languageChanged) setReport(null);');
   });
 
-  it('writes every successful human-base ensure result to local cache', () => {
-    expect(source).toContain('writeLocalHumanBaseReport(profile, nextReport, chartId, cacheContext)');
+  it('writes server cache and background generation results with chart context', () => {
+    expect(app).toContain('writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId, cacheContext)');
+    expect(app).toContain('writeLocalHumanBaseReport(targetProfile, report, chartId, {');
+    expect(app).toContain('chartData: reportChartData');
   });
 
-  it('keeps paid map sections click-only on initial render', () => {
-    expect(source).toContain('HUMAN_MAP_SECTION_KEYS remain click-only below and never trigger generation here.');
-    // Премиум-карточки тем грузят разбор только по тапу (toggleTopic), не на рендере.
-    expect(source).toMatch(/onToggle=\{\(\) => toggleTopic\(key\)\}/);
-    expect(source).toMatch(/const toggleTopic[\s\S]*if \(!paidSections\[key\]\) void openPaidSection\(key\)/);
-    expect(source).not.toMatch(/useEffect\([\s\S]*HUMAN_MAP_SECTION_KEYS\.map[\s\S]*loadHumanPaidSection/);
+  it('loads one cohesive Premium report instead of the legacy section map', () => {
+    expect(source).toContain('ensureHumanPremiumReport(userId, chartId, language)');
+    expect(source).not.toContain('HUMAN_MAP_SECTION_KEYS');
+    expect(source).not.toContain('loadHumanPaidSection');
   });
 
   it('persists App prefetch results and clears local reports with chart invalidation', () => {
-    const app = read('App.tsx');
     const charts = read('views/MyCharts.tsx');
-    expect(app).toContain('writeLocalHumanBaseReport(targetProfile, report, chartId)');
-    expect(app).toContain('writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId)');
+    expect(app).toContain('writeLocalHumanBaseReport(targetProfile, report, chartId, {');
+    expect(app).toContain('writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId, cacheContext)');
     expect(app).toContain('clearLocalHumanBaseReport(fullProfile, primaryChartId)');
     expect(charts).toContain('clearLocalHumanBaseReport(profile, chart.id, {');
   });
@@ -57,7 +58,7 @@ describe('human report local-cache flow', () => {
     // («большая тройка» + «Карта в цифрах»), а HumanReport показывает мягкое сообщение загрузки.
     const magazine = read('views/v2/NatalMagazine.tsx');
     expect(magazine).toContain('natal-big3');
-    expect(source).toContain('Основные данные карты уже готовы. Подгружаем текстовый разбор ниже.');
+    expect(source).toContain('Подготавливаем постоянный разбор карты.');
     expect(source).not.toContain('Загружаем интерпретацию карты');
     expect(source).not.toContain('Array.from({ length: 5 })');
   });

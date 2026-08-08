@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { ForecastDailyReading, NatalChartData, UserProfile } from '../../types';
+import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
 import { getCachedDailySignHoroscope, ensureDailySignHoroscope } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
 import { getMoscowTodayKey } from '../../lib/date-utils';
@@ -78,7 +78,7 @@ export function HoroscopeStories({
   }, [profile.selectedZodiacSign, chartData]);
 
   const [sign, setSign] = useState<string | null>(initialSign);
-  const [reading, setReading] = useState<ForecastDailyReading | null>(null);
+  const [reading, setReading] = useState<SignHoroscopeReadingV2 | null>(null);
   const [advanceSeq, setAdvanceSeq] = useState(0);
 
   useEffect(() => { if (open) setSign(initialSign); }, [open, initialSign]);

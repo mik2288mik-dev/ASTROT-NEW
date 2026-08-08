@@ -6,21 +6,22 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Horoscope product flow', () => {
-  it('keeps sign reader distinct from personal daily and opens a selected sign from the 3 by 4 grid', () => {
+  it('auto-opens the own sign and keeps all 12 signs one tap away', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
     const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
     const styles = read('styles/zodiacReader.css');
     expect(ZODIAC_KEYS).toHaveLength(12);
     expect(source).toContain('ZodiacSignGrid');
-    expect(source).toContain('setHasReaderSelection(true)');
+    expect(source).toContain('const [signIndex, setSignIndex] = useState(initialIndex)');
+    expect(source).toContain('useEffect(() => setSignIndex(initialIndex), [initialIndex])');
+    expect(source).toContain("normalizeZodiacKey(String(chartData?.sun?.sign || ''))");
+    expect(source.indexOf('const calculated =')).toBeLessThan(source.indexOf('calculated || fromBirth'));
+    expect(source).not.toContain('hasReaderSelection');
     expect(picker).toContain('signs.map');
-    expect(picker).toContain('onClick={() => pick(sign)}');
-    expect(picker).toContain('onPick(sign)');
-    expect(picker).toContain('setExpanded(false)');
-    expect(picker).toContain('setExpanded(true)');
-    expect(picker).toContain('ZodiacIllustration');
-    expect(picker).toContain('Нажми — гороскоп на сегодня откроется сразу');
-    expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(picker).toContain('onClick={() => onPick(sign)}');
+    expect(picker).not.toContain('setExpanded');
+    expect(picker).toContain('zodiac-sign-picker--persistent');
+    expect(styles).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
     expect(source).toContain('horo-reader-controls');
     expect(source).toContain('horo-reader-article');
     expect(source).toContain('horo-reader-headline');
@@ -34,6 +35,8 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('ensureWeeklySignHoroscope');
     expect(source).toContain('ensureMonthlySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
+    expect(source).toContain('reading.innerState.text');
+    expect(source).toContain('selectZodiacEditorialSticker');
     expect(source).not.toContain('drag=');
     expect(source).not.toContain("style={{ transform: 'rotate(-2deg)' }}");
     expect(source).not.toContain('scrollIntoView');
@@ -63,9 +66,12 @@ describe('Horoscope product flow', () => {
 
   it('caches weekly sign content in shared content_cache scope', () => {
     const weekly = read('lib/horoscope/signWeekly.ts');
-    expect(weekly).toContain("content_type = 'sign_weekly_horoscope'");
-    expect(weekly).toContain("VALUES ('sign_weekly_horoscope'");
-    expect(weekly).not.toContain('user_id =');
-    expect(weekly).not.toContain('chart_id =');
+    const cache = read('lib/horoscope/signCache.ts');
+    expect(weekly).toContain("getCachedSignHoroscope('week'");
+    expect(weekly).toContain("getOrGenerateSignHoroscope('week'");
+    expect(cache).toContain("return 'sign_weekly_horoscope'");
+    expect(cache).toContain("VALUES ($1, $2, $3, $4, 'pro'");
+    expect(cache).not.toContain('WHERE user_id =');
+    expect(cache).not.toContain('WHERE chart_id =');
   });
 });

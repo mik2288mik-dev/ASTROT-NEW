@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles } from 'lucide-react';
-import type { ForecastDailyReading } from '../../types';
+import { Sparkles } from 'lucide-react';
+import type { SignHoroscopeReadingV2 } from '../../types';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { getCachedDailySignHoroscope, ensureDailySignHoroscope } from '../../services/astrologyService';
+import { CosmicSheet } from './CosmicSheet';
 
 type DaySheetProps = {
   /** ISO key of the open day, or null when the sheet is closed. */
@@ -31,7 +30,7 @@ export function DaySheet({
   const isFuture = !!dateKey && dateKey > todayKey;
   const locked = !!dateKey && !isPremium && !isToday;
 
-  const [reading, setReading] = useState<ForecastDailyReading | null>(null);
+  const [reading, setReading] = useState<SignHoroscopeReadingV2 | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -57,56 +56,19 @@ export function DaySheet({
     ? (language === 'ru' ? 'День впереди' : 'Day ahead')
     : (language === 'ru' ? 'Гороскоп на день' : 'Daily horoscope');
 
-  if (typeof document === 'undefined') return null;
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-[120] flex items-end justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <motion.div
-            className="absolute inset-0 bg-black/45"
-            onClick={onClose}
-            aria-hidden="true"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            className="relative flex max-h-[88dvh] w-full max-w-[30rem] flex-col overflow-y-auto rounded-t-mono-card bg-mono-white px-5 pt-3 font-sans"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 360, damping: 34 }}
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-mono-muted">
-                  {dateKey ? formatDisplayDate(dateKey, language) : ''}
-                </p>
-                <h3 className="mt-1 font-lumiaHome text-[22px] font-bold text-mono-ink">{heading}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label={language === 'ru' ? 'Закрыть' : 'Close'}
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-mono-plate text-mono-ink"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
+  return (
+    <CosmicSheet
+      open={open}
+      title={heading}
+      subtitle={dateKey ? formatDisplayDate(dateKey, language) : undefined}
+      closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
+      className="day-sheet-cosmic"
+      contentClassName="day-sheet-cosmic-content"
+      onClose={onClose}
+    >
             {locked ? (
-              <div className="mt-4">
-                <p className="text-[14px] leading-relaxed text-mono-muted">
+              <div className="day-sheet-state">
+                <p>
                   {language === 'ru'
                     ? 'Гороскоп на любой день — в Premium. Сегодняшний всегда открыт.'
                     : 'Any-day horoscope is in Premium. Today is always free.'}
@@ -114,47 +76,37 @@ export function DaySheet({
                 <button
                   type="button"
                   onClick={onRequestPremium}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-mono-pill bg-mono-black py-3.5 text-[14px] font-bold text-white"
+                  className="day-sheet-primary-action"
                 >
                   <Sparkles size={16} />
                   {language === 'ru' ? 'Открыть Premium' : 'Unlock Premium'}
                 </button>
               </div>
             ) : isFuture ? (
-              <p className="mt-4 rounded-[16px] bg-black/[0.04] p-4 text-[14px] leading-relaxed text-[#50465E]">
+              <p className="day-sheet-state">
                 {language === 'ru'
                   ? 'Прогноз на этот день появится, когда он наступит.'
                   : 'The forecast appears once the day arrives.'}
               </p>
             ) : loading ? (
-              <div className="mt-4 space-y-2" aria-busy="true">
-                <div className="h-4 w-4/5 animate-pulse rounded-full bg-black/10" />
-                <div className="h-3 w-full animate-pulse rounded-full bg-black/10" />
-                <div className="h-3 w-3/4 animate-pulse rounded-full bg-black/10" />
+              <div className="day-sheet-loading" aria-busy="true">
+                <div />
+                <div />
+                <div />
               </div>
             ) : reading ? (
-              <div className="mt-4">
+              <div className="day-sheet-reading">
                 {reading.headline ? (
-                  <h4 className="font-lumiaHome text-[18px] font-bold leading-snug text-[#1E1230]">{reading.headline}</h4>
+                  <h4>{reading.headline}</h4>
                 ) : null}
-                {reading.summary ? (
-                  <p className="mt-2 text-[14px] leading-relaxed text-[#50465E]">{reading.summary}</p>
-                ) : null}
-                {reading.advice?.slice(0, 2).map((item) => (
-                  <div key={item} className="mt-2 rounded-[14px] border border-black/[0.06] bg-white px-4 py-3 text-[13px] leading-relaxed text-[#3D3D3D]">
-                    {item}
-                  </div>
-                ))}
+                <p>{reading.mood.text}</p>
+                <div className="day-sheet-advice">{reading.advice.text}</div>
               </div>
             ) : (
-              <p className="mt-4 rounded-[14px] bg-black/[0.04] p-4 text-[13px] text-[#68646e]">
+              <p className="day-sheet-state">
                 {language === 'ru' ? 'Контент готовится. Загляни чуть позже.' : 'Content is being prepared. Check back shortly.'}
               </p>
             )}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body,
+    </CosmicSheet>
   );
 }

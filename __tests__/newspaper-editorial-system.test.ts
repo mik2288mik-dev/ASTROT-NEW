@@ -68,13 +68,16 @@ describe('newspaper editorial asset system', () => {
     const matrix = read('views/v2/MatrixRoom.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
-    expect(horoscope).toContain('getZodiacEditorialSticker');
-    expect(natal).toContain('getZodiacEditorialSticker');
+    expect(horoscope).toContain('selectZodiacEditorialSticker');
+    expect(natal).toContain('selectNatalEditorialSticker');
     expect(compatibility).toContain('selectSynastryEditorialSticker');
-    expect(matrix).toContain('selectMainEditorialSticker');
-    expect(onboarding).toContain('selectMainEditorialSticker');
-    for (const source of [horoscope, natal, compatibility, matrix, onboarding]) {
+    for (const source of [horoscope, compatibility]) {
       expect(source).toContain('EditorialSticker');
+    }
+    expect(natal).toContain('editorialSticker={natalSticker}');
+    for (const source of [matrix, onboarding]) {
+      expect(source).not.toContain('selectMainEditorialSticker');
+      expect(source).not.toContain('EditorialSticker');
     }
   });
 
@@ -93,7 +96,7 @@ describe('newspaper editorial asset system', () => {
     expect(component).toContain("'--editorial-sticker-ratio'");
     expect(component).toContain('data-editorial-orientation');
     expect(styles).toContain('aspect-ratio: var(--editorial-sticker-ratio, auto)');
-    expect(styles).toContain('width: clamp(6rem, 26vw, 8.5rem)');
+    expect(styles).toContain('width: clamp(5rem, 22vw, 7.5rem)');
     expect(styles).not.toContain('width: min(100%, 28rem)');
     expect(optimizer).toContain('const MAX_EDGE = 512');
     expect(optimizer).toContain("format: 'webp'");

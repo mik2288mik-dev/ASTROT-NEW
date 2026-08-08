@@ -6,14 +6,13 @@ import {
   saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import {
-  buildHumanBaseFallback,
-  buildHumanInputHash,
-  generateHumanBaseReport,
-} from '../../../../lib/natalHumanInterpretation';
-import {
-  HUMAN_BASE_CACHE_KEY,
-  HUMAN_BASE_PROMPT_VERSION,
-} from '../../../../lib/natalHumanShared';
+  buildPermanentNatalCacheKey,
+  buildPermanentFreeFallback,
+  buildPermanentNatalInputHash,
+  NATAL_PERMANENT_FREE_CACHE_KEY,
+  NATAL_PERMANENT_FREE_PROMPT_VERSION,
+} from '../../../../lib/natalReading/permanentReport';
+import { generatePermanentNatalFreeReport } from '../../../../lib/natalReading/permanentGeneration';
 import {
   buildContentGenerationLockKey,
   generationInProgressPayload,
@@ -23,22 +22,29 @@ import {
 export const config = { maxDuration: 90 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  }
   const ready = await ensureValidContext(req, res, { allowGuest: true });
   if (!ready) return;
   const { userId, ctx } = ready;
 
-  const inputHash = buildHumanInputHash({
+  const inputHash = buildPermanentNatalInputHash({
     profile: ctx.profile,
     chartData: ctx.chartData!,
-    promptVersion: HUMAN_BASE_PROMPT_VERSION,
+    tier: 'free',
+    promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
   });
+  const language = ctx.profile.language === 'en' ? 'en' : 'ru';
+  const cacheKey = buildPermanentNatalCacheKey(NATAL_PERMANENT_FREE_CACHE_KEY, language);
 
   const cacheOpts = {
     accessTier: 'free' as const,
     contentVariant: 'anchor' as const,
-    cacheKey: HUMAN_BASE_CACHE_KEY,
+    cacheKey,
     inputHash,
-    promptVersion: HUMAN_BASE_PROMPT_VERSION,
+    promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
     isPersistent: true,
   };
 
@@ -48,11 +54,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!cached) {
       return res.status(404).json({ error: 'NOT_FOUND', code: 'HUMAN_BASE_NOT_READY' });
     }
-    return res.status(200).json({ interpretation: cached, source: 'human_v3_semantic' });
+    return res.status(200).json({ interpretation: cached, source: 'natal_permanent_free_v2' });
   }
 
   if (cached) {
-    return res.status(200).json({ interpretation: cached, source: 'human_v3_semantic' });
+    return res.status(200).json({ interpretation: cached, source: 'natal_permanent_free_v2' });
   }
 
   try {
@@ -63,16 +69,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         accessTier: 'free',
         contentSurface: 'natal',
         contentVariant: 'anchor',
-        cacheKey: HUMAN_BASE_CACHE_KEY,
-        promptVersion: HUMAN_BASE_PROMPT_VERSION,
+        cacheKey,
+        promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
       }),
       operation: 'natal-human-base-generation',
       readCached: async () => {
         const again = await getCachedReading<NatalInterpretationReport>(ctx, cacheOpts);
-        return again ? { value: again, source: 'human_v3_semantic' } : null;
+        return again ? { value: again, source: 'natal_permanent_free_v2' } : null;
       },
       generate: async () => {
-        const report = await generateHumanBaseReport(ctx.profile, ctx.chartData!);
+        const report = await generatePermanentNatalFreeReport(ctx.profile, ctx.chartData!);
         return saveReading(ctx, cacheOpts, report);
       },
     });
@@ -83,11 +89,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       interpretation: lockResult.value,
-      source: lockResult.fromCache ? (lockResult.source || 'human_v3_semantic') : 'generated',
+      source: lockResult.fromCache ? (lockResult.source || 'natal_permanent_free_v2') : 'generated',
     });
   } catch (error) {
     console.error('[natal/human-base] generation failed:', error instanceof Error ? error.message : error);
-    const fallback = buildHumanBaseFallback(ctx.profile, ctx.chartData!);
+    const fallback = buildPermanentFreeFallback(ctx.profile, ctx.chartData!);
     const saved = await saveReading(
       ctx,
       {

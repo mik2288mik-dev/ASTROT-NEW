@@ -17,7 +17,7 @@ export type GeneratedContentType =
 export type AiContentModelTier = 'fast' | 'main' | 'deep';
 export type ContentCacheScope = 'shared' | 'user_chart' | 'chart_version';
 export type ContentCacheTtl = '24h' | '7d' | '30d' | 'forever' | 'forever_until_chart_changes';
-export type GenerationPolicy = 'once_per_day' | 'once_per_week' | 'once_per_chart_version' | 'explicit_only';
+export type GenerationPolicy = 'once_per_day' | 'once_per_week' | 'once_per_month' | 'once_per_chart_version' | 'explicit_only';
 export type ContentPlacement = 'push' | 'home' | 'horoscope' | 'natal' | 'synastry' | 'report';
 export type NatalSectionKey =
   | 'basic_identity'
@@ -57,19 +57,19 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
     style: 'Текст должен целиком помещаться в одну карточку.', placements: ['home'], generationPolicy: 'once_per_day',
   },
   sign_daily_horoscope: {
-    type: 'sign_daily_horoscope', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 100, max: 130 },
-    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'sign_daily_horoscope.v4', purpose: 'Общий гороскоп по знаку на день',
-    style: 'Один фокус дня, без перечисления любви, денег и здоровья.', placements: ['horoscope'], generationPolicy: 'once_per_day', batchSize: 12,
+    type: 'sign_daily_horoscope', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 110, max: 180 },
+    cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'sign_daily_horoscope.v5', purpose: 'Гороскоп по знаку на день из полного Swiss-дайджеста',
+    style: 'Короткий срез дня: отношения, дела, внутреннее состояние и конкретный совет, каждый вывод с evidence id.', placements: ['horoscope'], generationPolicy: 'once_per_day', batchSize: 12,
   },
   sign_weekly_horoscope: {
-    type: 'sign_weekly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 0, max: 150 },
-    cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v4', purpose: 'Общий гороскоп по знаку на неделю',
-    style: 'Одна ясная тема недели, конкретный разбор и до трёх разных ориентиров без повторов и фатализма.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
+    type: 'sign_weekly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 150, max: 230 },
+    cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v5', purpose: 'Гороскоп по знаку на неделю из полного Swiss-дайджеста',
+    style: 'Главный вектор и разные фокусы недели без семи дневных пересказов; каждый вывод с evidence id.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
   },
   sign_monthly_horoscope: {
-    type: 'sign_monthly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 0, max: 165 },
-    cacheTtl: '30d', cacheScope: 'shared', promptVersion: 'sign_monthly_horoscope.v2', purpose: 'Общий гороскоп по знаку на месяц',
-    style: 'Одна ясная тема месяца, конкретный разбор и до трёх разных ориентиров без повторов и фатализма.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
+    type: 'sign_monthly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 180, max: 270 },
+    cacheTtl: '30d', cacheScope: 'shared', promptVersion: 'sign_monthly_horoscope.v3', purpose: 'Гороскоп по знаку на месяц из полного Swiss-дайджеста',
+    style: 'Стратегический разбор месяца с медленными факторами и конкретными окнами быстрых планет; каждый вывод с evidence id.', placements: ['horoscope'], generationPolicy: 'once_per_month', batchSize: 12,
   },
   sign_compatibility: {
     type: 'sign_compatibility', featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },

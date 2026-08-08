@@ -7,9 +7,6 @@ import { ZodiacIcon } from '../components/icons/ZodiacIcon';
 import { sunSignFromDate } from '../lib/synastry/compatScore';
 import { getZodiacSign } from '../constants';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
-import { EditorialSticker } from '../components/EditorialSticker';
-import { selectMainEditorialSticker } from '../lib/personalForecastVisuals';
-import type { EditorialMedium, EditorialTopic } from '../lib/personalForecastVisuals/editorialTypes';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 
 interface OnboardingProps { onComplete: (profile: UserProfile) => Promise<void>; }
@@ -26,13 +23,6 @@ const STORIES: Story[] = [
   { color:'#38BDF8', icon:<HeartIcon size={52}/>, title:'Совместимость', text:'Сравни две карты: что помогает договориться, где чаще начинаются проблемы и что каждый понимает по-своему.' },
   { color:'#64748B', icon:<SparkIcon size={52}/>, title:'Больше в Premium', text:'Подробные разборы отношений, денег и работы, все периоды прогноза и ответы на личные вопросы.' },
 ];
-const STORY_VISUALS: readonly { topics:readonly EditorialTopic[]; media:readonly EditorialMedium[] }[] = [
-  {topics:['general','home_family'],media:['photo','associative']},
-  {topics:['opportunities','decisions'],media:['associative','psychedelic-humor']},
-  {topics:['communication','friends'],media:['photo','associative']},
-  {topics:['work_money','opportunities'],media:['graphic','psychedelic-humor']},
-];
-
 export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
   const [step,setStep]=useState<'stories'|'birth'>('stories');
   const [storyIndex,setStoryIndex]=useState(0);
@@ -58,8 +48,6 @@ export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
   const timeValid=timeMode==='unknown'||Boolean(time&&(timeMode==='exact'||uncertainty));
   const canSubmit=useMemo(()=>Boolean(name.trim()&&date&&place.trim()&&timeValid),[date,name,place,timeValid]);
   const signHint=useMemo(()=>{const sign=sunSignFromDate(date);return sign?getZodiacSign('ru',sign):'';},[date]);
-  const storyVisual=STORY_VISUALS[storyIndex]||STORY_VISUALS[0];
-  const storySticker=selectMainEditorialSticker({screenKey:'onboarding-story',contentKey:`story-${storyIndex}`,slot:storyIndex,topics:storyVisual.topics,allowedMedia:storyVisual.media});
 
   const focusField=(field:FieldKey)=>{const refs:Record<FieldKey,React.RefObject<HTMLInputElement|null>>={name:nameRef,date:dateRef,time:timeRef,place:placeRef};refs[field].current?.focus();};
   const nextStory=()=>storyIndex<STORIES.length-1?setStoryIndex((value)=>value+1):setStep('birth');
@@ -90,7 +78,7 @@ export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
     {step==='stories'?<div style={{display:'flex',flex:1,flexDirection:'column',maxWidth:'28rem',width:'100%',margin:'0 auto'}}>
       <div className="onb-dots">{STORIES.map((_,index)=><span key={index} className={`onb-dot ${index===storyIndex?'is-on':''}`}/>)}</div>
       <div className="onb-stage" onClick={nextStory}><AnimatePresence mode="wait"><motion.div key={storyIndex} initial={{opacity:0,x:40}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-40}} transition={{duration:.28,ease:[.22,1,.36,1]}} className="onb-card">
-        <div className="onb-hero">{storySticker?<EditorialSticker asset={storySticker} className="onb-story-sticker" priority/>:<span className="onb-hero-ico">{STORIES[storyIndex].icon}</span>}</div>
+        <div className="onb-hero"><span className="onb-hero-ico">{STORIES[storyIndex].icon}</span></div>
         <h1 className="onb-title">{STORIES[storyIndex].title}</h1><p className="onb-text">{STORIES[storyIndex].text}</p>
       </motion.div></AnimatePresence></div>
       <div style={{padding:'0 20px'}}><button type="button" className="fresh-btn-primary" style={{width:'100%',margin:0}} onClick={nextStory}>{storyIndex<STORIES.length-1?'Дальше':'Ввести данные рождения'}</button><button type="button" className="onb-skip" onClick={()=>setStep('birth')}>Перейти к данным</button></div>

@@ -142,6 +142,130 @@
   overflow-wrap: anywhere;
 }
 
+.natal-editorial-page .natal-chart-wheel {
+  width: min(calc(100% - 48px), 620px);
+  margin: 32px auto 40px;
+  padding: 0;
+  color: var(--natal-editorial-ink);
+  background: #ffffff;
+}
+
+.natal-editorial-page .natal-chart-wheel-svg {
+  display: block;
+  width: min(100%, 480px);
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.natal-editorial-page .natal-chart-wheel-ring {
+  fill: none;
+  stroke: rgba(23, 25, 29, 0.18);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-ring--outer {
+  stroke: rgba(23, 25, 29, 0.34);
+}
+
+.natal-editorial-page .natal-chart-wheel-ring--aspects {
+  stroke: rgba(23, 25, 29, 0.08);
+}
+
+.natal-editorial-page .natal-chart-wheel-sign {
+  color: #555c65;
+}
+
+.natal-editorial-page .natal-chart-wheel-sign > line {
+  stroke: rgba(23, 25, 29, 0.17);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect {
+  fill: none;
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect--conjunction {
+  stroke: rgba(55, 65, 81, 0.42);
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect--sextile,
+.natal-editorial-page .natal-chart-wheel-aspect--trine {
+  stroke: rgba(37, 99, 151, 0.44);
+}
+
+.natal-editorial-page .natal-chart-wheel-aspect--square,
+.natal-editorial-page .natal-chart-wheel-aspect--opposition {
+  stroke: rgba(151, 68, 55, 0.42);
+  stroke-dasharray: 3 2;
+}
+
+.natal-editorial-page .natal-chart-wheel-marker {
+  color: #23272d;
+}
+
+.natal-editorial-page .natal-chart-wheel-marker > circle {
+  fill: #ffffff;
+  stroke: rgba(23, 25, 29, 0.2);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-marker > text {
+  fill: #727780;
+  font-family: inherit;
+  font-size: 6px;
+  font-weight: 650;
+}
+
+.natal-editorial-page .natal-chart-wheel-angle {
+  color: #1f5f9e;
+}
+
+.natal-editorial-page .natal-chart-wheel-angle > circle {
+  fill: #f7fbff;
+  stroke: rgba(31, 95, 158, 0.32);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-editorial-page .natal-chart-wheel-caption {
+  display: grid;
+  gap: 5px;
+  max-width: 480px;
+  margin: 16px auto 0;
+  color: var(--natal-editorial-muted);
+  text-align: left;
+}
+
+.natal-editorial-page .natal-chart-wheel-caption strong {
+  color: var(--natal-editorial-ink);
+  font-size: 14px;
+  font-weight: 680;
+  line-height: 1.3;
+}
+
+.natal-editorial-page .natal-chart-wheel-caption span {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.natal-editorial-page .natal-chart-wheel-a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .natal-editorial-page .natal-editorial-report {
   padding-top: 0;
   background: transparent;
@@ -318,5 +442,10 @@
   .natal-editorial-page .natal-big3-ico {
     width: 27px;
     height: 27px;
+  }
+
+  .natal-editorial-page .natal-chart-wheel {
+    width: calc(100% - 32px);
+    margin-top: 28px;
   }
 }

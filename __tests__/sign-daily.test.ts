@@ -1,43 +1,35 @@
-describe('sign daily horoscope persistence', () => {
-  const originalOpenAiKey = process.env.OPENAI_API_KEY;
+import type { SignHoroscopeReadingV2 } from '../types';
 
-  beforeEach(() => {
+describe('sign daily horoscope cache', () => {
+  afterEach(() => {
     jest.resetModules();
-    delete process.env.OPENAI_API_KEY;
+    jest.dontMock('../lib/db');
   });
 
-  afterAll(() => {
-    if (originalOpenAiKey === undefined) {
-      delete process.env.OPENAI_API_KEY;
-    } else {
-      process.env.OPENAI_API_KEY = originalOpenAiKey;
-    }
-  });
-
-  it('throws when requirePersistence is enabled and the cache write fails', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-    const get = jest.fn().mockResolvedValue(null);
-    const set = jest.fn().mockRejectedValue(new Error('db down'));
-
+  it('returns a validated V2 cache hit without calculating or generating', async () => {
+    const reading: SignHoroscopeReadingV2 = {
+      schemaVersion: 'sign-horoscope-reading-v2',
+      sign: 'Aries',
+      period: 'day',
+      periodKey: '2026-08-09',
+      headline: 'Choose the clean answer',
+      mood: { text: 'The day is direct.', evidenceIds: ['sky:one'] },
+      relationships: { text: 'Ask plainly.', evidenceIds: ['sky:one'] },
+      work: { text: 'Close one decision.', evidenceIds: ['sky:one'] },
+      innerState: { text: 'Noise drops after clarity.', evidenceIds: ['sky:one'] },
+      advice: { text: 'Send the concrete message.', evidenceIds: ['sky:one'] },
+      warning: null,
+    };
+    const get = jest.fn().mockResolvedValue(JSON.stringify(reading));
+    const set = jest.fn();
     jest.doMock('../lib/db', () => ({
-      db: {
-        daily_horoscopes: {
-          get,
-          set,
-        },
-      },
+      db: { daily_horoscopes: { get, set } },
+      getPool: jest.fn(),
     }));
 
     const { getOrGenerateSignDailyHoroscope } = await import('../lib/horoscope/signDaily');
-
-    await expect(
-      getOrGenerateSignDailyHoroscope('Aries', '2026-05-09', 'en', {
-        requirePersistence: true,
-      })
-    ).rejects.toMatchObject({
-      code: 'SIGN_HOROSCOPE_PERSIST_FAILED',
-      status: 500,
-    });
-    errorSpy.mockRestore();
+    await expect(getOrGenerateSignDailyHoroscope('Aries', '2026-08-09', 'en')).resolves.toEqual(reading);
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(set).not.toHaveBeenCalled();
   });
 });

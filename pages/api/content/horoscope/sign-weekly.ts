@@ -3,12 +3,13 @@ import type { Language } from '../../../../types';
 import { getMoscowIsoWeekKey } from '../../../../lib/date-utils';
 import { normalizeZodiacKey } from '../../../../lib/horoscope/signDaily';
 import { getCachedSignWeeklyHoroscope, getOrGenerateSignWeeklyHoroscope } from '../../../../lib/horoscope/signWeekly';
-import { buildContentGenerationLockKey, generationInProgressPayload, withContentGenerationLock } from '../../../../lib/contentGenerationLock';
+import { generationInProgressPayload, withContentGenerationLock } from '../../../../lib/contentGenerationLock';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
+import { buildSignHoroscopeBatchLockKey } from '../../../../lib/horoscope/signGenerationLock';
 
-export const config = { maxDuration: 45 };
+export const config = { maxDuration: 90 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -49,11 +50,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const result = await withContentGenerationLock({
-      lockKey: buildContentGenerationLockKey({
-        userId: `sign-weekly:${sign}:${language}`,
-        accessTier: 'premium', contentSurface: 'forecast', contentVariant: 'weekly', cacheKey: periodKey,
-      }),
-      operation: `sign-weekly-${sign}-${language}-${periodKey}`,
+      lockKey: buildSignHoroscopeBatchLockKey('week', periodKey, language),
+      operation: `sign-weekly-batch-${language}-${periodKey}`,
       readCached: async () => {
         const cached = await getCachedSignWeeklyHoroscope(sign, periodKey, language);
         return cached ? { value: cached, source: 'cache' } : null;
@@ -63,10 +61,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (result.status === 'in_progress') return res.status(202).json(generationInProgressPayload(result.retryAfterMs));
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({ reading: result.value, source: result.fromCache ? 'cache' : 'generated' });
-  } catch {
+  } catch (error: any) {
     return res.status(503).json({
-      error: 'SIGN_WEEKLY_GENERATION_FAILED',
-      code: 'SIGN_WEEKLY_GENERATION_FAILED',
+      error: error?.code || 'SIGN_WEEKLY_GENERATION_FAILED',
+      code: error?.code || 'SIGN_WEEKLY_GENERATION_FAILED',
     });
   }
 }

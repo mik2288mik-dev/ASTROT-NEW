@@ -294,23 +294,25 @@ const App: React.FC = () => {
 
     const prefetchBaseReportForChart = useCallback(async (
         targetProfile: UserProfile,
-        targetChartId?: number
+        targetChartId?: number,
+        targetChartData?: NatalChartData | null,
     ) => {
         const userId = targetProfile.id ? String(targetProfile.id) : '';
         if (!userId) return null;
+        const cacheContext = { chartData: targetChartData || null };
 
-        const cached = getHumanBaseReportCached(userId, targetChartId)
-            || readLocalHumanBaseReportWithFallback(targetProfile, targetChartId);
+        const cached = getHumanBaseReportCached(userId, targetChartId, targetProfile.language)
+            || readLocalHumanBaseReportWithFallback(targetProfile, targetChartId, cacheContext);
         if (cached) {
             setPreloadedHumanReport(cached);
             return cached;
         }
-        const dbCached = await getCachedHumanBaseReport(userId, targetChartId).catch((error: any) => {
+        const dbCached = await getCachedHumanBaseReport(userId, targetChartId, targetProfile.language).catch((error: any) => {
             console.warn('[App] Human base report cache read failed:', error?.message || error);
             return null;
         });
         if (dbCached) {
-            writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId);
+            writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId, cacheContext);
             setPreloadedHumanReport(dbCached);
             return dbCached;
         }
@@ -355,7 +357,11 @@ const App: React.FC = () => {
         }).catch((error: any) => {
             console.warn('[App] Background personal forecast prewarm failed:', error?.message || error);
         });
-        void prefetchBaseReportForChart(input.profile, input.chartId ?? undefined).catch((error: any) => {
+        void prefetchBaseReportForChart(
+            input.profile,
+            input.chartId ?? undefined,
+            input.chartData,
+        ).catch((error: any) => {
             console.warn('[App] Human base report cache prefetch failed:', error?.message || error);
         });
         return cacheResult;
@@ -603,10 +609,12 @@ const App: React.FC = () => {
             refreshChartFromDb: boolean,
         ) => {
             const userId = String(targetProfile.id);
-            const startHumanBasePrefetch = (chartId: number) => {
-                void prefetchHumanBaseReport(userId, chartId)
+            const startHumanBasePrefetch = (chartId: number, reportChartData: NatalChartData) => {
+                void prefetchHumanBaseReport(userId, chartId, targetProfile.language)
                     .then((report) => {
-                        writeLocalHumanBaseReport(targetProfile, report, chartId);
+                        writeLocalHumanBaseReport(targetProfile, report, chartId, {
+                            chartData: reportChartData,
+                        });
                         if (!cancelled) setPreloadedHumanReport(report);
                     })
                     .catch((error: any) => {
@@ -614,7 +622,7 @@ const App: React.FC = () => {
                     });
             };
             if (initialChartId != null) {
-                startHumanBasePrefetch(initialChartId);
+                startHumanBasePrefetch(initialChartId, initialChart);
             }
 
             void (async () => {
@@ -645,7 +653,7 @@ const App: React.FC = () => {
                         if (freshPrimaryChartId == null) return;
                         chartId = freshPrimaryChartId;
                         writeLocalNatalChart(targetProfile, chart, freshPrimaryChartId);
-                        if (initialChartId == null) startHumanBasePrefetch(freshPrimaryChartId);
+                        if (initialChartId == null) startHumanBasePrefetch(freshPrimaryChartId, chart);
                         if (!cancelled) {
                             setPrimaryChartId(freshPrimaryChartId);
                         }
@@ -1440,7 +1448,11 @@ const App: React.FC = () => {
             setPreloadedHumanReport(null);
             if (freshChart) {
                 writeLocalNatalChart(profile, freshChart, freshPrimaryChartId ?? undefined);
-                void prefetchBaseReportForChart(profile, freshPrimaryChartId ?? undefined);
+                void prefetchBaseReportForChart(
+                    profile,
+                    freshPrimaryChartId ?? undefined,
+                    freshChart,
+                );
             } else {
                 clearLocalNatalChart(profile);
             }
@@ -1810,6 +1822,8 @@ const App: React.FC = () => {
             )}
             <main
                 className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
+                aria-hidden={sideDrawerOpen ? true : undefined}
+                inert={sideDrawerOpen ? true : undefined}
             >
                 <div
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
@@ -1968,6 +1982,7 @@ const App: React.FC = () => {
                 open={sideDrawerOpen}
                 currentView={view}
                 profile={profile}
+                sunSign={chartData?.sun?.sign || primaryChartDataRef.current?.sun?.sign || null}
                 onClose={() => setSideDrawerOpen(false)}
                 onOpenDiary={openDrawerDiary}
                 activePeriod={dashboardPeriod}

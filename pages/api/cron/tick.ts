@@ -8,6 +8,9 @@ import {
   prewarmPersonalForecastsForActiveUsers,
 } from '../../../lib/personalForecastPrewarm';
 import { processPendingRuStoreEvents } from '../../../lib/rustorePayments';
+import { prewarmUpcomingSignHoroscopes } from '../../../lib/horoscope/signPrewarm';
+
+export const config = { maxDuration: 120 };
 
 /**
  * Single entry point for an EXTERNAL cron (e.g. cron-job.org): hit this every few
@@ -62,6 +65,7 @@ async function once(job: string, slotKey: string, fn: () => Promise<unknown>, ra
     await fn();
     ran.push(job);
   } catch (error) {
+    if (lastRun.get(job) === slotKey) lastRun.delete(job);
     console.warn(`[cron/tick] ${job} failed:`, error instanceof Error ? error.message : error);
   }
 }
@@ -105,6 +109,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }),
     ran
   );
+
+  // Shared sign readings are generated once for all 12 signs and both current
+  // languages. Evening Moscow runs prewarm tomorrow and, at boundaries, the
+  // next week/month. A missed cron is covered by the same batch lock in APIs.
+  if (hour >= 18) {
+    await once(
+      'sign-horoscope-periods',
+      dateKey,
+      () => prewarmUpcomingSignHoroscopes(now),
+      ran,
+    );
+  }
 
   // 3) Daily card content — once per day (morning MSK). Fallback exists for the push itself.
   if (hour === 6 && minute >= 30) await once('daily-card-generator', dateKey, () => generateDailyCards(now, { limit: 250 }), ran);

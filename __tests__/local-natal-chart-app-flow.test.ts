@@ -78,15 +78,15 @@ describe('local natal chart app flow', () => {
     const dashboard = app.indexOf("showStartupDashboard('dashboard')", localRead);
     const scheduleCall = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true)', dashboard);
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
-    const earlyPrefetch = app.indexOf('startHumanBasePrefetch(initialChartId);', scheduler);
+    const earlyPrefetch = app.indexOf('startHumanBasePrefetch(initialChartId, initialChart);', scheduler);
     const prewarm = app.indexOf('void prepareUserContentDbFirst({', scheduler);
 
     expect(dashboard).toBeGreaterThan(localRead);
     expect(scheduleCall).toBeGreaterThan(dashboard);
     expect(earlyPrefetch).toBeGreaterThan(scheduler);
     expect(earlyPrefetch).toBeLessThan(prewarm);
-    expect(app).toContain('prefetchHumanBaseReport(userId, chartId)');
-    expect(app).toContain('if (initialChartId == null) startHumanBasePrefetch(freshPrimaryChartId)');
+    expect(app).toContain('prefetchHumanBaseReport(userId, chartId, targetProfile.language)');
+    expect(app).toContain('if (initialChartId == null) startHumanBasePrefetch(freshPrimaryChartId, chart)');
   });
 
 });

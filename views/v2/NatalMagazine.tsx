@@ -8,9 +8,9 @@ import { MonoIllustChart } from '../../components/mono-ui';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { FreshPageTitle } from '../../components/fresh-ui';
 import { PlanetIcon } from '../../components/icons/PlanetIcon';
-import { EditorialSticker } from '../../components/EditorialSticker';
-import { getZodiacEditorialSticker } from '../../lib/personalForecastVisuals';
-import { getNatalReliability } from '../../lib/natalSemanticCompiler';
+import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
+import { selectNatalEditorialSticker } from '../../lib/personalForecastVisuals';
+import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
 import { buildPersonalForecastChartFingerprint } from '../../lib/personalForecastContract';
 import type { ChartListItem } from '../../services/storageService';
 
@@ -36,7 +36,6 @@ export function NatalMagazine({
   onCreateChart,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
-  const natalSticker = data ? getZodiacEditorialSticker(String(data.sun.sign)) : null;
   const subjectName = chartSubject?.name || profile.name;
   const subjectBirthDate = chartSubject?.birth_date || profile.birthDate;
 
@@ -63,11 +62,11 @@ export function NatalMagazine({
     );
   }
 
-  const reliability = getNatalReliability(data);
+  const reliability = getPermanentNatalReliability(data);
   const bigThree = [
     { planet: 'sun', label: language === 'ru' ? 'Солнце' : 'Sun', sign: data.sun.sign },
     { planet: 'moon', label: language === 'ru' ? 'Луна' : 'Moon', sign: data.moon.sign },
-    ...(reliability.anglesReliable
+    ...(reliability.anglesIncluded && data.rising?.sign
       ? [{ planet: 'asc', label: language === 'ru' ? 'Асцендент' : 'Rising', sign: data.rising.sign }]
       : []),
   ];
@@ -77,6 +76,10 @@ export function NatalMagazine({
     chartSubject?.input_hash || buildPersonalForecastChartFingerprint(data),
     chartSubject?.calculation_version || data.calculationVersion || 'unknown',
   ].join(':');
+  const natalSticker = selectNatalEditorialSticker({
+    chartKey: reportSubjectKey,
+    userId: profile.id ? String(profile.id) : null,
+  });
 
   return (
     <div className="fresh-page natal-editorial-page">
@@ -86,20 +89,6 @@ export function NatalMagazine({
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
         subtitle={`${subjectName} · ${formatDisplayDate(subjectBirthDate, language)}`}
       />
-
-      <section
-        className="product-screen-cover product-screen-cover--natal"
-        aria-label={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-      >
-        <div className="product-screen-cover-copy">
-          <div className="product-screen-cover-title">{language === 'ru' ? 'Твоя карта рождения' : 'Your birth chart'}</div>
-          <div className="product-screen-cover-text">
-            {language === 'ru'
-              ? 'Характер, привычные реакции, отношения, деньги и работа — по данным рождения.'
-              : 'Character, usual reactions, relationships, money, and work based on your birth data.'}
-          </div>
-        </div>
-      </section>
 
       <div className="natal-big3">
         {bigThree.map((it) => (
@@ -113,6 +102,8 @@ export function NatalMagazine({
         ))}
       </div>
 
+      <NatalChartWheel chart={data} language={language} />
+
       <HumanReport
         key={reportSubjectKey}
         profile={profile}
@@ -123,10 +114,8 @@ export function NatalMagazine({
         onUpdateProfile={onUpdateProfile}
         preloadedReport={preloadedReport}
         hideIntro
+        editorialSticker={natalSticker}
       />
-      {natalSticker ? (
-        <EditorialSticker asset={natalSticker} className="natal-zodiac-sticker natal-zodiac-sticker--inline" />
-      ) : null}
     </div>
   );
 }

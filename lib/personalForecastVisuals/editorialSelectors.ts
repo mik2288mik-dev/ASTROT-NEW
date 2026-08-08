@@ -11,7 +11,14 @@ import type {
   ZodiacEditorialAsset,
 } from './editorialTypes';
 
-export const NEWSPAPER_VISUAL_MANIFEST_VERSION = 'newspaper-v2';
+export const NEWSPAPER_VISUAL_MANIFEST_VERSION = 'newspaper-v3-sparse';
+
+export const EDITORIAL_PLACEMENT_POLICY = {
+  diary: { visiblePercent: 40, psychedelicPercentOfVisible: 7 },
+  zodiac: { visiblePercent: 60 },
+  natal: { visiblePercent: 65, psychedelicPercentOfVisible: 1 },
+  synastry: { psychedelicAllowed: false },
+} as const;
 
 const MAIN_ASSETS = mainManifest.items as MainEditorialAsset[];
 const SYNASTRY_ASSETS = synastryManifest.items as SynastryEditorialAsset[];
@@ -33,6 +40,33 @@ function pickStable<T extends { id: string }>(items: readonly T[], seed: string)
   if (!items.length) return null;
   const ordered = [...items].sort((left, right) => left.id.localeCompare(right.id));
   return ordered[stableHash(seed) % ordered.length] || null;
+}
+
+function percentageBucket(seed: string): number {
+  return stableHash(`${NEWSPAPER_VISUAL_MANIFEST_VERSION}|${seed}`) % 100;
+}
+
+function isEligible(seed: string, visiblePercent: number): boolean {
+  return percentageBucket(`eligibility|${seed}`) < visiblePercent;
+}
+
+function diaryMedium(seed: string): EditorialMedium {
+  const bucket = percentageBucket(`medium|${seed}`);
+  if (bucket < EDITORIAL_PLACEMENT_POLICY.diary.psychedelicPercentOfVisible) {
+    return 'psychedelic-humor';
+  }
+  if (bucket < 50) return 'photo';
+  if (bucket < 76) return 'associative';
+  if (bucket < 95) return 'surreal';
+  return 'graphic';
+}
+
+function natalMedium(seed: string): EditorialMedium {
+  const bucket = percentageBucket(`medium|${seed}`);
+  if (bucket < EDITORIAL_PLACEMENT_POLICY.natal.psychedelicPercentOfVisible) {
+    return 'psychedelic-humor';
+  }
+  return bucket < 70 ? 'associative' : 'surreal';
 }
 
 export function selectMainEditorialSticker(input: {
@@ -117,6 +151,57 @@ export function getZodiacEditorialSticker(sign: string | null | undefined): Zodi
   if (!sign) return null;
   const key = sign.trim().toLowerCase();
   return ZODIAC_ASSETS.find((asset) => asset.sign.toLowerCase() === key) || null;
+}
+
+export function selectDiaryEditorialSticker(input: {
+  contentKey: string;
+  userId?: string | null;
+  topics?: readonly EditorialTopic[];
+}): MainEditorialAsset | null {
+  const seed = ['diary', input.contentKey, input.userId || 'guest'].join('|');
+  if (!isEligible(seed, EDITORIAL_PLACEMENT_POLICY.diary.visiblePercent)) return null;
+  return selectMainEditorialSticker({
+    screenKey: 'personal-forecast',
+    contentKey: input.contentKey,
+    userId: input.userId,
+    topics: input.topics,
+    allowedMedia: [diaryMedium(seed)],
+  });
+}
+
+export function selectZodiacEditorialSticker(input: {
+  sign: string | null | undefined;
+  contentKey: string;
+  userId?: string | null;
+}): ZodiacEditorialAsset | null {
+  const key = input.sign?.trim().toLowerCase();
+  if (!key) return null;
+  const seed = ['zodiac', key, input.contentKey, input.userId || 'guest'].join('|');
+  if (!isEligible(seed, EDITORIAL_PLACEMENT_POLICY.zodiac.visiblePercent)) return null;
+  return getZodiacEditorialSticker(key);
+}
+
+export function selectNatalEditorialSticker(input: {
+  chartKey: string;
+  userId?: string | null;
+}): MainEditorialAsset | null {
+  const seed = ['natal', input.chartKey, input.userId || 'guest'].join('|');
+  if (!isEligible(seed, EDITORIAL_PLACEMENT_POLICY.natal.visiblePercent)) return null;
+  return selectMainEditorialSticker({
+    screenKey: 'natal-reading',
+    contentKey: input.chartKey,
+    userId: input.userId,
+    topics: ['general', 'mood', 'decisions'],
+    allowedMedia: [natalMedium(seed)],
+    allowedTones: ['neutral', 'quiet', 'warm', 'strange'],
+  });
+}
+
+/** Synastry is deliberately confined to the calm dedicated collection. */
+export function selectCalmSynastryEditorialSticker(
+  input: Parameters<typeof selectSynastryEditorialSticker>[0],
+): SynastryEditorialAsset | null {
+  return selectSynastryEditorialSticker(input);
 }
 
 export function getNewspaperVisualCounts() {

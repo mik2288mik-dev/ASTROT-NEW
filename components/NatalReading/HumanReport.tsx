@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ChevronDown, Crown, Lock, X } from 'lucide-react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ChevronDown, Crown, MessageCircle, Send } from 'lucide-react';
 import type {
   InterpretationSection,
   NatalChartData,
@@ -8,35 +8,35 @@ import type {
   UserProfile,
 } from '../../types';
 import {
-  HUMAN_FREE_SECTION_KEYS,
-  HUMAN_MAP_SECTION_KEYS,
   HUMAN_PAID_SECTION_META,
   type HumanPaidSectionKey,
 } from '../../lib/natalHumanShared';
 import {
+  askNatalQuestion,
   ensureHumanBaseReport,
-  getCachedHumanPaidSection,
+  ensureHumanPremiumReport,
   getHumanBaseReportCached,
-  loadHumanPaidSection,
+  getHumanPremiumReportCached,
+  loadNatalQuestionSnapshot,
   type HumanReadingError,
 } from '../../services/natalReadingService';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import {
-  readLocalHumanBaseReportWithFallback,
-  writeLocalHumanBaseReport,
-} from '../../lib/localHumanBaseReportCache';
+  getPermanentNatalReliability,
+  isNatalPermanentFreeReport,
+  type NatalPermanentFreeReport,
+  type NatalPermanentPremiumReport,
+  type NatalReadingStatement,
+} from '../../lib/natalReading/permanentReport';
+import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
+import type { EditorialStickerAsset } from '../../lib/personalForecastVisuals/editorialTypes';
+import type { ChartListItem } from '../../services/storageService';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { ChartBalance } from './ChartBalance';
-import { getNatalReliability } from '../../lib/natalSemanticCompiler';
-import type { ChartListItem } from '../../services/storageService';
-import {
-  EditorialBulletText,
-  EditorialProse,
-  EditorialSectionHeading,
-  EditorialSummary,
-} from '../EditorialReading';
+import { EditorialSticker } from '../EditorialSticker';
+import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 
 type Props = {
   profile: UserProfile;
@@ -46,7 +46,8 @@ type Props = {
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: NatalInterpretationReport | null;
-  /** Шапку (имя/дата/интро) рисует родитель (NatalMagazine) — не дублируем */
+  editorialSticker?: EditorialStickerAsset | null;
+  /** Шапку (имя/дата/интро) рисует родитель (NatalMagazine) — не дублируем. */
   hideIntro?: boolean;
 };
 
@@ -65,20 +66,45 @@ const SIGN_RU: Record<string, string> = {
   Pisces: 'Рыбы',
 };
 
-const PLANET_LABELS: Array<{ key: keyof NatalChartData; label: string; icon: string }> = [
-  { key: 'sun', label: 'Солнце', icon: 'sun' },
-  { key: 'moon', label: 'Луна', icon: 'moon' },
-  { key: 'mercury', label: 'Меркурий', icon: 'mercury' },
-  { key: 'venus', label: 'Венера', icon: 'venus' },
-  { key: 'mars', label: 'Марс', icon: 'mars' },
-  { key: 'jupiter', label: 'Юпитер', icon: 'jupiter' },
-  { key: 'saturn', label: 'Сатурн', icon: 'saturn' },
-  { key: 'uranus', label: 'Уран', icon: 'uranus' },
-  { key: 'neptune', label: 'Нептун', icon: 'neptune' },
-  { key: 'pluto', label: 'Плутон', icon: 'pluto' },
-  { key: 'chiron', label: 'Хирон', icon: 'chiron' },
-  { key: 'rising', label: 'Асцендент', icon: 'asc' },
+const PLANET_LABELS: Array<{ key: string; labelRu: string; labelEn: string; icon: string }> = [
+  { key: 'sun', labelRu: 'Солнце', labelEn: 'Sun', icon: 'sun' },
+  { key: 'moon', labelRu: 'Луна', labelEn: 'Moon', icon: 'moon' },
+  { key: 'mercury', labelRu: 'Меркурий', labelEn: 'Mercury', icon: 'mercury' },
+  { key: 'venus', labelRu: 'Венера', labelEn: 'Venus', icon: 'venus' },
+  { key: 'mars', labelRu: 'Марс', labelEn: 'Mars', icon: 'mars' },
+  { key: 'jupiter', labelRu: 'Юпитер', labelEn: 'Jupiter', icon: 'jupiter' },
+  { key: 'saturn', labelRu: 'Сатурн', labelEn: 'Saturn', icon: 'saturn' },
+  { key: 'uranus', labelRu: 'Уран', labelEn: 'Uranus', icon: 'uranus' },
+  { key: 'neptune', labelRu: 'Нептун', labelEn: 'Neptune', icon: 'neptune' },
+  { key: 'pluto', labelRu: 'Плутон', labelEn: 'Pluto', icon: 'pluto' },
+  { key: 'chiron', labelRu: 'Хирон', labelEn: 'Chiron', icon: 'chiron' },
+  { key: 'northNode', labelRu: 'Северный узел', labelEn: 'North Node', icon: 'north-node' },
+  { key: 'southNode', labelRu: 'Южный узел', labelEn: 'South Node', icon: 'south-node' },
+  { key: 'rising', labelRu: 'Асцендент', labelEn: 'Ascendant', icon: 'asc' },
+  { key: 'mc', labelRu: 'MC', labelEn: 'MC', icon: 'mc' },
 ];
+
+const ANGLE_NAMES = /^(?:ascendant|asc|rising|mc|midheaven|descendant|desc|dsc|ic)$/iu;
+const ANGLE_ALIAS: Record<string, 'ascendant' | 'mc' | 'descendant' | 'ic'> = {
+  ascendant: 'ascendant',
+  asc: 'ascendant',
+  rising: 'ascendant',
+  mc: 'mc',
+  midheaven: 'mc',
+  descendant: 'descendant',
+  desc: 'descendant',
+  dsc: 'descendant',
+  ic: 'ic',
+};
+
+function normalizedAngleKey(value: unknown): 'ascendant' | 'mc' | 'descendant' | 'ic' | null {
+  return ANGLE_ALIAS[String(value || '').trim().toLocaleLowerCase('en-US')] || null;
+}
+
+function aspectUsesAngle(aspect: Record<string, unknown>): boolean {
+  return ANGLE_NAMES.test(String(aspect.fromKey || aspect.from || '').trim())
+    || ANGLE_NAMES.test(String(aspect.toKey || aspect.to || '').trim());
+}
 
 function ruSign(sign?: string | null): string {
   const value = String(sign || '').trim();
@@ -86,163 +112,52 @@ function ruSign(sign?: string | null): string {
 }
 
 function fmtDegree(value?: number | null): string {
-  return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}°` : '';
+  return typeof value === 'number' && Number.isFinite(value)
+    ? `${Number(value.toFixed(2))}°`
+    : '';
 }
 
 function formatError(error: unknown): string {
-  const e = error as HumanReadingError;
-  if (e?.code === 'PREMIUM_REQUIRED' || e?.code === 'HUMAN_SECTION_LOCKED') {
-    return 'Этот раздел доступен в Premium.';
-  }
-  if (e?.message) return e.message;
-  return 'Не удалось загрузить раздел.';
+  const value = error as HumanReadingError;
+  if (value?.code === 'PREMIUM_REQUIRED') return 'Этот раздел доступен в Premium.';
+  if (value?.code === 'NATAL_QUESTION_DAILY_LIMIT') return 'Лимит вопросов на сегодня исчерпан.';
+  return value?.message || 'Не удалось загрузить разбор.';
 }
 
-const SectionText: React.FC<{ section: InterpretationSection; index?: number }> = ({ section, index = 0 }) => {
+const SectionText: React.FC<{
+  section: InterpretationSection;
+  index?: number;
+}> = ({ section, index = 0 }) => {
   const reduce = useReducedMotion();
   const Comp = reduce ? 'section' : motion.section;
-
   return (
     <Comp
       {...(!reduce
         ? {
-            initial: { opacity: 0, y: 16 },
+            initial: { opacity: 0, y: 12 },
             whileInView: { opacity: 1, y: 0 },
             viewport: { once: true, margin: '-40px' },
-            transition: { duration: 0.36, delay: Math.min(index * 0.05, 0.2), ease: MONO_EASE },
+            transition: {
+              duration: 0.32,
+              delay: Math.min(index * 0.04, 0.16),
+              ease: MONO_EASE,
+            },
           }
         : {})}
       data-reading-section-key={section.key}
       className="natal-sec editorial-reading-section"
     >
-      <EditorialSectionHeading
-        title={section.title}
-        subtitle={section.subtitle}
-        className="natal-sec-heading"
+      {section.title ? <h2 className="natal-sec-title">{section.title}</h2> : null}
+      <FormattedAiText
+        text={section.content}
+        className="natal-sec-body max-w-none"
+        paragraphClassName="natal-sec-p"
       />
-      <div className="natal-sec-body">
-        <FormattedAiText
-          text={section.content}
-          className="max-w-none"
-          paragraphClassName="natal-sec-p"
-        />
-      </div>
-      {section.bullets?.length ? (
-        <ul className="natal-sec-bullets">
-          {section.bullets.map((item, bulletIndex) => (
-            <li key={`${section.key}-${bulletIndex}`}><EditorialBulletText text={item} /></li>
-          ))}
-        </ul>
-      ) : null}
     </Comp>
   );
 };
 
-const TOPIC_ACCENTS = ['#1478FF', '#2563EB', '#38BDF8', '#475569', '#64748B', '#0F172A'];
-
-/**
- * Премиум-карточка темы как продолжение базового разбора: тап раскрывает реальный
- * текст по этой теме (теми же стилями .natal-sec-*, что и базовые секции). Без замка
- * и без размытого фейк-текста — премиум уже открыт.
- */
-const PaidTopicCard: React.FC<{
-  sectionKey: HumanPaidSectionKey;
-  index: number;
-  isLoading: boolean;
-  expanded: boolean;
-  reading?: InterpretationSection;
-  onToggle: () => void;
-}> = ({ sectionKey, index, isLoading, expanded, reading, onToggle }) => {
-  const meta = HUMAN_PAID_SECTION_META[sectionKey];
-  const accent = TOPIC_ACCENTS[index % TOPIC_ACCENTS.length];
-
-  return (
-    <div className="natal-topic-row mt-2.5 overflow-hidden fresh-card first:mt-0" style={{ borderLeft: `3px solid ${accent}` }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center gap-3 px-4 py-4 text-left transition active:bg-mono-plate"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block font-sans text-[16.5px] font-semibold leading-tight tracking-[-0.01em] text-mono-ink">{meta.title}</span>
-          <span className="mt-1 block font-sans text-[12.5px] leading-snug text-mono-muted">{meta.subtitle}</span>
-        </span>
-        {isLoading ? (
-          <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-mono-line border-t-mono-ink" aria-label="Загрузка" />
-        ) : (
-          <ChevronDown size={18} strokeWidth={2} className={`shrink-0 text-mono-muted transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
-        )}
-      </button>
-      <AnimatePresence initial={false}>
-        {expanded && reading ? (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: MONO_EASE }}
-            className="overflow-hidden"
-          >
-            <div className="border-t border-mono-line px-4 pb-5 pt-3">
-              <div className="natal-sec-body">
-                <FormattedAiText text={reading.content} className="max-w-none" paragraphClassName="natal-sec-p" />
-              </div>
-              {reading.bullets?.length ? (
-                <ul className="natal-sec-bullets">
-                  {reading.bullets.map((item, i) => <li key={`${sectionKey}-${i}`}><EditorialBulletText text={item} /></li>)}
-                </ul>
-              ) : null}
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-/**
- * Non-premium teaser row — shows the topic title, angle and a blurred personal
- * hook so the user can SEE the depth they'd unlock (instead of one generic CTA).
- * Tapping opens the unlock sheet; it never triggers generation.
- */
-const PremiumTopicTeaser: React.FC<{
-  sectionKey: HumanPaidSectionKey;
-  onClick: () => void;
-}> = ({ sectionKey, onClick }) => {
-  const meta = HUMAN_PAID_SECTION_META[sectionKey];
-
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileTap={{ scale: 0.99 }}
-      className="natal-topic-teaser group w-full border-t border-mono-line py-5 text-left first:border-t-0"
-    >
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mono-plate text-mono-ink">
-          <Lock size={14} strokeWidth={1.9} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-baseline justify-between gap-3">
-            <span className="block font-sans text-[17px] font-semibold leading-tight tracking-[-0.01em] text-[#1f1f1f]">
-              {meta.title}
-            </span>
-            <span className="shrink-0 font-sans text-[12.5px] text-[#9b59c4]">Открыть</span>
-          </span>
-          <span className="mt-1 block font-sans text-[12px] uppercase tracking-[0.12em] text-[#a0a0a0]">
-            {meta.subtitle}
-          </span>
-          <span className="relative mt-2.5 block max-h-[3.4rem] overflow-hidden">
-            <span className="block select-none font-sans text-[13.5px] leading-[1.6] text-[#3a3a3a] blur-[3px]">
-              {meta.teaser}
-            </span>
-            <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-white" />
-          </span>
-        </span>
-      </div>
-    </motion.button>
-  );
-};
-
+/** Compatibility paywall used by the existing story deck. */
 export const NatalUnlockSheet: React.FC<{
   sectionKey: HumanPaidSectionKey;
   isLoading: boolean;
@@ -250,65 +165,126 @@ export const NatalUnlockSheet: React.FC<{
   onPremium: () => void;
 }> = ({ sectionKey, isLoading, onClose, onPremium }) => {
   const meta = HUMAN_PAID_SECTION_META[sectionKey];
-
   return (
-    <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/38 px-3 pb-3">
-      <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default" onClick={onClose} />
-      <div className="relative w-full max-w-md rounded-[28px] bg-white px-5 pb-5 pt-4 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#dfdfdf]" />
+    <CosmicSheet
+      open
+      title={meta.title}
+      subtitle="Полный раздел карты"
+      closeLabel="Закрыть"
+      onClose={onClose}
+      footer={(
         <button
           type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f5f5] text-[#444]"
-          aria-label="Закрыть"
+          onClick={onPremium}
+          disabled={isLoading}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#111827] disabled:opacity-60"
         >
-          <X size={17} strokeWidth={2} />
+          <Crown size={16} strokeWidth={2} />
+          {isLoading ? 'Открываем...' : 'Получить Premium'}
         </button>
-
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">Полный раздел карты</p>
-        <h3 className="mt-2 max-w-[18rem] font-sans text-[24px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#1f1f1f]">
-          {meta.title}
-        </h3>
-        <p className="mt-3 font-sans text-[14.5px] leading-relaxed text-[#5f5f5f]">{meta.teaser}</p>
-
-        <div className="mt-5 grid gap-2.5">
-          <button
-            type="button"
-            onClick={onPremium}
-            disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1f1f1f] px-5 py-3 text-[14px] font-semibold text-white disabled:opacity-60"
-          >
-            <Crown size={16} strokeWidth={2} />
-            {isLoading ? 'Открываем...' : 'Получить Premium'}
-          </button>
-        </div>
-        <p className="mt-3 text-center font-sans text-[12.5px] leading-relaxed text-[#777]">
-          Полный доступ к подробным разделам карты — в Premium.
-        </p>
-      </div>
-    </div>
+      )}
+    >
+      <p className="text-[14.5px] leading-relaxed text-white/82">{meta.teaser}</p>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-white/62">
+        Полный доступ к подробному постоянному разбору карты — в Premium.
+      </p>
+    </CosmicSheet>
   );
 };
 
-const TechnicalDetails: React.FC<{ chartData: NatalChartData }> = ({ chartData }) => {
-  const reliability = getNatalReliability(chartData);
+const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: 'ru' | 'en' }> = ({
+  chartData,
+  language,
+}) => {
+  const reliability = getPermanentNatalReliability(chartData);
+  const positions = chartData.positions as Record<string, any> | undefined;
+  const chartQualityV2 = chartData.chartQuality as unknown as {
+    stableHousePlacements?: string[];
+    variableAngles?: string[];
+    variableHouses?: number[];
+  } | undefined;
+  const stableHousePlacements = new Set(chartQualityV2?.stableHousePlacements || []);
+  const variableAngles = new Set(chartQualityV2?.variableAngles || []);
+  const variableHouses = new Set(chartQualityV2?.variableHouses || []);
+  const reliableAngleKeys = new Set(
+    Object.entries(chartData.angles || {})
+      .filter(([key, value]: [string, any]) => (
+        !!value?.sign
+        && value.reliability !== 'variable_in_range'
+        && (
+          reliability.quality === 'exact'
+          || (value.stableSign === true && !variableAngles.has(key as any))
+        )
+      ))
+      .map(([key]) => normalizedAngleKey(key))
+      .filter((key): key is 'ascendant' | 'mc' | 'descendant' | 'ic' => key != null),
+  );
+  if (
+    !chartData.angles
+    && reliability.quality === 'exact'
+    && chartData.rising?.sign
+  ) reliableAngleKeys.add('ascendant');
+  if (!chartData.angles && reliability.quality === 'exact' && chartData.mc?.sign) reliableAngleKeys.add('mc');
   const planets = PLANET_LABELS.map((item) => {
-    if (item.key === 'rising' && !reliability.anglesReliable) return null;
-    const position = chartData[item.key] as any;
+    const isAngle = item.key === 'rising' || item.key === 'mc';
+    const angleKey = item.key === 'rising' ? 'ascendant' : item.key;
+    if (isAngle && !reliableAngleKeys.has(angleKey as 'ascendant' | 'mc')) return null;
+    const position = item.key === 'rising'
+      ? (chartData.angles?.ascendant || chartData.rising)
+      : item.key === 'mc'
+        ? (chartData.angles?.mc || chartData.mc)
+        : positions?.[item.key] || (chartData as any)[item.key];
     if (!position?.sign) return null;
-    const house = reliability.housesReliable && position.house != null ? `${position.house} дом` : '';
+    const showHouse = reliability.housesIncluded
+      && (
+        reliability.quality === 'exact'
+        || position.stable?.house === true
+        || stableHousePlacements.has(item.key as any)
+      );
     return {
       ...item,
-      sign: ruSign(position.sign),
+      label: language === 'ru' ? item.labelRu : item.labelEn,
+      sign: language === 'ru' ? ruSign(position.sign) : String(position.sign),
       degree: fmtDegree(position.degree),
-      house,
+      house: showHouse && position.house != null
+        ? `${position.house} ${language === 'ru' ? 'дом' : 'house'}`
+        : '',
+      retrograde: position.retrograde === true,
     };
   }).filter(Boolean);
+  const aspects = (chartData.aspects || [])
+    .filter((aspect: any) => {
+      if (aspect?.reliable === false) return false;
+      if (!aspectUsesAngle(aspect)) return true;
+      const from = normalizedAngleKey(aspect.fromKey || aspect.from);
+      const to = normalizedAngleKey(aspect.toKey || aspect.to);
+      return (!from || reliableAngleKeys.has(from)) && (!to || reliableAngleKeys.has(to));
+    })
+    .map((aspect: any) => ({
+      id: String(aspect.id || `${aspect.fromKey || aspect.from}-${aspect.type}-${aspect.toKey || aspect.to}`),
+      from: String(aspect.from || aspect.fromKey || ''),
+      to: String(aspect.to || aspect.toKey || ''),
+      type: String(aspect.type || ''),
+      orb: typeof aspect.orb === 'number' && Number.isFinite(aspect.orb)
+        ? `${aspect.orb.toFixed(2)}°`
+        : '',
+      phase: String(aspect.phase || ''),
+    }));
+  const houses = reliability.housesIncluded
+    ? (chartData.houses || []).filter((house: any, index) => {
+        const number = Number(house?.house) || index + 1;
+        return house?.reliability !== 'variable_in_range'
+          && (
+            reliability.quality === 'exact'
+            || (house?.stableSign === true && !variableHouses.has(number))
+          );
+      })
+    : [];
 
   return (
     <details className="natal-technical-details border-t border-[#eeeeee] py-6">
       <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-medium text-[#3a3a3a]">
-        <span>Подробные положения планет</span>
+        <span>{language === 'ru' ? 'Технический атлас карты' : 'Technical chart atlas'}</span>
         <ChevronDown size={16} strokeWidth={1.7} />
       </summary>
       <ul className="mt-4 divide-y divide-[#f3f3f3]">
@@ -320,13 +296,110 @@ const TechnicalDetails: React.FC<{ chartData: NatalChartData }> = ({ chartData }
             <span className="font-medium">{item!.label}</span>
             <span className="text-[#888]">{item!.sign}</span>
             {item!.house ? <span className="text-[#aaa]">{item!.house}</span> : null}
+            {item!.retrograde ? <span className="font-mono text-[11px] text-[#777]">R</span> : null}
             {item!.degree ? <span className="ml-auto font-mono text-[12px] text-[#aaa]">{item!.degree}</span> : null}
           </li>
         ))}
       </ul>
+      {aspects.length ? (
+        <div className="mt-6">
+          <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#777]">
+            {language === 'ru' ? 'Аспекты' : 'Aspects'}
+          </h4>
+          <ul className="mt-2 divide-y divide-[#f3f3f3]">
+            {aspects.map((aspect) => (
+              <li key={aspect.id} className="flex items-center gap-2 py-2.5 text-[12.5px] text-[#555]">
+                <span>{aspect.from}</span>
+                <span className="text-[#999]">{aspect.type}</span>
+                <span>{aspect.to}</span>
+                {aspect.phase ? <span className="text-[#aaa]">{aspect.phase}</span> : null}
+                {aspect.orb ? <span className="ml-auto font-mono text-[#888]">{aspect.orb}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {houses.length ? (
+        <div className="mt-6">
+          <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#777]">
+            {language === 'ru' ? 'Куспиды домов' : 'House cusps'}
+          </h4>
+          <ul className="mt-2 grid grid-cols-2 gap-x-5 gap-y-2 text-[12.5px] text-[#555]">
+            {houses.map((house: any, index) => (
+              <li key={house.house || index} className="flex items-baseline justify-between gap-2">
+                <span>
+                  {house.house || index + 1} · {language === 'ru' ? ruSign(house.sign) : house.sign}
+                </span>
+                <span className="font-mono text-[#999]">{fmtDegree(house.degree)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </details>
   );
 };
+
+const StatementText: React.FC<{ statement: NatalReadingStatement; className?: string }> = ({
+  statement,
+  className = '',
+}) => (
+  <FormattedAiText
+    text={statement.text}
+    className={`max-w-none ${className}`}
+    paragraphClassName="natal-sec-p"
+  />
+);
+
+const PremiumReport: React.FC<{
+  report: NatalPermanentPremiumReport;
+  language: 'ru' | 'en';
+}> = ({ report, language }) => (
+  <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
+    <header className="natal-premium-lead">
+      <h2 className="natal-sec-title">{report.headline}</h2>
+      <StatementText statement={report.lead} />
+    </header>
+    {report.sections.map((section) => (
+      <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
+        <h2 className="natal-sec-title">{section.title}</h2>
+        <div className="natal-sec-body">
+          {section.paragraphs.map((paragraph, index) => (
+            <StatementText key={`${section.id}-${index}`} statement={paragraph} />
+          ))}
+        </div>
+      </section>
+    ))}
+    {report.strategies.length ? (
+      <section className="natal-sec editorial-reading-section">
+        <h2 className="natal-sec-title">
+          {language === 'ru' ? 'Как раскрывать потенциал' : 'How to use your potential'}
+        </h2>
+        <div className="natal-sec-body">
+          {report.strategies.map((strategy, index) => (
+            <div key={`${strategy.title}-${index}`} className="mb-4 last:mb-0">
+              <h3 className="text-[18px] font-semibold leading-tight text-[#171717]">{strategy.title}</h3>
+              <StatementText statement={strategy} className="mt-2" />
+            </div>
+          ))}
+        </div>
+      </section>
+    ) : null}
+    {report.pitfalls.length ? (
+      <section className="natal-sec editorial-reading-section">
+        <h2 className="natal-sec-title">{language === 'ru' ? 'Что сбивает' : 'What gets in the way'}</h2>
+        <div className="natal-sec-body">
+          {report.pitfalls.map((pitfall, index) => (
+            <StatementText key={`pitfall-${index}`} statement={pitfall} />
+          ))}
+        </div>
+      </section>
+    ) : null}
+    <section className="natal-sec editorial-reading-section natal-reading-final">
+      <StatementText statement={report.conclusion} />
+    </section>
+  </section>
+);
 
 export const HumanReport: React.FC<Props> = ({
   profile,
@@ -336,292 +409,308 @@ export const HumanReport: React.FC<Props> = ({
   requestPremium,
   onUpdateProfile: _onUpdateProfile,
   preloadedReport,
+  editorialSticker,
   hideIntro,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
-  const cacheContext = useMemo(() => ({
-    subjectType: chartSubject?.subject_type || 'self' as const,
-    subjectIdentity: chartSubject ? {
-      name: chartSubject.name,
-      birthDate: chartSubject.birth_date,
-      birthTime: chartSubject.birth_time,
-      birthPlace: chartSubject.birth_place,
-    } : null,
-    chartData,
-    inputHash: chartSubject?.input_hash,
-    calculationVersion: chartSubject?.calculation_version,
-  }), [chartData, chartSubject]);
   const subjectName = chartSubject?.name || profile.name;
-  const initialReport = preloadedReport
-    || (userId ? getHumanBaseReportCached(userId, chartId) || readLocalHumanBaseReportWithFallback(profile, chartId, cacheContext) : null);
-  const [report, setReport] = useState<NatalInterpretationReport | null>(initialReport);
-  const [loading, setLoading] = useState(!initialReport);
+  const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const cachedBase = userId ? getHumanBaseReportCached(userId, chartId, language) : null;
+  const initialBase = isNatalPermanentFreeReport(preloadedReport)
+    ? preloadedReport
+    : cachedBase;
+  const cachedPremium = userId ? getHumanPremiumReportCached(userId, chartId, language)?.content || null : null;
+  const [report, setReport] = useState<NatalPermanentFreeReport | null>(initialBase);
+  const [premiumReport, setPremiumReport] = useState<NatalPermanentPremiumReport | null>(cachedPremium);
+  const [loading, setLoading] = useState(!initialBase);
   const [error, setError] = useState<string | null>(null);
-  const [paidSections, setPaidSections] = useState<Partial<Record<HumanPaidSectionKey, InterpretationSection>>>({});
-  const [paidLoading, setPaidLoading] = useState<HumanPaidSectionKey | null>(null);
-  const [sectionError, setSectionError] = useState<string | null>(null);
-  const [unlockTarget, setUnlockTarget] = useState<HumanPaidSectionKey | null>(null);
-  const [expandedKey, setExpandedKey] = useState<HumanPaidSectionKey | null>(null);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumError, setPremiumError] = useState<string | null>(null);
+  const [questionOpen, setQuestionOpen] = useState(false);
+  const [questionSnapshot, setQuestionSnapshot] = useState<NatalQuestionSnapshot | null>(null);
+  const [questionText, setQuestionText] = useState('');
+  const [questionLoading, setQuestionLoading] = useState(false);
+  const [questionError, setQuestionError] = useState<string | null>(null);
+  const baseLanguageRef = useRef(language);
+  const premiumLanguageRef = useRef(language);
 
   const isPremium = hasActivePremium(profile);
-  const ru = profile.language !== 'en';
-  const natalReliability = getNatalReliability(chartData);
-  const visibleFreeKeys = useMemo(() => new Set<string>(HUMAN_FREE_SECTION_KEYS), []);
-  const visibleFreeSections = useMemo(
-    () => (report?.freeSections || []).filter((section) => visibleFreeKeys.has(section.key)),
-    [report?.freeSections, visibleFreeKeys]
-  );
+  const reliability = getPermanentNatalReliability(chartData);
+  const freeSections = report?.freeSections || [];
 
   useEffect(() => {
-    if (preloadedReport) {
-      writeLocalHumanBaseReport(profile, preloadedReport, chartId, cacheContext);
-      setReport(preloadedReport);
-      setLoading(false);
-      setError(null);
-    }
-  }, [cacheContext, chartId, preloadedReport, profile]);
-
-  useEffect(() => {
-    if (!userId || preloadedReport) return;
+    if (!userId) return;
     let cancelled = false;
-    const cached = getHumanBaseReportCached(userId, chartId)
-      || readLocalHumanBaseReportWithFallback(profile, chartId, cacheContext);
-
-    if (cached) {
-      setReport(cached);
-      setLoading(false);
-      setError(null);
-    } else if (!report) {
-      setLoading(true);
-      setError(null);
-    }
-
-    // A chartId resolution (primary -> numeric ID) must only refresh the text quietly.
-    // HUMAN_MAP_SECTION_KEYS remain click-only below and never trigger generation here.
-    void ensureHumanBaseReport(userId, chartId)
-      .then((nextReport) => {
-        writeLocalHumanBaseReport(profile, nextReport, chartId, cacheContext);
-        if (cancelled) return;
-        setReport(nextReport);
-        setError(null);
+    const cached = getHumanBaseReportCached(userId, chartId, language);
+    const languageChanged = baseLanguageRef.current !== language;
+    baseLanguageRef.current = language;
+    if (cached) setReport(cached);
+    else if (languageChanged) setReport(null);
+    setLoading(!cached);
+    setError(null);
+    void ensureHumanBaseReport(userId, chartId, language)
+      .then((next) => {
+        if (!cancelled) setReport(next);
       })
-      .catch((err) => {
-        if (cancelled || cached || report) return;
-        setError(formatError(err));
+      .catch((loadError) => {
+        if (!cancelled && !cached) setError(formatError(loadError));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [cacheContext, chartId, preloadedReport, profile, userId]);
-
-  // Префетч платных тем в фоне после загрузки портрета (премиум): к моменту тапа разбор уже
-  // в памяти/кэше и раскрывается мгновенно, а не запускает генерацию по клику.
-  useEffect(() => {
-    if (!isPremium || !userId || !report) return;
-    let cancelled = false;
-    void (async () => {
-      for (const key of HUMAN_MAP_SECTION_KEYS) {
-        if (cancelled) return;
-        try {
-          await loadHumanPaidSection(userId, key, chartId, { accessTier: 'premium' });
-        } catch {
-          /* префетч — best-effort, ошибки игнорируем */
-        }
-        if (cancelled) return;
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    })();
     return () => { cancelled = true; };
-  }, [isPremium, userId, chartId, report]);
+  }, [chartId, language, userId]);
 
-  const openPaidSection = async (key: HumanPaidSectionKey) => {
-    if (!userId || paidLoading) return;
-    setSectionError(null);
-    setPaidLoading(key);
-    try {
-      const cached = await getCachedHumanPaidSection(userId, key, chartId);
-      if (cached?.content) {
-        setPaidSections((current) => ({ ...current, [key]: cached.content }));
-        setUnlockTarget(null);
-      } else {
-        const generated = await loadHumanPaidSection(userId, key, chartId, { accessTier: 'premium' });
-        setPaidSections((current) => ({ ...current, [key]: generated.content }));
-        setUnlockTarget(null);
-      }
-    } catch (err) {
-      setSectionError(formatError(err));
-    } finally {
-      setPaidLoading(null);
-    }
-  };
-
-  const handleOpenPaid = (key: HumanPaidSectionKey) => {
-    if (isPremium) {
-      void openPaidSection(key);
+  useEffect(() => {
+    if (!isPremium || !userId) {
+      setPremiumReport(null);
+      setPremiumLoading(false);
       return;
     }
-    setSectionError(null);
-    setUnlockTarget(key);
+    let cancelled = false;
+    const cached = getHumanPremiumReportCached(userId, chartId, language)?.content || null;
+    const languageChanged = premiumLanguageRef.current !== language;
+    premiumLanguageRef.current = language;
+    if (cached) setPremiumReport(cached);
+    else if (languageChanged) setPremiumReport(null);
+    setPremiumLoading(!cached);
+    setPremiumError(null);
+    void ensureHumanPremiumReport(userId, chartId, language)
+      .then((result) => {
+        if (!cancelled) setPremiumReport(result.content);
+      })
+      .catch((loadError) => {
+        if (!cancelled) setPremiumError(formatError(loadError));
+      })
+      .finally(() => {
+        if (!cancelled) setPremiumLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [chartId, isPremium, language, userId]);
+
+  const openQuestions = () => {
+    if (!isPremium) {
+      requestPremium();
+      return;
+    }
+    setQuestionOpen(true);
+    setQuestionError(null);
+    if (!userId) return;
+    setQuestionLoading(true);
+    void loadNatalQuestionSnapshot(userId, chartId)
+      .then(setQuestionSnapshot)
+      .catch((loadError) => setQuestionError(formatError(loadError)))
+      .finally(() => setQuestionLoading(false));
   };
 
-  // Премиум: тап по карточке темы раскрывает/сворачивает её разбор; грузим текст при первом открытии.
-  const toggleTopic = (key: HumanPaidSectionKey) => {
-    if (expandedKey === key) { setExpandedKey(null); return; }
-    setExpandedKey(key);
-    if (!paidSections[key]) void openPaidSection(key);
+  const submitQuestion = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = questionText.trim();
+    if (!userId || !value || questionLoading) return;
+    setQuestionLoading(true);
+    setQuestionError(null);
+    try {
+      const next = await askNatalQuestion(userId, value, chartId);
+      setQuestionSnapshot(next);
+      setQuestionText('');
+    } catch (submitError) {
+      setQuestionError(formatError(submitError));
+    } finally {
+      setQuestionLoading(false);
+    }
   };
+
+  const questionFooter = (
+    <form onSubmit={submitQuestion} className="grid gap-2.5">
+      <label htmlFor="natal-question-input" className="sr-only">
+        {language === 'ru' ? 'Вопрос астрологу' : 'Question for the astrologer'}
+      </label>
+      <textarea
+        id="natal-question-input"
+        value={questionText}
+        onChange={(event) => setQuestionText(event.target.value)}
+        maxLength={300}
+        rows={2}
+        placeholder={language === 'ru' ? 'Спроси о себе по натальной карте' : 'Ask about yourself through your birth chart'}
+        className="w-full resize-none rounded-[18px] border border-white/16 bg-black/28 px-4 py-3 text-[15px] leading-snug text-white outline-none placeholder:text-white/45 focus:border-white/38"
+      />
+      <button
+        type="submit"
+        disabled={questionLoading || !questionText.trim() || (questionSnapshot?.usage.remaining ?? 1) <= 0}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#111827] disabled:opacity-50"
+      >
+        <Send size={16} strokeWidth={2} />
+        {questionLoading
+          ? (language === 'ru' ? 'Отвечаем...' : 'Answering...')
+          : (language === 'ru' ? 'Задать вопрос' : 'Ask')}
+      </button>
+    </form>
+  );
 
   return (
     <article className="natal-editorial-report relative bg-white pb-16 pt-1">
-      {/* Встроенный режим (в NatalMagazine): текст на всю ширину экрана с общими боковыми
-          отступами 16px — как big3 выше, без искусственно узкой колонки.
-          Standalone (!hideIntro) сохраняет читательскую центрированную колонку. */}
       <div className={`relative z-10 w-full ${hideIntro ? 'px-4' : 'mx-auto max-w-reading-wide px-5'}`}>
-        <header className={hideIntro ? 'empty:hidden' : 'pb-6'}>
-          {!hideIntro ? (
-            <>
-              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
-                Натальная карта
-              </p>
-              <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
-                {report?.userName || subjectName || 'Твоя карта'}, главный портрет
-              </h1>
-            </>
-          ) : null}
-          {natalReliability.birthTimeQuality !== 'exact' ? (
-            <p className="rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
-              Время рождения недостаточно точное. Дома, Асцендент и MC в этом разборе не используются; выводы строятся по надёжным положениям планет и аспектам между ними.
+        {!hideIntro ? (
+          <header className="pb-6">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
+              {language === 'ru' ? 'Натальная карта' : 'Natal chart'}
             </p>
-          ) : !natalReliability.housesReliable ? (
-            <p className="rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
-              Дома и MC недоступны в этом расчёте и не используются в тексте.
-            </p>
-          ) : null}
-        </header>
+            <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
+              {report?.userName || subjectName || (language === 'ru' ? 'Твоя карта' : 'Your chart')}
+            </h1>
+          </header>
+        ) : null}
+
+        {reliability.quality === 'unknown' ? (
+          <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
+            {language === 'ru'
+              ? 'Время рождения неизвестно. Асцендент, MC, дома, куспиды и управители домов полностью исключены из разбора.'
+              : 'Birth time is unknown. Ascendant, MC, houses, cusps, and house rulers are fully excluded from this reading.'}
+          </p>
+        ) : reliability.quality === 'approximate' ? (
+          <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
+            {language === 'ru'
+              ? 'Время рождения приблизительное. В разбор включены только те углы и дома, которые расчёт пометил как устойчивые.'
+              : 'Birth time is approximate. Only angles and houses explicitly marked stable by the calculation are included.'}
+          </p>
+        ) : null}
 
         <div aria-live="polite">
-          {loading ? (
-            <section data-testid="human-report-loading-area" className="border-t border-[#eeeeee] py-5">
-              <p className="rounded-[16px] bg-[#faf8fc] px-4 py-3 text-[13px] leading-relaxed text-[#6f6478]">
-                Основные данные карты уже готовы. Подгружаем текстовый разбор ниже.
+          {loading && !report ? (
+            <section data-testid="human-report-loading-area" className="py-5">
+              <p className="text-[14px] leading-relaxed text-[#666]">
+                {language === 'ru' ? 'Подготавливаем постоянный разбор карты.' : 'Preparing the permanent chart reading.'}
               </p>
             </section>
           ) : error || !report ? (
-            <section className="border-t border-[#eeeeee] py-8 sm:py-10">
-              <p className="font-sans text-[20px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">Интерпретация сейчас недоступна</p>
-              <p className="mt-2 text-sm leading-relaxed text-[#666]">{error || 'Разбор карты подготавливается.'}</p>
+            <section className="py-8 sm:py-10">
+              <p className="font-sans text-[20px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">
+                {language === 'ru' ? 'Интерпретация сейчас недоступна' : 'The interpretation is unavailable'}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[#666]">{error}</p>
             </section>
           ) : (
             <>
-              <EditorialSummary
-                label={ru ? 'Главный вывод' : 'Main takeaway'}
-                title={report.shortCard.title}
-                className="natal-reading-overview"
-              >
-                <EditorialProse text={report.shortCard.text} />
-              </EditorialSummary>
-              {visibleFreeSections.map((section, index) => (
-                <SectionText
-                  key={section.key}
-                  section={{ ...section, title: section.key === 'base_portrait' && ru ? 'Кто ты по карте' : section.title }}
-                  index={index}
+              <section className="natal-reading-overview editorial-reading-section" data-natal-contract={report.contractVersion}>
+                <h2 className="natal-sec-title">{report.shortCard.title}</h2>
+                <FormattedAiText
+                  text={report.shortCard.text}
+                  className="natal-sec-body max-w-none"
+                  paragraphClassName="natal-sec-p"
                 />
+              </section>
+              {freeSections.map((item, index) => (
+                <Fragment key={item.key}>
+                  <SectionText section={item} index={index} />
+                  {index === 0 && editorialSticker ? (
+                    <EditorialSticker
+                      asset={editorialSticker}
+                      className="natal-editorial-sticker natal-editorial-sticker--inline"
+                    />
+                  ) : null}
+                </Fragment>
               ))}
             </>
           )}
         </div>
 
         {!loading && !error && report ? (
-          <>
-            <ChartBalance chart={chartData} language={profile.language === 'en' ? 'en' : 'ru'} />
-            <EditorialSummary label={ru ? 'Итог' : 'Bottom line'} className="natal-reading-final">
-              <p>{report.shortCard.advice}</p>
-            </EditorialSummary>
-          </>
+          <ChartBalance chart={chartData} language={language} />
         ) : null}
 
-        <section className="natal-topics-section border-t border-[#eeeeee] py-7">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">Подробные темы по карте</p>
-          {!isPremium ? (
-            <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
-              9 отдельных глав по твоей карте: реакции, общение, отношения, конфликты, работа, деньги, способности, противоречия и важные аспекты.
+        {isPremium ? (
+          premiumLoading && !premiumReport ? (
+            <section className="natal-sec editorial-reading-section" aria-live="polite">
+              <p className="natal-sec-p">
+                {language === 'ru' ? 'Собираем полный постоянный разбор.' : 'Preparing the full permanent reading.'}
+              </p>
+            </section>
+          ) : premiumReport ? (
+            <PremiumReport report={premiumReport} language={language} />
+          ) : premiumError ? (
+            <p className="py-5 text-[13px] leading-relaxed text-[#a14f4f]">{premiumError}</p>
+          ) : null
+        ) : (
+          <section className="natal-premium-card my-8 overflow-hidden p-5">
+            <h2 className="font-sans text-[22px] font-semibold leading-tight">
+              {language === 'ru' ? 'Полный портрет карты' : 'The complete chart portrait'}
+            </h2>
+            <p className="mt-2 text-[14px] leading-relaxed text-[#667085]">
+              {language === 'ru'
+                ? 'Один цельный постоянный разбор личности, отношений, решений, работы, денег, способностей и внутренних противоречий.'
+                : 'One cohesive permanent reading of personality, relationships, decisions, work, money, abilities, and inner contradictions.'}
             </p>
-          ) : (
-            <p className="mt-2 font-sans text-[14px] leading-relaxed text-[#5f5f5f]">
-              Выбери тему — прочитаешь подробно о себе по ней. Это продолжение твоего разбора.
-            </p>
-          )}
+            <button
+              type="button"
+              onClick={requestPremium}
+              className="natal-premium-button mt-4 flex w-full items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold"
+            >
+              <Crown size={16} strokeWidth={2} />
+              {language === 'ru' ? 'Открыть в Premium' : 'Unlock with Premium'}
+            </button>
+          </section>
+        )}
 
-          <div className="mt-4">
-            {isPremium ? (
-              HUMAN_MAP_SECTION_KEYS.map((key, i) => (
-                <PaidTopicCard
-                  key={key}
-                  sectionKey={key}
-                  index={i}
-                  isLoading={paidLoading === key}
-                  expanded={expandedKey === key}
-                  reading={paidSections[key]}
-                  onToggle={() => toggleTopic(key)}
-                />
-              ))
-            ) : (
-              <>
-                {HUMAN_MAP_SECTION_KEYS.map((key) => (
-                  <PremiumTopicTeaser
-                    key={key}
-                    sectionKey={key}
-                    onClick={() => handleOpenPaid(key)}
-                  />
-                ))}
-                <div className="mt-6 overflow-hidden natal-premium-card p-5">
-                  <h3 className="font-sans text-[19px] font-semibold leading-tight">Открой все 9 глав</h3>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-[#667085]">
-                    Не больше текста ради объёма, а отдельные выводы по самым сильным фактам карты.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={requestPremium}
-                    className="mt-4 flex w-full items-center justify-center gap-2 natal-premium-button px-5 py-2.5 text-[14px] font-semibold"
-                  >
-                    <Crown size={16} strokeWidth={2} />
-                    Открыть в Premium
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+        <section className="my-8 py-2">
+          <button
+            type="button"
+            onClick={openQuestions}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#171717] px-5 py-3 text-[14px] font-semibold text-white"
+          >
+            <MessageCircle size={17} strokeWidth={2} />
+            {language === 'ru' ? 'Задать вопрос астрологу' : 'Ask the astrologer'}
+          </button>
         </section>
-
-        {sectionError ? (
-          <p className="border-t border-[#eeeeee] py-4 text-[13px] leading-relaxed text-[#b05c5c]">{sectionError}</p>
-        ) : null}
 
         <section className="natal-disclaimer border-t border-[#eeeeee] py-6">
           <p className="font-sans text-[12.5px] leading-relaxed text-[#777]">
-            Это ознакомательная интерпретация на основе астрологических расчетов по вашим данным рождения. Она не является прямым указанием к действию и не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.
+            {language === 'ru'
+              ? 'Это ознакомительная интерпретация астрологического расчёта. Она не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
+              : 'This is an informational interpretation of an astrological calculation. It does not replace medical, legal, financial, or other professional advice.'}
           </p>
         </section>
 
-        <TechnicalDetails chartData={chartData} />
+        <TechnicalDetails chartData={chartData} language={language} />
       </div>
 
-      {unlockTarget ? (
-        <NatalUnlockSheet
-          sectionKey={unlockTarget}
-          isLoading={paidLoading === unlockTarget}
-          onClose={() => setUnlockTarget(null)}
-          onPremium={() => {
-            setUnlockTarget(null);
-            requestPremium();
-          }}
-        />
-      ) : null}
-
+      <CosmicSheet
+        open={questionOpen}
+        title={language === 'ru' ? 'Вопрос астрологу' : 'Ask the astrologer'}
+        subtitle={language === 'ru' ? 'Ответ по этой натальной карте' : 'An answer from this birth chart'}
+        closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
+        onClose={() => setQuestionOpen(false)}
+        footer={questionFooter}
+        contentClassName="space-y-4"
+      >
+        {questionSnapshot?.messages.length ? (
+          <div className="space-y-3" aria-live="polite">
+            {questionSnapshot.messages.map((message) => (
+              <div
+                key={message.id}
+                className={message.role === 'user'
+                  ? 'ml-8 rounded-[18px] bg-white/12 px-4 py-3 text-[14px] leading-relaxed text-white'
+                  : 'mr-4 rounded-[18px] bg-black/28 px-4 py-3 text-[14px] leading-relaxed text-white/88'}
+              >
+                {message.text}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[14px] leading-relaxed text-white/74">
+            {language === 'ru'
+              ? 'Спроси о привычной реакции, отношениях, решениях, работе или сильной стороне. Ответ опирается только на расчёт этой карты.'
+              : 'Ask about a recurring response, relationships, decisions, work, or a strength. The answer uses only this chart calculation.'}
+          </p>
+        )}
+        {questionSnapshot ? (
+          <p className="text-[12px] text-white/52">
+            {language === 'ru'
+              ? `Осталось вопросов сегодня: ${questionSnapshot.usage.remaining}`
+              : `Questions left today: ${questionSnapshot.usage.remaining}`}
+          </p>
+        ) : null}
+        {questionError ? <p className="text-[13px] leading-relaxed text-[#ffb4b4]">{questionError}</p> : null}
+      </CosmicSheet>
     </article>
   );
 };

@@ -53,15 +53,14 @@ describe('active root newspaper visual contract', () => {
     expect(styles).not.toMatch(/\.lumia-bottom-(?:nav|bar)/);
   });
 
-  it('keeps image placement sparse and deterministic on root screens', () => {
+  it('keeps image placement sparse in readings and leaves onboarding quiet', () => {
     const dashboard = read('views/Dashboard.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
     expect(dashboard).toContain('resolvePersonalForecastVisuals');
     expect(dashboard).toContain('hasVisual={!!visual?.assignments[forecast.overview.id]?.path}');
-    expect(onboarding).toContain("screenKey: 'onboarding-story'");
-    expect(onboarding).toContain('contentKey: `story-${storyIndex}`');
-    expect(onboarding).toContain('<EditorialSticker');
+    expect(onboarding).not.toContain('selectMainEditorialSticker');
+    expect(onboarding).not.toContain('EditorialSticker');
     expect(onboarding).not.toContain('Math.random');
   });
 });

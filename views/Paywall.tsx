@@ -3,8 +3,9 @@ import { UserProfile } from '../types';
 import { PREMIUM_PLANS, type PremiumPlan, type PremiumPlanId } from '../lib/premiumPricing';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { apiFetch } from '../services/apiClient';
-import { resolveDistributionChannel } from '../lib/distributionChannel';
+import { canUseRuStorePay, resolveDistributionChannel } from '../lib/distributionChannel';
 import { getRuStoreProductId, loadRuStoreProducts } from '../services/rustorePayService';
+import { CosmicSurface } from '../components/lumia-ui/CosmicSurface';
 
 interface PaywallProps {
   profile: UserProfile;
@@ -47,11 +48,12 @@ function pluralDays(n: number, ru: boolean): string {
 export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, onContinueFree }) => {
   const ru = profile.language !== 'en';
   const distributionChannel = resolveDistributionChannel();
+  const rustorePaymentsEnabled = canUseRuStorePay(distributionChannel);
   const [selected, setSelected] = useState<PremiumPlanId>('premium_year');
   const [paying, setPaying] = useState(false);
   const [plans, setPlans] = useState<Record<PremiumPlanId, PaywallPlan>>(PREMIUM_PLANS);
   const [rustoreLabels, setRustoreLabels] = useState<Partial<Record<PremiumPlanId, string>>>({});
-  const [rustoreProductsLoaded, setRustoreProductsLoaded] = useState(distributionChannel !== 'rustore');
+  const [rustoreProductsLoaded, setRustoreProductsLoaded] = useState(!rustorePaymentsEnabled);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +74,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
   }, []);
 
   useEffect(() => {
-    if (distributionChannel !== 'rustore') return;
+    if (!rustorePaymentsEnabled) return;
     let cancelled = false;
     void loadRuStoreProducts()
       .then((products) => {
@@ -86,7 +88,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       .catch(() => undefined)
       .finally(() => { if (!cancelled) setRustoreProductsLoaded(true); });
     return () => { cancelled = true; };
-  }, [distributionChannel]);
+  }, [rustorePaymentsEnabled]);
 
   const visibleOrder = useMemo(() => {
     const ids = ORDER.filter((id) => plans[id]?.isActive !== false);
@@ -120,7 +122,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       ];
 
   const priceText = (id: PremiumPlanId) => (
-    distributionChannel === 'rustore'
+    rustorePaymentsEnabled
       ? (rustoreLabels[id] || '—')
       : (ru ? `${plans[id].priceRub} ₽` : `$${plans[id].priceUsd}`)
   );
@@ -133,7 +135,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
 
   const buy = () => {
     const canPurchase = distributionChannel === 'telegram'
-      || (distributionChannel === 'rustore' && rustoreProductsLoaded && !!rustoreLabels[selected]);
+      || (rustorePaymentsEnabled && rustoreProductsLoaded && !!rustoreLabels[selected]);
     if (paying || !canPurchase) return;
     lumiaSelectionHaptic();
     setPaying(true);
@@ -142,7 +144,11 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
   };
 
   return (
-    <div className="fresh-page lumia-main-scroll pw2">
+    <CosmicSurface
+      variant="paywall"
+      className="fresh-page lumia-main-scroll pw2"
+      planeClassName="pw2-plane"
+    >
       <div className="pw2-topbar">
         <button type="button" onClick={onClose} aria-label={ru ? 'Закрыть' : 'Close'} className="pw2-close">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -197,10 +203,10 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         })}
       </div>
 
-      {(distributionChannel === 'telegram' || distributionChannel === 'rustore') ? <button type="button" className="pw2-cta" onClick={buy} disabled={paying || (distributionChannel === 'rustore' && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected)))}>
+      {(distributionChannel === 'telegram' || rustorePaymentsEnabled) ? <button type="button" className="pw2-cta" onClick={buy} disabled={paying || (rustorePaymentsEnabled && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected)))}>
         {paying
           ? (ru ? 'Открываю оплату…' : 'Opening…')
-          : (distributionChannel === 'rustore' && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected))
+          : (rustorePaymentsEnabled && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected))
             ? (ru ? 'Покупка временно недоступна' : 'Purchase is temporarily unavailable')
             : `${ru ? 'Оформить Premium' : 'Get Premium'} · ${priceText(selected)}`)}
       </button> : <p className="pw2-foot">{ru ? 'Premium, который уже есть у аккаунта, доступен в этом приложении. Новые покупки здесь пока не подключены.' : 'Premium already linked to your account is available here. New purchases are not connected in this build yet.'}</p>}
@@ -214,6 +220,6 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       ) : null}
 
       {distributionChannel === 'telegram' ? <p className="pw2-foot">{ru ? 'Оплата в Telegram Stars. Подписку можно не продлевать.' : 'Pay with Telegram Stars. No auto-renewal.'}</p> : null}
-    </div>
+    </CosmicSurface>
   );
 };

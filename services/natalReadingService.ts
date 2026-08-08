@@ -7,11 +7,17 @@ import type {
   ProfileCard,
 } from '../types';
 import type { HumanPaidSectionKey } from '../lib/natalHumanShared';
+import type {
+  NatalPermanentFreeReport,
+  NatalPermanentPremiumReport,
+} from '../lib/natalReading/permanentReport';
+import { buildNatalReportScopeKey } from '../lib/natalReading/permanentReport';
+import type { NatalQuestionSnapshot } from '../lib/natalReading/natalQuestion';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
 
 const HUMAN_GENERATION_TIMEOUT_MS = 90_000;
-type HumanEndpoint = 'human-base' | 'human-section';
+type HumanEndpoint = 'human-base' | 'human-premium' | 'human-section';
 
 export type HumanReadingResult<T> = {
   content: T;
@@ -36,8 +42,10 @@ export type NatalProfileCardsResponse = {
   };
 };
 
-const baseReportCache = new Map<string, NatalInterpretationReport>();
-const baseReportInFlight = new Map<string, Promise<NatalInterpretationReport>>();
+const baseReportCache = new Map<string, NatalPermanentFreeReport>();
+const baseReportInFlight = new Map<string, Promise<NatalPermanentFreeReport>>();
+const premiumReportCache = new Map<string, HumanReadingResult<NatalPermanentPremiumReport>>();
+const premiumReportInFlight = new Map<string, Promise<HumanReadingResult<NatalPermanentPremiumReport>>>();
 const paidSectionCache = new Map<string, HumanReadingResult<InterpretationSection>>();
 const paidSectionInFlight = new Map<string, Promise<HumanReadingResult<InterpretationSection>>>();
 const profileCardsCache = new Map<string, NatalProfileCardsResponse>();
@@ -47,8 +55,12 @@ function chartKey(chartId?: number): string {
   return chartId != null ? String(chartId) : 'primary';
 }
 
-function baseKey(userId: string, chartId?: number): string {
-  return `${userId}:${chartKey(chartId)}`;
+function baseKey(
+  userId: string,
+  chartId?: number,
+  language?: 'ru' | 'en',
+): string {
+  return buildNatalReportScopeKey(userId, chartId, language);
 }
 
 function paidKey(
@@ -85,6 +97,8 @@ export function clearHumanReadingSessionCache(
   if (!userId) {
     baseReportCache.clear();
     baseReportInFlight.clear();
+    premiumReportCache.clear();
+    premiumReportInFlight.clear();
     paidSectionCache.clear();
     paidSectionInFlight.clear();
     profileCardsCache.clear();
@@ -92,11 +106,16 @@ export function clearHumanReadingSessionCache(
     return;
   }
   if (chartId != null) {
-    baseReportCache.delete(baseKey(userId, chartId));
-    baseReportInFlight.delete(baseKey(userId, chartId));
+    const reportPrefix = `${userId}:${chartKey(chartId)}:`;
+    clearMapByPrefix(baseReportCache, reportPrefix);
+    clearMapByPrefix(baseReportInFlight, reportPrefix);
+    clearMapByPrefix(premiumReportCache, reportPrefix);
+    clearMapByPrefix(premiumReportInFlight, reportPrefix);
   } else {
     clearMapByPrefix(baseReportCache, `${userId}:`);
     clearMapByPrefix(baseReportInFlight, `${userId}:`);
+    clearMapByPrefix(premiumReportCache, `${userId}:`);
+    clearMapByPrefix(premiumReportInFlight, `${userId}:`);
   }
   const prefix = `${userId}:${chartId != null ? `${chartKey(chartId)}:` : ''}`;
   clearMapByPrefix(paidSectionCache, prefix);
@@ -118,8 +137,17 @@ export function getNatalProfileCardsCached(
 export function getHumanBaseReportCached(
   userId: string,
   chartId?: number,
-): NatalInterpretationReport | null {
-  return baseReportCache.get(baseKey(userId, chartId)) || null;
+  language?: 'ru' | 'en',
+): NatalPermanentFreeReport | null {
+  return baseReportCache.get(baseKey(userId, chartId, language)) || null;
+}
+
+export function getHumanPremiumReportCached(
+  userId: string,
+  chartId?: number,
+  language?: 'ru' | 'en',
+): HumanReadingResult<NatalPermanentPremiumReport> | null {
+  return premiumReportCache.get(baseKey(userId, chartId, language)) || null;
 }
 
 export function getHumanPaidSectionCached(
@@ -214,6 +242,7 @@ async function postHuman<T>(
     accessTier?: 'premium';
   },
 ): Promise<HumanReadingResult<T>> {
+  const startedAt = Date.now();
   const response = await apiFetch(buildHumanUrl(endpoint, userId, options), {
     method: 'POST',
     headers: {
@@ -227,6 +256,21 @@ async function postHuman<T>(
       accessTier: options?.accessTier,
     }),
   }, HUMAN_GENERATION_TIMEOUT_MS);
+  if (response.status === 202) {
+    const pending = await response.json().catch(() => ({}));
+    let retryAfterMs = Math.max(250, Math.min(Number(pending.retryAfterMs) || 1000, 5000));
+    while (Date.now() - startedAt < HUMAN_GENERATION_TIMEOUT_MS) {
+      await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+      const cached = await getHuman<T>(endpoint, userId, options);
+      if (cached) return cached;
+      retryAfterMs = Math.min(Math.round(retryAfterMs * 1.35), 5000);
+    }
+    const error = new Error('Content generation is still in progress') as HumanReadingError;
+    error.code = 'CONTENT_GENERATION_TIMEOUT';
+    error.status = 504;
+    error.retryAfterMs = retryAfterMs;
+    throw error;
+  }
   if (!response.ok) throw await readHumanError(response, `Failed (${response.status})`);
   return ensureContent<T>(await response.json());
 }
@@ -234,11 +278,12 @@ async function postHuman<T>(
 export async function getCachedHumanBaseReport(
   userId: string,
   chartId?: number,
-): Promise<NatalInterpretationReport | null> {
-  const key = baseKey(userId, chartId);
+  language?: 'ru' | 'en',
+): Promise<NatalPermanentFreeReport | null> {
+  const key = baseKey(userId, chartId, language);
   const memory = baseReportCache.get(key);
   if (memory) return memory;
-  const cached = await getHuman<NatalInterpretationReport>('human-base', userId, { chartId });
+  const cached = await getHuman<NatalPermanentFreeReport>('human-base', userId, { chartId });
   if (!cached) return null;
   baseReportCache.set(key, cached.content);
   return cached.content;
@@ -247,13 +292,14 @@ export async function getCachedHumanBaseReport(
 export async function ensureHumanBaseReport(
   userId: string,
   chartId?: number,
-): Promise<NatalInterpretationReport> {
-  const key = baseKey(userId, chartId);
-  const cached = await getCachedHumanBaseReport(userId, chartId);
+  language?: 'ru' | 'en',
+): Promise<NatalPermanentFreeReport> {
+  const key = baseKey(userId, chartId, language);
+  const cached = await getCachedHumanBaseReport(userId, chartId, language);
   if (cached) return cached;
   const existing = baseReportInFlight.get(key);
   if (existing) return existing;
-  const request = postHuman<NatalInterpretationReport>('human-base', userId, { chartId })
+  const request = postHuman<NatalPermanentFreeReport>('human-base', userId, { chartId })
     .then((result) => {
       baseReportCache.set(key, result.content);
       return result.content;
@@ -265,8 +311,114 @@ export async function ensureHumanBaseReport(
   return request;
 }
 
+function buildNatalQuestionsUrl(userId: string, chartId?: number): string {
+  const params = new URLSearchParams({ userId });
+  if (chartId != null) params.set('chartId', String(chartId));
+  return `/api/content/natal/questions?${params.toString()}`;
+}
+
 export const loadHumanBaseReport = ensureHumanBaseReport;
 export const prefetchHumanBaseReport = ensureHumanBaseReport;
+
+export async function getCachedHumanPremiumReport(
+  userId: string,
+  chartId?: number,
+  language?: 'ru' | 'en',
+): Promise<HumanReadingResult<NatalPermanentPremiumReport> | null> {
+  const key = baseKey(userId, chartId, language);
+  const memory = premiumReportCache.get(key);
+  if (memory) return memory;
+  try {
+    const cached = await getHuman<NatalPermanentPremiumReport>(
+      'human-premium',
+      userId,
+      { chartId },
+    );
+    if (cached) premiumReportCache.set(key, cached);
+    return cached;
+  } catch (error) {
+    const status = (error as HumanReadingError).status;
+    if (status === 403 || status === 404 || status === 409) return null;
+    throw error;
+  }
+}
+
+export async function ensureHumanPremiumReport(
+  userId: string,
+  chartId?: number,
+  language?: 'ru' | 'en',
+): Promise<HumanReadingResult<NatalPermanentPremiumReport>> {
+  const key = baseKey(userId, chartId, language);
+  const cached = await getCachedHumanPremiumReport(userId, chartId, language);
+  if (cached) return cached;
+  const existing = premiumReportInFlight.get(key);
+  if (existing) return existing;
+  const request = postHuman<NatalPermanentPremiumReport>('human-premium', userId, {
+    chartId,
+    accessTier: 'premium',
+  }).then((result) => {
+    premiumReportCache.set(key, result);
+    return result;
+  }).finally(() => {
+    if (premiumReportInFlight.get(key) === request) premiumReportInFlight.delete(key);
+  });
+  premiumReportInFlight.set(key, request);
+  return request;
+}
+
+export async function loadNatalQuestionSnapshot(
+  userId: string,
+  chartId?: number,
+): Promise<NatalQuestionSnapshot> {
+  const response = await apiFetch(buildNatalQuestionsUrl(userId, chartId), {
+    method: 'GET',
+    headers: getTelegramInitDataHeaders(),
+    cache: 'no-store',
+  });
+  if (!response.ok) throw await readHumanError(response, `Failed (${response.status})`);
+  return response.json() as Promise<NatalQuestionSnapshot>;
+}
+
+export async function askNatalQuestion(
+  userId: string,
+  question: string,
+  chartId?: number,
+): Promise<NatalQuestionSnapshot> {
+  const startedAt = Date.now();
+  const response = await apiFetch(buildNatalQuestionsUrl(userId, chartId), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getTelegramInitDataHeaders(),
+    },
+    body: JSON.stringify({ userId, chartId, question }),
+  }, HUMAN_GENERATION_TIMEOUT_MS);
+  if (response.status === 202) {
+    const pending = await response.json().catch(() => ({}));
+    let retryAfterMs = Math.max(250, Math.min(Number(pending.retryAfterMs) || 1000, 5000));
+    while (Date.now() - startedAt < HUMAN_GENERATION_TIMEOUT_MS) {
+      await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+      const current = await loadNatalQuestionSnapshot(userId, chartId);
+      const target = [...current.messages].reverse().find((message) => (
+        message.role === 'user'
+        && message.text.trim().toLocaleLowerCase() === question.trim().toLocaleLowerCase()
+      ));
+      const answered = target && current.messages.some((message) => (
+        message.role === 'assistant'
+        && String(message.payload?.questionMessageId || '') === String(target.id)
+      ));
+      if (answered) return current;
+      retryAfterMs = Math.min(Math.round(retryAfterMs * 1.35), 5000);
+    }
+    const error = new Error('Question generation is still in progress') as HumanReadingError;
+    error.code = 'CONTENT_GENERATION_TIMEOUT';
+    error.status = 504;
+    error.retryAfterMs = retryAfterMs;
+    throw error;
+  }
+  if (!response.ok) throw await readHumanError(response, `Failed (${response.status})`);
+  return response.json() as Promise<NatalQuestionSnapshot>;
+}
 
 export async function getCachedHumanPaidSection(
   userId: string,
