@@ -28,6 +28,80 @@ import { buildPersonalForecastChartFingerprint } from './personalForecastContrac
 
 type Locale = 'ru' | 'en';
 
+const DIRECT_BASE_SECTION_KEYS = [
+  'base_portrait', 'thinking', 'reactions', 'work_money', 'difficulties', 'inner_reactions', 'communication',
+] as const;
+
+type DirectNatalPayload = {
+  sections?: Array<{
+    id?: unknown;
+    title?: unknown;
+    blocks?: Array<{ text?: unknown; evidence_ids?: unknown }>;
+  }>;
+};
+
+function directBaseFallback(profile: UserProfile, chart: NatalChartData): NatalInterpretationReport {
+  const language: Locale = profile.language === 'en' ? 'en' : 'ru';
+  const emptySection = (key: typeof DIRECT_BASE_SECTION_KEYS[number]): InterpretationSection => ({
+    key,
+    title: key.replace(/_/g, ' '),
+    subtitle: '', access: 'free', isLocked: false, teaser: '',
+    content: language === 'ru' ? 'Расчёт карты готов; текстовый разбор временно недоступен.' : 'The chart calculation is ready; the written reading is temporarily unavailable.',
+    bullets: [], evidenceIds: [], ctaLabel: '',
+  });
+  const freeSections = DIRECT_BASE_SECTION_KEYS.map(emptySection);
+  return {
+    userName: profile.name || (language === 'en' ? 'friend' : 'друг'),
+    birthData: { birthDate: profile.birthDate || '', birthTime: profile.birthTime || null, birthPlace: profile.birthPlace || '' },
+    calculatedAt: new Date().toISOString(),
+    freeSections,
+    paidSections: buildLockedPaidSections(), premiumSections: [],
+    shortCard: { title: language === 'en' ? 'Your chart' : 'Твоя карта', keywords: [], text: freeSections[0].content, advice: '', evidenceIds: [] },
+  };
+}
+
+function directBasePrompt(language: Locale, chart: NatalChartData): string {
+  const languageRule = language === 'ru' ? 'Write in Russian and address the reader as «ты».' : 'Write in English and address the reader as "you".';
+  return `You are an astrologer writing a natal reading from calculated chart data. ${languageRule}
+
+Return JSON only: {"sections":[{"id":"base_portrait","title":"...","blocks":[{"text":"...","evidence_ids":["..."]}]}]}.
+Return exactly these seven ids once, in this order: ${DIRECT_BASE_SECTION_KEYS.join(', ')}.
+Each section has one to three concise blocks. Choose the important links yourself from the supplied calculation. Do not invent placements, events, biography, diagnoses, or promises. Keep technical astrology out of prose. evidence_ids must refer only to existing calculated data paths or point names.
+
+DIRECT CALCULATED NATAL CHART (authoritative; do not recalculate):
+${JSON.stringify(chart, null, 2)}`;
+}
+
+function materializeDirectBaseReport(
+  raw: DirectNatalPayload,
+  fallback: NatalInterpretationReport,
+): { report: NatalInterpretationReport; valid: boolean } {
+  const sections = Array.isArray(raw?.sections) ? raw.sections : [];
+  const byId = new Map(sections.map((section) => [typeof section?.id === 'string' ? section.id : '', section]));
+  const freeSections: InterpretationSection[] = [];
+  for (const key of DIRECT_BASE_SECTION_KEYS) {
+    const source = byId.get(key);
+    const blocks = Array.isArray(source?.blocks) ? source.blocks : [];
+    const text = blocks.map((block) => typeof block?.text === 'string' ? block.text.trim() : '').filter((value) => value.length >= 15).join('\n\n');
+    if (!text) return { report: fallback, valid: false };
+    const evidenceIds = blocks.flatMap((block) => Array.isArray(block?.evidence_ids) ? block.evidence_ids : [])
+      .filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+    freeSections.push({
+      key,
+      title: typeof source?.title === 'string' && source.title.trim() ? source.title.trim().slice(0, 120) : key.replace(/_/g, ' '),
+      subtitle: '', access: 'free', isLocked: false, teaser: '', content: text, bullets: [], evidenceIds: [...new Set(evidenceIds)], ctaLabel: '',
+    });
+  }
+  return {
+    valid: true,
+    report: {
+      ...fallback,
+      freeSections,
+      shortCard: { title: freeSections[0].title, keywords: [], text: freeSections[0].content.split(/\n\n+/u)[0], advice: freeSections.at(-1)?.content.split(/\n\n+/u)[0] || '', evidenceIds: freeSections[0].evidenceIds },
+    },
+  };
+}
+
 export function buildHumanInputHash(input: {
   profile: UserProfile;
   chartData: NatalChartData;
@@ -89,6 +163,8 @@ export function buildHumanBaseFallback(
   profile: UserProfile,
   chart: NatalChartData,
 ): NatalInterpretationReport {
+  return directBaseFallback(profile, chart);
+  /*
   const language: Locale = profile.language === 'en' ? 'en' : 'ru';
   const compilation = compileNatalSemantics(chart, 'free', language);
   const freeSections = compilation.sections.map((plan) => sectionFromPlan(plan, 'free'));
@@ -105,6 +181,7 @@ export function buildHumanBaseFallback(
     premiumSections: [],
     shortCard: deterministicShortCard(language, freeSections, compilation),
   };
+  */
 }
 
 export function buildHumanPaidFallback(
@@ -188,11 +265,10 @@ export async function generateHumanBaseReport(
   },
 ): Promise<NatalInterpretationReport> {
   const language: Locale = profile.language === 'en' ? 'en' : 'ru';
-  const compilation = compileNatalSemantics(chart, 'free', language);
-  const fallback = buildHumanBaseFallback(profile, chart);
-  const raw = await llmJson<GeneratedNatalPayload>({
+  const fallback = directBaseFallback(profile, chart);
+  const raw = await llmJson<DirectNatalPayload>({
     system: getAppSystemVoice(language),
-    user: writerPrompt(compilation, compilation.sections),
+    user: directBasePrompt(language, chart),
     model: {
       accessTier: 'free',
       contentSurface: 'natal',
@@ -203,11 +279,9 @@ export async function generateHumanBaseReport(
     modelOverride: options?.modelOverride,
     onMetrics: options?.onMetrics,
   });
-  const validation = validateGeneratedNatalPayload({ raw, plans: compilation.sections, reliability: compilation.reliability });
-  options?.onValidation?.(validation.errors.length === 0);
-  return validation.errors.length === 0
-    ? materializeBaseReport(raw, fallback, compilation)
-    : fallback;
+  const materialized = materializeDirectBaseReport(raw, fallback);
+  options?.onValidation?.(materialized.valid);
+  return materialized.report;
 }
 
 export async function generateHumanPaidSection(

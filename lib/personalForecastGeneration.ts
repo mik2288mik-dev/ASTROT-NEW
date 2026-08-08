@@ -40,7 +40,6 @@ import {
 } from './personalForecastEvidence';
 import {
   PERSONAL_FORECAST_SEMANTICS_VERSION,
-  compilePersonalForecastSemanticFacts,
   type ForecastSemanticFact,
 } from './personalForecastSemantics';
 import {
@@ -1006,7 +1005,8 @@ export async function generatePersonalForecastPackage(input: {
   onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
   onEvidenceCalculated?: (payload: {
     calculated: EvidenceCalculationResult;
-    semanticFacts: ForecastSemanticFact[];
+    /** Semantic compiler is intentionally bypassed; snapshots receive no derived facts. */
+    semanticFacts: [];
   }) => Promise<EvidenceCalculatedHookResult>;
 }): Promise<PersonalForecastPackage> {
   const language: ForecastWriterLanguage = input.profile.language === 'en' ? 'en' : 'ru';
@@ -1019,14 +1019,8 @@ export async function generatePersonalForecastPackage(input: {
     window: input.window,
     language,
   });
-  const semanticFacts = compilePersonalForecastSemanticFacts({
-    evidence: calculated.evidence,
-    period: input.period,
-    chartData: input.chartData,
-    language,
-  });
   if (input.onEvidenceCalculated) {
-    await input.onEvidenceCalculated({ calculated, semanticFacts });
+    await input.onEvidenceCalculated({ calculated, semanticFacts: [] });
   }
   const generated = await requestGeneratedFeed({
     language,
