@@ -498,7 +498,7 @@ body.theme-lumia-air #__next {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  gap: 2px;
+  gap: 0;
   padding: 0 12px 14px;
   overscroll-behavior: contain;
 }
@@ -542,12 +542,12 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-side-drawer-item {
-  gap: 14px;
-  min-height: 44px;
-  padding: 0.4rem 8px;
-  font-size: 15.5px;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0.25rem 8px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.15;
 }
 
 .lumia-side-drawer-item > svg {
@@ -563,21 +563,21 @@ body.theme-lumia-air #__next {
 .lumia-side-drawer-periods {
   display: grid;
   gap: 0;
-  margin-block: -4px 4px;
+  margin-block: -2px 2px;
   margin-inline-start: 35px;
 }
 
 .lumia-side-drawer-period {
-  min-height: 44px;
-  padding-inline: 10px;
+  min-height: 36px;
+  padding-inline: 8px;
   border: 0;
   border-radius: 0.65rem;
   background: transparent;
   color: #6b7280;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.15;
   text-align: start;
 }
 
