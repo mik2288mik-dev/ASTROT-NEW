@@ -669,26 +669,28 @@ export const Dashboard = memo<DashboardProps>(({
         />
         <div className="home-top-content">
           <div className="forecast-feed-date-zone">
-            <p className="forecast-feed-date">
-              {dateLabel.split('\n').map((line, index) => (
-                <span
-                  key={line}
-                  className={dateLabel.includes('\n') && index === 0
-                    ? 'forecast-feed-date-weekday'
-                    : 'forecast-feed-date-value'}
-                >
-                  {line}
-                </span>
-              ))}
-            </p>
-            <button
-              type="button"
-              className="forecast-feed-global-info"
-              aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
-              onClick={() => setHowItWorksOpen(true)}
-            >
-              <Info size={16} aria-hidden />
-            </button>
+            <div className="forecast-feed-date-cluster">
+              <p className="forecast-feed-date">
+                {dateLabel.split('\n').map((line, index) => (
+                  <span
+                    key={line}
+                    className={dateLabel.includes('\n') && index === 0
+                      ? 'forecast-feed-date-weekday'
+                      : 'forecast-feed-date-value'}
+                  >
+                    {line}
+                  </span>
+                ))}
+              </p>
+              <button
+                type="button"
+                className="forecast-feed-global-info"
+                aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
+                onClick={() => setHowItWorksOpen(true)}
+              >
+                <Info size={16} aria-hidden />
+              </button>
+            </div>
           </div>
         </div>
       </section>

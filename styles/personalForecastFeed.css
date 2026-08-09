@@ -31,6 +31,7 @@
   letter-spacing: -0.01em;
   line-height: 1.35;
   text-align: center;
+  text-wrap: balance;
   overflow-wrap: anywhere;
 }
 
@@ -93,6 +94,7 @@
 .forecast-feed-date-value {
   font-size: 22px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   line-height: 1.2;
   text-transform: uppercase;
@@ -103,15 +105,23 @@
   width: min(100%, 610px);
   box-sizing: border-box;
   min-height: 58px;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
   margin: 16px auto 14px;
-  padding: 0 72px;
+  padding-inline: 72px;
   color: #171717;
 }
 
+.forecast-feed-date-cluster {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+}
+
 .forecast-feed-global-info {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: calc(100% + 6px);
   display: inline-flex;
   width: 20px;
   height: 20px;
@@ -122,6 +132,12 @@
   border-radius: 50%;
   background: #ffffff;
   color: #6b7280;
+}
+
+.forecast-feed-global-info::after {
+  position: absolute;
+  inset: -12px;
+  content: '';
 }
 
 .forecast-feed-global-info:active {
