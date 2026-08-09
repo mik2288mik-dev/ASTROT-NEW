@@ -211,7 +211,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v11.unbounded-raw-evidence',
+  'personal-forecast-feed.v12.period-json-contracts',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v8';

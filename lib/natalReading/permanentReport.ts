@@ -14,18 +14,18 @@ import type {
 } from '../natalChartV2Types';
 import { APP_VOICE_VERSION, withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
 
-export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v2';
+export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v3';
 export const NATAL_PERMANENT_FREE_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v1`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v2`,
 );
 export const NATAL_PERMANENT_PREMIUM_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v1`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v2`,
 );
 export const NATAL_PERMANENT_FREE_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.free.v2',
+  'natal.permanent.free.v3',
 );
 export const NATAL_PERMANENT_PREMIUM_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.premium.v2',
+  'natal.permanent.premium.v3',
 );
 
 export type NatalReadingLanguage = 'ru' | 'en';
@@ -126,7 +126,20 @@ export type RawNatalStatement = {
   evidence_ids?: unknown;
 };
 
+export type RawNatalSection = {
+  section_key?: unknown;
+  title?: unknown;
+  free?: unknown;
+  content?: unknown;
+  evidence_ids?: unknown;
+  /** @deprecated legacy response fields retained only for source compatibility. */
+  id?: unknown;
+  paragraphs?: RawNatalStatement[];
+};
+
 export type RawNatalFreePayload = {
+  sections?: RawNatalSection[];
+  /** @deprecated legacy response fields retained only for source compatibility. */
   headline?: unknown;
   headline_evidence_ids?: unknown;
   hook?: RawNatalStatement;
@@ -141,14 +154,11 @@ export type RawNatalFreePayload = {
 };
 
 export type RawNatalPremiumPayload = {
+  sections?: RawNatalSection[];
+  /** @deprecated legacy response fields retained only for source compatibility. */
   headline?: unknown;
   headline_evidence_ids?: unknown;
   lead?: RawNatalStatement;
-  sections?: Array<{
-    id?: unknown;
-    title?: unknown;
-    paragraphs?: RawNatalStatement[];
-  }>;
   strategies?: Array<RawNatalStatement & { title?: unknown }>;
   pitfalls?: RawNatalStatement[];
   conclusion?: RawNatalStatement;
@@ -767,9 +777,7 @@ function parseStatement(
   reliability: BuiltNatalModelContext,
 ): NatalReadingStatement | null {
   const value = text(raw?.text);
-  if (value.length < 12 || value.length > 1800) return null;
-  if (containsChangingTimeReference(value)) return null;
-  if (!isNatalReliabilityTextAllowed(value, reliability)) return null;
+  if (!value) return null;
   const evidenceIds = normalizedEvidenceIds(raw?.evidence_ids, allowed);
   return evidenceIds ? { text: value, evidenceIds } : null;
 }
@@ -794,77 +802,85 @@ function section(
   };
 }
 
+const FREE_NATAL_SECTION_KEYS = [
+  'personality',
+  'thinking',
+  'relationships',
+  'vulnerabilities',
+] as const;
+
+const PREMIUM_NATAL_SECTION_KEYS = [
+  'vocation_money',
+  'career',
+  'health',
+  'shadow',
+  'life_path',
+  'year_advice',
+] as const;
+
+const FREE_SECTION_KEY_MAP: Record<
+  typeof FREE_NATAL_SECTION_KEYS[number],
+  InterpretationSection['key']
+> = {
+  personality: 'base_portrait',
+  thinking: 'thinking',
+  relationships: 'relationships_deep',
+  vulnerabilities: 'difficulties',
+};
+
+type ParsedNatalSection = {
+  key: string;
+  title: string;
+  free: boolean;
+  statement: NatalReadingStatement;
+};
+
+function parseNatalSections(
+  rawSections: RawNatalSection[] | undefined,
+  expectedKeys: readonly string[],
+  expectedFree: boolean,
+  built: BuiltNatalModelContext,
+): ParsedNatalSection[] | null {
+  if (!Array.isArray(rawSections) || rawSections.length !== expectedKeys.length) return null;
+  const parsed: ParsedNatalSection[] = [];
+  for (const [index, rawSection] of rawSections.entries()) {
+    const key = text(rawSection?.section_key);
+    const title = text(rawSection?.title);
+    const content = text(rawSection?.content);
+    if (
+      key !== expectedKeys[index]
+      || rawSection?.free !== expectedFree
+      || !title
+      || !content
+    ) return null;
+    const statement = parseStatement(
+      { text: content, evidence_ids: rawSection.evidence_ids },
+      built.evidenceIds,
+      built,
+    );
+    if (!statement) return null;
+    parsed.push({ key, title, free: expectedFree, statement });
+  }
+  return parsed;
+}
+
 export function materializePermanentFreeReport(input: {
   raw: RawNatalFreePayload;
   profile: UserProfile;
   built: BuiltNatalModelContext;
 }): NatalPermanentFreeReport | null {
   const { raw, profile, built } = input;
-  const parse = (value: RawNatalStatement | null | undefined) => parseStatement(
-    value,
-    built.evidenceIds,
-    built,
-  );
-  const headline = text(raw.headline);
-  const headlineEvidenceIds = normalizedEvidenceIds(raw.headline_evidence_ids, built.evidenceIds);
-  const hook = parse(raw.hook);
-  const sun = parse(raw.core?.sun);
-  const moon = parse(raw.core?.moon);
-  const ascendant = raw.core?.ascendant == null ? null : parse(raw.core.ascendant);
-  const strengths = Array.isArray(raw.strengths)
-    ? raw.strengths.map(parse).filter((value): value is NatalReadingStatement => !!value)
-    : [];
-  const conflict = parse(raw.conflict);
-  const advice = parse(raw.advice);
-
-  if (
-    headline.length < 3
-    || headline.length > 120
-    || containsChangingTimeReference(headline)
-    || !isNatalReliabilityTextAllowed(headline, built)
-    || !headlineEvidenceIds
-    || !hook
-    || !sun
-    || !moon
-    || strengths.length < 2
-    || strengths.length > 3
-    || !conflict
-    || !advice
-  ) return null;
-  if (built.ascendantIncluded ? !ascendant : raw.core?.ascendant != null) return null;
-
+  const parsed = parseNatalSections(raw.sections, FREE_NATAL_SECTION_KEYS, true, built);
+  if (!parsed) return null;
   const language: NatalReadingLanguage = profile.language === 'en' ? 'en' : 'ru';
-  const labels = language === 'ru'
-    ? {
-        sun: 'Стержень',
-        moon: 'Эмоциональная реакция',
-        ascendant: 'Первое впечатление',
-        strengths: 'Сильные стороны',
-        conflict: 'Внутреннее противоречие',
-        advice: 'Практический ориентир',
-      }
-    : {
-        sun: 'Core drive',
-        moon: 'Emotional response',
-        ascendant: 'First impression',
-        strengths: 'Strengths',
-        conflict: 'Inner contradiction',
-        advice: 'Practical direction',
-      };
-  const freeSections = [
-    section('sun_code', labels.sun, [sun]),
-    section('moon_code', labels.moon, [moon]),
-    ...(ascendant ? [section('ascendant_code', labels.ascendant, [ascendant])] : []),
-    section('strengths', labels.strengths, strengths),
-    section('central_contradictions', labels.conflict, [conflict]),
-    section('main_advice', labels.advice, [advice]),
-  ];
-  const evidenceIds = uniqueStrings([
-    ...headlineEvidenceIds,
-    ...hook.evidenceIds,
-    ...freeSections.flatMap((item) => item.evidenceIds || []),
-  ]);
-
+  const freeSections = parsed.map((item) => section(
+    FREE_SECTION_KEY_MAP[item.key as typeof FREE_NATAL_SECTION_KEYS[number]],
+    item.title,
+    [item.statement],
+  ));
+  const evidenceIds = uniqueStrings(parsed.flatMap((item) => item.statement.evidenceIds));
+  const first = parsed[0];
+  const last = parsed[parsed.length - 1];
   return {
     schemaVersion: 'natal-permanent-free-v2',
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
@@ -883,11 +899,14 @@ export function materializePermanentFreeReport(input: {
     paidSections: [],
     premiumSections: [],
     shortCard: {
-      title: headline,
+      title: first.title,
       keywords: [],
-      text: hook.text,
-      advice: advice.text,
-      evidenceIds: uniqueStrings([...headlineEvidenceIds, ...hook.evidenceIds]),
+      text: first.statement.text,
+      advice: last.statement.text,
+      evidenceIds: uniqueStrings([
+        ...first.statement.evidenceIds,
+        ...last.statement.evidenceIds,
+      ]),
     },
   };
 }
@@ -900,96 +919,36 @@ export function isNatalPermanentFreeReport(
     && (value as Partial<NatalPermanentFreeReport>).contractVersion === NATAL_PERMANENT_CONTRACT_VERSION;
 }
 
-function cleanId(value: unknown, fallback: string): string {
-  const id = slug(value);
-  return id === 'fact' ? fallback : id;
-}
-
 export function materializePermanentPremiumReport(input: {
   raw: RawNatalPremiumPayload;
   built: BuiltNatalModelContext;
 }): NatalPermanentPremiumReport | null {
-  const { raw, built } = input;
-  const parse = (value: RawNatalStatement | null | undefined) => parseStatement(
-    value,
-    built.evidenceIds,
-    built,
+  const parsed = parseNatalSections(
+    input.raw.sections,
+    PREMIUM_NATAL_SECTION_KEYS,
+    false,
+    input.built,
   );
-  const headline = text(raw.headline);
-  const headlineEvidenceIds = normalizedEvidenceIds(raw.headline_evidence_ids, built.evidenceIds);
-  const lead = parse(raw.lead);
-  const seenSectionIds = new Set<string>();
-  const sections: NatalPermanentPremiumSection[] = [];
-  for (const [index, rawSection] of (Array.isArray(raw.sections) ? raw.sections : []).entries()) {
-    const title = text(rawSection?.title);
-    const id = cleanId(rawSection?.id, `section-${index + 1}`);
-    const paragraphs = (Array.isArray(rawSection?.paragraphs) ? rawSection.paragraphs : [])
-      .map(parse)
-      .filter((value): value is NatalReadingStatement => !!value);
-    if (
-      title.length < 3
-      || title.length > 120
-      || containsChangingTimeReference(title)
-      || !isNatalReliabilityTextAllowed(title, built)
-      || paragraphs.length < 1
-      || paragraphs.length > 4
-    ) return null;
-    if (seenSectionIds.has(id)) return null;
-    seenSectionIds.add(id);
-    sections.push({ id, title, paragraphs });
-  }
-  const strategies = (Array.isArray(raw.strategies) ? raw.strategies : []).map((item) => {
-    const statement = parse(item);
-    const title = text(item?.title);
-    return statement
-      && title.length >= 3
-      && title.length <= 100
-      && !containsChangingTimeReference(title)
-      && isNatalReliabilityTextAllowed(title, built)
-      ? { ...statement, title }
-      : null;
-  }).filter((value): value is NatalReadingStatement & { title: string } => !!value);
-  const pitfalls = (Array.isArray(raw.pitfalls) ? raw.pitfalls : [])
-    .map(parse)
-    .filter((value): value is NatalReadingStatement => !!value);
-  const conclusion = parse(raw.conclusion);
-
-  if (
-    headline.length < 3
-    || headline.length > 120
-    || containsChangingTimeReference(headline)
-    || !isNatalReliabilityTextAllowed(headline, built)
-    || !headlineEvidenceIds
-    || !lead
-    || sections.length < 6
-    || sections.length > 10
-    || strategies.length !== 3
-    || pitfalls.length < 2
-    || pitfalls.length > 5
-    || !conclusion
-  ) return null;
-
-  const evidenceIds = uniqueStrings([
-    ...headlineEvidenceIds,
-    ...lead.evidenceIds,
-    ...sections.flatMap((item) => item.paragraphs.flatMap((paragraph) => paragraph.evidenceIds)),
-    ...strategies.flatMap((item) => item.evidenceIds),
-    ...pitfalls.flatMap((item) => item.evidenceIds),
-    ...conclusion.evidenceIds,
-  ]);
-
+  if (!parsed) return null;
+  const first = parsed[0];
+  const last = parsed[parsed.length - 1];
+  const sections: NatalPermanentPremiumSection[] = parsed.slice(1, -1).map((item) => ({
+    id: item.key,
+    title: item.title,
+    paragraphs: [item.statement],
+  }));
   return {
     schemaVersion: 'natal-permanent-premium-v2',
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
     tier: 'premium',
-    headline,
-    headlineEvidenceIds,
-    lead,
+    headline: first.title,
+    headlineEvidenceIds: first.statement.evidenceIds,
+    lead: first.statement,
     sections,
-    strategies,
-    pitfalls,
-    conclusion,
-    evidenceIds,
+    strategies: [],
+    pitfalls: [],
+    conclusion: last.statement,
+    evidenceIds: uniqueStrings(parsed.flatMap((item) => item.statement.evidenceIds)),
   };
 }
 
