@@ -97,19 +97,6 @@ const ASPECT_LABELS: Record<'ru' | 'en', Record<string, string>> = {
   },
 };
 
-const PLANET_WEIGHTS: Record<string, number> = {
-  moon: 12,
-  sun: 28,
-  mercury: 34,
-  venus: 38,
-  mars: 42,
-  jupiter: 56,
-  saturn: 60,
-  uranus: 68,
-  neptune: 66,
-  pluto: 72,
-};
-
 function normalizeDegree(value: number): number {
   const result = value % 360;
   return result < 0 ? result + 360 : result;
@@ -251,19 +238,20 @@ function evidenceView(
   } else {
     factor = language === 'ru' ? 'Совокупность факторов периода' : 'Period factor aggregate';
   }
-  const polarityMeaning: Record<CalculatedAstroEvidence['polarity'], Record<'ru' | 'en', string>> = {
-    supporting: { ru: 'Расчёт делает эту тему заметнее и даёт ей больше опоры.', en: 'The calculation makes this topic more noticeable and better supported.' },
-    challenging: { ru: 'Здесь особенно важны точность и проверка решений.', en: 'Precision and a careful check of decisions matter especially here.' },
-    mixed: { ru: 'Здесь есть и рабочий ресурс, и условия, которые нельзя игнорировать.', en: 'There is usable momentum here, along with conditions that should not be ignored.' },
-    neutral: { ru: 'Расчёт выделяет тему, но не задаёт ей однозначный знак.', en: 'The calculation highlights the topic without assigning it one clear direction.' },
-  };
+  const factualDetails = [
+    evidence.orb != null
+      ? (language === 'ru' ? `орб ${evidence.orb}°` : `orb ${evidence.orb}°`)
+      : null,
+    language === 'ru' ? `статус ${evidence.status}` : `status ${evidence.status}`,
+    periodLabel(evidence, language),
+  ].filter((part): part is string => !!part);
   return {
     id: evidence.id,
     factor,
     orb: evidence.orb ?? null,
     status: evidence.status,
     period: periodLabel(evidence, language),
-    meaning: polarityMeaning[evidence.polarity][language],
+    meaning: factualDetails.join(' · '),
   };
 }
 
@@ -356,10 +344,11 @@ function groupAspectEvidence(
       : last.orb < first.orb
         ? 'applying'
         : 'separating';
-  const planetWeight = PLANET_WEIGHTS[first.transitPlanet] || 30;
   const durationBoost = Math.min(18, Math.max(0, sorted.length - 1) * 2);
   const exactness = Math.max(0, 28 - exact.orb * 4);
-  const strength = Math.max(1, Math.min(100, Math.round(planetWeight + durationBoost + exactness)));
+  // Kept for legacy package compatibility, but now measures observation
+  // precision only. Planet identity no longer creates an importance ranking.
+  const strength = Math.max(1, Math.min(100, Math.round(durationBoost + exactness)));
   const polarity: CalculatedAstroEvidence['polarity'] =
     first.tone === 'support' ? 'supporting' : first.tone === 'pressure' ? 'challenging' : 'mixed';
   const house = natalHouse(chart, first.natalPlanet);
@@ -516,7 +505,7 @@ export function buildPersonalForecastIngressAndStationEvidence(
           exactAt: null,
           startsAt: iso(snapshots[index - 1].at),
           endsAt: iso(snapshots[index].at),
-          strength: Math.min(90, (PLANET_WEIGHTS[planet] || 30) + 12),
+          strength: 0,
           polarity: 'neutral',
           ingress: {
             fromSign: previous.sign,
@@ -539,7 +528,7 @@ export function buildPersonalForecastIngressAndStationEvidence(
           exactAt: null,
           startsAt: iso(snapshots[index - 1].at),
           endsAt: iso(snapshots[index].at),
-          strength: Math.min(96, (PLANET_WEIGHTS[planet] || 30) + 20),
+          strength: 0,
           polarity: 'mixed',
           motion: {
             directionBefore: previous.retrograde ? 'retrograde' : 'direct',
@@ -668,7 +657,7 @@ export function buildPersonalForecastHouseEvidence(
         status: 'active',
         startsAt: iso(first.at),
         endsAt: iso(last.at),
-        strength: Math.min(82, (PLANET_WEIGHTS[planet] || 30) + 8),
+        strength: 0,
         polarity: 'neutral',
         calculationSource: `${PERSONAL_FORECAST_CALCULATION_VERSION}:swisseph`,
       });
@@ -682,10 +671,18 @@ function dedupeEvidence(
 ): PersonalForecastCalculatedEvidence[] {
   const byId = new Map<string, PersonalForecastCalculatedEvidence>();
   for (const value of values) {
-    const current = byId.get(value.id);
-    if (!current || value.strength > current.strength) byId.set(value.id, value);
+    if (!byId.has(value.id)) byId.set(value.id, value);
   }
-  return [...byId.values()].sort((a, b) => b.strength - a.strength);
+  const factTime = (value: PersonalForecastCalculatedEvidence): number => {
+    const raw = value.exactAt || value.startsAt || value.endsAt;
+    const parsed = raw ? Date.parse(raw) : Number.NaN;
+    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
+  };
+  return [...byId.values()].sort((a, b) => (
+    factTime(a) - factTime(b)
+    || (a.orb ?? Number.MAX_SAFE_INTEGER) - (b.orb ?? Number.MAX_SAFE_INTEGER)
+    || a.id.localeCompare(b.id)
+  ));
 }
 
 export async function calculatePersonalForecastEvidence(input: {

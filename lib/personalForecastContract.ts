@@ -213,10 +213,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v9.editorial-direct-evidence-writer',
+  'personal-forecast-feed.v10.raw-evidence-grounded',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v7';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v8';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -672,15 +672,10 @@ export function validateForecastSectionRepetition(
 
 export function isSimpleDynamicTitle(value: string): boolean {
   const title = value.trim();
-  const normalized = normalizeComparable(title);
-  const words = normalized.split(' ').filter(Boolean);
   return (
-    title.length >= 3
-    && title.length <= 64
-    && words.length >= 1
-    && words.length <= 7
-    && !BANNED_DYNAMIC_TITLES.has(normalized)
-    && !/[.:;!?]/.test(title)
+    title.length >= 1
+    && title.length <= 120
+    && !/[#*_`]/.test(title)
   );
 }
 
@@ -716,7 +711,7 @@ function anchorValid(
     && anchor.explanation.length <= EXPLANATION_TEXT_MAX
     && Array.isArray(anchor.evidenceIds)
     && anchor.evidenceIds.length >= 1
-    && anchor.evidenceIds.length <= 8
+    && anchor.evidenceIds.length <= 12
     && new Set(anchor.evidenceIds).size === anchor.evidenceIds.length
     && anchor.evidenceIds.every((id) => evidenceIds.has(id))
   );
@@ -768,9 +763,9 @@ function contentBlocksValid(
   }
   if (
     section.contentBlocks.length < 1
-    || section.contentBlocks.length > 3
+    || section.contentBlocks.length > 6
     || section.semanticFactIds.length < 1
-    || section.semanticFactIds.length > 3
+    || section.semanticFactIds.length > 12
     || new Set(section.semanticFactIds).size !== section.semanticFactIds.length
     || !section.semanticFingerprint.trim()
   ) {
@@ -877,7 +872,11 @@ function sectionValid(
     return false;
   }
   if (redacted && section.inlineAstroAccent) return false;
-  if (section.kind === 'dynamic' && (!section.title || !isSimpleDynamicTitle(section.title))) {
+  if (
+    section.kind === 'dynamic'
+    && section.title !== undefined
+    && !isSimpleDynamicTitle(section.title)
+  ) {
     return false;
   }
   if (section.inlineAstroAccent) {
@@ -959,8 +958,7 @@ function canonicalSectionIdentityValid(
   if (section.kind === 'dynamic') {
     return (
       section.id.startsWith('semantic:')
-      && typeof section.title === 'string'
-      && isSimpleDynamicTitle(section.title)
+      && (section.title === undefined || isSimpleDynamicTitle(section.title))
       && section.fixedKey === undefined
       && section.sourceTopicKey === undefined
     );
@@ -1123,7 +1121,7 @@ export function getPersonalForecastPackageValidationError(
   )) {
     return 'PACKAGE_CROSS_PERIOD_LINKS_INVALID';
   }
-  if (forecast.sections.length < 1 || forecast.sections.length > 5) {
+  if (forecast.sections.length > 7) {
     return 'PACKAGE_SECTION_COUNT_INVALID';
   }
   if (
@@ -1150,7 +1148,15 @@ export function getPersonalForecastPackageValidationError(
     const eligibleIds = new Set(candidates.map((section) => section.id));
     const strongestSectionId = freeSelection.strongestSectionId;
     const rotatedSectionId = freeSelection.rotatedSectionId;
-    if (
+    if (!candidates.length) {
+      if (
+        strongestSectionId !== null
+        || rotatedSectionId !== null
+        || freeSelection.sectionIds.length !== 0
+      ) {
+        return 'PACKAGE_FREE_SELECTION_INVALID';
+      }
+    } else if (
       typeof strongestSectionId !== 'string'
       || freeSelection.sectionIds.length < 1
       || freeSelection.sectionIds.length > 2

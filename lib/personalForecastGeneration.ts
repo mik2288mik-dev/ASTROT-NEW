@@ -1,14 +1,11 @@
 import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
-import {
-  buildCanonicalNatalReport,
-  isNatalChartDataV2,
-  type CanonicalNatalReport,
-} from './natal/canonicalReport';
+import type { NatalChartDataV2 } from './natalChartV2Types';
+import { isNatalChartDataV2 } from './natal/canonicalReport';
 import type { AstrologyHistoryContext } from './astrologyHistoryStore';
 import {
   APP_VOICE_VERSION,
-  getAppSystemVoice,
+  getPersonalForecastSystemVoice,
   hasAppVoiceViolation,
 } from './appVoice';
 import { buildOpenAIChatParams } from './openaiChat';
@@ -57,10 +54,7 @@ const MAX_SEMANTIC_SECTIONS = 4;
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
 ): string {
-  const task = language === 'ru'
-    ? `Ты — живой, прямой и дерзкий астро-аналитик и сильный журнальный редактор. Разбирай только переданные расчётные данные: транзиты, аспекты, дома и сроки. Пиши о реальной жизни — деньгах, делах, контактах, чувствах и сбоях. Никакой эзотерики, «опор», «точек напряжения», коучинга или канцелярита. Выбирай только действительно важные выводы, формулируй их плотно и не повторяй одну мысль разными словами. Дерзость — в точном наблюдении, не в грубости и не в сленге.`
-    : `You are a lively, direct, bold astro analyst and a sharp magazine editor. Read only the supplied calculations: transits, aspects, houses, and timing. Write about real life: money, work, contacts, feelings, and disruptions. No esoteric language, coaching, corporate filler, or slang. Select only the conclusions that matter, keep them dense, and never repeat one idea in different words. Bold means precise, never rude.`;
-  return `${getAppSystemVoice(language)}\n\nFORECAST-SPECIFIC SYSTEM INSTRUCTION:\n${task}`;
+  return getPersonalForecastSystemVoice(language);
 }
 
 type PlannedBlock = {
@@ -95,6 +89,7 @@ type GeneratedBlockPayload = {
 type GeneratedSectionPayload = {
   id?: unknown;
   title?: unknown;
+  evidence_ids?: unknown;
   blocks?: unknown;
 };
 
@@ -109,25 +104,17 @@ type ValidatedWriterResult = {
 
 type FreeGeneratedBlock = {
   text: string;
-  astroEvidence: string | null;
 };
 
 type FreeGeneratedSection = {
   title: string | null;
+  evidenceIds: string[];
   blocks: FreeGeneratedBlock[];
 };
 
 type ValidatedFreeWriterResult = {
   sections: FreeGeneratedSection[];
   errors: string[];
-};
-
-type DirectSectionBasis = {
-  id: string;
-  evidenceIds: string[];
-  importance: number;
-  visualTag: string;
-  semanticFingerprint: string;
 };
 
 type GenerationResult = {
@@ -460,27 +447,36 @@ export function buildPersonalForecastFeedPrompt(input: {
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
   calculatedEvidence: EvidenceCalculationResult['evidence'];
-  canonicalNatalReport?: CanonicalNatalReport;
-  historyContext?: AstrologyHistoryContext | null;
+  natalContext?: Record<string, unknown>;
+  /** @deprecated accepted for source compatibility; never included in the prompt. */
+  canonicalNatalReport?: unknown;
   repairErrors?: string[];
 }): string {
   const periodInstruction: Record<PersonalForecastPeriod, string> = {
-    day: 'Give a short slice of this day: its central pressure or opening, the clearest manifestation, and what to avoid. Mention a part of the day only when the calculation gives a real timing change.',
-    week: 'Give the week\'s main vector and two or three real focal points. Show how the pressure develops across the supplied window without inventing daily bustle.',
-    month: 'Give a strategic reading of the month: the large movements in the relevant spheres and the genuinely important timing windows. Do not turn it into a daily diary.',
+    day: 'Interpret the calculated facts inside this day. Use intraday timing only when it exists in the supplied facts.',
+    week: 'Interpret the calculated facts across this week as a connected period. Use only the supplied timing.',
+    month: 'Interpret the calculated facts at the scale of this month. Do not invent day-level detail.',
   };
-  const evidence = input.calculatedEvidence
+  const factTime = (item: EvidenceCalculationResult['evidence'][number]): number => {
+    const raw = item.exactAt || item.startsAt || item.endsAt;
+    const parsed = raw ? Date.parse(raw) : Number.NaN;
+    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
+  };
+  const evidence = [...input.calculatedEvidence]
+    .sort((a, b) => (
+      factTime(a) - factTime(b)
+      || (a.orb ?? Number.MAX_SAFE_INTEGER) - (b.orb ?? Number.MAX_SAFE_INTEGER)
+      || a.id.localeCompare(b.id)
+    ))
     .map((item) => ({
       id: item.id,
       kind: item.kind,
       transit_planet: item.transitPlanet || null,
       natal_point: item.natalPoint || null,
       aspect: item.aspect || null,
-      house: item.house || null,
-      orb: item.orb || null,
+      house: item.house ?? null,
+      orb: item.orb ?? null,
       status: item.status,
-      strength: item.strength,
-      polarity: item.polarity,
       starts_at_local: localForecastTimestamp(item.startsAt || null, input.window.timezone),
       exact_at_local: localForecastTimestamp(item.exactAt || null, input.window.timezone),
       ends_at_local: localForecastTimestamp(item.endsAt || null, input.window.timezone),
@@ -490,41 +486,27 @@ export function buildPersonalForecastFeedPrompt(input: {
   const repair = input.repairErrors?.length
     ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
     : '';
-  return `You write a concise editorial personal forecast from supplied calculations.
+  return `Create a personal forecast directly from the supplied calculated facts.
 
 Write in ${input.language === 'ru' ? 'Russian, addressing the reader as "ты"' : 'English, addressing the reader as "you"'}.
 Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}. Timezone: ${input.window.timezone}.
 Period instruction: ${periodInstruction[input.period]}
 
-Hard rules:
-- Return JSON only: {"sections":[{"title":"...","blocks":[{"text":"...","astro_evidence":"..."}]}]}.
-- Return 3-5 sections total: the first is the hero overview, followed by 2-4 thematic sections chosen from the strongest supplied facts.
-- Every section title is required. Make it a specific human headline of 2-7 words. The first title is the screen headline: short, bold, and exact. Never use a generic domain or technical label.
-- The hero overview has exactly one block: a lead of 1-2 short sentences and no more than 36 words.
-- Each following section has 1-2 compact blocks. Each block is one paragraph of at most 3 sentences and 70 words. Remove any sentence that repeats an earlier conclusion.
-- Each block needs a short, exact astro_evidence that names the supplied calculation behind it (for example, "Mars in the 2nd house"). It is UI metadata; never name it in text.
-- Build the sections freely from the calculated evidence. Do not use canned labels such as "Reactions", "First step", "Actions and boundaries", or "Conversations and decisions".
-- Never use titles equivalent to "Overview", "General background", "Main point", "What is happening", "What to do", "Energy of the day", "Evening", "Work", "Money", "Relationships", or "Inner state". Name the actual conclusion instead.
-- Start each block with one precise, living image and immediately show a concrete ordinary-life manifestation. The image must clarify, never decorate.
-- Prefer concrete spheres only when the calculation supports them: work and money, relationships and communication, inner state. Do not manufacture a sphere, event, motive, biography, or prediction.
-- No filler, coaching language, or cheap slang. Never use "background processes", "put things in order", "resources", "do not force events", or close paraphrases. Write a sharp, compact, psychologically literate analysis in ordinary language.
-- For day, mention morning, daytime or evening only when the supplied local timing changes inside that day. For week and month, name only the supplied dates or intervals that actually stand out.
-- A forecast is temporary. Never turn it into personality: no "you always", "you never", "you are the kind of person" or equivalents.
-- Do not name planets, aspects, houses, transits, degrees, or calculation terms in the main text.
-- Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
-- Inside text fields use plain prose only: no markdown, embedded headings, slogans, section numbering, coaching language, cheap slang, or filler. Titles belong only in the title fields.
-- Explicit history may only sharpen wording inside the supplied semantic domain. It cannot create a new domain or fact.
-- The canonical natal report is factual background only. The dated calculation evidence determines this ${input.period} forecast; do not reuse a generic natal template.
-- If the canonical natal report has no HousePlacements, do not infer or mention the Ascendant, houses, rulers, cusps, or other time-dependent placements.
+Output contract:
+- Return JSON only: {"sections":[{"title":"optional natural heading or null","evidence_ids":["existing evidence id"],"blocks":[{"text":"plain prose"}]}]}.
+- Decide how many sections are genuinely useful, their order, context, headings, and whether advice is warranted.
+- Every section must cite only existing ids from calculated_evidence in evidence_ids. Every statement in that section must be supported by those cited facts.
+- Do not invent facts, events, personality traits, timing, or calculations.
+- Do not add a problem, warning, prohibition, or recommendation unless the supplied facts actually support that interpretation.
+- Keep the reading concise, concrete, and non-repetitive. Use plain prose without markdown or embedded headings.
+- A title is optional. If used, make it natural and concise; do not follow a title template.
+- Treat the natal context only as factual background. Do not infer Ascendant, MC, houses, or cusps when they are absent.
 
-Canonical natal report (V2 facts when available):
-${JSON.stringify(input.canonicalNatalReport ?? null, null, 2)}
+Factual natal context:
+${JSON.stringify(input.natalContext ?? {}, null, 2)}
 
-Direct Swiss Ephemeris calculation evidence:
-${JSON.stringify(evidence, null, 2)}
-
-Bounded non-generative history context:
-${JSON.stringify(safeHistoryContext(input.historyContext), null, 2)}${repair}`;
+Calculated evidence:
+${JSON.stringify(evidence, null, 2)}${repair}`;
 }
 
 function generatedTextValid(text: string): boolean {
@@ -623,30 +605,10 @@ export function validateGeneratedForecastFeed(input: {
   return { blocksBySectionId, errors };
 }
 
-const FORBIDDEN_GENERATED_TITLES = new Set([
-  'общее', 'общий фон', 'главное', 'что происходит', 'где шанс где риск',
-  'что делать', 'энергия дня', 'вечер', 'работа', 'деньги', 'отношения',
-  'общение', 'внутреннее состояние', 'личный гороскоп на сегодня',
-  'личный гороскоп на неделю', 'личный гороскоп на месяц',
-  'overview', 'general background', 'main point', 'what is happening',
-  'what to do', 'energy of the day', 'evening', 'work', 'money',
-  'relationships', 'communication', 'inner state',
-]);
-
 function generatedTitleValid(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const title = value.trim();
-  const normalized = title
-    .toLocaleLowerCase('ru-RU')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const words = normalized.split(' ').filter(Boolean);
-  return (
-    isSimpleDynamicTitle(title)
-    && words.length >= 2
-    && !FORBIDDEN_GENERATED_TITLES.has(normalized)
-  );
+  return title.length > 0 && title.length <= 120 && !/[#*_`]/.test(title);
 }
 
 /**
@@ -654,13 +616,16 @@ function generatedTitleValid(value: unknown): value is string {
  * keeps stable identifiers during materialization; they are not part of the
  * model's authoring contract.
  */
-export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): ValidatedFreeWriterResult {
+export function validateFreeGeneratedForecastFeed(
+  raw: GeneratedFeedPayload,
+  availableEvidenceIds: ReadonlySet<string> = new Set(),
+): ValidatedFreeWriterResult {
   const errors: string[] = [];
   const rawSections = Array.isArray(raw?.sections)
     ? raw.sections as GeneratedSectionPayload[]
     : [];
-  if (rawSections.length < 3 || rawSections.length > MAX_SEMANTIC_SECTIONS + 1) {
-    errors.push(`expected 3-${MAX_SEMANTIC_SECTIONS + 1} sections, received ${rawSections.length}`);
+  if (rawSections.length < 1 || rawSections.length > 8) {
+    errors.push(`expected 1-8 sections, received ${rawSections.length}`);
   }
 
   const sections: FreeGeneratedSection[] = [];
@@ -668,35 +633,45 @@ export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): Va
     const rawBlocks = Array.isArray(rawSection?.blocks)
       ? rawSection.blocks as GeneratedBlockPayload[]
       : [];
-    const expectedMaximum = sectionIndex === 0 ? 1 : 2;
-    if (rawBlocks.length < 1 || rawBlocks.length > expectedMaximum) {
-      errors.push(`section ${sectionIndex + 1}: expected 1-${expectedMaximum} blocks, received ${rawBlocks.length}`);
+    if (rawBlocks.length < 1 || rawBlocks.length > 6) {
+      errors.push(`section ${sectionIndex + 1}: expected 1-6 blocks, received ${rawBlocks.length}`);
       continue;
     }
-    const title = typeof rawSection?.title === 'string' ? rawSection.title.trim() : '';
-    if (!generatedTitleValid(title)) {
-      errors.push(`section ${sectionIndex + 1}: title is missing, generic, or invalid`);
+    const title = typeof rawSection?.title === 'string' && rawSection.title.trim()
+      ? rawSection.title.trim()
+      : null;
+    if (title !== null && !generatedTitleValid(title)) {
+      errors.push(`section ${sectionIndex + 1}: title is invalid`);
+      continue;
+    }
+    const evidenceIds = Array.isArray(rawSection?.evidence_ids)
+      ? rawSection.evidence_ids
+          .filter((id): id is string => typeof id === 'string')
+          .map((id) => id.trim())
+          .filter(Boolean)
+      : [];
+    if (
+      evidenceIds.length < 1
+      || evidenceIds.length > 12
+      || new Set(evidenceIds).size !== evidenceIds.length
+      || evidenceIds.some((id) => !availableEvidenceIds.has(id))
+    ) {
+      errors.push(`section ${sectionIndex + 1}: evidence_ids are missing, duplicated, or unknown`);
       continue;
     }
     const blocks: FreeGeneratedBlock[] = [];
     for (const [blockIndex, rawBlock] of rawBlocks.entries()) {
       const text = typeof rawBlock?.text === 'string' ? rawBlock.text.trim() : '';
-      const astroEvidence = typeof rawBlock?.astro_evidence === 'string'
-        ? rawBlock.astro_evidence.trim().slice(0, 240) || null
-        : null;
       if (!generatedTextValid(text)) {
         errors.push(`section ${sectionIndex + 1}, block ${blockIndex + 1}: invalid text`);
         continue;
       }
-      if (!astroEvidence || astroEvidence.length < 3) {
-        errors.push(`section ${sectionIndex + 1}, block ${blockIndex + 1}: astro_evidence is missing`);
-        continue;
-      }
-      blocks.push({ text, astroEvidence });
+      blocks.push({ text });
     }
     if (blocks.length === rawBlocks.length) {
       sections.push({
         title,
+        evidenceIds,
         blocks,
       });
     }
@@ -815,63 +790,55 @@ function _materializeSection(input: {
   };
 }
 
-function buildDirectSectionBases(
-  evidence: EvidenceCalculationResult['evidence'],
-): DirectSectionBasis[] {
-  const evidenceIds = evidence.map((item) => item.id).filter(Boolean);
-  return evidenceIds.length ? [{
-    id: 'direct:calculated-evidence', evidenceIds, importance: 100,
-    visualTag: 'calculated', semanticFingerprint: `direct:${stableHash(evidenceIds.join(':')).toString(36)}`,
-  }] : [];
-}
-
-function evidenceForBasis(
-  basis: DirectSectionBasis,
+function evidenceForIds(
+  evidenceIds: readonly string[],
   evidenceViews: Record<string, ForecastEvidenceView>,
 ): ForecastEvidenceView[] {
-  return basis.evidenceIds
+  return evidenceIds
     .map((id) => evidenceViews[id])
     .filter((item): item is ForecastEvidenceView => !!item);
 }
 
 function materializeDirectSection(input: {
   section: FreeGeneratedSection;
-  basis: DirectSectionBasis;
   evidenceViews: Record<string, ForecastEvidenceView>;
   language: ForecastWriterLanguage;
   overview: boolean;
   sectionIndex: number;
 }): ForecastSection {
-  const evidence = evidenceForBasis(input.basis, input.evidenceViews);
-  const title = input.section.title || (input.language === 'ru' ? 'Точный поворот' : 'A precise turn');
+  const evidence = evidenceForIds(input.section.evidenceIds, input.evidenceViews);
+  const title = input.section.title || undefined;
   const sectionId = input.overview
     ? 'overview'
-    : `semantic:direct-${input.sectionIndex}-${stableHash(title).toString(36)}`;
+    : `semantic:direct-${input.sectionIndex}-${stableHash(`${title || ''}:${input.section.evidenceIds.join(':')}`).toString(36)}`;
+  const evidenceLabel = evidence.map((item) => item.factor).join(' · ').slice(0, 240) || null;
   const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => ({
     id: `${sectionId}:generated:${index + 1}`,
     role: input.overview && index === 0 ? 'lead' : 'insight',
     text: block.text,
-    semanticFactId: input.basis.id,
+    semanticFactId: input.section.evidenceIds[0],
     atomId: `generated:${sectionId}:${index + 1}`,
-    astro_evidence: block.astroEvidence || evidence[0]?.factor || null,
+    astro_evidence: evidenceLabel,
     explanationAnchorId: index === 0 ? `anchor:${sectionId}` : null,
   }));
   const text = blocks.map((block) => block.text).join('\n\n');
   const teaser = input.language === 'ru'
-    ? `В полном разборе «${title}» — конкретные проявления и важные условия периода.`
-    : `The full “${title}” reading gives the concrete manifestations and important conditions of the period.`;
-  const anchorEvidence = evidence.slice(0, 8);
-  const anchorExplanation = anchorEvidence
-    .map((item) => `${item.factor}. ${item.meaning}`)
-    .join(' ')
+    ? 'В полном разборе этого периода раскрыты конкретные проявления рассчитанных факторов.'
+    : 'The full reading of this period explains the concrete manifestations of its calculated factors.';
+  const factualAnchorPrefix = input.language === 'ru'
+    ? 'Расчётные факты этой секции: '
+    : 'Calculated facts cited by this section: ';
+  const anchorExplanation = `${factualAnchorPrefix}${evidence
+    .map((item) => `${item.factor}: ${item.meaning}`)
+    .join(' ')}`
     .slice(0, 1_200)
     .trim();
-  const anchors: ExplanationAnchor[] = anchorEvidence.length && blocks.length && anchorExplanation.length >= 40
+  const anchors: ExplanationAnchor[] = evidence.length && blocks.length && anchorExplanation.length >= 40
     ? [{
         id: `anchor:${sectionId}`,
         conclusion: blocks[0].text.slice(0, 600),
         explanation: anchorExplanation,
-        evidenceIds: anchorEvidence.map((item) => item.id),
+        evidenceIds: evidence.map((item) => item.id),
       }]
     : [];
   return {
@@ -881,45 +848,15 @@ function materializeDirectSection(input: {
     title,
     sourceTopicKey: input.overview ? 'overview' : undefined,
     text, contentBlocks: blocks,
-    semanticFactIds: [input.basis.id],
-    semanticFingerprint: `${input.basis.semanticFingerprint}:${input.overview ? 'overview' : input.sectionIndex}`,
-    importance: input.overview ? input.basis.importance : Math.max(1, input.basis.importance - input.sectionIndex),
-    visualTag: input.basis.visualTag,
+    semanticFactIds: input.section.evidenceIds,
+    semanticFingerprint: `direct:${stableHash(`${input.section.evidenceIds.join(':')}:${input.sectionIndex}`).toString(36)}`,
+    importance: Math.max(1, 100 - input.sectionIndex),
+    visualTag: 'calculated',
     premiumTeaser: teaser,
     lockedPreview: buildForecastLockedPreview(text, teaser),
     explanationAnchors: anchors,
     inlineAstroAccent: null,
   };
-}
-
-function buildDirectFallbackSections(input: {
-  language: ForecastWriterLanguage;
-  basis: DirectSectionBasis;
-  evidenceViews: Record<string, ForecastEvidenceView>;
-}): FreeGeneratedSection[] {
-  const evidence = evidenceForBasis(input.basis, input.evidenceViews);
-  const first = evidence[0];
-  const second = evidence[1];
-  const fallbackText = input.language === 'ru'
-    ? 'Сейчас важнее выбрать один ясный шаг и не распылять внимание на всё сразу.'
-    : 'The useful move now is to choose one clear step instead of scattering your attention.';
-  const secondFallbackText = input.language === 'ru'
-    ? 'Проверь факты перед ответом: спокойная пауза сейчас полезнее автоматической реакции.'
-    : 'Check the facts before replying: a calm pause is more useful now than an automatic reaction.';
-  return [
-    {
-      title: input.language === 'ru' ? 'Выбери точный ход' : 'Choose the precise move',
-      blocks: [{ text: first?.meaning || fallbackText, astroEvidence: first?.factor || 'Calculated period evidence' }],
-    },
-    {
-      title: input.language === 'ru' ? 'Не распыляй импульс' : 'Do not scatter momentum',
-      blocks: [{ text: second?.meaning || secondFallbackText, astroEvidence: second?.factor || first?.factor || 'Calculated period evidence' }],
-    },
-    {
-      title: input.language === 'ru' ? 'Закрепи результат делом' : 'Make the result concrete',
-      blocks: [{ text: fallbackText, astroEvidence: first?.factor || 'Calculated period evidence' }],
-    },
-  ];
 }
 
 async function requestGeneratedFeed(input: {
@@ -929,38 +866,13 @@ async function requestGeneratedFeed(input: {
   window: PersonalForecastWindow;
   calculatedEvidence: EvidenceCalculationResult['evidence'];
   evidenceViews: Record<string, ForecastEvidenceView>;
-  canonicalNatalReport?: CanonicalNatalReport;
-  historyContext?: AstrologyHistoryContext | null;
+  natalContext: Record<string, unknown>;
   onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
 }): Promise<GenerationResult> {
-  const bases = buildDirectSectionBases(input.calculatedEvidence);
-  if (!bases.length) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
+  const availableEvidenceIds = new Set(input.calculatedEvidence.map((item) => item.id));
+  if (!availableEvidenceIds.size) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
   const openai = getContentAiClient(input.model);
-  if (!openai) {
-    const fallbackSections = buildDirectFallbackSections({
-      language: input.language,
-      basis: bases[0],
-      evidenceViews: input.evidenceViews,
-    });
-    return {
-      overview: materializeDirectSection({
-        section: fallbackSections[0], basis: bases[0],
-        evidenceViews: input.evidenceViews,
-        language: input.language,
-        overview: true,
-        sectionIndex: 0,
-      }),
-      sections: fallbackSections.slice(1).map((section, index) => materializeDirectSection({
-        section, basis: bases[0],
-        evidenceViews: input.evidenceViews,
-        language: input.language,
-        overview: false,
-        sectionIndex: index + 1,
-      })),
-      generationAttempts: 0,
-      validationStatus: 'deterministic_fallback',
-    };
-  }
+  if (!openai) throw new Error('PERSONAL_FORECAST_MODEL_UNAVAILABLE');
 
   let errors: string[] = [];
   for (
@@ -982,8 +894,7 @@ async function requestGeneratedFeed(input: {
               period: input.period,
               window: input.window,
               calculatedEvidence: input.calculatedEvidence,
-              canonicalNatalReport: input.canonicalNatalReport,
-              historyContext: input.historyContext,
+              natalContext: input.natalContext,
               repairErrors: attempt === 2 ? errors : undefined,
             }),
           },
@@ -1003,7 +914,7 @@ async function requestGeneratedFeed(input: {
       errors = ['response is not valid JSON'];
       continue;
     }
-    const validation = validateFreeGeneratedForecastFeed(raw);
+    const validation = validateFreeGeneratedForecastFeed(raw, availableEvidenceIds);
     if (!validation.errors.length) {
       const [rawOverview, ...rawSections] = validation.sections;
       if (!rawOverview) {
@@ -1012,7 +923,6 @@ async function requestGeneratedFeed(input: {
       }
       const overview = materializeDirectSection({
         section: rawOverview,
-        basis: bases[0],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: true,
@@ -1020,7 +930,6 @@ async function requestGeneratedFeed(input: {
       });
       const sections = rawSections.map((section, index) => materializeDirectSection({
         section,
-        basis: bases[index + 1] || bases[bases.length - 1],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: false,
@@ -1043,35 +952,107 @@ async function requestGeneratedFeed(input: {
     errors = validation.errors;
   }
 
-  const fallbackSections = buildDirectFallbackSections({
-    language: input.language,
-    basis: bases[0],
-    evidenceViews: input.evidenceViews,
-  });
-  const overview = materializeDirectSection({
-    section: fallbackSections[0], basis: bases[0],
-    evidenceViews: input.evidenceViews,
-    language: input.language,
-    overview: true,
-    sectionIndex: 0,
-  });
-  const sections = fallbackSections.slice(1).map((section, index) => materializeDirectSection({
-    section, basis: bases[0],
-    evidenceViews: input.evidenceViews,
-    language: input.language,
-    overview: false,
-    sectionIndex: index + 1,
-  }));
-  return {
-    overview,
-    sections,
-    generationAttempts: 2,
-    validationStatus: 'deterministic_fallback',
-  };
+  throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:${errors.join(' | ')}`);
 }
 
 export function buildCrossPeriodLinks(_input?: unknown): CrossPeriodLink[] {
   return [];
+}
+
+function buildFactualNatalContext(chart: NatalChartData): Record<string, unknown> {
+  if (isNatalChartDataV2(chart)) {
+    const v2 = chart as unknown as NatalChartDataV2;
+    const housesReliable = v2.chartQuality.housesReliable;
+    const ascendantReliable = v2.chartQuality.ascendantReliable;
+    const positions = Object.values(v2.positions).map((position) => ({
+      key: position.key,
+      object: position.object,
+      kind: position.kind,
+      sign: position.sign,
+      degree: position.degree,
+      longitude: position.longitude,
+      retrograde: position.retrograde,
+      speed_longitude: position.speedLongitude,
+      house: housesReliable && position.stable.house ? position.house : null,
+      reliability: position.reliability,
+    }));
+    const angles = [
+      ascendantReliable ? v2.angles.ascendant : null,
+      v2.chartQuality.anglesAvailable ? v2.angles.mc : null,
+    ].filter((angle): angle is NonNullable<typeof angle> => !!angle)
+      .map((angle) => ({
+        key: angle.key,
+        sign: angle.sign,
+        degree: angle.degree,
+        longitude: angle.longitude,
+        reliability: angle.reliability,
+      }));
+    return {
+      schema_version: v2.schemaVersion,
+      birth_time_quality: v2.birthTimeQuality,
+      positions,
+      angles,
+      houses: housesReliable
+        ? v2.houses.map((house) => ({
+            house: house.house,
+            sign: house.sign,
+            degree: house.degree,
+            longitude: house.longitude,
+            reliability: house.reliability,
+          }))
+        : [],
+      aspects: v2.aspects
+        .filter((aspect) => aspect.reliable)
+        .map((aspect) => ({
+          id: aspect.id,
+          type: aspect.type,
+          from: aspect.fromKey,
+          to: aspect.toKey,
+          angle: aspect.angle,
+          exact_angle: aspect.exactAngle,
+          orb: aspect.orb,
+          phase: aspect.phase,
+        })),
+    };
+  }
+
+  const quality = chart.chartQuality;
+  const birthTimeQuality = chart.birthTimeQuality || quality?.birthTimeQuality || 'unknown';
+  const housesReliable = birthTimeQuality === 'exact' && quality?.housesReliable !== false;
+  const ascendantReliable = birthTimeQuality === 'exact' && quality?.ascendantReliable !== false;
+  const rawPositions = [
+    ['sun', chart.sun], ['moon', chart.moon], ['mercury', chart.mercury],
+    ['venus', chart.venus], ['mars', chart.mars], ['jupiter', chart.jupiter],
+    ['saturn', chart.saturn], ['uranus', chart.uranus], ['neptune', chart.neptune],
+    ['pluto', chart.pluto], ['chiron', chart.chiron],
+  ] as const;
+  return {
+    schema_version: 'legacy',
+    birth_time_quality: birthTimeQuality,
+    positions: rawPositions.flatMap(([key, position]) => position ? [{
+      key,
+      sign: position.sign,
+      degree: position.degree ?? null,
+      longitude: position.longitude ?? null,
+      retrograde: position.retrograde ?? null,
+      speed_longitude: position.speedLongitude ?? null,
+      house: housesReliable ? position.house ?? null : null,
+    }] : []),
+    angles: ascendantReliable && chart.rising ? [{
+      key: 'ascendant',
+      sign: chart.rising.sign,
+      degree: chart.rising.degree ?? null,
+      longitude: chart.rising.longitude ?? null,
+    }] : [],
+    houses: housesReliable ? chart.houses || [] : [],
+    aspects: (chart.aspects || []).map((aspect) => ({
+      type: aspect.type,
+      from: aspect.from,
+      to: aspect.to,
+      angle: aspect.angle,
+      orb: aspect.orb,
+    })),
+  };
 }
 
 export async function generatePersonalForecastPackage(input: {
@@ -1090,9 +1071,7 @@ export async function generatePersonalForecastPackage(input: {
   }) => Promise<EvidenceCalculatedHookResult>;
 }): Promise<PersonalForecastPackage> {
   const language: ForecastWriterLanguage = input.profile.language === 'en' ? 'en' : 'ru';
-  const canonicalNatalReport = isNatalChartDataV2(input.chartData)
-    ? buildCanonicalNatalReport(input.chartData)
-    : undefined;
+  const natalContext = buildFactualNatalContext(input.chartData);
   const calculated = await calculatePersonalForecastEvidence({
     chartData: input.chartData,
     period: input.period,
@@ -1109,8 +1088,7 @@ export async function generatePersonalForecastPackage(input: {
     window: input.window,
     calculatedEvidence: calculated.evidence,
     evidenceViews: calculated.evidenceViews,
-    canonicalNatalReport,
-    historyContext: input.historyContext,
+    natalContext,
     onMetrics: input.onMetrics,
   });
   const materializePackage = (
@@ -1176,46 +1154,5 @@ export async function generatePersonalForecastPackage(input: {
   if (isPersonalForecastPackage(primary)) return primary;
   const primaryValidationError = getPersonalForecastPackageValidationError(primary)
     || 'PACKAGE_UNKNOWN_INVALID';
-
-  // The model is optional. If its final materialization violates the display
-  // contract, rebuild from the strongest calculated evidence only.
-  const fallbackBases = buildDirectSectionBases(calculated.evidence);
-  const fallbackBasis = fallbackBases[0];
-  if (!fallbackBasis) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
-  const fallbackSections = buildDirectFallbackSections({
-    language,
-    basis: fallbackBasis,
-    evidenceViews: calculated.evidenceViews,
-  });
-  const fallbackResult: GenerationResult = {
-    overview: materializeDirectSection({
-      section: fallbackSections[0],
-      basis: fallbackBasis,
-      evidenceViews: calculated.evidenceViews,
-      language,
-      overview: true,
-      sectionIndex: 0,
-    }),
-    sections: fallbackSections.slice(1).map((section, index) => materializeDirectSection({
-      section,
-      basis: fallbackBasis,
-      evidenceViews: calculated.evidenceViews,
-      language,
-      overview: false,
-      sectionIndex: index + 1,
-    })),
-    generationAttempts: generated.generationAttempts,
-    validationStatus: 'deterministic_fallback',
-  };
-  const fallback = materializePackage(
-    fallbackResult,
-    `PERSONAL_FORECAST_CONTRACT_FALLBACK:${primaryValidationError}`,
-  );
-  const fallbackValidationError = getPersonalForecastPackageValidationError(fallback);
-  if (fallbackValidationError) {
-    throw new Error(
-      `PERSONAL_FORECAST_DETERMINISTIC_FALLBACK_INVALID:${fallbackValidationError}`,
-    );
-  }
-  return fallback;
+  throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${primaryValidationError}`);
 }

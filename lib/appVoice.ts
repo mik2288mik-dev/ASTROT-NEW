@@ -166,6 +166,17 @@ export function getAppSystemVoice(language: 'ru' | 'en' = 'ru'): string {
   return `${base}\n\nNever use the headings "Общий фон", "Личный гороскоп", "Главное", "Энергия дня", "Что делать", or "Вечер" (or their translations). The application supports the user without blindly agreeing: name positive opportunities as directly as risks. Keep titles short, exact, and occasionally witty without slang.`;
 }
 
+/**
+ * Minimal voice contract for forecasts generated directly from calculated
+ * evidence. Content structure and interpretation stay with the model; this
+ * instruction only defines tone and grounding boundaries.
+ */
+export function getPersonalForecastSystemVoice(language: 'ru' | 'en' = 'ru'): string {
+  return language === 'ru'
+    ? 'Пиши живо, прямо и конкретно, обращаясь к читателю на «ты». Опирайся только на переданные факты расчёта и не выдумывай события, биографию, мотивы или астрологические данные. Убирай воду, клише, эзотерическую муть, коучинг, канцелярит и искусственный сленг. Не повторяй одну мысль разными словами. Соблюдай переданный JSON-контракт.'
+    : 'Write in a lively, direct, concrete voice and address the reader as “you”. Use only the supplied calculated facts; never invent events, biography, motives, or astrological data. Remove filler, clichés, mysticism, coaching language, corporate prose, and artificial slang. Do not repeat the same idea in different words. Follow the supplied JSON contract.';
+}
+
 export function hasAppVoiceMysticism(text: string): boolean {
   return APP_VOICE_MYSTICISM_PATTERNS.some((pattern) => pattern.test(text));
 }
