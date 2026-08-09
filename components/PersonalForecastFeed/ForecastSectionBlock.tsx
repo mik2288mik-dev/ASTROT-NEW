@@ -72,7 +72,7 @@ function renderContentBlocks(
                 src={editorialStickerPath}
                 alt=""
                 aria-hidden="true"
-                loading="lazy"
+                loading={isOverview ? 'eager' : 'lazy'}
                 decoding="async"
                 draggable={false}
               />

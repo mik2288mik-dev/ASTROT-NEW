@@ -21,6 +21,7 @@ import {
 import {
   forecastSectionVisualStyle,
   resolvePersonalForecastVisuals,
+  selectMainEditorialSticker,
 } from '../lib/personalForecastVisuals';
 import {
   resolvePersonalForecastPromotions,
@@ -78,6 +79,24 @@ function periodTabLabel(
   language: 'ru' | 'en',
 ): string {
   return PERIOD_TABS.find((tab) => tab.id === period)?.[language] || period;
+}
+
+function personalForecastLoadingLabel(
+  period: PersonalForecastPeriod,
+  language: 'ru' | 'en',
+): string {
+  if (language === 'en') {
+    return {
+      day: 'Preparing your forecast for today',
+      week: 'Preparing your forecast for the week',
+      month: 'Preparing your forecast for the month',
+    }[period];
+  }
+  return {
+    day: 'Собираем личный прогноз на сегодня',
+    week: 'Собираем личный прогноз на неделю',
+    month: 'Собираем личный прогноз на месяц',
+  }[period];
 }
 
 function personalForecastIntro(
@@ -438,13 +457,18 @@ export const Dashboard = memo<DashboardProps>(({
     });
   }, [forecast, readySections, userId]);
 
-  const secondaryStickerSectionId = useMemo(() => {
-    const overviewPath = visual?.assignments[forecast?.overview.id || 'overview']?.path;
-    return readySections.find((section) => {
-      const path = visual?.assignments[section.id]?.path;
-      return !!path && path !== overviewPath && !lockedIds.has(section.id);
-    })?.id || null;
-  }, [forecast?.overview.id, lockedIds, readySections, visual]);
+  const editorialStickerPath = useMemo(() => {
+    if (!forecast || forecast.meta.status !== 'ready') return null;
+    const selectedPath = visual?.assignments[forecast.overview.id]?.path;
+    if (selectedPath) return selectedPath;
+    return selectMainEditorialSticker({
+      screenKey: 'personal-forecast',
+      contentKey: `${forecast.period}|${forecast.periodKey}`,
+      userId,
+      topics: ['general'],
+      allowedMedia: ['photo'],
+    })?.path || null;
+  }, [forecast, userId, visual]);
 
   const promotions = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
@@ -742,7 +766,11 @@ export const Dashboard = memo<DashboardProps>(({
           </button>
         </section>
       ) : !forecast || forecast.meta.status !== 'ready' ? (
-        <section className={`forecast-feed-status is-${state.phase}`} aria-live="polite">
+        <section
+          className={`forecast-feed-status${state.phase === 'error' ? '' : ' forecast-feed-status--loading'} is-${state.phase}`}
+          aria-live="polite"
+          aria-busy={state.phase !== 'error'}
+        >
           {state.phase === 'error' ? (
             <>
               <h1>{language === 'ru' ? 'Прогноз пока не загрузился' : 'The forecast has not loaded yet'}</h1>
@@ -758,12 +786,23 @@ export const Dashboard = memo<DashboardProps>(({
             </>
           ) : (
             <>
-              <div className="forecast-feed-status-line" aria-hidden />
-              <p>
-                {language === 'ru'
-                  ? `${periodTabLabel(activePeriod, language)} готовится в фоне`
-                  : `${periodTabLabel(activePeriod, language)} is being prepared in the background`}
+              <p className="forecast-feed-loading-label">
+                {personalForecastLoadingLabel(activePeriod, language)}
               </p>
+              <div className="forecast-feed-loading-preview" aria-hidden="true">
+                <span className="forecast-feed-loading-headline is-long" />
+                <span className="forecast-feed-loading-headline is-short" />
+                <div className="forecast-feed-loading-lead">
+                  <span />
+                  <span />
+                </div>
+                <span className="forecast-feed-loading-section-title" />
+                <div className="forecast-feed-loading-copy">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
             </>
           )}
         </section>
@@ -780,8 +819,8 @@ export const Dashboard = memo<DashboardProps>(({
               visual?.assignments[forecast.overview.id],
               activePeriod,
             )}
-            hasVisual={!!visual?.assignments[forecast.overview.id]?.path}
-            editorialStickerPath={visual?.assignments[forecast.overview.id]?.path}
+            hasVisual={!!editorialStickerPath}
+            editorialStickerPath={editorialStickerPath}
             onRequestPremium={requestPremium}
           >
             {overviewCrossLinks.map((link) => (
@@ -815,9 +854,6 @@ export const Dashboard = memo<DashboardProps>(({
                     activePeriod,
                   )}
                   hasVisual={!!visual?.assignments[section.id]?.path}
-                  editorialStickerPath={secondaryStickerSectionId === section.id
-                    ? visual?.assignments[section.id]?.path
-                    : null}
                   onRequestPremium={requestPremium}
                 >
                   {crossLinks.map((link) => (

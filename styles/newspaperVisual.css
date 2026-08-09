@@ -1241,12 +1241,12 @@
 }
 
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-screen-headline {
-  max-width: 11ch;
+  max-width: 13ch;
   margin-bottom: 14px;
-  font-size: clamp(40px, 11vw, 54px);
-  font-weight: 720;
-  letter-spacing: -0.052em;
-  line-height: 0.98;
+  font-size: clamp(32px, 8.8vw, 42px);
+  font-weight: 710;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
 }
 
 .forecast-feed-page .forecast-feed-section-copy {
@@ -1293,9 +1293,13 @@
 }
 
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-editorial-sticker {
-  width: min(82%, 430px);
-  margin-top: 20px;
-  margin-bottom: 2px;
+  position: relative;
+  z-index: 1;
+  width: min(76%, 400px);
+  margin-top: 22px;
+  margin-bottom: 4px;
+  opacity: 1;
+  visibility: visible;
 }
 
 .natal-editorial-page .product-screen-cover--natal,
@@ -1415,7 +1419,7 @@
 
   .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-editorial-sticker {
     float: none;
-    width: min(74%, 430px);
+    width: min(68%, 400px);
     margin: 24px auto 4px;
   }
 
