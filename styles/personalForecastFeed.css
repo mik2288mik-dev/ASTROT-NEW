@@ -1,7 +1,7 @@
 .forecast-feed-page {
   --forecast-feed-base: #ffffff;
   --forecast-feed-copy: #242a36;
-  --forecast-feed-reading-width: 610px;
+  --forecast-feed-reading-width: 620px;
   position: relative;
   min-height: 100%;
   padding-top: 0;
@@ -121,7 +121,7 @@
 
 .forecast-feed-date-zone {
   display: flex;
-  width: min(100%, 610px);
+  width: min(100%, 620px);
   box-sizing: border-box;
   min-height: 58px;
   align-items: center;
@@ -221,7 +221,7 @@
 .forecast-feed-intro {
   position: relative;
   z-index: 2;
-  width: min(calc(100% - 48px), 610px);
+  width: min(calc(100% - 48px), 620px);
   margin: 0 auto 4px;
   text-align: left;
 }
@@ -434,7 +434,7 @@
 .forecast-feed-status--loading {
   box-sizing: border-box;
   width: 100%;
-  max-width: 610px;
+  max-width: 620px;
   min-height: 0;
   align-items: stretch;
   justify-content: flex-start;
@@ -950,7 +950,7 @@
   position: relative;
   display: block;
   width: 100%;
-  max-width: 610px;
+  max-width: 620px;
   margin: 0 auto;
   padding: 0;
   overflow: hidden;
@@ -1075,7 +1075,7 @@
 .forecast-question-suggestions,
 .forecast-question-history,
 .forecast-question-error {
-  max-width: 610px;
+  max-width: 620px;
   margin-right: auto;
   margin-left: auto;
 }
@@ -1381,91 +1381,6 @@
   transform: translateY(-50%);
 }
 
-.forecast-bottom-sheet-layer {
-  position: fixed;
-  z-index: 1000;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.forecast-bottom-sheet-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  background: rgba(18, 23, 31, 0.38);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-}
-
-.forecast-bottom-sheet-panel {
-  position: relative;
-  z-index: 1;
-  width: min(100%, 520px);
-  max-height: min(84dvh, 760px);
-  overflow: hidden;
-  border-radius: 24px 24px 0 0;
-  background: var(--app-canvas);
-  box-shadow: 0 -16px 70px rgba(20, 25, 34, 0.18);
-}
-
-.forecast-bottom-sheet-handle {
-  width: 42px;
-  height: 4px;
-  margin: 10px auto 2px;
-  border-radius: 99px;
-  background: rgba(35, 42, 54, 0.18);
-}
-
-.forecast-bottom-sheet-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px 14px;
-}
-
-.forecast-bottom-sheet-heading {
-  min-width: 0;
-}
-
-.forecast-bottom-sheet-title {
-  margin: 0;
-  color: #171923;
-  font-size: 21px;
-  font-weight: 780;
-  letter-spacing: -0.02em;
-  line-height: 1.18;
-}
-
-.forecast-bottom-sheet-subtitle {
-  margin: 6px 0 0;
-  color: #718096;
-  font-size: 12.5px;
-}
-
-.forecast-bottom-sheet-close {
-  display: inline-flex;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 50%;
-  background: #f3f5f7;
-  color: #242a36;
-}
-
-.forecast-bottom-sheet-content {
-  max-height: calc(min(84dvh, 760px) - 104px);
-  overflow: auto;
-  padding: 4px 20px calc(28px + env(safe-area-inset-bottom));
-}
-
 .forecast-feed-how-copy p {
   margin: 0 0 16px;
   color: #242a36;
@@ -1530,51 +1445,6 @@
     padding-right: 38px;
     padding-left: 38px;
   }
-}
-
-/* The shared cosmic sheet keeps the forecast API while replacing its old paper shell. */
-.cosmic-sheet-backdrop.forecast-bottom-sheet-backdrop {
-  background: rgba(2, 5, 14, 0.62);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-
-.cosmic-sheet-panel.forecast-bottom-sheet-panel {
-  max-height: min(
-    86dvh,
-    760px,
-    calc(
-      var(--tg-viewport-stable-height, 100dvh)
-      - max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px))
-      - 12px
-    )
-  );
-  background: #050711;
-  box-shadow: 0 -22px 72px rgba(2, 5, 15, 0.42);
-}
-
-.cosmic-sheet-panel .forecast-bottom-sheet-handle {
-  background: rgba(255, 255, 255, 0.32);
-}
-
-.cosmic-sheet-panel .forecast-bottom-sheet-title {
-  color: #fff;
-  font-size: 24px;
-  font-weight: 760;
-  line-height: 1.08;
-}
-
-.cosmic-sheet-panel .forecast-bottom-sheet-subtitle {
-  color: rgba(226, 232, 240, 0.72);
-}
-
-.cosmic-sheet-panel .forecast-bottom-sheet-close {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
-
-.cosmic-sheet-panel .forecast-bottom-sheet-content {
-  color: rgba(241, 245, 249, 0.9);
 }
 
 .cosmic-sheet-panel .forecast-feed-how-copy p {

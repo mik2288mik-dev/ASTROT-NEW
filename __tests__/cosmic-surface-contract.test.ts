@@ -24,13 +24,13 @@ describe('cosmic transient surface contract', () => {
     const paywall = read('views/Paywall.tsx');
     const css = read('styles/globals.css');
 
-    expect(surface).toContain("drawer: '/assets/cosmic/drawer.webp'");
+    expect(surface).toContain("drawer: '/assets/cosmic/drawer-stars.webp'");
     expect(surface).toContain("sheet: '/assets/cosmic/sheet.webp'");
     expect(surface).toContain("paywall: '/assets/cosmic/paywall.webp'");
     expect(drawer).toContain('variant="drawer"');
     expect(drawer).toContain('role="dialog"');
     expect(drawer).toContain('aria-modal="true"');
-    expect(drawer).toContain('lumia-side-drawer-context-close');
+    expect(drawer).not.toContain('lumia-side-drawer-context-close');
     expect(drawer).toContain('onCloseRef.current()');
     expect(drawer).toContain("currentView === 'dashboard' && activePeriod === period");
     expect(paywall).toContain('variant="paywall"');

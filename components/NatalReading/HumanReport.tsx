@@ -34,7 +34,6 @@ import type { ChartListItem } from '../../services/storageService';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
-import { ChartBalance } from './ChartBalance';
 import { EditorialSticker } from '../EditorialSticker';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 
@@ -52,18 +51,9 @@ type Props = {
 };
 
 const SIGN_RU: Record<string, string> = {
-  Aries: 'Овен',
-  Taurus: 'Телец',
-  Gemini: 'Близнецы',
-  Cancer: 'Рак',
-  Leo: 'Лев',
-  Virgo: 'Дева',
-  Libra: 'Весы',
-  Scorpio: 'Скорпион',
-  Sagittarius: 'Стрелец',
-  Capricorn: 'Козерог',
-  Aquarius: 'Водолей',
-  Pisces: 'Рыбы',
+  Aries: 'Овен', Taurus: 'Телец', Gemini: 'Близнецы', Cancer: 'Рак',
+  Leo: 'Лев', Virgo: 'Дева', Libra: 'Весы', Scorpio: 'Скорпион',
+  Sagittarius: 'Стрелец', Capricorn: 'Козерог', Aquarius: 'Водолей', Pisces: 'Рыбы',
 };
 
 const PLANET_LABELS: Array<{ key: string; labelRu: string; labelEn: string; icon: string }> = [
@@ -86,15 +76,8 @@ const PLANET_LABELS: Array<{ key: string; labelRu: string; labelEn: string; icon
 
 const ANGLE_NAMES = /^(?:ascendant|asc|rising|mc|midheaven|descendant|desc|dsc|ic)$/iu;
 const ANGLE_ALIAS: Record<string, 'ascendant' | 'mc' | 'descendant' | 'ic'> = {
-  ascendant: 'ascendant',
-  asc: 'ascendant',
-  rising: 'ascendant',
-  mc: 'mc',
-  midheaven: 'mc',
-  descendant: 'descendant',
-  desc: 'descendant',
-  dsc: 'descendant',
-  ic: 'ic',
+  ascendant: 'ascendant', asc: 'ascendant', rising: 'ascendant', mc: 'mc',
+  midheaven: 'mc', descendant: 'descendant', desc: 'descendant', dsc: 'descendant', ic: 'ic',
 };
 
 function normalizedAngleKey(value: unknown): 'ascendant' | 'mc' | 'descendant' | 'ic' | null {
@@ -192,7 +175,7 @@ export const NatalUnlockSheet: React.FC<{
   );
 };
 
-const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: 'ru' | 'en' }> = ({
+export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: 'ru' | 'en' }> = ({
   chartData,
   language,
 }) => {
@@ -353,13 +336,8 @@ const StatementText: React.FC<{ statement: NatalReadingStatement; className?: st
 
 const PremiumReport: React.FC<{
   report: NatalPermanentPremiumReport;
-  language: 'ru' | 'en';
-}> = ({ report, language }) => (
+}> = ({ report }) => (
   <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
-    <header className="natal-premium-lead">
-      <h2 className="natal-sec-title">{report.headline}</h2>
-      <StatementText statement={report.lead} />
-    </header>
     {report.sections.map((section) => (
       <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
         <h2 className="natal-sec-title">{section.title}</h2>
@@ -370,34 +348,6 @@ const PremiumReport: React.FC<{
         </div>
       </section>
     ))}
-    {report.strategies.length ? (
-      <section className="natal-sec editorial-reading-section">
-        <h2 className="natal-sec-title">
-          {language === 'ru' ? 'Как раскрывать потенциал' : 'How to use your potential'}
-        </h2>
-        <div className="natal-sec-body">
-          {report.strategies.map((strategy, index) => (
-            <div key={`${strategy.title}-${index}`} className="mb-4 last:mb-0">
-              <h3 className="text-[18px] font-semibold leading-tight text-[#171717]">{strategy.title}</h3>
-              <StatementText statement={strategy} className="mt-2" />
-            </div>
-          ))}
-        </div>
-      </section>
-    ) : null}
-    {report.pitfalls.length ? (
-      <section className="natal-sec editorial-reading-section">
-        <h2 className="natal-sec-title">{language === 'ru' ? 'Что сбивает' : 'What gets in the way'}</h2>
-        <div className="natal-sec-body">
-          {report.pitfalls.map((pitfall, index) => (
-            <StatementText key={`pitfall-${index}`} statement={pitfall} />
-          ))}
-        </div>
-      </section>
-    ) : null}
-    <section className="natal-sec editorial-reading-section natal-reading-final">
-      <StatementText statement={report.conclusion} />
-    </section>
   </section>
 );
 
@@ -575,15 +525,15 @@ export const HumanReport: React.FC<Props> = ({
           </p>
         ) : null}
 
-        <div aria-live="polite">
+        <div aria-live="polite" aria-busy={loading && !report}>
           {loading && !report ? (
-            <section data-testid="human-report-loading-area" className="py-5">
+            <section data-testid="human-report-loading-area" className="py-5" role="status">
               <p className="text-[14px] leading-relaxed text-[#666]">
                 {language === 'ru' ? 'Подготавливаем постоянный разбор карты.' : 'Preparing the permanent chart reading.'}
               </p>
             </section>
           ) : error || !report ? (
-            <section className="py-8 sm:py-10">
+            <section className="py-8 sm:py-10" role="alert">
               <p className="font-sans text-[20px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">
                 {language === 'ru' ? 'Интерпретация сейчас недоступна' : 'The interpretation is unavailable'}
               </p>
@@ -591,14 +541,6 @@ export const HumanReport: React.FC<Props> = ({
             </section>
           ) : (
             <>
-              <section className="natal-reading-overview editorial-reading-section" data-natal-contract={report.contractVersion}>
-                <h2 className="natal-sec-title">{report.shortCard.title}</h2>
-                <FormattedAiText
-                  text={report.shortCard.text}
-                  className="natal-sec-body max-w-none"
-                  paragraphClassName="natal-sec-p"
-                />
-              </section>
               {freeSections.map((item, index) => (
                 <Fragment key={item.key}>
                   <SectionText section={item} index={index} />
@@ -614,21 +556,17 @@ export const HumanReport: React.FC<Props> = ({
           )}
         </div>
 
-        {!loading && !error && report ? (
-          <ChartBalance chart={chartData} language={language} />
-        ) : null}
-
         {isPremium ? (
           premiumLoading && !premiumReport ? (
-            <section className="natal-sec editorial-reading-section" aria-live="polite">
+            <section className="natal-sec editorial-reading-section" aria-live="polite" aria-busy="true" role="status">
               <p className="natal-sec-p">
                 {language === 'ru' ? 'Собираем полный постоянный разбор.' : 'Preparing the full permanent reading.'}
               </p>
             </section>
           ) : premiumReport ? (
-            <PremiumReport report={premiumReport} language={language} />
+            <PremiumReport report={premiumReport} />
           ) : premiumError ? (
-            <p className="py-5 text-[13px] leading-relaxed text-[#a14f4f]">{premiumError}</p>
+            <p className="py-5 text-[13px] leading-relaxed text-[#a14f4f]" role="alert">{premiumError}</p>
           ) : null
         ) : (
           <section className="natal-premium-card my-8 overflow-hidden p-5">
@@ -670,7 +608,6 @@ export const HumanReport: React.FC<Props> = ({
           </p>
         </section>
 
-        <TechnicalDetails chartData={chartData} language={language} />
       </div>
 
       <CosmicSheet

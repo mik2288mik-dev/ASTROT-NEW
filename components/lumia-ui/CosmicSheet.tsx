@@ -31,6 +31,114 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
+type SheetStackEntry = {
+  id: symbol;
+  layer: HTMLDivElement;
+};
+
+type BackgroundState = {
+  ariaHidden: string | null;
+  inert: string | null;
+};
+
+const sheetStack: SheetStackEntry[] = [];
+const isolatedBackground = new Map<HTMLElement, BackgroundState>();
+let bodyOverflowBeforeSheets = '';
+let bodyOverflowCaptured = false;
+
+function restoreAttribute(element: HTMLElement, name: string, value: string | null): void {
+  if (value === null) {
+    element.removeAttribute(name);
+    return;
+  }
+  element.setAttribute(name, value);
+}
+
+function isolateElement(element: HTMLElement): void {
+  if (!isolatedBackground.has(element)) {
+    isolatedBackground.set(element, {
+      ariaHidden: element.getAttribute('aria-hidden'),
+      inert: element.getAttribute('inert'),
+    });
+  }
+  element.setAttribute('aria-hidden', 'true');
+  element.setAttribute('inert', '');
+}
+
+function restoreElement(element: HTMLElement): void {
+  const state = isolatedBackground.get(element);
+  if (!state) return;
+  restoreAttribute(element, 'aria-hidden', state.ariaHidden);
+  restoreAttribute(element, 'inert', state.inert);
+  isolatedBackground.delete(element);
+}
+
+function syncSheetEnvironment(): void {
+  if (typeof document === 'undefined') return;
+
+  const topLayer = sheetStack[sheetStack.length - 1]?.layer ?? null;
+  if (!topLayer) {
+    Array.from(isolatedBackground.keys()).forEach(restoreElement);
+    if (bodyOverflowCaptured) {
+      document.body.style.overflow = bodyOverflowBeforeSheets;
+      bodyOverflowCaptured = false;
+    }
+    return;
+  }
+
+  if (!bodyOverflowCaptured) {
+    bodyOverflowBeforeSheets = document.body.style.overflow;
+    bodyOverflowCaptured = true;
+  }
+  document.body.style.overflow = 'hidden';
+
+  const elementsToIsolate = new Set(
+    Array.from(document.body.children).filter((element): element is HTMLElement => (
+      element instanceof HTMLElement
+      && element !== topLayer
+      && !['SCRIPT', 'STYLE', 'LINK', 'META'].includes(element.tagName)
+    )),
+  );
+
+  Array.from(isolatedBackground.keys()).forEach((element) => {
+    if (!elementsToIsolate.has(element)) restoreElement(element);
+  });
+  elementsToIsolate.forEach(isolateElement);
+}
+
+function registerSheet(id: symbol, layer: HTMLDivElement): void {
+  const existingIndex = sheetStack.findIndex((entry) => entry.id === id);
+  if (existingIndex >= 0) sheetStack.splice(existingIndex, 1);
+  sheetStack.push({ id, layer });
+  syncSheetEnvironment();
+}
+
+function unregisterSheet(id: symbol): boolean {
+  const index = sheetStack.findIndex((entry) => entry.id === id);
+  if (index < 0) return false;
+  const wasTopmost = index === sheetStack.length - 1;
+  sheetStack.splice(index, 1);
+  syncSheetEnvironment();
+  return wasTopmost;
+}
+
+function isTopmostSheet(id: symbol): boolean {
+  return sheetStack[sheetStack.length - 1]?.id === id;
+}
+
+function restoreSheetFocus(previousFocusRef: { current: HTMLElement | null }): void {
+  const previousFocus = previousFocusRef.current;
+  if (previousFocus?.isConnected && !previousFocus.closest('[inert]')) {
+    previousFocusRef.current?.focus({ preventScroll: true });
+    return;
+  }
+
+  const topLayer = sheetStack[sheetStack.length - 1]?.layer;
+  const fallback = topLayer?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
+    ?? topLayer?.querySelector<HTMLElement>('[role="dialog"]');
+  fallback?.focus({ preventScroll: true });
+}
+
 function classNames(...values: Array<string | undefined | false>): string {
   return values.filter(Boolean).join(' ');
 }
@@ -50,8 +158,10 @@ export function CosmicSheet({
   const titleId = useId();
   const subtitleId = useId();
   const panelRef = useRef<HTMLElement | null>(null);
+  const layerRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const sheetIdRef = useRef(Symbol('cosmic-sheet'));
   const onCloseRef = useRef(onClose);
   const reduceMotion = useReducedMotion();
 
@@ -66,16 +176,21 @@ export function CosmicSheet({
   useEffect(() => {
     if (!open || !portalReady || typeof document === 'undefined') return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const layer = layerRef.current;
+    if (!layer) return;
+    const sheetId = sheetIdRef.current;
     previousFocusRef.current = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
+    registerSheet(sheetId, layer);
     const frame = window.requestAnimationFrame(() => {
-      closeButtonRef.current?.focus({ preventScroll: true });
+      if (isTopmostSheet(sheetId)) {
+        closeButtonRef.current?.focus({ preventScroll: true });
+      }
     });
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isTopmostSheet(sheetId)) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         onCloseRef.current();
@@ -107,6 +222,7 @@ export function CosmicSheet({
     };
 
     const handleNativeBack = (event: Event) => {
+      if (!isTopmostSheet(sheetId)) return;
       const nativeEvent = event as CustomEvent<NativeBackEventDetail>;
       if (nativeEvent.detail?.handled) return;
       if (nativeEvent.detail) nativeEvent.detail.handled = true;
@@ -119,8 +235,8 @@ export function CosmicSheet({
       window.cancelAnimationFrame(frame);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
-      document.body.style.overflow = previousOverflow;
-      previousFocusRef.current?.focus({ preventScroll: true });
+      const shouldRestoreFocus = unregisterSheet(sheetId);
+      if (shouldRestoreFocus) restoreSheetFocus(previousFocusRef);
       previousFocusRef.current = null;
     };
   }, [open, portalReady]);
@@ -131,6 +247,7 @@ export function CosmicSheet({
     <AnimatePresence>
       {open ? (
         <motion.div
+          ref={layerRef}
           className="cosmic-sheet-layer forecast-bottom-sheet-layer"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -146,6 +263,7 @@ export function CosmicSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.18 }}
           />
           <motion.div
             className="cosmic-sheet-motion"

@@ -266,6 +266,214 @@
   border: 0;
 }
 
+.natal-magazine-heading {
+  box-sizing: border-box;
+  width: min(100%, 620px);
+  margin: 26px auto 18px;
+  padding: 0 24px;
+}
+
+.natal-magazine-heading h1 {
+  margin: 0;
+  color: #171717;
+  font-size: clamp(36px, 9.2vw, 46px);
+  font-weight: 540;
+  letter-spacing: -0.05em;
+  line-height: 1.02;
+}
+
+.natal-magazine-heading p {
+  margin: 10px 0 0;
+  color: #686868;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.natal-chart-portrait {
+  display: flex;
+  box-sizing: border-box;
+  width: min(100%, 620px);
+  margin: 0 auto 22px;
+  padding: 0 24px;
+  flex-direction: column;
+}
+
+.natal-chart-portrait-visual {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.natal-chart-portrait-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, rgba(4, 4, 6, 0.08), rgba(4, 4, 6, 0.22)),
+    url('/assets/cosmic/drawer-stars.webp') center / cover no-repeat;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.natal-chart-portrait-mobile-key {
+  display: none;
+}
+
+.natal-chart-portrait-caption {
+  order: -1;
+  margin: 0 0 10px;
+  color: #333333;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.natal-chart-portrait-caption strong {
+  font-weight: 650;
+}
+
+.natal-chart-portrait-caption span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.natal-chart-portrait-aspect {
+  stroke: rgba(246, 239, 222, 0.72);
+  stroke-width: 0.85;
+  vector-effect: non-scaling-stroke;
+}
+
+.natal-chart-portrait-aspect.is-square,
+.natal-chart-portrait-aspect.is-opposition {
+  stroke: rgba(214, 178, 132, 0.74);
+}
+
+.natal-chart-portrait-aspect.is-separating {
+  stroke-dasharray: 4 4;
+}
+
+.natal-chart-portrait-node {
+  fill: rgba(255, 244, 216, 0.94);
+}
+
+.natal-chart-portrait-points {
+  color: rgba(250, 247, 239, 0.88);
+}
+
+.natal-chart-portrait-retro {
+  fill: rgba(231, 215, 184, 0.86);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.natal-chart-portrait-divider {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 0.8;
+}
+
+.natal-chart-portrait-key {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.natal-chart-portrait-key-label {
+  fill: rgba(255, 255, 255, 0.92);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.natal-chart-portrait-key-value {
+  fill: rgba(229, 231, 235, 0.72);
+  font-size: 9.5px;
+}
+
+.natal-chart-portrait-a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.natal-empty-content {
+  box-sizing: border-box;
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 0 24px 24px;
+}
+
+.natal-empty-content p {
+  margin: 0 0 18px;
+  color: var(--fresh-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.natal-empty-content .fresh-btn-primary {
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  .natal-chart-portrait-svg {
+    width: 143.836%;
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .natal-chart-portrait-divider,
+  .natal-chart-portrait-key {
+    display: none;
+  }
+
+  .natal-chart-portrait-mobile-key {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .natal-chart-portrait-mobile-key-item {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 7px;
+    color: #2c2c2c;
+  }
+
+  .natal-chart-portrait-mobile-key-item > span {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+  }
+
+  .natal-chart-portrait-mobile-key-item strong,
+  .natal-chart-portrait-mobile-key-item small {
+    overflow-wrap: anywhere;
+  }
+
+  .natal-chart-portrait-mobile-key-item strong {
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+
+  .natal-chart-portrait-mobile-key-item small {
+    color: #6b6b6b;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+}
+
 .natal-editorial-page .natal-editorial-report {
   padding-top: 0;
   background: transparent;

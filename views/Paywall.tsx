@@ -133,6 +133,25 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
     return Math.max(0, Math.round((1 - perMonth / base) * 100));
   };
 
+  const handlePlanKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, id: PremiumPlanId) => {
+    const currentIndex = visibleOrder.indexOf(id);
+    if (currentIndex < 0) return;
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % visibleOrder.length;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + visibleOrder.length) % visibleOrder.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = visibleOrder.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextId = visibleOrder[nextIndex];
+    const group = event.currentTarget.parentElement;
+    setSelected(nextId);
+    window.requestAnimationFrame(() => {
+      group?.querySelector<HTMLButtonElement>(`[data-plan-id="${nextId}"]`)
+        ?.focus();
+    });
+  };
+
   const buy = () => {
     const canPurchase = distributionChannel === 'telegram'
       || (rustorePaymentsEnabled && rustoreProductsLoaded && !!rustoreLabels[selected]);
@@ -150,7 +169,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       planeClassName="pw2-plane"
     >
       <div className="pw2-topbar">
-        <button type="button" onClick={onClose} aria-label={ru ? 'Закрыть' : 'Close'} className="pw2-close">
+        <button type="button" onClick={onClose} aria-label={ru ? 'Закрыть' : 'Close'} className="pw2-close" style={{width:44,height:44,minWidth:44,minHeight:44}}>
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
@@ -160,7 +179,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
 
       {trialActive ? (
         <div className="pw2-trial">
-          <span className="pw2-trial-dot" />
+          <span className="pw2-trial-dot" aria-hidden="true" />
           {ru
             ? `Premium активен — осталось ${daysLeft} ${pluralDays(daysLeft, true)}. Пробуй всё бесплатно.`
             : `Premium is active — ${daysLeft} ${pluralDays(daysLeft, false)} left. Try everything free.`}
@@ -176,13 +195,25 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         {features.map((f, i) => (
           <div className="pw2-row" key={i}>
             <span className="pw2-feat">{f.label}</span>
-            <span className={`pw2-cell ${f.free ? 'is-yes' : 'is-no'}`}>{f.free ? <Check /> : <Cross />}</span>
-            <span className="pw2-cell pw2-cell--prem is-yes"><Check /></span>
+            <span
+              className={`pw2-cell ${f.free ? 'is-yes' : 'is-no'}`}
+              role="img"
+              aria-label={`${f.label}: Free — ${f.free ? (ru ? 'доступно' : 'included') : (ru ? 'недоступно' : 'not included')}`}
+            >
+              {f.free ? <Check /> : <Cross />}
+            </span>
+            <span
+              className="pw2-cell pw2-cell--prem is-yes"
+              role="img"
+              aria-label={`${f.label}: Premium — ${ru ? 'доступно' : 'included'}`}
+            >
+              <Check />
+            </span>
           </div>
         ))}
       </div>
 
-      <div className="pw2-plans">
+      <div className="pw2-plans" role="radiogroup" aria-label={ru ? 'Выбери тариф Premium' : 'Choose a Premium plan'}>
         {visibleOrder.map((id) => {
           const best = id === 'premium_year';
           const save = savings(id);
@@ -191,8 +222,14 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
             <button
               key={id}
               type="button"
+              role="radio"
+              aria-checked={sel}
+              aria-label={`${ru ? PERIOD[id].ru : PERIOD[id].en}, ${priceText(id)}${save > 0 ? `, ${ru ? 'скидка' : 'save'} ${save}%` : ''}`}
+              tabIndex={sel ? 0 : -1}
+              data-plan-id={id}
               className={`pw2-plan ${sel ? 'is-sel' : ''} ${best ? 'is-best' : ''}`}
               onClick={() => { lumiaSelectionHaptic(); setSelected(id); }}
+              onKeyDown={(event) => handlePlanKeyDown(event, id)}
             >
               {best ? <span className="pw2-plan-badge">{ru ? 'Выгодно' : 'Best'}</span> : null}
               <span className="pw2-plan-period">{ru ? PERIOD[id].ru : PERIOD[id].en}</span>
@@ -203,7 +240,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
         })}
       </div>
 
-      {(distributionChannel === 'telegram' || rustorePaymentsEnabled) ? <button type="button" className="pw2-cta" onClick={buy} disabled={paying || (rustorePaymentsEnabled && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected)))}>
+      {(distributionChannel === 'telegram' || rustorePaymentsEnabled) ? <button type="button" className="pw2-cta" onClick={buy} aria-busy={paying} aria-live="polite" disabled={paying || (rustorePaymentsEnabled && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected)))}>
         {paying
           ? (ru ? 'Открываю оплату…' : 'Opening…')
           : (rustorePaymentsEnabled && (!rustoreProductsLoaded || !rustoreLabels[selected] || !getRuStoreProductId(selected))
@@ -212,7 +249,7 @@ export const Paywall: React.FC<PaywallProps> = ({ profile, onPurchase, onClose, 
       </button> : <p className="pw2-foot">{ru ? 'Premium, который уже есть у аккаунта, доступен в этом приложении. Новые покупки здесь пока не подключены.' : 'Premium already linked to your account is available here. New purchases are not connected in this build yet.'}</p>}
 
       {onContinueFree ? (
-        <button type="button" className="pw2-free" onClick={() => { lumiaSelectionHaptic(); onContinueFree(); }}>
+        <button type="button" className="pw2-free" style={{minHeight:44}} onClick={() => { lumiaSelectionHaptic(); onContinueFree(); }}>
           {trialActive
             ? (ru ? 'Продолжить бесплатно — 14 дней Premium включены' : 'Continue free — 14 days of Premium included')
             : (ru ? 'Продолжить бесплатно' : 'Continue free')}

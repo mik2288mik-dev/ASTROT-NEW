@@ -3,7 +3,7 @@ import React, { type CSSProperties, type HTMLAttributes, type ReactNode } from '
 export type CosmicSurfaceVariant = 'drawer' | 'sheet' | 'paywall';
 
 const COSMIC_ASSET_BY_VARIANT: Record<CosmicSurfaceVariant, string> = {
-  drawer: '/assets/cosmic/drawer.webp',
+  drawer: '/assets/cosmic/drawer-stars.webp',
   sheet: '/assets/cosmic/sheet.webp',
   paywall: '/assets/cosmic/paywall.webp',
 };

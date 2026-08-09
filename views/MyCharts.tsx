@@ -49,6 +49,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
   const [data, setData] = useState<ChartsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addName, setAddName] = useState('');
@@ -57,6 +58,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [addPlace, setAddPlace] = useState('');
   const [addRelation, setAddRelation] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+  const [addInvalidFields, setAddInvalidFields] = useState<Array<'date' | 'place'>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [listFilter, setListFilter] = useState<'all' | 'primary' | 'partners'>('all');
 
@@ -69,6 +71,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     setAddTime('');
     setAddPlace('');
     setAddRelation('');
+    setAddError(null);
+    setAddInvalidFields([]);
   }, []);
 
   useEffect(() => {
@@ -85,16 +89,17 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     if (!profile.id) return;
 
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await getCharts(profile.id);
       setData(res);
     } catch (err: any) {
       console.error('[MyCharts] Load error', err);
-      setData({ charts: [], chartSlots: 1, canAddMore: true });
+      setLoadError(err?.message || (lang === 'ru' ? 'Не удалось загрузить карты.' : 'Could not load charts.'));
     } finally {
       setLoading(false);
     }
-  }, [profile.id]);
+  }, [lang, profile.id]);
 
   useEffect(() => {
     loadCharts();
@@ -141,7 +146,11 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }, [canAddMore, showAddForm]);
 
   const handleAddChart = async () => {
-    if (!profile.id || !addDate || !addPlace.trim()) {
+    const missingFields: Array<'date' | 'place'> = [];
+    if (!addDate) missingFields.push('date');
+    if (!addPlace.trim()) missingFields.push('place');
+    if (!profile.id || missingFields.length) {
+      setAddInvalidFields(missingFields);
       setAddError(getText(lang, 'charts.error_fill_required'));
       return;
     }
@@ -153,6 +162,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
 
     setActionLoading('add');
     setAddError(null);
+    setAddInvalidFields([]);
 
     try {
       await createChart(profile.id, {
@@ -218,6 +228,21 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     return <Loading message={getText(lang, 'charts.loading')} />;
   }
 
+  if (!data && loadError) {
+    return (
+      <div className="fresh-page charts-editorial-page">
+        <div className="mx-auto max-w-2xl px-4 pb-8">
+          <div role="alert" className="fresh-card space-y-3 p-5">
+            <p className="text-[14px] leading-relaxed text-red-700">{loadError}</p>
+            <MonoButton fullWidth onClick={() => { void loadCharts(); }}>
+              {lang === 'ru' ? 'Повторить' : 'Try again'}
+            </MonoButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fresh-page charts-editorial-page">
       <div className="mx-auto max-w-2xl space-y-4 px-4 pb-8">
@@ -259,16 +284,31 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={lang === 'ru' ? 'Поиск по имени или месту' : 'Search by name or place'}
+              aria-label={lang === 'ru' ? 'Поиск карт по имени или месту' : 'Search charts by name or place'}
             />
           </MonoStaggerItem>
 
           <MonoStaggerItem>
-            <MonoSegment value={listFilter} onChange={setListFilter} options={filterOptions} />
+            <MonoSegment
+              value={listFilter}
+              onChange={setListFilter}
+              options={filterOptions}
+              ariaLabel={lang === 'ru' ? 'Фильтр списка карт' : 'Chart list filter'}
+            />
           </MonoStaggerItem>
         </MonoStagger>
 
+        {loadError ? (
+          <div role="alert" className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <p>{loadError}</p>
+            <button type="button" className="mt-2 min-h-[44px] font-semibold underline underline-offset-4" onClick={() => { void loadCharts(); }}>
+              {lang === 'ru' ? 'Повторить' : 'Try again'}
+            </button>
+          </div>
+        ) : null}
+
         {addError ? (
-          <div className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">{addError}</div>
+          <div id="charts-add-error" role="alert" className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">{addError}</div>
         ) : null}
 
         {charts.length === 0 ? (
@@ -321,14 +361,14 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                     ) : null}
                     <div className="mt-4 flex flex-wrap gap-2">
                       {onChartSelect ? (
-                        <MonoButton variant={isPrimary ? 'ghost' : 'outline'} className="!min-h-[36px] !px-3 !text-[11px]" onClick={() => handleSelectChart(chart)}>
+                        <MonoButton variant={isPrimary ? 'ghost' : 'outline'} className="!min-h-[44px] !px-3 !text-[12px]" onClick={() => handleSelectChart(chart)}>
                           {isLocked
                             ? (lang === 'ru' ? 'Открыть с Premium' : 'Unlock with Premium')
                             : getText(lang, 'charts.open_chart')}
                         </MonoButton>
                       ) : null}
                       {!isPrimary && onUseInSynastry && !isLocked ? (
-                        <MonoButton variant="outline" className="!min-h-[36px] !px-3 !text-[11px]" onClick={() => onUseInSynastry(chart)}>
+                        <MonoButton variant="outline" className="!min-h-[44px] !px-3 !text-[12px]" onClick={() => onUseInSynastry(chart)}>
                           {getText(lang, 'charts.use_in_synastry')}
                         </MonoButton>
                       ) : null}
@@ -337,7 +377,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                           type="button"
                           onClick={() => handleDelete(chart)}
                           disabled={isBusy}
-                          className="rounded-mono-pill border border-red-200 px-3 py-2 text-[11px] font-semibold text-red-600 disabled:opacity-50"
+                          className="min-h-[44px] rounded-mono-pill border border-red-200 px-3 py-2 text-[12px] font-semibold text-red-600 disabled:opacity-50"
                         >
                           {getText(lang, 'charts.delete')}
                         </button>
@@ -357,15 +397,15 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         {showAddForm ? (
           <MonoFadeIn className="space-y-4 fresh-card p-5">
             <h3 className="text-[18px] font-bold text-mono-ink">{getText(lang, 'charts.add_form_title')}</h3>
-            <MonoInput label={getText(lang, 'charts.field_name')} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={getText(lang, 'charts.default_chart_name')} />
-            <MonoInput label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} />
+            <MonoInput id="chart-person-name" label={getText(lang, 'charts.field_name')} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={getText(lang, 'charts.default_chart_name')} />
+            <MonoInput id="chart-birth-date" label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => { setAddDate(e.target.value); setAddInvalidFields((fields) => fields.filter((field) => field !== 'date')); }} aria-invalid={addInvalidFields.includes('date') || undefined} aria-describedby={addInvalidFields.includes('date') ? 'charts-add-error' : undefined} />
             <MonoInput label={getText(lang, 'charts.field_birth_time')} type="time" value={addTime} onChange={(e) => setAddTime(e.target.value)} />
             <p className="-mt-2 text-[12px] leading-relaxed text-mono-muted">
               {lang === 'ru'
                 ? 'Не знаешь точное время — оставь поле пустым. Дома и Асцендент не будут выдаваться за точные.'
                 : 'Leave this blank if the exact time is unknown. Houses and Ascendant will not be presented as exact.'}
             </p>
-            <MonoInput label={getText(lang, 'charts.field_birth_place')} value={addPlace} onChange={(e) => setAddPlace(e.target.value)} placeholder={getText(lang, 'charts.field_birth_place_placeholder')} />
+            <MonoInput id="chart-birth-place" label={getText(lang, 'charts.field_birth_place')} value={addPlace} onChange={(e) => { setAddPlace(e.target.value); setAddInvalidFields((fields) => fields.filter((field) => field !== 'place')); }} placeholder={getText(lang, 'charts.field_birth_place_placeholder')} aria-invalid={addInvalidFields.includes('place') || undefined} aria-describedby={addInvalidFields.includes('place') ? 'charts-add-error' : undefined} />
             <MonoInput
               label={lang === 'ru' ? 'Кем этот человек тебе приходится (необязательно)' : 'Relation (optional)'}
               value={addRelation}

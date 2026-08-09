@@ -363,8 +363,8 @@ body.theme-lumia-air #__next {
 .lumia-side-drawer-root {
   position: fixed;
   inset: 0;
-  height: 100dvh;
-  min-height: 100dvh;
+  height: var(--tg-viewport-stable-height, 100dvh);
+  min-height: var(--tg-viewport-stable-height, 100dvh);
   z-index: 110;
   pointer-events: none;
 }
@@ -395,7 +395,7 @@ body.theme-lumia-air #__next {
   display: flex;
   width: var(--lumia-side-drawer-width);
   height: 100%;
-  min-height: 100dvh;
+  min-height: 100%;
   flex-direction: column;
   padding: 0;
   box-sizing: border-box;
@@ -443,13 +443,23 @@ body.theme-lumia-air #__next {
   box-shadow: none;
 }
 
+.lumia-side-drawer.cosmic-surface .cosmic-surface__art {
+  background-color: #050505;
+  background-image:
+    linear-gradient(180deg, rgba(3, 3, 5, 0.02), rgba(3, 3, 5, 0.2)),
+    var(--cosmic-surface-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 .lumia-side-drawer-plane {
   display: flex;
   width: 100%;
   height: 100%;
-  min-height: 100dvh;
+  min-height: 100%;
   flex-direction: column;
-  background: rgba(3, 6, 17, 0.58);
+  background: rgba(3, 3, 5, 0.28);
 }
 
 .lumia-side-drawer-context {
@@ -532,88 +542,6 @@ body.theme-lumia-air #__next {
   color: rgba(226, 232, 240, 0.68);
 }
 
-.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day {
-  background: #83c9ef;
-  color: #102f47;
-  color-scheme: light;
-}
-
-.lumia-side-drawer--day .cosmic-surface__art {
-  background-color: #83c9ef;
-  background-image:
-    radial-gradient(ellipse at 24% 18%, rgba(255, 255, 255, 0.78) 0 8%, transparent 25%),
-    radial-gradient(ellipse at 82% 38%, rgba(255, 255, 255, 0.58) 0 7%, transparent 24%),
-    linear-gradient(180deg, rgba(87, 180, 232, 0.9) 0%, rgba(159, 218, 247, 0.88) 55%, rgba(225, 246, 255, 0.94) 100%),
-    url('/assets/sky-today-bg.webp');
-  background-position: center, center, center, 66% center;
-  background-repeat: no-repeat;
-  background-size: cover, cover, cover, auto 100%;
-  filter: saturate(1.04);
-}
-
-.lumia-side-drawer--day .lumia-side-drawer-plane {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(38, 119, 170, 0.12));
-}
-
-.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
-  .lumia-side-drawer-date,
-  .lumia-side-drawer-profile-name
-) {
-  color: #0c2c44;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.34);
-}
-
-.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
-  .lumia-side-drawer-weekday,
-  .lumia-side-drawer-sun-sign,
-  .lumia-side-drawer-item,
-  .lumia-side-drawer-period,
-  .lumia-side-drawer-profile-caption
-) {
-  color: rgba(12, 44, 68, 0.78);
-}
-
-.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
-  .lumia-side-drawer-item.is-active,
-  .lumia-side-drawer-period.is-active
-) {
-  background: rgba(255, 255, 255, 0.58);
-  color: #08253b;
-}
-
-.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day .lumia-side-drawer-profile {
-  border-top-color: rgba(8, 37, 59, 0.14);
-}
-
-.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
-  .lumia-side-drawer-item,
-  .lumia-side-drawer-period,
-  .lumia-side-drawer-profile
-):focus-visible {
-  outline-color: #0c2c44;
-}
-
-.lumia-side-drawer.cosmic-surface.lumia-side-drawer--night {
-  background: #0c1530;
-}
-
-.lumia-side-drawer--night .cosmic-surface__art {
-  background-color: #0c1530;
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.78) 0 1px, transparent 1.45px),
-    radial-gradient(circle, rgba(175, 205, 255, 0.62) 0 1px, transparent 1.6px),
-    linear-gradient(180deg, rgba(14, 28, 60, 0.02), rgba(7, 14, 34, 0.18)),
-    var(--cosmic-surface-image);
-  background-position: 5px 9px, 21px 33px, center, center;
-  background-repeat: repeat, repeat, no-repeat, no-repeat;
-  background-size: 37px 37px, 71px 71px, cover, cover;
-  filter: brightness(1.24) saturate(1.1);
-}
-
-.lumia-side-drawer--night .lumia-side-drawer-plane {
-  background: rgba(3, 8, 24, 0.28);
-}
-
 .lumia-side-drawer-item,
 .lumia-side-drawer-profile {
   display: flex;
@@ -629,8 +557,8 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-item {
   gap: 12px;
-  min-height: 40px;
-  padding: 0.25rem 8px;
+  min-height: 44px;
+  padding: 0 8px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.15;
@@ -654,7 +582,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-side-drawer-period {
-  min-height: 36px;
+  min-height: 44px;
   padding-inline: 8px;
   border: 0;
   border-radius: 0.65rem;
@@ -682,7 +610,15 @@ body.theme-lumia-air #__next {
   flex-direction: column;
   gap: 0.2rem;
   margin: auto 16px 0;
-  padding: 16px 8px max(8px, env(safe-area-inset-bottom, 0px));
+  padding:
+    16px
+    8px
+    max(
+      12px,
+      env(safe-area-inset-bottom, 0px),
+      var(--tg-content-safe-area-inset-bottom, 0px),
+      var(--tg-safe-area-inset-bottom, 0px)
+    );
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -717,14 +653,6 @@ body.theme-lumia-air #__next {
 
 .forecast-feed-page::before {
   background: #ffffff !important;
-}
-
-.forecast-feed-page .app-top-bar,
-.forecast-feed-page .app-top-bar.home-logo-bar {
-  background: #ffffff !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
 
 .lumia-side-drawer-menu-button {
@@ -893,8 +821,10 @@ body.theme-lumia-air #__next {
 
 .cosmic-sheet-close {
   display: inline-flex;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
@@ -915,7 +845,17 @@ body.theme-lumia-air #__next {
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 4px 20px calc(28px + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)));
+  padding:
+    4px
+    20px
+    calc(
+      28px
+      + max(
+        env(safe-area-inset-bottom, 0px),
+        var(--tg-content-safe-area-inset-bottom, 0px),
+        var(--tg-safe-area-inset-bottom, 0px)
+      )
+    );
   color: rgba(241, 245, 249, 0.9);
   -webkit-overflow-scrolling: touch;
 }
@@ -927,6 +867,7 @@ body.theme-lumia-air #__next {
   border-radius: 16px;
   background: rgba(3, 7, 18, 0.54);
   color: #fff;
+  font-size: 16px;
   caret-color: #fff;
 }
 
@@ -936,7 +877,17 @@ body.theme-lumia-air #__next {
 
 .cosmic-sheet-footer {
   flex: 0 0 auto;
-  padding: 12px 20px calc(18px + max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)));
+  padding:
+    12px
+    20px
+    calc(
+      18px
+      + max(
+        env(safe-area-inset-bottom, 0px),
+        var(--tg-content-safe-area-inset-bottom, 0px),
+        var(--tg-safe-area-inset-bottom, 0px)
+      )
+    );
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(3, 7, 18, 0.28);
 }
@@ -2437,19 +2388,6 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Responsive Typography Base */
-@media (max-width: 768px) {
-  html, body {
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  html, body {
-    font-size: 14px;
-  }
-}
-
 #__next {
   height: var(--tg-viewport-stable-height, 100dvh);
   min-height: var(--tg-viewport-stable-height, 100dvh);
@@ -2509,8 +2447,16 @@ html, body {
 }
 
 .lumia-tg-main-gutter {
-  padding-left: max(env(safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px));
-  padding-right: max(env(safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px));
+  padding-left: max(
+    env(safe-area-inset-left, 0px),
+    var(--tg-content-safe-area-inset-left, 0px),
+    var(--tg-safe-area-inset-left, 0px)
+  );
+  padding-right: max(
+    env(safe-area-inset-right, 0px),
+    var(--tg-content-safe-area-inset-right, 0px),
+    var(--tg-safe-area-inset-right, 0px)
+  );
 }
 
 .lumia-pad-bottom-tg-scroll {

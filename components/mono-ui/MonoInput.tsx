@@ -6,48 +6,53 @@ type MonoInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 
 export function MonoInput({ label, className, id, ...props }: MonoInputProps) {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const generatedId = React.useId();
+  const inputId = id || `mono-input-${generatedId.replace(/:/g, '')}`;
   return (
-    <label className="block">
+    <div className="block">
       {label ? (
-        <span className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.06em] text-mono-muted">
+        <label htmlFor={inputId} className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.06em] text-mono-muted">
           {label}
-        </span>
+        </label>
       ) : null}
       <input
         id={inputId}
         className={cn(
-          'w-full rounded-mono-card border border-mono-line bg-mono-white px-4 py-3.5 text-[15px] text-mono-ink placeholder:text-mono-muted/60 focus:border-mono-ink focus:outline-none',
+          'w-full rounded-mono-card border border-mono-line bg-mono-white px-4 py-3.5 text-[16px] text-mono-ink placeholder:text-mono-muted/60 focus:border-mono-ink focus:outline-none sm:text-[15px]',
           className,
         )}
         {...props}
       />
-    </label>
+    </div>
   );
 }
 
 export function MonoSelect({
   label,
   className,
+  id,
   children,
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string }) {
+  const generatedId = React.useId();
+  const selectId = id || `mono-select-${generatedId.replace(/:/g, '')}`;
   return (
-    <label className="block">
+    <div className="block">
       {label ? (
-        <span className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.06em] text-mono-muted">
+        <label htmlFor={selectId} className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.06em] text-mono-muted">
           {label}
-        </span>
+        </label>
       ) : null}
       <select
+        id={selectId}
         className={cn(
-          'w-full rounded-mono-card border border-mono-line bg-mono-white px-4 py-3.5 text-[15px] text-mono-ink focus:border-mono-ink focus:outline-none',
+          'w-full rounded-mono-card border border-mono-line bg-mono-white px-4 py-3.5 text-[16px] text-mono-ink focus:border-mono-ink focus:outline-none sm:text-[15px]',
           className,
         )}
         {...props}
       >
         {children}
       </select>
-    </label>
+    </div>
   );
 }

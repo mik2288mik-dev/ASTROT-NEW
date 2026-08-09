@@ -22,6 +22,22 @@
     var(--tg-safe-area-inset-top, 0px),
     18px
   );
+  --app-top-bar-safe-left: max(
+    var(--fresh-page-x, 20px),
+    env(safe-area-inset-left, 0px),
+    var(--tg-content-safe-area-inset-left, 0px),
+    var(--tg-safe-area-inset-left, 0px)
+  );
+  --app-top-bar-safe-right: max(
+    var(--fresh-page-x, 20px),
+    env(safe-area-inset-right, 0px),
+    var(--tg-content-safe-area-inset-right, 0px),
+    var(--tg-safe-area-inset-right, 0px)
+  );
+  --app-top-bar-title-rail: max(
+    calc(var(--app-top-bar-safe-left) + 52px),
+    calc(var(--app-top-bar-safe-right) + 52px)
+  );
   position: fixed;
   top: 0;
   right: 0;
@@ -34,8 +50,9 @@
   justify-content: center;
   padding:
     calc(var(--home-safe-top) + 14px)
-    var(--fresh-page-x, 20px)
-    13px;
+    var(--app-top-bar-safe-right)
+    13px
+    var(--app-top-bar-safe-left);
   border: 0;
   border-bottom: 0;
   background: rgba(255, 255, 255, 0.62) !important;
@@ -56,23 +73,26 @@
 
 .app-top-bar-side {
   position: absolute;
-  bottom: 10px;
+  bottom: 5px;
   display: flex;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   align-items: center;
 }
 
 .app-top-bar-side--end {
-  right: var(--fresh-page-x, 20px);
+  right: var(--app-top-bar-safe-right);
   justify-content: flex-end;
 }
 
 .app-top-bar-side--start {
-  left: var(--fresh-page-x, 20px);
+  left: var(--app-top-bar-safe-left);
 }
 
 .app-top-bar-title {
+  display: block;
+  width: calc(100% - var(--app-top-bar-title-rail) - var(--app-top-bar-title-rail));
+  max-width: calc(100% - var(--app-top-bar-title-rail) - var(--app-top-bar-title-rail));
   min-width: 0;
   overflow: hidden;
   color: #111827;
@@ -88,10 +108,17 @@
 
 .app-top-bar-action {
   display: inline-flex;
-  width: 34px;
-  height: 34px;
+  box-sizing: border-box;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  flex: 0 0 44px;
   align-items: center;
   justify-content: center;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.34);
@@ -145,8 +172,9 @@
   min-height: calc(var(--home-safe-top) + 54px);
   padding:
     calc(var(--home-safe-top) + 14px)
-    var(--fresh-page-x, 20px)
-    13px;
+    var(--app-top-bar-safe-right)
+    13px
+    var(--app-top-bar-safe-left);
 }
 
 .natal-editorial-page,
@@ -312,17 +340,14 @@
   height: 1.16rem;
 }
 
-/* Glass under Telegram host controls as page content scrolls behind them. */
+/* AppTopBar owns the only glass layer; keep the legacy page veil disabled. */
 .fresh-page::before {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.54);
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.78) 0%,
-    rgba(255, 255, 255, 0.48) 62%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  -webkit-backdrop-filter: var(--app-glass-filter);
-  backdrop-filter: var(--app-glass-filter);
+  content: none;
+  display: none;
+  border: 0;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
@@ -338,14 +363,6 @@
     background: var(--app-canvas) !important;
   }
 
-  .fresh-page::before {
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.97),
-      rgba(255, 255, 255, 0.82) 62%,
-      transparent
-    );
-  }
 }
 
 @media (prefers-reduced-transparency: reduce) {

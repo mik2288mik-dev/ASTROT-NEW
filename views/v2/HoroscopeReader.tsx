@@ -150,17 +150,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     { id: 'week', label: language === 'ru' ? 'Неделя' : 'Week' },
     { id: 'month', label: language === 'ru' ? 'Месяц' : 'Month' },
   ], [language]);
-  const dateLine = useMemo(() => {
-    if (period === 'week') return formatWeekRangePretty(periodKey, language);
-    if (period === 'month') return formatMonthPretty(periodKey, language);
-    const [year, month, day] = today.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day, 12));
-    const weekday = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
-      timeZone: 'UTC',
-      weekday: 'long',
-    }).format(date);
-    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${formatDisplayDate(today, language)}`;
-  }, [language, period, periodKey, today]);
   const periodTag = period === 'week'
     ? formatWeekRangePretty(periodKey, language)
     : period === 'month'
@@ -200,7 +189,11 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   return (
     <div className="fresh-page horo-reader-page">
-      <AppTopBar title={language === 'ru' ? 'Гороскоп' : 'Horoscope'} subtitle={dateLine} />
+      <AppTopBar title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'} />
+
+      <header className="horo-reader-heading">
+        <h1>{language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}</h1>
+      </header>
 
       <div className="horo-reader-controls">
         <ZodiacSignGrid
@@ -226,21 +219,20 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           <motion.article
             key={readingKey}
             className="horo-uni horo-reader-article"
+            aria-busy={loading}
             initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
             transition={{ duration: reduceMotion ? 0.08 : 0.18, ease: 'easeOut' }}
           >
             <header className="horo-uni-hero" style={{ background: 'transparent' }}>
-              <div className="horo-hero-date">{periodTag}</div>
-              <h1 className="fresh-sticky horo-reader-headline">
-                {periodLocked
-                  ? signLabel
-                  : reading?.headline
-                    || (reading === null
-                      ? (language === 'ru' ? 'Не удалось загрузить' : 'Could not load')
-                      : (language === 'ru' ? 'Готовим разбор…' : 'Preparing…'))}
-              </h1>
+              <div className="horo-reader-context">
+                <span className="horo-reader-sign-label">{signLabel}</span>
+                <span className="horo-reader-period-label">{periodTag}</span>
+              </div>
+              <h2 className="fresh-sticky horo-reader-headline">
+                {reading?.headline || signLabel}
+              </h2>
             </header>
 
             <div className="horo-uni-body horo-reader-reading">
@@ -263,7 +255,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                   ) : null}
                 </div>
               ) : reading === null ? (
-                <div className="horo-lock">
+                <div className="horo-lock" role="alert">
                   <div className="horo-lock-title">
                     {language === 'ru' ? 'Разбор не загрузился' : 'The reading did not load'}
                   </div>
@@ -272,9 +264,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                   </button>
                 </div>
               ) : loading ? (
-                <p className="horo-uni-summary">
-                  {language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…'}
-                </p>
+                <div className="horo-reader-loading" role="status" aria-live="polite">
+                  <p>{language === 'ru' ? 'Готовим разбор…' : 'Preparing reading…'}</p>
+                  <div className="horo-reader-loading-lines" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
               ) : reading ? (
                 <>
                   <div className="horo-sign-v2-flow">

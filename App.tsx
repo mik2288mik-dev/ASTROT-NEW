@@ -1821,7 +1821,7 @@ const App: React.FC = () => {
                 </button>
             )}
             <main
-                className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-md md:max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
+                className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
                 aria-hidden={sideDrawerOpen ? true : undefined}
                 inert={sideDrawerOpen ? true : undefined}
             >

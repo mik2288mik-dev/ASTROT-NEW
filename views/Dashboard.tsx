@@ -20,7 +20,6 @@ import {
 import {
   forecastSectionVisualStyle,
   resolvePersonalForecastVisuals,
-  selectMainEditorialSticker,
 } from '../lib/personalForecastVisuals';
 import {
   resolvePersonalForecastPromotions,
@@ -35,8 +34,6 @@ import { ForecastBottomSheet } from '../components/PersonalForecastFeed/Forecast
 import { ForecastPromotion } from '../components/PersonalForecastFeed/ForecastPromotion';
 import { ForecastQuestions } from '../components/PersonalForecastFeed/ForecastQuestions';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
-import { ForecastSideNavigator } from '../components/PersonalForecastFeed/ForecastSideNavigator';
-import { ForecastTopicNavigation } from '../components/PersonalForecastFeed/ForecastTopicNavigation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import type {
   PersonalForecastQuestionNotification,
@@ -190,9 +187,6 @@ export const Dashboard = memo<DashboardProps>(({
     week: emptyPeriodState(),
     month: emptyPeriodState(),
   });
-  const [compactTabsVisible, setCompactTabsVisible] = useState(false);
-  const [feedScrolling, setFeedScrolling] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState<string>('overview');
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const [unreadQuestions, setUnreadQuestions] =
     useState<PersonalForecastQuestionNotification[]>([]);
@@ -202,7 +196,6 @@ export const Dashboard = memo<DashboardProps>(({
   const contextRef = useRef('');
   const accessContextRef = useRef('');
   const pendingSectionRef = useRef<string | null>(null);
-  const scrollIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => ({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
@@ -407,16 +400,8 @@ export const Dashboard = memo<DashboardProps>(({
 
   const editorialStickerPath = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return null;
-    const selectedPath = visual?.assignments[forecast.overview.id]?.path;
-    if (selectedPath) return selectedPath;
-    return selectMainEditorialSticker({
-      screenKey: 'personal-forecast',
-      contentKey: `${forecast.period}|${forecast.periodKey}`,
-      userId,
-      topics: ['general'],
-      allowedMedia: ['photo'],
-    })?.path || null;
-  }, [forecast, userId, visual]);
+    return visual?.assignments[forecast.overview.id]?.path || null;
+  }, [forecast, visual]);
 
   const promotions = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
@@ -438,33 +423,6 @@ export const Dashboard = memo<DashboardProps>(({
     [promotions],
   );
 
-  const topicSections = useMemo(() => {
-    if (!forecast || forecast.meta.status !== 'ready') return [];
-    return [
-      ...(forecast.overview.status === 'ready'
-        ? [{
-            id: 'overview',
-            title: language === 'ru' ? 'Общее' : 'Overview',
-          }]
-        : []),
-      ...readySections.flatMap((section) => {
-        const title = section.title?.trim();
-        return title ? [{ id: section.id, title }] : [];
-      }),
-    ];
-  }, [forecast, language, readySections]);
-
-  const sideSections = useMemo(() => {
-    if (!topicSections.length) return [];
-    return [
-      ...topicSections,
-      {
-        id: 'questions',
-        title: language === 'ru' ? 'Вопросы по карте' : 'Chart questions',
-      },
-    ];
-  }, [language, topicSections]);
-
   const scrollToSection = useCallback((sectionId: string) => {
     const root = scrollRef?.current;
     const target = document.getElementById(
@@ -478,57 +436,6 @@ export const Dashboard = memo<DashboardProps>(({
       behavior: 'smooth',
     });
   }, [scrollRef]);
-
-  useEffect(() => {
-    const root = scrollRef?.current;
-    if (!root) return;
-    let lastScrollTop = root.scrollTop;
-    const handleScroll = () => {
-      const next = root.scrollTop;
-      setFeedScrolling(true);
-      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
-      scrollIdleTimerRef.current = setTimeout(() => {
-        setFeedScrolling(false);
-      }, 620);
-      if (next < 104) {
-        setCompactTabsVisible(false);
-      } else if (next < lastScrollTop - 2) {
-        setCompactTabsVisible(true);
-      } else if (next > lastScrollTop + 2) {
-        setCompactTabsVisible(false);
-      }
-      lastScrollTop = next;
-    };
-    root.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      root.removeEventListener('scroll', handleScroll);
-      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
-    };
-  }, [scrollRef]);
-
-  useEffect(() => {
-    const root = scrollRef?.current;
-    if (!root || !forecast) return;
-    const elements = Array.from(
-      root.querySelectorAll<HTMLElement>('[data-forecast-section], #forecast-questions'),
-    );
-    if (!elements.length || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
-      const target = visible[0]?.target as HTMLElement | undefined;
-      const id = target?.dataset.forecastSection
-        || (target?.id === 'forecast-questions' ? 'questions' : null);
-      if (id) setActiveSectionId(id);
-    }, {
-      root,
-      rootMargin: '-24% 0px -55% 0px',
-      threshold: [0.05, 0.2, 0.5, 0.8],
-    });
-    elements.forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, [forecast, scrollRef]);
 
   useEffect(() => {
     if (!forecast || !pendingSectionRef.current) return;
@@ -795,15 +702,6 @@ export const Dashboard = memo<DashboardProps>(({
             onFocusConsumed={() => setFocusQuestion(null)}
           />
 
-          <ForecastSideNavigator
-            sections={sideSections}
-            activeId={activeSectionId}
-            onNavigate={scrollToSection}
-            className={feedScrolling ? 'is-scrolling' : undefined}
-            ariaLabel={language === 'ru'
-              ? 'Навигация по разделам прогноза'
-              : 'Forecast section navigation'}
-          />
         </>
       )}
 

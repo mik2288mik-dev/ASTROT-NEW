@@ -1,16 +1,13 @@
 import React from 'react';
 import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../../types';
-import { getZodiacSign } from '../../constants';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
 import { MonoIllustChart } from '../../components/mono-ui';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { FreshPageTitle } from '../../components/fresh-ui';
-import { PlanetIcon } from '../../components/icons/PlanetIcon';
-import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
+import { NatalChartPortrait } from '../../components/NatalReading/NatalChartPortrait';
 import { selectNatalEditorialSticker } from '../../lib/personalForecastVisuals';
-import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
 import { buildPersonalForecastChartFingerprint } from '../../lib/personalForecastContract';
 import type { ChartListItem } from '../../services/storageService';
 
@@ -50,26 +47,20 @@ export function NatalMagazine({
         <section className="natal-empty-technical" aria-hidden>
           <MonoIllustChart size={120} className="opacity-90" />
         </section>
-        <p style={{ padding: '0 20px', margin: '0 0 18px', fontSize: 15, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
-          {language === 'ru'
-            ? 'Для расчёта нужны дата, время и место рождения.'
-            : 'The calculation needs your birth date, time, and place.'}
-        </p>
-        <button type="button" className="fresh-btn-primary" onClick={onCreateChart}>
-          {language === 'ru' ? 'Ввести данные' : 'Enter birth details'}
-        </button>
+        <div className="natal-empty-content">
+          <p>
+            {language === 'ru'
+              ? 'Для расчёта нужны дата, время и место рождения.'
+              : 'The calculation needs your birth date, time, and place.'}
+          </p>
+          <button type="button" className="fresh-btn-primary" onClick={onCreateChart}>
+            {language === 'ru' ? 'Ввести данные' : 'Enter birth details'}
+          </button>
+        </div>
       </div>
     );
   }
 
-  const reliability = getPermanentNatalReliability(data);
-  const bigThree = [
-    { planet: 'sun', label: language === 'ru' ? 'Солнце' : 'Sun', sign: data.sun.sign },
-    { planet: 'moon', label: language === 'ru' ? 'Луна' : 'Moon', sign: data.moon.sign },
-    ...(reliability.anglesIncluded && data.rising?.sign
-      ? [{ planet: 'asc', label: language === 'ru' ? 'Асцендент' : 'Rising', sign: data.rising.sign }]
-      : []),
-  ];
   const reportSubjectKey = [
     chartSubject?.subject_type || 'self',
     chartSubject?.id ?? chartId ?? 'primary',
@@ -86,23 +77,15 @@ export function NatalMagazine({
       <ShimmerStyles />
 
       <AppTopBar
-        title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
-        subtitle={`${subjectName} · ${formatDisplayDate(subjectBirthDate, language)}`}
+        title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}
       />
 
-      <div className="natal-big3">
-        {bigThree.map((it) => (
-          <div key={it.planet} className="natal-big3-card">
-            <div className="natal-big3-ico"><PlanetIcon planet={it.planet} size={18} strokeWidth={1.5} /></div>
-            <div className="natal-big3-text">
-              <div className="natal-big3-planet">{it.label}</div>
-              <div className="natal-big3-sign">{getZodiacSign(language, it.sign)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <header className="natal-magazine-heading">
+        <h1>{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</h1>
+        <p>{subjectName} · {formatDisplayDate(subjectBirthDate, language)}</p>
+      </header>
 
-      <NatalChartWheel chart={data} language={language} />
+      <NatalChartPortrait chart={data} language={language} />
 
       <HumanReport
         key={reportSubjectKey}

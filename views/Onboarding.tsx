@@ -11,6 +11,7 @@ import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTim
 
 interface OnboardingProps { onComplete: (profile: UserProfile) => Promise<void>; }
 type FieldKey = 'name' | 'date' | 'time' | 'place';
+type ErrorField = FieldKey | 'uncertainty' | null;
 
 const SparkIcon = ({ size = 52 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3z" fill="currentColor" /><circle cx="18.5" cy="5.5" r="1.4" fill="currentColor" /></svg>
@@ -36,6 +37,7 @@ export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
   const [placeCoords,setPlaceCoords]=useState<{lat:number;lon:number;timezone?:string}|null>(null);
   const [notify,setNotify]=useState(true);
   const [error,setError]=useState('');
+  const [errorField,setErrorField]=useState<ErrorField>(null);
   const [isSubmitting,setIsSubmitting]=useState(false);
   const submittingRef=useRef(false);
   const nameRef=useRef<HTMLInputElement|null>(null);
@@ -45,22 +47,21 @@ export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
 
   useEffect(()=>{ const tg=(window as any).Telegram?.WebApp; if(tg?.initDataUnsafe?.user)setName(tg.initDataUnsafe.user.first_name||''); ensureTelegramFullscreen(); },[]);
 
-  const timeValid=timeMode==='unknown'||Boolean(time&&(timeMode==='exact'||uncertainty));
-  const canSubmit=useMemo(()=>Boolean(name.trim()&&date&&place.trim()&&timeValid),[date,name,place,timeValid]);
   const signHint=useMemo(()=>{const sign=sunSignFromDate(date);return sign?getZodiacSign('ru',sign):'';},[date]);
 
   const focusField=(field:FieldKey)=>{const refs:Record<FieldKey,React.RefObject<HTMLInputElement|null>>={name:nameRef,date:dateRef,time:timeRef,place:placeRef};refs[field].current?.focus();};
   const nextStory=()=>storyIndex<STORIES.length-1?setStoryIndex((value)=>value+1):setStep('birth');
-  const chooseTimeMode=(mode:Exclude<BirthTimeMode,'range'>)=>{setTimeMode(mode);setError('');if(mode==='unknown'){setTime('');setUncertainty(null);}else if(mode==='exact'){setUncertainty(null);}};
+  const clearError=()=>{setError('');setErrorField(null);};
+  const chooseTimeMode=(mode:Exclude<BirthTimeMode,'range'>)=>{setTimeMode(mode);clearError();if(mode==='unknown'){setTime('');setUncertainty(null);}else if(mode==='exact'){setUncertainty(null);}};
 
   const handleSubmit=async()=>{
     if(submittingRef.current)return;
-    if(!name.trim()){setError('Укажи имя.');focusField('name');return;}
-    if(!date){setError('Укажи дату рождения.');focusField('date');return;}
-    if(timeMode!=='unknown'&&!time){setError('Укажи время рождения.');focusField('time');return;}
-    if(timeMode==='approximate'&&!uncertainty){setError('Укажи погрешность времени.');return;}
-    if(!place.trim()){setError('Укажи место рождения.');focusField('place');return;}
-    submittingRef.current=true;setIsSubmitting(true);setError('');
+    if(!name.trim()){setError('Укажи имя.');setErrorField('name');focusField('name');return;}
+    if(!date){setError('Укажи дату рождения.');setErrorField('date');focusField('date');return;}
+    if(timeMode!=='unknown'&&!time){setError('Укажи время рождения.');setErrorField('time');focusField('time');return;}
+    if(timeMode==='approximate'&&!uncertainty){setError('Укажи погрешность времени.');setErrorField('uncertainty');return;}
+    if(!place.trim()){setError('Укажи место рождения.');setErrorField('place');focusField('place');return;}
+    submittingRef.current=true;setIsSubmitting(true);clearError();
     try{
       await onComplete({
         name:name.trim(),gender,birthDate:date,birthTime:timeMode==='unknown'?'':time,
@@ -69,7 +70,7 @@ export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
         birthLatitude:placeCoords?.lat??null,birthLongitude:placeCoords?.lon??null,birthTimezone:placeCoords?.timezone??null,
         isSetup:false,language:'ru',theme:'light',isPremium:false,notificationFrequency:notify?'daily':'important',
       });
-    }catch(submitError:any){setError(submitError?.message||'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.');}
+    }catch(submitError:any){setErrorField(null);setError(submitError?.message||'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.');}
     finally{submittingRef.current=false;setIsSubmitting(false);}
   };
 
@@ -81,24 +82,30 @@ export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
         <div className="onb-hero"><span className="onb-hero-ico">{STORIES[storyIndex].icon}</span></div>
         <h1 className="onb-title">{STORIES[storyIndex].title}</h1><p className="onb-text">{STORIES[storyIndex].text}</p>
       </motion.div></AnimatePresence></div>
-      <div style={{padding:'0 20px'}}><button type="button" className="fresh-btn-primary" style={{width:'100%',margin:0}} onClick={nextStory}>{storyIndex<STORIES.length-1?'Дальше':'Ввести данные рождения'}</button><button type="button" className="onb-skip" onClick={()=>setStep('birth')}>Перейти к данным</button></div>
+      <div style={{padding:'0 20px'}}><button type="button" className="fresh-btn-primary" style={{width:'100%',margin:0}} onClick={nextStory}>{storyIndex<STORIES.length-1?'Дальше':'Ввести данные рождения'}</button><button type="button" className="onb-skip" style={{minHeight:44}} onClick={()=>setStep('birth')}>Перейти к данным</button></div>
     </div>:<div style={{display:'flex',flex:1,flexDirection:'column',maxWidth:'28rem',width:'100%',margin:'0 auto'}}>
       <div style={{padding:'8px 20px 0'}}><h1 className="fresh-page-title" style={{maxWidth:'18rem'}}>Данные для расчёта</h1><p style={{marginTop:12,maxWidth:'21rem',fontSize:14.5,lineHeight:1.55,color:'var(--fresh-muted)'}}>Дата, время и место рождения нужны для точного расчёта. Часовой пояс определим по городу и дате.</p></div>
       <div style={{display:'flex',flexDirection:'column',gap:18,padding:'22px 20px 0'}}>
-        <label><span className="fresh-field-label">Имя</span><input ref={nameRef} type="text" value={name} onChange={(event)=>{setName(event.target.value);setError('');}} className="fresh-input" placeholder="Как к тебе обращаться"/></label>
-        <div><span className="fresh-field-label">Пол</span><div style={{display:'flex',gap:8,marginTop:6}}>{([['male','Мужской'],['female','Женский'],['unspecified','Не указывать']] as const).map(([value,label])=><button key={value} type="button" onClick={()=>setGender(value)} className={`onb-gender ${gender===value?'is-on':''}`}>{label}</button>)}</div></div>
-        <label><span className="fresh-field-label">Дата рождения</span><input ref={dateRef} type="date" value={date} onChange={(event)=>{setDate(event.target.value);setError('');}} className="fresh-input"/></label>
-        <div><span className="fresh-field-label">Время рождения</span><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:6}}>
-          {([['exact','Знаю точно'],['approximate','Знаю примерно'],['unknown','Не знаю']] as const).map(([value,label])=><button key={value} type="button" onClick={()=>chooseTimeMode(value)} className={`onb-gender ${timeMode===value?'is-on':''}`}>{label}</button>)}
+        <div>
+          <label className="fresh-field-label" htmlFor="onboarding-name">Имя</label>
+          <input id="onboarding-name" ref={nameRef} type="text" value={name} onChange={(event)=>{setName(event.target.value);clearError();}} className="fresh-input" placeholder="Как к тебе обращаться" aria-invalid={errorField==='name'||undefined} aria-describedby={errorField==='name'?'onboarding-error':undefined}/>
+        </div>
+        <div><span id="onboarding-gender-label" className="fresh-field-label">Пол</span><div role="group" aria-labelledby="onboarding-gender-label" style={{display:'flex',gap:8,marginTop:6}}>{([['male','Мужской'],['female','Женский'],['unspecified','Не указывать']] as const).map(([value,label])=><button key={value} type="button" onClick={()=>setGender(value)} aria-pressed={gender===value} style={{minHeight:44}} className={`onb-gender ${gender===value?'is-on':''}`}>{label}</button>)}</div></div>
+        <div>
+          <label className="fresh-field-label" htmlFor="onboarding-birth-date">Дата рождения</label>
+          <input id="onboarding-birth-date" ref={dateRef} type="date" value={date} onChange={(event)=>{setDate(event.target.value);clearError();}} className="fresh-input" aria-invalid={errorField==='date'||undefined} aria-describedby={errorField==='date'?'onboarding-error':undefined}/>
+        </div>
+        <div><span id="onboarding-time-mode-label" className="fresh-field-label">Время рождения</span><div role="group" aria-labelledby="onboarding-time-mode-label" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:6}}>
+          {([['exact','Знаю точно'],['approximate','Знаю примерно'],['unknown','Не знаю']] as const).map(([value,label])=><button key={value} type="button" onClick={()=>chooseTimeMode(value)} aria-pressed={timeMode===value} style={{minHeight:44}} className={`onb-gender ${timeMode===value?'is-on':''}`}>{label}</button>)}
         </div></div>
-        {timeMode!=='unknown'?<label><span className="fresh-field-label">Часы и минуты</span><input ref={timeRef} type="time" step={60} value={time} onChange={(event)=>{setTime(event.target.value);setError('');}} className="fresh-input"/></label>:null}
-        {timeMode==='approximate'?<div><span className="fresh-field-label">Погрешность</span><div style={{display:'flex',gap:8,marginTop:6}}>{([15,30,60] as const).map((minutes)=><button key={minutes} type="button" onClick={()=>{setUncertainty(minutes);setError('');}} className={`onb-gender ${uncertainty===minutes?'is-on':''}`}>{minutes===60?'до 1 часа':`до ${minutes} минут`}</button>)}</div></div>:null}
+        {timeMode!=='unknown'?<div><label className="fresh-field-label" htmlFor="onboarding-birth-time">Часы и минуты</label><input id="onboarding-birth-time" ref={timeRef} type="time" step={60} value={time} onChange={(event)=>{setTime(event.target.value);clearError();}} className="fresh-input" aria-invalid={errorField==='time'||undefined} aria-describedby={errorField==='time'?'onboarding-error':undefined}/></div>:null}
+        {timeMode==='approximate'?<div><span id="onboarding-uncertainty-label" className="fresh-field-label">Погрешность</span><div role="group" aria-labelledby="onboarding-uncertainty-label" aria-describedby={errorField==='uncertainty'?'onboarding-error':undefined} style={{display:'flex',gap:8,marginTop:6}}>{([15,30,60] as const).map((minutes)=><button key={minutes} type="button" onClick={()=>{setUncertainty(minutes);clearError();}} aria-pressed={uncertainty===minutes} style={{minHeight:44}} className={`onb-gender ${uncertainty===minutes?'is-on':''}`}>{minutes===60?'до 1 часа':`до ${minutes} минут`}</button>)}</div></div>:null}
         {timeMode==='unknown'?<p style={{margin:'-6px 0 0',fontSize:13,lineHeight:1.45,color:'var(--fresh-muted)'}}>Время не подставляем. Дома, Асцендент и MC не считаем.</p>:timeMode==='approximate'?<p style={{margin:'-6px 0 0',fontSize:13,lineHeight:1.45,color:'var(--fresh-muted)'}}>Проверим весь диапазон и отметим только то, что в нём не меняется.</p>:null}
         {signHint?<p style={{margin:'-6px 0 0',fontSize:13,fontWeight:700,color:'var(--fresh-link)'}}>Знак зодиака: {signHint}</p>:null}
-        <label><span className="fresh-field-label">Место рождения</span><CityAutocomplete value={place} inputRef={placeRef} placeholder="Начни вводить город…" onChange={(value,coords)=>{setPlace(value);setPlaceCoords(coords??null);setError('');}}/></label>
-        <button type="button" className="onb-notify" onClick={()=>setNotify((value)=>!value)}><span className={`onb-check ${notify?'is-on':''}`} aria-hidden>{notify?'✓':''}</span><span className="onb-notify-text">Присылать уведомления о новых прогнозах</span></button>
+        <div><label className="fresh-field-label" htmlFor="onboarding-birth-place">Место рождения</label><CityAutocomplete id="onboarding-birth-place" value={place} inputRef={placeRef} placeholder="Начни вводить город…" ariaInvalid={errorField==='place'} ariaDescribedBy={errorField==='place'?'onboarding-error':undefined} onChange={(value,coords)=>{setPlace(value);setPlaceCoords(coords??null);clearError();}}/></div>
+        <button type="button" className="onb-notify" role="switch" aria-checked={notify} onClick={()=>setNotify((value)=>!value)}><span className={`onb-check ${notify?'is-on':''}`} aria-hidden>{notify?'✓':''}</span><span className="onb-notify-text">Присылать уведомления о новых прогнозах</span></button>
       </div>
-      <div style={{marginTop:'auto',paddingTop:22}}>{error?<p style={{margin:'0 20px 12px',fontSize:12.5,lineHeight:1.45,color:'#B91C1C'}}>{error}</p>:null}<button type="button" className="fresh-btn-primary" disabled={!canSubmit||isSubmitting} onClick={()=>void handleSubmit()}>{isSubmitting?'Рассчитываем…':'Рассчитать карту'}</button><p style={{margin:'12px 20px 0',maxWidth:'21rem',fontSize:10.5,lineHeight:1.45,color:'var(--fresh-muted)'}}>Положения считаются по Swiss Ephemeris. Неизвестное время не заменяется выдуманным.</p></div>
+      <div style={{marginTop:'auto',paddingTop:22}}>{error?<p id="onboarding-error" role="alert" style={{margin:'0 20px 12px',fontSize:12.5,lineHeight:1.45,color:'#B91C1C'}}>{error}</p>:null}<button type="button" className="fresh-btn-primary" disabled={isSubmitting} aria-busy={isSubmitting} onClick={()=>void handleSubmit()}>{isSubmitting?'Рассчитываем…':'Рассчитать карту'}</button><p style={{margin:'12px 20px 0',maxWidth:'21rem',fontSize:10.5,lineHeight:1.45,color:'var(--fresh-muted)'}}>Положения считаются по Swiss Ephemeris. Неизвестное время не заменяется выдуманным.</p></div>
     </div>}
   </div>;
 };

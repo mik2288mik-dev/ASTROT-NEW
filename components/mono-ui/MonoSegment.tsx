@@ -6,11 +6,17 @@ type MonoSegmentProps<T extends string> = {
   onChange: (value: T) => void;
   options: { value: T; label: string }[];
   className?: string;
+  ariaLabel?: string;
 };
 
-export function MonoSegment<T extends string>({ value, onChange, options, className }: MonoSegmentProps<T>) {
+export function MonoSegment<T extends string>({ value, onChange, options, className, ariaLabel }: MonoSegmentProps<T>) {
   return (
-    <div className={cn('grid rounded-mono-card bg-mono-plate p-1', className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div
+      className={cn('grid rounded-mono-card bg-mono-plate p-1', className)}
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      role="group"
+      aria-label={ariaLabel}
+    >
       {options.map((option) => {
         const active = option.value === value;
         return (
@@ -18,8 +24,9 @@ export function MonoSegment<T extends string>({ value, onChange, options, classN
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
+            aria-pressed={active}
             className={cn(
-              'rounded-[14px] px-3 py-3 text-[13px] font-semibold transition-colors',
+              'min-h-[44px] rounded-[14px] px-3 py-3 text-[13px] font-semibold transition-colors',
               active ? 'bg-mono-white text-mono-ink shadow-sm' : 'text-mono-muted',
             )}
           >
