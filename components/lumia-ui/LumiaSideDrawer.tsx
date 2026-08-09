@@ -115,7 +115,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
         };
     }, [open]);
     const items = [
-        { view: 'dashboard' as ViewState, label: isEnglish ? 'Diary' : 'Дневник', Icon: BookOpen, onClick: onOpenDiary },
+        { view: 'dashboard' as ViewState, label: isEnglish ? 'Horoscope' : 'Гороскоп', Icon: BookOpen, onClick: onOpenDiary },
         { view: 'horoscope' as ViewState, label: isEnglish ? 'Sign horoscope' : 'Гороскоп по знакам', Icon: Sparkles, onClick: onOpenSignHoroscope },
         { view: 'synastry' as ViewState, label: isEnglish ? 'Compatibility' : 'Совместимость', Icon: HeartHandshake, onClick: onOpenCompatibility },
         { view: 'chart' as ViewState, label: isEnglish ? 'Natal chart' : 'Натальная карта', Icon: Star, onClick: onOpenNatalChart },
