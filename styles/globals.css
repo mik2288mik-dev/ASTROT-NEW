@@ -391,7 +391,7 @@ body.theme-lumia-air #__next {
   width: var(--lumia-side-drawer-width);
   flex-direction: column;
   padding: max(1rem, env(safe-area-inset-top, 0px)) 0 max(1rem, env(safe-area-inset-bottom, 0px));
-  background: #ffffff;
+  background: #050711;
   box-shadow: 8px 0 24px rgba(17, 24, 39, 0.08);
   transform: translateX(-100%);
   transition: transform 180ms ease;
@@ -441,72 +441,41 @@ body.theme-lumia-air #__next {
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  background:
-    linear-gradient(180deg, rgba(3, 6, 17, 0.38), rgba(3, 6, 17, 0.74) 78%, rgba(3, 6, 17, 0.9));
+  background: rgba(3, 6, 17, 0.58);
 }
 
 .lumia-side-drawer-context {
-  position: relative;
   display: grid;
-  gap: 6px;
+  gap: 5px;
   padding:
-    calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 28px)
-    76px
-    18px;
-  padding-left: 28px;
-}
-
-.lumia-side-drawer-context-close {
-  position: absolute;
-  top: calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 20px);
-  right: 20px;
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(7, 11, 25, 0.68);
-  color: #fff;
-  cursor: pointer;
-}
-
-.lumia-side-drawer-context-close svg {
-  width: 22px;
-  height: 22px;
-}
-
-.lumia-side-drawer-context-close path {
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 1.8;
+    calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 34px)
+    24px
+    24px;
 }
 
 .lumia-side-drawer-date {
-  color: rgba(226, 232, 240, 0.72);
-  font-size: 11px;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 720;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.lumia-side-drawer-weekday {
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.08em;
   line-height: 1.35;
   text-transform: uppercase;
 }
 
-.lumia-side-drawer-context-name {
-  overflow: hidden;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 720;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .lumia-side-drawer-sun-sign {
-  color: rgba(241, 245, 249, 0.82);
-  font-size: 13px;
-  font-weight: 560;
+  margin-top: 8px;
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.35;
 }
 
@@ -520,7 +489,8 @@ body.theme-lumia-air #__next {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding-top: 8px;
+  gap: 10px;
+  padding: 4px 16px 20px;
   overscroll-behavior: contain;
 }
 
@@ -579,7 +549,7 @@ body.theme-lumia-air #__next {
 .lumia-side-drawer-periods {
   display: grid;
   gap: 2px;
-  margin: 2px 0 6px 40px;
+  margin: -4px 0 12px 40px;
 }
 
 .lumia-side-drawer-period {
@@ -610,19 +580,41 @@ body.theme-lumia-air #__next {
   align-items: flex-start;
   flex-direction: column;
   gap: 0.2rem;
-  margin: auto 0.85rem 0;
-  padding: 0.85rem 0.8rem;
+  margin: auto 16px 0;
+  padding: 18px 8px max(4px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .lumia-side-drawer-profile-name {
   color: #171717;
   font-size: 17px;
-  font-weight: 650;
+  font-weight: 680;
 }
 
 .lumia-side-drawer-profile-caption {
   color: #6b7280;
   font-size: 14px;
+}
+
+.forecast-feed-page,
+.forecast-feed-page .home-top,
+.forecast-feed-page .home-top-content,
+.forecast-feed-page .forecast-feed-intro,
+.forecast-feed-page .forecast-feed-section,
+.forecast-feed-page .forecast-feed-section-content {
+  background: #ffffff;
+}
+
+.forecast-feed-page::before {
+  background: #ffffff !important;
+}
+
+.forecast-feed-page .app-top-bar,
+.forecast-feed-page .app-top-bar.home-logo-bar {
+  background: #ffffff !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .lumia-side-drawer-menu-button {

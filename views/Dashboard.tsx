@@ -695,6 +695,7 @@ export const Dashboard = memo<DashboardProps>(({
 
       <div className="forecast-feed-intro">
         <div className="forecast-feed-greeting-row">
+          <p className="forecast-feed-greeting">{greeting}</p>
           <div className="forecast-feed-header-actions">
             {unreadQuestions.length > 0 ? (
               <button

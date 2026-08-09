@@ -43,10 +43,27 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
-    const displayDate = useMemo(() => todayLabel || new Intl.DateTimeFormat(
-        isEnglish ? 'en-GB' : 'ru-RU',
-        { day: 'numeric', month: 'long', weekday: 'long', timeZone: 'Europe/Moscow' },
-    ).format(new Date()), [isEnglish, todayLabel]);
+    const displayDate = useMemo(() => {
+        const supplied = todayLabel?.split('\n').map((part) => part.trim()).filter(Boolean) || [];
+        const locale = isEnglish ? 'en-GB' : 'ru-RU';
+        const now = new Date();
+        const weekday = new Intl.DateTimeFormat(locale, {
+            weekday: 'long',
+            timeZone: 'Europe/Moscow',
+        }).format(now);
+        if (supplied.length > 1) {
+            return { weekday: supplied[0], date: supplied.slice(1).join(' ') };
+        }
+        if (supplied.length === 1) return { weekday, date: supplied[0] };
+        return {
+            date: new Intl.DateTimeFormat(locale, {
+                day: 'numeric',
+                month: 'long',
+                timeZone: 'Europe/Moscow',
+            }).format(now),
+            weekday,
+        };
+    }, [isEnglish, todayLabel]);
     const resolvedSunSign = useMemo(() => {
         if (sunSign?.trim()) return sunSign.trim();
         const match = profile?.birthDate?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -124,21 +141,8 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                 aria-label={isEnglish ? 'Main navigation' : 'Основная навигация'}
             >
                 <header className="lumia-side-drawer-context">
-                    <button
-                        type="button"
-                        className="lumia-side-drawer-context-close"
-                        aria-label={isEnglish ? 'Close navigation' : 'Закрыть навигацию'}
-                        tabIndex={open ? 0 : -1}
-                        onClick={onClose}
-                    >
-                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 6l12 12M18 6L6 18" />
-                        </svg>
-                    </button>
-                    <span className="lumia-side-drawer-date">{displayDate}</span>
-                    <strong className="lumia-side-drawer-context-name">
-                        {profile?.name?.trim() || (isEnglish ? 'Your sky' : 'Твоё небо')}
-                    </strong>
+                    <strong className="lumia-side-drawer-date">{displayDate.date}</strong>
+                    <span className="lumia-side-drawer-weekday">{displayDate.weekday}</span>
                     {sunSignLabel ? (
                         <span className="lumia-side-drawer-sun-sign">
                             {isEnglish ? 'Sun' : 'Солнце'} · {sunSignLabel}
