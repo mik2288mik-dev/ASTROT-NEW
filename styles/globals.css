@@ -454,7 +454,9 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-context {
   display: grid;
+  justify-items: center;
   gap: 4px;
+  text-align: center;
   padding:
     calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 44px)
     20px
@@ -498,6 +500,8 @@ body.theme-lumia-air #__next {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  align-content: start;
+  grid-auto-rows: max-content;
   gap: 0;
   padding: 0 12px 14px;
   overscroll-behavior: contain;
