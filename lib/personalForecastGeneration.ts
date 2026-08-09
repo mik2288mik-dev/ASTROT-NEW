@@ -2,11 +2,9 @@ import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { isNatalChartDataV2 } from './natal/canonicalReport';
-import type { AstrologyHistoryContext } from './astrologyHistoryStore';
 import {
   APP_VOICE_VERSION,
   getPersonalForecastSystemVoice,
-  hasAppVoiceViolation,
 } from './appVoice';
 import { buildOpenAIChatParams } from './openaiChat';
 import { getContentAiClient } from './contentAiClient';
@@ -17,15 +15,12 @@ import {
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
   getPersonalForecastPackageValidationError,
-  isSimpleDynamicTitle,
   isPersonalForecastPackage,
   selectTodayFreeSections,
   stableHash,
-  validateForecastSectionRepetition,
   type CrossPeriodLink,
   type ExplanationAnchor,
   type ForecastContentBlock,
-  type ForecastContentBlockRole,
   type ForecastEvidenceView,
   type ForecastSection,
   type PersonalForecastPackage,
@@ -36,20 +31,9 @@ import {
   calculatePersonalForecastEvidence,
   type EvidenceCalculationResult,
 } from './personalForecastEvidence';
-import {
-  PERSONAL_FORECAST_SEMANTICS_VERSION,
-  type ForecastSemanticFact,
-} from './personalForecastSemantics';
-import {
-  forecastAtomText,
-  forecastSemanticTitle,
-  forecastSemanticVisualTag,
-  type ForecastWriterLanguage,
-} from './personalForecastSemanticLanguage';
-
+type ForecastWriterLanguage = 'ru' | 'en';
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
-const MAX_SEMANTIC_SECTIONS = 4;
 
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
@@ -57,37 +41,11 @@ export function getPersonalForecastSystemPrompt(
   return getPersonalForecastSystemVoice(language);
 }
 
-type PlannedBlock = {
-  id: string;
-  role: ForecastContentBlockRole;
-  semanticFactId: string;
-  atomId: string;
-  writerBrief: string;
-  astroEvidence: string | null;
-};
-
-export type ForecastSectionPlan = {
-  id: string;
-  title?: string;
-  importance: number;
-  visualTag: string;
-  semanticFactIds: string[];
-  semanticFingerprint: string;
-  facts: ForecastSemanticFact[];
-  blocks: PlannedBlock[];
-};
-
 type GeneratedBlockPayload = {
-  id?: unknown;
-  role?: unknown;
-  semantic_fact_id?: unknown;
-  atom_id?: unknown;
   text?: unknown;
-  astro_evidence?: unknown;
 };
 
 type GeneratedSectionPayload = {
-  id?: unknown;
   title?: unknown;
   evidence_ids?: unknown;
   blocks?: unknown;
@@ -95,11 +53,6 @@ type GeneratedSectionPayload = {
 
 type GeneratedFeedPayload = {
   sections?: unknown;
-};
-
-type ValidatedWriterResult = {
-  blocksBySectionId: Map<string, ForecastContentBlock[]>;
-  errors: string[];
 };
 
 type FreeGeneratedBlock = {
@@ -127,313 +80,6 @@ type GenerationResult = {
 type EvidenceCalculatedHookResult = {
   calculationSnapshotId?: number | null;
 } | void;
-
-const FORBIDDEN_GENERATED_PATTERNS = [
-  /\b(?:ты\s+(?:всегда|никогда|по\s+натуре|склонен|склонна|не\s+терпишь)|твой\s+характер)\b/iu,
-  /\b(?:you\s+(?:always|never|are\s+naturally|tend\s+to)|your\s+character)\b/iu,
-  /\b(?:гарантированно|обязательно\s+произойд[её]т|точно\s+случится|неизбежно)\b/iu,
-  /\b(?:guaranteed|will\s+definitely\s+happen|inevitable)\b/iu,
-  /\b(?:диагноз|травм[аы]|беременн\w*|увольнен\w*|расставан\w*|переезд\w*)\b/iu,
-  /\b(?:diagnos\w*|trauma\w*|pregnan\w*|fired|dismissal|breakup|relocation)\b/iu,
-  /\b(?:солнце|луна|меркурий|венера|марс|юпитер|сатурн|уран|нептун|плутон|аспект|транзит)\b|\b(?:\d{1,2}[-–—]?(?:й|ый)?\s+дом|астрологическ\w*\s+дом)\b/iu,
-  /\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|aspect|transit)\b|\b(?:house\s+\d{1,2}|astrological\s+house)\b/iu,
-  /\b(?:you\s+are\s+(?:impulsive|stubborn|impatient|emotional|sensitive|controlling|jealous|anxious|indecisive)|your\s+personality)\b/iu,
-  /\b(?:С‚С‹\s+(?:РёРјРїСѓР»СЊСЃРёРІРЅ\w*|СѓРїСЂСЏРј\w*|РЅРµС‚РµСЂРїРµР»РёРІ\w*|СЌРјРѕС†РёРѕРЅР°Р»СЊРЅ\w*|С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅ\w*|СЂРµРІРЅРёРІ\w*|С‚СЂРµРІРѕР¶РЅ\w*)|С‚РІРѕСЏ\s+Р»РёС‡РЅРѕСЃС‚СЊ)\b/iu,
-];
-
-const SAFE_HISTORY_FACT_VALUES: Readonly<Record<string, readonly string[]>> = {
-  preferred_pace: [
-    'fast', 'quick', 'measured', 'slow', 'slower pace', 'flexible', 'structured',
-    'one step at a time', 'step by step',
-    'Р±С‹СЃС‚СЂС‹Р№', 'Р±С‹СЃС‚СЂРѕ', 'СЂР°Р·РјРµСЂРµРЅРЅС‹Р№', 'РјРµРґР»РµРЅРЅС‹Р№', 'РіРёР±РєРёР№',
-    'СЃС‚СЂСѓРєС‚СѓСЂРёСЂРѕРІР°РЅРЅС‹Р№', 'РїРѕ С€Р°РіР°Рј',
-  ],
-  preferred_decision_style: [
-    'direct', 'analytical', 'intuitive', 'collaborative', 'needs time',
-    'one step at a time', 'step by step',
-    'РїСЂСЏРјРѕР№', 'Р°РЅР°Р»РёС‚РёС‡РµСЃРєРёР№', 'РёРЅС‚СѓРёС‚РёРІРЅС‹Р№', 'СЃРѕРІРјРµСЃС‚РЅС‹Р№',
-    'РЅСѓР¶РЅРѕ РІСЂРµРјСЏ', 'РїРѕ С€Р°РіР°Рј',
-  ],
-  preferred_communication_style: [
-    'direct', 'concise', 'detailed', 'gentle',
-    'РїСЂСЏРјРѕР№', 'РєСЂР°С‚РєРёР№', 'РїРѕРґСЂРѕР±РЅС‹Р№', 'РјСЏРіРєРёР№',
-  ],
-  preferred_explanation_depth: [
-    'concise', 'balanced', 'detailed',
-    'РєСЂР°С‚РєРѕ', 'СЃР±Р°Р»Р°РЅСЃРёСЂРѕРІР°РЅРЅРѕ', 'РїРѕРґСЂРѕР±РЅРѕ',
-  ],
-  preferred_forecast_focus: [
-    'risk', 'action', 'timing', 'overview',
-    'СЂРёСЃРє', 'РґРµР№СЃС‚РІРёРµ', 'СЃСЂРѕРєРё', 'РѕР±С‰РёР№ РІС‹РІРѕРґ',
-  ],
-};
-
-const COPY_STOP_WORDS = new Set([
-  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'before', 'between', 'but', 'by',
-  'can', 'for', 'from', 'in', 'is', 'it', 'more', 'not', 'of', 'on', 'one',
-  'or', 'right', 'than', 'that', 'the', 'this', 'to', 'under', 'with', 'you',
-  'your', 'now', 'currently', 'may',
-  'Р°', 'Р±РµР·', 'Р±РѕР»СЊС€Рµ', 'РІ', 'РґР»СЏ', 'РґРѕ', 'Рё', 'РёР»Рё', 'РјРµР¶РґСѓ', 'РЅР°',
-  'РЅРµ', 'РЅРѕ', 'РѕС‚', 'РїРѕ', 'РїСЂРё', 'СЃ', 'СЃРµР№С‡Р°СЃ', 'С‡РµРј', 'С‡С‚Рѕ', 'СЌС‚Рѕ',
-  'С‚С‹', 'С‚РІРѕР№', 'С‚РІРѕСЏ', 'С‚РІРѕРё', 'РјРѕР¶РµС‚', 'РѕСЃРѕР±РµРЅРЅРѕ',
-]);
-
-const LIFE_AREA_GATES: ReadonlyArray<{
-  pattern: RegExp;
-  contexts: readonly ForecastSemanticFact['lifeContext'][];
-}> = [
-  {
-    pattern: /\b(?:love|romance|relationship|partner|boyfriend|girlfriend|husband|wife|Р»СЋР±РѕРІ\w*|СЂРѕРјР°РЅ\w*|РѕС‚РЅРѕС€РµРЅ\w*|РїР°СЂС‚РЅ[С‘Рµ]СЂ\w*|РјСѓР¶|Р¶РµРЅР°)\b/iu,
-    contexts: ['partnerships'],
-  },
-  {
-    pattern: /\b(?:money|income|salary|profit|purchase|property|rent|loan|debt|wealth|РґРµРЅСЊРі\w*|РґРѕС…РѕРґ\w*|Р·Р°СЂРїР»Р°С‚\w*|РїСЂРёР±С‹Р»\w*|РїРѕРєСѓРї\w*|РёРјСѓС‰РµСЃС‚РІ\w*|РєСЂРµРґРёС‚\w*|РґРѕР»Рі\w*)\b/iu,
-    contexts: ['personal_resources', 'shared_resources'],
-  },
-  {
-    pattern: /\b(?:job|career|boss|workplace|colleague|РєР°СЂСЊРµСЂ\w*|СЂР°Р±РѕС‚РѕРґР°С‚РµР»\w*|РЅР°С‡Р°Р»СЊРЅРёРє\w*|РєРѕР»Р»РµРі\w*)\b/iu,
-    contexts: ['work_routines', 'career_public_role'],
-  },
-  {
-    pattern: /\b(?:home|family|parent|child|РґРѕРј|СЃРµРјСЊ\w*|СЂРѕРґРёС‚РµР»\w*|СЂРµР±[С‘Рµ]РЅ\w*)\b/iu,
-    contexts: ['home_foundation'],
-  },
-  {
-    pattern: /\b(?:friend|team|community|group|РґСЂСѓРі\w*|РєРѕРјР°РЅРґ\w*|СЃРѕРѕР±С‰РµСЃС‚РІ\w*|РіСЂСѓРїРї\w*)\b/iu,
-    contexts: ['groups_networks'],
-  },
-  {
-    pattern: /\b(?:travel|trip|flight|journey|С‚СѓСЂРёР·Рј\w*|РїРѕРµР·Рґ\w*|РїРµСЂРµР»С‘С‚\w*|РїСѓС‚РµС€РµСЃС‚РІ\w*)\b/iu,
-    contexts: ['communication_learning', 'study_travel'],
-  },
-  {
-    pattern: /\b(?:health|illness|treatment|body|Р·РґРѕСЂРѕРІ\w*|Р±РѕР»РµР·РЅ\w*|Р»РµС‡РµРЅ\w*|С‚РµР»Рѕ)\b/iu,
-    contexts: [],
-  },
-];
-
-function confidenceRank(value: ForecastSemanticFact['confidence']): number {
-  if (value === 'high') return 3;
-  if (value === 'medium') return 2;
-  return 1;
-}
-
-function sortFacts(facts: ForecastSemanticFact[]): ForecastSemanticFact[] {
-  return [...facts].sort((left, right) => (
-    right.strength - left.strength
-    || confidenceRank(right.confidence) - confidenceRank(left.confidence)
-    || left.semanticFingerprint.localeCompare(right.semanticFingerprint)
-  ));
-}
-
-function normalizedHistoryValue(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const normalized = value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-  return normalized || null;
-}
-
-function safeHistoryFactValue(key: string, value: unknown): string | null {
-  const allowed = SAFE_HISTORY_FACT_VALUES[key];
-  const normalized = normalizedHistoryValue(value);
-  if (!allowed || !normalized) return null;
-  return allowed.includes(normalized) ? normalized : null;
-}
-
-function tokenStem(token: string): string {
-  let value = token.toLocaleLowerCase();
-  if (/^[a-z]+$/u.test(value) && value.length > 4) {
-    value = value
-      .replace(/(?:ingly|edly|ing|ed|es|s)$/u, '')
-      .replace(/(?:tion|ment)$/u, '');
-  }
-  if (value.length <= 5) return value;
-  return value.slice(0, 6);
-}
-
-function contentStems(value: string): Set<string> {
-  const tokens = value.toLocaleLowerCase().match(/\p{L}+/gu) || [];
-  return new Set(
-    tokens
-      .filter((token) => token.length >= 3 && !COPY_STOP_WORDS.has(token))
-      .map(tokenStem)
-      .filter((token) => token.length >= 3),
-  );
-}
-
-function hasUnsupportedLifeArea(
-  text: string,
-  fact: ForecastSemanticFact,
-): boolean {
-  return LIFE_AREA_GATES.some((gate) => (
-    gate.pattern.test(text)
-    && !gate.contexts.includes(fact.lifeContext)
-  ));
-}
-
-function copyMeaningIsGrounded(input: {
-  text: string;
-  exactMeaning: string;
-  fact: ForecastSemanticFact;
-}): boolean {
-  if (hasUnsupportedLifeArea(input.text, input.fact)) return false;
-  const approved = contentStems(input.exactMeaning);
-  const candidate = contentStems(input.text);
-  if (!approved.size || !candidate.size) return false;
-  const overlap = [...candidate].filter((token) => approved.has(token)).length;
-  return overlap >= Math.min(2, approved.size);
-}
-
-function roleMeanings(
-  role: Exclude<ForecastContentBlockRole, 'insight'>,
-  fact: ForecastSemanticFact,
-  language: ForecastWriterLanguage,
-): string[] {
-  const atomIds = role === 'lead'
-    ? fact.allowedClaimAtoms
-    : role === 'detail'
-      ? fact.allowedManifestationAtoms
-      : role === 'risk'
-        ? fact.allowedRiskAtoms
-        : fact.allowedActionAtoms;
-  return [...new Set(
-    atomIds
-      .map((atomId) => forecastAtomText(role, atomId, language).trim())
-      .filter(Boolean),
-  )];
-}
-
-function block(
-  planId: string,
-  role: ForecastContentBlockRole,
-  fact: ForecastSemanticFact,
-  language: ForecastWriterLanguage,
-  index: number,
-  options?: { overview?: boolean },
-): PlannedBlock | null {
-  const meanings = role === 'insight'
-    ? [
-        ...roleMeanings('lead', fact, language),
-        ...roleMeanings('detail', fact, language).slice(0, 1),
-        ...roleMeanings('risk', fact, language).slice(0, 1),
-      ]
-    : roleMeanings(role, fact, language);
-  if (options?.overview && role === 'lead') {
-    meanings.push(...roleMeanings('detail', fact, language).slice(0, 1));
-  }
-  const writerBrief = meanings.join(' ').trim();
-  if (!writerBrief) return null;
-  return {
-    id: `${planId}:${role}:${index + 1}`,
-    role,
-    semanticFactId: fact.id,
-    atomId: `approved:${role}:${fact.id}`,
-    writerBrief: options?.overview
-      ? `${language === 'ru' ? 'Главный вывод периода' : 'Main period conclusion'}: ${writerBrief}`
-      : writerBrief,
-    astroEvidence: [
-      fact.transitPlanet,
-      fact.aspect,
-      fact.natalPoint,
-      fact.house ? `house ${fact.house}` : null,
-    ].filter(Boolean).join(' ') || null,
-  };
-}
-
-function factBlocks(
-  planId: string,
-  fact: ForecastSemanticFact,
-  language: ForecastWriterLanguage,
-): PlannedBlock[] {
-  const roles: ForecastContentBlockRole[] = ['insight'];
-  return roles
-    .map((role, index) => block(planId, role, fact, language, index))
-    .filter((value): value is PlannedBlock => !!value)
-    .slice(0, 4);
-}
-
-export function buildPersonalForecastSectionPlans(input: {
-  facts: ForecastSemanticFact[];
-  period: PersonalForecastPeriod;
-  language: ForecastWriterLanguage;
-}): { overview: ForecastSectionPlan; sections: ForecastSectionPlan[] } {
-  void input.period;
-  const selected: ForecastSemanticFact[] = [];
-  const selectedTopics = new Set<string>();
-  for (const fact of sortFacts(input.facts)) {
-    const topic = fact.sourceKind === 'transit_to_natal'
-      ? (fact.natalPoint === 'mc' ? 'mc' : fact.domain)
-      : fact.lifeContext || fact.domain;
-    if (selectedTopics.has(topic)) continue;
-    selectedTopics.add(topic);
-    selected.push(fact);
-    if (selected.length >= MAX_SEMANTIC_SECTIONS) break;
-  }
-  if (!selected.length) throw new Error('PERSONAL_FORECAST_SEMANTICS_EMPTY');
-
-  const overviewFacts = selected.slice(0, 3);
-  const overviewBlocks = overviewFacts
-    .map((fact, index) => block(
-      'overview',
-      'lead',
-      fact,
-      input.language,
-      index,
-      { overview: true },
-    ))
-    .filter((value): value is PlannedBlock => !!value);
-  if (!overviewBlocks.length) throw new Error('PERSONAL_FORECAST_OVERVIEW_EMPTY');
-
-  const overviewFingerprint = `overview:${stableHash(
-    overviewFacts.map((fact) => fact.semanticFingerprint).join('|'),
-  ).toString(36)}`;
-  const overview: ForecastSectionPlan = {
-    id: 'overview',
-    importance: overviewFacts[0]?.strength || 0,
-    visualTag: forecastSemanticVisualTag(overviewFacts[0]),
-    semanticFactIds: overviewFacts.map((fact) => fact.id),
-    semanticFingerprint: overviewFingerprint,
-    facts: overviewFacts,
-    blocks: overviewBlocks,
-  };
-
-  const sections = selected.map((fact): ForecastSectionPlan => {
-    const id = `semantic:${fact.semanticFingerprint.slice(0, 28)}`;
-    const blocks = factBlocks(id, fact, input.language);
-    if (!blocks.length) throw new Error('PERSONAL_FORECAST_SECTION_ATOMS_EMPTY');
-    return {
-      id,
-      title: forecastSemanticTitle(fact, input.language),
-      importance: Math.max(0, Math.min(100, Math.round(fact.strength))),
-      visualTag: forecastSemanticVisualTag(fact),
-      semanticFactIds: [fact.id],
-      semanticFingerprint: fact.semanticFingerprint,
-      facts: [fact],
-      blocks,
-    };
-  });
-
-  return { overview, sections };
-}
-
-function safeHistoryContext(history?: AstrologyHistoryContext | null) {
-  if (!history) return { explicit_facts: [], previous_semantic_fingerprints: [] };
-  const explicitFacts = history.explicitFacts
-    .filter((fact) => fact.operation === 'assert')
-    .map((fact) => ({
-      key: fact.factKey.trim(),
-      value: safeHistoryFactValue(fact.factKey.trim(), fact.factValue),
-    }))
-    .filter((fact): fact is { key: string; value: string } => fact.value !== null)
-    .slice(0, 8)
-    .map((fact) => ({ key: fact.key, value: fact.value }));
-  return {
-    explicit_facts: explicitFacts,
-    previous_semantic_fingerprints: history.artifactContinuity
-      .flatMap((artifact) => artifact.semanticFingerprints)
-      .filter(Boolean)
-      .slice(0, 20),
-  };
-}
 
 function localForecastTimestamp(value: string | null, timezone: string): string | null {
   if (!value) return null;
@@ -510,105 +156,12 @@ ${JSON.stringify(evidence, null, 2)}${repair}`;
 }
 
 function generatedTextValid(text: string): boolean {
-  const trimmed = text.trim();
-  return (
-    trimmed.length >= 15
-    && trimmed.length <= 6_000
-    && !/[#*_`]/.test(trimmed)
-    && !hasAppVoiceViolation(trimmed)
-    && FORBIDDEN_GENERATED_PATTERNS.every((pattern) => !pattern.test(trimmed))
-  );
-}
-
-function planMap(overviewPlan: ForecastSectionPlan, sectionPlans: ForecastSectionPlan[]) {
-  return new Map(
-    [overviewPlan, ...sectionPlans].map((plan) => [plan.id, plan]),
-  );
-}
-
-export function validateGeneratedForecastFeed(input: {
-  raw: GeneratedFeedPayload;
-  overviewPlan: ForecastSectionPlan;
-  sectionPlans: ForecastSectionPlan[];
-}): ValidatedWriterResult {
-  const errors: string[] = [];
-  const expectedPlans = planMap(input.overviewPlan, input.sectionPlans);
-  const rawSections = Array.isArray(input.raw?.sections)
-    ? input.raw.sections as GeneratedSectionPayload[]
-    : [];
-  if (rawSections.length !== expectedPlans.size) {
-    errors.push(`expected ${expectedPlans.size} sections, received ${rawSections.length}`);
-  }
-
-  const blocksBySectionId = new Map<string, ForecastContentBlock[]>();
-  const seenSectionIds = new Set<string>();
-  for (const rawSection of rawSections) {
-    const id = typeof rawSection?.id === 'string' ? rawSection.id.trim() : '';
-    const plan = expectedPlans.get(id);
-    if (!id || !plan || seenSectionIds.has(id)) {
-      errors.push(`unexpected or duplicate section id: ${id || '<empty>'}`);
-      continue;
-    }
-    seenSectionIds.add(id);
-    const rawBlocks = Array.isArray(rawSection.blocks)
-      ? rawSection.blocks as GeneratedBlockPayload[]
-      : [];
-    if (rawBlocks.length !== plan.blocks.length) {
-      errors.push(`${id}: expected ${plan.blocks.length} blocks, received ${rawBlocks.length}`);
-      continue;
-    }
-    const validated: ForecastContentBlock[] = [];
-    for (let index = 0; index < plan.blocks.length; index += 1) {
-      const expected = plan.blocks[index];
-      const rawBlock = rawBlocks[index];
-      const text = typeof rawBlock?.text === 'string' ? rawBlock.text.trim() : '';
-      const expectedFact = plan.facts.find(
-        (fact) => fact.id === expected.semanticFactId,
-      );
-      if (
-        rawBlock?.id !== expected.id
-        || rawBlock?.role !== expected.role
-        || rawBlock?.semantic_fact_id !== expected.semanticFactId
-        || rawBlock?.atom_id !== expected.atomId
-        || rawBlock?.astro_evidence !== expected.astroEvidence
-      ) {
-        errors.push(`${id}: block ${index + 1} changed the approved semantic identity`);
-        continue;
-      }
-      if (!generatedTextValid(text)) {
-        errors.push(`${id}: block ${expected.id} failed independent copy validation`);
-        continue;
-      }
-      if (!expectedFact || !copyMeaningIsGrounded({
-        text,
-        exactMeaning: expected.writerBrief,
-        fact: expectedFact,
-      })) {
-        errors.push(`${id}: block ${expected.id} is not grounded in its approved meaning`);
-        continue;
-      }
-      validated.push({
-        id: expected.id,
-        role: expected.role,
-        text,
-        semanticFactId: expected.semanticFactId,
-        atomId: expected.atomId,
-        astro_evidence: expected.astroEvidence,
-        explanationAnchorId: index === 0 ? `anchor:${id}` : null,
-      });
-    }
-    if (validated.length === plan.blocks.length) blocksBySectionId.set(id, validated);
-  }
-  for (const id of expectedPlans.keys()) {
-    if (!seenSectionIds.has(id)) errors.push(`missing section: ${id}`);
-  }
-  return { blocksBySectionId, errors };
+  return text.trim().length > 0;
 }
 
 function generatedTitleValid(value: unknown): value is string {
   if (typeof value !== 'string') return false;
-  const title = value.trim();
-  return title.length > 0 && title.length <= 120 && !/[#*_`]/.test(title);
+  return value.trim().length > 0;
 }
 
 /**
@@ -624,8 +177,8 @@ export function validateFreeGeneratedForecastFeed(
   const rawSections = Array.isArray(raw?.sections)
     ? raw.sections as GeneratedSectionPayload[]
     : [];
-  if (rawSections.length < 1 || rawSections.length > 8) {
-    errors.push(`expected 1-8 sections, received ${rawSections.length}`);
+  if (rawSections.length < 1) {
+    errors.push('at least one section is required');
   }
 
   const sections: FreeGeneratedSection[] = [];
@@ -633,8 +186,8 @@ export function validateFreeGeneratedForecastFeed(
     const rawBlocks = Array.isArray(rawSection?.blocks)
       ? rawSection.blocks as GeneratedBlockPayload[]
       : [];
-    if (rawBlocks.length < 1 || rawBlocks.length > 6) {
-      errors.push(`section ${sectionIndex + 1}: expected 1-6 blocks, received ${rawBlocks.length}`);
+    if (rawBlocks.length < 1) {
+      errors.push(`section ${sectionIndex + 1}: at least one block is required`);
       continue;
     }
     const title = typeof rawSection?.title === 'string' && rawSection.title.trim()
@@ -652,7 +205,6 @@ export function validateFreeGeneratedForecastFeed(
       : [];
     if (
       evidenceIds.length < 1
-      || evidenceIds.length > 12
       || new Set(evidenceIds).size !== evidenceIds.length
       || evidenceIds.some((id) => !availableEvidenceIds.has(id))
     ) {
@@ -713,83 +265,6 @@ export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload
   return null;
 }
 
-function evidenceForPlan(
-  plan: ForecastSectionPlan,
-  evidenceViews: Record<string, ForecastEvidenceView>,
-): ForecastEvidenceView[] {
-  const ids = new Set(plan.facts.flatMap((fact) => fact.evidenceIds));
-  return [...ids]
-    .map((id) => evidenceViews[id])
-    .filter((item): item is ForecastEvidenceView => !!item)
-    .slice(0, 8);
-}
-
-function buildAnchor(
-  plan: ForecastSectionPlan,
-  blocks: ForecastContentBlock[],
-  evidenceViews: Record<string, ForecastEvidenceView>,
-): ExplanationAnchor[] {
-  const evidence = evidenceForPlan(plan, evidenceViews);
-  if (!evidence.length || !blocks.length) return [];
-  const explanation = evidence
-    .map((item) => `${item.factor}. ${item.meaning}`)
-    .join(' ')
-    .slice(0, 1_200)
-    .trim();
-  if (explanation.length < 40) return [];
-  return [{
-    id: `anchor:${plan.id}`,
-    conclusion: blocks[0].text.slice(0, 600),
-    explanation,
-    evidenceIds: evidence.map((item) => item.id),
-  }];
-}
-
-function premiumTeaser(plan: ForecastSectionPlan, language: ForecastWriterLanguage): string {
-  const title = plan.title || (language === 'ru' ? 'главного вывода' : 'the main conclusion');
-  return language === 'ru'
-    ? `В полном разборе «${title}» — конкретное проявление, главный риск и рабочий следующий шаг.`
-    : `The full “${title}” reading gives the concrete manifestation, main risk, and practical next step.`;
-}
-
-function _materializeSection(input: {
-  plan: ForecastSectionPlan;
-  blocks: ForecastContentBlock[];
-  evidenceViews: Record<string, ForecastEvidenceView>;
-  language: ForecastWriterLanguage;
-  overview: boolean;
-}): ForecastSection {
-  const anchors = buildAnchor(input.plan, input.blocks, input.evidenceViews);
-  const anchorIds = new Set(anchors.map((anchor) => anchor.id));
-  const blocks = input.blocks.map((item) => ({
-    ...item,
-    explanationAnchorId: item.explanationAnchorId && anchorIds.has(item.explanationAnchorId)
-      ? item.explanationAnchorId
-      : null,
-    astro_evidence: item.astro_evidence || evidenceForPlan(input.plan, input.evidenceViews)[0]?.factor || null,
-  }));
-  const text = blocks.map((item) => item.text.trim()).join('\n\n');
-  const teaser = premiumTeaser(input.plan, input.language);
-  return {
-    id: input.plan.id,
-    kind: input.overview ? 'overview' : 'dynamic',
-    status: 'ready',
-    diagnosticCode: null,
-    title: input.overview ? undefined : input.plan.title,
-    sourceTopicKey: input.overview ? 'overview' : undefined,
-    text,
-    contentBlocks: blocks,
-    semanticFactIds: input.plan.semanticFactIds,
-    semanticFingerprint: input.plan.semanticFingerprint,
-    importance: input.plan.importance,
-    visualTag: input.plan.visualTag,
-    premiumTeaser: teaser,
-    lockedPreview: buildForecastLockedPreview(text, teaser),
-    explanationAnchors: anchors,
-    inlineAstroAccent: null,
-  };
-}
-
 function evidenceForIds(
   evidenceIds: readonly string[],
   evidenceViews: Record<string, ForecastEvidenceView>,
@@ -811,7 +286,7 @@ function materializeDirectSection(input: {
   const sectionId = input.overview
     ? 'overview'
     : `semantic:direct-${input.sectionIndex}-${stableHash(`${title || ''}:${input.section.evidenceIds.join(':')}`).toString(36)}`;
-  const evidenceLabel = evidence.map((item) => item.factor).join(' · ').slice(0, 240) || null;
+  const evidenceLabel = evidence.map((item) => item.factor).join(' · ') || null;
   const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => ({
     id: `${sectionId}:generated:${index + 1}`,
     role: input.overview && index === 0 ? 'lead' : 'insight',
@@ -831,12 +306,11 @@ function materializeDirectSection(input: {
   const anchorExplanation = `${factualAnchorPrefix}${evidence
     .map((item) => `${item.factor}: ${item.meaning}`)
     .join(' ')}`
-    .slice(0, 1_200)
     .trim();
-  const anchors: ExplanationAnchor[] = evidence.length && blocks.length && anchorExplanation.length >= 40
+  const anchors: ExplanationAnchor[] = evidence.length && blocks.length
     ? [{
         id: `anchor:${sectionId}`,
-        conclusion: blocks[0].text.slice(0, 600),
+        conclusion: blocks[0].text,
         explanation: anchorExplanation,
         evidenceIds: evidence.map((item) => item.id),
       }]
@@ -899,8 +373,8 @@ async function requestGeneratedFeed(input: {
             }),
           },
         ],
-        maxTokens: ({ day: 3_000, week: 3_400, month: 3_800 } as const)[input.period],
-        temperature: 0.35,
+        maxTokens: 3_800,
+        temperature: 1.1,
         jsonMode: true,
       }));
       content = response.choices[0]?.message?.content?.trim() || '';
@@ -935,11 +409,6 @@ async function requestGeneratedFeed(input: {
         overview: false,
         sectionIndex: index + 1,
       }));
-      const repetitionErrors = validateForecastSectionRepetition([overview, ...sections]);
-      if (repetitionErrors.length) {
-        errors = repetitionErrors;
-        continue;
-      }
       input.onMetrics?.({ model: input.model, ...usage, latencyMs: Date.now() - startedAt, validationPassed: true });
       return {
         overview,
@@ -1062,7 +531,7 @@ export async function generatePersonalForecastPackage(input: {
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
   previousForecast?: PersonalForecastPackage | null;
-  historyContext?: AstrologyHistoryContext | null;
+  historyContext?: unknown;
   onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
   onEvidenceCalculated?: (payload: {
     calculated: EvidenceCalculationResult;
@@ -1138,7 +607,7 @@ export async function generatePersonalForecastPackage(input: {
         promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
         voiceVersion: APP_VOICE_VERSION,
         calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-        semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+        semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
         contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
         generationAttempts: result.generationAttempts,
         validationStatus: result.validationStatus,

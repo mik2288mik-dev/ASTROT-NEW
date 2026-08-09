@@ -2,10 +2,8 @@ import { fromZonedTime } from 'date-fns-tz';
 import type { NatalChartData } from '../types';
 import {
   APP_VOICE_VERSION,
-  hasAppVoiceViolation,
   withAppVoiceVersion,
 } from './appVoice';
-import { PERSONAL_FORECAST_SEMANTICS_VERSION } from './personalForecastSemantics';
 
 export type PersonalForecastPeriod = 'day' | 'week' | 'month';
 
@@ -213,7 +211,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v10.raw-evidence-grounded',
+  'personal-forecast-feed.v11.unbounded-raw-evidence',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v8';
@@ -294,23 +292,6 @@ export const DYNAMIC_FORECAST_FOCUS_LABELS: Record<
     documents_agreements: 'documents and agreements',
   },
 };
-
-const EXPLANATION_TEXT_MIN = 40;
-const EXPLANATION_TEXT_MAX = 1_200;
-
-// Storage/transport safety limits only. They are deliberately not editorial
-// targets: the calculation decides how much text the period needs.
-const FORECAST_SECTION_SAFETY_LIMIT = 20_000;
-const FORECAST_BLOCK_SAFETY_LIMIT = 6_000;
-
-const BANNED_DYNAMIC_TITLES = new Set([
-  'публичность',
-  'важный выбор',
-  'поездки и движение',
-  'public visibility',
-  'important choice',
-  'travel and movement',
-]);
 
 export type PersonalForecastWindow = {
   period: PersonalForecastPeriod;
@@ -602,7 +583,6 @@ export function buildPersonalForecastCacheKey(input: {
     input.chartData.calculationVersion || 'unknown',
     buildPersonalForecastChartFingerprint(input.chartData),
     PERSONAL_FORECAST_CALCULATION_VERSION,
-    PERSONAL_FORECAST_SEMANTICS_VERSION,
     PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
     APP_VOICE_VERSION,
@@ -625,58 +605,15 @@ export function buildPersonalForecastInputHash(input: {
     ...input,
     chartData: buildPersonalForecastChartFingerprint(input.chartData),
     calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-    semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+    semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
     contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
     promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     voiceVersion: APP_VOICE_VERSION,
   })).toString(36);
 }
 
-function normalizeComparable(value: string): string {
-  return value
-    .toLocaleLowerCase('ru-RU')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function firstSentence(value: string): string {
-  return normalizeComparable(value.split(/[.!?…]/, 1)[0] || '')
-    .split(' ')
-    .slice(0, 10)
-    .join(' ');
-}
-
-export function validateForecastSectionRepetition(
-  sections: Array<Pick<ForecastSection, 'id' | 'title' | 'text'>>,
-): string[] {
-  const errors: string[] = [];
-  const titles = new Map<string, string>();
-  const openings = new Map<string, string>();
-  for (const section of sections) {
-    const title = normalizeComparable(section.title || '');
-    if (title) {
-      const existing = titles.get(title);
-      if (existing) errors.push(`duplicate title: ${existing}/${section.id}`);
-      titles.set(title, section.id);
-    }
-    const opening = firstSentence(section.text);
-    if (opening.split(' ').length >= 4) {
-      const existing = openings.get(opening);
-      if (existing) errors.push(`duplicate opening: ${existing}/${section.id}`);
-      openings.set(opening, section.id);
-    }
-  }
-  return errors;
-}
-
 export function isSimpleDynamicTitle(value: string): boolean {
-  const title = value.trim();
-  return (
-    title.length >= 1
-    && title.length <= 120
-    && !/[#*_`]/.test(title)
-  );
+  return value.trim().length > 0;
 }
 
 export function buildForecastLockedPreview(
@@ -704,14 +641,10 @@ function anchorValid(
     && !!anchor.id.trim()
     && typeof anchor.conclusion === 'string'
     && !!anchor.conclusion.trim()
-    && anchor.conclusion.length <= 600
     && typeof anchor.explanation === 'string'
     && !!anchor.explanation.trim()
-    && anchor.explanation.length >= EXPLANATION_TEXT_MIN
-    && anchor.explanation.length <= EXPLANATION_TEXT_MAX
     && Array.isArray(anchor.evidenceIds)
     && anchor.evidenceIds.length >= 1
-    && anchor.evidenceIds.length <= 12
     && new Set(anchor.evidenceIds).size === anchor.evidenceIds.length
     && anchor.evidenceIds.every((id) => evidenceIds.has(id))
   );
@@ -763,9 +696,7 @@ function contentBlocksValid(
   }
   if (
     section.contentBlocks.length < 1
-    || section.contentBlocks.length > 6
     || section.semanticFactIds.length < 1
-    || section.semanticFactIds.length > 12
     || new Set(section.semanticFactIds).size !== section.semanticFactIds.length
     || !section.semanticFingerprint.trim()
   ) {
@@ -784,17 +715,15 @@ function contentBlocksValid(
       // to the legacy lead/detail/risk/action rubric.
       || typeof block.role !== 'string'
       || !block.role.trim()
-      || block.role.length > 64
       || typeof block.text !== 'string'
       || !block.text.trim()
-      || block.text.length > FORECAST_BLOCK_SAFETY_LIMIT
       || (block.semanticFactId !== undefined && (
         typeof block.semanticFactId !== 'string'
         || (section.semanticFactIds.length > 0 && !section.semanticFactIds.includes(block.semanticFactId))
       ))
       || (block.atomId !== undefined && (typeof block.atomId !== 'string' || !block.atomId.trim()))
       || (block.astro_evidence !== undefined && block.astro_evidence !== null && (
-        typeof block.astro_evidence !== 'string' || block.astro_evidence.length > 240
+        typeof block.astro_evidence !== 'string'
       ))
       || (
         block.explanationAnchorId !== undefined
@@ -831,7 +760,6 @@ function sectionValid(
     )
     || typeof section.text !== 'string'
     || (redacted ? !!section.text.trim() : !section.text.trim())
-    || section.text.length > FORECAST_SECTION_SAFETY_LIMIT
     || !Number.isFinite(section.importance)
     || section.importance < 0
     || section.importance > 100
@@ -839,8 +767,6 @@ function sectionValid(
     || !section.visualTag.trim()
     || typeof section.premiumTeaser !== 'string'
     || !section.premiumTeaser.trim()
-    || section.premiumTeaser.length < 40
-    || section.premiumTeaser.length > 300
     || !section.lockedPreview
     || typeof section.lockedPreview.lead !== 'string'
     || typeof section.lockedPreview.blurred !== 'string'
@@ -852,7 +778,6 @@ function sectionValid(
       redacted,
     })
     || !Array.isArray(section.explanationAnchors)
-    || section.explanationAnchors.length > 2
     || new Set(section.explanationAnchors.map((anchor) => anchor?.id)).size
       !== section.explanationAnchors.length
     || (redacted
@@ -894,20 +819,7 @@ function sectionValid(
       return false;
     }
   }
-  const voiceText = [
-    section.title || '',
-    section.text,
-    ...section.contentBlocks.map((block) => block.text),
-    section.premiumTeaser,
-    section.lockedPreview.lead,
-    section.lockedPreview.blurred,
-    ...section.explanationAnchors.flatMap((anchor) => [
-      anchor.conclusion,
-      anchor.explanation,
-    ]),
-    section.inlineAstroAccent?.text || '',
-  ].join('\n');
-  return !hasAppVoiceViolation(voiceText);
+  return true;
 }
 
 function validIsoTimestamp(value: unknown): value is string {
@@ -946,7 +858,6 @@ function evidenceRecordValid(value: unknown): value is Record<string, ForecastEv
       && typeof evidence.meaning === 'string'
       && !!evidence.meaning.trim()
       && evidence.meaning.length <= 420
-      && !hasAppVoiceViolation(`${evidence.factor}\n${evidence.meaning}`)
     );
   });
 }
@@ -1016,7 +927,7 @@ export function getPersonalForecastPackageValidationError(
     || forecast.meta?.promptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
     || forecast.meta?.voiceVersion !== APP_VOICE_VERSION
     || forecast.meta?.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
-    || forecast.meta?.semanticVersion !== PERSONAL_FORECAST_SEMANTICS_VERSION
+    || forecast.meta?.semanticVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
     || forecast.meta?.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
     || !([0, 1, 2] as const).includes(forecast.meta?.generationAttempts)
     || !(['valid', 'deterministic_fallback'] as const).includes(
@@ -1121,9 +1032,6 @@ export function getPersonalForecastPackageValidationError(
   )) {
     return 'PACKAGE_CROSS_PERIOD_LINKS_INVALID';
   }
-  if (forecast.sections.length > 7) {
-    return 'PACKAGE_SECTION_COUNT_INVALID';
-  }
   if (
     forecast.sections.some((section) => section.status !== 'ready')
     || new Set(
@@ -1134,9 +1042,6 @@ export function getPersonalForecastPackageValidationError(
       .filter((section) => !redactedSectionIds.has(section.id)).length
   ) {
     return 'PACKAGE_SECTION_STATUS_OR_FINGERPRINT_INVALID';
-  }
-  if (validateForecastSectionRepetition([forecast.overview, ...forecast.sections]).length) {
-    return 'PACKAGE_SECTION_REPETITION';
   }
   const freeSelection = forecast.meta.freeSelection;
   if (!freeSelection || !Array.isArray(freeSelection.sectionIds)) {
@@ -1278,7 +1183,7 @@ export function createUnavailablePersonalForecast(
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
       voiceVersion: APP_VOICE_VERSION,
       calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-      semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+      semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       generationAttempts: 0,
       validationStatus: 'deterministic_fallback',
