@@ -438,6 +438,14 @@ export const Dashboard = memo<DashboardProps>(({
     });
   }, [forecast, readySections, userId]);
 
+  const secondaryStickerSectionId = useMemo(() => {
+    const overviewPath = visual?.assignments[forecast?.overview.id || 'overview']?.path;
+    return readySections.find((section) => {
+      const path = visual?.assignments[section.id]?.path;
+      return !!path && path !== overviewPath && !lockedIds.has(section.id);
+    })?.id || null;
+  }, [forecast?.overview.id, lockedIds, readySections, visual]);
+
   const promotions = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
     return safeResolvePromotions({
@@ -807,6 +815,9 @@ export const Dashboard = memo<DashboardProps>(({
                     activePeriod,
                   )}
                   hasVisual={!!visual?.assignments[section.id]?.path}
+                  editorialStickerPath={secondaryStickerSectionId === section.id
+                    ? visual?.assignments[section.id]?.path
+                    : null}
                   onRequestPremium={requestPremium}
                 >
                   {crossLinks.map((link) => (

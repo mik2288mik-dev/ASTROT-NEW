@@ -1201,10 +1201,10 @@
   }
 }
 
-/* V3 reading rhythm: one calm column and intentional 16/24/48 spacing. */
+/* Editorial reading rhythm: a clean magazine column with deliberate hierarchy. */
 .forecast-feed-page .forecast-feed-section {
   width: 100%;
-  max-width: 620px;
+  max-width: 610px;
   border: 0;
   background: transparent;
 }
@@ -1219,24 +1219,34 @@
 .forecast-feed-page .forecast-feed-questions {
   box-sizing: border-box;
   width: 100%;
-  max-width: 620px;
-  padding: 24px 24px 48px;
+  max-width: 610px;
+  padding: 20px 24px 44px;
 }
 
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-section-content {
-  max-width: 620px;
-  padding-top: 24px;
-  padding-bottom: 48px;
+  max-width: 610px;
+  padding-top: 18px;
+  padding-bottom: 44px;
 }
 
-.forecast-feed-page .forecast-feed-section-title,
-.forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-section-title {
+.forecast-feed-page .forecast-feed-section-title {
   margin: 0 0 16px;
-  font-size: clamp(30px, 8vw, 36px);
+  max-width: 18ch;
+  font-size: clamp(26px, 7vw, 32px);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
   text-align: left;
+  text-wrap: balance;
+}
+
+.forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-screen-headline {
+  max-width: 11ch;
+  margin-bottom: 14px;
+  font-size: clamp(40px, 11vw, 54px);
+  font-weight: 720;
+  letter-spacing: -0.052em;
+  line-height: 0.98;
 }
 
 .forecast-feed-page .forecast-feed-section-copy {
@@ -1258,20 +1268,34 @@
   line-height: 1.55;
 }
 
+.forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-section-text.is-lead {
+  max-width: 34rem;
+  font-size: clamp(18px, 4.7vw, 20px);
+  font-weight: 480;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
 .forecast-feed-page .forecast-feed-section-text.is-lead::before {
   content: none;
 }
 
 .forecast-feed-page .forecast-feed-editorial-sticker {
   display: block;
-  width: 65%;
-  max-width: 400px;
+  width: 66%;
+  max-width: 390px;
   height: auto;
-  margin: 8px auto 8px;
+  margin: 10px auto 6px;
   border: 0;
   background: transparent;
   box-shadow: none;
   object-fit: contain;
+}
+
+.forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-editorial-sticker {
+  width: min(82%, 430px);
+  margin-top: 20px;
+  margin-bottom: 2px;
 }
 
 .natal-editorial-page .product-screen-cover--natal,
@@ -1290,6 +1314,11 @@
   padding-left: 24px;
 }
 
+.natal-editorial-page .natal-editorial-report-inner {
+  padding-right: 0;
+  padding-left: 0;
+}
+
 .natal-editorial-page .natal-big3 {
   padding-right: 24px;
   padding-left: 24px;
@@ -1302,7 +1331,7 @@
 
 .natal-editorial-page .natal-sec,
 .natal-editorial-page .editorial-reading-section {
-  padding: 48px 0 !important;
+  padding: 40px 0 !important;
   border: 0;
 }
 
@@ -1311,10 +1340,19 @@
 .natal-editorial-page .editorial-reading-heading h3 {
   margin: 0 0 16px;
   color: #171717;
-  font-size: clamp(30px, 8vw, 36px);
+  max-width: 18ch;
+  font-size: clamp(27px, 7vw, 34px);
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 1.05;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.natal-editorial-page .natal-reading-overview .natal-sec-title {
+  max-width: 12ch;
+  font-size: clamp(38px, 10vw, 50px);
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
 .natal-editorial-page .natal-sec-body {
@@ -1335,6 +1373,12 @@
 
 .natal-editorial-page .natal-sec-p + .natal-sec-p {
   margin-top: 16px;
+}
+
+.natal-editorial-page .natal-reading-overview .natal-sec-p:first-child {
+  font-size: clamp(18px, 4.7vw, 20px);
+  font-weight: 480;
+  line-height: 1.48;
 }
 
 .natal-editorial-page .natal-editorial-sticker,
@@ -1367,6 +1411,12 @@
     float: right;
     width: 38%;
     margin: 8px 0 24px 28px;
+  }
+
+  .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-editorial-sticker {
+    float: none;
+    width: min(74%, 430px);
+    margin: 24px auto 4px;
   }
 
   .natal-editorial-page .natal-editorial-sticker,

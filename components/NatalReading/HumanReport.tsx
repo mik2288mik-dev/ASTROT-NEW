@@ -549,7 +549,7 @@ export const HumanReport: React.FC<Props> = ({
 
   return (
     <article className="natal-editorial-report relative bg-white pb-16 pt-1">
-      <div className={`relative z-10 w-full ${hideIntro ? 'px-4' : 'mx-auto max-w-reading-wide px-5'}`}>
+      <div className={`natal-editorial-report-inner relative z-10 w-full ${hideIntro ? '' : 'mx-auto max-w-reading-wide px-5'}`}>
         {!hideIntro ? (
           <header className="pb-6">
             <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">

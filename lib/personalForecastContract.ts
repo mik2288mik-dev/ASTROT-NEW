@@ -213,10 +213,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v8.direct-swiss-evidence-writer',
+  'personal-forecast-feed.v9.editorial-direct-evidence-writer',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v6';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v7';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -1078,7 +1078,10 @@ export function getPersonalForecastPackageValidationError(
     || forecast.overview.id !== 'overview'
     || forecast.overview.sourceTopicKey !== 'overview'
     || forecast.overview.fixedKey !== undefined
-    || forecast.overview.title !== undefined
+    || (
+      forecast.overview.title !== undefined
+      && !isSimpleDynamicTitle(forecast.overview.title)
+    )
   ) {
     return 'PACKAGE_OVERVIEW_IDENTITY_INVALID';
   }

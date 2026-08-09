@@ -20,32 +20,15 @@ type ForecastSectionBlockProps = {
   onRequestPremium: () => void;
 };
 
-function overviewTitle(
-  period: PersonalForecastPeriod,
-  language: 'ru' | 'en',
-): string {
-  if (language === 'en') {
-    return {
-      day: 'Your horoscope for today',
-      week: 'Your horoscope for the week',
-      month: 'Your horoscope for the month',
-    }[period];
-  }
-  return {
-    day: 'Личный гороскоп на сегодня',
-    week: 'Личный гороскоп на неделю',
-    month: 'Личный гороскоп на месяц',
-  }[period];
-}
-
 function renderContentBlocks(
   section: ForecastSection,
   activeAnchorId: string | null,
   onOpenExplanation: (anchorId: string) => void,
   language: 'ru' | 'en',
   editorialStickerPath?: string | null,
+  isOverview = false,
 ): ReactNode {
-  const stickerAfterIndex = Math.min(1, section.contentBlocks.length - 1);
+  const stickerAfterIndex = isOverview ? 0 : Math.min(1, section.contentBlocks.length - 1);
   return (
     <div className="forecast-feed-section-copy">
       {section.contentBlocks.map((block, index) => {
@@ -150,9 +133,15 @@ export function ForecastSectionBlock({
     >
       <div className="forecast-feed-section-content">
         {title ? (
-          <h2 className="forecast-feed-section-title">
-            <span>{title}</span>
-          </h2>
+          isOverview ? (
+            <h1 className="forecast-feed-section-title forecast-feed-screen-headline">
+              <span>{title}</span>
+            </h1>
+          ) : (
+            <h2 className="forecast-feed-section-title">
+              <span>{title}</span>
+            </h2>
+          )
         ) : null}
         {locked ? (
           <div className="forecast-feed-locked">
@@ -194,6 +183,7 @@ export function ForecastSectionBlock({
             },
             language,
             editorialStickerPath,
+            isOverview,
           )
         )}
         {children}

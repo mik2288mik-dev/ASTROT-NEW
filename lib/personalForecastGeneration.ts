@@ -20,6 +20,7 @@ import {
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
   getPersonalForecastPackageValidationError,
+  isSimpleDynamicTitle,
   isPersonalForecastPackage,
   selectTodayFreeSections,
   stableHash,
@@ -51,14 +52,14 @@ import {
 
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
-const MAX_SEMANTIC_SECTIONS = 3;
+const MAX_SEMANTIC_SECTIONS = 4;
 
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
 ): string {
   const task = language === 'ru'
-    ? `Ты — живой, прямой и дерзкий астро-аналитик. Разбирай только переданные расчётные данные: транзиты, аспекты, дома и сроки. Пиши о реальной жизни — деньгах, делах, контактах и сбоях. Никакой эзотерики, «опор», «точек напряжения», коучинга или канцелярита. Дай точный расклад и ровно два конкретных практических совета: что сделать и чего избегать. Дерзость — в точном выводе, не в грубости и не в сленге.`
-    : `You are a lively, direct, bold astro analyst. Read only the supplied calculations: transits, aspects, houses, and timing. Write about real life: money, work, contacts, and disruptions. No esoteric language, coaching, corporate filler, or slang. Give a precise reading with practical conclusions when the calculation supports them. Bold means precise, never rude.`;
+    ? `Ты — живой, прямой и дерзкий астро-аналитик и сильный журнальный редактор. Разбирай только переданные расчётные данные: транзиты, аспекты, дома и сроки. Пиши о реальной жизни — деньгах, делах, контактах, чувствах и сбоях. Никакой эзотерики, «опор», «точек напряжения», коучинга или канцелярита. Выбирай только действительно важные выводы, формулируй их плотно и не повторяй одну мысль разными словами. Дерзость — в точном наблюдении, не в грубости и не в сленге.`
+    : `You are a lively, direct, bold astro analyst and a sharp magazine editor. Read only the supplied calculations: transits, aspects, houses, and timing. Write about real life: money, work, contacts, feelings, and disruptions. No esoteric language, coaching, corporate filler, or slang. Select only the conclusions that matter, keep them dense, and never repeat one idea in different words. Bold means precise, never rude.`;
   return `${getAppSystemVoice(language)}\n\nFORECAST-SPECIFIC SYSTEM INSTRUCTION:\n${task}`;
 }
 
@@ -489,16 +490,21 @@ export function buildPersonalForecastFeedPrompt(input: {
   const repair = input.repairErrors?.length
     ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
     : '';
-  return `You write a dense personal forecast from supplied calculations.
+  return `You write a concise editorial personal forecast from supplied calculations.
 
 Write in ${input.language === 'ru' ? 'Russian, addressing the reader as "ты"' : 'English, addressing the reader as "you"'}.
 Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}. Timezone: ${input.window.timezone}.
 Period instruction: ${periodInstruction[input.period]}
 
 Hard rules:
-- Return JSON only: {"sections":[{"title":"...","blocks":[{"text":"...","astro_evidence":"..."}]}]}. Return 2 or 3 sections; the first is the compact overview.
+- Return JSON only: {"sections":[{"title":"...","blocks":[{"text":"...","astro_evidence":"..."}]}]}.
+- Return 3-5 sections total: the first is the hero overview, followed by 2-4 thematic sections chosen from the strongest supplied facts.
+- Every section title is required. Make it a specific human headline of 2-7 words. The first title is the screen headline: short, bold, and exact. Never use a generic domain or technical label.
+- The hero overview has exactly one block: a lead of 1-2 short sentences and no more than 36 words.
+- Each following section has 1-2 compact blocks. Each block is one paragraph of at most 3 sentences and 70 words. Remove any sentence that repeats an earlier conclusion.
 - Each block needs a short, exact astro_evidence that names the supplied calculation behind it (for example, "Mars in the 2nd house"). It is UI metadata; never name it in text.
 - Build the sections freely from the calculated evidence. Do not use canned labels such as "Reactions", "First step", "Actions and boundaries", or "Conversations and decisions".
+- Never use titles equivalent to "Overview", "General background", "Main point", "What is happening", "What to do", "Energy of the day", "Evening", "Work", "Money", "Relationships", or "Inner state". Name the actual conclusion instead.
 - Start each block with one precise, living image and immediately show a concrete ordinary-life manifestation. The image must clarify, never decorate.
 - Prefer concrete spheres only when the calculation supports them: work and money, relationships and communication, inner state. Do not manufacture a sphere, event, motive, biography, or prediction.
 - No filler, coaching language, or cheap slang. Never use "background processes", "put things in order", "resources", "do not force events", or close paraphrases. Write a sharp, compact, psychologically literate analysis in ordinary language.
@@ -506,7 +512,7 @@ Hard rules:
 - A forecast is temporary. Never turn it into personality: no "you always", "you never", "you are the kind of person" or equivalents.
 - Do not name planets, aspects, houses, transits, degrees, or calculation terms in the main text.
 - Do not predict a relocation, breakup, dismissal, pregnancy, diagnosis, income, purchase, or any other specific event.
-- Plain text only; no markdown, headings, slogans, section numbering, coaching language, cheap slang, or filler.
+- Inside text fields use plain prose only: no markdown, embedded headings, slogans, section numbering, coaching language, cheap slang, or filler. Titles belong only in the title fields.
 - Explicit history may only sharpen wording inside the supplied semantic domain. It cannot create a new domain or fact.
 - The canonical natal report is factual background only. The dated calculation evidence determines this ${input.period} forecast; do not reuse a generic natal template.
 - If the canonical natal report has no HousePlacements, do not infer or mention the Ascendant, houses, rulers, cusps, or other time-dependent placements.
@@ -617,6 +623,32 @@ export function validateGeneratedForecastFeed(input: {
   return { blocksBySectionId, errors };
 }
 
+const FORBIDDEN_GENERATED_TITLES = new Set([
+  'общее', 'общий фон', 'главное', 'что происходит', 'где шанс где риск',
+  'что делать', 'энергия дня', 'вечер', 'работа', 'деньги', 'отношения',
+  'общение', 'внутреннее состояние', 'личный гороскоп на сегодня',
+  'личный гороскоп на неделю', 'личный гороскоп на месяц',
+  'overview', 'general background', 'main point', 'what is happening',
+  'what to do', 'energy of the day', 'evening', 'work', 'money',
+  'relationships', 'communication', 'inner state',
+]);
+
+function generatedTitleValid(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const title = value.trim();
+  const normalized = title
+    .toLocaleLowerCase('ru-RU')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const words = normalized.split(' ').filter(Boolean);
+  return (
+    isSimpleDynamicTitle(title)
+    && words.length >= 2
+    && !FORBIDDEN_GENERATED_TITLES.has(normalized)
+  );
+}
+
 /**
  * The writer is free to choose its section and block identifiers.  The package
  * keeps stable identifiers during materialization; they are not part of the
@@ -627,8 +659,8 @@ export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): Va
   const rawSections = Array.isArray(raw?.sections)
     ? raw.sections as GeneratedSectionPayload[]
     : [];
-  if (rawSections.length < 2 || rawSections.length > MAX_SEMANTIC_SECTIONS + 1) {
-    errors.push(`expected 2-${MAX_SEMANTIC_SECTIONS + 1} sections, received ${rawSections.length}`);
+  if (rawSections.length < 3 || rawSections.length > MAX_SEMANTIC_SECTIONS + 1) {
+    errors.push(`expected 3-${MAX_SEMANTIC_SECTIONS + 1} sections, received ${rawSections.length}`);
   }
 
   const sections: FreeGeneratedSection[] = [];
@@ -636,8 +668,14 @@ export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): Va
     const rawBlocks = Array.isArray(rawSection?.blocks)
       ? rawSection.blocks as GeneratedBlockPayload[]
       : [];
-    if (rawBlocks.length < 1 || rawBlocks.length > 3) {
-      errors.push(`section ${sectionIndex + 1}: expected 1-3 blocks, received ${rawBlocks.length}`);
+    const expectedMaximum = sectionIndex === 0 ? 1 : 2;
+    if (rawBlocks.length < 1 || rawBlocks.length > expectedMaximum) {
+      errors.push(`section ${sectionIndex + 1}: expected 1-${expectedMaximum} blocks, received ${rawBlocks.length}`);
+      continue;
+    }
+    const title = typeof rawSection?.title === 'string' ? rawSection.title.trim() : '';
+    if (!generatedTitleValid(title)) {
+      errors.push(`section ${sectionIndex + 1}: title is missing, generic, or invalid`);
       continue;
     }
     const blocks: FreeGeneratedBlock[] = [];
@@ -650,13 +688,15 @@ export function validateFreeGeneratedForecastFeed(raw: GeneratedFeedPayload): Va
         errors.push(`section ${sectionIndex + 1}, block ${blockIndex + 1}: invalid text`);
         continue;
       }
+      if (!astroEvidence || astroEvidence.length < 3) {
+        errors.push(`section ${sectionIndex + 1}, block ${blockIndex + 1}: astro_evidence is missing`);
+        continue;
+      }
       blocks.push({ text, astroEvidence });
     }
     if (blocks.length === rawBlocks.length) {
       sections.push({
-        title: typeof rawSection?.title === 'string'
-          ? rawSection.title.trim().slice(0, 120) || null
-          : null,
+        title,
         blocks,
       });
     }
@@ -800,12 +840,16 @@ function materializeDirectSection(input: {
   evidenceViews: Record<string, ForecastEvidenceView>;
   language: ForecastWriterLanguage;
   overview: boolean;
+  sectionIndex: number;
 }): ForecastSection {
   const evidence = evidenceForBasis(input.basis, input.evidenceViews);
-  const sectionId = input.overview ? 'overview' : input.basis.id;
+  const title = input.section.title || (input.language === 'ru' ? 'Точный поворот' : 'A precise turn');
+  const sectionId = input.overview
+    ? 'overview'
+    : `semantic:direct-${input.sectionIndex}-${stableHash(title).toString(36)}`;
   const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => ({
     id: `${sectionId}:generated:${index + 1}`,
-    role: 'insight',
+    role: input.overview && index === 0 ? 'lead' : 'insight',
     text: block.text,
     semanticFactId: input.basis.id,
     atomId: `generated:${sectionId}:${index + 1}`,
@@ -813,34 +857,69 @@ function materializeDirectSection(input: {
     explanationAnchorId: index === 0 ? `anchor:${sectionId}` : null,
   }));
   const text = blocks.map((block) => block.text).join('\n\n');
-  const title = input.section.title || (input.language === 'ru' ? 'Главное' : 'Main focus');
   const teaser = input.language === 'ru'
     ? `В полном разборе «${title}» — конкретные проявления и важные условия периода.`
     : `The full “${title}” reading gives the concrete manifestations and important conditions of the period.`;
-  const anchors: ExplanationAnchor[] = evidence.length && blocks.length
+  const anchorEvidence = evidence.slice(0, 8);
+  const anchorExplanation = anchorEvidence
+    .map((item) => `${item.factor}. ${item.meaning}`)
+    .join(' ')
+    .slice(0, 1_200)
+    .trim();
+  const anchors: ExplanationAnchor[] = anchorEvidence.length && blocks.length && anchorExplanation.length >= 40
     ? [{
         id: `anchor:${sectionId}`,
         conclusion: blocks[0].text.slice(0, 600),
-        explanation: evidence.map((item) => `${item.factor}. ${item.meaning}`).join(' ').slice(0, 1_200),
-        evidenceIds: evidence.map((item) => item.id),
+        explanation: anchorExplanation,
+        evidenceIds: anchorEvidence.map((item) => item.id),
       }]
     : [];
   return {
     id: sectionId,
     kind: input.overview ? 'overview' : 'dynamic',
     status: 'ready', diagnosticCode: null,
-    title: input.overview ? undefined : title,
+    title,
     sourceTopicKey: input.overview ? 'overview' : undefined,
     text, contentBlocks: blocks,
     semanticFactIds: [input.basis.id],
-    semanticFingerprint: input.basis.semanticFingerprint,
-    importance: input.basis.importance,
+    semanticFingerprint: `${input.basis.semanticFingerprint}:${input.overview ? 'overview' : input.sectionIndex}`,
+    importance: input.overview ? input.basis.importance : Math.max(1, input.basis.importance - input.sectionIndex),
     visualTag: input.basis.visualTag,
     premiumTeaser: teaser,
     lockedPreview: buildForecastLockedPreview(text, teaser),
     explanationAnchors: anchors,
     inlineAstroAccent: null,
   };
+}
+
+function buildDirectFallbackSections(input: {
+  language: ForecastWriterLanguage;
+  basis: DirectSectionBasis;
+  evidenceViews: Record<string, ForecastEvidenceView>;
+}): FreeGeneratedSection[] {
+  const evidence = evidenceForBasis(input.basis, input.evidenceViews);
+  const first = evidence[0];
+  const second = evidence[1];
+  const fallbackText = input.language === 'ru'
+    ? 'Сейчас важнее выбрать один ясный шаг и не распылять внимание на всё сразу.'
+    : 'The useful move now is to choose one clear step instead of scattering your attention.';
+  const secondFallbackText = input.language === 'ru'
+    ? 'Проверь факты перед ответом: спокойная пауза сейчас полезнее автоматической реакции.'
+    : 'Check the facts before replying: a calm pause is more useful now than an automatic reaction.';
+  return [
+    {
+      title: input.language === 'ru' ? 'Выбери точный ход' : 'Choose the precise move',
+      blocks: [{ text: first?.meaning || fallbackText, astroEvidence: first?.factor || 'Calculated period evidence' }],
+    },
+    {
+      title: input.language === 'ru' ? 'Не распыляй импульс' : 'Do not scatter momentum',
+      blocks: [{ text: second?.meaning || secondFallbackText, astroEvidence: second?.factor || first?.factor || 'Calculated period evidence' }],
+    },
+    {
+      title: input.language === 'ru' ? 'Закрепи результат делом' : 'Make the result concrete',
+      blocks: [{ text: fallbackText, astroEvidence: first?.factor || 'Calculated period evidence' }],
+    },
+  ];
 }
 
 async function requestGeneratedFeed(input: {
@@ -858,22 +937,25 @@ async function requestGeneratedFeed(input: {
   if (!bases.length) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
   const openai = getContentAiClient(input.model);
   if (!openai) {
-    const fallbackSections = bases.slice(0, 3).map((basis) => ({
-      title: null,
-      blocks: [{ text: input.evidenceViews[basis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.', astroEvidence: input.evidenceViews[basis.evidenceIds[0]]?.factor || null }],
-    }));
+    const fallbackSections = buildDirectFallbackSections({
+      language: input.language,
+      basis: bases[0],
+      evidenceViews: input.evidenceViews,
+    });
     return {
       overview: materializeDirectSection({
         section: fallbackSections[0], basis: bases[0],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: true,
+        sectionIndex: 0,
       }),
       sections: fallbackSections.slice(1).map((section, index) => materializeDirectSection({
-        section, basis: bases[index + 1],
+        section, basis: bases[0],
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: false,
+        sectionIndex: index + 1,
       })),
       generationAttempts: 0,
       validationStatus: 'deterministic_fallback',
@@ -934,6 +1016,7 @@ async function requestGeneratedFeed(input: {
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: true,
+        sectionIndex: 0,
       });
       const sections = rawSections.map((section, index) => materializeDirectSection({
         section,
@@ -941,6 +1024,7 @@ async function requestGeneratedFeed(input: {
         evidenceViews: input.evidenceViews,
         language: input.language,
         overview: false,
+        sectionIndex: index + 1,
       }));
       const repetitionErrors = validateForecastSectionRepetition([overview, ...sections]);
       if (repetitionErrors.length) {
@@ -959,21 +1043,24 @@ async function requestGeneratedFeed(input: {
     errors = validation.errors;
   }
 
-  const fallbackSections = bases.slice(0, 3).map((basis) => ({
-    title: null,
-    blocks: [{ text: input.evidenceViews[basis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.', astroEvidence: input.evidenceViews[basis.evidenceIds[0]]?.factor || null }],
-  }));
+  const fallbackSections = buildDirectFallbackSections({
+    language: input.language,
+    basis: bases[0],
+    evidenceViews: input.evidenceViews,
+  });
   const overview = materializeDirectSection({
     section: fallbackSections[0], basis: bases[0],
     evidenceViews: input.evidenceViews,
     language: input.language,
     overview: true,
+    sectionIndex: 0,
   });
   const sections = fallbackSections.slice(1).map((section, index) => materializeDirectSection({
-    section, basis: bases[index + 1],
+    section, basis: bases[0],
     evidenceViews: input.evidenceViews,
     language: input.language,
     overview: false,
+    sectionIndex: index + 1,
   }));
   return {
     overview,
@@ -1095,33 +1182,27 @@ export async function generatePersonalForecastPackage(input: {
   const fallbackBases = buildDirectSectionBases(calculated.evidence);
   const fallbackBasis = fallbackBases[0];
   if (!fallbackBasis) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
-  const fallbackRaw: FreeGeneratedSection = {
-    title: null,
-    blocks: [{
-      text: calculated.evidenceViews[fallbackBasis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.',
-      astroEvidence: calculated.evidenceViews[fallbackBasis.evidenceIds[0]]?.factor || null,
-    }],
-  };
+  const fallbackSections = buildDirectFallbackSections({
+    language,
+    basis: fallbackBasis,
+    evidenceViews: calculated.evidenceViews,
+  });
   const fallbackResult: GenerationResult = {
     overview: materializeDirectSection({
-      section: fallbackRaw,
+      section: fallbackSections[0],
       basis: fallbackBasis,
       evidenceViews: calculated.evidenceViews,
       language,
       overview: true,
+      sectionIndex: 0,
     }),
-    sections: fallbackBases.slice(1, 2).map((basis) => materializeDirectSection({
-      section: {
-        title: null,
-        blocks: [{
-          text: calculated.evidenceViews[basis.evidenceIds[0]]?.meaning || 'No dominant calculated factor.',
-          astroEvidence: calculated.evidenceViews[basis.evidenceIds[0]]?.factor || null,
-        }],
-      },
-      basis,
+    sections: fallbackSections.slice(1).map((section, index) => materializeDirectSection({
+      section,
+      basis: fallbackBasis,
       evidenceViews: calculated.evidenceViews,
       language,
       overview: false,
+      sectionIndex: index + 1,
     })),
     generationAttempts: generated.generationAttempts,
     validationStatus: 'deterministic_fallback',
