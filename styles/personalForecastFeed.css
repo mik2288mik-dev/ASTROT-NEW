@@ -82,6 +82,25 @@
   text-align: center;
 }
 
+.forecast-feed-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.forecast-feed-page .app-top-bar-side--end:has(.forecast-feed-top-actions) {
+  width: auto;
+}
+
+.forecast-feed-top-action {
+  position: relative;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .forecast-feed-date-weekday {
   color: #6b7280;
   font-size: 11px;

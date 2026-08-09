@@ -1220,19 +1220,19 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 610px;
-  padding: 20px 24px 44px;
+  padding: 10px 24px 32px;
 }
 
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-section-content {
   max-width: 610px;
-  padding-top: 18px;
-  padding-bottom: 44px;
+  padding-top: 24px;
+  padding-bottom: 34px;
 }
 
 .forecast-feed-page .forecast-feed-section-title {
   margin: 0 0 16px;
   max-width: 18ch;
-  font-size: clamp(26px, 7vw, 32px);
+  font-size: clamp(24px, 6.2vw, 28px);
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.08;
@@ -1243,14 +1243,14 @@
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-screen-headline {
   max-width: 13ch;
   margin-bottom: 14px;
-  font-size: clamp(32px, 8.8vw, 42px);
+  font-size: clamp(32px, 8vw, 38px);
   font-weight: 710;
   letter-spacing: -0.045em;
   line-height: 1.04;
 }
 
 .forecast-feed-page .forecast-feed-section-copy {
-  gap: 16px;
+  gap: 14px;
 }
 
 .forecast-feed-page .forecast-feed-section-text,
@@ -1262,7 +1262,7 @@
   padding: 0;
   border: 0;
   color: #171717;
-  font-size: clamp(17px, 4.3vw, 18px);
+  font-size: clamp(16.5px, 4.2vw, 17px);
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1.55;
@@ -1270,7 +1270,7 @@
 
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-section-text.is-lead {
   max-width: 34rem;
-  font-size: clamp(18px, 4.7vw, 20px);
+  font-size: clamp(17px, 4.45vw, 18px);
   font-weight: 480;
   line-height: 1.45;
   text-wrap: pretty;
@@ -1295,9 +1295,9 @@
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-editorial-sticker {
   position: relative;
   z-index: 1;
-  width: min(76%, 400px);
-  margin-top: 22px;
-  margin-bottom: 4px;
+  width: min(88%, 430px);
+  margin-top: 18px;
+  margin-bottom: 8px;
   opacity: 1;
   visibility: visible;
 }
@@ -1419,7 +1419,7 @@
 
   .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-editorial-sticker {
     float: none;
-    width: min(68%, 400px);
+    width: min(76%, 430px);
     margin: 24px auto 4px;
   }
 

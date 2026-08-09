@@ -532,6 +532,88 @@ body.theme-lumia-air #__next {
   color: rgba(226, 232, 240, 0.68);
 }
 
+.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day {
+  background: #83c9ef;
+  color: #102f47;
+  color-scheme: light;
+}
+
+.lumia-side-drawer--day .cosmic-surface__art {
+  background-color: #83c9ef;
+  background-image:
+    radial-gradient(ellipse at 24% 18%, rgba(255, 255, 255, 0.78) 0 8%, transparent 25%),
+    radial-gradient(ellipse at 82% 38%, rgba(255, 255, 255, 0.58) 0 7%, transparent 24%),
+    linear-gradient(180deg, rgba(87, 180, 232, 0.9) 0%, rgba(159, 218, 247, 0.88) 55%, rgba(225, 246, 255, 0.94) 100%),
+    url('/assets/sky-today-bg.webp');
+  background-position: center, center, center, 66% center;
+  background-repeat: no-repeat;
+  background-size: cover, cover, cover, auto 100%;
+  filter: saturate(1.04);
+}
+
+.lumia-side-drawer--day .lumia-side-drawer-plane {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(38, 119, 170, 0.12));
+}
+
+.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
+  .lumia-side-drawer-date,
+  .lumia-side-drawer-profile-name
+) {
+  color: #0c2c44;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
+  .lumia-side-drawer-weekday,
+  .lumia-side-drawer-sun-sign,
+  .lumia-side-drawer-item,
+  .lumia-side-drawer-period,
+  .lumia-side-drawer-profile-caption
+) {
+  color: rgba(12, 44, 68, 0.78);
+}
+
+.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
+  .lumia-side-drawer-item.is-active,
+  .lumia-side-drawer-period.is-active
+) {
+  background: rgba(255, 255, 255, 0.58);
+  color: #08253b;
+}
+
+.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day .lumia-side-drawer-profile {
+  border-top-color: rgba(8, 37, 59, 0.14);
+}
+
+.lumia-side-drawer.cosmic-surface.lumia-side-drawer--day :is(
+  .lumia-side-drawer-item,
+  .lumia-side-drawer-period,
+  .lumia-side-drawer-profile
+):focus-visible {
+  outline-color: #0c2c44;
+}
+
+.lumia-side-drawer.cosmic-surface.lumia-side-drawer--night {
+  background: #0c1530;
+}
+
+.lumia-side-drawer--night .cosmic-surface__art {
+  background-color: #0c1530;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.78) 0 1px, transparent 1.45px),
+    radial-gradient(circle, rgba(175, 205, 255, 0.62) 0 1px, transparent 1.6px),
+    linear-gradient(180deg, rgba(14, 28, 60, 0.02), rgba(7, 14, 34, 0.18)),
+    var(--cosmic-surface-image);
+  background-position: 5px 9px, 21px 33px, center, center;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+  background-size: 37px 37px, 71px 71px, cover, cover;
+  filter: brightness(1.24) saturate(1.1);
+}
+
+.lumia-side-drawer--night .lumia-side-drawer-plane {
+  background: rgba(3, 8, 24, 0.28);
+}
+
 .lumia-side-drawer-item,
 .lumia-side-drawer-profile {
   display: flex;

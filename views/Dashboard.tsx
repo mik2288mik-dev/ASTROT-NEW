@@ -12,7 +12,6 @@ import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import {
   buildPersonalForecastChartFingerprint,
-  formatPersonalForecastDateLabel,
   getPersonalForecastPeriodKey,
   normalizeForecastTimezone,
   resolvePersonalForecastWindow,
@@ -97,56 +96,6 @@ function personalForecastLoadingLabel(
     week: 'Собираем личный прогноз на неделю',
     month: 'Собираем личный прогноз на месяц',
   }[period];
-}
-
-function personalForecastIntro(
-  period: PersonalForecastPeriod,
-  language: 'ru' | 'en',
-): string {
-  if (language === 'en') {
-    return {
-      day: 'A personal forecast for today based on your natal chart and today’s calculations.',
-      week: 'A personal forecast for this week based on your natal chart and weekly calculations.',
-      month: 'A personal forecast for this month based on your natal chart and monthly calculations.',
-    }[period];
-  }
-  return {
-    day: 'Личный прогноз на сегодня по твоей натальной карте и расчётам дня.',
-    week: 'Личный прогноз на неделю по твоей натальной карте и расчётам недели.',
-    month: 'Личный прогноз на месяц по твоей натальной карте и расчётам месяца.',
-  }[period];
-}
-
-function personalForecastGreeting(
-  name: string,
-  timezone: string,
-  variant: number,
-  language: 'ru' | 'en',
-): string {
-  let hour = new Date().getHours();
-  try {
-    hour = Number(new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(new Date()));
-  } catch {
-    // The normalized profile timezone is expected to be valid.
-  }
-  if (language === 'en') {
-    if (variant === 1) return `Hi, ${name}`;
-    if (variant === 2) return `Hello, ${name}`;
-    if (hour >= 5 && hour < 12) return `Good morning, ${name}`;
-    if (hour >= 12 && hour < 18) return `Good afternoon, ${name}`;
-    if (hour >= 18 && hour < 23) return `Good evening, ${name}`;
-    return `Good night, ${name}`;
-  }
-  if (variant === 1) return `Привет, ${name}`;
-  if (variant === 2) return `Здравствуйте, ${name}`;
-  if (hour >= 5 && hour < 12) return `Доброе утро, ${name}`;
-  if (hour >= 12 && hour < 18) return `Добрый день, ${name}`;
-  if (hour >= 18 && hour < 23) return `Добрый вечер, ${name}`;
-  return `Доброй ночи, ${name}`;
 }
 
 function emptyPeriodState(): PeriodState {
@@ -236,7 +185,6 @@ export const Dashboard = memo<DashboardProps>(({
   useEffect(() => {
     if (requestedPeriod) setActivePeriod(requestedPeriod);
   }, [requestedPeriod]);
-  const [greetingVariant] = useState(() => Math.floor(Math.random() * 3));
   const [periodStates, setPeriodStates] = useState<Record<PersonalForecastPeriod, PeriodState>>({
     day: emptyPeriodState(),
     week: emptyPeriodState(),
@@ -490,11 +438,6 @@ export const Dashboard = memo<DashboardProps>(({
     [promotions],
   );
 
-  const dateLabel = forecast?.dateLabel || formatPersonalForecastDateLabel(
-    resolvePersonalForecastWindow(activePeriod, periodKeys[activePeriod], timezone),
-    language,
-  );
-
   const topicSections = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
     return [
@@ -674,18 +617,6 @@ export const Dashboard = memo<DashboardProps>(({
   const overviewCrossLinks = forecast?.suggestedCrossPeriodLinks.filter(
     (link) => link.fromSectionId === 'overview',
   ) || [];
-  const displayName = profile.name?.trim()
-    || (language === 'ru' ? 'друг' : 'friend');
-  const greeting = useMemo(
-    () => personalForecastGreeting(
-      displayName,
-      timezone,
-      greetingVariant,
-      language,
-    ),
-    [displayName, greetingVariant, language, timezone],
-  );
-
   return (
     <div
       className="fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll"
@@ -698,55 +629,33 @@ export const Dashboard = memo<DashboardProps>(({
         <AppTopBar
           title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
           reserveSpace={false}
-        />
-        <div className="home-top-content">
-          <div className="forecast-feed-date-zone">
-            <div className="forecast-feed-date-cluster">
-              <p className="forecast-feed-date">
-                {dateLabel.split('\n').map((line, index) => (
-                  <span
-                    key={line}
-                    className={dateLabel.includes('\n') && index === 0
-                      ? 'forecast-feed-date-weekday'
-                      : 'forecast-feed-date-value'}
-                  >
-                    {line}
-                  </span>
-                ))}
-              </p>
+          rightAction={(
+            <div className="forecast-feed-top-actions">
+              {unreadQuestions.length > 0 ? (
+                <button
+                  type="button"
+                  className="app-top-bar-action forecast-feed-top-action has-notification"
+                  aria-label={language === 'ru'
+                    ? `Новых ответов: ${unreadQuestions.length}`
+                    : `New answers: ${unreadQuestions.length}`}
+                  onClick={openQuestionNotification}
+                >
+                  <Bell size={17} aria-hidden />
+                  <span className="forecast-feed-notification-dot" aria-hidden />
+                </button>
+              ) : null}
               <button
                 type="button"
-                className="forecast-feed-global-info"
+                className="app-top-bar-action forecast-feed-top-action"
                 aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
                 onClick={() => setHowItWorksOpen(true)}
               >
-                <Info size={16} aria-hidden />
+                <Info size={17} aria-hidden />
               </button>
             </div>
-          </div>
-        </div>
+          )}
+        />
       </section>
-
-      <div className="forecast-feed-intro">
-        <div className="forecast-feed-greeting-row">
-          <p className="forecast-feed-greeting">{greeting}</p>
-          <div className="forecast-feed-header-actions">
-            {unreadQuestions.length > 0 ? (
-              <button
-                type="button"
-                className="forecast-feed-header-action has-notification"
-                aria-label={language === 'ru'
-                  ? `Новых ответов: ${unreadQuestions.length}`
-                  : `New answers: ${unreadQuestions.length}`}
-                onClick={openQuestionNotification}
-              >
-                <Bell size={16} aria-hidden />
-                <span className="forecast-feed-notification-dot" aria-hidden />
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </div>
       <div className="forecast-feed-ambient" aria-hidden />
 
       {!hasChart ? (

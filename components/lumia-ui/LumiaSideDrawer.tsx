@@ -39,6 +39,19 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     onOpenSettings,
 }) => {
     const isEnglish = profile?.language === 'en';
+    const skyPhase = (() => {
+        try {
+            const hour = Number(new Intl.DateTimeFormat('en-GB', {
+                hour: '2-digit',
+                hourCycle: 'h23',
+                timeZone: 'Europe/Moscow',
+            }).format(new Date()));
+            return hour >= 6 && hour < 18 ? 'day' : 'night';
+        } catch {
+            const hour = new Date().getHours();
+            return hour >= 6 && hour < 18 ? 'day' : 'night';
+        }
+    })();
     const drawerRef = useRef<HTMLElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const onCloseRef = useRef(onClose);
@@ -134,7 +147,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                 ref={drawerRef}
                 as="aside"
                 variant="drawer"
-                className="lumia-side-drawer"
+                className={`lumia-side-drawer lumia-side-drawer--${skyPhase}`}
                 planeClassName="lumia-side-drawer-plane"
                 role="dialog"
                 aria-modal="true"
