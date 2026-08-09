@@ -356,8 +356,11 @@ body.theme-lumia-air #__next {
   scroll-padding-bottom: var(--lumia-bottom-tab-clearance);
 }
 
+.lumia-app-shell {
+  --lumia-side-drawer-width: min(76vw, 296px);
+}
+
 .lumia-side-drawer-root {
-  --lumia-side-drawer-width: min(82vw, 324px);
   position: fixed;
   inset: 0;
   height: 100dvh;
@@ -453,9 +456,9 @@ body.theme-lumia-air #__next {
   display: grid;
   gap: 4px;
   padding:
-    calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 30px)
+    calc(max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + 44px)
     20px
-    20px;
+    12px;
 }
 
 .lumia-side-drawer-date {
@@ -495,8 +498,8 @@ body.theme-lumia-air #__next {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  gap: 8px;
-  padding: 4px 14px 18px;
+  gap: 2px;
+  padding: 0 12px 14px;
   overscroll-behavior: contain;
 }
 
@@ -540,8 +543,8 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-item {
   gap: 14px;
-  min-height: 50px;
-  padding: 0.55rem 10px;
+  min-height: 44px;
+  padding: 0.4rem 8px;
   font-size: 15.5px;
   font-weight: 500;
   line-height: 1.25;
@@ -559,14 +562,14 @@ body.theme-lumia-air #__next {
 
 .lumia-side-drawer-periods {
   display: grid;
-  gap: 2px;
-  margin-block: -4px 12px;
+  gap: 0;
+  margin-block: -4px 4px;
   margin-inline-start: 35px;
 }
 
 .lumia-side-drawer-period {
   min-height: 44px;
-  padding-inline: 12px;
+  padding-inline: 10px;
   border: 0;
   border-radius: 0.65rem;
   background: transparent;
@@ -684,7 +687,7 @@ body.theme-lumia-air #__next {
 }
 
 .lumia-app-shell.side-drawer-open .lumia-side-drawer-menu-button {
-  transform: translateX(calc(min(82vw, 324px) - 8px));
+  transform: translateX(calc(var(--lumia-side-drawer-width) - 8px));
   transition: transform 180ms ease;
 }
 
@@ -695,7 +698,7 @@ body.theme-lumia-air #__next {
 
 .lumia-app-shell.side-drawer-open > main {
   background: #ffffff;
-  transform: translateX(min(82vw, 324px));
+  transform: translateX(var(--lumia-side-drawer-width));
 }
 
 .lumia-app-shell.side-drawer-open {
