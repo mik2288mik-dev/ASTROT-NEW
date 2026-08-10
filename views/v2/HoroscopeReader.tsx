@@ -233,10 +233,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   return (
     <div className="fresh-page horo-reader-page">
-      <AppTopBar title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'} />
+      <AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'} />
 
       <header className="horo-reader-heading">
-        <h1>{language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}</h1>
         <p className="horo-reader-period-date">{displayedPeriodDate}</p>
       </header>
 
@@ -249,13 +248,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             lumiaSelectionHaptic();
             setPeriod(id as Period);
           }}
-        />
-        <ZodiacSignGrid
-          signs={ZODIAC_KEYS}
-          active={sign}
-          ownSign={ownSign}
-          language={language}
-          onPick={chooseSign}
         />
       </div>
 
@@ -332,6 +324,16 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             ) : null}
           </div>
         </motion.article>
+      </div>
+
+      <div className="horo-reader-sign-grid">
+        <ZodiacSignGrid
+          signs={ZODIAC_KEYS}
+          active={sign}
+          ownSign={ownSign}
+          language={language}
+          onPick={chooseSign}
+        />
       </div>
     </div>
   );

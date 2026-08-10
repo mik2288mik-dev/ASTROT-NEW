@@ -10,7 +10,8 @@
 
 .horo-reader-page .horo-reader-heading,
 .horo-reader-page .horo-reader-controls,
-.horo-reader-page .horo-uni-wrap {
+.horo-reader-page .horo-uni-wrap,
+.horo-reader-page .horo-reader-sign-grid {
   box-sizing: border-box;
   width: min(calc(100% - 48px), 620px);
   margin-right: auto;
@@ -18,33 +19,28 @@
 }
 
 .horo-reader-page .horo-reader-heading {
-  margin-top: 2px;
-  margin-bottom: 18px;
+  margin-top: 12px;
+  margin-bottom: 4px;
   text-align: center;
 }
 
-.horo-reader-page .horo-reader-heading h1 {
-  margin: 0;
-  color: var(--horo-reader-ink);
-  font-size: clamp(28px, 7.4vw, 32px);
-  font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -0.038em;
-}
-
 .horo-reader-page .horo-reader-period-date {
-  margin: 7px 0 0;
+  margin: 0;
   color: var(--horo-reader-muted);
-  font-size: 15px;
-  font-weight: 440;
+  font-size: clamp(17px, 4.6vw, 19px);
+  font-weight: 500;
   line-height: 1.25;
   letter-spacing: -0.01em;
+}
+
+.horo-reader-page .horo-reader-controls {
+  margin-top: 10px;
 }
 
 .fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
   width: 100%;
   min-height: 44px;
-  margin: 0 auto 18px;
+  margin: 0 auto;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -166,8 +162,12 @@
 }
 
 .horo-reader-page .horo-uni-wrap {
-  margin-top: 31px;
+  margin-top: 22px;
   scroll-margin-top: 18px;
+}
+
+.horo-reader-page .horo-reader-sign-grid {
+  margin-top: 34px;
 }
 
 .horo-reader-page .horo-uni.horo-reader-article {
@@ -311,12 +311,9 @@
 @media (max-width: 360px) {
   .horo-reader-page .horo-reader-heading,
   .horo-reader-page .horo-reader-controls,
-  .horo-reader-page .horo-uni-wrap {
+  .horo-reader-page .horo-uni-wrap,
+  .horo-reader-page .horo-reader-sign-grid {
     width: calc(100% - 32px);
-  }
-
-  .horo-reader-page .horo-reader-heading h1 {
-    font-size: 27px;
   }
 
   .horo-reader-page .zodiac-sign-grid {

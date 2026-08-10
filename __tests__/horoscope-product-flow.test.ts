@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Horoscope product flow', () => {
-  it('opens a sign immediately, keeps the 12-sign grid primary, and scrolls every manual choice into view', () => {
+  it('opens with the forecast above the 12-sign grid and scrolls every manual choice back to the reading', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
     const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
     const service = read('services/astrologyService.ts');
@@ -25,19 +25,25 @@ describe('Horoscope product flow', () => {
     expect(picker).toContain('ZodiacIllustration');
     expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(source).toContain('horo-reader-controls');
+    expect(source).toContain('horo-reader-sign-grid');
     expect(source).toContain('horo-reader-period-date');
     expect(source).toContain('horo-reader-article');
     expect(source).toContain('horo-reader-selected-sign');
     expect(source).toContain('ZodiacSymbol');
     expect(source).toContain('horo-reader-headline');
-    expect(source.indexOf('horo-reader-period-date')).toBeLessThan(source.indexOf('horo-reader-controls'));
-    expect(source.indexOf('horo-reader-selected-sign')).toBeLessThan(source.indexOf('horo-reader-headline'));
-    expect(source.indexOf('horo-reader-headline')).toBeLessThan(source.indexOf('{displayedReading.text}'));
+    expect(source).toContain("<AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'} />");
+    expect(source).not.toContain("<h1>{language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}</h1>");
+    const render = source.slice(source.indexOf('return (', source.indexOf('const hasReadingFailure')));
+    expect(render.indexOf('horo-reader-period-date')).toBeLessThan(render.indexOf('horo-reader-controls'));
+    expect(render.indexOf('horo-reader-controls')).toBeLessThan(render.indexOf('horo-reader-selected-sign'));
+    expect(render.indexOf('horo-reader-selected-sign')).toBeLessThan(render.indexOf('horo-reader-headline'));
+    expect(render.indexOf('horo-reader-headline')).toBeLessThan(render.indexOf('{displayedReading.text}'));
+    expect(render.indexOf('{displayedReading.text}')).toBeLessThan(render.indexOf('horo-reader-sign-grid'));
     expect(styles).toContain('.horo-reader-page .horo-uni.horo-reader-article');
     expect(styles).toContain('min-height: 112px');
     expect(styles).toContain('width: 72px');
     expect(service).toContain("'tvoi-goroskop:sign-horoscope-v4'");
-    expect(styles).toContain('margin-top: 23px');
+    expect(styles).toContain('.horo-reader-page .horo-reader-sign-grid');
     expect(styles).toContain('background: #ffffff');
     expect(styles).toContain('background: #eee3d5');
     expect(styles).toContain('text-align: center');
