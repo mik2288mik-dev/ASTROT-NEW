@@ -31,29 +31,31 @@ function words(count: number): string {
 }
 
 describe('personal forecast concise direct-evidence writer', () => {
-  test('uses one compact JSON contract and treats the word cap as a maximum, not a target', () => {
+  test('uses one heading-free JSON contract with a bounded narrative and a concrete advice', () => {
     const system = getPersonalForecastSystemPrompt('en', 'day');
     expect(system).toContain('PERSONAL FORECAST TASK');
-    expect(system).toContain('maximum of 150 words');
-    expect(system).toContain('This is a ceiling, not a target');
+    expect(system).toContain('100 to 150 words');
     expect(system).toContain('"advice"');
-    expect(system).toContain('one useful action');
+    expect(system).toContain('one concrete action for today');
+    expect(system).toContain('Do not generate a headline');
+    expect(system).not.toContain('"headline"');
     expect(system).not.toContain('separate task');
     expect(system).not.toContain('Return 2 or 3 sections');
   });
 
-  test('gives every period its own job and maximum word count', () => {
+  test('gives every period a distinct narrative job without chronological segments', () => {
     const build = (period: 'day' | 'week' | 'month') => getPersonalForecastSystemPrompt('en', period);
-    expect(build('day')).toContain('maximum of 150 words');
-    expect(build('day')).toContain('main course of the day');
-    expect(build('day')).toContain('one useful action');
-    expect(build('week')).toContain('maximum of 165 words');
-    expect(build('week')).toContain('coherent dynamic of the week');
-    expect(build('week')).toContain('turning point');
-    expect(build('week')).toContain('Never split the week into a day-by-day list');
-    expect(build('month')).toContain('maximum of 175 words');
-    expect(build('month')).toContain('two meaningful phases');
-    expect(build('month')).toContain('one strategic conclusion');
+    expect(build('day')).toContain('100 to 150 words');
+    expect(build('day')).toContain('current state of one day');
+    expect(build('week')).toContain('120 to 165 words');
+    expect(build('week')).toContain('one trend that runs through the whole week');
+    expect(build('month')).toContain('130 to 175 words');
+    expect(build('month')).toContain('one global monthly trend');
+    for (const period of ['day', 'week', 'month'] as const) {
+      expect(build(period)).toContain('Never divide the forecast into time segments');
+      expect(build(period)).toContain('morning, afternoon, evening');
+      expect(build(period)).toContain('beginning, middle, or end of the period');
+    }
   });
 
   test('keeps the user-facing copy free of astrology terms and formal Russian address', () => {
@@ -103,54 +105,48 @@ describe('personal forecast concise direct-evidence writer', () => {
 
   test('accepts a grounded reading and optional advice from the same payload', () => {
     const valid = validateFreeGeneratedForecastFeed({
-      headline: 'Check the terms twice',
       paragraphs: [
-        { text: 'The agreement needs precision before speed.', evidence_ids: ['e1'] },
-        { text: 'A direct question clears more than a confident guess.', evidence_ids: ['e1'] },
+        { text: words(92), evidence_ids: ['e1'] },
+        { text: words(5), evidence_ids: ['e1'] },
       ],
       advice: { text: 'Put the number and condition in writing.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
 
     expect(valid.errors).toEqual([]);
     expect(valid.sections).toHaveLength(2);
-    expect(valid.sections[0].title).toBe('Check the terms twice');
+    expect(valid.sections[0].title).toBeNull();
     expect(valid.sections[0].evidenceIds).toEqual(['e1']);
     expect(valid.sections.map((section) => section.blocks[0].role)).toEqual(['lead', 'action']);
   });
 
   test('allows concise copy and enforces existing evidence IDs and period-specific total caps', () => {
-    const noAdvice = validateFreeGeneratedForecastFeed({
-      headline: 'Clear terms win',
-      paragraphs: [{ text: 'A compact factual reading.', evidence_ids: ['e1'] }],
-      advice: null,
+    const weekAtMinimum = validateFreeGeneratedForecastFeed({
+      paragraphs: [{ text: words(116), evidence_ids: ['e1'] }],
+      advice: { text: 'Choose one priority and protect it.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'week');
-    expect(noAdvice.errors).toEqual([]);
-    expect(noAdvice.sections).toHaveLength(1);
+    expect(weekAtMinimum.errors).toEqual([]);
+    expect(weekAtMinimum.sections).toHaveLength(2);
 
     const unknownEvidence = validateFreeGeneratedForecastFeed({
-      headline: 'Clear terms win',
       paragraphs: [{ text: 'Keep the wording exact.', evidence_ids: ['missing'] }],
-      advice: null,
+      advice: { text: 'Check the details before answering.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(unknownEvidence.errors.join(' ')).toContain('unknown');
 
     const dayTooLong = validateFreeGeneratedForecastFeed({
-      headline: 'Three word headline',
-      paragraphs: [{ text: words(146), evidence_ids: ['e1'] }],
+      paragraphs: [{ text: words(149), evidence_ids: ['e1'] }],
       advice: { text: 'Two words', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(dayTooLong.errors.join(' ')).toContain('maximum for day is 150');
 
     const weekAtLimit = validateFreeGeneratedForecastFeed({
-      headline: 'Weekly direction',
-      paragraphs: [{ text: words(161), evidence_ids: ['e1'] }],
+      paragraphs: [{ text: words(163), evidence_ids: ['e1'] }],
       advice: { text: 'Act now', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'week');
     expect(weekAtLimit.errors).toEqual([]);
 
     const monthTooLong = validateFreeGeneratedForecastFeed({
-      headline: 'Monthly direction',
-      paragraphs: [{ text: words(172), evidence_ids: ['e1'] }],
+      paragraphs: [{ text: words(174), evidence_ids: ['e1'] }],
       advice: { text: 'Act with purpose', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'month');
     expect(monthTooLong.errors.join(' ')).toContain('maximum for month is 175');
@@ -158,22 +154,19 @@ describe('personal forecast concise direct-evidence writer', () => {
 
   test('rejects astrology vocabulary anywhere in visible forecast copy', () => {
     const technicalParagraph = validateFreeGeneratedForecastFeed({
-      headline: 'Держи темп',
-      paragraphs: [{ text: 'Луна в оппозиции к Венере усиливает напряжение.', evidence_ids: ['e1'] }],
-      advice: null,
+      paragraphs: [{ text: `${words(91)} Луна в оппозиции к Венере усиливает напряжение.`, evidence_ids: ['e1'] }],
+      advice: { text: 'Сохрани спокойный темп.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(technicalParagraph.errors.join(' ')).toContain('astrology term');
 
     const technicalAdvice = validateFreeGeneratedForecastFeed({
-      headline: 'Keep the plan flexible',
-      paragraphs: [{ text: 'A change of pace creates useful room.', evidence_ids: ['e1'] }],
+      paragraphs: [{ text: words(115), evidence_ids: ['e1'] }],
       advice: { text: 'Use the Mars square carefully.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'week');
     expect(technicalAdvice.errors.join(' ')).toContain('astrology term');
 
     const zodiacSign = validateFreeGeneratedForecastFeed({
-      headline: 'У Рыб начинается новый этап',
-      paragraphs: [{ text: 'Сейчас полезно выбрать одну ясную цель.', evidence_ids: ['e1'] }],
+      paragraphs: [{ text: `${words(91)} У Рыб начинается новый этап.`, evidence_ids: ['e1'] }],
       advice: { text: 'Запиши первый шаг.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(zodiacSign.errors.join(' ')).toContain('astrology term');
@@ -181,59 +174,55 @@ describe('personal forecast concise direct-evidence writer', () => {
 
   test('rejects formal or plural Russian address but accepts the app voice on ты', () => {
     const formal = validateFreeGeneratedForecastFeed({
-      headline: 'Сохрани ясность',
-      paragraphs: [{ text: 'Вам стоит проверить договор и не торопиться.', evidence_ids: ['e1'] }],
-      advice: null,
+      paragraphs: [{ text: `${words(91)} Вам стоит проверить договор и не торопиться.`, evidence_ids: ['e1'] }],
+      advice: { text: 'Проверь условие до ответа.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(formal.errors.join(' ')).toContain('formal Russian address');
 
     const singular = validateFreeGeneratedForecastFeed({
-      headline: 'Сохрани ясность',
-      paragraphs: [{ text: 'Ты быстрее увидишь суть, если задашь прямой вопрос.', evidence_ids: ['e1'] }],
+      paragraphs: [{ text: `${words(91)} Ты быстрее увидишь суть, если задашь прямой вопрос.`, evidence_ids: ['e1'] }],
       advice: { text: 'Проверь условие до ответа.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(singular.errors).toEqual([]);
   });
 
-  test('enforces the visible structure promised for day, week, and month', () => {
+  test('requires one concrete advice and rejects chronological framing for every period', () => {
     const dayWithoutAction = validateFreeGeneratedForecastFeed({
-      headline: 'Сохрани ясность',
-      paragraphs: [{ text: 'Сегодня главный выбор становится заметнее.', evidence_ids: ['e1'] }],
+      paragraphs: [{ text: words(100), evidence_ids: ['e1'] }],
       advice: null,
     }, new Set(['e1']), 'day');
-    expect(dayWithoutAction.errors.join(' ')).toContain('day forecast requires one useful action');
+    expect(dayWithoutAction.errors.join(' ')).toContain('day forecast requires one concrete action');
 
-    const weekAsCalendar = validateFreeGeneratedForecastFeed({
-      headline: 'Keep the week flexible',
+    const dayWithTimeSegment = validateFreeGeneratedForecastFeed({
+      paragraphs: [{ text: `${words(94)} Вечером лучше не спорить.`, evidence_ids: ['e1'] }],
+      advice: { text: 'Оставь разговор до ясного решения.', evidence_ids: ['e1'] },
+    }, new Set(['e1']), 'day');
+    expect(dayWithTimeSegment.errors.join(' ')).toContain('chronological time segment');
+
+    const weekWithTimeSegment = validateFreeGeneratedForecastFeed({
       paragraphs: [{
-        text: 'Monday brings one task, Tuesday changes it, and Wednesday settles the question.',
+        text: `${words(112)} In the middle of the week, the situation changes.`,
         evidence_ids: ['e1'],
       }],
-      advice: null,
+      advice: { text: 'Keep one clear priority.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'week');
-    expect(weekAsCalendar.errors.join(' ')).toContain('day-by-day breakdown');
+    expect(weekWithTimeSegment.errors.join(' ')).toContain('chronological time segment');
 
-    const monthWithoutTwoPhases = validateFreeGeneratedForecastFeed({
-      headline: 'Собери месяц вокруг главного',
-      paragraphs: [{ text: 'В начале месяца темп растёт, а потом становится ровнее.', evidence_ids: ['e1'] }],
+    const monthWithTimeSegment = validateFreeGeneratedForecastFeed({
+      paragraphs: [{ text: `${words(122)} В конце месяца темп станет ровнее.`, evidence_ids: ['e1'] }],
       advice: { text: 'Оставь ресурс для главной цели.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'month');
-    expect(monthWithoutTwoPhases.errors.join(' ')).toContain('month forecast requires two semantic phases');
+    expect(monthWithTimeSegment.errors.join(' ')).toContain('chronological time segment');
 
-    const monthWithoutConclusion = validateFreeGeneratedForecastFeed({
-      headline: 'Собери месяц вокруг главного',
-      paragraphs: [
-        { text: 'Первая часть месяца помогает набрать темп.', evidence_ids: ['e1'] },
-        { text: 'Во второй части становится проще закрепить результат.', evidence_ids: ['e1'] },
-      ],
+    const monthWithoutAdvice = validateFreeGeneratedForecastFeed({
+      paragraphs: [{ text: words(130), evidence_ids: ['e1'] }],
       advice: null,
     }, new Set(['e1']), 'month');
-    expect(monthWithoutConclusion.errors.join(' ')).toContain('month forecast requires one strategic conclusion');
+    expect(monthWithoutAdvice.errors.join(' ')).toContain('month forecast requires one concrete action');
   });
 
   test('unwraps fenced and provider-wrapped JSON responses', () => {
     const payload = { data: {
-      headline: 'Terms before speed',
       paragraphs: [{ text: 'A reply needs a second look.', evidence_ids: ['e1'] }],
       advice: { text: 'State the condition clearly.', evidence_ids: ['e1'] },
     } };

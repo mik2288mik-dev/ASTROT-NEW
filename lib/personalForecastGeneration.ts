@@ -38,31 +38,38 @@ export const PERSONAL_FORECAST_WORD_LIMITS: Record<PersonalForecastPeriod, numbe
   month: 175,
 };
 
+export const PERSONAL_FORECAST_WORD_MINIMUMS: Record<PersonalForecastPeriod, number> = {
+  day: 100,
+  week: 120,
+  month: 130,
+};
+
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
   period: PersonalForecastPeriod = 'day',
 ): string {
   const ruPeriodRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Дай главный ход дня, наиболее заметный момент и одно полезное действие. Не делай глобальных выводов по одному дню.',
-    week: 'Покажи единую динамику недели и момент, когда ситуация меняется. Не разбивай неделю по дням и не растягивай одну дневную тему на семь дней.',
-    month: 'Покажи две смысловые фазы месяца и сформулируй один стратегический вывод. Не превращай текст в календарь или перечень обязательных сфер.',
+    day: 'Опиши актуальное состояние одного дня: один главный внутренний или жизненный акцент, одну-две конкретные возможности либо предостережения и полезное действие на сегодня. Не делай выводов о более долгом будущем.',
+    week: 'Опиши один тренд, который проходит через всю неделю: главную задачу, только подтверждённые evidence сферы жизни и способ не распыляться. Не превращай это в последовательность событий.',
+    month: 'Опиши один глобальный тренд месяца: ключевой вызов или решение, возможное личное изменение и точку опоры. Не превращай текст в план из нескольких этапов.',
   };
   const enPeriodRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Give the main course of the day, its most noticeable moment, and one useful action. Do not draw global conclusions from one day.',
-    week: 'Show one coherent dynamic of the week and its turning point. Never split the week into a day-by-day list or stretch one daily issue across seven days.',
-    month: 'Show two meaningful phases of the month and one strategic conclusion. Never turn the forecast into a calendar or a checklist of required life areas.',
+    day: 'Describe the current state of one day: one main inner or practical focus, one or two concrete opportunities or cautions, and one concrete action for today. Do not draw conclusions about the longer future.',
+    week: 'Describe one trend that runs through the whole week: its main task, only evidence-relevant life areas, and one way to avoid spreading yourself thin. Do not turn it into a sequence of events.',
+    month: 'Describe one global monthly trend: the key challenge or decision, a possible personal change, and a point of support. Do not turn it into a multi-stage plan.',
   };
   const wordLimit = PERSONAL_FORECAST_WORD_LIMITS[period];
-  const ruAdviceRule = period === 'day'
-    ? 'Совет обязателен: верни одно полезное конкретное действие, которое прямо следует из разбора.'
-    : period === 'month'
-      ? 'Совет обязателен: верни один стратегический вывод, который связывает обе фазы месяца.'
-      : 'Совет необязателен. Добавь одно короткое конкретное действие только если оно естественно следует из разбора; иначе верни null.';
-  const enAdviceRule = period === 'day'
-    ? 'Advice is required: return one useful concrete action that follows directly from the reading.'
-    : period === 'month'
-      ? 'Advice is required: return one strategic conclusion that connects both phases of the month.'
-      : 'Advice is optional. Add one short concrete action only when it follows naturally from the reading; otherwise return null.';
+  const wordMinimum = PERSONAL_FORECAST_WORD_MINIMUMS[period];
+  const ruAdviceRule: Record<PersonalForecastPeriod, string> = {
+    day: 'Совет обязателен: верни одно конкретное действие, которое можно сделать сегодня и которое прямо следует из разбора.',
+    week: 'Совет обязателен: верни одно конкретное правило или действие, которое поможет прожить эту неделю.',
+    month: 'Совет обязателен: верни одно конкретное действие, которое поможет направить этот месяц.',
+  };
+  const enAdviceRule: Record<PersonalForecastPeriod, string> = {
+    day: 'Advice is required: return one concrete action for today that follows directly from the reading.',
+    week: 'Advice is required: return one concrete rule or action that helps through this week.',
+    month: 'Advice is required: return one concrete action that helps direct this month.',
+  };
 
   if (language === 'ru') {
     return `${getAppSystemVoice('ru')}
@@ -71,19 +78,19 @@ export function getPersonalForecastSystemPrompt(
 - Прочитай весь массив evidence как единую картину периода. Сам выбери главный вывод; не перечисляй факторы подряд и не повторяй одну мысль разными словами.
 - Пиши только о том, что подтверждено переданными evidence и фактическим natal context. Ничего не рассчитывай и не придумывай заново.
 - Обращайся к читателю только на «ты». Формы «вы», «вам», «ваш» и множественные повелительные формы запрещены.
-- Пиши о периоде только простым человеческим языком. Названия планет, знаков, домов, аспектов, транзитов и другие астрологические термины в заголовке, абзацах и совете запрещены и будут отклонены проверкой. Точные факты интерфейс покажет отдельно по evidence_ids.
+- Пиши о периоде только простым человеческим языком. Названия планет, знаков, домов, аспектов, транзитов и другие астрологические термины в абзацах и совете запрещены и будут отклонены проверкой. Точные факты интерфейс покажет отдельно по evidence_ids.
 - Выбирай тон по всей совокупности evidence. Спокойные, благоприятные и сложные проявления описывай только в той пропорции, в которой они подтверждены расчётом; ни один тип аспекта не становится главной темой автоматически.
-- Заголовок — короткая естественная фраза по главному смыслу периода, не рекламный слоган и не техническая рубрика.
-- Весь видимый прогноз — заголовок, абзацы и совет — должен занимать максимум ${wordLimit} слов. Это потолок, а не цель: закончи раньше, если главная мысль уже раскрыта.
-- Разбей текст на естественные абзацы только там, где меняется мысль. Не придумывай подзаголовки, обязательные сферы или предупреждение.
+- Весь видимый прогноз — абзацы и совет — должен занимать от ${wordMinimum} до ${wordLimit} слов.
+- Напиши цельный текст с естественными абзацами только там, где меняется мысль. Не генерируй заголовок, подзаголовки, Markdown, списки, обязательные сферы или обязательное предупреждение.
+- Никогда не дели прогноз на временные отрезки. Запрещены указания на утро, день, вечер, начало, середину или конец периода, дни недели, выходные, первую или вторую часть периода и любые относительные сроки.
 - ${ruPeriodRule[period]}
 - Каждый абзац обязан вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все абзацы.
-- ${ruAdviceRule} Не вводи советом новый запрет, риск или тему.
+- ${ruAdviceRule[period]} Не вводи советом новый запрет, риск или тему.
 - Совет, если он есть, должен быть одним предложением не более 18 слов и вернуть только существующие evidence_ids.
 - Ответ — только валидный JSON без Markdown.
 
 Верни строго:
-{"headline":"естественный заголовок","paragraphs":[{"text":"абзац цельного разбора","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткое конкретное действие","evidence_ids":["существующий evidence id"]} или null}`;
+{"paragraphs":[{"text":"абзац цельного разбора","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткое конкретное действие","evidence_ids":["существующий evidence id"]}}`;
   }
 
   return `${getAppSystemVoice('en')}
@@ -92,19 +99,19 @@ PERSONAL FORECAST TASK
 - Read the entire evidence array as one picture of the period. Choose the main conclusion yourself; do not list factors mechanically or repeat the same point in different words.
 - Use only the supplied evidence and factual natal context. Never recalculate or invent astrology, events, biography, or diagnoses.
 - Address the reader consistently in the direct singular voice used by the app.
-- Write only in ordinary human language. Planet, sign, house, aspect, transit, and other astrology terms are forbidden in the headline, paragraphs, and advice and will be rejected by validation. The interface reveals exact facts separately through evidence_ids.
+- Write only in ordinary human language. Planet, sign, house, aspect, transit, and other astrology terms are forbidden in paragraphs and advice and will be rejected by validation. The interface reveals exact facts separately through evidence_ids.
 - Let the complete evidence set determine the tone. Present calm, favourable, and difficult manifestations only in the proportion supported by the calculation; no aspect type is automatically the main story.
-- The headline is one short natural phrase about the actual period, never an advertising slogan or a technical label.
-- The complete visible forecast — headline, paragraphs, and advice — has a maximum of ${wordLimit} words. This is a ceiling, not a target: stop earlier when the main point is complete.
-- Split it into natural paragraphs only when the thought changes; do not invent subheadings, mandatory life areas, or a warning.
+- The complete visible forecast — paragraphs and advice — has from ${wordMinimum} to ${wordLimit} words.
+- Write one coherent text and split it into natural paragraphs only when the thought changes. Do not generate a headline, subheadings, Markdown, lists, mandatory life areas, or a mandatory warning.
+- Never divide the forecast into time segments. Do not mention morning, afternoon, evening, the beginning, middle, or end of the period, weekdays, weekends, the first or second part of a period, or any relative deadline.
 - ${enPeriodRule[period]}
 - Every paragraph must return its own existing evidence_ids. Do not automatically attach the same list to every paragraph.
-- ${enAdviceRule} Never introduce a new restriction, risk, or topic through advice.
-- If present, advice is one sentence of no more than 18 words and cites only existing evidence_ids.
+- ${enAdviceRule[period]} Never introduce a new restriction, risk, or topic through advice.
+- Advice is one sentence of no more than 18 words and cites only existing evidence_ids.
 - Return valid JSON only, with no Markdown.
 
 Return exactly:
-{"headline":"natural headline","paragraphs":[{"text":"one paragraph of the coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short concrete action","evidence_ids":["existing evidence id"]} or null}`;
+{"paragraphs":[{"text":"one paragraph of the coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short concrete action","evidence_ids":["existing evidence id"]}}`;
 }
 
 type GeneratedTextBlock = {
@@ -113,7 +120,6 @@ type GeneratedTextBlock = {
 };
 
 type GeneratedFeedPayload = {
-  headline?: unknown;
   paragraphs?: GeneratedTextBlock[];
   advice?: GeneratedTextBlock | null | unknown;
 };
@@ -270,8 +276,27 @@ function containsFormalRussianAddress(value: string): boolean {
   return FORMAL_RUSSIAN_ADDRESS_PATTERN.test(value);
 }
 
-function containsDayByDayBreakdown(value: string): boolean {
-  return WEEKDAY_PATTERNS.filter((pattern) => pattern.test(value)).length > 1;
+const CHRONOLOGICAL_TIME_SEGMENT_PATTERNS = [
+  ...WEEKDAY_PATTERNS,
+  /(?:^|[^\p{L}])(?:с\s+утра|утром|дн[её]м|после\s+полудня|к\s+вечеру|вечером|ночью)(?!\p{L})/iu,
+  /(?:^|[^\p{L}])(?:в\s+начале|в\s+середине|в\s+конце|к\s+(?:середине|концу)|ближе\s+к)\s+(?:дня|недели|месяца)(?!\p{L})/iu,
+  /(?:^|[^\p{L}])(?:в\s+)?(?:перв(?:ой|ую)|втор(?:ой|ую)|последн(?:ей|юю))\s+(?:части|половине)\s+(?:дня|недели|месяца)(?!\p{L})/iu,
+  /(?:^|[^\p{L}])(?:к\s+выходным|в\s+выходные|на\s+выходных|в\s+ближайш\p{L}*\s+(?:дн\p{L}*|недел\p{L}*|месяц\p{L}*))(?!\p{L})/iu,
+  /(?:^|[^\p{L}\d])(?:после|до)\s+\d{1,2}(?::\d{2})?(?!\d)/iu,
+  /\b\d{1,2}\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\b/iu,
+  /\b\d{4}-\d{2}-\d{2}\b/u,
+  /\b(?:this|in\s+the|by\s+the|toward(?:s)?)\s+(?:morning|afternoon|evening|night)\b/iu,
+  /\b(?:at\s+the|in\s+the|by\s+the|toward(?:s)?\s+the)\s+(?:beginning|middle|end)\s+of\s+(?:the\s+)?(?:day|week|month)\b/iu,
+  /\b(?:first|second|last)\s+(?:half|part)\s+of\s+(?:the\s+)?(?:day|week|month)\b/iu,
+  /\b(?:this|next|coming|following)\s+weekend\b/iu,
+  /\b(?:in|within)\s+(?:the\s+)?(?:next|coming)\s+\d+\s+(?:hours?|days?|weeks?|months?)\b/iu,
+  /\b(?:after|before|by)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?\b/iu,
+  /\b\d{1,2}\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)\b/iu,
+  /\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}\b/iu,
+];
+
+function containsChronologicalTimeSegment(value: string): boolean {
+  return CHRONOLOGICAL_TIME_SEGMENT_PATTERNS.some((pattern) => pattern.test(value));
 }
 
 function validatedEvidenceIds(
@@ -308,9 +333,8 @@ export function validateFreeGeneratedForecastFeed(
   availableEvidenceIds: ReadonlySet<string> = new Set(),
   period: PersonalForecastPeriod = 'day',
 ): ValidatedFreeWriterResult {
-  const headline = modelText(raw.headline);
-  if (!headline || !Array.isArray(raw.paragraphs)) {
-    return { sections: [], errors: ['payload requires headline and paragraphs with valid evidence_ids'] };
+  if (!Array.isArray(raw.paragraphs)) {
+    return { sections: [], errors: ['payload requires paragraphs with valid evidence_ids'] };
   }
   const rawParagraphs = raw.paragraphs || [];
   const paragraphs = rawParagraphs.map((paragraph, index) => (
@@ -321,15 +345,6 @@ export function validateFreeGeneratedForecastFeed(
   }
   const errors: string[] = [];
   const readingBlocks = paragraphs.filter((paragraph): paragraph is FreeGeneratedBlock => !!paragraph);
-  if (period === 'month' && readingBlocks.length < 2) {
-    errors.push('month forecast requires two semantic phases in separate paragraphs');
-  }
-  if (
-    period === 'week'
-    && containsDayByDayBreakdown(readingBlocks.map((block) => block.text).join(' '))
-  ) {
-    errors.push('week forecast must not use a day-by-day breakdown');
-  }
   let adviceSection: FreeGeneratedSection | null = null;
   let adviceBlock: FreeGeneratedBlock | null = null;
   if (raw.advice !== null && raw.advice !== undefined) {
@@ -347,13 +362,10 @@ export function validateFreeGeneratedForecastFeed(
       };
     }
   }
-  if (period === 'day' && !adviceBlock) {
-    errors.push('day forecast requires one useful action');
+  if (!adviceBlock) {
+    errors.push(`${period} forecast requires one concrete action`);
   }
-  if (period === 'month' && !adviceBlock) {
-    errors.push('month forecast requires one strategic conclusion');
-  }
-  const visibleCopy = [headline, ...readingBlocks.map((block) => block.text), adviceBlock?.text]
+  const visibleCopy = [...readingBlocks.map((block) => block.text), adviceBlock?.text]
     .filter((value): value is string => !!value);
   if (visibleCopy.some(containsForbiddenAstrologyTerm)) {
     errors.push('visible forecast copy contains a forbidden astrology term');
@@ -361,8 +373,15 @@ export function validateFreeGeneratedForecastFeed(
   if (visibleCopy.some(containsFormalRussianAddress)) {
     errors.push('visible forecast copy contains formal Russian address');
   }
+  if (visibleCopy.some(containsChronologicalTimeSegment)) {
+    errors.push('visible forecast copy contains a chronological time segment');
+  }
   const totalWords = visibleCopy.reduce((sum, value) => sum + wordCount(value), 0);
+  const wordMinimum = PERSONAL_FORECAST_WORD_MINIMUMS[period];
   const wordLimit = PERSONAL_FORECAST_WORD_LIMITS[period];
+  if (totalWords < wordMinimum) {
+    errors.push(`forecast has ${totalWords} words; minimum for ${period} is ${wordMinimum}`);
+  }
   if (totalWords > wordLimit) {
     errors.push(`forecast has ${totalWords} words; maximum for ${period} is ${wordLimit}`);
   }
@@ -371,7 +390,7 @@ export function validateFreeGeneratedForecastFeed(
   return {
     errors: [],
     sections: [{
-      title: headline,
+      title: null,
       evidenceIds: overviewEvidenceIds,
       blocks: readingBlocks,
     }, ...(adviceSection ? [adviceSection] : [])],
@@ -401,7 +420,7 @@ export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload
         !!value
         && typeof value === 'object'
         && !Array.isArray(value)
-        && ['headline', 'paragraphs', 'advice']
+        && ['paragraphs', 'advice']
           .some((key) => Object.prototype.hasOwnProperty.call(value, key))
       );
       const nested = [payload, payload.data, payload.result, payload.output, payload.response]
