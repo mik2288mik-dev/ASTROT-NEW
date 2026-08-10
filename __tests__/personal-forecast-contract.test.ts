@@ -165,7 +165,7 @@ describe('personal forecast direct-reading contract', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-evidence-v4');
     expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v10');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v20.responses-strict-schema-no-temporal-segments');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v21.responses-strict-schema-no-temporal-segments');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
 
     for (const patch of [

@@ -34,6 +34,27 @@ type ForecastWriterLanguage = 'ru' | 'en';
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
 
+/**
+ * A strict monthly response needs room for the model's internal work as well
+ * as the 130–175-word JSON payload. Day and week keep their proven budget.
+ */
+export const PERSONAL_FORECAST_WRITER_MAX_OUTPUT_TOKENS: Record<
+  PersonalForecastPeriod,
+  number
+> = {
+  day: 1_200,
+  week: 1_200,
+  month: 3_000,
+};
+
+export function getPersonalForecastWriterMaxOutputTokens(
+  period: PersonalForecastPeriod,
+  retryAfterIncomplete = false,
+): number {
+  if (period === 'month' && retryAfterIncomplete) return 4_000;
+  return PERSONAL_FORECAST_WRITER_MAX_OUTPUT_TOKENS[period];
+}
+
 /** Keep the month request focused enough for a strict structured response. */
 export const PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE: Record<PersonalForecastPeriod, number> = {
   day: 48,
@@ -419,6 +440,7 @@ function containsChronologicalTimeSegment(value: string): boolean {
 export type PersonalForecastGenerationDiagnosticCode =
   | 'PERSONAL_FORECAST_EVIDENCE_EMPTY'
   | 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED'
+  | 'PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT'
   | 'PERSONAL_FORECAST_WRITER_INCOMPLETE'
   | 'PERSONAL_FORECAST_WRITER_UNAVAILABLE'
   | 'PERSONAL_FORECAST_GENERATION_FAILED';
@@ -435,6 +457,9 @@ export function getPersonalForecastGenerationDiagnosticCode(
     return 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED';
   }
   if (message.startsWith('PERSONAL_FORECAST_WRITER_REQUEST_FAILED')) {
+    if (message.includes('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens')) {
+      return 'PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT';
+    }
     return message.includes('OPENAI_RESPONSE_INCOMPLETE')
       ? 'PERSONAL_FORECAST_WRITER_INCOMPLETE'
       : 'PERSONAL_FORECAST_WRITER_UNAVAILABLE';
@@ -665,6 +690,7 @@ async function requestGeneratedFeed(input: {
 
   let errors: string[] = [];
   let writerRequestFailures = 0;
+  let retryAfterIncomplete = false;
   for (
     let attempt = 1;
     attempt <= PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS;
@@ -684,15 +710,21 @@ async function requestGeneratedFeed(input: {
           natalContext: input.natalContext,
           repairErrors: attempt === 2 ? errors : undefined,
         }),
-        maxOutputTokens: 1_200,
+        maxOutputTokens: getPersonalForecastWriterMaxOutputTokens(
+          input.period,
+          retryAfterIncomplete,
+        ),
         schemaName: 'personal_forecast',
         schema: PERSONAL_FORECAST_RESPONSE_SCHEMA,
       });
       content = response.content;
       usage = { inputTokens: response.inputTokens, outputTokens: response.outputTokens };
+      retryAfterIncomplete = false;
     } catch (error) {
       writerRequestFailures += 1;
-      errors = [`writer request failed: ${error instanceof Error ? error.message : String(error)}`];
+      const message = error instanceof Error ? error.message : String(error);
+      retryAfterIncomplete = message.startsWith('OPENAI_RESPONSE_INCOMPLETE');
+      errors = [`writer request failed: ${message}`];
       continue;
     }
     const raw = parseGeneratedFeedPayload(content);

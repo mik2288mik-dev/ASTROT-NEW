@@ -3,6 +3,7 @@ import {
   PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS,
   buildPersonalForecastFeedPrompt,
   buildPersonalForecastNatalContext,
+  getPersonalForecastWriterMaxOutputTokens,
   getPersonalForecastGenerationDiagnosticCode,
   getPersonalForecastSystemPrompt,
   parseGeneratedFeedPayload,
@@ -170,7 +171,14 @@ describe('personal forecast concise direct-evidence writer', () => {
     )).toBe('PERSONAL_FORECAST_WRITER_VALIDATION_FAILED');
     expect(getPersonalForecastGenerationDiagnosticCode(
       new Error('PERSONAL_FORECAST_WRITER_REQUEST_FAILED:OPENAI_RESPONSE_INCOMPLETE:max_output_tokens'),
-    )).toBe('PERSONAL_FORECAST_WRITER_INCOMPLETE');
+    )).toBe('PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT');
+  });
+
+  test('gives the monthly strict writer enough room and escalates after an incomplete reply', () => {
+    expect(getPersonalForecastWriterMaxOutputTokens('day')).toBe(1_200);
+    expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1_200);
+    expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(3_000);
+    expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(4_000);
   });
 
   test('passes only natal points touched by the period evidence', () => {
