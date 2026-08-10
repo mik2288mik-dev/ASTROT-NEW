@@ -35,7 +35,7 @@
 .horo-reader-page .horo-reader-period-date {
   margin: 7px 0 0;
   color: var(--horo-reader-muted);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 440;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -185,12 +185,15 @@
   margin: 0 0 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
   color: var(--horo-reader-ink);
-  font-size: clamp(23px, 6.4vw, 28px);
-  font-weight: 560;
+  font-size: clamp(26px, 7.2vw, 30px);
+  font-style: italic;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: -0.035em;
+  text-align: center;
 }
 
 .horo-reader-page .horo-reader-selected-symbol {
@@ -246,9 +249,9 @@
 .horo-reader-page .horo-sign-story > p {
   margin: 0;
   color: #35312d;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
-  line-height: 1.48;
+  line-height: 1.52;
   letter-spacing: -0.004em;
 }
 
