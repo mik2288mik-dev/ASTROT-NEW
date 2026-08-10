@@ -286,7 +286,11 @@
 }
 
 .horo-reader-page .horo-act-like[data-on='true'] {
-  color: #292622;
+  color: var(--horo-reader-muted);
+}
+
+.horo-reader-page .horo-act-like[data-on='true'] > span:first-child {
+  color: var(--lumia-brand-negative, #e11937);
 }
 
 .horo-reader-page .horo-lock {

@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
@@ -82,6 +82,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const [today, setToday] = useState(() => getMoscowTodayKey());
   const reduceMotion = useReducedMotion();
   const readingAnchorRef = useRef<HTMLDivElement | null>(null);
+  const pendingReadingScrollRef = useRef<ZodiacKey | null>(null);
   const detectedOwnSign = useMemo(() => {
     const calculated = normalizeZodiacKey(String(chartData?.sun?.sign || ''));
     const fromBirth = normalizeZodiacKey(profile.birthDate ? sunSignFromDate(profile.birthDate) || '' : '');
@@ -193,17 +194,38 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     return () => { active = false; };
   }, [language, loadRevision, period, periodKey, periodLocked, readingKey, sign]);
 
+  const scrollForecastToTop = useCallback(() => {
+    const target = readingAnchorRef.current;
+    if (!target) return;
+
+    const behavior: ScrollBehavior = reduceMotion ? 'auto' : 'smooth';
+    const scrollContainer = target.closest<HTMLElement>('.lumia-main-scroll');
+    if (!scrollContainer) {
+      target.scrollIntoView({ behavior, block: 'start' });
+      return;
+    }
+
+    const topBar = target
+      .closest<HTMLElement>('.horo-reader-page')
+      ?.querySelector<HTMLElement>('.app-top-bar');
+    const targetTop = scrollContainer.scrollTop
+      + target.getBoundingClientRect().top
+      - scrollContainer.getBoundingClientRect().top;
+    const topBarOffset = topBar?.getBoundingClientRect().height ?? 0;
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetTop - topBarOffset - 12),
+      behavior,
+    });
+  }, [reduceMotion]);
+
   const chooseSign = (picked: string) => {
     const index = ZODIAC_KEYS.findIndex((item) => item.toLowerCase() === picked.toLowerCase());
     if (index < 0) return;
+    const pickedSign = ZODIAC_KEYS[index] as ZodiacKey;
     lumiaSelectionHaptic();
+    pendingReadingScrollRef.current = index === signIndex ? null : pickedSign;
     setSignIndex(index);
-    window.requestAnimationFrame(() => {
-      readingAnchorRef.current?.scrollIntoView({
-        behavior: reduceMotion ? 'auto' : 'smooth',
-        block: 'start',
-      });
-    });
+    window.requestAnimationFrame(scrollForecastToTop);
   };
 
   const retryCurrent = () => {
@@ -230,6 +252,16 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
   const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
+  const readingSettledForScroll = periodLocked || hasReadingFailure || Boolean(displayedReading);
+
+  useEffect(() => {
+    if (pendingReadingScrollRef.current !== sign || !readingSettledForScroll) return;
+    const frame = window.requestAnimationFrame(() => {
+      scrollForecastToTop();
+      pendingReadingScrollRef.current = null;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [readingSettledForScroll, scrollForecastToTop, sign]);
 
   return (
     <div className="fresh-page horo-reader-page">

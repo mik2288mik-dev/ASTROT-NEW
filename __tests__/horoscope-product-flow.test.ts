@@ -17,7 +17,9 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('active={sign}');
     expect(source).toContain("normalizeZodiacKey(String(chartData?.sun?.sign || ''))");
     expect(source.indexOf('const calculated =')).toBeLessThan(source.indexOf('calculated || fromBirth'));
-    expect(source).toContain('scrollIntoView');
+    expect(source).toContain("closest<HTMLElement>('.lumia-main-scroll')");
+    expect(source).toContain('scrollContainer.scrollTo({');
+    expect(source).toContain('pendingReadingScrollRef');
     expect(picker).toContain('signs.map');
     expect(picker).toContain('onClick={() => onPick(sign)}');
     expect(picker).not.toContain('setExpanded');
@@ -44,6 +46,9 @@ describe('Horoscope product flow', () => {
     expect(styles).toContain('width: 72px');
     expect(service).toContain("'tvoi-goroskop:sign-horoscope-v4'");
     expect(styles).toContain('.horo-reader-page .horo-reader-sign-grid');
+    expect(styles).toContain(".horo-reader-page .horo-act-like[data-on='true'] > span:first-child");
+    expect(styles).toContain(".horo-reader-page .horo-act-like[data-on='true'] {\n  color: var(--horo-reader-muted);");
+    expect(styles).toContain('color: var(--lumia-brand-negative, #e11937);');
     expect(styles).toContain('background: #ffffff');
     expect(styles).toContain('background: #eee3d5');
     expect(styles).toContain('text-align: center');
