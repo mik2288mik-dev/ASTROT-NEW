@@ -27,7 +27,8 @@
   margin: 0;
   color: var(--horo-reader-ink);
   font-size: clamp(28px, 7.4vw, 32px);
-  font-weight: 540;
+  font-style: italic;
+  font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.038em;
 }
@@ -166,7 +167,7 @@
 }
 
 .horo-reader-page .horo-uni-wrap {
-  margin-top: 27px;
+  margin-top: 31px;
   scroll-margin-top: 18px;
 }
 
@@ -182,7 +183,7 @@
 }
 
 .horo-reader-page .horo-reader-selected-sign {
-  margin: 0 0 12px;
+  margin: 0 0 18px;
   display: flex;
   align-items: center;
   justify-content: center;
