@@ -2,7 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Language } from '../../../../types';
 import { db } from '../../../../lib/db';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
-import { normalizeEngagementKey } from '../../../../lib/horoscope/signDaily';
+import {
+  buildHoroscopeEngagementKey,
+  normalizeHoroscopeEngagementPeriod,
+} from '../../../../lib/horoscope/signEngagement';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
@@ -26,7 +29,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const userId = String((req.method === 'GET' ? req.query.userId : req.body?.userId) || '').trim();
-  const sign = normalizeEngagementKey(String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''));
+  const period = normalizeHoroscopeEngagementPeriod(
+    req.method === 'GET' ? req.query.period : req.body?.period,
+  );
+  const sign = buildHoroscopeEngagementKey(
+    String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''),
+    period,
+  );
   const date = readDate(req);
   const language = readLanguage(req);
 
@@ -67,4 +76,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default withRateLimit(handler, RATE_LIMIT_CONFIGS.LUMI_ACTION);
+export default withRateLimit(handler, RATE_LIMIT_CONFIGS.HOROSCOPE_ENGAGEMENT);

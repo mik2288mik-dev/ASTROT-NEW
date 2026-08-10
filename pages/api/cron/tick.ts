@@ -110,9 +110,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ran
   );
 
-  // Each shared sign reading is generated and stored independently for both
-  // languages. Existing rows are skipped, so retries touch only missing signs;
-  // evening Moscow additionally prewarms upcoming periods.
+  // One RU DeepSeek request fills every missing sign for a period. Rows are
+  // still validated and stored independently; retries include only gaps.
   await once(
     'sign-horoscope-current',
     dateKey,

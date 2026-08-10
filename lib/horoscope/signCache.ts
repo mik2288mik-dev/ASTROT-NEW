@@ -6,7 +6,7 @@ import type {
 import { getContentPolicy, type GeneratedContentType } from '../contentMatrix';
 import { getPool } from '../db';
 import { isoWeekToValidRangeUtc, monthKeyToValidRangeUtc } from '../date-utils';
-import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
+import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../zodiacKeys';
 import {
   MAX_SIGN_HOROSCOPE_WORDS,
   SIGN_HOROSCOPE_CACHE_VERSION,
@@ -168,6 +168,30 @@ export async function getCachedSignHoroscope(
   language: Language,
 ): Promise<SignHoroscopeReadingV2 | null> {
   return readCurrentSignHoroscope(period, sign, periodKey, language);
+}
+
+export async function getCachedSignHoroscopes(
+  period: SignHoroscopePeriod,
+  periodKey: string,
+  language: Language,
+  signs: readonly ZodiacKey[] = ZODIAC_KEYS,
+): Promise<Partial<Record<ZodiacKey, SignHoroscopeReadingV2>>> {
+  if (signs.length === 0) return {};
+  const result = await getPool().query(
+    `SELECT zodiac_sign, payload FROM content_cache
+     WHERE content_type = $1 AND period_key = $2 AND content_key = $3
+       AND prompt_version = $4 AND zodiac_sign = ANY($5::text[])`,
+    [policyType(period), periodKey, language, signHoroscopePromptVersion(period), signs],
+  );
+  const requested = new Set(signs);
+  const readings: Partial<Record<ZodiacKey, SignHoroscopeReadingV2>> = {};
+  result.rows.forEach((row) => {
+    const sign = normalizeZodiacKey(String(row.zodiac_sign || ''));
+    if (!sign || !requested.has(sign)) return;
+    const reading = parseCachedSignReading(row.payload, { sign, period, periodKey });
+    if (reading) readings[sign] = reading;
+  });
+  return readings;
 }
 
 export async function getSignHoroscopeCacheSnapshot(

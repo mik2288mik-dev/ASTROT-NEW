@@ -58,8 +58,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const result = await withContentGenerationLock({
-      lockKey: buildSignHoroscopeLockKey('week', periodKey, language, sign),
-      operation: `sign-weekly-${language}-${periodKey}-${sign}`,
+      lockKey: buildSignHoroscopeLockKey('week', periodKey, language),
+      operation: `sign-weekly-batch-${language}-${periodKey}`,
       readCached: async () => {
         const cached = await getCachedSignWeeklyHoroscope(sign, periodKey, language);
         return cached ? { value: cached, source: 'cache' } : null;

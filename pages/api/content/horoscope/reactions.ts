@@ -2,7 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { HoroscopeReactionKey, Language } from '../../../../types';
 import { db } from '../../../../lib/db';
 import { getMoscowTodayKey } from '../../../../lib/date-utils';
-import { normalizeEngagementKey } from '../../../../lib/horoscope/signDaily';
+import {
+  buildHoroscopeEngagementKey,
+  normalizeHoroscopeEngagementPeriod,
+} from '../../../../lib/horoscope/signEngagement';
 import { hydrateReactionSummaryLabels } from '../../../../lib/todayOverview';
 import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { invalidUserIdPayload, isValidUserId } from '../../../../lib/userId';
@@ -29,12 +32,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const userId = String((req.method === 'GET' ? req.query.userId : req.body?.userId) || '').trim();
-  const baseSign = normalizeEngagementKey(String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''));
-  // Период (today/week/month) делает лайк РАЗДЕЛЬНЫМ: дневной, недельный и месячный гороскопы
-  // одного знака не должны делить один лайк (их даты могут совпадать, напр. в понедельник).
-  const periodRaw = String((req.method === 'GET' ? req.query.period : req.body?.period) || 'today').trim().toLowerCase();
-  const period = periodRaw === 'week' || periodRaw === 'month' ? periodRaw : 'today';
-  const sign = baseSign && period !== 'today' ? `${baseSign}#${period}` : baseSign;
+  const period = normalizeHoroscopeEngagementPeriod(
+    req.method === 'GET' ? req.query.period : req.body?.period,
+  );
+  const sign = buildHoroscopeEngagementKey(
+    String((req.method === 'GET' ? req.query.sign : req.body?.sign) || ''),
+    period,
+  );
   const date = readDate(req);
   const language = readLanguage(req);
 
@@ -78,4 +82,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default withRateLimit(handler, RATE_LIMIT_CONFIGS.LUMI_ACTION);
+export default withRateLimit(handler, RATE_LIMIT_CONFIGS.HOROSCOPE_ENGAGEMENT);

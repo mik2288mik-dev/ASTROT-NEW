@@ -18,8 +18,8 @@
 }
 
 .horo-reader-page .horo-reader-heading {
-  margin-top: 4px;
-  margin-bottom: 14px;
+  margin-top: 2px;
+  margin-bottom: 18px;
   text-align: center;
 }
 
@@ -32,10 +32,19 @@
   letter-spacing: -0.038em;
 }
 
+.horo-reader-page .horo-reader-period-date {
+  margin: 7px 0 0;
+  color: var(--horo-reader-muted);
+  font-size: 13px;
+  font-weight: 440;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
 .fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
   width: 100%;
   min-height: 44px;
-  margin: 0 auto 12px;
+  margin: 0 auto 18px;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -157,7 +166,7 @@
 }
 
 .horo-reader-page .horo-uni-wrap {
-  margin-top: 23px;
+  margin-top: 27px;
   scroll-margin-top: 18px;
 }
 
@@ -170,6 +179,24 @@
   color: var(--horo-reader-ink);
   cursor: default;
   touch-action: pan-y;
+}
+
+.horo-reader-page .horo-reader-selected-sign {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--horo-reader-ink);
+  font-size: clamp(23px, 6.4vw, 28px);
+  font-weight: 560;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.horo-reader-page .horo-reader-selected-symbol {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
 }
 
 .horo-reader-page .horo-uni-hero {
@@ -196,16 +223,16 @@
   background: transparent;
   box-shadow: none;
   color: var(--horo-reader-ink);
-  font-size: clamp(28px, 7.5vw, 34px);
+  font-size: clamp(21px, 5.8vw, 26px);
   font-weight: 540;
-  line-height: 1.05;
-  letter-spacing: -0.038em;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
   transform: none;
   -webkit-line-clamp: unset;
 }
 
 .horo-reader-page .horo-uni-body.horo-reader-reading {
-  padding: 18px 0 0;
+  padding: 12px 0 0;
   border: 0;
   border-radius: 0;
   background: transparent;

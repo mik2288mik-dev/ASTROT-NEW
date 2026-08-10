@@ -5,15 +5,17 @@ import {
   getMoscowMonthKey,
   getMoscowTodayKey,
 } from '../date-utils';
-import { getCachedSignHoroscope } from './signCache';
-import { generateAndStoreSignHoroscope } from './signOrchestrator';
+import { ZODIAC_KEYS } from '../zodiacKeys';
+import { getCachedSignHoroscopes } from './signCache';
+import { fillMissingSignHoroscopes } from './signOrchestrator';
 import { buildSignHoroscopeLockKey } from './signGenerationLock';
-import { ZODIAC_KEYS, type ZodiacKey } from '../zodiacKeys';
 
 export interface SignPrewarmTarget {
   period: SignHoroscopePeriod;
   periodKey: string;
 }
+
+const PREWARM_LANGUAGES = ['ru'] as const;
 
 function parseDateKey(key: string): Date {
   const [year, month, day] = key.split('-').map(Number);
@@ -69,43 +71,58 @@ export function getSignPrewarmTargets(now: Date): SignPrewarmTarget[] {
   return targets;
 }
 
+async function isTargetComplete(target: SignPrewarmTarget, language: Language): Promise<boolean> {
+  const readings = await getCachedSignHoroscopes(
+    target.period,
+    target.periodKey,
+    language,
+    ZODIAC_KEYS,
+  );
+  return ZODIAC_KEYS.every((sign) => !!readings[sign]);
+}
+
 export async function prewarmSignHoroscopeTarget(
   target: SignPrewarmTarget,
   language: Language,
-  sign: ZodiacKey,
 ): Promise<'cached' | 'generated' | 'in_progress'> {
-  if (await getCachedSignHoroscope(target.period, sign, target.periodKey, language)) return 'cached';
-  const result = await withContentGenerationLock({
-    lockKey: buildSignHoroscopeLockKey(target.period, target.periodKey, language, sign),
-    operation: `sign-prewarm-${target.period}-${target.periodKey}-${language}-${sign}`,
-    readCached: async () => {
-      const cached = await getCachedSignHoroscope(target.period, sign, target.periodKey, language);
-      return cached ? { value: cached, source: 'cache' } : null;
-    },
+  if (await isTargetComplete(target, language)) return 'cached';
+  const result = await withContentGenerationLock<'cached' | 'generated'>({
+    lockKey: buildSignHoroscopeLockKey(target.period, target.periodKey, language),
+    operation: `sign-prewarm-batch-${target.period}-${target.periodKey}-${language}`,
+    readCached: async () => (
+      await isTargetComplete(target, language)
+        ? { value: 'cached', source: 'cache' }
+        : null
+    ),
     generate: async () => {
-      return generateAndStoreSignHoroscope(target.period, sign, target.periodKey, language);
+      const filled = await fillMissingSignHoroscopes(target.period, target.periodKey, language);
+      if (filled.failures.length > 0) {
+        throw new Error(`SIGN_HOROSCOPE_PREWARM_PARTIAL_FAILURE:${filled.failures
+          .map((failure) => failure.sign)
+          .join(',')}`);
+      }
+      return filled.generatedSigns.length > 0 ? 'generated' : 'cached';
     },
   });
   if (result.status === 'in_progress') {
-    if (await getCachedSignHoroscope(target.period, sign, target.periodKey, language)) return 'cached';
-    throw new Error(`SIGN_HOROSCOPE_PREWARM_IN_PROGRESS:${target.period}:${target.periodKey}:${language}:${sign}`);
+    if (await isTargetComplete(target, language)) return 'cached';
+    throw new Error(`SIGN_HOROSCOPE_PREWARM_IN_PROGRESS:${target.period}:${target.periodKey}:${language}`);
   }
-  return result.fromCache ? 'cached' : 'generated';
+  return result.value;
 }
 
 export async function prewarmUpcomingSignHoroscopes(now = new Date()): Promise<{
   targets: SignPrewarmTarget[];
-  results: Array<{ period: SignHoroscopePeriod; periodKey: string; language: Language; sign: ZodiacKey; status: string }>;
+  results: Array<{ period: SignHoroscopePeriod; periodKey: string; language: Language; status: string }>;
 }> {
   const targets = getSignPrewarmTargets(now);
-  const jobs = targets.flatMap((target) =>
-    (['ru', 'en'] as const).flatMap((language) =>
-      ZODIAC_KEYS.map((sign) => ({ target, language, sign }))));
+  const jobs = targets.flatMap((target) => (
+    PREWARM_LANGUAGES.map((language) => ({ target, language }))
+  ));
   const results: Array<{
     period: SignHoroscopePeriod;
     periodKey: string;
     language: Language;
-    sign: ZodiacKey;
     status: string;
   }> = new Array(jobs.length);
   let cursor = 0;
@@ -113,31 +130,29 @@ export async function prewarmUpcomingSignHoroscopes(now = new Date()): Promise<{
     while (cursor < jobs.length) {
       const index = cursor;
       cursor += 1;
-      const { target, language, sign } = jobs[index];
+      const { target, language } = jobs[index];
       try {
         results[index] = {
           period: target.period,
           periodKey: target.periodKey,
           language,
-          sign,
-          status: await prewarmSignHoroscopeTarget(target, language, sign),
+          status: await prewarmSignHoroscopeTarget(target, language),
         };
       } catch (error) {
         results[index] = {
           period: target.period,
           periodKey: target.periodKey,
           language,
-          sign,
           status: `failed:${error instanceof Error ? error.message : String(error)}`,
         };
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(4, jobs.length) }, () => worker()));
+  await Promise.all(Array.from({ length: Math.min(2, jobs.length) }, () => worker()));
   const failures = results.filter((result) => result.status.startsWith('failed:'));
   if (failures.length > 0) {
     throw new Error(`SIGN_HOROSCOPE_PREWARM_PARTIAL_FAILURE:${failures
-      .map((failure) => `${failure.period}:${failure.periodKey}:${failure.language}:${failure.sign}`)
+      .map((failure) => `${failure.period}:${failure.periodKey}:${failure.language}`)
       .join(',')}`);
   }
   return { targets, results };

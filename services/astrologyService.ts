@@ -613,18 +613,20 @@ export const getHoroscopeReactionSummary = async (
   }
 };
 
-/** Read aggregate views/reposts for a sign+date horoscope. Null on any failure. */
+/** Read aggregate views/reposts for one sign-period forecast. Null on any failure. */
 export const getHoroscopeEngagement = async (
   userId: string,
   sign: string,
-  date: string
+  date: string,
+  period: 'today' | 'week' | 'month' = 'today',
 ): Promise<HoroscopeEngagementSummary | null> => {
   if (!isValidUserId(userId)) return null;
   try {
     const url = `${API_BASE_URL}/api/content/horoscope/engagement`
       + `?userId=${encodeURIComponent(userId)}`
       + `&sign=${encodeURIComponent(sign)}`
-      + `&date=${encodeURIComponent(date)}`;
+      + `&date=${encodeURIComponent(date)}`
+      + `&period=${period}`;
     const response = await apiFetch(url, {
       method: 'GET',
       credentials: 'include',
@@ -642,7 +644,8 @@ const postHoroscopeEngagement = async (
   userId: string,
   sign: string,
   date: string,
-  action: 'view' | 'repost'
+  action: 'view' | 'repost',
+  period: 'today' | 'week' | 'month' = 'today',
 ): Promise<HoroscopeEngagementSummary | null> => {
   if (!isValidUserId(userId)) return null;
   try {
@@ -650,7 +653,7 @@ const postHoroscopeEngagement = async (
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...getTelegramInitDataHeaders() },
-      body: JSON.stringify({ userId, sign, date, action }),
+      body: JSON.stringify({ userId, sign, date, action, period }),
     }, 6000);
     if (!response.ok) return null;
     const payload = await response.json();
@@ -660,13 +663,21 @@ const postHoroscopeEngagement = async (
   }
 };
 
-/** Count this user as a viewer of the sign+date horoscope (deduped server-side). */
-export const markHoroscopeView = (userId: string, sign: string, date: string) =>
-  postHoroscopeEngagement(userId, sign, date, 'view');
+/** Count this user as a viewer of the sign-period forecast (deduped server-side). */
+export const markHoroscopeView = (
+  userId: string,
+  sign: string,
+  date: string,
+  period: 'today' | 'week' | 'month' = 'today',
+) => postHoroscopeEngagement(userId, sign, date, 'view', period);
 
-/** Record a repost (share) of the sign+date horoscope and return updated counts. */
-export const markHoroscopeRepost = (userId: string, sign: string, date: string) =>
-  postHoroscopeEngagement(userId, sign, date, 'repost');
+/** Record a repost of the sign-period forecast and return updated counts. */
+export const markHoroscopeRepost = (
+  userId: string,
+  sign: string,
+  date: string,
+  period: 'today' | 'week' | 'month' = 'today',
+) => postHoroscopeEngagement(userId, sign, date, 'repost', period);
 
 export const getNatalAnchorLayer = async (
   profile: UserProfile,

@@ -2,7 +2,7 @@ import type { Language, SignHoroscopePeriod, SignHoroscopeReadingV2 } from '../.
 import { getAppSystemVoice } from '../appVoice';
 import { getContentAiClient } from '../contentAiClient';
 import { buildOpenAIChatParams } from '../openaiChat';
-import type { ZodiacKey } from '../zodiacKeys';
+import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
 import type { SignSkyBatchDigest } from './signSkyDigest';
 import {
   MAX_SIGN_HOROSCOPE_WORDS,
@@ -38,6 +38,16 @@ export type SignHoroscopeModelRunner = (request: {
   maxTokens: number;
 }) => Promise<string>;
 
+export type SignHoroscopeBatchFailure = {
+  sign: ZodiacKey;
+  issues: string[];
+};
+
+export type SignHoroscopeBatchGenerationResult = {
+  readings: SignHoroscopeReadingV2[];
+  failures: SignHoroscopeBatchFailure[];
+};
+
 const PERIOD_INSTRUCTIONS: Record<SignHoroscopePeriod, { ru: string; en: string }> = {
   day: {
     ru: 'Опиши один ясный вектор этого дня. Не делай глобальных выводов из короткого периода.',
@@ -55,36 +65,41 @@ const PERIOD_INSTRUCTIONS: Record<SignHoroscopePeriod, { ru: string; en: string 
 
 function promptSystem(language: Language): string {
   const task = language === 'en'
-    ? `Write one shared Sun-sign forecast from a completed deterministic server calculation.
-The calculation is context, not user-facing copy. Never mention astrology, planets, signs, houses, aspects, transits, retrogrades, or technical calculation details.
-Return JSON only with exactly two string fields: headline and text.
-The headline and text together must contain no more than ${MAX_SIGN_HOROSCOPE_WORDS} words.
-The text must be one coherent human story without section labels, lists, mandatory life areas, Markdown, fatalism, guarantees, or invented concrete events.
+    ? `Write one shared Sun-sign forecast for every requested sign from a completed deterministic server calculation.
+The calculation is context, not user-facing copy. Never mention astrology, planets, signs, houses, aspects, transits, retrogrades, or technical calculation details in headline or text.
+Return JSON only with exactly one top-level field named readings. readings must contain every requested sign exactly once. Each item has exactly sign, headline, and text.
+For every item, headline and text together must contain no more than ${MAX_SIGN_HOROSCOPE_WORDS} words.
+Each text is one coherent human story without section labels, lists, mandatory life areas, Markdown, fatalism, guarantees, or invented concrete events.
 Be direct, confident, specific, calm, and useful. Stop when the thought is complete.`
-    : `Напиши один общий прогноз по солнечному знаку на основе готового детерминированного серверного расчёта.
-Расчёт — только скрытый контекст. Не упоминай астрологию, планеты, знаки, дома, аспекты, транзиты, ретроградность и технические детали расчёта.
-Верни только JSON ровно с двумя строковыми полями: headline и text.
-Заголовок и текст вместе — не больше ${MAX_SIGN_HOROSCOPE_WORDS} слов.
-Текст — один цельный человеческий рассказ без рубрик, списков, обязательных жизненных сфер, Markdown, фатализма, гарантий и выдуманных конкретных событий.
+    : `Напиши по одному общему прогнозу для каждого запрошенного солнечного знака на основе готового детерминированного серверного расчёта.
+Расчёт — только скрытый контекст. Не упоминай в headline и text астрологию, планеты, знаки, дома, аспекты, транзиты, ретроградность и технические детали расчёта.
+Верни только JSON ровно с одним верхнеуровневым полем readings. В readings должен быть каждый запрошенный знак ровно один раз. У каждого элемента ровно три поля: sign, headline и text.
+Для каждого элемента headline и text вместе — не больше ${MAX_SIGN_HOROSCOPE_WORDS} слов.
+Каждый text — один цельный человеческий рассказ без рубрик, списков, обязательных жизненных сфер, Markdown, фатализма, гарантий и выдуманных конкретных событий.
 Пиши прямо, уверенно, конкретно, спокойно и полезно. Остановись, когда мысль закончена.`;
   return `${getAppSystemVoice(language === 'en' ? 'en' : 'ru')}\n\n${task}`;
 }
 
-function digestForSign(digest: SignSkyBatchDigest, sign: ZodiacKey): unknown {
+function uniqueSigns(signs: readonly ZodiacKey[]): ZodiacKey[] {
+  return signs.filter((sign, index) => signs.indexOf(sign) === index);
+}
+
+function digestForSigns(digest: SignSkyBatchDigest, signs: readonly ZodiacKey[]): SignSkyBatchDigest {
+  const requested = new Set(signs);
   return {
     ...digest,
-    signs: digest.signs.filter((item) => item.sign === sign),
+    signs: digest.signs.filter((item) => requested.has(item.sign)),
   };
 }
 
 function promptUser(
   digest: SignSkyBatchDigest,
-  sign: ZodiacKey,
+  signs: readonly ZodiacKey[],
   language: Language,
-  repairIssues?: string[],
+  repairIssues?: Record<string, string[]>,
 ): string {
   return JSON.stringify({
-    sign,
+    signs,
     period: digest.period,
     periodKey: digest.periodKey,
     language: language === 'en' ? 'en' : 'ru',
@@ -93,59 +108,149 @@ function promptUser(
     outputContract: {
       type: 'object',
       additionalProperties: false,
-      required: ['headline', 'text'],
+      required: ['readings'],
       properties: {
-        headline: { type: 'string' },
-        text: { type: 'string' },
+        readings: {
+          type: 'array',
+          requiredSigns: signs,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['sign', 'headline', 'text'],
+            properties: {
+              sign: { enum: signs },
+              headline: { type: 'string' },
+              text: { type: 'string' },
+            },
+          },
+        },
       },
-      maxWordsTogether: MAX_SIGN_HOROSCOPE_WORDS,
+      maxWordsTogetherPerSign: MAX_SIGN_HOROSCOPE_WORDS,
     },
-    calculatedContext: digestForSign(digest, sign),
+    calculatedContext: digestForSigns(digest, signs),
   });
+}
+
+function validateBatchAttempt(
+  content: unknown,
+  digest: SignSkyBatchDigest,
+  requestedSigns: readonly ZodiacKey[],
+): SignHoroscopeBatchGenerationResult {
+  const parsed = parseSignHoroscopeJson(content);
+  const rawReadings = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+    ? (parsed as Record<string, unknown>).readings
+    : null;
+  if (!Array.isArray(rawReadings)) {
+    return {
+      readings: [],
+      failures: requestedSigns.map((sign) => ({ sign, issues: ['readings must be an array'] })),
+    };
+  }
+
+  const entries = new Map<ZodiacKey, Array<Record<string, unknown>>>();
+  rawReadings.forEach((raw) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+    const input = raw as Record<string, unknown>;
+    const sign = normalizeZodiacKey(String(input.sign || ''));
+    if (!sign) return;
+    const list = entries.get(sign) || [];
+    list.push(input);
+    entries.set(sign, list);
+  });
+
+  const readings: SignHoroscopeReadingV2[] = [];
+  const failures: SignHoroscopeBatchFailure[] = [];
+  requestedSigns.forEach((sign) => {
+    const matches = entries.get(sign) || [];
+    if (matches.length !== 1) {
+      failures.push({
+        sign,
+        issues: [matches.length === 0 ? 'reading is missing' : 'reading is duplicated'],
+      });
+      return;
+    }
+
+    const input = matches[0];
+    const unexpected = Object.keys(input).filter((key) => !['sign', 'headline', 'text'].includes(key));
+    const validated = validateSignHoroscopeReading(
+      { headline: input.headline, text: input.text },
+      { sign, period: digest.period, periodKey: digest.periodKey },
+    );
+    const issues = [
+      ...(unexpected.length ? [`unexpected fields: ${unexpected.join(', ')}`] : []),
+      ...(validated.ok ? [] : validated.issues),
+    ];
+    if (issues.length || !validated.ok) {
+      failures.push({ sign, issues });
+      return;
+    }
+    readings.push(validated.reading);
+  });
+  return { readings, failures };
 }
 
 async function runAttempt(
   digest: SignSkyBatchDigest,
-  sign: ZodiacKey,
+  signs: readonly ZodiacKey[],
   language: Language,
   runner: SignHoroscopeModelRunner,
-  repairIssues?: string[],
-) {
+  repairIssues?: Record<string, string[]>,
+): Promise<SignHoroscopeBatchGenerationResult> {
   const content = await runner({
     system: promptSystem(language),
-    user: promptUser(digest, sign, language, repairIssues),
-    maxTokens: 900,
+    user: promptUser(digest, signs, language, repairIssues),
+    maxTokens: Math.min(5_200, Math.max(900, signs.length * 430)),
   });
-  return validateSignHoroscopeReading(parseSignHoroscopeJson(content), {
-    sign,
-    period: digest.period,
-    periodKey: digest.periodKey,
-  });
+  return validateBatchAttempt(content, digest, signs);
 }
 
-export async function generateSignHoroscopeWithRunner(
+export async function generateSignHoroscopeBatchWithRunner(
   digest: SignSkyBatchDigest,
-  sign: ZodiacKey,
+  requestedSigns: readonly ZodiacKey[],
   language: Language,
   runner: SignHoroscopeModelRunner,
-): Promise<SignHoroscopeReadingV2> {
-  const first = await runAttempt(digest, sign, language, runner);
-  if (first.ok) return first.reading;
+): Promise<SignHoroscopeBatchGenerationResult> {
+  const signs = uniqueSigns(requestedSigns);
+  if (signs.length === 0) return { readings: [], failures: [] };
 
-  const repair = await runAttempt(digest, sign, language, runner, first.issues);
-  if (repair.ok) return repair.reading;
-  throw new SignHoroscopeGenerationError(
-    'SIGN_HOROSCOPE_VALIDATION_FAILED',
-    `Invalid sign horoscope for ${sign}`,
-    repair.issues,
-  );
+  const first = await runAttempt(digest, signs, language, runner);
+  const completed = new Map(first.readings.map((reading) => [reading.sign as ZodiacKey, reading]));
+  const failures: SignHoroscopeBatchFailure[] = [];
+
+  for (const failed of first.failures) {
+    try {
+      const repaired = await runAttempt(
+        digest,
+        [failed.sign],
+        language,
+        runner,
+        { [failed.sign]: failed.issues },
+      );
+      const reading = repaired.readings.find((item) => item.sign === failed.sign);
+      if (reading) completed.set(failed.sign, reading);
+      else failures.push(repaired.failures[0] || failed);
+    } catch (error) {
+      failures.push({
+        sign: failed.sign,
+        issues: [error instanceof Error ? error.message : 'repair request failed'],
+      });
+    }
+  }
+
+  return {
+    readings: signs.flatMap((sign) => {
+      const reading = completed.get(sign);
+      return reading ? [reading] : [];
+    }),
+    failures,
+  };
 }
 
-export async function generateSignHoroscope(
+export async function generateSignHoroscopeBatch(
   digest: SignSkyBatchDigest,
-  sign: ZodiacKey,
+  signs: readonly ZodiacKey[],
   language: Language,
-): Promise<SignHoroscopeReadingV2> {
+): Promise<SignHoroscopeBatchGenerationResult> {
   const client = getContentAiClient(SIGN_HOROSCOPE_MODEL);
   if (!client) {
     throw new SignHoroscopeGenerationError(
@@ -155,7 +260,7 @@ export async function generateSignHoroscope(
   }
 
   try {
-    return await generateSignHoroscopeWithRunner(digest, sign, language, async (request) => {
+    return await generateSignHoroscopeBatchWithRunner(digest, signs, language, async (request) => {
       const completion = await client.chat.completions.create(buildOpenAIChatParams(SIGN_HOROSCOPE_MODEL, {
         messages: [
           { role: 'system', content: request.system },

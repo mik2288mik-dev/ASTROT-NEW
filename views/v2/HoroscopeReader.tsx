@@ -6,10 +6,14 @@ import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import {
+  formatDisplayDate,
+  formatIsoWeekPeriodLabel,
+  formatMonthPeriodLabel,
   getMoscowIsoWeekKey,
   getMoscowMonthKey,
   getMoscowTodayKey,
 } from '../../lib/date-utils';
+import { getHoroscopeEngagementDateKey } from '../../lib/horoscope/signEngagement';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { canAccessFeature } from '../../lib/accessMatrix';
@@ -24,9 +28,16 @@ import {
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { FreshTabs, ZodiacSignGrid } from '../../components/fresh-ui';
+import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
 
 type Period = 'today' | 'week' | 'month';
+
+function formatHoroscopePeriodDate(period: Period, periodKey: string, language: 'ru' | 'en'): string {
+  if (period === 'week') return formatIsoWeekPeriodLabel(periodKey, language);
+  if (period === 'month') return formatMonthPeriodLabel(periodKey, language);
+  return formatDisplayDate(periodKey, language);
+}
 
 type ReadyReadingSnapshot = {
   key: string;
@@ -109,7 +120,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   useEffect(() => {
     if (!reading) return;
-    setLastReadyReading({ key: readingKey, reading, sign, period, periodKey });
+    setLastReadyReading({ key: readingKey, reading, sign, period, periodKey: reading.periodKey });
   }, [period, periodKey, reading, readingKey, sign]);
 
   const displayed = periodLocked
@@ -194,10 +205,13 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     { id: 'week', label: language === 'ru' ? 'Неделя' : 'Week' },
     { id: 'month', label: language === 'ru' ? 'Месяц' : 'Month' },
   ], [language]);
-  const signLabel = getZodiacSign(language, sign);
   const displayedReading = displayed?.reading ?? null;
   const displayedSign = displayed?.sign ?? sign;
+  const displayedPeriod = displayed?.period ?? period;
+  const displayedPeriodKey = displayedReading?.periodKey ?? periodKey;
   const displayedSignLabel = getZodiacSign(language, displayedSign);
+  const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
+  const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
 
   return (
@@ -206,6 +220,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
       <header className="horo-reader-heading">
         <h1>{language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}</h1>
+        <p className="horo-reader-period-date">{displayedPeriodDate}</p>
       </header>
 
       <div className="horo-reader-controls">
@@ -236,11 +251,18 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0.08 : 0.18, ease: 'easeOut' }}
         >
-          <header className="horo-uni-hero">
-            <h2 className="fresh-sticky horo-reader-headline">
-              {displayedReading ? displayedReading.headline : signLabel}
-            </h2>
-          </header>
+          <div className="horo-reader-selected-sign">
+            <span>{displayedSignLabel}</span>
+            <ZodiacSymbol sign={displayedSign} size={30} className="horo-reader-selected-symbol" />
+          </div>
+
+          {displayedReading ? (
+            <header className="horo-uni-hero">
+              <h2 className="fresh-sticky horo-reader-headline">
+                {displayedReading.headline}
+              </h2>
+            </header>
+          ) : null}
 
           <div className="horo-uni-body horo-reader-reading">
             {periodLocked ? (
@@ -279,8 +301,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                 <HoroscopeActivityBar
                   userId={profile.id ? String(profile.id) : undefined}
                   sign={displayedSign}
-                  date={today}
-                  period={period}
+                  date={displayedEngagementDate}
+                  period={displayedPeriod}
                   language={language}
                   onShare={() => shareToTelegram(language === 'ru'
                     ? `Гороскоп для знака ${displayedSignLabel} в «Твой гороскоп»`

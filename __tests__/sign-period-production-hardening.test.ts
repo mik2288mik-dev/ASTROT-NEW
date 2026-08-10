@@ -150,7 +150,7 @@ describe('sign horoscope API access and cache contract', () => {
     expect(source).not.toContain('chart_id =');
   });
 
-  it('uses an independent sign lock builder in cron prewarm and every sign API', () => {
+  it('uses one period-language batch lock in cron prewarm and every sign API', () => {
     for (const file of [
       'lib/horoscope/signPrewarm.ts',
       'pages/api/content/horoscope/sign-daily.ts',
@@ -159,6 +159,9 @@ describe('sign horoscope API access and cache contract', () => {
     ]) {
       expect(fs.readFileSync(path.join(ROOT, file), 'utf8')).toContain('buildSignHoroscopeLockKey');
     }
+    const lock = fs.readFileSync(path.join(ROOT, 'lib/horoscope/signGenerationLock.ts'), 'utf8');
+    expect(lock).not.toContain('sign: ZodiacKey');
+    expect(lock).toContain('sign-batch:');
   });
 
   it('releases a failed cron slot so partial prewarm can retry', () => {
@@ -167,6 +170,8 @@ describe('sign horoscope API access and cache contract', () => {
     expect(cron).toContain('lastRun.delete(job)');
     expect(prewarm).toContain('SIGN_HOROSCOPE_PREWARM_PARTIAL_FAILURE');
     expect(prewarm).toContain("result.status.startsWith('failed:')");
+    expect(prewarm).toContain("const PREWARM_LANGUAGES = ['ru'] as const");
+    expect(prewarm).not.toContain("['ru', 'en'] as const");
   });
 
   it('refreshes sign period keys after midnight and when the app becomes visible', () => {

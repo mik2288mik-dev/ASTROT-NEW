@@ -116,6 +116,13 @@ export const RATE_LIMIT_CONFIGS = {
     maxRequests: 20,
     name: 'lumi',
   },
+
+  /** Loading all 12 signs performs one view write and one reaction read per sign. */
+  HOROSCOPE_ENGAGEMENT: {
+    windowMs: 60 * 1000,
+    maxRequests: 60,
+    name: 'horoscope-engagement',
+  },
 };
 
 /**
