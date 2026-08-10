@@ -27,7 +27,6 @@
   margin: 0;
   color: var(--horo-reader-ink);
   font-size: clamp(28px, 7.4vw, 32px);
-  font-style: italic;
   font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.038em;
@@ -185,9 +184,10 @@
 .horo-reader-page .horo-reader-selected-sign {
   margin: 0 0 18px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   color: var(--horo-reader-ink);
   font-size: clamp(26px, 7.2vw, 30px);
   font-style: italic;
@@ -195,6 +195,23 @@
   line-height: 1;
   letter-spacing: -0.035em;
   text-align: center;
+}
+
+.horo-reader-page .horo-reader-selected-sign-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.horo-reader-page .horo-reader-selected-sign-range {
+  color: var(--horo-reader-muted);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .horo-reader-page .horo-reader-selected-symbol {

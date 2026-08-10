@@ -17,6 +17,7 @@ import { getHoroscopeEngagementDateKey } from '../../lib/horoscope/signEngagemen
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { canAccessFeature } from '../../lib/accessMatrix';
+import { APPROXIMATE_SUN_SIGN_DATES } from '../../lib/zodiac-utils';
 import {
   ensureDailySignHoroscope,
   ensureMonthlySignHoroscope,
@@ -37,6 +38,21 @@ function formatHoroscopePeriodDate(period: Period, periodKey: string, language: 
   if (period === 'week') return formatIsoWeekPeriodLabel(periodKey, language);
   if (period === 'month') return formatMonthPeriodLabel(periodKey, language);
   return formatDisplayDate(periodKey, language);
+}
+
+function formatZodiacDateRange(sign: ZodiacKey, language: 'ru' | 'en'): string {
+  const range = APPROXIMATE_SUN_SIGN_DATES[sign];
+  const formatter = new Intl.DateTimeFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
+  const formatBoundary = (month: number, day: number) => (
+    formatter.format(new Date(Date.UTC(2024, month - 1, day)))
+  );
+  const start = formatBoundary(range.startMonth, range.startDay);
+  const end = formatBoundary(range.endMonth, range.endDay);
+  return language === 'ru' ? `с ${start} по ${end}` : `${start} to ${end}`;
 }
 
 type ReadyReadingSnapshot = {
@@ -210,6 +226,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const displayedPeriod = displayed?.period ?? period;
   const displayedPeriodKey = displayedReading?.periodKey ?? periodKey;
   const displayedSignLabel = getZodiacSign(language, displayedSign);
+  const displayedSignDateRange = formatZodiacDateRange(displayedSign, language);
   const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
   const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
@@ -252,8 +269,11 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           transition={{ duration: reduceMotion ? 0.08 : 0.18, ease: 'easeOut' }}
         >
           <div className="horo-reader-selected-sign">
-            <span>{displayedSignLabel}</span>
-            <ZodiacSymbol sign={displayedSign} size={30} className="horo-reader-selected-symbol" />
+            <div className="horo-reader-selected-sign-main">
+              <span>{displayedSignLabel}</span>
+              <ZodiacSymbol sign={displayedSign} size={30} className="horo-reader-selected-symbol" />
+            </div>
+            <span className="horo-reader-selected-sign-range">{displayedSignDateRange}</span>
           </div>
 
           {displayedReading ? (
