@@ -1,10 +1,13 @@
 import {
+  PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE,
   PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS,
   buildPersonalForecastFeedPrompt,
   buildPersonalForecastNatalContext,
+  getPersonalForecastGenerationDiagnosticCode,
   getPersonalForecastSystemPrompt,
   parseGeneratedFeedPayload,
   PERSONAL_FORECAST_RESPONSE_SCHEMA,
+  selectPersonalForecastPromptEvidence,
   validateFreeGeneratedForecastFeed,
 } from '../lib/personalForecastGeneration';
 import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
@@ -107,6 +110,67 @@ describe('personal forecast concise direct-evidence writer', () => {
     expect(prompt).not.toContain('DominantPatterns');
     expect(prompt).not.toContain('meaning_seed');
     expect(PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS).toBe(2);
+  });
+
+  test('bounds a monthly writer prompt while preserving the strongest evidence kinds', () => {
+    const repeatedAspects = Array.from({ length: 30 }, (_, index) => ({
+      ...evidence[0],
+      id: `aspect-${index}`,
+      strength: 100 - index,
+      exactAt: `2026-08-${String((index % 28) + 1).padStart(2, '0')}T12:00:00.000Z`,
+    }));
+    const diverseEvidence = [
+      ...repeatedAspects,
+      {
+        ...evidence[0],
+        id: 'station-strong',
+        kind: 'station' as const,
+        transitPlanet: 'mercury',
+        natalPoint: null,
+        aspect: null,
+        house: null,
+        orb: null,
+        strength: 75,
+      },
+      {
+        ...evidence[0],
+        id: 'ingress-strong',
+        kind: 'ingress' as const,
+        transitPlanet: 'venus',
+        natalPoint: null,
+        aspect: null,
+        house: 5,
+        orb: null,
+        strength: 74,
+      },
+    ];
+
+    const selected = selectPersonalForecastPromptEvidence(diverseEvidence, 'month');
+
+    expect(selected).toHaveLength(PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE.month);
+    expect(selected.map((item) => item.id)).toEqual(expect.arrayContaining([
+      'aspect-0',
+      'station-strong',
+      'ingress-strong',
+    ]));
+
+    const prompt = buildPersonalForecastFeedPrompt({
+      language: 'en',
+      period: 'month',
+      window: resolvePersonalForecastWindow('month', '2026-08', 'Europe/Moscow'),
+      calculatedEvidence: diverseEvidence,
+      natalContext: {},
+    });
+    expect(prompt.match(/"id":/g)).toHaveLength(PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE.month);
+  });
+
+  test('maps writer failures to a safe, actionable diagnostic code', () => {
+    expect(getPersonalForecastGenerationDiagnosticCode(
+      new Error('PERSONAL_FORECAST_GENERATION_INVALID:contains chronological time segment'),
+    )).toBe('PERSONAL_FORECAST_WRITER_VALIDATION_FAILED');
+    expect(getPersonalForecastGenerationDiagnosticCode(
+      new Error('PERSONAL_FORECAST_WRITER_REQUEST_FAILED:OPENAI_RESPONSE_INCOMPLETE:max_output_tokens'),
+    )).toBe('PERSONAL_FORECAST_WRITER_INCOMPLETE');
   });
 
   test('passes only natal points touched by the period evidence', () => {

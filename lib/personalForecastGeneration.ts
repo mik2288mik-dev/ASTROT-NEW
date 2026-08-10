@@ -34,6 +34,13 @@ type ForecastWriterLanguage = 'ru' | 'en';
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
 
+/** Keep the month request focused enough for a strict structured response. */
+export const PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE: Record<PersonalForecastPeriod, number> = {
+  day: 48,
+  week: 64,
+  month: 24,
+};
+
 export const PERSONAL_FORECAST_WORD_LIMITS: Record<PersonalForecastPeriod, number> = {
   day: 150,
   week: 165,
@@ -204,6 +211,80 @@ type FactualEvidencePayload = {
   ingress: EvidenceCalculationResult['evidence'][number]['ingress'] | null;
 };
 
+function evidenceFactTime(item: EvidenceCalculationResult['evidence'][number]): number {
+  const raw = item.exactAt || item.startsAt || item.endsAt;
+  const parsed = raw ? Date.parse(raw) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
+}
+
+function evidenceStatusPriority(
+  status: EvidenceCalculationResult['evidence'][number]['status'],
+): number {
+  return {
+    exact: 5,
+    active: 4,
+    applying: 3,
+    separating: 2,
+    unknown: 1,
+  }[status];
+}
+
+function evidenceDiversityKey(item: EvidenceCalculationResult['evidence'][number]): string {
+  return [
+    item.kind,
+    item.transitPlanet || '',
+    item.natalPoint || '',
+    item.aspect || '',
+    item.house ?? '',
+  ].join(':');
+}
+
+/**
+ * The month can contain dozens of overlapping observations. Preserve the
+ * strongest data while forcing the prompt to retain different evidence kinds
+ * and not repeat one transit-to-natal pattern for the whole response.
+ */
+export function selectPersonalForecastPromptEvidence(
+  calculatedEvidence: EvidenceCalculationResult['evidence'],
+  period: PersonalForecastPeriod,
+): EvidenceCalculationResult['evidence'] {
+  const limit = PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE[period];
+  if (calculatedEvidence.length <= limit) return calculatedEvidence;
+
+  const ranked = [...calculatedEvidence].sort((a, b) => (
+    b.strength - a.strength
+    || evidenceStatusPriority(b.status) - evidenceStatusPriority(a.status)
+    || (a.orb ?? Number.MAX_SAFE_INTEGER) - (b.orb ?? Number.MAX_SAFE_INTEGER)
+    || evidenceFactTime(a) - evidenceFactTime(b)
+    || a.id.localeCompare(b.id)
+  ));
+  const selected: EvidenceCalculationResult['evidence'] = [];
+  const selectedIds = new Set<string>();
+  const selectedKinds = new Set<string>();
+  const add = (item: EvidenceCalculationResult['evidence'][number]) => {
+    if (selected.length >= limit || selectedIds.has(item.id)) return;
+    selected.push(item);
+    selectedIds.add(item.id);
+  };
+
+  for (const item of ranked) {
+    if (selectedKinds.has(item.kind)) continue;
+    add(item);
+    selectedKinds.add(item.kind);
+  }
+
+  const selectedPatterns = new Set(selected.map(evidenceDiversityKey));
+  for (const item of ranked) {
+    const pattern = evidenceDiversityKey(item);
+    if (selectedPatterns.has(pattern)) continue;
+    add(item);
+    selectedPatterns.add(pattern);
+  }
+
+  for (const item of ranked) add(item);
+  return selected;
+}
+
 function localForecastTimestamp(value: string | null, timezone: string): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -214,15 +295,11 @@ function localForecastTimestamp(value: string | null, timezone: string): string 
 function factualEvidencePayload(
   calculatedEvidence: EvidenceCalculationResult['evidence'],
   window: PersonalForecastWindow,
+  period: PersonalForecastPeriod,
 ): FactualEvidencePayload[] {
-  const factTime = (item: EvidenceCalculationResult['evidence'][number]): number => {
-    const raw = item.exactAt || item.startsAt || item.endsAt;
-    const parsed = raw ? Date.parse(raw) : Number.NaN;
-    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
-  };
-  return [...calculatedEvidence]
+  return [...selectPersonalForecastPromptEvidence(calculatedEvidence, period)]
     .sort((a, b) => (
-      factTime(a) - factTime(b)
+      evidenceFactTime(a) - evidenceFactTime(b)
       || (a.orb ?? Number.MAX_SAFE_INTEGER) - (b.orb ?? Number.MAX_SAFE_INTEGER)
       || a.id.localeCompare(b.id)
     ))
@@ -253,7 +330,11 @@ export function buildPersonalForecastFeedPrompt(input: {
   canonicalNatalReport?: unknown;
   repairErrors?: string[];
 }): string {
-  const evidence = factualEvidencePayload(input.calculatedEvidence, input.window);
+  const evidence = factualEvidencePayload(
+    input.calculatedEvidence,
+    input.window,
+    input.period,
+  );
   const repair = input.repairErrors?.length
     ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
     : '';
@@ -333,6 +414,32 @@ const CHRONOLOGICAL_TIME_SEGMENT_PATTERNS = [
 
 function containsChronologicalTimeSegment(value: string): boolean {
   return CHRONOLOGICAL_TIME_SEGMENT_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+export type PersonalForecastGenerationDiagnosticCode =
+  | 'PERSONAL_FORECAST_EVIDENCE_EMPTY'
+  | 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED'
+  | 'PERSONAL_FORECAST_WRITER_INCOMPLETE'
+  | 'PERSONAL_FORECAST_WRITER_UNAVAILABLE'
+  | 'PERSONAL_FORECAST_GENERATION_FAILED';
+
+/** Do not expose provider errors to clients; map them to stable UI states. */
+export function getPersonalForecastGenerationDiagnosticCode(
+  error: unknown,
+): PersonalForecastGenerationDiagnosticCode {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.startsWith('PERSONAL_FORECAST_EVIDENCE_EMPTY')) {
+    return 'PERSONAL_FORECAST_EVIDENCE_EMPTY';
+  }
+  if (message.startsWith('PERSONAL_FORECAST_GENERATION_INVALID')) {
+    return 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED';
+  }
+  if (message.startsWith('PERSONAL_FORECAST_WRITER_REQUEST_FAILED')) {
+    return message.includes('OPENAI_RESPONSE_INCOMPLETE')
+      ? 'PERSONAL_FORECAST_WRITER_INCOMPLETE'
+      : 'PERSONAL_FORECAST_WRITER_UNAVAILABLE';
+  }
+  return 'PERSONAL_FORECAST_GENERATION_FAILED';
 }
 
 function validatedEvidenceIds(
@@ -549,10 +656,15 @@ async function requestGeneratedFeed(input: {
   natalContext: Record<string, unknown>;
   onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
 }): Promise<GenerationResult> {
-  const availableEvidenceIds = new Set(input.calculatedEvidence.map((item) => item.id));
+  const promptEvidence = selectPersonalForecastPromptEvidence(
+    input.calculatedEvidence,
+    input.period,
+  );
+  const availableEvidenceIds = new Set(promptEvidence.map((item) => item.id));
   if (!availableEvidenceIds.size) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
 
   let errors: string[] = [];
+  let writerRequestFailures = 0;
   for (
     let attempt = 1;
     attempt <= PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS;
@@ -568,7 +680,7 @@ async function requestGeneratedFeed(input: {
           language: input.language,
           period: input.period,
           window: input.window,
-          calculatedEvidence: input.calculatedEvidence,
+          calculatedEvidence: promptEvidence,
           natalContext: input.natalContext,
           repairErrors: attempt === 2 ? errors : undefined,
         }),
@@ -579,6 +691,7 @@ async function requestGeneratedFeed(input: {
       content = response.content;
       usage = { inputTokens: response.inputTokens, outputTokens: response.outputTokens };
     } catch (error) {
+      writerRequestFailures += 1;
       errors = [`writer request failed: ${error instanceof Error ? error.message : String(error)}`];
       continue;
     }
@@ -624,6 +737,10 @@ async function requestGeneratedFeed(input: {
     }
     input.onMetrics?.({ model: input.model, ...usage, latencyMs: Date.now() - startedAt, validationPassed: false });
     errors = validation.errors;
+  }
+
+  if (writerRequestFailures === PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS) {
+    throw new Error(`PERSONAL_FORECAST_WRITER_REQUEST_FAILED:${errors.join(' | ')}`);
   }
 
   throw new Error(`PERSONAL_FORECAST_GENERATION_INVALID:${errors.join(' | ')}`);

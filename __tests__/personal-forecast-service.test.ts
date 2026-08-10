@@ -10,6 +10,7 @@ import {
   clearPersonalForecastSessionCache,
   loadPersonalForecast,
   readLocalPersonalForecast,
+  selectActiveReadyPersonalForecast,
 } from '../services/personalForecastService';
 import { chartFixture, personalForecastFixture } from './personal-forecast-fixture';
 
@@ -90,6 +91,24 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     storage.clear();
     clearPersonalForecastSessionCache();
     mockedApiFetch.mockReset();
+  });
+
+  it('never substitutes a ready daily forecast when the active monthly period is unavailable', () => {
+    const dailyResult = {
+      forecast: personalForecastFixture(),
+      accessTier: 'premium' as const,
+      lockedSectionIds: [],
+      periodLocked: false,
+      source: 'cache' as const,
+    };
+    const periodStates = {
+      day: { result: dailyResult },
+      week: { result: null },
+      month: { result: null },
+    };
+
+    expect(selectActiveReadyPersonalForecast('day', periodStates)).toBe(dailyResult);
+    expect(selectActiveReadyPersonalForecast('month', periodStates)).toBeNull();
   });
 
   it('shows saved content while a server refresh remains in flight', async () => {

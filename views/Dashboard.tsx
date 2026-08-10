@@ -29,6 +29,7 @@ import {
 import {
   loadPersonalForecast,
   readLocalPersonalForecast,
+  selectActiveReadyPersonalForecast,
   type PersonalForecastClientError,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
@@ -63,17 +64,12 @@ type DashboardProps = {
 type PeriodState = {
   result: PersonalForecastClientResult | null;
   phase: 'idle' | 'loading' | 'ready' | 'error';
+  errorCode: string | null;
 };
 
 type PeriodRequest = {
   cacheOnly: boolean;
   promise: Promise<void>;
-};
-
-type DisplayedForecast = {
-  identityKey: string;
-  period: PersonalForecastPeriod;
-  result: PersonalForecastClientResult;
 };
 
 const PERIOD_TABS: ReadonlyArray<{
@@ -105,7 +101,35 @@ function personalForecastLoadingLabel(
 }
 
 function emptyPeriodState(): PeriodState {
-  return { result: null, phase: 'idle' };
+  return { result: null, phase: 'idle', errorCode: null };
+}
+
+function personalForecastErrorMessage(
+  code: string | null,
+  language: 'ru' | 'en',
+): string {
+  if (language === 'en') {
+    if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
+      return 'This forecast text did not pass its quality check. Retry to recalculate only this period.';
+    }
+    if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
+      return 'The forecast response was incomplete. Retry to recalculate only this period.';
+    }
+    if (code === 'PERSONAL_FORECAST_EVIDENCE_EMPTY') {
+      return 'We could not collect enough data for this period yet. Retry this calculation.';
+    }
+    return 'Other sections remain available. You can retry only this calculation.';
+  }
+  if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
+    return 'Текст прогноза не прошёл внутреннюю проверку. Нажми «Повторить» — пересчитаем только этот период.';
+  }
+  if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
+    return 'Ответ для прогноза получился неполным. Нажми «Повторить» — пересчитаем только этот период.';
+  }
+  if (code === 'PERSONAL_FORECAST_EVIDENCE_EMPTY') {
+    return 'Для этого периода пока не удалось собрать достаточно данных. Повтори расчёт позже.';
+  }
+  return 'Остальные разделы доступны. Можно повторить только этот расчёт.';
 }
 
 type PersonalForecastPromoSlot = {
@@ -194,7 +218,6 @@ export const Dashboard = memo<DashboardProps>(({
     month: emptyPeriodState(),
   });
   const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
-  const [displayedForecast, setDisplayedForecast] = useState<DisplayedForecast | null>(null);
   const [unreadQuestions, setUnreadQuestions] =
     useState<PersonalForecastQuestionNotification[]>([]);
   const [focusQuestion, setFocusQuestion] =
@@ -228,16 +251,6 @@ export const Dashboard = memo<DashboardProps>(({
     userId,
   ]);
   const accessContextKey = `${contextKey}:${premium ? 'premium' : 'free'}`;
-  const forecastIdentityKey = [
-    userId,
-    chartId ?? 'primary',
-    chartData?.calculationVersion || 'none',
-    chartFingerprint,
-    timezone,
-    language,
-    premium ? 'premium' : 'free',
-  ].join(':');
-
   useEffect(() => {
     if (contextRef.current === contextKey) return;
     contextRef.current = contextKey;
@@ -259,21 +272,10 @@ export const Dashboard = memo<DashboardProps>(({
         periodKey: periodKeys[id],
       })]),
     ) as Record<PersonalForecastPeriod, PersonalForecastClientResult | null>;
-    const localDisplayPeriod = PERIOD_TABS.find(({ id }) => !!localResults[id])?.id;
-    const localDisplay = localDisplayPeriod
-      ? {
-          identityKey: forecastIdentityKey,
-          period: localDisplayPeriod,
-          result: localResults[localDisplayPeriod] as PersonalForecastClientResult,
-        }
-      : null;
-    setDisplayedForecast((current) => (
-      current?.identityKey === forecastIdentityKey ? current : localDisplay
-    ));
     setPeriodStates({
-      day: { result: localResults.day, phase: localResults.day ? 'ready' : 'idle' },
-      week: { result: localResults.week, phase: localResults.week ? 'ready' : 'idle' },
-      month: { result: localResults.month, phase: localResults.month ? 'ready' : 'idle' },
+      day: { result: localResults.day, phase: localResults.day ? 'ready' : 'idle', errorCode: null },
+      week: { result: localResults.week, phase: localResults.week ? 'ready' : 'idle', errorCode: null },
+      month: { result: localResults.month, phase: localResults.month ? 'ready' : 'idle', errorCode: null },
     });
   }, [
     chartData,
@@ -285,7 +287,6 @@ export const Dashboard = memo<DashboardProps>(({
     periodKeys.week,
     profile,
     chartFingerprint,
-    forecastIdentityKey,
     userId,
   ]);
 
@@ -319,6 +320,7 @@ export const Dashboard = memo<DashboardProps>(({
         [period]: {
           result: retained,
           phase: retained ? 'ready' : cacheOnly ? 'idle' : 'loading',
+          errorCode: null,
         },
       };
     });
@@ -348,7 +350,7 @@ export const Dashboard = memo<DashboardProps>(({
         ) return;
         setPeriodStates((current) => ({
           ...current,
-          [period]: { result: next, phase: 'ready' },
+          [period]: { result: next, phase: 'ready', errorCode: null },
         }));
       } catch (error) {
         if (
@@ -364,6 +366,7 @@ export const Dashboard = memo<DashboardProps>(({
             [period]: {
               result: current[period]?.result || local,
               phase: current[period]?.result || local ? 'ready' : 'idle',
+              errorCode: null,
             },
           }));
           void onRequestPremium?.('personal_forecast_feed', {
@@ -373,6 +376,8 @@ export const Dashboard = memo<DashboardProps>(({
           });
           return;
         }
+        const errorCode = (error as PersonalForecastClientError)?.code
+          || 'PERSONAL_FORECAST_GENERATION_FAILED';
         setPeriodStates((current) => {
           const retained = current[period]?.result || local;
           return {
@@ -380,6 +385,7 @@ export const Dashboard = memo<DashboardProps>(({
             [period]: {
               result: retained,
               phase: retained ? 'ready' : cacheOnly ? 'idle' : 'error',
+              errorCode: retained || cacheOnly ? null : errorCode,
             },
           };
         });
@@ -420,24 +426,9 @@ export const Dashboard = memo<DashboardProps>(({
   }, [loadPeriod, requestedPeriod]);
 
   const state = periodStates[activePeriod];
-  const activeResult = state.result;
-  const activeResultReady = activeResult?.forecast.meta.status === 'ready';
-  const display: DisplayedForecast | null = activeResultReady && activeResult
-    ? { identityKey: forecastIdentityKey, period: activePeriod, result: activeResult }
-    : state.phase !== 'error' && displayedForecast?.identityKey === forecastIdentityKey
-      ? displayedForecast
-      : null;
-  const displayPeriod = display?.period || activePeriod;
-  const result = display?.result || null;
+  const displayPeriod = activePeriod;
+  const result = selectActiveReadyPersonalForecast(activePeriod, periodStates);
   const forecast = result?.forecast || null;
-  useEffect(() => {
-    if (!activeResultReady || !activeResult) return;
-    setDisplayedForecast({
-      identityKey: forecastIdentityKey,
-      period: activePeriod,
-      result: activeResult,
-    });
-  }, [activePeriod, activeResult, activeResultReady, forecastIdentityKey]);
   const lockedIds = useMemo(
     () => new Set(result?.lockedSectionIds || []),
     [result?.lockedSectionIds],
@@ -690,11 +681,7 @@ export const Dashboard = memo<DashboardProps>(({
           {state.phase === 'error' ? (
             <>
               <h1>{language === 'ru' ? 'Прогноз пока не загрузился' : 'The forecast has not loaded yet'}</h1>
-              <p>
-                {language === 'ru'
-                  ? 'Остальные разделы доступны. Можно повторить только этот расчёт.'
-                  : 'Other sections remain available. You can retry only this calculation.'}
-              </p>
+              <p>{personalForecastErrorMessage(state.errorCode, language)}</p>
               <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
                 <RefreshCw size={17} aria-hidden />
                 {language === 'ru' ? 'Повторить' : 'Retry'}

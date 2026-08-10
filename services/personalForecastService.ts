@@ -38,6 +38,10 @@ export type PersonalForecastClientError = Error & {
   retryAfterMs?: number;
 };
 
+type PersonalForecastPeriodResultState = {
+  result: PersonalForecastClientResult | null;
+};
+
 const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v5';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
@@ -227,6 +231,23 @@ function writeStored(key: string, result: PersonalForecastClientResult): void {
   } catch {
     // A storage quota failure must not break the personal screen.
   }
+}
+
+/**
+ * A tab may render only its own ready package. Keeping the last successful
+ * package on screen made a failed month look like a valid daily forecast.
+ */
+export function selectActiveReadyPersonalForecast(
+  period: PersonalForecastPeriod,
+  states: Record<PersonalForecastPeriod, PersonalForecastPeriodResultState>,
+): PersonalForecastClientResult | null {
+  const candidate = states[period]?.result;
+  if (
+    !candidate
+    || candidate.forecast.period !== period
+    || candidate.forecast.meta.status !== 'ready'
+  ) return null;
+  return candidate;
 }
 
 function buildUrl(input: {

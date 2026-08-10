@@ -172,4 +172,36 @@ describe('personal forecast API entitlement', () => {
     expect(mockEnsurePersonalForecast).toHaveBeenCalledTimes(1);
     expect(json.mock.calls[0][0]).toMatchObject({ source: 'generated' });
   });
+
+  it('returns a safe diagnostic code when the structured writer rejects a monthly response', async () => {
+    mockGetPremiumEntitlementState.mockResolvedValueOnce({
+      isPremium: true,
+      entitlement: null,
+    });
+    mockEnsurePersonalForecast.mockRejectedValueOnce(new Error(
+      'PERSONAL_FORECAST_GENERATION_INVALID:contains chronological time segment',
+    ));
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { res, status, json } = responseMock();
+    const req = {
+      method: 'POST',
+      query: {},
+      body: { chartId: 7, period: 'month' },
+      headers: {},
+    } as unknown as NextApiRequest;
+
+    try {
+      await handler(req, res);
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    expect(status).toHaveBeenCalledWith(503);
+    expect(json.mock.calls[0][0]).toMatchObject({
+      code: 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED',
+      forecast: {
+        meta: { diagnosticCode: 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED' },
+      },
+    });
+  });
 });

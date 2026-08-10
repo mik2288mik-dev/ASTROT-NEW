@@ -16,7 +16,7 @@ import {
   type PersonalForecastPeriod,
   resolvePersonalForecastWindow,
 } from '../../../../lib/personalForecastContract';
-import { generatePersonalForecastPackage } from '../../../../lib/personalForecastGeneration';
+import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastGeneration';
 import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
 
 export const config = { maxDuration: 180 };
@@ -161,26 +161,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const diagnosticCode = getPersonalForecastGenerationDiagnosticCode(error);
     console.error('[personal-forecast-feed-v5] request failed', {
       userId,
       period,
       periodKey,
+      diagnosticCode,
       name: error instanceof Error ? error.name : 'UnknownError',
       message,
       stack: error instanceof Error ? error.stack : undefined,
     });
     return res.status(503).json({
       error: 'Personal forecast unavailable',
-      code: 'PERSONAL_FORECAST_GENERATION_FAILED',
+      code: diagnosticCode,
       forecast: createUnavailablePersonalForecast(
         period,
         periodKey,
         timezone,
         ctx.profile.language === 'en' ? 'en' : 'ru',
         'unavailable',
-        message.startsWith('PERSONAL_FORECAST_')
-          ? message.split(':')[0]
-          : 'PERSONAL_FORECAST_GENERATION_FAILED',
+        diagnosticCode,
       ),
     });
   }
