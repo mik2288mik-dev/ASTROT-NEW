@@ -37,10 +37,14 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('ensureWeeklySignHoroscope');
     expect(source).toContain('ensureMonthlySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
-    expect(source).toContain("'Общий фон'");
-    expect(source).toContain("'Общение'");
-    expect(source).toContain("'Дела'");
-    expect(source).toContain("'Вечер'");
+    expect(source).toContain('<p className="horo-sign-v2-intro">{displayedReading.mood.text}</p>');
+    expect(source).toContain('<p>{displayedReading.relationships.text}</p>');
+    expect(source).toContain('<p>{displayedReading.work.text}</p>');
+    expect(source).toContain('<p>{displayedReading.innerState.text}</p>');
+    expect(source).not.toContain("'Общий фон'");
+    expect(source).not.toContain("'Общение'");
+    expect(source).not.toContain("'Дела'");
+    expect(source).not.toContain("'Вечер'");
     expect(source).toContain('displayedReading.astrology.text');
     expect(source).toContain("../../components/AstrologyDetailsToggle");
     expect(astrologyToggle).toContain('export const AstrologyDetailsToggle');

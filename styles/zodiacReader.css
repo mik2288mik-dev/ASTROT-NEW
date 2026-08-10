@@ -194,30 +194,15 @@
 
 .horo-reader-page .horo-sign-v2-flow {
   display: grid;
-  gap: 24px;
+  gap: 18px;
   color: var(--horo-reader-ink);
 }
 
-.horo-reader-page .horo-sign-v2-section {
-  display: grid;
-  gap: 6px;
-}
-
-.horo-reader-page .horo-sign-v2-section h3,
-.horo-reader-page .horo-sign-v2-section p,
-.horo-reader-page .horo-sign-v2-warning {
+.horo-reader-page .horo-sign-v2-intro,
+.horo-reader-page .horo-sign-v2-flow > p,
+.horo-reader-page .horo-sign-v2-advice,
+.horo-reader-page .horo-sign-v2-warning p {
   margin: 0;
-}
-
-.horo-reader-page .horo-sign-v2-section h3 {
-  color: #24211e;
-  font-size: 15px;
-  font-weight: 680;
-  line-height: 1.25;
-  letter-spacing: -0.012em;
-}
-
-.horo-reader-page .horo-sign-v2-section p {
   color: #35312d;
   font-size: 14px;
   font-weight: 400;
@@ -230,6 +215,7 @@
 }
 
 .horo-reader-page .horo-sign-v2-warning {
+  margin: 0;
   margin-top: 2px;
   padding-left: 11px;
   border-left: 1px solid #c9b9a5;
@@ -268,13 +254,12 @@
   transform: translateX(12px);
 }
 
-.horo-reader-page .horo-sign-v2-section--astrology {
+.horo-reader-page .horo-sign-v2-flow--astrology {
   margin-top: 16px;
   color: var(--horo-reader-muted);
 }
 
-.horo-reader-page .horo-sign-v2-section--astrology h3,
-.horo-reader-page .horo-sign-v2-section--astrology p {
+.horo-reader-page .horo-sign-v2-flow--astrology > p {
   color: inherit;
 }
 

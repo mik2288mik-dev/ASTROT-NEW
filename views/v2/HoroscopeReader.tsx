@@ -262,26 +262,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
             ) : displayedReading ? (
               <>
                 <div className="horo-sign-v2-flow">
-                  <section className="horo-sign-v2-section">
-                    <h3>{language === 'ru' ? 'Общий фон' : 'Overall mood'}</h3>
-                    <p>{displayedReading.mood.text}</p>
-                  </section>
-                  <section className="horo-sign-v2-section">
-                    <h3>{language === 'ru' ? 'Общение' : 'Communication'}</h3>
-                    <p>{displayedReading.relationships.text}</p>
-                  </section>
-                  <section className="horo-sign-v2-section">
-                    <h3>{language === 'ru' ? 'Дела' : 'Plans'}</h3>
-                    <p>{displayedReading.work.text}</p>
-                  </section>
-                  <section className="horo-sign-v2-section">
-                    <h3>{language === 'ru' ? 'Вечер' : 'Evening'}</h3>
-                    <p>{displayedReading.innerState.text}</p>
-                    <p className="horo-sign-v2-advice">{displayedReading.advice.text}</p>
-                    {displayedReading.warning ? (
-                      <aside className="horo-sign-v2-warning"><p>{displayedReading.warning.text}</p></aside>
-                    ) : null}
-                  </section>
+                  <p className="horo-sign-v2-intro">{displayedReading.mood.text}</p>
+                  <p>{displayedReading.relationships.text}</p>
+                  <p>{displayedReading.work.text}</p>
+                  <p>{displayedReading.innerState.text}</p>
+                  <p className="horo-sign-v2-advice">{displayedReading.advice.text}</p>
+                  {displayedReading.warning ? (
+                    <aside className="horo-sign-v2-warning"><p>{displayedReading.warning.text}</p></aside>
+                  ) : null}
                 </div>
 
                 <div className="horo-reader-astrology-toggle-row">
@@ -294,10 +282,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                 </div>
 
                 {showAstrology ? (
-                  <section className="horo-sign-v2-section horo-sign-v2-section--astrology">
-                    <h3>{language === 'ru' ? 'На чём это основано' : 'What this is based on'}</h3>
-                    <p>{displayedReading.astrology.text}</p>
-                  </section>
+                  <div className="horo-sign-v2-flow horo-sign-v2-flow--astrology">
+                    <p className="horo-sign-v2-intro">{displayedReading.astrology.text}</p>
+                  </div>
                 ) : null}
               </>
             ) : null}
