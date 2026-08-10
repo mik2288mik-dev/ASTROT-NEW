@@ -111,11 +111,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
 
   // Shared sign readings are generated once for all 12 signs and both current
-  // languages. Evening Moscow runs prewarm tomorrow and, at boundaries, the
-  // next week/month. A missed cron is covered by the same batch lock in APIs.
+  // languages before anyone opens the reader. The batch cache keeps week/month
+  // work from repeating; evening Moscow additionally prewarms upcoming periods.
+  await once(
+    'sign-horoscope-current',
+    dateKey,
+    () => prewarmUpcomingSignHoroscopes(now),
+    ran,
+  );
   if (hour >= 18) {
     await once(
-      'sign-horoscope-periods',
+      'sign-horoscope-upcoming',
       dateKey,
       () => prewarmUpcomingSignHoroscopes(now),
       ran,

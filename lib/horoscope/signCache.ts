@@ -69,6 +69,7 @@ export function parseCachedSignReading(
     || !isBlock(reading.innerState)
     || !isBlock(reading.advice)
     || (reading.warning != null && !isBlock(reading.warning))
+    || !isBlock(reading.astrology)
   ) return null;
   return reading as SignHoroscopeReadingV2;
 }
@@ -105,6 +106,7 @@ function flattenReading(reading: SignHoroscopeReadingV2): string {
     reading.innerState.text,
     reading.advice.text,
     reading.warning?.text,
+    reading.astrology.text,
   ].filter(Boolean).join('\n\n');
 }
 

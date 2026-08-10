@@ -56,7 +56,7 @@ function reading(
 ): SignHoroscopeReadingV2 {
   const block = (text: string) => ({ text, evidenceIds: [evidenceId] });
   return {
-    schemaVersion: 'sign-horoscope-reading-v2',
+    schemaVersion: 'sign-horoscope-reading-v3',
     sign,
     period,
     periodKey,
@@ -67,6 +67,7 @@ function reading(
     innerState: block(`Inner state for ${sign}`),
     advice: block(`Advice for ${sign}`),
     warning: null,
+    astrology: block(`Mars and Venus form the calculated basis for ${sign}.`),
   };
 }
 
@@ -175,9 +176,35 @@ describe('Sign Horoscope V2 calculation contract', () => {
     ).ok).toBe(false);
   });
 
-  it('prewarms tomorrow plus next week/month at a Moscow boundary evening', () => {
+  it('rejects a shared sign reading that exceeds 130 words', () => {
+    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
+    const evidenceId = [...collectAllowedEvidenceIds(digest, 'Aries')][0];
+    const tooLong = Array.from({ length: 131 }, () => 'direct').join(' ');
+    expect(validateSignHoroscopeReading(
+      {
+        ...reading('Aries', 'day', digest.periodKey, evidenceId),
+        mood: { text: tooLong, evidenceIds: [evidenceId] },
+      },
+      { sign: 'Aries', period: 'day', periodKey: digest.periodKey, allowedEvidenceIds: collectAllowedEvidenceIds(digest, 'Aries') },
+    ).ok).toBe(false);
+  });
+
+  it('keeps technical astrology terms out of the forecast blocks', () => {
+    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
+    const evidenceId = [...collectAllowedEvidenceIds(digest, 'Aries')][0];
+    expect(validateSignHoroscopeReading(
+      {
+        ...reading('Aries', 'day', digest.periodKey, evidenceId),
+        mood: { text: 'Mars makes every answer urgent.', evidenceIds: [evidenceId] },
+      },
+      { sign: 'Aries', period: 'day', periodKey: digest.periodKey, allowedEvidenceIds: collectAllowedEvidenceIds(digest, 'Aries') },
+    ).ok).toBe(false);
+  });
+
+  it('prewarms the current day plus tomorrow and next week/month at a Moscow boundary evening', () => {
     const targets = getSignPrewarmTargets(new Date('2026-05-31T16:00:00.000Z'));
     expect(targets).toEqual(expect.arrayContaining([
+      { period: 'day', periodKey: '2026-05-31' },
       { period: 'day', periodKey: '2026-06-01' },
       expect.objectContaining({ period: 'week' }),
       { period: 'month', periodKey: '2026-06' },

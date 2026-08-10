@@ -49,7 +49,11 @@ function moscowWeekday(now: Date): number {
 
 export function getSignPrewarmTargets(now: Date): SignPrewarmTarget[] {
   const today = getMoscowTodayKey(now);
-  const targets: SignPrewarmTarget[] = [];
+  const targets: SignPrewarmTarget[] = [
+    { period: 'day', periodKey: today },
+    { period: 'week', periodKey: getMoscowIsoWeekKey(now) },
+    { period: 'month', periodKey: getMoscowMonthKey(now) },
+  ];
   if (moscowHour(now) >= 18) {
     targets.push({ period: 'day', periodKey: nextDateKey(today) });
   }

@@ -3,10 +3,12 @@ import type {
   SignHoroscopeReadingV2,
   SignHoroscopeTextBlock,
 } from '../../types';
+import { hasAppVoiceViolation } from '../appVoice';
 import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
 
-export const SIGN_HOROSCOPE_READING_SCHEMA_VERSION = 'sign-horoscope-reading-v2' as const;
-export const SIGN_HOROSCOPE_CACHE_VERSION = 'sign-horoscope-batch-v2.1' as const;
+export const SIGN_HOROSCOPE_READING_SCHEMA_VERSION = 'sign-horoscope-reading-v3' as const;
+export const SIGN_HOROSCOPE_CACHE_VERSION = 'sign-horoscope-batch-v3.1-human-copy' as const;
+export const MAX_SIGN_HOROSCOPE_WORDS = 130;
 
 const BLOCK_KEYS = [
   'mood',
@@ -15,6 +17,7 @@ const BLOCK_KEYS = [
   'innerState',
   'advice',
 ] as const;
+const ASTROLOGY_TERMS = /\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|planet|aspect|transit|retrograde|natal|zodiac|horoscope|ruler|ascendant|conjunction|opposition|trine|sextile|orb|astrological\s+houses?|whole-sign\s+house|solar\s+house)\b|(?:солнц|лун|меркур|венер|марс|юпитер|сатурн|уран|нептун|плутон|планет|аспект|транзит|ретроград|натал|зодиак|гороскоп|управител|асцендент|соединени|оппозиц|трин|секстил|орб|астрологическ[а-яё]*\s+дом|солнечн[а-яё]*\s+дом|дом[а-яё]*\s+от\s+знака)/iu;
 
 export type SignHoroscopeBlockKey = (typeof BLOCK_KEYS)[number];
 
@@ -24,6 +27,10 @@ export type SignReadingValidationResult =
 
 function cleanText(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/u).filter(Boolean).length;
 }
 
 function normalizeEvidenceIds(value: unknown, allowedEvidenceIds: ReadonlySet<string>): string[] {
@@ -41,6 +48,7 @@ function normalizeBlock(
   allowedEvidenceIds: ReadonlySet<string>,
   path: string,
   issues: string[],
+  options: { allowAstrologyTerms?: boolean } = {},
 ): SignHoroscopeTextBlock | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     issues.push(`${path} must be an object`);
@@ -50,6 +58,12 @@ function normalizeBlock(
   const text = cleanText(raw.text);
   const evidenceIds = normalizeEvidenceIds(raw.evidenceIds ?? raw.evidence_ids, allowedEvidenceIds);
   if (!text) issues.push(`${path}.text is required`);
+  if (text && !options.allowAstrologyTerms && ASTROLOGY_TERMS.test(text)) {
+    issues.push(`${path}.text must use plain life language without astrology terms`);
+  }
+  if (text && !options.allowAstrologyTerms && hasAppVoiceViolation(text)) {
+    issues.push(`${path}.text does not match the app voice`);
+  }
   if (!evidenceIds.length) issues.push(`${path}.evidenceIds must cite supplied evidence`);
   return text && evidenceIds.length ? { text, evidenceIds } : null;
 }
@@ -76,6 +90,8 @@ export function validateSignHoroscopeReading(
   const headlineWords = headline ? headline.split(/\s+/).length : 0;
   if (!headline) issues.push('headline is required');
   if (headlineWords < 2 || headlineWords > 8) issues.push('headline must contain 2-8 words');
+  if (headline && ASTROLOGY_TERMS.test(headline)) issues.push('headline must use plain life language without astrology terms');
+  if (headline && hasAppVoiceViolation(headline)) issues.push('headline does not match the app voice');
 
   const blocks = {} as Record<SignHoroscopeBlockKey, SignHoroscopeTextBlock | null>;
   for (const key of BLOCK_KEYS) {
@@ -86,27 +102,46 @@ export function validateSignHoroscopeReading(
   if (input.warning != null) {
     warning = normalizeBlock(input.warning, expected.allowedEvidenceIds, 'warning', issues);
   }
+  const astrology = normalizeBlock(input.astrology, expected.allowedEvidenceIds, 'astrology', issues, { allowAstrologyTerms: true });
 
-  if (issues.length || !sign || BLOCK_KEYS.some((key) => !blocks[key])) {
+  if (issues.length || !sign || !astrology || BLOCK_KEYS.some((key) => !blocks[key])) {
     return { ok: false, issues };
   }
 
-  return {
-    ok: true,
-    reading: {
-      schemaVersion: SIGN_HOROSCOPE_READING_SCHEMA_VERSION,
-      sign,
-      period: expected.period,
-      periodKey: expected.periodKey,
-      headline,
-      mood: blocks.mood!,
-      relationships: blocks.relationships!,
-      work: blocks.work!,
-      innerState: blocks.innerState!,
-      advice: blocks.advice!,
-      warning,
-    },
+  const reading: SignHoroscopeReadingV2 = {
+    schemaVersion: SIGN_HOROSCOPE_READING_SCHEMA_VERSION,
+    sign,
+    period: expected.period,
+    periodKey: expected.periodKey,
+    headline,
+    mood: blocks.mood!,
+    relationships: blocks.relationships!,
+    work: blocks.work!,
+    innerState: blocks.innerState!,
+    advice: blocks.advice!,
+    warning,
+    astrology,
   };
+
+  const readingWords = [
+    reading.headline,
+    reading.mood.text,
+    reading.relationships.text,
+    reading.work.text,
+    reading.innerState.text,
+    reading.advice.text,
+    reading.warning?.text,
+    reading.astrology.text,
+  ].filter((text): text is string => Boolean(text)).reduce((total, text) => total + countWords(text), 0);
+
+  if (readingWords > MAX_SIGN_HOROSCOPE_WORDS) {
+    return { ok: false, issues: [`reading exceeds ${MAX_SIGN_HOROSCOPE_WORDS} words`] };
+  }
+  if (countWords(reading.advice.text) > 18) {
+    return { ok: false, issues: ['advice exceeds 18 words'] };
+  }
+
+  return { ok: true, reading };
 }
 
 export function extractRawSignReadings(payload: unknown): unknown[] {

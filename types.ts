@@ -275,7 +275,7 @@ export interface SignHoroscopeTextBlock {
  * Ephemeris fact supplied with the request.
  */
 export interface SignHoroscopeReadingV2 {
-  schemaVersion: 'sign-horoscope-reading-v2';
+  schemaVersion: 'sign-horoscope-reading-v3';
   sign: string;
   period: SignHoroscopePeriod;
   periodKey: string;
@@ -286,6 +286,8 @@ export interface SignHoroscopeReadingV2 {
   innerState: SignHoroscopeTextBlock;
   advice: SignHoroscopeTextBlock;
   warning: SignHoroscopeTextBlock | null;
+  /** Technical calculation context, shown only on the astrology tab. */
+  astrology: SignHoroscopeTextBlock;
 }
 
 export type DailyAstroSignalLayerKey = 'energy' | 'focus' | 'emotions' | 'money' | 'relationships';

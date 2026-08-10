@@ -11,7 +11,7 @@ interface ZodiacSignGridProps {
   onPick: (sign: string) => void;
 }
 
-/** Persistent compact picker: every sign remains one tap away while reading. */
+/** Persistent sign grid: every sign remains visible and one tap away. */
 export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
   signs,
   active,
@@ -43,7 +43,7 @@ export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
               aria-pressed={isActive}
               onClick={() => onPick(sign)}
             >
-              <ZodiacSymbol sign={sign} size={20} />
+              <ZodiacSymbol sign={sign} size={30} />
               <span>{label}</span>
               {isOwnSign ? <i aria-hidden /> : null}
             </button>

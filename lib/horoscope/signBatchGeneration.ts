@@ -42,8 +42,8 @@ export type SignBatchModelRunner = (request: {
 
 const PERIOD_INSTRUCTIONS: Record<SignHoroscopePeriod, { ru: string; en: string }> = {
   day: {
-    ru: 'Дай короткий срез московского дня: настроение, отношения, дела и деньги, внутреннее состояние, одно конкретное действие и предупреждение только при реальном напряжённом факторе.',
-    en: 'Give a concise snapshot of the Moscow day: mood, relationships, work and money, inner state, one concrete action, and a warning only when a real tense factor supports it.',
+    ru: 'Дай цельный короткий срез московского дня без глобальных выводов по одному дню.',
+    en: 'Give one coherent concise snapshot of the Moscow day without drawing global conclusions from one day.',
   },
   week: {
     ru: 'Собери главный вектор и несколько действительно разных фокусов недели. Учитывай движение факторов внутри недели, не превращай ответ в семь дневных заметок.',
@@ -82,7 +82,7 @@ function outputContract(language: Language) {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['sign', 'period', 'headline', 'mood', 'relationships', 'work', 'innerState', 'advice', 'warning'],
+          required: ['sign', 'period', 'headline', 'mood', 'relationships', 'work', 'innerState', 'advice', 'warning', 'astrology'],
           properties: {
             sign: { type: 'string', description: 'One supplied canonical English zodiac key' },
             period: { type: 'string', enum: ['day', 'week', 'month'] },
@@ -104,6 +104,7 @@ function outputContract(language: Language) {
               ],
               description: 'Use null when no calculated tense factor supports a warning.',
             },
+            astrology: blockSchema,
           },
         },
       },
@@ -119,6 +120,10 @@ Write all requested signs in one JSON response. Treat modern and traditional co-
 Every block must cite at least one evidenceId that exists in the supplied shared sky or that sign's rulers/solar-house placements.
 The whole-sign house is a solar-sign house for a general sign horoscope, never a personal natal house.
 Do not use generic filler or identical text with sign names swapped. Positive openings matter as much as risk.
+The fields mood, relationships, work, and innerState are consecutive paragraphs of one reading, not mandatory life topics. Let the calculated facts decide the life context.
+Their combined text must not exceed 130 words. Keep advice to one short sentence of no more than 18 words.
+Write mood, relationships, work, innerState, advice, and warning in direct everyday language: no planet names, signs, houses, aspects, transits, or retrograde jargon.
+Put the concise factual technical explanation in astrology only, and ground it in its cited evidence.
 Return JSON only and preserve the exact field names. Do not add Markdown.`
     : `Ты интерпретируешь детерминированный дайджест Swiss Ephemeris для общего гороскопа по солнечному знаку.
 Расчёт уже завершён. Никогда не пересчитывай, не меняй и не выдумывай положения, знаки, дома, аспекты или даты.
@@ -126,6 +131,10 @@ Return JSON only and preserve the exact field names. Do not add Markdown.`
 Каждый блок обязан сослаться минимум на один evidenceId из общего неба либо из управителей/solar-house выбранного знака.
 Whole-sign house здесь является домом от солнечного знака для общего гороскопа, а не личным натальным домом.
 Не пиши универсальную воду и одинаковый текст с заменой названия знака. Хорошие возможности важны наравне с рисками.
+Поля mood, relationships, work и innerState — последовательные абзацы одного разбора, а не обязательные жизненные темы. Жизненный контекст выбирай только по расчётным фактам.
+Их общий объём — не больше 130 слов. Advice — одна короткая фраза не больше 18 слов.
+В mood, relationships, work, innerState, advice и warning используй прямой человеческий язык: без названий планет, знаков, домов, аспектов, транзитов и ретроградности.
+Короткое фактическое техническое объяснение помещай только в astrology и привязывай его к указанным evidenceId.
 Верни только JSON с точными именами полей, без Markdown.`;
   return `${getAppSystemVoice(language === 'en' ? 'en' : 'ru')}\n\n${task}`;
 }
@@ -149,10 +158,12 @@ function promptUser(
     ? `Generate readings only for targetSigns. ${periodInstruction}
 Use the complete supplied numeric/structural calculation and decide the main story for each sign yourself.
 Do not copy a ready-made interpretation: none is supplied. Do not rank factors by array order.
+Keep the main reading at 130 words or fewer, with the short advice separate. The astrology field is the only field for technical astrology terms.
 The response must contain exactly one valid reading per target sign.`
     : `Сгенерируй разборы только для targetSigns. ${periodInstruction}
 Используй полный переданный числовой и структурный расчёт и сам выбери главный сюжет каждого знака.
 Не перефразируй готовую трактовку: её во входе нет. Не считай порядок массивов рейтингом важности.
+Основной разбор — не больше 130 слов, короткий совет идёт отдельно. Поле astrology — единственное место для технических астрологических терминов.
 В ответе должен быть ровно один валидный разбор на каждый целевой знак.`;
 
   return JSON.stringify({

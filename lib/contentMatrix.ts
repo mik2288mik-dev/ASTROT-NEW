@@ -57,17 +57,17 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
     style: 'Текст должен целиком помещаться в одну карточку.', placements: ['home'], generationPolicy: 'once_per_day',
   },
   sign_daily_horoscope: {
-    type: 'sign_daily_horoscope', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 110, max: 180 },
+    type: 'sign_daily_horoscope', featureKey: 'daily_sign_horoscope', modelTier: 'fast', words: { min: 55, max: 130 },
     cacheTtl: '24h', cacheScope: 'shared', promptVersion: 'sign_daily_horoscope.v5', purpose: 'Гороскоп по знаку на день из полного Swiss-дайджеста',
     style: 'Короткий срез дня: отношения, дела, внутреннее состояние и конкретный совет, каждый вывод с evidence id.', placements: ['horoscope'], generationPolicy: 'once_per_day', batchSize: 12,
   },
   sign_weekly_horoscope: {
-    type: 'sign_weekly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 150, max: 230 },
+    type: 'sign_weekly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 55, max: 130 },
     cacheTtl: '7d', cacheScope: 'shared', promptVersion: 'sign_weekly_horoscope.v5', purpose: 'Гороскоп по знаку на неделю из полного Swiss-дайджеста',
     style: 'Главный вектор и разные фокусы недели без семи дневных пересказов; каждый вывод с evidence id.', placements: ['horoscope'], generationPolicy: 'once_per_week', batchSize: 12,
   },
   sign_monthly_horoscope: {
-    type: 'sign_monthly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 180, max: 270 },
+    type: 'sign_monthly_horoscope', featureKey: 'weekly_sign_horoscope', modelTier: 'fast', words: { min: 55, max: 130 },
     cacheTtl: '30d', cacheScope: 'shared', promptVersion: 'sign_monthly_horoscope.v3', purpose: 'Гороскоп по знаку на месяц из полного Swiss-дайджеста',
     style: 'Стратегический разбор месяца с медленными факторами и конкретными окнами быстрых планет; каждый вывод с evidence id.', placements: ['horoscope'], generationPolicy: 'once_per_month', batchSize: 12,
   },
