@@ -544,8 +544,12 @@ export function UnionRoom(props: UnionRoomProps) {
             submitAdd();
           }}
         >
+          <h2 className="compat-entry-who-title">
+            {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
+          </h2>
+
           <fieldset className="compat-entry-person">
-            <legend>{ru ? 'Человек 1' : 'Person 1'}</legend>
+            <legend>{profile.name?.trim() || (ru ? 'Один человек' : 'One person')}</legend>
             <div className="compat-self-identity">
               <strong>{profile.name?.trim() || (ru ? 'Ты' : 'You')}</strong>
               <span>
@@ -561,7 +565,7 @@ export function UnionRoom(props: UnionRoomProps) {
           </fieldset>
 
           <fieldset className="compat-entry-person">
-            <legend>{ru ? 'Человек 2' : 'Person 2'}</legend>
+            <legend>{fName.trim() || (ru ? 'Другой человек' : 'The other person')}</legend>
             <div className="union-form">
               <div>
                 <label className="fresh-field-label" htmlFor="compat-person-name">{ru ? 'Имя' : 'Name'}</label>

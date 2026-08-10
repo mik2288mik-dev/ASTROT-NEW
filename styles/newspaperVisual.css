@@ -1565,13 +1565,25 @@
   margin-left: auto !important;
 }
 
-.compat-editorial-page .compat-page-heading,
+.compat-editorial-page .compat-page-heading {
+  margin-top: 22px !important;
+  margin-bottom: 18px !important;
+}
+
 .compat-editorial-page--result .compat-result-heading {
   margin-top: 28px !important;
   margin-bottom: 22px !important;
 }
 
-.compat-editorial-page .compat-page-heading h1,
+.compat-editorial-page .compat-page-heading h1 {
+  margin: 0;
+  color: #171717;
+  font-size: clamp(30px, 7.5vw, 38px);
+  font-weight: 620;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+}
+
 .compat-editorial-page--result .compat-result-heading h1 {
   margin: 0;
   color: #171717;
@@ -1581,9 +1593,13 @@
   line-height: 1.02;
 }
 
+.compat-editorial-page--add .compat-page-heading h1 {
+  padding-left: 46px;
+}
+
 .compat-editorial-page .compat-page-heading p {
   max-width: 31rem;
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   color: #626262;
   font-size: 14px;
   line-height: 1.5;
@@ -1628,18 +1644,39 @@
 
 .compat-editorial-page .compat-entry-form {
   display: grid;
-  gap: 28px;
+  gap: 18px;
   padding: 0 0 8px;
+}
+
+.compat-editorial-page .compat-entry-who-title {
+  margin: 0 0 2px;
+  color: #171717;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
 .compat-editorial-page .compat-entry-person {
   min-width: 0;
   margin: 0;
-  padding: 0;
-  border: 0 !important;
+  padding: 15px;
+  border: 1px solid #e3e3e3 !important;
+  border-radius: 14px;
+  background: #ffffff;
 }
 
-.compat-editorial-page .compat-entry-person > legend,
+.compat-editorial-page .compat-entry-person > legend {
+  width: auto;
+  margin: 0 0 10px;
+  padding: 0 5px;
+  color: #252525;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
 .compat-editorial-page .compat-entry-context > h2 {
   width: 100%;
   margin: 0 0 13px;
@@ -1653,7 +1690,7 @@
 
 .compat-editorial-page .compat-self-identity {
   display: flex;
-  min-height: 50px;
+  min-height: 44px;
   box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
@@ -1684,7 +1721,7 @@
 }
 
 .compat-editorial-page .compat-entry-person > div + div {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .compat-editorial-page .compat-entry-form :is(.union-form, .compat-context-picker) {
@@ -1703,31 +1740,34 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
   box-sizing: border-box;
-  margin-top: 7px;
-  padding: 4px;
+  margin-top: 6px;
+  padding: 3px;
   border: 1px solid #e1e1e1;
   border-radius: 12px;
   background: #ffffff !important;
 }
 
 .compat-editorial-page .compat-entry-person .compat-gender-btn {
-  min-height: 42px;
+  min-height: 38px;
   border-radius: 9px;
 }
 
 .compat-editorial-page .compat-entry-person .compat-gender-btn.is-on {
-  background: #171717 !important;
-  color: #ffffff !important;
+  background: #eeeeee !important;
+  color: #171717 !important;
   box-shadow: none !important;
 }
 
 .compat-editorial-page .compat-optional-details {
+  margin-top: 2px;
+  padding-top: 4px;
   border: 0 !important;
+  border-top: 1px solid #ececec !important;
 }
 
 .compat-editorial-page .compat-optional-details > summary {
   display: flex;
-  min-height: 44px;
+  min-height: 40px;
   align-items: center;
   justify-content: space-between;
   color: #555555;
@@ -1839,24 +1879,32 @@
 
 .compat-editorial-page .union-form {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   margin-top: 0 !important;
-  padding: 6px 0 8px;
+  padding: 2px 0 0;
 }
 
 .compat-editorial-page .union-form .fresh-field-label {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
   color: #272727;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 620;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.compat-editorial-page .union-form > div {
+  min-width: 0;
 }
 
 .compat-editorial-page .union-form .fresh-input {
   box-sizing: border-box;
   width: 100%;
-  min-height: 50px;
-  padding: 0 14px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
   border: 1px solid #e1e1e1;
   border-radius: 12px;
   background: #ffffff;
@@ -1867,21 +1915,35 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
-  padding: 4px;
+  padding: 3px;
   border: 1px solid #e1e1e1;
   border-radius: 12px;
   background: #ffffff !important;
 }
 
 .compat-editorial-page .union-form .compat-gender-btn {
-  min-height: 42px;
+  min-height: 38px;
   border-radius: 9px;
 }
 
 .compat-editorial-page .union-form .compat-gender-btn.is-on {
-  background: #171717 !important;
-  color: #ffffff !important;
+  background: #eeeeee !important;
+  color: #171717 !important;
   box-shadow: none;
+}
+
+.lumia-app-shell:has(.compat-editorial-page--add) .lumia-side-drawer-menu-button {
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+}
+
+.lumia-app-shell:has(.compat-editorial-page--add) .lumia-side-drawer-menu-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .compat-editorial-page .compat-optional-fields {
