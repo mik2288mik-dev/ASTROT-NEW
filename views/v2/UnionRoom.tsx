@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../types';
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import { getZodiacSign } from '../../constants';
-import { hasActivePremium, hasNatalChart } from '../../lib/accessMatrix';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import { getCharts, type ChartListItem } from '../../services/storageService';
 import { getSignCompatibility, calculateExtendedSynastry } from '../../services/astrologyService';
 import { formatDisplayDate, toDateInputValue } from '../../lib/date-utils';
@@ -87,6 +87,79 @@ function GenderToggle({ value, onChange, ru, compact = false, labelledBy }: { va
       <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'female' ? 'is-on is-active' : ''}`} aria-pressed={value === 'female'} onClick={() => { lumiaSelectionHaptic(); onChange('female'); }}>
         {compact ? (ru ? 'Ж' : 'F') : (ru ? 'Женщина' : 'Female')}
       </button>
+    </div>
+  );
+}
+
+function PersonBirthFields({
+  prefix,
+  ru,
+  name,
+  date,
+  time,
+  place,
+  gender,
+  unknownTime,
+  onNameChange,
+  onDateChange,
+  onTimeChange,
+  onPlaceChange,
+  onGenderChange,
+  onUnknownTimeChange,
+}: {
+  prefix: string;
+  ru: boolean;
+  name: string;
+  date: string;
+  time: string;
+  place: string;
+  gender: CompatGender;
+  unknownTime: boolean;
+  onNameChange: (value: string) => void;
+  onDateChange: (value: string) => void;
+  onTimeChange: (value: string) => void;
+  onPlaceChange: (value: string) => void;
+  onGenderChange: (value: CompatGender) => void;
+  onUnknownTimeChange: (value: boolean) => void;
+}) {
+  const genderLabelId = `${prefix}-gender-label`;
+  return (
+    <div className="compat-person-fields">
+      <div className="compat-person-primary-row">
+        <div>
+          <label className="fresh-field-label" htmlFor={`${prefix}-name`}>{ru ? 'Имя' : 'Name'}</label>
+          <input id={`${prefix}-name`} className="fresh-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Например, Анна' : 'e.g. Anna'} autoComplete="name" />
+        </div>
+        <div className="compat-person-gender-field">
+          <span id={genderLabelId} className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
+          <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
+        </div>
+      </div>
+
+      <div className="compat-birth-row">
+        <div>
+          <label className="fresh-field-label" htmlFor={`${prefix}-date`}>{ru ? 'Дата рождения' : 'Birth date'}</label>
+          <input id={`${prefix}-date`} className="fresh-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
+        </div>
+        <div className={unknownTime ? 'is-disabled' : ''}>
+          <label className="fresh-field-label" htmlFor={`${prefix}-time`}>{ru ? 'Время' : 'Time'}</label>
+          <input id={`${prefix}-time`} className="fresh-input" type="time" value={time} disabled={unknownTime} onChange={(event) => onTimeChange(event.target.value)} />
+        </div>
+      </div>
+
+      <label className="compat-unknown-time">
+        <input
+          type="checkbox"
+          checked={unknownTime}
+          onChange={(event) => onUnknownTimeChange(event.target.checked)}
+        />
+        <span>{ru ? 'Не знаю точное время рождения' : 'I do not know the exact birth time'}</span>
+      </label>
+
+      <div>
+        <label className="fresh-field-label" htmlFor={`${prefix}-place`}>{ru ? 'Место рождения' : 'Birth place'}</label>
+        <input id={`${prefix}-place`} className="fresh-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
+      </div>
     </div>
   );
 }
@@ -342,12 +415,11 @@ function CompatBlock({ title, index, reduce, children }: {
 }
 
 export function UnionRoom(props: UnionRoomProps) {
-  const { profile, chartData, chartId, requestPremium, initialPrefill, onOpenCharts, onCreateNatalChart } = props;
+  const { profile, chartData, chartId, requestPremium, initialPrefill, onOpenCharts } = props;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
   const reduce = useReducedMotion();
 
-  const hasChart = hasNatalChart(profile, { chartData, primaryChartId: chartId ?? null });
   const premium = hasActivePremium(profile);
   const yourSun = useMemo(
     () => String(chartData?.sun?.sign || profile.selectedZodiacSign || sunSignFromDate(profile.birthDate) || 'aries').toLowerCase(),
@@ -359,11 +431,10 @@ export function UnionRoom(props: UnionRoomProps) {
   const initialThemGender: CompatGender = initialYouGender === 'male' ? 'female' : 'male';
 
   const [screen, setScreen] = useState<'add' | 'result'>(initialPrefill ? 'result' : 'add');
-  const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(premium && hasChart ? 'birth' : 'sign');
+  const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(premium ? 'birth' : 'sign');
   const [availableCharts, setAvailableCharts] = useState<ChartListItem[]>([]);
-  const [people, setPeople] = useState<ChartListItem[]>([]);
   const [peopleLoaded, setPeopleLoaded] = useState(false);
-  const [firstChartId, setFirstChartId] = useState<number | null>(chartId ?? null);
+  const [firstChartId, setFirstChartId] = useState<number | null>(null);
   const [secondChartId, setSecondChartId] = useState<number | null>(initialPrefill?.partnerChartId ?? null);
   const [history, setHistory] = useState<CompatHistoryEntry[]>([]);
   const [pickSign, setPickSign] = useState<string>(() => ZODIAC_KEYS.find((s) => s.toLowerCase() !== yourSun) || ZODIAC_KEYS[0]);
@@ -394,6 +465,11 @@ export function UnionRoom(props: UnionRoomProps) {
       : null,
   );
 
+  const [sName, setSName] = useState('');
+  const [sDate, setSDate] = useState('');
+  const [sTime, setSTime] = useState('');
+  const [sPlace, setSPlace] = useState('');
+  const [sUnknownTime, setSUnknownTime] = useState(false);
   const [fName, setFName] = useState(initialPrefill?.partnerName || '');
   const [fDate, setFDate] = useState(() => toDateInputValue(initialPrefill?.partnerDate || ''));
   const [fTime, setFTime] = useState(initialPrefill?.partnerTime || '');
@@ -410,7 +486,6 @@ export function UnionRoom(props: UnionRoomProps) {
   useEffect(() => {
     if (!profile.id || !premium) {
       setAvailableCharts([]);
-      setPeople([]);
       setPeopleLoaded(true);
       return;
     }
@@ -418,27 +493,23 @@ export function UnionRoom(props: UnionRoomProps) {
     void getCharts(profile.id)
       .then((d) => {
         const readable = (d.charts || []).filter((chart) => !chart.archived_at && !chart.access_locked);
-        const saved = readable.filter((chart) => chart.subject_type === 'saved_person');
         setAvailableCharts(readable);
-        setPeople(saved);
-        setFirstChartId((current) => {
-          if (current && readable.some((chart) => chart.id === current)) return current;
-          return readable.find((chart) => chart.subject_type === 'self')?.id ?? chartId ?? null;
-        });
+        setFirstChartId((current) => (
+          current && readable.some((chart) => chart.id === current) ? current : null
+        ));
         setSecondChartId((current) => (
           current && readable.some((chart) => chart.id === current) ? current : null
         ));
       })
       .catch(() => {
         setAvailableCharts([]);
-        setPeople([]);
       })
       .finally(() => setPeopleLoaded(true));
   }, [profile.id, premium, chartId]);
 
   useEffect(() => {
-    if (!premium || !hasChart) setEntryMode('sign');
-  }, [premium, hasChart]);
+    if (!premium) setEntryMode('sign');
+  }, [premium]);
 
   useEffect(() => {
     if (firstChartId == null || secondChartId !== firstChartId) return;
@@ -586,36 +657,35 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const submitAdd = () => {
     if (!premium) { requestPremium(); return; }
-    if (!firstChart?.id) {
-      setError(ru ? 'Выбери первую сохранённую карту.' : 'Choose the first saved chart.');
-      return;
-    }
-    if (secondChartId != null && secondChartId === firstChart.id) {
+    if (firstChartId != null && secondChartId != null && secondChartId === firstChartId) {
       setError(ru ? 'Для сравнения нужны две разные карты.' : 'Choose two different charts.');
       return;
     }
+    const subjectName = firstChart?.name || sName.trim();
+    const subjectDate = firstChart?.birth_date || sDate;
+    const subjectPlace = firstChart?.birth_place || sPlace.trim();
     const partnerName = secondChart?.name || fName.trim();
     const partnerDate = secondChart?.birth_date || fDate;
     const partnerPlace = secondChart?.birth_place || fPlace.trim();
-    if (!partnerName || !partnerDate || !partnerPlace) {
-      setError(ru ? 'Выбери сохранённую карту или добавь имя, дату и место рождения.' : 'Choose a saved chart or add a name, birth date and birth place.');
+    if (!subjectName || !subjectDate || !subjectPlace || !partnerName || !partnerDate || !partnerPlace) {
+      setError(ru ? 'Для обоих людей укажи имя, дату и место рождения.' : 'Add a name, birth date and birth place for both people.');
       return;
     }
     setError(null);
     openResult({
       kind: 'person',
       relationshipContext,
-      subjectChartId: firstChart.id,
-      subjectName: firstChart.name,
-      subjectDate: firstChart.birth_date,
-      subjectTime: firstChart.birth_time || undefined,
-      subjectPlace: firstChart.birth_place || undefined,
+      subjectChartId: firstChart?.id,
+      subjectName,
+      subjectDate,
+      subjectTime: firstChart?.birth_time || (sUnknownTime ? undefined : (sTime || undefined)),
+      subjectPlace,
       name: partnerName,
       date: partnerDate,
       time: secondChart?.birth_time || (unknownTime ? undefined : (fTime || undefined)),
       place: partnerPlace,
       chartId: secondChart?.id,
-      youSign: String(firstChart.chart_data?.sun?.sign || yourSun).toLowerCase(),
+      youSign: String(firstChart?.chart_data?.sun?.sign || sunSignFromDate(subjectDate) || yourSun).toLowerCase(),
       youGender,
       themGender: fGender,
     });
@@ -623,7 +693,6 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const runDeep = useCallback(async () => {
     if (!selected || selected.kind !== 'person' || deepLoading) return;
-    if (!hasChart) { onCreateNatalChart?.(); return; }
     if (!premium) { requestPremium(); return; }
     if (
       (selected.chartId != null && (!peopleLoaded || !availableCharts.some((chart) => chart.id === selected.chartId)))
@@ -634,7 +703,7 @@ export function UnionRoom(props: UnionRoomProps) {
       return;
     }
     const requestKey = [
-      selected.subjectChartId || 'self',
+      selected.subjectChartId || `${selected.subjectName || ''}:${selected.subjectDate || ''}`,
       selected.chartId || `${selected.name || ''}:${selected.date || ''}`,
       selected.relationshipContext,
     ].join('|');
@@ -650,6 +719,12 @@ export function UnionRoom(props: UnionRoomProps) {
         context.backendValue,
         selected.chartId,
         selected.subjectChartId,
+        {
+          name: selected.subjectName || '',
+          date: selected.subjectDate || '',
+          time: selected.subjectTime,
+          place: selected.subjectPlace,
+        },
       );
       if (autoDeepKeyRef.current === requestKey) setDeep(out.result);
     } catch (e: any) {
@@ -659,19 +734,19 @@ export function UnionRoom(props: UnionRoomProps) {
     } finally {
       if (autoDeepKeyRef.current === requestKey) setDeepLoading(false);
     }
-  }, [selected, deepLoading, hasChart, onCreateNatalChart, premium, requestPremium, peopleLoaded, availableCharts, profile, ru]);
+  }, [selected, deepLoading, premium, requestPremium, peopleLoaded, availableCharts, profile, ru]);
 
   useEffect(() => {
-    if (screen !== 'result' || selected?.kind !== 'person' || !premium || !hasChart || !peopleLoaded) return;
+    if (screen !== 'result' || selected?.kind !== 'person' || !premium || !peopleLoaded) return;
     const key = [
-      selected.subjectChartId || 'self',
+      selected.subjectChartId || `${selected.subjectName || ''}:${selected.subjectDate || ''}`,
       selected.chartId || `${selected.name || ''}:${selected.date || ''}`,
       selected.relationshipContext,
     ].join('|');
     if (autoDeepKeyRef.current === key) return;
     autoDeepKeyRef.current = key;
     void runDeep();
-  }, [screen, selected, premium, hasChart, peopleLoaded, runDeep]);
+  }, [screen, selected, premium, peopleLoaded, runDeep]);
 
   /* ── ДОБАВЛЕНИЕ ── */
   if (screen === 'add') {
@@ -696,10 +771,6 @@ export function UnionRoom(props: UnionRoomProps) {
               lumiaSelectionHaptic();
               if (!premium) {
                 requestPremium();
-                return;
-              }
-              if (!hasChart) {
-                onCreateNatalChart?.();
                 return;
               }
               setError(null);
@@ -735,51 +806,68 @@ export function UnionRoom(props: UnionRoomProps) {
                 <h2 className="compat-entry-who-title">
                   {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
                 </h2>
-                {onOpenCharts ? (
-                  <button type="button" className="compat-entry-add-chart" onClick={onOpenCharts}>
-                    {ru ? '+ Добавить карту' : '+ Add a chart'}
-                  </button>
-                ) : null}
               </div>
 
               <fieldset className="compat-entry-person">
                 <legend className="compat-person-legend">
                   <strong>{ru ? 'Один человек' : 'One person'}</strong>
-                  {firstChart?.name ? <small>{firstChart.name}</small> : null}
                 </legend>
-                <label className="compat-chart-select-label" htmlFor="compat-first-chart">
-                  {ru ? 'Сохранённая карта' : 'Saved chart'}
-                </label>
-                <select
-                  id="compat-first-chart"
-                  className="compat-chart-select"
-                  value={firstChartId ?? ''}
-                  onChange={(event) => {
-                    lumiaSelectionHaptic();
-                    setFirstChartId(event.target.value ? Number(event.target.value) : null);
+                <PersonBirthFields
+                  prefix="compat-first-person"
+                  ru={ru}
+                  name={sName}
+                  date={sDate}
+                  time={sTime}
+                  place={sPlace}
+                  gender={youGender}
+                  unknownTime={sUnknownTime}
+                  onNameChange={(value) => { setFirstChartId(null); setSName(value); }}
+                  onDateChange={(value) => { setFirstChartId(null); setSDate(value); }}
+                  onTimeChange={(value) => { setFirstChartId(null); setSTime(value); }}
+                  onPlaceChange={(value) => { setFirstChartId(null); setSPlace(value); }}
+                  onGenderChange={setYouGender}
+                  onUnknownTimeChange={(value) => {
+                    setFirstChartId(null);
+                    setSUnknownTime(value);
+                    if (value) setSTime('');
                   }}
-                >
-                  <option value="" disabled>{peopleLoaded ? (ru ? 'Выберите карту' : 'Choose a chart') : (ru ? 'Загружаем карты…' : 'Loading charts…')}</option>
-                  {availableCharts.map((chart) => (
-                    <option key={chart.id} value={chart.id}>
-                      {chart.name}{chart.subject_type === 'self' ? (ru ? ' · основная' : ' · primary') : ''}
-                    </option>
-                  ))}
-                </select>
-                <div className="compat-self-identity">
-                  <strong>{getZodiacSign(lang, String(firstChart?.chart_data?.sun?.sign || yourSun))}</strong>
-                  <span>
-                    {[
-                      firstChart?.birth_date ? formatDisplayDate(firstChart.birth_date, lang) : (profile.birthDate ? formatDisplayDate(profile.birthDate, lang) : null),
-                      firstChart?.birth_time || profile.birthTime || null,
-                      firstChart?.birth_place || profile.birthPlace || null,
-                    ].filter(Boolean).join(' · ') || (ru ? 'Данные рождения не указаны' : 'Birth data is not set')}
-                  </span>
-                </div>
-                <div>
-                  <span id="compat-self-gender-label" className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
-                  <GenderToggle value={youGender} onChange={setYouGender} ru={ru} labelledBy="compat-self-gender-label" />
-                </div>
+                />
+                <details className="compat-saved-picker">
+                  <summary>{ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'}</summary>
+                  <div className="compat-saved-picker-body">
+                    <select
+                      id="compat-first-chart"
+                      className="compat-chart-select"
+                      value={firstChartId ?? 'manual'}
+                      onChange={(event) => {
+                        lumiaSelectionHaptic();
+                        if (event.target.value === 'manual') {
+                          setFirstChartId(null);
+                          setSName(''); setSDate(''); setSTime(''); setSPlace(''); setSUnknownTime(false);
+                          return;
+                        }
+                        const nextId = Number(event.target.value);
+                        const nextChart = availableCharts.find((chart) => chart.id === nextId);
+                        setFirstChartId(nextId);
+                        if (nextChart) {
+                          setSName(nextChart.name);
+                          setSDate(toDateInputValue(nextChart.birth_date));
+                          setSTime(nextChart.birth_time || '');
+                          setSPlace(nextChart.birth_place || '');
+                          setSUnknownTime(!nextChart.birth_time);
+                        }
+                      }}
+                    >
+                      <option value="manual">{peopleLoaded ? (ru ? 'Ввести данные вручную' : 'Enter details manually') : (ru ? 'Загружаем карты…' : 'Loading charts…')}</option>
+                      {availableCharts.map((chart) => (
+                        <option key={chart.id} value={chart.id} disabled={chart.id === secondChartId}>
+                          {chart.name}{chart.subject_type === 'self' ? (ru ? ' · основная' : ' · primary') : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {onOpenCharts ? <button type="button" className="compat-entry-add-chart" onClick={onOpenCharts}>{ru ? '+ Добавить новую карту' : '+ Add a new chart'}</button> : null}
+                  </div>
+                </details>
               </fieldset>
 
               <div className="compat-person-divider" aria-hidden="true"><span>+</span></div>
@@ -787,11 +875,30 @@ export function UnionRoom(props: UnionRoomProps) {
               <fieldset className="compat-entry-person">
                 <legend className="compat-person-legend">
                   <strong>{ru ? 'Другой человек' : 'Another person'}</strong>
-                  {secondChart?.name || fName.trim() ? <small>{secondChart?.name || fName.trim()}</small> : null}
                 </legend>
-                <div className="union-form">
-                  <div>
-                    <label className="fresh-field-label" htmlFor="compat-second-chart">{ru ? 'Сохранённая карта или новые данные' : 'Saved chart or new details'}</label>
+                <PersonBirthFields
+                  prefix="compat-second-person"
+                  ru={ru}
+                  name={fName}
+                  date={fDate}
+                  time={fTime}
+                  place={fPlace}
+                  gender={fGender}
+                  unknownTime={unknownTime}
+                  onNameChange={(value) => { setSecondChartId(null); setFName(value); }}
+                  onDateChange={(value) => { setSecondChartId(null); setFDate(value); }}
+                  onTimeChange={(value) => { setSecondChartId(null); setFTime(value); }}
+                  onPlaceChange={(value) => { setSecondChartId(null); setFPlace(value); }}
+                  onGenderChange={setFGender}
+                  onUnknownTimeChange={(value) => {
+                    setSecondChartId(null);
+                    setUnknownTime(value);
+                    if (value) setFTime('');
+                  }}
+                />
+                <details className="compat-saved-picker">
+                  <summary>{ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'}</summary>
+                  <div className="compat-saved-picker-body">
                     <select
                       id="compat-second-chart"
                       className="compat-chart-select"
@@ -800,6 +907,7 @@ export function UnionRoom(props: UnionRoomProps) {
                         lumiaSelectionHaptic();
                         if (event.target.value === 'manual') {
                           setSecondChartId(null);
+                          setFName(''); setFDate(''); setFTime(''); setFPlace(''); setUnknownTime(false);
                           return;
                         }
                         const nextId = Number(event.target.value);
@@ -821,61 +929,9 @@ export function UnionRoom(props: UnionRoomProps) {
                         </option>
                       ))}
                     </select>
+                    {onOpenCharts ? <button type="button" className="compat-entry-add-chart" onClick={onOpenCharts}>{ru ? '+ Добавить новую карту' : '+ Add a new chart'}</button> : null}
                   </div>
-                  {secondChartId == null ? (
-                    <>
-                      <div>
-                        <label className="fresh-field-label" htmlFor="compat-person-name">{ru ? 'Имя' : 'Name'}</label>
-                        <input id="compat-person-name" className="fresh-input" value={fName} onChange={(event) => setFName(event.target.value)} placeholder={ru ? 'Например, Аня' : 'e.g. Alex'} autoComplete="name" />
-                      </div>
-                      <div className="compat-birth-row">
-                        <div>
-                          <label className="fresh-field-label" htmlFor="compat-person-birth-date">{ru ? 'Дата рождения' : 'Birth date'}</label>
-                          <input id="compat-person-birth-date" className="fresh-input" type="date" value={fDate} onChange={(event) => setFDate(event.target.value)} />
-                        </div>
-                        <div className={unknownTime ? 'is-disabled' : ''}>
-                          <label className="fresh-field-label" htmlFor="compat-person-time">{ru ? 'Время' : 'Time'}</label>
-                          <input
-                            id="compat-person-time"
-                            className="fresh-input"
-                            type="time"
-                            value={fTime}
-                            disabled={unknownTime}
-                            onChange={(event) => setFTime(event.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <label className="compat-unknown-time">
-                        <input
-                          type="checkbox"
-                          checked={unknownTime}
-                          onChange={(event) => {
-                            setUnknownTime(event.target.checked);
-                            if (event.target.checked) setFTime('');
-                          }}
-                        />
-                        <span>{ru ? 'Не знаю точное время рождения' : 'I do not know the exact birth time'}</span>
-                      </label>
-                      <div>
-                        <label className="fresh-field-label" htmlFor="compat-person-place">{ru ? 'Место рождения' : 'Birth place'}</label>
-                        <input id="compat-person-place" className="fresh-input" value={fPlace} onChange={(event) => setFPlace(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
-                      </div>
-                    </>
-                  ) : secondChart ? (
-                    <div className="compat-self-identity">
-                      <strong>{getZodiacSign(lang, String(secondChart.chart_data?.sun?.sign || sunSignFromDate(secondChart.birth_date)))}</strong>
-                      <span>
-                        {[formatDisplayDate(secondChart.birth_date, lang), secondChart.birth_time || null, secondChart.birth_place || null]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    </div>
-                  ) : null}
-                  <div>
-                    <span id="compat-person-gender-label" className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
-                    <GenderToggle value={fGender} onChange={setFGender} ru={ru} labelledBy="compat-person-gender-label" />
-                  </div>
-                </div>
+                </details>
               </fieldset>
 
               <section className="compat-entry-context" aria-labelledby="compat-context-title">
@@ -893,11 +949,6 @@ export function UnionRoom(props: UnionRoomProps) {
               <button type="submit" className="fresh-btn-primary compat-entry-submit">
                 {ru ? 'Сравнить' : 'Compare'}
               </button>
-              <p className="compat-entry-note compat-entry-note--centered">
-                {ru
-                  ? 'Точное время улучшает расчёт, но можно продолжить и без него.'
-                  : 'Exact birth time improves the calculation, but you can continue without it.'}
-              </p>
             </form>
 
             {history.length ? (
@@ -1098,10 +1149,10 @@ export function UnionRoom(props: UnionRoomProps) {
           <div className="horo-premium-text">
             <div className="horo-premium-kicker">{ru ? 'Сравнение по двум картам' : 'Two-chart comparison'}</div>
             <div className="horo-premium-title">
-              {deepLoading ? (ru ? 'Собираю по картам…' : 'Building from charts…') : !hasChart ? (ru ? 'Нужна твоя карта' : 'Your chart needed') : !premium ? (ru ? 'Глубокий разбор по двум картам — в Premium' : 'Deep two-chart reading — Premium') : (ru ? 'Разбор по двум картам' : 'Read both charts')}
+              {deepLoading ? (ru ? 'Собираю по картам…' : 'Building from charts…') : !premium ? (ru ? 'Глубокий разбор по двум картам — в Premium' : 'Deep two-chart reading — Premium') : (ru ? 'Разбор по двум картам' : 'Read both charts')}
             </div>
           </div>
-          <span className="horo-premium-cta">{!hasChart ? (ru ? 'Создать' : 'Create') : !premium ? 'Premium' : (ru ? 'Открыть' : 'Open')}<ChevronRightIcon size={15} /></span>
+          <span className="horo-premium-cta">{!premium ? 'Premium' : (ru ? 'Открыть' : 'Open')}<ChevronRightIcon size={15} /></span>
         </button>
       ) : (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} onClick={() => {

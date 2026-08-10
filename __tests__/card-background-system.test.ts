@@ -62,10 +62,9 @@ describe('card background UI wiring', () => {
     expect(sectionBlock).toContain("hasVisual ? 'has-visual' : 'has-visual-fallback'");
     expect(sectionBlock).toContain('style={style}');
     expect(promotion).toContain('<PromoBanner');
-    expect(promoBanner).toContain('selectPromoBanner');
-    expect(promoBanner).toContain('loading="lazy"');
-    expect(promoBanner).toContain('data-banner-shape={shape}');
-    expect(promoBanner).toContain('data-banner-layout={layout}');
+    expect(promoBanner).toContain('return null;');
+    expect(promoBanner).not.toContain('selectPromoBanner');
+    expect(promoBanner).not.toContain('<picture');
     expect(feedStyles).toContain("data-banner-shape='compact'");
     expect(feedStyles).toContain('.forecast-feed-promo-pair');
     expect(feedStyles).toContain('aspect-ratio: 4 / 3');

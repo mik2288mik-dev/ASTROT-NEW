@@ -13,6 +13,10 @@ export function buildSynastryExtendedCacheKey(
   language: string,
   partnerTime = '',
   partnerPlace = '',
+  subjectName = '',
+  subjectDate = '',
+  subjectTime = '',
+  subjectPlace = '',
 ) {
   const raw = [
     userId,
@@ -22,6 +26,10 @@ export function buildSynastryExtendedCacheKey(
     partnerDate,
     partnerTime.trim(),
     partnerPlace.trim().toLowerCase(),
+    subjectName.trim().toLowerCase(),
+    subjectDate,
+    subjectTime.trim(),
+    subjectPlace.trim().toLowerCase(),
     relationshipType,
     language,
     getContentPolicy('deep_report').promptVersion,

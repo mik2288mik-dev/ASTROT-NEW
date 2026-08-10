@@ -141,6 +141,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     relationshipType,
     partnerChartId,
     subjectChartId,
+    subjectName,
+    subjectDate,
+    subjectTime,
+    subjectPlace,
   } = req.body || {};
 
   const hasSubjectChartId = subjectChartId !== undefined
@@ -211,35 +215,51 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   let userChartData: SynastryChartData | null = null;
   let partnerChartData: SynastryChartData | null = null;
 
+  const resolvedManualSubjectName = String(subjectName || '').trim();
+  const resolvedManualSubjectDate = String(subjectDate || '').trim();
+  const resolvedManualSubjectTime = String(subjectTime || '').trim();
+  const resolvedManualSubjectPlace = String(subjectPlace || '').trim();
+  const hasManualSubject = requestedSubjectChartId === null
+    && Boolean(resolvedManualSubjectName && resolvedManualSubjectDate && resolvedManualSubjectPlace);
+
   primaryChartRecord = requestedSubjectChartId !== null
     ? await db.natal_charts.getById(requestedSubjectChartId)
-    : await db.natal_charts.getPrimary(userId);
-  if (!primaryChartRecord || String(primaryChartRecord.user_id) !== userId) {
+    : hasManualSubject
+      ? null
+      : await db.natal_charts.getPrimary(userId);
+  if (primaryChartRecord) {
+    if (String(primaryChartRecord.user_id) !== userId) {
+      return res.status(404).json({
+        error: 'First chart not found',
+        code: 'SUBJECT_CHART_NOT_FOUND',
+        message: langRu ? 'Первая сохранённая карта не найдена.' : 'The first saved chart was not found.',
+      });
+    }
+    try {
+      assertChartReadable(primaryChartRecord, isPremium);
+    } catch (error) {
+      if (error instanceof ChartAccessPolicyError) {
+        return res.status(error.status).json({
+          error: error.message,
+          code: error.code,
+          premiumRequired: error.code === 'PREMIUM_REQUIRED',
+        });
+      }
+      throw error;
+    }
+    userChartData = (primaryChartRecord.chart_data as SynastryChartData) || null;
+    if (!primaryChartRecord.id || !userChartData) {
+      return res.status(409).json({
+        error: 'Natal chart required',
+        code: 'NEEDS_CHART',
+        message: langRu ? 'В первой карте нет готового расчёта.' : 'The first chart has no calculation.',
+      });
+    }
+  } else if (!hasManualSubject) {
     return res.status(404).json({
       error: 'First chart not found',
       code: 'SUBJECT_CHART_NOT_FOUND',
-      message: langRu ? 'Первая сохранённая карта не найдена.' : 'The first saved chart was not found.',
-    });
-  }
-  try {
-    assertChartReadable(primaryChartRecord, isPremium);
-  } catch (error) {
-    if (error instanceof ChartAccessPolicyError) {
-      return res.status(error.status).json({
-        error: error.message,
-        code: error.code,
-        premiumRequired: error.code === 'PREMIUM_REQUIRED',
-      });
-    }
-    throw error;
-  }
-  userChartData = (primaryChartRecord?.chart_data as SynastryChartData) || null;
-
-  if (!primaryChartRecord?.id || !userChartData) {
-    return res.status(409).json({
-      error: 'Natal chart required',
-      code: 'NEEDS_CHART',
-      message: langRu ? 'В первой карте нет готового расчёта.' : 'The first chart has no calculation.',
+      message: langRu ? 'Добавь данные первого человека.' : 'Add the first person details.',
     });
   }
 
@@ -264,7 +284,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
       throw error;
     }
-    if (partnerChartRecord.id === primaryChartRecord.id) {
+    if (primaryChartRecord?.id && partnerChartRecord.id === primaryChartRecord.id) {
       return res.status(400).json({
         error: 'Select two different charts',
         code: 'CHART_PAIR_DUPLICATE',
@@ -276,11 +296,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const subjectProfile = {
     ...profile,
-    name: String(primaryChartRecord.name || profile.name || '').trim(),
-    birthDate: String(primaryChartRecord.birth_date || profile.birthDate || '').trim(),
-    birthTime: String(primaryChartRecord.birth_time ?? profile.birthTime ?? '').trim(),
-    birthPlace: String(primaryChartRecord.birth_place || profile.birthPlace || '').trim(),
+    name: String(primaryChartRecord?.name || resolvedManualSubjectName || profile.name || '').trim(),
+    birthDate: String(primaryChartRecord?.birth_date || resolvedManualSubjectDate || profile.birthDate || '').trim(),
+    birthTime: String(primaryChartRecord?.birth_time ?? resolvedManualSubjectTime ?? profile.birthTime ?? '').trim(),
+    birthPlace: String(primaryChartRecord?.birth_place || resolvedManualSubjectPlace || profile.birthPlace || '').trim(),
   } as UserProfile;
+  const primaryChartId = primaryChartRecord?.id ?? null;
   const resolvedPartnerName = String(partnerChartRecord?.name || partnerName || '').trim();
   const resolvedPartnerDate = String(partnerChartRecord?.birth_date || partnerDate || '').trim();
   const resolvedPartnerTime = String(partnerChartRecord?.birth_time ?? partnerTime ?? '').trim();
@@ -312,7 +333,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const contentCacheKey = buildSynastryExtendedCacheKey(
     userId,
-    primaryChartRecord.id,
+    primaryChartId,
     partnerChartRecord?.id ?? null,
     resolvedPartnerName,
     resolvedPartnerDate,
@@ -320,13 +341,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     currentLanguage,
     resolvedPartnerTime,
     resolvedPartnerPlace,
+    subjectProfile.name,
+    subjectProfile.birthDate,
+    subjectProfile.birthTime || '',
+    subjectProfile.birthPlace || '',
   );
 
   logContentApi(
     {
       scope: SCOPE,
       userId,
-      chartId: primaryChartRecord.id,
+      chartId: primaryChartId,
       surface: 'synastry',
       variant: 'full',
     },
@@ -339,7 +364,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const cachedResult = await loadCachedSynastry(
     userId,
-    primaryChartRecord.id,
+    primaryChartId,
     partnerChartRecord?.id ?? null,
     contentCacheKey
   );
@@ -349,7 +374,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       {
         scope: SCOPE,
         userId,
-        chartId: primaryChartRecord.id,
+        chartId: primaryChartId,
         surface: 'synastry',
         variant: 'full',
       },
@@ -365,6 +390,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       fromCache: true,
       accessTier: 'premium',
     });
+  }
+
+  if (!userChartData) {
+    userChartData = await calculateNatalChart(
+      subjectProfile.name,
+      subjectProfile.birthDate || '',
+      subjectProfile.birthTime || '',
+      subjectProfile.birthPlace || '',
+    );
   }
 
   if (!partnerChartData) {
@@ -384,7 +418,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     {
       scope: SCOPE,
       userId,
-      chartId: primaryChartRecord.id,
+      chartId: primaryChartId,
       surface: 'synastry',
       variant: 'full',
     },
@@ -438,9 +472,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const { modelTier } = modelAssignment;
 
-    if (partnerChartRecord?.id) {
+    if (primaryChartId && partnerChartRecord?.id) {
       await db.synastry.set(
-        primaryChartRecord.id,
+        primaryChartId,
         partnerChartRecord.id,
         'extended',
         contentCacheKey,
@@ -460,21 +494,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       legacySource: 'synastry.full.premium',
     };
 
-    await db.content_interpretations.upsertByChart(
-      primaryChartRecord.id,
-      interpretationData,
-      userId
-    );
+    if (primaryChartId) {
+      await db.content_interpretations.upsertByChart(
+        primaryChartId,
+        interpretationData,
+        userId
+      );
+    }
 
-    if (partnerChartRecord?.id) {
+    if (primaryChartId && partnerChartRecord?.id) {
       try {
         await persistSavedSynastryHistory({
           userId,
-          subjectChartId: primaryChartRecord.id,
+          subjectChartId: primaryChartId,
           counterpartChartId: partnerChartRecord.id,
           subjectChart: userChartData,
           counterpartChart: partnerChartData,
-          subjectBirthTime: primaryChartRecord.birth_time,
+          subjectBirthTime: primaryChartRecord?.birth_time || subjectProfile.birthTime,
           counterpartBirthTime: partnerChartRecord.birth_time,
           inputHash: contentCacheKey,
           language: currentLanguage,
@@ -498,7 +534,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       {
         scope: SCOPE,
         userId,
-        chartId: primaryChartRecord.id,
+        chartId: primaryChartId,
         surface: 'synastry',
         variant: 'full',
       },
@@ -520,7 +556,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     {
       scope: SCOPE,
       userId,
-      chartId: primaryChartRecord.id,
+      chartId: primaryChartId,
       surface: 'synastry',
       variant: 'full',
     },

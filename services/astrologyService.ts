@@ -1083,6 +1083,12 @@ export const calculateExtendedSynastry = async (
   relationshipType?: string,
   partnerChartId?: number,
   subjectChartId?: number,
+  subject?: {
+    name: string;
+    date: string;
+    time?: string;
+    place?: string;
+  },
 ): Promise<SynastryExtendedApiOutcome> => {
   const url = `${API_BASE_URL}/api/content/synastry/extended`;
   log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate });
@@ -1099,6 +1105,10 @@ export const calculateExtendedSynastry = async (
       relationshipType,
       partnerChartId,
       subjectChartId,
+      subjectName: subject?.name,
+      subjectDate: subject?.date,
+      subjectTime: subject?.time,
+      subjectPlace: subject?.place,
     }),
   });
 

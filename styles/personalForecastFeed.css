@@ -1044,6 +1044,11 @@
   margin: 20px auto 26px;
 }
 
+.forecast-feed-promo-pair:empty {
+  display: none;
+  margin: 0;
+}
+
 .forecast-feed-page
   .forecast-feed-promo-pair
   .forecast-feed-promo-space {

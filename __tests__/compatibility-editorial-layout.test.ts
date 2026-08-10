@@ -14,7 +14,7 @@ describe('compatibility editorial layout', () => {
     expect(room.match(/compat-editorial-page compat-editorial-page--/g)).toHaveLength(2);
     expect(room).toContain('compat-editorial-page--add');
     expect(room).toContain('compat-editorial-page--result');
-    expect(room).toContain("if (!hasChart) { onCreateNatalChart?.(); return; }");
+    expect(room).not.toContain("if (!hasChart) { onCreateNatalChart?.(); return; }");
     expect(room).toContain("if (!premium) { requestPremium(); return; }");
     expect(room).toContain('loadCompatHistory');
     expect(room).toContain('calculateExtendedSynastry');
@@ -55,6 +55,27 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab.is-active::after');
     expect(styles).toContain('.compat-editorial-page--add .compat-entry-person');
     expect(styles).toContain('border: 0 !important;');
+  });
+
+  it('starts both people in manual mode and keeps saved charts optional', () => {
+    const room = read('views/v2/UnionRoom.tsx');
+    const service = read('services/astrologyService.ts');
+    const extendedApi = read('pages/api/content/synastry/extended.ts');
+    const addStart = room.indexOf("if (screen === 'add')");
+    const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
+    const addFlow = room.slice(addStart, addEnd);
+
+    expect(room).toContain("const [firstChartId, setFirstChartId] = useState<number | null>(null)");
+    expect(room).toContain('function PersonBirthFields');
+    expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
+    expect(addFlow.match(/<details className="compat-saved-picker">/g)).toHaveLength(2);
+    expect(addFlow).toContain("ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'");
+    expect(addFlow).not.toContain("className=\"compat-chart-select-label\"");
+    expect(addFlow).not.toContain("firstChart?.name ? <small>");
+    expect(room).not.toContain("return readable.find((chart) => chart.subject_type === 'self')?.id ?? chartId ?? null;");
+    expect(service).toContain('subjectName: subject?.name');
+    expect(extendedApi).toContain('const hasManualSubject');
+    expect(extendedApi).toContain('userChartData = await calculateNatalChart(');
   });
 
   it('selects result scenes only with dynamics present in the catalog', () => {
