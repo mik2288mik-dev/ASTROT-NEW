@@ -1287,7 +1287,7 @@
 
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-section-text.is-lead {
   max-width: 34rem;
-  font-size: clamp(17px, 4.35vw, 18px);
+  font-size: clamp(16px, 4.2vw, 17px);
   font-weight: 500;
   line-height: 1.54;
   text-wrap: pretty;
