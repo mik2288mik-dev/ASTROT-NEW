@@ -109,7 +109,7 @@ function SignSwipePicker({
   onPick: (sign: string) => void;
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollTimerRef = useRef<number | null>(null);
   const lang: 'ru' | 'en' = language === 'en' ? 'en' : 'ru';
   const activeKey = active.toLowerCase();
 
