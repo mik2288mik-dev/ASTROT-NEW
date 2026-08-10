@@ -32,33 +32,39 @@ describe('compatibility editorial layout', () => {
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
   });
 
-  it('keeps the compatibility entry compact and uses one tab language for every choice', () => {
+  it('uses one airy mobile language for the compatibility entry', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const styles = read('styles/newspaperVisual.css');
     const addStart = room.indexOf("if (screen === 'add')");
     const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
     const addFlow = room.slice(addStart, addEnd);
 
-    expect(addFlow).toContain("<AppTopBar title={ru ? 'Совместимость' : 'Compatibility'} />");
-    expect(addFlow).toContain('compat-entry-intro');
+    expect(addFlow).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
+    expect(addFlow).toContain("'Сравним двух людей — по данным рождения или быстро по знакам.'");
     expect(addFlow).toContain("'По дате рождения'");
     expect(addFlow).toContain("'По знакам зодиака'");
     expect(addFlow).not.toContain('<small>Premium</small>');
     expect(addFlow).not.toContain("ru ? 'Бесплатно'");
     expect(room.match(/compat-choice-tabs/g)?.length).toBeGreaterThanOrEqual(3);
     expect(addFlow).toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
-    expect(addFlow).toContain('compat-entry-add-chart');
+    expect(addFlow).toContain('compat-air-add-chart');
     expect(addFlow).toContain('onOpenCharts');
     expect(addFlow).not.toContain('compat-saved-section');
 
     expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab::after');
     expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab.is-active::after');
-    expect(styles).toContain('.compat-editorial-page--add .compat-entry-person');
-    expect(styles).toContain('border: 0 !important;');
+    expect(addFlow.match(/className="compat-air-person"/g)).toHaveLength(2);
+    expect(addFlow).toContain('compat-air-person-heading');
+    expect(addFlow).toContain('compat-air-saved');
+    expect(addFlow).not.toContain('compat-entry-person');
+    expect(styles).toContain('.compat-editorial-page--add .compat-air-person');
+    expect(styles).toContain('.compat-editorial-page--add .compat-air-input');
+    expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-person');
   });
 
   it('starts both people in manual mode and keeps saved charts optional', () => {
     const room = read('views/v2/UnionRoom.tsx');
+    const styles = read('styles/newspaperVisual.css');
     const service = read('services/astrologyService.ts');
     const extendedApi = read('pages/api/content/synastry/extended.ts');
     const addStart = room.indexOf("if (screen === 'add')");
@@ -68,10 +74,16 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain("const [firstChartId, setFirstChartId] = useState<number | null>(null)");
     expect(room).toContain('function PersonBirthFields');
     expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
-    expect(addFlow.match(/<details className="compat-saved-picker">/g)).toHaveLength(2);
+    expect(addFlow.match(/className="compat-air-saved-trigger"/g)).toHaveLength(2);
+    expect(addFlow).toContain("aria-expanded={openSavedPicker === 'first'}");
+    expect(addFlow).toContain("aria-expanded={openSavedPicker === 'second'}");
+    expect(addFlow.match(/className="compat-air-saved-panel"/g)).toHaveLength(2);
     expect(addFlow).toContain("ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'");
     expect(addFlow).not.toContain("className=\"compat-chart-select-label\"");
     expect(addFlow).not.toContain("firstChart?.name ? <small>");
+    expect(room).not.toContain('compat-person-primary-row');
+    expect(room).not.toContain('compat-saved-picker');
+    expect(styles).not.toContain('.compat-entry-person .compat-gender-btn.is-on');
     expect(room).not.toContain("return readable.find((chart) => chart.subject_type === 'self')?.id ?? chartId ?? null;");
     expect(service).toContain('subjectName: subject?.name');
     expect(extendedApi).toContain('const hasManualSubject');

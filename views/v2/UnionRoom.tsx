@@ -124,42 +124,42 @@ function PersonBirthFields({
 }) {
   const genderLabelId = `${prefix}-gender-label`;
   return (
-    <div className="compat-person-fields">
-      <div className="compat-person-primary-row">
-        <div>
-          <label className="fresh-field-label" htmlFor={`${prefix}-name`}>{ru ? 'Имя' : 'Name'}</label>
-          <input id={`${prefix}-name`} className="fresh-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Например, Анна' : 'e.g. Anna'} autoComplete="name" />
-        </div>
-        <div className="compat-person-gender-field">
-          <span id={genderLabelId} className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
-          <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
-        </div>
-      </div>
-
-      <div className="compat-birth-row">
-        <div>
-          <label className="fresh-field-label" htmlFor={`${prefix}-date`}>{ru ? 'Дата рождения' : 'Birth date'}</label>
-          <input id={`${prefix}-date`} className="fresh-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
-        </div>
-        <div className={unknownTime ? 'is-disabled' : ''}>
-          <label className="fresh-field-label" htmlFor={`${prefix}-time`}>{ru ? 'Время' : 'Time'}</label>
-          <input id={`${prefix}-time`} className="fresh-input" type="time" value={time} disabled={unknownTime} onChange={(event) => onTimeChange(event.target.value)} />
-        </div>
-      </div>
-
-      <label className="compat-unknown-time">
-        <input
-          type="checkbox"
-          checked={unknownTime}
-          onChange={(event) => onUnknownTimeChange(event.target.checked)}
-        />
-        <span>{ru ? 'Не знаю точное время рождения' : 'I do not know the exact birth time'}</span>
+    <div className="compat-air-fields">
+      <label className="compat-air-field compat-air-field--name" htmlFor={`${prefix}-name`}>
+        <span className="compat-air-label">{ru ? 'Имя' : 'Name'}</span>
+        <input id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Например, Анна' : 'e.g. Anna'} autoComplete="name" />
       </label>
 
-      <div>
-        <label className="fresh-field-label" htmlFor={`${prefix}-place`}>{ru ? 'Место рождения' : 'Birth place'}</label>
-        <input id={`${prefix}-place`} className="fresh-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
+      <div className="compat-air-birth-row">
+        <label className="compat-air-field" htmlFor={`${prefix}-date`}>
+          <span className="compat-air-label">{ru ? 'Дата рождения' : 'Birth date'}</span>
+          <input id={`${prefix}-date`} className="compat-air-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
+        </label>
+        <label className={`compat-air-field${unknownTime ? ' is-disabled' : ''}`} htmlFor={`${prefix}-time`}>
+          <span className="compat-air-label">{ru ? 'Время' : 'Time'}</span>
+          <input id={`${prefix}-time`} className="compat-air-input" type="time" value={time} disabled={unknownTime} onChange={(event) => onTimeChange(event.target.value)} />
+        </label>
       </div>
+
+      <div className="compat-air-options-row">
+        <div className="compat-air-gender-field">
+          <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
+          <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
+        </div>
+        <label className="compat-air-unknown-time">
+          <input
+            type="checkbox"
+            checked={unknownTime}
+            onChange={(event) => onUnknownTimeChange(event.target.checked)}
+          />
+          <span>{ru ? 'Точное время неизвестно' : 'Exact time unknown'}</span>
+        </label>
+      </div>
+
+      <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
+        <span className="compat-air-label">{ru ? 'Место рождения' : 'Birth place'}</span>
+        <input id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
+      </label>
     </div>
   );
 }
@@ -436,6 +436,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const [peopleLoaded, setPeopleLoaded] = useState(false);
   const [firstChartId, setFirstChartId] = useState<number | null>(null);
   const [secondChartId, setSecondChartId] = useState<number | null>(initialPrefill?.partnerChartId ?? null);
+  const [openSavedPicker, setOpenSavedPicker] = useState<'first' | 'second' | null>(null);
   const [history, setHistory] = useState<CompatHistoryEntry[]>([]);
   const [pickSign, setPickSign] = useState<string>(() => ZODIAC_KEYS.find((s) => s.toLowerCase() !== yourSun) || ZODIAC_KEYS[0]);
   // «Твой» знак теперь можно менять (не жёстко из карты). По умолчанию — солнечный знак из карты.
@@ -752,15 +753,12 @@ export function UnionRoom(props: UnionRoomProps) {
   if (screen === 'add') {
     return (
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
-        <AppTopBar title={ru ? 'Совместимость' : 'Compatibility'} />
-
-        <header className="compat-entry-intro">
-          <p>
-            {ru
-              ? 'Сравним двух людей — подробно по данным рождения или быстро по знакам зодиака.'
-              : 'Compare two people in detail from birth data or quickly by zodiac signs.'}
-          </p>
-        </header>
+        <AppTopBar
+          title={ru ? 'Совместимость' : 'Compatibility'}
+          subtitle={ru
+            ? 'Сравним двух людей — по данным рождения или быстро по знакам.'
+            : 'Compare two people by birth data or quickly by zodiac signs.'}
+        />
 
         <div className="compat-choice-tabs compat-mode-switch" role="group" aria-label={ru ? 'Способ сравнения' : 'Comparison method'}>
           <button
@@ -808,36 +806,28 @@ export function UnionRoom(props: UnionRoomProps) {
                 </h2>
               </div>
 
-              <fieldset className="compat-entry-person">
-                <legend className="compat-person-legend">
-                  <strong>{ru ? 'Один человек' : 'One person'}</strong>
-                </legend>
-                <PersonBirthFields
-                  prefix="compat-first-person"
-                  ru={ru}
-                  name={sName}
-                  date={sDate}
-                  time={sTime}
-                  place={sPlace}
-                  gender={youGender}
-                  unknownTime={sUnknownTime}
-                  onNameChange={(value) => { setFirstChartId(null); setSName(value); }}
-                  onDateChange={(value) => { setFirstChartId(null); setSDate(value); }}
-                  onTimeChange={(value) => { setFirstChartId(null); setSTime(value); }}
-                  onPlaceChange={(value) => { setFirstChartId(null); setSPlace(value); }}
-                  onGenderChange={setYouGender}
-                  onUnknownTimeChange={(value) => {
-                    setFirstChartId(null);
-                    setSUnknownTime(value);
-                    if (value) setSTime('');
-                  }}
-                />
-                <details className="compat-saved-picker">
-                  <summary>{ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'}</summary>
-                  <div className="compat-saved-picker-body">
+              <section className="compat-air-person" aria-labelledby="compat-first-person-title">
+                <header className="compat-air-person-heading">
+                  <span className="compat-air-person-index" aria-hidden="true">01</span>
+                  <h3 id="compat-first-person-title">{ru ? 'Один человек' : 'One person'}</h3>
+                  <button
+                    type="button"
+                    className="compat-air-saved-trigger"
+                    aria-expanded={openSavedPicker === 'first'}
+                    aria-controls="compat-first-saved-panel"
+                    onClick={() => setOpenSavedPicker((current) => current === 'first' ? null : 'first')}
+                  >
+                    <span>{ru ? 'Из сохранённых' : 'Saved charts'}</span>
+                    <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
+                  </button>
+                </header>
+
+                {openSavedPicker === 'first' ? (
+                  <div id="compat-first-saved-panel" className="compat-air-saved-panel">
                     <select
                       id="compat-first-chart"
-                      className="compat-chart-select"
+                      className="compat-air-select"
+                      aria-label={ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'}
                       value={firstChartId ?? 'manual'}
                       onChange={(event) => {
                         lumiaSelectionHaptic();
@@ -865,43 +855,56 @@ export function UnionRoom(props: UnionRoomProps) {
                         </option>
                       ))}
                     </select>
-                    {onOpenCharts ? <button type="button" className="compat-entry-add-chart" onClick={onOpenCharts}>{ru ? '+ Добавить новую карту' : '+ Add a new chart'}</button> : null}
+                    {onOpenCharts ? <button type="button" className="compat-air-add-chart" onClick={onOpenCharts}>{ru ? 'Новая карта' : 'New chart'}</button> : null}
                   </div>
-                </details>
-              </fieldset>
+                ) : null}
+
+                <PersonBirthFields
+                  prefix="compat-first-person"
+                  ru={ru}
+                  name={sName}
+                  date={sDate}
+                  time={sTime}
+                  place={sPlace}
+                  gender={youGender}
+                  unknownTime={sUnknownTime}
+                  onNameChange={(value) => { setFirstChartId(null); setSName(value); }}
+                  onDateChange={(value) => { setFirstChartId(null); setSDate(value); }}
+                  onTimeChange={(value) => { setFirstChartId(null); setSTime(value); }}
+                  onPlaceChange={(value) => { setFirstChartId(null); setSPlace(value); }}
+                  onGenderChange={setYouGender}
+                  onUnknownTimeChange={(value) => {
+                    setFirstChartId(null);
+                    setSUnknownTime(value);
+                    if (value) setSTime('');
+                  }}
+                />
+              </section>
 
               <div className="compat-person-divider" aria-hidden="true"><span>+</span></div>
 
-              <fieldset className="compat-entry-person">
-                <legend className="compat-person-legend">
-                  <strong>{ru ? 'Другой человек' : 'Another person'}</strong>
-                </legend>
-                <PersonBirthFields
-                  prefix="compat-second-person"
-                  ru={ru}
-                  name={fName}
-                  date={fDate}
-                  time={fTime}
-                  place={fPlace}
-                  gender={fGender}
-                  unknownTime={unknownTime}
-                  onNameChange={(value) => { setSecondChartId(null); setFName(value); }}
-                  onDateChange={(value) => { setSecondChartId(null); setFDate(value); }}
-                  onTimeChange={(value) => { setSecondChartId(null); setFTime(value); }}
-                  onPlaceChange={(value) => { setSecondChartId(null); setFPlace(value); }}
-                  onGenderChange={setFGender}
-                  onUnknownTimeChange={(value) => {
-                    setSecondChartId(null);
-                    setUnknownTime(value);
-                    if (value) setFTime('');
-                  }}
-                />
-                <details className="compat-saved-picker">
-                  <summary>{ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'}</summary>
-                  <div className="compat-saved-picker-body">
+              <section className="compat-air-person" aria-labelledby="compat-second-person-title">
+                <header className="compat-air-person-heading">
+                  <span className="compat-air-person-index" aria-hidden="true">02</span>
+                  <h3 id="compat-second-person-title">{ru ? 'Другой человек' : 'Another person'}</h3>
+                  <button
+                    type="button"
+                    className="compat-air-saved-trigger"
+                    aria-expanded={openSavedPicker === 'second'}
+                    aria-controls="compat-second-saved-panel"
+                    onClick={() => setOpenSavedPicker((current) => current === 'second' ? null : 'second')}
+                  >
+                    <span>{ru ? 'Из сохранённых' : 'Saved charts'}</span>
+                    <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
+                  </button>
+                </header>
+
+                {openSavedPicker === 'second' ? (
+                  <div id="compat-second-saved-panel" className="compat-air-saved-panel">
                     <select
                       id="compat-second-chart"
-                      className="compat-chart-select"
+                      className="compat-air-select"
+                      aria-label={ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'}
                       value={secondChartId ?? 'manual'}
                       onChange={(event) => {
                         lumiaSelectionHaptic();
@@ -929,10 +932,31 @@ export function UnionRoom(props: UnionRoomProps) {
                         </option>
                       ))}
                     </select>
-                    {onOpenCharts ? <button type="button" className="compat-entry-add-chart" onClick={onOpenCharts}>{ru ? '+ Добавить новую карту' : '+ Add a new chart'}</button> : null}
+                    {onOpenCharts ? <button type="button" className="compat-air-add-chart" onClick={onOpenCharts}>{ru ? 'Новая карта' : 'New chart'}</button> : null}
                   </div>
-                </details>
-              </fieldset>
+                ) : null}
+
+                <PersonBirthFields
+                  prefix="compat-second-person"
+                  ru={ru}
+                  name={fName}
+                  date={fDate}
+                  time={fTime}
+                  place={fPlace}
+                  gender={fGender}
+                  unknownTime={unknownTime}
+                  onNameChange={(value) => { setSecondChartId(null); setFName(value); }}
+                  onDateChange={(value) => { setSecondChartId(null); setFDate(value); }}
+                  onTimeChange={(value) => { setSecondChartId(null); setFTime(value); }}
+                  onPlaceChange={(value) => { setSecondChartId(null); setFPlace(value); }}
+                  onGenderChange={setFGender}
+                  onUnknownTimeChange={(value) => {
+                    setSecondChartId(null);
+                    setUnknownTime(value);
+                    if (value) setFTime('');
+                  }}
+                />
+              </section>
 
               <section className="compat-entry-context" aria-labelledby="compat-context-title">
                 <h2 id="compat-context-title">{ru ? 'Тип совместимости' : 'Compatibility type'}</h2>
