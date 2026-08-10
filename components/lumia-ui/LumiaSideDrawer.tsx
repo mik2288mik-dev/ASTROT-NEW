@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, HeartHandshake, Sparkles, Star } from 'lucide-react';
 import { getZodiacSign } from '../../constants';
 import type { UserProfile, ViewState } from '../../types';
@@ -23,6 +23,17 @@ interface LumiaSideDrawerProps {
     onOpenSettings: () => void;
 }
 
+type DrawerSkyPhase = 'day' | 'night';
+
+function getMoscowSkyPhase(): DrawerSkyPhase {
+    const hour = Number(new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        hourCycle: 'h23',
+        timeZone: 'Europe/Moscow',
+    }).format(new Date()));
+    return hour >= 7 && hour < 19 ? 'day' : 'night';
+}
+
 export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     open,
     currentView,
@@ -42,6 +53,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     const drawerRef = useRef<HTMLElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const onCloseRef = useRef(onClose);
+    const [skyPhase, setSkyPhase] = useState<DrawerSkyPhase>(getMoscowSkyPhase);
     onCloseRef.current = onClose;
     const displayDate = useMemo(() => {
         const supplied = todayLabel?.split('\n').map((part) => part.trim()).filter(Boolean) || [];
@@ -73,6 +85,14 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     const sunSignLabel = resolvedSunSign
         ? getZodiacSign(isEnglish ? 'en' : 'ru', resolvedSunSign)
         : null;
+
+    useEffect(() => {
+        if (!open || typeof window === 'undefined') return;
+        const updateSkyPhase = () => setSkyPhase(getMoscowSkyPhase());
+        updateSkyPhase();
+        const timer = window.setInterval(updateSkyPhase, 60_000);
+        return () => window.clearInterval(timer);
+    }, [open]);
 
     useEffect(() => {
         if (!open || typeof document === 'undefined') return;
@@ -134,7 +154,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                 ref={drawerRef}
                 as="aside"
                 variant="drawer"
-                className="lumia-side-drawer"
+                className={`lumia-side-drawer lumia-side-drawer--${skyPhase}`}
                 planeClassName="lumia-side-drawer-plane"
                 role="dialog"
                 aria-modal="true"

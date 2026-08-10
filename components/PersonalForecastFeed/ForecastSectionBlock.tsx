@@ -26,9 +26,8 @@ function renderContentBlocks(
   onOpenExplanation: (anchorId: string) => void,
   language: 'ru' | 'en',
   editorialStickerPath?: string | null,
-  isOverview = false,
 ): ReactNode {
-  const stickerAfterIndex = isOverview ? 0 : Math.min(1, section.contentBlocks.length - 1);
+  const stickerAfterIndex = Math.max(0, section.contentBlocks.length - 1);
   return (
     <div className="forecast-feed-section-copy">
       {section.contentBlocks.map((block, index) => {
@@ -72,7 +71,7 @@ function renderContentBlocks(
                 src={editorialStickerPath}
                 alt=""
                 aria-hidden="true"
-                loading={isOverview ? 'eager' : 'lazy'}
+                loading="lazy"
                 decoding="async"
                 draggable={false}
               />
@@ -183,7 +182,6 @@ export function ForecastSectionBlock({
             },
             language,
             editorialStickerPath,
-            isOverview,
           )
         )}
         {children}

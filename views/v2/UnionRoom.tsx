@@ -219,60 +219,6 @@ function deepReadingTitles(context: RelationshipContext, ru: boolean) {
     : ['What your bond is like', 'What brings you closer', 'Where friction comes from', 'What makes you stronger'];
 }
 
-/* Цвет на каждую сферу — в общей серо-синей палитре приложения */
-const DIM_COLORS: Record<CompatDimension, string> = {
-  love: '#1478FF',
-  relationship: '#2563EB',
-  friendship: '#38BDF8',
-  work: '#64748B',
-};
-
-/* Плавный счёт от 0 к значению (как в кольце-score) */
-function useCountUp(value: number, reduce: boolean | null) {
-  const [shown, setShown] = useState(reduce ? value : 0);
-  useEffect(() => {
-    if (reduce) { setShown(value); return; }
-    let raf = 0;
-    const t0 = performance.now();
-    const dur = 800;
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - t0) / dur);
-      setShown(Math.round(value * (1 - Math.pow(1 - k, 3))));
-      if (k < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value, reduce]);
-  return shown;
-}
-
-/* Одна цветная градиент-шкала со счётом и пружинной заливкой */
-function DimBar({ label, value, color, top, index, reduce }: {
-  label: string; value: number; color: string; top: boolean; index: number; reduce: boolean | null;
-}) {
-  const shown = useCountUp(value, reduce);
-  return (
-    <div className={`people-dim ${top ? 'is-top' : ''}`}>
-      <div className="people-dim-row">
-        <span className="people-dim-name">
-          <span className="people-dim-dot" style={{ background: color }} />
-          {label}
-        </span>
-        <span className="people-dim-val" style={{ color }}>{shown}</span>
-      </div>
-      <div className="people-dim-track">
-        <motion.div
-          className="people-dim-fill"
-          style={{ background: `linear-gradient(90deg, ${color}99, ${color})` }}
-          initial={reduce ? false : { width: 0 }}
-          animate={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-          transition={reduce ? { duration: 0 } : { duration: 0.85, delay: 0.07 * index, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-    </div>
-  );
-}
-
 /* Один редакционный раздел без цветной карточки. */
 function CompatBlock({ title, index, reduce, children }: {
   title: string; index: number; reduce: boolean | null; children?: string | null;
@@ -288,32 +234,6 @@ function CompatBlock({ title, index, reduce, children }: {
       <EditorialSectionHeading title={title} className="compat-read-heading" />
       <EditorialProse text={children} className="compat-read-text" />
     </motion.section>
-  );
-}
-
-/* ── Кольцо-score: заполнение дуги + счёт ── */
-function ScoreRing({ value }: { value: number }) {
-  const reduce = useReducedMotion();
-  const [shown, setShown] = useState(reduce ? value : 0);
-
-  useEffect(() => {
-    if (reduce) { setShown(value); return; }
-    let raf = 0;
-    const t0 = performance.now();
-    const dur = 900;
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - t0) / dur);
-      setShown(Math.round(value * (1 - Math.pow(1 - k, 3))));
-      if (k < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value, reduce]);
-
-  return (
-    <div className="people-ring">
-      <div className="people-ring-num">{shown}%</div>
-    </div>
   );
 }
 
@@ -334,7 +254,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const initialYouGender: CompatGender = profile.gender === 'female' ? 'female' : 'male';
   const initialThemGender: CompatGender = initialYouGender === 'male' ? 'female' : 'male';
 
-  const [screen, setScreen] = useState<'hub' | 'add' | 'result'>(initialPrefill ? 'result' : 'hub');
+  const [screen, setScreen] = useState<'hub' | 'add' | 'result'>(initialPrefill ? 'result' : 'add');
   const [people, setPeople] = useState<ChartListItem[]>([]);
   const [peopleLoaded, setPeopleLoaded] = useState(false);
   const [history, setHistory] = useState<CompatHistoryEntry[]>([]);
@@ -352,7 +272,11 @@ export function UnionRoom(props: UnionRoomProps) {
       : null,
   );
 
-  const [fName, setFName] = useState(''); const [fDate, setFDate] = useState(''); const [fTime, setFTime] = useState(''); const [fPlace, setFPlace] = useState(''); const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
+  const [fName, setFName] = useState(initialPrefill?.partnerName || '');
+  const [fDate, setFDate] = useState(() => toDateInputValue(initialPrefill?.partnerDate || ''));
+  const [fTime, setFTime] = useState(initialPrefill?.partnerTime || '');
+  const [fPlace, setFPlace] = useState(initialPrefill?.partnerPlace || '');
+  const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
 
   const [signText, setSignText] = useState<SignCompatibilityResult | null>(null);
   const [deep, setDeep] = useState<SynastryResult | null>(null);
@@ -376,7 +300,7 @@ export function UnionRoom(props: UnionRoomProps) {
     if (!peopleLoaded || selected?.kind !== 'person' || selected.chartId == null) return;
     if (people.some((chart) => chart.id === selected.chartId)) return;
     setSelected(null);
-    setScreen('hub');
+    setScreen('add');
   }, [peopleLoaded, people, selected]);
 
   // История — ТОЛЬКО по конкретным людям (имя+дата+разбор). Проверки по знакам не храним.
@@ -467,7 +391,7 @@ export function UnionRoom(props: UnionRoomProps) {
       && (!peopleLoaded || !people.some((chart) => chart.id === selected.chartId))
     ) {
       setSelected(null);
-      setScreen('hub');
+      setScreen('add');
       return;
     }
     setDeepLoading(true); setError(null);
@@ -606,53 +530,100 @@ export function UnionRoom(props: UnionRoomProps) {
   if (screen === 'add') {
     return (
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
-        <AppTopBar
-          title={ru ? 'Твой гороскоп' : 'Your Horoscope'}
-          onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
-        />
+        <AppTopBar title={ru ? 'Твой гороскоп' : 'Your Horoscope'} />
 
         <header className="compat-page-heading">
           <h1>{ru ? 'Совместимость' : 'Compatibility'}</h1>
-          <p>{ru ? 'Введи данные человека для точного сравнения карт.' : 'Enter the person’s details for a precise chart comparison.'}</p>
+          <p>{ru ? 'Введи данные для точного сравнения двух карт.' : 'Enter the details for a precise comparison of two charts.'}</p>
         </header>
 
-        <RelationshipContextPicker
-          value={relationshipContext}
-          onChange={setRelationshipContext}
-          ru={ru}
-          compact
-        />
+        <form
+          className="compat-entry-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitAdd();
+          }}
+        >
+          <fieldset className="compat-entry-person">
+            <legend>{ru ? 'Человек 1' : 'Person 1'}</legend>
+            <div className="compat-self-identity">
+              <strong>{profile.name?.trim() || (ru ? 'Ты' : 'You')}</strong>
+              <span>
+                {profile.birthDate
+                  ? formatDisplayDate(profile.birthDate, lang)
+                  : (ru ? 'Дата рождения не указана' : 'Birth date is not set')}
+              </span>
+            </div>
+            <div>
+              <span id="compat-self-gender-label" className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
+              <GenderToggle value={youGender} onChange={setYouGender} ru={ru} labelledBy="compat-self-gender-label" />
+            </div>
+          </fieldset>
 
-        <div className="union-form">
-          <div>
-            <label className="fresh-field-label" htmlFor="compat-person-name">{ru ? 'Имя' : 'Name'}</label>
-            <input id="compat-person-name" className="fresh-input" value={fName} onChange={(e) => setFName(e.target.value)} placeholder={ru ? 'Например, Аня' : 'e.g. Alex'} />
-          </div>
-          <div>
-            <label className="fresh-field-label" htmlFor="compat-person-birth-date">{ru ? 'Дата рождения' : 'Birth date'}</label>
-            <input id="compat-person-birth-date" className="fresh-input" type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} />
-          </div>
-          <div>
-            <span id="compat-person-gender-label" className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
-            <div style={{ marginTop: 6 }}><GenderToggle value={fGender} onChange={setFGender} ru={ru} labelledBy="compat-person-gender-label" /></div>
-          </div>
-          <div className="compat-optional-fields">
-            <div>
-              <label className="fresh-field-label" htmlFor="compat-person-time">{ru ? 'Время (если есть)' : 'Time (optional)'}</label>
-              <input id="compat-person-time" className="fresh-input" type="time" value={fTime} onChange={(e) => setFTime(e.target.value)} />
+          <fieldset className="compat-entry-person">
+            <legend>{ru ? 'Человек 2' : 'Person 2'}</legend>
+            <div className="union-form">
+              <div>
+                <label className="fresh-field-label" htmlFor="compat-person-name">{ru ? 'Имя' : 'Name'}</label>
+                <input id="compat-person-name" className="fresh-input" value={fName} onChange={(event) => setFName(event.target.value)} placeholder={ru ? 'Например, Аня' : 'e.g. Alex'} autoComplete="name" />
+              </div>
+              <div>
+                <label className="fresh-field-label" htmlFor="compat-person-birth-date">{ru ? 'Дата рождения' : 'Birth date'}</label>
+                <input id="compat-person-birth-date" className="fresh-input" type="date" value={fDate} onChange={(event) => setFDate(event.target.value)} />
+              </div>
+              <div>
+                <span id="compat-person-gender-label" className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
+                <GenderToggle value={fGender} onChange={setFGender} ru={ru} labelledBy="compat-person-gender-label" />
+              </div>
+              <details className="compat-optional-details">
+                <summary>{ru ? 'Добавить время и место' : 'Add time and place'}</summary>
+                <div className="compat-optional-fields">
+                  <div>
+                    <label className="fresh-field-label" htmlFor="compat-person-time">{ru ? 'Время рождения' : 'Birth time'}</label>
+                    <input id="compat-person-time" className="fresh-input" type="time" value={fTime} onChange={(event) => setFTime(event.target.value)} />
+                  </div>
+                  <div>
+                    <label className="fresh-field-label" htmlFor="compat-person-place">{ru ? 'Место рождения' : 'Birth place'}</label>
+                    <input id="compat-person-place" className="fresh-input" value={fPlace} onChange={(event) => setFPlace(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
+                  </div>
+                </div>
+              </details>
             </div>
-            <div>
-              <label className="fresh-field-label" htmlFor="compat-person-place">{ru ? 'Место (если есть)' : 'Place (optional)'}</label>
-              <input id="compat-person-place" className="fresh-input" value={fPlace} onChange={(e) => setFPlace(e.target.value)} placeholder={ru ? 'Город' : 'City'} />
-            </div>
-          </div>
-          <p style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--fresh-muted)' }}>
-            {ru ? 'Хватит даты — базовый разбор готов сразу. Со временем и местом разбор точнее.' : 'A date is enough for a basic reading. Time and place make it more precise.'}
+          </fieldset>
+
+          <section className="compat-entry-context" aria-labelledby="compat-context-title">
+            <h2 id="compat-context-title">{ru ? 'Тип совместимости' : 'Compatibility type'}</h2>
+            <RelationshipContextPicker
+              value={relationshipContext}
+              onChange={setRelationshipContext}
+              ru={ru}
+              compact
+            />
+          </section>
+
+          <p className="compat-entry-note">
+            {ru
+              ? 'Даты достаточно для базового сравнения. Время и место делают разбор точнее.'
+              : 'Birth dates are enough for a basic comparison. Time and place make the reading more precise.'}
           </p>
-        </div>
-        {error ? <p className="union-pad" role="alert" style={{ color: '#B91C1C', fontSize: 14, marginTop: 12 }}>{error}</p> : null}
-        <button type="button" className="fresh-btn-primary" style={{ marginTop: 16 }} onClick={submitAdd}>
-          {ru ? 'Посмотреть' : 'See it'}
+
+          {error ? <p className="compat-entry-error" role="alert">{error}</p> : null}
+
+          <button type="submit" className="fresh-btn-primary compat-entry-submit">
+            {ru ? 'Рассчитать совместимость' : 'Calculate compatibility'}
+          </button>
+        </form>
+
+        <button
+          type="button"
+          className="compat-alternate-mode"
+          onClick={() => {
+            lumiaSelectionHaptic();
+            setError(null);
+            setScreen('hub');
+          }}
+        >
+          {ru ? 'Быстрое сравнение по знакам и сохранённые люди' : 'Quick sign comparison and saved people'}
         </button>
       </div>
     );
@@ -690,12 +661,22 @@ export function UnionRoom(props: UnionRoomProps) {
   const rightDetail = selected?.date
     ? `${genderWord(rightGender, ru)} — ${formatDisplayDate(selected.date, lang)}`
     : `${genderWord(rightGender, ru)} · ${getZodiacSign(lang, theirSun)}`;
+  const signReadingBlocks = signText
+    ? [
+        { title: resultTitles[0], text: String(signText.attraction || '') },
+        { title: resultTitles[1], text: String(signText.difficulty || '') },
+        { title: resultTitles[2], text: String(signText.communication || '') },
+      ].filter((block) => block.text.trim().length > 0)
+    : [];
 
   return (
     <div className="fresh-page compat-editorial-page compat-editorial-page--result" aria-busy={!signText && !error}>
       <AppTopBar
         title={ru ? 'Твой гороскоп' : 'Your Horoscope'}
-        onBack={() => { lumiaSelectionHaptic(); setScreen('hub'); }}
+        onBack={() => {
+          lumiaSelectionHaptic();
+          setScreen(selected?.kind === 'sign' ? 'hub' : 'add');
+        }}
       />
 
       <header className="compat-result-heading">
@@ -729,54 +710,20 @@ export function UnionRoom(props: UnionRoomProps) {
         </section>
       ) : null}
 
-      {resultSticker ? (
-        <EditorialSticker
-          asset={resultSticker}
-          className="compat-result-sticker"
-          priority
-        />
-      ) : null}
-
-      <section className="compat-technical-data" aria-label={ru ? 'Данные сравнения' : 'Comparison data'}>
-        <div className="editorial-reading-panel-label">{ru ? 'Данные сравнения' : 'Comparison data'}</div>
-        <div className="people-split">
-          <motion.div className="people-side" initial={reduce ? false : { x: -22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
-            <div className="people-side-ico"><ZodiacIcon sign={leftSun} size={32} strokeWidth={1.4} /></div>
-            <div className="people-side-name">{ru ? 'Вы' : 'You'}</div>
-            <div className="people-side-sign">{genderWord(leftGender, ru)} · {getZodiacSign(lang, leftSun)}</div>
-          </motion.div>
-
-          <div className="people-center">
-            {score ? <ScoreRing value={score.overall} /> : null}
-          </div>
-
-          <motion.div className="people-side" initial={reduce ? false : { x: 22, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
-            <div className="people-side-ico"><ZodiacIcon sign={theirSun} size={32} strokeWidth={1.4} /></div>
-            <div className="people-side-name">{theirName}</div>
-            <div className="people-side-sign">{genderWord(rightGender, ru)} · {getZodiacSign(lang, theirSun)}</div>
-          </motion.div>
-        </div>
-
-        <div className="people-dims">
-          {dimsOrder.map((k, i) => (
-            <DimBar
-              key={k}
-              label={DIMENSION_LABELS[k][lang]}
-              value={score?.dims[k] ?? 0}
-              color={DIM_COLORS[k]}
-              top={!!score && k === score.strongest}
-              index={i}
-              reduce={reduce}
-            />
+      {signReadingBlocks.length ? (
+        <div className="compat-read">
+          {signReadingBlocks.map((block, index) => (
+            <React.Fragment key={`${block.title}-${index}`}>
+              <CompatBlock title={block.title} index={index} reduce={reduce}>{block.text}</CompatBlock>
+              {index === 0 && resultSticker ? (
+                <EditorialSticker
+                  asset={resultSticker}
+                  className="compat-result-sticker"
+                  priority
+                />
+              ) : null}
+            </React.Fragment>
           ))}
-        </div>
-      </section>
-
-      {signText ? (
-        <div className="compat-read" style={{ marginTop: 14 }}>
-          <CompatBlock title={resultTitles[0]} index={0} reduce={reduce}>{signText.attraction}</CompatBlock>
-          <CompatBlock title={resultTitles[1]} index={1} reduce={reduce}>{signText.difficulty}</CompatBlock>
-          <CompatBlock title={resultTitles[2]} index={2} reduce={reduce}>{signText.communication}</CompatBlock>
         </div>
       ) : (
         <p className="union-pad" role="status" aria-live="polite" style={{ marginTop: 12, color: 'var(--fresh-muted)', fontSize: 14 }}>{ru ? 'Готовим разбор…' : 'Preparing…'}</p>
@@ -810,6 +757,23 @@ export function UnionRoom(props: UnionRoomProps) {
           <span className="horo-premium-cta">{ru ? 'Добавить' : 'Add'}<ChevronRightIcon size={15} /></span>
         </button>
       )}
+
+      {score ? (
+        <details className="compat-technical-data">
+          <summary>
+            <span>{ru ? 'Расчёт совместимости' : 'Compatibility calculation'}</span>
+            <strong>{score.overall}%</strong>
+          </summary>
+          <div className="compat-score-list" aria-label={ru ? 'Оценки по сферам' : 'Scores by area'}>
+            {dimsOrder.map((key) => (
+              <div key={key} className={key === score.strongest ? 'is-strongest' : ''}>
+                <span>{DIMENSION_LABELS[key][lang]}</span>
+                <strong>{score.dims[key]}%</strong>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
       {error ? <p className="union-pad" role="alert" style={{ color: '#B91C1C', fontSize: 14, marginTop: 12 }}>{error}</p> : null}
 

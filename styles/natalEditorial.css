@@ -302,6 +302,7 @@
   width: 100%;
   overflow: hidden;
   border-radius: 12px;
+  background: url('/assets/cosmic/drawer-stars.webp') center / cover no-repeat;
 }
 
 .natal-chart-portrait-svg {
@@ -310,9 +311,7 @@
   height: auto;
   overflow: hidden;
   border-radius: 12px;
-  background:
-    linear-gradient(90deg, rgba(4, 4, 6, 0.08), rgba(4, 4, 6, 0.22)),
-    url('/assets/cosmic/drawer-stars.webp') center / cover no-repeat;
+  background: linear-gradient(90deg, rgba(4, 4, 6, 0.08), rgba(4, 4, 6, 0.22));
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -439,7 +438,9 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
     gap: 8px;
-    margin-top: 10px;
+    padding: 11px 12px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(4, 6, 14, 0.2);
   }
 
   .natal-chart-portrait-mobile-key-item {
@@ -447,7 +448,7 @@
     min-width: 0;
     align-items: center;
     gap: 7px;
-    color: #2c2c2c;
+    color: rgba(255, 255, 255, 0.94);
   }
 
   .natal-chart-portrait-mobile-key-item > span {
@@ -468,7 +469,7 @@
   }
 
   .natal-chart-portrait-mobile-key-item small {
-    color: #6b6b6b;
+    color: rgba(229, 231, 235, 0.72);
     font-size: 11px;
     line-height: 1.25;
   }

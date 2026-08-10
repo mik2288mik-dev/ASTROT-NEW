@@ -220,52 +220,64 @@ const profile: UserProfile = {
   isPremium: true,
 };
 
-function statement(text: string, evidenceId: string) {
-  return { text, evidence_ids: [evidenceId] };
-}
-
-function freePayload(evidenceIds: string[], includeAscendant: boolean): RawNatalFreePayload {
-  const [sun, moon, mercury, venus, mars, ascendant = sun] = evidenceIds;
+function freePayload(evidenceIds: string[], _includeAscendant: boolean): RawNatalFreePayload {
+  const id = (index: number) => evidenceIds[index % evidenceIds.length];
   return {
-    headline: 'Precision before momentum',
-    headline_evidence_ids: [sun],
-    hook: statement('You act decisively after you have found the exact point that matters.', sun),
-    core: {
-      sun: statement('Your central drive prefers visible action and a clear direction.', sun),
-      moon: statement('Your emotional response needs enough time to register what actually happened.', moon),
-      ascendant: includeAscendant
-        ? statement('Your first response appears composed and attentive to balance.', ascendant)
-        : null,
+    hook: {
+      text: 'You move once the exact point is visible and dislike vague agreements.',
+      evidence_ids: [id(0)],
     },
-    strengths: [
-      statement('You can turn a complicated thought into a practical decision.', mercury),
-      statement('You notice what makes an agreement fair for both people.', venus),
+    sections: [
+      {
+        section_key: 'personality',
+        title: 'Who you are',
+        free: true,
+        content: 'You act decisively after you have found the exact point that matters.',
+        evidence_ids: [id(0)],
+      },
+      {
+        section_key: 'thinking',
+        title: 'How you think and speak',
+        free: true,
+        content: 'Your mind turns a complicated thought into a practical decision.',
+        evidence_ids: [id(1)],
+      },
+      {
+        section_key: 'relationships',
+        title: 'Love and relationships',
+        free: true,
+        content: 'You notice what makes an agreement fair without hiding the difficult detail.',
+        evidence_ids: [id(2)],
+      },
+      {
+        section_key: 'vulnerabilities',
+        title: 'Your vulnerable points',
+        free: true,
+        content: 'Part of you pushes ahead while another part checks the emotional cost.',
+        evidence_ids: [id(3)],
+      },
     ],
-    conflict: statement('Part of you pushes ahead while another part checks the emotional cost.', mars),
-    advice: statement('Name the non-negotiable fact before choosing how quickly to act.', sun),
   };
 }
 
 function premiumPayload(evidenceIds: string[]): RawNatalPremiumPayload {
   const id = (index: number) => evidenceIds[index % evidenceIds.length];
+  const definitions = [
+    ['vocation_money', 'Vocation and money'],
+    ['career', 'Career'],
+    ['health', 'Health and energy'],
+    ['shadow', 'Your shadow'],
+    ['life_path', 'Life path'],
+    ['year_advice', 'Growth strategy'],
+  ] as const;
   return {
-    headline: 'Clarity has a pulse',
-    headline_evidence_ids: [id(0)],
-    lead: statement('Your strongest decisions join direct intent with a careful reading of consequences.', id(0)),
-    sections: Array.from({ length: 6 }, (_, index) => ({
-      id: `chapter-${index + 1}`,
-      title: `Distinct chapter ${index + 1}`,
-      paragraphs: [statement(`This is a concrete permanent observation number ${index + 1} about choices and reactions.`, id(index + 1))],
+    sections: definitions.map(([sectionKey, title], index) => ({
+      section_key: sectionKey,
+      title,
+      free: false,
+      content: `This is a concrete permanent observation number ${index + 1} about choices and reactions.`,
+      evidence_ids: [id(index)],
     })),
-    strategies: Array.from({ length: 3 }, (_, index) => ({
-      title: `Strategy ${index + 1}`,
-      ...statement(`Use this stable approach number ${index + 1} when the same natal tendency appears.`, id(index + 2)),
-    })),
-    pitfalls: [
-      statement('Speed can replace a needed check of the facts.', id(4)),
-      statement('Silence can be mistaken for agreement when a boundary was never stated.', id(5)),
-    ],
-    conclusion: statement('Your best results come from combining decisive movement with exact language.', id(0)),
   };
 }
 
@@ -337,23 +349,32 @@ describe('permanent natal V2 contract', () => {
       profile,
       built: exact,
     });
-    expect(free?.schemaVersion).toBe('natal-permanent-free-v2');
-    expect(free?.freeSections.some((section) => section.key === 'ascendant_code')).toBe(true);
+    expect(free?.schemaVersion).toBe('natal-permanent-free-v3');
+    expect(free?.freeSections.map((section) => section.key)).toEqual([
+      'base_portrait', 'thinking', 'relationships_deep', 'difficulties',
+    ]);
     const premium = materializePermanentPremiumReport({
       raw: premiumPayload(ids),
       built: exact,
     });
     expect(premium?.sections).toHaveLength(6);
-    expect(premium?.strategies).toHaveLength(3);
+    expect(premium?.strategies).toHaveLength(0);
 
     const unknown = buildNatalModelContext(profile, chart('unknown'));
+    const unknownFreeWithAngle = freePayload([...ids.slice(0, 5), ascendant], true);
+    if (!unknownFreeWithAngle.sections?.[0]) throw new Error('fixture section missing');
+    unknownFreeWithAngle.sections[0].evidence_ids = [ascendant];
     expect(materializePermanentFreeReport({
-      raw: freePayload([...ids.slice(0, 5), ascendant], true),
+      raw: unknownFreeWithAngle,
       profile,
       built: unknown,
     })).toBeNull();
     expect(materializePermanentPremiumReport({
-      raw: { ...premiumPayload([...unknown.evidenceIds]), headline_evidence_ids: ['missing'] },
+      raw: {
+        sections: premiumPayload([...unknown.evidenceIds]).sections?.map((section, index) => (
+          index === 0 ? { ...section, evidence_ids: ['missing'] } : section
+        )),
+      },
       built: unknown,
     })).toBeNull();
   });
@@ -405,7 +426,7 @@ describe('permanent natal V2 contract', () => {
       keywords: { love: 'legacy', career: 'legacy', karma: 'legacy' },
     });
     const prompt = buildPermanentNatalPremiumPrompt('en', built).toLocaleLowerCase();
-    expect(prompt).not.toMatch(/\b(?:transits?|timing|future)\b/u);
+    expect(prompt).toContain('do not mention the coming year, current transits, dates, future events, or timing');
     expect(prompt).not.toMatch(/\b(?:30|90)\s*(?:day|days|дн(?:я|ей))\b/u);
     expect(prompt).not.toContain('legacy prewritten interpretation');
     expect(prompt).not.toContain('"summary"');
@@ -416,35 +437,35 @@ describe('permanent natal V2 contract', () => {
     const built = buildNatalModelContext(profile, chart('exact'));
     const ids = [...built.evidenceIds];
     const relative = premiumPayload(ids);
-    if (!relative.sections?.[0]?.paragraphs?.[0]) throw new Error('fixture section missing');
-    relative.sections[0].paragraphs[0].text = 'In 30 days this placement will deliver a decisive event.';
+    if (!relative.sections?.[0]) throw new Error('fixture section missing');
+    relative.sections[0].content = 'In 30 days this placement will deliver a decisive event.';
     expect(materializePermanentPremiumReport({ raw: relative, built })).toBeNull();
 
     const dated = premiumPayload(ids);
-    dated.headline = 'Your decisive turn in 2031';
+    if (!dated.sections?.[0]) throw new Error('fixture section missing');
+    dated.sections[0].title = 'Your decisive turn in 2031';
     expect(materializePermanentPremiumReport({ raw: dated, built })).toBeNull();
 
     const monthPromise = premiumPayload(ids);
-    if (!monthPromise.sections?.[0]?.paragraphs?.[0]) throw new Error('fixture section missing');
-    monthPromise.sections[0].paragraphs[0].text = 'You will meet the person who changes everything in March.';
+    if (!monthPromise.sections?.[0]) throw new Error('fixture section missing');
+    monthPromise.sections[0].content = 'You will meet the person who changes everything in March.';
     expect(materializePermanentPremiumReport({ raw: monthPromise, built })).toBeNull();
 
     const russianTiming = premiumPayload(ids);
-    if (!russianTiming.sections?.[0]?.paragraphs?.[0]) throw new Error('fixture section missing');
-    russianTiming.sections[0].paragraphs[0].text = 'Через 30 дней карта гарантирует тебе важное событие.';
+    if (!russianTiming.sections?.[0]) throw new Error('fixture section missing');
+    russianTiming.sections[0].content = 'Через 30 дней карта гарантирует тебе важное событие.';
     expect(materializePermanentPremiumReport({ raw: russianTiming, built })).toBeNull();
 
     const unknown = buildNatalModelContext(profile, chart('unknown'));
     const placementIds = [...unknown.evidenceIds].filter((id) => id.startsWith('natal.position.'));
     const mentionsAngle = freePayload(placementIds, false);
-    mentionsAngle.hook = statement(
-      'Твой Асцендент якобы определяет первое впечатление, хотя время рождения неизвестно.',
-      placementIds[0],
-    );
+    if (!mentionsAngle.sections?.[0]) throw new Error('fixture section missing');
+    mentionsAngle.sections[0].content = 'Твой Асцендент якобы определяет первое впечатление, хотя время рождения неизвестно.';
     expect(materializePermanentFreeReport({ raw: mentionsAngle, profile, built: unknown })).toBeNull();
 
     const angleHeadline = freePayload(placementIds, false);
-    angleHeadline.headline = 'Rising sign sets the tone';
+    if (!angleHeadline.sections?.[0]) throw new Error('fixture section missing');
+    angleHeadline.sections[0].title = 'Rising sign sets the tone';
     expect(materializePermanentFreeReport({ raw: angleHeadline, profile, built: unknown })).toBeNull();
 
     const houseSectionTitle = premiumPayload([...unknown.evidenceIds]);
@@ -452,10 +473,10 @@ describe('permanent natal V2 contract', () => {
     houseSectionTitle.sections[0].title = 'The 10th house decides';
     expect(materializePermanentPremiumReport({ raw: houseSectionTitle, built: unknown })).toBeNull();
 
-    const angleStrategyTitle = premiumPayload([...unknown.evidenceIds]);
-    if (!angleStrategyTitle.strategies?.[0]) throw new Error('fixture strategy missing');
-    angleStrategyTitle.strategies[0].title = 'Follow the Ascendant';
-    expect(materializePermanentPremiumReport({ raw: angleStrategyTitle, built: unknown })).toBeNull();
+    const angleGrowthTitle = premiumPayload([...unknown.evidenceIds]);
+    if (!angleGrowthTitle.sections?.[5]) throw new Error('fixture section missing');
+    angleGrowthTitle.sections[5].title = 'Follow the Ascendant';
+    expect(materializePermanentPremiumReport({ raw: angleGrowthTitle, built: unknown })).toBeNull();
   });
 
   test('rejects diagnoses, professional imperatives, and guaranteed outcomes in natal answers', () => {

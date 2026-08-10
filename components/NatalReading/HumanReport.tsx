@@ -541,10 +541,17 @@ export const HumanReport: React.FC<Props> = ({
             </section>
           ) : (
             <>
+              <header className="natal-reading-hook">
+                <FormattedAiText
+                  text={report.hook.text}
+                  className="natal-reading-hook-text"
+                  paragraphClassName="natal-reading-hook-paragraph"
+                />
+              </header>
               {freeSections.map((item, index) => (
                 <Fragment key={item.key}>
                   <SectionText section={item} index={index} />
-                  {index === 0 && editorialSticker ? (
+                  {index === 1 && editorialSticker ? (
                     <EditorialSticker
                       asset={editorialSticker}
                       className="natal-editorial-sticker natal-editorial-sticker--inline"
@@ -569,11 +576,11 @@ export const HumanReport: React.FC<Props> = ({
             <p className="py-5 text-[13px] leading-relaxed text-[#a14f4f]" role="alert">{premiumError}</p>
           ) : null
         ) : (
-          <section className="natal-premium-card my-8 overflow-hidden p-5">
-            <h2 className="font-sans text-[22px] font-semibold leading-tight">
+          <section className="natal-premium-callout">
+            <h2>
               {language === 'ru' ? 'Полный портрет карты' : 'The complete chart portrait'}
             </h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-[#667085]">
+            <p>
               {language === 'ru'
                 ? 'Один цельный постоянный разбор личности, отношений, решений, работы, денег, способностей и внутренних противоречий.'
                 : 'One cohesive permanent reading of personality, relationships, decisions, work, money, abilities, and inner contradictions.'}
@@ -581,7 +588,7 @@ export const HumanReport: React.FC<Props> = ({
             <button
               type="button"
               onClick={requestPremium}
-              className="natal-premium-button mt-4 flex w-full items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-semibold"
+              className="natal-premium-button"
             >
               <Crown size={16} strokeWidth={2} />
               {language === 'ru' ? 'Открыть в Premium' : 'Unlock with Premium'}
@@ -589,19 +596,21 @@ export const HumanReport: React.FC<Props> = ({
           </section>
         )}
 
-        <section className="my-8 py-2">
+        <TechnicalDetails chartData={chartData} language={language} />
+
+        <section className="natal-question-action">
           <button
             type="button"
             onClick={openQuestions}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#171717] px-5 py-3 text-[14px] font-semibold text-white"
+            className="natal-question-button"
           >
             <MessageCircle size={17} strokeWidth={2} />
             {language === 'ru' ? 'Задать вопрос астрологу' : 'Ask the astrologer'}
           </button>
         </section>
 
-        <section className="natal-disclaimer border-t border-[#eeeeee] py-6">
-          <p className="font-sans text-[12.5px] leading-relaxed text-[#777]">
+        <section className="natal-disclaimer">
+          <p>
             {language === 'ru'
               ? 'Это ознакомительная интерпретация астрологического расчёта. Она не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
               : 'This is an informational interpretation of an astrological calculation. It does not replace medical, legal, financial, or other professional advice.'}

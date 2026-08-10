@@ -14,18 +14,18 @@ import type {
 } from '../natalChartV2Types';
 import { APP_VOICE_VERSION, withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
 
-export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v3';
+export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v5';
 export const NATAL_PERMANENT_FREE_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v2`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v4`,
 );
 export const NATAL_PERMANENT_PREMIUM_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v2`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v4`,
 );
 export const NATAL_PERMANENT_FREE_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.free.v3',
+  'natal.permanent.free.v5',
 );
 export const NATAL_PERMANENT_PREMIUM_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.premium.v3',
+  'natal.permanent.premium.v5',
 );
 
 export type NatalReadingLanguage = 'ru' | 'en';
@@ -44,10 +44,11 @@ export type NatalReadingStatement = {
 };
 
 export type NatalPermanentFreeReport = NatalInterpretationReport & {
-  schemaVersion: 'natal-permanent-free-v2';
+  schemaVersion: 'natal-permanent-free-v3';
   contractVersion: typeof NATAL_PERMANENT_CONTRACT_VERSION;
   tier: 'free';
   evidenceIds: string[];
+  hook: NatalReadingStatement;
 };
 
 export type NatalPermanentPremiumSection = {
@@ -138,11 +139,11 @@ export type RawNatalSection = {
 };
 
 export type RawNatalFreePayload = {
+  hook?: RawNatalStatement;
   sections?: RawNatalSection[];
   /** @deprecated legacy response fields retained only for source compatibility. */
   headline?: unknown;
   headline_evidence_ids?: unknown;
-  hook?: RawNatalStatement;
   core?: {
     sun?: RawNatalStatement;
     moon?: RawNatalStatement;
@@ -840,6 +841,7 @@ function parseNatalSections(
   expectedKeys: readonly string[],
   expectedFree: boolean,
   built: BuiltNatalModelContext,
+  maxWords: number,
 ): ParsedNatalSection[] | null {
   if (!Array.isArray(rawSections) || rawSections.length !== expectedKeys.length) return null;
   const parsed: ParsedNatalSection[] = [];
@@ -852,6 +854,11 @@ function parseNatalSections(
       || rawSection?.free !== expectedFree
       || !title
       || !content
+      || content.split(/\s+/u).filter(Boolean).length > maxWords
+      || containsChangingTimeReference(title)
+      || containsChangingTimeReference(content)
+      || !isNatalReliabilityTextAllowed(title, built)
+      || !isNatalReliabilityTextAllowed(content, built)
     ) return null;
     const statement = parseStatement(
       { text: content, evidence_ids: rawSection.evidence_ids },
@@ -870,7 +877,14 @@ export function materializePermanentFreeReport(input: {
   built: BuiltNatalModelContext;
 }): NatalPermanentFreeReport | null {
   const { raw, profile, built } = input;
-  const parsed = parseNatalSections(raw.sections, FREE_NATAL_SECTION_KEYS, true, built);
+  const hook = parseStatement(raw.hook, built.evidenceIds, built);
+  if (
+    !hook
+    || hook.text.split(/\s+/u).filter(Boolean).length > 32
+    || containsChangingTimeReference(hook.text)
+    || !isNatalReliabilityTextAllowed(hook.text, built)
+  ) return null;
+  const parsed = parseNatalSections(raw.sections, FREE_NATAL_SECTION_KEYS, true, built, 90);
   if (!parsed) return null;
   const language: NatalReadingLanguage = profile.language === 'en' ? 'en' : 'ru';
   const freeSections = parsed.map((item) => section(
@@ -882,10 +896,11 @@ export function materializePermanentFreeReport(input: {
   const first = parsed[0];
   const last = parsed[parsed.length - 1];
   return {
-    schemaVersion: 'natal-permanent-free-v2',
+    schemaVersion: 'natal-permanent-free-v3',
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
     tier: 'free',
-    evidenceIds,
+    evidenceIds: uniqueStrings([...hook.evidenceIds, ...evidenceIds]),
+    hook,
     userName: profile.name || (language === 'ru' ? 'Ты' : 'You'),
     birthData: {
       birthDate: profile.birthDate || built.context.subject.birthData.date,
@@ -915,7 +930,7 @@ export function isNatalPermanentFreeReport(
   value: NatalInterpretationReport | null | undefined,
 ): value is NatalPermanentFreeReport {
   return !!value
-    && (value as Partial<NatalPermanentFreeReport>).schemaVersion === 'natal-permanent-free-v2'
+    && (value as Partial<NatalPermanentFreeReport>).schemaVersion === 'natal-permanent-free-v3'
     && (value as Partial<NatalPermanentFreeReport>).contractVersion === NATAL_PERMANENT_CONTRACT_VERSION;
 }
 
@@ -928,11 +943,12 @@ export function materializePermanentPremiumReport(input: {
     PREMIUM_NATAL_SECTION_KEYS,
     false,
     input.built,
+    105,
   );
   if (!parsed) return null;
   const first = parsed[0];
   const last = parsed[parsed.length - 1];
-  const sections: NatalPermanentPremiumSection[] = parsed.slice(1, -1).map((item) => ({
+  const sections: NatalPermanentPremiumSection[] = parsed.map((item) => ({
     id: item.key,
     title: item.title,
     paragraphs: [item.statement],
@@ -964,10 +980,11 @@ export function buildPermanentFreeFallback(
     ? 'Расчёт карты сохранён. Постоянный текстовый разбор временно недоступен.'
     : 'The chart calculation is saved. The permanent written reading is temporarily unavailable.';
   return {
-    schemaVersion: 'natal-permanent-free-v2',
+    schemaVersion: 'natal-permanent-free-v3',
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
     tier: 'free',
     evidenceIds: [firstEvidence],
+    hook: { text: content, evidenceIds: [firstEvidence] },
     userName: profile.name || (language === 'ru' ? 'Ты' : 'You'),
     birthData: {
       birthDate: profile.birthDate || built.context.subject.birthData.date,

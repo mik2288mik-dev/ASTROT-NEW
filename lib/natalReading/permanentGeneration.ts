@@ -1,6 +1,7 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
 import { llmJson } from '../anthropic';
+import { getAppSystemVoice } from '../appVoice';
 import {
   buildNatalModelContext,
   materializePermanentFreeReport,
@@ -14,22 +15,20 @@ import {
 } from './permanentReport';
 
 export function getPermanentNatalSystemPrompt(language: NatalReadingLanguage): string {
-  if (language === 'ru') {
-    return `Ты — прямой и дерзкий астрологический интерпретатор. Твоя задача — превратить сухие астро-факты в живое, точное и полезное описание личности.
-
-Правила:
-- Говори с человеком на «ты», без церемоний.
-- Никакой эзотерики, «космических энергий», «вселенских вибраций» и общих фраз.
-- Опирайся только на предоставленный список evidence. Не придумывай планет, аспектов, домов, событий или биографических фактов, которых нет во входе.
-- Каждый блок должен ссылаться на конкретные evidence_ids из входного массива.
-- Тон — как умный друг, который разбирает человека по косточкам, но с любовью: честно, иногда жёстко, с уместным юмором и без приукрашиваний.
-- Не пиши «Вы склонны» или «Вам свойственно». Пиши прямо: «Ты тот, кто…», «Твоя голова работает так…», «В отношениях тебя бесит…».
-- Не упоминай конкретных родственников, родителей или других близких в негативном ключе. Говори обобщённо: «в общении с близкими» или «в отношениях с окружающими».
-- Объясняй каждую черту через evidence простыми словами, как в разговоре в баре, но без дешёвого сленга.
-- Каждый блок должен быть завершённым разбором, без обещаний продолжения в премиуме.
-- Ответ — только валидный JSON с массивом sections, без Markdown и без обрамляющих блоков.`;
-  }
-  return `You are a direct, sharp astrological interpreter. Turn supplied calculated facts into a vivid, precise, useful personality reading. Address the reader as “you”. Use only the supplied evidence and cite existing evidence_ids for every section. Never invent placements, houses, aspects, events, biography, or diagnoses. Avoid mysticism, cosmic-energy language, filler, fake youth slang, and negative references to specific relatives or parents. Explain each trait in ordinary language like a smart, caring friend. Every section must stand on its own, without teasing paid continuation. Return valid JSON only with a sections array and no Markdown.`;
+  const task = language === 'ru'
+    ? `ЗАДАЧА НАТАЛЬНОГО ПОРТРЕТА
+- Преврати сухие астро-факты в живой, точный рассказ о человеке, без эзотерики и психологической воды.
+- Не пиши «Вы склонны» или «Вам свойственно». Говори прямо: «Ты тот, кто…», «Твоя голова работает так…», «В отношениях тебя бесит…».
+- Каждый блок завершён сам по себе: не повторяет соседний, не обещает продолжение в Premium и не делает из человека диагноз.
+- Каждый блок обязан вернуть только реальные evidence_ids из входного массива. Не печатай эти идентификаторы в пользовательском тексте.
+- Ответ — только валидный JSON без Markdown.`
+    : `NATAL PORTRAIT TASK
+- Turn calculated astrological facts into a vivid, precise story about a person without mysticism or pseudo-psychology.
+- Write directly: “You are the person who…”, “Your mind works like this…”, “In close relationships, what irritates you is…”.
+- Every block stands on its own: it does not repeat the adjacent block, tease Premium, or diagnose the reader.
+- Every block must return only existing evidence_ids from the input. Never print those identifiers in the user-facing text.
+- Return valid JSON only, with no Markdown.`;
+  return `${getAppSystemVoice(language)}\n\n${task}`;
 }
 
 function permanentInputRules(built: BuiltNatalModelContext): string {
@@ -53,17 +52,28 @@ export function buildPermanentNatalFreePrompt(
   language: NatalReadingLanguage,
   built: BuiltNatalModelContext,
 ): string {
+  const sections = language === 'ru'
+    ? [
+        ['personality', 'Ты по натуре'],
+        ['thinking', 'Как ты думаешь и говоришь'],
+        ['relationships', 'Твои отношения и любовь'],
+        ['vulnerabilities', 'Твои слабые места'],
+      ]
+    : [
+        ['personality', 'Who you are'],
+        ['thinking', 'How you think and speak'],
+        ['relationships', 'Love and relationships'],
+        ['vulnerabilities', 'Your vulnerable points'],
+      ];
   return `${permanentInputRules(built)}
 
-Create exactly four complete Free sections, in this order: personality, thinking, relationships, vulnerabilities. Each section must be substantial and complete, never a teaser. Set free to true for every section.
+Create a 22–32 word hook before the sections. It is a blunt, recognisable first observation about this person, grounded in evidence; it is not a slogan. Then create exactly four complete Free sections in the supplied order and use the supplied titles verbatim. Each section must stand on its own, never tease Premium, and use 65–85 words in one or two short paragraphs. Do not repeat the same trait in different sections. Set free to true for every section.
 
 Return JSON only:
 {
+  "hook":{"text":"short personal opening","evidence_ids":["existing evidence id"]},
   "sections": [
-    {"section_key":"personality","title":"Ты по натуре","free":true,"content":"завершённый текст с \\n\\n","evidence_ids":["existing evidence id"]},
-    {"section_key":"thinking","title":"естественный заголовок","free":true,"content":"завершённый текст","evidence_ids":["existing evidence id"]},
-    {"section_key":"relationships","title":"естественный заголовок","free":true,"content":"завершённый текст","evidence_ids":["existing evidence id"]},
-    {"section_key":"vulnerabilities","title":"естественный заголовок","free":true,"content":"завершённый текст","evidence_ids":["existing evidence id"]}
+${sections.map(([key, title]) => `    {"section_key":"${key}","title":"${title}","free":true,"content":"complete concise reading","evidence_ids":["existing evidence id"]}`).join(',\n')}
   ]
 }
 
@@ -75,21 +85,33 @@ export function buildPermanentNatalPremiumPrompt(
   language: NatalReadingLanguage,
   built: BuiltNatalModelContext,
 ): string {
+  const sections = language === 'ru'
+    ? [
+        ['vocation_money', 'Призвание и деньги'],
+        ['career', 'Карьера'],
+        ['health', 'Здоровье и энергия'],
+        ['shadow', 'Твоя тень'],
+        ['life_path', 'Жизненный путь'],
+        ['year_advice', 'Стратегия роста'],
+      ]
+    : [
+        ['vocation_money', 'Vocation and money'],
+        ['career', 'Career'],
+        ['health', 'Health and energy'],
+        ['shadow', 'Your shadow'],
+        ['life_path', 'Life path'],
+        ['year_advice', 'Growth strategy'],
+      ];
   return `${permanentInputRules(built)}
 
-Create every Premium section from premium_sections exactly once. Set free to false. Keep every section complete and grounded. The year_advice section may give a practical direction for the coming year, but must not invent dated events or timing absent from evidence.
+Create every Premium section exactly once in the supplied order and use the supplied titles verbatim. Set free to false. Each section must be complete, grounded, distinct from the others, and use 85–105 words in one or two short paragraphs. The year_advice key is a permanent growth strategy derived from the natal chart: do not mention the coming year, current transits, dates, future events, or timing.
 
 premium_sections: vocation_money, career, health, shadow, life_path, year_advice.
 
 Return JSON only:
 {
   "sections": [
-    {"section_key":"vocation_money","title":"естественный заголовок","free":false,"content":"завершённый текст с \\n\\n","evidence_ids":["existing evidence id"]},
-    {"section_key":"career","title":"естественный заголовок","free":false,"content":"завершённый текст","evidence_ids":["existing evidence id"]},
-    {"section_key":"health","title":"естественный заголовок","free":false,"content":"завершённый текст","evidence_ids":["existing evidence id"]},
-    {"section_key":"shadow","title":"естественный заголовок","free":false,"content":"завершённый текст","evidence_ids":["existing evidence id"]},
-    {"section_key":"life_path","title":"естественный заголовок","free":false,"content":"завершённый текст","evidence_ids":["existing evidence id"]},
-    {"section_key":"year_advice","title":"естественный заголовок","free":false,"content":"завершённый текст","evidence_ids":["existing evidence id"]}
+${sections.map(([key, title]) => `    {"section_key":"${key}","title":"${title}","free":false,"content":"complete concise reading","evidence_ids":["existing evidence id"]}`).join(',\n')}
   ]
 }
 

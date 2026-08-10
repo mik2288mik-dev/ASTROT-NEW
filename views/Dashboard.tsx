@@ -635,8 +635,8 @@ export const Dashboard = memo<DashboardProps>(({
               visual?.assignments[forecast.overview.id],
               activePeriod,
             )}
-            hasVisual={!!editorialStickerPath}
-            editorialStickerPath={editorialStickerPath}
+            hasVisual={false}
+            editorialStickerPath={null}
             onRequestPremium={requestPremium}
           >
             {overviewCrossLinks.map((link) => (
@@ -652,11 +652,12 @@ export const Dashboard = memo<DashboardProps>(({
             ))}
           </ForecastSectionBlock>
 
-          {readySections.map((section) => {
+          {readySections.map((section, index) => {
             const crossLinks = forecast.suggestedCrossPeriodLinks.filter(
               (link) => link.fromSectionId === section.id,
             );
             const sectionPromoSlots = promotionSlotsBySection.get(section.id) || [];
+            const isEditorialSlot = index === 0 && !!editorialStickerPath;
             return (
               <React.Fragment key={`${activePeriod}:${forecast.periodKey}:${section.id}`}>
                 <ForecastSectionBlock
@@ -669,7 +670,8 @@ export const Dashboard = memo<DashboardProps>(({
                     visual?.assignments[section.id],
                     activePeriod,
                   )}
-                  hasVisual={!!visual?.assignments[section.id]?.path}
+                  hasVisual={isEditorialSlot}
+                  editorialStickerPath={isEditorialSlot ? editorialStickerPath : null}
                   onRequestPremium={requestPremium}
                 >
                   {crossLinks.map((link) => (

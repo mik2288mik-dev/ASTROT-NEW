@@ -108,6 +108,8 @@ export type ForecastContentBlock = {
   semanticFactId: string;
   atomId: string;
   astro_evidence?: string | null;
+  /** Calculated evidence cited by this exact piece of copy. */
+  evidenceIds?: string[];
   explanationAnchorId?: string | null;
 };
 
@@ -211,10 +213,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v12.period-json-contracts',
+  'personal-forecast-feed.v14.editorial-blocks',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v8';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v9';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -724,6 +726,12 @@ function contentBlocksValid(
       || (block.atomId !== undefined && (typeof block.atomId !== 'string' || !block.atomId.trim()))
       || (block.astro_evidence !== undefined && block.astro_evidence !== null && (
         typeof block.astro_evidence !== 'string'
+      ))
+      || (block.evidenceIds !== undefined && (
+        !Array.isArray(block.evidenceIds)
+        || block.evidenceIds.length < 1
+        || new Set(block.evidenceIds).size !== block.evidenceIds.length
+        || block.evidenceIds.some((id) => typeof id !== 'string' || !section.semanticFactIds.includes(id))
       ))
       || (
         block.explanationAnchorId !== undefined

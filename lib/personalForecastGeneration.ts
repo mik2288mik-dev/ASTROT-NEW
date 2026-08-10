@@ -2,7 +2,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { isNatalChartDataV2 } from './natal/canonicalReport';
-import { APP_VOICE_VERSION } from './appVoice';
+import { APP_VOICE_VERSION, getAppSystemVoice } from './appVoice';
 import { buildOpenAIChatParams } from './openaiChat';
 import { getContentAiClient } from './contentAiClient';
 import {
@@ -36,72 +36,73 @@ export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
   period: PersonalForecastPeriod = 'day',
 ): string {
-  const ru: Record<PersonalForecastPeriod, string> = {
-    day: `Ты — прямой и дружелюбный ассистент-прогнозист. Твоя задача — на основе переданных evidence на сегодняшний день дать короткий прикладной прогноз.
-
-Правила:
-- Говори на «ты», стиль — спокойный, как друг, без пафоса и запугиваний.
-- Никаких «звёзды говорят», «Вселенная приготовила», «космических энергий» или «вселенских вибраций» — только факты и их бытовые следствия.
-- Не упоминай конкретных родственников, родителей или партнёров в негативном ключе. Если расчёт указывает на напряжение, говори обобщённо: «возможно недопонимание с близким человеком» или «в общении с окружающими».
-- Опирайся строго на предоставленный список транзитов evidence. Не добавляй ничего от себя.
-- В прогнозе дай общий эмоциональный фон дня, основную тенденцию, простой совет и то, чего лучше избегать.
-- Не драматизируй, не пугай и не строй глобальных выводов по одному дню.
-- Ответ — только валидный JSON без Markdown и без обрамляющих блоков.
-
-Верни строго:
-{"summary":"3-4 предложения","advice":"1-2 коротких совета","evidence_ids":["существующий evidence id"]}`,
-    week: `Ты — прямой и дружелюбный ассистент-прогнозист. Твоя задача — на основе переданных evidence на неделю дать целостный общий прогноз.
-
-Правила:
-- Говори на «ты», стиль — спокойный и дружеский, как умный друг.
-- Дай единую картину недели: общую тему, что будет даваться легко, где возможно напряжение и какой вывод полезен.
-- Не разбивай прогноз по дням. Только если evidence содержит один или два действительно ключевых точных аспекта в конкретную дату, вынеси пиковый момент в key_moment.
-- Никакой эзотерики, «космических энергий», «вселенских вибраций» и общих фраз. Всё — только от переданных evidence.
-- Не упоминай конкретных родственников или родителей в негативном ключе. О напряжении говори обобщённо: «в общении с окружающими» или «в близких отношениях».
-- Не придумывай события, даты или выводы, которых нет в evidence.
-- Ответ — только валидный JSON без Markdown и без обрамляющих блоков.
-
-Верни строго:
-{"theme":"Главная тема недели — ...","forecast":"3-4 абзаца с \\n\\n","key_moment":"пиковый момент с датой и сутью или null","advice":"короткий итоговый совет","evidence_ids":["существующий evidence id"]}`,
-    month: `Ты — прямой и дружелюбный ассистент-прогнозист. Твоя задача — на основе переданных evidence на месяц дать целостный общий прогноз.
-
-Правила:
-- Говори на «ты», стиль — спокойный и уверенный, как умный друг.
-- Дай картину месяца в целом: основной вектор, затронутые жизненные контексты и то, что потребует внимания.
-- Не разбивай основной текст по дням. Выдели 3–5 ключевых периодов, если их подтверждает timing в evidence; не дополняй список выдуманными периодами ради количества.
-- Никакой эзотерики, «космических энергий», «вселенских вибраций» и общих фраз. Всё — только от переданных evidence.
-- Не упоминай конкретных родственников или родителей в негативном ключе. О напряжении говори обобщённо.
-- Не придумывай события, периоды или жизненные сферы, которых нет в evidence.
-- Ответ — только валидный JSON без Markdown и без обрамляющих блоков.
-
-Верни строго:
-{"theme":"Общая тема месяца — ...","forecast":"5-6 абзацев с \\n\\n","key_periods":[{"date_range":"период из evidence","event":"суть","advice":"что делать"}],"affected_areas":["подтверждённый жизненный контекст"],"general_advice":"итоговый совет","evidence_ids":["существующий evidence id"]}`,
+  const ruPeriodRule: Record<PersonalForecastPeriod, string> = {
+    day: 'Дай 90–115 слов разбора, максимум 130. Один лид и от одного до двух коротких смысловых фрагментов; не делай глобальных выводов по одному дню.',
+    week: 'Дай 120–140 слов цельного разбора недели. Один лид и от одного до трёх коротких смысловых фрагментов; никогда не раскладывай неделю по дням.',
+    month: 'Дай 160–190 слов цельного разбора месяца, максимум 200. Один лид и от двух до трёх коротких смысловых фрагментов; не превращай текст в календарь или перечень обязательных сфер.',
   };
-  if (language === 'ru') return ru[period];
-  const en: Record<PersonalForecastPeriod, string> = {
-    day: `You are a direct and friendly forecast assistant. Use only the supplied evidence for today. Address the reader as “you”, stay calm and practical, and never dramatize a single day. Do not use mysticism, cosmic-energy language, filler, or invented facts. Never single out relatives, parents, or partners negatively; describe interpersonal tension in general terms. Return valid JSON only, without Markdown: {"summary":"3-4 sentences","advice":"1-2 short practical suggestions","evidence_ids":["existing evidence id"]}.`,
-    week: `You are a direct and friendly forecast assistant. Use only the supplied weekly evidence and write one coherent weekly forecast, never a day-by-day list. Mention a dated key_moment only when one or two genuinely exact dated factors support it. Cover the overall theme, what may flow easily, where tension may appear, and a concise conclusion. Do not use mysticism, cosmic-energy language, filler, invented facts, or negative references to specific relatives or parents. Return valid JSON only, without Markdown: {"theme":"Main theme of the week — ...","forecast":"3-4 paragraphs separated by \\n\\n","key_moment":"dated peak or null","advice":"short conclusion","evidence_ids":["existing evidence id"]}.`,
-    month: `You are a direct and friendly forecast assistant. Use only the supplied monthly evidence and write one coherent monthly forecast, never a day-by-day list. Include 3-5 key periods when their timing exists in evidence; never invent extra periods to reach a count. Name only life contexts supported by evidence. Cover the overall theme, affected contexts, supported key periods, and a concise conclusion. Do not use mysticism, cosmic-energy language, filler, invented facts, or negative references to specific relatives or parents. Return valid JSON only, without Markdown: {"theme":"Overall theme of the month — ...","forecast":"5-6 paragraphs separated by \\n\\n","key_periods":[{"date_range":"supported period","event":"meaning","advice":"practical response"}],"affected_areas":["supported context"],"general_advice":"conclusion","evidence_ids":["existing evidence id"]}.`,
+  const enPeriodRule: Record<PersonalForecastPeriod, string> = {
+    day: 'Write 90–115 words of reading, maximum 130. Use one lead and one or two compact meaning blocks; do not draw global conclusions from one day.',
+    week: 'Write 120–140 words for one coherent weekly reading. Use one lead and one to three compact meaning blocks; never split it into a day-by-day list.',
+    month: 'Write 160–190 words for one coherent monthly reading, maximum 200. Use one lead and two or three compact meaning blocks; never turn it into a calendar or a checklist of required life areas.',
   };
-  return en[period];
+
+  if (language === 'ru') {
+    return `${getAppSystemVoice('ru')}
+
+ЗАДАЧА ДЛЯ ЛИЧНОГО ПРОГНОЗА
+- Сам выбери главный вывод из evidence. Не перечисляй транзиты подряд и не повторяй одну мысль разными словами.
+- Пиши только о том, что подтверждено переданными evidence и фактическим natal context. Ничего не рассчитывай и не придумывай заново.
+- Заголовок — короткая естественная фраза по главному смыслу периода, не рекламный слоган.
+- Лид — два точных предложения. Каждый следующий фрагмент раскрывает только одну мысль и получает короткий человеческий заголовок.
+- Совет — одна практическая фраза, прямо следующая из разбора; без отдельного поучения и без повторения текста.
+- ${ruPeriodRule[period]}
+- Каждый текстовый блок обязан вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все блоки.
+- Ответ — только валидный JSON без Markdown.
+
+Верни строго:
+{"headline":"короткий честный заголовок","lead":{"text":"лид из двух предложений","evidence_ids":["существующий evidence id"]},"sections":[{"title":"короткий заголовок","text":"один смысловой фрагмент","evidence_ids":["существующий evidence id"]}],"advice":{"text":"один конкретный совет","evidence_ids":["существующий evidence id"]}}`;
+  }
+
+  return `${getAppSystemVoice('en')}
+
+PERSONAL FORECAST TASK
+- Choose the main conclusion from the evidence yourself. Do not list transits mechanically or repeat the same point in different words.
+- Use only the supplied evidence and factual natal context. Never recalculate or invent astrology, events, biography, or diagnoses.
+- The headline is one short natural phrase about the actual period, never an advertising slogan.
+- The lead is two exact sentences. Every following block develops one idea only and has a short, human heading.
+- Advice is one practical sentence derived directly from the reading, never a detached lesson or a repetition.
+- ${enPeriodRule[period]}
+- Every text block must return its own existing evidence_ids. Do not automatically attach the same list to every block.
+- Return valid JSON only, with no Markdown.
+
+Return exactly:
+{"headline":"short honest headline","lead":{"text":"two-sentence lead","evidence_ids":["existing evidence id"]},"sections":[{"title":"short heading","text":"one meaning block","evidence_ids":["existing evidence id"]}],"advice":{"text":"one concrete suggestion","evidence_ids":["existing evidence id"]}}`;
 }
 
+type GeneratedTextBlock = {
+  text?: unknown;
+  evidence_ids?: unknown;
+};
+
+type GeneratedForecastSection = GeneratedTextBlock & {
+  title?: unknown;
+};
+
 type GeneratedFeedPayload = {
-  /** @deprecated accepted only for source compatibility with old callers. */
-  sections?: unknown;
-  summary?: unknown;
-  advice?: unknown;
-  theme?: unknown;
+  headline?: unknown;
+  lead?: GeneratedTextBlock;
+  sections?: GeneratedForecastSection[];
+  advice?: GeneratedTextBlock | unknown;
+  /** Previous compact contract accepted only as a resilience fallback. */
   forecast?: unknown;
-  key_moment?: unknown;
-  key_periods?: unknown;
-  affected_areas?: unknown;
-  general_advice?: unknown;
   evidence_ids?: unknown;
 };
 
 type FreeGeneratedBlock = {
   text: string;
+  role: 'lead' | 'insight' | 'action';
+  evidenceIds: string[];
 };
 
 type FreeGeneratedSection = {
@@ -189,12 +190,8 @@ function modelText(value: unknown): string | null {
   return normalized || null;
 }
 
-function paragraphBlocks(value: string): FreeGeneratedBlock[] {
-  return value
-    .split(/\n\s*\n/u)
-    .map((text) => text.trim())
-    .filter(Boolean)
-    .map((text) => ({ text }));
+function wordCount(value: string): number {
+  return value.trim().split(/\s+/u).filter(Boolean).length;
 }
 
 function validatedEvidenceIds(
@@ -214,92 +211,102 @@ function validatedEvidenceIds(
   return ids;
 }
 
+function generatedBlock(
+  value: unknown,
+  role: FreeGeneratedBlock['role'],
+  availableEvidenceIds: ReadonlySet<string>,
+): FreeGeneratedBlock | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const candidate = value as GeneratedTextBlock;
+  const text = modelText(candidate.text);
+  const evidenceIds = validatedEvidenceIds(candidate.evidence_ids, availableEvidenceIds);
+  return text && evidenceIds ? { text, role, evidenceIds } : null;
+}
+
+function legacyGeneratedBlocks(
+  raw: GeneratedFeedPayload,
+  availableEvidenceIds: ReadonlySet<string>,
+): FreeGeneratedSection[] | null {
+  const evidenceIds = validatedEvidenceIds(raw.evidence_ids, availableEvidenceIds);
+  const headline = modelText(raw.headline);
+  const forecast = modelText(raw.forecast);
+  const advice = modelText(raw.advice);
+  if (!evidenceIds || !headline || !forecast || !advice) return null;
+  const paragraphs = forecast
+    .split(/\n\s*\n/u)
+    .map((text) => text.trim())
+    .filter(Boolean)
+    .map((text, index) => ({
+      text,
+      role: index === 0 ? 'lead' as const : 'insight' as const,
+      evidenceIds,
+    }));
+  return [{
+    title: headline,
+    evidenceIds,
+    blocks: [...paragraphs, { text: advice, role: 'action', evidenceIds }],
+  }];
+}
+
 export function validateFreeGeneratedForecastFeed(
   raw: GeneratedFeedPayload,
   availableEvidenceIds: ReadonlySet<string> = new Set(),
   period: PersonalForecastPeriod = 'day',
 ): ValidatedFreeWriterResult {
-  const evidenceIds = validatedEvidenceIds(raw?.evidence_ids, availableEvidenceIds);
-  if (!evidenceIds) {
-    return { sections: [], errors: ['evidence_ids are missing, duplicated, or unknown'] };
+  const headline = modelText(raw.headline);
+  const maxReadingWords: Record<PersonalForecastPeriod, number> = {
+    day: 130,
+    week: 140,
+    month: 200,
+  };
+  const legacy = legacyGeneratedBlocks(raw, availableEvidenceIds);
+  if (!headline || !raw.lead || !Array.isArray(raw.sections) || !raw.advice) {
+    if (!legacy) return { sections: [], errors: ['payload requires headline, lead, sections, and advice with valid evidence_ids'] };
+    return { sections: legacy, errors: [] };
   }
-
-  if (period === 'day') {
-    const summary = modelText(raw.summary);
-    const advice = modelText(raw.advice);
-    if (!summary || !advice) {
-      return { sections: [], errors: ['day payload requires summary and advice'] };
+  const lead = generatedBlock(raw.lead, 'lead', availableEvidenceIds);
+  const advice = generatedBlock(raw.advice, 'action', availableEvidenceIds);
+  if (!lead || !advice) {
+    return { sections: [], errors: ['lead or advice has missing, duplicated, or unknown evidence_ids'] };
+  }
+  const rawSections = raw.sections;
+  if (rawSections.length < 1 || rawSections.length > 3) {
+    return { sections: [], errors: ['sections must contain between one and three meaning blocks'] };
+  }
+  const errors: string[] = [];
+  const sections: FreeGeneratedSection[] = [];
+  const readingBlocks: FreeGeneratedBlock[] = [lead];
+  if (headline.length > 72) errors.push(`headline has ${headline.length} characters; maximum is 72`);
+  if (wordCount(lead.text) > 42) errors.push('lead has more than 42 words');
+  if (wordCount(advice.text) > 18) errors.push('advice has more than 18 words');
+  for (const [index, rawSection] of rawSections.entries()) {
+    const title = modelText(rawSection?.title);
+    const block = generatedBlock(rawSection, 'insight', availableEvidenceIds);
+    if (!title || !block) {
+      errors.push(`section ${index + 1} is incomplete or has invalid evidence_ids`);
+      continue;
     }
-    return {
-      errors: [],
-      sections: [{
-        title: null,
-        evidenceIds,
-        blocks: [...paragraphBlocks(summary), ...paragraphBlocks(advice)],
-      }],
-    };
+    if (title.length > 56) errors.push(`section ${index + 1} title has more than 56 characters`);
+    if (wordCount(block.text) > 76) errors.push(`section ${index + 1} has more than 76 words`);
+    readingBlocks.push(block);
+    sections.push({ title, evidenceIds: block.evidenceIds, blocks: [block] });
   }
-
-  if (period === 'week') {
-    const theme = modelText(raw.theme);
-    const forecast = modelText(raw.forecast);
-    const advice = modelText(raw.advice);
-    const keyMoment = raw.key_moment == null ? null : modelText(raw.key_moment);
-    if (!theme || !forecast || !advice || (raw.key_moment != null && !keyMoment)) {
-      return { sections: [], errors: ['week payload is incomplete'] };
-    }
-    return {
-      errors: [],
-      sections: [{
-        title: theme,
-        evidenceIds,
-        blocks: [
-          ...paragraphBlocks(forecast),
-          ...(keyMoment ? [{ text: keyMoment }] : []),
-          ...paragraphBlocks(advice),
-        ],
-      }],
-    };
+  const readingWords = readingBlocks.reduce((sum, block) => sum + wordCount(block.text), 0);
+  if (readingWords > maxReadingWords[period]) {
+    errors.push(`reading has ${readingWords} words; maximum for ${period} is ${maxReadingWords[period]}`);
   }
-
-  const theme = modelText(raw.theme);
-  const forecast = modelText(raw.forecast);
-  const generalAdvice = modelText(raw.general_advice);
-  const affectedAreas = Array.isArray(raw.affected_areas)
-    ? raw.affected_areas.map(modelText).filter((value): value is string => !!value)
-    : [];
-  const keyPeriods = Array.isArray(raw.key_periods)
-    ? raw.key_periods.flatMap((item) => {
-        if (!item || typeof item !== 'object') return [];
-        const candidate = item as Record<string, unknown>;
-        const dateRange = modelText(candidate.date_range);
-        const event = modelText(candidate.event);
-        const advice = modelText(candidate.advice);
-        return dateRange && event && advice ? [{ dateRange, event, advice }] : [];
-      })
-    : [];
-  if (!theme || !forecast || !generalAdvice || !affectedAreas.length || !keyPeriods.length) {
-    return { sections: [], errors: ['month payload is incomplete'] };
-  }
+  if (errors.length) return { sections: [], errors };
   return {
     errors: [],
-    sections: [
-      {
-        title: theme,
-        evidenceIds,
-        blocks: paragraphBlocks(forecast),
-      },
-      ...keyPeriods.map((item) => ({
-        title: item.dateRange,
-        evidenceIds,
-        blocks: [{ text: item.event }, { text: item.advice }],
-      })),
-      {
-        title: affectedAreas.join(' · '),
-        evidenceIds,
-        blocks: paragraphBlocks(generalAdvice),
-      },
-    ],
+    sections: [{
+      title: headline,
+      evidenceIds: lead.evidenceIds,
+      blocks: [lead],
+    }, ...sections, {
+      title: null,
+      evidenceIds: advice.evidenceIds,
+      blocks: [advice],
+    }],
   };
 }
 
@@ -322,8 +329,15 @@ export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload
           ? parsed as Record<string, unknown>
           : null;
       if (!payload) continue;
+      const isGeneratedPayload = (value: unknown): value is Record<string, unknown> => (
+        !!value
+        && typeof value === 'object'
+        && !Array.isArray(value)
+        && ['headline', 'lead', 'sections', 'forecast', 'advice', 'evidence_ids']
+          .some((key) => Object.prototype.hasOwnProperty.call(value, key))
+      );
       const nested = [payload, payload.data, payload.result, payload.output, payload.response]
-        .find((value) => value && typeof value === 'object' && !Array.isArray(value));
+        .find(isGeneratedPayload);
       if (nested && typeof nested === 'object') return nested as GeneratedFeedPayload;
     } catch {
       // Try the next safe JSON representation.
@@ -348,21 +362,23 @@ function materializeDirectSection(input: {
   overview: boolean;
   sectionIndex: number;
 }): ForecastSection {
-  const evidence = evidenceForIds(input.section.evidenceIds, input.evidenceViews);
   const title = input.section.title || undefined;
   const sectionId = input.overview
     ? 'overview'
     : `semantic:direct-${input.sectionIndex}-${stableHash(`${title || ''}:${input.section.evidenceIds.join(':')}`).toString(36)}`;
-  const evidenceLabel = evidence.map((item) => item.factor).join(' · ') || null;
-  const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => ({
-    id: `${sectionId}:generated:${index + 1}`,
-    role: input.overview && index === 0 ? 'lead' : 'insight',
-    text: block.text,
-    semanticFactId: input.section.evidenceIds[0],
-    atomId: `generated:${sectionId}:${index + 1}`,
-    astro_evidence: evidenceLabel,
-    explanationAnchorId: index === 0 ? `anchor:${sectionId}` : null,
-  }));
+  const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => {
+    const blockEvidence = evidenceForIds(block.evidenceIds, input.evidenceViews);
+    return {
+      id: `${sectionId}:generated:${index + 1}`,
+      role: block.role,
+      text: block.text,
+      semanticFactId: block.evidenceIds[0],
+      atomId: `generated:${sectionId}:${index + 1}`,
+      evidenceIds: block.evidenceIds,
+      astro_evidence: blockEvidence.map((item) => item.factor).join(' · ') || null,
+      explanationAnchorId: `anchor:${sectionId}:${index + 1}`,
+    };
+  });
   const text = blocks.map((block) => block.text).join('\n\n');
   const teaser = input.language === 'ru'
     ? 'В полном разборе этого периода раскрыты конкретные проявления рассчитанных факторов.'
@@ -370,18 +386,18 @@ function materializeDirectSection(input: {
   const factualAnchorPrefix = input.language === 'ru'
     ? 'Расчётные факты этой секции: '
     : 'Calculated facts cited by this section: ';
-  const anchorExplanation = `${factualAnchorPrefix}${evidence
-    .map((item) => `${item.factor}: ${item.meaning}`)
-    .join(' ')}`
-    .trim();
-  const anchors: ExplanationAnchor[] = evidence.length && blocks.length
-    ? [{
-        id: `anchor:${sectionId}`,
-        conclusion: blocks[0].text,
-        explanation: anchorExplanation,
-        evidenceIds: evidence.map((item) => item.id),
-      }]
-    : [];
+  const anchors: ExplanationAnchor[] = input.section.blocks.flatMap((block, index) => {
+    const evidence = evidenceForIds(block.evidenceIds, input.evidenceViews);
+    if (!evidence.length) return [];
+    return [{
+      id: `anchor:${sectionId}:${index + 1}`,
+      conclusion: block.text,
+      explanation: `${factualAnchorPrefix}${evidence
+        .map((item) => `${item.factor}: ${item.meaning}`)
+        .join(' ')}`.trim(),
+      evidenceIds: evidence.map((item) => item.id),
+    }];
+  });
   return {
     id: sectionId,
     kind: input.overview ? 'overview' : 'dynamic',
@@ -389,8 +405,8 @@ function materializeDirectSection(input: {
     title,
     sourceTopicKey: input.overview ? 'overview' : undefined,
     text, contentBlocks: blocks,
-    semanticFactIds: input.section.evidenceIds,
-    semanticFingerprint: `direct:${stableHash(`${input.section.evidenceIds.join(':')}:${input.sectionIndex}`).toString(36)}`,
+    semanticFactIds: [...new Set(input.section.blocks.flatMap((block) => block.evidenceIds))],
+    semanticFingerprint: `direct:${stableHash(`${input.section.blocks.flatMap((block) => block.evidenceIds).join(':')}:${input.sectionIndex}`).toString(36)}`,
     importance: Math.max(1, 100 - input.sectionIndex),
     visualTag: 'calculated',
     premiumTeaser: teaser,

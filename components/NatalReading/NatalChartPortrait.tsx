@@ -199,7 +199,7 @@ export function NatalChartPortrait({ chart, language }: { chart: ChartSource; la
     bodies.find((point) => point.key === 'moon'),
     angles.find((point) => point.key === 'ascendant'),
   ].filter((point): point is PortraitPoint => !!point);
-  const title = language === 'ru' ? 'Код натальной карты' : 'Birth chart signature';
+  const title = language === 'ru' ? 'Ключевой портрет' : 'Key portrait';
   const description = language === 'ru'
     ? 'Уникальная композиция построена из рассчитанных положений и надёжных аспектов этой карты.'
     : 'This unique composition is built from the calculated placements and reliable aspects in this chart.';
@@ -259,18 +259,17 @@ export function NatalChartPortrait({ chart, language }: { chart: ChartSource; la
             ))}
           </g>
         </svg>
-      </div>
-
-      <div className="natal-chart-portrait-mobile-key" aria-hidden="true">
-        {keyPoints.map((point) => (
-          <div key={point.key} className="natal-chart-portrait-mobile-key-item">
-            <PlanetIcon planet={point.icon} size={18} strokeWidth={1.4} />
-            <span>
-              <strong>{PLANET_NAMES[point.key]?.[language] || point.name}</strong>
-              <small>{getZodiacSign(language, point.sign)} {Number(point.degree.toFixed(1))}°</small>
-            </span>
-          </div>
-        ))}
+        <div className="natal-chart-portrait-mobile-key" aria-hidden="true">
+          {keyPoints.map((point) => (
+            <div key={point.key} className="natal-chart-portrait-mobile-key-item">
+              <PlanetIcon planet={point.icon} size={18} strokeWidth={1.4} />
+              <span>
+                <strong>{PLANET_NAMES[point.key]?.[language] || point.name}</strong>
+                <small>{getZodiacSign(language, point.sign)} {Number(point.degree.toFixed(1))}°</small>
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <figcaption id="natal-chart-portrait-caption" className="natal-chart-portrait-caption">
