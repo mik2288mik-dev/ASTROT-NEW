@@ -32,6 +32,31 @@ describe('compatibility editorial layout', () => {
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
   });
 
+  it('keeps the compatibility entry compact and uses one tab language for every choice', () => {
+    const room = read('views/v2/UnionRoom.tsx');
+    const styles = read('styles/newspaperVisual.css');
+    const addStart = room.indexOf("if (screen === 'add')");
+    const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
+    const addFlow = room.slice(addStart, addEnd);
+
+    expect(addFlow).toContain("<AppTopBar title={ru ? 'Совместимость' : 'Compatibility'} />");
+    expect(addFlow).toContain('compat-entry-intro');
+    expect(addFlow).toContain("'По дате рождения'");
+    expect(addFlow).toContain("'По знакам зодиака'");
+    expect(addFlow).not.toContain('<small>Premium</small>');
+    expect(addFlow).not.toContain("ru ? 'Бесплатно'");
+    expect(room.match(/compat-choice-tabs/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(addFlow).toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
+    expect(addFlow).toContain('compat-entry-add-chart');
+    expect(addFlow).toContain('onOpenCharts');
+    expect(addFlow).not.toContain('compat-saved-section');
+
+    expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab::after');
+    expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab.is-active::after');
+    expect(styles).toContain('.compat-editorial-page--add .compat-entry-person');
+    expect(styles).toContain('border: 0 !important;');
+  });
+
   it('selects result scenes only with dynamics present in the catalog', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const start = room.indexOf('type CompatibilityVisualDynamic');

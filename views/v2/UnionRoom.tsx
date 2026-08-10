@@ -76,15 +76,15 @@ type Selected = {
 function GenderToggle({ value, onChange, ru, compact = false, labelledBy }: { value: CompatGender; onChange: (g: CompatGender) => void; ru: boolean; compact?: boolean; labelledBy?: string }) {
   return (
     <div
-      className={`compat-gender${compact ? ' is-compact' : ''}`}
+      className={`compat-choice-tabs compat-gender${compact ? ' is-compact' : ''}`}
       role="group"
       aria-label={labelledBy ? undefined : (ru ? 'Пол' : 'Gender')}
       aria-labelledby={labelledBy}
     >
-      <button type="button" className={`compat-gender-btn ${value === 'male' ? 'is-on' : ''}`} aria-pressed={value === 'male'} onClick={() => { lumiaSelectionHaptic(); onChange('male'); }}>
+      <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'male' ? 'is-on is-active' : ''}`} aria-pressed={value === 'male'} onClick={() => { lumiaSelectionHaptic(); onChange('male'); }}>
         {compact ? (ru ? 'М' : 'M') : (ru ? 'Мужчина' : 'Male')}
       </button>
-      <button type="button" className={`compat-gender-btn ${value === 'female' ? 'is-on' : ''}`} aria-pressed={value === 'female'} onClick={() => { lumiaSelectionHaptic(); onChange('female'); }}>
+      <button type="button" className={`compat-choice-tab compat-gender-btn ${value === 'female' ? 'is-on is-active' : ''}`} aria-pressed={value === 'female'} onClick={() => { lumiaSelectionHaptic(); onChange('female'); }}>
         {compact ? (ru ? 'Ж' : 'F') : (ru ? 'Женщина' : 'Female')}
       </button>
     </div>
@@ -213,7 +213,7 @@ function RelationshipContextPicker({
           <small>{ru ? 'Разбор будет говорить именно об этом' : 'The reading will stay in this context'}</small>
         </div>
       ) : null}
-      <div className="compat-context-options" role="radiogroup" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
+      <div className="compat-choice-tabs compat-context-options" role="radiogroup" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
         {RELATIONSHIP_CONTEXT_OPTIONS.map((option) => {
           const active = option.value === value;
           return (
@@ -222,7 +222,7 @@ function RelationshipContextPicker({
               type="button"
               role="radio"
               aria-checked={active}
-              className={`compat-context-option ${active ? 'is-active' : ''}`}
+              className={`compat-choice-tab compat-context-option ${active ? 'is-active' : ''}`}
               onClick={() => {
                 lumiaSelectionHaptic();
                 onChange(option.value);
@@ -677,10 +677,9 @@ export function UnionRoom(props: UnionRoomProps) {
   if (screen === 'add') {
     return (
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
-        <AppTopBar title={ru ? 'Твой гороскоп' : 'Your Horoscope'} />
+        <AppTopBar title={ru ? 'Совместимость' : 'Compatibility'} />
 
-        <header className="compat-page-heading">
-          <h1>{ru ? 'Совместимость' : 'Compatibility'}</h1>
+        <header className="compat-entry-intro">
           <p>
             {ru
               ? 'Сравним двух людей — подробно по данным рождения или быстро по знакам зодиака.'
@@ -688,10 +687,10 @@ export function UnionRoom(props: UnionRoomProps) {
           </p>
         </header>
 
-        <div className="compat-mode-switch" role="group" aria-label={ru ? 'Способ сравнения' : 'Comparison method'}>
+        <div className="compat-choice-tabs compat-mode-switch" role="group" aria-label={ru ? 'Способ сравнения' : 'Comparison method'}>
           <button
             type="button"
-            className={entryMode === 'birth' ? 'is-active' : ''}
+            className={`compat-choice-tab${entryMode === 'birth' ? ' is-active' : ''}`}
             aria-pressed={entryMode === 'birth'}
             onClick={() => {
               lumiaSelectionHaptic();
@@ -707,12 +706,11 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('birth');
             }}
           >
-            <span>{ru ? 'По данным рождения' : 'By birth data'}</span>
-            <small>Premium</small>
+            {ru ? 'По дате рождения' : 'By birth date'}
           </button>
           <button
             type="button"
-            className={entryMode === 'sign' ? 'is-active' : ''}
+            className={`compat-choice-tab${entryMode === 'sign' ? ' is-active' : ''}`}
             aria-pressed={entryMode === 'sign'}
             onClick={() => {
               lumiaSelectionHaptic();
@@ -720,8 +718,7 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('sign');
             }}
           >
-            <span>{ru ? 'По знакам зодиака' : 'By zodiac signs'}</span>
-            <small>{ru ? 'Бесплатно' : 'Free'}</small>
+            {ru ? 'По знакам зодиака' : 'By zodiac signs'}
           </button>
         </div>
 
@@ -734,17 +731,24 @@ export function UnionRoom(props: UnionRoomProps) {
                 submitAdd();
               }}
             >
-              <h2 className="compat-entry-who-title">
-                {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
-              </h2>
+              <div className="compat-entry-who-heading">
+                <h2 className="compat-entry-who-title">
+                  {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
+                </h2>
+                {onOpenCharts ? (
+                  <button type="button" className="compat-entry-add-chart" onClick={onOpenCharts}>
+                    {ru ? '+ Добавить карту' : '+ Add a chart'}
+                  </button>
+                ) : null}
+              </div>
 
               <fieldset className="compat-entry-person">
                 <legend className="compat-person-legend">
-                  <span aria-hidden="true">1</span>
-                  <strong>{firstChart?.name || (ru ? 'Первая карта' : 'First chart')}</strong>
+                  <strong>{ru ? 'Один человек' : 'One person'}</strong>
+                  {firstChart?.name ? <small>{firstChart.name}</small> : null}
                 </legend>
                 <label className="compat-chart-select-label" htmlFor="compat-first-chart">
-                  {ru ? 'Выбрать карту' : 'Choose a chart'}
+                  {ru ? 'Сохранённая карта' : 'Saved chart'}
                 </label>
                 <select
                   id="compat-first-chart"
@@ -782,12 +786,12 @@ export function UnionRoom(props: UnionRoomProps) {
 
               <fieldset className="compat-entry-person">
                 <legend className="compat-person-legend">
-                  <span aria-hidden="true">2</span>
-                  <strong>{secondChart?.name || fName.trim() || (ru ? 'Вторая карта' : 'Second chart')}</strong>
+                  <strong>{ru ? 'Другой человек' : 'Another person'}</strong>
+                  {secondChart?.name || fName.trim() ? <small>{secondChart?.name || fName.trim()}</small> : null}
                 </legend>
                 <div className="union-form">
                   <div>
-                    <label className="fresh-field-label" htmlFor="compat-second-chart">{ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'}</label>
+                    <label className="fresh-field-label" htmlFor="compat-second-chart">{ru ? 'Сохранённая карта или новые данные' : 'Saved chart or new details'}</label>
                     <select
                       id="compat-second-chart"
                       className="compat-chart-select"
@@ -818,43 +822,55 @@ export function UnionRoom(props: UnionRoomProps) {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="fresh-field-label" htmlFor="compat-person-name">{ru ? 'Имя' : 'Name'}</label>
-                    <input id="compat-person-name" className="fresh-input" value={fName} disabled={secondChartId != null} onChange={(event) => setFName(event.target.value)} placeholder={ru ? 'Например, Аня' : 'e.g. Alex'} autoComplete="name" />
-                  </div>
-                  <div className="compat-birth-row">
-                    <div>
-                      <label className="fresh-field-label" htmlFor="compat-person-birth-date">{ru ? 'Дата рождения' : 'Birth date'}</label>
-                      <input id="compat-person-birth-date" className="fresh-input" type="date" value={fDate} disabled={secondChartId != null} onChange={(event) => setFDate(event.target.value)} />
+                  {secondChartId == null ? (
+                    <>
+                      <div>
+                        <label className="fresh-field-label" htmlFor="compat-person-name">{ru ? 'Имя' : 'Name'}</label>
+                        <input id="compat-person-name" className="fresh-input" value={fName} onChange={(event) => setFName(event.target.value)} placeholder={ru ? 'Например, Аня' : 'e.g. Alex'} autoComplete="name" />
+                      </div>
+                      <div className="compat-birth-row">
+                        <div>
+                          <label className="fresh-field-label" htmlFor="compat-person-birth-date">{ru ? 'Дата рождения' : 'Birth date'}</label>
+                          <input id="compat-person-birth-date" className="fresh-input" type="date" value={fDate} onChange={(event) => setFDate(event.target.value)} />
+                        </div>
+                        <div className={unknownTime ? 'is-disabled' : ''}>
+                          <label className="fresh-field-label" htmlFor="compat-person-time">{ru ? 'Время' : 'Time'}</label>
+                          <input
+                            id="compat-person-time"
+                            className="fresh-input"
+                            type="time"
+                            value={fTime}
+                            disabled={unknownTime}
+                            onChange={(event) => setFTime(event.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <label className="compat-unknown-time">
+                        <input
+                          type="checkbox"
+                          checked={unknownTime}
+                          onChange={(event) => {
+                            setUnknownTime(event.target.checked);
+                            if (event.target.checked) setFTime('');
+                          }}
+                        />
+                        <span>{ru ? 'Не знаю точное время рождения' : 'I do not know the exact birth time'}</span>
+                      </label>
+                      <div>
+                        <label className="fresh-field-label" htmlFor="compat-person-place">{ru ? 'Место рождения' : 'Birth place'}</label>
+                        <input id="compat-person-place" className="fresh-input" value={fPlace} onChange={(event) => setFPlace(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
+                      </div>
+                    </>
+                  ) : secondChart ? (
+                    <div className="compat-self-identity">
+                      <strong>{getZodiacSign(lang, String(secondChart.chart_data?.sun?.sign || sunSignFromDate(secondChart.birth_date)))}</strong>
+                      <span>
+                        {[formatDisplayDate(secondChart.birth_date, lang), secondChart.birth_time || null, secondChart.birth_place || null]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
                     </div>
-                    <div className={unknownTime ? 'is-disabled' : ''}>
-                      <label className="fresh-field-label" htmlFor="compat-person-time">{ru ? 'Время' : 'Time'}</label>
-                      <input
-                        id="compat-person-time"
-                        className="fresh-input"
-                        type="time"
-                        value={fTime}
-                        disabled={unknownTime || secondChartId != null}
-                        onChange={(event) => setFTime(event.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="fresh-field-label" htmlFor="compat-person-place">{ru ? 'Место рождения' : 'Birth place'}</label>
-                    <input id="compat-person-place" className="fresh-input" value={fPlace} disabled={secondChartId != null} onChange={(event) => setFPlace(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
-                  </div>
-                  <label className="compat-unknown-time">
-                    <input
-                      type="checkbox"
-                      checked={unknownTime}
-                      disabled={secondChartId != null}
-                      onChange={(event) => {
-                        setUnknownTime(event.target.checked);
-                        if (event.target.checked) setFTime('');
-                      }}
-                    />
-                    <span>{ru ? 'Не знаю точное время' : 'I do not know the exact time'}</span>
-                  </label>
+                  ) : null}
                   <div>
                     <span id="compat-person-gender-label" className="fresh-field-label">{ru ? 'Пол' : 'Gender'}</span>
                     <GenderToggle value={fGender} onChange={setFGender} ru={ru} labelledBy="compat-person-gender-label" />
@@ -875,7 +891,7 @@ export function UnionRoom(props: UnionRoomProps) {
               {error ? <p className="compat-entry-error" role="alert">{error}</p> : null}
 
               <button type="submit" className="fresh-btn-primary compat-entry-submit">
-                {ru ? 'Сравнить карты' : 'Compare charts'}
+                {ru ? 'Сравнить' : 'Compare'}
               </button>
               <p className="compat-entry-note compat-entry-note--centered">
                 {ru
@@ -885,10 +901,10 @@ export function UnionRoom(props: UnionRoomProps) {
             </form>
 
             {history.length ? (
-              <section className="compat-saved-section">
-                <div className="compat-saved-heading">
-                  <h2>{ru ? 'История сравнений' : 'Comparison history'}</h2>
-                  <button type="button" onClick={deleteAllHistory}>{ru ? 'Очистить' : 'Clear'}</button>
+              <details className="compat-history-panel">
+                <summary>{ru ? 'История сравнений' : 'Comparison history'}</summary>
+                <div className="compat-history-toolbar">
+                  <button type="button" onClick={deleteAllHistory}>{ru ? 'Очистить историю' : 'Clear history'}</button>
                 </div>
                 <div className="compat-hist">
                   {history.map((entry) => (
@@ -909,55 +925,8 @@ export function UnionRoom(props: UnionRoomProps) {
                     </div>
                   ))}
                 </div>
-              </section>
+              </details>
             ) : null}
-
-            <section className="compat-saved-section">
-              <div className="compat-saved-heading">
-                <h2>{ru ? `Сохранённые карты · ${people.length}/5` : `Saved charts · ${people.length}/5`}</h2>
-                {onOpenCharts ? (
-                  <button type="button" className="compat-manage-charts" onClick={onOpenCharts}>
-                    {ru ? 'Управлять' : 'Manage'}
-                  </button>
-                ) : null}
-              </div>
-              {people.length ? (
-                <div className="people-grid">
-                  {people.map((chart) => {
-                    return (
-                      <button key={chart.id} type="button" className="people-card" onClick={() => {
-                        if (!firstChart || firstChart.id === chart.id) return;
-                        openResult({
-                          kind: 'person',
-                          relationshipContext,
-                          subjectChartId: firstChart.id,
-                          subjectName: firstChart.name,
-                          subjectDate: firstChart.birth_date,
-                          subjectTime: firstChart.birth_time || undefined,
-                          subjectPlace: firstChart.birth_place || undefined,
-                          name: chart.name,
-                          date: toDateInputValue(chart.birth_date),
-                          time: chart.birth_time || undefined,
-                          place: chart.birth_place || undefined,
-                          chartId: chart.id,
-                          youSign: String(firstChart.chart_data?.sun?.sign || yourSun).toLowerCase(),
-                          youGender,
-                          themGender,
-                        });
-                      }} disabled={firstChart?.id === chart.id}>
-                        <span className="people-card-icon"><ZodiacSymbol sign={chart.chart_data?.sun?.sign || sunSignFromDate(chart.birth_date)} size={32} /></span>
-                        <span className="people-card-name">{chart.name}</span>
-                        <span className="people-card-sign">{getZodiacSign(lang, sunSignFromDate(chart.birth_date) || '')}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="compat-saved-empty">
-                  {ru ? 'Добавь карту человека — она сразу появится в обоих полях сравнения.' : 'Add a person’s chart and it will appear in both comparison fields.'}
-                </p>
-              )}
-            </section>
           </>
         ) : (
           <form
@@ -967,6 +936,9 @@ export function UnionRoom(props: UnionRoomProps) {
               openResult({ kind: 'sign', relationshipContext, sign: pickSign, youSign, youGender, themGender });
             }}
           >
+            <h2 className="compat-entry-who-title">
+              {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
+            </h2>
             <SignSwipePicker
               label={ru ? 'Один человек' : 'One person'}
               signs={ZODIAC_KEYS}
