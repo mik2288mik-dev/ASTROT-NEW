@@ -36,13 +36,14 @@ function words(count: number): string {
 }
 
 describe('personal forecast concise direct-evidence writer', () => {
-  test('uses one heading-free JSON contract with a bounded narrative and a concrete advice', () => {
+  test('uses a short evidence-backed phrase, bounded narrative, and concrete advice', () => {
     const system = getPersonalForecastSystemPrompt('en', 'day');
     expect(system).toContain('PERSONAL FORECAST TASK');
-    expect(system).toContain('100 to 150 words');
-    expect(system).toContain('"advice"');
-    expect(system).toContain('one concrete action for today');
+    expect(system).toContain('100 to 130 words');
+    expect(system).toContain('short phrase');
     expect(system).toContain('Do not generate a headline');
+    expect(system).toContain('"advice"');
+    expect(system).toContain('one small action you can finish today');
     expect(system).not.toContain('"headline"');
     expect(system).not.toContain('separate task');
     expect(system).not.toContain('Return 2 or 3 sections');
@@ -51,9 +52,13 @@ describe('personal forecast concise direct-evidence writer', () => {
   test('defines a strict output shape before the server validates evidence semantics', () => {
     expect(PERSONAL_FORECAST_RESPONSE_SCHEMA).toMatchObject({
       type: 'object',
-      required: ['paragraphs', 'advice'],
+      required: ['phrase', 'paragraphs', 'advice'],
       additionalProperties: false,
       properties: {
+        phrase: expect.objectContaining({
+          required: ['text', 'evidence_ids'],
+          additionalProperties: false,
+        }),
         paragraphs: {
           type: 'array',
           items: expect.objectContaining({
@@ -71,12 +76,15 @@ describe('personal forecast concise direct-evidence writer', () => {
 
   test('gives every period a distinct narrative job without chronological segments', () => {
     const build = (period: 'day' | 'week' | 'month') => getPersonalForecastSystemPrompt('en', period);
-    expect(build('day')).toContain('100 to 150 words');
+    expect(build('day')).toContain('100 to 130 words');
     expect(build('day')).toContain('current state of one day');
-    expect(build('week')).toContain('120 to 165 words');
+    expect(build('week')).toContain('130 to 155 words');
     expect(build('week')).toContain('one trend that runs through the whole week');
-    expect(build('month')).toContain('130 to 175 words');
+    expect(build('month')).toContain('150 to 175 words');
     expect(build('month')).toContain('one global monthly trend');
+    expect(build('day')).toContain('one small action you can finish today');
+    expect(build('week')).toContain('reusable rule for the week');
+    expect(build('month')).toContain('one meaningful commitment for the month');
     for (const period of ['day', 'week', 'month'] as const) {
       expect(build(period)).toContain('Never divide the forecast into time segments');
       expect(build(period)).toContain('morning, afternoon, evening');
@@ -199,6 +207,7 @@ describe('personal forecast concise direct-evidence writer', () => {
 
   test('accepts a grounded reading and optional advice from the same payload', () => {
     const valid = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Clear room, clear choice.', evidence_ids: ['e1'] },
       paragraphs: [
         { text: words(92), evidence_ids: ['e1'] },
         { text: words(5), evidence_ids: ['e1'] },
@@ -208,58 +217,83 @@ describe('personal forecast concise direct-evidence writer', () => {
 
     expect(valid.errors).toEqual([]);
     expect(valid.sections).toHaveLength(2);
-    expect(valid.sections[0].title).toBeNull();
+    expect(valid.sections[0].title).toBe('Clear room, clear choice.');
     expect(valid.sections[0].evidenceIds).toEqual(['e1']);
     expect(valid.sections.map((section) => section.blocks[0].role)).toEqual(['lead', 'action']);
   });
 
   test('allows concise copy and enforces existing evidence IDs and period-specific total caps', () => {
     const weekAtMinimum = validateFreeGeneratedForecastFeed({
-      paragraphs: [{ text: words(116), evidence_ids: ['e1'] }],
+      phrase: { text: 'Clear work, calmer choices.', evidence_ids: ['e1'] },
+      paragraphs: [{ text: words(120), evidence_ids: ['e1'] }],
       advice: { text: 'Choose one priority and protect it.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'week');
     expect(weekAtMinimum.errors).toEqual([]);
     expect(weekAtMinimum.sections).toHaveLength(2);
 
     const unknownEvidence = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: 'Keep the wording exact.', evidence_ids: ['missing'] }],
       advice: { text: 'Check the details before answering.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(unknownEvidence.errors.join(' ')).toContain('unknown');
 
-    const dayTooLong = validateFreeGeneratedForecastFeed({
-      paragraphs: [{ text: words(149), evidence_ids: ['e1'] }],
-      advice: { text: 'Two words', evidence_ids: ['e1'] },
+    const missingPhrase = validateFreeGeneratedForecastFeed({
+      paragraphs: [{ text: words(100), evidence_ids: ['e1'] }],
+      advice: { text: 'Take one clear step.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
-    expect(dayTooLong.errors.join(' ')).toContain('maximum for day is 150');
+    expect(missingPhrase.errors.join(' ')).toContain('phrase requires valid text');
+
+    const tooManyParagraphs = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
+      paragraphs: [
+        { text: words(31), evidence_ids: ['e1'] },
+        { text: words(31), evidence_ids: ['e1'] },
+        { text: words(31), evidence_ids: ['e1'] },
+      ],
+      advice: { text: 'Take one clear step.', evidence_ids: ['e1'] },
+    }, new Set(['e1']), 'day');
+    expect(tooManyParagraphs.errors.join(' ')).toContain('maximum for day is 2');
+
+    const dayTooLong = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
+      paragraphs: [{ text: words(125), evidence_ids: ['e1'] }],
+      advice: { text: 'Take one clear step.', evidence_ids: ['e1'] },
+    }, new Set(['e1']), 'day');
+    expect(dayTooLong.errors.join(' ')).toContain('maximum for day is 130');
 
     const weekAtLimit = validateFreeGeneratedForecastFeed({
-      paragraphs: [{ text: words(163), evidence_ids: ['e1'] }],
-      advice: { text: 'Act now', evidence_ids: ['e1'] },
+      phrase: { text: 'Clear work, calmer choices.', evidence_ids: ['e1'] },
+      paragraphs: [{ text: words(145), evidence_ids: ['e1'] }],
+      advice: { text: 'Choose one priority and protect it.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'week');
     expect(weekAtLimit.errors).toEqual([]);
 
     const monthTooLong = validateFreeGeneratedForecastFeed({
-      paragraphs: [{ text: words(174), evidence_ids: ['e1'] }],
-      advice: { text: 'Act with purpose', evidence_ids: ['e1'] },
+      phrase: { text: 'Choose the horizon carefully.', evidence_ids: ['e1'] },
+      paragraphs: [{ text: words(170), evidence_ids: ['e1'] }],
+      advice: { text: 'Act with purpose now.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'month');
     expect(monthTooLong.errors.join(' ')).toContain('maximum for month is 175');
   });
 
   test('rejects astrology vocabulary anywhere in visible forecast copy', () => {
     const technicalParagraph = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: `${words(91)} Луна в оппозиции к Венере усиливает напряжение.`, evidence_ids: ['e1'] }],
       advice: { text: 'Сохрани спокойный темп.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(technicalParagraph.errors.join(' ')).toContain('astrology term');
 
     const technicalAdvice = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: words(115), evidence_ids: ['e1'] }],
       advice: { text: 'Use the Mars square carefully.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'week');
     expect(technicalAdvice.errors.join(' ')).toContain('astrology term');
 
     const zodiacSign = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: `${words(91)} У Рыб начинается новый этап.`, evidence_ids: ['e1'] }],
       advice: { text: 'Запиши первый шаг.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
@@ -268,12 +302,14 @@ describe('personal forecast concise direct-evidence writer', () => {
 
   test('rejects formal or plural Russian address but accepts the app voice on ты', () => {
     const formal = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: `${words(91)} Вам стоит проверить договор и не торопиться.`, evidence_ids: ['e1'] }],
       advice: { text: 'Проверь условие до ответа.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(formal.errors.join(' ')).toContain('formal Russian address');
 
     const singular = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: `${words(91)} Ты быстрее увидишь суть, если задашь прямой вопрос.`, evidence_ids: ['e1'] }],
       advice: { text: 'Проверь условие до ответа.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
@@ -282,18 +318,21 @@ describe('personal forecast concise direct-evidence writer', () => {
 
   test('requires one concrete advice and rejects chronological framing for every period', () => {
     const dayWithoutAction = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: words(100), evidence_ids: ['e1'] }],
       advice: null,
     }, new Set(['e1']), 'day');
     expect(dayWithoutAction.errors.join(' ')).toContain('day forecast requires one concrete action');
 
     const dayWithTimeSegment = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: `${words(94)} Вечером лучше не спорить.`, evidence_ids: ['e1'] }],
       advice: { text: 'Оставь разговор до ясного решения.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'day');
     expect(dayWithTimeSegment.errors.join(' ')).toContain('chronological time segment');
 
     const weekWithTimeSegment = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{
         text: `${words(112)} In the middle of the week, the situation changes.`,
         evidence_ids: ['e1'],
@@ -303,12 +342,14 @@ describe('personal forecast concise direct-evidence writer', () => {
     expect(weekWithTimeSegment.errors.join(' ')).toContain('chronological time segment');
 
     const monthWithTimeSegment = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: `${words(122)} В конце месяца темп станет ровнее.`, evidence_ids: ['e1'] }],
       advice: { text: 'Оставь ресурс для главной цели.', evidence_ids: ['e1'] },
     }, new Set(['e1']), 'month');
     expect(monthWithTimeSegment.errors.join(' ')).toContain('chronological time segment');
 
     const monthWithoutAdvice = validateFreeGeneratedForecastFeed({
+      phrase: { text: 'Keep the focus honest.', evidence_ids: ['e1'] },
       paragraphs: [{ text: words(130), evidence_ids: ['e1'] }],
       advice: null,
     }, new Set(['e1']), 'month');

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { BookOpen, HeartHandshake, Sparkles, Star } from 'lucide-react';
 import { getZodiacSign } from '../../constants';
 import type { UserProfile, ViewState } from '../../types';
-import type { PersonalForecastPeriod } from '../../lib/personalForecastContract';
 import { getApproximateSunSignByDate } from '../../lib/zodiac-utils';
 import { CosmicSurface } from './CosmicSurface';
 
@@ -12,11 +11,9 @@ interface LumiaSideDrawerProps {
     profile: UserProfile | null;
     onClose: () => void;
     onOpenDiary: () => void;
-    activePeriod: PersonalForecastPeriod;
     /** Exact calculated Sun sign from the active natal chart when available. */
     sunSign?: string | null;
     todayLabel?: string;
-    onSelectPeriod: (period: PersonalForecastPeriod) => void;
     onOpenSignHoroscope: () => void;
     onOpenCompatibility: () => void;
     onOpenNatalChart: () => void;
@@ -29,10 +26,8 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     profile,
     onClose,
     onOpenDiary,
-    activePeriod,
     sunSign,
     todayLabel,
-    onSelectPeriod,
     onOpenSignHoroscope,
     onOpenCompatibility,
     onOpenNatalChart,
@@ -163,20 +158,6 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                             <span>{label}</span>
                         </button>
                     ))}
-                    <div className="lumia-side-drawer-periods">
-                        {(['day', 'week', 'month'] as const).map((period) => (
-                            <button
-                                key={period}
-                                type="button"
-                                className={`lumia-side-drawer-period${currentView === 'dashboard' && activePeriod === period ? ' is-active' : ''}`}
-                                aria-pressed={currentView === 'dashboard' && activePeriod === period}
-                                tabIndex={open ? 0 : -1}
-                                onClick={() => onSelectPeriod(period)}
-                            >
-                                {period === 'day' ? (isEnglish ? 'Today' : 'Сегодня') : period === 'week' ? (isEnglish ? 'Week' : 'Неделя') : (isEnglish ? 'Month' : 'Месяц')}
-                            </button>
-                        ))}
-                    </div>
                     {items.slice(1).map(({ view, label, Icon, onClick }) => (
                         <button
                             key={view}

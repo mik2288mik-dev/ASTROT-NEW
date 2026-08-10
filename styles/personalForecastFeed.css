@@ -121,13 +121,13 @@
 
 .forecast-feed-date-zone {
   display: flex;
-  width: min(100%, 620px);
+  width: 100%;
   box-sizing: border-box;
-  min-height: 58px;
+  min-height: 0;
   align-items: center;
   justify-content: center;
-  margin: 14px auto 0;
-  padding-inline: 72px;
+  margin: 16px auto 0;
+  padding-inline: 24px;
   color: #171717;
 }
 
@@ -142,9 +142,58 @@
   box-sizing: border-box;
 }
 
-.forecast-feed-astrology-toggle {
-  justify-self: end;
-  margin: 2px 0 18px;
+.fresh-page.forecast-feed-page .fresh-tabs.forecast-feed-period-tabs {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 10px auto 26px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #85817c;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 520;
+  line-height: 1.2;
+}
+
+.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab::after {
+  position: absolute;
+  right: 50%;
+  bottom: 0;
+  width: 48px;
+  height: 1px;
+  background: transparent;
+  content: '';
+  transform: translateX(50%);
+}
+
+.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab.active,
+.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab[data-active='true'] {
+  background: transparent;
+  color: #292622;
+  box-shadow: none;
+}
+
+.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab.active::after,
+.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab[data-active='true']::after {
+  background: #292622;
 }
 
 .forecast-feed-date-cluster {
@@ -196,42 +245,6 @@
 
 .forecast-feed-page .home-top {
   padding-bottom: 0;
-}
-
-.forecast-feed-page .home-period-tabs {
-  width: min(calc(100% - 48px), 330px);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 2px;
-  margin-top: 0;
-  padding: 3px;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: none;
-}
-
-.lumia-app-shell.telegram-diary-menu-offset .forecast-feed-page .home-period-tabs {
-  width: min(calc(100% - 72px), 310px);
-  margin-left: 72px;
-  margin-right: auto;
-}
-
-.forecast-feed-page .home-period-tab {
-  min-height: 31px;
-  border-radius: 999px;
-  color: #8a919d;
-  font-size: 11.5px;
-  font-weight: 650;
-}
-
-.forecast-feed-page .home-period-tab::before {
-  background: #f1f3f5;
-  box-shadow: none;
-}
-
-.forecast-feed-page .home-period-tab.is-active {
-  color: #171923;
-  font-weight: 750;
 }
 
 .forecast-feed-intro {
@@ -762,6 +775,20 @@
   line-height: 1.5;
 }
 
+.forecast-feed-section.is-overview .forecast-feed-screen-headline {
+  max-width: 18ch;
+  margin: 0 auto 22px;
+  color: #2d2924;
+  font-family: Georgia, 'Times New Roman', ui-serif, serif;
+  font-size: clamp(27px, 7.3vw, 34px);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  text-align: center;
+  text-wrap: balance;
+}
+
 .forecast-feed-section-text.is-lead::before {
   display: none;
 }
@@ -792,6 +819,21 @@
   font-size: 18px;
   font-weight: 480;
   line-height: 1.5;
+}
+
+.forecast-feed-footer {
+  display: flex;
+  width: min(calc(100% - 48px), 620px);
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  margin: 42px auto 0;
+  padding: 20px 0 max(40px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(23, 25, 35, 0.1);
+}
+
+.forecast-feed-footer .astrology-details-toggle {
+  min-height: 40px;
 }
 
 .forecast-feed-astro-details {
@@ -1451,10 +1493,6 @@
 }
 
 @media (max-width: 380px) {
-  .forecast-feed-date {
-    margin-top: 20px;
-  }
-
   .forecast-feed-section-content {
     padding-right: 20px;
     padding-left: 20px;

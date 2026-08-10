@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Bell, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -34,16 +34,13 @@ import {
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
 import { ForecastPromotion } from '../components/PersonalForecastFeed/ForecastPromotion';
-import { ForecastQuestions } from '../components/PersonalForecastFeed/ForecastQuestions';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
+import { FreshTabs } from '../components/fresh-ui';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import {
   AstrologyDetailsToggle,
   useAstrologyDetailsPreference,
 } from '../components/AstrologyDetailsToggle';
-import type {
-  PersonalForecastQuestionNotification,
-} from '../services/personalForecastQuestionService';
 
 type DashboardProps = {
   profile: UserProfile;
@@ -53,7 +50,6 @@ type DashboardProps = {
   onCreateNatalChart?: () => void;
   onOpenSynastry?: () => void;
   onOpenHoroscope?: () => void;
-  requestedPeriod?: PersonalForecastPeriod;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -194,7 +190,6 @@ export const Dashboard = memo<DashboardProps>(({
   onCreateNatalChart,
   onOpenSynastry,
   onOpenHoroscope,
-  requestedPeriod,
   onRequestPremium,
   scrollRef,
 }) => {
@@ -218,10 +213,6 @@ export const Dashboard = memo<DashboardProps>(({
     month: emptyPeriodState(),
   });
   const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
-  const [unreadQuestions, setUnreadQuestions] =
-    useState<PersonalForecastQuestionNotification[]>([]);
-  const [focusQuestion, setFocusQuestion] =
-    useState<PersonalForecastQuestionNotification | null>(null);
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const contextRef = useRef('');
   const accessContextRef = useRef('');
@@ -232,6 +223,20 @@ export const Dashboard = memo<DashboardProps>(({
     week: getPersonalForecastPeriodKey('week', new Date(), timezone),
     month: getPersonalForecastPeriodKey('month', new Date(), timezone),
   }), [currentDateKey, timezone]);
+  const todayWindow = useMemo(
+    () => resolvePersonalForecastWindow('day', periodKeys.day, timezone),
+    [periodKeys.day, timezone],
+  );
+  const todayDateLines = useMemo(
+    () => formatPersonalForecastDateLabel(todayWindow, language)
+      .split('\n')
+      .filter(Boolean),
+    [language, todayWindow],
+  );
+  const periodTabs = useMemo(() => PERIOD_TABS.map(({ id, ru, en }) => ({
+    id,
+    label: language === 'ru' ? ru : en,
+  })), [language]);
 
   const contextKey = useMemo(() => [
     userId,
@@ -419,12 +424,6 @@ export const Dashboard = memo<DashboardProps>(({
     loadPeriod(activePeriod);
   }, [activePeriod, loadPeriod]);
 
-  useEffect(() => {
-    if (!requestedPeriod) return;
-    setActivePeriod(requestedPeriod);
-    loadPeriod(requestedPeriod);
-  }, [loadPeriod, requestedPeriod]);
-
   const state = periodStates[activePeriod];
   const displayPeriod = activePeriod;
   const result = selectActiveReadyPersonalForecast(activePeriod, periodStates);
@@ -486,11 +485,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   const scrollToSection = useCallback((sectionId: string) => {
     const root = scrollRef?.current;
-    const target = document.getElementById(
-      sectionId === 'questions'
-        ? 'forecast-questions'
-        : `forecast-section-${sectionId}`,
-    );
+    const target = document.getElementById(`forecast-section-${sectionId}`);
     if (!root || !target) return;
     root.scrollTo({
       top: Math.max(0, target.offsetTop - 84),
@@ -518,17 +513,6 @@ export const Dashboard = memo<DashboardProps>(({
       scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [loadPeriod, scrollRef]);
-
-  const openQuestionNotification = useCallback(() => {
-    const notification = unreadQuestions[0];
-    if (!notification) return;
-    setFocusQuestion(notification);
-    if (notification.period !== activePeriod) {
-      selectPeriod(notification.period, 'questions');
-      return;
-    }
-    scrollToSection('questions');
-  }, [activePeriod, scrollToSection, selectPeriod, unreadQuestions]);
 
   const requestPremium = useCallback(() => {
     void onRequestPremium?.('personal_forecast_feed', {
@@ -586,15 +570,6 @@ export const Dashboard = memo<DashboardProps>(({
   const overviewCrossLinks = forecast?.suggestedCrossPeriodLinks.filter(
     (link) => link.fromSectionId === 'overview',
   ) || [];
-  const displayWindow = resolvePersonalForecastWindow(
-    displayPeriod,
-    periodKeys[displayPeriod],
-    timezone,
-  );
-  const displayDateLines = (forecast?.dateLabel
-    || formatPersonalForecastDateLabel(displayWindow, language))
-    .split('\n')
-    .filter(Boolean);
   return (
     <div
       className="fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll"
@@ -607,49 +582,32 @@ export const Dashboard = memo<DashboardProps>(({
         <AppTopBar
           title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
           reserveSpace={false}
-          rightAction={unreadQuestions.length > 0 ? (
-            <div className="forecast-feed-top-actions">
-              <button
-                type="button"
-                className="app-top-bar-action forecast-feed-top-action has-notification"
-                aria-label={language === 'ru'
-                  ? `Новых ответов: ${unreadQuestions.length}`
-                  : `New answers: ${unreadQuestions.length}`}
-                onClick={openQuestionNotification}
-              >
-                <Bell size={17} aria-hidden />
-                <span className="forecast-feed-notification-dot" aria-hidden />
-              </button>
-            </div>
-          ) : undefined}
         />
       </section>
       <div className="forecast-feed-ambient" aria-hidden />
 
       {hasChart ? (
         <div className="forecast-feed-reading-header">
-          <div className="forecast-feed-date-zone" aria-label={displayDateLines.join(' ')}>
+          <div className="forecast-feed-date-zone" aria-label={todayDateLines.join(' ')}>
             <div className="forecast-feed-date-cluster">
               <p className="forecast-feed-date">
-                {displayDateLines.length > 1 ? (
+                {todayDateLines.length > 1 ? (
                   <>
-                    <span className="forecast-feed-date-weekday">{displayDateLines[0]}</span>
-                    <span className="forecast-feed-date-value">{displayDateLines.slice(1).join(' ')}</span>
+                    <span className="forecast-feed-date-weekday">{todayDateLines[0]}</span>
+                    <span className="forecast-feed-date-value">{todayDateLines.slice(1).join(' ')}</span>
                   </>
                 ) : (
-                  <span className="forecast-feed-date-value">{displayDateLines[0]}</span>
+                  <span className="forecast-feed-date-value">{todayDateLines[0]}</span>
                 )}
               </p>
             </div>
           </div>
-          {forecast?.meta.status === 'ready' ? (
-            <AstrologyDetailsToggle
-              checked={showAstrology}
-              onChange={setShowAstrology}
-              language={language}
-              className="forecast-feed-astrology-toggle"
-            />
-          ) : null}
+          <FreshTabs
+            className="forecast-feed-period-tabs"
+            tabs={periodTabs}
+            activeTab={activePeriod}
+            onTabChange={(id) => selectPeriod(id as PersonalForecastPeriod)}
+          />
         </div>
       ) : null}
 
@@ -779,18 +737,13 @@ export const Dashboard = memo<DashboardProps>(({
             );
           })}
 
-          <ForecastQuestions
-            profile={profile}
-            chartId={chartId}
-            contextFingerprint={chartFingerprint}
-            period={displayPeriod}
-            periodKey={forecast.periodKey}
-            premium={premium}
-            focusNotification={focusQuestion}
-            onRequestPremium={requestPremium}
-            onUnreadChange={setUnreadQuestions}
-            onFocusConsumed={() => setFocusQuestion(null)}
-          />
+          <footer className="forecast-feed-footer">
+            <AstrologyDetailsToggle
+              checked={showAstrology}
+              onChange={setShowAstrology}
+              language={language}
+            />
+          </footer>
 
         </>
       )}
