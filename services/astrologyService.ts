@@ -130,7 +130,7 @@ const signWeeklyClientCache = new Map<string, SignHoroscopeReadingV2>();
 const signMonthlyClientCache = new Map<string, SignHoroscopeReadingV2>();
 const signHoroscopeInFlight = new Map<string, Promise<SignHoroscopeReadingV2>>();
 const signPeriodPrefetchInFlight = new Map<string, Promise<Record<string, SignHoroscopeReadingV2>>>();
-const SIGN_HOROSCOPE_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:sign-horoscope-v3';
+const SIGN_HOROSCOPE_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:sign-horoscope-v3.1-human-copy';
 const SIGN_BATCH_REQUEST_TIMEOUT_MS = 95_000;
 const SIGN_BATCH_POLL_TIMEOUT_MS = 90_000;
 

@@ -31,53 +31,56 @@ import {
 type ForecastWriterLanguage = 'ru' | 'en';
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
+const USER_COPY_ASTROLOGY_TERMS = /(?:солнц|лун[аыеуой]|меркур|венер|марс|юпитер|сатурн|уран|нептун|плутон|квадратур|оппозиц|секстил|трин\b|транзит|орбис|ретроград|асцендент|натальн)|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|square|opposition|sextile|trine|transit|orb|retrograde|ascendant|natal)\b/iu;
 
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
   period: PersonalForecastPeriod = 'day',
 ): string {
   const ruPeriodRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Дай 90–115 слов разбора, максимум 130. Один лид и от одного до двух коротких смысловых фрагментов; не делай глобальных выводов по одному дню.',
-    week: 'Дай 120–140 слов цельного разбора недели. Один лид и от одного до трёх коротких смысловых фрагментов; никогда не раскладывай неделю по дням.',
-    month: 'Дай 160–190 слов цельного разбора месяца, максимум 200. Один лид и от двух до трёх коротких смысловых фрагментов; не превращай текст в календарь или перечень обязательных сфер.',
+    day: 'Опиши только этот день: его общий ход и наиболее заметное проявление. Не делай глобальных выводов по одному дню.',
+    week: 'Дай цельную картину ближайших семи дней. Не раскладывай неделю по дням.',
+    month: 'Дай цельную картину месяца. Не превращай текст в календарь или перечень обязательных сфер.',
   };
   const enPeriodRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Write 90–115 words of reading, maximum 130. Use one lead and one or two compact meaning blocks; do not draw global conclusions from one day.',
-    week: 'Write 120–140 words for one coherent weekly reading. Use one lead and one to three compact meaning blocks; never split it into a day-by-day list.',
-    month: 'Write 160–190 words for one coherent monthly reading, maximum 200. Use one lead and two or three compact meaning blocks; never turn it into a calendar or a checklist of required life areas.',
+    day: 'Describe this day only: its overall course and most noticeable manifestation. Do not draw global conclusions from one day.',
+    week: 'Give one coherent picture of the next seven days. Never split the week into a day-by-day list.',
+    month: 'Give one coherent picture of the month. Never turn it into a calendar or a checklist of required life areas.',
   };
 
   if (language === 'ru') {
     return `${getAppSystemVoice('ru')}
 
 ЗАДАЧА ДЛЯ ЛИЧНОГО ПРОГНОЗА
-- Сам выбери главный вывод из evidence. Не перечисляй транзиты подряд и не повторяй одну мысль разными словами.
+- Сам выбери главный вывод из evidence. Не перечисляй факторы подряд и не повторяй одну мысль разными словами.
 - Пиши только о том, что подтверждено переданными evidence и фактическим natal context. Ничего не рассчитывай и не придумывай заново.
-- Заголовок — короткая естественная фраза по главному смыслу периода, не рекламный слоган.
-- Лид — два точных предложения. Каждый следующий фрагмент раскрывает только одну мысль и получает короткий человеческий заголовок.
-- Совет — одна практическая фраза, прямо следующая из разбора; без отдельного поучения и без повторения текста.
+- Основной текст — про узнаваемые события, решения, реакции и поведение человека. Не употребляй в headline, paragraphs и advice названия планет, знаков, домов, аспектов, транзитов, орбисов и другие астрологические термины: они раскрываются интерфейсом отдельно по evidence_ids.
+- Заголовок — короткая естественная фраза по главному смыслу периода, не рекламный слоган и не техническая рубрика.
+- Напиши цельный разбор объёмом от 95 до 130 слов. Разбей его на естественные абзацы только там, где меняется мысль; не придумывай подзаголовки и обязательные жизненные сферы.
+- Совет — одна короткая практическая фраза до 18 слов, прямо следующая из разбора; без поучения и повторения текста.
 - ${ruPeriodRule[period]}
-- Каждый текстовый блок обязан вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все блоки.
+- Каждый абзац и совет обязаны вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все блоки.
 - Ответ — только валидный JSON без Markdown.
 
 Верни строго:
-{"headline":"короткий честный заголовок","lead":{"text":"лид из двух предложений","evidence_ids":["существующий evidence id"]},"sections":[{"title":"короткий заголовок","text":"один смысловой фрагмент","evidence_ids":["существующий evidence id"]}],"advice":{"text":"один конкретный совет","evidence_ids":["существующий evidence id"]}}`;
+{"headline":"короткий честный заголовок","paragraphs":[{"text":"абзац цельного разбора","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткий совет","evidence_ids":["существующий evidence id"]}}`;
   }
 
   return `${getAppSystemVoice('en')}
 
 PERSONAL FORECAST TASK
-- Choose the main conclusion from the evidence yourself. Do not list transits mechanically or repeat the same point in different words.
+- Choose the main conclusion from the evidence yourself. Do not list factors mechanically or repeat the same point in different words.
 - Use only the supplied evidence and factual natal context. Never recalculate or invent astrology, events, biography, or diagnoses.
-- The headline is one short natural phrase about the actual period, never an advertising slogan.
-- The lead is two exact sentences. Every following block develops one idea only and has a short, human heading.
-- Advice is one practical sentence derived directly from the reading, never a detached lesson or a repetition.
+- Write the user-facing headline, paragraphs, and advice only in ordinary language about recognisable events, decisions, reactions, and behaviour. Do not use names of planets, signs, houses, aspects, transits, orbs, or other astrology terminology there; the interface reveals those facts separately through evidence_ids.
+- The headline is one short natural phrase about the actual period, never an advertising slogan or a technical label.
+- Write one coherent reading of 95–130 words. Split it into natural paragraphs only when the thought changes; do not invent subheadings or mandatory life areas.
+- Advice is one practical sentence of no more than 18 words, derived directly from the reading, never a detached lesson or a repetition.
 - ${enPeriodRule[period]}
-- Every text block must return its own existing evidence_ids. Do not automatically attach the same list to every block.
+- Every paragraph and the advice must return their own existing evidence_ids. Do not automatically attach the same list to every block.
 - Return valid JSON only, with no Markdown.
 
 Return exactly:
-{"headline":"short honest headline","lead":{"text":"two-sentence lead","evidence_ids":["existing evidence id"]},"sections":[{"title":"short heading","text":"one meaning block","evidence_ids":["existing evidence id"]}],"advice":{"text":"one concrete suggestion","evidence_ids":["existing evidence id"]}}`;
+{"headline":"short honest headline","paragraphs":[{"text":"one paragraph of the coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short practical suggestion","evidence_ids":["existing evidence id"]}}`;
 }
 
 type GeneratedTextBlock = {
@@ -85,14 +88,12 @@ type GeneratedTextBlock = {
   evidence_ids?: unknown;
 };
 
-type GeneratedForecastSection = GeneratedTextBlock & {
-  title?: unknown;
-};
-
 type GeneratedFeedPayload = {
   headline?: unknown;
+  paragraphs?: GeneratedTextBlock[];
+  /** Previous structured contract accepted only as a resilience fallback. */
   lead?: GeneratedTextBlock;
-  sections?: GeneratedForecastSection[];
+  sections?: Array<GeneratedTextBlock & { title?: unknown }>;
   advice?: GeneratedTextBlock | unknown;
   /** Previous compact contract accepted only as a resilience fallback. */
   forecast?: unknown;
@@ -254,55 +255,64 @@ export function validateFreeGeneratedForecastFeed(
   period: PersonalForecastPeriod = 'day',
 ): ValidatedFreeWriterResult {
   const headline = modelText(raw.headline);
-  const maxReadingWords: Record<PersonalForecastPeriod, number> = {
-    day: 130,
-    week: 140,
-    month: 200,
-  };
   const legacy = legacyGeneratedBlocks(raw, availableEvidenceIds);
-  if (!headline || !raw.lead || !Array.isArray(raw.sections) || !raw.advice) {
-    if (!legacy) return { sections: [], errors: ['payload requires headline, lead, sections, and advice with valid evidence_ids'] };
-    return { sections: legacy, errors: [] };
+  if (!headline || !Array.isArray(raw.paragraphs) || !raw.advice) {
+    const previousParagraphs = raw.lead && Array.isArray(raw.sections)
+      ? [raw.lead, ...raw.sections]
+      : null;
+    if (headline && previousParagraphs && raw.advice) {
+      raw = { ...raw, paragraphs: previousParagraphs };
+    } else {
+      if (!legacy) return { sections: [], errors: ['payload requires headline, paragraphs, and advice with valid evidence_ids'] };
+      const legacyBlocks = legacy.flatMap((section) => section.blocks);
+      const legacyReading = legacyBlocks.filter((block) => block.role !== 'action');
+      const legacyAdvice = legacyBlocks.filter((block) => block.role === 'action');
+      const legacyErrors = [
+        legacyReading.reduce((sum, block) => sum + wordCount(block.text), 0) > 130
+          ? `reading has more than 130 words for ${period}`
+          : null,
+        legacyAdvice.some((block) => wordCount(block.text) > 18)
+          ? 'advice has more than 18 words'
+          : null,
+        [headline || '', ...legacyBlocks.map((block) => block.text)]
+          .some((text) => USER_COPY_ASTROLOGY_TERMS.test(text))
+          ? 'user-facing copy contains astrology terminology'
+          : null,
+      ].filter((error): error is string => !!error);
+      if (legacyErrors.length) return { sections: [], errors: legacyErrors };
+      return { sections: legacy, errors: [] };
+    }
   }
-  const lead = generatedBlock(raw.lead, 'lead', availableEvidenceIds);
   const advice = generatedBlock(raw.advice, 'action', availableEvidenceIds);
-  if (!lead || !advice) {
-    return { sections: [], errors: ['lead or advice has missing, duplicated, or unknown evidence_ids'] };
-  }
-  const rawSections = raw.sections;
-  if (rawSections.length < 1 || rawSections.length > 3) {
-    return { sections: [], errors: ['sections must contain between one and three meaning blocks'] };
+  const rawParagraphs = raw.paragraphs || [];
+  const paragraphs = rawParagraphs.map((paragraph, index) => (
+    generatedBlock(paragraph, index === 0 ? 'lead' : 'insight', availableEvidenceIds)
+  ));
+  if (!advice || !paragraphs.length || paragraphs.some((paragraph) => !paragraph)) {
+    return { sections: [], errors: ['a paragraph or advice has missing, duplicated, or unknown evidence_ids'] };
   }
   const errors: string[] = [];
-  const sections: FreeGeneratedSection[] = [];
-  const readingBlocks: FreeGeneratedBlock[] = [lead];
   if (headline.length > 72) errors.push(`headline has ${headline.length} characters; maximum is 72`);
-  if (wordCount(lead.text) > 42) errors.push('lead has more than 42 words');
+  if (USER_COPY_ASTROLOGY_TERMS.test(headline)) errors.push('headline contains astrology terminology');
   if (wordCount(advice.text) > 18) errors.push('advice has more than 18 words');
-  for (const [index, rawSection] of rawSections.entries()) {
-    const title = modelText(rawSection?.title);
-    const block = generatedBlock(rawSection, 'insight', availableEvidenceIds);
-    if (!title || !block) {
-      errors.push(`section ${index + 1} is incomplete or has invalid evidence_ids`);
-      continue;
-    }
-    if (title.length > 56) errors.push(`section ${index + 1} title has more than 56 characters`);
-    if (wordCount(block.text) > 76) errors.push(`section ${index + 1} has more than 76 words`);
-    readingBlocks.push(block);
-    sections.push({ title, evidenceIds: block.evidenceIds, blocks: [block] });
+  if (USER_COPY_ASTROLOGY_TERMS.test(advice.text)) errors.push('advice contains astrology terminology');
+  const readingBlocks = paragraphs.filter((paragraph): paragraph is FreeGeneratedBlock => !!paragraph);
+  if (readingBlocks.some((block) => USER_COPY_ASTROLOGY_TERMS.test(block.text))) {
+    errors.push('reading contains astrology terminology');
   }
   const readingWords = readingBlocks.reduce((sum, block) => sum + wordCount(block.text), 0);
-  if (readingWords > maxReadingWords[period]) {
-    errors.push(`reading has ${readingWords} words; maximum for ${period} is ${maxReadingWords[period]}`);
+  if (readingWords > 130) {
+    errors.push(`reading has ${readingWords} words; maximum for ${period} is 130`);
   }
   if (errors.length) return { sections: [], errors };
+  const overviewEvidenceIds = [...new Set(readingBlocks.flatMap((block) => block.evidenceIds))];
   return {
     errors: [],
     sections: [{
       title: headline,
-      evidenceIds: lead.evidenceIds,
-      blocks: [lead],
-    }, ...sections, {
+      evidenceIds: overviewEvidenceIds,
+      blocks: readingBlocks,
+    }, {
       title: null,
       evidenceIds: advice.evidenceIds,
       blocks: [advice],
@@ -333,7 +343,7 @@ export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload
         !!value
         && typeof value === 'object'
         && !Array.isArray(value)
-        && ['headline', 'lead', 'sections', 'forecast', 'advice', 'evidence_ids']
+        && ['headline', 'paragraphs', 'lead', 'sections', 'forecast', 'advice', 'evidence_ids']
           .some((key) => Object.prototype.hasOwnProperty.call(value, key))
       );
       const nested = [payload, payload.data, payload.result, payload.output, payload.response]

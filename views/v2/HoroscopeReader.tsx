@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
@@ -9,9 +9,6 @@ import {
   useAstrologyDetailsPreference,
 } from '../../components/AstrologyDetailsToggle';
 import {
-  formatDisplayDate,
-  formatMonthPretty,
-  formatWeekRangePretty,
   getMoscowIsoWeekKey,
   getMoscowMonthKey,
   getMoscowTodayKey,
@@ -70,7 +67,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   }, [ownSign]);
 
   const [signIndex, setSignIndex] = useState(initialIndex);
-  const [hasReaderSelection, setHasReaderSelection] = useState(Boolean(ownSign));
   const [period, setPeriod] = useState<Period>('today');
   const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null>>({});
@@ -80,7 +76,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   useEffect(() => {
     if (!ownSign) return;
     setSignIndex(initialIndex);
-    setHasReaderSelection(true);
   }, [initialIndex, ownSign]);
 
   useEffect(() => {
@@ -104,8 +99,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       : today;
   const readingKey = `${sign.toLowerCase()}|${period}|${periodKey}|${language}`;
   const localReading = useMemo(
-    () => hasReaderSelection ? readLocalSignHoroscope(period, sign, periodKey, language) : null,
-    [hasReaderSelection, language, period, periodKey, sign],
+    () => readLocalSignHoroscope(period, sign, periodKey, language),
+    [language, period, periodKey, sign],
   );
   const hasReadingResult = Object.prototype.hasOwnProperty.call(readings, readingKey);
   const reading = hasReadingResult ? readings[readingKey] : localReading;
@@ -117,7 +112,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     setLastReadyReading({ key: readingKey, reading, sign, period, periodKey });
   }, [period, periodKey, reading, readingKey, sign]);
 
-  const displayed = !hasReaderSelection || periodLocked
+  const displayed = periodLocked
     ? null
     : reading
       ? { key: readingKey, reading, sign, period, periodKey }
@@ -126,7 +121,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         : null;
 
   useEffect(() => {
-    if (!hasReaderSelection || periodLocked) return;
+    if (periodLocked) return;
     let active = true;
     const hydrate = (prefetched: Record<string, SignHoroscopeReadingV2>) => {
       if (!active) return;
@@ -158,23 +153,19 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     void load();
     return () => { active = false; };
-  }, [hasReaderSelection, language, loadRevision, period, periodKey, periodLocked, readingKey, sign]);
+  }, [language, loadRevision, period, periodKey, periodLocked, readingKey, sign]);
 
   const chooseSign = (picked: string) => {
     const index = ZODIAC_KEYS.findIndex((item) => item.toLowerCase() === picked.toLowerCase());
     if (index < 0) return;
-    const shouldScrollToReading = !hasReaderSelection;
     lumiaSelectionHaptic();
     setSignIndex(index);
-    setHasReaderSelection(true);
-    if (shouldScrollToReading) {
-      window.requestAnimationFrame(() => {
-        readingAnchorRef.current?.scrollIntoView({
-          behavior: reduceMotion ? 'auto' : 'smooth',
-          block: 'start',
-        });
+    window.requestAnimationFrame(() => {
+      readingAnchorRef.current?.scrollIntoView({
+        behavior: reduceMotion ? 'auto' : 'smooth',
+        block: 'start',
       });
-    }
+    });
   };
 
   const retryCurrent = () => {
@@ -195,16 +186,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const signLabel = getZodiacSign(language, sign);
   const displayedReading = displayed?.reading ?? null;
   const displayedSign = displayed?.sign ?? sign;
-  const displayedPeriod = displayed?.period ?? period;
-  const displayedPeriodKey = displayed?.periodKey ?? periodKey;
   const displayedSignLabel = getZodiacSign(language, displayedSign);
-  const displayedPeriodTag = displayedPeriod === 'week'
-    ? formatWeekRangePretty(displayedPeriodKey, language)
-    : displayedPeriod === 'month'
-      ? formatMonthPretty(displayedPeriodKey, language)
-      : formatDisplayDate(displayedPeriodKey, language);
-  const hasReadingFailure = hasReaderSelection && hasReadingResult && reading === null && !displayedReading;
-  const showReader = hasReaderSelection && (periodLocked || Boolean(displayedReading) || hasReadingFailure);
+  const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
 
   return (
     <div className="fresh-page horo-reader-page">
@@ -226,7 +209,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         />
         <ZodiacSignGrid
           signs={ZODIAC_KEYS}
-          active={hasReaderSelection ? sign : ''}
+          active={sign}
           ownSign={ownSign}
           language={language}
           onPick={chooseSign}
@@ -234,84 +217,92 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
       </div>
 
       <div ref={readingAnchorRef} className="horo-uni-wrap">
-        <AnimatePresence initial={false} mode="wait">
-          {showReader ? (
-            <motion.article
-              key={periodLocked ? `locked:${readingKey}` : displayed?.key || `failed:${readingKey}`}
-              className="horo-uni horo-reader-article"
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={{ duration: reduceMotion ? 0.08 : 0.18, ease: 'easeOut' }}
-            >
-              <header className="horo-uni-hero" style={{ background: 'transparent' }}>
-                <div className="horo-reader-context">
-                  <span className="horo-reader-sign-label">{displayedReading ? displayedSignLabel : signLabel}</span>
-                  <span className="horo-reader-period-label">{displayedReading ? displayedPeriodTag : formatDisplayDate(today, language)}</span>
-                </div>
-                <h2 className="fresh-sticky horo-reader-headline">
-                  {displayedReading?.headline || signLabel}
-                </h2>
-              </header>
+        <motion.article
+          key={periodLocked ? `locked:${readingKey}` : displayed?.key || `pending:${readingKey}`}
+          className="horo-uni horo-reader-article"
+          aria-busy={!periodLocked && !hasReadingFailure && !displayedReading}
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0.08 : 0.18, ease: 'easeOut' }}
+        >
+          <header className="horo-uni-hero">
+            <h2 className="fresh-sticky horo-reader-headline">
+              {displayedReading ? displayedSignLabel : signLabel}
+            </h2>
+          </header>
 
-              <div className="horo-uni-body horo-reader-reading">
-                {periodLocked ? (
-                  <div className="horo-lock">
-                    <div className="horo-lock-title">
-                      {period === 'week'
-                        ? (language === 'ru' ? 'Гороскоп на неделю — в Premium' : 'Weekly horoscope — Premium')
-                        : (language === 'ru' ? 'Гороскоп на месяц — в Premium' : 'Monthly horoscope — Premium')}
-                    </div>
-                    <p className="horo-lock-text">
-                      {language === 'ru'
-                        ? 'Сегодня доступны все 12 знаков. Неделя и месяц открываются в Premium.'
-                        : 'All 12 signs are free today. Week and month open in Premium.'}
-                    </p>
-                    {onRequestPremium ? (
-                      <button type="button" className="fresh-btn-primary" onClick={onRequestPremium}>
-                        {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
-                      </button>
-                    ) : null}
-                  </div>
-                ) : hasReadingFailure ? (
-                  <div className="horo-lock" role="alert">
-                    <div className="horo-lock-title">
-                      {language === 'ru' ? 'Разбор пока недоступен' : 'The reading is unavailable'}
-                    </div>
-                    <button type="button" className="fresh-btn-primary" onClick={retryCurrent}>
-                      {language === 'ru' ? 'Повторить' : 'Try again'}
-                    </button>
-                  </div>
-                ) : displayedReading ? (
-                  <>
-                    <div className="horo-reader-astrology-toggle-row">
-                      <AstrologyDetailsToggle
-                        checked={showAstrology}
-                        onChange={setShowAstrology}
-                        language={language}
-                      />
-                    </div>
-                    <div className="horo-sign-v2-flow">
-                      <p className="horo-sign-v2-intro">{displayedReading.mood.text}</p>
-                      <p>{displayedReading.relationships.text}</p>
-                      <p>{displayedReading.work.text}</p>
-                      <p>{displayedReading.innerState.text}</p>
-                      <p className="horo-sign-v2-advice">{displayedReading.advice.text}</p>
-                      {displayedReading.warning ? (
-                        <aside className="horo-sign-v2-warning"><p>{displayedReading.warning.text}</p></aside>
-                      ) : null}
-                    </div>
-                    {showAstrology ? (
-                      <div className="horo-sign-v2-flow horo-sign-v2-flow--astrology">
-                        <p className="horo-sign-v2-intro">{displayedReading.astrology.text}</p>
-                      </div>
-                    ) : null}
-                  </>
+          <div className="horo-uni-body horo-reader-reading">
+            {periodLocked ? (
+              <div className="horo-lock">
+                <div className="horo-lock-title">
+                  {period === 'week'
+                    ? (language === 'ru' ? 'Гороскоп на неделю — в Premium' : 'Weekly horoscope — Premium')
+                    : (language === 'ru' ? 'Гороскоп на месяц — в Premium' : 'Monthly horoscope — Premium')}
+                </div>
+                <p className="horo-lock-text">
+                  {language === 'ru'
+                    ? 'Сегодня доступны все 12 знаков. Неделя и месяц открываются в Premium.'
+                    : 'All 12 signs are free today. Week and month open in Premium.'}
+                </p>
+                {onRequestPremium ? (
+                  <button type="button" className="fresh-btn-primary" onClick={onRequestPremium}>
+                    {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
+                  </button>
                 ) : null}
               </div>
-            </motion.article>
-          ) : null}
-        </AnimatePresence>
+            ) : hasReadingFailure ? (
+              <div className="horo-lock" role="alert">
+                <div className="horo-lock-title">
+                  {language === 'ru' ? 'Разбор пока недоступен' : 'The reading is unavailable'}
+                </div>
+                <button type="button" className="fresh-btn-primary" onClick={retryCurrent}>
+                  {language === 'ru' ? 'Повторить' : 'Try again'}
+                </button>
+              </div>
+            ) : displayedReading ? (
+              <>
+                <div className="horo-sign-v2-flow">
+                  <section className="horo-sign-v2-section">
+                    <h3>{language === 'ru' ? 'Общий фон' : 'Overall mood'}</h3>
+                    <p>{displayedReading.mood.text}</p>
+                  </section>
+                  <section className="horo-sign-v2-section">
+                    <h3>{language === 'ru' ? 'Общение' : 'Communication'}</h3>
+                    <p>{displayedReading.relationships.text}</p>
+                  </section>
+                  <section className="horo-sign-v2-section">
+                    <h3>{language === 'ru' ? 'Дела' : 'Plans'}</h3>
+                    <p>{displayedReading.work.text}</p>
+                  </section>
+                  <section className="horo-sign-v2-section">
+                    <h3>{language === 'ru' ? 'Вечер' : 'Evening'}</h3>
+                    <p>{displayedReading.innerState.text}</p>
+                    <p className="horo-sign-v2-advice">{displayedReading.advice.text}</p>
+                    {displayedReading.warning ? (
+                      <aside className="horo-sign-v2-warning"><p>{displayedReading.warning.text}</p></aside>
+                    ) : null}
+                  </section>
+                </div>
+
+                <div className="horo-reader-astrology-toggle-row">
+                  <AstrologyDetailsToggle
+                    checked={showAstrology}
+                    onChange={setShowAstrology}
+                    language={language}
+                    className="horo-reader-astrology-toggle"
+                  />
+                </div>
+
+                {showAstrology ? (
+                  <section className="horo-sign-v2-section horo-sign-v2-section--astrology">
+                    <h3>{language === 'ru' ? 'На чём это основано' : 'What this is based on'}</h3>
+                    <p>{displayedReading.astrology.text}</p>
+                  </section>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </motion.article>
       </div>
     </div>
   );

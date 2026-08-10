@@ -6,12 +6,13 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Bell, Info, RefreshCw } from 'lucide-react';
+import { Bell, RefreshCw } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import {
   buildPersonalForecastChartFingerprint,
+  formatPersonalForecastDateLabel,
   getPersonalForecastPeriodKey,
   normalizeForecastTimezone,
   resolvePersonalForecastWindow,
@@ -30,11 +31,14 @@ import {
   readLocalPersonalForecast,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
-import { ForecastBottomSheet } from '../components/PersonalForecastFeed/ForecastBottomSheet';
 import { ForecastPromotion } from '../components/PersonalForecastFeed/ForecastPromotion';
 import { ForecastQuestions } from '../components/PersonalForecastFeed/ForecastQuestions';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import {
+  AstrologyDetailsToggle,
+  useAstrologyDetailsPreference,
+} from '../components/AstrologyDetailsToggle';
 import type {
   PersonalForecastQuestionNotification,
 } from '../services/personalForecastQuestionService';
@@ -70,33 +74,53 @@ const PERIOD_TABS: ReadonlyArray<{
   { id: 'month', ru: 'Месяц', en: 'Month' },
 ] as const;
 
-function periodTabLabel(
-  period: PersonalForecastPeriod,
-  language: 'ru' | 'en',
-): string {
-  return PERIOD_TABS.find((tab) => tab.id === period)?.[language] || period;
-}
-
 function personalForecastLoadingLabel(
   period: PersonalForecastPeriod,
   language: 'ru' | 'en',
 ): string {
   if (language === 'en') {
     return {
-      day: 'Preparing your forecast for today',
-      week: 'Preparing your forecast for the week',
-      month: 'Preparing your forecast for the month',
+      day: 'Creating your first personal reading',
+      week: 'Creating your first weekly reading',
+      month: 'Creating your first monthly reading',
     }[period];
   }
   return {
-    day: 'Собираем личный прогноз на сегодня',
-    week: 'Собираем личный прогноз на неделю',
-    month: 'Собираем личный прогноз на месяц',
+    day: 'Создаём первый личный разбор',
+    week: 'Создаём первый недельный разбор',
+    month: 'Создаём первый месячный разбор',
   }[period];
 }
 
 function emptyPeriodState(): PeriodState {
   return { result: null, phase: 'idle' };
+}
+
+function personalForecastReadyMarkerKey(userId: string, chartFingerprint: string): string {
+  return `tvoi-goroskop:personal-forecast-ready:${userId}:${chartFingerprint}`;
+}
+
+function hasPersonalForecastReadyMarker(userId: string, chartFingerprint: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(
+      personalForecastReadyMarkerKey(userId, chartFingerprint),
+    ) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writePersonalForecastReadyMarker(userId: string, chartFingerprint: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      personalForecastReadyMarkerKey(userId, chartFingerprint),
+      'true',
+    );
+  } catch {
+    // A restricted webview must not turn a successful reading into an error.
+  }
 }
 
 type PersonalForecastPromoSlot = {
@@ -179,15 +203,15 @@ export const Dashboard = memo<DashboardProps>(({
     ? buildPersonalForecastChartFingerprint(chartData)
     : 'none';
   const [activePeriod, setActivePeriod] = useState<PersonalForecastPeriod>('day');
-  useEffect(() => {
-    if (requestedPeriod) setActivePeriod(requestedPeriod);
-  }, [requestedPeriod]);
   const [periodStates, setPeriodStates] = useState<Record<PersonalForecastPeriod, PeriodState>>({
     day: emptyPeriodState(),
     week: emptyPeriodState(),
     month: emptyPeriodState(),
   });
-  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+  const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
+  const [hasCompletedPersonalForecast, setHasCompletedPersonalForecast] = useState(
+    () => hasPersonalForecastReadyMarker(userId, chartFingerprint),
+  );
   const [unreadQuestions, setUnreadQuestions] =
     useState<PersonalForecastQuestionNotification[]>([]);
   const [focusQuestion, setFocusQuestion] =
@@ -196,6 +220,7 @@ export const Dashboard = memo<DashboardProps>(({
   const contextRef = useRef('');
   const accessContextRef = useRef('');
   const pendingSectionRef = useRef<string | null>(null);
+  const pendingPeriodRef = useRef<PersonalForecastPeriod | null>(null);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => ({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
@@ -234,17 +259,23 @@ export const Dashboard = memo<DashboardProps>(({
       });
       return;
     }
-    const day = readLocalPersonalForecast({
-      profile,
-      chartData,
-      chartId,
-      period: 'day',
-      periodKey: periodKeys.day,
-    });
+    const localResults = Object.fromEntries(
+      PERIOD_TABS.map(({ id }) => [id, readLocalPersonalForecast({
+        profile,
+        chartData,
+        chartId,
+        period: id,
+        periodKey: periodKeys[id],
+      })]),
+    ) as Record<PersonalForecastPeriod, PersonalForecastClientResult | null>;
+    const hasLocalResult = Object.values(localResults).some(Boolean);
+    setHasCompletedPersonalForecast(
+      hasLocalResult || hasPersonalForecastReadyMarker(userId, chartFingerprint),
+    );
     setPeriodStates({
-      day: { result: day, phase: day ? 'ready' : 'idle' },
-      week: emptyPeriodState(),
-      month: emptyPeriodState(),
+      day: { result: localResults.day, phase: localResults.day ? 'ready' : 'idle' },
+      week: { result: localResults.week, phase: localResults.week ? 'ready' : 'idle' },
+      month: { result: localResults.month, phase: localResults.month ? 'ready' : 'idle' },
     });
   }, [
     chartData,
@@ -252,7 +283,11 @@ export const Dashboard = memo<DashboardProps>(({
     contextKey,
     hasChart,
     periodKeys.day,
+    periodKeys.month,
+    periodKeys.week,
     profile,
+    chartFingerprint,
+    userId,
   ]);
 
   useEffect(() => {
@@ -263,7 +298,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   const loadPeriod = useCallback((
     period: PersonalForecastPeriod,
-    options?: { retry?: boolean },
+    options?: { retry?: boolean; cacheOnly?: boolean },
   ) => {
     if (!chartData || !hasChart) return;
     if (requestsRef.current[period]) return;
@@ -290,38 +325,18 @@ export const Dashboard = memo<DashboardProps>(({
     const requestContextKey = accessContextKey;
     const request = (async () => {
       try {
-        let next: PersonalForecastClientResult;
-        if (options?.retry) {
-          next = await loadPersonalForecast({
-            profile,
-            chartData,
-            chartId,
-            period,
-            periodKey,
-            options: { force: true },
-          });
-        } else {
-          try {
-            next = await loadPersonalForecast({
-              profile,
-              chartData,
-              chartId,
-              period,
-              periodKey,
-              options: { cacheOnly: true, force: true },
-            });
-          } catch (error: any) {
-            if (error?.status !== 404) throw error;
-            next = await loadPersonalForecast({
-              profile,
-              chartData,
-              chartId,
-              period,
-              periodKey,
-              options: { force: true },
-            });
-          }
-        }
+        const next = await loadPersonalForecast({
+          profile,
+          chartData,
+          chartId,
+          period,
+          periodKey,
+          options: {
+            force: options?.retry,
+            cacheOnly: options?.cacheOnly,
+            maxInProgressRetries: 60,
+          },
+        });
         if (accessContextRef.current !== requestContextKey) return;
         setPeriodStates((current) => ({
           ...current,
@@ -335,7 +350,7 @@ export const Dashboard = memo<DashboardProps>(({
             ...current,
             [period]: {
               result: retained,
-              phase: retained ? 'ready' : 'error',
+              phase: retained ? 'ready' : options?.cacheOnly ? 'idle' : 'error',
             },
           };
         });
@@ -359,15 +374,40 @@ export const Dashboard = memo<DashboardProps>(({
 
   useEffect(() => {
     loadPeriod('day');
+    loadPeriod('week', { cacheOnly: true });
+    loadPeriod('month', { cacheOnly: true });
   }, [contextKey, loadPeriod]);
 
   useEffect(() => {
     loadPeriod(activePeriod);
   }, [activePeriod, loadPeriod]);
 
+  useEffect(() => {
+    if (!requestedPeriod) return;
+    if (periodStates[requestedPeriod].result) {
+      pendingPeriodRef.current = null;
+      setActivePeriod(requestedPeriod);
+      return;
+    }
+    pendingPeriodRef.current = requestedPeriod;
+    loadPeriod(requestedPeriod);
+  }, [loadPeriod, periodStates, requestedPeriod]);
+
+  useEffect(() => {
+    const pending = pendingPeriodRef.current;
+    if (!pending || !periodStates[pending].result) return;
+    pendingPeriodRef.current = null;
+    setActivePeriod(pending);
+  }, [periodStates]);
+
   const state = periodStates[activePeriod];
   const result = state.result;
   const forecast = result?.forecast || null;
+  useEffect(() => {
+    if (!forecast || forecast.meta.status !== 'ready') return;
+    setHasCompletedPersonalForecast(true);
+    writePersonalForecastReadyMarker(userId, chartFingerprint);
+  }, [chartFingerprint, forecast, userId]);
   const lockedIds = useMemo(
     () => new Set(result?.lockedSectionIds || []),
     [result?.lockedSectionIds],
@@ -451,11 +491,16 @@ export const Dashboard = memo<DashboardProps>(({
   ) => {
     lumiaSelectionHaptic();
     if (targetSectionId) pendingSectionRef.current = targetSectionId;
-    setActivePeriod(period);
+    if (periodStates[period].result) {
+      setActivePeriod(period);
+    } else {
+      pendingPeriodRef.current = period;
+      loadPeriod(period);
+    }
     if (!targetSectionId) {
       scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [scrollRef]);
+  }, [loadPeriod, periodStates, scrollRef]);
 
   const openQuestionNotification = useCallback(() => {
     const notification = unreadQuestions[0];
@@ -524,6 +569,15 @@ export const Dashboard = memo<DashboardProps>(({
   const overviewCrossLinks = forecast?.suggestedCrossPeriodLinks.filter(
     (link) => link.fromSectionId === 'overview',
   ) || [];
+  const displayWindow = resolvePersonalForecastWindow(
+    activePeriod,
+    periodKeys[activePeriod],
+    timezone,
+  );
+  const displayDateLines = (forecast?.dateLabel
+    || formatPersonalForecastDateLabel(displayWindow, language))
+    .split('\n')
+    .filter(Boolean);
   return (
     <div
       className="fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll"
@@ -536,34 +590,51 @@ export const Dashboard = memo<DashboardProps>(({
         <AppTopBar
           title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
           reserveSpace={false}
-          rightAction={(
+          rightAction={unreadQuestions.length > 0 ? (
             <div className="forecast-feed-top-actions">
-              {unreadQuestions.length > 0 ? (
-                <button
-                  type="button"
-                  className="app-top-bar-action forecast-feed-top-action has-notification"
-                  aria-label={language === 'ru'
-                    ? `Новых ответов: ${unreadQuestions.length}`
-                    : `New answers: ${unreadQuestions.length}`}
-                  onClick={openQuestionNotification}
-                >
-                  <Bell size={17} aria-hidden />
-                  <span className="forecast-feed-notification-dot" aria-hidden />
-                </button>
-              ) : null}
               <button
                 type="button"
-                className="app-top-bar-action forecast-feed-top-action"
-                aria-label={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
-                onClick={() => setHowItWorksOpen(true)}
+                className="app-top-bar-action forecast-feed-top-action has-notification"
+                aria-label={language === 'ru'
+                  ? `Новых ответов: ${unreadQuestions.length}`
+                  : `New answers: ${unreadQuestions.length}`}
+                onClick={openQuestionNotification}
               >
-                <Info size={17} aria-hidden />
+                <Bell size={17} aria-hidden />
+                <span className="forecast-feed-notification-dot" aria-hidden />
               </button>
             </div>
-          )}
+          ) : undefined}
         />
       </section>
       <div className="forecast-feed-ambient" aria-hidden />
+
+      {hasChart ? (
+        <div className="forecast-feed-reading-header">
+          <div className="forecast-feed-date-zone" aria-label={displayDateLines.join(' ')}>
+            <div className="forecast-feed-date-cluster">
+              <p className="forecast-feed-date">
+                {displayDateLines.length > 1 ? (
+                  <>
+                    <span className="forecast-feed-date-weekday">{displayDateLines[0]}</span>
+                    <span className="forecast-feed-date-value">{displayDateLines.slice(1).join(' ')}</span>
+                  </>
+                ) : (
+                  <span className="forecast-feed-date-value">{displayDateLines[0]}</span>
+                )}
+              </p>
+            </div>
+          </div>
+          {forecast?.meta.status === 'ready' ? (
+            <AstrologyDetailsToggle
+              checked={showAstrology}
+              onChange={setShowAstrology}
+              language={language}
+              className="forecast-feed-astrology-toggle"
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       {!hasChart ? (
         <section className="forecast-feed-status">
@@ -582,6 +653,7 @@ export const Dashboard = memo<DashboardProps>(({
           </button>
         </section>
       ) : !forecast || forecast.meta.status !== 'ready' ? (
+        hasCompletedPersonalForecast ? null : (
         <section
           className={`forecast-feed-status${state.phase === 'error' ? '' : ' forecast-feed-status--loading'} is-${state.phase}`}
           aria-live="polite"
@@ -622,6 +694,7 @@ export const Dashboard = memo<DashboardProps>(({
             </>
           )}
         </section>
+        )
       ) : (
         <>
           <ForecastSectionBlock
@@ -635,8 +708,9 @@ export const Dashboard = memo<DashboardProps>(({
               visual?.assignments[forecast.overview.id],
               activePeriod,
             )}
-            hasVisual={false}
-            editorialStickerPath={null}
+            hasVisual={!!editorialStickerPath}
+            editorialStickerPath={editorialStickerPath}
+            showAstrology={showAstrology}
             onRequestPremium={requestPremium}
           >
             {overviewCrossLinks.map((link) => (
@@ -652,12 +726,11 @@ export const Dashboard = memo<DashboardProps>(({
             ))}
           </ForecastSectionBlock>
 
-          {readySections.map((section, index) => {
+          {readySections.map((section) => {
             const crossLinks = forecast.suggestedCrossPeriodLinks.filter(
               (link) => link.fromSectionId === section.id,
             );
             const sectionPromoSlots = promotionSlotsBySection.get(section.id) || [];
-            const isEditorialSlot = index === 0 && !!editorialStickerPath;
             return (
               <React.Fragment key={`${activePeriod}:${forecast.periodKey}:${section.id}`}>
                 <ForecastSectionBlock
@@ -670,8 +743,9 @@ export const Dashboard = memo<DashboardProps>(({
                     visual?.assignments[section.id],
                     activePeriod,
                   )}
-                  hasVisual={isEditorialSlot}
-                  editorialStickerPath={isEditorialSlot ? editorialStickerPath : null}
+                  hasVisual={false}
+                  editorialStickerPath={null}
+                  showAstrology={showAstrology}
                   onRequestPremium={requestPremium}
                 >
                   {crossLinks.map((link) => (
@@ -706,61 +780,6 @@ export const Dashboard = memo<DashboardProps>(({
 
         </>
       )}
-
-      <ForecastBottomSheet
-        open={howItWorksOpen}
-        title={language === 'ru' ? 'Как устроен прогноз' : 'How the forecast works'}
-        closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
-        onClose={() => setHowItWorksOpen(false)}
-      >
-        <div className="forecast-feed-how-copy">
-          <p>
-            {language === 'ru'
-              ? 'Сначала мы рассчитываем положения планет, домов, аспектов и транзитов для твоей карты и выбранного периода.'
-              : 'First, we calculate planets, houses, aspects, and transits for your chart and the selected period.'}
-          </p>
-          <p>
-            {language === 'ru'
-              ? 'Затем прогноз формулирует понятный вывод. Значок i рядом с ним открывает рассчитанный фактор и его смысл.'
-              : 'The forecast then states a clear conclusion. The info icon beside it opens the calculated factor and its plain-language meaning.'}
-          </p>
-              <p>
-                {language === 'ru'
-                  ? 'Будущие события описываются как направление и период, а не как гарантированный факт.'
-                  : 'Future events are described as a direction and a period, not as a guaranteed fact.'}
-              </p>
-              <p>
-                {language === 'ru'
-                  ? 'Разбор отличается у разных людей, потому что опирается на конкретную натальную карту, часовой пояс и расчёты выбранного периода.'
-                  : 'The reading differs from person to person because it uses a specific natal chart, timezone, and calculations for the selected period.'}
-              </p>
-          <p>
-            {language === 'ru'
-              ? 'Сегодня обновляется каждый день, Неделя — по границе недели, Месяц — по календарной границе. Изменение данных рождения или версии расчёта создаёт новый разбор.'
-              : 'Today updates daily, Week at the week boundary, and Month at its calendar boundary. Changing birth data or the calculation version creates a new reading.'}
-          </p>
-          <p>
-            {language === 'ru'
-              ? 'Точное время рождения влияет на Асцендент и дома. Если оно неизвестно, разбор опирается на надёжно рассчитанные факторы и честно учитывает ограничения карты.'
-              : 'Exact birth time affects the Ascendant and houses. If it is unknown, the reading uses reliably calculated factors and honestly accounts for the chart’s limits.'}
-          </p>
-          <p>
-            {language === 'ru'
-              ? 'Сначала выполняется астрономический расчёт. ИИ формулирует текст только по переданной карте и данным периода — он не должен придумывать события или факты о человеке.'
-              : 'The astronomical calculation comes first. AI phrases the reading only from the supplied chart and period data; it must not invent events or facts about the person.'}
-          </p>
-          <p>
-            {language === 'ru'
-              ? 'Дата, время и место рождения используются для построения карты и персональных расчётов.'
-              : 'Birth date, time, and place are used to build the chart and personal calculations.'}
-          </p>
-          <p>
-            {language === 'ru'
-              ? 'Это не медицинская, психологическая, юридическая или финансовая рекомендация и не замена консультации специалиста.'
-              : 'This is not medical, psychological, legal, or financial advice and does not replace professional consultation.'}
-          </p>
-        </div>
-      </ForecastBottomSheet>
     </div>
   );
 });

@@ -1,11 +1,9 @@
-import React, { useState, type CSSProperties, type ReactNode } from 'react';
-import { Info } from 'lucide-react';
+import React, { type CSSProperties, type ReactNode } from 'react';
 import type {
   ForecastEvidenceView,
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
-import { ForecastBottomSheet } from './ForecastBottomSheet';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
@@ -17,25 +15,47 @@ type ForecastSectionBlockProps = {
   editorialStickerPath?: string | null;
   children?: ReactNode;
   evidence: Record<string, ForecastEvidenceView>;
+  showAstrology?: boolean;
   onRequestPremium: () => void;
 };
 
+function evidenceMeta(item: ForecastEvidenceView, language: 'ru' | 'en'): string {
+  const status = language === 'ru'
+    ? {
+        applying: 'сходится',
+        separating: 'расходится',
+        exact: 'точный',
+        active: 'активен',
+        unknown: '',
+      }[item.status]
+    : {
+        applying: 'applying',
+        separating: 'separating',
+        exact: 'exact',
+        active: 'active',
+        unknown: '',
+      }[item.status];
+  return [
+    item.orb != null ? `${language === 'ru' ? 'орб' : 'orb'} ${item.orb}°` : '',
+    status,
+    item.period || '',
+  ].filter(Boolean).join(' · ');
+}
+
 function renderContentBlocks(
   section: ForecastSection,
-  activeAnchorId: string | null,
-  onOpenExplanation: (anchorId: string) => void,
+  evidence: Record<string, ForecastEvidenceView>,
+  showAstrology: boolean,
   language: 'ru' | 'en',
   editorialStickerPath?: string | null,
 ): ReactNode {
-  const stickerAfterIndex = Math.max(0, section.contentBlocks.length - 1);
+  const stickerAfterIndex = 0;
   return (
     <div className="forecast-feed-section-copy">
       {section.contentBlocks.map((block, index) => {
-        const explanationAnchor = block.explanationAnchorId
-          ? section.explanationAnchors.find(
-              (anchor) => anchor.id === block.explanationAnchorId,
-            )
-          : null;
+        const blockEvidence = (block.evidenceIds || [])
+          .map((id) => evidence[id])
+          .filter((item): item is ForecastEvidenceView => !!item);
         return (
           <React.Fragment key={block.id}>
             <p
@@ -47,24 +67,22 @@ function renderContentBlocks(
               data-editorial-role={block.role}
             >
               {block.text}
-              {explanationAnchor ? (
-                <button
-                  type="button"
-                  className={[
-                    'forecast-feed-inline-explanation-toggle',
-                    activeAnchorId === explanationAnchor.id ? 'is-expanded' : '',
-                  ].filter(Boolean).join(' ')}
-                  aria-label={language === 'ru'
-                    ? 'Показать, на чём основан вывод'
-                    : 'Show what this conclusion is based on'}
-                  aria-haspopup="dialog"
-                  aria-expanded={activeAnchorId === explanationAnchor.id}
-                  onClick={() => onOpenExplanation(explanationAnchor.id)}
-                >
-                  <Info size={15} strokeWidth={1.9} aria-hidden />
-                </button>
-              ) : null}
             </p>
+            {showAstrology && blockEvidence.length ? (
+              <div
+                className="forecast-feed-astro-details"
+                aria-label={language === 'ru' ? 'Астрологические пояснения' : 'Astrology details'}
+              >
+                {blockEvidence.map((item) => (
+                  <p key={item.id}>
+                    <strong>{item.factor}</strong>
+                    {evidenceMeta(item, language) ? (
+                      <small>{evidenceMeta(item, language)}</small>
+                    ) : null}
+                  </p>
+                ))}
+              </div>
+            ) : null}
             {editorialStickerPath && index === stickerAfterIndex ? (
               <img
                 className="forecast-feed-editorial-sticker"
@@ -93,9 +111,9 @@ export function ForecastSectionBlock({
   editorialStickerPath,
   children,
   evidence,
+  showAstrology = false,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
-  const [activeAnchorId, setActiveAnchorId] = useState<string | null>(null);
   const isOverview = section.kind === 'overview';
   const sectionTitle = section.title?.trim() || '';
   const technicalOverviewTitles = new Set([
@@ -110,9 +128,6 @@ export function ForecastSectionBlock({
     ? ''
     : sectionTitle;
   const preview = section.lockedPreview;
-  const activeAnchor = section.explanationAnchors.find(
-    (anchor) => anchor.id === activeAnchorId,
-  ) || null;
 
   if (section.status !== 'ready') return null;
 
@@ -176,44 +191,14 @@ export function ForecastSectionBlock({
         ) : (
           renderContentBlocks(
             section,
-            activeAnchorId,
-            (anchorId) => {
-              setActiveAnchorId(anchorId);
-            },
+            evidence,
+            showAstrology,
             language,
             editorialStickerPath,
           )
         )}
         {children}
       </div>
-      <ForecastBottomSheet
-        open={!!activeAnchor}
-        title={language === 'ru' ? 'Почему такой вывод' : 'Why this conclusion'}
-        subtitle={activeAnchor?.conclusion}
-        closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
-        onClose={() => setActiveAnchorId(null)}
-      >
-        {activeAnchor ? (
-          <div className="forecast-feed-how-copy">
-            <p>{activeAnchor.explanation}</p>
-            {activeAnchor.evidenceIds.some((id) => evidence[id]) ? (
-              <div className="forecast-feed-inline-explanation-evidence">
-                {activeAnchor.evidenceIds.map((id) => {
-                  const item = evidence[id];
-                  if (!item) return null;
-                  return (
-                    <span key={id}>
-                      <strong>{item.factor}</strong>
-                      <span>{item.meaning}</span>
-                      {item.period ? <small>{item.period}</small> : null}
-                    </span>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </ForecastBottomSheet>
     </section>
   );
 }

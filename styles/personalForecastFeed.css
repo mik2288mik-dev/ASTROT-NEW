@@ -126,9 +126,25 @@
   min-height: 58px;
   align-items: center;
   justify-content: center;
-  margin: 16px auto 14px;
+  margin: 14px auto 0;
   padding-inline: 72px;
   color: #171717;
+}
+
+.forecast-feed-reading-header {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(100%, var(--forecast-feed-reading-width));
+  justify-items: center;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.forecast-feed-astrology-toggle {
+  justify-self: end;
+  margin: 2px 0 18px;
 }
 
 .forecast-feed-date-cluster {
@@ -440,7 +456,7 @@
   justify-content: flex-start;
   gap: 18px;
   margin: 0 auto;
-  padding: 22px 24px 80px;
+  padding: 24px 24px 80px;
   background: #ffffff;
   text-align: start;
 }
@@ -448,9 +464,9 @@
 .forecast-feed-status--loading .forecast-feed-loading-label {
   max-width: none;
   color: #6b7280;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 14px;
+  font-weight: 560;
+  letter-spacing: 0;
   line-height: 1.4;
 }
 
@@ -638,7 +654,7 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 560px;
+  max-width: 620px;
   margin: 0 auto;
   padding:
     var(--forecast-section-pad-start)
@@ -649,7 +665,7 @@
 .forecast-feed-section.is-overview .forecast-feed-section-content {
   --forecast-section-pad-start: 0px;
   --forecast-section-pad-end: 30px;
-  max-width: 580px;
+  max-width: 620px;
 }
 
 .forecast-feed-section.has-visual::before,
@@ -661,10 +677,10 @@
 
 .forecast-feed-editorial-sticker {
   display: block;
-  width: 65%;
-  max-width: 420px;
+  width: clamp(220px, 66%, 390px);
+  max-width: 100%;
   height: auto;
-  margin: 1.25rem auto 0;
+  margin: 24px auto 8px;
   object-fit: contain;
 }
 
@@ -694,7 +710,7 @@
 }
 
 .forecast-feed-section.is-overview.has-visual-fallback {
-  --forecast-section-pad-start: 32px;
+  --forecast-section-pad-start: 24px;
   --forecast-section-pad-end: 30px;
 }
 
@@ -705,13 +721,17 @@
   font-weight: 760;
   letter-spacing: -0.018em;
   line-height: 1.28;
-  text-align: center;
+  text-align: left;
 }
 
 .forecast-feed-section.is-overview .forecast-feed-section-title {
-  margin-bottom: 16px;
-  font-size: 20px;
-  letter-spacing: -0.024em;
+  max-width: 13ch;
+  margin-bottom: 18px;
+  font-size: clamp(30px, 8.6vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+  text-wrap: balance;
 }
 
 .forecast-feed-section--dynamic .forecast-feed-section-title,
@@ -723,50 +743,42 @@
 
 .forecast-feed-section-copy {
   display: grid;
-  gap: 13px;
+  gap: 16px;
   text-align: left;
 }
 
 .forecast-feed-section-text {
   margin: 0;
   color: var(--forecast-feed-copy);
-  font-size: 15.4px;
-  font-weight: 430;
-  letter-spacing: -0.006em;
-  line-height: 1.62;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.008em;
+  line-height: 1.55;
   white-space: pre-line;
   text-align: left;
 }
 
 .forecast-feed-section-text.is-lead {
-  position: relative;
-  padding-left: 14px;
+  padding-left: 0;
   color: #171d28;
-  font-size: 16.6px;
-  font-weight: 650;
+  font-size: 18px;
+  font-weight: 480;
   letter-spacing: -0.016em;
   line-height: 1.5;
 }
 
 .forecast-feed-section-text.is-lead::before {
-  position: absolute;
-  top: 0.18em;
-  bottom: 0.18em;
-  left: 0;
-  width: 2px;
-  border-radius: 99px;
-  background: linear-gradient(180deg, #11b9ad 0%, #1478ff 58%, #7656e7 100%);
-  content: '';
-  opacity: 0.72;
+  display: none;
 }
 
 .forecast-feed-section-text.is-takeaway {
-  padding-left: 13px;
-  border-left: 1.5px solid rgba(20, 120, 255, 0.2);
-  color: #3f4a5c;
-  font-size: 14.8px;
-  font-weight: 480;
-  line-height: 1.58;
+  padding: 14px 0 0 15px;
+  border-top: 1px solid rgba(23, 25, 35, 0.12);
+  border-left: 2px solid rgba(23, 25, 35, 0.52);
+  color: #303641;
+  font-size: 16px;
+  font-weight: 580;
+  line-height: 1.5;
 }
 
 .forecast-feed-section-copy .forecast-feed-section-text:first-child {
@@ -774,17 +786,45 @@
 }
 
 .forecast-feed-section.is-overview .forecast-feed-section-text {
-  color: #1d2430;
-  font-size: 15.7px;
-  line-height: 1.64;
+  color: #171717;
+  font-size: 17px;
+  line-height: 1.55;
 }
 
 .forecast-feed-section.is-overview
   .forecast-feed-section-copy
   .forecast-feed-section-text.is-lead {
-  font-size: 17.4px;
-  font-weight: 680;
-  line-height: 1.52;
+  font-size: 18px;
+  font-weight: 480;
+  line-height: 1.5;
+}
+
+.forecast-feed-astro-details {
+  display: grid;
+  gap: 8px;
+  margin: -4px 0 4px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(23, 25, 35, 0.18);
+  color: #69717f;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.forecast-feed-astro-details p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.forecast-feed-astro-details strong {
+  color: #484f5b;
+  font-weight: 650;
+}
+
+.forecast-feed-astro-details span,
+.forecast-feed-astro-details small {
+  color: inherit;
+  font: inherit;
 }
 
 .forecast-feed-inline-explanation-toggle {

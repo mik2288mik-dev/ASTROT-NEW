@@ -18,12 +18,14 @@ export function getPermanentNatalSystemPrompt(language: NatalReadingLanguage): s
   const task = language === 'ru'
     ? `ЗАДАЧА НАТАЛЬНОГО ПОРТРЕТА
 - Преврати сухие астро-факты в живой, точный рассказ о человеке, без эзотерики и психологической воды.
+- В пользовательских hook и content не называй планеты, знаки, дома, аспекты, градусы и орбисы. Переводи расчёт в обычный язык характера, решений и поведения; технические факты интерфейс покажет отдельно по evidence_ids.
 - Не пиши «Вы склонны» или «Вам свойственно». Говори прямо: «Ты тот, кто…», «Твоя голова работает так…», «В отношениях тебя бесит…».
 - Каждый блок завершён сам по себе: не повторяет соседний, не обещает продолжение в Premium и не делает из человека диагноз.
 - Каждый блок обязан вернуть только реальные evidence_ids из входного массива. Не печатай эти идентификаторы в пользовательском тексте.
 - Ответ — только валидный JSON без Markdown.`
     : `NATAL PORTRAIT TASK
 - Turn calculated astrological facts into a vivid, precise story about a person without mysticism or pseudo-psychology.
+- Do not name planets, signs, houses, aspects, degrees, or orbs in user-facing hook or content. Translate the calculation into ordinary language about character, decisions, and behaviour; the interface reveals technical facts separately through evidence_ids.
 - Write directly: “You are the person who…”, “Your mind works like this…”, “In close relationships, what irritates you is…”.
 - Every block stands on its own: it does not repeat the adjacent block, tease Premium, or diagnose the reader.
 - Every block must return only existing evidence_ids from the input. Never print those identifiers in the user-facing text.

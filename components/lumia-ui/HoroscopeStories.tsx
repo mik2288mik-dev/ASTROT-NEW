@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
-import { getCachedDailySignHoroscope, ensureDailySignHoroscope } from '../../services/astrologyService';
+import {
+  ensureDailySignHoroscope,
+  readLocalSignHoroscope,
+} from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
 import { getMoscowTodayKey } from '../../lib/date-utils';
 import { getZodiacSign } from '../../constants';
@@ -86,9 +89,8 @@ export function HoroscopeStories({
   useEffect(() => {
     if (!open || !sign) return;
     let alive = true;
-    setReading(null);
-    void getCachedDailySignHoroscope(sign, today, language)
-      .then((cached) => cached || ensureDailySignHoroscope(sign, today, language))
+    setReading(readLocalSignHoroscope('today', sign, today, language));
+    void ensureDailySignHoroscope(sign, today, language)
       .then((r) => { if (alive) setReading(r); })
       .catch(() => { /* non-critical */ });
     return () => { alive = false; };
@@ -96,6 +98,7 @@ export function HoroscopeStories({
 
   const choose = (picked: string) => {
     setSign(picked);
+    setReading(readLocalSignHoroscope('today', picked, today, language));
     try { window.localStorage.setItem(LOCAL_SIGN_KEY, picked); } catch { /* optional */ }
     const updated = { ...profile, selectedZodiacSign: picked };
     onUpdateProfile?.(updated);
@@ -107,9 +110,7 @@ export function HoroscopeStories({
     const picker: StorySlide = { id: 'pick', content: <SignPicker language={language} current={sign} onPick={choose} /> };
     if (!sign) return [picker];
     const eyebrow = `${getZodiacSign(language, sign)} · ${language === 'ru' ? 'сегодня' : 'today'}`;
-    const readingSlides = reading
-      ? buildReadingSlides(reading, eyebrow, language)
-      : [{ id: 'loading', eyebrow, title: language === 'ru' ? 'Готовим прогноз…' : 'Preparing…', loading: true } as StorySlide];
+    const readingSlides = reading ? buildReadingSlides(reading, eyebrow, language) : [];
     return [picker, ...readingSlides];
   }, [sign, reading, language]);
 

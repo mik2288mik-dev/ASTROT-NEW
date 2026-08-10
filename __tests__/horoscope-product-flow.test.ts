@@ -6,15 +6,15 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Horoscope product flow', () => {
-  it('opens the known own sign, keeps the 12-sign grid primary, and scrolls a manual choice into view', () => {
+  it('opens a sign immediately, keeps the 12-sign grid primary, and scrolls every manual choice into view', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
     const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
     const astrologyToggle = read('components/AstrologyDetailsToggle.tsx');
     const styles = read('styles/zodiacReader.css');
     expect(ZODIAC_KEYS).toHaveLength(12);
     expect(source).toContain('ZodiacSignGrid');
-    expect(source).toContain('const [hasReaderSelection, setHasReaderSelection]');
-    expect(source).toContain('setHasReaderSelection(true);');
+    expect(source).not.toContain('hasReaderSelection');
+    expect(source).toContain('active={sign}');
     expect(source).toContain("normalizeZodiacKey(String(chartData?.sun?.sign || ''))");
     expect(source.indexOf('const calculated =')).toBeLessThan(source.indexOf('calculated || fromBirth'));
     expect(source).toContain('scrollIntoView');
@@ -27,14 +27,20 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('horo-reader-article');
     expect(source).toContain('horo-reader-headline');
     expect(styles).toContain('.horo-reader-page .horo-uni.horo-reader-article');
-    expect(styles).toContain('min-height: 92px');
-    expect(styles).toContain('margin-top: 11px');
+    expect(styles).toContain('min-height: 70px');
+    expect(styles).toContain('margin-top: 23px');
+    expect(styles).toContain('background: #ffffff');
+    expect(styles).toContain('background: #eee3d5');
     expect(styles).toContain('background: transparent');
     expect(styles).toContain('transform: none');
     expect(source).toContain('ensureDailySignHoroscope');
     expect(source).toContain('ensureWeeklySignHoroscope');
     expect(source).toContain('ensureMonthlySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
+    expect(source).toContain("'Общий фон'");
+    expect(source).toContain("'Общение'");
+    expect(source).toContain("'Дела'");
+    expect(source).toContain("'Вечер'");
     expect(source).toContain('displayedReading.astrology.text');
     expect(source).toContain("../../components/AstrologyDetailsToggle");
     expect(astrologyToggle).toContain('export const AstrologyDetailsToggle');

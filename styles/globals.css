@@ -547,61 +547,6 @@ body.theme-lumia-air #__next {
   color: rgba(226, 232, 240, 0.68);
 }
 
-.lumia-side-drawer--day.cosmic-surface {
-  background: #cfe4f2;
-}
-
-.lumia-side-drawer--day.cosmic-surface .cosmic-surface__art {
-  background-color: #cfe4f2;
-  background-image:
-    radial-gradient(ellipse at 22% 18%, rgba(255, 255, 255, 0.88) 0 8%, transparent 31%),
-    radial-gradient(ellipse at 82% 35%, rgba(255, 255, 255, 0.58) 0 7%, transparent 27%),
-    radial-gradient(ellipse at 36% 88%, rgba(255, 255, 255, 0.5) 0 9%, transparent 33%),
-    linear-gradient(180deg, #b9d9ed 0%, #dcecf6 50%, #f3f7f8 100%);
-  filter: none;
-}
-
-.lumia-side-drawer--day .lumia-side-drawer-plane {
-  background: rgba(241, 248, 251, 0.18);
-}
-
-.lumia-side-drawer--day :is(
-  .lumia-side-drawer-date,
-  .lumia-side-drawer-profile-name
-) {
-  color: #132331 !important;
-}
-
-.lumia-side-drawer--day :is(
-  .lumia-side-drawer-weekday,
-  .lumia-side-drawer-sun-sign,
-  .lumia-side-drawer-item,
-  .lumia-side-drawer-period,
-  .lumia-side-drawer-profile-caption
-) {
-  color: rgba(19, 35, 49, 0.78) !important;
-}
-
-.lumia-side-drawer--day.cosmic-surface :is(
-  .lumia-side-drawer-item.is-active,
-  .lumia-side-drawer-period.is-active
-) {
-  background: rgba(255, 255, 255, 0.58);
-  color: #101d27 !important;
-}
-
-.lumia-side-drawer--day .lumia-side-drawer-profile {
-  border-top-color: rgba(19, 35, 49, 0.13);
-}
-
-.lumia-side-drawer--day.cosmic-surface :is(
-  .lumia-side-drawer-item,
-  .lumia-side-drawer-period,
-  .lumia-side-drawer-profile
-):focus-visible {
-  outline-color: #132331;
-}
-
 .lumia-side-drawer-item,
 .lumia-side-drawer-profile {
   display: flex;

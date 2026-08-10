@@ -3,7 +3,6 @@ import type {
   SignHoroscopeReadingV2,
   SignHoroscopeTextBlock,
 } from '../../types';
-import { hasAppVoiceViolation } from '../appVoice';
 import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
 
 export const SIGN_HOROSCOPE_READING_SCHEMA_VERSION = 'sign-horoscope-reading-v3' as const;
@@ -61,9 +60,6 @@ function normalizeBlock(
   if (text && !options.allowAstrologyTerms && ASTROLOGY_TERMS.test(text)) {
     issues.push(`${path}.text must use plain life language without astrology terms`);
   }
-  if (text && !options.allowAstrologyTerms && hasAppVoiceViolation(text)) {
-    issues.push(`${path}.text does not match the app voice`);
-  }
   if (!evidenceIds.length) issues.push(`${path}.evidenceIds must cite supplied evidence`);
   return text && evidenceIds.length ? { text, evidenceIds } : null;
 }
@@ -91,7 +87,6 @@ export function validateSignHoroscopeReading(
   if (!headline) issues.push('headline is required');
   if (headlineWords < 2 || headlineWords > 8) issues.push('headline must contain 2-8 words');
   if (headline && ASTROLOGY_TERMS.test(headline)) issues.push('headline must use plain life language without astrology terms');
-  if (headline && hasAppVoiceViolation(headline)) issues.push('headline does not match the app voice');
 
   const blocks = {} as Record<SignHoroscopeBlockKey, SignHoroscopeTextBlock | null>;
   for (const key of BLOCK_KEYS) {

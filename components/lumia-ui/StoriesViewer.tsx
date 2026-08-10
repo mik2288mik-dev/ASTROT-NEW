@@ -19,35 +19,33 @@ export type StorySlide = {
 const SLIDE_MS = 6500;
 const TAP_MS = 220;
 
-/** Split a sign/daily reading into clean story slides (one idea per slide). */
+/** Present the same coherent sign reading without imposing legacy life-area headings. */
 export function buildReadingSlides(
   reading: SignHoroscopeReadingV2 | null,
   eyebrow: string,
   language: 'ru' | 'en',
 ): StorySlide[] {
   if (!reading) return [];
-  const slides: StorySlide[] = [];
-  const seen = new Set<string>();
-  const norm = (s?: string) => String(s || '').trim().toLowerCase();
-  // Add a slide only if its body text hasn't appeared on an earlier slide.
-  const add = (slide: StorySlide, dedupeText?: string) => {
-    const key = norm(dedupeText);
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    slides.push(slide);
-  };
-  add(
-    { id: 'intro', eyebrow, title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'), body: reading.mood.text },
-    reading.mood.text || reading.headline,
-  );
-  add({ id: 'relationships', title: language === 'ru' ? 'Отношения' : 'Relationships', body: reading.relationships.text }, reading.relationships.text);
-  add({ id: 'work', title: language === 'ru' ? 'Дела и деньги' : 'Work and money', body: reading.work.text }, reading.work.text);
-  add({ id: 'inner-state', title: language === 'ru' ? 'Внутреннее состояние' : 'Inner state', body: reading.innerState.text }, reading.innerState.text);
-  add({ id: 'advice', title: language === 'ru' ? 'Практический шаг' : 'Practical step', body: reading.advice.text }, reading.advice.text);
-  if (reading.warning) {
-    add({ id: 'warning', title: language === 'ru' ? 'На что смотреть' : 'Watch for', body: reading.warning.text }, reading.warning.text);
-  }
-  return slides;
+  const body = [
+    reading.mood.text,
+    reading.relationships.text,
+    reading.work.text,
+    reading.innerState.text,
+    reading.warning?.text,
+  ].map((text) => String(text || '').trim()).filter(Boolean).join('\n\n');
+  return [
+    {
+      id: 'reading',
+      eyebrow,
+      title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'),
+      body,
+    },
+    {
+      id: 'advice',
+      title: language === 'ru' ? 'Совет' : 'Advice',
+      body: reading.advice.text,
+    },
+  ].filter((slide) => Boolean(slide.body));
 }
 
 /**

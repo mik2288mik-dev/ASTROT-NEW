@@ -658,3 +658,99 @@
     margin-top: 28px;
   }
 }
+
+/* Optional calculation notes stay out of the reading until the reader asks for them. */
+.astrology-details-toggle {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #65686e;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.astrology-details-toggle:focus-visible {
+  outline: 2px solid #17191d;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.astrology-details-toggle-track {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 24px;
+  flex: 0 0 40px;
+  border-radius: 999px;
+  background: #d8dade;
+  transition: background-color 160ms ease;
+}
+
+.astrology-details-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.2);
+  transition: transform 160ms ease;
+}
+
+.astrology-details-toggle.is-active {
+  color: #27292d;
+}
+
+.astrology-details-toggle.is-active .astrology-details-toggle-track {
+  background: #27292d;
+}
+
+.astrology-details-toggle.is-active .astrology-details-toggle-thumb {
+  transform: translateX(16px);
+}
+
+.natal-editorial-page .natal-astrology-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 6px;
+}
+
+.natal-editorial-page .natal-inline-evidence {
+  display: grid;
+  gap: 6px;
+  max-width: 34rem;
+  margin: 14px 0 0;
+  padding: 0 0 0 14px;
+  border-left: 1px solid rgba(23, 25, 29, 0.16);
+  color: #71757c;
+  font-size: 12.5px;
+  font-weight: 450;
+  line-height: 1.45;
+  list-style: none;
+}
+
+.natal-editorial-page .natal-inline-evidence li {
+  margin: 0;
+  padding: 0;
+}
+
+.natal-editorial-page .natal-statement + .natal-statement {
+  margin-top: 0.9em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astrology-details-toggle-track,
+  .astrology-details-toggle-thumb {
+    transition: none;
+  }
+}

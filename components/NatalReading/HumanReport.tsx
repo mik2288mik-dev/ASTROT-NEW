@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useRef, useState } from 'react';
+import React, { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Crown, MessageCircle, Send } from 'lucide-react';
 import type {
@@ -22,8 +22,10 @@ import {
 } from '../../services/natalReadingService';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import {
+  buildNatalModelContext,
   getPermanentNatalReliability,
   isNatalPermanentFreeReport,
+  type NatalEvidenceFact,
   type NatalPermanentFreeReport,
   type NatalPermanentPremiumReport,
   type NatalReadingStatement,
@@ -36,6 +38,10 @@ import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { EditorialSticker } from '../EditorialSticker';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
+import {
+  AstrologyDetailsToggle,
+  useAstrologyDetailsPreference,
+} from '../AstrologyDetailsToggle';
 
 type Props = {
   profile: UserProfile;
@@ -107,10 +113,156 @@ function formatError(error: unknown): string {
   return value?.message || 'Не удалось загрузить разбор.';
 }
 
+type NatalEvidenceMap = ReadonlyMap<string, NatalEvidenceFact>;
+
+const ASPECT_LABELS: Record<string, { ru: string; en: string }> = {
+  conjunction: { ru: 'соединение', en: 'conjunction' },
+  sextile: { ru: 'секстиль', en: 'sextile' },
+  square: { ru: 'квадрат', en: 'square' },
+  trine: { ru: 'трин', en: 'trine' },
+  opposition: { ru: 'оппозиция', en: 'opposition' },
+};
+
+const ANGLE_LABELS: Record<string, { ru: string; en: string }> = {
+  ascendant: { ru: 'Асцендент', en: 'Ascendant' },
+  asc: { ru: 'Асцендент', en: 'Ascendant' },
+  rising: { ru: 'Асцендент', en: 'Ascendant' },
+  mc: { ru: 'MC', en: 'MC' },
+  midheaven: { ru: 'MC', en: 'MC' },
+  descendant: { ru: 'Десцендент', en: 'Descendant' },
+  desc: { ru: 'Десцендент', en: 'Descendant' },
+  dsc: { ru: 'Десцендент', en: 'Descendant' },
+  ic: { ru: 'IC', en: 'IC' },
+};
+
+function evidenceObjectLabel(value: unknown, language: 'ru' | 'en'): string {
+  const raw = String(value || '').trim();
+  const normalized = raw.replace(/[\s_-]+/g, '').toLocaleLowerCase('en-US');
+  const planet = PLANET_LABELS.find((item) => (
+    item.key.toLocaleLowerCase('en-US') === normalized
+    || item.labelEn.replace(/\s+/g, '').toLocaleLowerCase('en-US') === normalized
+  ));
+  if (planet) return language === 'ru' ? planet.labelRu : planet.labelEn;
+  const angle = ANGLE_LABELS[raw.toLocaleLowerCase('en-US')];
+  return angle?.[language] || raw;
+}
+
+function evidenceSignLabel(value: unknown, language: 'ru' | 'en'): string {
+  const sign = String(value || '').trim();
+  if (language !== 'ru') return sign;
+  const canonical = Object.keys(SIGN_RU).find((item) => item.toLocaleLowerCase('en-US') === sign.toLocaleLowerCase('en-US'));
+  return canonical ? SIGN_RU[canonical] : ruSign(sign);
+}
+
+function evidenceDegree(value: unknown): string {
+  if (value == null || value === '') return '';
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(number) ? `${Number(number.toFixed(2))}°` : '';
+}
+
+function evidenceHouse(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function formatNatalEvidence(fact: NatalEvidenceFact, language: 'ru' | 'en'): string {
+  const data = fact.data;
+  if (fact.kind === 'quality') {
+    const quality = String(data.birthTimeQuality || 'unknown');
+    if (language === 'ru') {
+      return quality === 'exact'
+        ? 'Время рождения точное'
+        : quality === 'approximate'
+          ? 'Время рождения приблизительное'
+          : 'Время рождения неизвестно';
+    }
+    return quality === 'exact'
+      ? 'Exact birth time'
+      : quality === 'approximate'
+        ? 'Approximate birth time'
+        : 'Unknown birth time';
+  }
+
+  if (fact.kind === 'placement' || fact.kind === 'angle') {
+    const object = evidenceObjectLabel(data.key || data.object || fact.object, language);
+    const sign = evidenceSignLabel(data.sign, language);
+    const degree = evidenceDegree(data.degree);
+    const house = evidenceHouse(data.house);
+    const retrograde = data.retrograde === true
+      ? (language === 'ru' ? 'ретроградный' : 'retrograde')
+      : '';
+    return [
+      `${object}${sign ? ` ${language === 'ru' ? 'в' : 'in'} ${sign}` : ''}${degree ? `, ${degree}` : ''}`,
+      house != null ? `${house} ${language === 'ru' ? 'дом' : 'house'}` : '',
+      retrograde,
+    ].filter(Boolean).join(' · ');
+  }
+
+  if (fact.kind === 'aspect') {
+    const from = evidenceObjectLabel(data.fromKey || data.from, language);
+    const to = evidenceObjectLabel(data.toKey || data.to, language);
+    const aspectKey = String(data.type || '').toLocaleLowerCase('en-US');
+    const aspect = ASPECT_LABELS[aspectKey]?.[language] || String(data.type || '').trim();
+    const orb = evidenceDegree(data.orb);
+    const phaseKey = String(data.phase || '').toLocaleLowerCase('en-US');
+    const phase = phaseKey === 'applying'
+      ? (language === 'ru' ? 'сходящийся' : 'applying')
+      : phaseKey === 'separating'
+        ? (language === 'ru' ? 'расходящийся' : 'separating')
+        : phaseKey === 'exact'
+          ? (language === 'ru' ? 'точный' : 'exact')
+          : '';
+    return [
+      [from, aspect, to].filter(Boolean).join(' '),
+      orb ? `${language === 'ru' ? 'орб' : 'orb'} ${orb}` : '',
+      phase,
+    ].filter(Boolean).join(' · ');
+  }
+
+  if (fact.kind === 'house') {
+    const house = evidenceHouse(data.house);
+    const sign = evidenceSignLabel(data.sign, language);
+    const degree = evidenceDegree(data.degree);
+    return [
+      house != null ? `${house} ${language === 'ru' ? 'дом' : 'house'}` : '',
+      sign,
+      degree,
+    ].filter(Boolean).join(' · ');
+  }
+
+  return evidenceObjectLabel(fact.object, language);
+}
+
+const NatalEvidenceDetails: React.FC<{
+  evidenceIds: string[] | undefined;
+  evidenceById: NatalEvidenceMap;
+  language: 'ru' | 'en';
+}> = ({ evidenceIds, evidenceById, language }) => {
+  const labels = [...new Set((evidenceIds || [])
+    .map((id) => evidenceById.get(id))
+    .filter((fact): fact is NatalEvidenceFact => fact != null)
+    .map((fact) => formatNatalEvidence(fact, language))
+    .filter(Boolean))];
+  if (!labels.length) return null;
+
+  return (
+    <ul
+      className="natal-inline-evidence"
+      aria-label={language === 'ru' ? 'Астрологические основания' : 'Astrological evidence'}
+    >
+      {labels.map((label) => <li key={label}>{label}</li>)}
+    </ul>
+  );
+};
+
 const SectionText: React.FC<{
   section: InterpretationSection;
   index?: number;
-}> = ({ section, index = 0 }) => {
+  showAstrology: boolean;
+  evidenceById: NatalEvidenceMap;
+  language: 'ru' | 'en';
+}> = ({ section, index = 0, showAstrology, evidenceById, language }) => {
   const reduce = useReducedMotion();
   const Comp = reduce ? 'section' : motion.section;
   return (
@@ -136,6 +288,13 @@ const SectionText: React.FC<{
         className="natal-sec-body max-w-none"
         paragraphClassName="natal-sec-p"
       />
+      {showAstrology ? (
+        <NatalEvidenceDetails
+          evidenceIds={section.evidenceIds}
+          evidenceById={evidenceById}
+          language={language}
+        />
+      ) : null}
     </Comp>
   );
 };
@@ -323,27 +482,54 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
   );
 };
 
-const StatementText: React.FC<{ statement: NatalReadingStatement; className?: string }> = ({
+const StatementText: React.FC<{
+  statement: NatalReadingStatement;
+  className?: string;
+  showAstrology: boolean;
+  evidenceById: NatalEvidenceMap;
+  language: 'ru' | 'en';
+}> = ({
   statement,
   className = '',
+  showAstrology,
+  evidenceById,
+  language,
 }) => (
-  <FormattedAiText
-    text={statement.text}
-    className={`max-w-none ${className}`}
-    paragraphClassName="natal-sec-p"
-  />
+  <div className="natal-statement">
+    <FormattedAiText
+      text={statement.text}
+      className={`max-w-none ${className}`}
+      paragraphClassName="natal-sec-p"
+    />
+    {showAstrology ? (
+      <NatalEvidenceDetails
+        evidenceIds={statement.evidenceIds}
+        evidenceById={evidenceById}
+        language={language}
+      />
+    ) : null}
+  </div>
 );
 
 const PremiumReport: React.FC<{
   report: NatalPermanentPremiumReport;
-}> = ({ report }) => (
+  showAstrology: boolean;
+  evidenceById: NatalEvidenceMap;
+  language: 'ru' | 'en';
+}> = ({ report, showAstrology, evidenceById, language }) => (
   <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
     {report.sections.map((section) => (
       <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
         <h2 className="natal-sec-title">{section.title}</h2>
         <div className="natal-sec-body">
           {section.paragraphs.map((paragraph, index) => (
-            <StatementText key={`${section.id}-${index}`} statement={paragraph} />
+            <StatementText
+              key={`${section.id}-${index}`}
+              statement={paragraph}
+              showAstrology={showAstrology}
+              evidenceById={evidenceById}
+              language={language}
+            />
           ))}
         </div>
       </section>
@@ -365,6 +551,11 @@ export const HumanReport: React.FC<Props> = ({
   const userId = profile.id ? String(profile.id) : '';
   const subjectName = chartSubject?.name || profile.name;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
+  const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
+  const evidenceById = useMemo<NatalEvidenceMap>(() => {
+    const built = buildNatalModelContext(profile, chartData);
+    return new Map(built.context.evidence.map((fact) => [fact.id, fact]));
+  }, [chartData, profile]);
   const cachedBase = userId ? getHumanBaseReportCached(userId, chartId, language) : null;
   const initialBase = isNatalPermanentFreeReport(preloadedReport)
     ? preloadedReport
@@ -514,16 +705,32 @@ export const HumanReport: React.FC<Props> = ({
         {reliability.quality === 'unknown' ? (
           <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
             {language === 'ru'
-              ? 'Время рождения неизвестно. Асцендент, MC, дома, куспиды и управители домов полностью исключены из разбора.'
-              : 'Birth time is unknown. Ascendant, MC, houses, cusps, and house rulers are fully excluded from this reading.'}
+              ? (showAstrology
+                ? 'Время рождения неизвестно. Асцендент, MC, дома, куспиды и управители домов полностью исключены из разбора.'
+                : 'Время рождения неизвестно, поэтому разбор не использует детали, которые зависят от него.')
+              : (showAstrology
+                ? 'Birth time is unknown. Ascendant, MC, houses, cusps, and house rulers are fully excluded from this reading.'
+                : 'Birth time is unknown, so the reading excludes details that depend on it.')}
           </p>
         ) : reliability.quality === 'approximate' ? (
           <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
             {language === 'ru'
-              ? 'Время рождения приблизительное. В разбор включены только те углы и дома, которые расчёт пометил как устойчивые.'
-              : 'Birth time is approximate. Only angles and houses explicitly marked stable by the calculation are included.'}
+              ? (showAstrology
+                ? 'Время рождения приблизительное. В разбор включены только те углы и дома, которые расчёт пометил как устойчивые.'
+                : 'Время рождения приблизительное, поэтому в разбор вошли только устойчивые к погрешности данные.')
+              : (showAstrology
+                ? 'Birth time is approximate. Only angles and houses explicitly marked stable by the calculation are included.'
+                : 'Birth time is approximate, so the reading uses only details stable within that uncertainty.')}
           </p>
         ) : null}
+
+        <div className="natal-astrology-toggle-row">
+          <AstrologyDetailsToggle
+            checked={showAstrology}
+            onChange={setShowAstrology}
+            language={language}
+          />
+        </div>
 
         <div aria-live="polite" aria-busy={loading && !report}>
           {loading && !report ? (
@@ -547,10 +754,23 @@ export const HumanReport: React.FC<Props> = ({
                   className="natal-reading-hook-text"
                   paragraphClassName="natal-reading-hook-paragraph"
                 />
+                {showAstrology ? (
+                  <NatalEvidenceDetails
+                    evidenceIds={report.hook.evidenceIds}
+                    evidenceById={evidenceById}
+                    language={language}
+                  />
+                ) : null}
               </header>
               {freeSections.map((item, index) => (
                 <Fragment key={item.key}>
-                  <SectionText section={item} index={index} />
+                  <SectionText
+                    section={item}
+                    index={index}
+                    showAstrology={showAstrology}
+                    evidenceById={evidenceById}
+                    language={language}
+                  />
                   {index === 1 && editorialSticker ? (
                     <EditorialSticker
                       asset={editorialSticker}
@@ -565,13 +785,14 @@ export const HumanReport: React.FC<Props> = ({
 
         {isPremium ? (
           premiumLoading && !premiumReport ? (
-            <section className="natal-sec editorial-reading-section" aria-live="polite" aria-busy="true" role="status">
-              <p className="natal-sec-p">
-                {language === 'ru' ? 'Собираем полный постоянный разбор.' : 'Preparing the full permanent reading.'}
-              </p>
-            </section>
+            null
           ) : premiumReport ? (
-            <PremiumReport report={premiumReport} />
+            <PremiumReport
+              report={premiumReport}
+              showAstrology={showAstrology}
+              evidenceById={evidenceById}
+              language={language}
+            />
           ) : premiumError ? (
             <p className="py-5 text-[13px] leading-relaxed text-[#a14f4f]" role="alert">{premiumError}</p>
           ) : null
@@ -596,7 +817,7 @@ export const HumanReport: React.FC<Props> = ({
           </section>
         )}
 
-        <TechnicalDetails chartData={chartData} language={language} />
+        {showAstrology ? <TechnicalDetails chartData={chartData} language={language} /> : null}
 
         <section className="natal-question-action">
           <button
@@ -612,8 +833,12 @@ export const HumanReport: React.FC<Props> = ({
         <section className="natal-disclaimer">
           <p>
             {language === 'ru'
-              ? 'Это ознакомительная интерпретация астрологического расчёта. Она не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
-              : 'This is an informational interpretation of an astrological calculation. It does not replace medical, legal, financial, or other professional advice.'}
+              ? (showAstrology
+                ? 'Это ознакомительная интерпретация астрологического расчёта. Она не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
+                : 'Это ознакомительный разбор. Он не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.')
+              : (showAstrology
+                ? 'This is an informational interpretation of an astrological calculation. It does not replace medical, legal, financial, or other professional advice.'
+                : 'This is an informational reading. It does not replace medical, legal, financial, or other professional advice.')}
           </p>
         </section>
 

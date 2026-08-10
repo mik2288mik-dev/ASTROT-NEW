@@ -364,8 +364,8 @@ export async function loadPersonalForecast(input: {
     const generated = await generate({
       ...resolved,
       maxInProgressRetries: Math.min(
-        2,
-        Math.max(0, input.options?.maxInProgressRetries ?? 2),
+        60,
+        Math.max(0, input.options?.maxInProgressRetries ?? 60),
       ),
     });
     writeStored(key, generated);

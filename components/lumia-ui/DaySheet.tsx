@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import type { SignHoroscopeReadingV2 } from '../../types';
 import { formatDisplayDate } from '../../lib/date-utils';
-import { getCachedDailySignHoroscope, ensureDailySignHoroscope } from '../../services/astrologyService';
+import {
+  ensureDailySignHoroscope,
+  readLocalSignHoroscope,
+} from '../../services/astrologyService';
 import { CosmicSheet } from './CosmicSheet';
 
 type DaySheetProps = {
@@ -31,7 +34,7 @@ export function DaySheet({
   const locked = !!dateKey && !isPremium && !isToday;
 
   const [reading, setReading] = useState<SignHoroscopeReadingV2 | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [readingKey, setReadingKey] = useState('');
 
   useEffect(() => {
     // Only an unlocked past/today day shows a real reading.
@@ -40,15 +43,17 @@ export function DaySheet({
       return;
     }
     let alive = true;
-    setReading(null);
-    setLoading(true);
-    void getCachedDailySignHoroscope(sign, dateKey, language)
-      .then((cached) => cached || ensureDailySignHoroscope(sign, dateKey, language))
+    const nextReadingKey = `${sign}|${dateKey}|${language}`;
+    setReadingKey(nextReadingKey);
+    setReading(readLocalSignHoroscope('today', sign, dateKey, language));
+    void ensureDailySignHoroscope(sign, dateKey, language)
       .then((r) => { if (alive) setReading(r); })
-      .catch(() => { if (alive) setReading(null); })
-      .finally(() => { if (alive) setLoading(false); });
+      .catch(() => undefined);
     return () => { alive = false; };
   }, [dateKey, locked, isFuture, sign, language]);
+  const activeReading = readingKey === `${sign}|${dateKey || ''}|${language}`
+    ? reading
+    : null;
 
   const heading = locked
     ? (language === 'ru' ? 'День под замком' : 'Locked day')
@@ -88,25 +93,15 @@ export function DaySheet({
                   ? 'Прогноз на этот день появится, когда он наступит.'
                   : 'The forecast appears once the day arrives.'}
               </p>
-            ) : loading ? (
-              <div className="day-sheet-loading" aria-busy="true">
-                <div />
-                <div />
-                <div />
-              </div>
-            ) : reading ? (
+            ) : activeReading ? (
               <div className="day-sheet-reading">
-                {reading.headline ? (
-                  <h4>{reading.headline}</h4>
+                {activeReading.headline ? (
+                  <h4>{activeReading.headline}</h4>
                 ) : null}
-                <p>{reading.mood.text}</p>
-                <div className="day-sheet-advice">{reading.advice.text}</div>
+                <p>{activeReading.mood.text}</p>
+                <div className="day-sheet-advice">{activeReading.advice.text}</div>
               </div>
-            ) : (
-              <p className="day-sheet-state">
-                {language === 'ru' ? 'Контент готовится. Загляни чуть позже.' : 'Content is being prepared. Check back shortly.'}
-              </p>
-            )}
+            ) : null}
     </CosmicSheet>
   );
 }
