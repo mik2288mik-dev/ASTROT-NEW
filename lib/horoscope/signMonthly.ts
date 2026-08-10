@@ -1,6 +1,10 @@
 import type { Language, SignHoroscopeReadingV2 } from '../../types';
 import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
-import { getCachedSignHoroscope } from './signCache';
+import {
+  getCachedSignHoroscope,
+  getSignHoroscopeCacheSnapshot,
+  type SignHoroscopeCacheSnapshot,
+} from './signCache';
 import { getOrGenerateSignHoroscope } from './signOrchestrator';
 
 export async function getCachedSignMonthlyHoroscope(
@@ -9,6 +13,14 @@ export async function getCachedSignMonthlyHoroscope(
   language: Language,
 ): Promise<SignHoroscopeReadingV2 | null> {
   return getCachedSignHoroscope('month', sign, periodKey, language);
+}
+
+export async function getSignMonthlyHoroscopeSnapshot(
+  sign: ZodiacKey,
+  periodKey: string,
+  language: Language,
+): Promise<SignHoroscopeCacheSnapshot | null> {
+  return getSignHoroscopeCacheSnapshot('month', sign, periodKey, language);
 }
 
 export async function getOrGenerateSignMonthlyHoroscope(

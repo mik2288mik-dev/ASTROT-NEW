@@ -2,12 +2,16 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Language } from '../../../../types';
 import { getMoscowIsoWeekKey } from '../../../../lib/date-utils';
 import { normalizeZodiacKey } from '../../../../lib/horoscope/signDaily';
-import { getCachedSignWeeklyHoroscope, getOrGenerateSignWeeklyHoroscope } from '../../../../lib/horoscope/signWeekly';
+import {
+  getCachedSignWeeklyHoroscope,
+  getOrGenerateSignWeeklyHoroscope,
+  getSignWeeklyHoroscopeSnapshot,
+} from '../../../../lib/horoscope/signWeekly';
 import { generationInProgressPayload, withContentGenerationLock } from '../../../../lib/contentGenerationLock';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
-import { buildSignHoroscopeBatchLockKey } from '../../../../lib/horoscope/signGenerationLock';
+import { buildSignHoroscopeLockKey } from '../../../../lib/horoscope/signGenerationLock';
 
 export const config = { maxDuration: 90 };
 
@@ -42,16 +46,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!sign) return res.status(400).json({ error: 'BAD_REQUEST', message: 'Invalid zodiac sign' });
 
   if (req.method === 'GET') {
-    const reading = await getCachedSignWeeklyHoroscope(sign, periodKey, language);
-    if (!reading) return res.status(404).json({ error: 'NOT_FOUND', code: 'SIGN_WEEKLY_NOT_READY' });
+    const snapshot = await getSignWeeklyHoroscopeSnapshot(sign, periodKey, language);
+    if (!snapshot) return res.status(404).json({ error: 'NOT_FOUND', code: 'SIGN_WEEKLY_NOT_READY' });
     res.setHeader('Cache-Control', 'private, no-store');
-    return res.status(200).json({ reading, source: 'cache' });
+    return res.status(200).json({
+      reading: snapshot.reading,
+      source: snapshot.stale ? 'stale' : 'cache',
+      stale: snapshot.stale,
+    });
   }
 
   try {
     const result = await withContentGenerationLock({
-      lockKey: buildSignHoroscopeBatchLockKey('week', periodKey, language),
-      operation: `sign-weekly-batch-${language}-${periodKey}`,
+      lockKey: buildSignHoroscopeLockKey('week', periodKey, language, sign),
+      operation: `sign-weekly-${language}-${periodKey}-${sign}`,
       readCached: async () => {
         const cached = await getCachedSignWeeklyHoroscope(sign, periodKey, language);
         return cached ? { value: cached, source: 'cache' } : null;

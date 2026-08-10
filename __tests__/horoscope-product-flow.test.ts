@@ -9,7 +9,6 @@ describe('Horoscope product flow', () => {
   it('opens a sign immediately, keeps the 12-sign grid primary, and scrolls every manual choice into view', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
     const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
-    const astrologyToggle = read('components/AstrologyDetailsToggle.tsx');
     const service = read('services/astrologyService.ts');
     const styles = read('styles/zodiacReader.css');
     expect(ZODIAC_KEYS).toHaveLength(12);
@@ -31,9 +30,7 @@ describe('Horoscope product flow', () => {
     expect(styles).toContain('.horo-reader-page .horo-uni.horo-reader-article');
     expect(styles).toContain('min-height: 112px');
     expect(styles).toContain('width: 72px');
-    expect(service).toContain("'tvoi-goroskop:sign-horoscope-v3'");
-    expect(service).toContain('LEGACY_SIGN_HOROSCOPE_LOCAL_CACHE_PREFIXES');
-    expect(service).toContain('window.localStorage.setItem(currentStorageKey, raw)');
+    expect(service).toContain("'tvoi-goroskop:sign-horoscope-v4'");
     expect(styles).toContain('margin-top: 23px');
     expect(styles).toContain('background: #ffffff');
     expect(styles).toContain('background: #eee3d5');
@@ -44,18 +41,14 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('ensureWeeklySignHoroscope');
     expect(source).toContain('ensureMonthlySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
-    expect(source).toContain('<p className="horo-sign-v2-intro">{displayedReading.mood.text}</p>');
-    expect(source).toContain('<p>{displayedReading.relationships.text}</p>');
-    expect(source).toContain('<p>{displayedReading.work.text}</p>');
-    expect(source).toContain('<p>{displayedReading.innerState.text}</p>');
+    expect(source).toContain('{displayedReading.headline}');
+    expect(source).toContain('{displayedReading.text}');
     expect(source).not.toContain("'Общий фон'");
     expect(source).not.toContain("'Общение'");
     expect(source).not.toContain("'Дела'");
     expect(source).not.toContain("'Вечер'");
-    expect(source).toContain('displayedReading.astrology.text');
-    expect(source).toContain("../../components/AstrologyDetailsToggle");
-    expect(astrologyToggle).toContain('export const AstrologyDetailsToggle');
-    expect(astrologyToggle).toContain('export function useAstrologyDetailsPreference');
+    expect(source).not.toContain('displayedReading.astrology');
+    expect(source).not.toContain('AstrologyDetailsToggle');
     expect(source).not.toContain('selectZodiacEditorialSticker');
     expect(source).not.toContain('InfoNote');
     expect(source).not.toContain('horo-reader-personal');
@@ -79,6 +72,8 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('HoroscopeActivityBar');
     expect(source).toContain('userId={profile.id ? String(profile.id) : undefined}');
     expect(horoscopeBranch).not.toContain('<PromoBanner');
+    expect(source).toContain('getCachedDailySignHoroscope');
+    expect(read('pages/api/content/horoscope/sign-daily.ts')).toContain("source: snapshot.stale ? 'stale' : 'cache'");
   });
 
   it('keeps all twelve Today signs free and never replaces the profile own sign while browsing', () => {
@@ -108,7 +103,7 @@ describe('Horoscope product flow', () => {
     expect(weekly).toContain("getCachedSignHoroscope('week'");
     expect(weekly).toContain("getOrGenerateSignHoroscope('week'");
     expect(cache).toContain("return 'sign_weekly_horoscope'");
-    expect(cache).toContain("VALUES ($1, $2, $3, $4, 'pro'");
+    expect(cache).toContain("period === 'day' ? 'free' : 'pro'");
     expect(cache).not.toContain('WHERE user_id =');
     expect(cache).not.toContain('WHERE chart_id =');
   });

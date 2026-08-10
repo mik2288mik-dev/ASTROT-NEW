@@ -23,27 +23,15 @@ const TAP_MS = 220;
 export function buildReadingSlides(
   reading: SignHoroscopeReadingV2 | null,
   eyebrow: string,
-  language: 'ru' | 'en',
+  _language: 'ru' | 'en',
 ): StorySlide[] {
   if (!reading) return [];
-  const body = [
-    reading.mood.text,
-    reading.relationships.text,
-    reading.work.text,
-    reading.innerState.text,
-    reading.warning?.text,
-  ].map((text) => String(text || '').trim()).filter(Boolean).join('\n\n');
   return [
     {
       id: 'reading',
       eyebrow,
-      title: reading.headline || (language === 'ru' ? 'Сегодня' : 'Today'),
-      body,
-    },
-    {
-      id: 'advice',
-      title: language === 'ru' ? 'Совет' : 'Advice',
-      body: reading.advice.text,
+      title: reading.headline,
+      body: reading.text,
     },
   ].filter((slide) => Boolean(slide.body));
 }

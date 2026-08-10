@@ -6,10 +6,6 @@ import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import {
-  AstrologyDetailsToggle,
-  useAstrologyDetailsPreference,
-} from '../../components/AstrologyDetailsToggle';
-import {
   getMoscowIsoWeekKey,
   getMoscowMonthKey,
   getMoscowTodayKey,
@@ -21,6 +17,9 @@ import {
   ensureDailySignHoroscope,
   ensureMonthlySignHoroscope,
   ensureWeeklySignHoroscope,
+  getCachedDailySignHoroscope,
+  getCachedMonthlySignHoroscope,
+  getCachedWeeklySignHoroscope,
   prefetchSignHoroscopePeriod,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
@@ -70,7 +69,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
 
   const [signIndex, setSignIndex] = useState(initialIndex);
   const [period, setPeriod] = useState<Period>('today');
-  const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null>>({});
   const [loadRevision, setLoadRevision] = useState(0);
   const [lastReadyReading, setLastReadyReading] = useState<ReadyReadingSnapshot | null>(null);
@@ -138,6 +136,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     const load = async () => {
       try {
+        const cachedReading = await (period === 'week'
+          ? getCachedWeeklySignHoroscope(sign, periodKey, language)
+          : period === 'month'
+            ? getCachedMonthlySignHoroscope(sign, periodKey, language)
+            : getCachedDailySignHoroscope(sign, periodKey, language));
+        if (active && cachedReading) {
+          setReadings((current) => ({ ...current, [readingKey]: cachedReading }));
+        }
         const selectedReading = await (period === 'week'
           ? ensureWeeklySignHoroscope(sign, periodKey, language)
           : period === 'month'
@@ -232,7 +238,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         >
           <header className="horo-uni-hero">
             <h2 className="fresh-sticky horo-reader-headline">
-              {displayedReading ? displayedSignLabel : signLabel}
+              {displayedReading ? displayedReading.headline : signLabel}
             </h2>
           </header>
 
@@ -266,31 +272,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
               </div>
             ) : displayedReading ? (
               <>
-                <div className="horo-sign-v2-flow">
-                  <p className="horo-sign-v2-intro">{displayedReading.mood.text}</p>
-                  <p>{displayedReading.relationships.text}</p>
-                  <p>{displayedReading.work.text}</p>
-                  <p>{displayedReading.innerState.text}</p>
-                  <p className="horo-sign-v2-advice">{displayedReading.advice.text}</p>
-                  {displayedReading.warning ? (
-                    <aside className="horo-sign-v2-warning"><p>{displayedReading.warning.text}</p></aside>
-                  ) : null}
+                <div className="horo-sign-story">
+                  <p>{displayedReading.text}</p>
                 </div>
-
-                <div className="horo-reader-astrology-toggle-row">
-                  <AstrologyDetailsToggle
-                    checked={showAstrology}
-                    onChange={setShowAstrology}
-                    language={language}
-                    className="horo-reader-astrology-toggle"
-                  />
-                </div>
-
-                {showAstrology ? (
-                  <div className="horo-sign-v2-flow horo-sign-v2-flow--astrology">
-                    <p className="horo-sign-v2-intro">{displayedReading.astrology.text}</p>
-                  </div>
-                ) : null}
 
                 <HoroscopeActivityBar
                   userId={profile.id ? String(profile.id) : undefined}

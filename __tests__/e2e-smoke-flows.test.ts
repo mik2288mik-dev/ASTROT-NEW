@@ -33,7 +33,7 @@ describe('E2E smoke flow contracts', () => {
     const signDaily = read('pages/api/content/horoscope/sign-daily.ts');
     const signLocks = read('lib/horoscope/signGenerationLock.ts');
     const personal = read('pages/api/content/forecast/personal.ts');
-    expect(signDaily).toContain("buildSignHoroscopeBatchLockKey('day'");
+    expect(signDaily).toContain("buildSignHoroscopeLockKey('day'");
     expect(signLocks).toContain("period === 'day' ? 'free' : 'premium'");
     expect(personal).toContain('getPremiumEntitlementState');
     expect(personal).toContain('slicePersonalForecastForAccess');

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
 import {
   ensureDailySignHoroscope,
+  getCachedDailySignHoroscope,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { saveProfile } from '../../services/storageService';
@@ -90,7 +91,10 @@ export function HoroscopeStories({
     if (!open || !sign) return;
     let alive = true;
     setReading(readLocalSignHoroscope('today', sign, today, language));
-    void ensureDailySignHoroscope(sign, today, language)
+    void getCachedDailySignHoroscope(sign, today, language)
+      .then((cached) => { if (alive && cached) setReading(cached); })
+      .catch(() => undefined)
+      .then(() => ensureDailySignHoroscope(sign, today, language))
       .then((r) => { if (alive) setReading(r); })
       .catch(() => { /* non-critical */ });
     return () => { alive = false; };

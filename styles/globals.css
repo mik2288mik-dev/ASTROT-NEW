@@ -918,17 +918,6 @@ body.theme-lumia-air #__next {
   line-height: 1.18;
 }
 
-.day-sheet-advice {
-  margin-top: 10px;
-  padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 15px;
-  background: rgba(3, 7, 18, 0.48);
-  color: rgba(248, 250, 252, 0.88);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
 .day-sheet-primary-action,
 .premium-preview-cosmic-cta {
   display: flex;

@@ -110,9 +110,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ran
   );
 
-  // Shared sign readings are generated once for all 12 signs and both current
-  // languages before anyone opens the reader. The batch cache keeps week/month
-  // work from repeating; evening Moscow additionally prewarms upcoming periods.
+  // Each shared sign reading is generated and stored independently for both
+  // languages. Existing rows are skipped, so retries touch only missing signs;
+  // evening Moscow additionally prewarms upcoming periods.
   await once(
     'sign-horoscope-current',
     dateKey,

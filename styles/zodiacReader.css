@@ -212,75 +212,17 @@
   box-shadow: none;
 }
 
-.horo-reader-page .horo-sign-v2-flow {
-  display: grid;
-  gap: 18px;
+.horo-reader-page .horo-sign-story {
   color: var(--horo-reader-ink);
 }
 
-.horo-reader-page .horo-sign-v2-intro,
-.horo-reader-page .horo-sign-v2-flow > p,
-.horo-reader-page .horo-sign-v2-advice,
-.horo-reader-page .horo-sign-v2-warning p {
+.horo-reader-page .horo-sign-story > p {
   margin: 0;
   color: #35312d;
   font-size: 14px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.48;
   letter-spacing: -0.004em;
-}
-
-.horo-reader-page .horo-sign-v2-advice {
-  padding-top: 2px;
-}
-
-.horo-reader-page .horo-sign-v2-warning {
-  margin: 0;
-  margin-top: 2px;
-  padding-left: 11px;
-  border-left: 1px solid #c9b9a5;
-}
-
-.horo-reader-page .horo-reader-astrology-toggle-row {
-  display: flex;
-  justify-content: flex-start;
-  margin: 28px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--horo-reader-line);
-}
-
-.horo-reader-page .astrology-details-toggle.horo-reader-astrology-toggle {
-  min-height: 30px;
-  gap: 8px;
-  color: var(--horo-reader-muted);
-  font-size: 11.5px;
-  font-weight: 520;
-}
-
-.horo-reader-page .horo-reader-astrology-toggle .astrology-details-toggle-track {
-  width: 30px;
-  height: 18px;
-  flex-basis: 30px;
-}
-
-.horo-reader-page .horo-reader-astrology-toggle .astrology-details-toggle-thumb {
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-}
-
-.horo-reader-page .horo-reader-astrology-toggle.is-active .astrology-details-toggle-thumb {
-  transform: translateX(12px);
-}
-
-.horo-reader-page .horo-sign-v2-flow--astrology {
-  margin-top: 16px;
-  color: var(--horo-reader-muted);
-}
-
-.horo-reader-page .horo-sign-v2-flow--astrology > p {
-  color: inherit;
 }
 
 .horo-reader-page .horo-act {
@@ -346,9 +288,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .horo-reader-page .zodiac-sign-compact-option,
-  .horo-reader-page .horo-reader-astrology-toggle .astrology-details-toggle-track,
-  .horo-reader-page .horo-reader-astrology-toggle .astrology-details-toggle-thumb {
+  .horo-reader-page .zodiac-sign-compact-option {
     transition: none;
   }
 }

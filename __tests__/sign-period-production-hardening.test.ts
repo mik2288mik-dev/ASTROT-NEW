@@ -35,9 +35,10 @@ describe('sign horoscope API access and cache contract', () => {
   });
 
   it('keeps Today free and cache-only GET returns a controlled not-ready response', async () => {
+    const query = jest.fn().mockResolvedValue({ rows: [] });
     jest.doMock('../lib/db', () => ({
       db: { daily_horoscopes: { get: jest.fn().mockResolvedValue(null), set: jest.fn() } },
-      getPool: jest.fn(),
+      getPool: () => ({ query }),
     }));
     const handler = require('../pages/api/content/horoscope/sign-daily').default;
     const result = responseMock();
@@ -142,21 +143,21 @@ describe('sign horoscope API access and cache contract', () => {
 
   it('stores Week/Month as shared Premium rows and refreshes an expired identity', () => {
     const source = fs.readFileSync(path.join(ROOT, 'lib/horoscope/signCache.ts'), 'utf8');
-    expect(source).toContain("VALUES ($1, $2, $3, $4, 'pro'");
+    expect(source).toContain("period === 'day' ? 'free' : 'pro'");
     expect(source).toContain('ON CONFLICT (');
     expect(source).toContain('DO UPDATE SET');
     expect(source).not.toContain('user_id =');
     expect(source).not.toContain('chart_id =');
   });
 
-  it('uses one batch lock builder in cron prewarm and every sign API', () => {
+  it('uses an independent sign lock builder in cron prewarm and every sign API', () => {
     for (const file of [
       'lib/horoscope/signPrewarm.ts',
       'pages/api/content/horoscope/sign-daily.ts',
       'pages/api/content/horoscope/sign-weekly.ts',
       'pages/api/content/horoscope/sign-monthly.ts',
     ]) {
-      expect(fs.readFileSync(path.join(ROOT, file), 'utf8')).toContain('buildSignHoroscopeBatchLockKey');
+      expect(fs.readFileSync(path.join(ROOT, file), 'utf8')).toContain('buildSignHoroscopeLockKey');
     }
   });
 
@@ -184,8 +185,8 @@ describe('sign horoscope API access and cache contract', () => {
       expect(implementation).toContain("credentials: 'include'");
       expect(implementation).toContain('headers: getTelegramInitDataHeaders()');
     }
-    expect(service).toContain('SIGN_BATCH_REQUEST_TIMEOUT_MS = 95_000');
-    expect(service).toContain('SIGN_BATCH_POLL_TIMEOUT_MS = 90_000');
+    expect(service).toContain('SIGN_HOROSCOPE_REQUEST_TIMEOUT_MS = 95_000');
+    expect(service).toContain('SIGN_HOROSCOPE_POLL_TIMEOUT_MS = 90_000');
     expect(service).toContain("payload.code || payload.error");
   });
 });

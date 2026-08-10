@@ -4,13 +4,14 @@ import { getMoscowTodayKey } from '../../../../lib/date-utils';
 import {
   getCachedSignDailyHoroscope,
   getOrGenerateSignDailyHoroscope,
+  getSignDailyHoroscopeSnapshot,
   normalizeZodiacKey,
 } from '../../../../lib/horoscope/signDaily';
 import {
   generationInProgressPayload,
   withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
-import { buildSignHoroscopeBatchLockKey } from '../../../../lib/horoscope/signGenerationLock';
+import { buildSignHoroscopeLockKey } from '../../../../lib/horoscope/signGenerationLock';
 import { hasDatabaseUrl } from '../../../../lib/database-url';
 
 export const config = { maxDuration: 90 };
@@ -48,11 +49,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'GET') {
-    const cached = await getCachedSignDailyHoroscope(sign, date, language);
-    if (!cached) {
+    const snapshot = await getSignDailyHoroscopeSnapshot(sign, date, language);
+    if (!snapshot) {
       return res.status(404).json({ error: 'NOT_FOUND', code: 'SIGN_HOROSCOPE_NOT_READY' });
     }
-    return res.status(200).json({ reading: cached, source: 'cache' });
+    return res.status(200).json({
+      reading: snapshot.reading,
+      source: snapshot.stale ? 'stale' : 'cache',
+      stale: snapshot.stale,
+    });
   }
 
   if (!hasDatabaseUrl()) {
@@ -64,8 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const lockResult = await withContentGenerationLock({
-      lockKey: buildSignHoroscopeBatchLockKey('day', date, language),
-      operation: `sign-daily-batch-${language}-${date}`,
+      lockKey: buildSignHoroscopeLockKey('day', date, language, sign),
+      operation: `sign-daily-${language}-${date}-${sign}`,
       readCached: async () => {
         const cached = await getCachedSignDailyHoroscope(sign, date, language);
         return cached ? { value: cached, source: 'cache' } : null;

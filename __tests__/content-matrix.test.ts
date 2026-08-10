@@ -8,7 +8,7 @@ describe('Lumia content matrix', () => {
       'blind_spot', 'personal_daily', 'natal_section', 'deep_report',
     ]);
     expect(getContentPolicy('sign_daily_horoscope')).toMatchObject({
-      modelTier: 'fast', words: { min: 100, max: 130 }, cacheTtl: '24h', cacheScope: 'shared', batchSize: 12,
+      modelTier: 'fast', words: { min: 0, max: 130 }, cacheTtl: '24h', cacheScope: 'shared',
     });
     expect(getContentPolicy('sign_compatibility')).toMatchObject({
       featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },
@@ -16,13 +16,13 @@ describe('Lumia content matrix', () => {
     });
     expect(getContentPolicy('sign_weekly_horoscope')).toMatchObject({
       featureKey: 'weekly_sign_horoscope',
-      words: { min: 0, max: 150 },
-      promptVersion: expect.stringContaining('sign_weekly_horoscope.v4'),
+      words: { min: 0, max: 130 },
+      promptVersion: expect.stringContaining('sign_weekly_horoscope.v6'),
     });
     expect(getContentPolicy('sign_monthly_horoscope')).toMatchObject({
       featureKey: 'weekly_sign_horoscope',
-      words: { min: 0, max: 165 },
-      promptVersion: expect.stringContaining('sign_monthly_horoscope.v2'),
+      words: { min: 0, max: 130 },
+      promptVersion: expect.stringContaining('sign_monthly_horoscope.v4'),
     });
     expect(getCacheTtlMs('sign_compatibility')).toBeNull();
     expect(getContentPolicy('deep_report')).toMatchObject({

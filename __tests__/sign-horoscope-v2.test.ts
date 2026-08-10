@@ -4,11 +4,13 @@ import { ZODIAC_KEYS, type ZodiacKey } from '../lib/zodiacKeys';
 import {
   buildMoscowSignSampleDates,
   buildSignSkyBatchDigest,
-  collectAllowedEvidenceIds,
   getSignRulers,
   getWholeSignSolarHouse,
 } from '../lib/horoscope/signSkyDigest';
-import { generateSignHoroscopeBatchWithRunner } from '../lib/horoscope/signBatchGeneration';
+import {
+  generateSignHoroscopeWithRunner,
+  SIGN_HOROSCOPE_MODEL,
+} from '../lib/horoscope/signGeneration';
 import { validateSignHoroscopeReading } from '../lib/horoscope/signContract';
 import {
   getOrGenerateSignHoroscope,
@@ -36,15 +38,14 @@ function position(planet: string, longitude: number, speedLongitude = 0.2) {
 
 function transitAt(date: Date): PlanetaryTransitsAtResult {
   const drift = date.getTime() / 86_400_000;
-  const entries = PLANETS.map((planet, index) => [
-    planet,
-    position(planet, index * 31 + drift * (index < 2 ? 0.5 : 0.02), index === 7 ? -0.01 : 0.2),
-  ]);
   return {
     source: 'swisseph',
     date: date.toISOString(),
     julianDay: 0,
-    ...Object.fromEntries(entries),
+    ...Object.fromEntries(PLANETS.map((planet, index) => [
+      planet,
+      position(planet, index * 31 + drift * (index < 2 ? 0.5 : 0.02), index === 7 ? -0.01 : 0.2),
+    ])),
   } as PlanetaryTransitsAtResult;
 }
 
@@ -52,156 +53,162 @@ function reading(
   sign: ZodiacKey,
   period: SignHoroscopePeriod,
   periodKey: string,
-  evidenceId: string,
 ): SignHoroscopeReadingV2 {
-  const block = (text: string) => ({ text, evidenceIds: [evidenceId] });
   return {
-    schemaVersion: 'sign-horoscope-reading-v3',
+    schemaVersion: 'sign-horoscope-reading-v4',
     sign,
     period,
     periodKey,
-    headline: `${sign} keeps the signal clear`,
-    mood: block(`Mood for ${sign}`),
-    relationships: block(`Relationships for ${sign}`),
-    work: block(`Work for ${sign}`),
-    innerState: block(`Inner state for ${sign}`),
-    advice: block(`Advice for ${sign}`),
-    warning: null,
-    astrology: block(`Mars and Venus form the calculated basis for ${sign}.`),
+    headline: 'Keep the answer clear',
+    text: `For ${sign}, the period rewards a direct choice and a calm pace. Finish the useful conversation before adding another task.`,
   };
 }
 
-describe('Sign Horoscope V2 calculation contract', () => {
-  it('maps modern and traditional co-rulers without dropping either ruler', () => {
+describe('shared sign horoscope contract', () => {
+  it('keeps the deterministic Swiss calculation as the hidden source', () => {
     expect(getSignRulers('Scorpio')).toMatchObject([
       { planet: 'pluto', tradition: 'modern' },
       { planet: 'mars', tradition: 'traditional' },
     ]);
-    expect(getSignRulers('Aquarius')).toMatchObject([
-      { planet: 'uranus', tradition: 'modern' },
-      { planet: 'saturn', tradition: 'traditional' },
-    ]);
-    expect(getSignRulers('Pisces')).toMatchObject([
-      { planet: 'neptune', tradition: 'modern' },
-      { planet: 'jupiter', tradition: 'traditional' },
-    ]);
-    expect(getSignRulers('Aries')).toMatchObject([{ planet: 'mars', tradition: 'both' }]);
-  });
-
-  it('maps whole-sign solar houses from the selected Sun sign', () => {
-    expect(getWholeSignSolarHouse('Aries', 'Aries')).toBe(1);
+    expect(getSignRulers('Aquarius')).toHaveLength(2);
     expect(getWholeSignSolarHouse('Aries', 'Libra')).toBe(7);
-    expect(getWholeSignSolarHouse('Scorpio', 'Taurus')).toBe(7);
-    expect(getWholeSignSolarHouse('Pisces', 'Aquarius')).toBe(12);
+
+    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
+    expect(digest.source).toBe('Swiss Ephemeris');
+    expect(digest.samples).toHaveLength(5);
+    expect(digest.signs).toHaveLength(12);
+    expect(digest.signs.every((item) => item.solarHousePlacements.length >= 10)).toBe(true);
   });
 
-  it('samples Moscow day, ISO week, and calendar month deterministically', () => {
+  it('samples day, week, and month in Moscow deterministically', () => {
     const day = buildMoscowSignSampleDates('day', '2026-08-09');
     expect(day).toHaveLength(5);
     expect(day[0].toISOString()).toBe('2026-08-08T21:00:00.000Z');
     expect(day[4].toISOString()).toBe('2026-08-09T20:59:00.000Z');
-
-    const week = buildMoscowSignSampleDates('week', '2026-W32');
-    expect(week).toHaveLength(7);
-    expect(week[0].toISOString()).toBe('2026-08-03T09:00:00.000Z');
-    expect(week[6].toISOString()).toBe('2026-08-09T09:00:00.000Z');
-
+    expect(buildMoscowSignSampleDates('week', '2026-W32')).toHaveLength(7);
     expect(buildMoscowSignSampleDates('month', '2028-02')).toHaveLength(29);
   });
 
-  it('builds numeric Swiss facts, aspects, solar houses, and stable evidence ids', () => {
-    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
-    expect(digest.source).toBe('Swiss Ephemeris');
-    expect(digest.samples).toHaveLength(5);
-    expect(digest.samples.every((sample) => sample.positions.length === 10)).toBe(true);
-    expect(digest.signs).toHaveLength(12);
-    expect(digest.signs.find((item) => item.sign === 'Scorpio')?.rulers).toHaveLength(2);
-    expect(digest.signs.every((item) => item.solarHousePlacements.length >= 10)).toBe(true);
-    expect([...collectAllowedEvidenceIds(digest, 'Aries')].every((id) => id.length > 0)).toBe(true);
+  it('accepts only one headline and one coherent text', () => {
+    const result = validateSignHoroscopeReading(
+      { headline: 'Choose the clean answer', text: 'The useful move is already visible. Make it without adding drama.' },
+      { sign: 'Aries', period: 'day', periodKey: '2026-08-09' },
+    );
+    expect(result).toEqual({
+      ok: true,
+      reading: {
+        schemaVersion: 'sign-horoscope-reading-v4',
+        sign: 'Aries',
+        period: 'day',
+        periodKey: '2026-08-09',
+        headline: 'Choose the clean answer',
+        text: 'The useful move is already visible. Make it without adding drama.',
+      },
+    });
   });
 
-  it('records applying aspects, ingresses, and stations from sampled motion', () => {
-    const start = Date.parse('2026-08-08T21:00:00.000Z');
-    const calculator = (date: Date): PlanetaryTransitsAtResult => {
-      const step = Math.round((date.getTime() - start) / (6 * 3_600_000));
-      const rows = PLANETS.map((planet, index) => {
-        if (planet === 'sun') return [planet, position(planet, 0, 1)];
-        if (planet === 'moon') return [planet, position(planet, 3, 0)];
-        if (planet === 'mercury') return [planet, position(planet, 29 + step * 1.2, step < 2 ? -0.2 : 0.2)];
-        return [planet, position(planet, 45 + index * 27, 0.1)];
+  it('counts headline and text together in the 130-word limit', () => {
+    const text = Array.from({ length: 127 }, () => 'direct').join(' ');
+    expect(validateSignHoroscopeReading(
+      { headline: 'Three clear words', text },
+      { sign: 'Aries', period: 'day', periodKey: '2026-08-09' },
+    ).ok).toBe(true);
+    expect(validateSignHoroscopeReading(
+      { headline: 'Four very clear words', text },
+      { sign: 'Aries', period: 'day', periodKey: '2026-08-09' },
+    ).ok).toBe(false);
+  });
+
+  it('rejects astrology and planet names in every user-facing field', () => {
+    expect(validateSignHoroscopeReading(
+      { headline: 'Марс задаёт темп', text: 'Действуй спокойно.' },
+      { sign: 'Aries', period: 'day', periodKey: '2026-08-09' },
+    ).ok).toBe(false);
+    expect(validateSignHoroscopeReading(
+      { headline: 'Держи ясный темп', text: 'Ретроградный Меркурий требует паузы.' },
+      { sign: 'Aries', period: 'day', periodKey: '2026-08-09' },
+    ).ok).toBe(false);
+  });
+
+  it('asks DeepSeek for one sign and exposes no astrology or evidence output fields', async () => {
+    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
+    const calls: Array<{ system: string; user: string }> = [];
+    const result = await generateSignHoroscopeWithRunner(digest, 'Aries', 'ru', async (request) => {
+      calls.push(request);
+      return JSON.stringify({
+        headline: 'Выбирай без лишнего шума',
+        text: 'Сейчас полезнее завершить один ясный разговор, чем распыляться на пять новых задач. Спокойный темп даст больше результата.',
       });
-      return {
-        source: 'swisseph', date: date.toISOString(), julianDay: 0, ...Object.fromEntries(rows),
-      } as PlanetaryTransitsAtResult;
+    });
+
+    expect(SIGN_HOROSCOPE_MODEL).toMatch(/^deepseek-/);
+    expect(result.sign).toBe('Aries');
+    expect(result.periodKey).toBe('2026-08-09');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].user).toContain('"sign":"Aries"');
+    expect(calls[0].user).not.toContain('evidenceId');
+    expect(calls[0].user).not.toContain('"astrology"');
+    expect(calls[0].user).not.toContain('"readings"');
+  });
+
+  it('retries validation for the same sign only', async () => {
+    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
+    const requestedSigns: string[] = [];
+    const result = await generateSignHoroscopeWithRunner(digest, 'Pisces', 'en', async ({ user }) => {
+      requestedSigns.push(JSON.parse(user).sign);
+      return requestedSigns.length === 1
+        ? JSON.stringify({ headline: '', text: '' })
+        : JSON.stringify({ headline: 'Protect the useful rhythm', text: 'Keep one promise to yourself before accepting another request.' });
+    });
+    expect(result.sign).toBe('Pisces');
+    expect(requestedSigns).toEqual(['Pisces', 'Pisces']);
+  });
+
+  it('returns a cached sign before calculating or calling DeepSeek', async () => {
+    const cached = reading('Leo', 'day', '2026-08-09');
+    const runtime: SignHoroscopeRuntime = {
+      readCached: jest.fn().mockResolvedValue(cached),
+      buildDigest: jest.fn(),
+      generate: jest.fn(),
+      store: jest.fn(),
     };
-    const digest = buildSignSkyBatchDigest('day', '2026-08-09', calculator);
-    const sunMoon = digest.samples[0].aspects.find((item) => item.from === 'sun' && item.to === 'moon');
-    expect(sunMoon).toMatchObject({ type: 'conjunction', phase: 'applying' });
-    expect(digest.events).toEqual(expect.arrayContaining([
-      expect.objectContaining({ kind: 'ingress', planet: 'mercury', fromSign: 'Aries', toSign: 'Taurus' }),
-      expect.objectContaining({ kind: 'station', planet: 'mercury', motion: 'direct' }),
-    ]));
+    await expect(getOrGenerateSignHoroscope('day', 'Leo', '2026-08-09', 'en', runtime)).resolves.toBe(cached);
+    expect(runtime.buildDigest).not.toHaveBeenCalled();
+    expect(runtime.generate).not.toHaveBeenCalled();
+    expect(runtime.store).not.toHaveBeenCalled();
   });
 
-  it('does not invent a station from a same-direction speed minimum', () => {
-    const start = Date.parse('2026-08-08T21:00:00.000Z');
-    const speeds = [0.2, 0.08, 0.01, 0.08, 0.2];
-    const calculator = (date: Date): PlanetaryTransitsAtResult => {
-      const step = Math.min(4, Math.max(0, Math.round((date.getTime() - start) / (6 * 3_600_000))));
-      return {
-        source: 'swisseph',
-        date: date.toISOString(),
-        julianDay: 0,
-        ...Object.fromEntries(PLANETS.map((planet, index) => [
-          planet,
-          position(planet, 15 + index * 31, planet === 'mercury' ? speeds[step] : 0.2),
-        ])),
-      } as PlanetaryTransitsAtResult;
+  it('persists one completed sign before returning it', async () => {
+    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
+    const generated = reading('Leo', 'day', digest.periodKey);
+    const runtime: SignHoroscopeRuntime = {
+      readCached: jest.fn().mockResolvedValue(null),
+      buildDigest: jest.fn().mockReturnValue(digest),
+      generate: jest.fn().mockResolvedValue(generated),
+      store: jest.fn().mockResolvedValue(undefined),
     };
-    const digest = buildSignSkyBatchDigest('day', '2026-08-09', calculator);
-    expect(digest.events.some((event) => event.kind === 'station' && event.planet === 'mercury')).toBe(false);
+    await expect(getOrGenerateSignHoroscope('day', 'Leo', digest.periodKey, 'en', runtime)).resolves.toBe(generated);
+    expect(runtime.generate).toHaveBeenCalledWith(digest, 'Leo', 'en');
+    expect(runtime.store).toHaveBeenCalledWith('day', digest.periodKey, 'en', generated);
   });
 
-  it('repairs headlines outside the exact 2-8 word contract', () => {
+  it('does not discard another sign when one sign fails to persist', async () => {
     const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
-    const allowedEvidenceIds = collectAllowedEvidenceIds(digest, 'Aries');
-    const evidenceId = [...allowedEvidenceIds][0];
-    expect(validateSignHoroscopeReading(
-      { ...reading('Aries', 'day', digest.periodKey, evidenceId), headline: 'Wait' },
-      { sign: 'Aries', period: 'day', periodKey: digest.periodKey, allowedEvidenceIds },
-    ).ok).toBe(false);
-    expect(validateSignHoroscopeReading(
-      { ...reading('Aries', 'day', digest.periodKey, evidenceId), headline: 'One two three four five six seven eight nine' },
-      { sign: 'Aries', period: 'day', periodKey: digest.periodKey, allowedEvidenceIds },
-    ).ok).toBe(false);
+    const runtime: SignHoroscopeRuntime = {
+      readCached: jest.fn().mockResolvedValue(null),
+      buildDigest: jest.fn().mockReturnValue(digest),
+      generate: jest.fn().mockImplementation(async (_digest, sign: ZodiacKey) => reading(sign, 'day', digest.periodKey)),
+      store: jest.fn().mockImplementation(async (_period, _periodKey, _language, item: SignHoroscopeReadingV2) => {
+        if (item.sign === 'Pisces') throw new Error('single row failed');
+      }),
+    };
+    await expect(getOrGenerateSignHoroscope('day', 'Aries', digest.periodKey, 'en', runtime))
+      .resolves.toMatchObject({ sign: 'Aries' });
+    await expect(getOrGenerateSignHoroscope('day', 'Pisces', digest.periodKey, 'en', runtime))
+      .rejects.toThrow('single row failed');
   });
 
-  it('rejects a shared sign reading that exceeds 130 words', () => {
-    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
-    const evidenceId = [...collectAllowedEvidenceIds(digest, 'Aries')][0];
-    const tooLong = Array.from({ length: 131 }, () => 'direct').join(' ');
-    expect(validateSignHoroscopeReading(
-      {
-        ...reading('Aries', 'day', digest.periodKey, evidenceId),
-        mood: { text: tooLong, evidenceIds: [evidenceId] },
-      },
-      { sign: 'Aries', period: 'day', periodKey: digest.periodKey, allowedEvidenceIds: collectAllowedEvidenceIds(digest, 'Aries') },
-    ).ok).toBe(false);
-  });
-
-  it('keeps technical astrology terms out of the forecast blocks', () => {
-    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
-    const evidenceId = [...collectAllowedEvidenceIds(digest, 'Aries')][0];
-    expect(validateSignHoroscopeReading(
-      {
-        ...reading('Aries', 'day', digest.periodKey, evidenceId),
-        mood: { text: 'Mars makes every answer urgent.', evidenceIds: [evidenceId] },
-      },
-      { sign: 'Aries', period: 'day', periodKey: digest.periodKey, allowedEvidenceIds: collectAllowedEvidenceIds(digest, 'Aries') },
-    ).ok).toBe(false);
-  });
-
-  it('prewarms the current day plus tomorrow and next week/month at a Moscow boundary evening', () => {
+  it('prewarms current and upcoming Moscow periods', () => {
     const targets = getSignPrewarmTargets(new Date('2026-05-31T16:00:00.000Z'));
     expect(targets).toEqual(expect.arrayContaining([
       { period: 'day', periodKey: '2026-05-31' },
@@ -209,68 +216,5 @@ describe('Sign Horoscope V2 calculation contract', () => {
       expect.objectContaining({ period: 'week' }),
       { period: 'month', periodKey: '2026-06' },
     ]));
-  });
-
-  it('generates all 12 signs and repairs only the missing sign', async () => {
-    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
-    const calls: string[][] = [];
-    const result = await generateSignHoroscopeBatchWithRunner(digest, 'en', async ({ user }) => {
-      const request = JSON.parse(user);
-      calls.push(request.targetSigns);
-      const targets: ZodiacKey[] = request.targetSigns;
-      const returned = calls.length === 1 ? targets.filter((sign) => sign !== 'Pisces') : targets;
-      return JSON.stringify({
-        readings: returned.map((sign) => {
-          const evidenceId = [...collectAllowedEvidenceIds(digest, sign)][0];
-          return reading(sign, 'day', digest.periodKey, evidenceId);
-        }),
-      });
-    });
-
-    expect(Object.keys(result)).toEqual([...ZODIAC_KEYS]);
-    expect(calls[0]).toEqual([...ZODIAC_KEYS]);
-    expect(calls[1]).toEqual(['Pisces']);
-  });
-
-  it('returns a cached sign before calculating the sky or calling the model', async () => {
-    const cached = reading('Leo', 'day', '2026-08-09', 'cached:evidence');
-    const runtime: SignHoroscopeRuntime = {
-      readCached: jest.fn().mockResolvedValue(cached),
-      buildDigest: jest.fn(),
-      generateBatch: jest.fn(),
-      storeBatch: jest.fn(),
-    };
-    await expect(getOrGenerateSignHoroscope('day', 'Leo', '2026-08-09', 'en', runtime)).resolves.toBe(cached);
-    expect(runtime.buildDigest).not.toHaveBeenCalled();
-    expect(runtime.generateBatch).not.toHaveBeenCalled();
-    expect(runtime.storeBatch).not.toHaveBeenCalled();
-  });
-
-  it('does not generate when the shared cache read is operationally unavailable', async () => {
-    const runtime: SignHoroscopeRuntime = {
-      readCached: jest.fn().mockRejectedValue(new Error('database unavailable')),
-      buildDigest: jest.fn(),
-      generateBatch: jest.fn(),
-      storeBatch: jest.fn(),
-    };
-    await expect(getOrGenerateSignHoroscope('day', 'Leo', '2026-08-09', 'en', runtime))
-      .rejects.toThrow('database unavailable');
-    expect(runtime.generateBatch).not.toHaveBeenCalled();
-  });
-
-  it('does not report uncached generated content as ready after persistence fails', async () => {
-    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
-    const evidenceId = [...collectAllowedEvidenceIds(digest, 'Leo')][0];
-    const batch = Object.fromEntries(
-      ZODIAC_KEYS.map((sign) => [sign, reading(sign, 'day', digest.periodKey, evidenceId)]),
-    ) as Record<ZodiacKey, SignHoroscopeReadingV2>;
-    const runtime: SignHoroscopeRuntime = {
-      readCached: jest.fn().mockResolvedValue(null),
-      buildDigest: jest.fn().mockReturnValue(digest),
-      generateBatch: jest.fn().mockResolvedValue(batch),
-      storeBatch: jest.fn().mockRejectedValue(new Error('cache write unavailable')),
-    };
-    await expect(getOrGenerateSignHoroscope('day', 'Leo', digest.periodKey, 'en', runtime))
-      .rejects.toThrow('cache write unavailable');
   });
 });

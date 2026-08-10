@@ -3,18 +3,26 @@ import type {
   SignHoroscopePeriod,
   SignHoroscopeReadingV2,
 } from '../../types';
-import { ZODIAC_KEYS, type ZodiacKey } from '../zodiacKeys';
-import { generateSignHoroscopeBatch } from './signBatchGeneration';
-import {
-  getCachedSignHoroscope,
-  storeSignHoroscopeBatch,
-} from './signCache';
-import {
-  buildSignSkyBatchDigest,
-  type SignSkyBatchDigest,
-} from './signSkyDigest';
+import type { ZodiacKey } from '../zodiacKeys';
+import { generateSignHoroscope } from './signGeneration';
+import { getCachedSignHoroscope, storeSignHoroscope } from './signCache';
+import { buildSignSkyBatchDigest, type SignSkyBatchDigest } from './signSkyDigest';
 
-export type SignHoroscopeBatch = Record<ZodiacKey, SignHoroscopeReadingV2>;
+const digestCache = new Map<string, SignSkyBatchDigest>();
+
+function readOrBuildDigest(period: SignHoroscopePeriod, periodKey: string): SignSkyBatchDigest {
+  const key = `${period}:${periodKey}`;
+  const cached = digestCache.get(key);
+  if (cached) return cached;
+  const digest = buildSignSkyBatchDigest(period, periodKey);
+  digestCache.set(key, digest);
+  while (digestCache.size > 12) {
+    const oldest = digestCache.keys().next().value as string | undefined;
+    if (!oldest) break;
+    digestCache.delete(oldest);
+  }
+  return digest;
+}
 
 export interface SignHoroscopeRuntime {
   readCached: (
@@ -24,20 +32,24 @@ export interface SignHoroscopeRuntime {
     language: Language,
   ) => Promise<SignHoroscopeReadingV2 | null>;
   buildDigest: (period: SignHoroscopePeriod, periodKey: string) => SignSkyBatchDigest;
-  generateBatch: (digest: SignSkyBatchDigest, language: Language) => Promise<SignHoroscopeBatch>;
-  storeBatch: (
+  generate: (
+    digest: SignSkyBatchDigest,
+    sign: ZodiacKey,
+    language: Language,
+  ) => Promise<SignHoroscopeReadingV2>;
+  store: (
     period: SignHoroscopePeriod,
     periodKey: string,
     language: Language,
-    readings: SignHoroscopeBatch,
+    reading: SignHoroscopeReadingV2,
   ) => Promise<void>;
 }
 
 const DEFAULT_RUNTIME: SignHoroscopeRuntime = {
   readCached: getCachedSignHoroscope,
-  buildDigest: buildSignSkyBatchDigest,
-  generateBatch: generateSignHoroscopeBatch,
-  storeBatch: storeSignHoroscopeBatch,
+  buildDigest: readOrBuildDigest,
+  generate: generateSignHoroscope,
+  store: storeSignHoroscope,
 };
 
 export async function getOrGenerateSignHoroscope(
@@ -51,25 +63,20 @@ export async function getOrGenerateSignHoroscope(
   if (cached) return cached;
 
   const digest = runtime.buildDigest(period, periodKey);
-  const batch = await runtime.generateBatch(digest, language);
-  for (const expectedSign of ZODIAC_KEYS) {
-    if (!batch[expectedSign]) throw new Error(`Generated sign batch is missing ${expectedSign}`);
-  }
-
-  // Shared content is ready only after all twelve readings are persisted.
-  // Otherwise sequential requests could repeat a paid batch during a DB incident.
-  await runtime.storeBatch(period, periodKey, language, batch);
-  return batch[sign];
+  const reading = await runtime.generate(digest, sign, language);
+  await runtime.store(period, periodKey, language, reading);
+  return reading;
 }
 
-export async function generateAndStoreSignHoroscopeBatch(
+export async function generateAndStoreSignHoroscope(
   period: SignHoroscopePeriod,
+  sign: ZodiacKey,
   periodKey: string,
   language: Language,
   runtime: SignHoroscopeRuntime = DEFAULT_RUNTIME,
-): Promise<SignHoroscopeBatch> {
+): Promise<SignHoroscopeReadingV2> {
   const digest = runtime.buildDigest(period, periodKey);
-  const batch = await runtime.generateBatch(digest, language);
-  await runtime.storeBatch(period, periodKey, language, batch);
-  return batch;
+  const reading = await runtime.generate(digest, sign, language);
+  await runtime.store(period, periodKey, language, reading);
+  return reading;
 }

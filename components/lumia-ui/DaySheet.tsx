@@ -4,6 +4,7 @@ import type { SignHoroscopeReadingV2 } from '../../types';
 import { formatDisplayDate } from '../../lib/date-utils';
 import {
   ensureDailySignHoroscope,
+  getCachedDailySignHoroscope,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { CosmicSheet } from './CosmicSheet';
@@ -46,7 +47,10 @@ export function DaySheet({
     const nextReadingKey = `${sign}|${dateKey}|${language}`;
     setReadingKey(nextReadingKey);
     setReading(readLocalSignHoroscope('today', sign, dateKey, language));
-    void ensureDailySignHoroscope(sign, dateKey, language)
+    void getCachedDailySignHoroscope(sign, dateKey, language)
+      .then((cached) => { if (alive && cached) setReading(cached); })
+      .catch(() => undefined)
+      .then(() => ensureDailySignHoroscope(sign, dateKey, language))
       .then((r) => { if (alive) setReading(r); })
       .catch(() => undefined);
     return () => { alive = false; };
@@ -98,8 +102,7 @@ export function DaySheet({
                 {activeReading.headline ? (
                   <h4>{activeReading.headline}</h4>
                 ) : null}
-                <p>{activeReading.mood.text}</p>
-                <div className="day-sheet-advice">{activeReading.advice.text}</div>
+                <p>{activeReading.text}</p>
               </div>
             ) : null}
     </CosmicSheet>

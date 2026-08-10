@@ -8,29 +8,21 @@ describe('sign daily horoscope cache', () => {
 
   it('returns a validated shared cache hit without calculating or generating', async () => {
     const reading: SignHoroscopeReadingV2 = {
-      schemaVersion: 'sign-horoscope-reading-v3',
+      schemaVersion: 'sign-horoscope-reading-v4',
       sign: 'Aries',
       period: 'day',
       periodKey: '2026-08-09',
       headline: 'Choose the clean answer',
-      mood: { text: 'The day is direct.', evidenceIds: ['sky:one'] },
-      relationships: { text: 'Ask plainly.', evidenceIds: ['sky:one'] },
-      work: { text: 'Close one decision.', evidenceIds: ['sky:one'] },
-      innerState: { text: 'Noise drops after clarity.', evidenceIds: ['sky:one'] },
-      advice: { text: 'Send the concrete message.', evidenceIds: ['sky:one'] },
-      warning: null,
-      astrology: { text: 'Mars is the calculated factor.', evidenceIds: ['sky:one'] },
+      text: 'The day is direct. Ask plainly and close one useful decision.',
     };
-    const get = jest.fn().mockResolvedValue(JSON.stringify(reading));
-    const set = jest.fn();
+    const query = jest.fn().mockResolvedValue({ rows: [{ payload: reading }] });
     jest.doMock('../lib/db', () => ({
-      db: { daily_horoscopes: { get, set } },
-      getPool: jest.fn(),
+      db: { daily_horoscopes: { get: jest.fn(), set: jest.fn() } },
+      getPool: () => ({ query }),
     }));
 
     const { getOrGenerateSignDailyHoroscope } = await import('../lib/horoscope/signDaily');
     await expect(getOrGenerateSignDailyHoroscope('Aries', '2026-08-09', 'en')).resolves.toEqual(reading);
-    expect(get).toHaveBeenCalledTimes(1);
-    expect(set).not.toHaveBeenCalled();
+    expect(query).toHaveBeenCalledTimes(1);
   });
 });

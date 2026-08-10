@@ -9,7 +9,7 @@ import {
 } from '../zodiacKeys';
 import type { SignHoroscopePeriod } from '../../types';
 
-export const SIGN_SKY_DIGEST_VERSION = 'sign-sky-digest-v2.1' as const;
+export const SIGN_SKY_DIGEST_VERSION = 'sign-sky-digest-v3' as const;
 export const SIGN_SKY_TIME_ZONE = 'Europe/Moscow' as const;
 
 export const SIGN_TRANSIT_PLANETS = [
@@ -30,7 +30,6 @@ export type SignAspectType = 'conjunction' | 'sextile' | 'square' | 'trine' | 'o
 export type SignAspectPhase = 'applying' | 'exact' | 'separating';
 
 export interface SignPlanetPositionFact {
-  evidenceId: string;
   planet: SignTransitPlanet;
   sign: ZodiacKey;
   longitude: number;
@@ -41,7 +40,6 @@ export interface SignPlanetPositionFact {
 }
 
 export interface SignTransitAspectFact {
-  evidenceId: string;
   from: SignTransitPlanet;
   to: SignTransitPlanet;
   type: SignAspectType;
@@ -59,7 +57,6 @@ export interface SignSkySample {
 }
 
 export interface SignSkyEvent {
-  evidenceId: string;
   kind: 'ingress' | 'station';
   planet: SignTransitPlanet;
   observedAt: string;
@@ -71,13 +68,11 @@ export interface SignSkyEvent {
 }
 
 export interface SignRulerFact {
-  evidenceId: string;
   planet: SignTransitPlanet;
   tradition: 'both' | 'modern' | 'traditional';
 }
 
 export interface SignSolarHouseFact {
-  evidenceId: string;
   planet: SignTransitPlanet;
   transitSign: ZodiacKey;
   wholeSignHouse: number;
@@ -158,13 +153,6 @@ function round(value: number, precision = 6): number {
 function normalizeLongitude(value: number): number {
   const normalized = value % 360;
   return normalized < 0 ? normalized + 360 : normalized;
-}
-
-function evidenceId(...parts: Array<string | number>): string {
-  return parts
-    .map((part) => String(part).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))
-    .filter(Boolean)
-    .join(':');
 }
 
 function dateKey(year: number, month: number, day: number): string {
@@ -249,11 +237,7 @@ export function buildMoscowSignSampleDates(
 }
 
 export function getSignRulers(sign: ZodiacKey): SignRulerFact[] {
-  return RULERS[sign].map(({ planet, tradition }) => ({
-    evidenceId: evidenceId('sign', sign, 'ruler', tradition, planet),
-    planet,
-    tradition,
-  }));
+  return RULERS[sign].map(({ planet, tradition }) => ({ planet, tradition }));
 }
 
 export function getWholeSignSolarHouse(
@@ -287,15 +271,12 @@ function aspectPhase(
 
 function buildPositionFacts(
   transit: PlanetaryTransitsAtResult,
-  periodKey: string,
-  timestamp: string,
 ): SignPlanetPositionFact[] {
   return SIGN_TRANSIT_PLANETS.map((planet) => {
     const raw = transit[planet];
     const sign = normalizeZodiacKey(raw.sign);
     if (!sign) throw new Error(`Swiss Ephemeris returned an invalid ${planet} sign: ${raw.sign}`);
     return {
-      evidenceId: evidenceId('sky', periodKey, timestamp, planet, 'position'),
       planet,
       sign,
       longitude: round(raw.longitude),
@@ -309,8 +290,6 @@ function buildPositionFacts(
 
 function buildAspectFacts(
   positions: SignPlanetPositionFact[],
-  periodKey: string,
-  timestamp: string,
 ): SignTransitAspectFact[] {
   const facts: SignTransitAspectFact[] = [];
   for (let firstIndex = 0; firstIndex < positions.length; firstIndex += 1) {
@@ -325,15 +304,6 @@ function buildAspectFacts(
       if (!match) continue;
       const orb = round(match.distanceFromExact);
       facts.push({
-        evidenceId: evidenceId(
-          'sky',
-          periodKey,
-          timestamp,
-          'aspect',
-          first.planet,
-          match.type,
-          second.planet,
-        ),
         from: first.planet,
         to: second.planet,
         type: match.type,
@@ -351,12 +321,13 @@ function buildAspectFacts(
       });
     }
   }
-  return facts.sort((a, b) => a.orb - b.orb || a.evidenceId.localeCompare(b.evidenceId));
+  return facts.sort((a, b) => a.orb - b.orb
+    || a.from.localeCompare(b.from)
+    || a.to.localeCompare(b.to));
 }
 
-function buildEvents(samples: SignSkySample[], periodKey: string): SignSkyEvent[] {
+function buildEvents(samples: SignSkySample[]): SignSkyEvent[] {
   const events: SignSkyEvent[] = [];
-  const seen = new Set<string>();
 
   for (let sampleIndex = 1; sampleIndex < samples.length; sampleIndex += 1) {
     const previous = samples[sampleIndex - 1];
@@ -365,9 +336,7 @@ function buildEvents(samples: SignSkySample[], periodKey: string): SignSkyEvent[
       const before = previous.positions.find((item) => item.planet === planet)!;
       const after = current.positions.find((item) => item.planet === planet)!;
       if (before.sign !== after.sign) {
-        const id = evidenceId('sky', periodKey, 'event', 'ingress', planet, current.timestamp);
         events.push({
-          evidenceId: id,
           kind: 'ingress',
           planet,
           previousObservedAt: previous.timestamp,
@@ -376,12 +345,9 @@ function buildEvents(samples: SignSkySample[], periodKey: string): SignSkyEvent[
           toSign: after.sign,
           speedLongitude: after.speedLongitude,
         });
-        seen.add(id);
       }
       if (before.retrograde !== after.retrograde) {
-        const id = evidenceId('sky', periodKey, 'event', 'station', planet, current.timestamp);
         events.push({
-          evidenceId: id,
           kind: 'station',
           planet,
           previousObservedAt: previous.timestamp,
@@ -389,18 +355,18 @@ function buildEvents(samples: SignSkySample[], periodKey: string): SignSkyEvent[
           motion: after.retrograde ? 'retrograde' : 'direct',
           speedLongitude: after.speedLongitude,
         });
-        seen.add(id);
       }
     }
   }
 
-  return events.sort((a, b) => a.observedAt.localeCompare(b.observedAt) || a.evidenceId.localeCompare(b.evidenceId));
+  return events.sort((a, b) => a.observedAt.localeCompare(b.observedAt)
+    || a.planet.localeCompare(b.planet)
+    || a.kind.localeCompare(b.kind));
 }
 
 function buildSolarHousePlacements(
   selectedSign: ZodiacKey,
   samples: SignSkySample[],
-  periodKey: string,
 ): SignSolarHouseFact[] {
   const facts: SignSolarHouseFact[] = [];
   for (const planet of SIGN_TRANSIT_PLANETS) {
@@ -415,16 +381,6 @@ function buildSolarHousePlacements(
       const lastSample = samples[index - 1];
       const house = getWholeSignSolarHouse(selectedSign, previous.sign);
       facts.push({
-        evidenceId: evidenceId(
-          'sign',
-          selectedSign,
-          periodKey,
-          'solar-house',
-          planet,
-          previous.sign,
-          house,
-          runStart,
-        ),
         planet,
         transitSign: previous.sign,
         wholeSignHouse: house,
@@ -458,12 +414,12 @@ export function buildSignSkyBatchDigest(
   const samples = dates.map((date): SignSkySample => {
     const timestamp = date.toISOString();
     const transit = calculator(date);
-    const positions = buildPositionFacts(transit, periodKey, timestamp);
+    const positions = buildPositionFacts(transit);
     return {
       timestamp,
       moscowLocalDate: moscowDateForTimestamp(timestamp),
       positions,
-      aspects: buildAspectFacts(positions, periodKey, timestamp),
+      aspects: buildAspectFacts(positions),
     };
   });
 
@@ -475,27 +431,11 @@ export function buildSignSkyBatchDigest(
     periodKey,
     sampledAt: samples.map((sample) => sample.timestamp),
     samples,
-    events: buildEvents(samples, periodKey),
+    events: buildEvents(samples),
     signs: ZODIAC_KEYS.map((sign) => ({
       sign,
       rulers: getSignRulers(sign),
-      solarHousePlacements: buildSolarHousePlacements(sign, samples, periodKey),
+      solarHousePlacements: buildSolarHousePlacements(sign, samples),
     })),
   };
-}
-
-export function collectAllowedEvidenceIds(
-  digest: SignSkyBatchDigest,
-  sign: ZodiacKey,
-): Set<string> {
-  const ids = new Set<string>();
-  for (const sample of digest.samples) {
-    for (const position of sample.positions) ids.add(position.evidenceId);
-    for (const aspect of sample.aspects) ids.add(aspect.evidenceId);
-  }
-  for (const event of digest.events) ids.add(event.evidenceId);
-  const signDigest = digest.signs.find((item) => item.sign === sign);
-  for (const ruler of signDigest?.rulers || []) ids.add(ruler.evidenceId);
-  for (const placement of signDigest?.solarHousePlacements || []) ids.add(placement.evidenceId);
-  return ids;
 }
