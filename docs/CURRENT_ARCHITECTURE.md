@@ -37,7 +37,7 @@ The calculation and generation path is:
 4. The server validates the complete wire package: period boundaries, version metadata, canonical section identities, previews, evidence, visuals, cross-links, order, counts, dates, text limits, repetition, and app-voice rules.
 5. The complete canonical package is stored once and sliced by server-side entitlement at response time.
 
-All user-facing model calls use `getAppSystemVoice(language)`. Model selection continues to use the existing production `getUnifiedContentModel()` resolver; Feed V3 does not change the configured model. `lib/appVoice.ts` remains the sole runtime voice source.
+All user-facing model calls use `getAppSystemVoice(language)`. Every generated surface except the separate Zodiac product is fixed to OpenAI Luna through `lib/openaiResponses.ts`; Zodiac alone keeps its DeepSeek Chat Completions compatibility route. Personal forecasts and forecast-question answers use Responses API Structured Outputs with strict JSON Schema, then the server independently validates evidence references, voice, and period rules before persistence. `lib/appVoice.ts` remains the sole runtime voice source.
 
 The private endpoint is `/api/content/forecast/personal`:
 

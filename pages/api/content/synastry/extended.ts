@@ -5,7 +5,6 @@ import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
-import { buildOpenAIChatParams } from '../../../../lib/openaiChat';
 import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
 import { db } from '../../../../lib/db';
 import {
@@ -26,9 +25,36 @@ import {
   ChartAccessPolicyError,
 } from '../../../../lib/chartAccessPolicy';
 import { persistSavedSynastryHistory } from '../../../../lib/astrologyHistoryPersistence';
-import { getContentAiClient, isDeepSeekModel } from '../../../../lib/contentAiClient';
+import {
+  createLunaStructuredResponse,
+  getOpenAIResponsesClient,
+  type StrictJsonSchema,
+} from '../../../../lib/openaiResponses';
 
 const SCOPE = 'synastry-extended';
+
+const SYNASTRY_RESPONSE_SCHEMA: StrictJsonSchema = {
+  type: 'object',
+  properties: {
+    summary: { type: 'string' },
+    generalTheme: { type: 'string' },
+    attraction: { type: 'string' },
+    difficulties: { type: 'string' },
+    recommendations: { type: 'array', items: { type: 'string' } },
+    potential: { type: 'string' },
+    compatibilityScore: { type: 'number' },
+  },
+  required: [
+    'summary',
+    'generalTheme',
+    'attraction',
+    'difficulties',
+    'recommendations',
+    'potential',
+    'compatibilityScore',
+  ],
+  additionalProperties: false,
+};
 
 type SynastryChartData = NatalChartData | NatalChartDataV2;
 
@@ -432,7 +458,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       contentSurface: 'synastry',
       contentVariant: 'full',
     });
-    const aiClient = getContentAiClient(modelAssignment.model);
+    const aiClient = getOpenAIResponsesClient();
     if (!aiClient) {
       resultPayload = mapFullToSynastryResult(buildSynastryFallback(
         langRu,
@@ -452,19 +478,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           synastryAspects,
         },
       });
-      const modelId = modelAssignment.model;
-      const completion = await aiClient.chat.completions.create(buildOpenAIChatParams(modelId, {
-        messages: [
-          { role: 'system', content: prompt.system },
-          { role: 'user', content: prompt.user },
-        ],
-        temperature: 0.72,
-        maxTokens: 2500,
-        jsonMode: true,
-      }));
-      const content = completion.choices[0]?.message?.content || '{}';
+      const response = await createLunaStructuredResponse({
+        instructions: prompt.system,
+        input: prompt.user,
+        maxOutputTokens: 2500,
+        schemaName: 'extended_synastry',
+        schema: SYNASTRY_RESPONSE_SCHEMA,
+      });
       const parsed = parseModelJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
-        content,
+        response.content,
         buildSynastryFallback(langRu, subjectProfile.name, resolvedPartnerName, rel)
       );
       resultPayload = mapFullToSynastryResult(parsed);
@@ -517,7 +539,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           relationshipType: rel,
           aspects: synastryAspects,
           content: resultPayload,
-          provider: aiClient ? (isDeepSeekModel(modelAssignment.model) ? 'deepseek' : 'openai') : 'deterministic',
+          provider: aiClient ? 'openai' : 'deterministic',
           modelId: aiClient ? modelAssignment.model : 'deterministic-synastry-fallback-v1',
           promptVersion: SYNASTRY_CONTEXT_PROMPT_VERSION,
           generationAttempts: aiClient ? 1 : 0,

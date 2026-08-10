@@ -1,7 +1,7 @@
 import type { Language, SignHoroscopePeriod, SignHoroscopeReadingV2 } from '../../types';
 import { getAppSystemVoice } from '../appVoice';
-import { getContentAiClient } from '../contentAiClient';
-import { buildOpenAIChatParams } from '../openaiChat';
+import { getDeepSeekClient } from '../deepseekClient';
+import { buildDeepSeekChatParams } from '../deepseekChat';
 import { normalizeZodiacKey, type ZodiacKey } from '../zodiacKeys';
 import type { SignSkyBatchDigest } from './signSkyDigest';
 import {
@@ -251,7 +251,7 @@ export async function generateSignHoroscopeBatch(
   signs: readonly ZodiacKey[],
   language: Language,
 ): Promise<SignHoroscopeBatchGenerationResult> {
-  const client = getContentAiClient(SIGN_HOROSCOPE_MODEL);
+  const client = getDeepSeekClient();
   if (!client) {
     throw new SignHoroscopeGenerationError(
       'SIGN_HOROSCOPE_GENERATION_UNAVAILABLE',
@@ -261,7 +261,7 @@ export async function generateSignHoroscopeBatch(
 
   try {
     return await generateSignHoroscopeBatchWithRunner(digest, signs, language, async (request) => {
-      const completion = await client.chat.completions.create(buildOpenAIChatParams(SIGN_HOROSCOPE_MODEL, {
+      const completion = await client.chat.completions.create(buildDeepSeekChatParams(SIGN_HOROSCOPE_MODEL, {
         messages: [
           { role: 'system', content: request.system },
           { role: 'user', content: request.user },

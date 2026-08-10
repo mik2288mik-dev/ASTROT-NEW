@@ -9,8 +9,8 @@ The active contract is `docs/PERSONAL_FORECAST_FEED_V3_SPEC.md`.
 - Today, Week, and Month are one chart-based continuous feed in `views/Dashboard.tsx`.
 - The separate `PersonalForecastScreen` and `personal_daily` view no longer exist.
 - Each package has one overview, six fixed life sections in the prescribed order, two to four calculated dynamics, optional strong astro accents, local explanation anchors, and verified cross-period links. Continuation links carry immutable timing and are filtered against the target period currently reachable from Dashboard.
-- One structured model request creates the complete period feed from server-calculated Swiss Ephemeris evidence.
-- The production model resolver is unchanged and intentionally not fixed by the V3 specification.
+- One OpenAI Luna Responses API request creates the copy/evidence-reference payload from server-calculated Swiss Ephemeris evidence. Its strict JSON Schema is not a substitute for server-side semantic validation.
+- The non-Zodiac production model is fixed to `gpt-5.6-luna`; the separate sign-based Zodiac product keeps DeepSeek.
 - `lib/appVoice.ts` and `getAppSystemVoice(language)` remain the only runtime source of the shared voice.
 - Canonical packages are cached once, then server-sliced for Free/Premium. Week and Month stay fully locked for Free while the server returns only their personalized preview and benefit copy, never the full section text.
 - Dashboard stays local-first and non-blocking.
@@ -65,7 +65,7 @@ Old database rows are retained. V3 cache, prompt, visual, and question identitie
 - Keep visual-manifest versioning independent from prompt/text cache versioning.
 - Preserve local-first startup: cache misses and background errors must not hide or close Dashboard.
 - Keep question answers inside the period feed; do not recreate a chat.
-- Do not change the model configuration as a side effect of personal-feed work.
+- Do not restore a per-surface model setting or a DeepSeek fallback in personal-feed work.
 - Update existing architecture documents; do not add another task document.
 
 ## Required completion checks

@@ -28,7 +28,7 @@ The identity includes:
 - timezone and language;
 - `PERSONAL_FORECAST_PROMPT_VERSION`;
 - `APP_VOICE_VERSION`;
-- model ID from the existing `getUnifiedContentModel()` resolver.
+- the fixed `gpt-5.6-luna` model ID for all personal forecast generation.
 
 Both the canonical cache key and input hash include `PERSONAL_FORECAST_CALCULATION_VERSION`; the local cache identity includes it as well. Package metadata must match that version. Any relevant chart, calculation, prompt, voice, language, timezone, or model change creates a miss without deleting old rows.
 
@@ -40,7 +40,7 @@ Storage variants are:
 | week | `weekly` | ISO-week start to next ISO-week start |
 | month | `monthly` | calendar-month start to next month |
 
-Rows contain canonical complete packages. Free/Premium slicing happens only after server entitlement resolution, so access tiers do not cause duplicate model generation.
+Rows contain canonical complete packages. Luna returns only the strict copy/evidence-reference payload; the server validates it and adds trusted calculated metadata before storage. Free/Premium slicing happens only after server entitlement resolution, so access tiers do not cause duplicate model generation.
 
 ## Read and generation flow
 

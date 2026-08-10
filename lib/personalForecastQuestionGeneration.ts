@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import {
   APP_VOICE_VERSION,
   getAppSystemVoice,
@@ -14,7 +13,10 @@ import {
   type AstrologyHistoryContext,
 } from './astrologyHistoryStore';
 import { getPool } from './db';
-import { buildOpenAIChatParams } from './openaiChat';
+import {
+  createLunaStructuredResponse,
+  type StrictJsonSchema,
+} from './openaiResponses';
 import {
   PERSONAL_FORECAST_CONTRACT_VERSION,
   stableHash,
@@ -26,18 +28,37 @@ import {
 import { type ForecastWriterLanguage } from './personalForecastSemanticLanguage';
 import { PERSONAL_FORECAST_SEMANTICS_VERSION } from './personalForecastSemantics';
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
 const HISTORY_SCHEMA_VERSION = 'history-v1';
 const MAX_ANSWER_ATTEMPTS = 2;
 const MIN_ANSWER_LENGTH = 220;
 const MAX_ANSWER_LENGTH = 520;
 
 export const PERSONAL_FORECAST_QUESTION_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-question.v5.semantic-writer',
+  'personal-forecast-question.v6.responses-strict-schema',
 );
+
+const PERSONAL_FORECAST_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
+  type: 'object',
+  properties: {
+    answer: { type: 'string' },
+    semanticFactIds: { type: 'array', items: { type: 'string' } },
+    evidenceIds: { type: 'array', items: { type: 'string' } },
+    atomIds: { type: 'array', items: { type: 'string' } },
+    domainKeys: { type: 'array', items: { type: 'string' } },
+    personalizationFactKeys: { type: 'array', items: { type: 'string' } },
+    userMessageIds: { type: 'array', items: { type: 'string' } },
+  },
+  required: [
+    'answer',
+    'semanticFactIds',
+    'evidenceIds',
+    'atomIds',
+    'domainKeys',
+    'personalizationFactKeys',
+    'userMessageIds',
+  ],
+  additionalProperties: false,
+};
 
 export type PersonalForecastQuestionAnswer = {
   answer: string;
@@ -568,19 +589,15 @@ async function requestWithOpenAI(input: {
   language: ForecastWriterLanguage;
   prompt: string;
 }): Promise<string> {
-  if (!openai) throw new Error('OPENAI_CONTENT_NOT_CONFIGURED');
-  const completion = await openai.chat.completions.create(
-    buildOpenAIChatParams(input.model, {
-      messages: [
-        { role: 'system', content: getAppSystemVoice(input.language) },
-        { role: 'user', content: input.prompt },
-      ],
-      maxTokens: 1_400,
-      temperature: 0.25,
-      jsonMode: true,
-    }),
-  );
-  return completion.choices[0]?.message?.content || '{}';
+  void input.model;
+  const response = await createLunaStructuredResponse({
+    instructions: getAppSystemVoice(input.language),
+    input: input.prompt,
+    maxOutputTokens: 1_400,
+    schemaName: 'personal_forecast_question_answer',
+    schema: PERSONAL_FORECAST_QUESTION_RESPONSE_SCHEMA,
+  });
+  return response.content;
 }
 
 export async function generatePersonalForecastQuestionAnswer(input: {

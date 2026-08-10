@@ -1,111 +1,77 @@
-import OpenAI from 'openai';
-import { getModelForTier } from './appSettings';
 import { getAppSystemVoice } from './appVoice';
-import { getContentPolicy } from './contentMatrix';
-import { buildOpenAIChatParams } from './openaiChat';
-import type { AiContentModelTier } from './contentMatrix';
+import { createLunaTextResponse, OPENAI_LUNA_MODEL } from './openaiResponses';
 
-/**
- * Здоровье генерации КОНТЕНТА (гороскопы, натальные разборы, прогноз, совместимость).
- *
- * Ключевой факт: КАЖДЫЙ генератор гейтится на `OPENAI_API_KEY` (`? new OpenAI() : null`).
- * Нет ключа/модели в проде → генерация молча пропускается и юзер видит КУРИРУЕМЫЙ ФОЛБЭК
- * (человеческий, но НЕ персонализированный AI). Эта диагностика отвечает на вопрос
- * «реально ли контент генерится персонально» одним экраном + живым пингом.
- */
-
+/** Runtime health for the fixed OpenAI Luna route. Zodiac is intentionally separate. */
 export type AiContentHealth = {
   openaiKeyPresent: boolean;
-  models: { fast: string | null; main: string | null; deep: string | null };
-  surfaces: Array<{ surface: string; label: string; tier: string; model: string | null }>;
+  model: string;
+  surfaces: Array<{ surface: string; label: string; model: string }>;
   problems: string[];
   checkedAt: string;
 };
 
 const SURFACES: Array<{ surface: string; label: string }> = [
-  { surface: 'personal_daily', label: 'Личный прогноз дня' },
-  { surface: 'natal_section', label: 'Натальный разбор (раздел)' },
-  { surface: 'sign_daily_horoscope', label: 'Гороскоп по знаку (день)' },
+  { surface: 'personal_daily', label: 'Личный прогноз' },
+  { surface: 'natal_section', label: 'Натальный разбор' },
   { surface: 'sign_compatibility', label: 'Совместимость по знакам' },
   { surface: 'blind_spot', label: 'Слепая зона' },
 ];
 
 export async function getAiContentHealth(): Promise<AiContentHealth> {
-  const openaiKeyPresent = !!process.env.OPENAI_API_KEY;
-  const [fast, main, deep] = await Promise.all([
-    getModelForTier('fast').catch(() => null),
-    getModelForTier('main').catch(() => null),
-    getModelForTier('deep').catch(() => null),
-  ]);
-  const models = { fast, main, deep };
+  const openaiKeyPresent = Boolean(process.env.OPENAI_API_KEY);
+  const problems = openaiKeyPresent
+    ? []
+    : ['OPENAI_API_KEY не задан — генерация Luna недоступна, остаются только безопасные фолбэки.'];
 
-  const surfaces = await Promise.all(
-    SURFACES.map(async ({ surface, label }) => {
-      let tier: AiContentModelTier = 'main';
-      try { tier = getContentPolicy(surface as any).modelTier; } catch { /* default */ }
-      const model = tier === 'fast' ? fast : tier === 'deep' ? deep : main;
-      return { surface, label, tier, model };
-    })
-  );
-
-  const problems: string[] = [];
-  if (!openaiKeyPresent) problems.push('OPENAI_API_KEY не задан — ВЕСЬ AI-контент падает в курируемый фолбэк (не персонализируется моделью).');
-  if (!main) problems.push('Не удалось определить основную модель (main).');
-
-  return { openaiKeyPresent, models, surfaces, problems, checkedAt: new Date().toISOString() };
+  return {
+    openaiKeyPresent,
+    model: OPENAI_LUNA_MODEL,
+    surfaces: SURFACES.map(({ surface, label }) => ({ surface, label, model: OPENAI_LUNA_MODEL })),
+    problems,
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 export type AiPingResult = {
   ok: boolean;
-  tier: AiContentModelTier;
-  model: string | null;
+  model: string;
   latencyMs: number;
   sample?: string;
   error?: string;
 };
 
-/**
- * Живой сквозной пинг генерации: реально дергает OpenAI выбранной моделью (тем же путём, что и
- * контент — через buildOpenAIChatParams). Доказывает, что ключ/модель/сеть рабочие в проде, и
- * отдаёт дословную ошибку (неверный ключ, нет доступа к модели, rate limit). Стоимость — копейки.
- *
- * explicitModel: если задан — пингуется именно этот id (в обход getModelForTier), чтобы можно
- * было проверить ДОСТУПНОСТЬ произвольной модели (напр. gpt-5.4) ПЕРЕД тем как ставить её в env.
- * ID намеренно НЕ валидируется по белому списку — весь смысл в проверке ещё не подключённого id;
- * недоступный id вернёт дословную ошибку OpenAI (model_not_found и т.п.).
- */
-export async function pingAiGeneration(
-  tier: AiContentModelTier = 'main',
-  explicitModel?: string | null,
-): Promise<AiPingResult> {
+/** Calls the same OpenAI Responses API route as the production content writers. */
+export async function pingAiGeneration(): Promise<AiPingResult> {
   const started = Date.now();
-  const overrideModel = typeof explicitModel === 'string' ? explicitModel.trim().slice(0, 100) : '';
   if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, tier, model: overrideModel || null, latencyMs: 0, error: 'OPENAI_API_KEY не задан — генерация отключена (фолбэк)' };
-  }
-  let model: string | null = overrideModel || null;
-  try {
-    model = overrideModel || (await getModelForTier(tier));
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const completion = await client.chat.completions.create(
-      buildOpenAIChatParams(model, {
-        messages: [
-          { role: 'system', content: getAppSystemVoice('ru') },
-          { role: 'user', content: 'Ответь ровно одним словом: работает' },
-        ],
-        maxTokens: 16,
-      })
-    );
-    const sample = String(completion.choices?.[0]?.message?.content || '').trim();
     return {
-      ok: !!sample,
-      tier,
-      model,
+      ok: false,
+      model: OPENAI_LUNA_MODEL,
+      latencyMs: 0,
+      error: 'OPENAI_API_KEY не задан — генерация недоступна.',
+    };
+  }
+
+  try {
+    const response = await createLunaTextResponse({
+      instructions: getAppSystemVoice('ru'),
+      input: 'Ответь ровно одним словом: работает',
+      maxOutputTokens: 16,
+    });
+    const sample = response.content;
+    return {
+      ok: Boolean(sample),
+      model: OPENAI_LUNA_MODEL,
       latencyMs: Date.now() - started,
       sample: sample.slice(0, 120),
-      error: sample ? undefined : 'модель вернула пустой ответ',
+      error: sample ? undefined : 'Модель вернула пустой ответ.',
     };
-  } catch (error: any) {
-    return { ok: false, tier, model, latencyMs: Date.now() - started, error: error?.message || 'ошибка вызова OpenAI' };
+  } catch (error: unknown) {
+    return {
+      ok: false,
+      model: OPENAI_LUNA_MODEL,
+      latencyMs: Date.now() - started,
+      error: error instanceof Error ? error.message : 'Ошибка вызова OpenAI.',
+    };
   }
 }

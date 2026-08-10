@@ -1,32 +1,18 @@
-/** Curated model IDs accepted by the unified content-model setting. */
+/** The one OpenAI model used by all generated content except Zodiac. */
+export const OPENAI_LUNA_MODEL = 'gpt-5.6-luna' as const;
 
-/** Curated list: GPT-4 family through GPT-5.5 variants (exact API ids depend on OpenAI account). */
+/**
+ * Legacy per-surface model selection has been removed. Zodiac has its own
+ * dedicated DeepSeek route and never appears in this OpenAI-only list.
+ */
 export const INTERPRETATION_MODEL_OPTIONS: Array<{ id: string; label: string }> = [
-  { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
-  { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro' },
-  { id: 'gpt-4o', label: 'GPT-4o' },
-  { id: 'gpt-4o-mini', label: 'GPT-4o mini' },
-  { id: 'gpt-4.1', label: 'GPT-4.1' },
-  { id: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
-  { id: 'gpt-4.1-nano', label: 'GPT-4.1 nano' },
-  { id: 'gpt-5', label: 'GPT-5' },
-  { id: 'gpt-5-mini', label: 'GPT-5 mini' },
-  { id: 'gpt-5-nano', label: 'GPT-5 nano' },
-  { id: 'gpt-5.1', label: 'GPT-5.1' },
-  { id: 'gpt-5.1-mini', label: 'GPT-5.1 mini' },
-  { id: 'gpt-5.2', label: 'GPT-5.2' },
-  { id: 'gpt-5.2-mini', label: 'GPT-5.2 mini' },
-  { id: 'gpt-5.3-chat-latest', label: 'GPT-5.3 chat (latest)' },
-  { id: 'gpt-5.4', label: 'GPT-5.4' },
-  { id: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
-  { id: 'gpt-5.4-nano', label: 'GPT-5.4 nano' },
-  { id: 'gpt-5.5', label: 'GPT-5.5' },
+  { id: OPENAI_LUNA_MODEL, label: 'OpenAI Luna' },
 ];
 
-const ALLOWED_IDS = new Set(INTERPRETATION_MODEL_OPTIONS.map((m) => m.id));
+const ALLOWED_IDS = new Set(INTERPRETATION_MODEL_OPTIONS.map((model) => model.id));
 
 export function normalizeInterpretationModelId(raw: string | null | undefined): string | null {
   if (!raw || typeof raw !== 'string') return null;
-  const t = raw.trim();
-  return t && ALLOWED_IDS.has(t) ? t : null;
+  const model = raw.trim();
+  return model && ALLOWED_IDS.has(model) ? model : null;
 }

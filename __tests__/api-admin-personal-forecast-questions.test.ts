@@ -31,7 +31,7 @@ jest.mock('../lib/personalForecastCache', () => ({
 }));
 jest.mock('../lib/personalForecastQuestionGeneration', () => ({
   PERSONAL_FORECAST_QUESTION_PROMPT_VERSION:
-    'personal-forecast-question.v5.semantic-writer+voice.3',
+    'personal-forecast-question.v6.responses-strict-schema+voice.8',
   preparePersonalForecastQuestionHistory: (...args: unknown[]) =>
     mockPrepareQuestionHistory(...args),
   appendPersonalForecastQuestionAnswerHistory: (...args: unknown[]) =>
@@ -99,8 +99,8 @@ function question(
     answerText: null,
     answerMeta: null,
     modelId: null,
-    promptVersion: 'personal-forecast-question.v5.semantic-writer+voice.3',
-    voiceVersion: '3',
+    promptVersion: 'personal-forecast-question.v6.responses-strict-schema+voice.8',
+  voiceVersion: '8',
     generationStartedAt: null,
     answeredAt: null,
     moderatedBy: null,
@@ -345,7 +345,7 @@ describe('admin personal forecast question moderation API', () => {
       semanticFingerprints: ['semantic:communication'],
       model: 'gpt-4.1',
       promptVersion: generating.promptVersion,
-      voiceVersion: '3',
+        voiceVersion: '8',
       generationAttempts: 1,
       generatedAt: answered.answeredAt,
     });

@@ -15,7 +15,7 @@ The active personal forecast experience lives in `views/Dashboard.tsx`. Today, W
 - Feed styles: `styles/personalForecastFeed.css`
 - Native promo placement: `lib/personalForecastPromo.ts`
 
-The model resolver, calculations, server cache, question flow, and Free/Premium rules are production boundaries. UI/content work must preserve them unless the request explicitly reopens them.
+OpenAI Luna through the Responses API is the fixed route for every generated surface except the separate Zodiac product, which keeps DeepSeek. Calculations, server cache, question flow, and Free/Premium rules remain production boundaries.
 
 ## Current visual direction
 

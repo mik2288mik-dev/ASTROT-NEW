@@ -4,29 +4,19 @@
  * (Filename kept for stability with existing imports — under the hood it talks
  *  to OpenAI, the project's primary LLM provider.)
  *
- * The model is resolved per-call via getOpenAIModelForContent so admins can
- * override it from app_settings / env without touching code.
+ * All calls use the fixed OpenAI Luna model through the Responses API.
  */
 
-import OpenAI from 'openai';
 import type {
   ContentAccessTier,
   ContentSurface,
   ContentVariant,
 } from '../types';
-import { getOpenAIModelForContent } from './appSettings';
-import { buildOpenAIChatParams } from './openaiChat';
-import { getContentAiClient } from './contentAiClient';
-
-let cachedClient: OpenAI | null = null;
-
-function getClient(): OpenAI {
-  if (cachedClient) return cachedClient;
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error('OPENAI_API_KEY is not configured');
-  cachedClient = new OpenAI({ apiKey: key });
-  return cachedClient;
-}
+import {
+  createLunaJsonResponse,
+  createLunaTextResponse,
+  OPENAI_LUNA_MODEL,
+} from './openaiResponses';
 
 export type ReadingModelOptions = {
   accessTier: ContentAccessTier;
@@ -42,8 +32,6 @@ export type ReadingCallOptions = {
   cacheSystem?: boolean;
   maxTokens?: number;
   temperature?: number;
-  /** Explicit model id that bypasses per-content resolution. */
-  modelOverride?: string;
   onMetrics?: (metrics: {
     model: string;
     inputTokens: number;
@@ -52,51 +40,38 @@ export type ReadingCallOptions = {
   }) => void;
 };
 
-function readingMessages(opts: ReadingCallOptions) {
-  return [
-    { role: 'system' as const, content: opts.system },
-    { role: 'user' as const, content: opts.user },
-  ];
-}
-
 export async function llmJson<T = any>(opts: ReadingCallOptions): Promise<T> {
-  const model = opts.modelOverride || (await getOpenAIModelForContent(opts.model)).model;
-  const client = getContentAiClient(model) || getClient();
+  const model = OPENAI_LUNA_MODEL;
   const startedAt = Date.now();
-
-  const completion = await client.chat.completions.create(
-    buildOpenAIChatParams(model, {
-      messages: readingMessages(opts),
-      maxTokens: opts.maxTokens,
-      temperature: opts.temperature,
-      jsonMode: true,
-    })
-  );
-
-  const text = completion.choices[0]?.message?.content || '{}';
+  const response = await createLunaJsonResponse({
+    instructions: opts.system,
+    input: opts.user,
+    maxOutputTokens: opts.maxTokens ?? 1800,
+  });
   opts.onMetrics?.({
     model,
-    inputTokens: completion.usage?.prompt_tokens || 0,
-    outputTokens: completion.usage?.completion_tokens || 0,
+    inputTokens: response.inputTokens,
+    outputTokens: response.outputTokens,
     latencyMs: Date.now() - startedAt,
   });
-  return parseModelJson<T>(text);
+  return parseModelJson<T>(response.content);
 }
 
 export async function llmTagged(opts: ReadingCallOptions): Promise<string> {
-  const client = getClient();
-  const { model } = await getOpenAIModelForContent(opts.model);
-
-  const completion = await client.chat.completions.create(
-    buildOpenAIChatParams(model, {
-      messages: readingMessages(opts),
-      maxTokens: opts.maxTokens,
-      temperature: opts.temperature,
-      jsonMode: false,
-    })
-  );
-
-  return (completion.choices[0]?.message?.content || '').trim();
+  const model = OPENAI_LUNA_MODEL;
+  const startedAt = Date.now();
+  const response = await createLunaTextResponse({
+    instructions: opts.system,
+    input: opts.user,
+    maxOutputTokens: opts.maxTokens ?? 1800,
+  });
+  opts.onMetrics?.({
+    model,
+    inputTokens: response.inputTokens,
+    outputTokens: response.outputTokens,
+    latencyMs: Date.now() - startedAt,
+  });
+  return response.content;
 }
 
 function parseModelJson<T>(raw: string): T {
@@ -115,7 +90,7 @@ function parseModelJson<T>(raw: string): T {
 /* Legacy aliases — keep import sites stable. */
 export const claudeJson = llmJson;
 export const claudeTagged = llmTagged;
-export const CLAUDE_MODEL = 'openai-resolved-per-call';
+export const CLAUDE_MODEL = OPENAI_LUNA_MODEL;
 
 export type {
   ReadingModelOptions as ClaudeModelOptions,

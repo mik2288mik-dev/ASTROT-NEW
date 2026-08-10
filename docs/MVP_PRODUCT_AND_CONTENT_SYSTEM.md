@@ -77,7 +77,7 @@ Other products retain their separate policies:
 - Deterministic astronomy: `lib/swisseph-calculator.ts` and `lib/personalForecastEvidence.ts`.
 - Feed endpoint: `/api/content/forecast/personal`.
 - Question endpoint: `/api/content/forecast/questions`.
-- Unified production model resolver: `getUnifiedContentModel()`; Feed V3 does not select or change a model.
+- OpenAI Luna through `lib/openaiResponses.ts` writes every generated product surface except Zodiac. Personal forecasts and forecast-question answers use strict Structured Outputs; Zodiac remains on its dedicated DeepSeek route.
 - Runtime voice: `lib/appVoice.ts` via `getAppSystemVoice(language)`.
 - Persistence: PostgreSQL through `lib/db.ts`; applied migration history remains immutable.
 

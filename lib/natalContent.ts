@@ -16,8 +16,10 @@ import {
 } from './prompts';
 import { getAppSystemVoice } from './appVoice';
 import { getModelForTier } from './appSettings';
-import { buildOpenAIChatParams } from './openaiChat';
-import { getContentAiClient } from './contentAiClient';
+import {
+  createLunaJsonResponse,
+  getOpenAIResponsesClient,
+} from './openaiResponses';
 import { getContentPolicy } from './contentMatrix';
 import { getCurrentTransits } from './transits-calculator';
 import {
@@ -41,7 +43,7 @@ async function getNatalModel(kind: 'anchor' | 'full' | 'living') {
 }
 
 async function isFlaggedByModeration(content: unknown): Promise<boolean> {
-  const openai = getContentAiClient(await getNatalModel('anchor').then((value) => value.model));
+  const openai = getOpenAIResponsesClient();
   if (!openai) return false;
 
   try {
@@ -59,32 +61,23 @@ async function createJsonCompletion<T>({
   model,
   prompt,
   maxTokens,
-  temperature,
+  temperature: _temperature,
   language,
 }: {
   model: string;
   prompt: string;
   maxTokens: number;
-  temperature: number;
+  temperature?: number;
   language: 'ru' | 'en';
 }): Promise<T> {
-  const openai = getContentAiClient(model);
-  if (!openai) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-
-  const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
-    messages: [
-      { role: 'system', content: getAppSystemVoice(language) },
-      { role: 'user', content: prompt },
-    ],
-    temperature,
-    maxTokens,
-    jsonMode: true,
-  }));
-
-  const content = completion.choices[0]?.message?.content || '{}';
-  return JSON.parse(content) as T;
+  void model;
+  void _temperature;
+  const response = await createLunaJsonResponse({
+    instructions: getAppSystemVoice(language),
+    input: prompt,
+    maxOutputTokens: maxTokens,
+  });
+  return JSON.parse(response.content) as T;
 }
 
 export async function generateNatalAnchorReading(
@@ -95,7 +88,7 @@ export async function generateNatalAnchorReading(
   const evidence = buildNatalAstroEvidence(chartData, lang);
   const { model } = await getNatalModel('anchor');
 
-  const openai = getContentAiClient(model);
+  const openai = getOpenAIResponsesClient();
   if (!openai) {
     return buildNatalAnchorFallback(lang, chartData);
   }
@@ -106,7 +99,6 @@ export async function generateNatalAnchorReading(
       model,
       prompt,
       maxTokens: 3400,
-      temperature: 0.55,
       language: lang,
     });
     const reading = coerceNatalAnchorReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
@@ -131,7 +123,7 @@ export async function generateNatalFullReading(
   const lang: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const evidence = buildNatalAstroEvidence(chartData, lang);
   const { model } = await getNatalModel('full');
-  const openai = getContentAiClient(model);
+  const openai = getOpenAIResponsesClient();
 
   if (!openai) {
     return buildNatalFullFallback(lang, chartData);
@@ -143,7 +135,6 @@ export async function generateNatalFullReading(
       model,
       prompt,
       maxTokens: 5200,
-      temperature: 0.5,
       language: lang,
     });
     const reading = coerceNatalFullReading({ ...parsed, astroEvidence: parsed.astroEvidence || evidence }, lang, chartData);
@@ -180,7 +171,7 @@ export async function generateNatalLivingReading(
 
   const evidence = buildDailyAstroEvidence(chartData, transits, lang);
   const { model } = await getNatalModel('living');
-  const openai = getContentAiClient(model);
+  const openai = getOpenAIResponsesClient();
 
   if (!openai) {
     return buildNatalLivingFallback(lang, periodKey, chartData, evidence);
@@ -193,7 +184,6 @@ export async function generateNatalLivingReading(
       model,
       prompt,
       maxTokens: 3600,
-      temperature: 0.55,
       language: lang,
     });
     const reading = coerceNatalLivingReading(

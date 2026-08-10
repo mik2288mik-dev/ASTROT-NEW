@@ -1,7 +1,7 @@
 import type { PersonalForecastCalculatedEvidence } from '../lib/personalForecastEvidence';
 
 const mockCalculatePersonalForecastEvidence = jest.fn();
-const mockChatCreate = jest.fn();
+const mockStructuredResponse = jest.fn();
 
 jest.mock('../lib/personalForecastEvidence', () => {
   const actual = jest.requireActual('../lib/personalForecastEvidence');
@@ -13,11 +13,8 @@ jest.mock('../lib/personalForecastEvidence', () => {
   };
 });
 
-jest.mock('../lib/contentAiClient', () => ({
-  isDeepSeekModel: (model: string) => model.startsWith('deepseek-'),
-  getContentAiClient: () => ({
-    chat: { completions: { create: (...args: unknown[]) => mockChatCreate(...args) } },
-  }),
+jest.mock('../lib/openaiResponses', () => ({
+  createLunaStructuredResponse: (...args: unknown[]) => mockStructuredResponse(...args),
 }));
 
 import {
@@ -38,10 +35,7 @@ const profile = {
   language: 'ru' as const,
 };
 
-function evidence(
-  id: string,
-  natalPoint: 'mercury' | 'venus',
-): PersonalForecastCalculatedEvidence {
+function evidence(id: string, natalPoint: 'mercury' | 'venus'): PersonalForecastCalculatedEvidence {
   return {
     id,
     kind: 'transit_to_natal',
@@ -66,42 +60,46 @@ function calculated(items: PersonalForecastCalculatedEvidence[]) {
     continuationEvidence: [],
     evidenceViews: Object.fromEntries(items.map((item) => [item.id, {
       id: item.id,
-      factor: 'Марс — квадрат к Меркурию',
+      factor: 'Calculated factor',
       orb: item.orb,
       status: item.status,
-      period: '3 августа',
-      meaning: 'Расчётный факт периода.',
+      period: 'Selected period',
+      meaning: 'Calculated period fact.',
     }])),
   };
 }
 
+function words(count: number) {
+  return Array.from({ length: count }, (_, index) => `word${index + 1}`).join(' ');
+}
+
 function modelResponse(evidenceId: string) {
   return {
-    choices: [{ message: { content: JSON.stringify({
-      headline: 'Проверь формулировку',
-      paragraphs: [{
-        text: 'Сегодня точность ответа важнее скорости: одна ясная формулировка снимет лишние вопросы.',
+    content: JSON.stringify({
+      paragraphs: [{ text: words(132), evidence_ids: [evidenceId] }],
+      advice: {
+        text: 'Check one detail before finalizing the answer.',
         evidence_ids: [evidenceId],
-      }],
-      advice: null,
-    }) } }],
-    usage: { prompt_tokens: 100, completion_tokens: 40 },
+      },
+    }),
+    inputTokens: 100,
+    outputTokens: 40,
   };
 }
 
-describe('personal forecast model delivery', () => {
+describe('personal forecast Responses delivery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it.each(['day', 'week', 'month'] as const)(
-    'assembles a contract-valid grounded %s package from one model response',
+    'assembles a contract-valid grounded %s package from one structured response',
     async (period) => {
       const evidenceId = `evidence:${period}`;
       mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(
         calculated([evidence(evidenceId, 'mercury')]),
       );
-      mockChatCreate.mockResolvedValueOnce(modelResponse(evidenceId));
+      mockStructuredResponse.mockResolvedValueOnce(modelResponse(evidenceId));
       const periodKey = getPersonalForecastPeriodKey(
         period,
         new Date('2026-08-03T09:00:00.000Z'),
@@ -110,14 +108,14 @@ describe('personal forecast model delivery', () => {
       const forecast = await generatePersonalForecastPackage({
         profile: profile as never,
         chartData: chartFixture,
-        model: 'deepseek-v4-flash',
+        model: 'gpt-5.6-luna',
         period,
         window: resolvePersonalForecastWindow(period, periodKey, 'Europe/Moscow'),
       });
 
       expect(isPersonalForecastPackage(forecast)).toBe(true);
       expect(forecast.meta.validationStatus).toBe('valid');
-      expect(mockChatCreate).toHaveBeenCalledTimes(1);
+      expect(mockStructuredResponse).toHaveBeenCalledTimes(1);
     },
   );
 
@@ -125,26 +123,26 @@ describe('personal forecast model delivery', () => {
     mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(
       calculated([evidence('evidence:real', 'mercury')]),
     );
-    mockChatCreate.mockResolvedValue(modelResponse('evidence:missing'));
+    mockStructuredResponse.mockResolvedValue(modelResponse('evidence:missing'));
 
     await expect(generatePersonalForecastPackage({
       profile: profile as never,
       chartData: chartFixture,
-      model: 'deepseek-v4-flash',
+      model: 'gpt-5.6-luna',
       period: 'day',
       window: resolvePersonalForecastWindow('day', '2026-08-03', 'Europe/Moscow'),
     })).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID');
-    expect(mockChatCreate).toHaveBeenCalledTimes(2);
+    expect(mockStructuredResponse).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps unreliable houses and angles out of the model input', async () => {
+  it('keeps unreliable houses and angles out of the Responses input', async () => {
     const unknownTimeChart = {
       ...chartFixture,
       rising: null,
       houses: [],
       birthTimeQuality: 'unknown' as const,
       chartQuality: {
-        birthTimeQuality: 'unknown' as const,
+        birthTimeQuality: 'unknown',
         ascendantReliable: false,
         housesReliable: false,
         houseBasedPersonalization: false,
@@ -155,22 +153,19 @@ describe('personal forecast model delivery', () => {
     mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(
       calculated([evidence(evidenceId, 'mercury')]),
     );
-    mockChatCreate.mockResolvedValueOnce(modelResponse(evidenceId));
+    mockStructuredResponse.mockResolvedValueOnce(modelResponse(evidenceId));
 
     await generatePersonalForecastPackage({
       profile: { ...profile, birthTime: '' } as never,
       chartData: unknownTimeChart as never,
-      model: 'deepseek-v4-flash',
+      model: 'gpt-5.6-luna',
       period: 'day',
       window: resolvePersonalForecastWindow('day', '2026-08-03', 'Europe/Moscow'),
     });
 
-    const params = mockChatCreate.mock.calls[0][0] as {
-      messages: Array<{ role: string; content: string }>;
-    };
-    const userPrompt = params.messages.find((message) => message.role === 'user')?.content || '';
-    expect(userPrompt).toContain('"birth_time_quality": "unknown"');
-    expect(userPrompt).toContain('"angles": []');
-    expect(userPrompt).not.toContain('"houses"');
+    const params = mockStructuredResponse.mock.calls[0][0] as { input: string };
+    expect(params.input).toContain('"birth_time_quality": "unknown"');
+    expect(params.input).toContain('"angles": []');
+    expect(params.input).not.toContain('"houses"');
   });
 });

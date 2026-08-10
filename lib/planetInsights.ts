@@ -1,7 +1,9 @@
-import OpenAI from 'openai';
 import type { Language, NatalChartData, PlanetInsight, UserProfile } from '../types';
 import { getOpenAIModelForContent } from './appSettings';
-import { buildOpenAIChatParams } from './openaiChat';
+import {
+  createLunaJsonResponse,
+  getOpenAIResponsesClient,
+} from './openaiResponses';
 import {
   buildPlanetInsightCacheKey,
   getPlanetDisplayName,
@@ -18,10 +20,6 @@ import {
 import { getAppSystemVoice, withAppVoiceVersion } from './appVoice';
 import { hasActivePremium } from './accessMatrix';
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
 export const PLANET_INSIGHT_PROMPT_VERSION = withAppVoiceVersion('planet_insight.v1');
 
 export async function generatePlanetInsight(
@@ -36,7 +34,7 @@ export async function generatePlanetInsight(
     throw new Error(`PLANET_POSITION_MISSING:${planetId}`);
   }
 
-  if (!openai) {
+  if (!getOpenAIResponsesClient()) {
     return buildPlanetInsight(chartData, planetId, language);
   }
 
@@ -69,18 +67,13 @@ export async function generatePlanetInsight(
       contentVariant: 'planet_insight',
     });
 
-    const completion = await openai.chat.completions.create(buildOpenAIChatParams(model, {
-      messages: [
-        { role: 'system', content: getAppSystemVoice(language === 'en' ? 'en' : 'ru') },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.8,
-      maxTokens: 520,
-      jsonMode: true,
-    }));
-
-    const raw = completion.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(raw) as PlanetInsightAIResponse;
+    void model;
+    const response = await createLunaJsonResponse({
+      instructions: getAppSystemVoice(language === 'en' ? 'en' : 'ru'),
+      input: prompt,
+      maxOutputTokens: 520,
+    });
+    const parsed = JSON.parse(response.content) as PlanetInsightAIResponse;
     return buildPlanetInsight(chartData, planetId, language, parsed);
   } catch {
     return buildPlanetInsight(chartData, planetId, language);

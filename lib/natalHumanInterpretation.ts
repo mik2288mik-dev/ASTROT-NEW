@@ -259,7 +259,6 @@ export async function generateHumanBaseReport(
   profile: UserProfile,
   chart: NatalChartData,
   options?: {
-    modelOverride?: string;
     onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number }) => void;
     onValidation?: (passed: boolean) => void;
   },
@@ -276,7 +275,6 @@ export async function generateHumanBaseReport(
     },
     maxTokens: 2400,
     temperature: 0.25,
-    modelOverride: options?.modelOverride,
     onMetrics: options?.onMetrics,
   });
   const materialized = materializeDirectBaseReport(raw, fallback);

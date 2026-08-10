@@ -3,8 +3,10 @@ import type { NatalChartData, UserProfile } from '../types';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { isNatalChartDataV2 } from './natal/canonicalReport';
 import { APP_VOICE_VERSION, getAppSystemVoice } from './appVoice';
-import { buildOpenAIChatParams } from './openaiChat';
-import { getContentAiClient } from './contentAiClient';
+import {
+  createLunaStructuredResponse,
+  type StrictJsonSchema,
+} from './openaiResponses';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -122,6 +124,40 @@ type GeneratedTextBlock = {
 type GeneratedFeedPayload = {
   paragraphs?: GeneratedTextBlock[];
   advice?: GeneratedTextBlock | null | unknown;
+};
+
+/**
+ * This is intentionally narrower than the persisted forecast package. Luna
+ * writes only user copy and evidence references; the server materializes and
+ * persists all trusted package metadata after semantic validation.
+ */
+export const PERSONAL_FORECAST_RESPONSE_SCHEMA: StrictJsonSchema = {
+  type: 'object',
+  properties: {
+    paragraphs: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          text: { type: 'string' },
+          evidence_ids: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['text', 'evidence_ids'],
+        additionalProperties: false,
+      },
+    },
+    advice: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        evidence_ids: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['text', 'evidence_ids'],
+      additionalProperties: false,
+    },
+  },
+  required: ['paragraphs', 'advice'],
+  additionalProperties: false,
 };
 
 type FreeGeneratedBlock = {
@@ -515,8 +551,6 @@ async function requestGeneratedFeed(input: {
 }): Promise<GenerationResult> {
   const availableEvidenceIds = new Set(input.calculatedEvidence.map((item) => item.id));
   if (!availableEvidenceIds.size) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
-  const openai = getContentAiClient(input.model);
-  if (!openai) throw new Error('PERSONAL_FORECAST_MODEL_UNAVAILABLE');
 
   let errors: string[] = [];
   for (
@@ -528,27 +562,22 @@ async function requestGeneratedFeed(input: {
     const startedAt = Date.now();
     let usage = { inputTokens: 0, outputTokens: 0 };
     try {
-      const response = await openai.chat.completions.create(buildOpenAIChatParams(input.model, {
-        messages: [
-          { role: 'system', content: getPersonalForecastSystemPrompt(input.language, input.period) },
-          {
-            role: 'user',
-            content: buildPersonalForecastFeedPrompt({
-              language: input.language,
-              period: input.period,
-              window: input.window,
-              calculatedEvidence: input.calculatedEvidence,
-              natalContext: input.natalContext,
-              repairErrors: attempt === 2 ? errors : undefined,
-            }),
-          },
-        ],
-        maxTokens: 1_200,
-        temperature: 1.1,
-        jsonMode: true,
-      }));
-      content = response.choices[0]?.message?.content?.trim() || '';
-      usage = { inputTokens: response.usage?.prompt_tokens || 0, outputTokens: response.usage?.completion_tokens || 0 };
+      const response = await createLunaStructuredResponse({
+        instructions: getPersonalForecastSystemPrompt(input.language, input.period),
+        input: buildPersonalForecastFeedPrompt({
+          language: input.language,
+          period: input.period,
+          window: input.window,
+          calculatedEvidence: input.calculatedEvidence,
+          natalContext: input.natalContext,
+          repairErrors: attempt === 2 ? errors : undefined,
+        }),
+        maxOutputTokens: 1_200,
+        schemaName: 'personal_forecast',
+        schema: PERSONAL_FORECAST_RESPONSE_SCHEMA,
+      });
+      content = response.content;
+      usage = { inputTokens: response.inputTokens, outputTokens: response.outputTokens };
     } catch (error) {
       errors = [`writer request failed: ${error instanceof Error ? error.message : String(error)}`];
       continue;

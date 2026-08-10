@@ -897,16 +897,15 @@ function ContentHealthCard() {
   const [busy, setBusy] = useState(false);
   const [ping, setPing] = useState<{ ok: boolean; msg: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [customModel, setCustomModel] = useState('');
   const reload = useCallback(() => admin2.contentDiagnostics().then(setH).catch((e) => setErr(e.message)), []);
   useEffect(() => { void reload(); }, [reload]);
-  const runPing = async (tier: 'fast' | 'main' | 'deep', model?: string) => {
+  const runPing = async () => {
     setBusy(true); setErr(null); setPing(null);
     try {
-      const r = await admin2.pingContentGeneration(tier, model);
+      const r = await admin2.pingContentGeneration();
       const res = r.result || ({} as any);
       setPing(res.ok
-        ? { ok: true, msg: `AI отвечает (${res.model || tier}, ${res.latencyMs}мс): «${res.sample || ''}»` }
+        ? { ok: true, msg: `AI отвечает (${res.model}, ${res.latencyMs}мс): «${res.sample || ''}»` }
         : { ok: false, msg: `${res.model ? res.model + ': ' : ''}${res.error || 'модель не ответила'}` });
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   };
@@ -917,109 +916,25 @@ function ContentHealthCard() {
       <div className="flex items-center justify-between gap-2">
         <p className={`font-bold ${h.healthy ? 'text-emerald-700' : 'text-amber-700'}`}>{h.healthy ? 'Генерация контента работает' : 'Проблема с генерацией контента'}</p>
         <div className="flex gap-2">
-          <button className={btnGhost} disabled={busy} onClick={() => runPing('fast')}>Пинг fast</button>
-          <button className={btnPrimary} disabled={busy} onClick={() => runPing('main')}>{busy ? 'Проверяю…' : 'Проверить генерацию'}</button>
+          <button className={btnPrimary} disabled={busy} onClick={() => runPing()}>{busy ? 'Проверяю…' : 'Проверить Luna'}</button>
         </div>
       </div>
       {h.problems.length
         ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">{h.problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
         : <p className="mt-1 text-sm text-emerald-700">Ключ задан, модели настроены — разборы персонализируются моделью, а не берутся из фолбэка.</p>}
       {ping ? <div className={`mt-2 rounded-xl border p-2.5 text-sm ${ping.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{ping.msg}</div> : null}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input
-          className={`${inputCls} flex-1 min-w-[180px]`}
-          value={customModel}
-          onChange={(e) => setCustomModel(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && customModel.trim() && !busy) void runPing('main', customModel.trim()); }}
-          placeholder="ID модели для проверки, напр. gpt-5.4"
-        />
-        <button className={btnGhost} disabled={busy || !customModel.trim()} onClick={() => runPing('main', customModel.trim())}>
-          Пинг модели
-        </button>
-      </div>
-      <p className="mt-1 text-[11px] text-slate-400">Пинг только проверяет доступность модели на аккаунте OpenAI, ничего не меняет. Сменить рабочую модель — в блоке «Модели по слотам» ниже.</p>
       <div className="mt-3 grid gap-1 text-xs text-slate-500">
         <div>Токен OpenAI: <b className={h.openaiKeyPresent ? 'text-emerald-600' : 'text-rose-600'}>{h.openaiKeyPresent ? 'задан' : 'НЕ задан'}</b></div>
-        <div>Единая модель: <b className="text-slate-700">{h.models.main || h.models.fast || h.models.deep || '—'}</b></div>
+        <div>Рабочая модель: <b className="text-slate-700">{h.model}</b></div>
       </div>
       <div className="mt-3 space-y-1">
         {h.surfaces.map((s) => (
           <div key={s.surface} className="flex justify-between gap-2 text-xs">
             <span className="text-slate-600">{s.label}</span>
-            <span className="text-slate-400">{s.tier} · {s.model || '—'}</span>
+            <span className="text-slate-400">{s.model}</span>
           </div>
         ))}
       </div>
-      <ModelSlotEditor models={h.models} onSaved={reload} />
-    </div>
-  );
-}
-
-const MODEL_SLOTS: Array<{ slot: 'fast' | 'main' | 'deep'; label: string; hint: string }> = [
-  { slot: 'main', label: 'main', hint: 'натал, слепая зона' },
-  { slot: 'fast', label: 'fast', hint: 'гороскопы по знаку, совместимость' },
-  { slot: 'deep', label: 'deep', hint: 'глубокий отчёт' },
-];
-
-// Редактор модели по слотам: пишет в app_settings (через /content/model), подхват на лету.
-function ModelSlotEditor({
-  models,
-  onSaved,
-}: {
-  models: { fast: string | null; main: string | null; deep: string | null };
-  onSaved: () => void | Promise<void>;
-}) {
-  const current: Record<string, string | null> = {
-    fast: models.fast, main: models.main, deep: models.deep,
-  };
-  const [draft, setDraft] = useState<Record<string, string>>({});
-  const [savingSlot, setSavingSlot] = useState<string | null>(null);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const valueFor = (slot: string) => (draft[slot] ?? current[slot] ?? '');
-  const save = async (slot: 'fast' | 'main' | 'deep') => {
-    const model = valueFor(slot).trim();
-    if (!model) return;
-    setSavingSlot(slot); setMsg(null);
-    try {
-      const r = await admin2.saveContentModel(slot, model);
-      setMsg({ ok: true, text: `Сохранено: ${r.slot} → ${r.model}` });
-      setDraft((d) => { const n = { ...d }; delete n[slot]; return n; });
-      await onSaved();
-    } catch (e: any) {
-      setMsg({ ok: false, text: e?.message || 'не удалось сохранить' });
-    } finally { setSavingSlot(null); }
-  };
-  return (
-    <div className="mt-4 rounded-xl border border-slate-200 bg-white/70 p-3">
-      <p className="text-xs font-semibold text-slate-600">Модели по слотам</p>
-      <p className="mt-0.5 text-[11px] text-slate-400">Пишет в app_settings, подхватывается на лету без редеплоя. Только id из курируемого списка (проверь новый пингом выше). env остаётся запасным вариантом.</p>
-      <div className="mt-2 space-y-2">
-        {MODEL_SLOTS.map(({ slot, label, hint }) => {
-          const changed = valueFor(slot).trim() !== (current[slot] || '').trim();
-          return (
-            <div key={slot} className="flex flex-wrap items-center gap-2">
-              <div className="w-40 shrink-0">
-                <div className="text-xs font-medium text-slate-700">{label}</div>
-                <div className="text-[10px] text-slate-400">{hint}</div>
-              </div>
-              <input
-                className={`${inputCls} flex-1 min-w-[160px]`}
-                value={valueFor(slot)}
-                onChange={(e) => setDraft((d) => ({ ...d, [slot]: e.target.value }))}
-                placeholder="напр. gpt-5.4-mini"
-              />
-              <button
-                className={btnGhost}
-                disabled={savingSlot === slot || !changed || !valueFor(slot).trim()}
-                onClick={() => save(slot)}
-              >
-                {savingSlot === slot ? 'Сохраняю…' : 'Сохранить'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-      {msg ? <div className={`mt-2 rounded-lg border p-2 text-xs ${msg.ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'}`}>{msg.text}</div> : null}
     </div>
   );
 }

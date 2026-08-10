@@ -4,6 +4,7 @@ import {
   buildPersonalForecastNatalContext,
   getPersonalForecastSystemPrompt,
   parseGeneratedFeedPayload,
+  PERSONAL_FORECAST_RESPONSE_SCHEMA,
   validateFreeGeneratedForecastFeed,
 } from '../lib/personalForecastGeneration';
 import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
@@ -41,6 +42,27 @@ describe('personal forecast concise direct-evidence writer', () => {
     expect(system).not.toContain('"headline"');
     expect(system).not.toContain('separate task');
     expect(system).not.toContain('Return 2 or 3 sections');
+  });
+
+  test('defines a strict output shape before the server validates evidence semantics', () => {
+    expect(PERSONAL_FORECAST_RESPONSE_SCHEMA).toMatchObject({
+      type: 'object',
+      required: ['paragraphs', 'advice'],
+      additionalProperties: false,
+      properties: {
+        paragraphs: {
+          type: 'array',
+          items: expect.objectContaining({
+            required: ['text', 'evidence_ids'],
+            additionalProperties: false,
+          }),
+        },
+        advice: expect.objectContaining({
+          required: ['text', 'evidence_ids'],
+          additionalProperties: false,
+        }),
+      },
+    });
   });
 
   test('gives every period a distinct narrative job without chronological segments', () => {

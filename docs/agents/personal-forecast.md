@@ -8,7 +8,7 @@
 
 - Do not create a separate forecast reader, chat, or section screen.
 - Do not restore forecast cards, swipe cards, or a permanent opaque navigation panel.
-- Do not alter calculation evidence, the configured OpenAI model, access slicing, cache architecture, question moderation, or generation endpoint for a visual-only request.
+- Do not alter calculation evidence, the fixed Luna Responses route, access slicing, cache architecture, question moderation, or generation endpoint for a visual-only request.
 - Do not move the existing application header or bottom navigation while changing the feed.
 
 ## Visual rules

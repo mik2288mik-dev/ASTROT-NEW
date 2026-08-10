@@ -210,15 +210,15 @@ export type AdminContentHealth = {
   ok: boolean;
   healthy: boolean;
   openaiKeyPresent: boolean;
-  models: { fast: string | null; main: string | null; deep: string | null };
-  surfaces: Array<{ surface: string; label: string; tier: string; model: string | null }>;
+  model: string;
+  surfaces: Array<{ surface: string; label: string; model: string }>;
   problems: string[];
   checkedAt: string;
 };
 
 export type AdminContentPingResult = {
   ok: boolean;
-  result: { ok: boolean; tier: string; model: string | null; latencyMs: number; sample?: string; error?: string };
+  result: { ok: boolean; model: string; latencyMs: number; sample?: string; error?: string };
 };
 
 export type AdminNotificationRunResult = {
@@ -374,15 +374,10 @@ export const admin2 = {
   disablePromo: (code: string) => req<{ ok: boolean }>('/api/admin/v2/promo', { method: 'DELETE', body: { code } }),
   // Content generation health
   contentDiagnostics: () => req<AdminContentHealth>('/api/admin/v2/content/diagnostics'),
-  pingContentGeneration: (tier: 'fast' | 'main' | 'deep' = 'main', model?: string) =>
+  pingContentGeneration: () =>
     req<AdminContentPingResult>('/api/admin/v2/content/diagnostics', {
       method: 'POST',
-      body: model ? { tier, model } : { tier },
-    }),
-  saveContentModel: (slot: 'fast' | 'main' | 'deep', model: string) =>
-    req<{ ok: boolean; slot: string; model: string }>('/api/admin/v2/content/model', {
-      method: 'POST',
-      body: { slot, model },
+      body: {},
     }),
   // AI prompts
   listPrompts: () => req<{ prompts: AdminPromptRow[] }>('/api/admin/v2/ai'),

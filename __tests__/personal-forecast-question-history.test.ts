@@ -44,7 +44,7 @@ const generated: PersonalForecastQuestionAnswer = {
   userMessageIds: ['501'],
   semanticFingerprints: ['semantic:communication'],
   model: 'gpt-4.1',
-  promptVersion: 'personal-forecast-question.v5.semantic-writer+voice.3',
+  promptVersion: 'personal-forecast-question.v6.responses-strict-schema+voice.8',
   voiceVersion: '3',
   generationAttempts: 1,
   generatedAt: '2026-08-02T10:00:00.000Z',
