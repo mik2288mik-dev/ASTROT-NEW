@@ -3,6 +3,7 @@ import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture'
 import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
 import {
   ensurePersonalForecast,
+  getCompatibleStalePersonalForecast,
   getCachedPersonalForecast,
 } from '../../../../lib/personalForecastCache';
 import {
@@ -95,6 +96,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     if (cached) {
       return res.status(200).json(responsePayload(cached.forecast, entitlement.isPremium, 'cache'));
+    }
+    const stale = await getCompatibleStalePersonalForecast(cacheInput).catch((error) => {
+      console.error(
+        '[personal-forecast-feed-v5] compatible stale read failed:',
+        error instanceof Error ? error.message : String(error),
+      );
+      return null;
+    });
+    if (stale) {
+      if (entitlement.isPremium || period === 'day') {
+        void ensurePersonalForecast(cacheInput).catch((error) => {
+          console.error(
+            '[personal-forecast-feed-v5] lazy refresh failed:',
+            error instanceof Error ? error.message : String(error),
+          );
+        });
+      }
+      return res.status(200).json(responsePayload(
+        stale.forecast,
+        entitlement.isPremium,
+        'stale',
+      ));
+    }
+    if (!entitlement.isPremium && period !== 'day') {
+      return res.status(403).json({
+        error: 'Premium required',
+        code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
+      });
     }
     if (req.method === 'GET') {
       return res.status(404).json({

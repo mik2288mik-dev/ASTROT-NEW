@@ -1,6 +1,7 @@
 import type { PersonalForecastCalculatedEvidence } from '../lib/personalForecastEvidence';
 
 const mockCalculatePersonalForecastEvidence = jest.fn();
+const mockChatCreate = jest.fn();
 
 jest.mock('../lib/personalForecastEvidence', () => {
   const actual = jest.requireActual('../lib/personalForecastEvidence');
@@ -11,6 +12,13 @@ jest.mock('../lib/personalForecastEvidence', () => {
     ),
   };
 });
+
+jest.mock('../lib/contentAiClient', () => ({
+  isDeepSeekModel: (model: string) => model.startsWith('deepseek-'),
+  getContentAiClient: () => ({
+    chat: { completions: { create: (...args: unknown[]) => mockChatCreate(...args) } },
+  }),
+}));
 
 import {
   getPersonalForecastPeriodKey,
@@ -33,7 +41,6 @@ const profile = {
 function evidence(
   id: string,
   natalPoint: 'mercury' | 'venus',
-  strength: number,
 ): PersonalForecastCalculatedEvidence {
   return {
     id,
@@ -47,40 +54,54 @@ function evidence(
     exactAt: '2026-08-03T12:00:00.000Z',
     startsAt: '2026-08-03T06:00:00.000Z',
     endsAt: '2026-08-03T18:00:00.000Z',
-    strength,
+    strength: 96,
     polarity: 'challenging',
     calculationSource: 'personal-forecast-v4:swisseph',
   };
 }
 
-function calculated(items: PersonalForecastCalculatedEvidence[], badSecond = false) {
+function calculated(items: PersonalForecastCalculatedEvidence[]) {
   return {
     evidence: items,
     continuationEvidence: [],
-    evidenceViews: Object.fromEntries(items.map((item, index) => [item.id, {
+    evidenceViews: Object.fromEntries(items.map((item) => [item.id, {
       id: item.id,
-      factor: index === 0 ? 'Марс — квадрат к Меркурию' : 'Венера — квадрат к Венере',
+      factor: 'Марс — квадрат к Меркурию',
       orb: item.orb,
       status: item.status,
       period: '3 августа',
-      meaning: badSecond && index === 1
-        ? 'Вселенная подсказывает готовый ответ.'
-        : 'Точность формулировок и условий сейчас особенно важна.',
+      meaning: 'Расчётный факт периода.',
     }])),
   };
 }
 
-describe('personal forecast delivery fallback', () => {
+function modelResponse(evidenceId: string) {
+  return {
+    choices: [{ message: { content: JSON.stringify({
+      headline: 'Проверь формулировку',
+      paragraphs: [{
+        text: 'Сегодня точность ответа важнее скорости: одна ясная формулировка снимет лишние вопросы.',
+        evidence_ids: [evidenceId],
+      }],
+      advice: null,
+    }) } }],
+    usage: { prompt_tokens: 100, completion_tokens: 40 },
+  };
+}
+
+describe('personal forecast model delivery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it.each(['day', 'week', 'month'] as const)(
-    'assembles a contract-valid model-independent %s package',
+    'assembles a contract-valid grounded %s package from one model response',
     async (period) => {
+      const evidenceId = `evidence:${period}`;
       mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(
-        calculated([evidence(`evidence:${period}`, 'mercury', 96)]),
+        calculated([evidence(evidenceId, 'mercury')]),
       );
+      mockChatCreate.mockResolvedValueOnce(modelResponse(evidenceId));
       const periodKey = getPersonalForecastPeriodKey(
         period,
         new Date('2026-08-03T09:00:00.000Z'),
@@ -89,40 +110,34 @@ describe('personal forecast delivery fallback', () => {
       const forecast = await generatePersonalForecastPackage({
         profile: profile as never,
         chartData: chartFixture,
-        model: 'fixture-model',
+        model: 'deepseek-v4-flash',
         period,
         window: resolvePersonalForecastWindow(period, periodKey, 'Europe/Moscow'),
       });
 
       expect(isPersonalForecastPackage(forecast)).toBe(true);
-      expect(forecast.meta.validationStatus).toBe('deterministic_fallback');
-      expect(forecast.sections).toHaveLength(1);
+      expect(forecast.meta.validationStatus).toBe('valid');
+      expect(mockChatCreate).toHaveBeenCalledTimes(1);
     },
   );
 
-  it('rebuilds an invalid full package from the strongest confirmed fact', async () => {
-    mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(calculated([
-      evidence('evidence:strongest', 'mercury', 100),
-      evidence('evidence:second', 'venus', 99),
-    ], true));
-    const periodKey = '2026-08-03';
-    const forecast = await generatePersonalForecastPackage({
+  it('rejects two ungrounded responses instead of inventing a deterministic reading', async () => {
+    mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(
+      calculated([evidence('evidence:real', 'mercury')]),
+    );
+    mockChatCreate.mockResolvedValue(modelResponse('evidence:missing'));
+
+    await expect(generatePersonalForecastPackage({
       profile: profile as never,
       chartData: chartFixture,
-      model: 'fixture-model',
+      model: 'deepseek-v4-flash',
       period: 'day',
-      window: resolvePersonalForecastWindow('day', periodKey, 'Europe/Moscow'),
-    });
-
-    expect(isPersonalForecastPackage(forecast)).toBe(true);
-    expect(forecast.meta.validationStatus).toBe('deterministic_fallback');
-    expect(forecast.meta.diagnosticCode).toContain('PACKAGE_EVIDENCE_INVALID');
-    expect(forecast.sections).toHaveLength(1);
-    expect(forecast.evidence).toHaveProperty('evidence:strongest');
-    expect(forecast.evidence).not.toHaveProperty('evidence:second');
+      window: resolvePersonalForecastWindow('day', '2026-08-03', 'Europe/Moscow'),
+    })).rejects.toThrow('PERSONAL_FORECAST_GENERATION_INVALID');
+    expect(mockChatCreate).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps houses and angles out when birth time is unknown', async () => {
+  it('keeps unreliable houses and angles out of the model input', async () => {
     const unknownTimeChart = {
       ...chartFixture,
       rising: null,
@@ -136,18 +151,26 @@ describe('personal forecast delivery fallback', () => {
         notes: ['Birth time unknown'],
       },
     };
+    const evidenceId = 'evidence:unknown-time';
     mockCalculatePersonalForecastEvidence.mockResolvedValueOnce(
-      calculated([evidence('evidence:unknown-time', 'mercury', 96)]),
+      calculated([evidence(evidenceId, 'mercury')]),
     );
-    const forecast = await generatePersonalForecastPackage({
+    mockChatCreate.mockResolvedValueOnce(modelResponse(evidenceId));
+
+    await generatePersonalForecastPackage({
       profile: { ...profile, birthTime: '' } as never,
       chartData: unknownTimeChart as never,
-      model: 'fixture-model',
+      model: 'deepseek-v4-flash',
       period: 'day',
       window: resolvePersonalForecastWindow('day', '2026-08-03', 'Europe/Moscow'),
     });
 
-    expect(isPersonalForecastPackage(forecast)).toBe(true);
-    expect(forecast.sections.every((section) => section.visualTag !== 'communication_learning')).toBe(true);
+    const params = mockChatCreate.mock.calls[0][0] as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    const userPrompt = params.messages.find((message) => message.role === 'user')?.content || '';
+    expect(userPrompt).toContain('"birth_time_quality": "unknown"');
+    expect(userPrompt).toContain('"angles": []');
+    expect(userPrompt).not.toContain('"houses"');
   });
 });

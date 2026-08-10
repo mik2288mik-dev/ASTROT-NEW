@@ -1,6 +1,8 @@
 const mockContentInterpretations = {
   getByChart: jest.fn(),
   getByUser: jest.fn(),
+  getLatestByChartVariant: jest.fn(),
+  getLatestByUserVariant: jest.fn(),
   upsertByChart: jest.fn(),
   upsertByUser: jest.fn(),
 };
@@ -28,12 +30,9 @@ jest.mock('../lib/contentGenerationLock', () => ({
 
 const mockAppendCalculationSnapshot = jest.fn();
 const mockAppendGeneratedArtifact = jest.fn();
-const mockGetAstrologyHistoryContext = jest.fn();
-
 jest.mock('../lib/astrologyHistoryStore', () => ({
   appendCalculationSnapshot: (...args: unknown[]) => mockAppendCalculationSnapshot(...args),
   appendGeneratedArtifact: (...args: unknown[]) => mockAppendGeneratedArtifact(...args),
-  getAstrologyHistoryContext: (...args: unknown[]) => mockGetAstrologyHistoryContext(...args),
 }));
 
 jest.mock('../lib/personalForecastEvidence', () => ({
@@ -43,10 +42,6 @@ jest.mock('../lib/personalForecastEvidence', () => ({
     housesReliable: true,
     houseBasedPersonalization: true,
   })),
-}));
-
-jest.mock('../lib/personalForecastSemantics', () => ({
-  PERSONAL_FORECAST_SEMANTICS_VERSION: 'personal-forecast-semantics-v3',
 }));
 
 jest.mock('../lib/personalForecastContract', () => ({
@@ -76,21 +71,66 @@ jest.mock('../lib/personalForecastGeneration', () => ({
   generatePersonalForecastPackage: (...args: unknown[]) => mockGeneratePersonalForecastPackage(...args),
 }));
 
-import { ensurePersonalForecast } from '../lib/personalForecastCache';
+import {
+  ensurePersonalForecast,
+  getCompatibleStalePersonalForecast,
+} from '../lib/personalForecastCache';
 
 describe('personal forecast durable history cache path', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockContentInterpretations.getByChart.mockResolvedValue(null);
+    mockContentInterpretations.getLatestByChartVariant.mockResolvedValue(null);
     mockContentInterpretations.upsertByChart.mockResolvedValue(undefined);
-    mockGetAstrologyHistoryContext.mockResolvedValue({
-      calculations: [],
-      explicitFacts: [],
-      userMessages: [],
-      artifactContinuity: [{ semanticFingerprints: ['older-semantic'] }],
-    });
     mockAppendCalculationSnapshot.mockResolvedValue({ id: 101 });
     mockAppendGeneratedArtifact.mockResolvedValue({ id: 202 });
+  });
+
+  it('accepts only an input-compatible old-prompt result as stale', async () => {
+    const forecast = {
+      period: 'day',
+      periodKey: '2026-08-02',
+      meta: {
+        model: 'gpt-test',
+        promptVersion: 'old-prompt',
+        voiceVersion: '8',
+        calculationVersion: 'personal-forecast-evidence-v4',
+        semanticVersion: 'personal-forecast-feed-v5',
+        contractVersion: 'personal-forecast-feed-v5',
+      },
+    };
+    mockContentInterpretations.getLatestByChartVariant.mockResolvedValueOnce({
+      cacheKey: 'old-cache-key',
+      inputHash: 'input-v4',
+      promptVersion: 'old-prompt',
+      calculationVersion: 'personal-forecast-evidence-v4',
+      content: forecast,
+    });
+    const input = {
+      ctx: {
+        user: { id: '42' },
+        profile: { id: '42', language: 'ru' } as never,
+        chartId: 7,
+        chartData: { timezone: 'Europe/Moscow' } as never,
+      },
+      period: 'day' as const,
+      periodKey: '2026-08-02',
+    };
+
+    await expect(getCompatibleStalePersonalForecast(input)).resolves.toMatchObject({
+      forecast,
+      cacheKey: 'old-cache-key',
+      inputHash: 'input-v4',
+    });
+
+    mockContentInterpretations.getLatestByChartVariant.mockResolvedValueOnce({
+      cacheKey: 'old-cache-key',
+      inputHash: 'different-chart-or-period',
+      promptVersion: 'old-prompt',
+      calculationVersion: 'personal-forecast-evidence-v4',
+      content: forecast,
+    });
+    await expect(getCompatibleStalePersonalForecast(input)).resolves.toBeNull();
   });
 
   it('records raw calculation evidence before writing and stores prose as display-only output', async () => {
@@ -129,14 +169,12 @@ describe('personal forecast durable history cache path', () => {
     };
     mockGeneratePersonalForecastPackage.mockImplementationOnce(async (input: {
       onEvidenceCalculated: (payload: unknown) => Promise<unknown>;
-      historyContext: unknown;
     }) => {
-      expect(input.historyContext).toMatchObject({
-        artifactContinuity: [{ semanticFingerprints: ['older-semantic'] }],
-      });
+      expect(input).not.toHaveProperty('historyContext');
+      expect(input).not.toHaveProperty('previousForecast');
       await input.onEvidenceCalculated({
         calculated,
-        semanticFacts: [{ id: 'semantic-1' }],
+        semanticFacts: [],
       });
       return forecast;
     });
@@ -173,7 +211,7 @@ describe('personal forecast durable history cache path', () => {
       periodKey: '2026-08-02',
       inputHash: 'input-v4',
       calculationVersion: 'personal-forecast-evidence-v4',
-      semanticVersion: 'personal-forecast-semantics-v3',
+      semanticVersion: 'personal-forecast-feed-v5',
       ephemerisSource: 'swisseph',
       birthTimeStatus: 'exact',
       calculationPayload: {
@@ -198,12 +236,12 @@ describe('personal forecast durable history cache path', () => {
       semanticFingerprints: ['overview-semantic', 'section-semantic'],
       provider: 'openai',
       modelId: 'gpt-test',
-      semanticVersion: 'personal-forecast-semantics-v3',
+      semanticVersion: 'personal-forecast-feed-v5',
       contractVersion: 'personal-forecast-feed-v5',
       validationStatus: 'valid',
       generationAttempts: 1,
       provenance: {
-        source: 'personal_forecast_semantic_pipeline',
+        source: 'personal_forecast_direct_evidence',
         displayOnly: true,
         isFactualEvidence: false,
       },
@@ -225,15 +263,14 @@ describe('personal forecast durable history cache path', () => {
       continuationEvidence: [],
       evidenceViews: {},
     };
-    mockGetAstrologyHistoryContext.mockRejectedValueOnce(new Error('history read offline'));
     mockAppendCalculationSnapshot.mockRejectedValueOnce(new Error('history write offline'));
     mockContentInterpretations.getByChart.mockRejectedValueOnce(new Error('cache read offline'));
     mockContentInterpretations.upsertByChart.mockRejectedValueOnce(new Error('cache write offline'));
     mockGeneratePersonalForecastPackage.mockImplementationOnce(async (input: {
       onEvidenceCalculated: (payload: unknown) => Promise<unknown>;
-      historyContext: unknown;
     }) => {
-      expect(input.historyContext).toBeNull();
+      expect(input).not.toHaveProperty('historyContext');
+      expect(input).not.toHaveProperty('previousForecast');
       await input.onEvidenceCalculated({ calculated, semanticFacts: [] });
       return forecast;
     });

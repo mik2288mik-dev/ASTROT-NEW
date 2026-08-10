@@ -2028,6 +2028,72 @@ export const db = {
       }
     },
 
+    async getLatestByChartVariant(
+      chartId: number,
+      accessTier: DbContentAccessTier,
+      contentSurface: DbContentSurface,
+      contentVariant: DbContentVariant,
+    ) {
+      if (!DATABASE_URL) return null;
+      try {
+        const result = await getPool().query(
+          `SELECT *
+           FROM content_interpretations
+           WHERE chart_id = $1
+             AND access_tier = $2
+             AND content_surface = $3
+             AND content_variant = $4
+           ORDER BY updated_at DESC
+           LIMIT 1`,
+          [chartId, accessTier, contentSurface, contentVariant],
+        );
+        return result.rows[0] ? mapContentInterpretationRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting latest content interpretation by chart variant', {
+          error: error.message,
+          chartId,
+          accessTier,
+          contentSurface,
+          contentVariant,
+        });
+        throw error;
+      }
+    },
+
+    async getLatestByUserVariant(
+      userId: string,
+      accessTier: DbContentAccessTier,
+      contentSurface: DbContentSurface,
+      contentVariant: DbContentVariant,
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const result = await getPool().query(
+          `SELECT *
+           FROM content_interpretations
+           WHERE user_id = $1
+             AND access_tier = $2
+             AND content_surface = $3
+             AND content_variant = $4
+             AND chart_id IS NULL
+           ORDER BY updated_at DESC
+           LIMIT 1`,
+          [id, accessTier, contentSurface, contentVariant],
+        );
+        return result.rows[0] ? mapContentInterpretationRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting latest content interpretation by user variant', {
+          error: error.message,
+          userId,
+          accessTier,
+          contentSurface,
+          contentVariant,
+        });
+        throw error;
+      }
+    },
+
     async get(
       chartIdOrUserId: number | string,
       accessTier: DbContentAccessTier,

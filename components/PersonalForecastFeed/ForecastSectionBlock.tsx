@@ -128,8 +128,11 @@ export function ForecastSectionBlock({
     ? ''
     : sectionTitle;
   const preview = section.lockedPreview;
+  const hasReadableCopy = section.contentBlocks.some((block) => block.text.trim());
+  const hasChildren = React.Children.count(children) > 0;
 
   if (section.status !== 'ready') return null;
+  if (!locked && !hasReadableCopy && !hasChildren) return null;
 
   return (
     <section

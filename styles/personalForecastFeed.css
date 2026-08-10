@@ -454,58 +454,53 @@
   min-height: 0;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 18px;
+  gap: 0;
   margin: 0 auto;
   padding: 24px 24px 80px;
   background: #ffffff;
   text-align: start;
 }
 
-.forecast-feed-status--loading .forecast-feed-loading-label {
-  max-width: none;
-  color: #6b7280;
-  font-size: 14px;
-  font-weight: 560;
-  letter-spacing: 0;
-  line-height: 1.4;
-}
-
 .forecast-feed-loading-preview {
   display: grid;
-  gap: 11px;
+  gap: 0;
   width: 100%;
 }
 
 .forecast-feed-loading-preview span {
   display: block;
   border-radius: 999px;
-  background: #eef0f2;
+  background: #eceff1;
   animation: forecast-feed-loading-pulse 1.3s ease-in-out infinite alternate;
 }
 
 .forecast-feed-loading-headline {
-  height: 30px;
+  height: 31px;
 }
 
 .forecast-feed-loading-headline.is-long {
-  width: min(78%, 340px);
+  width: min(72%, 340px);
 }
 
 .forecast-feed-loading-headline.is-short {
-  width: min(56%, 240px);
-  margin-top: -4px;
+  width: min(46%, 220px);
+  margin-top: 8px;
 }
 
 .forecast-feed-loading-lead,
 .forecast-feed-loading-copy {
   display: grid;
-  gap: 9px;
-  margin-top: 7px;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 .forecast-feed-loading-lead span,
 .forecast-feed-loading-copy span {
-  height: 13px;
+  height: 12px;
+}
+
+.forecast-feed-loading-lead span {
+  height: 14px;
 }
 
 .forecast-feed-loading-lead span:first-child,
@@ -518,9 +513,9 @@
 }
 
 .forecast-feed-loading-section-title {
-  width: min(46%, 200px);
-  height: 20px;
-  margin-top: 26px;
+  width: min(44%, 190px);
+  height: 22px;
+  margin-top: 40px;
 }
 
 .forecast-feed-loading-copy span:last-child {

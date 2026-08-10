@@ -4,9 +4,6 @@ import {
   planRetentionNotifications,
   generateDailyCards,
 } from '../../../services/notificationRetentionService';
-import {
-  prewarmPersonalForecastsForActiveUsers,
-} from '../../../lib/personalForecastPrewarm';
 import { processPendingRuStoreEvents } from '../../../lib/rustorePayments';
 import { prewarmUpcomingSignHoroscopes } from '../../../lib/horoscope/signPrewarm';
 
@@ -25,7 +22,6 @@ export const config = { maxDuration: 120 };
 
 const MSK_TZ = 'Europe/Moscow';
 const PLANNER_LIMIT = 500;
-const PERSONAL_FORECAST_LIMIT = 250;
 
 function verifyCron(req: NextApiRequest): boolean {
   const secret = process.env.CRON_SECRET || '';
@@ -96,19 +92,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.warn('[cron/tick] RuStore payment queue failed:', error instanceof Error ? error.message : error);
   }
-
-  // 2) Prewarm the current personal periods. The resolver adds upcoming periods only
-  // near their boundaries; cache keys and generation locks make repeated instances safe.
-  await once(
-    'personal-forecast-periods',
-    dateKey,
-    () => prewarmPersonalForecastsForActiveUsers(now, {
-      limit: PERSONAL_FORECAST_LIMIT,
-      activeDays: 7,
-      concurrency: 2,
-    }),
-    ran
-  );
 
   // One RU DeepSeek request fills every missing sign for a period. Rows are
   // still validated and stored independently; retries include only gaps.

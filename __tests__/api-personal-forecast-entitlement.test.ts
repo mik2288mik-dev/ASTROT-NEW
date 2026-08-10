@@ -1,6 +1,7 @@
 const mockEnsureValidContext = jest.fn();
 const mockGetPremiumEntitlementState = jest.fn();
 const mockGetCachedPersonalForecast = jest.fn();
+const mockGetCompatibleStalePersonalForecast = jest.fn();
 const mockEnsurePersonalForecast = jest.fn();
 
 jest.mock('../lib/natalReading/apiHelper', () => ({
@@ -13,6 +14,8 @@ jest.mock('../lib/contentArchitecture', () => ({
 jest.mock('../lib/personalForecastCache', () => ({
   getCachedPersonalForecast: (...args: unknown[]) =>
     mockGetCachedPersonalForecast(...args),
+  getCompatibleStalePersonalForecast: (...args: unknown[]) =>
+    mockGetCompatibleStalePersonalForecast(...args),
   ensurePersonalForecast: (...args: unknown[]) =>
     mockEnsurePersonalForecast(...args),
 }));
@@ -55,20 +58,12 @@ describe('personal forecast API entitlement', () => {
       entitlement: null,
     });
     mockGetCachedPersonalForecast.mockResolvedValue(null);
+    mockGetCompatibleStalePersonalForecast.mockResolvedValue(null);
   });
 
   it.each(['week', 'month'])(
-    'returns a personalized redacted %s preview to Free without exposing full text',
+    'stops a Free %s cache miss before generation',
     async (period) => {
-      const forecast = {
-        ...personalForecastFixture(),
-        period,
-      };
-      mockEnsurePersonalForecast.mockResolvedValue({
-        status: 'ready',
-        value: forecast,
-        fromCache: false,
-      });
       const { res, status, json } = responseMock();
       const req = {
         method: 'POST',
@@ -83,24 +78,68 @@ describe('personal forecast API entitlement', () => {
 
       await handler(req, res);
 
-      expect(status).toHaveBeenCalledWith(200);
+      expect(status).toHaveBeenCalledWith(403);
       expect(mockGetCachedPersonalForecast).toHaveBeenCalledTimes(1);
-      expect(mockEnsurePersonalForecast).toHaveBeenCalledTimes(1);
+      expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
       const payload = json.mock.calls[0][0];
       expect(payload).toMatchObject({
-        accessTier: 'free',
-        periodLocked: true,
-        source: 'generated',
+        code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
       });
-      expect(payload.forecast.overview.text).toBe('');
-      expect(payload.forecast.overview.lockedPreview.teaser).toBeTruthy();
-      expect(payload.forecast.overview.lockedPreview.lead).toBeTruthy();
-      expect(payload.forecast.overview.lockedPreview.blurred).toBeTruthy();
-      expect(payload.forecast.sections.every(
-        (section: { text: string }) => section.text === '',
-      )).toBe(true);
     },
   );
+
+  it('still serves an existing cached week to Free as a locked preview', async () => {
+    mockGetCachedPersonalForecast.mockResolvedValueOnce({
+      forecast: { ...personalForecastFixture(), period: 'week' },
+    });
+    const { res, status, json } = responseMock();
+    const req = {
+      method: 'GET', query: { period: 'week' }, body: {}, headers: {},
+    } as unknown as NextApiRequest;
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
+    expect(json.mock.calls[0][0]).toMatchObject({
+      accessTier: 'free', periodLocked: true, source: 'cache',
+    });
+  });
+
+  it('serves a compatible stale day immediately and refreshes it lazily', async () => {
+    mockGetCompatibleStalePersonalForecast.mockResolvedValueOnce({
+      forecast: personalForecastFixture(),
+    });
+    mockEnsurePersonalForecast.mockResolvedValueOnce({
+      status: 'ready', value: personalForecastFixture(), fromCache: false,
+    });
+    const { res, status, json } = responseMock();
+    const req = {
+      method: 'GET', query: { period: 'day' }, body: {}, headers: {},
+    } as unknown as NextApiRequest;
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json.mock.calls[0][0]).toMatchObject({ source: 'stale' });
+    expect(mockEnsurePersonalForecast).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh a compatible stale premium period for Free', async () => {
+    mockGetCompatibleStalePersonalForecast.mockResolvedValueOnce({
+      forecast: { ...personalForecastFixture(), period: 'week' },
+    });
+    const { res, status, json } = responseMock();
+    const req = {
+      method: 'GET', query: { period: 'week' }, body: {}, headers: {},
+    } as unknown as NextApiRequest;
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json.mock.calls[0][0]).toMatchObject({ source: 'stale', periodLocked: true });
+    expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
+  });
 
   it('generates on POST when the initial cache read is temporarily unavailable', async () => {
     const forecast = personalForecastFixture();

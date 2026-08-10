@@ -426,7 +426,7 @@ describe('permanent natal V2 contract', () => {
       keywords: { love: 'legacy', career: 'legacy', karma: 'legacy' },
     });
     const prompt = buildPermanentNatalPremiumPrompt('en', built).toLocaleLowerCase();
-    expect(prompt).toContain('do not mention the coming year, current transits, dates, future events, or timing');
+    expect(prompt).toContain('no current transits, calendar dates, future events, or timing');
     expect(prompt).not.toMatch(/\b(?:30|90)\s*(?:day|days|дн(?:я|ей))\b/u);
     expect(prompt).not.toContain('legacy prewritten interpretation');
     expect(prompt).not.toContain('"summary"');

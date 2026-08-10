@@ -17,7 +17,6 @@ import {
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
-import { PERSONAL_FORECAST_SEMANTICS_VERSION } from '../lib/personalForecastSemantics';
 import { chartFixture, personalForecastFixture } from './personal-forecast-fixture';
 
 function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPackage {
@@ -68,21 +67,46 @@ function cloneSemanticSection(source: ForecastSection, suffix: string): Forecast
   };
 }
 
-describe('personal forecast V4 semantic contract', () => {
-  test('accepts only supported semantic sections without mandatory rubrics', () => {
+describe('personal forecast direct-reading contract', () => {
+  test('accepts a reading with no optional advice section and has no section-count ceiling', () => {
     const base = personalForecastFixture();
     expect(isPersonalForecastPackage(base)).toBe(true);
     expect(base.sections.every((section) => section.kind === 'dynamic')).toBe(true);
     expect(base.sections.some((section) => section.fixedKey)).toBe(false);
 
-    expect(isPersonalForecastPackage({ ...base, sections: [] })).toBe(false);
+    expect(isPersonalForecastPackage({
+      ...base,
+      sections: [],
+      visual: { sectionAssetIds: { overview: null } },
+      meta: {
+        ...base.meta,
+        freeSelection: { strongestSectionId: null, rotatedSectionId: null, sectionIds: [] },
+      },
+    })).toBe(true);
     const tooMany = [
       ...base.sections,
       cloneSemanticSection(base.sections[0], 'extra-a'),
       cloneSemanticSection(base.sections[0], 'extra-b'),
       cloneSemanticSection(base.sections[0], 'extra-c'),
     ];
-    expect(isPersonalForecastPackage({ ...base, sections: tooMany })).toBe(false);
+    const expanded = {
+      ...base,
+      sections: tooMany,
+      evidence: {
+        ...base.evidence,
+        ...Object.fromEntries(['extra-a', 'extra-b', 'extra-c'].map((suffix) => [
+          `fact:${suffix}`,
+          { ...base.evidence.e1, id: `fact:${suffix}` },
+        ])),
+      },
+      visual: {
+        sectionAssetIds: {
+          ...base.visual.sectionAssetIds,
+          ...Object.fromEntries(tooMany.slice(base.sections.length).map((section) => [section.id, null])),
+        },
+      },
+    };
+    expect(isPersonalForecastPackage(expanded)).toBe(true);
 
     const duplicate = structuredClone(base);
     duplicate.sections[1].semanticFingerprint = duplicate.sections[0].semanticFingerprint;
@@ -126,27 +150,22 @@ describe('personal forecast V4 semantic contract', () => {
     })).toBe('PACKAGE_VISUAL_INVALID');
   });
 
-  test('keeps the hard voice rule on user-visible evidence and explanation sheets', () => {
+  test('does not reject grounded content through a style blacklist', () => {
     const clicheEvidence = structuredClone(personalForecastFixture());
     clicheEvidence.evidence.e1.meaning = 'Это может проявляться сильнее, поэтому не спеши.';
-    expect(getPersonalForecastPackageValidationError(clicheEvidence)).toBe(
-      'PACKAGE_EVIDENCE_INVALID',
-    );
+    expect(getPersonalForecastPackageValidationError(clicheEvidence)).toBeNull();
 
     const clicheExplanation = structuredClone(personalForecastFixture());
     clicheExplanation.sections[0].explanationAnchors[0].explanation =
       'Не спеши: активная тема может проявляться сильнее.';
-    expect(getPersonalForecastPackageValidationError(clicheExplanation)).toBe(
-      'PACKAGE_SECTION_INVALID:semantic:communication',
-    );
+    expect(getPersonalForecastPackageValidationError(clicheExplanation)).toBeNull();
   });
 
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-evidence-v4');
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v6');
-    expect(PERSONAL_FORECAST_SEMANTICS_VERSION).toBe('personal-forecast-semantics-v3');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v8.direct-swiss-evidence-writer');
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v10');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v17.single-call-150');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
 
     for (const patch of [
@@ -187,7 +206,7 @@ describe('personal forecast V4 semantic contract', () => {
     };
     const cacheKey = buildPersonalForecastCacheKey(shared);
     const inputHash = buildPersonalForecastInputHash(shared);
-    expect(cacheKey).toMatch(/^personal-forecast-feed-v6:/);
+    expect(cacheKey).toMatch(/^personal-forecast-feed-v10:/);
     expect(inputHash).toMatch(/^[a-z0-9]+$/);
     expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
     expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);

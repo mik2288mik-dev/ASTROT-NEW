@@ -74,17 +74,16 @@ describe('personal forecast prewarm', () => {
     expect(mockedLoad).toHaveBeenCalledTimes(2);
   });
 
-  it('adds upcoming periods only near their boundaries', () => {
+  it('does not schedule server-side personal forecast generation', () => {
     const ordinary = buildPersonalForecastPrewarmTargets(
       new Date('2026-07-15T09:00:00.000Z'),
       'Europe/Moscow',
     );
-    expect(ordinary).toHaveLength(3);
+    expect(ordinary).toEqual([]);
     const boundary = buildPersonalForecastPrewarmTargets(
       new Date('2026-12-30T19:30:00.000Z'),
       'Europe/Moscow',
     );
-    expect(boundary.some((item) => item.period === 'day' && item.periodKey === '2026-12-31')).toBe(true);
-    expect(boundary.filter((item) => item.period === 'month')).toHaveLength(2);
+    expect(boundary).toEqual([]);
   });
 });

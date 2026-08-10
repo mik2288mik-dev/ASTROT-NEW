@@ -4,7 +4,6 @@ import { getUnifiedContentModel } from './appSettings';
 import {
   appendCalculationSnapshot,
   appendGeneratedArtifact,
-  getAstrologyHistoryContext,
 } from './astrologyHistoryStore';
 import {
   buildContentGenerationLockKey,
@@ -20,7 +19,6 @@ import {
   buildPersonalForecastChartFingerprint,
   buildPersonalForecastCacheKey,
   buildPersonalForecastInputHash,
-  getPreviousPersonalForecastPeriodKey,
   getPersonalForecastPackageValidationError,
   isPersonalForecastPackage,
   resolvePersonalForecastWindow,
@@ -33,10 +31,6 @@ import {
   type PersonalForecastCalculatedEvidence,
 } from './personalForecastEvidence';
 import { generatePersonalForecastPackage } from './personalForecastGeneration';
-import {
-  PERSONAL_FORECAST_SEMANTICS_VERSION,
-  type ForecastSemanticFact,
-} from './personalForecastSemantics';
 
 const CANONICAL_CACHE_TIER = 'premium' as const;
 const ASTROLOGY_HISTORY_SCHEMA_VERSION = 'history-v1';
@@ -72,6 +66,7 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
     modelId: model,
   };
   return {
+    common,
     model,
     language,
     window,
@@ -106,7 +101,7 @@ async function appendForecastCalculationSnapshot(input: {
   cache: PersonalForecastCacheContext;
   identity: Awaited<ReturnType<typeof resolveCacheIdentity>>;
   calculated: EvidenceCalculationResult;
-  semanticFacts: ForecastSemanticFact[];
+  semanticFacts: [];
 }): Promise<number> {
   const chartData = input.cache.ctx.chartData!;
   const chartId = input.cache.ctx.chartId!;
@@ -125,7 +120,7 @@ async function appendForecastCalculationSnapshot(input: {
     periodKey: input.cache.periodKey,
     inputHash: input.identity.inputHash,
     calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-    semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+    semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
     ephemerisSource: metadata?.ephemerisMode || 'swisseph',
     houseSystem: metadata?.houseSystem || null,
     birthTimeStatus: reliability.birthTimeQuality,
@@ -141,7 +136,7 @@ async function appendForecastCalculationSnapshot(input: {
       continuation: input.calculated.continuationEvidence.map(rawEvidenceMetadata),
     },
     provenance: {
-      source: 'personal_forecast_semantic_pipeline',
+      source: 'personal_forecast_direct_evidence',
       semanticFactCount: input.semanticFacts.length,
       containsGeneratedProse: false,
     },
@@ -176,13 +171,13 @@ async function appendForecastGeneratedArtifact(input: {
     modelId: input.identity.model,
     promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     voiceVersion: APP_VOICE_VERSION,
-    semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+    semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
     contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
     validationStatus: input.forecast.meta.validationStatus,
     generationAttempts: input.forecast.meta.generationAttempts,
     inputHash: input.identity.inputHash,
     provenance: {
-      source: 'personal_forecast_semantic_pipeline',
+      source: 'personal_forecast_direct_evidence',
       displayOnly: true,
       isFactualEvidence: false,
     },
@@ -234,6 +229,64 @@ export async function getCachedPersonalForecast(
     model: identity.model,
     cacheKey: identity.cacheKey,
     inputHash: identity.inputHash,
+  };
+}
+
+export async function getCompatibleStalePersonalForecast(
+  input: PersonalForecastCacheContext,
+): Promise<{
+  forecast: PersonalForecastPackage;
+  model: string;
+  cacheKey: string;
+  inputHash: string;
+} | null> {
+  const identity = await resolveCacheIdentity(input);
+  const userId = String(input.ctx.profile.id);
+  const existing = input.ctx.chartId != null
+    ? await db.content_interpretations.getLatestByChartVariant(
+        input.ctx.chartId,
+        CANONICAL_CACHE_TIER,
+        'forecast',
+        identity.contentVariant,
+      )
+    : await db.content_interpretations.getLatestByUserVariant(
+        userId,
+        CANONICAL_CACHE_TIER,
+        'forecast',
+        identity.contentVariant,
+      );
+  const interpretation = existing as ContentInterpretation<PersonalForecastPackage> | null;
+  const forecast = interpretation?.content;
+  const stalePromptVersion = interpretation?.promptVersion;
+  if (
+    !interpretation
+    || !forecast
+    || typeof stalePromptVersion !== 'string'
+    || !stalePromptVersion.trim()
+    || interpretation.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
+    || forecast.meta.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
+    || forecast.meta.semanticVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
+    || forecast.meta.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
+    || forecast.meta.voiceVersion !== APP_VOICE_VERSION
+    || forecast.meta.model !== identity.model
+    || forecast.period !== input.period
+    || forecast.periodKey !== input.periodKey
+    || !isPersonalForecastPackage(forecast, { promptVersion: stalePromptVersion })
+  ) {
+    return null;
+  }
+  const expectedInputHash = buildPersonalForecastInputHash(identity.common, {
+    calculationVersion: forecast.meta.calculationVersion,
+    contractVersion: forecast.meta.contractVersion,
+    promptVersion: stalePromptVersion,
+    voiceVersion: forecast.meta.voiceVersion,
+  });
+  if (interpretation.inputHash !== expectedInputHash) return null;
+  return {
+    forecast,
+    model: identity.model,
+    cacheKey: interpretation.cacheKey,
+    inputHash: expectedInputHash,
   };
 }
 
@@ -298,36 +351,6 @@ export async function ensurePersonalForecast(
       }
     },
     generate: async () => {
-      const historyContext = await getAstrologyHistoryContext({
-        userId: String(input.ctx.profile.id),
-        subjectChartId: input.ctx.chartId!,
-        surface: 'forecast',
-        calculationLimit: 8,
-        factLimit: 20,
-        messageLimit: 12,
-        artifactLimit: 20,
-      }).catch((error) => {
-        console.error(
-          '[personal-forecast-feed-v5] history context unavailable:',
-          error instanceof Error ? error.message : String(error),
-        );
-        return null;
-      });
-      const previousPeriodKey = getPreviousPersonalForecastPeriodKey(
-        input.period,
-        input.periodKey,
-        identity.window.timezone,
-      );
-      const previous = await getCachedPersonalForecast({
-        ...input,
-        periodKey: previousPeriodKey,
-      }, { allowExpired: true }).catch((error) => {
-        console.error(
-          '[personal-forecast-feed-v5] previous forecast unavailable:',
-          error instanceof Error ? error.message : String(error),
-        );
-        return null;
-      });
       let calculationSnapshotId: number | null = null;
       const forecast = await generatePersonalForecastPackage({
         profile: input.ctx.profile,
@@ -335,8 +358,6 @@ export async function ensurePersonalForecast(
         model: identity.model,
         period: input.period,
         window: identity.window,
-        previousForecast: previous?.forecast ?? null,
-        historyContext,
         onEvidenceCalculated: async ({ calculated, semanticFacts }) => {
           try {
             calculationSnapshotId = await appendForecastCalculationSnapshot({

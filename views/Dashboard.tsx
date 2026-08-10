@@ -29,6 +29,7 @@ import {
 import {
   loadPersonalForecast,
   readLocalPersonalForecast,
+  type PersonalForecastClientError,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
 import { ForecastPromotion } from '../components/PersonalForecastFeed/ForecastPromotion';
@@ -64,6 +65,17 @@ type PeriodState = {
   phase: 'idle' | 'loading' | 'ready' | 'error';
 };
 
+type PeriodRequest = {
+  cacheOnly: boolean;
+  promise: Promise<void>;
+};
+
+type DisplayedForecast = {
+  identityKey: string;
+  period: PersonalForecastPeriod;
+  result: PersonalForecastClientResult;
+};
+
 const PERIOD_TABS: ReadonlyArray<{
   id: PersonalForecastPeriod;
   ru: string;
@@ -94,33 +106,6 @@ function personalForecastLoadingLabel(
 
 function emptyPeriodState(): PeriodState {
   return { result: null, phase: 'idle' };
-}
-
-function personalForecastReadyMarkerKey(userId: string, chartFingerprint: string): string {
-  return `tvoi-goroskop:personal-forecast-ready:${userId}:${chartFingerprint}`;
-}
-
-function hasPersonalForecastReadyMarker(userId: string, chartFingerprint: string): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.localStorage.getItem(
-      personalForecastReadyMarkerKey(userId, chartFingerprint),
-    ) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function writePersonalForecastReadyMarker(userId: string, chartFingerprint: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(
-      personalForecastReadyMarkerKey(userId, chartFingerprint),
-      'true',
-    );
-  } catch {
-    // A restricted webview must not turn a successful reading into an error.
-  }
 }
 
 type PersonalForecastPromoSlot = {
@@ -209,18 +194,15 @@ export const Dashboard = memo<DashboardProps>(({
     month: emptyPeriodState(),
   });
   const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
-  const [hasCompletedPersonalForecast, setHasCompletedPersonalForecast] = useState(
-    () => hasPersonalForecastReadyMarker(userId, chartFingerprint),
-  );
+  const [displayedForecast, setDisplayedForecast] = useState<DisplayedForecast | null>(null);
   const [unreadQuestions, setUnreadQuestions] =
     useState<PersonalForecastQuestionNotification[]>([]);
   const [focusQuestion, setFocusQuestion] =
     useState<PersonalForecastQuestionNotification | null>(null);
-  const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, Promise<void>>>>({});
+  const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const contextRef = useRef('');
   const accessContextRef = useRef('');
   const pendingSectionRef = useRef<string | null>(null);
-  const pendingPeriodRef = useRef<PersonalForecastPeriod | null>(null);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => ({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
@@ -246,6 +228,15 @@ export const Dashboard = memo<DashboardProps>(({
     userId,
   ]);
   const accessContextKey = `${contextKey}:${premium ? 'premium' : 'free'}`;
+  const forecastIdentityKey = [
+    userId,
+    chartId ?? 'primary',
+    chartData?.calculationVersion || 'none',
+    chartFingerprint,
+    timezone,
+    language,
+    premium ? 'premium' : 'free',
+  ].join(':');
 
   useEffect(() => {
     if (contextRef.current === contextKey) return;
@@ -268,10 +259,17 @@ export const Dashboard = memo<DashboardProps>(({
         periodKey: periodKeys[id],
       })]),
     ) as Record<PersonalForecastPeriod, PersonalForecastClientResult | null>;
-    const hasLocalResult = Object.values(localResults).some(Boolean);
-    setHasCompletedPersonalForecast(
-      hasLocalResult || hasPersonalForecastReadyMarker(userId, chartFingerprint),
-    );
+    const localDisplayPeriod = PERIOD_TABS.find(({ id }) => !!localResults[id])?.id;
+    const localDisplay = localDisplayPeriod
+      ? {
+          identityKey: forecastIdentityKey,
+          period: localDisplayPeriod,
+          result: localResults[localDisplayPeriod] as PersonalForecastClientResult,
+        }
+      : null;
+    setDisplayedForecast((current) => (
+      current?.identityKey === forecastIdentityKey ? current : localDisplay
+    ));
     setPeriodStates({
       day: { result: localResults.day, phase: localResults.day ? 'ready' : 'idle' },
       week: { result: localResults.week, phase: localResults.week ? 'ready' : 'idle' },
@@ -287,6 +285,7 @@ export const Dashboard = memo<DashboardProps>(({
     periodKeys.week,
     profile,
     chartFingerprint,
+    forecastIdentityKey,
     userId,
   ]);
 
@@ -301,7 +300,9 @@ export const Dashboard = memo<DashboardProps>(({
     options?: { retry?: boolean; cacheOnly?: boolean },
   ) => {
     if (!chartData || !hasChart) return;
-    if (requestsRef.current[period]) return;
+    const currentRequest = requestsRef.current[period];
+    const cacheOnly = options?.cacheOnly === true;
+    if (currentRequest && (!currentRequest.cacheOnly || cacheOnly)) return;
 
     const periodKey = periodKeys[period];
     const local = readLocalPersonalForecast({
@@ -317,12 +318,16 @@ export const Dashboard = memo<DashboardProps>(({
         ...current,
         [period]: {
           result: retained,
-          phase: retained ? 'ready' : 'loading',
+          phase: retained ? 'ready' : cacheOnly ? 'idle' : 'loading',
         },
       };
     });
 
     const requestContextKey = accessContextKey;
+    const requestEntry: PeriodRequest = {
+      cacheOnly,
+      promise: Promise.resolve(),
+    };
     const request = (async () => {
       try {
         const next = await loadPersonalForecast({
@@ -337,28 +342,53 @@ export const Dashboard = memo<DashboardProps>(({
             maxInProgressRetries: 60,
           },
         });
-        if (accessContextRef.current !== requestContextKey) return;
+        if (
+          accessContextRef.current !== requestContextKey
+          || requestsRef.current[period] !== requestEntry
+        ) return;
         setPeriodStates((current) => ({
           ...current,
           [period]: { result: next, phase: 'ready' },
         }));
-      } catch {
-        if (accessContextRef.current !== requestContextKey) return;
+      } catch (error) {
+        if (
+          accessContextRef.current !== requestContextKey
+          || requestsRef.current[period] !== requestEntry
+        ) return;
+        if (
+          (error as PersonalForecastClientError)?.code
+            === 'PERSONAL_FORECAST_PREMIUM_REQUIRED'
+        ) {
+          setPeriodStates((current) => ({
+            ...current,
+            [period]: {
+              result: current[period]?.result || local,
+              phase: current[period]?.result || local ? 'ready' : 'idle',
+            },
+          }));
+          void onRequestPremium?.('personal_forecast_feed', {
+            period,
+            periodKey,
+            returnInPlace: true,
+          });
+          return;
+        }
         setPeriodStates((current) => {
           const retained = current[period]?.result || local;
           return {
             ...current,
             [period]: {
               result: retained,
-              phase: retained ? 'ready' : options?.cacheOnly ? 'idle' : 'error',
+              phase: retained ? 'ready' : cacheOnly ? 'idle' : 'error',
             },
           };
         });
       }
     })();
-    requestsRef.current[period] = request;
+    requestEntry.promise = request;
+    requestsRef.current[period] = requestEntry;
     void request.then(() => {
-      if (requestsRef.current[period] === request) {
+      if (requestsRef.current[period] === requestEntry) {
         delete requestsRef.current[period];
       }
     });
@@ -368,6 +398,7 @@ export const Dashboard = memo<DashboardProps>(({
     hasChart,
     premium,
     accessContextKey,
+    onRequestPremium,
     periodKeys,
     profile,
   ]);
@@ -384,30 +415,29 @@ export const Dashboard = memo<DashboardProps>(({
 
   useEffect(() => {
     if (!requestedPeriod) return;
-    if (periodStates[requestedPeriod].result) {
-      pendingPeriodRef.current = null;
-      setActivePeriod(requestedPeriod);
-      return;
-    }
-    pendingPeriodRef.current = requestedPeriod;
+    setActivePeriod(requestedPeriod);
     loadPeriod(requestedPeriod);
-  }, [loadPeriod, periodStates, requestedPeriod]);
-
-  useEffect(() => {
-    const pending = pendingPeriodRef.current;
-    if (!pending || !periodStates[pending].result) return;
-    pendingPeriodRef.current = null;
-    setActivePeriod(pending);
-  }, [periodStates]);
+  }, [loadPeriod, requestedPeriod]);
 
   const state = periodStates[activePeriod];
-  const result = state.result;
+  const activeResult = state.result;
+  const activeResultReady = activeResult?.forecast.meta.status === 'ready';
+  const display: DisplayedForecast | null = activeResultReady && activeResult
+    ? { identityKey: forecastIdentityKey, period: activePeriod, result: activeResult }
+    : state.phase !== 'error' && displayedForecast?.identityKey === forecastIdentityKey
+      ? displayedForecast
+      : null;
+  const displayPeriod = display?.period || activePeriod;
+  const result = display?.result || null;
   const forecast = result?.forecast || null;
   useEffect(() => {
-    if (!forecast || forecast.meta.status !== 'ready') return;
-    setHasCompletedPersonalForecast(true);
-    writePersonalForecastReadyMarker(userId, chartFingerprint);
-  }, [chartFingerprint, forecast, userId]);
+    if (!activeResultReady || !activeResult) return;
+    setDisplayedForecast({
+      identityKey: forecastIdentityKey,
+      period: activePeriod,
+      result: activeResult,
+    });
+  }, [activePeriod, activeResult, activeResultReady, forecastIdentityKey]);
   const lockedIds = useMemo(
     () => new Set(result?.lockedSectionIds || []),
     [result?.lockedSectionIds],
@@ -447,7 +477,7 @@ export const Dashboard = memo<DashboardProps>(({
     if (!forecast || forecast.meta.status !== 'ready') return [];
     return safeResolvePromotions({
       userId,
-      period: activePeriod,
+      period: displayPeriod,
       periodKey: forecast.periodKey,
       sections: readySections.map((section) => ({
         id: section.id,
@@ -457,7 +487,7 @@ export const Dashboard = memo<DashboardProps>(({
         hasStrongAstro: section.kind === 'astro_accent',
       })),
     });
-  }, [activePeriod, forecast, readySections, userId]);
+  }, [displayPeriod, forecast, readySections, userId]);
   const promotionSlotsBySection = useMemo(
     () => groupPromotionsBySection(promotions),
     [promotions],
@@ -491,16 +521,12 @@ export const Dashboard = memo<DashboardProps>(({
   ) => {
     lumiaSelectionHaptic();
     if (targetSectionId) pendingSectionRef.current = targetSectionId;
-    if (periodStates[period].result) {
-      setActivePeriod(period);
-    } else {
-      pendingPeriodRef.current = period;
-      loadPeriod(period);
-    }
+    setActivePeriod(period);
+    loadPeriod(period);
     if (!targetSectionId) {
       scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [loadPeriod, periodStates, scrollRef]);
+  }, [loadPeriod, scrollRef]);
 
   const openQuestionNotification = useCallback(() => {
     const notification = unreadQuestions[0];
@@ -515,11 +541,11 @@ export const Dashboard = memo<DashboardProps>(({
 
   const requestPremium = useCallback(() => {
     void onRequestPremium?.('personal_forecast_feed', {
-      period: activePeriod,
-      periodKey: periodKeys[activePeriod],
+      period: displayPeriod,
+      periodKey: forecast?.periodKey || periodKeys[displayPeriod],
       returnInPlace: true,
     });
-  }, [activePeriod, onRequestPremium, periodKeys]);
+  }, [displayPeriod, forecast?.periodKey, onRequestPremium, periodKeys]);
 
   const renderPromo = (
     placement: PersonalForecastPromoPlacement,
@@ -529,7 +555,7 @@ export const Dashboard = memo<DashboardProps>(({
       key={placement.id}
       placement={placement}
       userId={userId}
-      periodKey={periodKeys[activePeriod]}
+      periodKey={forecast?.periodKey || periodKeys[displayPeriod]}
       dayKey={periodKeys.day}
       language={language}
       layout={layout}
@@ -570,8 +596,8 @@ export const Dashboard = memo<DashboardProps>(({
     (link) => link.fromSectionId === 'overview',
   ) || [];
   const displayWindow = resolvePersonalForecastWindow(
-    activePeriod,
-    periodKeys[activePeriod],
+    displayPeriod,
+    periodKeys[displayPeriod],
     timezone,
   );
   const displayDateLines = (forecast?.dateLabel
@@ -653,11 +679,13 @@ export const Dashboard = memo<DashboardProps>(({
           </button>
         </section>
       ) : !forecast || forecast.meta.status !== 'ready' ? (
-        hasCompletedPersonalForecast ? null : (
         <section
           className={`forecast-feed-status${state.phase === 'error' ? '' : ' forecast-feed-status--loading'} is-${state.phase}`}
           aria-live="polite"
           aria-busy={state.phase !== 'error'}
+          aria-label={state.phase === 'error'
+            ? undefined
+            : personalForecastLoadingLabel(activePeriod, language)}
         >
           {state.phase === 'error' ? (
             <>
@@ -673,40 +701,39 @@ export const Dashboard = memo<DashboardProps>(({
               </button>
             </>
           ) : (
-            <>
-              <p className="forecast-feed-loading-label">
-                {personalForecastLoadingLabel(activePeriod, language)}
-              </p>
-              <div className="forecast-feed-loading-preview" aria-hidden="true">
-                <span className="forecast-feed-loading-headline is-long" />
-                <span className="forecast-feed-loading-headline is-short" />
-                <div className="forecast-feed-loading-lead">
-                  <span />
-                  <span />
-                </div>
-                <span className="forecast-feed-loading-section-title" />
-                <div className="forecast-feed-loading-copy">
-                  <span />
-                  <span />
-                  <span />
-                </div>
+            <div className="forecast-feed-loading-preview" aria-hidden="true">
+              <span className="forecast-feed-loading-headline is-long" />
+              <span className="forecast-feed-loading-headline is-short" />
+              <div className="forecast-feed-loading-lead">
+                <span />
+                <span />
               </div>
-            </>
+              <div className="forecast-feed-loading-copy">
+                <span />
+                <span />
+                <span />
+              </div>
+              <span className="forecast-feed-loading-section-title" />
+              <div className="forecast-feed-loading-copy">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
           )}
         </section>
-        )
       ) : (
         <>
           <ForecastSectionBlock
-            key={`${activePeriod}:${forecast.periodKey}:${forecast.overview.id}`}
+            key={`${displayPeriod}:${forecast.periodKey}:${forecast.overview.id}`}
             section={forecast.overview}
-            period={activePeriod}
+            period={displayPeriod}
             language={language}
             locked={lockedIds.has(forecast.overview.id)}
             evidence={forecast.evidence}
             style={forecastSectionVisualStyle(
               visual?.assignments[forecast.overview.id],
-              activePeriod,
+              displayPeriod,
             )}
             hasVisual={!!editorialStickerPath}
             editorialStickerPath={editorialStickerPath}
@@ -732,16 +759,16 @@ export const Dashboard = memo<DashboardProps>(({
             );
             const sectionPromoSlots = promotionSlotsBySection.get(section.id) || [];
             return (
-              <React.Fragment key={`${activePeriod}:${forecast.periodKey}:${section.id}`}>
+              <React.Fragment key={`${displayPeriod}:${forecast.periodKey}:${section.id}`}>
                 <ForecastSectionBlock
                   section={section}
-                  period={activePeriod}
+                  period={displayPeriod}
                   language={language}
                   locked={lockedIds.has(section.id)}
                   evidence={forecast.evidence}
                   style={forecastSectionVisualStyle(
                     visual?.assignments[section.id],
-                    activePeriod,
+                    displayPeriod,
                   )}
                   hasVisual={false}
                   editorialStickerPath={null}
@@ -769,8 +796,8 @@ export const Dashboard = memo<DashboardProps>(({
             profile={profile}
             chartId={chartId}
             contextFingerprint={chartFingerprint}
-            period={activePeriod}
-            periodKey={periodKeys[activePeriod]}
+            period={displayPeriod}
+            periodKey={forecast.periodKey}
             premium={premium}
             focusNotification={focusQuestion}
             onRequestPremium={requestPremium}

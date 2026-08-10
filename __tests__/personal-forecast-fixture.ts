@@ -10,7 +10,6 @@ import {
   type ForecastSection,
   type PersonalForecastPackage,
 } from '../lib/personalForecastContract';
-import { PERSONAL_FORECAST_SEMANTICS_VERSION } from '../lib/personalForecastSemantics';
 
 export const chartFixture = {
   sun: { planet: 'Sun', sign: 'Aries', degree: 10, longitude: 10, house: 1 },
@@ -163,7 +162,7 @@ export function personalForecastFixture(): PersonalForecastPackage {
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
       voiceVersion: APP_VOICE_VERSION,
       calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-      semanticVersion: PERSONAL_FORECAST_SEMANTICS_VERSION,
+      semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       generationAttempts: 1,
       validationStatus: 'valid',

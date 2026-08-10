@@ -748,9 +748,78 @@
   margin-top: 0.9em;
 }
 
+/* The first load keeps the same reading rhythm without presenting progress UI. */
+.natal-editorial-page .natal-reading-skeleton {
+  width: min(100%, 34rem);
+  padding: 20px 0 6px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-visual {
+  display: grid;
+  gap: 36px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook,
+.natal-editorial-page .natal-reading-skeleton-section {
+  display: grid;
+  gap: 12px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook {
+  gap: 9px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook span,
+.natal-editorial-page .natal-reading-skeleton-title,
+.natal-editorial-page .natal-reading-skeleton-line {
+  display: block;
+  border-radius: 3px;
+  background: #ececec;
+  animation: natal-reading-skeleton-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook span {
+  width: 88%;
+  height: 20px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-hook span:last-child {
+  width: 62%;
+}
+
+.natal-editorial-page .natal-reading-skeleton-title {
+  width: 46%;
+  height: 27px;
+  margin-bottom: 4px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-section:nth-child(3) .natal-reading-skeleton-title {
+  width: 58%;
+}
+
+.natal-editorial-page .natal-reading-skeleton-line {
+  width: 100%;
+  height: 14px;
+}
+
+.natal-editorial-page .natal-reading-skeleton-line:last-child {
+  width: 72%;
+}
+
+@keyframes natal-reading-skeleton-pulse {
+  from { opacity: 0.56; }
+  to { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .astrology-details-toggle-track,
   .astrology-details-toggle-thumb {
     transition: none;
+  }
+
+  .natal-editorial-page .natal-reading-skeleton-hook span,
+  .natal-editorial-page .natal-reading-skeleton-title,
+  .natal-editorial-page .natal-reading-skeleton-line {
+    animation: none;
   }
 }

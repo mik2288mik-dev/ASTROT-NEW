@@ -24,7 +24,6 @@ import { hasActivePremium } from '../../lib/accessMatrix';
 import {
   buildNatalModelContext,
   getPermanentNatalReliability,
-  isNatalPermanentFreeReport,
   type NatalEvidenceFact,
   type NatalPermanentFreeReport,
   type NatalPermanentPremiumReport,
@@ -520,7 +519,7 @@ const PremiumReport: React.FC<{
   <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
     {report.sections.map((section) => (
       <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
-        <h2 className="natal-sec-title">{section.title}</h2>
+        {section.title ? <h2 className="natal-sec-title">{section.title}</h2> : null}
         <div className="natal-sec-body">
           {section.paragraphs.map((paragraph, index) => (
             <StatementText
@@ -537,6 +536,33 @@ const PremiumReport: React.FC<{
   </section>
 );
 
+const NatalReadingSkeleton: React.FC<{ language: 'ru' | 'en' }> = ({ language }) => (
+  <section
+    data-testid="human-report-loading-area"
+    className="natal-reading-skeleton"
+    role="status"
+    aria-label={language === 'ru' ? 'Подготавливаем разбор карты' : 'Preparing the chart reading'}
+  >
+    <span className="sr-only">
+      {language === 'ru' ? 'Подготавливаем разбор карты.' : 'Preparing the chart reading.'}
+    </span>
+    <div className="natal-reading-skeleton-visual" aria-hidden="true">
+      <div className="natal-reading-skeleton-hook">
+        <span />
+        <span />
+      </div>
+      {[0, 1].map((index) => (
+        <div key={index} className="natal-reading-skeleton-section">
+          <span className="natal-reading-skeleton-title" />
+          <span className="natal-reading-skeleton-line" />
+          <span className="natal-reading-skeleton-line" />
+          <span className="natal-reading-skeleton-line" />
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
 export const HumanReport: React.FC<Props> = ({
   profile,
   chartData,
@@ -544,7 +570,6 @@ export const HumanReport: React.FC<Props> = ({
   chartSubject,
   requestPremium,
   onUpdateProfile: _onUpdateProfile,
-  preloadedReport,
   editorialSticker,
   hideIntro,
 }) => {
@@ -557,9 +582,9 @@ export const HumanReport: React.FC<Props> = ({
     return new Map(built.context.evidence.map((fact) => [fact.id, fact]));
   }, [chartData, profile]);
   const cachedBase = userId ? getHumanBaseReportCached(userId, chartId, language) : null;
-  const initialBase = isNatalPermanentFreeReport(preloadedReport)
-    ? preloadedReport
-    : cachedBase;
+  // Legacy preloaded reports do not carry a chart fingerprint. Reusing them
+  // here could display one saved person's reading for another chart.
+  const initialBase = cachedBase;
   const cachedPremium = userId ? getHumanPremiumReportCached(userId, chartId, language)?.content || null : null;
   const [report, setReport] = useState<NatalPermanentFreeReport | null>(initialBase);
   const [premiumReport, setPremiumReport] = useState<NatalPermanentPremiumReport | null>(cachedPremium);
@@ -572,21 +597,25 @@ export const HumanReport: React.FC<Props> = ({
   const [questionText, setQuestionText] = useState('');
   const [questionLoading, setQuestionLoading] = useState(false);
   const [questionError, setQuestionError] = useState<string | null>(null);
-  const baseLanguageRef = useRef(language);
-  const premiumLanguageRef = useRef(language);
+  const reportIdentity = `${userId}:${chartId ?? 'primary'}:${language}`;
+  const baseIdentityRef = useRef(reportIdentity);
+  const premiumIdentityRef = useRef(reportIdentity);
 
   const isPremium = hasActivePremium(profile);
   const reliability = getPermanentNatalReliability(chartData);
   const freeSections = report?.freeSections || [];
+  const stickerAfterSectionIndex = editorialSticker && freeSections.length
+    ? Math.min(1, freeSections.length - 1)
+    : -1;
 
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
     const cached = getHumanBaseReportCached(userId, chartId, language);
-    const languageChanged = baseLanguageRef.current !== language;
-    baseLanguageRef.current = language;
+    const identityChanged = baseIdentityRef.current !== reportIdentity;
+    baseIdentityRef.current = reportIdentity;
     if (cached) setReport(cached);
-    else if (languageChanged) setReport(null);
+    else if (identityChanged) setReport(null);
     setLoading(!cached);
     setError(null);
     void ensureHumanBaseReport(userId, chartId, language)
@@ -600,7 +629,7 @@ export const HumanReport: React.FC<Props> = ({
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [chartId, language, userId]);
+  }, [chartId, language, reportIdentity, userId]);
 
   useEffect(() => {
     if (!isPremium || !userId) {
@@ -610,10 +639,10 @@ export const HumanReport: React.FC<Props> = ({
     }
     let cancelled = false;
     const cached = getHumanPremiumReportCached(userId, chartId, language)?.content || null;
-    const languageChanged = premiumLanguageRef.current !== language;
-    premiumLanguageRef.current = language;
+    const identityChanged = premiumIdentityRef.current !== reportIdentity;
+    premiumIdentityRef.current = reportIdentity;
     if (cached) setPremiumReport(cached);
-    else if (languageChanged) setPremiumReport(null);
+    else if (identityChanged) setPremiumReport(null);
     setPremiumLoading(!cached);
     setPremiumError(null);
     void ensureHumanPremiumReport(userId, chartId, language)
@@ -627,7 +656,14 @@ export const HumanReport: React.FC<Props> = ({
         if (!cancelled) setPremiumLoading(false);
       });
     return () => { cancelled = true; };
-  }, [chartId, isPremium, language, userId]);
+  }, [chartId, isPremium, language, reportIdentity, userId]);
+
+  useEffect(() => {
+    setQuestionOpen(false);
+    setQuestionSnapshot(null);
+    setQuestionText('');
+    setQuestionError(null);
+  }, [reportIdentity]);
 
   const openQuestions = () => {
     if (!isPremium) {
@@ -734,11 +770,7 @@ export const HumanReport: React.FC<Props> = ({
 
         <div aria-live="polite" aria-busy={loading && !report}>
           {loading && !report ? (
-            <section data-testid="human-report-loading-area" className="py-5" role="status">
-              <p className="text-[14px] leading-relaxed text-[#666]">
-                {language === 'ru' ? 'Подготавливаем постоянный разбор карты.' : 'Preparing the permanent chart reading.'}
-              </p>
-            </section>
+            <NatalReadingSkeleton language={language} />
           ) : error || !report ? (
             <section className="py-8 sm:py-10" role="alert">
               <p className="font-sans text-[20px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">
@@ -771,7 +803,7 @@ export const HumanReport: React.FC<Props> = ({
                     evidenceById={evidenceById}
                     language={language}
                   />
-                  {index === 1 && editorialSticker ? (
+                  {index === stickerAfterSectionIndex && editorialSticker ? (
                     <EditorialSticker
                       asset={editorialSticker}
                       className="natal-editorial-sticker natal-editorial-sticker--inline"

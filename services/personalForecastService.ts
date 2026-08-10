@@ -15,7 +15,6 @@ import {
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
-import { PERSONAL_FORECAST_SEMANTICS_VERSION } from '../lib/personalForecastSemantics';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
 
@@ -30,7 +29,7 @@ export type PersonalForecastClientResult = {
   accessTier: 'free' | 'premium';
   lockedSectionIds: string[];
   periodLocked: boolean;
-  source: 'local' | 'cache' | 'generated';
+  source: 'local' | 'cache' | 'stale' | 'generated';
 };
 
 export type PersonalForecastClientError = Error & {
@@ -68,7 +67,6 @@ function contextKey(input: {
     input.chartData.calculationVersion || 'unknown',
     buildPersonalForecastChartFingerprint(input.chartData),
     PERSONAL_FORECAST_CALCULATION_VERSION,
-    PERSONAL_FORECAST_SEMANTICS_VERSION,
     PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
     APP_VOICE_VERSION,
@@ -99,7 +97,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
     || new Set(result.lockedSectionIds).size !== result.lockedSectionIds.length
     || typeof result.periodLocked !== 'boolean'
     || (result.accessTier !== 'free' && result.accessTier !== 'premium')
-    || !(['local', 'cache', 'generated'] as const).includes(result.source)
+    || !(['local', 'cache', 'stale', 'generated'] as const).includes(result.source)
   ) {
     return false;
   }
@@ -159,6 +157,9 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
 
   return isPersonalForecastPackage(forecast, {
     redactedSectionIds: result.lockedSectionIds,
+    promptVersion: result.source === 'stale'
+      ? forecast.meta.promptVersion
+      : undefined,
   });
 }
 
@@ -182,7 +183,7 @@ function parseAccessPayload(
     accessTier: payload.accessTier,
     lockedSectionIds: payload.lockedSectionIds,
     periodLocked: payload.periodLocked,
-    source: sourceOverride || payload.source,
+    source: payload.source || sourceOverride,
   };
   if (!isStoredResult(result)) throw invalidResponseError();
   if (
@@ -218,6 +219,7 @@ function readStored(key: string): PersonalForecastClientResult | null {
 }
 
 function writeStored(key: string, result: PersonalForecastClientResult): void {
+  if (result.source === 'stale') return;
   memoryCache.set(key, result);
   if (typeof window === 'undefined') return;
   try {

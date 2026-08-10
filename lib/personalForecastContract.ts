@@ -182,7 +182,7 @@ export type PersonalForecastAccessPayload = {
   accessTier: 'free' | 'premium';
   lockedSectionIds: string[];
   periodLocked: boolean;
-  source: 'cache' | 'generated';
+  source: 'cache' | 'stale' | 'generated';
 };
 
 export const FIXED_FORECAST_SECTION_KEYS = [
@@ -213,10 +213,10 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v15.human-reading-130',
+  'personal-forecast-feed.v17.single-call-150',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v9';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v10';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -602,15 +602,27 @@ export function buildPersonalForecastInputHash(input: {
   timezone: string;
   language: 'ru' | 'en';
   modelId: string;
-}): string {
+}, versions: {
+  calculationVersion?: string;
+  contractVersion?: string;
+  promptVersion?: string;
+  voiceVersion?: string;
+} = {}): string {
+  const calculationVersion = versions.calculationVersion
+    ?? PERSONAL_FORECAST_CALCULATION_VERSION;
+  const contractVersion = versions.contractVersion
+    ?? PERSONAL_FORECAST_CONTRACT_VERSION;
+  const promptVersion = versions.promptVersion
+    ?? PERSONAL_FORECAST_PROMPT_VERSION;
+  const voiceVersion = versions.voiceVersion ?? APP_VOICE_VERSION;
   return stableHash(JSON.stringify({
     ...input,
     chartData: buildPersonalForecastChartFingerprint(input.chartData),
-    calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-    semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
-    contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
-    promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-    voiceVersion: APP_VOICE_VERSION,
+    calculationVersion,
+    semanticVersion: contractVersion,
+    contractVersion,
+    promptVersion,
+    voiceVersion,
   })).toString(36);
 }
 
@@ -623,7 +635,9 @@ export function buildForecastLockedPreview(
   teaser: string,
 ): ForecastLockedPreview {
   const words = text.trim().split(/\s+/).filter(Boolean);
-  const leadCount = Math.min(10, Math.max(5, Math.ceil(words.length * 0.12)));
+  const leadCount = words.length <= 5
+    ? Math.max(1, Math.ceil(words.length / 2))
+    : Math.min(10, Math.max(5, Math.ceil(words.length * 0.12)));
   return {
     lead: words.slice(0, leadCount).join(' '),
     blurred: words.slice(leadCount, leadCount + 42).join(' '),
@@ -661,9 +675,8 @@ function previewValid(input: {
   const leadWords = input.preview.lead.trim().split(/\s+/).filter(Boolean);
   const blurredWords = input.preview.blurred.trim().split(/\s+/).filter(Boolean);
   if (
-    leadWords.length < 5
+    leadWords.length < 1
     || leadWords.length > 10
-    || blurredWords.length < 1
     || blurredWords.length > 42
     || input.preview.teaser !== input.premiumTeaser
   ) {
@@ -908,7 +921,10 @@ function visualValid(
 
 export function getPersonalForecastPackageValidationError(
   value: unknown,
-  options: { redactedSectionIds?: readonly string[] } = {},
+  options: {
+    redactedSectionIds?: readonly string[];
+    promptVersion?: string;
+  } = {},
 ): string | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return 'PACKAGE_NOT_OBJECT';
@@ -932,7 +948,9 @@ export function getPersonalForecastPackageValidationError(
     || typeof forecast.meta !== 'object'
     || typeof forecast.meta.model !== 'string'
     || !forecast.meta.model.trim()
-    || forecast.meta?.promptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
+    || forecast.meta?.promptVersion !== (
+      options.promptVersion ?? PERSONAL_FORECAST_PROMPT_VERSION
+    )
     || forecast.meta?.voiceVersion !== APP_VOICE_VERSION
     || forecast.meta?.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
     || forecast.meta?.semanticVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
@@ -1100,7 +1118,10 @@ export function getPersonalForecastPackageValidationError(
 
 export function isPersonalForecastPackage(
   value: unknown,
-  options: { redactedSectionIds?: readonly string[] } = {},
+  options: {
+    redactedSectionIds?: readonly string[];
+    promptVersion?: string;
+  } = {},
 ): value is PersonalForecastPackage {
   return getPersonalForecastPackageValidationError(value, options) === null;
 }

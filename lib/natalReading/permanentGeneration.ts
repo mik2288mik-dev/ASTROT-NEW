@@ -19,15 +19,17 @@ export function getPermanentNatalSystemPrompt(language: NatalReadingLanguage): s
     ? `ЗАДАЧА НАТАЛЬНОГО ПОРТРЕТА
 - Преврати сухие астро-факты в живой, точный рассказ о человеке, без эзотерики и психологической воды.
 - В пользовательских hook и content не называй планеты, знаки, дома, аспекты, градусы и орбисы. Переводи расчёт в обычный язык характера, решений и поведения; технические факты интерфейс покажет отдельно по evidence_ids.
-- Не пиши «Вы склонны» или «Вам свойственно». Говори прямо: «Ты тот, кто…», «Твоя голова работает так…», «В отношениях тебя бесит…».
+- Не пиши «Вы склонны» или «Вам свойственно». Говори прямо, естественно и по-человечески, без канцелярита и готовых психологических формул.
 - Каждый блок завершён сам по себе: не повторяет соседний, не обещает продолжение в Premium и не делает из человека диагноз.
+- Не задавай рассказу заранее эмоциональный тон и не раскладывай человека по готовым сферам. Темы, порядок и заголовки определяй только по фактам конкретной карты.
 - Каждый блок обязан вернуть только реальные evidence_ids из входного массива. Не печатай эти идентификаторы в пользовательском тексте.
 - Ответ — только валидный JSON без Markdown.`
     : `NATAL PORTRAIT TASK
 - Turn calculated astrological facts into a vivid, precise story about a person without mysticism or pseudo-psychology.
 - Do not name planets, signs, houses, aspects, degrees, or orbs in user-facing hook or content. Translate the calculation into ordinary language about character, decisions, and behaviour; the interface reveals technical facts separately through evidence_ids.
-- Write directly: “You are the person who…”, “Your mind works like this…”, “In close relationships, what irritates you is…”.
+- Write directly, naturally, and in plain human language, without formal or canned psychological formulas.
 - Every block stands on its own: it does not repeat the adjacent block, tease Premium, or diagnose the reader.
+- Do not impose a predetermined emotional tone or divide the person into predefined life areas. Choose themes, order, and titles only from the facts of this specific chart.
 - Every block must return only existing evidence_ids from the input. Never print those identifiers in the user-facing text.
 - Return valid JSON only, with no Markdown.`;
   return `${getAppSystemVoice(language)}\n\n${task}`;
@@ -54,28 +56,20 @@ export function buildPermanentNatalFreePrompt(
   language: NatalReadingLanguage,
   built: BuiltNatalModelContext,
 ): string {
-  const sections = language === 'ru'
-    ? [
-        ['personality', 'Ты по натуре'],
-        ['thinking', 'Как ты думаешь и говоришь'],
-        ['relationships', 'Твои отношения и любовь'],
-        ['vulnerabilities', 'Твои слабые места'],
-      ]
-    : [
-        ['personality', 'Who you are'],
-        ['thinking', 'How you think and speak'],
-        ['relationships', 'Love and relationships'],
-        ['vulnerabilities', 'Your vulnerable points'],
-      ];
+  const instructions = language === 'ru'
+    ? `Создай короткий человеческий hook: одно узнаваемое наблюдение о человеке, подтверждённое фактами карты, а не рекламный слоган.
+Затем создай только те самостоятельные смысловые разделы, которые действительно нужны для цельного базового портрета этой карты. Сам выбери их количество, темы, порядок и естественные короткие заголовки. Не пытайся механически охватить заданный набор сфер и не добавляй раздел ради заполнения структуры. Каждый раздел — один или два коротких абзаца без повторения одной мысли. Для каждого раздела задай уникальный короткий section_key в snake_case и free: true.`
+    : `Create a concise human hook: one recognisable observation about the person, grounded in chart facts rather than an advertising slogan.
+Then create only the self-contained narrative sections genuinely needed for a coherent base portrait of this chart. Choose their count, themes, order, and natural short titles yourself. Do not mechanically cover a predefined set of life areas or add a section merely to fill the structure. Each section is one or two short paragraphs and does not repeat the same point. Give every section a unique short snake_case section_key and set free to true.`;
   return `${permanentInputRules(built)}
 
-Create a 22–32 word hook before the sections. It is a blunt, recognisable first observation about this person, grounded in evidence; it is not a slogan. Then create exactly four complete Free sections in the supplied order and use the supplied titles verbatim. Each section must stand on its own, never tease Premium, and use 65–85 words in one or two short paragraphs. Do not repeat the same trait in different sections. Set free to true for every section.
+${instructions}
 
 Return JSON only:
 {
-  "hook":{"text":"short personal opening","evidence_ids":["existing evidence id"]},
+  "hook":{"text":"concise personal opening","evidence_ids":["existing evidence id"]},
   "sections": [
-${sections.map(([key, title]) => `    {"section_key":"${key}","title":"${title}","free":true,"content":"complete concise reading","evidence_ids":["existing evidence id"]}`).join(',\n')}
+    {"section_key":"unique_short_key","title":"natural model-written title","free":true,"content":"complete concise reading","evidence_ids":["existing evidence id"]}
   ]
 }
 
@@ -87,33 +81,17 @@ export function buildPermanentNatalPremiumPrompt(
   language: NatalReadingLanguage,
   built: BuiltNatalModelContext,
 ): string {
-  const sections = language === 'ru'
-    ? [
-        ['vocation_money', 'Призвание и деньги'],
-        ['career', 'Карьера'],
-        ['health', 'Здоровье и энергия'],
-        ['shadow', 'Твоя тень'],
-        ['life_path', 'Жизненный путь'],
-        ['year_advice', 'Стратегия роста'],
-      ]
-    : [
-        ['vocation_money', 'Vocation and money'],
-        ['career', 'Career'],
-        ['health', 'Health and energy'],
-        ['shadow', 'Your shadow'],
-        ['life_path', 'Life path'],
-        ['year_advice', 'Growth strategy'],
-      ];
+  const instructions = language === 'ru'
+    ? `Создай только те самостоятельные углублённые разделы постоянного портрета, которые действительно добавляют новый смысл. Сам выбери их количество, темы, порядок и естественные короткие заголовки по наиболее содержательным сочетаниям фактов этой карты. Не используй обязательный список сфер и не добавляй раздел ради заполнения структуры. Каждый раздел — один или два плотных абзаца, раскрывающих отдельную мысль без повторов. Для каждого раздела задай уникальный короткий section_key в snake_case и free: false. Это постоянный портрет: никаких текущих транзитов, календарных дат, будущих событий или timing.`
+    : `Create only the self-contained deeper sections of a permanent portrait that genuinely add a new insight. Choose their count, themes, order, and natural short titles from the most substantial combinations of facts in this chart. Do not use a mandatory list of life areas or add a section merely to fill the structure. Each section is one or two dense paragraphs that develops a distinct point without repetition. Give every section a unique short snake_case section_key and set free to false. This is a permanent portrait: no current transits, calendar dates, future events, or timing.`;
   return `${permanentInputRules(built)}
 
-Create every Premium section exactly once in the supplied order and use the supplied titles verbatim. Set free to false. Each section must be complete, grounded, distinct from the others, and use 85–105 words in one or two short paragraphs. The year_advice key is a permanent growth strategy derived from the natal chart: do not mention the coming year, current transits, dates, future events, or timing.
-
-premium_sections: vocation_money, career, health, shadow, life_path, year_advice.
+${instructions}
 
 Return JSON only:
 {
   "sections": [
-${sections.map(([key, title]) => `    {"section_key":"${key}","title":"${title}","free":false,"content":"complete concise reading","evidence_ids":["existing evidence id"]}`).join(',\n')}
+    {"section_key":"unique_short_key","title":"natural model-written title","free":false,"content":"complete deeper reading","evidence_ids":["existing evidence id"]}
   ]
 }
 

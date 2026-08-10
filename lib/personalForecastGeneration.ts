@@ -31,7 +31,6 @@ import {
 type ForecastWriterLanguage = 'ru' | 'en';
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
-const USER_COPY_ASTROLOGY_TERMS = /(?:солнц|лун[аыеуой]|меркур|венер|марс|юпитер|сатурн|уран|нептун|плутон|квадратур|оппозиц|секстил|трин\b|транзит|орбис|ретроград|асцендент|натальн)|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|square|opposition|sextile|trine|transit|orb|retrograde|ascendant|natal)\b/iu;
 
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
@@ -52,35 +51,39 @@ export function getPersonalForecastSystemPrompt(
     return `${getAppSystemVoice('ru')}
 
 ЗАДАЧА ДЛЯ ЛИЧНОГО ПРОГНОЗА
-- Сам выбери главный вывод из evidence. Не перечисляй факторы подряд и не повторяй одну мысль разными словами.
+- Прочитай весь массив evidence как единую картину периода. Сам выбери главный вывод; не перечисляй факторы подряд и не повторяй одну мысль разными словами.
 - Пиши только о том, что подтверждено переданными evidence и фактическим natal context. Ничего не рассчитывай и не придумывай заново.
-- Основной текст — про узнаваемые события, решения, реакции и поведение человека. Не употребляй в headline, paragraphs и advice названия планет, знаков, домов, аспектов, транзитов, орбисов и другие астрологические термины: они раскрываются интерфейсом отдельно по evidence_ids.
+- Пиши о периоде простым человеческим языком и не превращай основной текст в перечень астрологических терминов. Точные факты интерфейс покажет отдельно по evidence_ids.
+- Выбирай тон по всей совокупности evidence. Спокойные, благоприятные и сложные проявления описывай только в той пропорции, в которой они подтверждены расчётом; ни один тип аспекта не становится главной темой автоматически.
 - Заголовок — короткая естественная фраза по главному смыслу периода, не рекламный слоган и не техническая рубрика.
-- Напиши цельный разбор объёмом от 95 до 130 слов. Разбей его на естественные абзацы только там, где меняется мысль; не придумывай подзаголовки и обязательные жизненные сферы.
-- Совет — одна короткая практическая фраза до 18 слов, прямо следующая из разбора; без поучения и повторения текста.
+- Напиши цельный разбор не более 150 слов. Разбей его на естественные абзацы только там, где меняется мысль. Не придумывай подзаголовки, обязательные сферы или предупреждение.
 - ${ruPeriodRule[period]}
-- Каждый абзац и совет обязаны вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все блоки.
+- Каждый абзац обязан вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все абзацы.
+- Совет необязателен. Добавь одно короткое конкретное действие только если оно естественно следует из уже написанного разбора; иначе верни null. Не вводи советом новый запрет, риск или тему.
+- Совет, если он есть, должен быть одним предложением не более 18 слов и вернуть только существующие evidence_ids.
 - Ответ — только валидный JSON без Markdown.
 
 Верни строго:
-{"headline":"короткий честный заголовок","paragraphs":[{"text":"абзац цельного разбора","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткий совет","evidence_ids":["существующий evidence id"]}}`;
+{"headline":"естественный заголовок","paragraphs":[{"text":"абзац цельного разбора","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткое конкретное действие","evidence_ids":["существующий evidence id"]} или null}`;
   }
 
   return `${getAppSystemVoice('en')}
 
 PERSONAL FORECAST TASK
-- Choose the main conclusion from the evidence yourself. Do not list factors mechanically or repeat the same point in different words.
+- Read the entire evidence array as one picture of the period. Choose the main conclusion yourself; do not list factors mechanically or repeat the same point in different words.
 - Use only the supplied evidence and factual natal context. Never recalculate or invent astrology, events, biography, or diagnoses.
-- Write the user-facing headline, paragraphs, and advice only in ordinary language about recognisable events, decisions, reactions, and behaviour. Do not use names of planets, signs, houses, aspects, transits, orbs, or other astrology terminology there; the interface reveals those facts separately through evidence_ids.
+- Write in ordinary human language and do not turn the main copy into a list of astrology terms. The interface reveals exact facts separately through evidence_ids.
+- Let the complete evidence set determine the tone. Present calm, favourable, and difficult manifestations only in the proportion supported by the calculation; no aspect type is automatically the main story.
 - The headline is one short natural phrase about the actual period, never an advertising slogan or a technical label.
-- Write one coherent reading of 95–130 words. Split it into natural paragraphs only when the thought changes; do not invent subheadings or mandatory life areas.
-- Advice is one practical sentence of no more than 18 words, derived directly from the reading, never a detached lesson or a repetition.
+- Write one coherent reading of no more than 150 words. Split it into natural paragraphs only when the thought changes; do not invent subheadings, mandatory life areas, or a warning.
 - ${enPeriodRule[period]}
-- Every paragraph and the advice must return their own existing evidence_ids. Do not automatically attach the same list to every block.
+- Every paragraph must return its own existing evidence_ids. Do not automatically attach the same list to every paragraph.
+- Advice is optional. Add one short concrete action only when it follows naturally from the completed reading; otherwise return null. Never introduce a new restriction, risk, or topic through advice.
+- If present, advice is one sentence of no more than 18 words and cites only existing evidence_ids.
 - Return valid JSON only, with no Markdown.
 
 Return exactly:
-{"headline":"short honest headline","paragraphs":[{"text":"one paragraph of the coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short practical suggestion","evidence_ids":["existing evidence id"]}}`;
+{"headline":"natural headline","paragraphs":[{"text":"one paragraph of the coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short concrete action","evidence_ids":["existing evidence id"]} or null}`;
 }
 
 type GeneratedTextBlock = {
@@ -91,13 +94,7 @@ type GeneratedTextBlock = {
 type GeneratedFeedPayload = {
   headline?: unknown;
   paragraphs?: GeneratedTextBlock[];
-  /** Previous structured contract accepted only as a resilience fallback. */
-  lead?: GeneratedTextBlock;
-  sections?: Array<GeneratedTextBlock & { title?: unknown }>;
-  advice?: GeneratedTextBlock | unknown;
-  /** Previous compact contract accepted only as a resilience fallback. */
-  forecast?: unknown;
-  evidence_ids?: unknown;
+  advice?: GeneratedTextBlock | null | unknown;
 };
 
 type FreeGeneratedBlock = {
@@ -128,6 +125,22 @@ type EvidenceCalculatedHookResult = {
   calculationSnapshotId?: number | null;
 } | void;
 
+type FactualEvidencePayload = {
+  id: string;
+  kind: EvidenceCalculationResult['evidence'][number]['kind'];
+  transit_planet: string | null;
+  natal_point: string | null;
+  aspect: string | null;
+  house: number | null;
+  orb: number | null;
+  status: EvidenceCalculationResult['evidence'][number]['status'];
+  starts_at_local: string | null;
+  exact_at_local: string | null;
+  ends_at_local: string | null;
+  motion: EvidenceCalculationResult['evidence'][number]['motion'] | null;
+  ingress: EvidenceCalculationResult['evidence'][number]['ingress'] | null;
+};
+
 function localForecastTimestamp(value: string | null, timezone: string): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -135,22 +148,16 @@ function localForecastTimestamp(value: string | null, timezone: string): string 
   return formatInTimeZone(date, timezone, 'yyyy-MM-dd HH:mm');
 }
 
-export function buildPersonalForecastFeedPrompt(input: {
-  language: ForecastWriterLanguage;
-  period: PersonalForecastPeriod;
-  window: PersonalForecastWindow;
-  calculatedEvidence: EvidenceCalculationResult['evidence'];
-  natalContext?: Record<string, unknown>;
-  /** @deprecated accepted for source compatibility; never included in the prompt. */
-  canonicalNatalReport?: unknown;
-  repairErrors?: string[];
-}): string {
+function factualEvidencePayload(
+  calculatedEvidence: EvidenceCalculationResult['evidence'],
+  window: PersonalForecastWindow,
+): FactualEvidencePayload[] {
   const factTime = (item: EvidenceCalculationResult['evidence'][number]): number => {
     const raw = item.exactAt || item.startsAt || item.endsAt;
     const parsed = raw ? Date.parse(raw) : Number.NaN;
     return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
   };
-  const evidence = [...input.calculatedEvidence]
+  return [...calculatedEvidence]
     .sort((a, b) => (
       factTime(a) - factTime(b)
       || (a.orb ?? Number.MAX_SAFE_INTEGER) - (b.orb ?? Number.MAX_SAFE_INTEGER)
@@ -165,12 +172,25 @@ export function buildPersonalForecastFeedPrompt(input: {
       house: item.house ?? null,
       orb: item.orb ?? null,
       status: item.status,
-      starts_at_local: localForecastTimestamp(item.startsAt || null, input.window.timezone),
-      exact_at_local: localForecastTimestamp(item.exactAt || null, input.window.timezone),
-      ends_at_local: localForecastTimestamp(item.endsAt || null, input.window.timezone),
+      starts_at_local: localForecastTimestamp(item.startsAt || null, window.timezone),
+      exact_at_local: localForecastTimestamp(item.exactAt || null, window.timezone),
+      ends_at_local: localForecastTimestamp(item.endsAt || null, window.timezone),
       motion: item.motion || null,
       ingress: item.ingress || null,
     }));
+}
+
+export function buildPersonalForecastFeedPrompt(input: {
+  language: ForecastWriterLanguage;
+  period: PersonalForecastPeriod;
+  window: PersonalForecastWindow;
+  calculatedEvidence: EvidenceCalculationResult['evidence'];
+  natalContext?: Record<string, unknown>;
+  /** @deprecated accepted for source compatibility; never included in the prompt. */
+  canonicalNatalReport?: unknown;
+  repairErrors?: string[];
+}): string {
+  const evidence = factualEvidencePayload(input.calculatedEvidence, input.window);
   const repair = input.repairErrors?.length
     ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
     : '';
@@ -224,85 +244,42 @@ function generatedBlock(
   return text && evidenceIds ? { text, role, evidenceIds } : null;
 }
 
-function legacyGeneratedBlocks(
-  raw: GeneratedFeedPayload,
-  availableEvidenceIds: ReadonlySet<string>,
-): FreeGeneratedSection[] | null {
-  const evidenceIds = validatedEvidenceIds(raw.evidence_ids, availableEvidenceIds);
-  const headline = modelText(raw.headline);
-  const forecast = modelText(raw.forecast);
-  const advice = modelText(raw.advice);
-  if (!evidenceIds || !headline || !forecast || !advice) return null;
-  const paragraphs = forecast
-    .split(/\n\s*\n/u)
-    .map((text) => text.trim())
-    .filter(Boolean)
-    .map((text, index) => ({
-      text,
-      role: index === 0 ? 'lead' as const : 'insight' as const,
-      evidenceIds,
-    }));
-  return [{
-    title: headline,
-    evidenceIds,
-    blocks: [...paragraphs, { text: advice, role: 'action', evidenceIds }],
-  }];
-}
-
 export function validateFreeGeneratedForecastFeed(
   raw: GeneratedFeedPayload,
   availableEvidenceIds: ReadonlySet<string> = new Set(),
   period: PersonalForecastPeriod = 'day',
 ): ValidatedFreeWriterResult {
   const headline = modelText(raw.headline);
-  const legacy = legacyGeneratedBlocks(raw, availableEvidenceIds);
-  if (!headline || !Array.isArray(raw.paragraphs) || !raw.advice) {
-    const previousParagraphs = raw.lead && Array.isArray(raw.sections)
-      ? [raw.lead, ...raw.sections]
-      : null;
-    if (headline && previousParagraphs && raw.advice) {
-      raw = { ...raw, paragraphs: previousParagraphs };
-    } else {
-      if (!legacy) return { sections: [], errors: ['payload requires headline, paragraphs, and advice with valid evidence_ids'] };
-      const legacyBlocks = legacy.flatMap((section) => section.blocks);
-      const legacyReading = legacyBlocks.filter((block) => block.role !== 'action');
-      const legacyAdvice = legacyBlocks.filter((block) => block.role === 'action');
-      const legacyErrors = [
-        legacyReading.reduce((sum, block) => sum + wordCount(block.text), 0) > 130
-          ? `reading has more than 130 words for ${period}`
-          : null,
-        legacyAdvice.some((block) => wordCount(block.text) > 18)
-          ? 'advice has more than 18 words'
-          : null,
-        [headline || '', ...legacyBlocks.map((block) => block.text)]
-          .some((text) => USER_COPY_ASTROLOGY_TERMS.test(text))
-          ? 'user-facing copy contains astrology terminology'
-          : null,
-      ].filter((error): error is string => !!error);
-      if (legacyErrors.length) return { sections: [], errors: legacyErrors };
-      return { sections: legacy, errors: [] };
-    }
+  if (!headline || !Array.isArray(raw.paragraphs)) {
+    return { sections: [], errors: ['payload requires headline and paragraphs with valid evidence_ids'] };
   }
-  const advice = generatedBlock(raw.advice, 'action', availableEvidenceIds);
   const rawParagraphs = raw.paragraphs || [];
   const paragraphs = rawParagraphs.map((paragraph, index) => (
     generatedBlock(paragraph, index === 0 ? 'lead' : 'insight', availableEvidenceIds)
   ));
-  if (!advice || !paragraphs.length || paragraphs.some((paragraph) => !paragraph)) {
-    return { sections: [], errors: ['a paragraph or advice has missing, duplicated, or unknown evidence_ids'] };
+  if (!paragraphs.length || paragraphs.some((paragraph) => !paragraph)) {
+    return { sections: [], errors: ['a paragraph has missing, duplicated, or unknown evidence_ids'] };
   }
   const errors: string[] = [];
-  if (headline.length > 72) errors.push(`headline has ${headline.length} characters; maximum is 72`);
-  if (USER_COPY_ASTROLOGY_TERMS.test(headline)) errors.push('headline contains astrology terminology');
-  if (wordCount(advice.text) > 18) errors.push('advice has more than 18 words');
-  if (USER_COPY_ASTROLOGY_TERMS.test(advice.text)) errors.push('advice contains astrology terminology');
   const readingBlocks = paragraphs.filter((paragraph): paragraph is FreeGeneratedBlock => !!paragraph);
-  if (readingBlocks.some((block) => USER_COPY_ASTROLOGY_TERMS.test(block.text))) {
-    errors.push('reading contains astrology terminology');
-  }
   const readingWords = readingBlocks.reduce((sum, block) => sum + wordCount(block.text), 0);
-  if (readingWords > 130) {
-    errors.push(`reading has ${readingWords} words; maximum for ${period} is 130`);
+  if (readingWords > 150) {
+    errors.push(`reading has ${readingWords} words; maximum for ${period} is 150`);
+  }
+  let adviceSection: FreeGeneratedSection | null = null;
+  if (raw.advice !== null && raw.advice !== undefined) {
+    const advice = generatedBlock(raw.advice, 'action', availableEvidenceIds);
+    if (!advice) {
+      errors.push('advice has missing, duplicated, or unknown evidence_ids');
+    } else if (wordCount(advice.text) > 18) {
+      errors.push(`advice has ${wordCount(advice.text)} words; maximum is 18`);
+    } else {
+      adviceSection = {
+        title: null,
+        evidenceIds: advice.evidenceIds,
+        blocks: [advice],
+      };
+    }
   }
   if (errors.length) return { sections: [], errors };
   const overviewEvidenceIds = [...new Set(readingBlocks.flatMap((block) => block.evidenceIds))];
@@ -312,11 +289,7 @@ export function validateFreeGeneratedForecastFeed(
       title: headline,
       evidenceIds: overviewEvidenceIds,
       blocks: readingBlocks,
-    }, {
-      title: null,
-      evidenceIds: advice.evidenceIds,
-      blocks: [advice],
-    }],
+    }, ...(adviceSection ? [adviceSection] : [])],
   };
 }
 
@@ -343,7 +316,7 @@ export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload
         !!value
         && typeof value === 'object'
         && !Array.isArray(value)
-        && ['headline', 'paragraphs', 'lead', 'sections', 'forecast', 'advice', 'evidence_ids']
+        && ['headline', 'paragraphs', 'advice']
           .some((key) => Object.prototype.hasOwnProperty.call(value, key))
       );
       const nested = [payload, payload.data, payload.result, payload.output, payload.response]
@@ -403,8 +376,8 @@ function materializeDirectSection(input: {
       id: `anchor:${sectionId}:${index + 1}`,
       conclusion: block.text,
       explanation: `${factualAnchorPrefix}${evidence
-        .map((item) => `${item.factor}: ${item.meaning}`)
-        .join(' ')}`.trim(),
+        .map((item) => item.factor)
+        .join(' · ')}`.trim(),
       evidenceIds: evidence.map((item) => item.id),
     }];
   });
@@ -466,7 +439,7 @@ async function requestGeneratedFeed(input: {
             }),
           },
         ],
-        maxTokens: 3_800,
+        maxTokens: 1_200,
         temperature: 1.1,
         jsonMode: true,
       }));
@@ -487,7 +460,7 @@ async function requestGeneratedFeed(input: {
       input.period,
     );
     if (!validation.errors.length) {
-      const [rawOverview, ...rawSections] = validation.sections;
+      const [rawOverview, rawAdvice] = validation.sections;
       if (!rawOverview) {
         errors = ['overview section is missing after validation'];
         continue;
@@ -499,14 +472,16 @@ async function requestGeneratedFeed(input: {
         overview: true,
         sectionIndex: 0,
       });
-      const sections = rawSections.map((section, index) => materializeDirectSection({
-        section,
-        evidenceViews: input.evidenceViews,
-        language: input.language,
-        overview: false,
-        sectionIndex: index + 1,
-      }));
       input.onMetrics?.({ model: input.model, ...usage, latencyMs: Date.now() - startedAt, validationPassed: true });
+      const sections = rawAdvice
+        ? [materializeDirectSection({
+            section: rawAdvice,
+            evidenceViews: input.evidenceViews,
+            language: input.language,
+            overview: false,
+            sectionIndex: 1,
+          })]
+        : [];
       return {
         overview,
         sections,
@@ -525,12 +500,34 @@ export function buildCrossPeriodLinks(_input?: unknown): CrossPeriodLink[] {
   return [];
 }
 
-function buildFactualNatalContext(chart: NatalChartData): Record<string, unknown> {
+function normalizeNatalPointKey(value: string | null | undefined): string | null {
+  const normalized = String(value || '').trim().replace(/[\s_-]/gu, '').toLowerCase();
+  const aliases: Record<string, string> = {
+    asc: 'ascendant',
+    rising: 'ascendant',
+    midheaven: 'mc',
+    northnode: 'northNode',
+    southnode: 'southNode',
+  };
+  return normalized ? aliases[normalized] || normalized : null;
+}
+
+export function buildPersonalForecastNatalContext(
+  chart: NatalChartData,
+  evidence: EvidenceCalculationResult['evidence'],
+): Record<string, unknown> {
+  const touchedPointKeys = new Set(
+    evidence
+      .map((item) => normalizeNatalPointKey(item.natalPoint))
+      .filter((key): key is string => !!key),
+  );
   if (isNatalChartDataV2(chart)) {
     const v2 = chart as unknown as NatalChartDataV2;
     const housesReliable = v2.chartQuality.housesReliable;
     const ascendantReliable = v2.chartQuality.ascendantReliable;
-    const positions = Object.values(v2.positions).map((position) => ({
+    const positions = Object.values(v2.positions)
+      .filter((position) => touchedPointKeys.has(normalizeNatalPointKey(position.key) || ''))
+      .map((position) => ({
       key: position.key,
       object: position.object,
       kind: position.kind,
@@ -544,8 +541,9 @@ function buildFactualNatalContext(chart: NatalChartData): Record<string, unknown
     }));
     const angles = [
       ascendantReliable ? v2.angles.ascendant : null,
-      v2.chartQuality.anglesAvailable ? v2.angles.mc : null,
+      v2.angles.mc?.reliability !== 'variable_in_range' ? v2.angles.mc : null,
     ].filter((angle): angle is NonNullable<typeof angle> => !!angle)
+      .filter((angle) => touchedPointKeys.has(normalizeNatalPointKey(angle.key) || ''))
       .map((angle) => ({
         key: angle.key,
         sign: angle.sign,
@@ -558,27 +556,6 @@ function buildFactualNatalContext(chart: NatalChartData): Record<string, unknown
       birth_time_quality: v2.birthTimeQuality,
       positions,
       angles,
-      houses: housesReliable
-        ? v2.houses.map((house) => ({
-            house: house.house,
-            sign: house.sign,
-            degree: house.degree,
-            longitude: house.longitude,
-            reliability: house.reliability,
-          }))
-        : [],
-      aspects: v2.aspects
-        .filter((aspect) => aspect.reliable)
-        .map((aspect) => ({
-          id: aspect.id,
-          type: aspect.type,
-          from: aspect.fromKey,
-          to: aspect.toKey,
-          angle: aspect.angle,
-          exact_angle: aspect.exactAngle,
-          orb: aspect.orb,
-          phase: aspect.phase,
-        })),
     };
   }
 
@@ -595,7 +572,8 @@ function buildFactualNatalContext(chart: NatalChartData): Record<string, unknown
   return {
     schema_version: 'legacy',
     birth_time_quality: birthTimeQuality,
-    positions: rawPositions.flatMap(([key, position]) => position ? [{
+    positions: rawPositions.flatMap(([key, position]) => (
+      position && touchedPointKeys.has(normalizeNatalPointKey(key) || '') ? [{
       key,
       sign: position.sign,
       degree: position.degree ?? null,
@@ -603,21 +581,15 @@ function buildFactualNatalContext(chart: NatalChartData): Record<string, unknown
       retrograde: position.retrograde ?? null,
       speed_longitude: position.speedLongitude ?? null,
       house: housesReliable ? position.house ?? null : null,
-    }] : []),
-    angles: ascendantReliable && chart.rising ? [{
+    }] : [])),
+    angles: ascendantReliable
+      && chart.rising
+      && touchedPointKeys.has('ascendant') ? [{
       key: 'ascendant',
       sign: chart.rising.sign,
       degree: chart.rising.degree ?? null,
       longitude: chart.rising.longitude ?? null,
     }] : [],
-    houses: housesReliable ? chart.houses || [] : [],
-    aspects: (chart.aspects || []).map((aspect) => ({
-      type: aspect.type,
-      from: aspect.from,
-      to: aspect.to,
-      angle: aspect.angle,
-      orb: aspect.orb,
-    })),
   };
 }
 
@@ -627,8 +599,6 @@ export async function generatePersonalForecastPackage(input: {
   model: string;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  previousForecast?: PersonalForecastPackage | null;
-  historyContext?: unknown;
   onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
   onEvidenceCalculated?: (payload: {
     calculated: EvidenceCalculationResult;
@@ -637,7 +607,6 @@ export async function generatePersonalForecastPackage(input: {
   }) => Promise<EvidenceCalculatedHookResult>;
 }): Promise<PersonalForecastPackage> {
   const language: ForecastWriterLanguage = input.profile.language === 'en' ? 'en' : 'ru';
-  const natalContext = buildFactualNatalContext(input.chartData);
   const calculated = await calculatePersonalForecastEvidence({
     chartData: input.chartData,
     period: input.period,
@@ -647,6 +616,10 @@ export async function generatePersonalForecastPackage(input: {
   if (input.onEvidenceCalculated) {
     await input.onEvidenceCalculated({ calculated, semanticFacts: [] });
   }
+  const natalContext = buildPersonalForecastNatalContext(
+    input.chartData,
+    calculated.evidence,
+  );
   const generated = await requestGeneratedFeed({
     language,
     model: input.model,
@@ -676,7 +649,6 @@ export async function generatePersonalForecastPackage(input: {
           sections: result.sections,
           userId: String(input.profile.id || 'guest'),
           periodKey: input.window.periodKey,
-          previousSectionIds: input.previousForecast?.meta.freeSelection.sectionIds,
         })
       : {
           strongestSectionId: null,
