@@ -1,7 +1,7 @@
 import React from 'react';
 import { getZodiacSign } from '../../constants';
 import type { Language } from '../../types';
-import { ZodiacSymbol } from '../icons/ZodiacArt';
+import { ZodiacIllustration } from '../icons/ZodiacArt';
 
 interface ZodiacSignGridProps {
   signs: readonly string[];
@@ -43,7 +43,7 @@ export const ZodiacSignGrid: React.FC<ZodiacSignGridProps> = ({
               aria-pressed={isActive}
               onClick={() => onPick(sign)}
             >
-              <ZodiacSymbol sign={sign} size={30} />
+              <ZodiacIllustration sign={sign} className="zodiac-sign-compact-art" />
               <span>{label}</span>
               {isOwnSign ? <i aria-hidden /> : null}
             </button>

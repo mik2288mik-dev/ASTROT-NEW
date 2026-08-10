@@ -4,6 +4,7 @@ import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import {
   AstrologyDetailsToggle,
   useAstrologyDetailsPreference,
@@ -14,6 +15,7 @@ import {
   getMoscowTodayKey,
 } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
+import { shareToTelegram } from '../../lib/botLink';
 import { canAccessFeature } from '../../lib/accessMatrix';
 import {
   ensureDailySignHoroscope,
@@ -136,18 +138,21 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     const load = async () => {
       try {
-        const prefetched = await prefetchSignHoroscopePeriod(period, periodKey, language);
-        hydrate(prefetched);
-        const cachedForSign = prefetched[sign.toLowerCase()];
-        const next = cachedForSign || (period === 'week'
-          ? await ensureWeeklySignHoroscope(sign, periodKey, language)
+        const selectedReading = await (period === 'week'
+          ? ensureWeeklySignHoroscope(sign, periodKey, language)
           : period === 'month'
-            ? await ensureMonthlySignHoroscope(sign, periodKey, language)
-            : await ensureDailySignHoroscope(sign, periodKey, language));
-        if (active) setReadings((current) => ({ ...current, [readingKey]: next }));
+            ? ensureMonthlySignHoroscope(sign, periodKey, language)
+            : ensureDailySignHoroscope(sign, periodKey, language));
+        if (active) setReadings((current) => ({ ...current, [readingKey]: selectedReading }));
       } catch {
         if (active && !readLocalSignHoroscope(period, sign, periodKey, language)) {
           setReadings((current) => ({ ...current, [readingKey]: null }));
+        }
+      } finally {
+        if (active) {
+          void prefetchSignHoroscopePeriod(period, periodKey, language)
+            .then(hydrate)
+            .catch(() => undefined);
         }
       }
     };
@@ -286,6 +291,17 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                     <p className="horo-sign-v2-intro">{displayedReading.astrology.text}</p>
                   </div>
                 ) : null}
+
+                <HoroscopeActivityBar
+                  userId={profile.id ? String(profile.id) : undefined}
+                  sign={displayedSign}
+                  date={today}
+                  period={period}
+                  language={language}
+                  onShare={() => shareToTelegram(language === 'ru'
+                    ? `Гороскоп для знака ${displayedSignLabel} в «Твой гороскоп»`
+                    : `${displayedSignLabel} horoscope in Your Horoscope`)}
+                />
               </>
             ) : null}
           </div>

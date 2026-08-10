@@ -22,15 +22,17 @@ describe('Horoscope product flow', () => {
     expect(picker).toContain('onClick={() => onPick(sign)}');
     expect(picker).not.toContain('setExpanded');
     expect(picker).toContain('zodiac-sign-picker--persistent');
+    expect(picker).toContain('ZodiacIllustration');
     expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(source).toContain('horo-reader-controls');
     expect(source).toContain('horo-reader-article');
     expect(source).toContain('horo-reader-headline');
     expect(styles).toContain('.horo-reader-page .horo-uni.horo-reader-article');
-    expect(styles).toContain('min-height: 70px');
+    expect(styles).toContain('min-height: 88px');
     expect(styles).toContain('margin-top: 23px');
     expect(styles).toContain('background: #ffffff');
     expect(styles).toContain('background: #eee3d5');
+    expect(styles).toContain('text-align: center');
     expect(styles).toContain('background: transparent');
     expect(styles).toContain('transform: none');
     expect(source).toContain('ensureDailySignHoroscope');
@@ -55,6 +57,23 @@ describe('Horoscope product flow', () => {
     expect(source).not.toContain('drag=');
     expect(source).not.toContain("style={{ transform: 'rotate(-2deg)' }}");
     expect(source).not.toContain('loadHumanDailySection');
+  });
+
+  it('loads the selected forecast before background prefetch, restores engagement, and has no zodiac promo banner', () => {
+    const source = read('views/v2/HoroscopeReader.tsx');
+    const app = read('App.tsx');
+    const selectedRequest = source.indexOf('const selectedReading = await');
+    const backgroundPrefetch = source.indexOf('void prefetchSignHoroscopePeriod');
+    const horoscopeBranchStart = app.indexOf("view === 'horoscope'");
+    const horoscopeBranchEnd = app.indexOf("view === 'chart'", horoscopeBranchStart);
+    const horoscopeBranch = app.slice(horoscopeBranchStart, horoscopeBranchEnd);
+
+    expect(selectedRequest).toBeGreaterThan(-1);
+    expect(backgroundPrefetch).toBeGreaterThan(selectedRequest);
+    expect(source).not.toContain('const prefetched = await prefetchSignHoroscopePeriod');
+    expect(source).toContain('HoroscopeActivityBar');
+    expect(source).toContain('userId={profile.id ? String(profile.id) : undefined}');
+    expect(horoscopeBranch).not.toContain('<PromoBanner');
   });
 
   it('keeps all twelve Today signs free and never replaces the profile own sign while browsing', () => {

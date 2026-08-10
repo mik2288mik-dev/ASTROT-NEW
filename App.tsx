@@ -1888,14 +1888,6 @@ const App: React.FC = () => {
                             onRequestPremium={requestPremium}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
                         />
-                        <PromoBanner
-                            category="compatibility"
-                            userId={String(profile.id || 'guest')}
-                            dayKey={currentDateKey}
-                            placementKey="screen:zodiac:compatibility"
-                            language={profile.language === 'en' ? 'en' : 'ru'}
-                            onOpen={openSynastryFromHome}
-                        />
                     </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
