@@ -9,6 +9,7 @@ describe('Horoscope product flow', () => {
   it('opens the known own sign, keeps the 12-sign grid primary, and scrolls a manual choice into view', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
     const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
+    const astrologyToggle = read('components/AstrologyDetailsToggle.tsx');
     const styles = read('styles/zodiacReader.css');
     expect(ZODIAC_KEYS).toHaveLength(12);
     expect(source).toContain('ZodiacSignGrid');
@@ -35,6 +36,9 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('ensureMonthlySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
     expect(source).toContain('displayedReading.astrology.text');
+    expect(source).toContain("../../components/AstrologyDetailsToggle");
+    expect(astrologyToggle).toContain('export const AstrologyDetailsToggle');
+    expect(astrologyToggle).toContain('export function useAstrologyDetailsPreference');
     expect(source).not.toContain('selectZodiacEditorialSticker');
     expect(source).not.toContain('InfoNote');
     expect(source).not.toContain('horo-reader-personal');
