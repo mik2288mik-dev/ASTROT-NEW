@@ -15,6 +15,11 @@ export type CompatHistoryEntry = {
   time?: string;
   place?: string;
   chartId?: number;
+  subjectChartId?: number;
+  subjectName?: string;
+  subjectDate?: string;
+  subjectTime?: string;
+  subjectPlace?: string;
   yourSun: string;
   theirSun: string;
   /** Пол сторон (для гендерного текста). Необязательны — старые записи без них валидны. */
@@ -28,10 +33,15 @@ export type CompatHistoryEntry = {
 const KEY = 'lumia.compatHistory.v1';
 const MAX = 30;
 
-function read(): CompatHistoryEntry[] {
+function storageKey(userId?: string | number | null): string {
+  const normalized = String(userId ?? '').trim();
+  return normalized ? `${KEY}:${normalized}` : KEY;
+}
+
+function read(userId?: string | number | null): CompatHistoryEntry[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(storageKey(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as CompatHistoryEntry[]) : [];
@@ -40,36 +50,36 @@ function read(): CompatHistoryEntry[] {
   }
 }
 
-function write(list: CompatHistoryEntry[]) {
+function write(list: CompatHistoryEntry[], userId?: string | number | null) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX)));
+    window.localStorage.setItem(storageKey(userId), JSON.stringify(list.slice(0, MAX)));
   } catch {
     /* приватный режим/переполнение — тихо игнорируем */
   }
 }
 
-export function loadCompatHistory(): CompatHistoryEntry[] {
-  return read();
+export function loadCompatHistory(userId?: string | number | null): CompatHistoryEntry[] {
+  return read(userId);
 }
 
 /** Добавляет проверку наверх списка; повтор той же пары обновляет запись (без дублей). */
-export function addCompatHistory(entry: CompatHistoryEntry): CompatHistoryEntry[] {
-  const list = read().filter((e) => e.id !== entry.id);
+export function addCompatHistory(entry: CompatHistoryEntry, userId?: string | number | null): CompatHistoryEntry[] {
+  const list = read(userId).filter((e) => e.id !== entry.id);
   list.unshift(entry);
   const next = list.slice(0, MAX);
-  write(next);
+  write(next, userId);
   return next;
 }
 
-export function removeCompatHistory(id: string): CompatHistoryEntry[] {
-  const next = read().filter((e) => e.id !== id);
-  write(next);
+export function removeCompatHistory(id: string, userId?: string | number | null): CompatHistoryEntry[] {
+  const next = read(userId).filter((e) => e.id !== id);
+  write(next, userId);
   return next;
 }
 
-export function clearCompatHistory(): CompatHistoryEntry[] {
-  write([]);
+export function clearCompatHistory(userId?: string | number | null): CompatHistoryEntry[] {
+  write([], userId);
   return [];
 }
 
@@ -79,9 +89,11 @@ export function buildCompatHistoryId(
   name?: string,
   date?: string,
   relationshipContext?: RelationshipContext,
+  subjectChartId?: number,
+  counterpartChartId?: number,
 ): string {
   const contextSuffix = relationshipContext ? `:${relationshipContext}` : '';
   return kind === 'sign'
     ? `sign:${String(sign || '').toLowerCase()}${contextSuffix}`
-    : `person:${String(name || '').trim().toLowerCase()}:${String(date || '')}${contextSuffix}`;
+    : `person:${subjectChartId || 'self'}:${counterpartChartId || String(name || '').trim().toLowerCase()}:${String(date || '')}${contextSuffix}`;
 }

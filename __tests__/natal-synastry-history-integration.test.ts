@@ -100,7 +100,7 @@ describe('natal and synastry history integration', () => {
     expect(mockPersistNatalReadingHistory).not.toHaveBeenCalled();
   });
 
-  it('records extended synastry only for a saved partner and never substitutes noon', () => {
+  it('records extended synastry for a persisted chart pair and never substitutes noon', () => {
     const route = fs.readFileSync(
       path.join(ROOT, 'pages/api/content/synastry/extended.ts'),
       'utf8',

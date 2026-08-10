@@ -212,7 +212,7 @@ export async function persistSavedSynastryHistory(input: {
   relationshipType: string;
   aspects: unknown[];
   content: SynastryResult;
-  provider: 'openai' | 'deterministic';
+  provider: 'openai' | 'deepseek' | 'deterministic';
   modelId: string;
   promptVersion: string;
   generationAttempts: 0 | 1 | 2;

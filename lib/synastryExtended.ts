@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { getContentPolicy } from './contentMatrix';
 
-export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v2';
+export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v3';
 
 export function buildSynastryExtendedCacheKey(
   userId: string,
@@ -10,7 +10,9 @@ export function buildSynastryExtendedCacheKey(
   partnerName: string,
   partnerDate: string,
   relationshipType: string,
-  language: string
+  language: string,
+  partnerTime = '',
+  partnerPlace = '',
 ) {
   const raw = [
     userId,
@@ -18,6 +20,8 @@ export function buildSynastryExtendedCacheKey(
     partnerChartId ?? 'none',
     partnerName.trim().toLowerCase(),
     partnerDate,
+    partnerTime.trim(),
+    partnerPlace.trim().toLowerCase(),
     relationshipType,
     language,
     getContentPolicy('deep_report').promptVersion,

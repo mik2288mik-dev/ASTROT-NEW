@@ -84,14 +84,16 @@ describe('forecast and synastry chart access integration', () => {
     expect(generate).not.toContain('userId:');
   });
 
-  it('derives synastry identity from the session and validates the saved person on the server', () => {
+  it('derives synastry identity from the session and validates both selected charts on the server', () => {
     const route = read('pages/api/content/synastry/extended.ts');
     expect(route).toContain('auth = await requireAppUser(req)');
     expect(route).not.toContain('claimedUserId');
     expect(route).not.toContain('expectedUserId');
     expect(route).toContain('String(partnerChartRecord.user_id) !== userId');
+    expect(route).toContain('String(primaryChartRecord.user_id) !== userId');
+    expect(route).toContain('assertChartReadable(primaryChartRecord, isPremium)');
     expect(route).toContain('assertChartReadable(partnerChartRecord, isPremium)');
-    expect(route).toContain('!isSelfChart(primaryChartRecord)');
+    expect(route).toContain('partnerChartRecord.id === primaryChartRecord.id');
     expect(route).toContain('partnerChartRecord?.birth_date || partnerDate');
 
     const service = read('services/astrologyService.ts');
@@ -101,9 +103,10 @@ describe('forecast and synastry chart access integration', () => {
     expect(request).not.toContain('userId:');
     expect(request).not.toContain('profile,\n');
     expect(request).toContain('partnerChartId');
+    expect(request).toContain('subjectChartId');
   });
 
-  it('does not offer self, archived, or locked people in the synastry selector', () => {
+  it('keeps legacy saved-person filtering and exposes only readable active charts in the new pair selector', () => {
     const view = read('views/Synastry.tsx');
     expect(view).toContain("chart.subject_type === 'saved_person'");
     expect(view).toContain('!chart.archived_at');
@@ -116,6 +119,7 @@ describe('forecast and synastry chart access integration', () => {
     expect(unionRoom).toContain('!chart.access_locked');
     expect(unionRoom).toContain("selected?.kind !== 'person'");
     expect(unionRoom).toContain('setSelected(null)');
-    expect(unionRoom).toContain("setScreen('hub')");
+    expect(unionRoom).toContain("setScreen('add')");
+    expect(unionRoom).toContain('availableCharts.map');
   });
 });

@@ -1081,7 +1081,8 @@ export const calculateExtendedSynastry = async (
   partnerTime?: string,
   partnerPlace?: string,
   relationshipType?: string,
-  partnerChartId?: number
+  partnerChartId?: number,
+  subjectChartId?: number,
 ): Promise<SynastryExtendedApiOutcome> => {
   const url = `${API_BASE_URL}/api/content/synastry/extended`;
   log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate });
@@ -1097,6 +1098,7 @@ export const calculateExtendedSynastry = async (
       language: profile.language,
       relationshipType,
       partnerChartId,
+      subjectChartId,
     }),
   });
 
@@ -1257,4 +1259,3 @@ export async function getSkyToday(todayKey: string): Promise<SkyTodaySnapshot | 
   skyTodayRequest = { key: todayKey, promise };
   return promise;
 }
-

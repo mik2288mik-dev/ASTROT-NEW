@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import OpenAI from 'openai';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../../../types';
 import type { NatalChartDataV2 } from '../../../../lib/natalChartV2Types';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
@@ -25,15 +24,13 @@ import { computeSynastryAspects } from '../../../../lib/synastry/synastryAspects
 import {
   assertChartReadable,
   ChartAccessPolicyError,
-  isSelfChart,
 } from '../../../../lib/chartAccessPolicy';
 import { persistSavedSynastryHistory } from '../../../../lib/astrologyHistoryPersistence';
+import { getContentAiClient, isDeepSeekModel } from '../../../../lib/contentAiClient';
 
 const SCOPE = 'synastry-extended';
 
 type SynastryChartData = NatalChartData | NatalChartDataV2;
-
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 function mapFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }): SynastryResult {
   const score =
@@ -143,7 +140,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     language,
     relationshipType,
     partnerChartId,
+    subjectChartId,
   } = req.body || {};
+
+  const hasSubjectChartId = subjectChartId !== undefined
+    && subjectChartId !== null
+    && String(subjectChartId).trim() !== '';
+  const requestedSubjectChartId = hasSubjectChartId ? Number(subjectChartId) : null;
+  if (
+    requestedSubjectChartId !== null
+    && (!Number.isSafeInteger(requestedSubjectChartId) || requestedSubjectChartId <= 0)
+  ) {
+    return res.status(400).json({
+      error: 'Invalid first chart',
+      code: 'SUBJECT_CHART_INVALID',
+    });
+  }
 
   const hasPartnerChartId = partnerChartId !== undefined
     && partnerChartId !== null
@@ -169,31 +181,67 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const currentLanguage = userLang === 'en' ? 'en' : 'ru';
   const langRu = currentLanguage === 'ru';
   const rel = String(relationshipType || 'романтика').trim();
+  const entitlementState = await getPremiumEntitlementState(userId);
+  const isPremium = entitlementState.isPremium;
 
   logContentApi(
     { scope: SCOPE, userId, chartId: null, surface: 'synastry', variant: 'full' },
     'request_start',
-    { metadata: { hasPartnerChartId } }
+    { metadata: { hasSubjectChartId, hasPartnerChartId, isPremium } }
   );
+
+  if (!isPremium) {
+    warnContentApi(
+      { scope: SCOPE, userId, chartId: null, surface: 'synastry', variant: 'full' },
+      'premium_required',
+      { errorCode: 'PREMIUM_REQUIRED' },
+    );
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PREMIUM_REQUIRED',
+      premiumRequired: true,
+      message: langRu
+        ? 'Сравнение по натальным картам доступно в Premium.'
+        : 'Natal chart compatibility is available in Premium.',
+    });
+  }
 
   let primaryChartRecord: any = null;
   let partnerChartRecord: any = null;
   let userChartData: SynastryChartData | null = null;
   let partnerChartData: SynastryChartData | null = null;
 
-  primaryChartRecord = await db.natal_charts.getPrimary(userId);
+  primaryChartRecord = requestedSubjectChartId !== null
+    ? await db.natal_charts.getById(requestedSubjectChartId)
+    : await db.natal_charts.getPrimary(userId);
+  if (!primaryChartRecord || String(primaryChartRecord.user_id) !== userId) {
+    return res.status(404).json({
+      error: 'First chart not found',
+      code: 'SUBJECT_CHART_NOT_FOUND',
+      message: langRu ? 'Первая сохранённая карта не найдена.' : 'The first saved chart was not found.',
+    });
+  }
+  try {
+    assertChartReadable(primaryChartRecord, isPremium);
+  } catch (error) {
+    if (error instanceof ChartAccessPolicyError) {
+      return res.status(error.status).json({
+        error: error.message,
+        code: error.code,
+        premiumRequired: error.code === 'PREMIUM_REQUIRED',
+      });
+    }
+    throw error;
+  }
   userChartData = (primaryChartRecord?.chart_data as SynastryChartData) || null;
 
-  if (!primaryChartRecord?.id || !userChartData || !isSelfChart(primaryChartRecord)) {
+  if (!primaryChartRecord?.id || !userChartData) {
     return res.status(409).json({
       error: 'Natal chart required',
       code: 'NEEDS_CHART',
-      message: langRu ? 'Сначала создай натальную карту.' : 'Create your natal chart first.',
+      message: langRu ? 'В первой карте нет готового расчёта.' : 'The first chart has no calculation.',
     });
   }
-
-  const entitlementState = await getPremiumEntitlementState(userId);
-  const isPremium = entitlementState.isPremium;
 
   if (requestedPartnerChartId !== null) {
     partnerChartRecord = await db.natal_charts.getById(requestedPartnerChartId);
@@ -216,21 +264,36 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
       throw error;
     }
-    if (isSelfChart(partnerChartRecord)) {
+    if (partnerChartRecord.id === primaryChartRecord.id) {
       return res.status(400).json({
-        error: 'Select a saved person for comparison',
-        code: 'PARTNER_CHART_REQUIRED',
+        error: 'Select two different charts',
+        code: 'CHART_PAIR_DUPLICATE',
+        message: langRu ? 'Для сравнения нужны две разные карты.' : 'Choose two different charts.',
       });
     }
     partnerChartData = (partnerChartRecord.chart_data as SynastryChartData) || null;
   }
 
+  const subjectProfile = {
+    ...profile,
+    name: String(primaryChartRecord.name || profile.name || '').trim(),
+    birthDate: String(primaryChartRecord.birth_date || profile.birthDate || '').trim(),
+    birthTime: String(primaryChartRecord.birth_time ?? profile.birthTime ?? '').trim(),
+    birthPlace: String(primaryChartRecord.birth_place || profile.birthPlace || '').trim(),
+  } as UserProfile;
   const resolvedPartnerName = String(partnerChartRecord?.name || partnerName || '').trim();
   const resolvedPartnerDate = String(partnerChartRecord?.birth_date || partnerDate || '').trim();
   const resolvedPartnerTime = String(partnerChartRecord?.birth_time ?? partnerTime ?? '').trim();
   const resolvedPartnerPlace = String(partnerChartRecord?.birth_place || partnerPlace || '').trim();
+  if (!partnerChartRecord && !resolvedPartnerPlace) {
+    return res.status(400).json({
+      error: 'Partner birth place required',
+      code: 'PARTNER_BIRTH_PLACE_REQUIRED',
+      message: langRu ? 'Укажи место рождения второй карты.' : 'Add the second chart birth place.',
+    });
+  }
   const validation = validateSynastryInput({
-    profile,
+    profile: subjectProfile,
     partnerName: resolvedPartnerName,
     partnerDate: resolvedPartnerDate,
     partnerTime: resolvedPartnerTime,
@@ -254,7 +317,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     resolvedPartnerName,
     resolvedPartnerDate,
     rel,
-    currentLanguage
+    currentLanguage,
+    resolvedPartnerTime,
+    resolvedPartnerPlace,
   );
 
   logContentApi(
@@ -271,28 +336,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       metadata: { isPremium },
     }
   );
-
-  if (!isPremium) {
-    warnContentApi(
-      {
-        scope: SCOPE,
-        userId,
-        chartId: primaryChartRecord.id,
-        surface: 'synastry',
-        variant: 'full',
-      },
-      'premium_required',
-      { errorCode: 'PREMIUM_REQUIRED' }
-    );
-    return res.status(403).json({
-      error: 'Premium required',
-      code: 'PREMIUM_REQUIRED',
-      premiumRequired: true,
-      message: langRu
-        ? 'Полный разбор совместимости доступен в Premium.'
-        : 'The full compatibility reading is available in Premium.',
-    });
-  }
 
   const cachedResult = await loadCachedSynastry(
     userId,
@@ -329,7 +372,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       resolvedPartnerName,
       resolvedPartnerDate,
       resolvedPartnerTime,
-      resolvedPartnerPlace || profile.birthPlace
+      resolvedPartnerPlace
     );
   }
 
@@ -355,10 +398,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       contentSurface: 'synastry',
       contentVariant: 'full',
     });
-    if (!openai) {
+    const aiClient = getContentAiClient(modelAssignment.model);
+    if (!aiClient) {
       resultPayload = mapFullToSynastryResult(buildSynastryFallback(
         langRu,
-        profile.name,
+        subjectProfile.name,
         resolvedPartnerName,
         rel,
       ));
@@ -366,7 +410,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const prompt = buildSynastryPrompt({
         language: currentLanguage,
         context: {
-          profile,
+          profile: { name: subjectProfile.name },
           partnerName: resolvedPartnerName,
           userChartData,
           partnerChartData,
@@ -375,7 +419,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         },
       });
       const modelId = modelAssignment.model;
-      const completion = await openai.chat.completions.create(buildOpenAIChatParams(modelId, {
+      const completion = await aiClient.chat.completions.create(buildOpenAIChatParams(modelId, {
         messages: [
           { role: 'system', content: prompt.system },
           { role: 'user', content: prompt.user },
@@ -387,7 +431,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const content = completion.choices[0]?.message?.content || '{}';
       const parsed = parseModelJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
         content,
-        buildSynastryFallback(langRu, profile.name, resolvedPartnerName, rel)
+        buildSynastryFallback(langRu, subjectProfile.name, resolvedPartnerName, rel)
       );
       resultPayload = mapFullToSynastryResult(parsed);
     }
@@ -437,10 +481,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           relationshipType: rel,
           aspects: synastryAspects,
           content: resultPayload,
-          provider: openai ? 'openai' : 'deterministic',
-          modelId: openai ? modelAssignment.model : 'deterministic-synastry-fallback-v1',
+          provider: aiClient ? (isDeepSeekModel(modelAssignment.model) ? 'deepseek' : 'openai') : 'deterministic',
+          modelId: aiClient ? modelAssignment.model : 'deterministic-synastry-fallback-v1',
           promptVersion: SYNASTRY_CONTEXT_PROMPT_VERSION,
-          generationAttempts: openai ? 1 : 0,
+          generationAttempts: aiClient ? 1 : 0,
         });
       } catch (historyError) {
         console.error(

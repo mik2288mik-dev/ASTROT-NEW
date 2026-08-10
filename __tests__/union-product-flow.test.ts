@@ -42,12 +42,12 @@ describe('Union product flow', () => {
     expect(source).toContain('Без точного времени или места рождения');
   });
 
-  it('adds Telegram initData to service POST requests and enforces a persisted chart on full relationship API', () => {
+  it('adds Telegram initData and rejects free full-chart requests before reading selected charts', () => {
     for (const file of ['services/astrologyService.ts', 'services/natalReadingService.ts', 'services/chartService.ts']) {
       expect(read(file)).not.toContain("headers: { 'Content-Type': 'application/json' }");
     }
     const fullApi = read('pages/api/content/synastry/extended.ts');
     expect(fullApi).toContain("code: 'NEEDS_CHART'");
-    expect(fullApi.indexOf("code: 'NEEDS_CHART'")).toBeLessThan(fullApi.indexOf('getPremiumEntitlementState(userId)'));
+    expect(fullApi.indexOf("code: 'PREMIUM_REQUIRED'")).toBeLessThan(fullApi.indexOf('db.natal_charts.getById(requestedSubjectChartId)'));
   });
 });
