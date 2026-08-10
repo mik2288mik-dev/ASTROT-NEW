@@ -33,11 +33,13 @@
 }
 
 .fresh-page.horo-reader-page .fresh-tabs.horo-period-tabs {
-  width: max-content;
-  min-height: 28px;
+  width: 100%;
+  min-height: 44px;
   margin: 0 auto 12px;
   padding: 0;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
   overflow: visible;
   border: 0 !important;
   border-radius: 0;
@@ -46,11 +48,12 @@
 }
 
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
+  position: relative;
+  width: 100%;
   min-width: 0;
-  min-height: 28px !important;
-  padding: 2px 0;
+  min-height: 44px !important;
+  padding: 8px 4px;
   border: 0;
-  border-bottom: 1px solid transparent;
   border-radius: 0;
   background: transparent;
   color: #85817c;
@@ -60,12 +63,27 @@
   line-height: 1.2;
 }
 
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after {
+  position: absolute;
+  right: 50%;
+  bottom: 0;
+  width: 48px;
+  height: 1px;
+  background: transparent;
+  content: '';
+  transform: translateX(50%);
+}
+
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active,
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true'] {
-  border-bottom-color: #292622;
   background: transparent !important;
   color: #292622 !important;
   box-shadow: none;
+}
+
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab.active::after,
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab[data-active='true']::after {
+  background: #292622;
 }
 
 .horo-reader-page .zodiac-sign-picker {
@@ -81,7 +99,7 @@
 .horo-reader-page .zodiac-sign-compact-option {
   position: relative;
   min-width: 0;
-  min-height: 88px;
+  min-height: 112px;
   padding: 8px 4px 7px;
   display: flex;
   flex-direction: column;
@@ -104,8 +122,8 @@
 }
 
 .horo-reader-page .zodiac-sign-compact-option > img {
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 72px;
   display: block;
   object-fit: contain;
   opacity: 1;
@@ -316,14 +334,14 @@
   }
 
   .horo-reader-page .zodiac-sign-compact-option {
-    min-height: 82px;
+    min-height: 104px;
     padding-inline: 3px;
     font-size: 11.5px;
   }
 
   .horo-reader-page .zodiac-sign-compact-option > img {
-    width: 44px;
-    height: 44px;
+    width: 66px;
+    height: 66px;
   }
 }
 

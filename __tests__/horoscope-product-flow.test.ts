@@ -10,6 +10,7 @@ describe('Horoscope product flow', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
     const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
     const astrologyToggle = read('components/AstrologyDetailsToggle.tsx');
+    const service = read('services/astrologyService.ts');
     const styles = read('styles/zodiacReader.css');
     expect(ZODIAC_KEYS).toHaveLength(12);
     expect(source).toContain('ZodiacSignGrid');
@@ -28,7 +29,11 @@ describe('Horoscope product flow', () => {
     expect(source).toContain('horo-reader-article');
     expect(source).toContain('horo-reader-headline');
     expect(styles).toContain('.horo-reader-page .horo-uni.horo-reader-article');
-    expect(styles).toContain('min-height: 88px');
+    expect(styles).toContain('min-height: 112px');
+    expect(styles).toContain('width: 72px');
+    expect(service).toContain("'tvoi-goroskop:sign-horoscope-v3'");
+    expect(service).toContain('LEGACY_SIGN_HOROSCOPE_LOCAL_CACHE_PREFIXES');
+    expect(service).toContain('window.localStorage.setItem(currentStorageKey, raw)');
     expect(styles).toContain('margin-top: 23px');
     expect(styles).toContain('background: #ffffff');
     expect(styles).toContain('background: #eee3d5');

@@ -131,6 +131,9 @@ const signMonthlyClientCache = new Map<string, SignHoroscopeReadingV2>();
 const signHoroscopeInFlight = new Map<string, Promise<SignHoroscopeReadingV2>>();
 const signPeriodPrefetchInFlight = new Map<string, Promise<Record<string, SignHoroscopeReadingV2>>>();
 const SIGN_HOROSCOPE_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:sign-horoscope-v3.1-human-copy';
+const LEGACY_SIGN_HOROSCOPE_LOCAL_CACHE_PREFIXES = [
+  'tvoi-goroskop:sign-horoscope-v3',
+] as const;
 const SIGN_BATCH_REQUEST_TIMEOUT_MS = 95_000;
 const SIGN_BATCH_POLL_TIMEOUT_MS = 90_000;
 
@@ -166,8 +169,9 @@ function signLocalStorageKey(
   sign: string,
   periodKey: string,
   language: 'ru' | 'en',
+  prefix = SIGN_HOROSCOPE_LOCAL_CACHE_PREFIX,
 ): string {
-  return `${SIGN_HOROSCOPE_LOCAL_CACHE_PREFIX}:${period}:${signClientCacheKey(period, sign, periodKey, language)}`;
+  return `${prefix}:${period}:${signClientCacheKey(period, sign, periodKey, language)}`;
 }
 
 function isSignHoroscopeReading(value: unknown): value is SignHoroscopeReadingV2 {
@@ -193,19 +197,36 @@ export function readLocalSignHoroscope(
   if (memory) return memory;
 
   if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(signLocalStorageKey(period, sign, periodKey, language));
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (!isSignHoroscopeReading(parsed)) {
-      window.localStorage.removeItem(signLocalStorageKey(period, sign, periodKey, language));
-      return null;
+  const currentStorageKey = signLocalStorageKey(period, sign, periodKey, language);
+  const storageKeys = [
+    currentStorageKey,
+    ...LEGACY_SIGN_HOROSCOPE_LOCAL_CACHE_PREFIXES.map((prefix) =>
+      signLocalStorageKey(period, sign, periodKey, language, prefix)),
+  ];
+
+  for (const storageKey of storageKeys) {
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) continue;
+      const parsed: unknown = JSON.parse(raw);
+      if (!isSignHoroscopeReading(parsed)) {
+        window.localStorage.removeItem(storageKey);
+        continue;
+      }
+      signClientCache(period).set(key, parsed);
+      if (storageKey !== currentStorageKey) {
+        try {
+          window.localStorage.setItem(currentStorageKey, raw);
+        } catch {
+          // The compatible memory entry is still usable when persistent migration is blocked.
+        }
+      }
+      return parsed;
+    } catch {
+      // A single damaged or unavailable storage entry must not hide another compatible cache.
     }
-    signClientCache(period).set(key, parsed);
-    return parsed;
-  } catch {
-    return null;
   }
+  return null;
 }
 
 function storeLocalSignHoroscope(
