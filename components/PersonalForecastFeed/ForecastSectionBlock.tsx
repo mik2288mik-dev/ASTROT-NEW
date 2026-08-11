@@ -12,7 +12,11 @@ type ForecastSectionBlockProps = {
   locked: boolean;
   style?: CSSProperties;
   hasVisual?: boolean;
-  editorialStickerPath?: string | null;
+  editorialSticker?: {
+    path: string;
+    width: number;
+    height: number;
+  } | null;
   children?: ReactNode;
   evidence: Record<string, ForecastEvidenceView>;
   showAstrology?: boolean;
@@ -47,7 +51,7 @@ function renderContentBlocks(
   evidence: Record<string, ForecastEvidenceView>,
   showAstrology: boolean,
   language: 'ru' | 'en',
-  editorialStickerPath?: string | null,
+  editorialSticker?: ForecastSectionBlockProps['editorialSticker'],
 ): ReactNode {
   const stickerAfterIndex = 0;
   return (
@@ -83,10 +87,12 @@ function renderContentBlocks(
                 ))}
               </div>
             ) : null}
-            {editorialStickerPath && index === stickerAfterIndex ? (
+            {editorialSticker && index === stickerAfterIndex ? (
               <img
                 className="forecast-feed-editorial-sticker"
-                src={editorialStickerPath}
+                src={editorialSticker.path}
+                width={editorialSticker.width}
+                height={editorialSticker.height}
                 alt=""
                 aria-hidden="true"
                 loading="lazy"
@@ -108,7 +114,7 @@ export function ForecastSectionBlock({
   locked,
   style,
   hasVisual = false,
-  editorialStickerPath,
+  editorialSticker,
   children,
   evidence,
   showAstrology = false,
@@ -197,7 +203,7 @@ export function ForecastSectionBlock({
             evidence,
             showAstrology,
             language,
-            editorialStickerPath,
+            editorialSticker,
           )
         )}
         {children}

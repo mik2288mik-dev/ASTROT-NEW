@@ -36,7 +36,7 @@ describe('personal forecast prewarm', () => {
     mockedLoad.mockReset();
   });
 
-  it('startup cache-only checks only the first-screen day package', async () => {
+  it('preloads day, week, and month packages before the reader needs a tab switch', async () => {
     mockedLoad.mockResolvedValue({
       forecast: personalForecastFixture(),
       accessTier: 'premium',
@@ -44,34 +44,36 @@ describe('personal forecast prewarm', () => {
       source: 'cache',
     });
     const result = await prewarmUserContent({ ...input, mode: 'cache-only' });
-    expect(result.planSize).toBe(1);
-    expect(mockedLoad).toHaveBeenCalledTimes(1);
-    expect(mockedLoad.mock.calls[0][0]).toMatchObject({
-      period: 'day',
-      options: { cacheOnly: true, force: true },
-    });
+    expect(result.planSize).toBe(3);
+    expect(mockedLoad).toHaveBeenCalledTimes(3);
+    expect(mockedLoad.mock.calls.map(([request]) => request)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ period: 'day', options: { cacheOnly: true, force: true } }),
+      expect.objectContaining({ period: 'week', options: { cacheOnly: true, force: true } }),
+      expect.objectContaining({ period: 'month', options: { cacheOnly: true, force: true } }),
+    ]));
   });
 
   it('deduplicates two parallel generate-missing startup calls', async () => {
     let release = () => {};
     const gate = new Promise<void>((resolve) => { release = resolve; });
-    mockedLoad
-      .mockRejectedValueOnce(Object.assign(new Error('missing'), { status: 404 }))
-      .mockImplementationOnce(async () => {
-        await gate;
-        return {
-          forecast: personalForecastFixture(),
-          accessTier: 'premium',
-          lockedTopicKeys: [],
-          source: 'generated',
-        };
-      });
+    mockedLoad.mockImplementation(async (request) => {
+      if (request.options?.cacheOnly) {
+        throw Object.assign(new Error('missing'), { status: 404 });
+      }
+      await gate;
+      return {
+        forecast: personalForecastFixture(),
+        accessTier: 'premium',
+        lockedTopicKeys: [],
+        source: 'generated',
+      };
+    });
     const first = prewarmUserContent({ ...input, mode: 'generate-missing' });
     const second = prewarmUserContent({ ...input, mode: 'generate-missing' });
     await Promise.resolve();
     release();
     await Promise.all([first, second]);
-    expect(mockedLoad).toHaveBeenCalledTimes(2);
+    expect(mockedLoad).toHaveBeenCalledTimes(6);
   });
 
   it('does not schedule server-side personal forecast generation', () => {

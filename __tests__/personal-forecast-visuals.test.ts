@@ -55,7 +55,7 @@ describe('personal forecast editorial visual resolver', () => {
     );
   });
 
-  it('assigns at most one sparse sticker to the overview and none to text sections', () => {
+  it('assigns one inline sticker to each forecast overview and none to text sections', () => {
     const manifestPaths = new Set(
       (mainManifest.items as Array<{ path: string }>).map((asset) => asset.path),
     );
@@ -63,18 +63,25 @@ describe('personal forecast editorial visual resolver', () => {
       userId: `${userId}-${index}`,
       forecast: feed(),
     }));
-    const shown = samples.find((sample) => !!sample.assignments.overview.path);
-    const hidden = samples.find((sample) => !sample.assignments.overview.path);
-
-    expect(shown).toBeDefined();
-    expect(hidden).toBeDefined();
-    expect(manifestPaths.has(shown!.assignments.overview.path as string)).toBe(true);
+    expect(samples.every((sample) => !!sample.assignments.overview.path)).toBe(true);
     for (const resolved of samples) {
+      expect(manifestPaths.has(resolved.assignments.overview.path as string)).toBe(true);
       expect(sections.every((item) => resolved.assignments[item.id].path === null)).toBe(true);
       expect(Object.values(resolved.assignments).filter((assignment) => assignment.path).length)
-        .toBeLessThanOrEqual(1);
-      expect(resolved.visualFallback).toBe(!resolved.assignments.overview.path);
+        .toBe(1);
+      expect(resolved.visualFallback).toBe(false);
     }
+  });
+
+  it('chooses a different sticker when another personal period is already visible', () => {
+    const first = resolvePersonalForecastVisuals({ userId, forecast: feed('2026-08-11') });
+    const second = resolvePersonalForecastVisuals({
+      userId,
+      forecast: { ...feed('2026-W33'), period: 'week' },
+      excludeAssetIds: [first.assignments.overview.assetId!],
+    });
+
+    expect(second.assignments.overview.assetId).not.toBe(first.assignments.overview.assetId);
   });
 
   it('does not change the selected sticker on refresh', () => {

@@ -30,6 +30,7 @@ import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
 import { LumiaSideDrawer } from './components/lumia-ui/LumiaSideDrawer';
+import type { PersonalForecastPeriod } from './lib/personalForecastContract';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import { getPaymentProvider } from './services/paymentProvider';
@@ -240,6 +241,7 @@ const App: React.FC = () => {
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
     const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
+    const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     // Когда задан — paywall показан после онбординга; close/«продолжить бесплатно» ведут сюда.
     const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
     const [showPremiumPreview, setShowPremiumPreview] = useState(false);
@@ -1672,6 +1674,11 @@ const App: React.FC = () => {
         setSideDrawerOpen(false);
         openBottomToday();
     }, [openBottomToday]);
+    const openDrawerPeriod = useCallback((period: PersonalForecastPeriod) => {
+        setDashboardPeriod(period);
+        setSideDrawerOpen(false);
+        openBottomToday();
+    }, [openBottomToday]);
     const openDrawerHoroscope = useCallback(() => {
         setSideDrawerOpen(false);
         openBottomZodiac();
@@ -1786,6 +1793,8 @@ const App: React.FC = () => {
         onCreateNatalChart: openBottomNatal,
         onOpenSynastry: openSynastryFromHome,
         onOpenHoroscope: openBottomZodiac,
+        requestedPeriod: dashboardPeriod,
+        onPeriodChange: setDashboardPeriod,
         onRequestPremium: requestPremium,
     };
 
@@ -1970,6 +1979,8 @@ const App: React.FC = () => {
                 sunSign={chartData?.sun?.sign || primaryChartDataRef.current?.sun?.sign || null}
                 onClose={() => setSideDrawerOpen(false)}
                 onOpenDiary={openDrawerDiary}
+                activePeriod={dashboardPeriod}
+                onSelectPeriod={openDrawerPeriod}
                 onOpenSignHoroscope={openDrawerHoroscope}
                 onOpenCompatibility={openDrawerCompatibility}
                 onOpenNatalChart={openDrawerNatalChart}

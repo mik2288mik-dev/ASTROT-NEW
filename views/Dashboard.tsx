@@ -50,6 +50,8 @@ type DashboardProps = {
   onCreateNatalChart?: () => void;
   onOpenSynastry?: () => void;
   onOpenHoroscope?: () => void;
+  requestedPeriod?: PersonalForecastPeriod;
+  onPeriodChange?: (period: PersonalForecastPeriod) => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -66,6 +68,11 @@ type PeriodState = {
 type PeriodRequest = {
   cacheOnly: boolean;
   promise: Promise<void>;
+};
+
+type PendingPeriodSelection = {
+  period: PersonalForecastPeriod;
+  targetSectionId?: string;
 };
 
 const PERIOD_TABS: ReadonlyArray<{
@@ -190,6 +197,8 @@ export const Dashboard = memo<DashboardProps>(({
   onCreateNatalChart,
   onOpenSynastry,
   onOpenHoroscope,
+  requestedPeriod,
+  onPeriodChange,
   onRequestPremium,
   scrollRef,
 }) => {
@@ -212,11 +221,15 @@ export const Dashboard = memo<DashboardProps>(({
     week: emptyPeriodState(),
     month: emptyPeriodState(),
   });
+  const [stickerIdsByPeriod, setStickerIdsByPeriod] = useState<
+    Partial<Record<PersonalForecastPeriod, string>>
+  >({});
   const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const contextRef = useRef('');
   const accessContextRef = useRef('');
   const pendingSectionRef = useRef<string | null>(null);
+  const pendingPeriodRef = useRef<PendingPeriodSelection | null>(null);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => ({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
@@ -237,6 +250,11 @@ export const Dashboard = memo<DashboardProps>(({
     id,
     label: language === 'ru' ? ru : en,
   })), [language]);
+  const stickerCycleKey = `${userId}:${periodKeys.day}:${periodKeys.week}:${periodKeys.month}`;
+
+  useEffect(() => {
+    setStickerIdsByPeriod({});
+  }, [stickerCycleKey]);
 
   const contextKey = useMemo(() => [
     userId,
@@ -416,13 +434,9 @@ export const Dashboard = memo<DashboardProps>(({
 
   useEffect(() => {
     loadPeriod('day');
-    loadPeriod('week', { cacheOnly: true });
-    loadPeriod('month', { cacheOnly: true });
+    loadPeriod('week');
+    loadPeriod('month');
   }, [contextKey, loadPeriod]);
-
-  useEffect(() => {
-    loadPeriod(activePeriod);
-  }, [activePeriod, loadPeriod]);
 
   const state = periodStates[activePeriod];
   const displayPeriod = activePeriod;
@@ -449,6 +463,9 @@ export const Dashboard = memo<DashboardProps>(({
     ) return null;
     return resolvePersonalForecastVisuals({
       userId,
+      excludeAssetIds: Object.entries(stickerIdsByPeriod)
+        .filter(([period]) => period !== displayPeriod)
+        .map(([, assetId]) => assetId),
       forecast: {
         period: forecast.period,
         periodKey: forecast.periodKey,
@@ -456,12 +473,28 @@ export const Dashboard = memo<DashboardProps>(({
         sections: readySections,
       },
     });
-  }, [forecast, readySections, userId]);
+  }, [displayPeriod, forecast, readySections, stickerIdsByPeriod, userId]);
 
-  const editorialStickerPath = useMemo(() => {
+  const editorialSticker = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return null;
-    return visual?.assignments[forecast.overview.id]?.path || null;
+    const assignment = visual?.assignments[forecast.overview.id];
+    if (!assignment?.path || !assignment.width || !assignment.height) return null;
+    return {
+      path: assignment.path,
+      width: assignment.width,
+      height: assignment.height,
+    };
   }, [forecast, visual]);
+
+  useEffect(() => {
+    const assetId = forecast && visual?.assignments[forecast.overview.id]?.assetId;
+    if (!assetId) return;
+    setStickerIdsByPeriod((current) => (
+      current[displayPeriod] === assetId
+        ? current
+        : { ...current, [displayPeriod]: assetId }
+    ));
+  }, [displayPeriod, forecast, visual]);
 
   const promotions = useMemo(() => {
     if (!forecast || forecast.meta.status !== 'ready') return [];
@@ -504,15 +537,39 @@ export const Dashboard = memo<DashboardProps>(({
   const selectPeriod = useCallback((
     period: PersonalForecastPeriod,
     targetSectionId?: string,
+    silently = false,
   ) => {
-    lumiaSelectionHaptic();
+    if (!silently) lumiaSelectionHaptic();
     if (targetSectionId) pendingSectionRef.current = targetSectionId;
-    setActivePeriod(period);
     loadPeriod(period);
+    if (!selectActiveReadyPersonalForecast(period, periodStates)) {
+      if (periodStates[period].phase !== 'error') {
+        pendingPeriodRef.current = { period, targetSectionId };
+      } else {
+        pendingPeriodRef.current = null;
+      }
+      return;
+    }
+    pendingPeriodRef.current = null;
+    setActivePeriod(period);
+    onPeriodChange?.(period);
     if (!targetSectionId) {
       scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [loadPeriod, scrollRef]);
+  }, [loadPeriod, onPeriodChange, periodStates, scrollRef]);
+
+  useEffect(() => {
+    if (!requestedPeriod || requestedPeriod === activePeriod) return;
+    if (periodStates[requestedPeriod].phase === 'error') return;
+    selectPeriod(requestedPeriod, undefined, true);
+  }, [activePeriod, periodStates, requestedPeriod, selectPeriod]);
+
+  useEffect(() => {
+    const pending = pendingPeriodRef.current;
+    if (!pending || periodStates[pending.period].phase === 'error') return;
+    if (!selectActiveReadyPersonalForecast(pending.period, periodStates)) return;
+    selectPeriod(pending.period, pending.targetSectionId, true);
+  }, [periodStates, selectPeriod]);
 
   const requestPremium = useCallback(() => {
     void onRequestPremium?.('personal_forecast_feed', {
@@ -680,8 +737,8 @@ export const Dashboard = memo<DashboardProps>(({
               visual?.assignments[forecast.overview.id],
               displayPeriod,
             )}
-            hasVisual={!!editorialStickerPath}
-            editorialStickerPath={editorialStickerPath}
+            hasVisual={!!editorialSticker}
+            editorialSticker={editorialSticker}
             showAstrology={showAstrology}
             onRequestPremium={requestPremium}
           >
@@ -716,7 +773,7 @@ export const Dashboard = memo<DashboardProps>(({
                     displayPeriod,
                   )}
                   hasVisual={false}
-                  editorialStickerPath={null}
+                  editorialSticker={null}
                   showAstrology={showAstrology}
                   onRequestPremium={requestPremium}
                 >

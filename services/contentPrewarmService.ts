@@ -7,6 +7,7 @@ import {
 import {
   getPersonalForecastPeriodKey,
   normalizeForecastTimezone,
+  type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
 import {
   loadPersonalForecast,
@@ -48,25 +49,42 @@ const CACHE_ONLY_DEFAULT_BUDGET_MS = 1_500;
 const GENERATE_MISSING_DEFAULT_BUDGET_MS = 120_000;
 const prewarmInFlight = new Map<string, Promise<PrewarmUserContentResult>>();
 
-function personalDayKey(input: PrewarmUserContentInput): string {
+type PrewarmExecutionInput = PrewarmUserContentInput & {
+  periodKeys: Record<PersonalForecastPeriod, string>;
+};
+
+const PERIOD_BY_TASK_ID: Record<PrewarmTaskId, PersonalForecastPeriod> = {
+  personal_forecast_day: 'day',
+  personal_forecast_week: 'week',
+  personal_forecast_month: 'month',
+};
+
+function personalForecastPeriodKeys(
+  input: PrewarmUserContentInput,
+): Record<PersonalForecastPeriod, string> {
   const timezone = normalizeForecastTimezone(
     input.chartData.timezone || input.profile.birthTimezone,
   );
-  return getPersonalForecastPeriodKey('day', new Date(), timezone);
+  const now = new Date();
+  return {
+    day: getPersonalForecastPeriodKey('day', now, timezone),
+    week: getPersonalForecastPeriodKey('week', now, timezone),
+    month: getPersonalForecastPeriodKey('month', now, timezone),
+  };
 }
 
 async function probePrewarmItem(
   item: PrewarmPlanItem,
-  input: PrewarmUserContentInput,
+  input: PrewarmExecutionInput,
 ): Promise<boolean> {
-  if (item.id !== 'personal_forecast_day') return false;
+  const period = PERIOD_BY_TASK_ID[item.id];
   try {
     await loadPersonalForecast({
       profile: input.profile,
       chartData: input.chartData,
       chartId: input.chartId,
-      period: 'day',
-      periodKey: personalDayKey(input),
+      period,
+      periodKey: input.periodKeys[period],
       options: { cacheOnly: true, force: true },
     });
     return true;
@@ -78,22 +96,22 @@ async function probePrewarmItem(
 
 async function generatePrewarmItem(
   item: PrewarmPlanItem,
-  input: PrewarmUserContentInput,
+  input: PrewarmExecutionInput,
 ): Promise<void> {
-  if (item.id !== 'personal_forecast_day') return;
+  const period = PERIOD_BY_TASK_ID[item.id];
   await loadPersonalForecast({
     profile: input.profile,
     chartData: input.chartData,
     chartId: input.chartId,
-    period: 'day',
-    periodKey: personalDayKey(input),
+    period,
+    periodKey: input.periodKeys[period],
     options: { force: true },
   });
 }
 
 async function runPlan(
   plan: PrewarmPlanItem[],
-  input: PrewarmUserContentInput,
+  input: PrewarmExecutionInput,
   deadline: number,
 ): Promise<PrewarmUserContentResult> {
   const completed: PrewarmTaskResult[] = [];
@@ -102,10 +120,10 @@ async function runPlan(
   const cachedTaskIds: PrewarmTaskId[] = [];
   const mode = input.mode || 'cache-only';
 
-  for (const item of plan) {
+  await Promise.all(plan.map(async (item) => {
     if (Date.now() >= deadline) {
       missingTaskIds.push(item.id);
-      continue;
+      return;
     }
     try {
       const cached = await probePrewarmItem(item, input);
@@ -128,7 +146,7 @@ async function runPlan(
     } finally {
       input.onProgress?.((completed.length + failed.length) / Math.max(plan.length, 1));
     }
-  }
+  }));
 
   return {
     planSize: plan.length,
@@ -142,7 +160,7 @@ async function runPlan(
 export async function prewarmUserContent(
   input: PrewarmUserContentInput,
 ): Promise<PrewarmUserContentResult> {
-  const periodKey = personalDayKey(input);
+  const periodKeys = personalForecastPeriodKeys(input);
   const mode = input.mode || 'cache-only';
   const scope = input.onlyTaskIds?.length
     ? [...input.onlyTaskIds].sort().join(',')
@@ -150,14 +168,16 @@ export async function prewarmUserContent(
   const key = [
     input.userId,
     input.chartId ?? 'primary',
-    periodKey,
+    periodKeys.day,
+    periodKeys.week,
+    periodKeys.month,
     mode,
     scope,
   ].join(':');
   const existing = prewarmInFlight.get(key);
   if (existing) return existing;
 
-  let plan = buildUserPrewarmPlan(input.isPremium, periodKey);
+  let plan = buildUserPrewarmPlan(input.isPremium, periodKeys);
   if (input.onlyTaskIds?.length) {
     const allowed = new Set(input.onlyTaskIds);
     plan = plan.filter((item) => allowed.has(item.id));
@@ -166,7 +186,7 @@ export async function prewarmUserContent(
     ?? (mode === 'cache-only'
       ? CACHE_ONLY_DEFAULT_BUDGET_MS
       : GENERATE_MISSING_DEFAULT_BUDGET_MS);
-  const request = runPlan(plan, input, Date.now() + budget).finally(() => {
+  const request = runPlan(plan, { ...input, periodKeys }, Date.now() + budget).finally(() => {
     if (prewarmInFlight.get(key) === request) prewarmInFlight.delete(key);
   });
   prewarmInFlight.set(key, request);

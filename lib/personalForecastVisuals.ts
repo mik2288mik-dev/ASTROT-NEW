@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { selectDiaryEditorialSticker } from './personalForecastVisuals/editorialSelectors';
+import { selectMainEditorialSticker } from './personalForecastVisuals/editorialSelectors';
 import type { EditorialTopic } from './personalForecastVisuals/editorialTypes';
 import {
   PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION,
@@ -36,6 +36,8 @@ export type ForecastVisualAssignment = {
   sectionId: string;
   assetId: string | null;
   path: string | null;
+  width: number | null;
+  height: number | null;
   sourceCategory: 'personal' | null;
   textSide: 'center';
   crop: { desktop: { position: string; scale: number }; mobile: { position: string; scale: number } };
@@ -195,13 +197,16 @@ function themesFor(request: ForecastVisualRequest): readonly Theme[] {
   return TAG_THEMES[tag] || TAG_THEMES[tag.replace(/-/g, '_')] || (request.sourceTopicKey ? SOURCE_THEMES[request.sourceTopicKey] || ['general'] : ['general']);
 }
 function fallbackAssignment(request: ForecastVisualRequest): ForecastVisualAssignment {
-  return { sectionId: request.sectionId, assetId: null, path: null, sourceCategory: null, textSide: 'center', crop: { desktop: { position: '50% 50%', scale: 1 }, mobile: { position: '50% 50%', scale: 1 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: null, compositionTag: null, visualFallback: true };
+  return { sectionId: request.sectionId, assetId: null, path: null, width: null, height: null, sourceCategory: null, textSide: 'center', crop: { desktop: { position: '50% 50%', scale: 1 }, mobile: { position: '50% 50%', scale: 1 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: null, compositionTag: null, visualFallback: true };
 }
 export function buildForecastVisualRequests(input: { userId: string; forecast: ForecastVisualFeedInput }): ForecastVisualRequest[] {
   return [input.forecast.overview, ...input.forecast.sections].map((section, sectionIndex) => ({ ...section, userId: input.userId, period: input.forecast.period, periodKey: input.forecast.periodKey, sectionId: section.id, sectionIndex }));
 }
 export const buildForecastSectionVisualRequests = buildForecastVisualRequests;
-export function resolveForecastVisualScreen(requests: readonly ForecastVisualRequest[], _options?: { previousSectionAssetPaths?: Readonly<Record<string, string | null | undefined>> }): ForecastVisualScreen {
+export function resolveForecastVisualScreen(requests: readonly ForecastVisualRequest[], options?: {
+  previousSectionAssetPaths?: Readonly<Record<string, string | null | undefined>>;
+  excludeAssetIds?: readonly string[];
+}): ForecastVisualScreen {
   const assignments: Record<string, ForecastVisualAssignment> = {};
   const ordered = [...requests].sort((left, right) => left.sectionIndex - right.sectionIndex);
   const visualRequest = ordered[0];
@@ -220,10 +225,12 @@ export function resolveForecastVisualScreen(requests: readonly ForecastVisualReq
     mercury: 'mercury',
   };
   const editorialAsset = visualRequest
-    ? selectDiaryEditorialSticker({
+    ? selectMainEditorialSticker({
+        screenKey: `personal-forecast:${visualRequest.period}`,
         contentKey: `${visualRequest.period}|${visualRequest.periodKey}`,
         userId: visualRequest.userId,
         topics: themesFor(visualRequest).map((theme) => editorialTopicMap[theme]),
+        excludeIds: options?.excludeAssetIds,
       })
     : null;
   for (const request of ordered) {
@@ -233,6 +240,8 @@ export function resolveForecastVisualScreen(requests: readonly ForecastVisualReq
           sectionId: request.sectionId,
           assetId: asset.id,
           path: asset.path,
+          width: asset.width,
+          height: asset.height,
           sourceCategory: 'personal',
           textSide: 'center',
           crop: {
@@ -258,8 +267,16 @@ export function resolveForecastVisualScreen(requests: readonly ForecastVisualReq
   };
 }
 export const resolveForecastSectionVisuals = resolveForecastVisualScreen;
-export function resolvePersonalForecastVisuals(input: { userId: string; forecast: ForecastVisualFeedInput; previousSectionAssetPaths?: Readonly<Record<string, string | null | undefined>> }): ForecastVisualScreen {
-  return resolveForecastVisualScreen(buildForecastVisualRequests(input));
+export function resolvePersonalForecastVisuals(input: {
+  userId: string;
+  forecast: ForecastVisualFeedInput;
+  previousSectionAssetPaths?: Readonly<Record<string, string | null | undefined>>;
+  excludeAssetIds?: readonly string[];
+}): ForecastVisualScreen {
+  return resolveForecastVisualScreen(buildForecastVisualRequests(input), {
+    previousSectionAssetPaths: input.previousSectionAssetPaths,
+    excludeAssetIds: input.excludeAssetIds,
+  });
 }
 export function getForecastVisualAssignment(screen: ForecastVisualScreen, sectionId: string) { return screen.assignments[sectionId] || null; }
 type ForecastVisualStyle = CSSProperties & {

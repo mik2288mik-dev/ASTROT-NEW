@@ -148,7 +148,7 @@
   min-height: 44px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
-  margin: 10px auto 26px;
+  margin: 10px auto 12px;
   padding: 0;
   overflow: visible;
   border: 0;
@@ -777,7 +777,7 @@
 
 .forecast-feed-section.is-overview .forecast-feed-screen-headline {
   max-width: 18ch;
-  margin: 0 auto 22px;
+  margin: 0 auto 16px;
   color: #2d2924;
   font-family: Georgia, 'Times New Roman', ui-serif, serif;
   font-size: clamp(27px, 7.3vw, 34px);
