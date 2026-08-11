@@ -43,22 +43,29 @@ describe('compatibility editorial layout', () => {
     expect(addFlow).toContain("'Сравним двух людей — по данным рождения или быстро по знакам.'");
     expect(addFlow).toContain("'По данным рождения'");
     expect(addFlow).toContain("'По знакам'");
-    expect(addFlow).toContain('<small>Premium</small>');
-    expect(addFlow).toContain("ru ? 'Бесплатно'");
+    expect(addFlow).toContain('compat-mode-note');
+    expect(addFlow).toContain("ru ? 'Подробный разбор · Premium'");
+    expect(addFlow).toContain("ru ? 'Быстрое сравнение · бесплатно'");
     expect(room.match(/compat-choice-tabs/g)?.length).toBeGreaterThanOrEqual(3);
     expect(addFlow).toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
     expect(room).toContain('compat-air-add-chart');
     expect(addFlow).toContain('onOpenCharts');
     expect(addFlow).not.toContain('compat-saved-section');
 
-    expect(styles).toContain('--compat-air-accent: #176f45');
+    expect(styles).toContain('Compatibility entry: monochrome Air form');
+    expect(styles).not.toContain('--compat-air-accent');
+    expect(styles).not.toContain('#176f45');
     expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab.is-active');
     expect(addFlow.match(/className="compat-air-person"/g)).toHaveLength(2);
     expect(addFlow).toContain('compat-air-person-heading');
     expect(addFlow).toContain('PersonSourcePicker');
+    expect(addFlow).not.toContain('compat-air-person-index');
+    expect(addFlow).not.toContain('className="compat-accuracy-line"');
     expect(addFlow).not.toContain('compat-entry-person');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-person');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-input');
+    expect(styles).toContain('font-size: 16px');
+    expect(styles).toContain('.compat-air-input:focus-visible');
     expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-person');
   });
 
@@ -78,6 +85,8 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain("const [partnerSource, setPartnerSource] = useState<CompatibilityPersonSource>");
     expect(addFlow.match(/<PersonSourcePicker/g)).toHaveLength(2);
     expect(room).toContain('<option value="saved">');
+    expect(room).toContain("ru ? 'Ввести вручную' : 'Enter manually'");
+    expect(room).toContain("ru ? 'Сохранённая карта' : 'Saved chart'");
     expect(room).toContain("ru ? 'Выбрать карту' : 'Choose a chart'");
     expect(addFlow).not.toContain("className=\"compat-chart-select-label\"");
     expect(addFlow).not.toContain("firstChart?.name ? <small>");

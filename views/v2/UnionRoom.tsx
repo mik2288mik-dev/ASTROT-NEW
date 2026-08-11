@@ -123,8 +123,8 @@ function PersonSourcePicker({
           onChange(event.target.value as CompatibilityPersonSource);
         }}
       >
-        <option value="birth">{ru ? 'Данные рождения' : 'Birth details'}</option>
-        <option value="saved">{ru ? 'Из сохранённых' : 'Saved chart'}</option>
+        <option value="birth">{ru ? 'Ввести вручную' : 'Enter manually'}</option>
+        <option value="saved">{ru ? 'Сохранённая карта' : 'Saved chart'}</option>
         <option value="sign">{ru ? 'Только знак' : 'Zodiac sign only'}</option>
       </select>
       <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
@@ -173,7 +173,7 @@ function PersonBirthFields({
         </label>
         <div className="compat-air-gender-field">
           <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
-          <GenderToggle value={gender} onChange={onGenderChange} ru={ru} compact labelledBy={genderLabelId} />
+          <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
         </div>
       </div>
 
@@ -248,7 +248,7 @@ function PersonSavedFields({
       </label>
       <div className="compat-air-gender-field">
         <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
-        <GenderToggle value={gender} onChange={onGenderChange} ru={ru} compact labelledBy={genderLabelId} />
+        <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
       </div>
       <div className="compat-saved-meta">
         {selectedChart
@@ -296,7 +296,7 @@ function PersonSignFields({
       </label>
       <div className="compat-air-gender-field">
         <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
-        <GenderToggle value={gender} onChange={onGenderChange} ru={ru} compact labelledBy={genderLabelId} />
+        <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
       </div>
     </div>
   );
@@ -1023,8 +1023,7 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('birth');
             }}
           >
-            <span>{ru ? 'По данным рождения' : 'By birth details'}</span>
-            <small>Premium</small>
+            {ru ? 'По данным рождения' : 'By birth details'}
           </button>
           <button
             type="button"
@@ -1036,10 +1035,14 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('sign');
             }}
           >
-            <span>{ru ? 'По знакам' : 'By zodiac signs'}</span>
-            <small>{ru ? 'Бесплатно' : 'Free'}</small>
+            {ru ? 'По знакам' : 'By zodiac signs'}
           </button>
         </div>
+        <p className="compat-mode-note">
+          {entryMode === 'birth'
+            ? (ru ? 'Подробный разбор · Premium' : 'Detailed reading · Premium')
+            : (ru ? 'Быстрое сравнение · бесплатно' : 'Quick comparison · free')}
+        </p>
 
         {entryMode === 'birth' ? (
           <>
@@ -1058,7 +1061,6 @@ export function UnionRoom(props: UnionRoomProps) {
 
               <section className="compat-air-person" aria-labelledby="compat-first-person-title">
                 <header className="compat-air-person-heading">
-                  <span className="compat-air-person-index" aria-hidden="true">01</span>
                   <h3 id="compat-first-person-title">{sName.trim() || firstChart?.name || (ru ? 'Один человек' : 'One person')}</h3>
                   <PersonSourcePicker
                     value={subjectSource}
@@ -1115,7 +1117,6 @@ export function UnionRoom(props: UnionRoomProps) {
 
               <section className="compat-air-person" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
-                  <span className="compat-air-person-index" aria-hidden="true">02</span>
                   <h3 id="compat-second-person-title">{fName.trim() || secondChart?.name || (ru ? 'Другой человек' : 'Another person')}</h3>
                   <PersonSourcePicker
                     value={partnerSource}
@@ -1167,11 +1168,6 @@ export function UnionRoom(props: UnionRoomProps) {
                   />
                 )}
               </section>
-
-              <div className="compat-accuracy-line" aria-live="polite">
-                <span>{ru ? 'Точность разбора' : 'Reading precision'}</span>
-                <strong>{compatibilityPairLevelLabel(draftCalculationLevel, lang)}</strong>
-              </div>
 
               <section className="compat-entry-context" aria-labelledby="compat-context-title">
                 <h2 id="compat-context-title">{ru ? 'Тип совместимости' : 'Compatibility type'}</h2>
