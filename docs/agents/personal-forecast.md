@@ -2,13 +2,13 @@
 
 ## Ownership
 
-`Dashboard` composes the continuous feed. `ForecastSectionBlock` renders a section; `ForecastPromotion` renders cross-product banners; `ForecastQuestions` remains inside the selected period.
+`Dashboard` composes the personal reading for the selected period. `ForecastSectionBlock` renders the text; `ForecastPromotion` renders cross-product banners.
 
 ## Do not change by accident
 
 - Do not create a separate forecast reader, chat, or section screen.
 - Do not restore forecast cards, swipe cards, or a permanent opaque navigation panel.
-- Do not alter calculation evidence, the fixed Luna Responses route, access slicing, cache architecture, question moderation, or generation endpoint for a visual-only request.
+- Do not alter the saved natal-profile context, the fixed Luna Responses route, access slicing, cache architecture, or generation endpoint for a visual-only request.
 - Do not move the existing application header or bottom navigation while changing the feed.
 
 ## Visual rules
@@ -22,7 +22,7 @@
 
 - Lead with the period conclusion, then ordinary-life consequence, then a compact reason.
 - Keep a candid, kind, direct voice. Avoid fatalism, coaching language, generic reassurance, repetition, and technical astrology in the feed.
-- Local `i` explanations must use verified evidence and explain the reason in plain language.
+- Local `i` explanations must use the saved natal-profile reference and explain it in plain language.
 
 ## Checks
 

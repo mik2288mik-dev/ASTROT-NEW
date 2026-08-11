@@ -1,4 +1,3 @@
-import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { isNatalChartDataV2 } from './natal/canonicalReport';
@@ -32,10 +31,6 @@ import {
   type PersonalForecastPeriod,
   type PersonalForecastWindow,
 } from './personalForecastContract';
-import {
-  calculatePersonalForecastEvidence,
-  type EvidenceCalculationResult,
-} from './personalForecastEvidence';
 type ForecastWriterLanguage = 'ru' | 'en';
 
 export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
@@ -48,25 +43,18 @@ export const PERSONAL_FORECAST_WRITER_MAX_OUTPUT_TOKENS: Record<
   PersonalForecastPeriod,
   number
 > = {
-  day: 1_200,
-  week: 1_200,
-  month: 3_000,
+  day: 1_000,
+  week: 1_000,
+  month: 1_400,
 };
 
 export function getPersonalForecastWriterMaxOutputTokens(
   period: PersonalForecastPeriod,
   retryAfterIncomplete = false,
 ): number {
-  if (period === 'month' && retryAfterIncomplete) return 4_000;
+  if (period === 'month' && retryAfterIncomplete) return 1_800;
   return PERSONAL_FORECAST_WRITER_MAX_OUTPUT_TOKENS[period];
 }
-
-/** Keep the month request focused enough for a strict structured response. */
-export const PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE: Record<PersonalForecastPeriod, number> = {
-  day: 48,
-  week: 64,
-  month: 24,
-};
 
 export const PERSONAL_FORECAST_WORD_LIMITS: Record<PersonalForecastPeriod, number> = {
   day: 95,
@@ -91,92 +79,65 @@ export const PERSONAL_FORECAST_PHRASE_WORD_LIMITS = {
   maximum: 8,
 } as const;
 
+const PERIOD_EDITORIAL_BRIEFS: Record<ForecastWriterLanguage, Record<PersonalForecastPeriod, string>> = {
+  ru: {
+    day: 'Один день: поймай одну живую сцену выбора, контакта или личного жеста. Не пытайся объяснить всю жизнь.',
+    week: 'Неделя: опиши одну линию поведения, которая поможет человеку не потерять себя среди дел и людей.',
+    month: 'Месяц: расскажи о взрослом повороте или новом направлении, которое можно прожить без надрыва и суеты.',
+  },
+  en: {
+    day: 'One day: catch one alive scene of choice, contact, or a personal gesture. Do not explain the whole life.',
+    week: 'One week: describe one behavioural thread that helps the reader stay themselves among work and people.',
+    month: 'One month: tell of a grown-up turn or a new direction that can unfold without drama or rush.',
+  },
+};
+
+const ADVICE_LENSES: readonly string[] = [
+  'one honest conversation',
+  'one protected hour for yourself',
+  'one unfinished practical task',
+  'one boundary stated without apology',
+  'one small change of scenery',
+  'one deliberate yes or no',
+  'one act of care for the body',
+  'one idea worth saying aloud',
+];
+
+function pickEditorialCue(seed: string, options: readonly string[]): string {
+  return options[Math.abs(stableHash(seed)) % options.length] || options[0] || '';
+}
+
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
   period: PersonalForecastPeriod = 'day',
 ): string {
-  const ruPeriodRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Опиши актуальное состояние одного дня: один главный внутренний или жизненный акцент, одну-две конкретные возможности либо предостережения и полезное действие на сегодня. Не делай выводов о более долгом будущем.',
-    week: 'Опиши один тренд, который проходит через всю неделю: главную задачу, только подтверждённые evidence сферы жизни и способ не распыляться. Не превращай это в последовательность событий.',
-    month: 'Опиши один глобальный тренд месяца: ключевой вызов или решение, возможное личное изменение и точку опоры. Не превращай текст в план из нескольких этапов.',
-  };
-  const enPeriodRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Describe the current state of one day: one main inner or practical focus, one or two concrete opportunities or cautions, and one concrete action for today. Do not draw conclusions about the longer future.',
-    week: 'Describe one trend that runs through the whole week: its main task, only evidence-relevant life areas, and one way to avoid spreading yourself thin. Do not turn it into a sequence of events.',
-    month: 'Describe one global monthly trend: the key challenge or decision, a possible personal change, and a point of support. Do not turn it into a multi-stage plan.',
-  };
-  const wordLimit = PERSONAL_FORECAST_WORD_LIMITS[period];
-  const wordMinimum = PERSONAL_FORECAST_WORD_MINIMUMS[period];
-  const ruAdviceRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Совет обязателен: верни одно конкретное действие, которое можно сделать сегодня и которое прямо следует из разбора.',
-    week: 'Совет обязателен: верни одно конкретное правило или действие, которое поможет прожить эту неделю.',
-    month: 'Совет обязателен: верни одно конкретное действие, которое поможет направить этот месяц.',
-  };
-  const enAdviceRule: Record<PersonalForecastPeriod, string> = {
-    day: 'Advice is required: return one concrete action for today that follows directly from the reading.',
-    week: 'Advice is required: return one concrete rule or action that helps through this week.',
-    month: 'Advice is required: return one concrete action that helps direct this month.',
-  };
-  const phraseRule = 'Return one headline of 3 to 8 words. It must feel like a sharp, personal observation, not a slogan, motivational poster, or a report title. The headline names the story; it does not explain it.';
-  const ruPhraseRule = 'Верни один заголовок из 3–8 слов. Это острая личная мысль, а не лозунг, мотивирующая открытка или название отчёта. Заголовок называет сюжет, но не пересказывает его.';
-  const editorialDirection: Record<PersonalForecastPeriod, string> = {
-    day: 'For today, write a small, recognisable personal scene: a choice, conversation, impulse, or pause that carries the main evidence. Do not audit every life area. Keep one or two concise paragraphs. The advice must be one small action you can finish today, not a checklist or a restatement of the paragraph.',
-    week: 'For the week, write one unfolding personal story about a repeating way of acting: a boundary, role, or strategy. Keep no more than two concise paragraphs and do not turn it into an executive summary. The advice must be a reusable rule for the week, not a one-off errand or a list.',
-    month: 'For the month, write a personal story about direction, appetite, and capacity rather than daily logistics. Keep no more than two concise paragraphs; make it read like a clear note from someone who knows the reader, not a monthly report. The advice must be one meaningful commitment for the month, not a repeated daily-detail check.',
-  };
-  const ruEditorialDirection: Record<PersonalForecastPeriod, string> = {
-    day: 'Для прогноза на сегодня напиши маленькую узнаваемую сцену: выбор, разговор, импульс или паузу, в которой виден главный смысл расчёта. Не проводи ревизию всех сфер жизни. Оставь один-два коротких абзаца. Совет — одно небольшое действие, которое реально завершить сегодня; не чек-лист и не повтор абзаца.',
-    week: 'Для недели напиши один разворачивающийся личный сюжет о повторяющемся способе действовать: границе, роли или стратегии. Не больше двух коротких абзацев и не превращай текст в служебную сводку. Совет — применимое правило на неделю, а не разовое поручение или список.',
-    month: 'Для месяца напиши личный сюжет о направлении, аппетите и запасе сил, а не о ежедневной логистике. Не больше двух коротких абзацев: это должна быть ясная записка человеку, которого ты знаешь, а не месячный отчёт. Совет — одно значимое обязательство на месяц, а не повторная проверка мелких дел.',
-  };
+  const limits = `${PERSONAL_FORECAST_WORD_MINIMUMS[period]} to ${PERSONAL_FORECAST_WORD_LIMITS[period]} words`;
+  const brief = PERIOD_EDITORIAL_BRIEFS[language][period];
+  const ru = language === 'ru';
+  const task = ru
+    ? `Ты пишешь личный прогноз как короткий, красивый и точный рассказ о человеке. Натальный профиль — твоя постоянная оптика, а не повод перечислять астрологические термины. Не обещай события и не выдавай догадки за факты.
 
-  if (language === 'ru') {
-    return `${getAppSystemVoice('ru')}
+${brief}
 
-ЗАДАЧА ДЛЯ ЛИЧНОГО ПРОГНОЗА
-- Прочитай весь массив evidence как единую картину периода. Сам выбери главный вывод; не перечисляй факторы подряд и не повторяй одну мысль разными словами.
-- Пиши только о том, что подтверждено переданными evidence и фактическим natal context. Ничего не рассчитывай и не придумывай заново.
-- Обращайся к читателю только на «ты». Формы «вы», «вам», «ваш» и множественные повелительные формы запрещены.
-- Пиши о периоде только простым человеческим языком. Названия планет, знаков, домов, аспектов, транзитов и другие астрологические термины в абзацах и совете запрещены и будут отклонены проверкой. Точные факты интерфейс покажет отдельно по evidence_ids.
-- Выбирай тон по всей совокупности evidence. Спокойные, благоприятные и сложные проявления описывай только в той пропорции, в которой они подтверждены расчётом; ни один тип аспекта не становится главной темой автоматически.
-- Весь видимый прогноз — фраза, абзацы и совет — должен занимать от ${wordMinimum} до ${wordLimit} слов.
-- ${ruPhraseRule}
-- Напиши короткий цельный текст с естественными абзацами только там, где меняется мысль. Не генерируй подзаголовки, Markdown, списки, обязательные сферы или обязательное предупреждение. Единственный заголовок верни в поле phrase.
-- Никогда не дели прогноз на временные отрезки. Запрещены указания на утро, день, вечер, начало, середину или конец периода, дни недели, выходные, первую или вторую часть периода и любые относительные сроки.
-- ${ruPeriodRule[period]}
-- ${ruEditorialDirection[period]}
-- Каждый абзац обязан вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все абзацы.
-- ${ruAdviceRule[period]} Не вводи советом новый запрет, риск или тему.
-- Совет, если он есть, должен быть одним предложением не более 16 слов и вернуть только существующие evidence_ids.
-- Выбери один visual_cue из допустимого списка. Это не дополнительный текст для читателя, а тема единственной визуальной паузы внутри прогноза. Выбирай только тему, которую подтверждают её evidence_ids.
-- Ответ — только валидный JSON без Markdown.
+Текст должен ощущаться написанным для одного человека: с наблюдением, характером и ясной мыслью. Не превращай его в отчёт, инструкцию, список сфер жизни или тревожное предупреждение. Не начинай абзацы словами «с деньгами», «в общении», «при этом», «важно» и не повторяй одну мысль другими словами. Оставь только то, что хочется дочитать.
 
-Верни строго:
-{"phrase":{"text":"короткий личный заголовок","evidence_ids":["существующий evidence id"]},"paragraphs":[{"text":"короткий цельный разбор","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткое конкретное действие","evidence_ids":["существующий evidence id"]},"visual_cue":{"key":"communication|decisions|work_money|home_family|friends|love|mood|opportunities","evidence_ids":["существующий evidence id"]}}`;
-  }
+Заголовок — 3–8 слов, дерзкий, психологический и живой; не «Главный акцент», не «Ясность вместо…», не «Гибкость важнее…». Совет обязан быть другим по теме, чем основной текст, и не может начинаться с «проверь», «запиши», «составь» или «зафиксируй».
 
-  return `${getAppSystemVoice('en')}
+Не дели текст на утро, день, вечер, начало/середину/конец периода, дни недели, выходные или даты. Не используй эзотерику, астрологические слова, диагнозы и обращения на «вы».
 
-PERSONAL FORECAST TASK
-- Read the entire evidence array as one picture of the period. Choose the main conclusion yourself; do not list factors mechanically or repeat the same point in different words.
-- Use only the supplied evidence and factual natal context. Never recalculate or invent astrology, events, biography, or diagnoses.
-- Address the reader consistently in the direct singular voice used by the app.
-- Write only in ordinary human language. Planet, sign, house, aspect, transit, and other astrology terms are forbidden in paragraphs and advice and will be rejected by validation. The interface reveals exact facts separately through evidence_ids.
-- Let the complete evidence set determine the tone. Present calm, favourable, and difficult manifestations only in the proportion supported by the calculation; no aspect type is automatically the main story.
-- The complete visible forecast — phrase, paragraphs, and advice — has from ${wordMinimum} to ${wordLimit} words.
-- ${phraseRule}
-- Write one short coherent text and split it into natural paragraphs only when the thought changes. Do not generate subheadings, Markdown, lists, mandatory life areas, or a mandatory warning. Return the only headline in phrase.
-- Never divide the forecast into time segments. Do not mention morning, afternoon, evening, the beginning, middle, or end of the period, weekdays, weekends, the first or second part of a period, or any relative deadline.
-- ${enPeriodRule[period]}
-- ${editorialDirection[period]}
-- Every paragraph must return its own existing evidence_ids. Do not automatically attach the same list to every paragraph.
-- ${enAdviceRule[period]} Never introduce a new restriction, risk, or topic through advice.
-- Advice is one sentence of no more than 16 words and cites only existing evidence_ids.
-- Select one visual_cue from the allowed list. It is not extra reader copy: it is the theme for the reading's single visual pause. Its evidence_ids must support the selected theme.
-- Return valid JSON only, with no Markdown.
+Верни только валидный JSON. Во всех evidence_ids укажи ровно ["profile:personal"] — это служебная ссылка, читатель её не видит.`
+    : `Write a personal forecast as a short, beautiful, precise story about one person. The natal profile is a stable lens, not a reason to list astrology terms. Do not promise events or present guesses as facts.
 
-Return exactly:
-{"phrase":{"text":"short personal headline","evidence_ids":["existing evidence id"]},"paragraphs":[{"text":"short coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short concrete action","evidence_ids":["existing evidence id"]},"visual_cue":{"key":"communication|decisions|work_money|home_family|friends|love|mood|opportunities","evidence_ids":["existing evidence id"]}}`;
+${brief}
+
+The text must feel written for one person: observant, characterful, and clear. Never turn it into a report, instruction list, mandatory life areas, or an anxious warning. Do not begin paragraphs with filler such as “In finances”, “In communication”, “At the same time”, or “It is important”, and do not repeat one thought in different words.
+
+The headline has 3–8 words and must be bold, psychological, and alive; never “Main focus”, “Clarity instead of…”, or “Flexibility matters…”. Advice must use a different theme from the story and must not begin with “check”, “write down”, “make a list”, or “document”.
+
+Never divide the text into morning, afternoon, evening, beginning/middle/end, weekdays, weekends, or dates. No mysticism, astrology terms, diagnoses, or formal address.
+
+Return valid JSON only. Every evidence_ids value must be exactly ["profile:personal"]; it is a service reference and is never shown to the reader.`;
+  return `${getAppSystemVoice(language)}\n\nPERSONAL FORECAST TASK\n- Produce ${limits} in total, including headline and advice.\n- Use one or two natural paragraphs; no Markdown and no subheadings.\n- Advice is exactly one sentence, 6–16 words.\n- Pick one visual_cue that matches the emotional image of the story.\n\n${task}`;
 }
 
 type GeneratedTextBlock = {
@@ -283,162 +244,76 @@ type GenerationResult = {
   validationStatus: 'valid' | 'deterministic_fallback';
 };
 
-type EvidenceCalculatedHookResult = {
-  calculationSnapshotId?: number | null;
-} | void;
+export const PERSONAL_FORECAST_PROFILE_EVIDENCE_ID = 'profile:personal';
 
-type FactualEvidencePayload = {
-  id: string;
-  kind: EvidenceCalculationResult['evidence'][number]['kind'];
-  transit_planet: string | null;
-  natal_point: string | null;
-  aspect: string | null;
-  house: number | null;
-  orb: number | null;
-  status: EvidenceCalculationResult['evidence'][number]['status'];
-  starts_at_local: string | null;
-  exact_at_local: string | null;
-  ends_at_local: string | null;
-  motion: EvidenceCalculationResult['evidence'][number]['motion'] | null;
-  ingress: EvidenceCalculationResult['evidence'][number]['ingress'] | null;
-};
-
-function evidenceFactTime(item: EvidenceCalculationResult['evidence'][number]): number {
-  const raw = item.exactAt || item.startsAt || item.endsAt;
-  const parsed = raw ? Date.parse(raw) : Number.NaN;
-  return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
+function profileAdviceLenses(input: {
+  profile: UserProfile;
+  period: PersonalForecastPeriod;
+  periodKey: string;
+}): string[] {
+  const seed = `${input.profile.id || input.profile.birthDate || 'guest'}:${input.periodKey}:${input.period}`;
+  const first = pickEditorialCue(seed, ADVICE_LENSES);
+  const second = pickEditorialCue(`${seed}:next`, ADVICE_LENSES.filter((item) => item !== first));
+  return [first, second].filter(Boolean);
 }
 
-function evidenceStatusPriority(
-  status: EvidenceCalculationResult['evidence'][number]['status'],
-): number {
-  return {
-    exact: 5,
-    active: 4,
-    applying: 3,
-    separating: 2,
-    unknown: 1,
-  }[status];
-}
-
-function evidenceDiversityKey(item: EvidenceCalculationResult['evidence'][number]): string {
-  return [
-    item.kind,
-    item.transitPlanet || '',
-    item.natalPoint || '',
-    item.aspect || '',
-    item.house ?? '',
-  ].join(':');
-}
-
-/**
- * The month can contain dozens of overlapping observations. Preserve the
- * strongest data while forcing the prompt to retain different evidence kinds
- * and not repeat one transit-to-natal pattern for the whole response.
- */
-export function selectPersonalForecastPromptEvidence(
-  calculatedEvidence: EvidenceCalculationResult['evidence'],
-  period: PersonalForecastPeriod,
-): EvidenceCalculationResult['evidence'] {
-  const limit = PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE[period];
-  if (calculatedEvidence.length <= limit) return calculatedEvidence;
-
-  const ranked = [...calculatedEvidence].sort((a, b) => (
-    b.strength - a.strength
-    || evidenceStatusPriority(b.status) - evidenceStatusPriority(a.status)
-    || (a.orb ?? Number.MAX_SAFE_INTEGER) - (b.orb ?? Number.MAX_SAFE_INTEGER)
-    || evidenceFactTime(a) - evidenceFactTime(b)
-    || a.id.localeCompare(b.id)
-  ));
-  const selected: EvidenceCalculationResult['evidence'] = [];
-  const selectedIds = new Set<string>();
-  const selectedKinds = new Set<string>();
-  const add = (item: EvidenceCalculationResult['evidence'][number]) => {
-    if (selected.length >= limit || selectedIds.has(item.id)) return;
-    selected.push(item);
-    selectedIds.add(item.id);
-  };
-
-  for (const item of ranked) {
-    if (selectedKinds.has(item.kind)) continue;
-    add(item);
-    selectedKinds.add(item.kind);
-  }
-
-  const selectedPatterns = new Set(selected.map(evidenceDiversityKey));
-  for (const item of ranked) {
-    const pattern = evidenceDiversityKey(item);
-    if (selectedPatterns.has(pattern)) continue;
-    add(item);
-    selectedPatterns.add(pattern);
-  }
-
-  for (const item of ranked) add(item);
-  return selected;
-}
-
-function localForecastTimestamp(value: string | null, timezone: string): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return formatInTimeZone(date, timezone, 'yyyy-MM-dd HH:mm');
-}
-
-function factualEvidencePayload(
-  calculatedEvidence: EvidenceCalculationResult['evidence'],
-  window: PersonalForecastWindow,
-  period: PersonalForecastPeriod,
-): FactualEvidencePayload[] {
-  return [...selectPersonalForecastPromptEvidence(calculatedEvidence, period)]
-    .sort((a, b) => (
-      evidenceFactTime(a) - evidenceFactTime(b)
-      || (a.orb ?? Number.MAX_SAFE_INTEGER) - (b.orb ?? Number.MAX_SAFE_INTEGER)
-      || a.id.localeCompare(b.id)
-    ))
-    .map((item) => ({
-      id: item.id,
-      kind: item.kind,
-      transit_planet: item.transitPlanet || null,
-      natal_point: item.natalPoint || null,
-      aspect: item.aspect || null,
-      house: item.house ?? null,
-      orb: item.orb ?? null,
-      status: item.status,
-      starts_at_local: localForecastTimestamp(item.startsAt || null, window.timezone),
-      exact_at_local: localForecastTimestamp(item.exactAt || null, window.timezone),
-      ends_at_local: localForecastTimestamp(item.endsAt || null, window.timezone),
-      motion: item.motion || null,
-      ingress: item.ingress || null,
-    }));
+function profileNarrativeDirection(input: {
+  profile: UserProfile;
+  period: PersonalForecastPeriod;
+  periodKey: string;
+}): string {
+  const directions = [
+    'a choice that makes more room for the reader',
+    'the difference between being visible and performing',
+    'a small act of courage without proving anything',
+    'a relationship with pace, attention, and private space',
+    'the permission to choose the more honest version of a plan',
+    'a quiet return to something the reader actually wants',
+  ];
+  return pickEditorialCue(
+    `${input.profile.id || input.profile.birthDate || 'guest'}:${input.periodKey}:${input.period}:story`,
+    directions,
+  );
 }
 
 export function buildPersonalForecastFeedPrompt(input: {
   language: ForecastWriterLanguage;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  calculatedEvidence: EvidenceCalculationResult['evidence'];
-  natalContext?: Record<string, unknown>;
-  /** @deprecated accepted for source compatibility; never included in the prompt. */
-  canonicalNatalReport?: unknown;
+  profile: UserProfile;
+  natalContext: Record<string, unknown>;
   repairErrors?: string[];
 }): string {
-  const evidence = factualEvidencePayload(
-    input.calculatedEvidence,
-    input.window,
-    input.period,
-  );
   const repair = input.repairErrors?.length
     ? `\nPREVIOUS RESPONSE ERRORS (fix these only):\n${input.repairErrors.join('\n')}`
     : '';
+  const profile = {
+    name: input.profile.name.trim().slice(0, 80),
+    birth_date: input.profile.birthDate || null,
+    language: input.language,
+  };
   return `Language: ${input.language}.
-Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}. Timezone: ${input.window.timezone}.
-Use the JSON contract and rules from the system instruction. Every statement must be grounded in the supplied evidence_ids. Treat natal context only as factual background and do not infer missing time-dependent data.
+Period: ${input.period}. Window: ${input.window.periodStart} — ${input.window.periodEnd}.
 
-Factual natal context:
-${JSON.stringify(input.natalContext ?? {}, null, 2)}
+Personal profile:
+${JSON.stringify(profile, null, 2)}
 
-Calculated evidence:
-${JSON.stringify(evidence, null, 2)}${repair}`;
+Natal profile:
+${JSON.stringify({ natal_profile: input.natalContext }, null, 2)}
+
+Editorial plan:
+${JSON.stringify({
+    story_direction: profileNarrativeDirection({
+      profile: input.profile,
+      period: input.period,
+      periodKey: input.window.periodKey,
+    }),
+    advice_lenses: profileAdviceLenses({
+      profile: input.profile,
+      period: input.period,
+      periodKey: input.window.periodKey,
+    }),
+  }, null, 2)}${repair}`;
 }
 
 function modelText(value: unknown): string | null {
@@ -513,6 +388,7 @@ export type PersonalForecastGenerationDiagnosticCode =
   | 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED'
   | 'PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT'
   | 'PERSONAL_FORECAST_WRITER_INCOMPLETE'
+  | 'PERSONAL_FORECAST_WRITER_REFUSED'
   | 'PERSONAL_FORECAST_WRITER_UNAVAILABLE'
   | 'PERSONAL_FORECAST_GENERATION_FAILED';
 
@@ -528,6 +404,9 @@ export function getPersonalForecastGenerationDiagnosticCode(
     return 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED';
   }
   if (message.startsWith('PERSONAL_FORECAST_WRITER_REQUEST_FAILED')) {
+    if (message.includes('OPENAI_RESPONSE_REFUSAL')) {
+      return 'PERSONAL_FORECAST_WRITER_REFUSED';
+    }
     if (message.includes('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens')) {
       return 'PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT';
     }
@@ -747,11 +626,11 @@ function materializeDirectSection(input: {
   });
   const text = blocks.map((block) => block.text).join('\n\n');
   const teaser = input.language === 'ru'
-    ? 'В полном разборе этого периода раскрыты конкретные проявления рассчитанных факторов.'
-    : 'The full reading of this period explains the concrete manifestations of its calculated factors.';
+    ? 'Открой полный текст личного прогноза.'
+    : 'Open the full personal forecast.';
   const factualAnchorPrefix = input.language === 'ru'
-    ? 'Расчётные факты этой секции: '
-    : 'Calculated facts cited by this section: ';
+    ? 'Контекст личного профиля: '
+    : 'Personal profile context: ';
   const anchors: ExplanationAnchor[] = input.section.blocks.flatMap((block, index) => {
     const evidence = evidenceForIds(block.evidenceIds, input.evidenceViews);
     if (!evidence.length) return [];
@@ -774,7 +653,7 @@ function materializeDirectSection(input: {
     semanticFactIds: [...new Set(input.section.blocks.flatMap((block) => block.evidenceIds))],
     semanticFingerprint: `direct:${stableHash(`${input.section.blocks.flatMap((block) => block.evidenceIds).join(':')}:${input.sectionIndex}`).toString(36)}`,
     importance: Math.max(1, 100 - input.sectionIndex),
-    visualTag: 'calculated',
+    visualTag: input.section.visualCue || 'personal-profile',
     visualCue: input.overview ? input.section.visualCue : null,
     premiumTeaser: teaser,
     lockedPreview: buildForecastLockedPreview(text, teaser),
@@ -788,17 +667,23 @@ async function requestGeneratedFeed(input: {
   model: string;
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
-  calculatedEvidence: EvidenceCalculationResult['evidence'];
-  evidenceViews: Record<string, ForecastEvidenceView>;
+  profile: UserProfile;
   natalContext: Record<string, unknown>;
   onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
 }): Promise<GenerationResult> {
-  const promptEvidence = selectPersonalForecastPromptEvidence(
-    input.calculatedEvidence,
-    input.period,
-  );
-  const availableEvidenceIds = new Set(promptEvidence.map((item) => item.id));
-  if (!availableEvidenceIds.size) throw new Error('PERSONAL_FORECAST_EVIDENCE_EMPTY');
+  const availableEvidenceIds = new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]);
+  const evidenceViews: Record<string, ForecastEvidenceView> = {
+    [PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]: {
+      id: PERSONAL_FORECAST_PROFILE_EVIDENCE_ID,
+      factor: input.language === 'ru' ? 'Личный натальный профиль' : 'Personal natal profile',
+      orb: null,
+      status: 'active',
+      period: input.window.periodKey,
+      meaning: input.language === 'ru'
+        ? 'Текст собран из сохранённого натального профиля и контекста периода.'
+        : 'The reading uses the saved natal profile and the selected period context.',
+    },
+  };
 
   let errors: string[] = [];
   let writerRequestFailures = 0;
@@ -818,7 +703,7 @@ async function requestGeneratedFeed(input: {
           language: input.language,
           period: input.period,
           window: input.window,
-          calculatedEvidence: promptEvidence,
+          profile: input.profile,
           natalContext: input.natalContext,
           repairErrors: attempt === 2 ? errors : undefined,
         }),
@@ -857,7 +742,7 @@ async function requestGeneratedFeed(input: {
       }
       const overview = materializeDirectSection({
         section: rawOverview,
-        evidenceViews: input.evidenceViews,
+        evidenceViews,
         language: input.language,
         overview: true,
         sectionIndex: 0,
@@ -866,7 +751,7 @@ async function requestGeneratedFeed(input: {
       const sections = rawAdvice
         ? [materializeDirectSection({
             section: rawAdvice,
-            evidenceViews: input.evidenceViews,
+            evidenceViews,
             language: input.language,
             overview: false,
             sectionIndex: 1,
@@ -894,96 +779,56 @@ export function buildCrossPeriodLinks(_input?: unknown): CrossPeriodLink[] {
   return [];
 }
 
-function normalizeNatalPointKey(value: string | null | undefined): string | null {
-  const normalized = String(value || '').trim().replace(/[\s_-]/gu, '').toLowerCase();
-  const aliases: Record<string, string> = {
-    asc: 'ascendant',
-    rising: 'ascendant',
-    midheaven: 'mc',
-    northnode: 'northNode',
-    southnode: 'southNode',
+type CompactNatalPosition = {
+  sign: string | null;
+  house: number | null;
+  retrograde: boolean | null;
+};
+
+function compactLegacyPosition(value: NatalChartData[keyof NatalChartData] | null | undefined): CompactNatalPosition | null {
+  if (!value || typeof value !== 'object' || !('sign' in value)) return null;
+  const position = value as { sign?: unknown; house?: unknown; retrograde?: unknown };
+  return {
+    sign: typeof position.sign === 'string' && position.sign.trim() ? position.sign : null,
+    house: typeof position.house === 'number' && Number.isFinite(position.house) ? position.house : null,
+    retrograde: typeof position.retrograde === 'boolean' ? position.retrograde : null,
   };
-  return normalized ? aliases[normalized] || normalized : null;
 }
 
-export function buildPersonalForecastNatalContext(
-  chart: NatalChartData,
-  evidence: EvidenceCalculationResult['evidence'],
-): Record<string, unknown> {
-  const touchedPointKeys = new Set(
-    evidence
-      .map((item) => normalizeNatalPointKey(item.natalPoint))
-      .filter((key): key is string => !!key),
-  );
+/**
+ * The saved natal chart is the durable personal base. Forecast creation does
+ * not calculate transits, aspects, houses, or any other period-specific data.
+ */
+export function buildPersonalForecastNatalContext(chart: NatalChartData): Record<string, unknown> {
+  const coreKeys = ['sun', 'moon', 'mercury', 'venus', 'mars'] as const;
   if (isNatalChartDataV2(chart)) {
     const v2 = chart as unknown as NatalChartDataV2;
-    const housesReliable = v2.chartQuality.housesReliable;
-    const ascendantReliable = v2.chartQuality.ascendantReliable;
-    const positions = Object.values(v2.positions)
-      .filter((position) => touchedPointKeys.has(normalizeNatalPointKey(position.key) || ''))
-      .map((position) => ({
-      key: position.key,
-      object: position.object,
-      kind: position.kind,
-      sign: position.sign,
-      degree: position.degree,
-      longitude: position.longitude,
-      retrograde: position.retrograde,
-      speed_longitude: position.speedLongitude,
-      house: housesReliable && position.stable.house ? position.house : null,
-      reliability: position.reliability,
+    const core = Object.fromEntries(coreKeys.map((key) => {
+      const position = v2.positions[key];
+      return [key, position ? {
+        sign: position.sign,
+        house: v2.chartQuality.housesReliable ? position.house : null,
+        retrograde: position.retrograde,
+      } : null];
     }));
-    const angles = [
-      ascendantReliable ? v2.angles.ascendant : null,
-      v2.angles.mc?.reliability !== 'variable_in_range' ? v2.angles.mc : null,
-    ].filter((angle): angle is NonNullable<typeof angle> => !!angle)
-      .filter((angle) => touchedPointKeys.has(normalizeNatalPointKey(angle.key) || ''))
-      .map((angle) => ({
-        key: angle.key,
-        sign: angle.sign,
-        degree: angle.degree,
-        longitude: angle.longitude,
-        reliability: angle.reliability,
-      }));
     return {
-      schema_version: v2.schemaVersion,
+      source: 'saved_natal_chart',
       birth_time_quality: v2.birthTimeQuality,
-      positions,
-      angles,
+      core,
+      ascendant: v2.chartQuality.ascendantReliable && v2.angles.ascendant
+        ? { sign: v2.angles.ascendant.sign }
+        : null,
     };
   }
-
-  const quality = chart.chartQuality;
-  const birthTimeQuality = chart.birthTimeQuality || quality?.birthTimeQuality || 'unknown';
-  const housesReliable = birthTimeQuality === 'exact' && quality?.housesReliable !== false;
-  const ascendantReliable = birthTimeQuality === 'exact' && quality?.ascendantReliable !== false;
-  const rawPositions = [
-    ['sun', chart.sun], ['moon', chart.moon], ['mercury', chart.mercury],
-    ['venus', chart.venus], ['mars', chart.mars], ['jupiter', chart.jupiter],
-    ['saturn', chart.saturn], ['uranus', chart.uranus], ['neptune', chart.neptune],
-    ['pluto', chart.pluto], ['chiron', chart.chiron],
-  ] as const;
+  const legacyCore = Object.fromEntries(coreKeys.map((key) => [
+    key,
+    compactLegacyPosition(chart[key]),
+  ]));
   return {
-    schema_version: 'legacy',
-    birth_time_quality: birthTimeQuality,
-    positions: rawPositions.flatMap(([key, position]) => (
-      position && touchedPointKeys.has(normalizeNatalPointKey(key) || '') ? [{
-      key,
-      sign: position.sign,
-      degree: position.degree ?? null,
-      longitude: position.longitude ?? null,
-      retrograde: position.retrograde ?? null,
-      speed_longitude: position.speedLongitude ?? null,
-      house: housesReliable ? position.house ?? null : null,
-    }] : [])),
-    angles: ascendantReliable
-      && chart.rising
-      && touchedPointKeys.has('ascendant') ? [{
-      key: 'ascendant',
-      sign: chart.rising.sign,
-      degree: chart.rising.degree ?? null,
-      longitude: chart.rising.longitude ?? null,
-    }] : [],
+    source: 'saved_natal_chart',
+    birth_time_quality: chart.birthTimeQuality || chart.chartQuality?.birthTimeQuality || 'unknown',
+    core: legacyCore,
+    ascendant: chart.rising ? { sign: chart.rising.sign } : null,
   };
 }
 
@@ -994,33 +839,15 @@ export async function generatePersonalForecastPackage(input: {
   period: PersonalForecastPeriod;
   window: PersonalForecastWindow;
   onMetrics?: (metrics: { model: string; inputTokens: number; outputTokens: number; latencyMs: number; validationPassed: boolean }) => void;
-  onEvidenceCalculated?: (payload: {
-    calculated: EvidenceCalculationResult;
-    /** Semantic compiler is intentionally bypassed; snapshots receive no derived facts. */
-    semanticFacts: [];
-  }) => Promise<EvidenceCalculatedHookResult>;
 }): Promise<PersonalForecastPackage> {
   const language: ForecastWriterLanguage = input.profile.language === 'en' ? 'en' : 'ru';
-  const calculated = await calculatePersonalForecastEvidence({
-    chartData: input.chartData,
-    period: input.period,
-    window: input.window,
-    language,
-  });
-  if (input.onEvidenceCalculated) {
-    await input.onEvidenceCalculated({ calculated, semanticFacts: [] });
-  }
-  const natalContext = buildPersonalForecastNatalContext(
-    input.chartData,
-    calculated.evidence,
-  );
+  const natalContext = buildPersonalForecastNatalContext(input.chartData);
   const generated = await requestGeneratedFeed({
     language,
     model: input.model,
     period: input.period,
     window: input.window,
-    calculatedEvidence: calculated.evidence,
-    evidenceViews: calculated.evidenceViews,
+    profile: input.profile,
     natalContext,
     onMetrics: input.onMetrics,
   });
@@ -1035,8 +862,17 @@ export async function generatePersonalForecastPackage(input: {
     );
     const evidence = Object.fromEntries(
       [...referencedEvidenceIds]
-        .map((id) => [id, calculated.evidenceViews[id]] as const)
-        .filter((entry): entry is readonly [string, ForecastEvidenceView] => !!entry[1]),
+        .filter((id) => id === PERSONAL_FORECAST_PROFILE_EVIDENCE_ID)
+        .map((id) => [id, {
+          id,
+          factor: language === 'ru' ? 'Личный натальный профиль' : 'Personal natal profile',
+          orb: null,
+          status: 'active' as const,
+          period: input.window.periodKey,
+          meaning: language === 'ru'
+            ? 'Текст собран из сохранённой натальной карты и личного профиля.'
+            : 'The reading uses the saved natal chart and personal profile.',
+        }] as const),
     );
     const freeSelection = input.period === 'day'
       ? selectTodayFreeSections({

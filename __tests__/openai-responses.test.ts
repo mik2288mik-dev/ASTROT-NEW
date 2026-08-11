@@ -2,6 +2,7 @@ import {
   buildLunaJsonResponseParams,
   buildLunaStructuredResponseParams,
   buildLunaTextResponseParams,
+  readLunaResponseContent,
   OPENAI_LUNA_MODEL,
 } from '../lib/openaiResponses';
 
@@ -54,5 +55,16 @@ describe('OpenAI Luna structured response request', () => {
       instructions: 'Return text.',
       input: 'Input',
     });
+  });
+
+  it('keeps a provider refusal distinct from a generic empty response', () => {
+    expect(() => readLunaResponseContent({
+      status: 'completed',
+      output_text: '',
+      output: [{
+        type: 'message',
+        content: [{ type: 'refusal', refusal: 'Cannot provide this response.' }],
+      }],
+    } as never)).toThrow('OPENAI_RESPONSE_REFUSAL');
   });
 });

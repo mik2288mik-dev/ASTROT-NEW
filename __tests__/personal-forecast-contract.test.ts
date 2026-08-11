@@ -163,9 +163,9 @@ describe('personal forecast direct-reading contract', () => {
 
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
-    expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-evidence-v4');
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v11');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v23.short-personal-story-visual-cue');
+    expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-natal-profile-v1');
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v12');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v24.luna-natal-profile-story');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
 
     for (const patch of [
@@ -193,7 +193,7 @@ describe('personal forecast direct-reading contract', () => {
     expect(getNextPersonalForecastPeriodKey('week', '2026-W30', 'Europe/Moscow')).toBe('2026-W31');
   });
 
-  test('versions both cache identities with the V4 semantic contract', () => {
+  test('versions both cache identities with the Luna natal-profile contract', () => {
     const shared = {
       userId: 'u1',
       chartId: 7,
@@ -206,7 +206,7 @@ describe('personal forecast direct-reading contract', () => {
     };
     const cacheKey = buildPersonalForecastCacheKey(shared);
     const inputHash = buildPersonalForecastInputHash(shared);
-    expect(cacheKey).toMatch(/^personal-forecast-feed-v11:/);
+    expect(cacheKey).toMatch(/^personal-forecast-feed-v12:/);
     expect(inputHash).toMatch(/^[a-z0-9]+$/);
     expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
     expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);

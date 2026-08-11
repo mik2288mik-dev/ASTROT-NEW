@@ -56,7 +56,6 @@ import {
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
 import { clearPersonalForecastSessionCache } from './services/personalForecastService';
-import { clearPersonalForecastQuestionInFlight } from './services/personalForecastQuestionService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
 import { exchangeNativeLoginCode, loginWithTelegram } from './services/accountAuthService';
 import {
@@ -1068,7 +1067,6 @@ const App: React.FC = () => {
             clearLocalHumanBaseReport(profile);
             clearHumanReadingSessionCache(String(profile.id));
             clearPersonalForecastSessionCache();
-            clearPersonalForecastQuestionInFlight();
             resetPrimaryChartState();
             const nextMode: AuthSessionMode = updatedProfile.isGuest ? 'guest' : 'account';
             setAuthSessionMode(nextMode);
@@ -1095,7 +1093,6 @@ const App: React.FC = () => {
             clearHumanReadingSessionCache(String(profile.id));
         }
         clearPersonalForecastSessionCache();
-        clearPersonalForecastQuestionInFlight();
         await clearAppSessionAndLocalData();
         setAuthSessionMode(nextMode);
         setAuthSessionModeState(nextMode);
@@ -1137,7 +1134,6 @@ const App: React.FC = () => {
             clearLocalHumanBaseReport(profile);
             clearHumanReadingSessionCache(String(profile.id));
             clearPersonalForecastSessionCache();
-            clearPersonalForecastQuestionInFlight();
             resetPrimaryChartState();
             restoredRuStoreUserRef.current = null;
             prewarmCompletedKeyRef.current = null;

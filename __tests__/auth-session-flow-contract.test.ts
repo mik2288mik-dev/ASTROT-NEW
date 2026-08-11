@@ -36,7 +36,6 @@ describe('explicit authentication flow contracts', () => {
     expect(resetBody).toContain('clearLocalHumanBaseReport(profile)');
     expect(resetBody).toContain('clearHumanReadingSessionCache(String(profile.id))');
     expect(resetBody).toContain('clearPersonalForecastSessionCache()');
-    expect(resetBody).toContain('clearPersonalForecastQuestionInFlight()');
     expect(resetBody).toContain('setProfile(null)');
   });
 

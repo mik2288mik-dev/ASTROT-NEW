@@ -27,6 +27,11 @@ type LunaResponseResult = {
   outputTokens: number;
 };
 
+type LunaResponseContent = Pick<
+  OpenAI.Responses.Response,
+  'status' | 'incomplete_details' | 'output' | 'output_text'
+>;
+
 export function buildLunaStructuredResponseParams(input: LunaStructuredResponseInput) {
   return {
     model: OPENAI_LUNA_MODEL,
@@ -73,6 +78,23 @@ export function getOpenAIResponsesClient(): OpenAI | null {
   return client;
 }
 
+export function readLunaResponseContent(response: LunaResponseContent): string {
+  if (response.status === 'incomplete') {
+    throw new Error(`OPENAI_RESPONSE_INCOMPLETE:${response.incomplete_details?.reason || 'unknown'}`);
+  }
+  for (const item of response.output) {
+    if (item.type !== 'message') continue;
+    const refusal = item.content.find((content) => content.type === 'refusal');
+    if (refusal?.type === 'refusal') {
+      throw new Error('OPENAI_RESPONSE_REFUSAL');
+    }
+  }
+  const content = response.output_text.trim();
+  if (!content) throw new Error('OPENAI_RESPONSE_EMPTY');
+
+  return content;
+}
+
 async function createLunaResponse(
   params: OpenAI.Responses.ResponseCreateParamsNonStreaming,
 ): Promise<LunaResponseResult> {
@@ -80,11 +102,7 @@ async function createLunaResponse(
   if (!openai) throw new Error('OPENAI_API_KEY is not configured');
 
   const response = await openai.responses.create(params);
-  if (response.status === 'incomplete') {
-    throw new Error(`OPENAI_RESPONSE_INCOMPLETE:${response.incomplete_details?.reason || 'unknown'}`);
-  }
-  const content = response.output_text.trim();
-  if (!content) throw new Error('OPENAI_RESPONSE_EMPTY');
+  const content = readLunaResponseContent(response);
 
   return {
     content,

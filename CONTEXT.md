@@ -10,7 +10,7 @@ The active personal forecast experience lives in `views/Dashboard.tsx`. Today, W
 
 - UI components: `components/PersonalForecastFeed/`
 - Contract, cache identity, access slicing: `lib/personalForecastContract.ts`
-- Evidence and generation: `lib/personalForecastEvidence.ts`, `lib/personalForecastGeneration.ts`
+- Generation: `lib/personalForecastGeneration.ts` uses the saved natal profile through OpenAI Luna; it does not calculate forecast-period transit evidence.
 - Visual selection: `lib/personalForecastVisuals.ts`
 - Feed styles: `styles/personalForecastFeed.css`
 - Native promo placement: `lib/personalForecastPromo.ts`
