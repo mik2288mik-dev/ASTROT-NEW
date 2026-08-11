@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { CalendarDays, Clock3, MapPin, Sparkles, UserRound } from 'lucide-react';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../types';
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import { getZodiacSign } from '../../constants';
@@ -170,23 +171,35 @@ function PersonBirthFields({
     <div className="compat-air-fields">
       <label className="compat-air-field compat-air-field--name" htmlFor={`${prefix}-name`}>
         <span className="compat-air-label">{ru ? 'Имя' : 'Name'}</span>
-        <input id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Введите имя' : 'Enter a name'} autoComplete="name" />
+        <span className="compat-air-control">
+          <UserRound aria-hidden="true" size={20} strokeWidth={1.8} />
+          <input id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Имя' : 'Name'} autoComplete="name" />
+        </span>
       </label>
 
       <div className="compat-air-birth-row">
         <label className="compat-air-field" htmlFor={`${prefix}-date`}>
           <span className="compat-air-label">{ru ? 'Дата рождения' : 'Birth date'}</span>
-          <input id={`${prefix}-date`} className="compat-air-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
+          <span className="compat-air-control">
+            <CalendarDays aria-hidden="true" size={20} strokeWidth={1.8} />
+            <input id={`${prefix}-date`} className="compat-air-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
+          </span>
         </label>
         <label className="compat-air-field" htmlFor={`${prefix}-time`}>
           <span className="compat-air-label">{ru ? 'Время' : 'Time'}</span>
-          <input id={`${prefix}-time`} className="compat-air-input" type="time" value={time} onChange={(event) => onTimeChange(event.target.value)} />
+          <span className="compat-air-control">
+            <Clock3 aria-hidden="true" size={20} strokeWidth={1.8} />
+            <input id={`${prefix}-time`} className="compat-air-input" type="time" value={time} onChange={(event) => onTimeChange(event.target.value)} />
+          </span>
         </label>
       </div>
 
       <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
         <span className="compat-air-label">{ru ? 'Город' : 'City'}</span>
-        <input id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Введите город' : 'Enter a city'} autoComplete="address-level2" />
+        <span className="compat-air-control">
+          <MapPin aria-hidden="true" size={20} strokeWidth={1.8} />
+          <input id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
+        </span>
       </label>
 
       <div className="compat-air-person-footer">
@@ -1015,7 +1028,7 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('birth');
             }}
           >
-            {ru ? 'По картам' : 'By charts'}
+            {ru ? 'По данным рождения' : 'By birth details'}
           </button>
           <button
             type="button"
@@ -1027,7 +1040,7 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('sign');
             }}
           >
-            {ru ? 'По знакам' : 'By zodiac signs'}
+            {ru ? 'По знакам зодиака' : 'By zodiac signs'}
           </button>
         </div>
 
@@ -1042,7 +1055,10 @@ export function UnionRoom(props: UnionRoomProps) {
             >
               <section className="compat-air-person" aria-labelledby="compat-first-person-title">
                 <header className="compat-air-person-heading">
-                  <h3 id="compat-first-person-title">{ru ? 'Первый человек' : 'First person'}</h3>
+                  <div className="compat-air-person-title">
+                    <span aria-hidden="true">01</span>
+                    <h3 id="compat-first-person-title">{ru ? 'Человек 1' : 'Person 1'}</h3>
+                  </div>
                   <PersonSourcePicker
                     value={subjectSource}
                     onChange={setSubjectSource}
@@ -1100,7 +1116,10 @@ export function UnionRoom(props: UnionRoomProps) {
 
               <section className="compat-air-person" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
-                  <h3 id="compat-second-person-title">{ru ? 'Второй человек' : 'Second person'}</h3>
+                  <div className="compat-air-person-title">
+                    <span aria-hidden="true">02</span>
+                    <h3 id="compat-second-person-title">{ru ? 'Человек 2' : 'Person 2'}</h3>
+                  </div>
                   <PersonSourcePicker
                     value={partnerSource}
                     onChange={setPartnerSource}
@@ -1153,6 +1172,16 @@ export function UnionRoom(props: UnionRoomProps) {
                   />
                 )}
               </section>
+
+              <p className="compat-entry-precision-note">
+                <Sparkles aria-hidden="true" size={15} strokeWidth={1.8} />
+                <span>
+                  <strong>{ru ? 'Больше деталей, если знаете.' : 'More detail, if you know it.'}</strong>
+                  {' '}{ru
+                    ? 'Город и время уточнят расчёт; по одной дате рождения тоже можно сравнить.'
+                    : 'A city and time make the reading more precise; a birth date alone is enough to compare.'}
+                </span>
+              </p>
 
               <div className="compat-reading-kind" aria-live="polite">
                 <span>{ru ? 'Будет создан' : 'Reading type'}</span>

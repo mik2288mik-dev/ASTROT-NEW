@@ -41,12 +41,12 @@ describe('compatibility editorial layout', () => {
 
     expect(addFlow).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
     expect(addFlow).not.toContain('subtitle=');
-    expect(addFlow).toContain("ru ? 'По картам' : 'By charts'");
-    expect(addFlow).toContain("ru ? 'По знакам' : 'By zodiac signs'");
+    expect(addFlow).toContain("ru ? 'По данным рождения' : 'By birth details'");
+    expect(addFlow).toContain("ru ? 'По знакам зодиака' : 'By zodiac signs'");
     expect(addFlow).not.toContain('compat-mode-note');
     expect(addFlow).not.toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
-    expect(addFlow).toContain("ru ? 'Первый человек' : 'First person'");
-    expect(addFlow).toContain("ru ? 'Второй человек' : 'Second person'");
+    expect(addFlow).toContain("ru ? 'Человек 1' : 'Person 1'");
+    expect(addFlow).toContain("ru ? 'Человек 2' : 'Person 2'");
     expect(addFlow.match(/className="compat-air-person"/g)).toHaveLength(2);
     expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
     expect(addFlow).toContain('sign={youSign}');
@@ -56,6 +56,8 @@ describe('compatibility editorial layout', () => {
     expect(room).not.toContain('sUnknownTime');
     expect(room).not.toContain('setUnknownTime');
     expect(addFlow).toContain('compat-reading-kind');
+    expect(addFlow).toContain('compat-entry-precision-note');
+    expect(addFlow).toContain('Город и время уточнят расчёт');
     expect(addFlow).toContain('compatibilityPairLevelLabel(draftCalculationLevel, lang)');
     expect(addFlow).toContain("ru ? 'Тип отношений' : 'Relationship type'");
     expect(addFlow).toContain('<div className="compat-person-divider" aria-hidden="true" />');
@@ -68,7 +70,9 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('color: #ffffff !important');
     expect(styles).toContain('.compat-editorial-page--add .compat-zodiac-field');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-input');
-    expect(styles).toContain('font-size: 16px');
+    expect(styles).toContain('font-size: 15px');
+    expect(styles).toContain('.compat-editorial-page--add .compat-entry-precision-note');
+    expect(styles).toContain('.compat-editorial-page--add .compat-air-control');
     expect(styles).toContain('.compat-air-input:focus-visible');
     expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-person');
   });
