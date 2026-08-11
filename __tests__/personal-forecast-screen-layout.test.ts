@@ -38,4 +38,14 @@ describe('personal forecast screen layout', () => {
     expect(newspaperStyles).toContain('.forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-screen-headline');
     expect(newspaperStyles).toContain('text-align: center;');
   });
+
+  it('uses one loading spinner instead of forecast-content placeholders', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const forecastStyles = read('styles/personalForecastFeed.css');
+
+    expect(dashboard).toContain('forecast-feed-loading-indicator');
+    expect(dashboard).toContain('<LoaderCircle');
+    expect(dashboard).not.toContain('forecast-feed-loading-preview');
+    expect(forecastStyles).toContain('.forecast-feed-loading-indicator');
+  });
 });

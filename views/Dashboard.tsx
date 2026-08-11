@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { LoaderCircle, RefreshCw } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -734,24 +734,8 @@ export const Dashboard = memo<DashboardProps>(({
               </button>
             </>
           ) : (
-            <div className="forecast-feed-loading-preview" aria-hidden="true">
-              <span className="forecast-feed-loading-headline is-long" />
-              <span className="forecast-feed-loading-headline is-short" />
-              <div className="forecast-feed-loading-lead">
-                <span />
-                <span />
-              </div>
-              <div className="forecast-feed-loading-copy">
-                <span />
-                <span />
-                <span />
-              </div>
-              <span className="forecast-feed-loading-section-title" />
-              <div className="forecast-feed-loading-copy">
-                <span />
-                <span />
-                <span />
-              </div>
+            <div className="forecast-feed-loading-indicator" aria-hidden="true">
+              <LoaderCircle className="forecast-feed-loading-spinner" size={28} strokeWidth={2} />
             </div>
           )}
         </section>
