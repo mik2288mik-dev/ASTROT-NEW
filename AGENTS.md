@@ -16,8 +16,8 @@
   3. Совместимость
   4. Карта
 - The bottom of the panel contains a profile block linking to Settings.
-- Сегодня, Неделя, and Месяц are internal tabs of Дневник, not separate primary sections.
-- Do not create separate primary sections for those periods.
+- Сегодня, Неделя и Месяц — это периоды одного личного прогноза в «Дневнике», а не отдельные первичные разделы.
+- Период выбирается только внутри шторки/меню «Дневника». Не добавлять на главный экран tabs, pills или иной переключатель периодов.
 
 ## Astrologer questions
 
@@ -48,7 +48,8 @@
 - Do not use artificial youth slang.
 - Do not make anxiety, conflict, or problems the default subject.
 - Positive possibilities, calm, confidence, and support must be considered alongside risks.
-- Calculated astrology is not invented, altered, or overridden by the model.
+- Личный прогноз на сегодня, неделю и месяц полностью пишет ИИ. Сервер передаёт ему выбранный период и приватный контекст из сохранённой натальной карты; этот контекст персонализирует рассказ, но не является отдельным «расчётом прогноза» для показа пользователю.
+- Нельзя приписывать ИИ несуществующие транзиты, аспекты, даты событий или иные периодные расчёты. Натальная карта остаётся детерминированно рассчитанной и сохраняется отдельно.
 - `lib/appVoice.ts` is the runtime source of generated-content voice.
 
 ## Verification and file boundaries

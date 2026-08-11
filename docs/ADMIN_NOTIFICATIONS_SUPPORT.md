@@ -4,7 +4,7 @@ Admin notifications are a support subsystem for real MVP surfaces only.
 
 Allowed notification themes:
 
-- Personal daily reading when saved or available.
+- Personal AI story for the currently available day, week, or month.
 - Sign horoscope.
 - Natal chart/natal reading.
 - Compatibility and Premium relationship reading.

@@ -2,7 +2,7 @@
 
 ## Products
 
-- Personal diary: Today, Week, and Month are periods of one personal-reading screen.
+- Personal diary: Today, Week, and Month are periods of one personal AI-story screen, selected from its drawer.
 - Zodiac: a separate sign-based horoscope product.
 - Natal chart and permanent natal reading.
 - Compatibility by sign and a Premium chart-based relationship reading.
@@ -10,11 +10,11 @@
 
 ## Personal forecast
 
-- The period reader lives in `views/Dashboard.tsx`; there is no separate personal forecast page or a question block beneath a forecast.
-- A forecast is a short personal story: headline, one or two paragraphs, one distinct piece of advice, and at most one editorial visual.
-- Today focuses on an immediate scene or choice; Week follows one behavioural pattern; Month follows direction, appetite, or capacity.
-- Swiss Ephemeris calculates the saved natal chart. It does not calculate transit/evidence payloads for every forecast period.
-- OpenAI Luna receives the saved natal profile and user context via the Responses API. Strict JSON Schema controls the output shape; server validation controls the word limits, voice, evidence reference, and forbidden period wording.
+- The reader lives in `views/Dashboard.tsx`; there is no separate forecast page, period switcher on the main screen, question block, feedback prompt, or themed feed beneath a forecast.
+- A forecast is one short personal story: a 3–8-word heading and one or two paragraphs, no more than 150 words. There is no separate advice, list, conclusion, technical explanation, or visual cue in the generated copy.
+- Today, Week, and Month each receive an original narrative for their exact date/range. They do not use a fixed set of life themes, behavioural patterns, or a calendar breakdown.
+- Swiss Ephemeris calculates the saved natal chart. That chart supplies private context for the model; it does not produce a separate transit/evidence payload for the forecast period.
+- OpenAI Luna receives the selected period plus available birth details and compact natal context via the Responses API, and writes the forecast itself. Strict JSON Schema and server validation control the output shape, 150-word limit, voice, and safety boundaries.
 - `lib/appVoice.ts` is the runtime voice source.
 
 ## Access and cache
@@ -34,5 +34,5 @@
 ## Visual rules
 
 - Primary navigation lives in the left drawer. Forecast periods are internal to the diary.
-- A forecast has no more than one strong image. Text never sits on an image or in an additional visual frame.
-- Forecast assets live in `public/assets/forecast-feed/`; do not delete them during code cleanup.
+- Text is the default. A forecast has no more than one strong image; a curated sticker is rare and has no caption. Text never sits on an image or in an additional visual frame.
+- Forecast assets live in `public/assets/forecast-feed/`; do not restore section scenes, captions, or promotional banners from legacy systems during code cleanup.

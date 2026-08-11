@@ -4,7 +4,7 @@ Next.js, React, TypeScript, Jest, PostgreSQL, Telegram Mini App, and Telegram St
 
 ## MVP
 
-- Home screen with personal daily reading.
+- Home screen with one personal AI-written story for today; week and month are selected from the diary drawer.
 - Sign horoscopes.
 - Natal chart.
 - Free sign compatibility.
@@ -26,7 +26,7 @@ npm run lint
 ## Core Routes
 
 - `/api/charts/*` - natal chart calculation, primary repair, saved charts.
-- `/api/content/*` - horoscopes, personal daily, natal readings, synastry, matrix-related content.
+- `/api/content/*` - horoscopes, personal day/week/month stories, natal readings, synastry, matrix-related content.
 - `/api/subscriptions/*` and `/api/telegram/*` - Premium through Telegram Stars.
 - `/api/admin/v2/*` - operational admin.
 - `/api/support/*` - support flows.

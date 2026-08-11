@@ -4,22 +4,21 @@
 
 Your Horoscope is a Next.js/React Telegram Mini App with PostgreSQL-backed chart data, personal forecasts, Premium access through Telegram Stars, and a Capacitor Android target.
 
-## Personal Forecast Feed
+## Personal AI forecast
 
-The active personal forecast experience lives in `views/Dashboard.tsx`. Today, Week, and Month are periods of one feed; the screen is not a set of reader pages or forecast cards.
+The active personal forecast experience lives in `views/Dashboard.tsx`. It is one short, personal AI-written story for Today, Week, or Month. The period is selected in the diary drawer; the main screen has no period tabs, thematic sections, cards, or separate reader pages.
 
-- UI components: `components/PersonalForecastFeed/`
-- Contract, cache identity, access slicing: `lib/personalForecastContract.ts`
-- Generation: `lib/personalForecastGeneration.ts` uses the saved natal profile through OpenAI Luna; it does not calculate forecast-period transit evidence.
-- Visual selection: `lib/personalForecastVisuals.ts`
-- Feed styles: `styles/personalForecastFeed.css`
-- Native promo placement: `lib/personalForecastPromo.ts`
+- UI: `components/PersonalForecastFeed/` and `styles/personalForecastFeed.css`
+- Contract and cache identity: `lib/personalForecastContract.ts`
+- Generation: `lib/personalForecastGeneration.ts` sends OpenAI Luna the selected date/range and a compact private context from the saved natal profile. Luna is the author of the forecast prose.
 
-OpenAI Luna through the Responses API is the fixed route for every generated surface except the separate Zodiac product, which keeps DeepSeek. Calculations, server cache, question flow, and Free/Premium rules remain production boundaries.
+Swiss Ephemeris calculates and stores the natal chart. It does not calculate a separate transit/evidence package for every forecast period. The model must never present its interpretation as a deterministic calculation or invent astrological facts not supplied by the server.
+
+OpenAI Luna through the Responses API is the route for personal forecast prose. Zodiac remains a separate sign-based product with its DeepSeek route.
 
 ## Current visual direction
 
-Forecast copy remains a centered, concise text feed. Each section can have a light, semantic background scene that fades into white; these are not containers or cards. Generated source assets belong in `public/assets/forecast-feed/`. Cross-product navigation may use separate album-cover-style banner promos.
+Forecast copy is a clean, readable text story: a short heading and one or two paragraphs, at most 150 words in total. Text is never placed over imagery or inside a card. Images and stickers are optional, rare editorial pauses after the story; they have no explanatory caption and never choose the forecast topic. Do not add promo banners, feedback prompts, questions, or unrelated blocks to the active story without an explicit product decision.
 
 ## Useful commands
 

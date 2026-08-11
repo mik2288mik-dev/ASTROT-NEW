@@ -7,9 +7,9 @@ before upload. Do not claim a function that is absent from the submitted flavor.
 
 | Field | RU | EN |
 |---|---|---|
-| Name | `Твой Гороскоп` | `Your Horoscope` |
-| Short description | `Персональные астрологические прогнозы по данным натальной карты.` | `Personal astrology forecasts based on your natal chart.` |
-| Full description | `Твой Гороскоп помогает посмотреть на день, неделю и месяц через натальную карту и расчёты периода. В приложении есть персональные прогнозы, разбор натальной карты, совместимость и вопросы по карте. Прогнозы — это понятный ориентир для размышления, а не медицинская, психологическая или финансовая рекомендация. В настройках доступны поддержка, политика конфиденциальности, пользовательское соглашение, выход и удаление аккаунта.` | `Your Horoscope offers personal daily, weekly, and monthly astrology forecasts based on your natal chart and the selected period. Explore your natal chart, compatibility and questions about your chart. Forecasts are for reflection and are not medical, psychological or financial advice. Settings provide support, privacy policy, terms, sign-out and account deletion.` |
+| Name | `Твой гороскоп: натальная карта` | `Your Horoscope: Natal Chart` |
+| Short description | `Личные ИИ-прогнозы по контексту натальной карты.` | `Personal AI forecasts shaped by your natal-chart context.` |
+| Full description | `Твой Гороскоп создаёт личный ИИ-рассказ на сегодня, неделю и месяц по выбранному периоду и контексту сохранённой натальной карты. В приложении есть персональные прогнозы, разбор натальной карты, совместимость и вопросы по карте. Прогнозы дают повод посмотреть на ситуацию по-новому и не являются медицинской, психологической или финансовой рекомендацией. В настройках доступны поддержка, политика конфиденциальности, пользовательское соглашение, выход и удаление аккаунта.` | `Your Horoscope creates a personal AI-written story for today, the week, and the month from the selected period and your saved natal-chart context. Explore personal forecasts, your natal chart, compatibility, and chart questions. Forecasts offer a perspective for reflection and are not medical, psychological, or financial advice. Settings provide support, privacy policy, terms, sign-out, and account deletion.` |
 | Release notes | `Первая Android-версия: прогнозы, натальная карта, совместимость и управление аккаунтом.` | `First Android release: forecasts, natal chart, compatibility and account controls.` |
 
 Before publishing, run the character-limit check in Play Console; the final

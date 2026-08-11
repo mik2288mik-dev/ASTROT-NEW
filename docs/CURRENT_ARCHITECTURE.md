@@ -3,16 +3,16 @@
 ## Runtime
 
 - `App.tsx` restores the authenticated profile and a saved natal chart without making generation a startup gate.
-- `Dashboard` is the only personal-reading surface. Today, Week, and Month are internal periods of that screen.
+- `Dashboard` is the only personal-reading surface. Today, Week, and Month are internal periods selected from the diary drawer, not tabs on the main screen.
 - The client is local-first: it keeps a usable cached reading visible while a server refresh runs in the background.
 
 ## Personal forecasts
 
-- `lib/swisseph-calculator.ts` remains the deterministic source for the natal chart. It is not called to calculate transits for every forecast period.
-- `lib/personalForecastGeneration.ts` builds a compact context from the saved natal chart and profile, then asks OpenAI Luna for the reading.
+- `lib/swisseph-calculator.ts` remains the deterministic source for the saved natal chart. It is not called to calculate forecast-period transits or evidence.
+- `lib/personalForecastGeneration.ts` builds one private prompt input from the selected date/range, profile, and compact saved natal context, then asks OpenAI Luna to author the reading. The active product contract requires available birth date/time/place to be included deliberately when they improve the personalisation; align the generator before claiming that input is complete.
 - Luna uses the Responses API with strict JSON Schema through `lib/openaiResponses.ts`.
-- The model writes only the headline, one or two paragraphs, one distinct piece of advice, and a visual cue. The server validates format, length, tone, forbidden time partitions, and the fixed profile evidence reference before persisting a package.
-- `lib/personalForecastCache.ts` caches the materialized interpretation by user, chart, period, language, prompt, voice, and model identity. It does not write transit/evidence snapshots for the forecast period.
+- The model writes only one heading and one or two paragraphs. It is the author of the personal forecast, not a renderer of precomputed themes or a calculator of period events. The server validates format, length, voice, safety, and visible astrology terms before persisting the story.
+- `lib/personalForecastCache.ts` caches one materialized story by user, chart, period, language, prompt, voice, and model identity. It does not write transit/evidence snapshots for the forecast period.
 - `lib/appVoice.ts` is the shared runtime source for generated-content voice.
 
 ## Product separation
@@ -24,8 +24,8 @@
 ## Visual and navigation boundaries
 
 - The left drawer owns primary navigation. Forecast periods are internal to the diary.
-- A forecast uses at most one strong editorial visual. Visual assets remain in `public/assets/forecast-feed/` and are resolved deterministically.
-- Generated text is never rendered over an image or inside an additional visual frame.
+- Text is the default forecast presentation. A forecast uses at most one strong editorial visual; a rare curated sticker is an optional pause after the story, never an explanation or a topic selector.
+- Generated text is never rendered over an image or inside an additional visual frame, card, or promo banner.
 
 ## Persistence boundary
 
