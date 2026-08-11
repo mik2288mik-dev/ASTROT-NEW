@@ -1071,6 +1071,7 @@ export async function getSignCompatibility(
 export type SynastryExtendedApiOutcome = {
   result: SynastryResult;
   fromCache: boolean;
+  calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign';
 };
 
 /** Полный разбор синастрии: только Premium. */
@@ -1088,6 +1089,14 @@ export const calculateExtendedSynastry = async (
     date: string;
     time?: string;
     place?: string;
+    source?: 'birth' | 'saved' | 'sign';
+    sign?: string;
+    gender?: 'male' | 'female';
+  },
+  partner?: {
+    source?: 'birth' | 'saved' | 'sign';
+    sign?: string;
+    gender?: 'male' | 'female';
   },
 ): Promise<SynastryExtendedApiOutcome> => {
   const url = `${API_BASE_URL}/api/content/synastry/extended`;
@@ -1109,6 +1118,12 @@ export const calculateExtendedSynastry = async (
       subjectDate: subject?.date,
       subjectTime: subject?.time,
       subjectPlace: subject?.place,
+      subjectSource: subject?.source,
+      subjectSign: subject?.sign,
+      subjectGender: subject?.gender,
+      partnerSource: partner?.source,
+      partnerSign: partner?.sign,
+      partnerGender: partner?.gender,
     }),
   });
 
@@ -1132,11 +1147,13 @@ export const calculateExtendedSynastry = async (
   const data = (await response.json()) as {
     result: SynastryResult;
     fromCache?: boolean;
+    calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign';
   };
 
   return {
     result: data.result,
     fromCache: !!data.fromCache,
+    calculationLevel: data.calculationLevel,
   };
 };
 

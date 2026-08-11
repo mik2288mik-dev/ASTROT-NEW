@@ -106,7 +106,7 @@ describe('forecast and synastry chart access integration', () => {
     expect(request).toContain('subjectChartId');
   });
 
-  it('keeps legacy saved-person filtering and exposes only readable active charts in the new pair selector', () => {
+  it('keeps legacy saved-person filtering and exposes every readable saved chart in the new pair selector', () => {
     const view = read('views/Synastry.tsx');
     expect(view).toContain("chart.subject_type === 'saved_person'");
     expect(view).toContain('!chart.archived_at');
@@ -114,12 +114,12 @@ describe('forecast and synastry chart access integration', () => {
     expect(view).toContain('readOnly={partnerChartId != null}');
 
     const unionRoom = read('views/v2/UnionRoom.tsx');
-    expect(unionRoom).toContain("chart.subject_type === 'saved_person'");
     expect(unionRoom).toContain('!chart.archived_at');
     expect(unionRoom).toContain('!chart.access_locked');
+    expect(unionRoom).toContain('<PersonSourcePicker');
+    expect(unionRoom).toContain('availableCharts.map');
     expect(unionRoom).toContain("selected?.kind !== 'person'");
     expect(unionRoom).toContain('setSelected(null)');
     expect(unionRoom).toContain("setScreen('add')");
-    expect(unionRoom).toContain('availableCharts.map');
   });
 });

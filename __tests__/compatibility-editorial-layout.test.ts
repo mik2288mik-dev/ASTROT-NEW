@@ -41,28 +41,28 @@ describe('compatibility editorial layout', () => {
 
     expect(addFlow).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
     expect(addFlow).toContain("'Сравним двух людей — по данным рождения или быстро по знакам.'");
-    expect(addFlow).toContain("'По дате рождения'");
-    expect(addFlow).toContain("'По знакам зодиака'");
-    expect(addFlow).not.toContain('<small>Premium</small>');
-    expect(addFlow).not.toContain("ru ? 'Бесплатно'");
+    expect(addFlow).toContain("'По данным рождения'");
+    expect(addFlow).toContain("'По знакам'");
+    expect(addFlow).toContain('<small>Premium</small>');
+    expect(addFlow).toContain("ru ? 'Бесплатно'");
     expect(room.match(/compat-choice-tabs/g)?.length).toBeGreaterThanOrEqual(3);
     expect(addFlow).toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
-    expect(addFlow).toContain('compat-air-add-chart');
+    expect(room).toContain('compat-air-add-chart');
     expect(addFlow).toContain('onOpenCharts');
     expect(addFlow).not.toContain('compat-saved-section');
 
-    expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab::after');
-    expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab.is-active::after');
+    expect(styles).toContain('--compat-air-accent: #176f45');
+    expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab.is-active');
     expect(addFlow.match(/className="compat-air-person"/g)).toHaveLength(2);
     expect(addFlow).toContain('compat-air-person-heading');
-    expect(addFlow).toContain('compat-air-saved');
+    expect(addFlow).toContain('PersonSourcePicker');
     expect(addFlow).not.toContain('compat-entry-person');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-person');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-input');
     expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-person');
   });
 
-  it('starts both people in manual mode and keeps saved charts optional', () => {
+  it('starts both people in manual mode and keeps each saved-chart choice explicit', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const styles = read('styles/newspaperVisual.css');
     const service = read('services/astrologyService.ts');
@@ -74,11 +74,11 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain("const [firstChartId, setFirstChartId] = useState<number | null>(null)");
     expect(room).toContain('function PersonBirthFields');
     expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
-    expect(addFlow.match(/className="compat-air-saved-trigger"/g)).toHaveLength(2);
-    expect(addFlow).toContain("aria-expanded={openSavedPicker === 'first'}");
-    expect(addFlow).toContain("aria-expanded={openSavedPicker === 'second'}");
-    expect(addFlow.match(/className="compat-air-saved-panel"/g)).toHaveLength(2);
-    expect(addFlow).toContain("ru ? 'Выбрать сохранённую карту' : 'Choose a saved chart'");
+    expect(room).toContain("const [subjectSource, setSubjectSource] = useState<CompatibilityPersonSource>");
+    expect(room).toContain("const [partnerSource, setPartnerSource] = useState<CompatibilityPersonSource>");
+    expect(addFlow.match(/<PersonSourcePicker/g)).toHaveLength(2);
+    expect(room).toContain('<option value="saved">');
+    expect(room).toContain("ru ? 'Выбрать карту' : 'Choose a chart'");
     expect(addFlow).not.toContain("className=\"compat-chart-select-label\"");
     expect(addFlow).not.toContain("firstChart?.name ? <small>");
     expect(room).not.toContain('compat-person-primary-row');
@@ -87,7 +87,7 @@ describe('compatibility editorial layout', () => {
     expect(room).not.toContain("return readable.find((chart) => chart.subject_type === 'self')?.id ?? chartId ?? null;");
     expect(service).toContain('subjectName: subject?.name');
     expect(extendedApi).toContain('const hasManualSubject');
-    expect(extendedApi).toContain('userChartData = await calculateNatalChart(');
+    expect(extendedApi).toContain('userChartData = await calculateFlexibleNatalChart(subjectInput)');
   });
 
   it('selects result scenes only with dynamics present in the catalog', () => {

@@ -4,6 +4,7 @@
  * Без бэкенда специально: это лёгкий журнал недавних проверок, не карты в БД.
  */
 import type { RelationshipContext } from './synastry/relationshipContext';
+import type { CompatibilityPairLevel, CompatibilityPersonSource } from './synastry/compatibilityInput';
 
 export type CompatHistoryEntry = {
   /** Стабильный ключ для дедупликации: sign:<sign> или person:<name>:<date> */
@@ -20,6 +21,11 @@ export type CompatHistoryEntry = {
   subjectDate?: string;
   subjectTime?: string;
   subjectPlace?: string;
+  subjectSource?: CompatibilityPersonSource;
+  partnerSource?: CompatibilityPersonSource;
+  subjectSign?: string;
+  partnerSign?: string;
+  calculationLevel?: CompatibilityPairLevel;
   yourSun: string;
   theirSun: string;
   /** Пол сторон (для гендерного текста). Необязательны — старые записи без них валидны. */

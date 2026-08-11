@@ -24,6 +24,7 @@ const ASPECTS: Array<{ name: string; angle: number; orb: number }> = [
 
 function longitudeOf(p: PlanetPosition | NatalPositionV2 | null | undefined): number | null {
   if (!p || typeof p.longitude !== 'number' || !Number.isFinite(p.longitude)) return null;
+  if ('reliability' in p && p.reliability === 'variable_in_range') return null;
   return ((p.longitude % 360) + 360) % 360;
 }
 

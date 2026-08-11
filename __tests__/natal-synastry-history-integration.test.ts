@@ -106,7 +106,7 @@ describe('natal and synastry history integration', () => {
       'utf8',
     );
     expect(route).not.toContain("resolvedPartnerTime || '12:00'");
-    expect(route).toContain('if (partnerChartRecord?.id)');
+    expect(route).toContain('if (primaryChartId && partnerChartRecord?.id && userChartData && partnerChartData)');
     expect(route).toContain('persistSavedSynastryHistory({');
     expect(route).toContain('counterpartChartId: partnerChartRecord.id');
     expect(route).toContain('counterpartBirthTime: partnerChartRecord.birth_time');
