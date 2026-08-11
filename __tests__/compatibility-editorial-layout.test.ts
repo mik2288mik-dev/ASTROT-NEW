@@ -41,7 +41,7 @@ describe('compatibility editorial layout', () => {
 
     expect(addFlow).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
     expect(addFlow).not.toContain('subtitle=');
-    expect(addFlow).toContain("ru ? 'По данным рождения' : 'By birth details'");
+    expect(addFlow).toContain("ru ? 'По дате рождения' : 'By birth date'");
     expect(addFlow).toContain("ru ? 'По знакам зодиака' : 'By zodiac signs'");
     expect(addFlow).not.toContain('compat-mode-note');
     expect(addFlow).not.toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
@@ -55,25 +55,23 @@ describe('compatibility editorial layout', () => {
     expect(room).not.toContain('onUnknownTimeChange');
     expect(room).not.toContain('sUnknownTime');
     expect(room).not.toContain('setUnknownTime');
-    expect(addFlow).toContain('compat-reading-kind');
     expect(addFlow).toContain('compat-entry-precision-note');
-    expect(addFlow).toContain('Город и время уточнят расчёт');
-    expect(addFlow).toContain('compatibilityPairLevelLabel(draftCalculationLevel, lang)');
+    expect(addFlow).toContain('Город и время уточнят расчёт. По дате рождения тоже можно.');
     expect(addFlow).toContain("ru ? 'Тип отношений' : 'Relationship type'");
     expect(addFlow).toContain('<div className="compat-person-divider" aria-hidden="true" />');
 
-    expect(styles).toContain('Compatibility entry: monochrome render-matched form');
+    expect(styles).toContain('Compatibility entry: compact native-form layout');
     expect(styles).not.toContain('--compat-air-accent');
     expect(styles).not.toContain('#176f45');
     expect(styles).toContain('.compat-editorial-page--add .compat-mode-switch');
     expect(styles).toContain('background: var(--compat-air-ink) !important');
     expect(styles).toContain('color: #ffffff !important');
-    expect(styles).toContain('.compat-editorial-page--add .compat-zodiac-field');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-input');
-    expect(styles).toContain('font-size: 15px');
+    expect(styles).toContain('font-size: 16px');
     expect(styles).toContain('.compat-editorial-page--add .compat-entry-precision-note');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-control');
     expect(styles).toContain('.compat-air-input:focus-visible');
+    expect(room).not.toContain('compat-zodiac-field');
     expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-person');
   });
 
@@ -91,8 +89,9 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain("const [partnerSource, setPartnerSource] = useState<CompatibilityPersonSource>");
     expect(addFlow.match(/<PersonSourcePicker/g)).toHaveLength(2);
     expect(room).toContain('<option value="saved">');
-    expect(room).toContain("ru ? 'Ввести данные' : 'Enter details'");
+    expect(room).toContain("ru ? 'Дата рождения' : 'Birth date'");
     expect(room).toContain("ru ? 'Из сохранённых' : 'Saved charts'");
+    expect(room).toContain("ru ? 'Знак зодиака' : 'Zodiac sign'");
     expect(room).toContain("ru ? 'Выбрать карту' : 'Choose a chart'");
     expect(addFlow).not.toContain('className="compat-chart-select-label"');
     expect(addFlow).not.toContain('firstChart?.name ? <small>');

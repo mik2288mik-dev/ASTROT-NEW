@@ -124,8 +124,9 @@ function PersonSourcePicker({
           onChange(event.target.value as CompatibilityPersonSource);
         }}
       >
-        <option value="birth">{ru ? 'Ввести данные' : 'Enter details'}</option>
+        <option value="birth">{ru ? 'Дата рождения' : 'Birth date'}</option>
         <option value="saved">{ru ? 'Из сохранённых' : 'Saved charts'}</option>
+        <option value="sign">{ru ? 'Знак зодиака' : 'Zodiac sign'}</option>
       </select>
       <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
     </label>
@@ -135,42 +136,35 @@ function PersonSourcePicker({
 function PersonBirthFields({
   prefix,
   ru,
-  language,
   name,
   date,
   time,
   place,
   gender,
-  sign,
   onNameChange,
   onDateChange,
   onTimeChange,
   onPlaceChange,
   onGenderChange,
-  onSignChange,
 }: {
   prefix: string;
   ru: boolean;
-  language: UserProfile['language'];
   name: string;
   date: string;
   time: string;
   place: string;
   gender: CompatGender;
-  sign: string;
   onNameChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
   onPlaceChange: (value: string) => void;
   onGenderChange: (value: CompatGender) => void;
-  onSignChange: (value: string) => void;
 }) {
   const genderLabelId = `${prefix}-gender-label`;
-  const lang: 'ru' | 'en' = language === 'en' ? 'en' : 'ru';
   return (
     <div className="compat-air-fields">
       <label className="compat-air-field compat-air-field--name" htmlFor={`${prefix}-name`}>
-        <span className="compat-air-label">{ru ? 'Имя' : 'Name'}</span>
+        <span className="compat-air-label sr-only">{ru ? 'Имя' : 'Name'}</span>
         <span className="compat-air-control">
           <UserRound aria-hidden="true" size={20} strokeWidth={1.8} />
           <input id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Имя' : 'Name'} autoComplete="name" />
@@ -195,7 +189,7 @@ function PersonBirthFields({
       </div>
 
       <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
-        <span className="compat-air-label">{ru ? 'Город' : 'City'}</span>
+        <span className="compat-air-label sr-only">{ru ? 'Город' : 'City'}</span>
         <span className="compat-air-control">
           <MapPin aria-hidden="true" size={20} strokeWidth={1.8} />
           <input id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
@@ -204,18 +198,9 @@ function PersonBirthFields({
 
       <div className="compat-air-person-footer">
         <div className="compat-air-gender-field">
-          <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
+          <span id={genderLabelId} className="compat-air-label sr-only">{ru ? 'Пол' : 'Gender'}</span>
           <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
         </div>
-        <label className="compat-zodiac-field" htmlFor={`${prefix}-zodiac`}>
-          <span className="compat-air-label">{ru ? 'Знак' : 'Sign'}</span>
-          <span className="compat-zodiac-select-wrap">
-            <ZodiacSymbol sign={sign} size={20} />
-            <select id={`${prefix}-zodiac`} value={sign} onChange={(event) => onSignChange(event.target.value)}>
-              {ZODIAC_KEYS.map((key) => <option key={key} value={key}>{getZodiacSign(lang, key)}</option>)}
-            </select>
-          </span>
-        </label>
       </div>
     </div>
   );
@@ -1028,7 +1013,7 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('birth');
             }}
           >
-            {ru ? 'По данным рождения' : 'By birth details'}
+            {ru ? 'По дате рождения' : 'By birth date'}
           </button>
           <button
             type="button"
@@ -1069,13 +1054,11 @@ export function UnionRoom(props: UnionRoomProps) {
                   <PersonBirthFields
                     prefix="compat-first-person"
                     ru={ru}
-                    language={profile.language}
                     name={sName}
                     date={sDate}
                     time={sTime}
                     place={sPlace}
                     gender={youGender}
-                    sign={youSign}
                     onNameChange={setSName}
                     onDateChange={(value) => {
                       setSDate(value);
@@ -1085,7 +1068,6 @@ export function UnionRoom(props: UnionRoomProps) {
                     onTimeChange={setSTime}
                     onPlaceChange={setSPlace}
                     onGenderChange={setYouGender}
-                    onSignChange={setYouSign}
                   />
                 ) : subjectSource === 'saved' ? (
                   <PersonSavedFields
@@ -1130,13 +1112,11 @@ export function UnionRoom(props: UnionRoomProps) {
                   <PersonBirthFields
                     prefix="compat-second-person"
                     ru={ru}
-                    language={profile.language}
                     name={fName}
                     date={fDate}
                     time={fTime}
                     place={fPlace}
                     gender={fGender}
-                    sign={pickSign}
                     onNameChange={setFName}
                     onDateChange={(value) => {
                       setFDate(value);
@@ -1146,7 +1126,6 @@ export function UnionRoom(props: UnionRoomProps) {
                     onTimeChange={setFTime}
                     onPlaceChange={setFPlace}
                     onGenderChange={setFGender}
-                    onSignChange={setPickSign}
                   />
                 ) : partnerSource === 'saved' ? (
                   <PersonSavedFields
@@ -1178,15 +1157,10 @@ export function UnionRoom(props: UnionRoomProps) {
                 <span>
                   <strong>{ru ? 'Больше деталей, если знаете.' : 'More detail, if you know it.'}</strong>
                   {' '}{ru
-                    ? 'Город и время уточнят расчёт; по одной дате рождения тоже можно сравнить.'
-                    : 'A city and time make the reading more precise; a birth date alone is enough to compare.'}
+                    ? 'Город и время уточнят расчёт. По дате рождения тоже можно.'
+                    : 'A city and time make the reading more precise. A birth date is enough too.'}
                 </span>
               </p>
-
-              <div className="compat-reading-kind" aria-live="polite">
-                <span>{ru ? 'Будет создан' : 'Reading type'}</span>
-                <strong>{compatibilityPairLevelLabel(draftCalculationLevel, lang)}</strong>
-              </div>
 
               <section className="compat-entry-context" aria-labelledby="compat-context-title">
                 <h2 id="compat-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
