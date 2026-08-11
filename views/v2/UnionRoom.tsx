@@ -114,23 +114,52 @@ function PersonSourcePicker({
   onChange: (value: CompatibilityPersonSource) => void;
   ru: boolean;
 }) {
+  const options: Array<{ value: CompatibilityPersonSource; label: string; description: string }> = [
+    {
+      value: 'saved',
+      label: ru ? 'Карта' : 'Chart',
+      description: ru ? 'Сравнение по карте рождения' : 'Compare by birth chart',
+    },
+    {
+      value: 'birth',
+      label: ru ? 'Дата' : 'Date',
+      description: ru ? 'Сравнение по дате рождения' : 'Compare by birth date',
+    },
+    {
+      value: 'sign',
+      label: ru ? 'Знак' : 'Sign',
+      description: ru ? 'Сравнение по знакам зодиака' : 'Compare by zodiac signs',
+    },
+  ];
+
   return (
-    <label className="compat-person-source">
-      <span className="sr-only">{ru ? 'Источник данных' : 'Data source'}</span>
-      <select
-        value={value}
-        onChange={(event) => {
-          lumiaSelectionHaptic();
-          onChange(event.target.value as CompatibilityPersonSource);
-        }}
-      >
-        <option value="birth">{ru ? 'Дата' : 'Date'}</option>
-        <option value="saved">{ru ? 'Карта' : 'Chart'}</option>
-        <option value="sign">{ru ? 'Знак' : 'Sign'}</option>
-      </select>
-      <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
-    </label>
+    <div className="compat-person-source" role="group" aria-label={ru ? 'Способ сравнения' : 'Comparison method'}>
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            className={`compat-person-source-option${active ? ' is-active' : ''}`}
+            aria-pressed={active}
+            aria-label={option.description}
+            onClick={() => {
+              lumiaSelectionHaptic();
+              onChange(option.value);
+            }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
+}
+
+function personSourceDescription(value: CompatibilityPersonSource, ru: boolean): string {
+  if (value === 'saved') return ru ? 'Сравнение по карте рождения' : 'Compare by birth chart';
+  if (value === 'sign') return ru ? 'Сравнение по знакам зодиака' : 'Compare by zodiac signs';
+  return ru ? 'Сравнение по дате рождения' : 'Compare by birth date';
 }
 
 function PersonBirthFields({
@@ -1013,7 +1042,7 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('birth');
             }}
           >
-            {ru ? 'По дате рождения' : 'By birth date'}
+            {ru ? 'По данным рождения' : 'By birth details'}
           </button>
           <button
             type="button"
@@ -1042,6 +1071,7 @@ export function UnionRoom(props: UnionRoomProps) {
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
                     <h3 id="compat-first-person-title">{ru ? 'Первый человек' : 'First person'}</h3>
+                    <p className="compat-air-source-description">{personSourceDescription(subjectSource, ru)}</p>
                   </div>
                   <PersonSourcePicker
                     value={subjectSource}
@@ -1099,6 +1129,7 @@ export function UnionRoom(props: UnionRoomProps) {
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
                     <h3 id="compat-second-person-title">{ru ? 'Второй человек' : 'Second person'}</h3>
+                    <p className="compat-air-source-description">{personSourceDescription(partnerSource, ru)}</p>
                   </div>
                   <PersonSourcePicker
                     value={partnerSource}
@@ -1149,6 +1180,14 @@ export function UnionRoom(props: UnionRoomProps) {
                   />
                 )}
               </section>
+
+              {subjectSource === 'birth' || partnerSource === 'birth' ? (
+                <p className="compat-air-precision-note">
+                  {ru
+                    ? 'Время и город — если знаешь: так карта получится точнее.'
+                    : 'Time and city, if you know them, make the chart more precise.'}
+                </p>
+              ) : null}
 
               <section className="compat-entry-context" aria-labelledby="compat-context-title">
                 <h2 id="compat-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
