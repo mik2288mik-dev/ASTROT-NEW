@@ -5,16 +5,16 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('personal forecast screen layout', () => {
-  it('keeps today\'s date and the period switcher on the diary screen', () => {
+  it('keeps the selected period date on the diary screen without a second period switcher', () => {
     const dashboard = read('views/Dashboard.tsx');
 
-    expect(dashboard).toContain("import { FreshTabs } from '../components/fresh-ui'");
-    expect(dashboard).toContain('const todayWindow = useMemo(');
-    expect(dashboard).toContain("resolvePersonalForecastWindow('day', periodKeys.day, timezone)");
-    expect(dashboard).toContain('className="forecast-feed-period-tabs"');
-    expect(dashboard).toContain('className="forecast-feed-footer"');
-    expect(dashboard).toContain("loadPeriod('week');");
-    expect(dashboard).toContain("loadPeriod('month');");
+    expect(dashboard).not.toContain("import { FreshTabs } from '../components/fresh-ui'");
+    expect(dashboard).toContain('const activeWindow = useMemo(');
+    expect(dashboard).toContain('resolvePersonalForecastWindow(activePeriod, periodKeys[activePeriod], timezone)');
+    expect(dashboard).not.toContain('forecast-feed-period-tabs');
+    expect(dashboard).not.toContain('forecast-feed-footer');
+    expect(dashboard).not.toContain("loadPeriod('week');");
+    expect(dashboard).not.toContain("loadPeriod('month');");
     expect(dashboard).not.toContain("loadPeriod('week', { cacheOnly: true })");
     expect(dashboard).not.toContain('<ForecastQuestions');
   });
@@ -30,13 +30,14 @@ describe('personal forecast screen layout', () => {
     expect(app).toContain('openDrawerPeriod');
   });
 
-  it('keeps the phrase visually centred and close to the period switcher', () => {
+  it('keeps the personal story as one calm reading column without a sticker treatment', () => {
     const forecastStyles = read('styles/personalForecastFeed.css');
     const newspaperStyles = read('styles/newspaperVisual.css');
 
-    expect(forecastStyles).toContain('margin: 10px auto 12px;');
+    expect(forecastStyles).not.toContain('.forecast-feed-period-tabs');
     expect(newspaperStyles).toContain('.forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-screen-headline');
-    expect(newspaperStyles).toContain('text-align: center;');
+    expect(newspaperStyles).toContain('text-align: left;');
+    expect(newspaperStyles).not.toContain('.forecast-feed-page .forecast-feed-editorial-sticker');
   });
 
   it('uses one loading spinner instead of forecast-content placeholders', () => {

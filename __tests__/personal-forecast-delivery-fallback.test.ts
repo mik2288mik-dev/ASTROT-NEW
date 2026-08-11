@@ -31,10 +31,6 @@ function modelResponse(paragraphWords: number, evidenceId = 'profile:personal') 
     content: JSON.stringify({
       phrase: { text: 'Keep the door open.', evidence_ids: [evidenceId] },
       paragraphs: [{ text: words(paragraphWords), evidence_ids: [evidenceId] }],
-      advice: {
-        text: 'Make room for one honest answer.',
-        evidence_ids: [evidenceId],
-      },
     }),
     inputTokens: 100,
     outputTokens: 40,
@@ -99,7 +95,8 @@ describe('personal forecast Responses delivery', () => {
     expect(params.input).toContain('"birth_date": "1990-01-01"');
     expect(params.input).toContain('"natal_profile"');
     expect(params.input).toContain('"sun"');
-    expect(params.input).toContain('"advice_lenses"');
+    expect(params.input).toContain('"story_direction"');
+    expect(params.input).not.toContain('"advice_lenses"');
     expect(params.input).not.toContain('Calculated evidence');
     expect(params.input).not.toContain('transit_planet');
     expect(params.input).not.toContain('natal_point');

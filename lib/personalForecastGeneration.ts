@@ -14,7 +14,6 @@ import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
-  FORECAST_VISUAL_CUES,
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
   getPersonalForecastPackageValidationError,
@@ -26,7 +25,6 @@ import {
   type ForecastContentBlock,
   type ForecastEvidenceView,
   type ForecastSection,
-  type ForecastVisualCue,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
   type PersonalForecastWindow,
@@ -37,7 +35,7 @@ export const PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS = 2;
 
 /**
  * A strict monthly response needs room for the model's internal work as well
- * as the 130–175-word JSON payload. Day and week keep their proven budget.
+ * as the 150-word JSON payload. Day and week keep their proven budget.
  */
 export const PERSONAL_FORECAST_WRITER_MAX_OUTPUT_TOKENS: Record<
   PersonalForecastPeriod,
@@ -57,9 +55,9 @@ export function getPersonalForecastWriterMaxOutputTokens(
 }
 
 export const PERSONAL_FORECAST_WORD_LIMITS: Record<PersonalForecastPeriod, number> = {
-  day: 95,
-  week: 120,
-  month: 145,
+  day: 150,
+  week: 150,
+  month: 150,
 };
 
 export const PERSONAL_FORECAST_WORD_MINIMUMS: Record<PersonalForecastPeriod, number> = {
@@ -92,17 +90,6 @@ const PERIOD_EDITORIAL_BRIEFS: Record<ForecastWriterLanguage, Record<PersonalFor
   },
 };
 
-const ADVICE_LENSES: readonly string[] = [
-  'one honest conversation',
-  'one protected hour for yourself',
-  'one unfinished practical task',
-  'one boundary stated without apology',
-  'one small change of scenery',
-  'one deliberate yes or no',
-  'one act of care for the body',
-  'one idea worth saying aloud',
-];
-
 function pickEditorialCue(seed: string, options: readonly string[]): string {
   return options[Math.abs(stableHash(seed)) % options.length] || options[0] || '';
 }
@@ -114,30 +101,10 @@ export function getPersonalForecastSystemPrompt(
   const limits = `${PERSONAL_FORECAST_WORD_MINIMUMS[period]} to ${PERSONAL_FORECAST_WORD_LIMITS[period]} words`;
   const brief = PERIOD_EDITORIAL_BRIEFS[language][period];
   const ru = language === 'ru';
-  const task = ru
-    ? `Ты пишешь личный прогноз как короткий, красивый и точный рассказ о человеке. Натальный профиль — твоя постоянная оптика, а не повод перечислять астрологические термины. Не обещай события и не выдавай догадки за факты.
-
-${brief}
-
-Текст должен ощущаться написанным для одного человека: с наблюдением, характером и ясной мыслью. Не превращай его в отчёт, инструкцию, список сфер жизни или тревожное предупреждение. Не начинай абзацы словами «с деньгами», «в общении», «при этом», «важно» и не повторяй одну мысль другими словами. Оставь только то, что хочется дочитать.
-
-Заголовок — 3–8 слов, дерзкий, психологический и живой; не «Главный акцент», не «Ясность вместо…», не «Гибкость важнее…». Совет обязан быть другим по теме, чем основной текст, и не может начинаться с «проверь», «запиши», «составь» или «зафиксируй».
-
-Не дели текст на утро, день, вечер, начало/середину/конец периода, дни недели, выходные или даты. Не используй эзотерику, астрологические слова, диагнозы и обращения на «вы».
-
-Верни только валидный JSON. Во всех evidence_ids укажи ровно ["profile:personal"] — это служебная ссылка, читатель её не видит.`
-    : `Write a personal forecast as a short, beautiful, precise story about one person. The natal profile is a stable lens, not a reason to list astrology terms. Do not promise events or present guesses as facts.
-
-${brief}
-
-The text must feel written for one person: observant, characterful, and clear. Never turn it into a report, instruction list, mandatory life areas, or an anxious warning. Do not begin paragraphs with filler such as “In finances”, “In communication”, “At the same time”, or “It is important”, and do not repeat one thought in different words.
-
-The headline has 3–8 words and must be bold, psychological, and alive; never “Main focus”, “Clarity instead of…”, or “Flexibility matters…”. Advice must use a different theme from the story and must not begin with “check”, “write down”, “make a list”, or “document”.
-
-Never divide the text into morning, afternoon, evening, beginning/middle/end, weekdays, weekends, or dates. No mysticism, astrology terms, diagnoses, or formal address.
-
-Return valid JSON only. Every evidence_ids value must be exactly ["profile:personal"]; it is a service reference and is never shown to the reader.`;
-  return `${getAppSystemVoice(language)}\n\nPERSONAL FORECAST TASK\n- Produce ${limits} in total, including headline and advice.\n- Use one or two natural paragraphs; no Markdown and no subheadings.\n- Advice is exactly one sentence, 6–16 words.\n- Pick one visual_cue that matches the emotional image of the story.\n\n${task}`;
+  const storyRules = ru
+    ? 'Расскажи одну живую, узнаваемую сцену или внутренний поворот именно этого периода. Заголовок — 3–8 слов: смелый, психологически точный, живой. Затем один или два естественных абзаца без Markdown и подзаголовков. Не добавляй отдельный совет, инструкцию, вывод, список, вопрос к читателю или визуальную подсказку.'
+    : 'Tell one vivid, recognisable moment or inner turn for this exact period. The headline has 3–8 words and is bold, psychological, and alive. Then write one or two natural paragraphs with no Markdown or subheadings. Do not add separate advice, instructions, a takeaway, a list, a question to the reader, or a visual cue.';
+  return `${getAppSystemVoice(language)}\n\nPERSONAL FORECAST STORY\n- Produce ${limits} in total, including the headline.\n- The story must feel intimate, concrete, and worth reading through.\n- The supplied period window is context only: never print dates or split the text into time segments.\n\n${brief}\n\n${storyRules}\n\nReturn valid JSON only. Every evidence_ids value must be exactly ["profile:personal"]; it is a service reference and is never shown to the reader.`;
 }
 
 type GeneratedTextBlock = {
@@ -148,11 +115,6 @@ type GeneratedTextBlock = {
 type GeneratedFeedPayload = {
   phrase?: GeneratedTextBlock | null | unknown;
   paragraphs?: GeneratedTextBlock[];
-  advice?: GeneratedTextBlock | null | unknown;
-  visual_cue?: {
-    key?: unknown;
-    evidence_ids?: unknown;
-  } | null | unknown;
 };
 
 /**
@@ -184,51 +146,20 @@ export const PERSONAL_FORECAST_RESPONSE_SCHEMA: StrictJsonSchema = {
         additionalProperties: false,
       },
     },
-    advice: {
-      type: 'object',
-      properties: {
-        text: { type: 'string' },
-        evidence_ids: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['text', 'evidence_ids'],
-      additionalProperties: false,
-    },
-    visual_cue: {
-      type: 'object',
-      properties: {
-        key: {
-          type: 'string',
-          enum: [
-            'communication',
-            'decisions',
-            'work_money',
-            'home_family',
-            'friends',
-            'love',
-            'mood',
-            'opportunities',
-          ],
-        },
-        evidence_ids: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['key', 'evidence_ids'],
-      additionalProperties: false,
-    },
   },
-  required: ['phrase', 'paragraphs', 'advice', 'visual_cue'],
+  required: ['phrase', 'paragraphs'],
   additionalProperties: false,
 };
 
 type FreeGeneratedBlock = {
   text: string;
-  role: 'lead' | 'insight' | 'action';
+  role: 'lead' | 'insight';
   evidenceIds: string[];
 };
 
 type FreeGeneratedSection = {
   title: string | null;
   evidenceIds: string[];
-  visualCue: ForecastVisualCue | null;
   blocks: FreeGeneratedBlock[];
 };
 
@@ -245,17 +176,6 @@ type GenerationResult = {
 };
 
 export const PERSONAL_FORECAST_PROFILE_EVIDENCE_ID = 'profile:personal';
-
-function profileAdviceLenses(input: {
-  profile: UserProfile;
-  period: PersonalForecastPeriod;
-  periodKey: string;
-}): string[] {
-  const seed = `${input.profile.id || input.profile.birthDate || 'guest'}:${input.periodKey}:${input.period}`;
-  const first = pickEditorialCue(seed, ADVICE_LENSES);
-  const second = pickEditorialCue(`${seed}:next`, ADVICE_LENSES.filter((item) => item !== first));
-  return [first, second].filter(Boolean);
-}
 
 function profileNarrativeDirection(input: {
   profile: UserProfile;
@@ -304,11 +224,6 @@ ${JSON.stringify({ natal_profile: input.natalContext }, null, 2)}
 Editorial plan:
 ${JSON.stringify({
     story_direction: profileNarrativeDirection({
-      profile: input.profile,
-      period: input.period,
-      periodKey: input.window.periodKey,
-    }),
-    advice_lenses: profileAdviceLenses({
       profile: input.profile,
       period: input.period,
       periodKey: input.window.periodKey,
@@ -446,20 +361,6 @@ function generatedBlock(
   return text && evidenceIds ? { text, role, evidenceIds } : null;
 }
 
-function generatedVisualCue(
-  value: unknown,
-  availableEvidenceIds: ReadonlySet<string>,
-): { key: ForecastVisualCue; evidenceIds: string[] } | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const candidate = value as { key?: unknown; evidence_ids?: unknown };
-  const key = typeof candidate.key === 'string'
-    && FORECAST_VISUAL_CUES.includes(candidate.key as ForecastVisualCue)
-    ? candidate.key as ForecastVisualCue
-    : null;
-  const evidenceIds = validatedEvidenceIds(candidate.evidence_ids, availableEvidenceIds);
-  return key && evidenceIds ? { key, evidenceIds } : null;
-}
-
 export function validateFreeGeneratedForecastFeed(
   raw: GeneratedFeedPayload,
   availableEvidenceIds: ReadonlySet<string> = new Set(),
@@ -469,7 +370,6 @@ export function validateFreeGeneratedForecastFeed(
     return { sections: [], errors: ['payload requires paragraphs with valid evidence_ids'] };
   }
   const phrase = generatedBlock(raw.phrase, 'lead', availableEvidenceIds);
-  const visualCue = generatedVisualCue(raw.visual_cue, availableEvidenceIds);
   const phraseWords = phrase ? wordCount(phrase.text) : 0;
   const rawParagraphs = raw.paragraphs || [];
   const paragraphs = rawParagraphs.map((paragraph, index) => (
@@ -489,37 +389,13 @@ export function validateFreeGeneratedForecastFeed(
       `phrase has ${phraseWords} words; expected ${PERSONAL_FORECAST_PHRASE_WORD_LIMITS.minimum}-${PERSONAL_FORECAST_PHRASE_WORD_LIMITS.maximum}`,
     );
   }
-  if (raw.visual_cue !== undefined && raw.visual_cue !== null && !visualCue) {
-    errors.push('visual_cue requires an allowed key and existing evidence_ids');
-  }
   if (rawParagraphs.length > PERSONAL_FORECAST_MAX_PARAGRAPHS[period]) {
     errors.push(
       `forecast has ${rawParagraphs.length} paragraphs; maximum for ${period} is ${PERSONAL_FORECAST_MAX_PARAGRAPHS[period]}`,
     );
   }
   const readingBlocks = paragraphs.filter((paragraph): paragraph is FreeGeneratedBlock => !!paragraph);
-  let adviceSection: FreeGeneratedSection | null = null;
-  let adviceBlock: FreeGeneratedBlock | null = null;
-  if (raw.advice !== null && raw.advice !== undefined) {
-    const advice = generatedBlock(raw.advice, 'action', availableEvidenceIds);
-    if (!advice) {
-      errors.push('advice has missing, duplicated, or unknown evidence_ids');
-    } else if (wordCount(advice.text) > 16) {
-      errors.push(`advice has ${wordCount(advice.text)} words; maximum is 16`);
-    } else {
-      adviceBlock = advice;
-      adviceSection = {
-        title: null,
-        evidenceIds: advice.evidenceIds,
-        visualCue: null,
-        blocks: [advice],
-      };
-    }
-  }
-  if (!adviceBlock) {
-    errors.push(`${period} forecast requires one concrete action`);
-  }
-  const visibleCopy = [phrase?.text, ...readingBlocks.map((block) => block.text), adviceBlock?.text]
+  const visibleCopy = [phrase?.text, ...readingBlocks.map((block) => block.text)]
     .filter((value): value is string => !!value);
   if (visibleCopy.some(containsForbiddenAstrologyTerm)) {
     errors.push('visible forecast copy contains a forbidden astrology term');
@@ -549,9 +425,8 @@ export function validateFreeGeneratedForecastFeed(
     sections: [{
       title: phrase?.text || null,
       evidenceIds: overviewEvidenceIds,
-      visualCue: visualCue?.key || null,
       blocks: readingBlocks,
-    }, ...(adviceSection ? [adviceSection] : [])],
+    }],
   };
 }
 
@@ -578,7 +453,7 @@ export function parseGeneratedFeedPayload(content: string): GeneratedFeedPayload
         !!value
         && typeof value === 'object'
         && !Array.isArray(value)
-        && ['paragraphs', 'advice']
+        && ['phrase', 'paragraphs']
           .some((key) => Object.prototype.hasOwnProperty.call(value, key))
       );
       const nested = [payload, payload.data, payload.result, payload.output, payload.response]
@@ -653,8 +528,8 @@ function materializeDirectSection(input: {
     semanticFactIds: [...new Set(input.section.blocks.flatMap((block) => block.evidenceIds))],
     semanticFingerprint: `direct:${stableHash(`${input.section.blocks.flatMap((block) => block.evidenceIds).join(':')}:${input.sectionIndex}`).toString(36)}`,
     importance: Math.max(1, 100 - input.sectionIndex),
-    visualTag: input.section.visualCue || 'personal-profile',
-    visualCue: input.overview ? input.section.visualCue : null,
+    visualTag: 'personal-story',
+    visualCue: null,
     premiumTeaser: teaser,
     lockedPreview: buildForecastLockedPreview(text, teaser),
     explanationAnchors: anchors,
@@ -735,7 +610,7 @@ async function requestGeneratedFeed(input: {
       input.period,
     );
     if (!validation.errors.length) {
-      const [rawOverview, rawAdvice] = validation.sections;
+      const [rawOverview] = validation.sections;
       if (!rawOverview) {
         errors = ['overview section is missing after validation'];
         continue;
@@ -748,15 +623,7 @@ async function requestGeneratedFeed(input: {
         sectionIndex: 0,
       });
       input.onMetrics?.({ model: input.model, ...usage, latencyMs: Date.now() - startedAt, validationPassed: true });
-      const sections = rawAdvice
-        ? [materializeDirectSection({
-            section: rawAdvice,
-            evidenceViews,
-            language: input.language,
-            overview: false,
-            sectionIndex: 1,
-          })]
-        : [];
+      const sections: ForecastSection[] = [];
       return {
         overview,
         sections,

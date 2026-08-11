@@ -17,16 +17,7 @@ import {
   normalizeForecastTimezone,
   resolvePersonalForecastWindow,
   type PersonalForecastPeriod,
-  type ForecastVisualCue,
 } from '../lib/personalForecastContract';
-import {
-  forecastSectionVisualStyle,
-  resolvePersonalForecastVisuals,
-} from '../lib/personalForecastVisuals';
-import {
-  resolvePersonalForecastPromotions,
-  type PersonalForecastPromoPlacement,
-} from '../lib/personalForecastPromo';
 import {
   loadPersonalForecast,
   readLocalPersonalForecast,
@@ -34,14 +25,8 @@ import {
   type PersonalForecastClientError,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
-import { ForecastPromotion } from '../components/PersonalForecastFeed/ForecastPromotion';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
-import { FreshTabs } from '../components/fresh-ui';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
-import {
-  AstrologyDetailsToggle,
-  useAstrologyDetailsPreference,
-} from '../components/AstrologyDetailsToggle';
 
 type DashboardProps = {
   profile: UserProfile;
@@ -49,8 +34,6 @@ type DashboardProps = {
   chartId?: number | null;
   currentDateKey?: string;
   onCreateNatalChart?: () => void;
-  onOpenSynastry?: () => void;
-  onOpenHoroscope?: () => void;
   requestedPeriod?: PersonalForecastPeriod;
   onPeriodChange?: (period: PersonalForecastPeriod) => void;
   onRequestPremium?: (
@@ -76,44 +59,7 @@ type PendingPeriodSelection = {
   targetSectionId?: string;
 };
 
-const PERIOD_TABS: ReadonlyArray<{
-  id: PersonalForecastPeriod;
-  ru: string;
-  en: string;
-}> = [
-  { id: 'day', ru: 'Сегодня', en: 'Today' },
-  { id: 'week', ru: 'Неделя', en: 'Week' },
-  { id: 'month', ru: 'Месяц', en: 'Month' },
-] as const;
-
-function forecastStickerCaption(
-  cue: ForecastVisualCue | null | undefined,
-  language: 'ru' | 'en',
-): string {
-  const captions: Record<'ru' | 'en', Record<ForecastVisualCue, string>> = {
-    ru: {
-      communication: 'сказать прямо',
-      decisions: 'выбрать без лишнего шума',
-      work_money: 'собрать главное в одну линию',
-      home_family: 'вернуться в своё пространство',
-      friends: 'найти своих людей',
-      love: 'дать теплу место',
-      mood: 'оставить себе тихую паузу',
-      opportunities: 'заметить новый ход',
-    },
-    en: {
-      communication: 'say it plainly',
-      decisions: 'choose without the noise',
-      work_money: 'put the important things in one line',
-      home_family: 'return to your own space',
-      friends: 'find your people',
-      love: 'make room for warmth',
-      mood: 'leave yourself a quiet pause',
-      opportunities: 'notice a new move',
-    },
-  };
-  return captions[language][cue || 'mood'];
-}
+const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];
 
 function personalForecastLoadingLabel(
   period: PersonalForecastPeriod,
@@ -165,68 +111,12 @@ function personalForecastErrorMessage(
   return 'Остальные разделы доступны. Можно повторить только этот расчёт.';
 }
 
-type PersonalForecastPromoSlot = {
-  id: string;
-  afterSectionId: string;
-  layout: 'pair' | 'single';
-  placements: PersonalForecastPromoPlacement[];
-};
-
-function groupPromotionsBySection(
-  placements: PersonalForecastPromoPlacement[],
-): Map<string, PersonalForecastPromoSlot[]> {
-  const grouped = new Map<string, PersonalForecastPromoSlot[]>();
-  const addSlot = (slot: PersonalForecastPromoSlot) => {
-    const current = grouped.get(slot.afterSectionId) || [];
-    current.push(slot);
-    grouped.set(slot.afterSectionId, current);
-  };
-
-  const mandatory = placements.filter(
-    (placement) => placement.placementType === 'mandatory',
-  );
-  if (mandatory.length) {
-    const anchor = mandatory.reduce((latest, placement) => (
-      placement.afterSectionIndex > latest.afterSectionIndex
-        ? placement
-        : latest
-    ));
-    addSlot({
-      id: mandatory.map((placement) => placement.id).join('|'),
-      afterSectionId: anchor.afterSectionId,
-      layout: mandatory.length > 1 ? 'pair' : 'single',
-      placements: mandatory,
-    });
-  }
-
-  for (const placement of placements) {
-    if (placement.placementType !== 'contextual') continue;
-    addSlot({
-      id: placement.id,
-      afterSectionId: placement.afterSectionId,
-      layout: 'single',
-      placements: [placement],
-    });
-  }
-  return grouped;
-}
-
-function safeResolvePromotions(input: Parameters<typeof resolvePersonalForecastPromotions>[0]) {
-  try {
-    return resolvePersonalForecastPromotions(input);
-  } catch {
-    return [];
-  }
-}
-
 export const Dashboard = memo<DashboardProps>(({
   profile,
   chartData,
   chartId,
   currentDateKey,
   onCreateNatalChart,
-  onOpenSynastry,
-  onOpenHoroscope,
   requestedPeriod,
   onPeriodChange,
   onRequestPremium,
@@ -251,10 +141,6 @@ export const Dashboard = memo<DashboardProps>(({
     week: emptyPeriodState(),
     month: emptyPeriodState(),
   });
-  const [stickerIdsByPeriod, setStickerIdsByPeriod] = useState<
-    Partial<Record<PersonalForecastPeriod, string>>
-  >({});
-  const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const contextRef = useRef('');
   const accessContextRef = useRef('');
@@ -266,25 +152,16 @@ export const Dashboard = memo<DashboardProps>(({
     week: getPersonalForecastPeriodKey('week', new Date(), timezone),
     month: getPersonalForecastPeriodKey('month', new Date(), timezone),
   }), [currentDateKey, timezone]);
-  const todayWindow = useMemo(
-    () => resolvePersonalForecastWindow('day', periodKeys.day, timezone),
-    [periodKeys.day, timezone],
+  const activeWindow = useMemo(
+    () => resolvePersonalForecastWindow(activePeriod, periodKeys[activePeriod], timezone),
+    [activePeriod, periodKeys, timezone],
   );
-  const todayDateLines = useMemo(
-    () => formatPersonalForecastDateLabel(todayWindow, language)
+  const activeDateLines = useMemo(
+    () => formatPersonalForecastDateLabel(activeWindow, language)
       .split('\n')
       .filter(Boolean),
-    [language, todayWindow],
+    [activeWindow, language],
   );
-  const periodTabs = useMemo(() => PERIOD_TABS.map(({ id, ru, en }) => ({
-    id,
-    label: language === 'ru' ? ru : en,
-  })), [language]);
-  const stickerCycleKey = `${userId}:${periodKeys.day}:${periodKeys.week}:${periodKeys.month}`;
-
-  useEffect(() => {
-    setStickerIdsByPeriod({});
-  }, [stickerCycleKey]);
 
   const contextKey = useMemo(() => [
     userId,
@@ -317,7 +194,7 @@ export const Dashboard = memo<DashboardProps>(({
       return;
     }
     const localResults = Object.fromEntries(
-      PERIOD_TABS.map(({ id }) => [id, readLocalPersonalForecast({
+      FORECAST_PERIODS.map((id) => [id, readLocalPersonalForecast({
         profile,
         chartData,
         chartId,
@@ -464,8 +341,6 @@ export const Dashboard = memo<DashboardProps>(({
 
   useEffect(() => {
     loadPeriod('day');
-    loadPeriod('week');
-    loadPeriod('month');
   }, [contextKey, loadPeriod]);
 
   const state = periodStates[activePeriod];
@@ -475,76 +350,6 @@ export const Dashboard = memo<DashboardProps>(({
   const lockedIds = useMemo(
     () => new Set(result?.lockedSectionIds || []),
     [result?.lockedSectionIds],
-  );
-  const readySections = useMemo(
-    () => (
-      forecast?.meta.status === 'ready'
-        ? forecast.sections.filter((section) => section.status === 'ready')
-        : []
-    ),
-    [forecast],
-  );
-
-  const visual = useMemo(() => {
-    if (
-      !forecast
-      || forecast.meta.status !== 'ready'
-      || forecast.overview.status !== 'ready'
-    ) return null;
-    return resolvePersonalForecastVisuals({
-      userId,
-      excludeAssetIds: Object.entries(stickerIdsByPeriod)
-        .filter(([period]) => period !== displayPeriod)
-        .map(([, assetId]) => assetId),
-      forecast: {
-        period: forecast.period,
-        periodKey: forecast.periodKey,
-        overview: forecast.overview,
-        sections: readySections,
-      },
-    });
-  }, [displayPeriod, forecast, readySections, stickerIdsByPeriod, userId]);
-
-  const editorialSticker = useMemo(() => {
-    if (!forecast || forecast.meta.status !== 'ready') return null;
-    const assignment = visual?.assignments[forecast.overview.id];
-    if (!assignment?.path || !assignment.width || !assignment.height) return null;
-    return {
-      path: assignment.path,
-      width: assignment.width,
-      height: assignment.height,
-      caption: forecastStickerCaption(assignment.cue, language),
-    };
-  }, [forecast, language, visual]);
-
-  useEffect(() => {
-    const assetId = forecast && visual?.assignments[forecast.overview.id]?.assetId;
-    if (!assetId) return;
-    setStickerIdsByPeriod((current) => (
-      current[displayPeriod] === assetId
-        ? current
-        : { ...current, [displayPeriod]: assetId }
-    ));
-  }, [displayPeriod, forecast, visual]);
-
-  const promotions = useMemo(() => {
-    if (!forecast || forecast.meta.status !== 'ready') return [];
-    return safeResolvePromotions({
-      userId,
-      period: displayPeriod,
-      periodKey: forecast.periodKey,
-      sections: readySections.map((section) => ({
-        id: section.id,
-        kind: section.kind,
-        fixedKey: section.fixedKey,
-        importance: section.importance,
-        hasStrongAstro: section.kind === 'astro_accent',
-      })),
-    });
-  }, [displayPeriod, forecast, readySections, userId]);
-  const promotionSlotsBySection = useMemo(
-    () => groupPromotionsBySection(promotions),
-    [promotions],
   );
 
   const scrollToSection = useCallback((sectionId: string) => {
@@ -610,54 +415,6 @@ export const Dashboard = memo<DashboardProps>(({
     });
   }, [displayPeriod, forecast?.periodKey, onRequestPremium, periodKeys]);
 
-  const renderPromo = (
-    placement: PersonalForecastPromoPlacement,
-    layout: 'tile' | 'wide',
-  ) => (
-    <ForecastPromotion
-      key={placement.id}
-      placement={placement}
-      userId={userId}
-      periodKey={forecast?.periodKey || periodKeys[displayPeriod]}
-      dayKey={periodKeys.day}
-      language={language}
-      layout={layout}
-      onOpenNatal={() => {
-        lumiaSelectionHaptic();
-        onCreateNatalChart?.();
-      }}
-      onOpenCompatibility={() => {
-        lumiaSelectionHaptic();
-        onOpenSynastry?.();
-      }}
-      onOpenZodiac={() => {
-        lumiaSelectionHaptic();
-        onOpenHoroscope?.();
-      }}
-    />
-  );
-  const renderPromoSlot = (slot: PersonalForecastPromoSlot) => (
-    slot.layout === 'pair' ? (
-      <div
-        key={slot.id}
-        className="forecast-feed-promo-pair"
-        role="group"
-        aria-label={language === 'ru'
-          ? 'Перейти в другие разделы'
-          : 'Open other sections'}
-      >
-        {slot.placements.map((placement) => renderPromo(placement, 'tile'))}
-      </div>
-    ) : (
-      <React.Fragment key={slot.id}>
-        {renderPromo(slot.placements[0], 'wide')}
-      </React.Fragment>
-    )
-  );
-
-  const overviewCrossLinks = forecast?.suggestedCrossPeriodLinks.filter(
-    (link) => link.fromSectionId === 'overview',
-  ) || [];
   return (
     <div
       className="fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll"
@@ -676,26 +433,20 @@ export const Dashboard = memo<DashboardProps>(({
 
       {hasChart ? (
         <div className="forecast-feed-reading-header">
-          <div className="forecast-feed-date-zone" aria-label={todayDateLines.join(' ')}>
+          <div className="forecast-feed-date-zone" aria-label={activeDateLines.join(' ')}>
             <div className="forecast-feed-date-cluster">
               <p className="forecast-feed-date">
-                {todayDateLines.length > 1 ? (
+                {activeDateLines.length > 1 ? (
                   <>
-                    <span className="forecast-feed-date-weekday">{todayDateLines[0]}</span>
-                    <span className="forecast-feed-date-value">{todayDateLines.slice(1).join(' ')}</span>
+                    <span className="forecast-feed-date-weekday">{activeDateLines[0]}</span>
+                    <span className="forecast-feed-date-value">{activeDateLines.slice(1).join(' ')}</span>
                   </>
                 ) : (
-                  <span className="forecast-feed-date-value">{todayDateLines[0]}</span>
+                  <span className="forecast-feed-date-value">{activeDateLines[0]}</span>
                 )}
               </p>
             </div>
           </div>
-          <FreshTabs
-            className="forecast-feed-period-tabs"
-            tabs={periodTabs}
-            activeTab={activePeriod}
-            onTabChange={(id) => selectPeriod(id as PersonalForecastPeriod)}
-          />
         </div>
       ) : null}
 
@@ -747,76 +498,8 @@ export const Dashboard = memo<DashboardProps>(({
             period={displayPeriod}
             language={language}
             locked={lockedIds.has(forecast.overview.id)}
-            evidence={forecast.evidence}
-            style={forecastSectionVisualStyle(
-              visual?.assignments[forecast.overview.id],
-              displayPeriod,
-            )}
-            hasVisual={!!editorialSticker}
-            editorialSticker={editorialSticker}
-            showAstrology={showAstrology}
             onRequestPremium={requestPremium}
-          >
-            {overviewCrossLinks.map((link) => (
-              <button
-                key={link.id}
-                type="button"
-                className="forecast-feed-cross-link"
-                onClick={() => selectPeriod(link.targetPeriod, link.targetSectionId)}
-              >
-                {link.label}
-                <span aria-hidden>→</span>
-              </button>
-            ))}
-          </ForecastSectionBlock>
-
-          {readySections.map((section) => {
-            const crossLinks = forecast.suggestedCrossPeriodLinks.filter(
-              (link) => link.fromSectionId === section.id,
-            );
-            const sectionPromoSlots = promotionSlotsBySection.get(section.id) || [];
-            return (
-              <React.Fragment key={`${displayPeriod}:${forecast.periodKey}:${section.id}`}>
-                <ForecastSectionBlock
-                  section={section}
-                  period={displayPeriod}
-                  language={language}
-                  locked={lockedIds.has(section.id)}
-                  evidence={forecast.evidence}
-                  style={forecastSectionVisualStyle(
-                    visual?.assignments[section.id],
-                    displayPeriod,
-                  )}
-                  hasVisual={false}
-                  editorialSticker={null}
-                  showAstrology={showAstrology}
-                  onRequestPremium={requestPremium}
-                >
-                  {crossLinks.map((link) => (
-                    <button
-                      key={link.id}
-                      type="button"
-                      className="forecast-feed-cross-link"
-                      onClick={() => selectPeriod(link.targetPeriod, link.targetSectionId)}
-                    >
-                      {link.label}
-                      <span aria-hidden>→</span>
-                    </button>
-                  ))}
-                </ForecastSectionBlock>
-                {sectionPromoSlots.map(renderPromoSlot)}
-              </React.Fragment>
-            );
-          })}
-
-          <footer className="forecast-feed-footer">
-            <AstrologyDetailsToggle
-              checked={showAstrology}
-              onChange={setShowAstrology}
-              language={language}
-            />
-          </footer>
-
+          />
         </>
       )}
     </div>

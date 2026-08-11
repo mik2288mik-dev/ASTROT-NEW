@@ -5,17 +5,19 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('active root newspaper visual contract', () => {
-  it('keeps the continuous semantic forecast unnumbered and evidence-led', () => {
+  it('keeps the personal forecast as one unnumbered story without visible evidence details', () => {
     const dashboard = read('views/Dashboard.tsx');
     const sectionBlock = read(
       'components/PersonalForecastFeed/ForecastSectionBlock.tsx',
     );
     const styles = read('styles/newspaperVisual.css');
 
-    expect(dashboard).toContain('readySections.map((section)');
+    expect(dashboard).not.toContain('readySections.map((section)');
     expect(dashboard).not.toContain('sectionNumber=');
+    expect(dashboard).not.toContain('AstrologyDetailsToggle');
     expect(sectionBlock).not.toContain('sectionNumber: number');
     expect(sectionBlock).not.toContain('forecast-feed-section-number');
+    expect(sectionBlock).not.toContain('forecast-feed-astro-details');
     expect(styles).not.toContain('.forecast-feed-page .forecast-feed-section-number');
     expect(styles).not.toContain('grid-template-columns: 2.7rem minmax(0, 1fr)');
   });
@@ -53,12 +55,12 @@ describe('active root newspaper visual contract', () => {
     expect(styles).not.toMatch(/\.lumia-bottom-(?:nav|bar)/);
   });
 
-  it('keeps image placement sparse in readings and leaves onboarding quiet', () => {
+  it('keeps the diary image-free and leaves onboarding quiet', () => {
     const dashboard = read('views/Dashboard.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
-    expect(dashboard).toContain('resolvePersonalForecastVisuals');
-    expect(dashboard).toContain('hasVisual={!!visual?.assignments[forecast.overview.id]?.path}');
+    expect(dashboard).not.toContain('resolvePersonalForecastVisuals');
+    expect(dashboard).not.toContain('forecast-feed-editorial-sticker');
     expect(onboarding).not.toContain('selectMainEditorialSticker');
     expect(onboarding).not.toContain('EditorialSticker');
     expect(onboarding).not.toContain('Math.random');

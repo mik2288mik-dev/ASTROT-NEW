@@ -69,7 +69,6 @@
   width: clamp(4.5rem, 19vw, 6.5rem);
 }
 
-.forecast-feed-page .forecast-feed-editorial-sticker,
 .horo-reader-page .horo-zodiac-sticker--inline,
 .natal-editorial-page .natal-zodiac-sticker--inline {
   border: 0;
@@ -1258,13 +1257,13 @@
 }
 
 .forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-screen-headline {
-  max-width: 14ch;
-  margin: 0 auto 16px;
-  font-size: clamp(30px, 8vw, 34px);
-  font-weight: 710;
+  max-width: 20ch;
+  margin: 0 0 18px;
+  font-size: clamp(26px, 7vw, 32px);
+  font-weight: 720;
   letter-spacing: -0.045em;
-  line-height: 1.04;
-  text-align: center;
+  line-height: 1.08;
+  text-align: left;
 }
 
 .forecast-feed-page .forecast-feed-section-copy {
@@ -1306,31 +1305,6 @@
   padding-left: 16px;
   border-left: 2px solid rgba(156, 112, 52, 0.72);
   font-weight: 620;
-}
-
-.forecast-feed-page .forecast-feed-editorial-sticker {
-  display: block;
-  width: min(54%, 248px);
-  margin: 22px auto 8px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.forecast-feed-page .forecast-feed-editorial-sticker > img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
-.forecast-feed-page .forecast-feed-editorial-sticker > figcaption {
-  margin-top: 6px;
-  color: rgba(79, 70, 60, 0.64);
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 11.5px;
-  font-style: italic;
-  letter-spacing: 0.01em;
-  line-height: 1.25;
 }
 
 /* Keep the forecast itself as one uninterrupted editorial reading flow. */
@@ -1437,24 +1411,6 @@
 }
 
 @media (min-width: 760px) {
-  .forecast-feed-page .forecast-feed-section-copy:has(> .forecast-feed-editorial-sticker) {
-    display: flow-root;
-  }
-
-  .forecast-feed-page .forecast-feed-section-copy:has(> .forecast-feed-editorial-sticker) > .forecast-feed-section-text {
-    margin-bottom: 16px;
-  }
-
-  .forecast-feed-page .forecast-feed-section-copy:has(> .forecast-feed-editorial-sticker) > :last-child {
-    margin-bottom: 0;
-  }
-
-  .forecast-feed-page .forecast-feed-editorial-sticker {
-    float: none;
-    width: min(42%, 240px);
-    margin: 22px auto 14px;
-  }
-
   .natal-editorial-page .natal-editorial-sticker,
   .natal-editorial-page .natal-editorial-sticker--inline {
     float: right;
@@ -2081,9 +2037,9 @@
 .compat-editorial-page--add .compat-air-person-heading {
   display: grid;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 164px;
+  align-items: end;
+  gap: 12px;
 }
 
 .compat-editorial-page--add .compat-air-person-heading h3 {
@@ -2097,63 +2053,70 @@
 }
 
 .compat-editorial-page--add .compat-air-person-title {
-  display: inline-flex;
+  display: grid;
   min-width: 0;
-  align-items: baseline;
+  gap: 2px;
 }
 
 .compat-editorial-page--add .compat-person-source {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: end;
+  border-bottom: 1px solid #e8e8ea;
+  background: transparent;
+}
+
+.compat-editorial-page--add .compat-person-source-option {
   position: relative;
   display: inline-flex;
   min-width: 0;
-  max-width: 100%;
-  height: 36px;
+  min-height: 36px;
   align-items: center;
-  justify-self: end;
-  border: 1px solid #ebebed;
-  border-radius: 999px;
-  background: #fbfbfc;
-  color: #65666b;
-}
-
-.compat-editorial-page--add .compat-person-source select {
-  box-sizing: border-box;
-  width: auto;
-  max-width: 100%;
-  height: 34px;
-  padding: 0 25px 0 11px;
+  justify-content: center;
+  padding: 5px 2px;
   border: 0;
-  border-radius: 999px;
-  outline: 0 !important;
   background: transparent;
-  color: inherit;
+  color: #87878c;
   cursor: pointer;
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 620;
-  text-align: right;
-  -webkit-appearance: none;
-  appearance: none;
+  line-height: 1.2;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.compat-editorial-page--add .compat-person-source:focus-within {
+.compat-editorial-page--add .compat-person-source-option.is-active {
   color: var(--compat-air-ink);
-  border-color: rgba(20, 120, 255, 0.56);
-  background: #ffffff;
-  box-shadow: 0 0 0 2px rgba(20, 120, 255, 0.14);
+  font-weight: 680;
 }
 
-.compat-editorial-page--add .compat-person-source svg {
+.compat-editorial-page--add .compat-person-source-option.is-active::after {
   position: absolute;
-  right: 9px;
-  width: 13px;
-  height: 13px;
-  pointer-events: none;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.5;
+  right: 14%;
+  bottom: -1px;
+  left: 14%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--compat-air-accent-start), var(--compat-air-accent-end));
+  content: '';
+}
+
+.compat-editorial-page--add .compat-person-source-option:focus-visible {
+  z-index: 1;
+  outline: 2px solid rgba(20, 120, 255, 0.78);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.compat-editorial-page--add .compat-air-source-description {
+  min-width: 0;
+  margin: 0;
+  color: #8d8e93;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .compat-editorial-page--add .compat-air-fields,
@@ -2161,7 +2124,7 @@
 .compat-editorial-page--add .compat-sign-fields {
   display: grid;
   min-width: 0;
-  gap: 5px;
+  gap: 6px;
 }
 
 .compat-editorial-page--add .compat-air-main-row {
@@ -2176,21 +2139,21 @@
   display: grid;
   min-width: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
+  gap: 6px;
 }
 
 .compat-editorial-page--add .compat-air-field {
   display: grid;
   box-sizing: border-box;
   min-width: 0;
-  min-height: 42px;
+  min-height: 40px;
   align-content: center;
   gap: 1px;
   margin: 0;
-  padding: 5px 10px;
-  border: 1px solid #ebebed;
-  border-radius: 14px;
-  background: #fbfbfc;
+  padding: 4px 10px;
+  border: 1px solid #eeeeef;
+  border-radius: 12px;
+  background: #ffffff;
 }
 
 .compat-editorial-page--add .compat-air-label {
@@ -2229,12 +2192,12 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .compat-editorial-page--add .compat-air-control > svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   flex: 0 0 auto;
   color: var(--compat-air-ink);
 }
@@ -2256,15 +2219,15 @@
 }
 
 .compat-editorial-page--add .compat-air-input:focus-visible,
-.compat-editorial-page--add .compat-person-source > select:focus-visible {
+.compat-editorial-page--add .compat-air-select:focus-visible {
   outline: 0 !important;
   outline-offset: 0;
 }
 
 .compat-editorial-page--add .compat-air-field:focus-within {
-  border-color: rgba(20, 120, 255, 0.56);
+  border-color: rgba(92, 97, 255, 0.72);
   background: #ffffff;
-  box-shadow: 0 0 0 2px rgba(20, 120, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(92, 97, 255, 0.24);
 }
 
 .compat-editorial-page--add .compat-air-gender-field {
@@ -2287,12 +2250,12 @@
 
 .compat-editorial-page--add .compat-gender-btn,
 .compat-editorial-page--add .compat-gender-btn.is-on {
-  min-height: 38px !important;
-  height: 38px !important;
+  min-height: 36px !important;
+  height: 36px !important;
   padding: 5px 4px;
   background: transparent !important;
   color: #85858a !important;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .compat-editorial-page--add .compat-gender-btn.is-on {
@@ -2366,8 +2329,8 @@
 }
 
 .compat-editorial-page--add .compat-person-divider {
-  height: 10px;
-  min-height: 10px;
+  height: 14px;
+  min-height: 14px;
   margin: 0;
   background: transparent;
 }
@@ -2382,7 +2345,7 @@
 }
 
 .compat-editorial-page--add .compat-entry-context > h2 {
-  margin: 0 0 5px;
+  margin: 0 0 4px;
   color: #6f7075;
   font-size: 11.5px;
   font-weight: 620;
@@ -2399,15 +2362,16 @@
 
 .compat-editorial-page--add .compat-context-options {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  overflow: hidden;
-  border: 1px solid #ebebed !important;
-  border-radius: 14px;
-  background: #fbfbfc;
+  overflow: visible;
+  border: 0 !important;
+  border-bottom: 1px solid #e8e8ea !important;
+  border-radius: 0;
+  background: transparent;
 }
 
 .compat-editorial-page--add .compat-context-option,
 .compat-editorial-page--add .compat-context-option.is-active {
-  min-height: 38px;
+  min-height: 36px;
   padding: 4px 2px;
   border: 0 !important;
   border-radius: 0 !important;
@@ -2417,12 +2381,12 @@
 }
 
 .compat-editorial-page--add .compat-context-option + .compat-context-option {
-  border-left: 1px solid #ececef !important;
+  border-left: 0 !important;
 }
 
 .compat-editorial-page--add .compat-context-option.is-active {
   position: relative;
-  background: #ffffff !important;
+  background: transparent !important;
   color: var(--compat-air-ink) !important;
   font-weight: 650;
 }
@@ -2430,7 +2394,7 @@
 .compat-editorial-page--add .compat-context-option.is-active::after {
   position: absolute;
   right: 18%;
-  bottom: 0;
+  bottom: -1px;
   left: 18%;
   height: 2px;
   border-radius: 999px;
@@ -2440,16 +2404,17 @@
 
 .compat-editorial-page--add .compat-context-option span {
   overflow: hidden;
-  font-size: 12px;
+  font-size: 11.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .compat-editorial-page--add .compat-entry-submit {
-  width: 100%;
+  width: 100% !important;
   max-width: 100%;
-  min-height: 46px;
-  margin-top: 4px;
+  min-height: 48px;
+  margin: 6px 0 0 !important;
+  padding: 12px 16px !important;
   border: 0 !important;
   border-radius: 14px !important;
   outline: 0;
@@ -2460,6 +2425,13 @@
   justify-self: stretch;
   font-size: 15px;
   font-weight: 700;
+}
+
+.compat-editorial-page--add .compat-air-precision-note {
+  margin: -1px 0 1px;
+  color: #7a7b80;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .compat-editorial-page--add .compat-entry-note--centered {
@@ -2640,11 +2612,6 @@
     column-gap: 9px;
   }
 
-  .compat-editorial-page--add .compat-air-birth-row,
-  .compat-editorial-page--add .compat-air-person-footer {
-    gap: 5px;
-  }
-
   .compat-editorial-page--add .compat-choice-tab {
     font-size: 11.5px;
   }
@@ -2662,11 +2629,6 @@
 
   .compat-editorial-page--add .compat-air-person-heading {
     gap: 6px;
-  }
-
-  .compat-editorial-page--add .compat-person-source select {
-    max-width: 108px;
-    font-size: 11px;
   }
 
   .compat-editorial-page--add .compat-air-person-footer {

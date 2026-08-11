@@ -165,7 +165,7 @@ describe('personal forecast direct-reading contract', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-natal-profile-v1');
     expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v12');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v24.luna-natal-profile-story');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v25.luna-personal-story');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
 
     for (const patch of [

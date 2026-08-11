@@ -40,7 +40,7 @@ describe('card background library', () => {
 });
 
 describe('card background UI wiring', () => {
-  it('connects newspaper visuals without restoring heavy product backgrounds', () => {
+  it('keeps diary stories image-free while preserving non-diary newspaper visual inventory', () => {
     const dashboard = read('views/Dashboard.tsx');
     const visuals = read('lib/personalForecastVisuals.ts');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
@@ -56,19 +56,16 @@ describe('card background UI wiring', () => {
     expect(visuals).toContain('resolvePersonalForecastVisuals');
     expect(visuals).toContain("'--forecast-section-image'");
     expect(visuals).toContain("'--forecast-section-position-mobile'");
-    expect(dashboard).toContain('resolvePersonalForecastVisuals');
-    expect(dashboard).toContain('forecastSectionVisualStyle');
-    expect(dashboard).toContain('visual?.assignments[section.id]');
-    expect(sectionBlock).toContain("hasVisual ? 'has-visual' : 'has-visual-fallback'");
-    expect(sectionBlock).toContain('style={style}');
+    expect(dashboard).not.toContain('resolvePersonalForecastVisuals');
+    expect(dashboard).not.toContain('forecastSectionVisualStyle');
+    expect(dashboard).not.toContain('visual?.assignments[section.id]');
+    expect(sectionBlock).not.toContain("hasVisual ? 'has-visual' : 'has-visual-fallback'");
+    expect(sectionBlock).not.toContain('style={style}');
     expect(promotion).toContain('<PromoBanner');
     expect(promoBanner).toContain('return null;');
     expect(promoBanner).not.toContain('selectPromoBanner');
     expect(promoBanner).not.toContain('<picture');
-    expect(feedStyles).toContain("data-banner-shape='compact'");
-    expect(feedStyles).toContain('.forecast-feed-promo-pair');
-    expect(feedStyles).toContain('aspect-ratio: 4 / 3');
-    expect(feedStyles).toContain('object-fit: contain');
+    expect(feedStyles).not.toContain('.forecast-feed-editorial-sticker');
     expect(dashboard).not.toMatch(
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );

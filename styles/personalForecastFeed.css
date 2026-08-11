@@ -142,60 +142,6 @@
   box-sizing: border-box;
 }
 
-.fresh-page.forecast-feed-page .fresh-tabs.forecast-feed-period-tabs {
-  display: grid;
-  width: 100%;
-  min-height: 44px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  margin: 10px auto 12px;
-  padding: 0;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab {
-  position: relative;
-  width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  padding: 8px 4px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: #85817c;
-  box-shadow: none;
-  font-size: 12px;
-  font-weight: 520;
-  line-height: 1.2;
-}
-
-.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab::after {
-  position: absolute;
-  right: 50%;
-  bottom: 0;
-  width: 48px;
-  height: 1px;
-  background: transparent;
-  content: '';
-  transform: translateX(50%);
-}
-
-.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab.active,
-.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab[data-active='true'] {
-  background: transparent;
-  color: #292622;
-  box-shadow: none;
-}
-
-.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab.active::after,
-.fresh-page.forecast-feed-page .forecast-feed-period-tabs .fresh-tab[data-active='true']::after {
-  background: #292622;
-}
-
 .forecast-feed-date-cluster {
   position: relative;
   display: inline-flex;
@@ -626,39 +572,6 @@
   max-width: 620px;
 }
 
-.forecast-feed-section.has-visual::before,
-.forecast-feed-section.has-visual::after,
-.forecast-feed-section.has-visual-fallback::before,
-.forecast-feed-section.has-visual-fallback::after {
-  display: none !important;
-}
-
-.forecast-feed-editorial-sticker {
-  display: block;
-  width: clamp(220px, 66%, 390px);
-  max-width: 100%;
-  margin: 26px auto 14px;
-  text-align: center;
-}
-
-.forecast-feed-editorial-sticker > img {
-  display: block;
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
-.forecast-feed-editorial-sticker > figcaption {
-  margin-top: 7px;
-  color: rgba(73, 65, 55, 0.66);
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 12px;
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-  line-height: 1.25;
-}
-
 .forecast-feed-section--fixed {
   --forecast-section-pad-start: 24px;
   --forecast-section-pad-end: 26px;
@@ -743,16 +656,15 @@
 }
 
 .forecast-feed-section.is-overview .forecast-feed-screen-headline {
-  max-width: 18ch;
-  margin: 0 auto 16px;
-  color: #2d2924;
-  font-family: Georgia, 'Times New Roman', ui-serif, serif;
-  font-size: clamp(27px, 7.3vw, 34px);
-  font-style: italic;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  max-width: 20ch;
+  margin: 0 0 18px;
+  color: #171717;
+  font-size: clamp(26px, 7vw, 32px);
+  font-style: normal;
+  font-weight: 720;
+  letter-spacing: -0.045em;
   line-height: 1.08;
-  text-align: center;
+  text-align: left;
   text-wrap: balance;
 }
 
@@ -786,49 +698,6 @@
   font-size: 18px;
   font-weight: 480;
   line-height: 1.5;
-}
-
-.forecast-feed-footer {
-  display: flex;
-  width: min(calc(100% - 48px), 620px);
-  box-sizing: border-box;
-  align-items: center;
-  justify-content: center;
-  margin: 42px auto 0;
-  padding: 20px 0 max(40px, env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(23, 25, 35, 0.1);
-}
-
-.forecast-feed-footer .astrology-details-toggle {
-  min-height: 40px;
-}
-
-.forecast-feed-astro-details {
-  display: grid;
-  gap: 8px;
-  margin: -4px 0 4px;
-  padding-left: 14px;
-  border-left: 1px solid rgba(23, 25, 35, 0.18);
-  color: #69717f;
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-
-.forecast-feed-astro-details p {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-}
-
-.forecast-feed-astro-details strong {
-  color: #484f5b;
-  font-weight: 650;
-}
-
-.forecast-feed-astro-details span,
-.forecast-feed-astro-details small {
-  color: inherit;
-  font: inherit;
 }
 
 .forecast-feed-inline-explanation-toggle {

@@ -29,10 +29,8 @@ describe('mvp home surface', () => {
     const dashboard = read('views/Dashboard.tsx');
 
     expect(dashboard).toContain('onCreateNatalChart');
-    expect(dashboard).toContain('onOpenSynastry');
-    expect(dashboard).toContain('onOpenHoroscope');
     expect(dashboard).toContain('onRequestPremium');
-    expect(dashboard).toContain('ForecastPromotion');
+    expect(dashboard).not.toContain('ForecastPromotion');
     expect(dashboard).not.toContain('onOpenOracle');
     expect(dashboard).not.toContain('LzAskPresets');
     expect(dashboard).not.toContain('FreshAskCombobox');
@@ -46,11 +44,11 @@ describe('mvp home surface', () => {
 
     expect(app).toContain('<Dashboard {...dashboardProps}');
     expect(app).toContain('onRequestPremium: requestPremium');
-    expect(dashboard).toContain('PERIOD_TABS');
     expect(dashboard).toContain('setActivePeriod');
     expect(dashboard).toContain('ForecastSectionBlock');
-    expect(dashboard).toContain('ForecastSideNavigator');
-    expect(dashboard).toContain('ForecastBottomSheet');
+    expect(dashboard).not.toContain('FreshTabs');
+    expect(dashboard).not.toContain('ForecastSideNavigator');
+    expect(dashboard).not.toContain('ForecastBottomSheet');
     expect(app).not.toContain('PersonalForecastScreen');
     expect(app).not.toContain("navigateTo('personal_daily')");
     expect(app).not.toContain("view === 'personal_daily'");

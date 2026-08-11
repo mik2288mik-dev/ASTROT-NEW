@@ -1,6 +1,5 @@
-import React, { type CSSProperties, type ReactNode } from 'react';
+import React from 'react';
 import type {
-  ForecastEvidenceView,
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
@@ -10,104 +9,24 @@ type ForecastSectionBlockProps = {
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
-  style?: CSSProperties;
-  hasVisual?: boolean;
-  editorialSticker?: {
-    path: string;
-    width: number;
-    height: number;
-    caption: string;
-  } | null;
-  children?: ReactNode;
-  evidence: Record<string, ForecastEvidenceView>;
-  showAstrology?: boolean;
   onRequestPremium: () => void;
 };
 
-function evidenceMeta(item: ForecastEvidenceView, language: 'ru' | 'en'): string {
-  const status = language === 'ru'
-    ? {
-        applying: 'сходится',
-        separating: 'расходится',
-        exact: 'точный',
-        active: 'активен',
-        unknown: '',
-      }[item.status]
-    : {
-        applying: 'applying',
-        separating: 'separating',
-        exact: 'exact',
-        active: 'active',
-        unknown: '',
-      }[item.status];
-  return [
-    item.orb != null ? `${language === 'ru' ? 'орб' : 'orb'} ${item.orb}°` : '',
-    status,
-    item.period || '',
-  ].filter(Boolean).join(' · ');
-}
-
-function renderContentBlocks(
-  section: ForecastSection,
-  evidence: Record<string, ForecastEvidenceView>,
-  showAstrology: boolean,
-  language: 'ru' | 'en',
-  editorialSticker?: ForecastSectionBlockProps['editorialSticker'],
-): ReactNode {
-  const stickerAfterIndex = 0;
+function renderContentBlocks(section: ForecastSection) {
   return (
     <div className="forecast-feed-section-copy">
-      {section.contentBlocks.map((block, index) => {
-        const blockEvidence = (block.evidenceIds || [])
-          .map((id) => evidence[id])
-          .filter((item): item is ForecastEvidenceView => !!item);
-        return (
-          <React.Fragment key={block.id}>
-            <p
-              className={[
-                'forecast-feed-section-text',
-                block.role === 'lead' ? 'is-lead' : 'is-body',
-                block.role === 'action' ? 'is-takeaway' : '',
-              ].filter(Boolean).join(' ')}
-              data-editorial-role={block.role}
-            >
-              {block.text}
-            </p>
-            {showAstrology && blockEvidence.length ? (
-              <div
-                className="forecast-feed-astro-details"
-                aria-label={language === 'ru' ? 'Астрологические пояснения' : 'Astrology details'}
-              >
-                {blockEvidence.map((item) => (
-                  <p key={item.id}>
-                    <strong>{item.factor}</strong>
-                    {evidenceMeta(item, language) ? (
-                      <small>{evidenceMeta(item, language)}</small>
-                    ) : null}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            {editorialSticker && index === stickerAfterIndex ? (
-              <figure
-                className="forecast-feed-editorial-sticker"
-                aria-hidden="true"
-              >
-                <img
-                  src={editorialSticker.path}
-                  width={editorialSticker.width}
-                  height={editorialSticker.height}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                />
-                <figcaption>{editorialSticker.caption}</figcaption>
-              </figure>
-            ) : null}
-          </React.Fragment>
-        );
-      })}
+      {section.contentBlocks.map((block) => (
+        <p
+          key={block.id}
+          className={[
+            'forecast-feed-section-text',
+            block.role === 'lead' ? 'is-lead' : 'is-body',
+          ].filter(Boolean).join(' ')}
+          data-editorial-role={block.role}
+        >
+          {block.text}
+        </p>
+      ))}
     </div>
   );
 }
@@ -117,12 +36,6 @@ export function ForecastSectionBlock({
   period,
   language,
   locked,
-  style,
-  hasVisual = false,
-  editorialSticker,
-  children,
-  evidence,
-  showAstrology = false,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
   const isOverview = section.kind === 'overview';
@@ -140,10 +53,9 @@ export function ForecastSectionBlock({
     : sectionTitle;
   const preview = section.lockedPreview;
   const hasReadableCopy = section.contentBlocks.some((block) => block.text.trim());
-  const hasChildren = React.Children.count(children) > 0;
 
   if (section.status !== 'ready') return null;
-  if (!locked && !hasReadableCopy && !hasChildren) return null;
+  if (!locked && !hasReadableCopy) return null;
 
   return (
     <section
@@ -155,9 +67,7 @@ export function ForecastSectionBlock({
         `forecast-feed-section--${section.kind}`,
         isOverview ? 'is-overview' : '',
         locked ? 'is-locked' : '',
-        hasVisual ? 'has-visual' : 'has-visual-fallback',
       ].filter(Boolean).join(' ')}
-      style={style}
     >
       <div className="forecast-feed-section-content">
         {title ? (
@@ -202,16 +112,7 @@ export function ForecastSectionBlock({
               {language === 'ru' ? 'Показать продолжение' : 'Show the rest'}
             </button>
           </div>
-        ) : (
-          renderContentBlocks(
-            section,
-            evidence,
-            showAstrology,
-            language,
-            editorialSticker,
-          )
-        )}
-        {children}
+        ) : renderContentBlocks(section)}
       </div>
     </section>
   );

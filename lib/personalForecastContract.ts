@@ -231,7 +231,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v24.luna-natal-profile-story',
+  'personal-forecast-feed.v25.luna-personal-story',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-natal-profile-v1';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v12';
