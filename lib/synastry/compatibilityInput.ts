@@ -64,10 +64,10 @@ export function resolveCompatibilityPairLevel(
 
 export function compatibilityPairLevelLabel(level: CompatibilityPairLevel, language: 'ru' | 'en'): string {
   const labels: Record<CompatibilityPairLevel, { ru: string; en: string }> = {
-    full: { ru: 'Максимальная точность', en: 'Maximum precision' },
-    reduced: { ru: 'Без точного времени', en: 'Without exact birth time' },
-    date_only: { ru: 'Расчёт по датам рождения', en: 'Birth-date calculation' },
-    hybrid_sign: { ru: 'Карта и знак · базовый уровень', en: 'Chart and sign · basic level' },
+    full: { ru: 'Подробный разбор по двум натальным картам', en: 'Detailed reading from two natal charts' },
+    reduced: { ru: 'Разбор по картам без точного времени', en: 'Chart reading without exact birth time' },
+    date_only: { ru: 'Разбор по датам рождения', en: 'Birth-date relationship reading' },
+    hybrid_sign: { ru: 'Смешанный разбор: карта и знак', en: 'Mixed reading: chart and zodiac sign' },
     sign_only: { ru: 'Бесплатный разбор по знакам', en: 'Free zodiac-sign reading' },
   };
   return labels[level][language];

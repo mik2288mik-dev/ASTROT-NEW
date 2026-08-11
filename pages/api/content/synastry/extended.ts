@@ -5,7 +5,6 @@ import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
-import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
 import { db } from '../../../../lib/db';
 import {
   FullSynastryAIResponse,
@@ -27,18 +26,12 @@ import { RATE_LIMIT_CONFIGS, withRateLimit } from '../../../../lib/rateLimit';
 import { logContentApi, warnContentApi } from '../../../../lib/contentApiLogging';
 import { buildSynastryPrompt, parseModelJson } from '../../../../lib/contentPromptBuilders';
 import {
-  computeSynastryAspects,
-  type SynastryAspect,
-} from '../../../../lib/synastry/synastryAspects';
-import {
   classifyCompatibilityPerson,
   normalizeCompatibilityPersonSource,
   resolveCompatibilityPairLevel,
   type CompatibilityPairLevel,
   type CompatibilityPersonSource,
 } from '../../../../lib/synastry/compatibilityInput';
-import { buildLocalSignCompatibility } from '../../../../lib/synastry/localSignText';
-import type { SignCompatibilityResult } from '../../../../lib/synastry/signCompatibility';
 import { normalizeZodiacKey } from '../../../../lib/zodiacKeys';
 import {
   assertChartReadable,
@@ -114,16 +107,47 @@ function validateFlexiblePerson(input: FlexiblePersonInput, fieldPrefix: 'subjec
   return errors;
 }
 
-async function calculateFlexibleNatalChart(input: FlexiblePersonInput): Promise<SynastryChartData> {
-  if (!input.place) {
-    return calculateNatalChart(input.name, input.date, '', 'UTC', {
-      birthTimeMode: 'unknown',
-      coordinates: { lat: 0, lon: 0, timezone: 'UTC' },
-    });
+const LUNA_NATAL_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rising'] as const;
+
+function readNatalSign(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const sign = (value as { sign?: unknown }).sign;
+  return typeof sign === 'string' && sign.trim() ? sign.trim() : null;
+}
+
+function savedNatalSnapshot(chart: SynastryChartData | null): Record<string, string> | null {
+  if (!chart) return null;
+  const source = chart as unknown as Record<string, unknown> & {
+    positions?: Record<string, unknown>;
+    angles?: Record<string, unknown>;
+  };
+  const snapshot: Record<string, string> = {};
+  for (const key of LUNA_NATAL_KEYS) {
+    const angleKey = key === 'rising' ? 'ascendant' : key;
+    const sign = readNatalSign(source[key])
+      || readNatalSign(source.positions?.[key])
+      || readNatalSign(source.angles?.[angleKey]);
+    if (sign) snapshot[key] = sign;
   }
-  return calculateNatalChart(input.name, input.date, input.time, input.place, {
-    birthTimeMode: input.time ? 'exact' : 'unknown',
-  });
+  return Object.keys(snapshot).length ? snapshot : null;
+}
+
+function buildLunaPersonContext(
+  input: FlexiblePersonInput,
+  gender: 'male' | 'female',
+  savedChart: SynastryChartData | null,
+) {
+  const natalSnapshot = input.source === 'saved' ? savedNatalSnapshot(savedChart) : null;
+  return {
+    source: input.source,
+    name: input.name,
+    gender,
+    birthDate: input.date || null,
+    birthTime: input.time || null,
+    birthPlace: input.place || null,
+    zodiacSign: normalizeZodiacKey(input.sign || natalSnapshot?.sun) || null,
+    savedNatalSnapshot: natalSnapshot,
+  };
 }
 
 function mapFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }): SynastryResult {
@@ -151,8 +175,6 @@ function buildSynastryFallback(
   firstName: string,
   partnerName: string,
   relationship: string,
-  aspects: SynastryAspect[] = [],
-  signCompatibility: SignCompatibilityResult | null = null,
   calculationLevel: CompatibilityPairLevel = 'full',
 ): FullSynastryAIResponse & { summary: string; compatibilityScore: number } {
   const normalized = relationship.toLowerCase();
@@ -161,20 +183,12 @@ function buildSynastryFallback(
   const isFamily = normalized.includes('сем');
   const relationRu = isWork ? 'рабочего союза' : isFriendship ? 'дружбы' : isFamily ? 'семейной связи' : 'отношений';
   const relationEn = isWork ? 'work partnership' : isFriendship ? 'friendship' : isFamily ? 'family bond' : 'relationship';
-  const supportive = aspects.filter((item) => /соедин|секстил|трин|conj|sextile|trine/i.test(item.aspect));
-  const tense = aspects.filter((item) => /квадрат|оппоз|square|opposition/i.test(item.aspect));
-  const hasMoreSupport = supportive.length >= tense.length;
-  const compatibilityScore = Math.max(42, Math.min(86, 62 + supportive.length * 3 - tense.length * 2));
   const limitedData = calculationLevel === 'hybrid_sign' || calculationLevel === 'date_only';
 
   return {
     summary: langRu
-      ? hasMoreSupport
-        ? `${firstName} и ${partnerName}: в этой связи есть естественный отклик, а её устойчивость зависит от того, насколько прямо вы сверяете ожидания.`
-        : `${firstName} и ${partnerName}: связь заметная, но вы можете по-разному реагировать на одну ситуацию. Здесь особенно важны ясные договорённости.`
-      : hasMoreSupport
-        ? `${firstName} and ${partnerName} have a natural response to each other; the bond becomes steadier when expectations are stated clearly.`
-        : `${firstName} and ${partnerName} have a noticeable bond, but may react differently to the same situation. Clear agreements matter here.`,
+      ? `${firstName} и ${partnerName}: эту связь лучше всего раскрывают не догадки, а то, как вы слышите друг друга и принимаете совместные решения.`
+      : `${firstName} and ${partnerName}: this bond is revealed less by assumptions and more by how you hear each other and make decisions together.`,
     generalTheme: langRu
       ? limitedData
         ? `Это базовый разбор ${relationRu}: он показывает общий рисунок связи, но не подменяет полное сравнение двух карт.`
@@ -183,22 +197,18 @@ function buildSynastryFallback(
         ? `This is a basic ${relationEn} reading: it shows the broad pattern without pretending to be a full two-chart comparison.`
         : `The main theme of this ${relationEn} is combining a lively response with clear communication rules.`,
     attraction: langRu
-      ? signCompatibility?.attraction || (isWork ? 'Вместе вы замечаете разные стороны одной задачи и можете быстрее находить рабочий вариант.' : isFriendship ? 'Контакт держится на живом отклике и ощущении, что рядом не нужно играть роль.' : isFamily ? 'Связь поддерживают знание привычек друг друга и способность замечать реальную помощь.' : 'Притяжение усиливает ощущение, что рядом привычные вещи открываются по-новому.')
-      : signCompatibility?.attraction || (isWork ? 'Together you notice different sides of one task and can reach a workable option faster.' : isFriendship ? 'The connection is supported by a lively response and less need to perform.' : isFamily ? 'The bond is supported by knowing each other’s patterns and recognizing practical care.' : 'Attraction grows when familiar things feel fresh around each other.'),
+      ? (isWork ? 'Вместе вы замечаете разные стороны одной задачи и можете быстрее находить рабочий вариант.' : isFriendship ? 'Контакт держится на живом отклике и ощущении, что рядом не нужно играть роль.' : isFamily ? 'Связь поддерживают знание привычек друг друга и способность замечать реальную помощь.' : 'Притяжение усиливает ощущение, что рядом привычные вещи открываются по-новому.')
+      : (isWork ? 'Together you notice different sides of one task and can reach a workable option faster.' : isFriendship ? 'The connection is supported by a lively response and less need to perform.' : isFamily ? 'The bond is supported by knowing each other’s patterns and recognizing practical care.' : 'Attraction grows when familiar things feel fresh around each other.'),
     difficulties: langRu
-      ? signCompatibility?.difficulty || (tense.length
-        ? 'Напряжение возникает, когда один давит на темп или решение, а другой отвечает сопротивлением либо закрывается.'
-        : 'Сложности начинаются, когда лёгкость контакта принимают за полное совпадение и перестают проговаривать детали.')
-      : signCompatibility?.difficulty || (tense.length
-        ? 'Tension appears when one person pushes the pace or decision and the other resists or closes off.'
-        : 'Friction starts when an easy connection is mistaken for total agreement and details remain unspoken.'),
+      ? 'Сложности начинаются, когда лёгкость контакта принимают за полное совпадение и перестают проговаривать детали.'
+      : 'Friction starts when an easy connection is mistaken for total agreement and details remain unspoken.',
     recommendations: langRu
-      ? [signCompatibility?.communication || 'Сначала уточни, что человек имел в виду.', 'Говори о конкретной ситуации, а не о характере.', 'Договоритесь, когда вернуться к сложному разговору.']
-      : [signCompatibility?.communication || 'Clarify what the other person meant.', 'Discuss the situation, not their character.', 'Agree when to return to a hard conversation.'],
+      ? ['Сначала уточни, что человек имел в виду.', 'Говори о конкретной ситуации, а не о характере.', 'Договоритесь, когда вернуться к сложному разговору.']
+      : ['Clarify what the other person meant.', 'Discuss the situation, not their character.', 'Agree when to return to a hard conversation.'],
     potential: langRu
       ? 'Потенциал связи раскрывается там, где договорённость можно проверить действием, а различия не приходится замалчивать.'
       : 'The bond’s potential grows where agreements are confirmed by action and differences do not need to be hidden.',
-    compatibilityScore,
+    compatibilityScore: 68,
   };
 }
 
@@ -360,8 +370,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       code: 'PREMIUM_REQUIRED',
       premiumRequired: true,
       message: langRu
-        ? 'Сравнение по натальным картам доступно в Premium.'
-        : 'Natal chart compatibility is available in Premium.',
+        ? 'Подробный AI-разбор совместимости доступен в Premium.'
+        : 'The detailed AI compatibility reading is available in Premium.',
     });
   }
 
@@ -599,32 +609,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
-  if (!userChartData && normalizedSubjectSource === 'birth') {
-    userChartData = await calculateFlexibleNatalChart(subjectInput);
-  }
-
-  if (!partnerChartData && normalizedPartnerSource === 'birth') {
-    partnerChartData = await calculateFlexibleNatalChart(partnerInput);
-  }
-
   const resolvedSubjectSign = normalizeZodiacKey(subjectInput.sign || userChartData?.sun?.sign);
   const resolvedPartnerSign = normalizeZodiacKey(partnerInput.sign || partnerChartData?.sun?.sign);
-  const signCompatibility = resolvedSubjectSign && resolvedPartnerSign
-    ? buildLocalSignCompatibility(
-        resolvedSubjectSign,
-        resolvedPartnerSign,
-        currentLanguage,
-        normalizedSubjectGender,
-        normalizedPartnerGender,
-        rel === 'дружба' || rel === 'friendship'
-          ? 'friendship'
-          : rel === 'работа' || rel === 'work'
-            ? 'work'
-            : rel === 'семья' || rel === 'family'
-              ? 'family'
-              : 'romance',
-      )
-    : null;
+  const people = {
+    subject: buildLunaPersonContext(subjectInput, normalizedSubjectGender, userChartData),
+    partner: buildLunaPersonContext(partnerInput, normalizedPartnerGender, partnerChartData),
+  };
 
   const accessTier = 'premium' as const;
   let resultPayload: SynastryResult;
@@ -633,14 +623,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   let modelId = 'deterministic-synastry-fallback-v1';
   let usedFallback = false;
   let persistenceSucceeded = true;
-  const synastryAspects = computeSynastryAspects(userChartData, partnerChartData);
   const fallbackPayload = () => mapFullToSynastryResult(buildSynastryFallback(
     langRu,
     subjectProfile.name,
     resolvedPartnerName,
     rel,
-    synastryAspects,
-    signCompatibility,
     calculationLevel,
   ));
 
@@ -671,13 +658,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const prompt = buildSynastryPrompt({
         language: currentLanguage,
         context: {
-          profile: { name: subjectProfile.name },
-          partnerName: resolvedPartnerName,
-          userChartData,
-          partnerChartData,
+          people: {
+            subject: people.subject,
+            partner: people.partner,
+          },
           relationship: rel,
-          synastryAspects,
-          signCompatibility,
           calculationLevel,
           dataAvailability: {
             subject: {
@@ -709,8 +694,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           subjectProfile.name,
           resolvedPartnerName,
           rel,
-          synastryAspects,
-          signCompatibility,
           calculationLevel,
         )
       );
@@ -783,7 +766,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           inputHash: contentCacheKey,
           language: currentLanguage,
           relationshipType: rel,
-          aspects: synastryAspects,
+          aspects: [],
           content: resultPayload,
           provider,
           modelId,

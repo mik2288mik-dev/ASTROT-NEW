@@ -32,7 +32,7 @@ describe('compatibility editorial layout', () => {
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
   });
 
-  it('uses one airy mobile language for the compatibility entry', () => {
+  it('matches the compact monochrome form contract from the approved render', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const styles = read('styles/newspaperVisual.css');
     const addStart = room.indexOf("if (screen === 'add')");
@@ -40,29 +40,33 @@ describe('compatibility editorial layout', () => {
     const addFlow = room.slice(addStart, addEnd);
 
     expect(addFlow).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
-    expect(addFlow).toContain("'Сравним двух людей — по данным рождения или быстро по знакам.'");
-    expect(addFlow).toContain("'По данным рождения'");
-    expect(addFlow).toContain("'По знакам'");
-    expect(addFlow).toContain('compat-mode-note');
-    expect(addFlow).toContain("ru ? 'Подробный разбор · Premium'");
-    expect(addFlow).toContain("ru ? 'Быстрое сравнение · бесплатно'");
-    expect(room.match(/compat-choice-tabs/g)?.length).toBeGreaterThanOrEqual(3);
-    expect(addFlow).toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
-    expect(room).toContain('compat-air-add-chart');
-    expect(addFlow).toContain('onOpenCharts');
-    expect(addFlow).not.toContain('compat-saved-section');
+    expect(addFlow).not.toContain('subtitle=');
+    expect(addFlow).toContain("ru ? 'По картам' : 'By charts'");
+    expect(addFlow).toContain("ru ? 'По знакам' : 'By zodiac signs'");
+    expect(addFlow).not.toContain('compat-mode-note');
+    expect(addFlow).not.toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
+    expect(addFlow).toContain("ru ? 'Первый человек' : 'First person'");
+    expect(addFlow).toContain("ru ? 'Второй человек' : 'Second person'");
+    expect(addFlow.match(/className="compat-air-person"/g)).toHaveLength(2);
+    expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
+    expect(addFlow).toContain('sign={youSign}');
+    expect(addFlow).toContain('sign={pickSign}');
+    expect(room).not.toContain('compat-time-unknown');
+    expect(room).not.toContain('onUnknownTimeChange');
+    expect(room).not.toContain('sUnknownTime');
+    expect(room).not.toContain('setUnknownTime');
+    expect(addFlow).toContain('compat-reading-kind');
+    expect(addFlow).toContain('compatibilityPairLevelLabel(draftCalculationLevel, lang)');
+    expect(addFlow).toContain("ru ? 'Тип отношений' : 'Relationship type'");
+    expect(addFlow).toContain('<div className="compat-person-divider" aria-hidden="true" />');
 
-    expect(styles).toContain('Compatibility entry: monochrome Air form');
+    expect(styles).toContain('Compatibility entry: monochrome render-matched form');
     expect(styles).not.toContain('--compat-air-accent');
     expect(styles).not.toContain('#176f45');
-    expect(styles).toContain('.compat-editorial-page--add .compat-choice-tab.is-active');
-    expect(addFlow.match(/className="compat-air-person"/g)).toHaveLength(2);
-    expect(addFlow).toContain('compat-air-person-heading');
-    expect(addFlow).toContain('PersonSourcePicker');
-    expect(addFlow).not.toContain('compat-air-person-index');
-    expect(addFlow).not.toContain('className="compat-accuracy-line"');
-    expect(addFlow).not.toContain('compat-entry-person');
-    expect(styles).toContain('.compat-editorial-page--add .compat-air-person');
+    expect(styles).toContain('.compat-editorial-page--add .compat-mode-switch');
+    expect(styles).toContain('background: var(--compat-air-ink) !important');
+    expect(styles).toContain('color: #ffffff !important');
+    expect(styles).toContain('.compat-editorial-page--add .compat-zodiac-field');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-input');
     expect(styles).toContain('font-size: 16px');
     expect(styles).toContain('.compat-air-input:focus-visible');
@@ -71,7 +75,6 @@ describe('compatibility editorial layout', () => {
 
   it('starts both people in manual mode and keeps each saved-chart choice explicit', () => {
     const room = read('views/v2/UnionRoom.tsx');
-    const styles = read('styles/newspaperVisual.css');
     const service = read('services/astrologyService.ts');
     const extendedApi = read('pages/api/content/synastry/extended.ts');
     const addStart = room.indexOf("if (screen === 'add')");
@@ -80,23 +83,23 @@ describe('compatibility editorial layout', () => {
 
     expect(room).toContain("const [firstChartId, setFirstChartId] = useState<number | null>(null)");
     expect(room).toContain('function PersonBirthFields');
-    expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
     expect(room).toContain("const [subjectSource, setSubjectSource] = useState<CompatibilityPersonSource>");
     expect(room).toContain("const [partnerSource, setPartnerSource] = useState<CompatibilityPersonSource>");
     expect(addFlow.match(/<PersonSourcePicker/g)).toHaveLength(2);
     expect(room).toContain('<option value="saved">');
-    expect(room).toContain("ru ? 'Ввести вручную' : 'Enter manually'");
-    expect(room).toContain("ru ? 'Сохранённая карта' : 'Saved chart'");
+    expect(room).toContain("ru ? 'Ввести данные' : 'Enter details'");
+    expect(room).toContain("ru ? 'Из сохранённых' : 'Saved charts'");
     expect(room).toContain("ru ? 'Выбрать карту' : 'Choose a chart'");
-    expect(addFlow).not.toContain("className=\"compat-chart-select-label\"");
-    expect(addFlow).not.toContain("firstChart?.name ? <small>");
+    expect(addFlow).not.toContain('className="compat-chart-select-label"');
+    expect(addFlow).not.toContain('firstChart?.name ? <small>');
     expect(room).not.toContain('compat-person-primary-row');
     expect(room).not.toContain('compat-saved-picker');
-    expect(styles).not.toContain('.compat-entry-person .compat-gender-btn.is-on');
     expect(room).not.toContain("return readable.find((chart) => chart.subject_type === 'self')?.id ?? chartId ?? null;");
     expect(service).toContain('subjectName: subject?.name');
     expect(extendedApi).toContain('const hasManualSubject');
-    expect(extendedApi).toContain('userChartData = await calculateFlexibleNatalChart(subjectInput)');
+    expect(extendedApi).toContain('buildLunaPersonContext');
+    expect(extendedApi).not.toContain('calculateFlexibleNatalChart');
+    expect(extendedApi).not.toContain('computeSynastryAspects');
   });
 
   it('selects result scenes only with dynamics present in the catalog', () => {

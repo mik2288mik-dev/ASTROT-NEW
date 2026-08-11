@@ -123,9 +123,8 @@ function PersonSourcePicker({
           onChange(event.target.value as CompatibilityPersonSource);
         }}
       >
-        <option value="birth">{ru ? 'Ввести вручную' : 'Enter manually'}</option>
-        <option value="saved">{ru ? 'Сохранённая карта' : 'Saved chart'}</option>
-        <option value="sign">{ru ? 'Только знак' : 'Zodiac sign only'}</option>
+        <option value="birth">{ru ? 'Ввести данные' : 'Enter details'}</option>
+        <option value="saved">{ru ? 'Из сохранённых' : 'Saved charts'}</option>
       </select>
       <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
     </label>
@@ -135,70 +134,74 @@ function PersonSourcePicker({
 function PersonBirthFields({
   prefix,
   ru,
+  language,
   name,
   date,
   time,
   place,
   gender,
-  unknownTime,
+  sign,
   onNameChange,
   onDateChange,
   onTimeChange,
   onPlaceChange,
   onGenderChange,
-  onUnknownTimeChange,
+  onSignChange,
 }: {
   prefix: string;
   ru: boolean;
+  language: UserProfile['language'];
   name: string;
   date: string;
   time: string;
   place: string;
   gender: CompatGender;
-  unknownTime: boolean;
+  sign: string;
   onNameChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
   onPlaceChange: (value: string) => void;
   onGenderChange: (value: CompatGender) => void;
-  onUnknownTimeChange: (value: boolean) => void;
+  onSignChange: (value: string) => void;
 }) {
   const genderLabelId = `${prefix}-gender-label`;
+  const lang: 'ru' | 'en' = language === 'en' ? 'en' : 'ru';
   return (
     <div className="compat-air-fields">
-      <div className="compat-air-main-row">
-        <label className="compat-air-field compat-air-field--name" htmlFor={`${prefix}-name`}>
-          <span className="compat-air-label">{ru ? 'Имя' : 'Name'}</span>
-          <input id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Необязательно' : 'Optional'} autoComplete="name" />
-        </label>
-        <div className="compat-air-gender-field">
-          <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
-          <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
-        </div>
-      </div>
+      <label className="compat-air-field compat-air-field--name" htmlFor={`${prefix}-name`}>
+        <span className="compat-air-label">{ru ? 'Имя' : 'Name'}</span>
+        <input id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Введите имя' : 'Enter a name'} autoComplete="name" />
+      </label>
 
-      <div className="compat-air-birth-row compat-air-birth-row--three">
+      <div className="compat-air-birth-row">
         <label className="compat-air-field" htmlFor={`${prefix}-date`}>
           <span className="compat-air-label">{ru ? 'Дата рождения' : 'Birth date'}</span>
           <input id={`${prefix}-date`} className="compat-air-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
         </label>
-        <label className={`compat-air-field${unknownTime ? ' is-disabled' : ''}`} htmlFor={`${prefix}-time`}>
-          <span className="compat-air-label compat-air-time-label">
-            <span>{ru ? 'Время' : 'Time'}</span>
-            <button
-              type="button"
-              className={`compat-time-unknown${unknownTime ? ' is-active' : ''}`}
-              aria-pressed={unknownTime}
-              onClick={() => onUnknownTimeChange(!unknownTime)}
-            >
-              {ru ? 'не знаю' : 'unknown'}
-            </button>
-          </span>
-          <input id={`${prefix}-time`} className="compat-air-input" type="time" value={time} disabled={unknownTime} onChange={(event) => onTimeChange(event.target.value)} />
+        <label className="compat-air-field" htmlFor={`${prefix}-time`}>
+          <span className="compat-air-label">{ru ? 'Время' : 'Time'}</span>
+          <input id={`${prefix}-time`} className="compat-air-input" type="time" value={time} onChange={(event) => onTimeChange(event.target.value)} />
         </label>
-        <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
-          <span className="compat-air-label">{ru ? 'Место' : 'Place'}</span>
-          <input id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Необязательно' : 'Optional'} autoComplete="address-level2" />
+      </div>
+
+      <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
+        <span className="compat-air-label">{ru ? 'Город' : 'City'}</span>
+        <input id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Введите город' : 'Enter a city'} autoComplete="address-level2" />
+      </label>
+
+      <div className="compat-air-person-footer">
+        <div className="compat-air-gender-field">
+          <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
+          <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
+        </div>
+        <label className="compat-zodiac-field" htmlFor={`${prefix}-zodiac`}>
+          <span className="compat-air-label">{ru ? 'Знак' : 'Sign'}</span>
+          <span className="compat-zodiac-select-wrap">
+            <ZodiacSymbol sign={sign} size={20} />
+            <select id={`${prefix}-zodiac`} value={sign} onChange={(event) => onSignChange(event.target.value)}>
+              {ZODIAC_KEYS.map((key) => <option key={key} value={key}>{getZodiacSign(lang, key)}</option>)}
+            </select>
+          </span>
         </label>
       </div>
     </div>
@@ -614,13 +617,11 @@ export function UnionRoom(props: UnionRoomProps) {
   const [sDate, setSDate] = useState('');
   const [sTime, setSTime] = useState('');
   const [sPlace, setSPlace] = useState('');
-  const [sUnknownTime, setSUnknownTime] = useState(false);
   const [fName, setFName] = useState(initialPrefill?.partnerName || '');
   const [fDate, setFDate] = useState(() => toDateInputValue(initialPrefill?.partnerDate || ''));
   const [fTime, setFTime] = useState(initialPrefill?.partnerTime || '');
   const [fPlace, setFPlace] = useState(initialPrefill?.partnerPlace || '');
   const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
-  const [unknownTime, setUnknownTime] = useState(false);
 
   const [signText, setSignText] = useState<SignCompatibilityResult | null>(null);
   const [deep, setDeep] = useState<SynastryResult | null>(null);
@@ -685,24 +686,26 @@ export function UnionRoom(props: UnionRoomProps) {
     () => availableCharts.find((chart) => chart.id === secondChartId) || null,
     [availableCharts, secondChartId],
   );
+  const subjectResolvedSource: CompatibilityPersonSource = subjectSource === 'birth' && !sDate ? 'sign' : subjectSource;
+  const partnerResolvedSource: CompatibilityPersonSource = partnerSource === 'birth' && !fDate ? 'sign' : partnerSource;
   const subjectClassification = useMemo(() => classifyCompatibilityPerson({
-    source: subjectSource,
+    source: subjectResolvedSource,
     chartId: firstChart?.id,
-    date: subjectSource === 'saved' ? firstChart?.birth_date : sDate,
-    time: subjectSource === 'saved' ? firstChart?.birth_time : (sUnknownTime ? '' : sTime),
-    place: subjectSource === 'saved' ? firstChart?.birth_place : sPlace,
-    sign: subjectSource === 'sign' ? youSign : firstChart?.chart_data?.sun?.sign,
+    date: subjectResolvedSource === 'saved' ? firstChart?.birth_date : subjectResolvedSource === 'birth' ? sDate : '',
+    time: subjectResolvedSource === 'saved' ? firstChart?.birth_time : subjectResolvedSource === 'birth' ? sTime : '',
+    place: subjectResolvedSource === 'saved' ? firstChart?.birth_place : subjectResolvedSource === 'birth' ? sPlace : '',
+    sign: subjectResolvedSource === 'sign' ? youSign : firstChart?.chart_data?.sun?.sign,
     chartBirthTimeQuality: (firstChart?.chart_data as any)?.birthTimeQuality,
-  }), [subjectSource, firstChart, sDate, sTime, sPlace, sUnknownTime, youSign]);
+  }), [subjectResolvedSource, firstChart, sDate, sTime, sPlace, youSign]);
   const partnerClassification = useMemo(() => classifyCompatibilityPerson({
-    source: partnerSource,
+    source: partnerResolvedSource,
     chartId: secondChart?.id,
-    date: partnerSource === 'saved' ? secondChart?.birth_date : fDate,
-    time: partnerSource === 'saved' ? secondChart?.birth_time : (unknownTime ? '' : fTime),
-    place: partnerSource === 'saved' ? secondChart?.birth_place : fPlace,
-    sign: partnerSource === 'sign' ? pickSign : secondChart?.chart_data?.sun?.sign,
+    date: partnerResolvedSource === 'saved' ? secondChart?.birth_date : partnerResolvedSource === 'birth' ? fDate : '',
+    time: partnerResolvedSource === 'saved' ? secondChart?.birth_time : partnerResolvedSource === 'birth' ? fTime : '',
+    place: partnerResolvedSource === 'saved' ? secondChart?.birth_place : partnerResolvedSource === 'birth' ? fPlace : '',
+    sign: partnerResolvedSource === 'sign' ? pickSign : secondChart?.chart_data?.sun?.sign,
     chartBirthTimeQuality: (secondChart?.chart_data as any)?.birthTimeQuality,
-  }), [partnerSource, secondChart, fDate, fTime, fPlace, unknownTime, pickSign]);
+  }), [partnerResolvedSource, secondChart, fDate, fTime, fPlace, pickSign]);
   const draftCalculationLevel = useMemo(
     () => resolveCompatibilityPairLevel(subjectClassification, partnerClassification),
     [subjectClassification, partnerClassification],
@@ -839,7 +842,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const submitAdd = () => {
     if (!premium) { requestPremium(); return; }
-    if (subjectSource === 'sign' && partnerSource === 'sign') {
+    if (subjectResolvedSource === 'sign' && partnerResolvedSource === 'sign') {
       setError(null);
       openResult({
         kind: 'sign',
@@ -854,23 +857,15 @@ export function UnionRoom(props: UnionRoomProps) {
       });
       return;
     }
-    if (subjectSource === 'saved' && !firstChart) {
+    if (subjectResolvedSource === 'saved' && !firstChart) {
       setError(ru ? 'Выбери сохранённую карту первого человека.' : 'Choose a saved chart for the first person.');
       return;
     }
-    if (partnerSource === 'saved' && !secondChart) {
+    if (partnerResolvedSource === 'saved' && !secondChart) {
       setError(ru ? 'Выбери сохранённую карту второго человека.' : 'Choose a saved chart for the second person.');
       return;
     }
-    if (subjectSource === 'birth' && !sDate) {
-      setError(ru ? 'Укажи дату рождения первого человека.' : 'Add the first person birth date.');
-      return;
-    }
-    if (partnerSource === 'birth' && !fDate) {
-      setError(ru ? 'Укажи дату рождения второго человека.' : 'Add the second person birth date.');
-      return;
-    }
-    if (subjectSource === 'saved' && partnerSource === 'saved' && firstChartId != null && secondChartId === firstChartId) {
+    if (subjectResolvedSource === 'saved' && partnerResolvedSource === 'saved' && firstChartId != null && secondChartId === firstChartId) {
       setError(ru ? 'Для сравнения нужны две разные карты.' : 'Choose two different charts.');
       return;
     }
@@ -880,11 +875,11 @@ export function UnionRoom(props: UnionRoomProps) {
       : subjectSource === 'sign'
         ? getZodiacSign(lang, youSign)
         : sName.trim() || (ru ? 'Первый человек' : 'First person');
-    const subjectDate = subjectSource === 'saved' ? firstChart?.birth_date || '' : subjectSource === 'birth' ? sDate : '';
-    const subjectTime = subjectSource === 'saved' ? firstChart?.birth_time || undefined : subjectSource === 'birth' && !sUnknownTime ? sTime || undefined : undefined;
-    const subjectPlace = subjectSource === 'saved' ? firstChart?.birth_place || '' : subjectSource === 'birth' ? sPlace.trim() : '';
+    const subjectDate = subjectResolvedSource === 'saved' ? firstChart?.birth_date || '' : subjectResolvedSource === 'birth' ? sDate : '';
+    const subjectTime = subjectResolvedSource === 'saved' ? firstChart?.birth_time || undefined : subjectResolvedSource === 'birth' ? sTime || undefined : undefined;
+    const subjectPlace = subjectResolvedSource === 'saved' ? firstChart?.birth_place || '' : subjectResolvedSource === 'birth' ? sPlace.trim() : '';
     const subjectResolvedSign = String(
-      subjectSource === 'sign'
+      subjectResolvedSource === 'sign'
         ? youSign
         : firstChart?.chart_data?.sun?.sign || sunSignFromDate(subjectDate) || youSign,
     ).toLowerCase();
@@ -894,11 +889,11 @@ export function UnionRoom(props: UnionRoomProps) {
       : partnerSource === 'sign'
         ? getZodiacSign(lang, pickSign)
         : fName.trim() || (ru ? 'Второй человек' : 'Second person');
-    const partnerDate = partnerSource === 'saved' ? secondChart?.birth_date || '' : partnerSource === 'birth' ? fDate : '';
-    const partnerTime = partnerSource === 'saved' ? secondChart?.birth_time || undefined : partnerSource === 'birth' && !unknownTime ? fTime || undefined : undefined;
-    const partnerPlace = partnerSource === 'saved' ? secondChart?.birth_place || '' : partnerSource === 'birth' ? fPlace.trim() : '';
+    const partnerDate = partnerResolvedSource === 'saved' ? secondChart?.birth_date || '' : partnerResolvedSource === 'birth' ? fDate : '';
+    const partnerTime = partnerResolvedSource === 'saved' ? secondChart?.birth_time || undefined : partnerResolvedSource === 'birth' ? fTime || undefined : undefined;
+    const partnerPlace = partnerResolvedSource === 'saved' ? secondChart?.birth_place || '' : partnerResolvedSource === 'birth' ? fPlace.trim() : '';
     const partnerResolvedSign = String(
-      partnerSource === 'sign'
+      partnerResolvedSource === 'sign'
         ? pickSign
         : secondChart?.chart_data?.sun?.sign || sunSignFromDate(partnerDate) || pickSign,
     ).toLowerCase();
@@ -907,19 +902,19 @@ export function UnionRoom(props: UnionRoomProps) {
     openResult({
       kind: 'person',
       relationshipContext,
-      subjectChartId: subjectSource === 'saved' ? firstChart?.id : undefined,
+      subjectChartId: subjectResolvedSource === 'saved' ? firstChart?.id : undefined,
       subjectName,
       subjectDate,
       subjectTime,
       subjectPlace,
-      subjectSource,
+      subjectSource: subjectResolvedSource,
       subjectSign: subjectResolvedSign,
       name: partnerName,
       date: partnerDate,
       time: partnerTime,
       place: partnerPlace,
-      chartId: partnerSource === 'saved' ? secondChart?.id : undefined,
-      partnerSource,
+      chartId: partnerResolvedSource === 'saved' ? secondChart?.id : undefined,
+      partnerSource: partnerResolvedSource,
       partnerSign: partnerResolvedSign,
       calculationLevel: draftCalculationLevel,
       youSign: subjectResolvedSign,
@@ -1003,9 +998,6 @@ export function UnionRoom(props: UnionRoomProps) {
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
         <AppTopBar
           title={ru ? 'Совместимость' : 'Compatibility'}
-          subtitle={ru
-            ? 'Сравним двух людей — по данным рождения или быстро по знакам.'
-            : 'Compare two people by birth data or quickly by zodiac signs.'}
         />
 
         <div className="compat-choice-tabs compat-mode-switch" role="group" aria-label={ru ? 'Способ сравнения' : 'Comparison method'}>
@@ -1023,7 +1015,7 @@ export function UnionRoom(props: UnionRoomProps) {
               setEntryMode('birth');
             }}
           >
-            {ru ? 'По данным рождения' : 'By birth details'}
+            {ru ? 'По картам' : 'By charts'}
           </button>
           <button
             type="button"
@@ -1038,11 +1030,6 @@ export function UnionRoom(props: UnionRoomProps) {
             {ru ? 'По знакам' : 'By zodiac signs'}
           </button>
         </div>
-        <p className="compat-mode-note">
-          {entryMode === 'birth'
-            ? (ru ? 'Подробный разбор · Premium' : 'Detailed reading · Premium')
-            : (ru ? 'Быстрое сравнение · бесплатно' : 'Quick comparison · free')}
-        </p>
 
         {entryMode === 'birth' ? (
           <>
@@ -1053,15 +1040,9 @@ export function UnionRoom(props: UnionRoomProps) {
                 submitAdd();
               }}
             >
-              <div className="compat-entry-who-heading">
-                <h2 className="compat-entry-who-title">
-                  {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
-                </h2>
-              </div>
-
               <section className="compat-air-person" aria-labelledby="compat-first-person-title">
                 <header className="compat-air-person-heading">
-                  <h3 id="compat-first-person-title">{sName.trim() || firstChart?.name || (ru ? 'Один человек' : 'One person')}</h3>
+                  <h3 id="compat-first-person-title">{ru ? 'Первый человек' : 'First person'}</h3>
                   <PersonSourcePicker
                     value={subjectSource}
                     onChange={setSubjectSource}
@@ -1072,21 +1053,23 @@ export function UnionRoom(props: UnionRoomProps) {
                   <PersonBirthFields
                     prefix="compat-first-person"
                     ru={ru}
+                    language={profile.language}
                     name={sName}
                     date={sDate}
                     time={sTime}
                     place={sPlace}
                     gender={youGender}
-                    unknownTime={sUnknownTime}
+                    sign={youSign}
                     onNameChange={setSName}
-                    onDateChange={setSDate}
+                    onDateChange={(value) => {
+                      setSDate(value);
+                      const resolved = sunSignFromDate(value);
+                      if (resolved) setYouSign(resolved);
+                    }}
                     onTimeChange={setSTime}
                     onPlaceChange={setSPlace}
                     onGenderChange={setYouGender}
-                    onUnknownTimeChange={(value) => {
-                      setSUnknownTime(value);
-                      if (value) setSTime('');
-                    }}
+                    onSignChange={setYouSign}
                   />
                 ) : subjectSource === 'saved' ? (
                   <PersonSavedFields
@@ -1113,11 +1096,11 @@ export function UnionRoom(props: UnionRoomProps) {
                 )}
               </section>
 
-              <div className="compat-person-divider" aria-hidden="true"><span>+</span></div>
+              <div className="compat-person-divider" aria-hidden="true" />
 
               <section className="compat-air-person" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
-                  <h3 id="compat-second-person-title">{fName.trim() || secondChart?.name || (ru ? 'Другой человек' : 'Another person')}</h3>
+                  <h3 id="compat-second-person-title">{ru ? 'Второй человек' : 'Second person'}</h3>
                   <PersonSourcePicker
                     value={partnerSource}
                     onChange={setPartnerSource}
@@ -1128,21 +1111,23 @@ export function UnionRoom(props: UnionRoomProps) {
                   <PersonBirthFields
                     prefix="compat-second-person"
                     ru={ru}
+                    language={profile.language}
                     name={fName}
                     date={fDate}
                     time={fTime}
                     place={fPlace}
                     gender={fGender}
-                    unknownTime={unknownTime}
+                    sign={pickSign}
                     onNameChange={setFName}
-                    onDateChange={setFDate}
+                    onDateChange={(value) => {
+                      setFDate(value);
+                      const resolved = sunSignFromDate(value);
+                      if (resolved) setPickSign(resolved);
+                    }}
                     onTimeChange={setFTime}
                     onPlaceChange={setFPlace}
                     onGenderChange={setFGender}
-                    onUnknownTimeChange={(value) => {
-                      setUnknownTime(value);
-                      if (value) setFTime('');
-                    }}
+                    onSignChange={setPickSign}
                   />
                 ) : partnerSource === 'saved' ? (
                   <PersonSavedFields
@@ -1169,8 +1154,13 @@ export function UnionRoom(props: UnionRoomProps) {
                 )}
               </section>
 
+              <div className="compat-reading-kind" aria-live="polite">
+                <span>{ru ? 'Будет создан' : 'Reading type'}</span>
+                <strong>{compatibilityPairLevelLabel(draftCalculationLevel, lang)}</strong>
+              </div>
+
               <section className="compat-entry-context" aria-labelledby="compat-context-title">
-                <h2 id="compat-context-title">{ru ? 'Тип совместимости' : 'Compatibility type'}</h2>
+                <h2 id="compat-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
                 <RelationshipContextPicker
                   value={relationshipContext}
                   onChange={setRelationshipContext}
@@ -1236,7 +1226,7 @@ export function UnionRoom(props: UnionRoomProps) {
               {ru ? 'Кого сравниваем?' : 'Who are we comparing?'}
             </h2>
             <SignSwipePicker
-              label={ru ? 'Один человек' : 'One person'}
+              label={ru ? 'Первый человек' : 'First person'}
               signs={ZODIAC_KEYS}
               active={youSign}
               language={profile.language}
@@ -1246,7 +1236,7 @@ export function UnionRoom(props: UnionRoomProps) {
             <div className="compat-person-divider compat-person-divider--signs" aria-hidden="true"><span>+</span></div>
 
             <SignSwipePicker
-              label={ru ? 'Другой человек' : 'Another person'}
+              label={ru ? 'Второй человек' : 'Second person'}
               signs={ZODIAC_KEYS}
               active={pickSign}
               language={profile.language}
@@ -1254,7 +1244,7 @@ export function UnionRoom(props: UnionRoomProps) {
             />
 
             <section className="compat-entry-context" aria-labelledby="compat-sign-context-title">
-              <h2 id="compat-sign-context-title">{ru ? 'Тип совместимости' : 'Compatibility type'}</h2>
+              <h2 id="compat-sign-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
               <RelationshipContextPicker
                 value={relationshipContext}
                 onChange={setRelationshipContext}
@@ -1303,10 +1293,10 @@ export function UnionRoom(props: UnionRoomProps) {
     dynamics: resultVisualDynamics,
   });
   const leftName = selected?.kind === 'sign'
-    ? (ru ? 'Один человек' : 'One person')
+    ? (ru ? 'Первый человек' : 'First person')
     : (selected?.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart'));
   const rightName = selected?.kind === 'sign'
-    ? (ru ? 'Другой человек' : 'Another person')
+    ? (ru ? 'Второй человек' : 'Second person')
     : theirName;
   const leftBirthDate = selected?.subjectDate || profile.birthDate;
   const leftDetail = selected?.kind === 'sign'

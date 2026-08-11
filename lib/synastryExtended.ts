@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { getContentPolicy } from './contentMatrix';
 
-export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v4';
+export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v6';
 
 export function buildSynastryExtendedCacheKey(
   userId: string,

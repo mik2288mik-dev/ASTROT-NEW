@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const mockCreateLunaStructuredResponse = jest.fn();
-const mockCalculateNatalChart = jest.fn();
 const mockGetById = jest.fn();
 const mockSynastryGet = jest.fn();
 const mockSynastrySet = jest.fn();
@@ -35,10 +34,6 @@ jest.mock('../lib/contentArchitecture', () => ({
 
 jest.mock('../lib/appSettings', () => ({
   getOpenAIModelForContent: jest.fn().mockResolvedValue({ model: 'luna', modelTier: 'premium' }),
-}));
-
-jest.mock('../lib/swisseph-calculator', () => ({
-  calculateNatalChart: (...args: unknown[]) => mockCalculateNatalChart(...args),
 }));
 
 jest.mock('../lib/db', () => ({
@@ -80,12 +75,6 @@ jest.mock('../lib/contentPromptBuilders', () => ({
 jest.mock('../lib/openaiResponses', () => ({
   getOpenAIResponsesClient: jest.fn().mockReturnValue({ responses: {} }),
   createLunaStructuredResponse: (...args: unknown[]) => mockCreateLunaStructuredResponse(...args),
-}));
-
-jest.mock('../lib/synastry/synastryAspects', () => ({
-  computeSynastryAspects: jest.fn().mockReturnValue([
-    { a: 'Луна', b: 'Венера', aspect: 'трин', orb: 1.2 },
-  ]),
 }));
 
 import handler from '../pages/api/content/synastry/extended';
@@ -139,13 +128,12 @@ async function post(body: Record<string, unknown>) {
 describe('extended synastry delivery resilience', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCalculateNatalChart.mockResolvedValue(chart());
     mockSynastryGet.mockResolvedValue(null);
     mockSynastrySet.mockResolvedValue({ success: true });
     mockUpsertByChart.mockResolvedValue({ id: 9 });
   });
 
-  it('returns a chart-grounded reading for two manually entered people when the model is unavailable', async () => {
+  it('returns a data-grounded reading for two manually entered people when the model is unavailable', async () => {
     mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
 
     const result = await post({
@@ -231,16 +219,5 @@ describe('extended synastry delivery resilience', () => {
         },
       },
     });
-    expect(mockCalculateNatalChart).toHaveBeenCalledTimes(1);
-    expect(mockCalculateNatalChart).toHaveBeenCalledWith(
-      expect.any(String),
-      '1989-03-06',
-      '',
-      expect.any(String),
-      expect.objectContaining({
-        birthTimeMode: 'unknown',
-        coordinates: { lat: 0, lon: 0, timezone: 'UTC' },
-      }),
-    );
   });
 });
