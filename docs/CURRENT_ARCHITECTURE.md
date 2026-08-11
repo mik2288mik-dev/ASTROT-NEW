@@ -9,11 +9,13 @@
 ## Personal forecasts
 
 - `lib/swisseph-calculator.ts` remains the deterministic source for the saved natal chart. It is not called to calculate forecast-period transits or evidence.
-- `lib/personalForecastGeneration.ts` builds one private prompt input from the selected date/range, profile, and compact saved natal context, then asks OpenAI Luna to author the reading. The active product contract requires available birth date/time/place to be included deliberately when they improve the personalisation; align the generator before claiming that input is complete.
+- `lib/personalForecastGeneration.ts` builds one private prompt input from the selected date/range, available birth details, saved natal positions/aspects, and bounded anti-repeat history, then asks OpenAI Luna to author the reading. It does not inject a preselected generic psychological topic.
 - Luna uses the Responses API with strict JSON Schema through `lib/openaiResponses.ts`.
-- The model writes only one heading and one or two paragraphs. It is the author of the personal forecast, not a renderer of precomputed themes or a calculator of period events. The server validates format, length, voice, safety, and visible astrology terms before persisting the story.
-- `lib/personalForecastCache.ts` caches one materialized story by user, chart, period, language, prompt, voice, and model identity. It does not write transit/evidence snapshots for the forecast period.
-- `lib/appVoice.ts` is the shared runtime source for generated-content voice.
+- For Today the model writes one shared headline plus 4–6 ordered fragments. The server materializes the first fragment as `overview` and the remaining fragments as untitled `sections`. Week and Month require one cohesive fragment and no additional sections.
+- The structured writer also returns hidden post-hoc keys for the used main idea, life plot, advice, and comparison. They are never rendered. Server validation combines compact exact/token signatures from these keys with headline checks, normalized openings, and text similarity to reject repeats.
+- The model is the author of the personal forecast, not a renderer of precomputed themes or a calculator of period events. The server validates format, length, language, forecast voice, safety, unsupported claims, repetition, and visible astrology before persisting the result. Writer attempts remain capped at two.
+- `lib/personalForecastCache.ts` caches one materialized package by user, chart, period, language, prompt, voice, and model identity. Before a miss is generated, it reads bounded same-period history with `allowExpired` plus one safe latest excerpt, including the previous headline; this history is negative prompt context only and is never served as the requested forecast. Compatible stale output must have the current prompt identity.
+- `lib/appVoice.ts` contains the shared runtime voice and a separately versioned personal-forecast layer. Forecast-specific character and occasional irony do not make the global app voice comedic.
 
 ## Product separation
 

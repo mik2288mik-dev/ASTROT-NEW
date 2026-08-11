@@ -6,13 +6,14 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const exists = (file: string) => fs.existsSync(path.join(ROOT, file));
 
 describe('personal forecast Luna architecture', () => {
-  it('keeps day, week, and month in one diary screen without the retired forecast-question block', () => {
+  it('keeps day, week, and month as drawer-controlled diary periods without the retired forecast-question block', () => {
     const dashboard = read('views/Dashboard.tsx');
 
+    expect(dashboard).toContain("const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];");
+    expect(dashboard).toContain('requestedPeriod?: PersonalForecastPeriod;');
     expect(dashboard).toContain('loadPeriod(\'day\')');
-    expect(dashboard).toContain('loadPeriod(\'week\')');
-    expect(dashboard).toContain('loadPeriod(\'month\')');
-    expect(dashboard).toContain('forecast-feed-period-tabs');
+    expect(dashboard).toContain('selectPeriod(requestedPeriod, undefined, true);');
+    expect(dashboard).not.toContain('forecast-feed-period-tabs');
     expect(dashboard).not.toContain('<ForecastQuestions');
     expect(exists('components/PersonalForecastFeed/ForecastQuestions.tsx')).toBe(false);
   });

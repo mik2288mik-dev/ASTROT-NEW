@@ -4,6 +4,7 @@ import {
   forecastVisualStyle,
   getForecastVisualAssignment,
   getNewspaperVisualCounts,
+  resolveDiaryEditorialPauses,
   resolvePersonalForecastVisuals,
   type ForecastVisualFeedInput,
   type ForecastVisualSectionInput,
@@ -153,5 +154,35 @@ describe('personal forecast editorial visual resolver', () => {
       synastry: 200,
       zodiac: 12,
     });
+  });
+
+  it('places at most two unique inline visual pauses without changing section order', () => {
+    const samples = Array.from({ length: 200 }, (_, index) => resolveDiaryEditorialPauses({
+      userId: `pause-user-${index}`,
+      period: 'day',
+      periodKey: '2026-08-11',
+      sections: [feed().overview, ...feed().sections],
+    }));
+
+    expect(samples.some((sample) => sample.length === 2)).toBe(true);
+    for (const pauses of samples) {
+      expect(pauses.length).toBeLessThanOrEqual(2);
+      expect(new Set(pauses.map((pause) => pause.asset.id)).size).toBe(pauses.length);
+      expect(pauses.map((pause) => pause.afterSectionId).every((id) => (
+        [feed().overview, ...feed().sections].some((item) => item.id === id)
+      ))).toBe(true);
+    }
+  });
+
+  it('keeps week and month to one visual pause at most', () => {
+    for (const period of ['week', 'month'] as const) {
+      const pauses = resolveDiaryEditorialPauses({
+        userId: 'long-reading-user',
+        period,
+        periodKey: `2026-${period}`,
+        sections: [feed().overview, ...feed().sections],
+      });
+      expect(pauses.length).toBeLessThanOrEqual(1);
+    }
   });
 });

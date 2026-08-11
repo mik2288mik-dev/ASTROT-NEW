@@ -2,7 +2,7 @@ import { fromZonedTime } from 'date-fns-tz';
 import type { NatalChartData } from '../types';
 import {
   APP_VOICE_VERSION,
-  withAppVoiceVersion,
+  withPersonalForecastVoiceVersion,
 } from './appVoice';
 
 export type PersonalForecastPeriod = 'day' | 'week' | 'month';
@@ -230,11 +230,11 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
   'documents_agreements',
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
-export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v25.luna-personal-story',
+export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
+  'personal-forecast-feed.v26.luna-continuous-feed',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-natal-profile-v1';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v12';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v13';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v7-story-cues';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -528,13 +528,52 @@ function normalizePosition(position: NatalChartData[keyof NatalChartData]) {
     longitude?: number;
     degree?: number;
     house?: string | number;
+    retrograde?: boolean;
+    stableSign?: boolean;
   };
   return {
     sign: String(candidate.sign || ''),
     longitude: Number.isFinite(candidate.longitude) ? Number(candidate.longitude).toFixed(5) : null,
     degree: Number.isFinite(candidate.degree) ? Number(candidate.degree).toFixed(3) : null,
     house: candidate.house == null ? null : String(candidate.house),
+    retrograde: typeof candidate.retrograde === 'boolean' ? candidate.retrograde : null,
+    stableSign: typeof candidate.stableSign === 'boolean' ? candidate.stableSign : null,
   };
+}
+
+function normalizePersonalForecastAspects(chart: NatalChartData) {
+  return (chart.aspects || [])
+    .flatMap((value) => {
+      const aspect = value as unknown as {
+        from?: unknown;
+        to?: unknown;
+        fromKey?: unknown;
+        toKey?: unknown;
+        type?: unknown;
+        orb?: unknown;
+        reliable?: unknown;
+      };
+      const from = typeof aspect.fromKey === 'string'
+        ? aspect.fromKey
+        : typeof aspect.from === 'string' ? aspect.from : null;
+      const to = typeof aspect.toKey === 'string'
+        ? aspect.toKey
+        : typeof aspect.to === 'string' ? aspect.to : null;
+      const orb = typeof aspect.orb === 'number' && Number.isFinite(aspect.orb)
+        ? aspect.orb
+        : null;
+      if (!from || !to || typeof aspect.type !== 'string' || orb == null || aspect.reliable === false) {
+        return [];
+      }
+      return [{ from, to, type: aspect.type, orb: Number(orb.toFixed(2)) }];
+    })
+    .sort((left, right) => (
+      left.orb - right.orb
+      || left.from.localeCompare(right.from)
+      || left.to.localeCompare(right.to)
+      || left.type.localeCompare(right.type)
+    ))
+    .slice(0, 12);
 }
 
 export function buildPersonalForecastChartFingerprint(chart: NatalChartData): string {
@@ -550,6 +589,8 @@ export function buildPersonalForecastChartFingerprint(chart: NatalChartData): st
     'uranus',
     'neptune',
     'pluto',
+    'chiron',
+    'mc',
   ] as const;
   const chartQuality = chart.chartQuality;
   const value = JSON.stringify({
@@ -558,6 +599,7 @@ export function buildPersonalForecastChartFingerprint(chart: NatalChartData): st
       house.house,
       Number(house.longitude).toFixed(5),
     ]),
+    aspects: normalizePersonalForecastAspects(chart),
     birthTimeQuality: chart.birthTimeQuality || null,
     chartQuality: chartQuality
       ? {

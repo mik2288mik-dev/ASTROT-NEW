@@ -3,12 +3,15 @@ import type {
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
+import type { DiaryEditorialAsset } from '../../lib/personalForecastVisuals';
+import { EditorialSticker } from '../EditorialSticker';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
+  sticker?: DiaryEditorialAsset | null;
   onRequestPremium: () => void;
 };
 
@@ -22,7 +25,6 @@ function renderContentBlocks(section: ForecastSection) {
             'forecast-feed-section-text',
             block.role === 'lead' ? 'is-lead' : 'is-body',
           ].filter(Boolean).join(' ')}
-          data-editorial-role={block.role}
         >
           {block.text}
         </p>
@@ -36,6 +38,7 @@ export function ForecastSectionBlock({
   period,
   language,
   locked,
+  sticker,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
   const isOverview = section.kind === 'overview';
@@ -53,6 +56,11 @@ export function ForecastSectionBlock({
     : sectionTitle;
   const preview = section.lockedPreview;
   const hasReadableCopy = section.contentBlocks.some((block) => block.text.trim());
+  const copyLength = section.contentBlocks.reduce(
+    (total, block) => total + block.text.trim().length,
+    0,
+  );
+  const isBrief = !isOverview && copyLength > 0 && copyLength <= 180;
 
   if (section.status !== 'ready') return null;
   if (!locked && !hasReadableCopy) return null;
@@ -64,8 +72,10 @@ export function ForecastSectionBlock({
       data-period={period}
       className={[
         'forecast-feed-section',
-        `forecast-feed-section--${section.kind}`,
+        'forecast-feed-story-fragment',
         isOverview ? 'is-overview' : '',
+        isBrief ? 'is-brief' : '',
+        title ? 'has-title' : 'is-untitled',
         locked ? 'is-locked' : '',
       ].filter(Boolean).join(' ')}
     >
@@ -114,6 +124,17 @@ export function ForecastSectionBlock({
           </div>
         ) : renderContentBlocks(section)}
       </div>
+      {!locked && sticker ? (
+        <div
+          className={`forecast-feed-editorial-pause is-${sticker.collection}`}
+          aria-hidden="true"
+        >
+          <EditorialSticker
+            asset={sticker}
+            className="forecast-feed-editorial-pause-image"
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

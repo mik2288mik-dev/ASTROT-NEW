@@ -40,7 +40,7 @@ describe('card background library', () => {
 });
 
 describe('card background UI wiring', () => {
-  it('keeps diary stories image-free while preserving non-diary newspaper visual inventory', () => {
+  it('keeps diary copy image-free while allowing restrained inline visual pauses', () => {
     const dashboard = read('views/Dashboard.tsx');
     const visuals = read('lib/personalForecastVisuals.ts');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
@@ -65,7 +65,10 @@ describe('card background UI wiring', () => {
     expect(promoBanner).toContain('return null;');
     expect(promoBanner).not.toContain('selectPromoBanner');
     expect(promoBanner).not.toContain('<picture');
-    expect(feedStyles).not.toContain('.forecast-feed-editorial-sticker');
+    expect(sectionBlock).toContain('<EditorialSticker');
+    expect(sectionBlock).toContain('forecast-feed-editorial-pause');
+    expect(feedStyles).toContain('.forecast-feed-editorial-pause');
+    expect(feedStyles).not.toContain('background-image: var(--forecast-section-image)');
     expect(dashboard).not.toMatch(
       /\bresolveForecastVisualScreen\b|\bbuildForecastVisualRequests\b|\bforecastVisualStyle\b/,
     );

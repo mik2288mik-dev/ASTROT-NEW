@@ -5,14 +5,14 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('active root newspaper visual contract', () => {
-  it('keeps the personal forecast as one unnumbered story without visible evidence details', () => {
+  it('keeps the personal forecast as one unnumbered stream without visible evidence details', () => {
     const dashboard = read('views/Dashboard.tsx');
     const sectionBlock = read(
       'components/PersonalForecastFeed/ForecastSectionBlock.tsx',
     );
     const styles = read('styles/newspaperVisual.css');
 
-    expect(dashboard).not.toContain('readySections.map((section)');
+    expect(dashboard).toContain('storySections.map((section)');
     expect(dashboard).not.toContain('sectionNumber=');
     expect(dashboard).not.toContain('AstrologyDetailsToggle');
     expect(sectionBlock).not.toContain('sectionNumber: number');
@@ -55,12 +55,15 @@ describe('active root newspaper visual contract', () => {
     expect(styles).not.toMatch(/\.lumia-bottom-(?:nav|bar)/);
   });
 
-  it('keeps the diary image-free and leaves onboarding quiet', () => {
+  it('uses only restrained inline diary stickers and leaves onboarding quiet', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
     expect(dashboard).not.toContain('resolvePersonalForecastVisuals');
-    expect(dashboard).not.toContain('forecast-feed-editorial-sticker');
+    expect(dashboard).toContain('resolveDiaryEditorialPauses');
+    expect(sectionBlock).toContain('forecast-feed-editorial-pause');
+    expect(sectionBlock).not.toContain('style={forecastVisualStyle');
     expect(onboarding).not.toContain('selectMainEditorialSticker');
     expect(onboarding).not.toContain('EditorialSticker');
     expect(onboarding).not.toContain('Math.random');

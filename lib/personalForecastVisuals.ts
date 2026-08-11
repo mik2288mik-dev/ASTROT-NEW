@@ -1,6 +1,13 @@
 import type { CSSProperties } from 'react';
-import { selectMainEditorialSticker } from './personalForecastVisuals/editorialSelectors';
-import type { EditorialTopic } from './personalForecastVisuals/editorialTypes';
+import {
+  EDITORIAL_PLACEMENT_POLICY,
+  selectDiaryEditorialSticker,
+  selectMainEditorialSticker,
+} from './personalForecastVisuals/editorialSelectors';
+import type {
+  DiaryEditorialAsset,
+  EditorialTopic,
+} from './personalForecastVisuals/editorialTypes';
 import {
   PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION,
   type FixedForecastSectionKey,
@@ -58,6 +65,11 @@ export type ForecastVisualScreen = {
   assignments: Record<string, ForecastVisualAssignment>;
   sectionAssetIds: Record<string, string | null>;
   visualFallback: boolean;
+};
+
+export type DiaryEditorialPause = {
+  afterSectionId: string;
+  asset: DiaryEditorialAsset;
 };
 
 type Theme = 'general' | 'love' | 'mood' | 'work_money' | 'home_family' | 'friends' | 'opportunities' | 'decisions' | 'communication' | 'questions' | 'moon' | 'mercury';
@@ -200,6 +212,74 @@ function themesFor(request: ForecastVisualRequest): readonly Theme[] {
   const tag = normalise(request.visualTag);
   return TAG_THEMES[tag] || TAG_THEMES[tag.replace(/-/g, '_')] || (request.sourceTopicKey ? SOURCE_THEMES[request.sourceTopicKey] || ['general'] : ['general']);
 }
+
+const EDITORIAL_TOPIC_BY_THEME: Record<Theme, EditorialTopic> = {
+  general: 'general',
+  love: 'love',
+  mood: 'mood',
+  work_money: 'work_money',
+  home_family: 'home_family',
+  friends: 'friends',
+  opportunities: 'opportunities',
+  decisions: 'decisions',
+  communication: 'communication',
+  questions: 'communication',
+  moon: 'moon',
+  mercury: 'mercury',
+};
+
+/**
+ * Chooses a few decorative pauses for a continuous reading. The model supplies
+ * only a semantic cue; exact assets and placement remain application-owned.
+ */
+export function resolveDiaryEditorialPauses(input: {
+  userId: string;
+  period: PersonalForecastPeriod;
+  periodKey: string;
+  sections: readonly ForecastVisualSectionInput[];
+  excludeAssetIds?: readonly string[];
+}): DiaryEditorialPause[] {
+  if (!input.sections.length) return [];
+  const requests = input.sections.map((section, sectionIndex): ForecastVisualRequest => ({
+    ...section,
+    userId: input.userId,
+    period: input.period,
+    periodKey: input.periodKey,
+    sectionId: section.id,
+    sectionIndex,
+  }));
+  const maximumPauses = input.period === 'day' && requests.length >= 5
+    ? EDITORIAL_PLACEMENT_POLICY.diary.maxPauses
+    : 1;
+  const anchorIndexes = maximumPauses === 1
+    ? [Math.min(requests.length - 1, Math.floor(requests.length / 2))]
+    : Array.from({ length: maximumPauses }, (_, index) => (
+        Math.min(
+          requests.length - 1,
+          Math.floor(((index + 1) * requests.length) / (maximumPauses + 1)),
+        )
+      ));
+  const excluded = new Set(input.excludeAssetIds || []);
+  const pauses: DiaryEditorialPause[] = [];
+
+  for (const [slot, anchorIndex] of anchorIndexes.entries()) {
+    const request = requests[anchorIndex];
+    if (!request) continue;
+    const asset = selectDiaryEditorialSticker({
+      contentKey: `${input.period}|${input.periodKey}|${request.sectionId}`,
+      userId: input.userId,
+      topics: themesFor(request).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
+      excludeIds: [...excluded],
+      slot,
+    });
+    if (!asset) continue;
+    excluded.add(asset.id);
+    pauses.push({ afterSectionId: request.sectionId, asset });
+  }
+
+  return pauses;
+}
+
 function fallbackAssignment(request: ForecastVisualRequest): ForecastVisualAssignment {
   return { sectionId: request.sectionId, assetId: null, path: null, width: null, height: null, sourceCategory: null, textSide: 'center', crop: { desktop: { position: '50% 50%', scale: 1 }, mobile: { position: '50% 50%', scale: 1 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: null, compositionTag: null, cue: request.visualCue || null, visualFallback: true };
 }
@@ -214,26 +294,12 @@ export function resolveForecastVisualScreen(requests: readonly ForecastVisualReq
   const assignments: Record<string, ForecastVisualAssignment> = {};
   const ordered = [...requests].sort((left, right) => left.sectionIndex - right.sectionIndex);
   const visualRequest = ordered[0];
-  const editorialTopicMap: Record<Theme, EditorialTopic> = {
-    general: 'general',
-    love: 'love',
-    mood: 'mood',
-    work_money: 'work_money',
-    home_family: 'home_family',
-    friends: 'friends',
-    opportunities: 'opportunities',
-    decisions: 'decisions',
-    communication: 'communication',
-    questions: 'communication',
-    moon: 'moon',
-    mercury: 'mercury',
-  };
   const editorialAsset = visualRequest
     ? selectMainEditorialSticker({
         screenKey: `personal-forecast:${visualRequest.period}`,
         contentKey: `${visualRequest.period}|${visualRequest.periodKey}`,
         userId: visualRequest.userId,
-        topics: themesFor(visualRequest).map((theme) => editorialTopicMap[theme]),
+        topics: themesFor(visualRequest).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
         excludeIds: options?.excludeAssetIds,
       })
     : null;
@@ -327,6 +393,8 @@ export const forecastSectionVisualStyle = forecastVisualStyle;
 export {
   NEWSPAPER_VISUAL_MANIFEST_VERSION,
   EDITORIAL_PLACEMENT_POLICY,
+  getDiaryEditorialStickerCounts,
+  getDiaryEditorialStickerLibrary,
   getNewspaperVisualCounts,
   getZodiacEditorialSticker,
   selectCalmSynastryEditorialSticker,
@@ -338,6 +406,7 @@ export {
 } from './personalForecastVisuals/editorialSelectors';
 export type {
   EditorialAssetBase,
+  DiaryEditorialAsset,
   EditorialMedium,
   EditorialOrientation,
   EditorialStickerAsset,

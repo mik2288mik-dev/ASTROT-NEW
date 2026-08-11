@@ -30,14 +30,31 @@ describe('personal forecast screen layout', () => {
     expect(app).toContain('openDrawerPeriod');
   });
 
-  it('keeps the personal story as one calm reading column without a sticker treatment', () => {
+  it('renders overview and returned sections as one calm editorial reading column', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
     const forecastStyles = read('styles/personalForecastFeed.css');
-    const newspaperStyles = read('styles/newspaperVisual.css');
 
     expect(forecastStyles).not.toContain('.forecast-feed-period-tabs');
-    expect(newspaperStyles).toContain('.forecast-feed-page .forecast-feed-section.is-overview .forecast-feed-screen-headline');
-    expect(newspaperStyles).toContain('text-align: left;');
-    expect(newspaperStyles).not.toContain('.forecast-feed-page .forecast-feed-editorial-sticker');
+    expect(dashboard).toContain('[forecast.overview, ...forecast.sections]');
+    expect(dashboard).toContain('storySections.map((section)');
+    expect(dashboard).toContain('sticker={stickerPausesBySection.get(section.id) || null}');
+    expect(sectionBlock).toContain('forecast-feed-story-fragment');
+    expect(sectionBlock).toContain('<EditorialSticker');
+    expect(sectionBlock).not.toContain('data-editorial-role');
+    expect(sectionBlock).not.toContain('forecast-feed-section--${section.kind}');
+    expect(forecastStyles).toContain('.forecast-feed-story .forecast-feed-story-fragment');
+    expect(forecastStyles).toContain('background: transparent;');
+    expect(forecastStyles).not.toContain('background-image: var(--forecast-section-image)');
+  });
+
+  it('labels Today directly and keeps period navigation outside the reading canvas', () => {
+    const dashboard = read('views/Dashboard.tsx');
+
+    expect(dashboard).toContain("day: language === 'ru' ? 'Сегодня' : 'Today'");
+    expect(dashboard).toContain('<time');
+    expect(dashboard).not.toContain('ForecastTopicNavigation');
+    expect(dashboard).not.toContain('ForecastSideNavigator');
   });
 
   it('uses one loading spinner instead of forecast-content placeholders', () => {
@@ -48,5 +65,20 @@ describe('personal forecast screen layout', () => {
     expect(dashboard).toContain('<LoaderCircle');
     expect(dashboard).not.toContain('forecast-feed-loading-preview');
     expect(forecastStyles).toContain('.forecast-feed-loading-indicator');
+  });
+
+  it('reserves sticker space and keeps the current story mounted during background refresh', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const sticker = read('components/EditorialSticker.tsx');
+    const forecastStyles = read('styles/personalForecastFeed.css');
+
+    expect(dashboard).toContain('const retained = current[period]?.result || local');
+    expect(dashboard).toContain('stickerPlanCacheRef.current.get(stickerPlanKey)');
+    expect(sticker).toContain("'--editorial-sticker-ratio'");
+    expect(sticker).toContain("loading={priority ? 'eager' : 'lazy'}");
+    expect(sticker).toContain('width={asset.width}');
+    expect(sticker).toContain('height={asset.height}');
+    expect(forecastStyles).toContain('overflow-wrap: anywhere;');
+    expect(forecastStyles).toContain('font-size: clamp(1rem, 4.2vw, 1.075rem);');
   });
 });

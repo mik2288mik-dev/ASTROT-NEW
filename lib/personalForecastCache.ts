@@ -15,12 +15,16 @@ import {
   buildPersonalForecastCacheKey,
   buildPersonalForecastInputHash,
   getPersonalForecastPackageValidationError,
+  getPreviousPersonalForecastPeriodKey,
   isPersonalForecastPackage,
   resolvePersonalForecastWindow,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from './personalForecastContract';
-import { generatePersonalForecastPackage } from './personalForecastGeneration';
+import {
+  generatePersonalForecastPackage,
+  type PersonalForecastRecentReading,
+} from './personalForecastGeneration';
 
 const CANONICAL_CACHE_TIER = 'premium' as const;
 
@@ -29,6 +33,12 @@ const VARIANT_BY_PERIOD = {
   week: 'weekly',
   month: 'monthly',
 } as const;
+
+const HISTORY_LIMIT_BY_PERIOD: Record<PersonalForecastPeriod, number> = {
+  day: 3,
+  week: 2,
+  month: 2,
+};
 
 export type PersonalForecastCacheContext = {
   ctx: ReadingContext;
@@ -142,7 +152,7 @@ export async function getCompatibleStalePersonalForecast(
     !interpretation
     || !forecast
     || typeof stalePromptVersion !== 'string'
-    || !stalePromptVersion.trim()
+    || stalePromptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
     || interpretation.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
     || forecast.meta.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
     || forecast.meta.semanticVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
@@ -151,7 +161,7 @@ export async function getCompatibleStalePersonalForecast(
     || forecast.meta.model !== identity.model
     || forecast.period !== input.period
     || forecast.periodKey !== input.periodKey
-    || !isPersonalForecastPackage(forecast, { promptVersion: stalePromptVersion })
+    || !isPersonalForecastPackage(forecast)
   ) {
     return null;
   }
@@ -168,6 +178,105 @@ export async function getCompatibleStalePersonalForecast(
     cacheKey: interpretation.cacheKey,
     inputHash: expectedInputHash,
   };
+}
+
+function recentReadingFromUnknown(value: unknown): PersonalForecastRecentReading | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const candidate = value as {
+    periodKey?: unknown;
+    overview?: unknown;
+    sections?: unknown;
+  };
+  if (typeof candidate.periodKey !== 'string' || !candidate.periodKey.trim()) return null;
+  const overview = candidate.overview && typeof candidate.overview === 'object' && !Array.isArray(candidate.overview)
+    ? candidate.overview as { title?: unknown }
+    : null;
+  const headline = typeof overview?.title === 'string' && overview.title.trim()
+    ? [{
+        kind: 'headline' as const,
+        text: overview.title.trim().slice(0, 200),
+        semanticFingerprint: null,
+      }]
+    : [];
+  const rawSections = [candidate.overview, ...(Array.isArray(candidate.sections) ? candidate.sections : [])];
+  const fragments = [...headline, ...rawSections.flatMap((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const section = value as { text?: unknown; semanticFingerprint?: unknown };
+    if (typeof section.text !== 'string' || !section.text.trim()) return [];
+    return [{
+      kind: 'fragment' as const,
+      text: section.text.trim().slice(0, 700),
+      semanticFingerprint: typeof section.semanticFingerprint === 'string'
+        ? section.semanticFingerprint.slice(0, 600)
+        : null,
+    }];
+  })];
+  return fragments.length ? { periodKey: candidate.periodKey, fragments } : null;
+}
+
+/**
+ * Anti-repeat history is negative writer context only. A previous package is
+ * never returned from this path as the forecast for the requested period.
+ */
+export async function getRecentPersonalForecastHistory(
+  input: PersonalForecastCacheContext,
+): Promise<PersonalForecastRecentReading[]> {
+  const identity = await resolveCacheIdentity(input);
+  const userId = String(input.ctx.profile.id);
+  const readings: PersonalForecastRecentReading[] = [];
+  const seen = new Set<string>();
+  const add = (reading: PersonalForecastRecentReading | null) => {
+    if (!reading) return;
+    const identityKey = `${reading.periodKey}:${reading.fragments.map((fragment) => fragment.text).join('\n')}`;
+    if (seen.has(identityKey)) return;
+    seen.add(identityKey);
+    readings.push(reading);
+  };
+
+  try {
+    const latest = input.ctx.chartId != null
+      ? await db.content_interpretations.getLatestByChartVariant(
+          input.ctx.chartId,
+          CANONICAL_CACHE_TIER,
+          'forecast',
+          identity.contentVariant,
+        )
+      : await db.content_interpretations.getLatestByUserVariant(
+          userId,
+          CANONICAL_CACHE_TIER,
+          'forecast',
+          identity.contentVariant,
+        );
+    add(recentReadingFromUnknown((latest as ContentInterpretation<unknown> | null)?.content));
+  } catch (error) {
+    console.error(
+      '[personal-forecast] latest anti-repeat history read failed; continuing without it:',
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
+  let previousKey = input.periodKey;
+  const historyLimit = HISTORY_LIMIT_BY_PERIOD[input.period];
+  for (let index = 0; index < historyLimit; index += 1) {
+    previousKey = getPreviousPersonalForecastPeriodKey(
+      input.period,
+      previousKey,
+      identity.window.timezone,
+    );
+    try {
+      const cached = await getCachedPersonalForecast(
+        { ...input, periodKey: previousKey },
+        { allowExpired: true },
+      );
+      add(cached ? recentReadingFromUnknown(cached.forecast) : null);
+    } catch (error) {
+      console.error(
+        `[personal-forecast] anti-repeat history read failed for ${previousKey}; continuing:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+  return readings.slice(0, historyLimit + 1);
 }
 
 async function savePersonalForecast(
@@ -216,7 +325,7 @@ export async function ensurePersonalForecast(
       cacheKey: identity.cacheKey,
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     }),
-    operation: `personal-forecast-profile-v1-${input.period}`,
+    operation: `personal-forecast-feed-${input.period}`,
     allowLocalLockFallback: true,
     readCached: async () => {
       try {
@@ -224,19 +333,27 @@ export async function ensurePersonalForecast(
         return cached ? { value: cached.forecast, source: 'cache' } : null;
       } catch (error) {
         console.error(
-          '[personal-forecast-profile-v1] cache read failed; continuing with Luna generation:',
+          '[personal-forecast] cache read failed; continuing with Luna generation:',
           error instanceof Error ? error.message : String(error),
         );
         return null;
       }
     },
     generate: async () => {
+      const recentForecasts = await getRecentPersonalForecastHistory(input).catch((error) => {
+        console.error(
+          '[personal-forecast] anti-repeat history unavailable; continuing with Luna generation:',
+          error instanceof Error ? error.message : String(error),
+        );
+        return [];
+      });
       const forecast = await generatePersonalForecastPackage({
         profile: input.ctx.profile,
         chartData: input.ctx.chartData!,
         model: identity.model,
         period: input.period,
         window: identity.window,
+        recentForecasts,
       });
       if (!isPersonalForecastPackage(forecast)) {
         throw new Error(
@@ -247,7 +364,7 @@ export async function ensurePersonalForecast(
         await savePersonalForecast(input, forecast, identity);
       } catch (error) {
         console.error(
-          '[personal-forecast-profile-v1] cache write failed; returning generated forecast:',
+          '[personal-forecast] cache write failed; returning generated forecast:',
           error instanceof Error ? error.message : String(error),
         );
       }

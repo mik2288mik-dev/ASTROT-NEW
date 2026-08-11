@@ -1,9 +1,10 @@
 /**
- * The single runtime voice for user-facing AI content.
- * Task prompts may define a period or JSON shape, but never a competing tone.
+ * The shared runtime voice for user-facing AI content.
+ * Product-specific layers may sharpen it without changing the global tone.
  */
 
 export const APP_VOICE_VERSION = '10';
+export const PERSONAL_FORECAST_VOICE_VERSION = '1';
 
 const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»
 
@@ -69,9 +70,38 @@ export function getAppSystemVoice(language: 'ru' | 'en' = 'ru'): string {
   return language === 'en' ? APP_SYSTEM_VOICE_EN : APP_SYSTEM_VOICE_RU;
 }
 
-/** Kept as a compatibility entry point; all forecasts now use the app voice. */
+const PERSONAL_FORECAST_SYSTEM_VOICE_RU = `## ГОЛОС ЛИЧНОГО ПРОГНОЗА
+
+Пиши как умный знакомый, который хорошо понимает именно этого читателя: прямо, наблюдательно и с характером. Редкая лёгкая ирония или одно неожиданное сравнение допустимы, когда они делают мысль точнее. Ты не стендап-комик: не шути в каждом фрагменте и не превращай прогноз в номер.
+
+- Не играй психолога, психотерапевта, коуча, эзотерика, гуру или предсказателя.
+- Не используй искусственный молодёжный сленг, не фамильярничай и не хами.
+- Не объясняй персонализацию и не пиши «твоя карта показывает», «по твоей карте» или эквиваленты.
+- Не используй слова и идеи «ресурс», «проявленность», «поток», «осознанность», «прислушайся к себе», «позволь себе», «будь в моменте», «внутренний ребёнок», «закрыть гештальт» и их перефразы.
+- Текст без названия приложения должен ощущаться написанным одному человеку, а не всем представителям знака.`;
+
+const PERSONAL_FORECAST_SYSTEM_VOICE_EN = `## PERSONAL FORECAST VOICE
+
+Write like an intelligent acquaintance who understands this particular reader: direct, observant, and distinct. Occasional irony or one unexpected comparison is welcome when it sharpens the point. You are not a stand-up comedian: do not joke in every fragment or turn the forecast into a routine.
+
+- Do not role-play a psychologist, therapist, coach, esoteric guide, guru, or fortune-teller.
+- Do not use artificial youth slang, forced familiarity, or rudeness.
+- Never explain the personalisation or say “your chart shows”, “according to your chart”, or equivalents.
+- Avoid coaching language such as “protect your resources”, “step into your power”, “trust the flow”, “listen to yourself”, “allow yourself”, “be present”, “inner child”, or “close the gestalt”.
+- With the app name removed, the copy must feel written for one person, not everyone with the same sign.`;
+
+const PERSONAL_FORECAST_VOICE_VIOLATION_PATTERNS: readonly RegExp[] = [
+  /(?:^|[^\p{L}])(?:ресурс\p{L}*|проявленност\p{L}*|поток\p{L}*|осознанност\p{L}*|заземл\p{L}*|экологичн\p{L}*|гештальт\p{L}*|внутренн\p{L}*\s+реб[её]н\p{L}*)(?!\p{L})/iu,
+  /(?:^|[^\p{L}])зв[её]зд\p{L}*\s+(?:обещают|говорят|подсказывают|советуют|предсказывают)(?!\p{L})/iu,
+  /(?:твоя|ваша)\s+карт[аы]\s+(?:показывает|говорит|подсказывает)|по\s+(?:твоей|вашей)\s+карт[еы]/iu,
+  /\b(?:the\s+stars\s+(?:promise|say|suggest|predict)|step\s+into\s+your\s+power|trust\s+the\s+flow|listen\s+to\s+yourself|allow\s+yourself|be\s+present|inner\s+child|close\s+the\s+gestalt|your\s+chart\s+(?:shows|says|suggests)|according\s+to\s+your\s+chart)\b/iu,
+];
+
 export function getPersonalForecastSystemVoice(language: 'ru' | 'en' = 'ru'): string {
-  return getAppSystemVoice(language);
+  const forecastVoice = language === 'en'
+    ? PERSONAL_FORECAST_SYSTEM_VOICE_EN
+    : PERSONAL_FORECAST_SYSTEM_VOICE_RU;
+  return `${getAppSystemVoice(language)}\n\n${forecastVoice}`;
 }
 
 export function hasAppVoiceMysticism(text: string): boolean {
@@ -86,8 +116,17 @@ export function hasAppVoiceViolation(text: string): boolean {
   return hasAppVoiceMysticism(text) || hasAppVoiceCliche(text);
 }
 
+export function hasPersonalForecastVoiceViolation(text: string): boolean {
+  return hasAppVoiceViolation(text)
+    || PERSONAL_FORECAST_VOICE_VIOLATION_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 export function withAppVoiceVersion(baseVersion: string): string {
   return `${baseVersion}+voice.${APP_VOICE_VERSION}`;
+}
+
+export function withPersonalForecastVoiceVersion(baseVersion: string): string {
+  return `${withAppVoiceVersion(baseVersion)}+forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`;
 }
 
 export function withAppVoiceCacheKey(baseKey: string): string {

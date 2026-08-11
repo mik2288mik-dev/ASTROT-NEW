@@ -27,7 +27,9 @@ export type EditorialOrientation = 'landscape' | 'portrait' | 'square';
 
 export type EditorialAssetBase = {
   id: string;
-  path: `/assets/forecast-feed/editorial-stickers/${string}.webp`;
+  path:
+    | `/assets/forecast-feed/editorial-stickers/${string}.webp`
+    | `/stickers/${string}.webp`;
   width: number;
   height: number;
   orientation: EditorialOrientation;
@@ -36,6 +38,13 @@ export type EditorialAssetBase = {
   shape: string;
   print: string;
   composition: string;
+};
+
+export type DiaryEditorialAsset = EditorialAssetBase & {
+  collection: 'diary-mascot' | 'diary-object';
+  medium: 'illustrated-sticker';
+  topics: readonly EditorialTopic[];
+  tone: EditorialTone;
 };
 
 export type MainEditorialAsset = EditorialAssetBase & {
@@ -60,6 +69,7 @@ export type ZodiacEditorialAsset = EditorialAssetBase & {
 };
 
 export type EditorialStickerAsset =
+  | DiaryEditorialAsset
   | MainEditorialAsset
   | SynastryEditorialAsset
   | ZodiacEditorialAsset;

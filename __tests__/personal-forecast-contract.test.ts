@@ -1,4 +1,7 @@
-import { APP_VOICE_VERSION } from '../lib/appVoice';
+import {
+  APP_VOICE_VERSION,
+  PERSONAL_FORECAST_VOICE_VERSION,
+} from '../lib/appVoice';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -164,9 +167,12 @@ describe('personal forecast direct-reading contract', () => {
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-natal-profile-v1');
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v12');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v25.luna-personal-story');
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v13');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v26.luna-continuous-feed');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
+      `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,
+    );
 
     for (const patch of [
       { calculationVersion: 'legacy' },
@@ -206,7 +212,7 @@ describe('personal forecast direct-reading contract', () => {
     };
     const cacheKey = buildPersonalForecastCacheKey(shared);
     const inputHash = buildPersonalForecastInputHash(shared);
-    expect(cacheKey).toMatch(/^personal-forecast-feed-v12:/);
+    expect(cacheKey).toMatch(/^personal-forecast-feed-v13:/);
     expect(inputHash).toMatch(/^[a-z0-9]+$/);
     expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
     expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);
@@ -227,6 +233,34 @@ describe('personal forecast direct-reading contract', () => {
       },
     });
     expect(unknown).not.toBe(exact);
+  });
+
+  test('fingerprints every saved natal field used by the Luna context', () => {
+    const baseChart = {
+      ...chartFixture,
+      sun: { ...chartFixture.sun, retrograde: false },
+      chiron: { ...chartFixture.sun, planet: 'Chiron', sign: 'Virgo', retrograde: false },
+      mc: { ...chartFixture.rising, sign: 'Cancer', stableSign: true },
+      aspects: [{ type: 'trine', angle: 120, orb: 1.2, from: 'Sun', to: 'Moon' }],
+    };
+    const base = buildPersonalForecastChartFingerprint(baseChart as never);
+
+    expect(buildPersonalForecastChartFingerprint({
+      ...baseChart,
+      chiron: { ...baseChart.chiron, sign: 'Libra' },
+    } as never)).not.toBe(base);
+    expect(buildPersonalForecastChartFingerprint({
+      ...baseChart,
+      sun: { ...baseChart.sun, retrograde: true },
+    } as never)).not.toBe(base);
+    expect(buildPersonalForecastChartFingerprint({
+      ...baseChart,
+      mc: { ...baseChart.mc, sign: 'Leo' },
+    } as never)).not.toBe(base);
+    expect(buildPersonalForecastChartFingerprint({
+      ...baseChart,
+      aspects: [{ ...baseChart.aspects[0], orb: 2.4 }],
+    } as never)).not.toBe(base);
   });
 
   test('accepts one or two valid Free sections for Today', () => {

@@ -89,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
       if (req.method === 'GET') throw error;
       console.error(
-        '[personal-forecast-feed-v5] initial cache read failed; generating directly:',
+        '[personal-forecast] initial cache read failed; generating directly:',
         error instanceof Error ? error.message : String(error),
       );
       return null;
@@ -99,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const stale = await getCompatibleStalePersonalForecast(cacheInput).catch((error) => {
       console.error(
-        '[personal-forecast-feed-v5] compatible stale read failed:',
+        '[personal-forecast] compatible stale read failed:',
         error instanceof Error ? error.message : String(error),
       );
       return null;
@@ -108,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (entitlement.isPremium || period === 'day') {
         void ensurePersonalForecast(cacheInput).catch((error) => {
           console.error(
-            '[personal-forecast-feed-v5] lazy refresh failed:',
+            '[personal-forecast] lazy refresh failed:',
             error instanceof Error ? error.message : String(error),
           );
         });
@@ -162,7 +162,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const diagnosticCode = getPersonalForecastGenerationDiagnosticCode(error);
-    console.error('[personal-forecast-feed-v5] request failed', {
+    console.error('[personal-forecast] request failed', {
       userId,
       period,
       periodKey,

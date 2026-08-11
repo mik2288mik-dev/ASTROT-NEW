@@ -25,6 +25,10 @@ import {
   type PersonalForecastClientError,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
+import {
+  resolveDiaryEditorialPauses,
+  type DiaryEditorialPause,
+} from '../lib/personalForecastVisuals';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 
@@ -146,6 +150,8 @@ export const Dashboard = memo<DashboardProps>(({
   const accessContextRef = useRef('');
   const pendingSectionRef = useRef<string | null>(null);
   const pendingPeriodRef = useRef<PendingPeriodSelection | null>(null);
+  const stickerPlanCacheRef = useRef<Map<string, DiaryEditorialPause[]>>(new Map());
+  const recentStickerIdsRef = useRef<string[]>([]);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => ({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
@@ -162,6 +168,14 @@ export const Dashboard = memo<DashboardProps>(({
       .filter(Boolean),
     [activeWindow, language],
   );
+  const activePeriodTitle = {
+    day: language === 'ru' ? 'Сегодня' : 'Today',
+    week: language === 'ru' ? 'Неделя' : 'Week',
+    month: language === 'ru' ? 'Месяц' : 'Month',
+  }[activePeriod];
+  const activeDateValue = activePeriod === 'day'
+    ? activeDateLines[activeDateLines.length - 1]
+    : activeDateLines.join(' ');
 
   const contextKey = useMemo(() => [
     userId,
@@ -185,6 +199,8 @@ export const Dashboard = memo<DashboardProps>(({
     if (contextRef.current === contextKey) return;
     contextRef.current = contextKey;
     requestsRef.current = {};
+    stickerPlanCacheRef.current.clear();
+    recentStickerIdsRef.current = [];
     if (!chartData || !hasChart) {
       setPeriodStates({
         day: emptyPeriodState(),
@@ -351,6 +367,53 @@ export const Dashboard = memo<DashboardProps>(({
     () => new Set(result?.lockedSectionIds || []),
     [result?.lockedSectionIds],
   );
+  const storySections = useMemo(
+    () => (forecast ? [forecast.overview, ...forecast.sections] : []),
+    [forecast],
+  );
+  const stickerEligibleSections = useMemo(
+    () => storySections.filter((section) => (
+      section.status === 'ready'
+      && !lockedIds.has(section.id)
+      && section.contentBlocks.some((block) => block.text.trim())
+    )),
+    [lockedIds, storySections],
+  );
+  const stickerPlanKey = useMemo(() => [
+    userId,
+    displayPeriod,
+    forecast?.periodKey || '',
+  ].join('|'), [
+    displayPeriod,
+    forecast?.periodKey,
+    userId,
+  ]);
+  const stickerPauses = useMemo(() => {
+    if (!forecast || !stickerEligibleSections.length) return [];
+    const cached = stickerPlanCacheRef.current.get(stickerPlanKey);
+    if (cached) return cached;
+    const next = resolveDiaryEditorialPauses({
+      userId,
+      period: displayPeriod,
+      periodKey: forecast.periodKey,
+      sections: stickerEligibleSections,
+      excludeAssetIds: recentStickerIdsRef.current,
+    });
+    stickerPlanCacheRef.current.set(stickerPlanKey, next);
+    return next;
+  }, [displayPeriod, forecast, stickerEligibleSections, stickerPlanKey, userId]);
+  const stickerPausesBySection = useMemo(
+    () => new Map(stickerPauses.map((pause) => [pause.afterSectionId, pause.asset])),
+    [stickerPauses],
+  );
+
+  useEffect(() => {
+    if (!stickerPauses.length) return;
+    const current = recentStickerIdsRef.current;
+    recentStickerIdsRef.current = [
+      ...new Set([...stickerPauses.map((pause) => pause.asset.id), ...current]),
+    ].slice(0, 18);
+  }, [stickerPauses]);
 
   const scrollToSection = useCallback((sectionId: string) => {
     const root = scrollRef?.current;
@@ -433,17 +496,19 @@ export const Dashboard = memo<DashboardProps>(({
 
       {hasChart ? (
         <div className="forecast-feed-reading-header">
-          <div className="forecast-feed-date-zone" aria-label={activeDateLines.join(' ')}>
+          <div
+            className="forecast-feed-date-zone"
+            aria-label={`${activePeriodTitle} ${activeDateValue}`}
+          >
             <div className="forecast-feed-date-cluster">
               <p className="forecast-feed-date">
-                {activeDateLines.length > 1 ? (
-                  <>
-                    <span className="forecast-feed-date-weekday">{activeDateLines[0]}</span>
-                    <span className="forecast-feed-date-value">{activeDateLines.slice(1).join(' ')}</span>
-                  </>
-                ) : (
-                  <span className="forecast-feed-date-value">{activeDateLines[0]}</span>
-                )}
+                <span className="forecast-feed-date-weekday">{activePeriodTitle}</span>
+                <time
+                  className="forecast-feed-date-value"
+                  dateTime={activeWindow.periodStart}
+                >
+                  {activeDateValue}
+                </time>
               </p>
             </div>
           </div>
@@ -491,16 +556,19 @@ export const Dashboard = memo<DashboardProps>(({
           )}
         </section>
       ) : (
-        <>
-          <ForecastSectionBlock
-            key={`${displayPeriod}:${forecast.periodKey}:${forecast.overview.id}`}
-            section={forecast.overview}
-            period={displayPeriod}
-            language={language}
-            locked={lockedIds.has(forecast.overview.id)}
-            onRequestPremium={requestPremium}
-          />
-        </>
+        <div className="forecast-feed-story">
+          {storySections.map((section) => (
+            <ForecastSectionBlock
+              key={`${displayPeriod}:${forecast.periodKey}:${section.id}`}
+              section={section}
+              period={displayPeriod}
+              language={language}
+              locked={lockedIds.has(section.id)}
+              sticker={stickerPausesBySection.get(section.id) || null}
+              onRequestPremium={requestPremium}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
