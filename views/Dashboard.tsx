@@ -17,6 +17,7 @@ import {
   normalizeForecastTimezone,
   resolvePersonalForecastWindow,
   type PersonalForecastPeriod,
+  type ForecastVisualCue,
 } from '../lib/personalForecastContract';
 import {
   forecastSectionVisualStyle,
@@ -84,6 +85,35 @@ const PERIOD_TABS: ReadonlyArray<{
   { id: 'week', ru: 'Неделя', en: 'Week' },
   { id: 'month', ru: 'Месяц', en: 'Month' },
 ] as const;
+
+function forecastStickerCaption(
+  cue: ForecastVisualCue | null | undefined,
+  language: 'ru' | 'en',
+): string {
+  const captions: Record<'ru' | 'en', Record<ForecastVisualCue, string>> = {
+    ru: {
+      communication: 'сказать прямо',
+      decisions: 'выбрать без лишнего шума',
+      work_money: 'собрать главное в одну линию',
+      home_family: 'вернуться в своё пространство',
+      friends: 'найти своих людей',
+      love: 'дать теплу место',
+      mood: 'оставить себе тихую паузу',
+      opportunities: 'заметить новый ход',
+    },
+    en: {
+      communication: 'say it plainly',
+      decisions: 'choose without the noise',
+      work_money: 'put the important things in one line',
+      home_family: 'return to your own space',
+      friends: 'find your people',
+      love: 'make room for warmth',
+      mood: 'leave yourself a quiet pause',
+      opportunities: 'notice a new move',
+    },
+  };
+  return captions[language][cue || 'mood'];
+}
 
 function personalForecastLoadingLabel(
   period: PersonalForecastPeriod,
@@ -483,8 +513,9 @@ export const Dashboard = memo<DashboardProps>(({
       path: assignment.path,
       width: assignment.width,
       height: assignment.height,
+      caption: forecastStickerCaption(assignment.cue, language),
     };
-  }, [forecast, visual]);
+  }, [forecast, language, visual]);
 
   useEffect(() => {
     const assetId = forecast && visual?.assignments[forecast.overview.id]?.assetId;

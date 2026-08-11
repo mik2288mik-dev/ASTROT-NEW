@@ -16,6 +16,7 @@ type ForecastSectionBlockProps = {
     path: string;
     width: number;
     height: number;
+    caption: string;
   } | null;
   children?: ReactNode;
   evidence: Record<string, ForecastEvidenceView>;
@@ -88,17 +89,21 @@ function renderContentBlocks(
               </div>
             ) : null}
             {editorialSticker && index === stickerAfterIndex ? (
-              <img
+              <figure
                 className="forecast-feed-editorial-sticker"
-                src={editorialSticker.path}
-                width={editorialSticker.width}
-                height={editorialSticker.height}
-                alt=""
                 aria-hidden="true"
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-              />
+              >
+                <img
+                  src={editorialSticker.path}
+                  width={editorialSticker.width}
+                  height={editorialSticker.height}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                />
+                <figcaption>{editorialSticker.caption}</figcaption>
+              </figure>
             ) : null}
           </React.Fragment>
         );

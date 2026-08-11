@@ -3,7 +3,7 @@
  * Task prompts may define a period or JSON shape, but never a competing tone.
  */
 
-export const APP_VOICE_VERSION = '8';
+export const APP_VOICE_VERSION = '9';
 
 const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»
 
@@ -13,6 +13,7 @@ const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГО�
 - Используй только переданные расчётные данные. Не придумывай события, биографию, мотивы, диагнозы, травмы или астрологические факты.
 - В основном пользовательском тексте переводи расчёт в обычный язык жизни. Астрологические термины допустимы только в явно запрошенном техническом пояснении.
 - Не повторяй мысль другими словами и не раздувай текст вступлениями, оговорками или универсальными советами.
+- Пиши как короткую личную заметку с живой сценой, а не как отчёт, разбор компетенций или служебную сводку. Сцена может быть узнаваемой, но не выдумывай события и биографию.
 - Без эзотерики, «энергий», «вибраций», коучинговой жвачки, канцелярита и искусственного молодёжного сленга.
 - Не делай тревогу, конфликт или риск обязательной темой. Хорошие возможности называй так же прямо, как ограничения.
 - Не упоминай конкретных родственников или партнёров в негативном ключе. Если нужен контекст близости, говори обобщённо.
@@ -29,6 +30,7 @@ Address the reader as “you”: precise, calm, vivid, and direct. You are an in
 - Use only supplied calculation data. Never invent events, biography, motives, diagnoses, trauma, or astrological facts.
 - Translate calculations into ordinary real-life language in the main user-facing copy. Astrology terminology is allowed only in an explicitly requested technical explanation.
 - Do not repeat an idea in different words or inflate the text with introductions, caveats, or universal advice.
+- Write like a short personal note with a living scene, never like a report, competency assessment, or executive summary. A scene may be recognisable, but never invent an event or biography.
 - No mysticism, cosmic-energy language, coaching filler, corporate prose, or artificial youth slang.
 - Do not make anxiety, conflict, or risk mandatory. Name good opportunities as directly as constraints.
 - Never single out relatives or partners negatively. Use general interpersonal language if context is needed.
@@ -57,8 +59,10 @@ const APP_VOICE_CLICHE_PATTERNS: readonly RegExp[] = [
   /повторяющ[а-яё]*\s+(?:тем|сценари|паттерн)|внутренн[а-яё]*\s+рисунок|постоянн[а-яё]*\s+рисунок/iu,
   /карта\s+сложилась|это\s+про\s+тебя|внутренняя\s+точность|чужой\s+шум|выбрать\s+из\s+ясности/iu,
   /сыграет\s+тебе\s+на\s+руку|где\s+у\s+тебя\s+больше\s+шансов|что\s+стоит\s+заметить|какой\s+момент\s+дня/iu,
+  /период\s+выводит\s+на\s+первый\s+план|главный\s+вызов\s+(?:дня|недели|месяца)|точка\s+опоры|внешняя\s+реализац|финансовые\s+решения\s+и\s+договор[её]нности\s+требуют|проверка\s+фактов|сохраняй\s+гибкость/iu,
   /\b(?:slow\s+down|do\s+not\s+rush|do\s+not\s+scatter\s+yourself|listen\s+to\s+yourself|allow\s+yourself|let\s+go\s+of\s+control|be\s+present|protect\s+your\s+energy|trust\s+the\s+flow|keep\s+your\s+balance|unlock\s+your\s+potential|reach\s+the\s+next\s+level|everything\s+will\s+become\s+clear)\b/iu,
   /\b(?:energy\s+of\s+the\s+day|active\s+theme|inner\s+pattern|recurring\s+patterns|the\s+chart\s+has\s+come\s+together|this\s+is\s+so\s+you|day\s+asks|inner\s+precision|outside\s+noise|choose\s+from\s+clarity)\b/iu,
+  /\b(?:the\s+period\s+brings\s+.+\s+to\s+the\s+foreground|main\s+challenge\s+of\s+the\s+(?:day|week|month)|point\s+of\s+support|external\s+realisation|executive\s+summary)\b/iu,
 ];
 
 export function getAppSystemVoice(language: 'ru' | 'en' = 'ru'): string {

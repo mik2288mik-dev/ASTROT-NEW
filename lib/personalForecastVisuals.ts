@@ -6,6 +6,7 @@ import {
   type FixedForecastSectionKey,
   type ForecastSectionKind,
   type ForecastTopicKey,
+  type ForecastVisualCue,
   type PersonalForecastPeriod,
 } from './personalForecastContract';
 
@@ -15,6 +16,7 @@ export type ForecastVisualSectionInput = {
   fixedKey?: FixedForecastSectionKey;
   sourceTopicKey?: ForecastTopicKey;
   visualTag: string;
+  visualCue?: ForecastVisualCue | null;
 };
 
 export type ForecastVisualFeedInput = {
@@ -46,6 +48,7 @@ export type ForecastVisualAssignment = {
   overlay: string;
   paletteTag: string | null;
   compositionTag: string | null;
+  cue: ForecastVisualCue | null;
   visualFallback: boolean;
 };
 
@@ -193,11 +196,12 @@ const VISUAL_TREATMENT: Record<
 
 function normalise(value: string) { return value.trim().toLowerCase().replace(/[\s/]+/g, '-'); }
 function themesFor(request: ForecastVisualRequest): readonly Theme[] {
+  if (request.visualCue) return [request.visualCue];
   const tag = normalise(request.visualTag);
   return TAG_THEMES[tag] || TAG_THEMES[tag.replace(/-/g, '_')] || (request.sourceTopicKey ? SOURCE_THEMES[request.sourceTopicKey] || ['general'] : ['general']);
 }
 function fallbackAssignment(request: ForecastVisualRequest): ForecastVisualAssignment {
-  return { sectionId: request.sectionId, assetId: null, path: null, width: null, height: null, sourceCategory: null, textSide: 'center', crop: { desktop: { position: '50% 50%', scale: 1 }, mobile: { position: '50% 50%', scale: 1 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: null, compositionTag: null, visualFallback: true };
+  return { sectionId: request.sectionId, assetId: null, path: null, width: null, height: null, sourceCategory: null, textSide: 'center', crop: { desktop: { position: '50% 50%', scale: 1 }, mobile: { position: '50% 50%', scale: 1 } }, mirrorX: false, overlayPreset: 'milky', overlay: MILKY_OVERLAY, paletteTag: null, compositionTag: null, cue: request.visualCue || null, visualFallback: true };
 }
 export function buildForecastVisualRequests(input: { userId: string; forecast: ForecastVisualFeedInput }): ForecastVisualRequest[] {
   return [input.forecast.overview, ...input.forecast.sections].map((section, sectionIndex) => ({ ...section, userId: input.userId, period: input.forecast.period, periodKey: input.forecast.periodKey, sectionId: section.id, sectionIndex }));
@@ -253,6 +257,7 @@ export function resolveForecastVisualScreen(requests: readonly ForecastVisualReq
           overlay: MILKY_OVERLAY,
           paletteTag: 'medium',
           compositionTag: asset.medium,
+          cue: request.visualCue || null,
           visualFallback: false,
         }
       : fallbackAssignment(request);

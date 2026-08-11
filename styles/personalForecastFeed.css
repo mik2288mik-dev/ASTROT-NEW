@@ -687,9 +687,26 @@
   display: block;
   width: clamp(220px, 66%, 390px);
   max-width: 100%;
+  margin: 26px auto 14px;
+  text-align: center;
+}
+
+.forecast-feed-editorial-sticker > img {
+  display: block;
+  width: 100%;
   height: auto;
-  margin: 24px auto 8px;
   object-fit: contain;
+}
+
+.forecast-feed-editorial-sticker > figcaption {
+  margin-top: 7px;
+  color: rgba(73, 65, 55, 0.66);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
 }
 
 .forecast-feed-section--fixed {

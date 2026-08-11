@@ -107,6 +107,26 @@ describe('personal forecast editorial visual resolver', () => {
     expect(asset?.topics).toContain('communication');
   });
 
+  it('uses the writer-selected story cue for the one forecast sticker', () => {
+    const storyFeed: ForecastVisualFeedInput = {
+      ...feed('2026-08-11'),
+      overview: section('overview', 'overview', 'calculated', {
+        visualCue: 'friends',
+      }),
+    };
+    const resolved = Array.from({ length: 120 }, (_, index) => resolvePersonalForecastVisuals({
+      userId: `${userId}-story-${index}`,
+      forecast: storyFeed,
+    })).find((sample) => !!sample.assignments.overview.path)!;
+    const asset = (mainManifest.items as Array<{
+      path: string;
+      topics: string[];
+    }>).find((item) => item.path === resolved.assignments.overview.path);
+
+    expect(resolved.assignments.overview.cue).toBe('friends');
+    expect(asset?.topics).toContain('friends');
+  });
+
   it('uses a soft background treatment and keeps a safe fallback', () => {
     const resolved = Array.from({ length: 120 }, (_, index) => resolvePersonalForecastVisuals({
       userId: `${userId}-style-${index}`,

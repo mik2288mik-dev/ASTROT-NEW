@@ -97,6 +97,23 @@ export type ForecastLockedPreview = {
 export type ForecastContentBlockRole = 'insight' | 'lead' | 'detail' | 'risk' | 'action';
 
 /**
+ * A deliberately small set of visual motifs. The writer selects one only
+ * when the same calculated evidence supports the forecast's main scene.
+ */
+export const FORECAST_VISUAL_CUES = [
+  'communication',
+  'decisions',
+  'work_money',
+  'home_family',
+  'friends',
+  'love',
+  'mood',
+  'opportunities',
+] as const;
+
+export type ForecastVisualCue = (typeof FORECAST_VISUAL_CUES)[number];
+
+/**
  * A writer may phrase an approved semantic atom, but it may not invent a new
  * claim. Keeping the atom and fact identifiers beside the rendered sentence
  * makes that boundary independently verifiable.
@@ -127,6 +144,7 @@ export type ForecastSection = {
   semanticFingerprint: string;
   importance: number;
   visualTag: string;
+  visualCue?: ForecastVisualCue | null;
   premiumTeaser: string;
   lockedPreview: ForecastLockedPreview;
   explanationAnchors: ExplanationAnchor[];
@@ -213,11 +231,11 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withAppVoiceVersion(
-  'personal-forecast-feed.v22.concise-distinct-periods-editorial-phrase',
+  'personal-forecast-feed.v23.short-personal-story-visual-cue',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-evidence-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v10';
-export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v6-astro-scenes';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v11';
+export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v7-story-cues';
 
 export const FORECAST_FIXED_TITLES: Record<
   'ru' | 'en',
@@ -786,6 +804,11 @@ function sectionValid(
     || section.importance > 100
     || typeof section.visualTag !== 'string'
     || !section.visualTag.trim()
+    || (
+      section.visualCue !== undefined
+      && section.visualCue !== null
+      && !FORECAST_VISUAL_CUES.includes(section.visualCue)
+    )
     || typeof section.premiumTeaser !== 'string'
     || !section.premiumTeaser.trim()
     || !section.lockedPreview
@@ -813,6 +836,7 @@ function sectionValid(
     && (
       section.explanationAnchors.length > 0
       || section.inlineAstroAccent
+      || section.visualCue
     )
   ) {
     return false;
@@ -1179,6 +1203,7 @@ function emptySection(
     semanticFingerprint: '',
     importance: 0,
     visualTag: fixedKey || 'overview',
+    visualCue: null,
     premiumTeaser: '',
     lockedPreview: { lead: '', blurred: '', teaser: '' },
     explanationAnchors: [],

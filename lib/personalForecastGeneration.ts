@@ -2,7 +2,11 @@ import { formatInTimeZone } from 'date-fns-tz';
 import type { NatalChartData, UserProfile } from '../types';
 import type { NatalChartDataV2 } from './natalChartV2Types';
 import { isNatalChartDataV2 } from './natal/canonicalReport';
-import { APP_VOICE_VERSION, getAppSystemVoice } from './appVoice';
+import {
+  APP_VOICE_VERSION,
+  getAppSystemVoice,
+  hasAppVoiceViolation,
+} from './appVoice';
 import {
   createLunaStructuredResponse,
   type StrictJsonSchema,
@@ -11,6 +15,7 @@ import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
+  FORECAST_VISUAL_CUES,
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
   getPersonalForecastPackageValidationError,
@@ -22,6 +27,7 @@ import {
   type ForecastContentBlock,
   type ForecastEvidenceView,
   type ForecastSection,
+  type ForecastVisualCue,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
   type PersonalForecastWindow,
@@ -63,15 +69,15 @@ export const PERSONAL_FORECAST_MAX_PROMPT_EVIDENCE: Record<PersonalForecastPerio
 };
 
 export const PERSONAL_FORECAST_WORD_LIMITS: Record<PersonalForecastPeriod, number> = {
-  day: 130,
-  week: 155,
-  month: 175,
+  day: 95,
+  week: 120,
+  month: 145,
 };
 
 export const PERSONAL_FORECAST_WORD_MINIMUMS: Record<PersonalForecastPeriod, number> = {
-  day: 100,
-  week: 130,
-  month: 150,
+  day: 60,
+  week: 80,
+  month: 100,
 };
 
 export const PERSONAL_FORECAST_MAX_PARAGRAPHS: Record<PersonalForecastPeriod, number> = {
@@ -82,7 +88,7 @@ export const PERSONAL_FORECAST_MAX_PARAGRAPHS: Record<PersonalForecastPeriod, nu
 
 export const PERSONAL_FORECAST_PHRASE_WORD_LIMITS = {
   minimum: 3,
-  maximum: 10,
+  maximum: 8,
 } as const;
 
 export function getPersonalForecastSystemPrompt(
@@ -111,17 +117,17 @@ export function getPersonalForecastSystemPrompt(
     week: 'Advice is required: return one concrete rule or action that helps through this week.',
     month: 'Advice is required: return one concrete action that helps direct this month.',
   };
-  const phraseRule = 'Return a short phrase of 3 to 10 words that captures the exact emotional or practical core of this reading. It must be personal, vivid, and grounded in the cited evidence, never a generic slogan. Do not generate a headline or subheadings; this phrase is the one editorial line above the reading.';
-  const ruPhraseRule = 'Верни короткую фразу из 3–10 слов, которая точно передаёт эмоциональное или практическое ядро разбора. Она должна быть личной, выразительной и опираться на указанные evidence, а не быть общим лозунгом. Не создавай заголовок или подзаголовок: это единственная редакционная строка над разбором.';
+  const phraseRule = 'Return one headline of 3 to 8 words. It must feel like a sharp, personal observation, not a slogan, motivational poster, or a report title. The headline names the story; it does not explain it.';
+  const ruPhraseRule = 'Верни один заголовок из 3–8 слов. Это острая личная мысль, а не лозунг, мотивирующая открытка или название отчёта. Заголовок называет сюжет, но не пересказывает его.';
   const editorialDirection: Record<PersonalForecastPeriod, string> = {
-    day: 'For today, choose one immediate situation rather than auditing every life area. Keep one or two short paragraphs. The advice must be one small action you can finish today, not a checklist or a restatement of the paragraph.',
-    week: 'For the week, describe one repeating way of acting: a boundary, a role, or a strategy. Keep no more than two short paragraphs. The advice must be a reusable rule for the week, not a one-off errand or a list.',
-    month: 'For the month, stay at the scale of priorities, direction, and capacity rather than daily logistics. Keep no more than two short paragraphs. The advice must be one meaningful commitment for the month, not a repeated daily-detail check.',
+    day: 'For today, write a small, recognisable personal scene: a choice, conversation, impulse, or pause that carries the main evidence. Do not audit every life area. Keep one or two concise paragraphs. The advice must be one small action you can finish today, not a checklist or a restatement of the paragraph.',
+    week: 'For the week, write one unfolding personal story about a repeating way of acting: a boundary, role, or strategy. Keep no more than two concise paragraphs and do not turn it into an executive summary. The advice must be a reusable rule for the week, not a one-off errand or a list.',
+    month: 'For the month, write a personal story about direction, appetite, and capacity rather than daily logistics. Keep no more than two concise paragraphs; make it read like a clear note from someone who knows the reader, not a monthly report. The advice must be one meaningful commitment for the month, not a repeated daily-detail check.',
   };
   const ruEditorialDirection: Record<PersonalForecastPeriod, string> = {
-    day: 'Для прогноза на сегодня выбери одну актуальную ситуацию, а не проводи ревизию всех сфер жизни. Оставь один-два коротких абзаца. Совет — одно небольшое действие, которое реально завершить сегодня; не чек-лист и не повтор абзаца.',
-    week: 'Для недели опиши один повторяющийся способ действовать: границу, роль или стратегию. Не больше двух коротких абзацев. Совет — применимое правило на неделю, а не разовое поручение или список.',
-    month: 'Для месяца держи масштаб приоритетов, направления и ресурса, а не ежедневной логистики. Не больше двух коротких абзацев. Совет — одно значимое обязательство на месяц, а не повторная проверка мелких дел.',
+    day: 'Для прогноза на сегодня напиши маленькую узнаваемую сцену: выбор, разговор, импульс или паузу, в которой виден главный смысл расчёта. Не проводи ревизию всех сфер жизни. Оставь один-два коротких абзаца. Совет — одно небольшое действие, которое реально завершить сегодня; не чек-лист и не повтор абзаца.',
+    week: 'Для недели напиши один разворачивающийся личный сюжет о повторяющемся способе действовать: границе, роли или стратегии. Не больше двух коротких абзацев и не превращай текст в служебную сводку. Совет — применимое правило на неделю, а не разовое поручение или список.',
+    month: 'Для месяца напиши личный сюжет о направлении, аппетите и запасе сил, а не о ежедневной логистике. Не больше двух коротких абзацев: это должна быть ясная записка человеку, которого ты знаешь, а не месячный отчёт. Совет — одно значимое обязательство на месяц, а не повторная проверка мелких дел.',
   };
 
   if (language === 'ru') {
@@ -135,17 +141,18 @@ export function getPersonalForecastSystemPrompt(
 - Выбирай тон по всей совокупности evidence. Спокойные, благоприятные и сложные проявления описывай только в той пропорции, в которой они подтверждены расчётом; ни один тип аспекта не становится главной темой автоматически.
 - Весь видимый прогноз — фраза, абзацы и совет — должен занимать от ${wordMinimum} до ${wordLimit} слов.
 - ${ruPhraseRule}
-- Напиши цельный текст с естественными абзацами только там, где меняется мысль. Не генерируй заголовок, подзаголовки, Markdown, списки, обязательные сферы или обязательное предупреждение.
+- Напиши короткий цельный текст с естественными абзацами только там, где меняется мысль. Не генерируй подзаголовки, Markdown, списки, обязательные сферы или обязательное предупреждение. Единственный заголовок верни в поле phrase.
 - Никогда не дели прогноз на временные отрезки. Запрещены указания на утро, день, вечер, начало, середину или конец периода, дни недели, выходные, первую или вторую часть периода и любые относительные сроки.
 - ${ruPeriodRule[period]}
 - ${ruEditorialDirection[period]}
 - Каждый абзац обязан вернуть собственные существующие evidence_ids. Не ставь один и тот же список автоматически во все абзацы.
 - ${ruAdviceRule[period]} Не вводи советом новый запрет, риск или тему.
-- Совет, если он есть, должен быть одним предложением не более 18 слов и вернуть только существующие evidence_ids.
+- Совет, если он есть, должен быть одним предложением не более 16 слов и вернуть только существующие evidence_ids.
+- Выбери один visual_cue из допустимого списка. Это не дополнительный текст для читателя, а тема единственной визуальной паузы внутри прогноза. Выбирай только тему, которую подтверждают её evidence_ids.
 - Ответ — только валидный JSON без Markdown.
 
 Верни строго:
-{"phrase":{"text":"короткая редакционная фраза","evidence_ids":["существующий evidence id"]},"paragraphs":[{"text":"абзац цельного разбора","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткое конкретное действие","evidence_ids":["существующий evidence id"]}}`;
+{"phrase":{"text":"короткий личный заголовок","evidence_ids":["существующий evidence id"]},"paragraphs":[{"text":"короткий цельный разбор","evidence_ids":["существующий evidence id"]}],"advice":{"text":"короткое конкретное действие","evidence_ids":["существующий evidence id"]},"visual_cue":{"key":"communication|decisions|work_money|home_family|friends|love|mood|opportunities","evidence_ids":["существующий evidence id"]}}`;
   }
 
   return `${getAppSystemVoice('en')}
@@ -158,17 +165,18 @@ PERSONAL FORECAST TASK
 - Let the complete evidence set determine the tone. Present calm, favourable, and difficult manifestations only in the proportion supported by the calculation; no aspect type is automatically the main story.
 - The complete visible forecast — phrase, paragraphs, and advice — has from ${wordMinimum} to ${wordLimit} words.
 - ${phraseRule}
-- Write one coherent text and split it into natural paragraphs only when the thought changes. Do not generate a headline, subheadings, Markdown, lists, mandatory life areas, or a mandatory warning.
+- Write one short coherent text and split it into natural paragraphs only when the thought changes. Do not generate subheadings, Markdown, lists, mandatory life areas, or a mandatory warning. Return the only headline in phrase.
 - Never divide the forecast into time segments. Do not mention morning, afternoon, evening, the beginning, middle, or end of the period, weekdays, weekends, the first or second part of a period, or any relative deadline.
 - ${enPeriodRule[period]}
 - ${editorialDirection[period]}
 - Every paragraph must return its own existing evidence_ids. Do not automatically attach the same list to every paragraph.
 - ${enAdviceRule[period]} Never introduce a new restriction, risk, or topic through advice.
-- Advice is one sentence of no more than 18 words and cites only existing evidence_ids.
+- Advice is one sentence of no more than 16 words and cites only existing evidence_ids.
+- Select one visual_cue from the allowed list. It is not extra reader copy: it is the theme for the reading's single visual pause. Its evidence_ids must support the selected theme.
 - Return valid JSON only, with no Markdown.
 
 Return exactly:
-{"phrase":{"text":"short editorial phrase","evidence_ids":["existing evidence id"]},"paragraphs":[{"text":"one paragraph of the coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short concrete action","evidence_ids":["existing evidence id"]}}`;
+{"phrase":{"text":"short personal headline","evidence_ids":["existing evidence id"]},"paragraphs":[{"text":"short coherent reading","evidence_ids":["existing evidence id"]}],"advice":{"text":"short concrete action","evidence_ids":["existing evidence id"]},"visual_cue":{"key":"communication|decisions|work_money|home_family|friends|love|mood|opportunities","evidence_ids":["existing evidence id"]}}`;
 }
 
 type GeneratedTextBlock = {
@@ -180,6 +188,10 @@ type GeneratedFeedPayload = {
   phrase?: GeneratedTextBlock | null | unknown;
   paragraphs?: GeneratedTextBlock[];
   advice?: GeneratedTextBlock | null | unknown;
+  visual_cue?: {
+    key?: unknown;
+    evidence_ids?: unknown;
+  } | null | unknown;
 };
 
 /**
@@ -220,8 +232,29 @@ export const PERSONAL_FORECAST_RESPONSE_SCHEMA: StrictJsonSchema = {
       required: ['text', 'evidence_ids'],
       additionalProperties: false,
     },
+    visual_cue: {
+      type: 'object',
+      properties: {
+        key: {
+          type: 'string',
+          enum: [
+            'communication',
+            'decisions',
+            'work_money',
+            'home_family',
+            'friends',
+            'love',
+            'mood',
+            'opportunities',
+          ],
+        },
+        evidence_ids: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['key', 'evidence_ids'],
+      additionalProperties: false,
+    },
   },
-  required: ['phrase', 'paragraphs', 'advice'],
+  required: ['phrase', 'paragraphs', 'advice', 'visual_cue'],
   additionalProperties: false,
 };
 
@@ -234,6 +267,7 @@ type FreeGeneratedBlock = {
 type FreeGeneratedSection = {
   title: string | null;
   evidenceIds: string[];
+  visualCue: ForecastVisualCue | null;
   blocks: FreeGeneratedBlock[];
 };
 
@@ -533,6 +567,20 @@ function generatedBlock(
   return text && evidenceIds ? { text, role, evidenceIds } : null;
 }
 
+function generatedVisualCue(
+  value: unknown,
+  availableEvidenceIds: ReadonlySet<string>,
+): { key: ForecastVisualCue; evidenceIds: string[] } | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const candidate = value as { key?: unknown; evidence_ids?: unknown };
+  const key = typeof candidate.key === 'string'
+    && FORECAST_VISUAL_CUES.includes(candidate.key as ForecastVisualCue)
+    ? candidate.key as ForecastVisualCue
+    : null;
+  const evidenceIds = validatedEvidenceIds(candidate.evidence_ids, availableEvidenceIds);
+  return key && evidenceIds ? { key, evidenceIds } : null;
+}
+
 export function validateFreeGeneratedForecastFeed(
   raw: GeneratedFeedPayload,
   availableEvidenceIds: ReadonlySet<string> = new Set(),
@@ -542,6 +590,7 @@ export function validateFreeGeneratedForecastFeed(
     return { sections: [], errors: ['payload requires paragraphs with valid evidence_ids'] };
   }
   const phrase = generatedBlock(raw.phrase, 'lead', availableEvidenceIds);
+  const visualCue = generatedVisualCue(raw.visual_cue, availableEvidenceIds);
   const phraseWords = phrase ? wordCount(phrase.text) : 0;
   const rawParagraphs = raw.paragraphs || [];
   const paragraphs = rawParagraphs.map((paragraph, index) => (
@@ -561,6 +610,9 @@ export function validateFreeGeneratedForecastFeed(
       `phrase has ${phraseWords} words; expected ${PERSONAL_FORECAST_PHRASE_WORD_LIMITS.minimum}-${PERSONAL_FORECAST_PHRASE_WORD_LIMITS.maximum}`,
     );
   }
+  if (raw.visual_cue !== undefined && raw.visual_cue !== null && !visualCue) {
+    errors.push('visual_cue requires an allowed key and existing evidence_ids');
+  }
   if (rawParagraphs.length > PERSONAL_FORECAST_MAX_PARAGRAPHS[period]) {
     errors.push(
       `forecast has ${rawParagraphs.length} paragraphs; maximum for ${period} is ${PERSONAL_FORECAST_MAX_PARAGRAPHS[period]}`,
@@ -573,13 +625,14 @@ export function validateFreeGeneratedForecastFeed(
     const advice = generatedBlock(raw.advice, 'action', availableEvidenceIds);
     if (!advice) {
       errors.push('advice has missing, duplicated, or unknown evidence_ids');
-    } else if (wordCount(advice.text) > 18) {
-      errors.push(`advice has ${wordCount(advice.text)} words; maximum is 18`);
+    } else if (wordCount(advice.text) > 16) {
+      errors.push(`advice has ${wordCount(advice.text)} words; maximum is 16`);
     } else {
       adviceBlock = advice;
       adviceSection = {
         title: null,
         evidenceIds: advice.evidenceIds,
+        visualCue: null,
         blocks: [advice],
       };
     }
@@ -598,6 +651,9 @@ export function validateFreeGeneratedForecastFeed(
   if (visibleCopy.some(containsChronologicalTimeSegment)) {
     errors.push('visible forecast copy contains a chronological time segment');
   }
+  if (visibleCopy.some(hasAppVoiceViolation)) {
+    errors.push('visible forecast copy contains a banned filler phrase');
+  }
   const totalWords = visibleCopy.reduce((sum, value) => sum + wordCount(value), 0);
   const wordMinimum = PERSONAL_FORECAST_WORD_MINIMUMS[period];
   const wordLimit = PERSONAL_FORECAST_WORD_LIMITS[period];
@@ -614,6 +670,7 @@ export function validateFreeGeneratedForecastFeed(
     sections: [{
       title: phrase?.text || null,
       evidenceIds: overviewEvidenceIds,
+      visualCue: visualCue?.key || null,
       blocks: readingBlocks,
     }, ...(adviceSection ? [adviceSection] : [])],
   };
@@ -718,6 +775,7 @@ function materializeDirectSection(input: {
     semanticFingerprint: `direct:${stableHash(`${input.section.blocks.flatMap((block) => block.evidenceIds).join(':')}:${input.sectionIndex}`).toString(36)}`,
     importance: Math.max(1, 100 - input.sectionIndex),
     visualTag: 'calculated',
+    visualCue: input.overview ? input.section.visualCue : null,
     premiumTeaser: teaser,
     lockedPreview: buildForecastLockedPreview(text, teaser),
     explanationAnchors: anchors,
