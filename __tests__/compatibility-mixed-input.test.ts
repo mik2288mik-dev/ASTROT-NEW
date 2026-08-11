@@ -52,8 +52,8 @@ describe('mixed compatibility input', () => {
     expect(room).toContain("type CompatibilityPersonSource = 'birth' | 'saved' | 'sign'");
     expect(room.match(/<PersonSourcePicker/g)).toHaveLength(2);
     expect(room).toContain('<option value="sign">');
-    expect(room).toContain("ru ? 'Знак зодиака' : 'Zodiac sign'");
-    expect(room).toContain("ru ? 'Дата рождения' : 'Birth date'");
+    expect(room).toContain("ru ? 'Знак' : 'Sign'");
+    expect(room).toContain("ru ? 'Дата' : 'Date'");
     expect(room).toContain("subjectSource === 'sign' && partnerSource === 'sign'");
     expect(room).toContain('compat-accuracy-line');
     expect(service).toContain('subjectSource');

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { CalendarDays, Clock3, MapPin, Sparkles, UserRound } from 'lucide-react';
+import { CalendarDays, Clock3, MapPin, UserRound } from 'lucide-react';
 import type { NatalChartData, SynastryResult, UserProfile } from '../../types';
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import { getZodiacSign } from '../../constants';
@@ -124,9 +124,9 @@ function PersonSourcePicker({
           onChange(event.target.value as CompatibilityPersonSource);
         }}
       >
-        <option value="birth">{ru ? 'Дата рождения' : 'Birth date'}</option>
-        <option value="saved">{ru ? 'Из сохранённых' : 'Saved charts'}</option>
-        <option value="sign">{ru ? 'Знак зодиака' : 'Zodiac sign'}</option>
+        <option value="birth">{ru ? 'Дата' : 'Date'}</option>
+        <option value="saved">{ru ? 'Карта' : 'Chart'}</option>
+        <option value="sign">{ru ? 'Знак' : 'Sign'}</option>
       </select>
       <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" /></svg>
     </label>
@@ -1041,8 +1041,7 @@ export function UnionRoom(props: UnionRoomProps) {
               <section className="compat-air-person" aria-labelledby="compat-first-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
-                    <span aria-hidden="true">01</span>
-                    <h3 id="compat-first-person-title">{ru ? 'Человек 1' : 'Person 1'}</h3>
+                    <h3 id="compat-first-person-title">{ru ? 'Первый человек' : 'First person'}</h3>
                   </div>
                   <PersonSourcePicker
                     value={subjectSource}
@@ -1099,8 +1098,7 @@ export function UnionRoom(props: UnionRoomProps) {
               <section className="compat-air-person" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
-                    <span aria-hidden="true">02</span>
-                    <h3 id="compat-second-person-title">{ru ? 'Человек 2' : 'Person 2'}</h3>
+                    <h3 id="compat-second-person-title">{ru ? 'Второй человек' : 'Second person'}</h3>
                   </div>
                   <PersonSourcePicker
                     value={partnerSource}
@@ -1151,16 +1149,6 @@ export function UnionRoom(props: UnionRoomProps) {
                   />
                 )}
               </section>
-
-              <p className="compat-entry-precision-note">
-                <Sparkles aria-hidden="true" size={15} strokeWidth={1.8} />
-                <span>
-                  <strong>{ru ? 'Больше деталей, если знаете.' : 'More detail, if you know it.'}</strong>
-                  {' '}{ru
-                    ? 'Город и время уточнят расчёт. По дате рождения тоже можно.'
-                    : 'A city and time make the reading more precise. A birth date is enough too.'}
-                </span>
-              </p>
 
               <section className="compat-entry-context" aria-labelledby="compat-context-title">
                 <h2 id="compat-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
