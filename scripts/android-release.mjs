@@ -6,7 +6,6 @@ import { spawnSync } from 'node:child_process';
 import { parseEnv } from 'node:util';
 
 const ANDROID_AUTH_ENV_NAMES = [
-  'GOOGLE_AUTH_CLIENT_ID',
   'YANDEX_AUTH_CLIENT_ID',
   'VK_AUTH_CLIENT_ID',
   'VK_ID_ANDROID_CLIENT_SECRET',
