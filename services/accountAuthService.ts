@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { nativeSessionStore } from './nativeSessionStore';
 import {
   nativeIdentityAuth,
-  type NativeIdentityProvider as Provider,
+  type NativeIdentityProvider,
   type NativeProviderCredential,
   type NativeProviderLaunch,
 } from './nativeIdentityAuthBridge';
@@ -14,6 +14,7 @@ import {
 import type { UserProfile } from '../types';
 
 export type LinkableProvider = 'vk' | 'yandex' | 'google' | 'email' | 'telegram';
+type Provider = NativeIdentityProvider | 'google';
 export type AccountAuthCapabilities = {
   vk: boolean;
   yandex: boolean;
@@ -34,7 +35,7 @@ type AuthPurpose = 'login' | 'link';
 
 type NativeProviderStart = {
   challengeId: string;
-  provider: Provider;
+  provider: NativeIdentityProvider;
   expiresInSeconds?: number;
   config: {
     clientId?: string;
@@ -49,6 +50,12 @@ let providerRequest: Promise<UserProfile> | null = null;
 
 function usesNativeAndroidProviderAuth(): boolean {
   return isNativeAppRuntime() && Capacitor.getPlatform() === 'android';
+}
+
+function googleAuthDisabledError(): Error {
+  const error = new Error('AUTH_PROVIDER_NOT_CONFIGURED');
+  (error as Error & { code?: string }).code = 'AUTH_PROVIDER_NOT_CONFIGURED';
+  return error;
 }
 
 async function authError(response: Response, fallback: string): Promise<Error> {
@@ -182,6 +189,7 @@ export async function beginExternalAuth(
   provider: Provider,
   purpose: AuthPurpose,
 ): Promise<void> {
+  if (provider === 'google') throw googleAuthDisabledError();
   const response = await apiFetch(`/api/auth/oauth/${provider}/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -200,6 +208,7 @@ export async function authenticateWithProvider(
   provider: Provider,
   purpose: AuthPurpose = 'login',
 ): Promise<UserProfile | null> {
+  if (provider === 'google') throw googleAuthDisabledError();
   if (!usesNativeAndroidProviderAuth()) {
     await beginExternalAuth(provider, purpose);
     return null;
