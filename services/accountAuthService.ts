@@ -37,9 +37,7 @@ type NativeProviderStart = {
   provider: Provider;
   expiresInSeconds?: number;
   config: {
-    webClientId?: string;
     clientId?: string;
-    nonce?: string;
     state?: string;
     codeChallenge?: string;
     codeChallengeMethod?: string;
@@ -95,15 +93,12 @@ async function postAuthJson<T extends Record<string, unknown>>(
 }
 
 function providerLaunchOptions(start: NativeProviderStart): NativeProviderLaunch {
-  const clientId = start.provider === 'google'
-    ? start.config.webClientId
-    : start.config.clientId;
+  const clientId = start.config.clientId;
   if (!clientId) throw new Error('AUTH_PROVIDER_NOT_CONFIGURED');
   return {
     challengeId: start.challengeId,
     provider: start.provider,
     clientId,
-    nonce: start.config.nonce,
     state: start.config.state,
     codeChallenge: start.config.codeChallenge,
     codeChallengeMethod: start.config.codeChallengeMethod,
@@ -177,7 +172,7 @@ export async function getAccountAuthCapabilities(): Promise<AccountAuthCapabilit
   return {
     vk: payload?.vk === true,
     yandex: payload?.yandex === true,
-    google: payload?.google === true,
+    google: false,
     email: emailDelivery,
     emailPassword,
     emailDelivery,
