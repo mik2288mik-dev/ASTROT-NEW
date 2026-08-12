@@ -86,8 +86,8 @@ describe('browser OAuth binding', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.PUBLIC_APP_ORIGIN = 'https://app.example.test';
-    process.env.GOOGLE_AUTH_CLIENT_ID = 'google-client';
-    process.env.GOOGLE_AUTH_CLIENT_SECRET = 'google-secret';
+    process.env.YANDEX_AUTH_CLIENT_ID = 'yandex-client';
+    process.env.YANDEX_AUTH_CLIENT_SECRET = 'yandex-secret';
     mockPoolQuery.mockResolvedValue({ rowCount: 1, rows: [] });
     mockConnect.mockResolvedValue({
       query: mockClientQuery,
@@ -114,7 +114,7 @@ describe('browser OAuth binding', () => {
 
     await startOAuthHandler({
       method: 'POST',
-      query: { provider: 'google' },
+      query: { provider: 'yandex' },
       body: { purpose: 'login' },
       headers: {},
       socket: { remoteAddress: '127.0.0.1' },
@@ -157,7 +157,7 @@ describe('browser OAuth binding', () => {
 
     await startOAuthHandler({
       method: 'POST',
-      query: { provider: 'google' },
+      query: { provider: 'yandex' },
       body: { purpose: 'login', native: true },
       headers: {},
       socket: { remoteAddress: '127.0.0.1' },
@@ -173,7 +173,7 @@ describe('browser OAuth binding', () => {
 
     await startOAuthHandler({
       method: 'POST',
-      query: { provider: 'google' },
+      query: { provider: 'yandex' },
       body: { purpose: 'link' },
       headers: {},
       socket: { remoteAddress: '127.0.0.1' },
@@ -199,11 +199,11 @@ describe('browser OAuth binding', () => {
           rowCount: 1,
           rows: [{
             challenge_id: 'challenge-1',
-            provider: 'google',
+            provider: 'yandex',
             purpose: 'login',
             user_id: null,
             state_hash: sha256(stateSecret),
-            redirect_uri: 'https://app.example.test/api/auth/oauth/google/callback',
+            redirect_uri: 'https://app.example.test/api/auth/oauth/yandex/callback',
             metadata: {
               codeVerifier: 'pkce-verifier',
               oauthBindingHash: sha256(attackerBinding),
@@ -216,7 +216,7 @@ describe('browser OAuth binding', () => {
     global.fetch = jest.fn() as any;
 
     await expect((finishOAuth as any)({
-      provider: 'google',
+      provider: 'yandex',
       code: 'provider-code',
       state: `challenge-1.${stateSecret}`,
       browserBinding: 'different-browser-binding',
