@@ -3,7 +3,7 @@ import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
 import { finishOAuth } from '../../../../../lib/auth/accountIdentity';
 import { requireOAuthBrowserBinding } from '../../../../../lib/auth/oauthBrowserBinding';
 
-const PROVIDERS = ['vk', 'yandex', 'google'] as const;
+const PROVIDERS = ['vk', 'yandex'] as const;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');

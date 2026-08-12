@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { nativeSessionStore } from './nativeSessionStore';
 import {
   nativeIdentityAuth,
-  type NativeIdentityProvider as Provider,
+  type NativeIdentityProvider,
   type NativeProviderCredential,
   type NativeProviderLaunch,
 } from './nativeIdentityAuthBridge';
@@ -14,6 +14,7 @@ import {
 import type { UserProfile } from '../types';
 
 export type LinkableProvider = 'vk' | 'yandex' | 'google' | 'email' | 'telegram';
+type Provider = NativeIdentityProvider | 'google';
 export type AccountAuthCapabilities = {
   vk: boolean;
   yandex: boolean;
@@ -34,12 +35,10 @@ type AuthPurpose = 'login' | 'link';
 
 type NativeProviderStart = {
   challengeId: string;
-  provider: Provider;
+  provider: NativeIdentityProvider;
   expiresInSeconds?: number;
   config: {
-    webClientId?: string;
     clientId?: string;
-    nonce?: string;
     state?: string;
     codeChallenge?: string;
     codeChallengeMethod?: string;
@@ -51,6 +50,12 @@ let providerRequest: Promise<UserProfile> | null = null;
 
 function usesNativeAndroidProviderAuth(): boolean {
   return isNativeAppRuntime() && Capacitor.getPlatform() === 'android';
+}
+
+function googleAuthDisabledError(): Error {
+  const error = new Error('AUTH_PROVIDER_NOT_CONFIGURED');
+  (error as Error & { code?: string }).code = 'AUTH_PROVIDER_NOT_CONFIGURED';
+  return error;
 }
 
 async function authError(response: Response, fallback: string): Promise<Error> {
@@ -95,15 +100,12 @@ async function postAuthJson<T extends Record<string, unknown>>(
 }
 
 function providerLaunchOptions(start: NativeProviderStart): NativeProviderLaunch {
-  const clientId = start.provider === 'google'
-    ? start.config.webClientId
-    : start.config.clientId;
+  const clientId = start.config.clientId;
   if (!clientId) throw new Error('AUTH_PROVIDER_NOT_CONFIGURED');
   return {
     challengeId: start.challengeId,
     provider: start.provider,
     clientId,
-    nonce: start.config.nonce,
     state: start.config.state,
     codeChallenge: start.config.codeChallenge,
     codeChallengeMethod: start.config.codeChallengeMethod,
@@ -177,7 +179,7 @@ export async function getAccountAuthCapabilities(): Promise<AccountAuthCapabilit
   return {
     vk: payload?.vk === true,
     yandex: payload?.yandex === true,
-    google: payload?.google === true,
+    google: false,
     email: emailDelivery,
     emailPassword,
     emailDelivery,
@@ -187,6 +189,7 @@ export async function beginExternalAuth(
   provider: Provider,
   purpose: AuthPurpose,
 ): Promise<void> {
+  if (provider === 'google') throw googleAuthDisabledError();
   const response = await apiFetch(`/api/auth/oauth/${provider}/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -205,6 +208,7 @@ export async function authenticateWithProvider(
   provider: Provider,
   purpose: AuthPurpose = 'login',
 ): Promise<UserProfile | null> {
+  if (provider === 'google') throw googleAuthDisabledError();
   if (!usesNativeAndroidProviderAuth()) {
     await beginExternalAuth(provider, purpose);
     return null;

@@ -48,11 +48,11 @@ describe('explicit authentication flow contracts', () => {
     expect(read('services/storageService.ts')).toContain("const url = '/api/users/me'");
   });
 
-  it('uses the Android-first account gate without making Telegram or guest mandatory', () => {
+  it('uses the Android-first RuStore account gate without making Telegram or guest mandatory', () => {
     const gate = read('views/AuthGate.tsx');
     const app = read('App.tsx');
 
-    expect(gate).toContain('Продолжить с Google');
+    expect(gate).not.toContain('Продолжить с Google');
     expect(gate).toContain('Продолжить с Яндексом');
     expect(gate).toContain('Продолжить с VK ID');
     expect(gate).toContain('registerEmailPassword');

@@ -4,22 +4,8 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
-import android.os.CancellationSignal;
 
 import androidx.activity.result.ActivityResult;
-import androidx.core.content.ContextCompat;
-import androidx.credentials.ClearCredentialStateRequest;
-import androidx.credentials.Credential;
-import androidx.credentials.CredentialManager;
-import androidx.credentials.CredentialManagerCallback;
-import androidx.credentials.CustomCredential;
-import androidx.credentials.GetCredentialRequest;
-import androidx.credentials.GetCredentialResponse;
-import androidx.credentials.exceptions.ClearCredentialException;
-import androidx.credentials.exceptions.ClearCredentialProviderConfigurationException;
-import androidx.credentials.exceptions.GetCredentialCancellationException;
-import androidx.credentials.exceptions.GetCredentialException;
-import androidx.credentials.exceptions.GetCredentialProviderConfigurationException;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.getcapacitor.JSObject;
@@ -28,8 +14,6 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.vk.id.AccessToken;
 import com.vk.id.VKID;
 import com.vk.id.VKIDAuthFail;
@@ -64,7 +48,6 @@ public class NativeIdentityAuthPlugin extends Plugin {
     private final Object vkInitializationLock = new Object();
 
     private volatile PluginCall activeSignInCall;
-    private volatile CancellationSignal googleCancellationSignal;
     private volatile boolean vkInitialized;
     private YandexAuthSdk yandexAuthSdk;
     private SecureSessionStore secureSessionStore;
@@ -91,9 +74,6 @@ public class NativeIdentityAuthPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             try {
                 switch (provider) {
-                    case "google":
-                        startGoogleSignIn(call);
-                        break;
                     case "yandex":
                         startYandexSignIn(call);
                         break;
@@ -107,77 +87,6 @@ public class NativeIdentityAuthPlugin extends Plugin {
                 rejectSignIn(call, AUTH_CONFIGURATION);
             }
         });
-    }
-
-    /**
-     * Google button flow documented at:
-     * https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation
-     */
-    private void startGoogleSignIn(PluginCall call) {
-        String configuredClientId = BuildConfig.GOOGLE_AUTH_SERVER_CLIENT_ID.trim();
-        String requestedClientId = option(call, "clientId");
-        String nonce = option(call, "nonce");
-        if (!matchesConfiguredClient(configuredClientId, requestedClientId) || isBlank(nonce)) {
-            rejectSignIn(call, AUTH_CONFIGURATION);
-            return;
-        }
-
-        GetSignInWithGoogleOption googleOption = new GetSignInWithGoogleOption.Builder(configuredClientId)
-            .setNonce(nonce)
-            .build();
-        GetCredentialRequest request = new GetCredentialRequest.Builder()
-            .addCredentialOption(googleOption)
-            .build();
-        CancellationSignal cancellationSignal = new CancellationSignal();
-        googleCancellationSignal = cancellationSignal;
-
-        CredentialManager.create(getContext()).getCredentialAsync(
-            getActivity(),
-            request,
-            cancellationSignal,
-            ContextCompat.getMainExecutor(getContext()),
-            new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
-                @Override
-                public void onResult(GetCredentialResponse response) {
-                    Credential credential = response.getCredential();
-                    if (!(credential instanceof CustomCredential)) {
-                        rejectSignIn(call, AUTH_FAILED);
-                        return;
-                    }
-
-                    CustomCredential customCredential = (CustomCredential) credential;
-                    String type = customCredential.getType();
-                    boolean supportedType = GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(type)
-                        || GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL.equals(type);
-                    if (!supportedType) {
-                        rejectSignIn(call, AUTH_FAILED);
-                        return;
-                    }
-
-                    try {
-                        GoogleIdTokenCredential googleCredential = GoogleIdTokenCredential.createFrom(customCredential.getData());
-                        JSObject result = new JSObject();
-                        result.put("idToken", googleCredential.getIdToken());
-                        resolveSignIn(call, result);
-                    } catch (Exception error) {
-                        rejectSignIn(call, AUTH_FAILED);
-                    }
-                }
-
-                @Override
-                public void onError(GetCredentialException error) {
-                    if (error instanceof GetCredentialCancellationException) {
-                        rejectSignIn(call, AUTH_CANCELLED);
-                    } else if (error instanceof GetCredentialProviderConfigurationException) {
-                        rejectSignIn(call, AUTH_CONFIGURATION);
-                    } else if (!isNetworkAvailable()) {
-                        rejectSignIn(call, AUTH_NETWORK);
-                    } else {
-                        rejectSignIn(call, AUTH_FAILED);
-                    }
-                }
-            }
-        );
     }
 
     /**
@@ -308,42 +217,13 @@ public class NativeIdentityAuthPlugin extends Plugin {
     @PluginMethod
     public void clearCredentialState(PluginCall call) {
         String provider = option(call, "provider").toLowerCase(Locale.ROOT);
-        if (!provider.isEmpty() && !"google".equals(provider) && !"yandex".equals(provider) && !"vk".equals(provider)) {
+        if (!provider.isEmpty() && !"yandex".equals(provider) && !"vk".equals(provider)) {
             reject(call, AUTH_CONFIGURATION);
             return;
         }
 
         // Yandex and our external-PKCE VK flow do not retain an app access token.
-        if (!provider.isEmpty() && !"google".equals(provider)) {
-            call.resolve(new JSObject().put("cleared", true));
-            return;
-        }
-
-        try {
-            CredentialManager.create(getContext()).clearCredentialStateAsync(
-                new ClearCredentialStateRequest(),
-                null,
-                ContextCompat.getMainExecutor(getContext()),
-                new CredentialManagerCallback<Void, ClearCredentialException>() {
-                    @Override
-                    public void onResult(Void unused) {
-                        call.resolve(new JSObject().put("cleared", true));
-                    }
-
-                    @Override
-                    public void onError(ClearCredentialException error) {
-                        reject(
-                            call,
-                            error instanceof ClearCredentialProviderConfigurationException
-                                ? AUTH_CONFIGURATION
-                                : AUTH_FAILED
-                        );
-                    }
-                }
-            );
-        } catch (RuntimeException error) {
-            reject(call, AUTH_CONFIGURATION);
-        }
+        call.resolve(new JSObject().put("cleared", true));
     }
 
     @PluginMethod
@@ -389,8 +269,6 @@ public class NativeIdentityAuthPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
-        CancellationSignal cancellationSignal = googleCancellationSignal;
-        if (cancellationSignal != null) cancellationSignal.cancel();
         PluginCall call = activeSignInCall;
         if (call != null && signInInFlight.compareAndSet(true, false)) {
             activeSignInCall = null;
@@ -466,14 +344,12 @@ public class NativeIdentityAuthPlugin extends Plugin {
     private void resolveSignIn(PluginCall call, JSObject result) {
         if (activeSignInCall != call || !signInInFlight.compareAndSet(true, false)) return;
         activeSignInCall = null;
-        googleCancellationSignal = null;
         call.resolve(result);
     }
 
     private void rejectSignIn(PluginCall call, String code) {
         if (activeSignInCall != call || !signInInFlight.compareAndSet(true, false)) return;
         activeSignInCall = null;
-        googleCancellationSignal = null;
         reject(call, code);
     }
 

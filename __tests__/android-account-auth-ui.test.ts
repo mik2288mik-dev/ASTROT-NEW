@@ -5,11 +5,11 @@ const root = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
 
 describe('Android account authentication UI', () => {
-  test('offers the four required sign-up and sign-in methods', () => {
+  test('offers the RuStore sign-up and sign-in methods without Google', () => {
     const gate = read('views/AuthGate.tsx');
 
     expect(gate).toContain('Создать аккаунт');
-    expect(gate).toContain('Продолжить с Google');
+    expect(gate).not.toContain('Продолжить с Google');
     expect(gate).toContain('Продолжить с Яндексом');
     expect(gate).toContain('Продолжить с VK ID');
     expect(gate).toContain('Повторите пароль');
@@ -31,6 +31,8 @@ describe('Android account authentication UI', () => {
     expect(service).toContain("'/api/auth/password/reset-request'");
     expect(service).toContain("'/api/auth/password/reset-complete'");
     expect(service).toContain('providerRequest');
+    expect(bridge).toContain("export type NativeIdentityProvider = 'vk' | 'yandex'");
+    expect(bridge).not.toContain("| 'google'");
   });
 
   test('does not make Telegram or guest access primary in the Android gate', () => {

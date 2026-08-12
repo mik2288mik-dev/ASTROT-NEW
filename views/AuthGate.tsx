@@ -19,10 +19,9 @@ type AuthGateProps = {
 };
 
 type AuthScreen = 'register' | 'verify' | 'login' | 'forgot' | 'reset';
-type Provider = 'google' | 'yandex' | 'vk';
+type Provider = 'yandex' | 'vk';
 
 const PROVIDERS: Array<{ id: Provider; label: string }> = [
-  { id: 'google', label: 'Продолжить с Google' },
   { id: 'yandex', label: 'Продолжить с Яндексом' },
   { id: 'vk', label: 'Продолжить с VK ID' },
 ];
