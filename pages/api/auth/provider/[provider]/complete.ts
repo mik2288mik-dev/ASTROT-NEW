@@ -54,7 +54,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       provider,
       challengeId: String(req.body?.challengeId || ''),
       credential: {
-        idToken: req.body?.idToken,
         accessToken: req.body?.accessToken,
         code: req.body?.code,
         deviceId: req.body?.deviceId,
