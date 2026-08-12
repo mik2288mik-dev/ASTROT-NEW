@@ -1,12 +1,11 @@
 import { registerPlugin } from '@capacitor/core';
 
-export type NativeIdentityProvider = 'vk' | 'yandex' | 'google';
+export type NativeIdentityProvider = 'vk' | 'yandex';
 
 export type NativeProviderLaunch = {
   challengeId: string;
   provider: NativeIdentityProvider;
   clientId: string;
-  nonce?: string;
   state?: string;
   codeChallenge?: string;
   codeChallengeMethod?: string;
@@ -14,7 +13,6 @@ export type NativeProviderLaunch = {
 };
 
 export type NativeProviderCredential = {
-  idToken?: string;
   accessToken?: string;
   code?: string;
   deviceId?: string;
