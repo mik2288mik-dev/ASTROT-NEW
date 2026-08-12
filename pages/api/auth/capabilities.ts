@@ -30,9 +30,7 @@ export function getAccountAuthCapabilities(runtime: AccountAuthRuntime) {
   const providers = runtime === 'native'
     ? getNativeProviderAuthCapabilities()
     : {
-        google: browserOriginReady()
-          && !!configuredValue('GOOGLE_AUTH_CLIENT_ID')
-          && !!configuredValue('GOOGLE_AUTH_CLIENT_SECRET'),
+        google: false,
         yandex: browserOriginReady()
           && !!configuredValue('YANDEX_AUTH_CLIENT_ID')
           && !!configuredValue('YANDEX_AUTH_CLIENT_SECRET'),
