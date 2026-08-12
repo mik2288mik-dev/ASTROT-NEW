@@ -14,17 +14,17 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(activity).toContain('registerRuStorePlugin()');
   });
 
-  it('uses the current native identity SDKs with build-injected configuration', () => {
+  it('packages only the current RuStore identity SDKs with build-injected configuration', () => {
     const rootGradle = read('android/build.gradle');
     const appGradle = read('android/app/build.gradle');
     const manifest = read('android/app/src/main/AndroidManifest.xml');
 
-    expect(appGradle).toContain('androidx.credentials:credentials:1.6.0');
-    expect(appGradle).toContain('androidx.credentials:credentials-play-services-auth:1.6.0');
-    expect(appGradle).toContain('com.google.android.libraries.identity.googleid:googleid:1.2.0');
+    expect(appGradle).not.toContain('androidx.credentials:credentials:');
+    expect(appGradle).not.toContain('androidx.credentials:credentials-play-services-auth:');
+    expect(appGradle).not.toContain('com.google.android.libraries.identity.googleid:googleid:');
     expect(appGradle).toContain('com.yandex.android:authsdk:3.1.3');
     expect(appGradle).toContain('com.vk.id:vkid:2.7.2');
-    expect(appGradle).toContain("authValue('GOOGLE_AUTH_CLIENT_ID')");
+    expect(appGradle).not.toContain("authValue('GOOGLE_AUTH_CLIENT_ID')");
     expect(appGradle).toContain("authValue('YANDEX_AUTH_CLIENT_ID')");
     expect(appGradle).toContain("authValue('VK_AUTH_CLIENT_ID')");
     expect(appGradle).toContain("authValue('VK_ID_ANDROID_CLIENT_SECRET')");
@@ -35,7 +35,7 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(manifest).toContain('android.permission.ACCESS_NETWORK_STATE');
   });
 
-  it('returns only provider proof and protects every native launch with stable errors', () => {
+  it('returns only Yandex/VK provider proof and protects every native launch with stable errors', () => {
     const plugin = read(
       'android/app/src/main/java/ru/tvoygoroskop/app/auth/NativeIdentityAuthPlugin.java',
     );
@@ -43,10 +43,10 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(plugin).toContain('@CapacitorPlugin(name = "NativeIdentityAuth")');
     expect(plugin).toContain('public void signIn(PluginCall call)');
     expect(plugin).toContain('public void clearCredentialState(PluginCall call)');
-    expect(plugin).toContain('GetSignInWithGoogleOption.Builder');
-    expect(plugin).toContain('.setNonce(nonce)');
-    expect(plugin).toContain('GoogleIdTokenCredential.createFrom');
-    expect(plugin).toContain('result.put("idToken", googleCredential.getIdToken())');
+    expect(plugin).not.toContain('GetSignInWithGoogleOption');
+    expect(plugin).not.toContain('GoogleIdTokenCredential');
+    expect(plugin).not.toContain('CredentialManager');
+    expect(plugin).not.toContain('case "google"');
     expect(plugin).toContain('YandexAuthSdk.create');
     expect(plugin).toContain('YandexAuthResult.Cancelled');
     expect(plugin).toContain('payload.put("accessToken", accessToken)');
