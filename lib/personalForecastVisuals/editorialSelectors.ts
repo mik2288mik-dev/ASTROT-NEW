@@ -7,12 +7,21 @@ import type {
   EditorialTone,
   EditorialTopic,
   DiaryEditorialAsset,
+  DiaryEligibleAsset,
+  DiaryVisualFamily,
+  DiaryVisualRarity,
   MainEditorialAsset,
   SynastryEditorialAsset,
   ZodiacEditorialAsset,
 } from './editorialTypes';
+import { DIARY_VISUAL_FAMILY_WEIGHTS } from './editorialTypes';
+import {
+  EDITORIAL_V2_PAPER_TEMPLATES,
+  EDITORIAL_V2_REVIEW_EXCLUDED_IDS,
+  EDITORIAL_V2_TODAY_ASSETS,
+} from './editorialV2Manifest';
 
-export const NEWSPAPER_VISUAL_MANIFEST_VERSION = 'newspaper-v3-sparse';
+export const NEWSPAPER_VISUAL_MANIFEST_VERSION = 'newspaper-v4-diary-universe';
 
 export const EDITORIAL_PLACEMENT_POLICY = {
   diary: { visiblePercent: 40, maxPauses: 2 },
@@ -131,6 +140,59 @@ const DIARY_ASSETS: readonly DiaryEditorialAsset[] = [
   ...DIARY_OBJECT_ASSETS,
 ];
 
+const DIARY_VISUAL_FAMILY_ORDER = Object.keys(
+  DIARY_VISUAL_FAMILY_WEIGHTS,
+) as DiaryVisualFamily[];
+
+function diaryVisualFamily(
+  asset: DiaryEditorialAsset | MainEditorialAsset,
+): DiaryVisualFamily {
+  if (asset.collection === 'diary-mascot') return 'mascot';
+  if (asset.collection === 'diary-object') return 'object';
+  if (asset.medium === 'psychedelic-humor') return 'psychedelic-humor';
+  if (asset.medium === 'photo' && asset.topics.includes('animals')) return 'animal';
+  if (asset.medium === 'photo') return 'editorial';
+  if (
+    asset.medium === 'associative'
+    || asset.medium === 'surreal'
+    || asset.medium === 'graphic'
+  ) {
+    return asset.medium;
+  }
+  return 'editorial';
+}
+
+function diaryVisualRarity(family: DiaryVisualFamily): DiaryVisualRarity {
+  if (family === 'psychedelic-humor') return 'rare';
+  if (family === 'associative' || family === 'surreal') return 'occasional';
+  return 'common';
+}
+
+function withDiaryEligibility(
+  asset: DiaryEditorialAsset | MainEditorialAsset,
+): DiaryEligibleAsset {
+  const family = diaryVisualFamily(asset);
+  return {
+    ...asset,
+    diaryFamily: family,
+    selectionRarity: diaryVisualRarity(family),
+    familyWeight: DIARY_VISUAL_FAMILY_WEIGHTS[family],
+    displayWeight: 'medium',
+    rarity: diaryVisualRarity(family),
+    visualWeight: DIARY_VISUAL_FAMILY_WEIGHTS[family],
+  };
+}
+
+const DIARY_ELIGIBLE_ASSETS: readonly DiaryEligibleAsset[] = [
+  ...DIARY_ASSETS,
+  ...MAIN_ASSETS,
+].map(withDiaryEligibility);
+
+const DIARY_TODAY_VISUAL_ASSETS: readonly DiaryEligibleAsset[] = [
+  ...DIARY_ELIGIBLE_ASSETS,
+  ...EDITORIAL_V2_TODAY_ASSETS,
+];
+
 const MEDIUM_CYCLE: readonly EditorialMedium[] = [
   'photo', 'photo', 'photo', 'photo', 'photo', 'photo', 'photo', 'photo', 'photo',
   'associative', 'associative', 'associative', 'associative', 'associative', 'associative', 'associative',
@@ -155,6 +217,16 @@ function percentageBucket(seed: string): number {
 
 function isEligible(seed: string, visiblePercent: number): boolean {
   return percentageBucket(`eligibility|${seed}`) < visiblePercent;
+}
+
+function diaryFamilyForSeed(seed: string): DiaryVisualFamily {
+  const bucket = stableHash(`${NEWSPAPER_VISUAL_MANIFEST_VERSION}|diary-family|${seed}`) % 100;
+  let cursor = 0;
+  for (const family of DIARY_VISUAL_FAMILY_ORDER) {
+    cursor += DIARY_VISUAL_FAMILY_WEIGHTS[family];
+    if (bucket < cursor) return family;
+  }
+  return 'editorial';
 }
 
 function natalMedium(seed: string): EditorialMedium {
@@ -257,14 +329,17 @@ export function selectDiaryEditorialSticker(input: {
   excludeIds?: readonly string[];
   slot?: number;
   forceVisible?: boolean;
-}): DiaryEditorialAsset | null {
+}): DiaryEligibleAsset | null {
   const slot = input.slot ?? 0;
   const seed = ['diary', input.contentKey, input.userId || 'guest', String(slot)].join('|');
   if (!input.forceVisible && !isEligible(seed, EDITORIAL_PLACEMENT_POLICY.diary.visiblePercent)) {
     return null;
   }
   const excluded = new Set(input.excludeIds || []);
-  const base = DIARY_ASSETS.filter((asset) => !excluded.has(asset.id));
+  const family = diaryFamilyForSeed(seed);
+  const eligible = DIARY_ELIGIBLE_ASSETS.filter((asset) => !excluded.has(asset.id));
+  const familyMatches = eligible.filter((asset) => asset.diaryFamily === family);
+  const base = familyMatches.length ? familyMatches : eligible;
   const topicMatches = input.topics?.length
     ? base.filter((asset) => asset.topics.some((topic) => input.topics!.includes(topic)))
     : base;
@@ -326,10 +401,39 @@ export function getDiaryEditorialStickerCounts() {
   return {
     mascot: DIARY_MASCOT_ASSETS.length,
     objects: DIARY_OBJECT_ASSETS.length,
-    total: DIARY_ASSETS.length,
+    main: MAIN_ASSETS.length,
+    total: DIARY_ELIGIBLE_ASSETS.length,
+    byMedium: {
+      photo: MAIN_ASSETS.filter((asset) => asset.medium === 'photo').length,
+      associative: MAIN_ASSETS.filter((asset) => asset.medium === 'associative').length,
+      surreal: MAIN_ASSETS.filter((asset) => asset.medium === 'surreal').length,
+      graphic: MAIN_ASSETS.filter((asset) => asset.medium === 'graphic').length,
+      'psychedelic-humor': MAIN_ASSETS.filter(
+        (asset) => asset.medium === 'psychedelic-humor',
+      ).length,
+      'illustrated-sticker': DIARY_ASSETS.length,
+    },
   } as const;
 }
 
-export function getDiaryEditorialStickerLibrary(): readonly DiaryEditorialAsset[] {
-  return DIARY_ASSETS;
+export function getDiaryEditorialStickerLibrary(): readonly DiaryEligibleAsset[] {
+  return DIARY_ELIGIBLE_ASSETS;
+}
+
+export function getDiaryTodayVisualLibrary(): readonly DiaryEligibleAsset[] {
+  return DIARY_TODAY_VISUAL_ASSETS;
+}
+
+export function getDiaryPaperTemplateLibrary() {
+  return EDITORIAL_V2_PAPER_TEMPLATES;
+}
+
+export function getDiaryTodayVisualCounts() {
+  return {
+    legacy: DIARY_ELIGIBLE_ASSETS.length,
+    editorialV2: EDITORIAL_V2_TODAY_ASSETS.length,
+    paperTemplates: EDITORIAL_V2_PAPER_TEMPLATES.length,
+    excludedForReview: EDITORIAL_V2_REVIEW_EXCLUDED_IDS.length,
+    total: DIARY_TODAY_VISUAL_ASSETS.length,
+  } as const;
 }

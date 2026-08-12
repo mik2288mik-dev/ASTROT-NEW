@@ -8,6 +8,8 @@ describe('account identity and session contract', () => {
     const service = read('lib/auth/accountIdentity.ts');
     const env = read('.env.example');
     const settings = read('views/Settings.tsx');
+    const gate = read('views/AuthGate.tsx');
+    const capabilities = read('pages/api/auth/capabilities.ts');
     const releaseValidation = read('scripts/validate-store-release.mjs');
     expect(service).toContain("'vk', 'yandex', 'google', 'email', 'telegram'");
     expect(service).toContain('IDENTITY_ALREADY_LINKED');
@@ -17,6 +19,20 @@ describe('account identity and session contract', () => {
     expect(env).not.toContain('NEXT_PUBLIC_GOOGLE_AUTH_CLIENT_SECRET');
     expect(env).not.toContain('NEXT_PUBLIC_VK_AUTH_CLIENT_SECRET');
     expect(releaseValidation).toContain("'EMAIL_OTP_DELIVERY_SECRET'");
+    expect(releaseValidation).toContain("'VK_ID_ANDROID_CLIENT_SECRET'");
+    expect(releaseValidation).toContain("'EMAIL_OTP_HASH_SECRET'");
+    expect(releaseValidation).toContain("'AUTH_RATE_LIMIT_SECRET'");
+    expect(releaseValidation).toContain('must contain at least 32 bytes');
+    expect(service).toContain("'https://id.vk.ru/authorize'");
+    expect(service).toContain('VK_DEVICE_ID_REQUIRED');
+    expect(service).toContain("device_id: deviceId!");
+    expect(service).toContain("input.provider === 'vk' ? 's256' : 'S256'");
+    expect(gate).toContain('getAccountAuthCapabilities');
+    expect(gate).toContain('emailPassword');
+    expect(gate).toContain('emailDelivery');
+    expect(settings).toContain('getAccountAuthCapabilities');
+    expect(capabilities).toContain('getAccountAuthCapabilities(runtime)');
+    expect(capabilities).toContain("runtime === 'native'");
   });
 
   it('persists revocable server sessions and blocks guest RuStore purchases', () => {

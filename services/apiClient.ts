@@ -6,6 +6,12 @@ import {
 } from './authSessionIntent';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const INVALID_NATIVE_SESSION_CODES = new Set([
+  'APP_SESSION_INVALID',
+  'APP_SESSION_REVOKED',
+  'APP_AUTH_REQUIRED',
+  'ACCOUNT_BLOCKED',
+]);
 
 type NativeSessionResponse = {
   token: string;
@@ -13,6 +19,17 @@ type NativeSessionResponse = {
 };
 
 let nativeSessionRequest: Promise<NativeSessionResponse> | null = null;
+
+async function rejectsCurrentNativeSession(response: Response): Promise<boolean> {
+  if (response.status !== 401 && response.status !== 403) return false;
+  const payload = await response.clone().json().catch(() => ({})) as {
+    code?: unknown;
+    error?: unknown;
+  };
+  return [payload.code, payload.error].some(
+    (value) => typeof value === 'string' && INVALID_NATIVE_SESSION_CODES.has(value),
+  );
+}
 
 export function isNativeAppRuntime(): boolean {
   return process.env.NEXT_PUBLIC_MOBILE_BUILD === '1';
@@ -48,12 +65,13 @@ async function requestNativeSession(): Promise<NativeSessionResponse> {
       method: 'POST',
       headers,
     });
+    const invalidatesStoredSession = await rejectsCurrentNativeSession(response);
     const payload = await response.json().catch(() => ({})) as Partial<NativeSessionResponse> & {
       error?: string;
       message?: string;
     };
     if (!response.ok || !payload.token) {
-      if (response.status === 401) await nativeSessionStore.clearToken();
+      if (invalidatesStoredSession) await nativeSessionStore.clearToken();
       throw new Error(payload.message || payload.error || `Native session failed: ${response.status}`);
     }
     await nativeSessionStore.setToken(payload.token);
@@ -71,9 +89,7 @@ export async function getAppAuthHeaders(): Promise<Record<string, string>> {
     if (storedToken) return { Authorization: `Bearer ${storedToken}` };
 
     const mode = getAuthSessionMode();
-    if (requiresExplicitAuthentication(mode) || (mode !== 'automatic' && mode !== 'guest')) {
-      return {};
-    }
+    if (requiresExplicitAuthentication(mode) || mode !== 'guest') return {};
     const token = (await requestNativeSession()).token;
     return { Authorization: `Bearer ${token}` };
   }
@@ -119,7 +135,7 @@ export async function apiFetch(
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
   const response = await fetchOnce(path, init, timeoutMs);
-  if (isNativeAppRuntime() && response.status === 401) {
+  if (isNativeAppRuntime() && await rejectsCurrentNativeSession(response)) {
     // An invalid or revoked native token must return the user to the explicit
     // sign-in choice. Silently creating a new guest here used to hide logout
     // failures and could switch accounts behind the user's back.

@@ -56,9 +56,14 @@ describe('Lumia content prompt builders', () => {
     expect(buildNatalSectionPrompt({ title: 'Отношения' }).user).toContain('не больше 200 слов');
     expect(buildNatalSectionPrompt({ title: 'Отношения' }).user).toContain('Первое предложение — прямой вывод');
     expect(buildSignCompatibilityPrompt().user).toContain('без счёта совместимости');
-    expect(buildSynastryPrompt().user).toContain('Не используй термин «синастрия»');
+    expect(buildSignCompatibilityPrompt().user).toContain('Каждый блок открывает новую сторону пары');
+    expect(buildSignCompatibilityPrompt().user).toContain('желание сравнить другие пары');
+    expect(buildSynastryPrompt().user).toContain('AI-разбор по данным двух людей');
     expect(buildSynastryPrompt().user).toContain('В context.relationship передан тип связи');
-    expect(buildSynastryPrompt().user).toContain('не добавляй романтическое притяжение');
+    expect(buildSynastryPrompt().user).toContain('Не вычисляй и не выдумывай положения планет');
+    expect(buildSynastryPrompt().user).toContain('Каждый раздел должен давать новый узнаваемый эпизод');
+    expect(buildSynastryPrompt().user).toContain('никаких рекламных призывов');
+    expect(buildSynastryPrompt().user).not.toContain('context.synastryAspects');
   });
 
   it('uses a safe fallback for malformed model JSON', () => {
@@ -69,11 +74,14 @@ describe('Lumia content prompt builders', () => {
   });
 
   it('connects dedicated builders to active generators instead of one shared prompt', () => {
-    expect(read('lib/horoscope/signDaily.ts')).toContain('buildSignDailyHoroscopePrompt');
-    expect(read('lib/horoscope/signWeekly.ts')).toContain('buildSignWeeklyHoroscopePrompt');
+    expect(read('lib/horoscope/signDaily.ts')).toContain('getOrGenerateSignHoroscope');
+    expect(read('lib/horoscope/signWeekly.ts')).toContain('getOrGenerateSignHoroscope');
+    expect(read('lib/horoscope/signOrchestrator.ts')).toContain('generateSignHoroscopeBatch');
+    expect(read('lib/horoscope/signGeneration.ts')).toContain('promptSystem(language)');
+    expect(read('lib/horoscope/signGeneration.ts')).toContain('promptUser(digest, signs, language');
     expect(read('lib/personalForecastGeneration.ts')).toContain('buildPersonalForecastFeedPrompt');
     expect(read('lib/personalForecastGeneration.ts')).not.toContain('buildPersonalForecastTopicPrompt');
-    expect(read('lib/personalForecastGeneration.ts')).toContain('getAppSystemVoice');
+    expect(read('lib/personalForecastGeneration.ts')).toContain('getPersonalForecastSystemVoice');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('compileNatalSemantics');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('natalPromptPayload');
     expect(read('lib/natalHumanInterpretation.ts')).not.toContain('buildNatalSectionPrompt');

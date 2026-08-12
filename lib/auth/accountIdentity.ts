@@ -2,6 +2,10 @@ import crypto from 'crypto';
 import type { PoolClient } from 'pg';
 import { getPool } from '../db';
 import { AdminAuthError, getConfiguredOwnerId } from '../adminAuth';
+import {
+  hashOAuthBrowserExchange,
+  oauthBrowserBindingMatches,
+} from './oauthBrowserBinding';
 
 export const EXTERNAL_AUTH_PROVIDERS = ['vk', 'yandex', 'google', 'email', 'telegram'] as const;
 export type ExternalAuthProvider = typeof EXTERNAL_AUTH_PROVIDERS[number];
@@ -27,23 +31,17 @@ type OAuthProviderConfig = {
 
 const AUTH_CHALLENGE_TTL_MS = 10 * 60 * 1000;
 const AUTH_EXCHANGE_TTL_MS = 5 * 60 * 1000;
-const EMAIL_CODE_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 60;
 
 function sha256(value: string): string {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
-
 function base64url(bytes = 32): string {
   return crypto.randomBytes(bytes).toString('base64url');
 }
 
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
-}
-
-function validEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function requiredServerValue(name: string): string {
@@ -78,9 +76,9 @@ function oauthConfig(provider: Exclude<ExternalAuthProvider, 'email' | 'telegram
   return {
     clientId: requiredServerValue('VK_AUTH_CLIENT_ID'),
     clientSecret: requiredServerValue('VK_AUTH_CLIENT_SECRET'),
-    authorizeUrl: process.env.VK_AUTH_AUTHORIZE_URL || 'https://id.vk.com/authorize',
-    tokenUrl: process.env.VK_AUTH_TOKEN_URL || 'https://id.vk.com/oauth2/auth',
-    userInfoUrl: process.env.VK_AUTH_USERINFO_URL || 'https://id.vk.com/oauth2/user_info',
+    authorizeUrl: process.env.VK_AUTH_AUTHORIZE_URL || 'https://id.vk.ru/authorize',
+    tokenUrl: process.env.VK_AUTH_TOKEN_URL || 'https://id.vk.ru/oauth2/auth',
+    userInfoUrl: process.env.VK_AUTH_USERINFO_URL || 'https://id.vk.ru/oauth2/user_info',
     scopes: 'vkid.personal_info email',
   };
 }
@@ -114,6 +112,11 @@ async function createAccountUser(
 export async function resolveVerifiedIdentity(
   identity: VerifiedIdentity,
   currentUserId?: string | null,
+  options: {
+    beforeCommit?: (client: PoolClient, userId: string) => Promise<void>;
+    requireNewIdentity?: boolean;
+    requiredSession?: { userId: string; sessionId: string };
+  } = {},
 ): Promise<{ userId: string; linked: boolean; existing: boolean }> {
   const subject = String(identity.subject || '').trim();
   if (!subject) throw new AdminAuthError(400, 'IDENTITY_SUBJECT_REQUIRED', 'Verified provider subject is required');
@@ -125,6 +128,23 @@ export async function resolveVerifiedIdentity(
       'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
       [`account-identity:${identity.provider}:${subject}`],
     );
+    if (options.requiredSession) {
+      const requiredUserId = String(options.requiredSession.userId || '');
+      const requiredSessionId = String(options.requiredSession.sessionId || '');
+      if (!currentUserId || currentUserId !== requiredUserId || !requiredSessionId) {
+        throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+      }
+      const activeSession = await client.query(
+        `SELECT session_id FROM app_sessions
+         WHERE session_id = $1 AND user_id = $2
+           AND revoked_at IS NULL AND expires_at > NOW()
+         FOR SHARE`,
+        [requiredSessionId, requiredUserId],
+      );
+      if (!activeSession.rowCount) {
+        throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+      }
+    }
     const existing = await client.query(
       `SELECT user_id FROM account_identities
        WHERE provider = $1 AND provider_subject = $2 FOR UPDATE`,
@@ -132,6 +152,13 @@ export async function resolveVerifiedIdentity(
     );
     if (existing.rows[0]) {
       const ownerId = String(existing.rows[0].user_id);
+      if (options.requireNewIdentity) {
+        throw new AdminAuthError(
+          409,
+          'IDENTITY_ALREADY_LINKED',
+          'This sign-in method is already linked to another account',
+        );
+      }
       if (currentUserId && ownerId !== currentUserId) {
         throw new AdminAuthError(
           409,
@@ -147,6 +174,7 @@ export async function resolveVerifiedIdentity(
          WHERE provider = $1 AND provider_subject = $2`,
         [identity.provider, subject, identity.displayName || null, email, JSON.stringify(identity.metadata || {})],
       );
+      await options.beforeCommit?.(client, ownerId);
       await client.query('COMMIT');
       return { userId: ownerId, linked: false, existing: true };
     }
@@ -154,9 +182,25 @@ export async function resolveVerifiedIdentity(
     let userId = currentUserId || null;
     let upgradingGuest = false;
     if (userId) {
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [`account-provider:${userId}:${identity.provider}`],
+      );
       const user = await client.query('SELECT id, is_guest FROM users WHERE id = $1 FOR UPDATE', [userId]);
       if (!user.rowCount) throw new AdminAuthError(404, 'ACCOUNT_NOT_FOUND', 'Account no longer exists');
       upgradingGuest = user.rows[0].is_guest === true;
+      const providerIdentity = await client.query(
+        `SELECT provider_subject FROM account_identities
+         WHERE user_id = $1 AND provider = $2 FOR UPDATE`,
+        [userId, identity.provider],
+      );
+      if (providerIdentity.rows[0]) {
+        throw new AdminAuthError(
+          409,
+          'PROVIDER_ALREADY_LINKED',
+          'This account already has a different identity for that provider',
+        );
+      }
     } else {
       userId = await createAccountUser(client, identity.displayName);
     }
@@ -191,6 +235,7 @@ export async function resolveVerifiedIdentity(
        WHERE id = $1`,
       [userId, identity.provider],
     );
+    await options.beforeCommit?.(client, userId);
     await client.query('COMMIT');
     return { userId, linked: true, existing: false };
   } catch (error) {
@@ -200,7 +245,6 @@ export async function resolveVerifiedIdentity(
     client.release();
   }
 }
-
 /**
  * Resolves a verified Telegram identity for an explicit sign-in.
  *
@@ -359,13 +403,49 @@ export async function beginOAuth(input: {
   purpose: AuthPurpose;
   currentUserId?: string | null;
   redirectUri: string;
-  native?: boolean;
+  browserBindingHash: string;
+  requiredSession?: { userId: string; sessionId: string };
 }): Promise<{ authorizationUrl: string }> {
+  if (!/^[a-f0-9]{64}$/.test(input.browserBindingHash)) {
+    throw new AdminAuthError(400, 'OAUTH_BROWSER_BINDING_INVALID', 'OAuth browser binding is invalid');
+  }
+  if (
+    input.purpose === 'link'
+    && (
+      !input.currentUserId
+      || !input.requiredSession?.sessionId
+      || input.requiredSession.userId !== input.currentUserId
+    )
+  ) {
+    throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+  }
   const config = oauthConfig(input.provider);
   const challengeId = crypto.randomUUID();
   const state = base64url();
   const codeVerifier = base64url(48);
   const codeChallenge = Buffer.from(sha256(codeVerifier), 'hex').toString('base64url');
+  await getPool().query(
+    `WITH expired AS (
+       SELECT challenge_id FROM auth_challenges
+       WHERE expires_at < NOW()
+       ORDER BY expires_at
+       LIMIT 250
+     )
+     DELETE FROM auth_challenges c
+     USING expired e
+     WHERE c.challenge_id = e.challenge_id`,
+  ).catch(() => undefined);
+  await getPool().query(
+    `WITH expired AS (
+       SELECT code_hash FROM auth_exchange_codes
+       WHERE expires_at < NOW()
+       ORDER BY expires_at
+       LIMIT 250
+     )
+     DELETE FROM auth_exchange_codes c
+     USING expired e
+     WHERE c.code_hash = e.code_hash`,
+  ).catch(() => undefined);
   await getPool().query(
     `INSERT INTO auth_challenges
      (challenge_id, provider, purpose, user_id, state_hash, redirect_uri, metadata, expires_at)
@@ -377,7 +457,11 @@ export async function beginOAuth(input: {
       input.currentUserId || null,
       sha256(state),
       input.redirectUri,
-      JSON.stringify({ codeVerifier, native: input.native === true }),
+      JSON.stringify({
+        codeVerifier,
+        oauthBindingHash: input.browserBindingHash,
+        ...(input.requiredSession ? { requiredSessionId: input.requiredSession.sessionId } : {}),
+      }),
       new Date(Date.now() + AUTH_CHALLENGE_TTL_MS).toISOString(),
     ],
   );
@@ -388,7 +472,7 @@ export async function beginOAuth(input: {
   url.searchParams.set('scope', config.scopes);
   url.searchParams.set('state', `${challengeId}.${state}`);
   url.searchParams.set('code_challenge', codeChallenge);
-  url.searchParams.set('code_challenge_method', 'S256');
+  url.searchParams.set('code_challenge_method', input.provider === 'vk' ? 's256' : 'S256');
   return { authorizationUrl: url.toString() };
 }
 
@@ -397,15 +481,22 @@ async function fetchOAuthIdentity(
   code: string,
   redirectUri: string,
   verifier: string,
+  state: string,
+  deviceId?: string,
 ): Promise<VerifiedIdentity> {
   const config = oauthConfig(provider);
+  if (provider === 'vk' && !deviceId) {
+    throw new AdminAuthError(400, 'VK_DEVICE_ID_REQUIRED', 'VK ID did not return a device id');
+  }
   const tokenBody = new URLSearchParams({
     grant_type: 'authorization_code',
     code,
     redirect_uri: redirectUri,
     client_id: config.clientId,
-    client_secret: config.clientSecret,
     code_verifier: verifier,
+    ...(provider === 'vk'
+      ? { device_id: deviceId!, state }
+      : { client_secret: config.clientSecret }),
   });
   const tokenResponse = await fetch(config.tokenUrl, {
     method: 'POST',
@@ -418,16 +509,21 @@ async function fetchOAuthIdentity(
     throw new AdminAuthError(401, 'OAUTH_CODE_EXCHANGE_FAILED', 'OAuth provider rejected the code');
   }
 
-  const userInfoResponse = await fetch(config.userInfoUrl, {
+  const userInfoUrl = provider === 'vk'
+    ? `${config.userInfoUrl}?client_id=${encodeURIComponent(config.clientId)}`
+    : config.userInfoUrl;
+  const userInfoResponse = await fetch(userInfoUrl, {
     method: provider === 'vk' ? 'POST' : 'GET',
     headers: {
-      Authorization: provider === 'yandex'
-        ? `OAuth ${token.access_token}`
-        : `Bearer ${token.access_token}`,
+      ...(provider !== 'vk' ? {
+        Authorization: provider === 'yandex'
+          ? `OAuth ${token.access_token}`
+          : `Bearer ${token.access_token}`,
+      } : {}),
       ...(provider === 'vk' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
     },
     body: provider === 'vk'
-      ? new URLSearchParams({ client_id: config.clientId, access_token: token.access_token })
+      ? new URLSearchParams({ access_token: token.access_token, device_id: deviceId! })
       : undefined,
     signal: AbortSignal.timeout(10_000),
   });
@@ -452,7 +548,9 @@ export async function finishOAuth(input: {
   provider: 'vk' | 'yandex' | 'google';
   code: string;
   state: string;
-}): Promise<{ exchangeCode: string; userId: string; native: boolean; redirectUri: string }> {
+  deviceId?: string;
+  browserBinding: string;
+}): Promise<{ exchangeCode: string; userId: string; redirectUri: string }> {
   const [challengeId, stateSecret] = input.state.split('.');
   if (!challengeId || !stateSecret) throw new AdminAuthError(400, 'OAUTH_STATE_INVALID', 'Invalid OAuth state');
   const client = await getPool().connect();
@@ -468,34 +566,61 @@ export async function finishOAuth(input: {
     if (!challenge || challenge.state_hash !== sha256(stateSecret)) {
       throw new AdminAuthError(400, 'OAUTH_STATE_INVALID', 'Invalid or expired OAuth state');
     }
+    const metadata = typeof challenge.metadata === 'string'
+      ? JSON.parse(challenge.metadata)
+      : challenge.metadata || {};
+    if (
+      !input.browserBinding
+      || typeof metadata.oauthBindingHash !== 'string'
+      || !oauthBrowserBindingMatches(input.browserBinding, metadata.oauthBindingHash)
+    ) {
+      throw new AdminAuthError(
+        401,
+        'OAUTH_BROWSER_BINDING_INVALID',
+        'This OAuth login must be completed in the browser where it started',
+      );
+    }
     await client.query(
       `UPDATE auth_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE challenge_id = $1`,
       [challengeId],
     );
     await client.query('COMMIT');
-    const metadata = challenge.metadata || {};
     const identity = await fetchOAuthIdentity(
       input.provider,
       input.code,
       challenge.redirect_uri,
       String(metadata.codeVerifier || ''),
+      stateSecret,
+      input.deviceId,
     );
-    const account = await resolveVerifiedIdentity(identity, challenge.purpose === 'link' ? String(challenge.user_id) : null);
+    const linkUserId = challenge.purpose === 'link' ? String(challenge.user_id || '') : null;
+    const requiredSessionId = typeof metadata.requiredSessionId === 'string'
+      ? metadata.requiredSessionId
+      : '';
+    if (challenge.purpose === 'link' && (!linkUserId || !requiredSessionId)) {
+      throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+    }
+    const account = await resolveVerifiedIdentity(
+      identity,
+      linkUserId,
+      linkUserId
+        ? { requiredSession: { userId: linkUserId, sessionId: requiredSessionId } }
+        : {},
+    );
     const exchangeCode = base64url(36);
     await getPool().query(
       `INSERT INTO auth_exchange_codes (code_hash, user_id, session_kind, expires_at)
        VALUES ($1, $2, $3, $4)`,
       [
-        sha256(exchangeCode),
+        hashOAuthBrowserExchange(exchangeCode, input.browserBinding),
         account.userId,
-        metadata.native === true ? 'native' : 'web',
+        'web',
         new Date(Date.now() + AUTH_EXCHANGE_TTL_MS).toISOString(),
       ],
     );
     return {
       exchangeCode,
       userId: account.userId,
-      native: metadata.native === true,
       redirectUri: challenge.redirect_uri,
     };
   } catch (error) {
@@ -506,115 +631,25 @@ export async function finishOAuth(input: {
   }
 }
 
-export async function consumeAuthExchange(code: string): Promise<{ userId: string; kind: 'web' | 'native' }> {
+export async function consumeAuthExchange(code: string, browserBinding: string): Promise<{ userId: string; kind: 'web' }> {
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
+    const codeHash = hashOAuthBrowserExchange(code, browserBinding);
     const result = await client.query(
       `SELECT user_id, session_kind FROM auth_exchange_codes
-       WHERE code_hash = $1 AND consumed_at IS NULL AND expires_at > NOW() FOR UPDATE`,
-      [sha256(code)],
+       WHERE code_hash = $1 AND session_kind = 'web'
+         AND consumed_at IS NULL AND expires_at > NOW() FOR UPDATE`,
+      [codeHash],
     );
     if (!result.rows[0]) throw new AdminAuthError(401, 'AUTH_EXCHANGE_INVALID', 'Login code is invalid or expired');
     await client.query(
-      `UPDATE auth_exchange_codes SET consumed_at = CURRENT_TIMESTAMP WHERE code_hash = $1`,
-      [sha256(code)],
+      `UPDATE auth_exchange_codes SET consumed_at = CURRENT_TIMESTAMP
+       WHERE code_hash = $1 AND session_kind = 'web'`,
+      [codeHash],
     );
     await client.query('COMMIT');
-    return { userId: String(result.rows[0].user_id), kind: result.rows[0].session_kind };
-  } catch (error) {
-    await client.query('ROLLBACK').catch(() => undefined);
-    throw error;
-  } finally {
-    client.release();
-  }
-}
-
-async function deliverEmailCode(email: string, code: string): Promise<void> {
-  const endpoint = requiredServerValue('EMAIL_OTP_DELIVERY_URL');
-  const secret = requiredServerValue('EMAIL_OTP_DELIVERY_SECRET');
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-    body: JSON.stringify({ to: email, template: 'login_code', code, expiresInMinutes: 10 }),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) throw new AdminAuthError(503, 'EMAIL_DELIVERY_FAILED', 'Could not send login code');
-}
-
-export async function requestEmailCode(input: {
-  email: string;
-  purpose: AuthPurpose;
-  currentUserId?: string | null;
-}): Promise<{ challengeId: string; devCode?: string }> {
-  const email = normalizeEmail(input.email);
-  if (!validEmail(email)) throw new AdminAuthError(400, 'EMAIL_INVALID', 'Enter a valid email address');
-  const recent = await getPool().query(
-    `SELECT COUNT(*)::int AS count
-     FROM auth_challenges
-     WHERE provider = 'email' AND metadata->>'email' = $1
-       AND created_at > NOW() - interval '15 minutes'`,
-    [email],
-  );
-  if (Number(recent.rows[0]?.count || 0) >= 5) {
-    throw new AdminAuthError(429, 'EMAIL_CODE_RATE_LIMITED', 'Wait before requesting another code');
-  }
-  const challengeId = crypto.randomUUID();
-  const code = String(crypto.randomInt(100000, 1000000));
-  await getPool().query(
-    `INSERT INTO auth_challenges
-     (challenge_id, provider, purpose, user_id, secret_hash, metadata, expires_at)
-     VALUES ($1, 'email', $2, $3, $4, $5::jsonb, $6)`,
-    [
-      challengeId,
-      input.purpose,
-      input.currentUserId || null,
-      sha256(`${challengeId}:${code}`),
-      JSON.stringify({ email }),
-      new Date(Date.now() + EMAIL_CODE_TTL_MS).toISOString(),
-    ],
-  );
-  if (process.env.NODE_ENV !== 'test') await deliverEmailCode(email, code);
-  return {
-    challengeId,
-    ...(process.env.NODE_ENV === 'test' || process.env.EMAIL_OTP_DEV_RETURN_CODE === '1' ? { devCode: code } : {}),
-  };
-}
-
-export async function verifyEmailCode(input: {
-  challengeId: string;
-  code: string;
-}): Promise<{ userId: string }> {
-  const client = await getPool().connect();
-  try {
-    await client.query('BEGIN');
-    const result = await client.query(
-      `SELECT * FROM auth_challenges
-       WHERE challenge_id = $1 AND provider = 'email' AND consumed_at IS NULL AND expires_at > NOW()
-       FOR UPDATE`,
-      [input.challengeId],
-    );
-    const challenge = result.rows[0];
-    if (!challenge) throw new AdminAuthError(401, 'EMAIL_CODE_INVALID', 'Code is invalid or expired');
-    if (challenge.attempts >= 5 || challenge.secret_hash !== sha256(`${input.challengeId}:${input.code}`)) {
-      await client.query(
-        `UPDATE auth_challenges SET attempts = attempts + 1 WHERE challenge_id = $1`,
-        [input.challengeId],
-      );
-      await client.query('COMMIT');
-      throw new AdminAuthError(401, 'EMAIL_CODE_INVALID', 'Code is invalid or expired');
-    }
-    await client.query(
-      `UPDATE auth_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE challenge_id = $1`,
-      [input.challengeId],
-    );
-    await client.query('COMMIT');
-    const email = normalizeEmail(String(challenge.metadata?.email || ''));
-    const account = await resolveVerifiedIdentity(
-      { provider: 'email', subject: email, email },
-      challenge.purpose === 'link' ? String(challenge.user_id) : null,
-    );
-    return { userId: account.userId };
+    return { userId: String(result.rows[0].user_id), kind: 'web' };
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;

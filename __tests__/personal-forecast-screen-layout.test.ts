@@ -30,7 +30,7 @@ describe('personal forecast screen layout', () => {
     expect(app).toContain('openDrawerPeriod');
   });
 
-  it('renders overview and returned sections as one calm editorial reading column', () => {
+  it('keeps Week and Month as one calm prose reading column', () => {
     const dashboard = read('views/Dashboard.tsx');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
     const forecastStyles = read('styles/personalForecastFeed.css');
@@ -57,14 +57,56 @@ describe('personal forecast screen layout', () => {
     expect(dashboard).not.toContain('ForecastSideNavigator');
   });
 
-  it('uses one loading spinner instead of forecast-content placeholders', () => {
+  it('shows the editorial skeleton only for a first-load Today without local content', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const skeleton = read('components/PersonalForecastFeed/ForecastEditorialSkeleton.tsx');
     const forecastStyles = read('styles/personalForecastFeed.css');
 
-    expect(dashboard).toContain('forecast-feed-loading-indicator');
-    expect(dashboard).toContain('<LoaderCircle');
-    expect(dashboard).not.toContain('forecast-feed-loading-preview');
-    expect(forecastStyles).toContain('.forecast-feed-loading-indicator');
+    expect(dashboard).toContain('const retained = current[period]?.result || local');
+    expect(dashboard).toContain('<ForecastEditorialSkeleton');
+    expect(dashboard).toMatch(/displayPeriod === 'day' \? \(\s*<ForecastEditorialSkeleton/);
+    expect(skeleton).toContain('aria-busy="true"');
+    expect(skeleton).toContain('forecast-editorial-skeleton-headline');
+    expect(skeleton).toContain('forecast-editorial-skeleton-lead');
+    expect(skeleton).toContain('forecast-editorial-skeleton-body');
+    expect(skeleton).toContain('forecast-editorial-skeleton-visual');
+    expect(skeleton).toContain("layout !== 'typography-first'");
+    expect(skeleton).toContain("'--forecast-skeleton-visual-ratio'");
+    expect(skeleton).toContain('`${visual.width} / ${visual.height}`');
+    expect(skeleton).toContain('aria-hidden="true"');
+    expect(forecastStyles).toContain('.forecast-editorial-skeleton-headline');
+    expect(forecastStyles).toContain("[data-forecast-skeleton-layout='hero-visual-note']");
+    expect(forecastStyles).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+
+  it('scrolls nested editorial fragments relative to the actual scroll root', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    expect(dashboard).toContain('const rootRect = root.getBoundingClientRect()');
+    expect(dashboard).toContain('const targetRect = target.getBoundingClientRect()');
+    expect(dashboard).toContain('root.scrollTop + targetRect.top - rootRect.top - 84');
+    expect(dashboard).not.toContain('target.offsetTop - 84');
+  });
+
+  it('keeps Today editorial while Week and Month retain prose rendering', () => {
+    const dashboard = read('views/Dashboard.tsx');
+
+    expect(dashboard).toContain("displayPeriod === 'day'");
+    expect(dashboard).toContain('<TodayEditorialFeed');
+    expect(dashboard).toContain('storySections.map((section)');
+    expect(dashboard).toContain('<ForecastSectionBlock');
+    expect(dashboard).toContain('[forecast.overview, ...forecast.sections]');
+  });
+
+  it('does not expose internal categories or bottom navigation on Today', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
+
+    expect(dashboard).not.toContain('LumiaBottomTabBar');
+    expect(dashboard).not.toContain('lumia-bottom-tab-scroll');
+    expect(dashboard).not.toMatch(/Love|Work|Money/);
+    expect(sectionBlock).toContain('resolveVisibleForecastTitle');
+    expect(sectionBlock).not.toContain('{section.kind}');
+    expect(sectionBlock).not.toContain('{section.sourceTopicKey}');
   });
 
   it('reserves sticker space and keeps the current story mounted during background refresh', () => {

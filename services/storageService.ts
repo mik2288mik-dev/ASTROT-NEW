@@ -5,7 +5,8 @@ import {
 import { toDateInputValue } from "../lib/date-utils";
 import { isValidUserId } from "../lib/userId";
 import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
-import { apiFetch } from "./apiClient";
+import { apiFetch, clearNativeSession, isNativeAppRuntime } from "./apiClient";
+import { clearNativeProviderCredentialState } from './accountAuthService';
 
 export class ProfileLoadError extends Error {
   status: number;
@@ -23,14 +24,35 @@ export function isProfileAuthenticationError(error: unknown): boolean {
   return error instanceof ProfileLoadError && error.status === 401;
 }
 
+export function isProfileBlockedError(error: unknown): boolean {
+  return error instanceof ProfileLoadError
+    && error.status === 403
+    && error.code === 'ACCOUNT_BLOCKED';
+}
+
 export async function deleteCurrentAccount(): Promise<void> {
   const response = await apiFetch('/api/users/account', { method: 'DELETE' });
   if (!response.ok) throw new Error('ACCOUNT_DELETION_FAILED');
 }
 
 export async function logoutCurrentAccount(): Promise<void> {
-  const response = await apiFetch('/api/users/session/logout', { method: 'POST' });
-  if (!response.ok) throw new Error('LOGOUT_FAILED');
+  let failure: unknown = null;
+  try {
+    const response = await apiFetch('/api/users/session/logout', { method: 'POST' });
+    if (!response.ok) failure = new Error('LOGOUT_FAILED');
+  } catch (error) {
+    failure = error;
+  } finally {
+    if (isNativeAppRuntime()) {
+      await Promise.all([
+        clearNativeSession().catch(() => undefined),
+        clearNativeProviderCredentialState().catch(() => undefined),
+      ]);
+    }
+  }
+  // An offline Android logout still removes the local session immediately.
+  // Web logout needs the server to clear its HttpOnly cookie, so surface errors.
+  if (failure && !isNativeAppRuntime()) throw failure;
 }
 
 export async function startGuestAccount(): Promise<UserProfile> {

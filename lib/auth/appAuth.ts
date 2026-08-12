@@ -6,6 +6,7 @@ import { isGuestUserId } from '../userId';
 import {
   assertAppSessionActive,
   persistAppSession,
+  revokeSessions,
   resolveTelegramIdentityForLogin,
   telegramIdentityBelongsToUser,
 } from './accountIdentity';
@@ -167,13 +168,99 @@ export async function createAppUserSession(input: {
   const sessionId = crypto.randomUUID();
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
   const provider = input.kind === 'native' ? 'native' : 'web_guest';
-  await persistAppSession({
+  if (!process.env.DATABASE_URL) {
+    await persistAppSession({
+      sessionId,
+      userId: input.userId,
+      kind: input.kind,
+      deviceId: input.deviceId,
+      expiresAt,
+    });
+  } else {
+    const client = await getPool().connect();
+    try {
+      await client.query('BEGIN');
+      const account = await client.query(
+        `SELECT is_blocked
+         FROM users
+         WHERE id = $1
+         FOR SHARE`,
+        [input.userId],
+      );
+      if (!account.rows[0]) {
+        throw new AdminAuthError(401, 'APP_ACCOUNT_NOT_FOUND', 'Account no longer exists');
+      }
+      if (account.rows[0].is_blocked === true) {
+        throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
+      }
+      await client.query(
+        `INSERT INTO app_sessions
+         (session_id, user_id, session_kind, device_id, expires_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [sessionId, input.userId, input.kind, input.deviceId || null, new Date(expiresAt * 1000).toISOString()],
+      );
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  return {
     sessionId,
-    userId: input.userId,
-    kind: input.kind,
-    deviceId: input.deviceId,
     expiresAt,
-  });
+    token: createAppSessionToken({ userId: input.userId, sessionId, provider, exp: expiresAt }),
+  };
+}
+
+/**
+ * Serializes password-authenticated session issuance with password resets.
+ * A reset either waits for this session and revokes it, or changes the version
+ * first and makes this insertion fail.
+ */
+export async function createPasswordAppUserSession(input: {
+  userId: string;
+  passwordVersion: number;
+  kind: 'web' | 'native';
+  deviceId?: string | null;
+}): Promise<{ token: string; sessionId: string; expiresAt: number }> {
+  const sessionId = crypto.randomUUID();
+  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const provider = input.kind === 'native' ? 'native' : 'web_guest';
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const credential = await client.query(
+      `SELECT c.password_version, u.is_blocked
+       FROM account_password_credentials c
+       JOIN users u ON u.id = c.user_id
+       WHERE c.user_id = $1
+       FOR SHARE OF c, u`,
+      [input.userId],
+    );
+    if (
+      !credential.rows[0]
+      || Number(credential.rows[0].password_version) !== input.passwordVersion
+    ) {
+      throw new AdminAuthError(401, 'AUTH_CREDENTIAL_CHANGED', 'Authentication credentials changed');
+    }
+    if (credential.rows[0].is_blocked === true) {
+      throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
+    }
+    await client.query(
+      `INSERT INTO app_sessions
+       (session_id, user_id, session_kind, device_id, expires_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [sessionId, input.userId, input.kind, input.deviceId || null, new Date(expiresAt * 1000).toISOString()],
+    );
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
   return {
     sessionId,
     expiresAt,
@@ -232,19 +319,10 @@ export async function requireAppUser(req: NextApiRequest, options: {
       throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
     }
     await assertAppSessionActive(payload.sessionId, payload.userId);
-    let accountIsGuest = isGuestUserId(payload.userId);
-    if (process.env.DATABASE_URL) {
-      const account = await getPool().query('SELECT is_guest FROM users WHERE id = $1', [payload.userId]);
-      const user = account.rowCount
-        ? await db.users.get(payload.userId, { hydratePrimaryChart: false })
-        : null;
-      if (!user) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This account no longer exists');
-      accountIsGuest = account.rows[0].is_guest === true;
-    }
     context = {
       userId: payload.userId,
       provider: payload.provider,
-      isGuest: accountIsGuest,
+      isGuest: isGuestUserId(payload.userId),
       sessionId: payload.sessionId,
     };
   } else if (options.allowTelegramProof !== false && header(req, 'x-telegram-init-data')) {
@@ -253,6 +331,21 @@ export async function requireAppUser(req: NextApiRequest, options: {
     context = await resolveTelegramUser(req);
   }
   if (!context) throw new AdminAuthError(401, 'APP_AUTH_REQUIRED', 'A valid Telegram, web guest, or native session is required');
+  if (process.env.DATABASE_URL) {
+    const account = await getPool().query(
+      'SELECT is_guest, is_blocked FROM users WHERE id = $1',
+      [context.userId],
+    );
+    const user = account.rowCount
+      ? await db.users.get(context.userId, { hydratePrimaryChart: false })
+      : null;
+    if (!user) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This account no longer exists');
+    if (account.rows[0].is_blocked === true) {
+      await revokeSessions(context.userId, context.sessionId).catch(() => undefined);
+      throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
+    }
+    context = { ...context, isGuest: account.rows[0].is_guest === true };
+  }
   if (context.isGuest && !options.allowGuest) throw new AdminAuthError(403, 'REGISTERED_ACCOUNT_REQUIRED', 'This feature requires a registered account');
   const expected = String(Array.isArray(options.expectedUserId) ? options.expectedUserId[0] : options.expectedUserId ?? '').trim();
   if (expected && context.userId !== expected) throw new AdminAuthError(403, 'USER_ID_MISMATCH', 'Authenticated session does not match userId');

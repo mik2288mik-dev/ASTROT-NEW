@@ -63,16 +63,23 @@ artificial youth slang.
 
 Forbidden forecast language includes `ресурс`, `проявленность`, `поток`,
 `осознанность`, `прислушайся к себе`, `позволь себе`, `будь в моменте`,
-`внутренний ребёнок`, `закрыть гештальт`, their direct equivalents, and
-technical astrology. The writer never says “твоя карта показывает” or explains
-why the text is personal.
+`внутренний ребёнок`, `закрыть гештальт`, `внутренняя ясность`, `опора
+внутри`, `твоя сила в спокойном присутствии`, abstract “пространство для себя”,
+their direct equivalents, and technical astrology. The writer never says “твоя
+карта показывает” or explains why the text is personal.
+
+Every Today reading includes at least one recognisable possible human situation:
+a conversation, message, request, decision, agreement, household detail, work
+task, choice, or pause. It is phrased conditionally rather than claimed as an
+event. Advice, conflict, risk, irony, and comparison are all optional; the model
+must not force the same rhetorical structure into every day.
 
 The key editorial test: with the app name removed, the text must feel written
 for one person rather than every person with the same zodiac sign.
 
 ## Structured writer response
 
-The Responses API uses strict JSON Schema. Its internal shape is:
+The Responses API uses strict JSON Schema. Its internal shape for Today is:
 
 ```ts
 type WriterResponse = {
@@ -82,6 +89,7 @@ type WriterResponse = {
   };
   fragments: Array<{
     text: string;
+    presentation_style: 'prose' | 'pull_quote' | 'paper_note';
     main_idea_key: string;
     life_plot_key: string;
     advice_key: string;       // empty when no advice is present
@@ -94,6 +102,17 @@ type WriterResponse = {
 The four `*_key` fields are short post-hoc descriptions of what the model
 actually wrote. They are service metadata for diversity checks, never a creative
 brief, visible label, category, heading, or UI field.
+
+`presentation_style` is also hidden from the reader, but unlike the diversity
+keys it is copied to the package as optional `ForecastSection.presentationStyle`
+for rendering. The first Today fragment is always `prose`; Today requires at
+least two `prose` fragments overall, at most one
+`pull_quote` of 6–18 words, and at most one `paper_note` of 4–12 words. The two
+special forms must advance the same forecast and may not introduce a new fact
+or become a generic motivational quote. The Week/Month story schema omits this
+field entirely. A current-contract package may omit the optional package field
+and renders it as prose; normal prompt/voice-version cache invalidation still
+rejects genuinely stale packages.
 
 The existing `PersonalForecastPackage` remains the external contract. Today
 maps fragment 1 to `overview` and fragments 2–6 to `sections`; Week and Month
@@ -112,6 +131,9 @@ prose.
 Application validation rejects:
 
 - the wrong fragment count or malformed hidden keys/evidence references;
+- missing or unknown presentation metadata, fewer than two prose fragments,
+  a non-prose first fragment, repeated special styles, or invalid
+  pull-quote/paper-note length;
 - visible astrology, mysticism, pseudopsychology, or coaching language;
 - formal Russian `вы`, formal imperatives, or non-Russian fragment output for a
   Russian request;
@@ -124,6 +146,52 @@ Anti-repeat checks include the shared headline and use deterministic text
 normalization, opening comparison, word-shingle containment, stop-word-filtered
 advice/comparison overlap, and compact exact plus token signatures derived from
 the hidden keys. No embeddings or vector database are required for release.
+
+## Today visual engine
+
+Today has one branded editorial system, not a model-designed collage. The
+original Diary-eligible library remains intact with 895 approved assets:
+
+- 83 cat/capybara mascots and 24 object stickers from `public/stickers/`;
+- 788 main editorial assets: 180 photo, 140 associative, 60 surreal, 20
+  graphic, and 388 psychedelic-humor.
+
+`public/stickers/editorial-v2/` adds 221 app-ready transparent WebP files under
+one manifest. Of 195 non-brand visual entries, 142 text-free visuals enter the
+generic strong-visual selector; 53 embedded-copy entries remain packaged but
+await per-asset locale/copy metadata. Another 19 entries are empty paper
+templates with safe runtime-text metadata. Seven camera, instant-camera,
+laptop, and sneaker files remain packaged but are marked non-selectable pending
+manual review. The generic strong-visual selector therefore sees 1,037 assets;
+the paper templates form a separate deterministic pool.
+
+Dedicated synastry (200) and zodiac (12) collections stay isolated. Legacy
+`/foni` and astro background images are not eligible because forecast text is
+never placed on imagery.
+
+The application chooses one of five layouts: `editorial_right`,
+`editorial_left`, `quote_first`, `visual_overlap`, or `editorial_clean`.
+`visual_overlap` may overlap paper or illustration edges with editorial
+whitespace, never the readable text. `editorial_clean` is deliberately
+image-free; every other layout receives at most one strong visual. A paper-note
+template is a text surface rather than a second decorative visual.
+
+Selection is stateless and deterministic. A stable seed built from `userId +
+periodKey + contractVersion` (plus the visual-engine version) fixes the same
+plan when a day is reopened. A stable five-layout permutation guarantees that
+adjacent days use different layouts. Weighted, disjoint asset families and a
+calendar-indexed asset ring guarantee that the same asset does not occur on
+adjacent days without a database or client history. Manifest rarity, visual
+weight, orientation, aspect, and layout compatibility constrain selection.
+Common mascot, object,
+animal, photo/editorial, and graphic families dominate; associative and surreal
+appear periodically; psychedelic-humor has a real but approximately 3% share
+of illustrated days.
+
+Luna never selects an asset, layout, coordinate, colour, or composition. A
+paper note uses a deterministically selected empty template plus the real
+runtime string positioned within its manifest safe area; text is never baked
+into PNG or WebP.
 
 ## Cache and history
 
@@ -149,9 +217,11 @@ Local-first delivery and Premium access slicing remain unchanged.
 - The Diary (`Dashboard`) remains the personal-forecast surface.
 - The drawer chooses Today, Week, or Month. Do not restore top tabs or make
   periods primary navigation destinations.
-- Text remains the default. No image behind text and no additional card/frame.
-- At most one curated image may support the reading. A rare sticker can be an
-  editorial pause, but never a category, explanation, or prompt input.
+- Body prose remains unframed and is never placed on an image. The only text
+  surface is an optional `paper_note`: live text on an empty paper treatment,
+  never text baked into raster artwork.
+- At most one curated image supports a Today reading. Some days are clean and
+  image-free; an asset is never a category, explanation, or prompt input.
 - Zodiac, natal readings, compatibility, and “Вопрос астрологу” remain separate
   products or flows.
 
@@ -160,6 +230,13 @@ Local-first delivery and Premium access slicing remain unchanged.
 - Today materialises 4–6 ordered fragments as `overview + sections`.
 - Week and Month materialise one cohesive `overview` each.
 - No visible categories or hidden service keys leak into copy.
+- Presentation metadata obeys prose/quote/note counts and length rules; paper
+  text remains a runtime string.
+- All five deterministic layouts, the 1,037 text-free generic strong-visual
+  universe, and all 19 paper templates are reachable without adjacent-day
+  layout or asset repeats. All 195 non-brand v2 visuals remain catalogued; 53
+  embedded-copy entries await metadata and seven review-required files remain
+  excluded.
 - Saved natal context personalises prose without visible astrology or invented
   period calculations.
 - Recent history and the rejected draft influence only anti-repeat behavior.

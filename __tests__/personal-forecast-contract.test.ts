@@ -6,6 +6,7 @@ import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
+  buildForecastLockedPreview,
   buildPersonalForecastCacheKey,
   buildPersonalForecastChartFingerprint,
   buildPersonalForecastInputHash,
@@ -32,6 +33,7 @@ function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPack
         ? '2026-07'
         : '2026';
   const window = resolvePersonalForecastWindow(period, key, base.timezone);
+  const sections = period === 'day' ? base.sections : [];
   return {
     ...base,
     period,
@@ -39,6 +41,13 @@ function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPack
     periodStart: window.periodStart,
     periodEnd: window.periodEnd,
     dateLabel: formatPersonalForecastDateLabel(window, 'en'),
+    sections,
+    visual: {
+      ...base.visual,
+      sectionAssetIds: Object.fromEntries(
+        [base.overview, ...sections].map((section) => [section.id, null]),
+      ),
+    },
     meta: {
       ...base.meta,
       freeSelection: period === 'day'
@@ -70,14 +79,24 @@ function cloneSemanticSection(source: ForecastSection, suffix: string): Forecast
   };
 }
 
+function replaceSectionText(section: ForecastSection, text: string): void {
+  section.text = text;
+  section.contentBlocks = [{
+    ...section.contentBlocks[0],
+    text,
+  }];
+  section.explanationAnchors[0].conclusion = text;
+  section.lockedPreview = buildForecastLockedPreview(text, section.premiumTeaser);
+}
+
 describe('personal forecast direct-reading contract', () => {
-  test('accepts a reading with no optional advice section and has no section-count ceiling', () => {
+  test('enforces four to six Today fragments and one cohesive Week or Month story', () => {
     const base = personalForecastFixture();
     expect(isPersonalForecastPackage(base)).toBe(true);
     expect(base.sections.every((section) => section.kind === 'dynamic')).toBe(true);
     expect(base.sections.some((section) => section.fixedKey)).toBe(false);
 
-    expect(isPersonalForecastPackage({
+    expect(getPersonalForecastPackageValidationError({
       ...base,
       sections: [],
       visual: { sectionAssetIds: { overview: null } },
@@ -85,19 +104,19 @@ describe('personal forecast direct-reading contract', () => {
         ...base.meta,
         freeSelection: { strongestSectionId: null, rotatedSectionId: null, sectionIds: [] },
       },
-    })).toBe(true);
-    const tooMany = [
+    })).toBe('PACKAGE_PERIOD_STRUCTURE_INVALID');
+
+    const maximumTodaySections = [
       ...base.sections,
       cloneSemanticSection(base.sections[0], 'extra-a'),
       cloneSemanticSection(base.sections[0], 'extra-b'),
-      cloneSemanticSection(base.sections[0], 'extra-c'),
     ];
-    const expanded = {
+    const maximumToday = {
       ...base,
-      sections: tooMany,
+      sections: maximumTodaySections,
       evidence: {
         ...base.evidence,
-        ...Object.fromEntries(['extra-a', 'extra-b', 'extra-c'].map((suffix) => [
+        ...Object.fromEntries(['extra-a', 'extra-b'].map((suffix) => [
           `fact:${suffix}`,
           { ...base.evidence.e1, id: `fact:${suffix}` },
         ])),
@@ -105,11 +124,47 @@ describe('personal forecast direct-reading contract', () => {
       visual: {
         sectionAssetIds: {
           ...base.visual.sectionAssetIds,
-          ...Object.fromEntries(tooMany.slice(base.sections.length).map((section) => [section.id, null])),
+          ...Object.fromEntries(
+            maximumTodaySections.slice(base.sections.length).map((section) => [section.id, null]),
+          ),
         },
       },
     };
-    expect(isPersonalForecastPackage(expanded)).toBe(true);
+    expect(isPersonalForecastPackage(maximumToday)).toBe(true);
+
+    const extraSection = cloneSemanticSection(base.sections[0], 'extra-c');
+    const tooMany = {
+      ...maximumToday,
+      sections: [...maximumTodaySections, extraSection],
+      evidence: {
+        ...maximumToday.evidence,
+        'fact:extra-c': { ...base.evidence.e1, id: 'fact:extra-c' },
+      },
+      visual: {
+        sectionAssetIds: {
+          ...maximumToday.visual.sectionAssetIds,
+          [extraSection.id]: null,
+        },
+      },
+    };
+    expect(getPersonalForecastPackageValidationError(tooMany)).toBe(
+      'PACKAGE_PERIOD_STRUCTURE_INVALID',
+    );
+
+    for (const period of ['week', 'month'] as const) {
+      const cohesive = forecastForPeriod(period);
+      expect(isPersonalForecastPackage(cohesive)).toBe(true);
+      expect(getPersonalForecastPackageValidationError({
+        ...cohesive,
+        sections: [base.sections[0]],
+        visual: {
+          sectionAssetIds: {
+            overview: null,
+            [base.sections[0].id]: null,
+          },
+        },
+      })).toBe('PACKAGE_PERIOD_STRUCTURE_INVALID');
+    }
 
     const duplicate = structuredClone(base);
     duplicate.sections[1].semanticFingerprint = duplicate.sections[0].semanticFingerprint;
@@ -129,6 +184,52 @@ describe('personal forecast direct-reading contract', () => {
     const changedFact = structuredClone(base);
     changedFact.sections[0].contentBlocks[0].semanticFactId = 'fact:not-approved';
     expect(isPersonalForecastPackage(changedFact)).toBe(false);
+  });
+
+  test('accepts additive presentation metadata and remains compatible without it', () => {
+    const styled = structuredClone(personalForecastFixture());
+    replaceSectionText(
+      styled.overview,
+      'A careful conversation rewards plain wording, good timing, and one precise decision today.',
+    );
+    replaceSectionText(
+      styled.sections[0],
+      'Say the useful part before the explanation grows extra furniture.',
+    );
+    replaceSectionText(
+      styled.sections[1],
+      'A short answer can still be kind.',
+    );
+    styled.overview.presentationStyle = 'prose';
+    styled.sections[0].presentationStyle = 'pull_quote';
+    styled.sections[1].presentationStyle = 'paper_note';
+    expect(isPersonalForecastPackage(styled)).toBe(true);
+
+    const legacyShape = structuredClone(styled);
+    delete legacyShape.overview.presentationStyle;
+    for (const section of legacyShape.sections) delete section.presentationStyle;
+    expect(isPersonalForecastPackage(legacyShape)).toBe(true);
+
+    const invalid = structuredClone(styled);
+    invalid.sections[0].presentationStyle = 'banner' as 'prose';
+    expect(getPersonalForecastPackageValidationError(invalid)).toBe(
+      `PACKAGE_SECTION_INVALID:${invalid.sections[0].id}`,
+    );
+
+    const oversizedQuote = structuredClone(styled);
+    replaceSectionText(
+      oversizedQuote.sections[0],
+      'Say the useful part before the explanation grows extra furniture and turns one simple reply into a meeting nobody requested today.',
+    );
+    expect(getPersonalForecastPackageValidationError(oversizedQuote)).toBe(
+      'PACKAGE_PRESENTATION_INVALID',
+    );
+
+    const specialOverview = structuredClone(styled);
+    specialOverview.overview.presentationStyle = 'pull_quote';
+    expect(getPersonalForecastPackageValidationError(specialOverview)).toBe(
+      'PACKAGE_PRESENTATION_INVALID',
+    );
   });
 
   test('accepts a free block label with UI astro evidence', () => {
@@ -168,7 +269,7 @@ describe('personal forecast direct-reading contract', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-natal-profile-v1');
     expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v13');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v26.luna-continuous-feed');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v27.luna-editorial-presentations');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
       `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,

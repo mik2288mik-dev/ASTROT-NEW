@@ -2,13 +2,14 @@
 
 ## Product contract
 
-`Dashboard` shows one personal story for the chosen `day`, `week`, or `month`.
-The person chooses a period in the diary drawer. There are no period tabs on the
-main screen, thematic sections, forecast cards, questions, feedback prompts, or
-separate forecast-reader pages.
+`Dashboard` shows one personal reading for the chosen `day`, `week`, or `month`.
+The person chooses a period in the diary drawer. Today is a continuous editorial
+feed; Week and Month are cohesive stories. There are no period tabs on the main
+screen, visible thematic sections, forecast cards, questions, feedback prompts,
+or separate forecast-reader pages.
 
-The story is the product. Do not turn it into a checklist, an astrological
-report, a multi-block feed, or a chat.
+The reading is the product. Do not turn it into a checklist, an astrological
+report, a dashboard of cards, a social feed, or a chat.
 
 ## Generation boundary
 
@@ -25,8 +26,13 @@ report, a multi-block feed, or a chat.
 
 ## Story shape and voice
 
-- One heading of 3–8 words and one or two natural paragraphs; no more than 150
-  words in total.
+- Today: one heading of 3–8 words and 4–6 ordered fragments; first maps to
+  `overview`, the rest to untitled `sections`. Week and Month: one cohesive
+  `overview`. Every period stays within 150 visible words.
+- Today has hidden `presentationStyle`: the first fragment and at least one
+  more are `prose`, with at most one 6–18-word `pull_quote` and at most one
+  4–12-word `paper_note`. Week and Month
+  use prose. These are rendering hints, not visible categories.
 - It is an intimate, concrete story about this person in this exact period.
   The day, week, and month differ by their date range, not by fixed themes,
   pre-written behavioural patterns, or a daily timetable.
@@ -36,16 +42,27 @@ report, a multi-block feed, or a chat.
   summary, a call to action, or an explanation of the calculation.
 - A recognisable scene is welcome; an invented event, relationship, diagnosis,
   or certainty about the future is not.
+- Today must contain a recognisable possible conversation, message, request,
+  decision, agreement, household/work detail, choice, or pause. Advice and
+  conflict are optional. Reject abstract coaching language and repeated form.
 
 ## Visual boundary
 
-- Text is the default. A forecast normally has no image and never has more than
-  one strong image.
-- A sticker may appear as a rare, small editorial pause after a complete story.
-  It has no caption, never sits behind text, and is selected from curated tags
-  by the application—not directly by the model.
-- Do not restore newspaper scenes, visual cues, section art, or promo banners
-  as part of the forecast contract.
+- Text is primary. Today has at most one strong visual and one of five app-owned layouts:
+  `editorial_right`, `editorial_left`, `quote_first`, `visual_overlap`, or
+  image-free `editorial_clean`.
+- The original Diary pool contains 895 approved assets. `editorial-v2` adds
+  195 non-brand visual entries: 142 text-free entries enter generic automatic
+  selection and 53 embedded-copy entries await locale/copy metadata. It also
+  adds 19 empty paper templates; seven packaged review-required files stay
+  excluded by manifest metadata.
+  Synastry/zodiac assets and legacy backgrounds stay isolated.
+- The application derives layout and asset from `userId + periodKey +
+  contractVersion`; Luna never chooses design. A paper note is a runtime string
+  over an empty template, not text baked into PNG/WebP.
+- Never place body prose behind or over imagery, add captions, or restore promo
+  banners. `visual_overlap` concerns editorial whitespace/paper edges only;
+  `paper_note` is live text on an empty paper surface, never rasterised copy.
 
 ## Safe changes
 

@@ -29,6 +29,7 @@ function words(count: number, prefix: string) {
 function fragment(index: number, count: number, prefix = `фрагмент${index}слово`) {
   return {
     text: words(count, prefix),
+    presentation_style: 'prose',
     main_idea_key: `мысль ${index}`,
     life_plot_key: `сюжет ${index}`,
     advice_key: index % 2 ? `совет ${index}` : '',
@@ -49,6 +50,13 @@ function modelResponse(period: 'day' | 'week' | 'month', options: {
       headline: { text: 'Точный личный прогноз дня', evidence_ids: [evidenceId] },
       fragments: Array.from({ length: count }, (_, index) => ({
         ...fragment(index + 1, paragraphWords, `${options.prefix || `фрагмент${index + 1}`}слово`),
+        ...(period === 'day'
+          ? {
+              text: index === 0
+                ? `${words(paragraphWords - 1, `${options.prefix || 'фрагмент1'}слово`)} разговор`
+                : fragment(index + 1, paragraphWords, `${options.prefix || `фрагмент${index + 1}`}слово`).text,
+            }
+          : { presentation_style: undefined }),
         evidence_ids: [evidenceId],
       })),
     }),
@@ -82,7 +90,42 @@ describe('personal forecast Responses delivery', () => {
       'фрагмент5слово1',
     ]);
     expect(forecast.sections.every((section) => section.title === undefined)).toBe(true);
+    expect([forecast.overview, ...forecast.sections].every(
+      (section) => section.presentationStyle === 'prose',
+    )).toBe(true);
     expect(mockStructuredResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps Luna presentation metadata to ordered UI-friendly section fields', async () => {
+    const response = modelResponse('day');
+    const payload = JSON.parse(response.content) as {
+      fragments: Array<ReturnType<typeof fragment>>;
+    };
+    const styles = ['prose', 'pull_quote', 'prose', 'paper_note', 'prose'] as const;
+    const counts = [22, 12, 22, 8, 22];
+    payload.fragments = payload.fragments.map((item, index) => ({
+      ...item,
+      text: index === 0
+        ? `${words(counts[index] - 1, `стиль${index + 1}слово`)} разговор`
+        : words(counts[index], `стиль${index + 1}слово`),
+      presentation_style: styles[index],
+    }));
+    mockStructuredResponse.mockResolvedValueOnce({
+      ...response,
+      content: JSON.stringify(payload),
+    });
+
+    const forecast = await generatePersonalForecastPackage({
+      profile: profile as never,
+      chartData: chartFixture,
+      model: 'gpt-5.6-luna',
+      period: 'day',
+      window: resolvePersonalForecastWindow('day', '2026-08-04', 'Europe/Moscow'),
+    });
+
+    expect([forecast.overview, ...forecast.sections].map(
+      (section) => section.presentationStyle,
+    )).toEqual(styles);
   });
 
   it.each(['week', 'month'] as const)(

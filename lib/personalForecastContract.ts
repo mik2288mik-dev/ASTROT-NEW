@@ -113,6 +113,23 @@ export const FORECAST_VISUAL_CUES = [
 
 export type ForecastVisualCue = (typeof FORECAST_VISUAL_CUES)[number];
 
+export const FORECAST_PRESENTATION_STYLES = [
+  'prose',
+  'pull_quote',
+  'paper_note',
+] as const;
+
+export type ForecastPresentationStyle = (typeof FORECAST_PRESENTATION_STYLES)[number];
+
+export const TODAY_FORECAST_PRESENTATION_WORD_LIMITS: Record<
+  ForecastPresentationStyle,
+  { minimum: number; maximum: number }
+> = {
+  prose: { minimum: 12, maximum: 42 },
+  pull_quote: { minimum: 6, maximum: 18 },
+  paper_note: { minimum: 4, maximum: 12 },
+};
+
 /**
  * A writer may phrase an approved semantic atom, but it may not invent a new
  * claim. Keeping the atom and fact identifiers beside the rendered sentence
@@ -145,6 +162,8 @@ export type ForecastSection = {
   importance: number;
   visualTag: string;
   visualCue?: ForecastVisualCue | null;
+  /** Hidden rendering hint. Missing means prose for packages created before this field existed. */
+  presentationStyle?: ForecastPresentationStyle;
   premiumTeaser: string;
   lockedPreview: ForecastLockedPreview;
   explanationAnchors: ExplanationAnchor[];
@@ -231,11 +250,11 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v26.luna-continuous-feed',
+  'personal-forecast-feed.v27.luna-editorial-presentations',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-natal-profile-v1';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v13';
-export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v7-story-cues';
+export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
   'ru' | 'en',
@@ -851,6 +870,10 @@ function sectionValid(
       && section.visualCue !== null
       && !FORECAST_VISUAL_CUES.includes(section.visualCue)
     )
+    || (
+      section.presentationStyle !== undefined
+      && !FORECAST_PRESENTATION_STYLES.includes(section.presentationStyle)
+    )
     || typeof section.premiumTeaser !== 'string'
     || !section.premiumTeaser.trim()
     || !section.lockedPreview
@@ -985,6 +1008,34 @@ function visualValid(
   ));
 }
 
+function presentationValid(
+  forecast: Pick<PersonalForecastPackage, 'period' | 'overview' | 'sections'>,
+  redactedSectionIds: ReadonlySet<string>,
+): boolean {
+  const sections = [forecast.overview, ...forecast.sections];
+  if (!sections.some((section) => section.presentationStyle !== undefined)) {
+    return true;
+  }
+  if (forecast.period !== 'day') {
+    return sections.every((section) => (
+      section.presentationStyle === undefined || section.presentationStyle === 'prose'
+    ));
+  }
+
+  const styles = sections.map((section) => section.presentationStyle ?? 'prose');
+  if (styles[0] !== 'prose') return false;
+  if (styles.filter((style) => style === 'prose').length < 2) return false;
+  if (styles.filter((style) => style === 'pull_quote').length > 1) return false;
+  if (styles.filter((style) => style === 'paper_note').length > 1) return false;
+
+  return sections.every((section, index) => {
+    if (redactedSectionIds.has(section.id)) return true;
+    const limits = TODAY_FORECAST_PRESENTATION_WORD_LIMITS[styles[index]];
+    const words = section.text.trim().split(/\s+/u).filter(Boolean).length;
+    return words >= limits.minimum && words <= limits.maximum;
+  });
+}
+
 export function getPersonalForecastPackageValidationError(
   value: unknown,
   options: {
@@ -1048,6 +1099,13 @@ export function getPersonalForecastPackageValidationError(
   ) {
     return 'PACKAGE_COLLECTIONS_INVALID';
   }
+  if (
+    (forecast.period === 'day'
+      && (forecast.sections.length < 3 || forecast.sections.length > 5))
+    || (forecast.period !== 'day' && forecast.sections.length !== 0)
+  ) {
+    return 'PACKAGE_PERIOD_STRUCTURE_INVALID';
+  }
 
   let expectedWindow: PersonalForecastWindow;
   try {
@@ -1108,6 +1166,9 @@ export function getPersonalForecastPackageValidationError(
   }
   if ([...redactedSectionIds].some((id) => !ids.has(id))) {
     return 'PACKAGE_REDACTED_SECTION_UNKNOWN';
+  }
+  if (!presentationValid(forecast, redactedSectionIds)) {
+    return 'PACKAGE_PRESENTATION_INVALID';
   }
   if (forecast.sections.some(
     (section) => !canonicalSectionIdentityValid(section, forecast.period),

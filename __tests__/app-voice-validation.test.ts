@@ -2,6 +2,7 @@ import {
   hasAppVoiceCliche,
   hasAppVoiceMysticism,
   hasAppVoiceViolation,
+  hasPersonalForecastVoiceViolation,
 } from '../lib/appVoice';
 
 describe('app voice validation', () => {
@@ -35,5 +36,23 @@ describe('app voice validation', () => {
     'The main risk is agreeing before you have checked the numbers.',
   ])('accepts direct concrete wording: %s', (text) => {
     expect(hasAppVoiceViolation(text)).toBe(false);
+  });
+
+  it.each([
+    'Сегодня твоя сила — в спокойном присутствии.',
+    'Сохрани внутреннюю ясность.',
+    'Ищи опору внутри себя.',
+    'Освободи пространство для себя и своих чувств.',
+    'Your strength is in calm presence.',
+    'Protect your inner clarity and inner support.',
+  ])('rejects smooth AI psychology in personal forecasts: %s', (text) => {
+    expect(hasPersonalForecastVoiceViolation(text)).toBe(true);
+  });
+
+  it.each([
+    'На столе не хватает пространства для ноутбука и чашки.',
+    'В разговоре оставь паузу, чтобы человек успел ответить.',
+  ])('keeps concrete physical and conversational wording: %s', (text) => {
+    expect(hasPersonalForecastVoiceViolation(text)).toBe(false);
   });
 });

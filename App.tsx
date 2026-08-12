@@ -12,9 +12,10 @@ import {
     logoutCurrentAccount,
     startGuestAccount,
     isProfileAuthenticationError,
+    isProfileBlockedError,
     type ChartListItem,
 } from './services/storageService';
-import { clearAppSessionAndLocalData } from './services/apiClient';
+import { clearAppSessionAndLocalData, isNativeAppRuntime } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { prewarmUserContent } from './services/contentPrewarmService';
 import { CACHE_ONLY_PREWARM_BUDGET_MS } from './lib/appStartupFlags';
@@ -41,7 +42,7 @@ import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, u
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
-import { isGuestUserId, isValidUserId } from './lib/userId';
+import { isValidUserId } from './lib/userId';
 import {
     canAccessFeature,
     getProfilePremiumUntil,
@@ -57,7 +58,10 @@ import {
 } from './services/natalReadingService';
 import { clearPersonalForecastSessionCache } from './services/personalForecastService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
-import { exchangeNativeLoginCode, loginWithTelegram } from './services/accountAuthService';
+import {
+    clearNativeProviderCredentialState,
+    loginWithTelegram,
+} from './services/accountAuthService';
 import {
     getAuthSessionMode,
     hasTelegramMiniAppContext,
@@ -732,7 +736,7 @@ const App: React.FC = () => {
                     } catch (profileError) {
                         if (!isProfileAuthenticationError(profileError)) throw profileError;
 
-                        if (sessionMode === 'automatic' || sessionMode === 'guest') {
+                        if (sessionMode === 'guest' || (!isNativeAppRuntime() && sessionMode === 'automatic')) {
                             setAuthSessionMode('guest');
                             storedProfile = await startGuestAccount();
                         } else {
@@ -742,7 +746,7 @@ const App: React.FC = () => {
                 }
 
                 if (!storedProfile || !isValidUserId(storedProfile.id)) {
-                    if (sessionMode === 'automatic' || sessionMode === 'guest') {
+                    if (sessionMode === 'guest' || (!isNativeAppRuntime() && sessionMode === 'automatic')) {
                         setAuthSessionMode('guest');
                         storedProfile = await startGuestAccount();
                     }
@@ -783,7 +787,7 @@ const App: React.FC = () => {
                 }
 
                 setProfile(updatedProfile);
-                if (!updatedProfile.isGuest && !isGuestUserId(canonicalUserId)) {
+                if (!updatedProfile.isGuest) {
                     void resolveAuthoritativeAdminStatus(canonicalUserId, updatedProfile.isAdmin)
                         .then((isAdmin) => {
                             if (cancelled) return;
@@ -849,7 +853,16 @@ const App: React.FC = () => {
                 console.error('[App] Error loading user data:', error);
                 resetPrimaryChartState();
                 startupVisible = true;
-                if (isProfileAuthenticationError(error)) {
+                if (isProfileBlockedError(error)) {
+                    await Promise.all([
+                        clearAppSessionAndLocalData().catch(() => undefined),
+                        clearNativeProviderCredentialState().catch(() => undefined),
+                    ]);
+                    setAuthSessionMode('signed_out');
+                    setAuthSessionModeState('signed_out');
+                    setAuthGateMessage('Этот аккаунт заблокирован. Войди в другой аккаунт или обратись в поддержку.');
+                    setStartupError(null);
+                } else if (isProfileAuthenticationError(error)) {
                     setAuthSessionMode('signed_out');
                     setAuthSessionModeState('signed_out');
                     setAuthGateMessage('Сессия завершена. Войди снова — старый аккаунт и его данные никуда не пропали.');
@@ -890,7 +903,7 @@ const App: React.FC = () => {
         // The server profile is the canonical account. Telegram launch data is
         // only login proof and must never replace a linked guest users.id.
         const safeUserId = String(currentProfileId);
-        const isGuestOnboarding = profile?.isGuest === true || isGuestUserId(safeUserId);
+        const isGuestOnboarding = profile?.isGuest === true;
         const isAdmin = isGuestOnboarding ? false : getFallbackAdminStatus(safeUserId, profile?.isAdmin);
         const retainedPremiumUntil = isGuestOnboarding
             ? null
@@ -1094,6 +1107,7 @@ const App: React.FC = () => {
         }
         clearPersonalForecastSessionCache();
         await clearAppSessionAndLocalData();
+        await clearNativeProviderCredentialState();
         setAuthSessionMode(nextMode);
         setAuthSessionModeState(nextMode);
         setAuthGateMessage(message);
@@ -1149,26 +1163,8 @@ const App: React.FC = () => {
         setStartupRetryNonce((value) => value + 1);
     }, [profile, resetPrimaryChartState]);
 
-    const handleTelegramLogin = useCallback(async () => {
-        const nextProfile = await loginWithTelegram();
-        resumeAuthenticatedStartup(nextProfile, 'telegram');
-    }, [resumeAuthenticatedStartup]);
-
     const handleAccountLogin = useCallback((nextProfile: UserProfile) => {
         resumeAuthenticatedStartup(nextProfile, 'account');
-    }, [resumeAuthenticatedStartup]);
-
-    const handleContinueAsGuest = useCallback(async () => {
-        const previousMode = getAuthSessionMode();
-        setAuthSessionMode('guest');
-        try {
-            const nextProfile = await startGuestAccount();
-            resumeAuthenticatedStartup(nextProfile, 'guest');
-        } catch (error) {
-            setAuthSessionMode(previousMode);
-            setAuthSessionModeState(previousMode);
-            throw error;
-        }
     }, [resumeAuthenticatedStartup]);
 
     useEffect(() => {
@@ -1553,34 +1549,6 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
-        let remove: (() => Promise<void>) | null = null;
-        void CapacitorApp.addListener('appUrlOpen', ({ url }) => {
-            try {
-                const parsed = new URL(url);
-                if (parsed.host !== 'auth' || parsed.pathname !== '/callback') return;
-                const code = parsed.searchParams.get('code');
-                if (!code) return;
-                void exchangeNativeLoginCode(code)
-                    .then((nextProfile) => {
-                        resumeAuthenticatedStartup(nextProfile, 'account');
-                    })
-                    .catch((error: any) => {
-                        setAuthGateMessage(
-                            error?.message || 'Не удалось завершить вход. Попробуй снова.',
-                        );
-                        setAuthSessionMode('signed_out');
-                        setAuthSessionModeState('signed_out');
-                        setLoading(false);
-                    });
-            } catch {
-                // Ignore unrelated malformed app links.
-            }
-        }).then((listener) => { remove = () => listener.remove(); });
-        return () => { void remove?.(); };
-    }, [resumeAuthenticatedStartup]);
-
-    useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return;
 
         let disposed = false;
         let backHandle: { remove: () => Promise<void> } | undefined;
@@ -1715,11 +1683,8 @@ const App: React.FC = () => {
     if (!loading && requiresExplicitAuthentication(authSessionMode)) {
         return (
             <AuthGate
-                canUseTelegram={hasTelegramMiniAppContext()}
                 deleted={authSessionMode === 'deleted'}
                 message={authGateMessage}
-                onTelegramLogin={handleTelegramLogin}
-                onContinueGuest={handleContinueAsGuest}
                 onAccountLogin={handleAccountLogin}
             />
         );
@@ -1756,10 +1721,7 @@ const App: React.FC = () => {
     if (!profile) {
         return (
             <AuthGate
-                canUseTelegram={hasTelegramMiniAppContext()}
-                message="Сессия не найдена. Войди в существующий аккаунт или продолжи как гость."
-                onTelegramLogin={handleTelegramLogin}
-                onContinueGuest={handleContinueAsGuest}
+                message="Сессия не найдена. Войди в существующий аккаунт или создай новый."
                 onAccountLogin={handleAccountLogin}
             />
         );

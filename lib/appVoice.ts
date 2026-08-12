@@ -4,7 +4,7 @@
  */
 
 export const APP_VOICE_VERSION = '10';
-export const PERSONAL_FORECAST_VOICE_VERSION = '1';
+export const PERSONAL_FORECAST_VOICE_VERSION = '2';
 
 const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»
 
@@ -78,6 +78,7 @@ const PERSONAL_FORECAST_SYSTEM_VOICE_RU = `## ГОЛОС ЛИЧНОГО ПРОГ
 - Не используй искусственный молодёжный сленг, не фамильярничай и не хами.
 - Не объясняй персонализацию и не пиши «твоя карта показывает», «по твоей карте» или эквиваленты.
 - Не используй слова и идеи «ресурс», «проявленность», «поток», «осознанность», «прислушайся к себе», «позволь себе», «будь в моменте», «внутренний ребёнок», «закрыть гештальт» и их перефразы.
+- Не подменяй наблюдение гладкой AI-психологией: «внутренняя ясность», «опора внутри», «твоя сила в спокойном присутствии», «пространство для себя и чувств» — это пустые формулы, а не персональный текст.
 - Текст без названия приложения должен ощущаться написанным одному человеку, а не всем представителям знака.`;
 
 const PERSONAL_FORECAST_SYSTEM_VOICE_EN = `## PERSONAL FORECAST VOICE
@@ -88,13 +89,16 @@ Write like an intelligent acquaintance who understands this particular reader: d
 - Do not use artificial youth slang, forced familiarity, or rudeness.
 - Never explain the personalisation or say “your chart shows”, “according to your chart”, or equivalents.
 - Avoid coaching language such as “protect your resources”, “step into your power”, “trust the flow”, “listen to yourself”, “allow yourself”, “be present”, “inner child”, or “close the gestalt”.
+- Do not replace an observation with smooth AI psychology such as “inner clarity”, “inner support”, “your strength is in calm presence”, or “make space for your feelings”.
 - With the app name removed, the copy must feel written for one person, not everyone with the same sign.`;
 
 const PERSONAL_FORECAST_VOICE_VIOLATION_PATTERNS: readonly RegExp[] = [
   /(?:^|[^\p{L}])(?:ресурс\p{L}*|проявленност\p{L}*|поток\p{L}*|осознанност\p{L}*|заземл\p{L}*|экологичн\p{L}*|гештальт\p{L}*|внутренн\p{L}*\s+реб[её]н\p{L}*)(?!\p{L})/iu,
   /(?:^|[^\p{L}])зв[её]зд\p{L}*\s+(?:обещают|говорят|подсказывают|советуют|предсказывают)(?!\p{L})/iu,
   /(?:твоя|ваша)\s+карт[аы]\s+(?:показывает|говорит|подсказывает)|по\s+(?:твоей|вашей)\s+карт[еы]/iu,
+  /твоя\s+сил[аы][^\p{L}\p{N}]{1,6}в\s+спокойн\p{L}*\s+присутстви\p{L}*|внутренн\p{L}*\s+ясност\p{L}*|(?:опор\p{L}*\s+внутри|внутренн\p{L}*\s+опор\p{L}*)|пространств\p{L}*\s+для\s+(?:себя|своих\s+чувств|чувств)/iu,
   /\b(?:the\s+stars\s+(?:promise|say|suggest|predict)|step\s+into\s+your\s+power|trust\s+the\s+flow|listen\s+to\s+yourself|allow\s+yourself|be\s+present|inner\s+child|close\s+the\s+gestalt|your\s+chart\s+(?:shows|says|suggests)|according\s+to\s+your\s+chart)\b/iu,
+  /\b(?:your\s+strength\s+is\s+in\s+calm\s+presence|inner\s+clarity|inner\s+support|make\s+space\s+for\s+(?:yourself|your\s+feelings))\b/iu,
 ];
 
 export function getPersonalForecastSystemVoice(language: 'ru' | 'en' = 'ru'): string {

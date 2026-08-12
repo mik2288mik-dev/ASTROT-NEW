@@ -2,9 +2,11 @@ import {
   PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS,
   PERSONAL_FORECAST_PROFILE_EVIDENCE_ID,
   PERSONAL_FORECAST_RESPONSE_SCHEMA,
+  PERSONAL_FORECAST_WORD_LIMITS,
   buildPersonalForecastFeedPrompt,
   buildPersonalForecastNatalContext,
   getPersonalForecastGenerationDiagnosticCode,
+  getPersonalForecastResponseSchema,
   getPersonalForecastSystemPrompt,
   getPersonalForecastWriterMaxOutputTokens,
   parseGeneratedFeedPayload,
@@ -27,9 +29,24 @@ function words(count: number, prefix = 'word'): string {
   return Array.from({ length: count }, (_, index) => `${prefix}${index + 1}`).join(' ');
 }
 
-function generatedFragment(index: number, text = words(22, `fragment${index}word`)) {
+type TestGeneratedFragment = {
+  text: string;
+  presentation_style?: 'prose' | 'pull_quote' | 'paper_note';
+  main_idea_key: string;
+  life_plot_key: string;
+  advice_key: string;
+  comparison_key: string;
+  evidence_ids: string[];
+};
+
+function generatedFragment(
+  index: number,
+  text = words(22, `fragment${index}word`),
+  presentationStyle: 'prose' | 'pull_quote' | 'paper_note' = 'prose',
+): TestGeneratedFragment {
   return {
     text,
+    presentation_style: presentationStyle,
     main_idea_key: `main idea ${index}`,
     life_plot_key: `life plot ${index}`,
     advice_key: index % 2 ? `advice ${index}` : '',
@@ -46,10 +63,16 @@ function validPayload(period: 'day' | 'week' | 'month', fragmentCount?: number) 
       text: 'A precise personal forecast',
       evidence_ids: [PERSONAL_FORECAST_PROFILE_EVIDENCE_ID],
     },
-    fragments: Array.from({ length: count }, (_, index) => generatedFragment(
-      index + 1,
-      words(fragmentWords, `fragment${index + 1}word`),
-    )),
+    fragments: Array.from({ length: count }, (_, index) => {
+      const fragment = generatedFragment(
+        index + 1,
+        index === 0 && period === 'day'
+          ? `${words(fragmentWords - 1, `fragment${index + 1}word`)} conversation`
+          : words(fragmentWords, `fragment${index + 1}word`),
+      );
+      if (period !== 'day') delete fragment.presentation_style;
+      return fragment;
+    }),
   };
 }
 
@@ -62,6 +85,10 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(system.toLowerCase()).toContain('occasional irony or one unexpected comparison');
     expect(system).toContain('not a stand-up comedian');
     expect(system).toContain('no visible categories');
+    expect(system).toContain('conversation, message, request, decision, agreement');
+    expect(system).toContain('Advice is optional');
+    expect(system).toContain('presentation_style is hidden metadata');
+    expect(system).toContain('first main fragment must be prose');
     expect(system).toContain('["profile:personal"]');
     expect(system).not.toContain('one alive scene');
     expect(system).not.toContain('behavioural thread');
@@ -92,6 +119,7 @@ describe('personal forecast Luna personal-feed writer', () => {
           items: expect.objectContaining({
             required: [
               'text',
+              'presentation_style',
               'main_idea_key',
               'life_plot_key',
               'advice_key',
@@ -106,11 +134,19 @@ describe('personal forecast Luna personal-feed writer', () => {
     const fragmentProperties = (PERSONAL_FORECAST_RESPONSE_SCHEMA.properties.fragments as {
       items: { properties: Record<string, unknown> };
     }).items.properties;
+    expect(fragmentProperties.presentation_style).toEqual({
+      type: 'string',
+      enum: ['prose', 'pull_quote', 'paper_note'],
+    });
     expect(fragmentProperties).not.toHaveProperty('category');
     expect(fragmentProperties).not.toHaveProperty('title');
     expect(fragmentProperties).not.toHaveProperty('love');
     expect(fragmentProperties).not.toHaveProperty('work');
     expect(fragmentProperties).not.toHaveProperty('mood');
+    const storyFragmentProperties = (getPersonalForecastResponseSchema('week').properties.fragments as {
+      items: { properties: Record<string, unknown> };
+    }).items.properties;
+    expect(storyFragmentProperties).not.toHaveProperty('presentation_style');
     expect(PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS).toBe(2);
   });
 
@@ -143,6 +179,7 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1_000);
     expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(1_400);
     expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(1_800);
+    expect(PERSONAL_FORECAST_WORD_LIMITS.day).toBe(150);
   });
 
   test('uses the saved natal chart, including stored aspects, without period calculations', () => {
@@ -172,6 +209,170 @@ describe('personal forecast Luna personal-feed writer', () => {
     ).errors).toEqual([]);
   });
 
+  test('accepts one meaningful pull quote and one short paper note inside Today', () => {
+    const payload = validPayload('day', 5);
+    payload.fragments = [
+      generatedFragment(1, `${words(27, 'proseone')} conversation`),
+      generatedFragment(2, words(12, 'quote'), 'pull_quote'),
+      generatedFragment(3, words(28, 'prosetwo')),
+      generatedFragment(4, words(8, 'note'), 'paper_note'),
+      generatedFragment(5, words(20, 'prosethree')),
+    ];
+
+    expect(validateFreeGeneratedForecastFeed(
+      payload,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      'day',
+      { language: 'en' },
+    ).errors).toEqual([]);
+  });
+
+  test('requires a recognisable human situation but never requires advice', () => {
+    const noAdvice = validPayload('day');
+    noAdvice.fragments = noAdvice.fragments.map((fragment) => ({
+      ...fragment,
+      advice_key: '',
+    }));
+    expect(validateFreeGeneratedForecastFeed(
+      noAdvice,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      'day',
+      { language: 'en' },
+    ).errors).toEqual([]);
+
+    const abstract = validPayload('day');
+    abstract.fragments = abstract.fragments.map((fragment, index) => ({
+      ...fragment,
+      text: words(22, `abstract${index + 1}word`),
+    }));
+    expect(validateFreeGeneratedForecastFeed(
+      abstract,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      'day',
+      { language: 'en' },
+    ).errors.join(' ')).toContain('recognisable human situation');
+  });
+
+  test('rejects invalid Today presentation mixes and special-fragment lengths', () => {
+    const cases = [
+      {
+        label: 'first fragment is prose',
+        payload: (() => {
+          const value = validPayload('day');
+          value.fragments[0].presentation_style = 'pull_quote';
+          value.fragments[0].text = `${words(11, 'openingquote')} conversation`;
+          return value;
+        })(),
+        error: 'Today first fragment requires prose presentation',
+      },
+      {
+        label: 'minimum prose',
+        payload: (() => {
+          const value = validPayload('day', 4);
+          value.fragments = [
+            generatedFragment(1, words(30, 'prose')),
+            generatedFragment(2, words(16, 'quotea'), 'pull_quote'),
+            generatedFragment(3, words(12, 'note'), 'paper_note'),
+            generatedFragment(4, words(30, 'quoteb'), 'pull_quote'),
+          ];
+          return value;
+        })(),
+        error: 'at least 2 prose',
+      },
+      {
+        label: 'maximum pull quote',
+        payload: (() => {
+          const value = validPayload('day');
+          value.fragments[0].presentation_style = 'pull_quote';
+          value.fragments[0].text = words(14, 'quoteone');
+          value.fragments[1].presentation_style = 'pull_quote';
+          value.fragments[1].text = words(14, 'quotetwo');
+          return value;
+        })(),
+        error: 'at most 1 pull_quote',
+      },
+      {
+        label: 'maximum paper note',
+        payload: (() => {
+          const value = validPayload('day');
+          value.fragments[0].presentation_style = 'paper_note';
+          value.fragments[0].text = words(8, 'noteone');
+          value.fragments[1].presentation_style = 'paper_note';
+          value.fragments[1].text = words(8, 'notetwo');
+          return value;
+        })(),
+        error: 'at most 1 paper_note',
+      },
+      {
+        label: 'short pull quote',
+        payload: (() => {
+          const value = validPayload('day');
+          value.fragments[0].presentation_style = 'pull_quote';
+          value.fragments[0].text = words(5, 'shortquote');
+          return value;
+        })(),
+        error: 'pull_quote 1 has 5 words; expected 6-18',
+      },
+      {
+        label: 'long pull quote',
+        payload: (() => {
+          const value = validPayload('day');
+          value.fragments[0].presentation_style = 'pull_quote';
+          value.fragments[0].text = words(19, 'longquote');
+          return value;
+        })(),
+        error: 'pull_quote 1 has 19 words; expected 6-18',
+      },
+      {
+        label: 'short paper note',
+        payload: (() => {
+          const value = validPayload('day');
+          value.fragments[0].presentation_style = 'paper_note';
+          value.fragments[0].text = words(3, 'shortnote');
+          return value;
+        })(),
+        error: 'paper_note 1 has 3 words; expected 4-12',
+      },
+      {
+        label: 'long paper note',
+        payload: (() => {
+          const value = validPayload('day');
+          value.fragments[0].presentation_style = 'paper_note';
+          value.fragments[0].text = words(13, 'longnote');
+          return value;
+        })(),
+        error: 'paper_note 1 has 13 words; expected 4-12',
+      },
+    ];
+
+    for (const { payload, error } of cases) {
+      expect(validateFreeGeneratedForecastFeed(
+        payload,
+        new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+        'day',
+        { language: 'en' },
+      ).errors.join(' ')).toContain(error);
+    }
+  });
+
+  test('rejects missing and unknown presentation metadata', () => {
+    const missing = validPayload('day') as ReturnType<typeof validPayload> & {
+      fragments: Array<ReturnType<typeof generatedFragment> & { presentation_style?: string }>;
+    };
+    delete (missing.fragments[0] as { presentation_style?: string }).presentation_style;
+    const unknown = validPayload('day');
+    unknown.fragments[0].presentation_style = 'banner' as 'prose';
+
+    for (const payload of [missing, unknown]) {
+      expect(validateFreeGeneratedForecastFeed(
+        payload,
+        new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+        'day',
+        { language: 'en' },
+      ).errors.join(' ')).toContain('invalid presentation_style');
+    }
+  });
+
   test.each([3, 7])('rejects Today with %s fragments', (count) => {
     expect(validateFreeGeneratedForecastFeed(
       validPayload('day', count),
@@ -194,6 +395,16 @@ describe('personal forecast Luna personal-feed writer', () => {
       period,
       { language: 'en' },
     ).errors.join(' ')).toContain(`${period} requires exactly one fragment`);
+
+    const styled = validPayload(period);
+    styled.fragments[0].presentation_style = 'pull_quote';
+    styled.fragments[0].text = words(period === 'week' ? 82 : 105, 'styled');
+    expect(validateFreeGeneratedForecastFeed(
+      styled,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      period,
+      { language: 'en' },
+    ).errors.join(' ')).toContain(`${period} fragments do not use presentation_style`);
   });
 
   test.each([

@@ -2011,6 +2011,8 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'astrology_threads',
     'astrology_messages',
     'personalization_facts',
+    'account_password_credentials',
+    'auth_rate_limits',
   ];
   const missing: string[] = [];
   for (const t of required) {
@@ -3267,6 +3269,75 @@ async function mvp042SavedPersonIdentity(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+/**
+ * Email/password credentials remain attached to the canonical users.id and
+ * reuse the existing identity, challenge and revocable-session model.
+ */
+async function mvp043PasswordAuthentication(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_043_password_authentication';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS account_password_credentials (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      password_hash TEXT NOT NULL,
+      hash_algorithm TEXT NOT NULL DEFAULT 'scrypt',
+      password_version INTEGER NOT NULL DEFAULT 1,
+      password_changed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT account_password_credentials_algorithm CHECK (hash_algorithm IN ('scrypt')),
+      CONSTRAINT account_password_credentials_version CHECK (password_version > 0)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_rate_limits (
+      scope TEXT NOT NULL,
+      key_hash TEXT NOT NULL,
+      window_started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      expires_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (scope, key_hash),
+      CONSTRAINT auth_rate_limits_attempts CHECK (attempts >= 0)
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_auth_rate_limits_expiry
+    ON auth_rate_limits(expires_at)`);
+
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD COLUMN IF NOT EXISTS credential_hash TEXT`);
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD COLUMN IF NOT EXISTS delivery_status TEXT NOT NULL DEFAULT 'not_required'`);
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD COLUMN IF NOT EXISTS client_key_hash TEXT`);
+  await pool.query(`ALTER TABLE auth_challenges
+    DROP CONSTRAINT IF EXISTS auth_challenges_purpose`);
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD CONSTRAINT auth_challenges_purpose
+    CHECK (purpose IN ('login', 'link', 'register', 'password_reset'))`);
+  await pool.query(`ALTER TABLE auth_challenges
+    DROP CONSTRAINT IF EXISTS auth_challenges_delivery_status`);
+  await pool.query(`ALTER TABLE auth_challenges
+    ADD CONSTRAINT auth_challenges_delivery_status
+    CHECK (delivery_status IN ('not_required', 'pending', 'sent', 'failed', 'suppressed'))`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_auth_challenges_email_recent
+    ON auth_challenges(provider, purpose, (metadata->>'email'), created_at DESC)`);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3339,6 +3410,7 @@ export async function runMigrations(): Promise<void> {
   await mvp040AccountIdentitySessions(pool);
   await mvp041AstrologyHistoryFoundation(pool);
   await mvp042SavedPersonIdentity(pool);
+  await mvp043PasswordAuthentication(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

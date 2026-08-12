@@ -9,11 +9,14 @@ import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
 import {
-    beginExternalAuth,
+    authenticateWithProvider,
+    getAccountAuthCapabilities,
     getLinkedIdentities,
     linkCurrentTelegramIdentity,
-    requestEmailLoginCode,
-    verifyEmailLoginCode,
+    loginWithEmailPassword,
+    registerEmailPassword,
+    verifyEmailPasswordRegistration,
+    type AccountAuthCapabilities,
     type LinkedIdentity,
 } from '../services/accountAuthService';
 import { hasTelegramMiniAppContext } from '../services/authSessionIntent';
@@ -42,6 +45,7 @@ function readableIdentityError(error: unknown, language: 'ru' | 'en'): string {
     const code = String((error as { code?: string; message?: string } | null)?.code
         || (error as { message?: string } | null)?.message
         || '');
+    if (code.includes('AUTH_CANCELLED')) return '';
     if (code.includes('IDENTITY_ALREADY_LINKED')) {
         return language === 'en'
             ? 'This sign-in method already belongs to another account. Choose “Restore an existing account”; two filled profiles are never merged automatically.'
@@ -135,8 +139,11 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [emailValue, setEmailValue] = useState('');
     const [emailChallengeId, setEmailChallengeId] = useState('');
     const [emailCode, setEmailCode] = useState('');
+    const [emailPassword, setEmailPassword] = useState('');
+    const [emailPasswordConfirmation, setEmailPasswordConfirmation] = useState('');
     const [identityBusy, setIdentityBusy] = useState(false);
     const [authPurpose, setAuthPurpose] = useState<'link' | 'login'>('link');
+    const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(null);
 
     useEffect(() => {
         let alive = true;
@@ -151,8 +158,12 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     useEffect(() => {
         let alive = true;
-        void getLinkedIdentities()
-            .then((result) => { if (alive) setIdentities(result.identities); })
+        void Promise.all([getLinkedIdentities(), getAccountAuthCapabilities()])
+            .then(([result, capabilities]) => {
+                if (!alive) return;
+                setIdentities(result.identities);
+                setAuthCapabilities(capabilities);
+            })
             .catch(() => undefined);
         return () => { alive = false; };
     }, [profile.id]);
@@ -160,7 +171,11 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const linkOAuth = (provider: 'vk' | 'yandex' | 'google') => {
         setIdentityError('');
         setIdentityBusy(true);
-        void beginExternalAuth(provider, authPurpose)
+        void authenticateWithProvider(provider, authPurpose)
+            .then(async (fresh) => {
+                if (fresh) onUpdate(fresh);
+                if (fresh) setIdentities((await getLinkedIdentities()).identities);
+            })
             .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
     };
@@ -181,8 +196,18 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const requestEmailCode = () => {
         setIdentityError('');
         setIdentityBusy(true);
-        void requestEmailLoginCode(emailValue, authPurpose)
-            .then((result) => setEmailChallengeId(result.challengeId))
+        const action = authPurpose === 'login'
+            ? loginWithEmailPassword(emailValue, emailPassword).then(async (fresh) => {
+                onUpdate(fresh);
+                setIdentities((await getLinkedIdentities()).identities);
+            })
+            : registerEmailPassword({
+                email: emailValue,
+                password: emailPassword,
+                passwordConfirmation: emailPasswordConfirmation,
+                purpose: 'link',
+            }).then((result) => setEmailChallengeId(result.challengeId));
+        void action
             .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
     };
@@ -190,13 +215,15 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const confirmEmailCode = () => {
         setIdentityError('');
         setIdentityBusy(true);
-        void verifyEmailLoginCode(emailChallengeId, emailCode)
+        void verifyEmailPasswordRegistration(emailChallengeId, emailCode)
             .then(async (fresh) => {
                 if (fresh) onUpdate(fresh);
                 const result = await getLinkedIdentities();
                 setIdentities(result.identities);
                 setEmailChallengeId('');
                 setEmailCode('');
+                setEmailPassword('');
+                setEmailPasswordConfirmation('');
             })
             .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
@@ -719,7 +746,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             Telegram
                         </button>
                     ) : null}
-                    {(['vk', 'yandex', 'google'] as const).map((provider) => (
+                    {(['vk', 'yandex', 'google'] as const)
+                      .filter((provider) => authCapabilities?.[provider] === true)
+                      .map((provider) => (
                         <button
                             key={provider}
                             type="button"
@@ -731,7 +760,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                         </button>
                     ))}
                 </div>
-                {!identities.some((identity) => identity.provider === 'email') ? (
+                {(authPurpose === 'login'
+                    ? authCapabilities?.emailPassword
+                    : authCapabilities?.emailDelivery)
+                  && (authPurpose === 'login' || !identities.some((identity) => identity.provider === 'email')) ? (
                     <div className="mt-3 grid gap-2">
                         <input
                             className="fresh-input"
@@ -741,6 +773,26 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             onChange={(event) => setEmailValue(event.target.value)}
                             placeholder={profile.language === 'en' ? 'Email' : 'Email для входа'}
                         />
+                        {!emailChallengeId ? (
+                            <input
+                                className="fresh-input"
+                                type="password"
+                                autoComplete={authPurpose === 'login' ? 'current-password' : 'new-password'}
+                                value={emailPassword}
+                                onChange={(event) => setEmailPassword(event.target.value)}
+                                placeholder={profile.language === 'en' ? 'Password' : 'Пароль'}
+                            />
+                        ) : null}
+                        {authPurpose === 'link' && !emailChallengeId ? (
+                            <input
+                                className="fresh-input"
+                                type="password"
+                                autoComplete="new-password"
+                                value={emailPasswordConfirmation}
+                                onChange={(event) => setEmailPasswordConfirmation(event.target.value)}
+                                placeholder={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
+                            />
+                        ) : null}
                         {emailChallengeId ? (
                             <div className="flex gap-2">
                                 <input
@@ -756,8 +808,15 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                 </button>
                             </div>
                         ) : (
-                            <button type="button" className="fresh-btn-ghost" disabled={identityBusy || !emailValue.trim()} onClick={requestEmailCode}>
-                                {profile.language === 'en' ? 'Send code' : 'Отправить код'}
+                            <button
+                                type="button"
+                                className="fresh-btn-ghost"
+                                disabled={identityBusy || !emailValue.trim() || !emailPassword || (authPurpose === 'link' && (emailPassword.length < 12 || emailPassword !== emailPasswordConfirmation))}
+                                onClick={requestEmailCode}
+                            >
+                                {authPurpose === 'login'
+                                    ? (profile.language === 'en' ? 'Sign in' : 'Войти')
+                                    : (profile.language === 'en' ? 'Send code' : 'Отправить код')}
                             </button>
                         )}
                     </div>

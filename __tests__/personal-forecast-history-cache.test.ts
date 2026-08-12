@@ -38,7 +38,7 @@ jest.mock('../lib/astrologyHistoryStore', () => ({
 jest.mock('../lib/personalForecastContract', () => ({
   PERSONAL_FORECAST_CALCULATION_VERSION: 'personal-forecast-luna-natal-profile-v1',
   PERSONAL_FORECAST_CONTRACT_VERSION: 'personal-forecast-feed-v13',
-  PERSONAL_FORECAST_PROMPT_VERSION: 'personal-forecast-feed.v26.luna-continuous-feed-test',
+  PERSONAL_FORECAST_PROMPT_VERSION: 'personal-forecast-feed.v27.luna-editorial-presentations-test',
   buildPersonalForecastCacheKey: jest.fn((input: { periodKey: string }) => (
     `personal-forecast-profile:key:day:${input.periodKey}`
   )),
@@ -159,7 +159,7 @@ describe('personal forecast profile cache path', () => {
       if (cacheKey.endsWith(':2026-08-01')) {
         return {
           inputHash: 'input-profile-v1:2026-08-01',
-          promptVersion: 'personal-forecast-feed.v26.luna-continuous-feed-test',
+          promptVersion: 'personal-forecast-feed.v27.luna-editorial-presentations-test',
           calculationVersion: 'personal-forecast-luna-natal-profile-v1',
           content: yesterdayReading,
         };

@@ -73,7 +73,7 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
   },
   sign_compatibility: {
     type: 'sign_compatibility', featureKey: 'zodiac_compatibility', modelTier: 'fast', words: { min: 120, max: 180 },
-    cacheTtl: 'forever', cacheScope: 'shared', promptVersion: 'sign_compatibility.v2', purpose: 'Бесплатная совместимость двух знаков',
+    cacheTtl: 'forever', cacheScope: 'shared', promptVersion: 'sign_compatibility.v3', purpose: 'Бесплатная совместимость двух знаков',
     style: 'Три коротких практичных блока: что тянет, где сложно, как общаться; без фатализма и без счёта совместимости.', placements: ['synastry'], generationPolicy: 'explicit_only',
   },
   blind_spot: {

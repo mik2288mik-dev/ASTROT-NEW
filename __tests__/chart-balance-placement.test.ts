@@ -20,13 +20,16 @@ function balance(): ChartBalance {
 }
 
 describe('chart balance placement and copy', () => {
-  it('renders ChartBalance after free sections and before detailed topics', () => {
+  it('keeps calculated balance out of the primary reading and technical details behind the explicit toggle', () => {
     const humanReport = fs.readFileSync(path.join(ROOT, 'components', 'NatalReading', 'HumanReport.tsx'), 'utf8');
     const natalMagazine = fs.readFileSync(path.join(ROOT, 'views', 'v2', 'NatalMagazine.tsx'), 'utf8');
 
     expect(natalMagazine).not.toContain('<ChartBalance');
-    expect(humanReport.indexOf('visibleFreeSections.map')).toBeLessThan(humanReport.indexOf('<ChartBalance'));
-    expect(humanReport.indexOf('<ChartBalance')).toBeLessThan(humanReport.indexOf('Подробные темы по карте'));
+    expect(natalMagazine).not.toContain('<TechnicalDetails');
+    expect(humanReport).not.toContain('<ChartBalance');
+    expect(humanReport).toContain('{showAstrology ? <TechnicalDetails');
+    expect(humanReport).toContain('freeSections.map');
+    expect(humanReport).toContain('<PremiumReport');
   });
 
   it('does not use deficit wording in element summaries', () => {

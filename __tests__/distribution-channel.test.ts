@@ -17,9 +17,10 @@ describe('distribution channel isolation', () => {
   });
 
   it('permits RuStore Pay only for the RuStore build', () => {
-    expect(canUseRuStorePay('rustore')).toBe(true);
-    expect(canUseRuStorePay('telegram')).toBe(false);
-    expect(canUseRuStorePay('google_play')).toBe(false);
+    expect(canUseRuStorePay('rustore', '1')).toBe(true);
+    expect(canUseRuStorePay('rustore', '0')).toBe(false);
+    expect(canUseRuStorePay('telegram', '1')).toBe(false);
+    expect(canUseRuStorePay('google_play', '1')).toBe(false);
   });
 
   it('rejects an unknown channel instead of falling back to Telegram', () => {

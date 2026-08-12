@@ -27,8 +27,11 @@ class TelegramStarsPaymentProvider implements PaymentProvider {
 
 class RuStorePaymentProvider implements PaymentProvider {
   readonly channel: DistributionChannel = 'rustore';
+  constructor(private readonly enabledValue?: string) {}
   async purchase(profile: UserProfile, planId: PremiumPlanId): Promise<PaymentResult> {
-    if (!canUseRuStorePay(this.channel)) return { status: 'unavailable', reason: 'RUSTORE_PAY_DISABLED' };
+    if (!canUseRuStorePay(this.channel, this.enabledValue)) {
+      return { status: 'unavailable', reason: 'RUSTORE_PAY_DISABLED' };
+    }
     return requestRuStorePayment(profile, planId);
   }
 }
@@ -40,8 +43,13 @@ class DisabledPaymentProvider implements PaymentProvider {
   }
 }
 
-export function getPaymentProvider(channel = resolveDistributionChannel()): PaymentProvider {
+export function getPaymentProvider(
+  channel = resolveDistributionChannel(),
+  rustorePaymentsEnabled = process.env.NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED,
+): PaymentProvider {
   if (channel === 'telegram') return new TelegramStarsPaymentProvider();
-  if (channel === 'rustore') return new RuStorePaymentProvider();
+  if (channel === 'rustore' && canUseRuStorePay(channel, rustorePaymentsEnabled)) {
+    return new RuStorePaymentProvider(rustorePaymentsEnabled);
+  }
   return new DisabledPaymentProvider(channel);
 }

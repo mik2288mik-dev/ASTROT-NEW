@@ -78,6 +78,7 @@ describe('mobile API and native auth', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     jest.dontMock('../lib/db');
+    jest.dontMock('../services/nativeSessionStore');
     Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true });
     delete process.env.NEXT_PUBLIC_MOBILE_BUILD;
     delete process.env.NEXT_PUBLIC_API_URL;
@@ -145,7 +146,12 @@ describe('mobile API and native auth', () => {
     })).rejects.toMatchObject({ status: 403, code: 'USER_ID_MISMATCH' });
   });
 
-  it('uses the configured HTTPS API base and clears a rejected bearer without silently creating a new guest', async () => {
+  it.each([
+    { status: 401, field: 'error', code: 'APP_SESSION_INVALID' },
+    { status: 401, field: 'code', code: 'APP_SESSION_REVOKED' },
+    { status: 401, field: 'error', code: 'APP_AUTH_REQUIRED' },
+    { status: 403, field: 'code', code: 'ACCOUNT_BLOCKED' },
+  ] as const)('clears a native bearer only for explicit session failure $code', async ({ status, field, code }) => {
     jest.resetModules();
     process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test/';
@@ -162,7 +168,10 @@ describe('mobile API and native auth', () => {
       const url = String(input);
       const authorization = new Headers(init?.headers).get('Authorization');
       calls.push({ url, authorization });
-      return new Response(null, { status: 401 });
+      return new Response(JSON.stringify({ [field]: code }), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      });
     });
     Object.defineProperty(globalThis, 'fetch', { value: fetchMock, configurable: true });
 
@@ -170,7 +179,8 @@ describe('mobile API and native auth', () => {
     expect(getApiBaseUrl()).toBe('https://api.example.test');
     const response = await apiFetch('/api/data');
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(status);
+    await expect(response.json()).resolves.toEqual({ [field]: code });
     expect(calls).toEqual([
       {
         url: 'https://api.example.test/api/data',
@@ -179,6 +189,31 @@ describe('mobile API and native auth', () => {
     ]);
     expect(store.clearToken).toHaveBeenCalledTimes(1);
     expect(store.setToken).not.toHaveBeenCalled();
+  });
+
+  it('preserves a native session for unrelated 401 responses', async () => {
+    jest.resetModules();
+    process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test';
+    const store = {
+      getToken: jest.fn(async () => 'active-token'),
+      setToken: jest.fn(async () => undefined),
+      clearToken: jest.fn(async () => undefined),
+    };
+    jest.doMock('../services/nativeSessionStore', () => ({ nativeSessionStore: store }));
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: jest.fn(async () => new Response(JSON.stringify({ code: 'INVALID_CREDENTIALS' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })),
+    });
+
+    const { apiFetch } = await import('../services/apiClient');
+    const response = await apiFetch('/api/auth/password/login', { method: 'POST' });
+
+    expect(store.clearToken).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({ code: 'INVALID_CREDENTIALS' });
   });
 
   it.each(['signed_out', 'account'] as const)(

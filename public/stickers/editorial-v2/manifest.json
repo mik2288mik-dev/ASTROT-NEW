@@ -1,0 +1,6399 @@
+{
+  "schemaVersion": 1,
+  "library": "editorial-v2",
+  "generatedFrom": "public/new stickers",
+  "assets": [
+    {
+      "id": "animal_goose_sunglasses_full_01",
+      "path": "/stickers/editorial-v2/animals/animal_goose_sunglasses_full_01.webp",
+      "category": "animals",
+      "tags": [
+        "animals",
+        "full",
+        "funny",
+        "goose",
+        "sunglasses"
+      ],
+      "width": 205,
+      "height": 325,
+      "aspectRatio": 0.6308,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "4c824e72c6d26791d65efd47259440ac4eee01b38aa5a7363afd6ac1f21aa5e8",
+      "perceptualHash": "fffff03fe01fe01ff0fff9fffcfffe3fff0fc007c003e007f81ff9bfe1ffffff"
+    },
+    {
+      "id": "animal_goose_sunglasses_portrait_01",
+      "path": "/stickers/editorial-v2/animals/animal_goose_sunglasses_portrait_01.webp",
+      "category": "animals",
+      "tags": [
+        "animals",
+        "funny",
+        "goose",
+        "portrait",
+        "sunglasses"
+      ],
+      "width": 252,
+      "height": 405,
+      "aspectRatio": 0.6222,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "746814c129b594d17b7d685bc169bbc2263495d9ec3ebeea82c092c0959052bb",
+      "perceptualHash": "fffffffff007e007c01fc007e03fe07ff0fff8fff87ff07fe03fc01ffe0fffff"
+    },
+    {
+      "id": "animal_rubber_duck_sunglasses_01",
+      "path": "/stickers/editorial-v2/animals/animal_rubber_duck_sunglasses_01.webp",
+      "category": "animals",
+      "tags": [
+        "animals",
+        "duck",
+        "funny",
+        "rubber",
+        "sunglasses"
+      ],
+      "width": 242,
+      "height": 258,
+      "aspectRatio": 0.938,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "3e6a49438e12175a693e3541112e8d94d7bdf3ad4cd1393bc03ad2cbada7886f",
+      "perceptualHash": "fffffffffdffe01fc00fc00fe00ff00ff00fc003c103c003c007f00fffffffff"
+    },
+    {
+      "id": "clip_binder_clip_black_01",
+      "path": "/stickers/editorial-v2/clips_pins/clip_binder_clip_black_01.webp",
+      "category": "clips_pins",
+      "tags": [
+        "binder",
+        "black",
+        "clip",
+        "clips_pins"
+      ],
+      "width": 129,
+      "height": 147,
+      "aspectRatio": 0.8776,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "5bb7bba90b8d9f3acb834fa0715f873cf9b0f50c2b36339bbff2288f5170bd79",
+      "perceptualHash": "fffffffffffffc3ff99ff9bffd3ff80fe007e007e007e007e007ffffffffffff"
+    },
+    {
+      "id": "clip_paperclip_silver_horizontal_01",
+      "path": "/stickers/editorial-v2/clips_pins/clip_paperclip_silver_horizontal_01.webp",
+      "category": "clips_pins",
+      "tags": [
+        "clips_pins",
+        "horizontal",
+        "paperclip",
+        "silver"
+      ],
+      "width": 134,
+      "height": 130,
+      "aspectRatio": 1.0308,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "4dcaf99b43a27b4589662e3b9aef0402054b66655fa361c079e9a2e77f07d15e",
+      "perceptualHash": "ffffffffffe7ff87ff03fe07fccff99ff33fe67fc0ffc1ffe3ffffffffffffff"
+    },
+    {
+      "id": "clip_paperclip_silver_vertical_01",
+      "path": "/stickers/editorial-v2/clips_pins/clip_paperclip_silver_vertical_01.webp",
+      "category": "clips_pins",
+      "tags": [
+        "clips_pins",
+        "paperclip",
+        "silver",
+        "vertical"
+      ],
+      "width": 125,
+      "height": 149,
+      "aspectRatio": 0.8389,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "070ed7b21863893480ee9020bb837e9ca9e8359eff465760a39d4e6d7825df7e",
+      "perceptualHash": "ffffffffffdfff07fe27fe27fc0ff80ff81ff13fe03fe4ffe0fff1ffffffffff"
+    },
+    {
+      "id": "clip_pushpin_blue_01",
+      "path": "/stickers/editorial-v2/clips_pins/clip_pushpin_blue_01.webp",
+      "category": "clips_pins",
+      "tags": [
+        "blue",
+        "clips_pins",
+        "pushpin"
+      ],
+      "width": 87,
+      "height": 142,
+      "aspectRatio": 0.6127,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "7332b88af4e8cb1312438555811832fef2cff286228cace5bf5496e638f763a6",
+      "perceptualHash": "fffffffffffff81ff81ffc1ffc3ff81ff00ff00ffc3ffe7ffe7fffffffffffff"
+    },
+    {
+      "id": "clip_pushpin_pink_01",
+      "path": "/stickers/editorial-v2/clips_pins/clip_pushpin_pink_01.webp",
+      "category": "clips_pins",
+      "tags": [
+        "clips_pins",
+        "pink",
+        "pushpin"
+      ],
+      "width": 94,
+      "height": 142,
+      "aspectRatio": 0.662,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "a83dbe78fcbe5aebb029c9ac62eeb81a3b7d58b996762eabdc74a99d2e4a1770",
+      "perceptualHash": "fffffffffe3ffc0ffe0ffe3ffc3ff03ff01ff81ffcfffcfffdffffffffffffff"
+    },
+    {
+      "id": "clip_pushpin_silver_01",
+      "path": "/stickers/editorial-v2/clips_pins/clip_pushpin_silver_01.webp",
+      "category": "clips_pins",
+      "tags": [
+        "clips_pins",
+        "pushpin",
+        "silver"
+      ],
+      "width": 98,
+      "height": 96,
+      "aspectRatio": 1.0208,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "4da870fcbc54a36db669555ddf69d6ee150ddec1a326532be27cd7f84c8e09d2",
+      "perceptualHash": "fffffffffffffe7ffc1ff91ff24ff00ff00ff80ff81ffe3fffffffffffffffff"
+    },
+    {
+      "id": "doodle_arrow_black_curved_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_arrow_black_curved_01.webp",
+      "category": "doodles",
+      "tags": [
+        "arrow",
+        "black",
+        "curved",
+        "doodles"
+      ],
+      "width": 122,
+      "height": 159,
+      "aspectRatio": 0.7673,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "04027d325bdee8c870c288e9528aa2f1185c34145f6c070ccefe71484fc979a6",
+      "perceptualHash": "ffffffffff3fff0fff07fc0ff80ff01ff33fe3ffe7ffe7ffe7ffe7ffffffffff"
+    },
+    {
+      "id": "doodle_arrow_black_right_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_arrow_black_right_01.webp",
+      "category": "doodles",
+      "tags": [
+        "arrow",
+        "black",
+        "doodles",
+        "right"
+      ],
+      "width": 143,
+      "height": 102,
+      "aspectRatio": 1.402,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "b96b9f72d6d829caf8d002c67ef7d6aa236596b2be41ab4b6a27781d24f1cc41",
+      "perceptualHash": "ffffffffffffff8fffc3ff03fc03f803e007c19fc33fce7fdfffffffffffffff"
+    },
+    {
+      "id": "doodle_arrow_blue_down_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_arrow_blue_down_01.webp",
+      "category": "doodles",
+      "tags": [
+        "arrow",
+        "blue",
+        "doodles",
+        "down"
+      ],
+      "width": 98,
+      "height": 142,
+      "aspectRatio": 0.6901,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "13c256e25fb223e56065e4b4516b399021618444c544ff8fd939fbfe2fec0a23",
+      "perceptualHash": "ffffff3fff0fffc7ffc7ffcfff9fff3ff27ff01ff03ff0ffe3ffe7ffffffffff"
+    },
+    {
+      "id": "doodle_arrow_blue_up_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_arrow_blue_up_01.webp",
+      "category": "doodles",
+      "tags": [
+        "arrow",
+        "blue",
+        "doodles",
+        "up"
+      ],
+      "width": 141,
+      "height": 109,
+      "aspectRatio": 1.2936,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "88dd55ec80a715fa7b349c361bc5d2eadf274d7b4bb555ec4e3313f215b3d37e",
+      "perceptualHash": "fffffffffffff8ffe07fc47fd8fff1fff3ffe707c803c0f9c3f9ffffffffffff"
+    },
+    {
+      "id": "doodle_arrow_pink_right_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_arrow_pink_right_01.webp",
+      "category": "doodles",
+      "tags": [
+        "arrow",
+        "doodles",
+        "pink",
+        "right"
+      ],
+      "width": 123,
+      "height": 94,
+      "aspectRatio": 1.3085,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "a99bf386cd8153ccdc275d85a60c5ad7b4c5b5cf47456f405f87efa799f9f619",
+      "perceptualHash": "ffffffffffffffffffc7ff87ffe7ffcfff0ffc3fe07fe1ffefffffffffffffff"
+    },
+    {
+      "id": "doodle_arrow_pink_up_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_arrow_pink_up_01.webp",
+      "category": "doodles",
+      "tags": [
+        "arrow",
+        "doodles",
+        "pink",
+        "up"
+      ],
+      "width": 118,
+      "height": 158,
+      "aspectRatio": 0.7468,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "25a7f53a357a02e573dc15ad344df5db24a3ddc72243302b1b4f685dbb0e1b1b",
+      "perceptualHash": "ffffffffffe7ff87ff07fc47fc93ff17fe3ffe7ffcfff1ffe3ffe7ffffffffff"
+    },
+    {
+      "id": "doodle_burst_yellow_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_burst_yellow_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "burst",
+        "doodles",
+        "yellow"
+      ],
+      "width": 111,
+      "height": 132,
+      "aspectRatio": 0.8409,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "f46f08e5e2aa1e713c6369fde6a727cea7c648474d5577f3cc1b9743b97205ee",
+      "perceptualHash": "ffffffffffffff9fff9ff89ff80ffc4ffe0fff1ff01ff01fff1fffffffffffff"
+    },
+    {
+      "id": "doodle_crown_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_crown_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "crown",
+        "doodles"
+      ],
+      "width": 109,
+      "height": 113,
+      "aspectRatio": 0.9646,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "5fac740e75745d07292d20cee40c71f7cd779959febbaddf88edd83562064e6c",
+      "perceptualHash": "fffffffff9fff99ff993f803c807e247e3e7e3efe70ff01ff1fff7ffffffffff"
+    },
+    {
+      "id": "doodle_crown_black_outline_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_crown_black_outline_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "crown",
+        "doodles",
+        "outline"
+      ],
+      "width": 169,
+      "height": 165,
+      "aspectRatio": 1.0242,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "1ca9f739db03173cd38a019285a70da69e27372ac25237daa74e64d98cb8a7a2",
+      "perceptualHash": "ffffffffffffe73fe33fe237e023e087e107efa7c1cfe00fff0fffffffffffff"
+    },
+    {
+      "id": "doodle_crown_black_yellow_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_crown_black_yellow_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "crown",
+        "doodles",
+        "yellow"
+      ],
+      "width": 152,
+      "height": 157,
+      "aspectRatio": 0.9682,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "71ecbb7739ab49bf8001eb1bb99e35ccf0260d5b35877f40164bf65497fffcc6",
+      "perceptualHash": "fffffffffffffe77ee67e647e007e007e10fe5cfe7cfe00fe00fffffffffffff"
+    },
+    {
+      "id": "doodle_flower_blue_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_flower_blue_01.webp",
+      "category": "doodles",
+      "tags": [
+        "blue",
+        "doodles",
+        "flower"
+      ],
+      "width": 162,
+      "height": 165,
+      "aspectRatio": 0.9818,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "8fbb944b0450f5adeb2317076ef2a517fbcc3f6aea7a23973edb5066f3dfeb4d",
+      "perceptualHash": "ffffffffffbfff1ff30ff00ff00ff007e007c00fe01ff01ff11fffffffffffff"
+    },
+    {
+      "id": "doodle_heart_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "heart"
+      ],
+      "width": 82,
+      "height": 98,
+      "aspectRatio": 0.8367,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "51fa7f1c85d7bb4d4038274401cf9657d446908f8351498f21c37bec6100bbc1",
+      "perceptualHash": "ffffffffffefff87f127e427e467e4cff69ff39ff93ff87ffc7fffffffffffff"
+    },
+    {
+      "id": "doodle_heart_black_scribble_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_black_scribble_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "heart",
+        "scribble"
+      ],
+      "width": 157,
+      "height": 176,
+      "aspectRatio": 0.892,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "f470c377482bd51dffbd5603f4cf8f742cf6d0e5abe4005e05dc278a4419e89d",
+      "perceptualHash": "ffffffffffcfff87f307e007e007e007e00ff00ff01ff83ffe3fffffffffffff"
+    },
+    {
+      "id": "doodle_heart_blue_filled_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_blue_filled_01.webp",
+      "category": "doodles",
+      "tags": [
+        "blue",
+        "doodles",
+        "filled",
+        "heart"
+      ],
+      "width": 169,
+      "height": 165,
+      "aspectRatio": 1.0242,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "1699a77e3c334f9d5f11ca63e62246b8be71d545a08c350508cbb52d180ebac6",
+      "perceptualHash": "ffffffffe3e3c1c3c083c003c007c00fe00ff01ff03ff87ffc7ffcffffffffff"
+    },
+    {
+      "id": "doodle_heart_pink_brush_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_pink_brush_01.webp",
+      "category": "doodles",
+      "tags": [
+        "brush",
+        "doodles",
+        "heart",
+        "pink"
+      ],
+      "width": 147,
+      "height": 161,
+      "aspectRatio": 0.913,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "0d77afc9a534edfcff743afb3953b044fc193d5a6277fb45c253d7aa02008c68",
+      "perceptualHash": "fffffffffffff1cfe107e427e447e4cfe38ff31ff23ff87ff8ffffffffffffff"
+    },
+    {
+      "id": "doodle_heart_pink_crayon_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_pink_crayon_01.webp",
+      "category": "doodles",
+      "tags": [
+        "crayon",
+        "doodles",
+        "heart",
+        "pink"
+      ],
+      "width": 162,
+      "height": 156,
+      "aspectRatio": 1.0385,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "cfa38bde8d489494056fc69c2729c1427e9d3587829fefd14da846685a011293",
+      "perceptualHash": "ffffffffffeff187e083c007c007e00fe00ff01ff83ffc3ffe7fffffffffffff"
+    },
+    {
+      "id": "doodle_heart_pink_double_line_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_pink_double_line_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "double",
+        "heart",
+        "line",
+        "pink"
+      ],
+      "width": 168,
+      "height": 175,
+      "aspectRatio": 0.96,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "98924070e9e534a6b0a15ebf66d3db531fe6e6e86892bdfae7fa62254bd4b3a9",
+      "perceptualHash": "fffffffffe7ffc67fc07f807e00fc01fe01ff80ff00ff08ff1fff3ffffffffff"
+    },
+    {
+      "id": "doodle_heart_pink_filled_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_pink_filled_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "filled",
+        "heart",
+        "pink"
+      ],
+      "width": 217,
+      "height": 224,
+      "aspectRatio": 0.9688,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "6a89bb095cf19d31c5452cbff8d87cad22e9248ed5c6c34bd63d640b3d3826b4",
+      "perceptualHash": "ffffffffff83c303c103c003c003c007c00fe01fe01ff03ff87ffcffffffffff"
+    },
+    {
+      "id": "doodle_heart_pink_outline_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_pink_outline_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "heart",
+        "outline",
+        "pink"
+      ],
+      "width": 193,
+      "height": 207,
+      "aspectRatio": 0.9324,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "da96020eb8d471d1b07c527305155c86978f0a74d82fb79f4e046a9d1d887d5e",
+      "perceptualHash": "ffffffffffc7f387e103c007c007e00fe00ff01ff03ff83ffc7ffeffffffffff"
+    },
+    {
+      "id": "doodle_heart_red_brush_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_red_brush_01.webp",
+      "category": "doodles",
+      "tags": [
+        "brush",
+        "doodles",
+        "heart",
+        "red"
+      ],
+      "width": 228,
+      "height": 241,
+      "aspectRatio": 0.9461,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "2d7fc7a52e0cb68eedadf6365264f69b727323ac3353d95b659074d989d34b73",
+      "perceptualHash": "fffffffff7c3e383c113c827cc47cccfc59fe73fe67ff0fff0fff9ffffffffff"
+    },
+    {
+      "id": "doodle_heart_red_crayon_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_red_crayon_01.webp",
+      "category": "doodles",
+      "tags": [
+        "crayon",
+        "doodles",
+        "heart",
+        "red"
+      ],
+      "width": 226,
+      "height": 265,
+      "aspectRatio": 0.8528,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "4bce1114852c161a466ee5d8172371c64dcce2b8fead99d54ea8dbaf3f3f4530",
+      "perceptualHash": "ffffffefff83e303c003c003c003c007c00fe01ff03ff83ff87ffcffffffffff"
+    },
+    {
+      "id": "doodle_heart_red_filled_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_heart_red_filled_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "filled",
+        "heart",
+        "red"
+      ],
+      "width": 168,
+      "height": 163,
+      "aspectRatio": 1.0307,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "559e9d7eeaedfb9cdebfebd46e2eca63c991c7990c1ac9bbd5fc7d33df7a9e98",
+      "perceptualHash": "ffffffffffcfff87e007e003c007c007e00fe01ff01ffc3ffe7fffffffffffff"
+    },
+    {
+      "id": "doodle_lightning_pink_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_lightning_pink_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "lightning",
+        "pink"
+      ],
+      "width": 162,
+      "height": 237,
+      "aspectRatio": 0.6835,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "6ed01f4b4c8b30c026aa760eaf1859167f5bd6d28c77aa4572386b1d91915117",
+      "perceptualHash": "ffffffcfff8fff0ffc1ff803f003e007c00fc01ff83ff87ff0fff1ffe7ffffff"
+    },
+    {
+      "id": "doodle_lightning_yellow_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_lightning_yellow_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "lightning",
+        "yellow"
+      ],
+      "width": 121,
+      "height": 124,
+      "aspectRatio": 0.9758,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "6b2619fa719fb10e5f24ef2a21dd8a010d1cae7a96cfe8869ce9657551128110",
+      "perceptualHash": "ffffffffffffff87fc07fc07f80ff807f007f007f00fe00fe01fe03fffffffff"
+    },
+    {
+      "id": "doodle_paper_plane_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_paper_plane_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "paper",
+        "plane"
+      ],
+      "width": 237,
+      "height": 195,
+      "aspectRatio": 1.2154,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [
+        "movement"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "e0fb0d176f3ebd3f7ad024e4b207af361470a3c61f7cb895290b31a7efeb11de",
+      "perceptualHash": "ffffffff803f807fc0ffccffe0ffe0fff27ffe7fff3fff87fff3fff9ffffffff"
+    },
+    {
+      "id": "doodle_smile_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_smile_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "smile"
+      ],
+      "width": 105,
+      "height": 108,
+      "aspectRatio": 0.9722,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "920c3a20e61a97bee9c6f07d7e4d5dab4bba0836764b058abc842790d079c03f",
+      "perceptualHash": "fffffffffc1ff80ff3e7e7f3eff3cff3cff3cff7cfe7e78ff01ffc7fffffffff"
+    },
+    {
+      "id": "doodle_sparkle_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_sparkle_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "sparkle"
+      ],
+      "width": 81,
+      "height": 114,
+      "aspectRatio": 0.7105,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "086d1ecf7c3e4b08edc39e61c5a2a0bf6b62351c60739233a81931b954c4c20a",
+      "perceptualHash": "ffffffffff3fff3ffe3ffe3ffc87f1c7e19ffc3ffc7ffe7ffe7ffeffffffffff"
+    },
+    {
+      "id": "doodle_sparkle_black_four_point_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_sparkle_black_four_point_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "four",
+        "point",
+        "sparkle"
+      ],
+      "width": 115,
+      "height": 135,
+      "aspectRatio": 0.8519,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "f6ada78f5407e250a7d1bfef3e83d02533e04dea256e7d3cd11b86b40477e87d",
+      "perceptualHash": "fffffffffffffe7ffe7ffc3ff00fe18ff03ffc3ffe7ffe7ffeffffffffffffff"
+    },
+    {
+      "id": "doodle_sparkle_purple_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_sparkle_purple_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "purple",
+        "sparkle"
+      ],
+      "width": 171,
+      "height": 170,
+      "aspectRatio": 1.0059,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "ac5b55519ac3899d591a65c5dd30a9759fe1224e8f20203fbf97c6bfaca4df2b",
+      "perceptualHash": "fffffffffdfffcdffc9ffc27f007f01ff807e007ec7ff93ff93fffffffffffff"
+    },
+    {
+      "id": "doodle_sparkles_black_cluster_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_sparkles_black_cluster_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "cluster",
+        "doodles",
+        "sparkles"
+      ],
+      "width": 158,
+      "height": 180,
+      "aspectRatio": 0.8778,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "200a87db3c45cb99ab5e4023471bcbe5acb0a825e14a64c85fa3840647222666",
+      "perceptualHash": "ffffffffffdff9cff987f907f08ff20fc60fe0fff8fff9fff9fffdffffffffff"
+    },
+    {
+      "id": "doodle_sparkles_black_pair_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_sparkles_black_pair_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "pair",
+        "sparkles"
+      ],
+      "width": 109,
+      "height": 156,
+      "aspectRatio": 0.6987,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "8d2af5d8127057d72390c40e2acac7a2b3210125737cd11ef87e9e285f1e31a5",
+      "perceptualHash": "fffffbfffbfff1ffe0ffc43fce3fe4fff1dff18ff903fb23ff8fff9fffffffff"
+    },
+    {
+      "id": "doodle_star_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_star_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "star"
+      ],
+      "width": 122,
+      "height": 136,
+      "aspectRatio": 0.8971,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "e59284a86611c0f86668f14325374753857db3aeb09bba90e8ca26543d8984be",
+      "perceptualHash": "fffffffffffffe7ffe7ffe67fe07f00ff01ff81ffc0ff8cff9ffffffffffffff"
+    },
+    {
+      "id": "doodle_star_blue_outline_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_star_blue_outline_01.webp",
+      "category": "doodles",
+      "tags": [
+        "blue",
+        "doodles",
+        "outline",
+        "star"
+      ],
+      "width": 154,
+      "height": 168,
+      "aspectRatio": 0.9167,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "4b285649f701215286e01d8874dad09e9409fe708f30fe4d85cc76401bde4bf6",
+      "perceptualHash": "fffffffffe7ffe7ffc3ffc3ffc03e003c00ff00ff80ff80ff9c7f9ffffffffff"
+    },
+    {
+      "id": "doodle_star_pink_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_star_pink_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "pink",
+        "star"
+      ],
+      "width": 79,
+      "height": 92,
+      "aspectRatio": 0.8587,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "7c402b8b787361e70d3905a1dbf1fd89a16b613cdaac2585d7cb8739018f2460",
+      "perceptualHash": "fffffffffffffefffe7ffc07fc0ff81fe11fe01ffc0ff88ff9fffdffffffffff"
+    },
+    {
+      "id": "doodle_star_yellow_outline_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_star_yellow_outline_01.webp",
+      "category": "doodles",
+      "tags": [
+        "doodles",
+        "outline",
+        "star",
+        "yellow"
+      ],
+      "width": 194,
+      "height": 204,
+      "aspectRatio": 0.951,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "2644b4639ef9be6c8f9e895f46a5e7206930b7af1fb2831ee9b2f07105ed022d",
+      "perceptualHash": "ffffffffff7ffe3ffc3ffc03e007c00fe01ff81ff01ff00ff38ff7cfffffffff"
+    },
+    {
+      "id": "doodle_zzz_black_01",
+      "path": "/stickers/editorial-v2/doodles/doodle_zzz_black_01.webp",
+      "category": "doodles",
+      "tags": [
+        "black",
+        "doodles",
+        "zzz"
+      ],
+      "width": 160,
+      "height": 171,
+      "aspectRatio": 0.9357,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "rest",
+        "sleep"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "4b722151ea9ec9ee0cda6f23b75890fb14e6b6dabd7f1d54de8bdbfd51196bbd",
+      "perceptualHash": "fffffffffe1ff01ff07ff8fff37fe047c167ec07fc47fc3ff83ffdffffffffff"
+    },
+    {
+      "id": "fixed_text_breathe_everything_according_plan_purple_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_breathe_everything_according_plan_purple_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "according",
+        "breathe",
+        "everything",
+        "fixed_text",
+        "plan",
+        "purple"
+      ],
+      "width": 295,
+      "height": 251,
+      "aspectRatio": 1.1753,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "906e8c8d6be4b42e583b5762be5648ff60eee6b89646d92102de2a072fa86e7d",
+      "perceptualHash": "fffffffff83ff807c007c007c003c003c003c003c003c003c003e7ffffffffff"
+    },
+    {
+      "id": "fixed_text_breathe_everything_will_work_speech_blue_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_breathe_everything_will_work_speech_blue_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "blue",
+        "breathe",
+        "everything",
+        "fixed_text",
+        "speech",
+        "will",
+        "work"
+      ],
+      "width": 236,
+      "height": 210,
+      "aspectRatio": 1.1238,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "db2d08681291ad2a0317979938f444e8870ac4f47f7410fe3db16c86ea6070f0",
+      "perceptualHash": "fffffffff80ff187e013c00bd10380038043c043cc47e00fe03fefffffffffff"
+    },
+    {
+      "id": "fixed_text_breathe_you_are_ok_coral_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_breathe_you_are_ok_coral_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "are",
+        "breathe",
+        "coral",
+        "fixed_text",
+        "ok",
+        "you"
+      ],
+      "width": 274,
+      "height": 308,
+      "aspectRatio": 0.8896,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "2e9e43f6d20395216b31baa8a60b4724aea8358d0ab9a7d039bc0f7dcebe0f8b",
+      "perceptualHash": "fffffffffc3fe00fc007c007c003c003c003c003e003e003e003f003ffffffff"
+    },
+    {
+      "id": "fixed_text_calm_you_will_make_it_pinned_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_calm_you_will_make_it_pinned_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "calm",
+        "fixed_text",
+        "it",
+        "make",
+        "pinned",
+        "will",
+        "you"
+      ],
+      "width": 326,
+      "height": 323,
+      "aspectRatio": 1.0093,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "40de20f11562863e4e0497673f42d00d70168159ca3b44e1c8219555e99c7d39",
+      "perceptualHash": "ffffffbfff13d103c203c003c003c403e003c203c003c003c003c003ffffffff"
+    },
+    {
+      "id": "fixed_text_coffee_first_people_later_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_coffee_first_people_later_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "coffee",
+        "first",
+        "fixed_text",
+        "later",
+        "people"
+      ],
+      "width": 320,
+      "height": 339,
+      "aspectRatio": 0.944,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "d36690ba8d8d1bf75f652f3558ce5879be976b2f2ac1b9e953269fe08c802e26",
+      "perceptualHash": "fffffffffe1ffe1fd83fc003c087e00fe003d04be04bf803e013e0ffffffffff"
+    },
+    {
+      "id": "fixed_text_coffee_plan_action_grid_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_coffee_plan_action_grid_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "action",
+        "coffee",
+        "fixed_text",
+        "grid",
+        "plan"
+      ],
+      "width": 263,
+      "height": 251,
+      "aspectRatio": 1.0478,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "49ee1183907fbaefd1bc9e824591b917dd45259dde6db95b83808812076dfd64",
+      "perceptualHash": "ffffffffffefc24fda0fc017c14fe80fe003e003c003e0c3e61fffffffffffff"
+    },
+    {
+      "id": "fixed_text_crown_white_on_black_paper_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_crown_white_on_black_paper_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "black",
+        "crown",
+        "fixed_text",
+        "on",
+        "paper",
+        "white"
+      ],
+      "width": 219,
+      "height": 238,
+      "aspectRatio": 0.9202,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "7dbe727f913372363481e751028ca620012e64852e616a93a2b34258d061a4f2",
+      "perceptualHash": "fffffffff803f003e003c923c403c203c003c003c003c003c007c03fffffffff"
+    },
+    {
+      "id": "fixed_text_do_what_is_fun_blue_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_do_what_is_fun_blue_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "blue",
+        "do",
+        "fixed_text",
+        "fun",
+        "is",
+        "what"
+      ],
+      "width": 286,
+      "height": 300,
+      "aspectRatio": 0.9533,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "9142106a27c5ec29e0b9b19c1b7e14f6a1230f9df8af9d4d1ca962129fd1332f",
+      "perceptualHash": "ffffffffe03be003e003e003e003c003c003c003c003c003c003e003ff9fffff"
+    },
+    {
+      "id": "fixed_text_do_what_you_really_want_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_do_what_you_really_want_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "do",
+        "fixed_text",
+        "really",
+        "want",
+        "what",
+        "you"
+      ],
+      "width": 344,
+      "height": 294,
+      "aspectRatio": 1.1701,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "254d1f5d9f8d0c5085138de511048184a2b5219a0385c515d6eb9f7797138a2c",
+      "perceptualHash": "fffffffff87ff84fd00fc00fc117c007c007c007c003c00fc03fc1ffefffffff"
+    },
+    {
+      "id": "fixed_text_dont_forget_yourself_beige_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_dont_forget_yourself_beige_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "beige",
+        "dont",
+        "fixed_text",
+        "forget",
+        "yourself"
+      ],
+      "width": 324,
+      "height": 253,
+      "aspectRatio": 1.2806,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "8ac797dc816d2c174913e0c61c3dcd72b42190f86ae78817e6ef29f3c993ce4f",
+      "perceptualHash": "ffffffffcdffd483800be033d203c003c007c803c003e00bc803d8ffffffffff"
+    },
+    {
+      "id": "fixed_text_dont_hurry_you_will_make_it_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_dont_hurry_you_will_make_it_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "dont",
+        "fixed_text",
+        "hurry",
+        "it",
+        "make",
+        "will",
+        "you"
+      ],
+      "width": 267,
+      "height": 296,
+      "aspectRatio": 0.902,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "4430bcb1eb794e18e07b62a2c2dcf5003034bed85d55a74e1977222a8a574bfe",
+      "perceptualHash": "fffffc3ff80fe80bef9be103f00bd003f003d01bc013c4a3d827e007fff7ffff"
+    },
+    {
+      "id": "fixed_text_everything_according_plan_yellow_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_everything_according_plan_yellow_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "according",
+        "everything",
+        "fixed_text",
+        "plan",
+        "yellow"
+      ],
+      "width": 250,
+      "height": 269,
+      "aspectRatio": 0.9294,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "5d7a185ab9ecd8599a432738973df9e9542eaf3ee71bb750ceddf03c4bab4c27",
+      "perceptualHash": "fffffffff8fff807c007e09fe0e7e007e007c007c00fe007e387fe4bffffffff"
+    },
+    {
+      "id": "fixed_text_everything_in_right_time_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_everything_in_right_time_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "everything",
+        "fixed_text",
+        "in",
+        "right",
+        "time"
+      ],
+      "width": 297,
+      "height": 297,
+      "aspectRatio": 1.0,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "aaa62ee5653a12854a01e916cd733937a32f41b5d8e254ff5d90fcfbeb292dbd",
+      "perceptualHash": "ffffffbff83fd8239e039013d003d00bd027c007e007e003e003e0ffffffffff"
+    },
+    {
+      "id": "fixed_text_everything_will_be_cool_beige_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_everything_will_be_cool_beige_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "be",
+        "beige",
+        "cool",
+        "everything",
+        "fixed_text",
+        "will"
+      ],
+      "width": 317,
+      "height": 270,
+      "aspectRatio": 1.1741,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "c739fd95a9f284dc0201f650e0c9f38026307fad78b032c8c846d7ed7db37986",
+      "perceptualHash": "fffffffff87ff007f077de0fc007e007e147e403d04bf197e87fe7ffffffffff"
+    },
+    {
+      "id": "fixed_text_everything_will_be_cool_blue_tape_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_everything_will_be_cool_blue_tape_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "be",
+        "blue",
+        "cool",
+        "everything",
+        "fixed_text",
+        "tape",
+        "will"
+      ],
+      "width": 290,
+      "height": 307,
+      "aspectRatio": 0.9446,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "d96c6a372b343a22bcfe26638c8f12487db699ca9006f154e3d1dbed16eb76a1",
+      "perceptualHash": "fffffe1ff81ff81fc017c3e7c3bfc427e043e107f007f00fe81be87fffffffff"
+    },
+    {
+      "id": "fixed_text_everything_will_be_cool_speech_pink_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_everything_will_be_cool_speech_pink_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "be",
+        "cool",
+        "everything",
+        "fixed_text",
+        "pink",
+        "speech",
+        "will"
+      ],
+      "width": 286,
+      "height": 262,
+      "aspectRatio": 1.0916,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "bb5baeb57109661a760452fb4f7d0d6925741727184302916726ca575551515c",
+      "perceptualHash": "fffffffff807e0e3c003d049900188018003d003cc67e00ff80fffe7ffffffff"
+    },
+    {
+      "id": "fixed_text_first_tea_speech_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_first_tea_speech_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "first",
+        "fixed_text",
+        "speech",
+        "tea"
+      ],
+      "width": 226,
+      "height": 242,
+      "aspectRatio": 0.9339,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "71c29efe3703569089aa43b5cd4c800546ec91039f969cebc150447c10556b98",
+      "perceptualHash": "fffffe3ff00fe7e7c613c013c083c483d083c083e707f21ff8fff9ffffffffff"
+    },
+    {
+      "id": "fixed_text_important_business_calmly_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_important_business_calmly_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "business",
+        "calmly",
+        "fixed_text",
+        "important"
+      ],
+      "width": 315,
+      "height": 241,
+      "aspectRatio": 1.3071,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "999c58a7bcd361a725405084b52517d0ab8088743f153905bce749d69a946edf",
+      "perceptualHash": "ffffffffc483c4c7c70fe01be003e003c009c003c003c005c003c1dfffffffff"
+    },
+    {
+      "id": "fixed_text_label_important_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_label_important_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "fixed_text",
+        "important",
+        "label"
+      ],
+      "width": 222,
+      "height": 142,
+      "aspectRatio": 1.5634,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "898b33ebe631236a09b30ff1f7b18a5c8f57ecd7b42011c2c689a5ed134bf880",
+      "perceptualHash": "ffffffffffffe013e003e003e003c003c003c003c003c003fb07ffffffffffff"
+    },
+    {
+      "id": "fixed_text_label_plan_beige_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_label_plan_beige_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "beige",
+        "fixed_text",
+        "label",
+        "plan"
+      ],
+      "width": 261,
+      "height": 147,
+      "aspectRatio": 1.7755,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "c91ef328f93184b29c96b6f5eb35a18e97fc20dd46382aca92acd37e9ea515c5",
+      "perceptualHash": "ffffffffffffc7ffc0ffc00fc003c003c003c0038003c003f003ffffffffffff"
+    },
+    {
+      "id": "fixed_text_label_remember_black_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_label_remember_black_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "black",
+        "fixed_text",
+        "label",
+        "remember"
+      ],
+      "width": 230,
+      "height": 145,
+      "aspectRatio": 1.5862,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "b735e2be160fd36700ed180737423fca409776d3a70da2f1728a51ec8f1930e0",
+      "perceptualHash": "fffffffffffbff83fc03e003c003c003c003c0038007807f87ffffffffffffff"
+    },
+    {
+      "id": "fixed_text_label_today_yellow_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_label_today_yellow_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "fixed_text",
+        "label",
+        "today",
+        "yellow"
+      ],
+      "width": 254,
+      "height": 153,
+      "aspectRatio": 1.6601,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "0d6fba718510bc266411e48222c4433f3a1249e2fd82ebf1d52d83e159d087a4",
+      "perceptualHash": "ffffffffffffc0c3c003c003c003c003c003c003c003c003fc1fffffffffffff"
+    },
+    {
+      "id": "fixed_text_lets_go_pixel_speech_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_lets_go_pixel_speech_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "fixed_text",
+        "go",
+        "lets",
+        "pixel",
+        "speech"
+      ],
+      "width": 231,
+      "height": 181,
+      "aspectRatio": 1.2762,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "be6d59291f856c15f0825ef89010912399e206629b7d7dcd3112178a29fb2635",
+      "perceptualHash": "fffffffffe03e003c00180018001800180038003c007e07ff8fff9fffbffffff"
+    },
+    {
+      "id": "fixed_text_main_thing_start_pink_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_main_thing_start_pink_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "fixed_text",
+        "main",
+        "pink",
+        "start",
+        "thing"
+      ],
+      "width": 295,
+      "height": 206,
+      "aspectRatio": 1.432,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "6da7e630efc0d61381656b6968bae32cb24c937739f5dc82a2d9d15f16095765",
+      "perceptualHash": "ffffff3fc217c407e007c027c107c013d003c003c01fc07fc5ffffffffffffff"
+    },
+    {
+      "id": "fixed_text_maybe_imperfect_but_good_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_maybe_imperfect_but_good_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "but",
+        "fixed_text",
+        "good",
+        "imperfect",
+        "maybe"
+      ],
+      "width": 291,
+      "height": 288,
+      "aspectRatio": 1.0104,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "8be58fa6e858fcdebcd91e352e796602ea775193b9ef8b717a7fcf78ee3f6dfc",
+      "perceptualHash": "ffffffefffc3ff83c0c3ce03e003c023c003c003e003e003e003f0ffffffffff"
+    },
+    {
+      "id": "fixed_text_slowly_is_movement_pink_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_slowly_is_movement_pink_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "fixed_text",
+        "is",
+        "movement",
+        "pink",
+        "slowly"
+      ],
+      "width": 294,
+      "height": 316,
+      "aspectRatio": 0.9304,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "600c641861cc50b67ea32a5bdc05800dc738a46fffb7e4f300cffd0d7659990d",
+      "perceptualHash": "fffffffff87ff003f003f003e003e007e007e007e007c007c00fe00fffffffff"
+    },
+    {
+      "id": "fixed_text_small_steps_big_changes_beige_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_small_steps_big_changes_beige_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "beige",
+        "big",
+        "changes",
+        "fixed_text",
+        "small",
+        "steps"
+      ],
+      "width": 309,
+      "height": 280,
+      "aspectRatio": 1.1036,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "77c8f6d12b2dc67dcaca6fa0744f7fe0433bca66054f6a697f14447cc5839db5",
+      "perceptualHash": "fffffffff07ff07fffffe40fe013e163e023e1bfe03fe00ff00fe007f7ffffff"
+    },
+    {
+      "id": "fixed_text_small_steps_big_changes_kraft_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_small_steps_big_changes_kraft_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "big",
+        "changes",
+        "fixed_text",
+        "kraft",
+        "small",
+        "steps"
+      ],
+      "width": 353,
+      "height": 285,
+      "aspectRatio": 1.2386,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "757d6f63553bcfd189162b6ad08fa4626a1802bd1bda92564f08555b1c93b3fa",
+      "perceptualHash": "ffffffffffffff838603800380038003800380238003c003c003c003ffffffff"
+    },
+    {
+      "id": "fixed_text_small_steps_big_changes_yellow_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_small_steps_big_changes_yellow_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "big",
+        "changes",
+        "fixed_text",
+        "small",
+        "steps",
+        "yellow"
+      ],
+      "width": 241,
+      "height": 275,
+      "aspectRatio": 0.8764,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "19849566ce41300670f4348182527fc2eba07bac1e3c8adda54816bfec18b989",
+      "perceptualHash": "fffffffff807e007c207c007e017c007f00be007e003e01fe23be003ffffffff"
+    },
+    {
+      "id": "fixed_text_small_steps_big_results_yellow_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_small_steps_big_results_yellow_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "big",
+        "fixed_text",
+        "results",
+        "small",
+        "steps",
+        "yellow"
+      ],
+      "width": 288,
+      "height": 292,
+      "aspectRatio": 0.9863,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "72e9ef6f0ac97c468c787213d1b02a0b7d9145774020d280bac1b27854a66748",
+      "perceptualHash": "fffffffffc1fe00fe203e00be00be033e02fe033e003c007f017fff7fff7ffff"
+    },
+    {
+      "id": "fixed_text_today_about_what_matters_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_today_about_what_matters_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "about",
+        "fixed_text",
+        "matters",
+        "today",
+        "what"
+      ],
+      "width": 314,
+      "height": 293,
+      "aspectRatio": 1.0717,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "32f53803e33439090ab47a9cf58d3cc1ef950b137d7bc7290ce083bdfe155d01",
+      "perceptualHash": "ffffffdffc1fc003c0038003c003c00fc003e003e003e003f003f3ffffffffff"
+    },
+    {
+      "id": "fixed_text_today_about_you_clipped_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_today_about_you_clipped_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "about",
+        "clipped",
+        "fixed_text",
+        "today",
+        "you"
+      ],
+      "width": 266,
+      "height": 291,
+      "aspectRatio": 0.9141,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "d2aa1c8b95db5f2904b82d78a5b527af32a13c7a585dfe0d3c92651cfbae746b",
+      "perceptualHash": "ffffffffe7e3e783c01bc007c107ec0ff84befcbec03f80bf8f3f73fffffffff"
+    },
+    {
+      "id": "fixed_text_today_good_day_gray_tape_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_today_good_day_gray_tape_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "day",
+        "fixed_text",
+        "good",
+        "gray",
+        "tape",
+        "today"
+      ],
+      "width": 254,
+      "height": 359,
+      "aspectRatio": 0.7075,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "18838d8679e5e631de61149167489dfdd9b395acf7b11ffc495b317b3a75dd0f",
+      "perceptualHash": "ffffff1ffc1ff807c007d007e003e007f043e043e003e003e583e07fffffffff"
+    },
+    {
+      "id": "fixed_text_today_humanly_works_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_today_humanly_works_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "fixed_text",
+        "humanly",
+        "today",
+        "works"
+      ],
+      "width": 320,
+      "height": 267,
+      "aspectRatio": 1.1985,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "dd97a1b458d1a799915ba62c5b80986a9bcde0bcf1d22cf85397c758d59f53c1",
+      "perceptualHash": "fffffffff81ff0038c43c07bc187c003e043c403e003e001d021e3ffffffffff"
+    },
+    {
+      "id": "fixed_text_today_your_day_yellow_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_today_your_day_yellow_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "day",
+        "fixed_text",
+        "today",
+        "yellow",
+        "your"
+      ],
+      "width": 303,
+      "height": 266,
+      "aspectRatio": 1.1391,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "88beacdad77a752807048f75cbe981ad76a12c911ea06cef935cd74ee5344308",
+      "perceptualHash": "fffffe0ff00fc00fc117c007c047e007e007f003f187fe23f007ffffffffffff"
+    },
+    {
+      "id": "fixed_text_trust_your_rhythm_black_tape_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_trust_your_rhythm_black_tape_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "black",
+        "fixed_text",
+        "rhythm",
+        "tape",
+        "trust",
+        "your"
+      ],
+      "width": 311,
+      "height": 266,
+      "aspectRatio": 1.1692,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "ac8132bd50e997f31b84f5057d1daab9c3a1bec599c2d0d4a3d519ea796f6258",
+      "perceptualHash": "ffffff1ffc1fd81fcc3fd52fc03fe0c3e407e033e2e3ff63e2c3ffe7ffffffff"
+    },
+    {
+      "id": "fixed_text_work_question_do_it_yellow_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_work_question_do_it_yellow_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "do",
+        "fixed_text",
+        "it",
+        "question",
+        "work",
+        "yellow"
+      ],
+      "width": 292,
+      "height": 213,
+      "aspectRatio": 1.3709,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "5af744dfa70465b9705ee0bc4963a3941b9a8b21204ef97edd5bd3d9d64eba49",
+      "perceptualHash": "ffffffffff0fc60fc103e003c00bc003c027c027c007d007f707fff7ffffffff"
+    },
+    {
+      "id": "fixed_text_zzz_speech_blue_01",
+      "path": "/stickers/editorial-v2/fixed_text/fixed_text_zzz_speech_blue_01.webp",
+      "category": "fixed_text",
+      "tags": [
+        "blue",
+        "fixed_text",
+        "speech",
+        "zzz"
+      ],
+      "width": 188,
+      "height": 226,
+      "aspectRatio": 0.8319,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "rest",
+        "sleep"
+      ],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "cd43c2fbac762ed7f85be7e2da2ea8020165089e2023e8b51e84cf2f216f2907",
+      "perceptualHash": "fffffffffc07f001e001e003c003c001c001e003e007f00fffcfffe7ffffffff"
+    },
+    {
+      "id": "food_boba_iced_cup_01",
+      "path": "/stickers/editorial-v2/food_drink/food_boba_iced_cup_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "boba",
+        "cup",
+        "food_drink",
+        "iced"
+      ],
+      "width": 173,
+      "height": 251,
+      "aspectRatio": 0.6892,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "drink"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "dc0d77e28c5353b78fe115c1961c6361213909a8adfdc46b832e51f3646af764",
+      "perceptualHash": "ffffffffff1fff3fee3fe007e007e00fe00fe01fc01fc03fc03fe07fffffffff"
+    },
+    {
+      "id": "food_coffee_but_first_cup_01",
+      "path": "/stickers/editorial-v2/food_drink/food_coffee_but_first_cup_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "but",
+        "coffee",
+        "cup",
+        "first",
+        "food_drink"
+      ],
+      "width": 209,
+      "height": 254,
+      "aspectRatio": 0.8228,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "05d5e72b4f87d652918d74119df580e452258f1b79fb168e24c1f3d6c2fc6f2f",
+      "perceptualHash": "fffffffff007e007c003c007e3e7ff07e007f003f003f003f807fc07ffffffff"
+    },
+    {
+      "id": "food_coffee_cup_wheres_my_coffee_01",
+      "path": "/stickers/editorial-v2/food_drink/food_coffee_cup_wheres_my_coffee_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "coffee",
+        "cup",
+        "food_drink",
+        "my",
+        "wheres"
+      ],
+      "width": 250,
+      "height": 336,
+      "aspectRatio": 0.744,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "e236d9855c842300d5614438c00509e4df46d3e91fbebc68c7d63303a116d6d7",
+      "perceptualHash": "fffff07fe007c003e003fe03c7c7c007c00fc00fc01fe01ff83fff7fffffffff"
+    },
+    {
+      "id": "food_coffee_first_cup_01",
+      "path": "/stickers/editorial-v2/food_drink/food_coffee_first_cup_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "coffee",
+        "cup",
+        "first",
+        "food_drink"
+      ],
+      "width": 210,
+      "height": 271,
+      "aspectRatio": 0.7749,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "a46533e81d3c3e2cebd01f143f04637244c34eb03635dcd18d7936f93706a25d",
+      "perceptualHash": "fffff01fe007c003c003fe07cff7c307c007c007c00fe00fe00fffdfffffffff"
+    },
+    {
+      "id": "food_coffee_plan_action_cup_01",
+      "path": "/stickers/editorial-v2/food_drink/food_coffee_plan_action_cup_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "action",
+        "coffee",
+        "cup",
+        "food_drink",
+        "plan"
+      ],
+      "width": 222,
+      "height": 293,
+      "aspectRatio": 0.7577,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee",
+        "work"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "6a6cfea419317dbc7f094cd791ad403a1ebfc4b9de55f701184ec63637a1d776",
+      "perceptualHash": "fffff01fe007c003c003ff07e007e007e00fe00fe00ff81fff9fff1fffffffff"
+    },
+    {
+      "id": "food_coffee_takeaway_plain_01",
+      "path": "/stickers/editorial-v2/food_drink/food_coffee_takeaway_plain_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "coffee",
+        "food_drink",
+        "plain",
+        "takeaway"
+      ],
+      "width": 214,
+      "height": 279,
+      "aspectRatio": 0.767,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "85d75cf426fca43fb9056c944cf02a63e2cb5b40ba5bb067220384ca31561021",
+      "perceptualHash": "ffffffffe00fc007c003f807ef8fe00fe00fe00fe01ff01fff3ffe3fffffffff"
+    },
+    {
+      "id": "food_croissant_plain_01",
+      "path": "/stickers/editorial-v2/food_drink/food_croissant_plain_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "croissant",
+        "food_drink",
+        "plain"
+      ],
+      "width": 327,
+      "height": 227,
+      "aspectRatio": 1.4405,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "food"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "2a09418eefbf5838e28469227ac7411a4ae0286a8106ec5e033bc7245b30d519",
+      "perceptualHash": "fffffffffe3ff807f803f801f001e003e007c007c00f800f801fc7ffffffffff"
+    },
+    {
+      "id": "food_iced_coffee_first_01",
+      "path": "/stickers/editorial-v2/food_drink/food_iced_coffee_first_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "coffee",
+        "first",
+        "food_drink",
+        "iced"
+      ],
+      "width": 229,
+      "height": 350,
+      "aspectRatio": 0.6543,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "170fd4051279a656f9f3e712b86831aadc3e93f5ae19787e5415dc5890dc8e39",
+      "perceptualHash": "ffffffcfffcfff9ff01fc007c007e007e00fe04fe09fe09fe03fe03ff07fffff"
+    },
+    {
+      "id": "food_iced_coffee_good_day_01",
+      "path": "/stickers/editorial-v2/food_drink/food_iced_coffee_good_day_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "coffee",
+        "day",
+        "food_drink",
+        "good",
+        "iced"
+      ],
+      "width": 221,
+      "height": 324,
+      "aspectRatio": 0.6821,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "9e1812f2af32d49037cfce9ed27246e647fbdf40d2fa5cfb6cd8e41d433ea9bc",
+      "perceptualHash": "ffffff7ffe7ffe7fce77e007e003e007f01ff00ff01ff803f807f807fc3fffff"
+    },
+    {
+      "id": "food_pizza_pepperoni_slice_01",
+      "path": "/stickers/editorial-v2/food_drink/food_pizza_pepperoni_slice_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "food_drink",
+        "pepperoni",
+        "pizza",
+        "slice"
+      ],
+      "width": 274,
+      "height": 275,
+      "aspectRatio": 0.9964,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "food"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "465bf7f3c00cae70705ee5fa4a7a2c200d68ffe4d3e481c0a21dec1eebac3c86",
+      "perceptualHash": "ffffff7ffe1ffc0ffc07f803f001f003e01fe07fc1ffc7ffdfffffffffffffff"
+    },
+    {
+      "id": "food_sushi_salmon_pair_01",
+      "path": "/stickers/editorial-v2/food_drink/food_sushi_salmon_pair_01.webp",
+      "category": "food_drink",
+      "tags": [
+        "food_drink",
+        "pair",
+        "salmon",
+        "sushi"
+      ],
+      "width": 254,
+      "height": 274,
+      "aspectRatio": 0.927,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "food"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "11aadcb42e3fbdd80b834bcead5dcd922d1858bc8f71024a3f7ca400c01211d5",
+      "perceptualHash": "ffffffffe01fc00fc007f003f803ffe3f033e00fe007f007f803fc07ffffffff"
+    },
+    {
+      "id": "funny_banana_sunglasses_01",
+      "path": "/stickers/editorial-v2/funny/funny_banana_sunglasses_01.webp",
+      "category": "funny",
+      "tags": [
+        "banana",
+        "food",
+        "funny",
+        "sunglasses",
+        "surreal"
+      ],
+      "width": 294,
+      "height": 331,
+      "aspectRatio": 0.8882,
+      "orientation": "square",
+      "tone": "strange",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "9cd925cb444cfdb53870e05437b4ee558def3713988714fbf6566f72d29da31c",
+      "perceptualHash": "fffffdfff9fff9fff03ff03fe0ffc187809bd019c007c403c601e7fff7ffffff"
+    },
+    {
+      "id": "graphic_battery_green_full_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_battery_green_full_01.webp",
+      "category": "graphic",
+      "tags": [
+        "battery",
+        "full",
+        "graphic",
+        "green"
+      ],
+      "width": 193,
+      "height": 144,
+      "aspectRatio": 1.3403,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [
+        "energy"
+      ],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "1b31b66ccfecd3a5d0281d5a1c460469c3882b94c3b5df400cbb72d956724fdb",
+      "perceptualHash": "ffffffffffffff0ffc07e003c003c003c007c007c01fc07fe3ffffffffffffff"
+    },
+    {
+      "id": "graphic_clover_green_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_clover_green_01.webp",
+      "category": "graphic",
+      "tags": [
+        "clover",
+        "graphic",
+        "green"
+      ],
+      "width": 151,
+      "height": 180,
+      "aspectRatio": 0.8389,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [
+        "luck"
+      ],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "8fe2c123abd5927716dee03ad101788a124d9b6026b0f542776560cbdc07bf94",
+      "perceptualHash": "fffffffff8ffe00fc00fc01fc007c007c00ffa1ff61fe7ffcfffdfffffffffff"
+    },
+    {
+      "id": "graphic_comic_exclamation_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_comic_exclamation_01.webp",
+      "category": "graphic",
+      "tags": [
+        "comic",
+        "exclamation",
+        "graphic"
+      ],
+      "width": 168,
+      "height": 170,
+      "aspectRatio": 0.9882,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "87b34deaebd08556002ab9037b8636142de2893092805afc0a42f44951847b47",
+      "perceptualHash": "fffffffffddff01ff207e647ca67e243e263c827c64ff00ff03ffe7fffffffff"
+    },
+    {
+      "id": "graphic_daisy_white_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_daisy_white_01.webp",
+      "category": "graphic",
+      "tags": [
+        "daisy",
+        "graphic",
+        "white"
+      ],
+      "width": 190,
+      "height": 182,
+      "aspectRatio": 1.044,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "96e5725b4ae6970fd3ac24db0e145f2e1954f8e578298d90ff0ea1666162be82",
+      "perceptualHash": "fffffffffc5ff81fe007e00fe007c003c007f00fe00fe80ff83ffdffffffffff"
+    },
+    {
+      "id": "graphic_mushroom_red_spotted_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_mushroom_red_spotted_01.webp",
+      "category": "graphic",
+      "tags": [
+        "graphic",
+        "mushroom",
+        "red",
+        "spotted"
+      ],
+      "width": 229,
+      "height": 282,
+      "aspectRatio": 0.8121,
+      "orientation": "portrait",
+      "tone": "strange",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "592200232a989e57ce42ba7ce79e3e2f230422abe90c5f304f667d6a9fe9a664",
+      "perceptualHash": "fffffe7ff81fe007c003c003c003fc3ffc3ffe7ffe7ffe7ffc1ff81ffc3fffff"
+    },
+    {
+      "id": "graphic_paper_scrap_beige_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_paper_scrap_beige_01.webp",
+      "category": "graphic",
+      "tags": [
+        "beige",
+        "graphic",
+        "paper",
+        "scrap"
+      ],
+      "width": 201,
+      "height": 118,
+      "aspectRatio": 1.7034,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "3d6e9ef80477bb2eb8e0cb45511f4400a7b5540d652e78557de2d6ffaf7fb5a9",
+      "perceptualHash": "ffffffffffffe3ffc007c007c007c007c007c007c003c003f807ffffffffffff"
+    },
+    {
+      "id": "graphic_paper_scrap_white_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_paper_scrap_white_01.webp",
+      "category": "graphic",
+      "tags": [
+        "graphic",
+        "paper",
+        "scrap",
+        "white"
+      ],
+      "width": 199,
+      "height": 110,
+      "aspectRatio": 1.8091,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "8b0de9f49cf58131549129e04cf60bec06ce9576e990c91ffa7cdad164181cac",
+      "perceptualHash": "ffffffffffffefffe007e007c007c003c003c003c00bc013c003ffffffffffff"
+    },
+    {
+      "id": "graphic_polaroid_sunset_ocean_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_polaroid_sunset_ocean_01.webp",
+      "category": "graphic",
+      "tags": [
+        "graphic",
+        "ocean",
+        "polaroid",
+        "sunset"
+      ],
+      "width": 280,
+      "height": 354,
+      "aspectRatio": 0.791,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [
+        "rest",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "c2e6373b410858d315b5c4a1bb8c9cf56d10c702ff81a1b6b56540bca4349570",
+      "perceptualHash": "fffffffff3ffe007e003e003e007c007c007c007c007c00ffc0fffffffffffff"
+    },
+    {
+      "id": "graphic_speech_beige_ellipsis_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_speech_beige_ellipsis_01.webp",
+      "category": "graphic",
+      "tags": [
+        "beige",
+        "ellipsis",
+        "graphic",
+        "speech"
+      ],
+      "width": 188,
+      "height": 159,
+      "aspectRatio": 1.1824,
+      "orientation": "landscape",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "8dc5739c7953d32ea32d38e08d057c14a363631133f81c5e5d806d098d432e44",
+      "perceptualHash": "ffffffffff3ff007e007c003c003c003c003c007e00ff01ff3fff7ffffffffff"
+    },
+    {
+      "id": "graphic_speech_outline_black_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_speech_outline_black_01.webp",
+      "category": "graphic",
+      "tags": [
+        "black",
+        "graphic",
+        "outline",
+        "speech"
+      ],
+      "width": 213,
+      "height": 183,
+      "aspectRatio": 1.1639,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "c0b6b7555e187f10e221eae15ba1de846195a4474aa419bc77ccdfb018f61a97",
+      "perceptualHash": "fffffffffc07f063e3f3cff9cff99ffb9ff39fe7cf8fe01ff03fff3fffffffff"
+    },
+    {
+      "id": "graphic_speech_pink_heart_01",
+      "path": "/stickers/editorial-v2/graphic/graphic_speech_pink_heart_01.webp",
+      "category": "graphic",
+      "tags": [
+        "graphic",
+        "heart",
+        "pink",
+        "speech"
+      ],
+      "width": 183,
+      "height": 177,
+      "aspectRatio": 1.0339,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "ad99c6f50ac4b434aafe9c34f95938ea8f68427d30d29fb5ac941455bd1f1b93",
+      "perceptualHash": "ffffffffff0fe007c003c003c003c003c003c007e007f9fff9fffbffffffffff"
+    },
+    {
+      "id": "mascot_capybara_duck_cuddle_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_capybara_duck_cuddle_01.webp",
+      "category": "mascots",
+      "tags": [
+        "capybara",
+        "cuddle",
+        "duck",
+        "mascots"
+      ],
+      "width": 383,
+      "height": 256,
+      "aspectRatio": 1.4961,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "friendship",
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "59d69bba5f8b203117284dfdf4b22f70c78d23a77279c9290940c7c0c96fff85",
+      "perceptualHash": "fffffffffefff8ffe03fc007c007c003c001c001c001800180038007ffffffff"
+    },
+    {
+      "id": "mascot_capybara_orange_balance_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_capybara_orange_balance_01.webp",
+      "category": "mascots",
+      "tags": [
+        "balance",
+        "capybara",
+        "mascots",
+        "orange"
+      ],
+      "width": 355,
+      "height": 372,
+      "aspectRatio": 0.9543,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "balance",
+        "calm"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "792243f1806afed311e64d48cc6d86fa7077d6620fb0d8b0ac33f16b4d045793",
+      "perceptualHash": "ffffff7ffe7ffc3ff00ff007f003e003e007c00fc00780038003c003ffc3ffff"
+    },
+    {
+      "id": "mascot_capybara_orange_calm_speech_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_capybara_orange_calm_speech_01.webp",
+      "category": "mascots",
+      "tags": [
+        "calm",
+        "capybara",
+        "mascots",
+        "orange",
+        "speech"
+      ],
+      "width": 576,
+      "height": 402,
+      "aspectRatio": 1.4328,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "calm"
+      ],
+      "visualWeight": "hero",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "85ee55f934c0209ec2ec78d0dfb77265aed57055c29cad876db615b801fcac1c",
+      "perceptualHash": "ffffffdfffdfff1ffe0ff007e007c007c00fc01fc013802180218023fe3fffff"
+    },
+    {
+      "id": "mascot_capybara_red_cap_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_capybara_red_cap_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cap",
+        "capybara",
+        "funny",
+        "mascots",
+        "red"
+      ],
+      "width": 348,
+      "height": 358,
+      "aspectRatio": 0.9721,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "2249e54a1cbaa6aee9586cc3526525426262f672d948fb8abd713c82598329aa",
+      "perceptualHash": "fffffefffc1ff81ff00ff007e007e007c007c00fc00f800fc00fe003fc1fffff"
+    },
+    {
+      "id": "mascot_capybara_sleeping_headphones_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_capybara_sleeping_headphones_01.webp",
+      "category": "mascots",
+      "tags": [
+        "capybara",
+        "headphones",
+        "mascots",
+        "sleeping"
+      ],
+      "width": 415,
+      "height": 257,
+      "aspectRatio": 1.6148,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "music",
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "016721765c38785eff8203e48c4d874e2751118a8ded81a2a0a0eba4f25f3646",
+      "perceptualHash": "fffffffff87ff00fe007e003e003e003e003c001c00180018003807fffffffff"
+    },
+    {
+      "id": "mascot_cat_black_white_singing_headphones_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_black_white_singing_headphones_01.webp",
+      "category": "mascots",
+      "tags": [
+        "black",
+        "cat",
+        "headphones",
+        "mascots",
+        "singing",
+        "white"
+      ],
+      "width": 361,
+      "height": 359,
+      "aspectRatio": 1.0056,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "eb5832992ca2d3eb33150cbb622d050da8a54ebad47deaf9afef1adab0d85ec9",
+      "perceptualHash": "fffffe7ff81ff6cfe467d037c04381c1c043e807e407cc07de0f8c07dc0fffff"
+    },
+    {
+      "id": "mascot_cat_black_white_white_sunglasses_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_black_white_white_sunglasses_01.webp",
+      "category": "mascots",
+      "tags": [
+        "black",
+        "cat",
+        "funny",
+        "mascots",
+        "sunglasses",
+        "white"
+      ],
+      "width": 255,
+      "height": 329,
+      "aspectRatio": 0.7751,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "679bb52267cb7755e9a5c401780dacccb765dd30b9ea1b52968dd119113c8f94",
+      "perceptualHash": "fffff7ffe3ffe1ffe007f007c007c1c3c367c487e007e003e783e303fa3fffff"
+    },
+    {
+      "id": "mascot_cat_blue_hoodie_laptop_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_blue_hoodie_laptop_01.webp",
+      "category": "mascots",
+      "tags": [
+        "blue",
+        "cat",
+        "hoodie",
+        "laptop",
+        "mascots"
+      ],
+      "width": 322,
+      "height": 322,
+      "aspectRatio": 1.0,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "work"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "e5be9cceaaa1ce452ffa5bd04b258c581932b89e391019c309adf091c2149a8a",
+      "perceptualHash": "ffffffbffe0ffc0ff807f807f983fc83f80180018001c001c061e003fc0fffff"
+    },
+    {
+      "id": "mascot_cat_blue_hoodie_sunglasses_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_blue_hoodie_sunglasses_01.webp",
+      "category": "mascots",
+      "tags": [
+        "blue",
+        "cat",
+        "funny",
+        "hoodie",
+        "mascots",
+        "sunglasses"
+      ],
+      "width": 319,
+      "height": 338,
+      "aspectRatio": 0.9438,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "b1447aa96d511110f0b7bcb41ca238e61730a9c4f53af2398d228c319a4924c1",
+      "perceptualHash": "ffffffbffe0ff80ff007e007c103c103ce83ccc3cc03e207c383e103fffbffff"
+    },
+    {
+      "id": "mascot_cat_cardboard_box_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_cardboard_box_01.webp",
+      "category": "mascots",
+      "tags": [
+        "box",
+        "cardboard",
+        "cat",
+        "funny",
+        "mascots"
+      ],
+      "width": 345,
+      "height": 389,
+      "aspectRatio": 0.8869,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "ed59d759f251f628a9a78fe024ab053959ebeaf7750c68cc23f7c18665545fa0",
+      "perceptualHash": "fffff7dff11ff01fe01fe01fe00fcc678803c003c001c003c007c03fe7ffffff"
+    },
+    {
+      "id": "mascot_cat_frog_hat_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_frog_hat_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "frog",
+        "funny",
+        "hat",
+        "mascots"
+      ],
+      "width": 329,
+      "height": 299,
+      "aspectRatio": 1.1003,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "c4ae933d650495b622da7720ea330e2171e4ee25a03976d36f3f98f93afe9ade",
+      "perceptualHash": "ffffffffe3c7e007e007e007e087c083c083c323c233c433c003c00bffffffff"
+    },
+    {
+      "id": "mascot_cat_glasses_sleeping_books_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_glasses_sleeping_books_01.webp",
+      "category": "mascots",
+      "tags": [
+        "books",
+        "cat",
+        "glasses",
+        "mascots",
+        "sleeping"
+      ],
+      "width": 411,
+      "height": 309,
+      "aspectRatio": 1.3301,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "rest",
+        "study"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "d492b69d8df4cb4cabd602c87dfbe95389a3f689d610ffc8238d175a9d02b801",
+      "perceptualHash": "ffffffffffeff00ff80ff00fe00fe007c00fc003c00180018181c103ffffffff"
+    },
+    {
+      "id": "mascot_cat_gray_hoodie_sunglasses_iced_coffee_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_gray_hoodie_sunglasses_iced_coffee_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "coffee",
+        "funny",
+        "gray",
+        "hoodie",
+        "iced",
+        "mascots",
+        "sunglasses"
+      ],
+      "width": 366,
+      "height": 329,
+      "aspectRatio": 1.1125,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "f1e30f92395223975cd4e2c065cded6f07b1b83b319284ca8fda365009b088b6",
+      "perceptualHash": "fffffffffbfff81ff83ff03ff71fe60fe067c003800180098831cc03fc3fffff"
+    },
+    {
+      "id": "mascot_cat_gray_laughing_blanket_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_gray_laughing_blanket_01.webp",
+      "category": "mascots",
+      "tags": [
+        "blanket",
+        "cat",
+        "gray",
+        "laughing",
+        "mascots"
+      ],
+      "width": 324,
+      "height": 286,
+      "aspectRatio": 1.1329,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "fd987ccdea44f39352d6893f0430de653a0b5b1974edefb3d653774e0f5ac78b",
+      "perceptualHash": "fffffffff64ff00ff00ff007e007e007e007e007f00bf033efc7ffffffffffff"
+    },
+    {
+      "id": "mascot_cat_gray_orange_beanie_chill_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_gray_orange_beanie_chill_01.webp",
+      "category": "mascots",
+      "tags": [
+        "beanie",
+        "cat",
+        "chill",
+        "funny",
+        "gray",
+        "mascots",
+        "orange"
+      ],
+      "width": 394,
+      "height": 272,
+      "aspectRatio": 1.4485,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "38d55eac0b7bea01667b1223200376d796b999221fcb9201e23758a49d0d9be7",
+      "perceptualHash": "fffffe3ffc1ffc0ff80ff80ff00ff00fe007e003c003c0018001c00fffffffff"
+    },
+    {
+      "id": "mascot_cat_headphones_skateboard_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_headphones_skateboard_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "headphones",
+        "mascots",
+        "skateboard"
+      ],
+      "width": 405,
+      "height": 313,
+      "aspectRatio": 1.2939,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "movement",
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "c95c778205fd8dbe3840e45dc2a03bb80226a2515b3600f06dc846afd476dafd",
+      "perceptualHash": "ffffffc3ffc1ff81ff01ff01fe21fc41f8c1c463c027804780e7e7ffe7ffffff"
+    },
+    {
+      "id": "mascot_cat_orange_chair_coffee_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_chair_coffee_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "chair",
+        "coffee",
+        "mascots",
+        "orange"
+      ],
+      "width": 365,
+      "height": 437,
+      "aspectRatio": 0.8352,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee",
+        "rest"
+      ],
+      "visualWeight": "hero",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "df57aab69a4b87c7a73ba2af46991392058fa135e36bfcf3a9927ad87e91afb7",
+      "perceptualHash": "fffffbfff3fff01fe01fe00fc0cfc78f838f801f801181138043e003fb83fbff"
+    },
+    {
+      "id": "mascot_cat_orange_champagne_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_champagne_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "champagne",
+        "mascots",
+        "orange"
+      ],
+      "width": 340,
+      "height": 306,
+      "aspectRatio": 1.1111,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "celebration"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "39d2a9fdcf639cc09b15fde757576e81fba2d665a68067b87640bc4435a1b861",
+      "perceptualHash": "fffffdfffcfff81ff01ff01fe01fc01fc01f998f8c07840782018201ff07ffff"
+    },
+    {
+      "id": "mascot_cat_orange_leather_sunglasses_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_leather_sunglasses_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "funny",
+        "leather",
+        "mascots",
+        "orange",
+        "sunglasses"
+      ],
+      "width": 312,
+      "height": 316,
+      "aspectRatio": 0.9873,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "5b6b566cc3dd94313b2ba3fdae13888f2114b4af5915b234c43f93d051c7f52f",
+      "perceptualHash": "fffffffffbeff9fff807f807f007f0bfe23fe0f7c07780278003f001fffbffff"
+    },
+    {
+      "id": "mascot_cat_orange_sleeping_belly_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_sleeping_belly_01.webp",
+      "category": "mascots",
+      "tags": [
+        "belly",
+        "cat",
+        "mascots",
+        "orange",
+        "sleeping"
+      ],
+      "width": 333,
+      "height": 329,
+      "aspectRatio": 1.0122,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "rest",
+        "sleep"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "bc5915af3a79a40616675c567e64446e4bcae7ecd42bf8ebe724b2da754701a2",
+      "perceptualHash": "ffffffffff3ff313f183c063842384038003800bc01bc001f003fe03ffffffff"
+    },
+    {
+      "id": "mascot_cat_orange_sunglasses_front_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_sunglasses_front_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "front",
+        "funny",
+        "mascots",
+        "orange",
+        "sunglasses"
+      ],
+      "width": 358,
+      "height": 423,
+      "aspectRatio": 0.8463,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "6db9152613ca5c5e21b2676be1d3075566ae78c37aefa19766fc180f378603ad",
+      "perceptualHash": "fffff7fff3f7f007f00fe007e007e14fc007c003c003c00380018001feffffff"
+    },
+    {
+      "id": "mascot_cat_orange_sunglasses_lounging_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_sunglasses_lounging_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "funny",
+        "lounging",
+        "mascots",
+        "orange",
+        "sunglasses"
+      ],
+      "width": 386,
+      "height": 438,
+      "aspectRatio": 0.8813,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "hero",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "81b926c85bd26038991d47cb4880c424fdef57f22496555afa6d62a5400c77a0",
+      "perceptualHash": "fffff3fff1eff00fe01fe00fc01fc047c003c60380018c03840ff73ffbffffff"
+    },
+    {
+      "id": "mascot_cat_orange_sunglasses_paw_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_sunglasses_paw_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "funny",
+        "mascots",
+        "orange",
+        "paw",
+        "sunglasses"
+      ],
+      "width": 358,
+      "height": 337,
+      "aspectRatio": 1.0623,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "ba345ca9104a3fb9a0d6be25399c060649365b161764bd3db701b33567059be9",
+      "perceptualHash": "ffffffffff7ffe7ffc7f901f800fc007c007c143c043c063c1e7c0ffcfffffff"
+    },
+    {
+      "id": "mascot_cat_orange_sunglasses_sofa_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_orange_sunglasses_sofa_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "funny",
+        "mascots",
+        "orange",
+        "sofa",
+        "sunglasses"
+      ],
+      "width": 458,
+      "height": 378,
+      "aspectRatio": 1.2116,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "rest"
+      ],
+      "visualWeight": "hero",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "876269d1043ff6ff9efd988718403c8bc03bacb6aa213fc85b7240557451dd10",
+      "perceptualHash": "ffffff7ffe7fe07ff03ff03ff03fe03f801f800f800780038001e001fff9ffff"
+    },
+    {
+      "id": "mascot_cat_shark_hoodie_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_shark_hoodie_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "funny",
+        "hoodie",
+        "mascots",
+        "shark"
+      ],
+      "width": 342,
+      "height": 367,
+      "aspectRatio": 0.9319,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "73376071d8f741329103ca242cf5c648fbdd4fc78bbde520c490848dfa69ef1c",
+      "perceptualHash": "ffffffbffc0ff807f007f003e183e223e603c333c00398018847f067ffc7ffff"
+    },
+    {
+      "id": "mascot_cat_sleeping_blanket_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_sleeping_blanket_01.webp",
+      "category": "mascots",
+      "tags": [
+        "blanket",
+        "cat",
+        "mascots",
+        "sleeping"
+      ],
+      "width": 353,
+      "height": 268,
+      "aspectRatio": 1.3172,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "rest",
+        "sleep"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "1dba80bd9b27628a049da923026455e83b5c4140ac79be9fc76a80de44d3be91",
+      "perceptualHash": "fffffffffe1ffc0ff81fc00bc007e007e017c0f38073bc63c503f007ffffffff"
+    },
+    {
+      "id": "mascot_cat_sleeping_eye_mask_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_sleeping_eye_mask_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "eye",
+        "mascots",
+        "mask",
+        "sleeping"
+      ],
+      "width": 430,
+      "height": 296,
+      "aspectRatio": 1.4527,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "rest",
+        "sleep"
+      ],
+      "visualWeight": "hero",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "c4e54499807fda63c484547fa5c3e43b373fb1b973e8f83ac4177f3abd373392",
+      "perceptualHash": "fffffffffdfff8e3f807f003f003f007f207fc039601c781ed81ffc1fffbffff"
+    },
+    {
+      "id": "mascot_cat_sleeping_mug_dont_rush_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_sleeping_mug_dont_rush_01.webp",
+      "category": "mascots",
+      "tags": [
+        "cat",
+        "dont",
+        "mascots",
+        "mug",
+        "rush",
+        "sleeping"
+      ],
+      "width": 408,
+      "height": 341,
+      "aspectRatio": 1.1965,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "coffee",
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "a09e23f66792cd5a7f1ceb37ae8221fa5d8626c96ef61170820ecb64d9e184a3",
+      "perceptualHash": "fffffdfffc7ff80ff007f003f007ec07d383e2cbe083a007c097e103f007ffff"
+    },
+    {
+      "id": "mascot_cat_yawning_blanket_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_cat_yawning_blanket_01.webp",
+      "category": "mascots",
+      "tags": [
+        "blanket",
+        "cat",
+        "mascots",
+        "yawning"
+      ],
+      "width": 338,
+      "height": 308,
+      "aspectRatio": 1.0974,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "rest",
+        "sleep"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "4f9518673ec8ccf9737cffc5bd891d750b9104df924d160289a11466351f4391",
+      "perceptualHash": "fffffffff3fff01fe03fc01fc01fc01fc01ff00fcc0f9e0fdb9fc033ffffffff"
+    },
+    {
+      "id": "mascot_dog_blue_hoodie_sunglasses_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_blue_hoodie_sunglasses_01.webp",
+      "category": "mascots",
+      "tags": [
+        "blue",
+        "dog",
+        "funny",
+        "hoodie",
+        "mascots",
+        "sunglasses"
+      ],
+      "width": 385,
+      "height": 356,
+      "aspectRatio": 1.0815,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "edf711b27f773fc614342edb8130a94408dfea7c49f7c10271edeb0fef540b37",
+      "perceptualHash": "ffffffcfff87fe03fc03f803f801fc31fe11fc13f803e003e383ff83ffffffff"
+    },
+    {
+      "id": "mascot_dog_border_collie_good_boy_cap_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_border_collie_good_boy_cap_01.webp",
+      "category": "mascots",
+      "tags": [
+        "border",
+        "boy",
+        "cap",
+        "collie",
+        "dog",
+        "funny",
+        "good",
+        "mascots"
+      ],
+      "width": 298,
+      "height": 333,
+      "aspectRatio": 0.8949,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "f314a828d7c82c5bb8cb63169ee28f40f4e15d48148998b7ed4a0b8c2024daaf",
+      "perceptualHash": "ffffff7ff81ff68fe00fc007c003c103c907c007c807fc03ee43e78ff3ffffff"
+    },
+    {
+      "id": "mascot_dog_corgi_superhero_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_corgi_superhero_01.webp",
+      "category": "mascots",
+      "tags": [
+        "corgi",
+        "dog",
+        "funny",
+        "mascots",
+        "superhero"
+      ],
+      "width": 418,
+      "height": 385,
+      "aspectRatio": 1.0857,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "confidence"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "760231fb77d31eb62158a6e529f2da65ac65da6717079cbec7273929d0084c47",
+      "perceptualHash": "ffffffb7ff87e743c00180018023a013c007c187c187c037d3fff7ffffffffff"
+    },
+    {
+      "id": "mascot_dog_frog_hat_sunglasses_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_frog_hat_sunglasses_01.webp",
+      "category": "mascots",
+      "tags": [
+        "dog",
+        "frog",
+        "funny",
+        "hat",
+        "mascots",
+        "sunglasses"
+      ],
+      "width": 352,
+      "height": 279,
+      "aspectRatio": 1.2616,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "be068fa235f6ab9b2418b9128091743f0b1dfd12cdbf3c0e576639554f1ebe7e",
+      "perceptualHash": "fffffffffc3ff41ff00ff007f007e007e413e713c613c6138103c009ffffffff"
+    },
+    {
+      "id": "mascot_dog_golden_headphones_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_golden_headphones_01.webp",
+      "category": "mascots",
+      "tags": [
+        "dog",
+        "golden",
+        "headphones",
+        "mascots"
+      ],
+      "width": 281,
+      "height": 269,
+      "aspectRatio": 1.0446,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "music",
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "1808ef1587272845a59ba8f71da11443faf8d948564c810c946139b9774facc7",
+      "perceptualHash": "fffffffffc1ff79fe20fc0078007800380138003c003c003c003f003ffefffff"
+    },
+    {
+      "id": "mascot_dog_shiba_headphones_happy_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_shiba_headphones_happy_01.webp",
+      "category": "mascots",
+      "tags": [
+        "dog",
+        "happy",
+        "headphones",
+        "mascots",
+        "shiba"
+      ],
+      "width": 317,
+      "height": 320,
+      "aspectRatio": 0.9906,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "f8ef1651b05a67cff735fd5bdf85bffa5b64f41051b7c03f6e559538e39f4203",
+      "perceptualHash": "fffffffff3fff01fe00bc00188038c03d063d023c823c867c08f800fffffffff"
+    },
+    {
+      "id": "mascot_dog_shiba_hoodie_headphones_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_shiba_hoodie_headphones_01.webp",
+      "category": "mascots",
+      "tags": [
+        "dog",
+        "headphones",
+        "hoodie",
+        "mascots",
+        "shiba"
+      ],
+      "width": 399,
+      "height": 428,
+      "aspectRatio": 0.9322,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "aae5abfc7b4fae624ec35f42a7b082464d74af6777d8e4974c58b59d66137efe",
+      "perceptualHash": "ffffff07fe03fc03f881f891f919f801f033c007c0078007800ff80fffafffff"
+    },
+    {
+      "id": "mascot_dog_yellow_beanie_sunglasses_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_dog_yellow_beanie_sunglasses_01.webp",
+      "category": "mascots",
+      "tags": [
+        "beanie",
+        "dog",
+        "funny",
+        "mascots",
+        "sunglasses",
+        "yellow"
+      ],
+      "width": 285,
+      "height": 321,
+      "aspectRatio": 0.8879,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "c85ed6e954494ab4ede956354e8ef808351c39a162d3f9a42a392f785e3d1dec",
+      "perceptualHash": "fffffffffc3ff01fe007c007c403c443e003c007c007e007f007f01fffffffff"
+    },
+    {
+      "id": "mascot_duck_blue_beanie_sunglasses_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_duck_blue_beanie_sunglasses_01.webp",
+      "category": "mascots",
+      "tags": [
+        "beanie",
+        "blue",
+        "duck",
+        "funny",
+        "mascots",
+        "sunglasses"
+      ],
+      "width": 242,
+      "height": 377,
+      "aspectRatio": 0.6419,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "ed10d7b7b2d2fba8bcb4c5caeb27767698009f61f09fb4c74e34ddfc87bf2725",
+      "perceptualHash": "fffff07fe00fe00fe00fe00ff87ff87fe0ffc01bc003c00ff01ff98ff1ffffff"
+    },
+    {
+      "id": "mascot_duck_bucket_hat_crossbody_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_duck_bucket_hat_crossbody_01.webp",
+      "category": "mascots",
+      "tags": [
+        "bucket",
+        "crossbody",
+        "duck",
+        "funny",
+        "hat",
+        "mascots"
+      ],
+      "width": 260,
+      "height": 309,
+      "aspectRatio": 0.8414,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "fdeb2cf833aae9a94b95a63391cc0a986533bce0baec03ffd84cc7e242ed1401",
+      "perceptualHash": "fffffc0ffd0ff80fe007e203f80ff00ff03ff007e007e00ff81ff81ff9ffffff"
+    },
+    {
+      "id": "mascot_duck_bucket_hat_iced_coffee_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_duck_bucket_hat_iced_coffee_01.webp",
+      "category": "mascots",
+      "tags": [
+        "bucket",
+        "coffee",
+        "duck",
+        "funny",
+        "hat",
+        "iced",
+        "mascots"
+      ],
+      "width": 336,
+      "height": 439,
+      "aspectRatio": 0.7654,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "hero",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "639fea87bc1f2aa487a78093a68a4f7bf55ff1e31c560fd544a25af7e4140a7e",
+      "perceptualHash": "fffffffff81ff007f007f807fc1ff93fe0fff0ffd07fc07fe07bf003fe07ffff"
+    },
+    {
+      "id": "mascot_duck_sunglasses_iced_coffee_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_duck_sunglasses_iced_coffee_01.webp",
+      "category": "mascots",
+      "tags": [
+        "coffee",
+        "duck",
+        "funny",
+        "iced",
+        "mascots",
+        "sunglasses"
+      ],
+      "width": 246,
+      "height": 332,
+      "aspectRatio": 0.741,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "41478bf977abf5ab4a1b920ecea53f1493f7d3c3aedb72f2e163a78b8f05e4e1",
+      "perceptualHash": "fffffffff01ff01ff03ff19ff3dff783f783e707c703c383c007e01ffcffffff"
+    },
+    {
+      "id": "mascot_penguin_bucket_hat_iced_coffee_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_penguin_bucket_hat_iced_coffee_01.webp",
+      "category": "mascots",
+      "tags": [
+        "bucket",
+        "coffee",
+        "funny",
+        "hat",
+        "iced",
+        "mascots",
+        "penguin"
+      ],
+      "width": 314,
+      "height": 400,
+      "aspectRatio": 0.785,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "3f6a671a60cb56de65eba6b8919acd0e16967ef108a169e8f8fe9216483ff972",
+      "perceptualHash": "fffffffff9fff007f007c007cc0fec27c9f7c0f380f380f980f9807b93ffffff"
+    },
+    {
+      "id": "mascot_raccoon_coffee_cup_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_raccoon_coffee_cup_01.webp",
+      "category": "mascots",
+      "tags": [
+        "coffee",
+        "cup",
+        "mascots",
+        "raccoon"
+      ],
+      "width": 313,
+      "height": 339,
+      "aspectRatio": 0.9233,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "coffee",
+        "pause"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "8f9a25077ac85d5cd5f32376d389b41f9b7e2026e6c0f516119b8f53b6f57e0e",
+      "perceptualHash": "fffffffff0fff007f247f817e00fe047e007c003c003c003c003e003fc1fffff"
+    },
+    {
+      "id": "mascot_raccoon_eating_pizza_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_raccoon_eating_pizza_01.webp",
+      "category": "mascots",
+      "tags": [
+        "eating",
+        "funny",
+        "mascots",
+        "pizza",
+        "raccoon"
+      ],
+      "width": 378,
+      "height": 421,
+      "aspectRatio": 0.8979,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "food"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "83934b32e716b0b8b3f2760aa4bb4e01d1eb9b682a86a3f4fe0d206ecd7037ff",
+      "perceptualHash": "ffffffffe0ffe007ee8fc047c0178503c003c00380818003c003c00fffffffff"
+    },
+    {
+      "id": "mascot_raccoon_peace_signs_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_raccoon_peace_signs_01.webp",
+      "category": "mascots",
+      "tags": [
+        "funny",
+        "mascots",
+        "peace",
+        "raccoon",
+        "signs"
+      ],
+      "width": 373,
+      "height": 354,
+      "aspectRatio": 1.0537,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "c3ae93e07760aec0fd580296043e398b8db7d40c96a3a218b472b07bfeb68f10",
+      "perceptualHash": "ffffffffe4fbf003f247f817f00fe247e007c003c003c007c003c003efe7ffff"
+    },
+    {
+      "id": "mascot_raccoon_sunglasses_coffee_croissant_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_raccoon_sunglasses_coffee_croissant_01.webp",
+      "category": "mascots",
+      "tags": [
+        "coffee",
+        "croissant",
+        "mascots",
+        "raccoon",
+        "sunglasses"
+      ],
+      "width": 285,
+      "height": 369,
+      "aspectRatio": 0.7724,
+      "orientation": "portrait",
+      "tone": "warm",
+      "topics": [
+        "coffee",
+        "food"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "d579fa47a72a9c10a0478ce426879c0a9ddc8e21376452172bec14d47efeb1f7",
+      "perceptualHash": "fffffffff01f801fc01fc00fc48fc00fc00ff80f8007800380038007fe1fffff"
+    },
+    {
+      "id": "mascot_raccoon_sunglasses_iced_coffee_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_raccoon_sunglasses_iced_coffee_01.webp",
+      "category": "mascots",
+      "tags": [
+        "coffee",
+        "iced",
+        "mascots",
+        "raccoon",
+        "sunglasses"
+      ],
+      "width": 355,
+      "height": 375,
+      "aspectRatio": 0.9467,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "307ed6efa6f4961dfdfdda431a328f3b0c34a0a5e9acd053d0179c1219bee324",
+      "perceptualHash": "ffffffffc81fc01fc01fc01f800fc21fc00fc007c207c0038003801ffe7fffff"
+    },
+    {
+      "id": "mascot_raccoon_white_mug_01",
+      "path": "/stickers/editorial-v2/mascots/mascot_raccoon_white_mug_01.webp",
+      "category": "mascots",
+      "tags": [
+        "mascots",
+        "mug",
+        "raccoon",
+        "white"
+      ],
+      "width": 442,
+      "height": 347,
+      "aspectRatio": 1.2738,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "hero",
+      "rarity": "uncommon",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "671ef853c246cec70e3e8d14a50dabd75ed276c7652a39e8605256fe13ca504b",
+      "perceptualHash": "ffffffffffc7fc07fc17fe07fe03fe03e003c003c03380238023ffa3fffbffff"
+    },
+    {
+      "id": "newspaper_good_vibes_only_01",
+      "path": "/stickers/editorial-v2/newspaper/newspaper_good_vibes_only_01.webp",
+      "category": "newspaper",
+      "tags": [
+        "good",
+        "newspaper",
+        "only",
+        "vibes"
+      ],
+      "width": 213,
+      "height": 225,
+      "aspectRatio": 0.9467,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "rare",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "85aeb37b334e6e703228edf8b7f48e8237204b262d7cd81ac5d1d0857255cc52",
+      "perceptualHash": "ffffffffff87e003e003c003c003c003c003c003c003c003c003e007ffffffff"
+    },
+    {
+      "id": "newspaper_good_vibes_only_newspaper_01",
+      "path": "/stickers/editorial-v2/newspaper/newspaper_good_vibes_only_newspaper_01.webp",
+      "category": "newspaper",
+      "tags": [
+        "good",
+        "newspaper",
+        "only",
+        "vibes"
+      ],
+      "width": 240,
+      "height": 262,
+      "aspectRatio": 0.916,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "b7f2b47b7d7b7cd1e8c2a7022331a09bb9fc58c2055d138a29e3d7ce0bde782a",
+      "perceptualHash": "ffffffc7e007e007e037e013e013e013e013d003c003c003c003c003ffffffff"
+    },
+    {
+      "id": "newspaper_trust_the_process_01",
+      "path": "/stickers/editorial-v2/newspaper/newspaper_trust_the_process_01.webp",
+      "category": "newspaper",
+      "tags": [
+        "newspaper",
+        "process",
+        "the",
+        "trust"
+      ],
+      "width": 241,
+      "height": 183,
+      "aspectRatio": 1.3169,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "619d666cc86bb4131a5bcb622678d35680d65370e5016c161b6e2055aa5a8327",
+      "perceptualHash": "ffffffffffffc607c007c003c003c003c003c003c003c003e007ffffffffffff"
+    },
+    {
+      "id": "object_boombox_retro_01",
+      "path": "/stickers/editorial-v2/objects/object_boombox_retro_01.webp",
+      "category": "objects",
+      "tags": [
+        "boombox",
+        "objects",
+        "retro"
+      ],
+      "width": 293,
+      "height": 277,
+      "aspectRatio": 1.0578,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "0033f931e737a823437c2f20b7a8fadee2d1919f1512c68069bb0eb18073a8bd",
+      "perceptualHash": "fffff3fff43fe787c0fbc00fc003c001800180018003e003fc03ff03ffc7ffff"
+    },
+    {
+      "id": "object_camera_retro_black_silver_01",
+      "path": "/stickers/editorial-v2/objects/object_camera_retro_black_silver_01.webp",
+      "category": "objects",
+      "tags": [
+        "black",
+        "camera",
+        "objects",
+        "retro",
+        "silver"
+      ],
+      "width": 285,
+      "height": 227,
+      "aspectRatio": 1.2555,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [
+        "creativity",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "productionSelectable": false,
+      "reviewReason": "brand_like_marks",
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "998821b17e8b693fa1c89867b9dfe8b5d8dbb0e1333cc135358390615b56bcb7",
+      "perceptualHash": "fffffffff7dfdbdfcfc3c01bc00b800180018001c003e003e003f0c3ffffffff"
+    },
+    {
+      "id": "object_camera_retro_silver_01",
+      "path": "/stickers/editorial-v2/objects/object_camera_retro_silver_01.webp",
+      "category": "objects",
+      "tags": [
+        "camera",
+        "objects",
+        "retro",
+        "silver"
+      ],
+      "width": 282,
+      "height": 225,
+      "aspectRatio": 1.2533,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [
+        "creativity",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "productionSelectable": false,
+      "reviewReason": "brand_like_marks",
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "b313bb5aa0f1f4add0a22392896ef024e7a2d69d7d5f332e46b15599345bb9d2",
+      "perceptualHash": "ffffffffe7ffe0ffdcffc103c183c003c0038003c003f803fc07ffe7ffffffff"
+    },
+    {
+      "id": "object_cassette_good_days_01",
+      "path": "/stickers/editorial-v2/objects/object_cassette_good_days_01.webp",
+      "category": "objects",
+      "tags": [
+        "cassette",
+        "days",
+        "good",
+        "objects"
+      ],
+      "width": 299,
+      "height": 263,
+      "aspectRatio": 1.1369,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "8efbe72a1e81235d7571be8b0fdb61d2e4338ed228fa0675510e2f44317f8270",
+      "perceptualHash": "ffffffffff03f02983a9949d900dd00dd019d801c001c001c007e0ffffffffff"
+    },
+    {
+      "id": "object_game_controller_retro_01",
+      "path": "/stickers/editorial-v2/objects/object_game_controller_retro_01.webp",
+      "category": "objects",
+      "tags": [
+        "controller",
+        "game",
+        "objects",
+        "retro"
+      ],
+      "width": 297,
+      "height": 209,
+      "aspectRatio": 1.4211,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [
+        "games"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "1af800055878a62e46ffa1e52aae51a3f68486c35e0fb3e76ddea2ab693e8c55",
+      "perceptualHash": "ffffffffffe7ffc7ef03c003c003c003c003c003800381f3c7ffcfffffffffff"
+    },
+    {
+      "id": "object_gameboy_retro_heart_01",
+      "path": "/stickers/editorial-v2/objects/object_gameboy_retro_heart_01.webp",
+      "category": "objects",
+      "tags": [
+        "gameboy",
+        "heart",
+        "objects",
+        "retro"
+      ],
+      "width": 264,
+      "height": 308,
+      "aspectRatio": 0.8571,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "games",
+        "relationships"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 2,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (2).png"
+      },
+      "contentHash": "78421e0de130d932829b53fcb8476251ed3f89f0c9ddf47f69ebf93ce7d1d51b",
+      "perceptualHash": "fffffc07f803f807f807f007f007f007e08fe00fe00fc00fc01fe01fff3fffff"
+    },
+    {
+      "id": "object_headphones_black_overear_01",
+      "path": "/stickers/editorial-v2/objects/object_headphones_black_overear_01.webp",
+      "category": "objects",
+      "tags": [
+        "black",
+        "headphones",
+        "objects",
+        "overear"
+      ],
+      "width": 269,
+      "height": 287,
+      "aspectRatio": 0.9373,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "83e1eb0e3a483d7ce5a2e03ced5e018c8bef8420dee22b075803f7c11b23facd",
+      "perceptualHash": "fffffffff81fe1cfc7e7cff39ff39fc3c383c183c103c003e007f08ffbffffff"
+    },
+    {
+      "id": "object_headphones_silver_overear_01",
+      "path": "/stickers/editorial-v2/objects/object_headphones_silver_overear_01.webp",
+      "category": "objects",
+      "tags": [
+        "headphones",
+        "objects",
+        "overear",
+        "silver"
+      ],
+      "width": 290,
+      "height": 295,
+      "aspectRatio": 0.9831,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "7e5e9c95aa942ac9034da433bff7627365823a49d553d99d10110862d962d89f",
+      "perceptualHash": "fffffe3ff80ff1c7e7f7e7f3cff3c7e3c3c38383c183c103c107e107ffefffff"
+    },
+    {
+      "id": "object_headphones_vinyl_music_set_01",
+      "path": "/stickers/editorial-v2/objects/object_headphones_vinyl_music_set_01.webp",
+      "category": "objects",
+      "tags": [
+        "headphones",
+        "music",
+        "objects",
+        "set",
+        "vinyl"
+      ],
+      "width": 276,
+      "height": 414,
+      "aspectRatio": 0.6667,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "d07f682da8d9af10df1b549e6d8657ce753cb60fb083a064558e8461c071cb17",
+      "perceptualHash": "fffffe0ff8e3f1fbe0fbe187f007fe07ff1fc03f800fc007c007f007fc1fffff"
+    },
+    {
+      "id": "object_headphones_white_overear_01",
+      "path": "/stickers/editorial-v2/objects/object_headphones_white_overear_01.webp",
+      "category": "objects",
+      "tags": [
+        "headphones",
+        "objects",
+        "overear",
+        "white"
+      ],
+      "width": 249,
+      "height": 307,
+      "aspectRatio": 0.8111,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "music"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "3a09db6e95b49058a660a457201c0d12c61bc78d88097d557474a42dca94ed8b",
+      "perceptualHash": "ffffff3ff80ff1e7e7f3effbcffbc7fbc3c3c18bc113c003e007f607ff9fffff"
+    },
+    {
+      "id": "object_instant_camera_retro_01",
+      "path": "/stickers/editorial-v2/objects/object_instant_camera_retro_01.webp",
+      "category": "objects",
+      "tags": [
+        "camera",
+        "instant",
+        "objects",
+        "retro"
+      ],
+      "width": 320,
+      "height": 227,
+      "aspectRatio": 1.4097,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [
+        "creativity",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "137441349adae02f8e9555b53ad77026b23d9e821dccf3986fba031c5ce473b0",
+      "perceptualHash": "fffffffffefffc47f007e007f823e41bfe59fcf9cdf3800380038007c00fffff"
+    },
+    {
+      "id": "object_instant_camera_retro_sunset_01",
+      "path": "/stickers/editorial-v2/objects/object_instant_camera_retro_sunset_01.webp",
+      "category": "objects",
+      "tags": [
+        "camera",
+        "instant",
+        "objects",
+        "retro",
+        "sunset"
+      ],
+      "width": 305,
+      "height": 364,
+      "aspectRatio": 0.8379,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "creativity",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "productionSelectable": false,
+      "reviewReason": "brand_like_marks",
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "063737ee402f157ae49db6e2c9d112d2f3451828815d560ae4eee805d1326813",
+      "perceptualHash": "fffff807fe03fc03f803fa09eef3e003e007f00ff03fe07fc07ff87fffffffff"
+    },
+    {
+      "id": "object_instant_camera_white_sunset_01",
+      "path": "/stickers/editorial-v2/objects/object_instant_camera_white_sunset_01.webp",
+      "category": "objects",
+      "tags": [
+        "camera",
+        "instant",
+        "objects",
+        "sunset",
+        "white"
+      ],
+      "width": 246,
+      "height": 366,
+      "aspectRatio": 0.6721,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "creativity",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "4d98f4d27dc4290c87e0ecfdb7401d3959e2dd55f3fb44f52cf21ddfd4a920c8",
+      "perceptualHash": "ffffff07fe07fe07fe07fc07f0ebf1e1ffa3fc43f843fc03d807c007fc07ffff"
+    },
+    {
+      "id": "object_instant_camera_yellow_sunset_01",
+      "path": "/stickers/editorial-v2/objects/object_instant_camera_yellow_sunset_01.webp",
+      "category": "objects",
+      "tags": [
+        "camera",
+        "instant",
+        "objects",
+        "sunset",
+        "yellow"
+      ],
+      "width": 276,
+      "height": 352,
+      "aspectRatio": 0.7841,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "creativity",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 5,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (5).png"
+      },
+      "contentHash": "7b07b293c6e14f154fad09928e3a197b0983d6c07cb8ad5b16d9933bd4379211",
+      "perceptualHash": "fffffffff807f003f003f003e003e007f007f307e03fe03fe07fffffffffffff"
+    },
+    {
+      "id": "object_laptop_dream_job_notes_01",
+      "path": "/stickers/editorial-v2/objects/object_laptop_dream_job_notes_01.webp",
+      "category": "objects",
+      "tags": [
+        "dream",
+        "job",
+        "laptop",
+        "notes",
+        "objects"
+      ],
+      "width": 291,
+      "height": 272,
+      "aspectRatio": 1.0699,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "work"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": true,
+      "productionSelectable": false,
+      "reviewReason": "brand_like_marks",
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "ce81a5197ec0a9b18489d1c18a94cdcf8c3d64e260fb48ec96a4035f5697c47b",
+      "perceptualHash": "fffffffffc07e007e007f037f043f04bf023f003f003f003c003e03fffffffff"
+    },
+    {
+      "id": "object_laptop_silver_01",
+      "path": "/stickers/editorial-v2/objects/object_laptop_silver_01.webp",
+      "category": "objects",
+      "tags": [
+        "laptop",
+        "objects",
+        "silver"
+      ],
+      "width": 345,
+      "height": 260,
+      "aspectRatio": 1.3269,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [
+        "work"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "productionSelectable": false,
+      "reviewReason": "brand_like_marks",
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "5d38e3736502092a4ea8bebe4f7f662f3b021f288542aaaa04bbe79d5070e635",
+      "perceptualHash": "ffffffff81ff807f807f807fc03fc03fc03fc03fc03fc007f001fe07ffdfffff"
+    },
+    {
+      "id": "object_lighter_green_flame_01",
+      "path": "/stickers/editorial-v2/objects/object_lighter_green_flame_01.webp",
+      "category": "objects",
+      "tags": [
+        "flame",
+        "green",
+        "lighter",
+        "objects"
+      ],
+      "width": 200,
+      "height": 280,
+      "aspectRatio": 0.7143,
+      "orientation": "portrait",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "c7ecf97c3d4098d556266e78abbe6dab16ddb7b406274153853fe20bfd348865",
+      "perceptualHash": "ffffffffffeff3ffe0ffc04fc007c007f803fc03fc03fc03fc03fe07ffefffff"
+    },
+    {
+      "id": "object_moka_pot_silver_01",
+      "path": "/stickers/editorial-v2/objects/object_moka_pot_silver_01.webp",
+      "category": "objects",
+      "tags": [
+        "moka",
+        "objects",
+        "pot",
+        "silver"
+      ],
+      "width": 248,
+      "height": 336,
+      "aspectRatio": 0.7381,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "coffee"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "d91bb06005a521585d176aa7e72a2a172bba3ca33ca03f90e48d3f04c34a2c9e",
+      "perceptualHash": "fffffcfffcf7e003c001e013e013f023f0bff01ff09ff05ff04fe04ff07fffff"
+    },
+    {
+      "id": "object_plant_books_coffee_set_01",
+      "path": "/stickers/editorial-v2/objects/object_plant_books_coffee_set_01.webp",
+      "category": "objects",
+      "tags": [
+        "books",
+        "coffee",
+        "objects",
+        "plant",
+        "set"
+      ],
+      "width": 331,
+      "height": 582,
+      "aspectRatio": 0.5687,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "coffee",
+        "home",
+        "study"
+      ],
+      "visualWeight": "hero",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 6,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (6).png"
+      },
+      "contentHash": "c62cd2b1422ceb938051aea865a296cf1c6f70f8289a1703b4cbd4454fba45bc",
+      "perceptualHash": "ffff81838003c003f821f00ff43ffcfffe1fff03ff83ff07f801f001fe03ffff"
+    },
+    {
+      "id": "object_plant_monstera_pot_01",
+      "path": "/stickers/editorial-v2/objects/object_plant_monstera_pot_01.webp",
+      "category": "objects",
+      "tags": [
+        "monstera",
+        "objects",
+        "plant",
+        "pot"
+      ],
+      "width": 326,
+      "height": 329,
+      "aspectRatio": 0.9909,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "home"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "a7e73d82d2ce2f9479108736239dbb50f3f914241bff8f5a56c93edf233b78db",
+      "perceptualHash": "ffffffcfff83f301c001c00180c7800f810fc60ff80ff83ff9fff9fffcffffff"
+    },
+    {
+      "id": "object_plant_monstera_smile_pot_01",
+      "path": "/stickers/editorial-v2/objects/object_plant_monstera_smile_pot_01.webp",
+      "category": "objects",
+      "tags": [
+        "monstera",
+        "objects",
+        "plant",
+        "pot",
+        "smile"
+      ],
+      "width": 282,
+      "height": 341,
+      "aspectRatio": 0.827,
+      "orientation": "portrait",
+      "tone": "neutral",
+      "topics": [
+        "home"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "5bb963fcc6f9c1bb0e95ade9bef118468703e332517c78a9aa2bbee9e63a39b6",
+      "perceptualHash": "fffff9fff087c003c043c003c003c803f803f80bff9fff1fff1fff9fffffffff"
+    },
+    {
+      "id": "object_retro_camera_monstera_set_01",
+      "path": "/stickers/editorial-v2/objects/object_retro_camera_monstera_set_01.webp",
+      "category": "objects",
+      "tags": [
+        "camera",
+        "monstera",
+        "objects",
+        "retro",
+        "set"
+      ],
+      "width": 313,
+      "height": 355,
+      "aspectRatio": 0.8817,
+      "orientation": "square",
+      "tone": "neutral",
+      "topics": [
+        "creativity",
+        "home",
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "72bb8c4f8a7469ee199f2d734f3f565e9b2d1d5d780833b5f3eecc0330a26cc7",
+      "perceptualHash": "ffffffffe00fc00fc00fc00fc03ffd8fc403c00380018043cc7ffdffffffffff"
+    },
+    {
+      "id": "object_sneaker_white_single_01",
+      "path": "/stickers/editorial-v2/objects/object_sneaker_white_single_01.webp",
+      "category": "objects",
+      "tags": [
+        "objects",
+        "single",
+        "sneaker",
+        "white"
+      ],
+      "width": 316,
+      "height": 226,
+      "aspectRatio": 1.3982,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [
+        "movement"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "productionSelectable": false,
+      "reviewReason": "brand_like_marks",
+      "source": {
+        "sheet": 1,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (1).png"
+      },
+      "contentHash": "31b9e5cf67927872e1022624c8dd558b840d25508831033226fa688d1f7e07b8",
+      "perceptualHash": "fffffffffeffe4ffc07fc03fc01fc00fc007c0018019c101fc03fe07ffffffff"
+    },
+    {
+      "id": "object_sneakers_gray_pair_01",
+      "path": "/stickers/editorial-v2/objects/object_sneakers_gray_pair_01.webp",
+      "category": "objects",
+      "tags": [
+        "gray",
+        "objects",
+        "pair",
+        "sneakers"
+      ],
+      "width": 348,
+      "height": 235,
+      "aspectRatio": 1.4809,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [
+        "movement"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "productionSelectable": false,
+      "reviewReason": "brand_like_marks",
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "acad4c53110033208545ecc6e64028e78b6a12f1d6894ce5a98de5374df956bb",
+      "perceptualHash": "ffffffffff3ffe17fc03fc03f003c00380038c01c001c001e003f03ffcffffff"
+    },
+    {
+      "id": "object_sunglasses_black_classic_01",
+      "path": "/stickers/editorial-v2/objects/object_sunglasses_black_classic_01.webp",
+      "category": "objects",
+      "tags": [
+        "black",
+        "classic",
+        "objects",
+        "sunglasses"
+      ],
+      "width": 254,
+      "height": 178,
+      "aspectRatio": 1.427,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "ac76bce472eba8b3534b41bfb9ff1b35a27157429d27107e745f5ffaedf70503",
+      "perceptualHash": "ffffffffe7ffc3ffc1ff80ffc00fc007e003f303ff03ff03ff83ffe7ffffffff"
+    },
+    {
+      "id": "object_sunglasses_black_pixel_01",
+      "path": "/stickers/editorial-v2/objects/object_sunglasses_black_pixel_01.webp",
+      "category": "objects",
+      "tags": [
+        "black",
+        "objects",
+        "pixel",
+        "sunglasses"
+      ],
+      "width": 301,
+      "height": 165,
+      "aspectRatio": 1.8242,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "16c5b5f3b569d0634f0039a473db88d6d3af4b13b6ee5a84823d84882295ace3",
+      "perceptualHash": "fffffffffffffff1ffc1ff03fc03f003c0078087819fc1ffe3ffffffffffffff"
+    },
+    {
+      "id": "paper_crumpled_white_black_tape_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_crumpled_white_black_tape_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "black",
+        "crumpled",
+        "paper_templates",
+        "tape",
+        "white"
+      ],
+      "width": 279,
+      "height": 242,
+      "aspectRatio": 1.1529,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "518230d408e8c72a2f01362360dd4508b49e7d186c5afd53f4b37dae0fa93212",
+      "perceptualHash": "fffffffffc1fdc0fc003c4a3c803c007c00bc00bc003c003c02bce43ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.09,
+          0.18,
+          0.9,
+          0.78
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_crumpled_white_clipped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_crumpled_white_clipped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "clipped",
+        "crumpled",
+        "paper_templates",
+        "white"
+      ],
+      "width": 230,
+      "height": 209,
+      "aspectRatio": 1.1005,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "8505e6782c6885e58ac27a38e762370d7b8891ded608f4d6f2416c342a893351",
+      "perceptualHash": "fffffdffc007c003e003c003c003c003c003c003c003c007fc07ff07ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.1,
+          0.16,
+          0.84,
+          0.73
+        ],
+        "paperTone": "light",
+        "format": "vertical",
+        "textLength": "medium",
+        "hasTape": false,
+        "hasClip": true,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_crumpled_white_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_crumpled_white_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "crumpled",
+        "paper_templates",
+        "taped",
+        "white"
+      ],
+      "width": 257,
+      "height": 224,
+      "aspectRatio": 1.1473,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "f09a362a298de3b23f3d940668d6b5dcf9e4547d955935659c48fd1246f052eb",
+      "perceptualHash": "fffffffff83ff807f007c007c007c007c003c003c003c003c003c00fffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.09,
+          0.18,
+          0.9,
+          0.76
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_grid_blue_tape_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_grid_blue_tape_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "blue",
+        "grid",
+        "paper_templates",
+        "tape"
+      ],
+      "width": 244,
+      "height": 209,
+      "aspectRatio": 1.1675,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "9f1b593d825df1ce735fd6c5578d04a78fad4d37952dbc3a429dcb5890e0b4cf",
+      "perceptualHash": "fffffffffc3fc01fc003c003c003c003c003c003c003c003c007c7ffffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.09,
+          0.18,
+          0.9,
+          0.75
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_grid_star_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_grid_star_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "grid",
+        "paper_templates",
+        "star",
+        "taped"
+      ],
+      "width": 222,
+      "height": 225,
+      "aspectRatio": 0.9867,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "467fdfdb9734fa0318a3ebefd8ff4c3d07cbd430eb12ce31fe56152199cc3223",
+      "perceptualHash": "ffffffffec3fc00fc003c003c003c003c003c003c007e007fe07ffc7ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.08,
+          0.16,
+          0.78,
+          0.68
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "short",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_kraft_binder_clip_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_kraft_binder_clip_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "binder",
+        "clip",
+        "kraft",
+        "paper_templates"
+      ],
+      "width": 246,
+      "height": 259,
+      "aspectRatio": 0.9498,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "97b74aa4e33cee20127cf09115b95fb32928e65cc729812998d1e21e94615979",
+      "perceptualHash": "fffffffffcfff87fe007c007c003c003c003c003c003c003c003c003ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.1,
+          0.2,
+          0.88,
+          0.76
+        ],
+        "paperTone": "light",
+        "format": "vertical",
+        "textLength": "medium",
+        "hasTape": false,
+        "hasClip": true,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_kraft_crumpled_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_kraft_crumpled_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "crumpled",
+        "kraft",
+        "paper_templates",
+        "taped"
+      ],
+      "width": 245,
+      "height": 196,
+      "aspectRatio": 1.25,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "e49439ad8470979b09f5e2c28966c8c79e7a9acc54dab2b894241bbb7ebae0e3",
+      "perceptualHash": "fffffffffe1ff803c003c003c003c003c003c003c003c003c003e007ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.08,
+          0.18,
+          0.9,
+          0.74
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_kraft_torn_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_kraft_torn_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "kraft",
+        "paper_templates",
+        "taped",
+        "torn"
+      ],
+      "width": 263,
+      "height": 201,
+      "aspectRatio": 1.3085,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "04075ac2d5e3a245a87a0e25bc1ee0b181c2008f644518a8dc9de226dfd991d9",
+      "perceptualHash": "fffffffffc1ffc03c003c003c003c003c003c003c003c007c03fccffffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.1,
+          0.2,
+          0.88,
+          0.7
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_kraft_wide_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_kraft_wide_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "kraft",
+        "paper_templates",
+        "taped",
+        "wide"
+      ],
+      "width": 276,
+      "height": 192,
+      "aspectRatio": 1.4375,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "173591b60e0e1564d8b1f3e2d226958fd32770d3cf5dcdd0806bfaa08f19c552",
+      "perceptualHash": "fffffffffc3ffc3fc003c003c003c003c003c0038003c003c003c7fbffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.09,
+          0.18,
+          0.9,
+          0.72
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_lined_clipped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_lined_clipped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "clipped",
+        "lined",
+        "paper_templates"
+      ],
+      "width": 260,
+      "height": 198,
+      "aspectRatio": 1.3131,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "9f0e3c2346db0dd55b7a86ae8a414d0146f1e0fb10d7ee7165140549654b8785",
+      "perceptualHash": "ffffffffe3e7e003e003c003c003c003c003c003c003c003f003ffc3ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.13,
+          0.16,
+          0.88,
+          0.72
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": false,
+        "hasClip": true,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_lined_smile_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_lined_smile_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "lined",
+        "paper_templates",
+        "smile"
+      ],
+      "width": 226,
+      "height": 174,
+      "aspectRatio": 1.2989,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "53b4d7408f7530fd867378112c27ddcf9dc4e2bac47f9aa8ff3f53676270fe34",
+      "perceptualHash": "ffffffffe3ffe003c003e007c003c003e003c003c003c003c003dfffffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.08,
+          0.12,
+          0.72,
+          0.72
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "short",
+        "hasTape": false,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_lined_white_clipped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_lined_white_clipped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "clipped",
+        "lined",
+        "paper_templates",
+        "white"
+      ],
+      "width": 268,
+      "height": 211,
+      "aspectRatio": 1.2701,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "620ddda4a71f5300018112bd2ca7a0a336406e5eb14bf1b09e68263633286af7",
+      "perceptualHash": "fffffbfff1ffc01fc003c003c003c003c003c003c003c003c003c003ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.1,
+          0.18,
+          0.86,
+          0.76
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": false,
+        "hasClip": true,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_lined_white_pinned_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_lined_white_pinned_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "lined",
+        "paper_templates",
+        "pinned",
+        "white"
+      ],
+      "width": 293,
+      "height": 216,
+      "aspectRatio": 1.3565,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "fbcb1a9b663e0ae4b45319eb2bc7e11cf0094bb48da560eac8d81c85ed344893",
+      "perceptualHash": "ffffffffc6ffc843c003c003c003c003c003c003c003c003c003d803ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.09,
+          0.18,
+          0.88,
+          0.75
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": false,
+        "hasClip": false,
+        "hasPin": true,
+        "canRotate": true
+      }
+    },
+    {
+      "id": "paper_pink_layered_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_pink_layered_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "layered",
+        "paper_templates",
+        "pink",
+        "taped"
+      ],
+      "width": 228,
+      "height": 213,
+      "aspectRatio": 1.0704,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "a94438d57adb4f7d2041bdc2adab2e6316733db0955d01fba7fa53591cbc2416",
+      "perceptualHash": "fffffffff07fc00fc003c003c003c003c003c003c003c003fc03ff83ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.1,
+          0.17,
+          0.88,
+          0.74
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_pink_taped_shadow_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_pink_taped_shadow_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "paper_templates",
+        "pink",
+        "shadow",
+        "taped"
+      ],
+      "width": 240,
+      "height": 246,
+      "aspectRatio": 0.9756,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "e07293648a0894e38b35dd1dffff481687bbb0fba555000f35a19c5e56a47476",
+      "perceptualHash": "fffffffff83ff007c007c007c007c007c003c003c003c003c003e003ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.12,
+          0.18,
+          0.86,
+          0.76
+        ],
+        "paperTone": "light",
+        "format": "vertical",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_polaroid_black_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_polaroid_black_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "black",
+        "paper_templates",
+        "polaroid",
+        "taped"
+      ],
+      "width": 198,
+      "height": 232,
+      "aspectRatio": 0.8534,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "travel"
+      ],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "51b77c456c6eb1ecfbf249ed01a0eca1340b3d2473926e88e192e52c04326948",
+      "perceptualHash": "fffffffffe7ffc07f007f007e007e007e007e007e007e007ffffffffffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.18,
+          0.19,
+          0.8,
+          0.72
+        ],
+        "paperTone": "dark",
+        "format": "vertical",
+        "textLength": "short",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_torn_gray_clipped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_torn_gray_clipped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "clipped",
+        "gray",
+        "paper_templates",
+        "torn"
+      ],
+      "width": 272,
+      "height": 218,
+      "aspectRatio": 1.2477,
+      "orientation": "landscape",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "548808cff9367845265b4f5594d072c9062f1606e21dceeac65ed199fb754323",
+      "perceptualHash": "ffffffffff9fe203c003c003c003c003c003c003c003c003c003c003ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.1,
+          0.18,
+          0.82,
+          0.72
+        ],
+        "paperTone": "light",
+        "format": "horizontal",
+        "textLength": "medium",
+        "hasTape": false,
+        "hasClip": true,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_yellow_heart_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_yellow_heart_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "heart",
+        "paper_templates",
+        "taped",
+        "yellow"
+      ],
+      "width": 162,
+      "height": 187,
+      "aspectRatio": 0.8663,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [
+        "relationships"
+      ],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "c98158c5d64e084efee22882e6239a4d058e46785ccd4a11b57c7be530b03147",
+      "perceptualHash": "fffffffff8ffe01fe003e003e003e003e003e007e007e007e007f007ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.1,
+          0.2,
+          0.84,
+          0.6
+        ],
+        "paperTone": "light",
+        "format": "vertical",
+        "textLength": "short",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "paper_yellow_square_taped_01",
+      "path": "/stickers/editorial-v2/paper_templates/paper_yellow_square_taped_01.webp",
+      "category": "paper_templates",
+      "tags": [
+        "paper_templates",
+        "square",
+        "taped",
+        "yellow"
+      ],
+      "width": 217,
+      "height": 219,
+      "aspectRatio": 0.9909,
+      "orientation": "square",
+      "tone": "warm",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "0bc29cb15592e4219c16ef7073a5b7617406d711ccfadb398cc7b6e01eb78066",
+      "perceptualHash": "fffffdfffc1fe003e003e003e003e003c003c003c003c003c003e003ffffffff",
+      "paperTemplate": {
+        "safeTextArea": [
+          0.12,
+          0.2,
+          0.86,
+          0.74
+        ],
+        "paperTone": "light",
+        "format": "vertical",
+        "textLength": "medium",
+        "hasTape": true,
+        "hasClip": false,
+        "canRotate": true,
+        "hasPin": false
+      }
+    },
+    {
+      "id": "psychedelic_disco_ball_silver_01",
+      "path": "/stickers/editorial-v2/psychedelic/psychedelic_disco_ball_silver_01.webp",
+      "category": "psychedelic",
+      "tags": [
+        "ball",
+        "disco",
+        "graphic",
+        "party",
+        "psychedelic",
+        "silver"
+      ],
+      "width": 278,
+      "height": 288,
+      "aspectRatio": 0.9653,
+      "orientation": "square",
+      "tone": "active",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "9428a37f58bb4a184635aa436dda955e64179bfb0d20cbc59ad42db0036ba29c",
+      "perceptualHash": "fffffffffc1ff00fe1c7c3e7c303c003c003c003c813e207e00ff81fffffffff"
+    },
+    {
+      "id": "psychedelic_magic_eight_ball_01",
+      "path": "/stickers/editorial-v2/psychedelic/psychedelic_magic_eight_ball_01.webp",
+      "category": "psychedelic",
+      "tags": [
+        "ball",
+        "eight",
+        "magic",
+        "object",
+        "psychedelic",
+        "strange"
+      ],
+      "width": 203,
+      "height": 203,
+      "aspectRatio": 1.0,
+      "orientation": "square",
+      "tone": "strange",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 4,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (4).png"
+      },
+      "contentHash": "753738c6187ddf1aa1da94853ed693a571baeb0290bc63d06e709ba40965a17c",
+      "perceptualHash": "fffffffffc3ff00fe087e107c113c113c0a3c003e003e007f00ffc1fffffffff"
+    },
+    {
+      "id": "psychedelic_pixel_dinosaur_blue_01",
+      "path": "/stickers/editorial-v2/psychedelic/psychedelic_pixel_dinosaur_blue_01.webp",
+      "category": "psychedelic",
+      "tags": [
+        "blue",
+        "dinosaur",
+        "funny",
+        "graphic",
+        "pixel",
+        "psychedelic"
+      ],
+      "width": 222,
+      "height": 217,
+      "aspectRatio": 1.023,
+      "orientation": "square",
+      "tone": "strange",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "0071d6a9f8ba5b4c7e7681f131a0f3763144674d5b1b5f6ac467a94701e9ca01",
+      "perceptualHash": "fffffffffe07fc03fe03de07cc07c01fc01fe03ff07ff27ff33fe3ffffffffff"
+    },
+    {
+      "id": "surreal_capybara_banana_costume_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_capybara_banana_costume_01.webp",
+      "category": "surreal",
+      "tags": [
+        "animal",
+        "banana",
+        "capybara",
+        "costume",
+        "funny",
+        "surreal"
+      ],
+      "width": 293,
+      "height": 381,
+      "aspectRatio": 0.769,
+      "orientation": "portrait",
+      "tone": "strange",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "0c7f09063d17561f341b828a585b7db6bb01a0a126e153b2b4bfa188e02d4ff1",
+      "perceptualHash": "ffffe7ffe7fffdfff07fe03fe03fe03ff80fc207c00780039083c003e01fffff"
+    },
+    {
+      "id": "surreal_capybara_bath_bubbles_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_capybara_bath_bubbles_01.webp",
+      "category": "surreal",
+      "tags": [
+        "animal",
+        "bath",
+        "bubbles",
+        "capybara",
+        "funny",
+        "surreal"
+      ],
+      "width": 417,
+      "height": 356,
+      "aspectRatio": 1.1713,
+      "orientation": "square",
+      "tone": "strange",
+      "topics": [
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 9,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (9).png"
+      },
+      "contentHash": "9738c8c6751cb924f464109867883bdfb6c257049891b3563c7358f5a55d3621",
+      "perceptualHash": "fffffffffdfffdfff07ff03ff01fe00fc007c0038003800180018003c01fffff"
+    },
+    {
+      "id": "surreal_capybara_bath_duck_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_capybara_bath_duck_01.webp",
+      "category": "surreal",
+      "tags": [
+        "animal",
+        "bath",
+        "capybara",
+        "duck",
+        "funny",
+        "surreal"
+      ],
+      "width": 406,
+      "height": 332,
+      "aspectRatio": 1.2229,
+      "orientation": "landscape",
+      "tone": "strange",
+      "topics": [
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "b7a9ab89b59a2cdedcba04c8421970e75166c12da2c1edcea09f48ccca4147ee",
+      "perceptualHash": "fffffffffefffc3ff01ff80ff00ff00fe01fe003c001800180018001c003ffff"
+    },
+    {
+      "id": "surreal_capybara_bath_ducks_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_capybara_bath_ducks_01.webp",
+      "category": "surreal",
+      "tags": [
+        "animal",
+        "bath",
+        "capybara",
+        "ducks",
+        "funny",
+        "surreal"
+      ],
+      "width": 345,
+      "height": 354,
+      "aspectRatio": 0.9746,
+      "orientation": "square",
+      "tone": "strange",
+      "topics": [
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "a5f1e1beffd1663e482bbc942d10cbb93089be999d3a815a81abcdab4589355f",
+      "perceptualHash": "fffffffffe7ffe7ffc1ff81fe01fe007e003c003c001c001c003c003f007ffff"
+    },
+    {
+      "id": "surreal_capybara_flamingo_float_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_capybara_flamingo_float_01.webp",
+      "category": "surreal",
+      "tags": [
+        "animal",
+        "capybara",
+        "flamingo",
+        "float",
+        "funny",
+        "surreal"
+      ],
+      "width": 343,
+      "height": 279,
+      "aspectRatio": 1.2294,
+      "orientation": "landscape",
+      "tone": "strange",
+      "topics": [
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "515c72c4703130db19fb4068856e323fbdfb6ca66001a0eb6c6aaa385108faa5",
+      "perceptualHash": "fffffffff8c7e0c7e0cbe05be00be007c001800180018409c041f003fc0fffff"
+    },
+    {
+      "id": "surreal_cat_sleeping_sushi_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_cat_sleeping_sushi_01.webp",
+      "category": "surreal",
+      "tags": [
+        "animal",
+        "cat",
+        "food",
+        "sleeping",
+        "surreal",
+        "sushi"
+      ],
+      "width": 371,
+      "height": 223,
+      "aspectRatio": 1.6637,
+      "orientation": "landscape",
+      "tone": "strange",
+      "topics": [
+        "food",
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 7,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (7).png"
+      },
+      "contentHash": "ee7796a9b729f9dffa128fae14b231c7926b4bd10f67cb4c2308b22e1585932c",
+      "perceptualHash": "ffffffffffdffc4ff801f003e00bc019c035c027801b901b903f803fffffffff"
+    },
+    {
+      "id": "surreal_frog_blanket_mug_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_frog_blanket_mug_01.webp",
+      "category": "surreal",
+      "tags": [
+        "animal",
+        "blanket",
+        "frog",
+        "funny",
+        "mug",
+        "surreal"
+      ],
+      "width": 408,
+      "height": 278,
+      "aspectRatio": 1.4676,
+      "orientation": "landscape",
+      "tone": "strange",
+      "topics": [
+        "rest"
+      ],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 3,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_42 (3).png"
+      },
+      "contentHash": "7d8759951a3b80e4e459b51b9bd9472953a59201a7201da663a45e347c23abb3",
+      "perceptualHash": "fffffffffc3ff81ff81ff01ff00ff007c107c007c003c0018001c001ffffffff"
+    },
+    {
+      "id": "surreal_frog_sunglasses_pink_hat_01",
+      "path": "/stickers/editorial-v2/surreal/surreal_frog_sunglasses_pink_hat_01.webp",
+      "category": "surreal",
+      "tags": [
+        "frog",
+        "funny",
+        "hat",
+        "pink",
+        "sunglasses",
+        "surreal"
+      ],
+      "width": 291,
+      "height": 263,
+      "aspectRatio": 1.1065,
+      "orientation": "square",
+      "tone": "strange",
+      "topics": [],
+      "visualWeight": "medium",
+      "rarity": "rare",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 8,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_51_43 (8).png"
+      },
+      "contentHash": "3455ce8012771325706d29ed04ccfb6c4fc7252db8e91d5ed509ad21a6359bfa",
+      "perceptualHash": "fffff3cfe24ff80fe00fe007e107e18fe003e003c003e003c803c003ffffffff"
+    },
+    {
+      "id": "tape_beige_01",
+      "path": "/stickers/editorial-v2/tape/tape_beige_01.webp",
+      "category": "tape",
+      "tags": [
+        "01",
+        "beige",
+        "tape"
+      ],
+      "width": 200,
+      "height": 134,
+      "aspectRatio": 1.4925,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "bb02f06a51f00efdc945eac91bbccc1f0b469bc0b5a08c9a3aa0e735be7142dd",
+      "perceptualHash": "ffffffffffffffc3fc03c003c003c003c003c003c00fc0ffcfffffffffffffff"
+    },
+    {
+      "id": "tape_beige_polka_dot_01",
+      "path": "/stickers/editorial-v2/tape/tape_beige_polka_dot_01.webp",
+      "category": "tape",
+      "tags": [
+        "01",
+        "beige",
+        "dot",
+        "polka",
+        "tape"
+      ],
+      "width": 198,
+      "height": 103,
+      "aspectRatio": 1.9223,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "ea6917838270f797384ff07b7ea5932b9d553241104c8c44a9b59191052a3989",
+      "perceptualHash": "ffffffffffffe5ffe003c003c003e003e003e003c007c007ffffffffffffffff"
+    },
+    {
+      "id": "tape_black_01",
+      "path": "/stickers/editorial-v2/tape/tape_black_01.webp",
+      "category": "tape",
+      "tags": [
+        "01",
+        "black",
+        "tape"
+      ],
+      "width": 195,
+      "height": 134,
+      "aspectRatio": 1.4552,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "2b7d08f01cb49b7a8330205919ac07c9c1dd1b31f66fa5e6aa6a0f9dd2870041",
+      "perceptualHash": "ffffffffffffff87fc07e007c003c003c003c007c03fc1ffcfffffffffffffff"
+    },
+    {
+      "id": "tape_black_02",
+      "path": "/stickers/editorial-v2/tape/tape_black_02.webp",
+      "category": "tape",
+      "tags": [
+        "02",
+        "black",
+        "tape"
+      ],
+      "width": 200,
+      "height": 129,
+      "aspectRatio": 1.5504,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "8c81c8c34543dbccdddf0b8ed87d6eb79d16f231dba6ddd8a55ef41e2d661fd0",
+      "perceptualHash": "ffffffffffffffc3fe03e003c003c003c003c003c01fc0ffcfffffffffffffff"
+    },
+    {
+      "id": "tape_blue_01",
+      "path": "/stickers/editorial-v2/tape/tape_blue_01.webp",
+      "category": "tape",
+      "tags": [
+        "01",
+        "blue",
+        "tape"
+      ],
+      "width": 210,
+      "height": 137,
+      "aspectRatio": 1.5328,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "7b248c05be23e562765a4e46698a88bf3baeb1813e3a7adcc7d1964430920832",
+      "perceptualHash": "fffffffffffffff3ff03f003c003c003c003c003c007c07fc7ffffffffffffff"
+    },
+    {
+      "id": "tape_pink_01",
+      "path": "/stickers/editorial-v2/tape/tape_pink_01.webp",
+      "category": "tape",
+      "tags": [
+        "01",
+        "pink",
+        "tape"
+      ],
+      "width": 199,
+      "height": 118,
+      "aspectRatio": 1.6864,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "5323620247a6206d90565608ff7436bfbfc1ea4e996add3d9bcb9637cffa4238",
+      "perceptualHash": "fffffffffffffffff003c003c003c007c007c007c007c0ffffffffffffffffff"
+    },
+    {
+      "id": "tape_white_01",
+      "path": "/stickers/editorial-v2/tape/tape_white_01.webp",
+      "category": "tape",
+      "tags": [
+        "01",
+        "tape",
+        "white"
+      ],
+      "width": 188,
+      "height": 121,
+      "aspectRatio": 1.5537,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "3b8a2e72c1010ac985cb5d844c441a8c465e6554a4b952c1937e5ba17bb88f31",
+      "perceptualHash": "ffffffffffffffe7e007c007c003c003e003e003e007e007f7ffffffffffffff"
+    },
+    {
+      "id": "tape_yellow_01",
+      "path": "/stickers/editorial-v2/tape/tape_yellow_01.webp",
+      "category": "tape",
+      "tags": [
+        "01",
+        "tape",
+        "yellow"
+      ],
+      "width": 190,
+      "height": 108,
+      "aspectRatio": 1.7593,
+      "orientation": "landscape",
+      "tone": "neutral",
+      "topics": [],
+      "visualWeight": "light",
+      "rarity": "common",
+      "hasEmbeddedText": false,
+      "source": {
+        "sheet": 10,
+        "file": "ChatGPT Image 11 авг. 2026 г., 20_53_45.png"
+      },
+      "contentHash": "599a9949b1809a0ce51d68cd871b70a1027702f50ca6e0893014324277411b7d",
+      "perceptualHash": "ffffffffffffffffe003e003e007e007c007c007e007e007ffffffffffffffff"
+    }
+  ]
+}

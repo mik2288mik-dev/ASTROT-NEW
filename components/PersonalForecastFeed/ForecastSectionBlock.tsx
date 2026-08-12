@@ -3,15 +3,16 @@ import type {
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
-import type { DiaryEditorialAsset } from '../../lib/personalForecastVisuals';
+import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
 import { EditorialSticker } from '../EditorialSticker';
+import { resolveVisibleForecastTitle } from './editorialLayout';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
-  sticker?: DiaryEditorialAsset | null;
+  sticker?: DiaryEditorialPause['asset'] | null;
   onRequestPremium: () => void;
 };
 
@@ -42,18 +43,12 @@ export function ForecastSectionBlock({
   onRequestPremium,
 }: ForecastSectionBlockProps) {
   const isOverview = section.kind === 'overview';
-  const sectionTitle = section.title?.trim() || '';
-  const technicalOverviewTitles = new Set([
-    'Личный гороскоп на сегодня',
-    'Личный гороскоп на неделю',
-    'Личный гороскоп на месяц',
-    'Your horoscope for today',
-    'Your horoscope for the week',
-    'Your horoscope for the month',
-  ]);
-  const title = isOverview && technicalOverviewTitles.has(sectionTitle)
-    ? ''
-    : sectionTitle;
+  const sectionTitle = resolveVisibleForecastTitle({
+    period,
+    kind: section.kind,
+    title: section.title,
+  });
+  const title = sectionTitle;
   const preview = section.lockedPreview;
   const hasReadableCopy = section.contentBlocks.some((block) => block.text.trim());
   const copyLength = section.contentBlocks.reduce(

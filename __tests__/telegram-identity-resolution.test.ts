@@ -114,6 +114,57 @@ describe('Telegram canonical identity resolution', () => {
     expect(revokeIndex).toBeLessThan(upgradeIndex);
   });
 
+  it('rejects replacing a different identity for the same provider on one account', async () => {
+    clientQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('SELECT user_id FROM account_identities')) {
+        return { rowCount: 0, rows: [] };
+      }
+      if (sql.includes('SELECT id, is_guest FROM users')) {
+        return { rowCount: 1, rows: [{ id: '-42', is_guest: false }] };
+      }
+      if (sql.includes('SELECT provider_subject FROM account_identities')) {
+        return { rowCount: 1, rows: [{ provider_subject: 'another-google-subject' }] };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+
+    await expect(resolveVerifiedIdentity({ provider: 'google', subject: 'new-google-subject' }, '-42'))
+      .rejects.toMatchObject({ status: 409, code: 'PROVIDER_ALREADY_LINKED' });
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes('INSERT INTO account_identities'))).toBe(false);
+  });
+
+  it('never turns a fresh registration challenge into login for a newly occupied identity', async () => {
+    const beforeCommit = jest.fn();
+    clientQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('SELECT user_id FROM account_identities')) {
+        return { rowCount: 1, rows: [{ user_id: '-other-account' }] };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+
+    await expect(resolveVerifiedIdentity(
+      { provider: 'email', subject: 'person@example.test' },
+      null,
+      { requireNewIdentity: true, beforeCommit },
+    )).rejects.toMatchObject({ status: 409, code: 'IDENTITY_ALREADY_LINKED' });
+    expect(beforeCommit).not.toHaveBeenCalled();
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes('UPDATE account_identities'))).toBe(false);
+  });
+
+  it('rechecks the linking session inside the identity transaction', async () => {
+    clientQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('FROM app_sessions')) return { rowCount: 0, rows: [] };
+      return { rowCount: 1, rows: [] };
+    });
+
+    await expect(resolveVerifiedIdentity(
+      { provider: 'google', subject: 'verified-google-subject' },
+      '-42',
+      { requiredSession: { userId: '-42', sessionId: 'revoked-session' } },
+    )).rejects.toMatchObject({ status: 401, code: 'APP_SESSION_REVOKED' });
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes('INSERT INTO account_identities'))).toBe(false);
+  });
+
   it('checks Telegram ownership against the canonical account identity', async () => {
     poolQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ '?column?': 1 }] });
 

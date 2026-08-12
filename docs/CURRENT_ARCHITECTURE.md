@@ -13,6 +13,7 @@
 - Luna uses the Responses API with strict JSON Schema through `lib/openaiResponses.ts`.
 - For Today the model writes one shared headline plus 4–6 ordered fragments. The server materializes the first fragment as `overview` and the remaining fragments as untitled `sections`. Week and Month require one cohesive fragment and no additional sections.
 - The structured writer also returns hidden post-hoc keys for the used main idea, life plot, advice, and comparison. They are never rendered. Server validation combines compact exact/token signatures from these keys with headline checks, normalized openings, and text similarity to reject repeats.
+- Every Today fragment also returns strict hidden `presentation_style`. The server maps it to optional `ForecastSection.presentationStyle`; a current-contract package may omit the optional field and render as prose, while older prompt/voice cache identities remain invalid. The first fragment and at least one more fragment are prose; Today allows at most one pull quote and at most one short paper note. The Week/Month strict schema omits presentation metadata.
 - The model is the author of the personal forecast, not a renderer of precomputed themes or a calculator of period events. The server validates format, length, language, forecast voice, safety, unsupported claims, repetition, and visible astrology before persisting the result. Writer attempts remain capped at two.
 - `lib/personalForecastCache.ts` caches one materialized package by user, chart, period, language, prompt, voice, and model identity. Before a miss is generated, it reads bounded same-period history with `allowExpired` plus one safe latest excerpt, including the previous headline; this history is negative prompt context only and is never served as the requested forecast. Compatible stale output must have the current prompt identity.
 - `lib/appVoice.ts` contains the shared runtime voice and a separately versioned personal-forecast layer. Forecast-specific character and occasional irony do not make the global app voice comedic.
@@ -26,8 +27,18 @@
 ## Visual and navigation boundaries
 
 - The left drawer owns primary navigation. Forecast periods are internal to the diary.
-- Text is the default forecast presentation. A forecast uses at most one strong editorial visual; a rare curated sticker is an optional pause after the story, never an explanation or a topic selector.
-- Generated text is never rendered over an image or inside an additional visual frame, card, or promo banner.
+- `lib/personalForecastVisuals/diaryVisualEngine.ts` derives a Today plan from `userId + periodKey + contractVersion`. It rotates five app-owned layouts and one weighted asset family without random state, client history, or database state; adjacent dates cannot repeat a layout or exact asset. Side-column layouts select compact portrait/square, non-wide compositions; the more open layouts may use landscape assets.
+- The original eligible pool remains 895 assets: 83 mascots, 24 objects, and 788 main editorial assets. `public/stickers/editorial-v2/` adds 221 app-ready WebP files: 195 non-brand visual entries (142 text-free generic auto-picks and 53 embedded-copy entries held until locale/copy metadata exists), 19 empty paper templates with safe live-text areas, and seven review-required files excluded through manifest metadata. Synastry, zodiac, and legacy background collections remain isolated. Common visuals lead, associative/surreal visuals recur periodically, and psychedelic humor remains rare.
+- Text is the primary forecast presentation. Today uses at most one strong visual and `editorial_clean` uses none. Luna supplies runtime prose/quote/note text but never chooses an asset or design instruction.
+- Body prose is never rendered over an image or inside a card/promo banner. A `paper_note` is the explicit exception: deterministic template selection plus live text within the template's safe area, never rasterised copy.
+
+## Android accounts
+
+- Android is the primary product platform. Email registration/password login, email-code confirmation and reset, Google Credential Manager, Yandex LoginSDK 3.1.3, and VK ID SDK 2.7.2 are implemented in the native shell with server-side credential verification.
+- Auth capabilities are runtime-aware: Android uses native provider readiness, browser OAuth also requires its server secrets and HTTPS origin, and password login remains independently available when email-code delivery is not configured.
+- `account_identities` maps verified email, Google, Yandex, VK, and Telegram identities to one canonical `users.id`. An email match alone never merges users, and an identity already owned by another user cannot be captured. Natal chart, forecast history, Premium, and saved data remain attached to the canonical user.
+- Native sessions are restored from Android Keystore-backed storage and are revocable server-side. Login/link flows guard cancel, Back, repeated taps, cold start, and concurrent callbacks.
+- Migration `mvp_043_password_authentication` adds password credentials and email-code state. Provider console credentials, email delivery, Railway secrets, production migration execution, release signing fingerprints, and live device verification remain manual deployment work.
 
 ## Persistence boundary
 

@@ -25,9 +25,17 @@ describe('payment provider isolation', () => {
 
   it('only asks RuStore Pay on the rustore channel', async () => {
     rustore.mockResolvedValue({ status: 'completed' });
-    await expect(getPaymentProvider('rustore').purchase(profile, 'premium_week')).resolves.toEqual({ status: 'completed' });
+    await expect(getPaymentProvider('rustore', '1').purchase(profile, 'premium_week')).resolves.toEqual({ status: 'completed' });
     expect(rustore).toHaveBeenCalledTimes(1);
     expect(telegram).not.toHaveBeenCalled();
+  });
+
+  it('keeps RuStore purchases disabled until monetization is explicitly enabled', async () => {
+    await expect(getPaymentProvider('rustore', '0').purchase(profile, 'premium_week')).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'PAYMENTS_NOT_AVAILABLE_ON_THIS_CHANNEL',
+    });
+    expect(rustore).not.toHaveBeenCalled();
   });
 
   it.each(['google_play', 'development'] as const)('does not start external payment for %s', async (channel) => {

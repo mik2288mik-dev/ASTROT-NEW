@@ -25,8 +25,17 @@ export function canUseTelegramStars(channel = resolveDistributionChannel()): boo
   return channel === 'telegram';
 }
 
-export function canUseRuStorePay(channel = resolveDistributionChannel()): boolean {
-  return channel === 'rustore';
+export function isRuStorePaymentsEnabled(
+  value = process.env.NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED,
+): boolean {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
+export function canUseRuStorePay(
+  channel = resolveDistributionChannel(),
+  enabledValue = process.env.NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED,
+): boolean {
+  return channel === 'rustore' && isRuStorePaymentsEnabled(enabledValue);
 }
 
 export function isStoreChannel(channel = resolveDistributionChannel()): boolean {

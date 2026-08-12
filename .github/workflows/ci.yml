@@ -81,12 +81,10 @@ jobs:
       NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: ci.premium.year
       RUSTORE_ALLOWED_PRODUCT_IDS: ci.premium.month,ci.premium.quarter,ci.premium.year
       RUSTORE_CONSOLE_APP_ID: '100000'
-      RUSTORE_PACKAGE_NAME: com.yourhoroscope.app
+      RUSTORE_PACKAGE_NAME: ru.tvoygoroskop.app
       RUSTORE_PAY_MODE: sandbox
       APP_VERSION_CODE: '1'
       APP_VERSION_NAME: 1.0.0-ci
-      NATIVE_AUTH_CALLBACK_SCHEME: yourhoroscope
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -123,7 +121,6 @@ jobs:
             echo "Release validation unexpectedly accepted CI placeholders"
             exit 1
           fi
-          grep -q "final non-temporary application ID" "$RUNNER_TEMP/release-blockers.txt"
           grep -q "RELEASE_STORE_FILE is required" "$RUNNER_TEMP/release-blockers.txt"
 
       - name: Build web bundle and sync Capacitor

@@ -1,58 +1,55 @@
-import fs from 'fs';
-import path from 'path';
-import { getAppSystemVoice } from '../lib/appVoice';
+import {
+  APP_VOICE_VERSION,
+  PERSONAL_FORECAST_VOICE_VERSION,
+  getAppSystemVoice,
+  getPersonalForecastSystemVoice,
+  hasAppVoiceViolation,
+  hasPersonalForecastVoiceViolation,
+} from '../lib/appVoice';
 
-const ROOT = path.resolve(__dirname, '..');
-const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+describe('app and personal forecast voice contracts', () => {
+  it('keeps generated content direct, grounded, and free of personas', () => {
+    const voice = getAppSystemVoice('ru');
 
-describe('single app voice contract', () => {
-  it('keeps generated content direct, calculation-led, and free of personas', () => {
-    const voice = read('lib/appVoice.ts');
-
-    expect(voice).toContain("export const APP_VOICE_VERSION = '5'");
-    expect(voice).toContain('прямо, уверенно, конкретно, по расчёту');
-    expect(voice).toContain('Каждая фраза должна сообщать конкретную информацию');
-    expect(voice).toContain('обращайся к пользователю на «ты»');
-    expect(voice).toContain('Не используй голос эзотерика');
+    expect(APP_VOICE_VERSION).toBe('10');
+    expect(PERSONAL_FORECAST_VOICE_VERSION).toBe('2');
+    expect(voice).toContain('точно, спокойно, живо и без церемоний');
+    expect(voice).toContain('Используй только переданный надёжный контекст');
+    expect(voice).toContain('Говори с человеком на «ты»');
     expect(voice).not.toContain('hero_title генерируется');
     expect(voice).not.toContain('добрый, дерзкий и современный друг');
   });
 
-  it('separates descriptive natal copy from practical forecast copy', () => {
-    const voice = read('lib/appVoice.ts');
+  it('layers a distinct personal forecast voice over the calm app voice', () => {
+    const appVoice = getAppSystemVoice('ru');
+    const forecastVoice = getPersonalForecastSystemVoice('ru');
 
-    expect(voice).toContain('Натальная карта — описательный тон');
-    expect(voice).toContain('Прогноз и ответы на вопросы — практичный и местами директивный тон');
-    expect(voice).toContain('Сначала дай ясный ответ');
+    expect(forecastVoice).toContain(appVoice);
+    expect(forecastVoice).toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
+    expect(forecastVoice).toContain('прямо, наблюдательно и с характером');
+    expect(forecastVoice).toContain('не превращай прогноз в номер');
   });
 
-  it('puts plain meaning before astrology and structures only long readings', () => {
-    const voice = read('lib/appVoice.ts');
+  it('puts ordinary-life meaning before astrology and keeps headings purposeful', () => {
+    const appVoice = getAppSystemVoice('ru');
+    const forecastVoice = getPersonalForecastSystemVoice('ru');
 
-    expect(voice).toContain('Сначала объясняй смысл, затем показывай расчёт');
-    expect(voice).toContain('СТРУКТУРА ДЛИННЫХ РАЗБОРОВ');
-    expect(voice).toContain('дели его на смысловые разделы');
-    expect(voice).toContain('содержательными заголовками без нумерации');
-    expect(voice).not.toContain('Ты долго терпишь');
-    expect(voice).toContain('Не вставляй все эти части механически');
-    expect(voice).toContain('короткой жирной вводной фразы');
-    expect(voice).toContain('Жизненные сферы называй прямо');
-    expect(voice).toContain('«Основание» / «Технические данные»');
-    expect(voice).toContain('заканчивай сильным итогом');
+    expect(appVoice).toContain('переводи контекст в обычный язык жизни');
+    expect(appVoice).toContain('Астрологические термины допустимы только');
+    expect(appVoice).toContain('Заголовок нужен только когда он действительно помогает читать');
+    expect(forecastVoice).toContain('не пиши «твоя карта показывает»');
+    expect(forecastVoice).toContain('написанным одному человеку');
   });
 
   it('explicitly rejects coaching, mysticism, and empty machine wording', () => {
-    const voice = read('lib/appVoice.ts');
-    const runtimeVoice = getAppSystemVoice('ru');
+    const appVoice = getAppSystemVoice('ru');
+    const forecastVoice = getPersonalForecastSystemVoice('ru');
 
-    expect(runtimeVoice).toContain('универсальные коучинговые команды');
-    expect(runtimeVoice).toContain('не следуют из переданных факторов');
-    expect(runtimeVoice).not.toContain('«прислушайся к себе»');
-    expect(runtimeVoice).not.toContain('«позволь себе»');
-    expect(runtimeVoice).not.toContain('«отпусти контроль»');
-    expect(runtimeVoice).not.toContain('«повторяющиеся сценарии»');
-    expect(runtimeVoice).not.toContain('«карта сложилась»');
-    expect(runtimeVoice).not.toContain('«это про тебя»');
-    expect(voice).toContain('псевдопсихологии и эзотерической воды');
+    expect(appVoice).toContain('коучинговой жвачки');
+    expect(appVoice).toContain('Не придумывай события, биографию, мотивы');
+    expect(forecastVoice).toContain('Не играй психолога, психотерапевта, коуча');
+    expect(forecastVoice).toContain('пустые формулы, а не персональный текст');
+    expect(hasAppVoiceViolation('Вселенная подсказывает тебе правильный путь.')).toBe(true);
+    expect(hasPersonalForecastVoiceViolation('Твоя сила — в спокойном присутствии.')).toBe(true);
   });
 });

@@ -1632,3 +1632,775 @@
     justify-content: flex-end;
   }
 }
+
+/* Today editorial feed ---------------------------------------------------- */
+.forecast-feed-page.is-day {
+  --forecast-editorial-font: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --forecast-editorial-ink: #171717;
+  --forecast-editorial-copy: #292927;
+  --forecast-editorial-muted: #74736e;
+  --forecast-editorial-rule: #deddd8;
+  --forecast-editorial-paper: #f2ead7;
+  --forecast-editorial-width: 44rem;
+  overflow-x: clip;
+  background: #fff;
+  color: var(--forecast-editorial-ink);
+  font-family: var(--forecast-editorial-font);
+}
+
+.forecast-feed-page.is-day .forecast-feed-reading-header {
+  width: min(100%, var(--forecast-editorial-width));
+  padding-inline-start: max(
+    1.25rem,
+    env(safe-area-inset-left, 0px),
+    var(--tg-content-safe-area-inset-left, 0px),
+    var(--tg-safe-area-inset-left, 0px)
+  );
+  padding-inline-end: max(
+    1.25rem,
+    env(safe-area-inset-right, 0px),
+    var(--tg-content-safe-area-inset-right, 0px),
+    var(--tg-safe-area-inset-right, 0px)
+  );
+}
+
+.forecast-feed-page.is-day .forecast-feed-date-zone {
+  margin-top: clamp(1.1rem, 4vw, 1.7rem);
+}
+
+.forecast-feed-page.is-day .forecast-feed-date-weekday {
+  color: var(--forecast-editorial-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+
+.forecast-feed-page.is-day .forecast-feed-date-value {
+  color: var(--forecast-editorial-ink);
+  font-size: 0.94rem;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.35;
+}
+
+.today-editorial-feed {
+  container-name: today-editorial-feed;
+  container-type: inline-size;
+  box-sizing: border-box;
+  width: min(100%, var(--forecast-editorial-width));
+  margin-inline: auto;
+  padding: clamp(1.7rem, 7vw, 3.25rem)
+    max(
+      1.25rem,
+      env(safe-area-inset-right, 0px),
+      var(--tg-content-safe-area-inset-right, 0px),
+      var(--tg-safe-area-inset-right, 0px)
+    )
+    max(
+      5rem,
+      calc(env(safe-area-inset-bottom, 0px) + 3rem),
+      calc(var(--tg-content-safe-area-inset-bottom, 0px) + 3rem),
+      calc(var(--tg-safe-area-inset-bottom, 0px) + 3rem)
+    )
+    max(
+      1.25rem,
+      env(safe-area-inset-left, 0px),
+      var(--tg-content-safe-area-inset-left, 0px),
+      var(--tg-safe-area-inset-left, 0px)
+    );
+  overflow: visible;
+}
+
+.today-editorial-feed,
+.today-editorial-feed * {
+  min-inline-size: 0;
+}
+
+.today-editorial-beat {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1.25rem, 5vw, 2rem);
+  margin: 0;
+  padding-block: clamp(1.75rem, 7vw, 3.15rem);
+}
+
+.today-editorial-beat:first-child {
+  padding-top: 0;
+}
+
+.today-editorial-beat:not(:first-child)::before {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 1px;
+  background: var(--forecast-editorial-rule);
+  content: '';
+}
+
+.today-editorial-beat:nth-child(2)::before {
+  inset-block-start: -0.3rem;
+  height: 0.6rem;
+  background:
+    radial-gradient(circle at center, var(--forecast-editorial-ink) 0 0.22rem, transparent 0.24rem),
+    linear-gradient(var(--forecast-editorial-rule), var(--forecast-editorial-rule)) center / 100% 1px no-repeat;
+}
+
+.today-editorial-beat.is-overview {
+  padding-bottom: clamp(2.4rem, 9vw, 4.5rem);
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .today-editorial-beat
+  .forecast-feed-story-fragment {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .today-editorial-beat
+  .forecast-feed-story-fragment
+  .forecast-feed-section-content,
+.forecast-feed-page
+  .today-editorial-feed
+  .today-editorial-beat
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-section-content,
+.forecast-feed-page
+  .today-editorial-feed
+  .today-editorial-beat
+  .forecast-feed-story-fragment.is-untitled:not(.is-overview)
+  .forecast-feed-section-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment
+  .forecast-feed-section-copy {
+  display: grid;
+  max-width: 39rem;
+  gap: 1.05rem;
+  margin: 0;
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment
+  .forecast-feed-section-title,
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-screen-headline {
+  max-width: 17ch;
+  margin: 0 0 clamp(1.25rem, 4.5vw, 1.8rem);
+  color: var(--forecast-editorial-ink);
+  font-family: var(--forecast-editorial-font);
+  font-size: clamp(2.25rem, 11vw, 3.35rem);
+  font-weight: 700;
+  letter-spacing: -0.052em;
+  line-height: 1.04;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment
+  .forecast-feed-section-text,
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment
+  .forecast-feed-section-text.is-lead,
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-section-text,
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-section-text.is-lead {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--forecast-editorial-copy);
+  font-family: var(--forecast-editorial-font);
+  font-size: clamp(1.0625rem, 4.6vw, 1.1875rem);
+  font-weight: 400;
+  letter-spacing: -0.013em;
+  line-height: 1.6;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .today-editorial-beat.is-overview
+  .forecast-feed-section-text.is-lead {
+  max-width: 36rem;
+  color: #20201e;
+  font-size: clamp(1.125rem, 5.15vw, 1.3rem);
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.5;
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment.is-brief
+  .forecast-feed-section-copy {
+  max-width: 33rem;
+}
+
+.forecast-feed-page
+  .today-editorial-feed
+  .forecast-feed-story-fragment.is-brief
+  .forecast-feed-section-text {
+  font-size: clamp(1.1rem, 5vw, 1.28rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.5;
+}
+
+.forecast-editorial-quote {
+  position: relative;
+  box-sizing: border-box;
+  max-width: 34rem;
+  margin: 0;
+  padding: 0.25rem 0 0.35rem clamp(1.45rem, 6vw, 2.1rem);
+  border: 0;
+  color: var(--forecast-editorial-ink);
+}
+
+.forecast-editorial-quote > span {
+  position: absolute;
+  inset-block-start: -0.3em;
+  inset-inline-start: -0.03em;
+  color: #b29a65;
+  font-size: clamp(3rem, 14vw, 4.8rem);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.forecast-editorial-quote p {
+  margin: 0;
+  font-family: var(--forecast-editorial-font);
+  font-size: clamp(1.55rem, 7.2vw, 2.15rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.18;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+  white-space: pre-line;
+}
+
+.forecast-editorial-paper-note {
+  --paper-note-rotation: -2deg;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(100%, 23rem);
+  margin: 0.6rem 0.45rem;
+  padding: clamp(1.25rem, 5vw, 1.7rem) clamp(1.35rem, 5.5vw, 1.9rem);
+  transform: rotate(var(--paper-note-rotation));
+  transform-origin: 50% 50%;
+  border: 1px solid rgba(115, 96, 59, 0.14);
+  background: var(--forecast-editorial-paper);
+  color: #27231b;
+  box-shadow: 0 0.8rem 2rem rgba(67, 57, 38, 0.1);
+}
+
+.forecast-editorial-paper-note.has-template {
+  width: min(100%, 20rem);
+  aspect-ratio: var(--paper-note-ratio);
+  margin-block: 0.35rem;
+  padding: 0;
+  overflow: visible;
+  isolation: isolate;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.forecast-editorial-paper-template {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.forecast-editorial-paper-note.has-template p {
+  position: absolute;
+  z-index: 1;
+  inset:
+    var(--paper-note-safe-top)
+    var(--paper-note-safe-right)
+    var(--paper-note-safe-bottom)
+    var(--paper-note-safe-left);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  text-align: center;
+  font-size: clamp(0.78rem, 3.6vw, 1.08rem);
+  line-height: 1.28;
+}
+
+.forecast-editorial-paper-note.has-template[data-paper-tone='dark'] {
+  color: #f8f3e8;
+}
+
+.forecast-editorial-paper-note[data-paper-shape='torn'] {
+  clip-path: polygon(1% 4%, 8% 1%, 18% 3%, 30% 0, 43% 2%, 57% 0, 71% 3%, 84% 1%, 99% 4%, 97% 22%, 100% 39%, 98% 57%, 100% 74%, 97% 96%, 83% 99%, 70% 97%, 56% 100%, 42% 98%, 27% 100%, 14% 97%, 2% 99%, 3% 79%, 0 61%, 2% 43%, 0 24%);
+}
+
+.forecast-editorial-paper-note[data-paper-shape='memo'] {
+  border-radius: 0.18rem 0.5rem 0.15rem 0.4rem;
+}
+
+.forecast-editorial-paper-note[data-paper-shape='ticket'] {
+  clip-path: polygon(0 0, 100% 0, 100% 42%, 97% 50%, 100% 58%, 100% 100%, 0 100%, 0 58%, 3% 50%, 0 42%);
+}
+
+.forecast-editorial-paper-note[data-paper-shape='folded'] {
+  border-radius: 0.15rem;
+  background:
+    linear-gradient(135deg, transparent 0 1rem, rgba(94, 76, 43, 0.1) 1.03rem 1.08rem, transparent 1.1rem),
+    var(--forecast-editorial-paper);
+}
+
+.forecast-editorial-paper-note p {
+  margin: 0;
+  font-family: var(--forecast-editorial-font);
+  font-size: clamp(1.02rem, 4.5vw, 1.15rem);
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.48;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+  white-space: pre-line;
+}
+
+.forecast-editorial-paper-tape {
+  position: absolute;
+  inset-block-start: -0.55rem;
+  inset-inline-start: 50%;
+  width: 3.5rem;
+  height: 1.05rem;
+  transform: translateX(-50%) rotate(-1.5deg);
+  background: rgba(218, 204, 170, 0.62);
+  box-shadow: 0 1px 0 rgba(82, 69, 43, 0.08);
+}
+
+.forecast-editorial-paper-note[data-paper-shape='ticket'] .forecast-editorial-paper-tape {
+  display: none;
+}
+
+.forecast-editorial-visual {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  place-items: center;
+}
+
+.forecast-editorial-visual[data-editorial-size='small'] {
+  width: min(100%, 6.25rem);
+}
+
+.forecast-editorial-visual[data-editorial-size='medium'] {
+  width: min(100%, 12.5rem);
+}
+
+.forecast-editorial-visual[data-editorial-size='hero'] {
+  width: min(100%, 25rem);
+}
+
+.forecast-editorial-visual .forecast-editorial-visual-image,
+.forecast-editorial-visual .editorial-sticker {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+.forecast-editorial-visual .editorial-sticker img,
+.forecast-editorial-visual .forecast-editorial-visual-image img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.today-editorial-beat.has-visual .forecast-editorial-visual {
+  justify-self: center;
+}
+
+.today-editorial-beat.is-paper-note {
+  justify-items: start;
+}
+
+.today-editorial-beat.is-pull-quote {
+  padding-block: clamp(2.4rem, 10vw, 4.5rem);
+}
+
+/* 1. Copy with a right-hand visual; a following note sits beneath it. */
+.today-editorial-feed[data-today-layout='visual-right-note']
+  .today-editorial-beat.has-visual
+  .forecast-editorial-visual {
+  justify-self: end;
+}
+
+.today-editorial-feed[data-today-layout='visual-right-note']
+  .today-editorial-beat.has-visual
+  + .today-editorial-beat.is-paper-note {
+  padding-inline-start: clamp(0.4rem, 6vw, 2.25rem);
+}
+
+/* 2. The visual enters from the left; pull quotes keep the opposite edge. */
+.today-editorial-feed[data-today-layout='visual-left-quote']
+  .today-editorial-beat.has-visual
+  .forecast-editorial-visual {
+  justify-self: start;
+}
+
+.today-editorial-feed[data-today-layout='visual-left-quote']
+  .forecast-editorial-quote {
+  margin-inline-start: auto;
+}
+
+/* 3. Text, quote and a later visual/note form a deliberate vertical sequence. */
+.today-editorial-feed[data-today-layout='text-quote-visual-note']
+  .today-editorial-beat.is-pull-quote {
+  padding-block: clamp(2.8rem, 11vw, 5.25rem);
+}
+
+.today-editorial-feed[data-today-layout='text-quote-visual-note']
+  .today-editorial-beat.has-visual
+  .forecast-editorial-visual {
+  justify-self: center;
+}
+
+.today-editorial-feed[data-today-layout='text-quote-visual-note']
+  .today-editorial-beat.has-visual
+  + .today-editorial-beat.is-paper-note {
+  margin-top: clamp(-1.45rem, -4vw, -0.7rem);
+  justify-items: end;
+}
+
+.today-editorial-feed[data-today-layout='visual-right-note']
+  .today-editorial-beat.has-visual
+  + .today-editorial-beat.is-paper-note::before,
+.today-editorial-feed[data-today-layout='text-quote-visual-note']
+  .today-editorial-beat.has-visual
+  + .today-editorial-beat.is-paper-note::before {
+  content: none;
+}
+
+.today-editorial-feed[data-today-layout='visual-right-note']
+  .today-editorial-beat.has-visual
+  + .today-editorial-beat.is-paper-note,
+.today-editorial-feed[data-today-layout='text-quote-visual-note']
+  .today-editorial-beat.has-visual
+  + .today-editorial-beat.is-paper-note {
+  padding-top: clamp(0.8rem, 3.5vw, 1.35rem);
+}
+
+/* 4. A single hero visual owns the pause; an opaque note may overlap its edge. */
+.today-editorial-feed[data-today-layout='hero-visual-note']
+  .today-editorial-beat.has-visual
+  .forecast-editorial-visual {
+  justify-self: center;
+}
+
+.today-editorial-feed[data-today-layout='hero-visual-note']
+  .today-editorial-beat.has-visual.is-paper-note {
+  align-items: end;
+}
+
+.today-editorial-feed[data-today-layout='hero-visual-note']
+  .today-editorial-beat.has-visual.is-paper-note
+  .forecast-editorial-paper-note {
+  z-index: 2;
+}
+
+/* 5. Typography leads; the image remains a small margin accent. */
+.today-editorial-feed[data-today-layout='typography-first']
+  .today-editorial-beat.has-visual
+  .forecast-editorial-visual {
+  justify-self: end;
+}
+
+.today-editorial-feed[data-today-layout='typography-first']
+  .forecast-editorial-quote {
+  max-width: 30rem;
+}
+
+/* Calm first-load placeholder with the same page geometry. */
+.forecast-editorial-skeleton {
+  container-name: today-editorial-feed;
+  container-type: inline-size;
+  box-sizing: border-box;
+  width: min(100%, var(--forecast-editorial-width, 44rem));
+  margin-inline: auto;
+  padding: clamp(1.7rem, 7vw, 3.25rem)
+    max(
+      1.25rem,
+      env(safe-area-inset-right, 0px),
+      var(--tg-content-safe-area-inset-right, 0px),
+      var(--tg-safe-area-inset-right, 0px)
+    )
+    max(
+      5rem,
+      calc(env(safe-area-inset-bottom, 0px) + 3rem),
+      calc(var(--tg-content-safe-area-inset-bottom, 0px) + 3rem),
+      calc(var(--tg-safe-area-inset-bottom, 0px) + 3rem)
+    )
+    max(
+      1.25rem,
+      env(safe-area-inset-left, 0px),
+      var(--tg-content-safe-area-inset-left, 0px),
+      var(--tg-safe-area-inset-left, 0px)
+    );
+}
+
+.forecast-editorial-skeleton-canvas,
+.forecast-editorial-skeleton-copy {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.forecast-editorial-skeleton-canvas {
+  gap: 0.85rem;
+}
+
+.forecast-editorial-skeleton-line,
+.forecast-editorial-skeleton-divider,
+.forecast-editorial-skeleton-visual {
+  display: block;
+  border-radius: 999px;
+  background: #efefec;
+  animation: forecast-editorial-skeleton-pulse 1.45s ease-in-out infinite;
+}
+
+.forecast-editorial-skeleton-headline {
+  width: min(92%, 31rem);
+  height: clamp(2.3rem, 10vw, 3.2rem);
+}
+
+.forecast-editorial-skeleton-headline.is-short {
+  width: min(65%, 21rem);
+}
+
+.forecast-editorial-skeleton-copy {
+  margin-top: 1rem;
+}
+
+.forecast-editorial-skeleton-lead {
+  width: min(100%, 36rem);
+  height: 1.25rem;
+}
+
+.forecast-editorial-skeleton-lead.is-short {
+  width: min(76%, 27rem);
+}
+
+.forecast-editorial-skeleton-divider {
+  width: 100%;
+  height: 1px;
+  margin-block: clamp(2.25rem, 9vw, 4rem);
+  border-radius: 0;
+}
+
+.forecast-editorial-skeleton-beat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.forecast-editorial-skeleton-body {
+  width: 100%;
+  height: 1rem;
+}
+
+.forecast-editorial-skeleton-body.is-short {
+  width: 72%;
+}
+
+.forecast-editorial-skeleton-visual {
+  width: min(42vw, 10rem);
+  aspect-ratio: var(--forecast-skeleton-visual-ratio, 1 / 1);
+  justify-self: end;
+  border-radius: 42% 58% 48% 52%;
+}
+
+.forecast-editorial-skeleton[data-forecast-skeleton-layout='hero-visual-note']
+  .forecast-editorial-skeleton-visual {
+  width: min(100%, 25rem);
+  justify-self: center;
+}
+
+.forecast-editorial-skeleton[data-forecast-skeleton-layout='text-quote-visual-note']
+  .forecast-editorial-skeleton-visual {
+  width: min(100%, 12.5rem);
+  justify-self: center;
+}
+
+@keyframes forecast-editorial-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.58;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@container today-editorial-feed (min-width: 21rem) {
+  .today-editorial-feed[data-today-layout='visual-right-note']
+    .today-editorial-beat.has-visual,
+  .today-editorial-feed[data-today-layout='visual-left-quote']
+    .today-editorial-beat.has-visual,
+  .today-editorial-feed[data-today-layout='typography-first']
+    .today-editorial-beat.has-visual {
+    grid-template-columns: minmax(12.5rem, 1fr) minmax(5.5rem, 30%);
+    align-items: center;
+  }
+
+  .today-editorial-feed[data-today-layout='visual-right-note']
+    .today-editorial-beat.has-visual
+    > :not(.forecast-editorial-visual),
+  .today-editorial-feed[data-today-layout='typography-first']
+    .today-editorial-beat.has-visual
+    > :not(.forecast-editorial-visual) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .today-editorial-feed[data-today-layout='visual-right-note']
+    .today-editorial-beat.has-visual
+    .forecast-editorial-visual,
+  .today-editorial-feed[data-today-layout='typography-first']
+    .today-editorial-beat.has-visual
+    .forecast-editorial-visual {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .today-editorial-feed[data-today-layout='visual-left-quote']
+    .today-editorial-beat.has-visual {
+    grid-template-columns: minmax(5.5rem, 30%) minmax(12.5rem, 1fr);
+  }
+
+  .today-editorial-feed[data-today-layout='visual-left-quote']
+    .today-editorial-beat.has-visual
+    > :not(.forecast-editorial-visual) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .today-editorial-feed[data-today-layout='visual-left-quote']
+    .today-editorial-beat.has-visual
+    .forecast-editorial-visual {
+    grid-column: 1;
+    grid-row: 1;
+    transform: translateX(-0.45rem);
+  }
+
+  .today-editorial-feed[data-today-layout='hero-visual-note']
+    .today-editorial-beat.has-visual.is-paper-note
+    > * {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .today-editorial-feed[data-today-layout='hero-visual-note']
+    .today-editorial-beat.has-visual.is-paper-note
+    .forecast-editorial-paper-note {
+    align-self: end;
+    justify-self: start;
+    margin: 0 0 -0.85rem clamp(0.25rem, 5vw, 2rem);
+  }
+
+  .forecast-editorial-skeleton-beat {
+    align-items: center;
+  }
+
+  .forecast-editorial-skeleton[data-forecast-skeleton-layout='visual-right-note']
+    .forecast-editorial-skeleton-beat {
+    grid-template-columns: minmax(12.5rem, 1fr) minmax(5.5rem, 30%);
+  }
+
+  .forecast-editorial-skeleton[data-forecast-skeleton-layout='visual-left-quote']
+    .forecast-editorial-skeleton-beat {
+    grid-template-columns: minmax(5.5rem, 30%) minmax(12.5rem, 1fr);
+  }
+
+  .forecast-editorial-skeleton[data-forecast-skeleton-layout='visual-left-quote']
+    .forecast-editorial-skeleton-beat
+    > .forecast-editorial-skeleton-copy {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .forecast-editorial-skeleton[data-forecast-skeleton-layout='visual-left-quote']
+    .forecast-editorial-skeleton-beat
+    > .forecast-editorial-skeleton-visual {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+}
+
+@container today-editorial-feed (max-width: 20.75rem) {
+  .today-editorial-feed .today-editorial-beat.has-visual {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .today-editorial-feed .today-editorial-beat.has-visual > * {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .today-editorial-feed .today-editorial-beat .forecast-editorial-visual {
+    transform: none;
+  }
+
+  .forecast-editorial-paper-note {
+    max-width: calc(100% - 2.25rem);
+  }
+
+  .today-editorial-beat.is-paper-note {
+    justify-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forecast-editorial-skeleton-line,
+  .forecast-editorial-skeleton-divider,
+  .forecast-editorial-skeleton-visual {
+    animation: none;
+  }
+}

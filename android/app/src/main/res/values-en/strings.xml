@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Your Horoscope</string>
     <string name="title_activity_main">Your Horoscope</string>
-    <string name="package_name">com.yourhoroscope.app</string>
-    <string name="custom_url_scheme">com.yourhoroscope.app</string>
+    <string name="package_name">ru.tvoygoroskop.app</string>
+    <string name="custom_url_scheme">ru.tvoygoroskop.app</string>
 </resources>

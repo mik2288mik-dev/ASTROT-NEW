@@ -28,21 +28,37 @@ describe('sparse editorial placement policy', () => {
     )).filter((asset): asset is NonNullable<typeof asset> => !!asset);
     const distinctAssets = new Set(selected.map((asset) => asset.id));
     const objectAssets = selected.filter((asset) => asset.collection === 'diary-object');
+    const mainAssets = selected.filter((asset) => asset.collection === 'main');
+    const mascotAssets = selected.filter((asset) => asset.collection === 'diary-mascot');
 
     expect(selected.length / 4000).toBeGreaterThan(0.36);
     expect(selected.length / 4000).toBeLessThan(0.44);
-    expect(distinctAssets.size).toBeGreaterThan(90);
+    expect(distinctAssets.size).toBeGreaterThan(300);
     expect(objectAssets.length).toBeGreaterThan(0);
-    expect(selected.every((asset) => asset.path.startsWith('/stickers/'))).toBe(true);
+    expect(mainAssets.length).toBeGreaterThan(0);
+    expect(mascotAssets.length).toBeGreaterThan(0);
+    expect(selected.every((asset) => (
+      asset.path.startsWith('/stickers/')
+      || asset.path.startsWith('/assets/forecast-feed/editorial-stickers/main/')
+    ))).toBe(true);
     expect(EDITORIAL_PLACEMENT_POLICY.diary.visiblePercent).toBe(40);
     expect(EDITORIAL_PLACEMENT_POLICY.diary.maxPauses).toBe(2);
   });
 
-  it('publishes the complete mascot and object diary libraries and honors exclusions', () => {
+  it('publishes the complete unified Diary library and honors exclusions', () => {
     expect(getDiaryEditorialStickerCounts()).toEqual({
       mascot: 83,
       objects: 24,
-      total: 107,
+      main: 788,
+      total: 895,
+      byMedium: {
+        photo: 180,
+        associative: 140,
+        surreal: 60,
+        graphic: 20,
+        'psychedelic-humor': 388,
+        'illustrated-sticker': 107,
+      },
     });
 
     const first = Array.from({ length: 100 }, (_, index) => selectDiaryEditorialSticker({
@@ -60,12 +76,37 @@ describe('sparse editorial placement policy', () => {
     expect(replacement?.id).not.toBe(first.id);
 
     const library = getDiaryEditorialStickerLibrary();
-    expect(new Set(library.map((asset) => asset.id)).size).toBe(107);
+    expect(new Set(library.map((asset) => asset.id)).size).toBe(895);
+    expect(new Set(library.map((asset) => asset.path)).size).toBe(895);
+    expect(new Set(library.map((asset) => asset.collection))).toEqual(new Set([
+      'diary-mascot',
+      'diary-object',
+      'main',
+    ]));
+    expect(new Set(library.map((asset) => asset.medium))).toEqual(new Set([
+      'illustrated-sticker',
+      'photo',
+      'associative',
+      'surreal',
+      'graphic',
+      'psychedelic-humor',
+    ]));
+    expect(library.every((asset) => (
+      asset.topics.length > 0
+      && !!asset.tone
+      && !!asset.orientation
+      && !!asset.composition
+      && asset.visualWeight > 0
+      && ['common', 'occasional', 'rare'].includes(asset.rarity)
+    ))).toBe(true);
     expect(library.every((asset) => fs.existsSync(path.join(
       process.cwd(),
       'public',
-      asset.path.replace(/^\/stickers\//, 'stickers/'),
+      asset.path.replace(/^\//, ''),
     )))).toBe(true);
+    expect(library.some((asset) => asset.diaryFamily === 'animal')).toBe(true);
+    expect(library.some((asset) => asset.diaryFamily === 'psychedelic-humor')).toBe(true);
+    expect(library.every((asset) => !['synastry', 'zodiac'].includes(asset.collection))).toBe(true);
   });
 
   it('keeps natal accents mostly associative or surreal and psychedelic very rare', () => {

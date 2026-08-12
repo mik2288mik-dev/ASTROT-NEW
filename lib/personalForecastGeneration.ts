@@ -11,9 +11,11 @@ import {
   type StrictJsonSchema,
 } from './openaiResponses';
 import {
+  FORECAST_PRESENTATION_STYLES,
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
+  TODAY_FORECAST_PRESENTATION_WORD_LIMITS,
   buildForecastLockedPreview,
   formatPersonalForecastDateLabel,
   getPersonalForecastPackageValidationError,
@@ -24,6 +26,7 @@ import {
   type ExplanationAnchor,
   type ForecastContentBlock,
   type ForecastEvidenceView,
+  type ForecastPresentationStyle,
   type ForecastSection,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
@@ -82,7 +85,10 @@ export const PERSONAL_FORECAST_HEADLINE_WORD_LIMITS = {
 
 export const PERSONAL_FORECAST_PHRASE_WORD_LIMITS = PERSONAL_FORECAST_HEADLINE_WORD_LIMITS;
 
-const TODAY_FRAGMENT_WORD_LIMITS = { minimum: 12, maximum: 42 } as const;
+export const TODAY_PRESENTATION_WORD_LIMITS: Record<
+  ForecastPresentationStyle,
+  { minimum: number; maximum: number }
+> = TODAY_FORECAST_PRESENTATION_WORD_LIMITS;
 
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
@@ -92,8 +98,14 @@ export function getPersonalForecastSystemPrompt(
   const ru = language === 'ru';
   const periodRules = period === 'day'
     ? (ru
-        ? 'TODAY: напиши от 4 до 6 последовательных текстовых фрагментов. Первый — главный; каждый следующий продолжает чтение, добавляет новую мысль и не повторяет предыдущий. Это единая лента без видимых категорий, названий рубрик, карточек, утренних/дневных/вечерних частей и почасовой структуры.'
-        : 'TODAY: write 4 to 6 sequential text fragments. The first is the main fragment; every next fragment advances the reading with a genuinely new point. This is one continuous feed with no visible categories, section labels, cards, morning/day/evening parts, or hourly structure.')
+        ? `TODAY: напиши от 4 до 6 последовательных текстовых фрагментов. Первый — главный; каждый следующий продолжает чтение, добавляет новую мысль и не повторяет предыдущий. Это единая лента без видимых категорий, названий рубрик, карточек, утренних/дневных/вечерних частей и почасовой структуры.
+- В тексте должна быть хотя бы одна узнаваемая возможная ситуация: разговор, сообщение, просьба, решение, договорённость, бытовая деталь, рабочая задача, выбор или пауза. Формулируй условно и не объявляй событие фактом.
+- Совет необязателен. Не делай проблему, риск или одинаковую структуру обязательными.
+- presentation_style — скрытая метаинформация и никогда не печатается в тексте. Первый главный фрагмент обязательно пометь prose; всего prose должно быть минимум два. pull_quote и paper_note можно использовать максимум по одному. pull_quote — 6–18 слов, paper_note — 4–12 слов. Это содержательные части того же прогноза, не универсальная мотивационная цитата и не новый факт.`
+        : `TODAY: write 4 to 6 sequential text fragments. The first is the main fragment; every next fragment advances the reading with a genuinely new point. This is one continuous feed with no visible categories, section labels, cards, morning/day/evening parts, or hourly structure.
+- Include at least one recognisable possible human situation: conversation, message, request, decision, agreement, household detail, work task, choice, or pause. Phrase it conditionally and never claim that an event happened.
+- Advice is optional. Do not force a problem, risk, or the same fragment structure into every forecast.
+- presentation_style is hidden metadata and must never appear in the copy. The first main fragment must be prose, and at least two fragments in total must be prose. Use at most one pull_quote and at most one paper_note. A pull_quote is 6–18 words and a paper_note is 4–12 words. Both must advance the same forecast, never become generic motivation or introduce a new fact.`)
     : (ru
         ? `${period.toUpperCase()}: напиши ровно один цельный фрагмент-историю. Не дроби его на рубрики, этапы периода или календарные части.`
         : `${period.toUpperCase()}: write exactly one cohesive story fragment. Do not split it into topics, period stages, or calendar parts.`);
@@ -121,6 +133,7 @@ type GeneratedTextBlock = {
 };
 
 type GeneratedFragmentBlock = GeneratedTextBlock & {
+  presentation_style?: unknown;
   main_idea_key?: unknown;
   life_plot_key?: unknown;
   advice_key?: unknown;
@@ -137,47 +150,73 @@ type GeneratedFeedPayload = {
  * writes only user copy and evidence references; the server materializes and
  * persists all trusted package metadata after semantic validation.
  */
-export const PERSONAL_FORECAST_RESPONSE_SCHEMA: StrictJsonSchema = {
-  type: 'object',
-  properties: {
-    headline: {
-      type: 'object',
-      properties: {
-        text: { type: 'string' },
-        evidence_ids: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['text', 'evidence_ids'],
-      additionalProperties: false,
-    },
-    fragments: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 6,
-      items: {
+function buildPersonalForecastResponseSchema(
+  includePresentationStyle: boolean,
+): StrictJsonSchema {
+  const presentationProperty = includePresentationStyle
+    ? {
+        presentation_style: {
+          type: 'string',
+          enum: [...FORECAST_PRESENTATION_STYLES],
+        },
+      }
+    : {};
+  return {
+    type: 'object',
+    properties: {
+      headline: {
         type: 'object',
         properties: {
           text: { type: 'string' },
-          main_idea_key: { type: 'string' },
-          life_plot_key: { type: 'string' },
-          advice_key: { type: 'string' },
-          comparison_key: { type: 'string' },
           evidence_ids: { type: 'array', items: { type: 'string' } },
         },
-        required: [
-          'text',
-          'main_idea_key',
-          'life_plot_key',
-          'advice_key',
-          'comparison_key',
-          'evidence_ids',
-        ],
+        required: ['text', 'evidence_ids'],
         additionalProperties: false,
       },
+      fragments: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 6,
+        items: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+            ...presentationProperty,
+            main_idea_key: { type: 'string' },
+            life_plot_key: { type: 'string' },
+            advice_key: { type: 'string' },
+            comparison_key: { type: 'string' },
+            evidence_ids: { type: 'array', items: { type: 'string' } },
+          },
+          required: [
+            'text',
+            ...(includePresentationStyle ? ['presentation_style'] : []),
+            'main_idea_key',
+            'life_plot_key',
+            'advice_key',
+            'comparison_key',
+            'evidence_ids',
+          ],
+          additionalProperties: false,
+        },
+      },
     },
-  },
-  required: ['headline', 'fragments'],
-  additionalProperties: false,
-};
+    required: ['headline', 'fragments'],
+    additionalProperties: false,
+  };
+}
+
+/** Today schema, retained under the existing export for API/test compatibility. */
+export const PERSONAL_FORECAST_RESPONSE_SCHEMA = buildPersonalForecastResponseSchema(true);
+const PERSONAL_FORECAST_STORY_RESPONSE_SCHEMA = buildPersonalForecastResponseSchema(false);
+
+export function getPersonalForecastResponseSchema(
+  period: PersonalForecastPeriod,
+): StrictJsonSchema {
+  return period === 'day'
+    ? PERSONAL_FORECAST_RESPONSE_SCHEMA
+    : PERSONAL_FORECAST_STORY_RESPONSE_SCHEMA;
+}
 
 type FreeGeneratedBlock = {
   text: string;
@@ -193,6 +232,7 @@ type FreeGeneratedSection = {
   lifePlotKey: string;
   adviceKey: string;
   comparisonKey: string;
+  presentationStyle: ForecastPresentationStyle;
 };
 
 type ValidatedFreeWriterResult = {
@@ -639,6 +679,7 @@ function matchesAny(value: string, patterns: readonly RegExp[]): boolean {
 }
 
 const VISIBLE_CATEGORY_LABEL_PATTERN = /(?:^|[\n.!?]\s*)(?:любовь|отношения|работа|карьера|деньги|настроение|самочувствие|love|relationships?|work|career|money|mood)\s*[:—-]/iu;
+const TODAY_HUMAN_SITUATION_PATTERN = /(?:разговор|сообщени\p{L}*|переписк\p{L}*|письм\p{L}*|ответ\p{L}*|просьб\p{L}*|попрос\p{L}*|решени\p{L}*|выбор\p{L}*|выбрат\p{L}*|договор\p{L}*|услови\p{L}*|быт\p{L}*|домашн\p{L}*|покупк\p{L}*|работ\p{L}*|задач\p{L}*|пауз\p{L}*|встреч\p{L}*|звон\p{L}*|очеред\p{L}*|\b(?:conversation|message|text|email|reply|request|decision|choice|agreement|condition|household|purchase|work|task|pause|meeting|call)\b)/iu;
 
 function isPredominantlyRussian(value: string): boolean {
   const letters = value.match(/\p{L}/gu) || [];
@@ -740,10 +781,18 @@ function generatedServiceKey(value: unknown, allowEmpty: boolean): string | null
   return normalized.length <= 120 && wordCount(normalized) <= 12 ? normalized : null;
 }
 
+function generatedPresentationStyle(value: unknown): ForecastPresentationStyle | null {
+  return typeof value === 'string'
+    && FORECAST_PRESENTATION_STYLES.includes(value as ForecastPresentationStyle)
+    ? value as ForecastPresentationStyle
+    : null;
+}
+
 function generatedSection(
   value: unknown,
   role: FreeGeneratedBlock['role'],
   availableEvidenceIds: ReadonlySet<string>,
+  period: PersonalForecastPeriod,
 ): FreeGeneratedSection | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const candidate = value as GeneratedFragmentBlock;
@@ -752,7 +801,17 @@ function generatedSection(
   const lifePlotKey = generatedServiceKey(candidate.life_plot_key, false);
   const adviceKey = generatedServiceKey(candidate.advice_key, true);
   const comparisonKey = generatedServiceKey(candidate.comparison_key, true);
-  if (!block || mainIdeaKey == null || lifePlotKey == null || adviceKey == null || comparisonKey == null) {
+  const presentationStyle = period === 'day'
+    ? generatedPresentationStyle(candidate.presentation_style)
+    : 'prose';
+  if (
+    !block
+    || !presentationStyle
+    || mainIdeaKey == null
+    || lifePlotKey == null
+    || adviceKey == null
+    || comparisonKey == null
+  ) {
     return null;
   }
   return {
@@ -763,6 +822,7 @@ function generatedSection(
     lifePlotKey,
     adviceKey,
     comparisonKey,
+    presentationStyle,
   };
 }
 
@@ -784,11 +844,32 @@ export function validateFreeGeneratedForecastFeed(
   const headline = generatedBlock(raw.headline, 'lead', availableEvidenceIds);
   const headlineWords = headline ? wordCount(headline.text) : 0;
   const rawFragments = raw.fragments || [];
+  if (
+    period !== 'day'
+    && rawFragments.some((fragment) => (
+      !!fragment
+      && typeof fragment === 'object'
+      && Object.prototype.hasOwnProperty.call(fragment, 'presentation_style')
+    ))
+  ) {
+    return {
+      sections: [],
+      errors: [`${period} fragments do not use presentation_style`],
+    };
+  }
   const fragments = rawFragments.map((fragment, index) => (
-    generatedSection(fragment, index === 0 ? 'lead' : 'insight', availableEvidenceIds)
+    generatedSection(
+      fragment,
+      index === 0 ? 'lead' : 'insight',
+      availableEvidenceIds,
+      period,
+    )
   ));
   if (!fragments.length || fragments.some((fragment) => !fragment)) {
-    return { sections: [], errors: ['a fragment has invalid text, hidden keys, or evidence_ids'] };
+    return {
+      sections: [],
+      errors: ['a fragment has invalid presentation_style, text, hidden keys, or evidence_ids'],
+    };
   }
   const errors: string[] = [];
   if (!headline) {
@@ -809,14 +890,28 @@ export function validateFreeGeneratedForecastFeed(
   }
   const readingSections = fragments.filter((fragment): fragment is FreeGeneratedSection => !!fragment);
   if (period === 'day') {
+    const styleCounts: Record<ForecastPresentationStyle, number> = {
+      prose: 0,
+      pull_quote: 0,
+      paper_note: 0,
+    };
     readingSections.forEach((section, index) => {
       const count = wordCount(section.blocks[0]?.text || '');
-      if (count < TODAY_FRAGMENT_WORD_LIMITS.minimum || count > TODAY_FRAGMENT_WORD_LIMITS.maximum) {
+      const style = section.presentationStyle;
+      styleCounts[style] += 1;
+      const limits = TODAY_PRESENTATION_WORD_LIMITS[style];
+      if (count < limits.minimum || count > limits.maximum) {
         errors.push(
-          `Today fragment ${index + 1} has ${count} words; expected ${TODAY_FRAGMENT_WORD_LIMITS.minimum}-${TODAY_FRAGMENT_WORD_LIMITS.maximum}`,
+          `${style} ${index + 1} has ${count} words; expected ${limits.minimum}-${limits.maximum}`,
         );
       }
     });
+    if (styleCounts.prose < 2) errors.push('Today requires at least 2 prose fragments');
+    if (readingSections[0]?.presentationStyle !== 'prose') {
+      errors.push('Today first fragment requires prose presentation');
+    }
+    if (styleCounts.pull_quote > 1) errors.push('Today allows at most 1 pull_quote');
+    if (styleCounts.paper_note > 1) errors.push('Today allows at most 1 paper_note');
   }
   const visibleCopy = [headline?.text, ...readingSections.map((section) => section.blocks[0]?.text)]
     .filter((value): value is string => !!value);
@@ -831,6 +926,12 @@ export function validateFreeGeneratedForecastFeed(
   }
   if (visibleCopy.some((value) => VISIBLE_CATEGORY_LABEL_PATTERN.test(value))) {
     errors.push('visible forecast copy contains a visible category label');
+  }
+  if (
+    period === 'day'
+    && !TODAY_HUMAN_SITUATION_PATTERN.test(visibleCopy.join(' '))
+  ) {
+    errors.push('Today requires a recognisable human situation');
   }
   if (visibleCopy.some(hasPersonalForecastVoiceViolation)) {
     errors.push('visible forecast copy contains a banned forecast voice phrase');
@@ -941,6 +1042,7 @@ function materializeDirectSection(input: {
   section: FreeGeneratedSection;
   evidenceViews: Record<string, ForecastEvidenceView>;
   language: ForecastWriterLanguage;
+  period: PersonalForecastPeriod;
   overview: boolean;
   sectionIndex: number;
 }): ForecastSection {
@@ -992,6 +1094,9 @@ function materializeDirectSection(input: {
     importance: Math.max(1, 100 - input.sectionIndex),
     visualTag: 'personal-story',
     visualCue: null,
+    ...(input.period === 'day'
+      ? { presentationStyle: input.section.presentationStyle }
+      : {}),
     premiumTeaser: teaser,
     lockedPreview: buildForecastLockedPreview(text, teaser),
     explanationAnchors: anchors,
@@ -1064,7 +1169,7 @@ async function requestGeneratedFeed(input: {
           retryAfterIncomplete,
         ),
         schemaName: 'personal_forecast',
-        schema: PERSONAL_FORECAST_RESPONSE_SCHEMA,
+        schema: getPersonalForecastResponseSchema(input.period),
       });
       content = response.content;
       usage = { inputTokens: response.inputTokens, outputTokens: response.outputTokens };
@@ -1101,6 +1206,7 @@ async function requestGeneratedFeed(input: {
         section: rawOverview,
         evidenceViews,
         language: input.language,
+        period: input.period,
         overview: true,
         sectionIndex: 0,
       });
@@ -1109,6 +1215,7 @@ async function requestGeneratedFeed(input: {
         section,
         evidenceViews,
         language: input.language,
+        period: input.period,
         overview: false,
         sectionIndex: index + 1,
       }));

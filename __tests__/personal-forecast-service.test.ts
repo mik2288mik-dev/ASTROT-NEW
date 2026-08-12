@@ -63,7 +63,7 @@ function weeklyForecastFixture() {
     periodKey: '2026-W30',
     periodStart: '2026-07-20',
     periodEnd: '2026-07-26',
-    sections: fixture.sections,
+    sections: [],
     meta: {
       ...fixture.meta,
       freeSelection: {
@@ -348,7 +348,7 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     try {
       const pending = loadPersonalForecast({
         ...request,
-        options: { force: true, maxInProgressRetries: 99 },
+        options: { force: true, maxInProgressRetries: 2 },
       });
       const expectation = expect(pending).rejects.toMatchObject({
         status: 202,

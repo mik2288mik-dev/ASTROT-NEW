@@ -14,7 +14,7 @@ describe('RuStore Pay integration contract', () => {
 
   it('keeps validation and secrets on the server', () => {
     const server = read('lib/rustorePayments.ts');
-    const native = read('android/app/src/rustore/java/com/yourhoroscope/app/rustore/RuStorePayPlugin.java');
+    const native = read('android/app/src/rustore/java/ru/tvoygoroskop/app/rustore/RuStorePayPlugin.java');
     expect(server).toContain("'Public-Token': token");
     expect(native).not.toContain('RUSTORE_PUBLIC_API_TOKEN');
     expect(native).not.toContain('RUSTORE_NOTIFICATION_AES_KEY');

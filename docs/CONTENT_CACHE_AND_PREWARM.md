@@ -2,9 +2,11 @@
 
 ## Canonical unit
 
-A cached personal forecast is one complete AI-written story for one person and
-one current period: `day`, `week`, or `month`. It is not a feed of sections,
-evidence cards, visual assignments, prompts, or questions.
+A cached personal forecast is one complete AI-written package for one person
+and one current period: `day`, `week`, or `month`. Today persists its first
+fragment as `overview` and the remaining ordered fragments as `sections`;
+Week and Month persist one cohesive `overview`. It does not cache prompts,
+questions, concrete visual assets, or a visual layout plan.
 
 The server cache identity includes the authenticated user, owned natal chart and
 its fingerprint, period and timezone-aware period key, language, model, prompt
@@ -21,10 +23,16 @@ The server composes one private input containing:
 - birth date, time, and place when available and needed by the active prompt;
 - a compact, saved natal-profile summary.
 
-OpenAI Luna returns only the story copy in a strict schema: one short heading
-and one or two paragraphs. The model does not choose images, promotions,
-navigation, access tier, or database keys. It does not calculate a separate
-period chart or return public-facing evidence for a forecast.
+OpenAI Luna returns only forecast copy and hidden service metadata in a strict
+schema: one short heading plus 4–6 Today fragments, or one cohesive Week/Month
+fragment. Today presentation metadata may mark ordinary prose, one pull quote,
+and one short paper note. The model does not choose images, layouts, colours,
+coordinates, promotions, navigation, access tier, or database keys. It does not
+calculate a separate period chart or return public-facing evidence.
+
+The Today visual plan is computed statelessly from user, date, contract, and
+visual-engine versions. It is not stored in the forecast package or database,
+so a refresh preserves the plan without creating competing cache identities.
 
 Server validation enforces the JSON shape, word cap, period wording, application
 voice, and prohibited astrology/guarantee language before persistence.
@@ -35,7 +43,7 @@ voice, and prohibited astrology/guarantee language before persistence.
 2. `GET /api/content/forecast/personal` reads the current server cache.
 3. A cache miss keeps the diary usable and shows the honest loading state; it
    does not render fake forecast text or a skeleton story.
-4. A background `POST /api/content/forecast/personal` generates one story
+4. A background `POST /api/content/forecast/personal` generates one package
    under the existing process and PostgreSQL advisory locks.
 5. A validated result replaces stale client/server state. A failure preserves a
    usable older result when it is still safe, otherwise the UI offers retry.
@@ -43,6 +51,10 @@ voice, and prohibited astrology/guarantee language before persistence.
 Generation is never a startup gate. The first screen may request only the
 current day; week and month are requested when selected. Do not mass-generate
 stories for every user or add unbounded historical/future requests.
+
+Client requests are deduplicated while the same forecast package is in flight.
+Startup never awaits model generation; a cache miss continues through the
+non-blocking diary loading flow.
 
 ## Access and history
 

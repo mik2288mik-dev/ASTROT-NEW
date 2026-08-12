@@ -11,6 +11,7 @@ import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import {
+  PERSONAL_FORECAST_CONTRACT_VERSION,
   buildPersonalForecastChartFingerprint,
   formatPersonalForecastDateLabel,
   getPersonalForecastPeriodKey,
@@ -27,9 +28,13 @@ import {
 } from '../services/personalForecastService';
 import {
   resolveDiaryEditorialPauses,
+  resolveDiaryTodayVisualPlan,
   type DiaryEditorialPause,
 } from '../lib/personalForecastVisuals';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
+import { ForecastEditorialSkeleton } from '../components/PersonalForecastFeed/ForecastEditorialSkeleton';
+import { TodayEditorialFeed } from '../components/PersonalForecastFeed/TodayEditorialFeed';
+import { resolveTodayEditorialLayoutFromVisualPlan } from '../components/PersonalForecastFeed/editorialLayout';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 
 type DashboardProps = {
@@ -388,8 +393,22 @@ export const Dashboard = memo<DashboardProps>(({
     forecast?.periodKey,
     userId,
   ]);
+  const todayVisualPlan = useMemo(() => resolveDiaryTodayVisualPlan({
+    userId,
+    periodKey: displayPeriod === 'day'
+      ? forecast?.periodKey || periodKeys.day
+      : periodKeys.day,
+    contractVersion: forecast?.meta.contractVersion
+      || PERSONAL_FORECAST_CONTRACT_VERSION,
+  }), [
+    displayPeriod,
+    forecast?.meta.contractVersion,
+    forecast?.periodKey,
+    periodKeys.day,
+    userId,
+  ]);
   const stickerPauses = useMemo(() => {
-    if (!forecast || !stickerEligibleSections.length) return [];
+    if (displayPeriod === 'day' || !forecast || !stickerEligibleSections.length) return [];
     const cached = stickerPlanCacheRef.current.get(stickerPlanKey);
     if (cached) return cached;
     const next = resolveDiaryEditorialPauses({
@@ -419,8 +438,10 @@ export const Dashboard = memo<DashboardProps>(({
     const root = scrollRef?.current;
     const target = document.getElementById(`forecast-section-${sectionId}`);
     if (!root || !target) return;
+    const rootRect = root.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
     root.scrollTo({
-      top: Math.max(0, target.offsetTop - 84),
+      top: Math.max(0, root.scrollTop + targetRect.top - rootRect.top - 84),
       behavior: 'smooth',
     });
   }, [scrollRef]);
@@ -480,7 +501,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   return (
     <div
-      className="fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll"
+      className={`fresh-page home-screen forecast-feed-page lumia-main-scroll is-${displayPeriod}`}
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
       <section
@@ -532,29 +553,47 @@ export const Dashboard = memo<DashboardProps>(({
           </button>
         </section>
       ) : !forecast || forecast.meta.status !== 'ready' ? (
-        <section
-          className={`forecast-feed-status${state.phase === 'error' ? '' : ' forecast-feed-status--loading'} is-${state.phase}`}
-          aria-live="polite"
-          aria-busy={state.phase !== 'error'}
-          aria-label={state.phase === 'error'
-            ? undefined
-            : personalForecastLoadingLabel(activePeriod, language)}
-        >
-          {state.phase === 'error' ? (
-            <>
-              <h1>{language === 'ru' ? 'Прогноз пока не загрузился' : 'The forecast has not loaded yet'}</h1>
-              <p>{personalForecastErrorMessage(state.errorCode, language)}</p>
-              <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
-                <RefreshCw size={17} aria-hidden />
-                {language === 'ru' ? 'Повторить' : 'Retry'}
-              </button>
-            </>
-          ) : (
+        state.phase === 'error' ? (
+          <section
+            className={`forecast-feed-status is-${state.phase}`}
+            aria-live="polite"
+          >
+            <h1>{language === 'ru' ? 'Прогноз пока не загрузился' : 'The forecast has not loaded yet'}</h1>
+            <p>{personalForecastErrorMessage(state.errorCode, language)}</p>
+            <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
+              <RefreshCw size={17} aria-hidden />
+              {language === 'ru' ? 'Повторить' : 'Retry'}
+            </button>
+          </section>
+        ) : displayPeriod === 'day' ? (
+          <ForecastEditorialSkeleton
+            label={personalForecastLoadingLabel(activePeriod, language)}
+            layout={resolveTodayEditorialLayoutFromVisualPlan(todayVisualPlan.layout)}
+            visual={todayVisualPlan.asset}
+          />
+        ) : (
+          <section
+            className={`forecast-feed-status forecast-feed-status--loading is-${state.phase}`}
+            aria-live="polite"
+            aria-busy="true"
+            aria-label={personalForecastLoadingLabel(activePeriod, language)}
+          >
             <div className="forecast-feed-loading-indicator" aria-hidden="true">
               <LoaderCircle className="forecast-feed-loading-spinner" size={28} strokeWidth={2} />
             </div>
-          )}
-        </section>
+          </section>
+        )
+      ) : displayPeriod === 'day' ? (
+        <TodayEditorialFeed
+          sections={storySections}
+          lockedSectionIds={lockedIds}
+          pauses={stickerPauses}
+          visualPlan={todayVisualPlan}
+          userId={userId}
+          periodKey={forecast.periodKey}
+          language={language}
+          onRequestPremium={requestPremium}
+        />
       ) : (
         <div className="forecast-feed-story">
           {storySections.map((section) => (

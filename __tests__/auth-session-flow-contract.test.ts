@@ -48,22 +48,20 @@ describe('explicit authentication flow contracts', () => {
     expect(read('services/storageService.ts')).toContain("const url = '/api/users/me'");
   });
 
-  it('offers explicit Telegram login and a separate guest profile without auto-merging', () => {
+  it('uses the Android-first account gate without making Telegram or guest mandatory', () => {
     const gate = read('views/AuthGate.tsx');
     const app = read('App.tsx');
-    const guestStart = app.indexOf('const handleContinueAsGuest = useCallback(async () => {');
-    const guestMode = app.indexOf("setAuthSessionMode('guest')", guestStart);
-    const guestRequest = app.indexOf('await startGuestAccount()', guestMode);
-    const rollback = app.indexOf('setAuthSessionMode(previousMode)', guestRequest);
 
-    expect(gate).toContain('onTelegramLogin');
-    expect(gate).toContain('onContinueGuest');
-    expect(gate).toContain("beginExternalAuth(provider, 'login')");
-    expect(gate).toContain("requestEmailLoginCode(email.trim(), 'login')");
+    expect(gate).toContain('Продолжить с Google');
+    expect(gate).toContain('Продолжить с Яндексом');
+    expect(gate).toContain('Продолжить с VK ID');
+    expect(gate).toContain('registerEmailPassword');
+    expect(gate).toContain('loginWithEmailPassword');
+    expect(gate).toContain('requestPasswordReset');
     expect(gate).toContain('IDENTITY_ALREADY_LINKED');
-    expect(guestMode).toBeGreaterThan(guestStart);
-    expect(guestRequest).toBeGreaterThan(guestMode);
-    expect(rollback).toBeGreaterThan(guestRequest);
+    expect(gate).not.toContain('Войти через Telegram');
+    expect(gate).not.toContain('Продолжить как гость');
+    expect(app).toContain("!isNativeAppRuntime() && sessionMode === 'automatic'");
   });
 
   it('suppresses Telegram launch proof for normal signed-out and guest requests', () => {
@@ -76,6 +74,19 @@ describe('explicit authentication flow contracts', () => {
     expect(sessionService).toContain('getActiveTelegramInitData');
     expect(sessionService).toContain('getRawTelegramInitData');
     expect(sessionService).not.toContain('typeof window === \'undefined\' || getTelegramInitData()');
+  });
+
+  it('treats a blocked account as a terminal signed-out state', () => {
+    const app = read('App.tsx');
+    const storage = read('services/storageService.ts');
+    const apiClient = read('services/apiClient.ts');
+
+    expect(storage).toContain('isProfileBlockedError');
+    expect(storage).toContain("error.code === 'ACCOUNT_BLOCKED'");
+    expect(apiClient).toContain("'ACCOUNT_BLOCKED'");
+    expect(app).toContain('if (isProfileBlockedError(error))');
+    expect(app).toContain('await clearAppSessionAndLocalData()');
+    expect(app).toContain('Этот аккаунт заблокирован.');
   });
 
   it('refreshes the canonical profile after linking Telegram to a guest', () => {

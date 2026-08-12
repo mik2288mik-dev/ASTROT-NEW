@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:android": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "build:mobile": "cross-env MOBILE_BUILD=1 NEXT_PUBLIC_MOBILE_BUILD=1 next build",
     "start": "next start",
@@ -20,6 +21,7 @@
     "repair:natal-charts": "tsx scripts/repair-canonical-natal-charts.ts",
     "android:sync": "cross-env NEXT_PUBLIC_DISTRIBUTION_CHANNEL=development npm run build:mobile && cap sync android",
     "android:open": "cap open android",
+    "android:live": "node scripts/android-live-reload.mjs",
     "android:debug": "node scripts/android-debug.mjs",
     "android:validate": "node scripts/validate-store-release.mjs",
     "android:validate:release": "node scripts/validate-store-release.mjs --release",
@@ -44,6 +46,7 @@
     "date-fns-tz": "^3.2.0",
     "formidable": "^3.5.4",
     "framer-motion": "^12.23.24",
+    "google-auth-library": "^11.0.1",
     "lucide-react": "^1.7.0",
     "next": "^15.5.9",
     "openai": "^6.9.1",

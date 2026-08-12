@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import { nativeIdentityAuth } from './nativeIdentityAuthBridge';
 
 const NATIVE_SESSION_TOKEN_KEY = 'lumia_native_session_token';
 
@@ -18,27 +19,35 @@ function storage(): Storage | null {
   }
 }
 
-function shouldUseNativePreferences(): boolean {
+function shouldUseNativeKeystore(): boolean {
   return typeof window !== 'undefined' && Capacitor.isNativePlatform();
 }
 
 export const nativeSessionStore: NativeSessionStore = {
   async getToken() {
-    if (shouldUseNativePreferences()) {
-      const result = await Preferences.get({ key: NATIVE_SESSION_TOKEN_KEY });
-      return result.value || null;
+    if (shouldUseNativeKeystore()) {
+      const result = await nativeIdentityAuth.getSessionToken();
+      if (result.token) return result.token;
+      // One-time upgrade path from the former plain Preferences store.
+      const legacy = await Preferences.get({ key: NATIVE_SESSION_TOKEN_KEY });
+      if (!legacy.value) return null;
+      await nativeIdentityAuth.setSessionToken({ token: legacy.value });
+      await Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY });
+      return legacy.value;
     }
     return storage()?.getItem(NATIVE_SESSION_TOKEN_KEY) || null;
   },
   async setToken(token) {
-    if (shouldUseNativePreferences()) {
-      await Preferences.set({ key: NATIVE_SESSION_TOKEN_KEY, value: token });
+    if (shouldUseNativeKeystore()) {
+      await nativeIdentityAuth.setSessionToken({ token });
+      await Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY });
       return;
     }
     storage()?.setItem(NATIVE_SESSION_TOKEN_KEY, token);
   },
   async clearToken() {
-    if (shouldUseNativePreferences()) {
+    if (shouldUseNativeKeystore()) {
+      await nativeIdentityAuth.clearSessionToken();
       await Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY });
       return;
     }

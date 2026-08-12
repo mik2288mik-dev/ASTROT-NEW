@@ -5,7 +5,7 @@ import {
   selectMainEditorialSticker,
 } from './personalForecastVisuals/editorialSelectors';
 import type {
-  DiaryEditorialAsset,
+  DiaryEligibleAsset,
   EditorialTopic,
 } from './personalForecastVisuals/editorialTypes';
 import {
@@ -69,7 +69,7 @@ export type ForecastVisualScreen = {
 
 export type DiaryEditorialPause = {
   afterSectionId: string;
-  asset: DiaryEditorialAsset;
+  asset: DiaryEligibleAsset;
 };
 
 type Theme = 'general' | 'love' | 'mood' | 'work_money' | 'home_family' | 'friends' | 'opportunities' | 'decisions' | 'communication' | 'questions' | 'moon' | 'mercury';
@@ -395,6 +395,9 @@ export {
   EDITORIAL_PLACEMENT_POLICY,
   getDiaryEditorialStickerCounts,
   getDiaryEditorialStickerLibrary,
+  getDiaryPaperTemplateLibrary,
+  getDiaryTodayVisualCounts,
+  getDiaryTodayVisualLibrary,
   getNewspaperVisualCounts,
   getZodiacEditorialSticker,
   selectCalmSynastryEditorialSticker,
@@ -404,15 +407,34 @@ export {
   selectSynastryEditorialSticker,
   selectZodiacEditorialSticker,
 } from './personalForecastVisuals/editorialSelectors';
+export {
+  DIARY_LAYOUTS,
+  DIARY_TODAY_VISUAL_ENGINE_VERSION,
+  DIARY_VISUAL_FAMILY_WEIGHTS,
+  clampDiaryVisualSize,
+  resolveDiaryTodayVisualPlan,
+} from './personalForecastVisuals/diaryVisualEngine';
 export type {
   EditorialAssetBase,
   DiaryEditorialAsset,
+  DiaryEligibleAsset,
+  DiaryPaperTemplateAsset,
+  DiaryVisualFamily,
+  DiaryVisualDisplayWeight,
+  DiaryVisualRarity,
   EditorialMedium,
   EditorialOrientation,
   EditorialStickerAsset,
   EditorialTone,
   EditorialTopic,
+  EditorialV2Category,
+  EditorialV2VisualAsset,
   MainEditorialAsset,
   SynastryEditorialAsset,
   ZodiacEditorialAsset,
 } from './personalForecastVisuals/editorialTypes';
+export type {
+  DiaryLayout,
+  DiaryTodayVisualPlan,
+  DiaryVisualRenderSize,
+} from './personalForecastVisuals/diaryVisualEngine';

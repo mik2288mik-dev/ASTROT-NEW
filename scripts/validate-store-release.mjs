@@ -7,6 +7,9 @@ const channel = String(process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL || 'developm
 const allowedChannels = new Set(['telegram', 'rustore', 'google_play', 'development']);
 const errors = [];
 const release = process.argv.includes('--release');
+const rustorePaymentsEnabled = ['1', 'true', 'yes', 'on'].includes(
+  String(process.env.NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED || '').trim().toLowerCase(),
+);
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -69,8 +72,8 @@ if (release) {
   }
   for (const name of [
     'PUBLIC_APP_ORIGIN',
-    'NATIVE_AUTH_CALLBACK_SCHEME',
     'VK_AUTH_CLIENT_ID',
+    'VK_ID_ANDROID_CLIENT_SECRET',
     'VK_AUTH_CLIENT_SECRET',
     'YANDEX_AUTH_CLIENT_ID',
     'YANDEX_AUTH_CLIENT_SECRET',
@@ -78,7 +81,15 @@ if (release) {
     'GOOGLE_AUTH_CLIENT_SECRET',
     'EMAIL_OTP_DELIVERY_URL',
     'EMAIL_OTP_DELIVERY_SECRET',
+    'EMAIL_OTP_HASH_SECRET',
+    'AUTH_RATE_LIMIT_SECRET',
   ]) requireValue(name, process.env[name]);
+  for (const name of ['EMAIL_OTP_HASH_SECRET', 'AUTH_RATE_LIMIT_SECRET']) {
+    const value = String(process.env[name] || '').trim();
+    if (value && !value.includes('_REQUIRED') && Buffer.byteLength(value, 'utf8') < 32) {
+      errors.push(`${name} must contain at least 32 bytes`);
+    }
+  }
   if (process.env.PUBLIC_APP_ORIGIN && !/^https:\/\//.test(process.env.PUBLIC_APP_ORIGIN)) {
     errors.push('PUBLIC_APP_ORIGIN must use HTTPS');
   }
@@ -87,7 +98,7 @@ if (release) {
   }
 }
 
-if (channel === 'rustore') {
+if (channel === 'rustore' && rustorePaymentsEnabled) {
   for (const name of [
     'RUSTORE_CONSOLE_APP_ID',
     'RUSTORE_PACKAGE_NAME',
@@ -103,6 +114,10 @@ if (channel === 'rustore') {
     requireValue('RUSTORE_PUBLIC_API_TOKEN', process.env.RUSTORE_PUBLIC_API_TOKEN);
     requireValue('RUSTORE_NOTIFICATION_AES_KEY', process.env.RUSTORE_NOTIFICATION_AES_KEY);
   }
+}
+
+if (channel !== 'rustore' && rustorePaymentsEnabled) {
+  errors.push('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED may only be enabled for the rustore channel');
 }
 
 if (errors.length) {

@@ -2,25 +2,27 @@
 
 ## Current technical baseline
 
+- Public store name: `Твой гороскоп: натальная карта`.
+- Final Android package/application ID: `ru.tvoygoroskop.app`.
 - Capacitor 8.4.2; Android minSdk 24, compileSdk/targetSdk 36; AGP 8.13.0 and Gradle 8.14.3.
 - Flavors: `development`, `telegram`, `rustore`, `googlePlay`. Only `rustore` compiles RuStore Pay SDK 10.5.0 (`ru.rustore.sdk:bom:2026.06.01` / `pay`); Google Play and Telegram do not include it. This is the stable Kotlin/Java version documented by RuStore on 29 July 2026.
 - `telegram` alone can invoke Telegram Stars. `google_play` has no checkout action until Google Play Billing is a separate project.
-- `rustore` uses a Capacitor native bridge, return deep link, server validation, and encrypted callback endpoint. The callback durably enqueues work and returns before Public API validation; `/api/cron/rustore-payment-events` or the common cron tick processes retries. Do not use the deprecated RuStore BillingClient.
-- A guest may use all Free functions. Before RuStore purchase it must link VK ID, Yandex ID, Google, or verified email. The stable `users.id` is passed as `AppUserId`; Telegram alone does not satisfy Android recovery.
+- `rustore` uses a Capacitor native bridge, return deep link, server validation, and encrypted callback endpoint. The callback durably enqueues work and returns before Public API validation; `/api/cron/rustore-payment-events` or the common cron tick processes retries. Do not use the deprecated RuStore BillingClient. Monetization is opt-in with `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=1`; the free first release keeps it at `0`.
+- A guest may use all Free functions. Before RuStore purchase it must link VK ID, Yandex ID, Google, or an email/password identity with confirmed email. The stable `users.id` is passed as `AppUserId`; Telegram alone does not satisfy Android recovery.
 - Release build has minification, `allowBackup=false`, cleartext disabled and requires signing. Debug remains available as `assembleDevelopmentDebug`.
 
 ## Owner values required before first upload
 
-1. Final package ID: replace `com.yourhoroscope.app` in `android/app/build.gradle` (`namespace`, `applicationId`), `capacitor.config.ts` (`appId`), `android/app/src/main/res/values/strings.xml` (`package_name`, `custom_url_scheme`), Java package/path, and `RUSTORE_PACKAGE_NAME`. Run `npm run android:validate:release` afterwards.
-2. Permanent keystore: create once with `keytool -genkeypair -v -keystore your-horoscope-release.jks -alias your-horoscope -keyalg RSA -keysize 4096 -validity 10000`; store it plus passwords in a password manager and encrypted offline backup. The same signing identity is required for every future update.
-3. Copy `signing.properties.example` to ignored `android/signing.properties`, or use CI environment variables. Never commit either a keystore or passwords.
-4. Set a stable HTTPS `NEXT_PUBLIC_API_URL`; the APK/AAB must not use a provider-specific temporary host.
+1. Permanent keystore: create once with `keytool -genkeypair -v -keystore your-horoscope-release.jks -alias your-horoscope -keyalg RSA -keysize 4096 -validity 10000`; store it plus passwords in a password manager and encrypted offline backup. The same signing identity is required for every future update.
+2. Copy `signing.properties.example` to ignored `android/signing.properties`, or use CI environment variables. Never commit either a keystore or passwords.
+3. Set a stable HTTPS `NEXT_PUBLIC_API_URL`; the APK/AAB must not use a provider-specific temporary host.
 
 ## Commands
 
 ```powershell
 $env:NEXT_PUBLIC_API_URL = 'https://api.example.ru'
 $env:NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'development'
+$env:NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED = '0'
 npm run build:mobile
 npx cap sync android
 cd android; .\gradlew.bat assembleDevelopmentDebug
@@ -39,12 +41,14 @@ In RuStore Console: create the app with the final signed package, enable monetiz
 
 ## Account provider owner setup
 
-Register OAuth applications for VK ID, Yandex ID and Google. Add these exact HTTPS callbacks:
+Android account entry is native-first:
 
-- `https://<PUBLIC_APP_ORIGIN>/api/auth/oauth/vk/callback`
-- `https://<PUBLIC_APP_ORIGIN>/api/auth/oauth/yandex/callback`
-- `https://<PUBLIC_APP_ORIGIN>/api/auth/oauth/google/callback`
+- Google uses Credential Manager and returns an ID token for server-side verification. Configure the Web OAuth client ID used as `serverClientId`, plus Android package `ru.tvoygoroskop.app` and the real debug/release signing fingerprints.
+- Yandex uses LoginSDK 3.1.3 and returns an access token for server-side user-info verification. Configure the same client ID in the provider console, server environment, and APK build.
+- VK uses VK ID SDK 2.7.2. Its OAuth 2.1 authorization-code flow uses PKCE, state, `device_id`, and `vk<VK_AUTH_CLIENT_ID>://vk.ru/blank.html`; configure that redirect and the Android SDK client secret.
+- Email uses password registration/login and one-time codes only for confirmation and reset. Configure the server-side delivery adapter and independent production HMAC/rate-limit secrets.
+- On Railway keep `AUTH_TRUST_PROXY=0` until the trusted edge is confirmed to overwrite `X-Forwarded-For`; only then enable it so per-client auth limits use the real forwarded address without accepting spoofed values.
 
-Put client IDs and secrets only in the server variables listed in `.env.example`. Configure `EMAIL_OTP_DELIVERY_URL` and `EMAIL_OTP_DELIVERY_SECRET` for the server-side mail adapter. The Android return scheme is `NATIVE_AUTH_CALLBACK_SCHEME://auth/callback`; keep it aligned with the manifest before the first release.
+Put all server and build values in the non-public variables listed in `.env.example`; do not expose them through `NEXT_PUBLIC_*` or React code. Apply `mvp_043_password_authentication` through the normal production migration procedure. Live provider login/linking still requires a signed APK and physical-device verification.
 
 The callback payload is AES-256-GCM decrypted server-side. Premium is never granted by an APK response; it is granted after server validation of a permitted subscription and linked to one user/purchase ID only.

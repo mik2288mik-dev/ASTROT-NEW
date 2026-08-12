@@ -1,6 +1,6 @@
 apply plugin: 'com.android.application'
 
-def appPackageId = 'com.yourhoroscope.app'
+def appPackageId = 'ru.tvoygoroskop.app'
 def localSigningProperties = new Properties()
 def localSigningPropertiesFile = rootProject.file('signing.properties')
 if (localSigningPropertiesFile.exists()) {
@@ -12,9 +12,17 @@ def releaseStorePasswordValue = signingValue('RELEASE_STORE_PASSWORD')
 def releaseKeyAliasValue = signingValue('RELEASE_KEY_ALIAS')
 def releaseKeyPasswordValue = signingValue('RELEASE_KEY_PASSWORD')
 def releaseSigningReady = releaseStoreFileValue && releaseStorePasswordValue && releaseKeyAliasValue && releaseKeyPasswordValue
+def authValue = { String name -> (project.findProperty(name) ?: System.getenv(name) ?: '').toString().trim() }
+def buildConfigString = { String value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
+def googleAuthClientId = authValue('GOOGLE_AUTH_CLIENT_ID')
+def yandexAuthClientId = authValue('YANDEX_AUTH_CLIENT_ID')
+def vkAuthClientId = authValue('VK_AUTH_CLIENT_ID')
+def vkIdAndroidClientSecret = authValue('VK_ID_ANDROID_CLIENT_SECRET')
+def vkIdConfigured = !vkAuthClientId.isEmpty() && !vkIdAndroidClientSecret.isEmpty()
 def rustoreConsoleAppId = project.findProperty('RUSTORE_CONSOLE_APP_ID') ?: System.getenv('RUSTORE_CONSOLE_APP_ID') ?: 'RUSTORE_CONSOLE_APP_ID_REQUIRED'
 def rustoreScheme = project.findProperty('RUSTORE_PAY_SCHEME') ?: System.getenv('RUSTORE_PAY_SCHEME') ?: "${appPackageId}.rustore"
-def authCallbackScheme = project.findProperty('NATIVE_AUTH_CALLBACK_SCHEME') ?: System.getenv('NATIVE_AUTH_CALLBACK_SCHEME') ?: 'yourhoroscope'
+def rustorePaymentsEnabledValue = (System.getenv('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED') ?: project.findProperty('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED') ?: '0').toString()
+def rustorePaymentsEnabled = ['1', 'true', 'yes', 'on'].contains(rustorePaymentsEnabledValue.trim().toLowerCase())
 def appVersionCodeValue = System.getenv('APP_VERSION_CODE') ?: project.findProperty('APP_VERSION_CODE') ?: '1'
 def appVersionNameValue = System.getenv('APP_VERSION_NAME') ?: project.findProperty('APP_VERSION_NAME') ?: '1.0.0'
 def releaseTaskRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') && !it.toLowerCase().contains('lint') }
@@ -35,8 +43,17 @@ android {
         manifestPlaceholders = [
             rustoreConsoleAppId: rustoreConsoleAppId,
             rustorePayScheme: rustoreScheme,
-            authCallbackScheme: authCallbackScheme,
+            YANDEX_CLIENT_ID: yandexAuthClientId ?: '0',
+            VKIDClientID: vkAuthClientId ?: '0',
+            VKIDClientSecret: vkIdAndroidClientSecret ?: 'VK_ID_ANDROID_CLIENT_SECRET_REQUIRED',
+            VKIDRedirectHost: 'vk.ru',
+            VKIDRedirectScheme: vkAuthClientId ? "vk${vkAuthClientId}" : 'vk0',
         ]
+        buildConfigField 'boolean', 'RUSTORE_PAYMENTS_ENABLED', rustorePaymentsEnabled ? 'true' : 'false'
+        buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', buildConfigString(googleAuthClientId)
+        buildConfigField 'String', 'YANDEX_AUTH_CLIENT_ID', buildConfigString(yandexAuthClientId)
+        buildConfigField 'String', 'VK_ID_CLIENT_ID', buildConfigString(vkAuthClientId)
+        buildConfigField 'boolean', 'VK_ID_CONFIGURED', vkIdConfigured ? 'true' : 'false'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -99,6 +116,11 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation 'androidx.credentials:credentials:1.6.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.2.0'
+    implementation 'com.yandex.android:authsdk:3.1.3'
+    implementation 'com.vk.id:vkid:2.7.2'
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

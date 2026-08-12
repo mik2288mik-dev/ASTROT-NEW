@@ -79,39 +79,40 @@ describe('app auth providers and API security', () => {
   });
 
   it('never grants trial or trusts client Premium for a web guest', () => {
-    expect(read('pages/api/users/[id].ts')).toContain('!existingUser && !appUser.isGuest');
+    expect(read('pages/api/users/[id].ts')).toContain('!existing&&!appUser.isGuest');
     expect(read('lib/contentArchitecture.ts')).toContain('user.is_guest !== false');
     expect(read('pages/api/content/natal/human-section.ts')).not.toContain('entitlement.isPremium || profile?.isPremium');
     expect(read('pages/api/content/forecast/personal.ts')).not.toContain('if (profile?.isPremium)');
   });
 
-  it('does not auto-repair or calculate a chart during primary chart reads', () => {
+  it('repairs primary charts on reads and reports an incomplete birth profile explicitly', () => {
     const route = read('pages/api/charts/[id].ts');
-    expect(route).not.toContain('repairCanonicalChartForUser');
-    expect(route).not.toContain('const repaired = await');
-    expect(route).toContain("return res.status(404).json({ error: 'Chart not found' });");
+    expect(route).toContain('repairCanonicalChartForUser');
+    expect(route).toContain("code:'BIRTH_PROFILE_INCOMPLETE'");
+    expect(route).toContain('Заполни дату и место рождения в профиле');
+    expect(route).toContain("code:'EPHEMERIS_UNAVAILABLE'");
   });
 
   it('sends Telegram auth headers and web guest cookies for natal chart requests', () => {
     const chartService = read('services/chartService.ts');
     expect(chartService).toContain('...getTelegramInitDataHeaders()');
-    // All four chart requests must carry auth: the two writes (calculate / force-recalculate)
+    // All three chart call sites must carry auth: the shared write path (calculate / force-recalculate)
     // AND the two reads (getChartFromDB / getPrimaryChartId). The reads previously omitted the
     // header, so /api/charts/:id returned 401 for Telegram users with no cookie session — which
     // made getOrCalculateChart throw before calculating and blocked new users from adding a chart.
-    expect(chartService.match(/credentials: 'include'/g)).toHaveLength(4);
-    expect(chartService.match(/\.\.\.getTelegramInitDataHeaders\(\)/g)).toHaveLength(4);
+    expect(chartService.match(/credentials:\s*'include'/g)).toHaveLength(3);
+    expect(chartService.match(/\.\.\.getTelegramInitDataHeaders\(\)/g)).toHaveLength(3);
     // The storage-layer chart read must authenticate too, so a 401 is never mistaken for a 404.
     expect(read('services/storageService.ts')).toContain(
       "{ method: 'GET', credentials: 'include', headers: { ...getTelegramInitDataHeaders() } }"
     );
   });
 
-  it('creates a guest only through an explicit startup or AuthGate choice', () => {
+  it('does not silently create a native guest and keeps web guest compatibility explicit', () => {
     expect(read('services/storageService.ts')).toContain('ensureWebGuestSession');
     expect(read('App.tsx')).toContain('storedProfile = await startGuestAccount()');
-    expect(read('App.tsx')).toContain("sessionMode === 'automatic' || sessionMode === 'guest'");
-    expect(read('App.tsx')).toContain('onContinueGuest={handleContinueAsGuest}');
+    expect(read('App.tsx')).toContain("sessionMode === 'guest' || (!isNativeAppRuntime() && sessionMode === 'automatic')");
+    expect(read('App.tsx')).not.toContain('onContinueGuest=');
     expect(read('App.tsx')).not.toContain('Открой Lumia через Telegram Mini App и попробуй ещё раз');
   });
 
