@@ -2,17 +2,10 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-const mockVerifyIdToken = jest.fn();
 const mockResolveVerifiedIdentity = jest.fn();
 const mockPoolQuery = jest.fn();
 const mockClientQuery = jest.fn();
 const mockClientRelease = jest.fn();
-
-jest.mock('google-auth-library', () => ({
-  OAuth2Client: jest.fn().mockImplementation(() => ({
-    verifyIdToken: mockVerifyIdToken,
-  })),
-}));
 
 jest.mock('../lib/db', () => ({
   getPool: jest.fn(() => ({
@@ -40,7 +33,7 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8').re
 
 type Challenge = {
   challenge_id: string;
-  provider: 'google' | 'yandex' | 'vk';
+  provider: 'yandex' | 'vk';
   purpose: 'login' | 'link';
   user_id: string | null;
   state_hash: string | null;
@@ -65,7 +58,10 @@ describe('native provider credential authentication', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.GOOGLE_AUTH_CLIENT_ID = 'google-web-client.apps.googleusercontent.com';
+    global.fetch = originalFetch;
+    delete process.env.GOOGLE_AUTH_CLIENT_ID;
+    delete process.env.GOOGLE_AUTH_WEB_CLIENT_ID;
+    delete process.env.GOOGLE_AUTH_CLIENT_SECRET;
     process.env.YANDEX_AUTH_CLIENT_ID = 'yandex-client';
     process.env.VK_AUTH_CLIENT_ID = '12345678';
     process.env.EMAIL_OTP_DELIVERY_URL = 'https://mailer.example.test/auth-code';
@@ -81,40 +77,32 @@ describe('native provider credential authentication', () => {
     global.fetch = originalFetch;
   });
 
-  it('reports native providers without requiring public origins or browser client secrets', () => {
+  it('reports only RuStore native providers without requiring public origins or browser client secrets', () => {
     delete process.env.PUBLIC_APP_ORIGIN;
-    delete process.env.GOOGLE_AUTH_CLIENT_SECRET;
     delete process.env.YANDEX_AUTH_CLIENT_SECRET;
     delete process.env.VK_AUTH_CLIENT_SECRET;
 
     expect(getNativeProviderAuthCapabilities()).toEqual({
-      google: true,
+      google: false,
       yandex: true,
       vk: true,
       email: true,
     });
   });
 
-  it('reports browser providers only when redirect origin and server credentials are ready', () => {
+  it('reports browser providers only when redirect origin and Yandex/VK server credentials are ready', () => {
     process.env.PUBLIC_APP_ORIGIN = 'https://app.example.test';
-    process.env.GOOGLE_AUTH_CLIENT_SECRET = 'google-server-secret';
     process.env.YANDEX_AUTH_CLIENT_SECRET = 'yandex-server-secret';
     process.env.VK_AUTH_CLIENT_SECRET = 'vk-server-secret';
 
     expect(getServerAccountAuthCapabilities('browser')).toMatchObject({
-      google: true,
+      google: false,
       yandex: true,
       vk: true,
       emailPassword: true,
       emailDelivery: true,
     });
 
-    delete process.env.GOOGLE_AUTH_CLIENT_SECRET;
-    expect(getServerAccountAuthCapabilities('browser')).toMatchObject({
-      google: false,
-      yandex: true,
-      vk: true,
-    });
     process.env.PUBLIC_APP_ORIGIN = 'http://app.example.test';
     expect(getServerAccountAuthCapabilities('browser')).toMatchObject({
       google: false,
@@ -122,7 +110,7 @@ describe('native provider credential authentication', () => {
       vk: false,
     });
     expect(getServerAccountAuthCapabilities('native')).toMatchObject({
-      google: true,
+      google: false,
       yandex: true,
       vk: true,
     });
@@ -154,76 +142,25 @@ describe('native provider credential authentication', () => {
     }
   });
 
-  it('creates a Google challenge and verifies audience, issuer/expiry through the official verifier, and nonce', async () => {
-    mockPoolQuery.mockResolvedValue({ rows: [], rowCount: 1 });
-    const started = await beginNativeProviderAuth({ provider: 'google', purpose: 'login' });
-
-    expect(started.provider).toBe('google');
-    expect(started.config).toMatchObject({
-      webClientId: 'google-web-client.apps.googleusercontent.com',
-    });
-    expect(String(started.config.nonce)).toHaveLength(43);
-    expect(mockPoolQuery.mock.calls[0][0]).toContain('INSERT INTO auth_challenges');
-
-    arrangeChallenge({
-      challenge_id: started.challengeId,
-      provider: 'google',
-      purpose: 'login',
-      user_id: null,
-      state_hash: null,
-      metadata: { nonce: started.config.nonce },
-      attempts: 0,
-      claimed_at: null,
-    });
-    mockVerifyIdToken.mockResolvedValue({
-      getPayload: () => ({
-        sub: 'google-subject-1',
-        aud: 'google-web-client.apps.googleusercontent.com',
-        iss: 'https://accounts.google.com',
-        exp: Math.floor(Date.now() / 1000) + 300,
-        nonce: started.config.nonce,
-        email: 'verified@example.test',
-        email_verified: true,
-        name: 'Verified User',
-      }),
-    });
-
-    await expect(completeNativeProviderAuth({
-      provider: 'google',
-      challengeId: started.challengeId,
-      credential: { idToken: 'header.payload.signature' },
-      currentUserId: null,
-    })).resolves.toMatchObject({ userId: '-101' });
-
-    expect(mockVerifyIdToken).toHaveBeenCalledWith(expect.objectContaining({
-      idToken: 'header.payload.signature',
-      audience: 'google-web-client.apps.googleusercontent.com',
-    }));
-    expect(mockResolveVerifiedIdentity).toHaveBeenCalledWith(expect.objectContaining({
-      provider: 'google',
-      subject: 'google-subject-1',
-    }), null);
-  });
-
   it('rejects a link challenge unless the same active internal account is re-authenticated', async () => {
     arrangeChallenge({
       challenge_id: 'link-challenge',
-      provider: 'google',
+      provider: 'yandex',
       purpose: 'link',
       user_id: '42',
       state_hash: null,
-      metadata: { nonce: 'expected-nonce' },
+      metadata: {},
       attempts: 0,
       claimed_at: null,
     });
 
     await expect(completeNativeProviderAuth({
-      provider: 'google',
+      provider: 'yandex',
       challengeId: 'link-challenge',
-      credential: { idToken: 'header.payload.signature' },
+      credential: { accessToken: 'opaque-yandex-token' },
       currentUserId: '99',
     })).rejects.toMatchObject({ status: 403, code: 'AUTH_LINK_SESSION_MISMATCH' });
-    expect(mockVerifyIdToken).not.toHaveBeenCalled();
+    expect(global.fetch).toBe(originalFetch);
     expect(mockResolveVerifiedIdentity).not.toHaveBeenCalled();
   });
 
@@ -355,6 +292,24 @@ describe('native provider credential authentication', () => {
       provider: 'vk',
       subject: 'vk-user-1',
     }), null);
+  });
+
+  it('keeps Google disabled in native and browser provider route contracts', () => {
+    const startRoute = read('pages/api/auth/provider/[provider]/start.ts');
+    const completeRoute = read('pages/api/auth/provider/[provider]/complete.ts');
+    const browserStart = read('pages/api/auth/oauth/[provider]/start.ts');
+    const browserCallback = read('pages/api/auth/oauth/[provider]/callback.ts');
+    const capabilities = read('pages/api/auth/capabilities.ts');
+    const implementation = read('lib/auth/nativeProviderAuth.ts');
+
+    expect(startRoute).toContain('NATIVE_AUTH_PROVIDERS');
+    expect(completeRoute).toContain('NATIVE_AUTH_PROVIDERS');
+    expect(browserStart).toContain("const PROVIDERS = ['vk', 'yandex'] as const");
+    expect(browserCallback).toContain("const PROVIDERS = ['vk', 'yandex'] as const");
+    expect(implementation).toContain("NATIVE_AUTH_PROVIDERS = ['yandex', 'vk'] as const");
+    expect(implementation).not.toContain("provider: 'google'");
+    expect(implementation).not.toContain('verifyGoogle');
+    expect(capabilities).toContain('google: false');
   });
 
   it('keeps link re-authentication and direct server sessions in the route contract', () => {
