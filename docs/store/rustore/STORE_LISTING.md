@@ -22,12 +22,14 @@ invent them.
    map it in `NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH`,
    `...QUARTER`, `...YEAR` plus server-only `RUSTORE_ALLOWED_PRODUCT_IDS`.
 3. Copy Console application ID to server-only `RUSTORE_CONSOLE_APP_ID`; put the
-   final package in `RUSTORE_PACKAGE_NAME`; create the Public API token only in
-   server secret `RUSTORE_PUBLIC_API_TOKEN`.
+   final package in `RUSTORE_PACKAGE_NAME`; store the Public API key ID in
+   `RUSTORE_KEY_ID` and the PKCS#8 RSA private key as base64 in server-only
+   `RUSTORE_PRIVATE_KEY_BASE64`. The backend obtains short-lived JWE tokens.
 4. Register the HTTPS callback
    `https://<owner-domain>/api/payments/rustore/notifications` and store its
    AES-256 key only as `RUSTORE_NOTIFICATION_AES_KEY`.
-5. Add owner-provided test VK IDs, install the sandbox build with RuStore, and
+5. Do not configure a trial for the first release. Add owner-provided test VK IDs,
+   install the sandbox build with RuStore, and
    test purchase, cancel, restore and callback processing. A client success
    never grants Premium until server validation succeeds.
 

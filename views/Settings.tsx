@@ -5,6 +5,7 @@ import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
 import { updateUserNotificationSettings, getUserNotificationSettings, getTelegramInitDataHeaders } from '../services/sessionService';
 import { hasActivePremium } from '../lib/accessMatrix';
+import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
@@ -77,8 +78,10 @@ const IDENTITY_LABELS: Record<LinkedIdentity['provider'], string> = {
 interface SettingsProps {
     profile: UserProfile;
     onUpdate: (profile: UserProfile) => void;
-    onShowPremiumPreview?: () => void;
     onRequestPremium?: () => void;
+    canPromotePremium?: boolean;
+    onRestorePurchase?: () => Promise<void>;
+    onManageSubscription?: () => Promise<void> | void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
     onLogout?: () => Promise<void>;
@@ -133,7 +136,17 @@ function profileEditsThisMonth(userId?: string): number {
     }).length;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPremiumPreview, onRequestPremium, onOpenAdmin, onLogout, onDeleteAccount }) => {
+export const Settings: React.FC<SettingsProps> = ({
+    profile,
+    onUpdate,
+    onRequestPremium,
+    canPromotePremium = true,
+    onRestorePurchase,
+    onManageSubscription,
+    onOpenAdmin,
+    onLogout,
+    onDeleteAccount,
+}) => {
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
@@ -165,6 +178,29 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [identityBusy, setIdentityBusy] = useState(false);
     const [authPurpose, setAuthPurpose] = useState<'link' | 'login'>('link');
     const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(null);
+    const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+    const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const end = profile.premiumEntitlement?.endsAt || profile.premiumUntil;
+        const endMs = end ? new Date(end).getTime() : Number.NaN;
+        setEntitlementNow(Date.now());
+        if (!Number.isFinite(endMs) || endMs <= Date.now()) return;
+        let timer = 0;
+        const scheduleBoundary = () => {
+            const remaining = endMs - Date.now() + 50;
+            if (remaining <= 0) {
+                setEntitlementNow(Date.now());
+                return;
+            }
+            timer = window.setTimeout(
+                scheduleBoundary,
+                Math.min(2_147_000_000, Math.max(1, remaining)),
+            );
+        };
+        scheduleBoundary();
+        return () => window.clearTimeout(timer);
+    }, [profile.premiumEntitlement?.endsAt, profile.premiumUntil]);
 
     useEffect(() => {
         let alive = true;
@@ -347,13 +383,35 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
-    const activePremium = hasActivePremium(profile);
+    const activePremium = hasActivePremium(profile, entitlementNow);
     const profileEditLimit = activePremium ? 3 : 1;
     const profileEditsLeft = Math.max(0, profileEditLimit - editsUsed);
     const canEditProfile = profileEditsLeft > 0;
-    const trialDaysLeft = profile.premiumUntil
-        ? Math.max(0, Math.ceil((new Date(profile.premiumUntil).getTime() - Date.now()) / 86_400_000))
-        : 0;
+    const legacyGiftEntitlement = activePremium && !profile.premiumEntitlement && profile.premiumUntil
+        ? {
+            state: 'gift' as const,
+            isPremium: true,
+            source: 'legacy_gift',
+            startsAt: null,
+            endsAt: profile.premiumUntil,
+            autoRenew: false,
+            productId: null,
+            period: null,
+        }
+        : null;
+    const subscriptionPresentation = describePremiumEntitlement(
+        profile.premiumEntitlement || legacyGiftEntitlement,
+        profile.language,
+        entitlementNow,
+    );
+
+    const restorePurchase = () => {
+        if (!onRestorePurchase || restoreState === 'running') return;
+        setRestoreState('running');
+        void onRestorePurchase()
+            .then(() => setRestoreState('success'))
+            .catch(() => setRestoreState('error'));
+    };
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -460,61 +518,52 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 </div>
             </section>
 
-            {/* Тарифы / Premium — заметная карта вверху */}
-            <button
-                type="button"
-                onClick={() => onRequestPremium?.()}
-                className="settings-editorial-premium block w-full text-left"
-            >
-                <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
-                            {profile.language === 'ru' ? 'Тарифы' : 'Pricing'}
-                        </div>
-                        <div className="mt-1 text-[17px] font-bold">
-                            {trialDaysLeft > 0
-                                ? (profile.language === 'ru' ? `Premium активен — ${trialDaysLeft} дн.` : `Premium active — ${trialDaysLeft}d`)
-                                : (profile.language === 'ru' ? 'Твой Гороскоп Premium' : 'Your Horoscope Premium')}
-                        </div>
-                        <div className="mt-0.5 text-[12.5px] text-white/85">
-                            {profile.language === 'ru' ? 'Месяц · 3 месяца · Год' : 'Month · 3 months · Year'}
-                        </div>
-                    </div>
-                    <span className="shrink-0 text-[13px] font-semibold">
-                        {profile.language === 'ru' ? 'Смотреть →' : 'View →'}
-                    </span>
-                </div>
-            </button>
-
             <section className={sectionClass}>
                 <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
                 <h2 className="mt-1.5 font-serif text-xl text-mono-ink sm:text-2xl">
-                    {activePremium ? getText(profile.language, 'settings.plan_pro') : getText(profile.language, 'settings.plan_basic')}
+                    {subscriptionPresentation.title}
                 </h2>
                 <p className="lumia-muted mt-2 text-sm leading-relaxed">
-                    {getText(profile.language, 'settings.subscription_body')}
+                    {subscriptionPresentation.body}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
+                    {subscriptionPresentation.shouldPromote && canPromotePremium ? (
+                        <button
+                            type="button"
+                            onClick={() => onRequestPremium?.()}
+                            className="fresh-btn-primary"
+                            style={{ flex: 1, width: 'auto', margin: 0 }}
+                        >
+                            {profile.language === 'ru' ? 'Посмотреть Premium' : 'View Premium'}
+                        </button>
+                    ) : null}
+                    {subscriptionPresentation.canManageInStore && onManageSubscription ? (
+                        <button type="button" className="fresh-btn-ghost" onClick={() => void onManageSubscription()}>
+                            {profile.language === 'ru' ? 'Управлять в RuStore' : 'Manage in RuStore'}
+                        </button>
+                    ) : null}
                     <button
                         type="button"
-                        onClick={() => { if (!activePremium) onRequestPremium?.(); }}
-                        disabled={activePremium}
-                        className="fresh-btn-primary"
-                        style={{ flex: 1, width: 'auto', margin: 0 }}
+                        className="fresh-btn-ghost"
+                        disabled={!onRestorePurchase || restoreState === 'running'}
+                        aria-busy={restoreState === 'running'}
+                        onClick={restorePurchase}
                     >
-                        {activePremium ? getText(profile.language, 'settings.plan_active') : getText(profile.language, 'dashboard.get_premium')}
+                        {restoreState === 'running'
+                            ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
+                            : (profile.language === 'ru' ? 'Восстановить покупку' : 'Restore purchase')}
                     </button>
-                    {!activePremium && onShowPremiumPreview && (
-                        <button
-                            onClick={onShowPremiumPreview}
-                            type="button"
-                            className="fresh-btn-ghost"
-                        >
-                            {profile.language === 'ru' ? 'Твой Гороскоп Premium' : 'Your Horoscope Premium'}
-                        </button>
-                    )}
                 </div>
+                {restoreState === 'success' ? (
+                    <p role="status" className="lumia-muted mt-2 text-sm">
+                        {profile.language === 'ru' ? 'Покупки проверены сервером.' : 'Purchases were checked by the server.'}
+                    </p>
+                ) : restoreState === 'error' ? (
+                    <p role="alert" className="mt-2 text-sm text-red-700">
+                        {profile.language === 'ru' ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
+                    </p>
+                ) : null}
             </section>
 
             <div className={`${sectionClass} flex items-center justify-between gap-3`}>
@@ -929,11 +978,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 {deletionError ? <p role="alert" className="mt-2 text-sm text-red-700">{deletionError}</p> : null}
             </section>
 
-            <div className="pt-1 text-center">
-                 <button type="button" className="min-h-[44px] px-3 text-[10px] uppercase tracking-widest text-mono-muted transition-colors hover:text-mono-ink">
-                     {getText(profile.language, 'settings.restore')}
-                 </button>
-            </div>
           </div>
         </div>
     );

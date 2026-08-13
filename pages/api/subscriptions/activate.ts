@@ -11,7 +11,7 @@ const log = {
 };
 
 /**
- * Sim-only activation when BOT_TOKEN is not set.
+ * Explicit test-only simulation. Missing provider secrets never enable grants.
  * Real activation happens via Telegram webhook.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -35,13 +35,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     throw error;
   }
 
-  if (simMode && process.env.BOT_TOKEN) {
-    return res.status(403).json({ error: 'Sim mode not allowed when BOT_TOKEN is set' });
-  }
-
   if (!simMode) {
     return res.status(400).json({
       error: 'Real payments are processed via Telegram webhook. Use create-invoice + openInvoice for production.',
+    });
+  }
+
+  const simulationEnabled = process.env.NODE_ENV !== 'production'
+    && process.env.ALLOW_TEST_PREMIUM_SIMULATION === '1';
+  if (!simulationEnabled) {
+    return res.status(403).json({
+      error: 'Premium simulation is disabled',
+      code: 'PREMIUM_SIMULATION_DISABLED',
     });
   }
 

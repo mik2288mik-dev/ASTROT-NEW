@@ -18,6 +18,7 @@ function makeContext(overrides: Partial<PersonalizationContext> = {}): Personali
       birthTime: '12:00',
       birthPlace: 'Moscow',
       premiumUntil: null,
+      hasActivePremiumEntitlement: false,
       lastLogin: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
       language: 'ru',

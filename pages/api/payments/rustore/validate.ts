@@ -17,12 +17,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId: auth.userId,
       productId: typeof req.body?.productId === 'string' ? req.body.productId : '',
       purchaseId: typeof req.body?.purchaseId === 'string' ? req.body.purchaseId : '',
-      invoiceId: typeof req.body?.invoiceId === 'string' ? req.body.invoiceId : undefined,
       sandbox: process.env.RUSTORE_PAY_MODE === 'sandbox',
     });
     return res.status(200).json({
-      entitlement: { isPremium: result.entitlement.isPremium, expiresAt: result.expiresAt },
+      entitlement: result.entitlement,
       status: result.status,
+      purchaseActive: result.purchaseActive,
     });
   } catch (error: any) {
     const known = error instanceof RuStorePaymentError;

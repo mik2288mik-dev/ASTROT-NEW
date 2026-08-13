@@ -7,38 +7,27 @@ import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import {
   formatDisplayDate,
-  formatIsoWeekPeriodLabel,
-  formatMonthPeriodLabel,
-  getMoscowIsoWeekKey,
-  getMoscowMonthKey,
   getMoscowTodayKey,
 } from '../../lib/date-utils';
 import { getHoroscopeEngagementDateKey } from '../../lib/horoscope/signEngagement';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
-import { canAccessFeature } from '../../lib/accessMatrix';
 import { APPROXIMATE_SUN_SIGN_DATES } from '../../lib/zodiac-utils';
 import {
   ensureDailySignHoroscope,
-  ensureMonthlySignHoroscope,
-  ensureWeeklySignHoroscope,
   getCachedDailySignHoroscope,
-  getCachedMonthlySignHoroscope,
-  getCachedWeeklySignHoroscope,
   prefetchSignHoroscopePeriod,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
-import { FreshTabs, ZodiacSignGrid } from '../../components/fresh-ui';
+import { ZodiacSignGrid } from '../../components/fresh-ui';
 import { EditorialSticker } from '../../components/EditorialSticker';
 import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
 import { selectZodiacLegacyAsset } from '../../lib/zodiacLegacyVisuals';
 
-type Period = 'today' | 'week' | 'month';
+type Period = 'today';
 
-function formatHoroscopePeriodDate(period: Period, periodKey: string, language: 'ru' | 'en'): string {
-  if (period === 'week') return formatIsoWeekPeriodLabel(periodKey, language);
-  if (period === 'month') return formatMonthPeriodLabel(periodKey, language);
+function formatHoroscopePeriodDate(periodKey: string, language: 'ru' | 'en'): string {
   return formatDisplayDate(periodKey, language);
 }
 
@@ -72,14 +61,9 @@ export type HoroscopeReaderProps = {
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
   onOpenPersonalForecast?: () => void;
-  onRequestPremium?: () => void;
 };
 
-export const HoroscopeReader = memo<HoroscopeReaderProps>(({
-  profile,
-  chartData,
-  onRequestPremium,
-}) => {
+export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
   const reduceMotion = useReducedMotion();
@@ -98,7 +82,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   }, [ownSign]);
 
   const [signIndex, setSignIndex] = useState(initialIndex);
-  const [period, setPeriod] = useState<Period>('today');
+  const period: Period = 'today';
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null>>({});
   const [loadRevision, setLoadRevision] = useState(0);
   const [lastReadyReading, setLastReadyReading] = useState<ReadyReadingSnapshot | null>(null);
@@ -122,11 +106,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   }, []);
 
   const sign = ZODIAC_KEYS[signIndex] as ZodiacKey;
-  const periodKey = period === 'week'
-    ? getMoscowIsoWeekKey()
-    : period === 'month'
-      ? getMoscowMonthKey()
-      : today;
+  const periodKey = today;
   const readingKey = `${sign.toLowerCase()}|${period}|${periodKey}|${language}`;
   const localReading = useMemo(
     () => readLocalSignHoroscope(period, sign, periodKey, language),
@@ -134,24 +114,19 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   );
   const hasReadingResult = Object.prototype.hasOwnProperty.call(readings, readingKey);
   const reading = hasReadingResult ? readings[readingKey] : localReading;
-  const periodLocked = period !== 'today'
-    && !canAccessFeature('weekly_sign_horoscope', profile, null).allowed;
 
   useEffect(() => {
     if (!reading) return;
     setLastReadyReading({ key: readingKey, reading, sign, period, periodKey: reading.periodKey });
   }, [period, periodKey, reading, readingKey, sign]);
 
-  const displayed = periodLocked
-    ? null
-    : reading
+  const displayed = reading
       ? { key: readingKey, reading, sign, period, periodKey }
       : lastReadyReading?.key === readingKey
         ? lastReadyReading
         : null;
 
   useEffect(() => {
-    if (periodLocked) return;
     let active = true;
     const hydrate = (prefetched: Record<string, SignHoroscopeReadingV2>) => {
       if (!active) return;
@@ -166,19 +141,11 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     const load = async () => {
       try {
-        const cachedReading = await (period === 'week'
-          ? getCachedWeeklySignHoroscope(sign, periodKey, language)
-          : period === 'month'
-            ? getCachedMonthlySignHoroscope(sign, periodKey, language)
-            : getCachedDailySignHoroscope(sign, periodKey, language));
+        const cachedReading = await getCachedDailySignHoroscope(sign, periodKey, language);
         if (active && cachedReading) {
           setReadings((current) => ({ ...current, [readingKey]: cachedReading }));
         }
-        const selectedReading = await (period === 'week'
-          ? ensureWeeklySignHoroscope(sign, periodKey, language)
-          : period === 'month'
-            ? ensureMonthlySignHoroscope(sign, periodKey, language)
-            : ensureDailySignHoroscope(sign, periodKey, language));
+        const selectedReading = await ensureDailySignHoroscope(sign, periodKey, language);
         if (active) setReadings((current) => ({ ...current, [readingKey]: selectedReading }));
       } catch {
         if (active && !readLocalSignHoroscope(period, sign, periodKey, language)) {
@@ -194,7 +161,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     };
     void load();
     return () => { active = false; };
-  }, [language, loadRevision, period, periodKey, periodLocked, readingKey, sign]);
+  }, [language, loadRevision, period, periodKey, readingKey, sign]);
 
   const scrollForecastToTop = useCallback(() => {
     const target = readingAnchorRef.current;
@@ -240,18 +207,13 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     setLoadRevision((value) => value + 1);
   };
 
-  const periodTabs = useMemo(() => [
-    { id: 'today', label: language === 'ru' ? 'Сегодня' : 'Today' },
-    { id: 'week', label: language === 'ru' ? 'Неделя' : 'Week' },
-    { id: 'month', label: language === 'ru' ? 'Месяц' : 'Month' },
-  ], [language]);
   const displayedReading = displayed?.reading ?? null;
   const displayedSign = displayed?.sign ?? sign;
   const displayedPeriod = displayed?.period ?? period;
   const displayedPeriodKey = displayedReading?.periodKey ?? periodKey;
   const displayedSignLabel = getZodiacSign(language, displayedSign);
   const displayedSignDateRange = formatZodiacDateRange(displayedSign, language);
-  const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
+  const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriodKey, language);
   const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
   const zodiacLegacyAsset = useMemo(() => selectZodiacLegacyAsset({
     sign: displayedSign,
@@ -259,7 +221,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
     userId: profile.id ? String(profile.id) : undefined,
   }), [displayedPeriod, displayedPeriodKey, displayedSign, profile.id]);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
-  const readingSettledForScroll = periodLocked || hasReadingFailure || Boolean(displayedReading);
+  const readingSettledForScroll = hasReadingFailure || Boolean(displayedReading);
 
   useEffect(() => {
     if (pendingReadingScrollRef.current !== sign || !readingSettledForScroll) return;
@@ -278,23 +240,11 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
         <p className="horo-reader-period-date">{displayedPeriodDate}</p>
       </header>
 
-      <div className="horo-reader-controls">
-        <FreshTabs
-          className="horo-period-tabs"
-          tabs={periodTabs}
-          activeTab={period}
-          onTabChange={(id) => {
-            lumiaSelectionHaptic();
-            setPeriod(id as Period);
-          }}
-        />
-      </div>
-
       <div ref={readingAnchorRef} className="horo-uni-wrap">
         <motion.article
-          key={periodLocked ? `locked:${readingKey}` : displayed?.key || `pending:${readingKey}`}
+          key={displayed?.key || `pending:${readingKey}`}
           className="horo-uni horo-reader-article"
-          aria-busy={!periodLocked && !hasReadingFailure && !displayedReading}
+          aria-busy={!hasReadingFailure && !displayedReading}
           initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduceMotion ? 0.08 : 0.18, ease: 'easeOut' }}
@@ -316,25 +266,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
           ) : null}
 
           <div className="horo-uni-body horo-reader-reading">
-            {periodLocked ? (
-              <div className="horo-lock">
-                <div className="horo-lock-title">
-                  {period === 'week'
-                    ? (language === 'ru' ? 'Гороскоп на неделю — в Premium' : 'Weekly horoscope — Premium')
-                    : (language === 'ru' ? 'Гороскоп на месяц — в Premium' : 'Monthly horoscope — Premium')}
-                </div>
-                <p className="horo-lock-text">
-                  {language === 'ru'
-                    ? 'Сегодня доступны все 12 знаков. Неделя и месяц открываются в Premium.'
-                    : 'All 12 signs are free today. Week and month open in Premium.'}
-                </p>
-                {onRequestPremium ? (
-                  <button type="button" className="fresh-btn-primary" onClick={onRequestPremium}>
-                    {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
-                  </button>
-                ) : null}
-              </div>
-            ) : hasReadingFailure ? (
+            {hasReadingFailure ? (
               <div className="horo-lock" role="alert">
                 <div className="horo-lock-title">
                   {language === 'ru' ? 'Разбор пока недоступен' : 'The reading is unavailable'}

@@ -232,6 +232,13 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
               COALESCE(u.name, '') AS name,
               COALESCE(u.language, 'ru') AS language,
               u.premium_until,
+              EXISTS (
+                SELECT 1 FROM premium_entitlements pe
+                WHERE pe.user_id = u.id
+                  AND pe.status IN ('active', 'cancelled')
+                  AND pe.ends_at > NOW()
+                  AND pe.entitlement_state IN ('gift', 'store_trial', 'paid', 'grace', 'cancelled_active')
+              ) AS has_active_premium_entitlement,
               COALESCE(MAX(us.last_seen_at), u.last_login) AS last_seen_at,
               MAX(CASE WHEN nc.is_primary = TRUE THEN nc.timezone ELSE NULL END) AS chart_timezone
        FROM users u
@@ -250,7 +257,8 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
     id: String(row.id),
     name: row.name || '',
     language: row.language || 'ru',
-    isPremium: !!(row.premium_until && new Date(row.premium_until).getTime() > now),
+    isPremium: row.has_active_premium_entitlement === true
+      || !!(row.premium_until && new Date(row.premium_until).getTime() > now),
     lastSeenAt: row.last_seen_at ? new Date(row.last_seen_at).toISOString() : null,
     chartTimezone: row.chart_timezone || null,
   }));

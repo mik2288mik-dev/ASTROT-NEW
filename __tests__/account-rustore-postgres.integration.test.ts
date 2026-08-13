@@ -14,6 +14,7 @@ import {
   requireAppUser,
 } from '../lib/auth/appAuth';
 import { deleteAccountData } from '../lib/accountDeletion';
+import { runMigrations } from '../lib/migrations';
 import {
   processPendingRuStoreEvents,
   processRuStoreCallback,
@@ -85,8 +86,13 @@ describePostgres('PostgreSQL account, session, deletion, and RuStore integration
     process.env.APP_SESSION_SECRET = 'integration-test-session-secret-32-bytes';
     process.env.RUSTORE_PACKAGE_NAME = 'com.integration.test';
     process.env.RUSTORE_ALLOWED_PRODUCT_IDS = 'premium_month';
-    process.env.RUSTORE_PUBLIC_API_TOKEN = 'integration-public-token';
+    const privateKey = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey;
+    process.env.RUSTORE_KEY_ID = 'integration-key';
+    process.env.RUSTORE_PRIVATE_KEY_BASE64 = privateKey
+      .export({ format: 'der', type: 'pkcs8' })
+      .toString('base64');
     process.env.RUSTORE_CONSOLE_APP_ID = 'integration-console-app';
+    process.env.RUSTORE_PAY_MODE = 'sandbox';
     process.env.RUSTORE_NOTIFICATION_AES_KEY = crypto.randomBytes(32).toString('base64');
   });
 
@@ -236,10 +242,20 @@ describePostgres('PostgreSQL account, session, deletion, and RuStore integration
     users.add(userId);
     users.add(otherUserId);
     let expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    global.fetch = jest.fn(async () => new Response(JSON.stringify({
-      code: 'OK',
-      body: { expiryTimeMillis: expiry, paymentState: 1, externalAccountId: userId },
-    }), { status: 200 })) as typeof fetch;
+    global.fetch = jest.fn(async (input) => new Response(JSON.stringify(
+      String(input).includes('/public/auth')
+        ? { code: 'OK', body: { jwe: 'integration-public-token', ttl: 900 } }
+        : {
+            code: 'OK',
+            timestamp: new Date().toISOString(),
+            body: {
+              expiryTimeMillis: expiry,
+              paymentState: 1,
+              autoRenewing: true,
+              externalAccountId: userId,
+            },
+          },
+    ), { status: 200 })) as typeof fetch;
 
     const purchase = {
       userId,
@@ -257,16 +273,112 @@ describePostgres('PostgreSQL account, session, deletion, and RuStore integration
     const externalEventId = `integration-event-${crypto.randomUUID()}`;
     const payload = encryptedCallback({
       app_id: process.env.RUSTORE_CONSOLE_APP_ID,
-      notification_type: 'SUBSCRIPTION_STATUS_CHANGED_SANDBOX',
-      data: JSON.stringify({ purchase_id: purchase.purchaseId, status_new: 'ACTIVE' }),
+      notification_type: 'SUBSCRIPTION_EVENT_SANDBOX',
+      data: JSON.stringify({
+        product_code: purchase.productId,
+        purchase_id: purchase.purchaseId,
+        subscription_event_type: 'ACTIVATED',
+        status_new: 'ACTIVE',
+        period_new: 'MAIN',
+        autorenewing: true,
+        event_time: new Date().toISOString(),
+      }),
     }, key);
     expect(await processRuStoreCallback({ id: externalEventId, payload })).toMatchObject({ queued: true });
     expect(await processRuStoreCallback({ id: externalEventId, payload })).toMatchObject({ duplicate: true });
     expect(await processPendingRuStoreEvents()).toMatchObject({ processed: 1 });
 
+    const holdEventTime = new Date(Date.now() + 1000);
+    const holdEventId = `integration-hold-${crypto.randomUUID()}`;
+    const holdPayload = encryptedCallback({
+      app_id: process.env.RUSTORE_CONSOLE_APP_ID,
+      notification_type: 'SUBSCRIPTION_EVENT_SANDBOX',
+      data: JSON.stringify({
+        product_code: purchase.productId,
+        purchase_id: purchase.purchaseId,
+        subscription_event_type: 'PAYMENT_FAILED',
+        status_new: 'PAUSED',
+        period_new: 'HOLD',
+        autorenewing: true,
+        event_time: holdEventTime.toISOString(),
+      }),
+    }, key);
+    expect(await processRuStoreCallback({ id: holdEventId, payload: holdPayload }))
+      .toMatchObject({ queued: true });
+    expect(await processPendingRuStoreEvents()).toMatchObject({ processed: 1 });
+    expect((await validateRuStorePurchase(purchase)).status).toBe('expired');
+
+    expiry += 31 * 24 * 60 * 60 * 1000;
+    expect((await validateRuStorePurchase(purchase)).status).toBe('paid');
+    const recoveredLedger = await getPool().query(
+      `SELECT provider_event_time, provider_period, provider_status,
+              provider_subscription_event_type
+       FROM store_purchases
+       WHERE provider = 'rustore' AND external_purchase_id = $1`,
+      [purchase.purchaseId],
+    );
+    expect(recoveredLedger.rows[0]).toMatchObject({
+      provider_period: null,
+      provider_status: null,
+      provider_subscription_event_type: null,
+    });
+    expect(recoveredLedger.rows[0].provider_event_time).not.toBeNull();
+
+    const staleEventId = `integration-stale-${crypto.randomUUID()}`;
+    const stalePayload = encryptedCallback({
+      app_id: process.env.RUSTORE_CONSOLE_APP_ID,
+      notification_type: 'SUBSCRIPTION_EVENT_SANDBOX',
+      data: JSON.stringify({
+        product_code: purchase.productId,
+        purchase_id: purchase.purchaseId,
+        subscription_event_type: 'PAYMENT_FAILED',
+        status_new: 'PAUSED',
+        period_new: 'HOLD',
+        autorenewing: true,
+        event_time: new Date(holdEventTime.getTime() - 1).toISOString(),
+      }),
+    }, key);
+    expect(await processRuStoreCallback({ id: staleEventId, payload: stalePayload }))
+      .toMatchObject({ queued: true });
+    expect(await processPendingRuStoreEvents()).toMatchObject({ processed: 1 });
+    expect((await validateRuStorePurchase(purchase)).status).toBe('paid');
+
     expiry = Date.now() - 1000;
     const expired = await validateRuStorePurchase(purchase);
     expect(expired.status).toBe('expired');
     expect(expired.entitlement.isPremium).toBe(false);
+  });
+
+  it('backfills a legacy RuStore paused row as expired without re-granting access', async () => {
+    const userId = await createUser(false);
+    users.add(userId);
+    await getPool().query(
+      `INSERT INTO premium_entitlements (
+         user_id, tier_name, status, entitlement_state, source, starts_at, ends_at, metadata
+       ) VALUES (
+         $1, 'premium', 'cancelled', 'gift', 'rustore', NOW(), NOW() + INTERVAL '30 days',
+         '{"legacyKind":"rustore_paused"}'::jsonb
+       )`,
+      [userId],
+    );
+    await getPool().query(
+      `DELETE FROM migrations WHERE name = 'mvp_044_premium_entitlement_lifecycle'`,
+    );
+
+    try {
+      await runMigrations();
+      const result = await getPool().query(
+        `SELECT status, entitlement_state FROM premium_entitlements
+         WHERE user_id = $1 AND source = 'rustore'`,
+        [userId],
+      );
+      expect(result.rows[0]).toMatchObject({ status: 'expired', entitlement_state: 'expired' });
+      expect(await db.premium_entitlements.getActive(userId)).toBeNull();
+    } finally {
+      await getPool().query(
+        `INSERT INTO migrations (name) VALUES ('mvp_044_premium_entitlement_lifecycle')
+         ON CONFLICT (name) DO NOTHING`,
+      );
+    }
   });
 });

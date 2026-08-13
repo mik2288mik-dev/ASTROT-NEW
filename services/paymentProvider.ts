@@ -1,12 +1,15 @@
 import type { PremiumPlanId } from '../lib/premiumPricing';
 import { canUseRuStorePay, canUseTelegramStars, resolveDistributionChannel, type DistributionChannel } from '../lib/distributionChannel';
-import type { UserProfile } from '../types';
+import type { PremiumEntitlementSnapshot, UserProfile } from '../types';
 import { requestStarsPayment } from './telegramStarsPayment';
 import { requestRuStorePayment } from './rustorePayService';
 
+export type PaymentEntitlementSnapshot = PremiumEntitlementSnapshot;
+
 export type PaymentResult =
-  | { status: 'completed' }
+  | { status: 'completed'; entitlement?: PaymentEntitlementSnapshot }
   | { status: 'cancelled' }
+  | { status: 'pending'; reason: string }
   | { status: 'unavailable'; reason: string }
   | { status: 'failed'; reason: string };
 

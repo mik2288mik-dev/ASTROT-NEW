@@ -1,5 +1,6 @@
 import { fromZonedTime } from 'date-fns-tz';
 import type { NatalChartData } from '../types';
+import { CANONICAL_ACCESS_CONTRACT } from './accessMatrix';
 import {
   APP_VOICE_VERSION,
   withPersonalForecastVoiceVersion,
@@ -1216,8 +1217,8 @@ export function getPersonalForecastPackageValidationError(
       }
     } else if (
       typeof strongestSectionId !== 'string'
-      || freeSelection.sectionIds.length < 1
-      || freeSelection.sectionIds.length > 2
+      || freeSelection.sectionIds.length < CANONICAL_ACCESS_CONTRACT.free.todayOpenFragmentCount.min
+      || freeSelection.sectionIds.length > CANONICAL_ACCESS_CONTRACT.free.todayOpenFragmentCount.max
       || freeSelection.sectionIds[0] !== strongestSectionId
       || (freeSelection.sectionIds.length === 2
         ? (

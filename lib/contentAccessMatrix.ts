@@ -1,10 +1,14 @@
 import type { ContentAccessTier, ContentSurface, ContentVariant } from '../types';
-import { hasActivePremium } from './accessMatrix';
+import {
+  canAccessFeature,
+  getFeatureAccessConfig,
+  type FeatureKey,
+  type ProfileAccessState,
+} from './accessMatrix';
 
 /**
- * Legacy compatibility map for the surface/variant content APIs.
- * Product access decisions belong to accessMatrix; generation policy belongs to contentMatrix.
- * Keep this module only while existing content routes still use surface/variant persistence.
+ * Legacy surface/variant adapter. Access is derived from accessMatrix; this
+ * module keeps only persistence and generation metadata for old content APIs.
  */
 
 export type LockedBehavior = {
@@ -17,6 +21,7 @@ export type LockedBehavior = {
 export type ContentAccessConfig = {
   surface: ContentSurface;
   variant: ContentVariant;
+  featureKey: FeatureKey;
   label: string;
   description: string;
   calculationRequired: boolean;
@@ -34,171 +39,137 @@ export type UnlockedContentEntry = {
   cacheKey?: string;
 };
 
-export type UserState = {
+export type UserState = ProfileAccessState & {
   userId: string;
   chartId: number | null;
-  isPremium: boolean;
-  premiumUntil?: string | null;
-  isAdmin?: boolean;
   unlockedContent: UnlockedContentEntry[];
 };
 
-const CONTENT_ACCESS_MATRIX: ContentAccessConfig[] = [
+type ContentAccessSpec = Omit<
+  ContentAccessConfig,
+  'defaultAccessTier' | 'unlockOptions' | 'lockedBehavior'
+>;
+
+const CONTENT_ACCESS_SPECS: ContentAccessSpec[] = [
   {
     surface: 'natal',
     variant: 'anchor',
-    label: 'Основной личный портрет',
-    description: 'Базовый портрет карты.',
+    featureKey: 'natal_basic',
+    label: 'Basic natal reading',
+    description: 'Basic interpretation of the saved natal chart.',
     calculationRequired: true,
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'free',
-    unlockOptions: ['free'],
-    lockedBehavior: {
-      showPreview: false,
-      showTeaser: false,
-      showLockedCard: false,
-      requirePremium: false,
-    },
   },
   {
     surface: 'natal',
     variant: 'full',
-    label: 'Полный личный портрет',
-    description: 'Полный личный портрет.',
+    featureKey: 'natal_deep',
+    label: 'Deep natal reading',
+    description: 'Deep interpretation of the saved natal chart.',
     calculationRequired: true,
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
   },
   {
     surface: 'natal',
     variant: 'planet_insight',
-    label: 'Разбор планеты',
-    description: 'Разбор отдельной планеты или темы.',
+    featureKey: 'natal_deep',
+    label: 'Planet insight',
+    description: 'Deep interpretation of a natal planet or theme.',
     calculationRequired: true,
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
   },
   {
     surface: 'natal',
     variant: 'living',
-    label: 'Личный разбор текущего периода',
-    description: 'Личный разбор на текущий период.',
+    featureKey: 'personality_deep',
+    label: 'Deep personality reading',
+    description: 'Deep personal interpretation for the current period.',
     calculationRequired: true,
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
   },
   {
     surface: 'forecast',
     variant: 'daily',
-    label: 'Ориентиры дня',
-    description: 'Краткий пульс дня.',
+    featureKey: 'personal_daily',
+    label: 'Personal Today',
+    description: 'Personal forecast for Today.',
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'free',
-    unlockOptions: ['free'],
-    lockedBehavior: {
-      showPreview: false,
-      showTeaser: false,
-      showLockedCard: false,
-      requirePremium: false,
-    },
   },
   {
     surface: 'forecast',
     variant: 'weekly',
-    label: 'Прогноз на неделю',
-    description: 'Недельный прогноз.',
+    featureKey: 'personal_weekly',
+    label: 'Personal Week',
+    description: 'Personal forecast for the week.',
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'free',
-    unlockOptions: ['free'],
-    lockedBehavior: {
-      showPreview: false,
-      showTeaser: false,
-      showLockedCard: false,
-      requirePremium: false,
-    },
   },
   {
     surface: 'forecast',
     variant: 'monthly',
-    label: 'Прогноз на месяц',
-    description: 'Месячный прогноз.',
+    featureKey: 'personal_monthly',
+    label: 'Personal Month',
+    description: 'Personal forecast for the month.',
     calculationRequired: true,
     shouldPersistCalculation: false,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'free',
-    unlockOptions: ['free'],
-    lockedBehavior: {
-      showPreview: false,
-      showTeaser: false,
-      showLockedCard: false,
-      requirePremium: false,
-    },
   },
   {
     surface: 'synastry',
     variant: 'brief',
-    label: 'Краткий разбор отношений',
-    description: 'Краткий союз.',
+    featureKey: 'synastry_by_charts',
+    label: 'Compatibility by calculated charts',
+    description: 'Compatibility based on two calculated natal charts.',
     calculationRequired: true,
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'free',
-    unlockOptions: ['free'],
-    lockedBehavior: {
-      showPreview: false,
-      showTeaser: false,
-      showLockedCard: false,
-      requirePremium: false,
-    },
   },
   {
     surface: 'synastry',
     variant: 'full',
-    label: 'Полный разбор отношений',
-    description: 'Полный разбор союза.',
+    featureKey: 'synastry_by_charts',
+    label: 'Deep compatibility by calculated charts',
+    description: 'Deep compatibility based on two calculated natal charts.',
     calculationRequired: true,
     shouldPersistCalculation: true,
     shouldPersistInterpretation: true,
-    defaultAccessTier: 'premium',
-    unlockOptions: ['premium'],
-    lockedBehavior: {
-      showPreview: true,
-      showTeaser: true,
-      showLockedCard: true,
-      requirePremium: true,
-    },
   },
 ];
 
+function deriveAccessConfig(spec: ContentAccessSpec): ContentAccessConfig {
+  const feature = getFeatureAccessConfig(spec.featureKey);
+  if (!feature) throw new Error(`Missing accessMatrix entry for ${spec.featureKey}`);
+
+  const premiumOnly = feature.tier === 'premium';
+  const defaultAccessTier: ContentAccessTier = premiumOnly ? 'premium' : 'free';
+  return {
+    ...spec,
+    defaultAccessTier,
+    unlockOptions: [defaultAccessTier],
+    lockedBehavior: premiumOnly
+      ? {
+          showPreview: true,
+          showTeaser: true,
+          showLockedCard: true,
+          requirePremium: true,
+        }
+      : {
+          showPreview: false,
+          showTeaser: false,
+          showLockedCard: false,
+          requirePremium: false,
+        },
+  };
+}
+
+const CONTENT_ACCESS_MATRIX = CONTENT_ACCESS_SPECS.map(deriveAccessConfig);
 const CONTENT_ACCESS_INDEX = new Map<string, ContentAccessConfig>(
   CONTENT_ACCESS_MATRIX.map((entry) => [buildContentAccessKey(entry.surface, entry.variant), entry])
 );
@@ -225,41 +196,22 @@ export function matchesUnlockEntry(
   return entry.accessTier === 'premium';
 }
 
-function hasActiveUnlock(
-  userState: UserState,
-  surface: ContentSurface,
-  variant: ContentVariant,
-  cacheKey?: string
-) {
-  if (userState.unlockedContent.some((entry) => matchesUnlockEntry(entry, surface, variant, cacheKey))) {
-    return true;
-  }
-
-  return false;
-}
-
 export function canAccessContent(
   userState: UserState,
   surface: ContentSurface,
   variant: ContentVariant,
-  cacheKey?: string
+  _cacheKey?: string,
+  nowMs = Date.now(),
 ): boolean {
   const config = getContentAccessConfig(surface, variant);
   if (!config) return false;
 
-  if (config.defaultAccessTier === 'free' && config.unlockOptions.includes('free')) {
-    return true;
-  }
-
-  if (hasActivePremium(userState) && config.unlockOptions.includes('premium')) {
-    return true;
-  }
-
-  if (hasActiveUnlock(userState, surface, variant, cacheKey)) {
-    return true;
-  }
-
-  return false;
+  return canAccessFeature(
+    config.featureKey,
+    userState,
+    { primaryChartId: userState.chartId },
+    nowMs,
+  ).allowed;
 }
 
 export function getLockedBehavior(
@@ -290,15 +242,12 @@ export function getLockedBehavior(
 }
 
 export function shouldPrecalculate(surface: ContentSurface, variant: ContentVariant): boolean {
-  const config = getContentAccessConfig(surface, variant);
-  if (!config) return false;
-  return config.calculationRequired;
+  return getContentAccessConfig(surface, variant)?.calculationRequired ?? false;
 }
 
 export function shouldPersistContent(surface: ContentSurface, variant: ContentVariant): boolean {
   const config = getContentAccessConfig(surface, variant);
-  if (!config) return false;
-  return config.shouldPersistCalculation || config.shouldPersistInterpretation;
+  return !!config && (config.shouldPersistCalculation || config.shouldPersistInterpretation);
 }
 
 export function listContentAccessMatrix(): ContentAccessConfig[] {

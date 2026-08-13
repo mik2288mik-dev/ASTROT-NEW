@@ -38,7 +38,9 @@ describe('personal forecast Luna architecture', () => {
     expect(generation).toContain('PERSONAL_FORECAST_RESPONSE_SCHEMA');
     expect(responses).toContain("type: 'json_schema'");
     expect(responses).toContain('strict: true');
-    expect(zodiac).toContain('getCachedWeeklySignHoroscope');
-    expect(zodiac).toContain('getCachedMonthlySignHoroscope');
+    expect(zodiac).toContain("type Period = 'today';");
+    expect(zodiac).toContain('getCachedDailySignHoroscope');
+    expect(zodiac).not.toContain('getCachedWeeklySignHoroscope');
+    expect(zodiac).not.toContain('getCachedMonthlySignHoroscope');
   });
 });

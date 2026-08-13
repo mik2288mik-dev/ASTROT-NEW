@@ -7,6 +7,7 @@ import { hasDatabaseUrl } from '../../../lib/database-url';
 import { toDateInputValue } from '../../../lib/date-utils';
 import { normalizeBirthTimeInput } from '../../../lib/birthTime';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
+import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
 
 const log={info:(message:string,data?:any)=>console.log(`[API/users/[id]] ${message}`,data||''),error:(message:string,error?:any)=>console.error(`[API/users/[id]] ERROR: ${message}`,error||''),warn:(message:string,error?:any)=>console.warn(`[API/users/[id]] WARN: ${message}`,error||'')};
 const NOTIFICATION_FREQUENCIES=new Set(['quiet','important','daily','twice_daily']);
@@ -17,12 +18,13 @@ function normalizeNotificationFrequency(value:unknown):string|null { const norma
 async function getNotificationFrequency(userId:string):Promise<string|null>{if(!hasDatabaseUrl())return null;try{const result=await getPool().query('SELECT notification_frequency FROM users WHERE id = $1 LIMIT 1',[userId]);return normalizeNotificationFrequency(result.rows[0]?.notification_frequency);}catch(error:any){log.warn('notification read failed',error?.message);return null;}}
 async function saveNotificationFrequency(userId:string,value:unknown):Promise<void>{const normalized=normalizeNotificationFrequency(value);if(!normalized||!hasDatabaseUrl())return;try{await getPool().query('UPDATE users SET notification_frequency = $1 WHERE id = $2',[normalized,userId]);}catch(error:any){log.warn('notification save failed',error?.message);}}
 
-function publicUser(user:any,userId:string,notificationFrequency?:string|null,refCode?:string|null){
+function publicUser(user:any,userId:string,premiumEntitlement:Awaited<ReturnType<typeof getPremiumEntitlementState>>,notificationFrequency?:string|null,refCode?:string|null){
+  const entitlement=publicPremiumEntitlementSnapshot(premiumEntitlement);
   return {
     id:user.id,name:user.name,birthDate:toDateInputValue(user.birth_date)||user.birth_date,birthTime:user.birth_time||'',birthTimeMode:user.birth_time_mode||undefined,
     birthTimeUncertaintyMinutes:user.birth_time_uncertainty_minutes??null,birthTimeRangeStart:user.birth_time_range_start||null,birthTimeRangeEnd:user.birth_time_range_end||null,
-    birthPlace:user.birth_place,isSetup:user.is_setup,language:user.language,theme:user.theme,isPremium:user.is_premium,
-    premiumUntil:user.premium_until?new Date(user.premium_until).toISOString():null,trialStartedAt:user.trial_started_at?new Date(user.trial_started_at).toISOString():null,
+    birthPlace:user.birth_place,isSetup:user.is_setup,language:user.language,theme:user.theme,isPremium:entitlement.isPremium,premiumEntitlement:entitlement,
+    premiumUntil:entitlement.endsAt,trialStartedAt:user.trial_started_at?new Date(user.trial_started_at).toISOString():null,
     selectedZodiacSign:user.selected_zodiac_sign||null,gender:user.gender||null,createdAt:user.created_at?new Date(user.created_at).toISOString():null,
     updatedAt:user.updated_at?new Date(user.updated_at).toISOString():null,isAdmin:resolveIsAdmin(userId,user.is_admin),evolution:null,
     loginStreak:user.login_streak??0,chartSlots:user.chart_slots??1,notificationFrequency:notificationFrequency||undefined,
@@ -43,7 +45,8 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
       const birthSettings=await birthProfileRepository.get(userId);
       let refCode=normalizeNullableString(user.ref_code)?.toUpperCase()||null;
       if(!refCode){try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}}
-      return res.status(200).json(publicUser({...user,...birthSettings},userId,normalizeNotificationFrequency(user.notification_frequency),refCode));
+      const premiumEntitlement=await getPremiumEntitlementState(userId);
+      return res.status(200).json(publicUser({...user,...birthSettings},userId,premiumEntitlement,normalizeNotificationFrequency(user.notification_frequency),refCode));
     }
     if(req.method!=='POST'&&req.method!=='PUT')return res.status(405).json({error:'Method not allowed'});
     if(!hasDatabaseUrl())return res.status(500).json({error:'Database not configured',message:'DATABASE_URL is not set.'});
@@ -67,7 +70,8 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     const refreshed=await db.users.get(userId);
     const birthSettings=await birthProfileRepository.get(userId);
     let refCode:string|null=null;try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}
-    return res.status(200).json(publicUser({...refreshed,...saved,...birthSettings},userId,await getNotificationFrequency(userId),refCode));
+    const premiumEntitlement=await getPremiumEntitlementState(userId);
+    return res.status(200).json(publicUser({...refreshed,...saved,...birthSettings},userId,premiumEntitlement,await getNotificationFrequency(userId),refCode));
   }catch(error:any){
     if(error instanceof AdminAuthError)return handleAdminError(res,error);
     log.error('Error processing request',{error:error.message,userId});return res.status(500).json({error:'Internal server error',message:error.message});

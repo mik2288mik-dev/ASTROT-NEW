@@ -2,6 +2,28 @@
 export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
 export type NotificationFrequency = 'quiet' | 'important' | 'daily' | 'twice_daily';
+export const PREMIUM_ENTITLEMENT_STATES = [
+  'free',
+  'gift',
+  'store_trial',
+  'paid',
+  'grace',
+  'cancelled_active',
+  'expired',
+] as const;
+
+export type PremiumEntitlementState = typeof PREMIUM_ENTITLEMENT_STATES[number];
+
+export interface PremiumEntitlementSnapshot {
+  state: PremiumEntitlementState;
+  isPremium: boolean;
+  source: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  autoRenew: boolean | null;
+  productId: string | null;
+  period: string | null;
+}
 export interface UserEvolution {
   level: number;
   title: string; // e.g. "Seeker", "Awakened", "Master"
@@ -42,6 +64,7 @@ export interface UserProfile {
   isPremium: boolean; 
   premiumUntil?: string | null;
   trialStartedAt?: string | null;
+  premiumEntitlement?: PremiumEntitlementSnapshot | null;
   selectedZodiacSign?: string | null;
   /** Пол — для грамматического рода в текстах. 'unspecified' = писать нейтрально. */
   gender?: 'male' | 'female' | 'unspecified' | null;

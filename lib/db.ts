@@ -5,6 +5,7 @@
 // DATABASE_URL should be set in Railway Variables or .env file
 // Format: postgresql://user:password@host:port/database
 
+import crypto from 'crypto';
 import { Pool, Client } from 'pg';
 import { LEGACY_NOTIFICATION_SEEDS, SCHEDULED_NOTIFICATION_SEEDS } from './adminNotificationSeedCatalog';
 import { resolveDatabaseUrl } from './database-url';
@@ -236,6 +237,13 @@ function mapPremiumEntitlementRow(row: any) {
     userId: String(row.user_id),
     tierName: row.tier_name,
     status: row.status,
+    entitlementState: row.entitlement_state || (
+      row.status === 'expired'
+        ? 'expired'
+        : row.status === 'cancelled'
+          ? 'cancelled_active'
+          : row.source === 'rustore' ? 'paid' : 'gift'
+    ),
     source: row.source,
     startsAt: new Date(row.starts_at).toISOString(),
     endsAt: new Date(row.ends_at).toISOString(),
@@ -2564,14 +2572,58 @@ export const db = {
       // entitlements into premium_until, which must not be fed back into a
       // synthetic users.premium_until entitlement.
       const legacyResult = await dbPool.query(
-        `SELECT premium_until, created_at FROM users WHERE id = $1`,
+        `SELECT u.premium_until, u.created_at
+         FROM users u WHERE u.id = $1`,
         [id],
       );
       const user = legacyResult.rows[0];
-      if (!user?.premium_until) return null;
+      if (!user) return null;
+      if (!user.premium_until) {
+        await dbPool.query(
+          `UPDATE premium_entitlements
+           SET status = 'expired', entitlement_state = 'expired', updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = $1
+             AND source = 'users.premium_until'
+             AND status <> 'expired'`,
+          [id],
+        );
+        return null;
+      }
 
       const endsAt = new Date(user.premium_until);
-      if (Number.isNaN(endsAt.getTime())) return null;
+      if (Number.isNaN(endsAt.getTime())) {
+        await dbPool.query(
+          `UPDATE premium_entitlements
+           SET status = 'expired', entitlement_state = 'expired', updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = $1 AND source = 'users.premium_until' AND status <> 'expired'`,
+          [id],
+        );
+        return null;
+      }
+      const active = endsAt.getTime() > Date.now();
+
+      await dbPool.query(
+        `UPDATE premium_entitlements
+         SET status = 'expired', entitlement_state = 'expired', updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = $1
+           AND source = 'users.premium_until'
+           AND ends_at <> $2
+           AND status <> 'expired'`,
+        [id, endsAt.toISOString()],
+      );
+
+      const explicit = await dbPool.query(
+        `SELECT *
+         FROM premium_entitlements
+         WHERE user_id = $1
+           AND tier_name = 'premium'
+           AND ends_at = $2
+           AND source <> 'users.premium_until'
+         ORDER BY updated_at DESC, id DESC
+         LIMIT 1`,
+        [id, endsAt.toISOString()],
+      );
+      if (explicit.rows[0]) return mapPremiumEntitlementRow(explicit.rows[0]);
 
       const existing = await dbPool.query(
         `SELECT *
@@ -2584,19 +2636,50 @@ export const db = {
         [id, endsAt.toISOString()]
       );
       if (existing.rows[0]) {
-        return mapPremiumEntitlementRow(existing.rows[0]);
+        const preservedPaidKind = existing.rows[0].entitlement_state === 'paid'
+          || existing.rows[0].metadata?.legacyKind === 'paid';
+        const legacyState = active ? (preservedPaidKind ? 'paid' : 'gift') : 'expired';
+        const updated = await dbPool.query(
+          `UPDATE premium_entitlements
+           SET status = $3, entitlement_state = $4,
+               metadata = COALESCE(metadata, '{}'::jsonb) || $5::jsonb,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = $1 AND id = $2
+           RETURNING *`,
+          [
+            id,
+            existing.rows[0].id,
+            active ? 'active' : 'expired',
+            legacyState,
+            JSON.stringify({
+              syncedFromUsersTable: true,
+              legacyKind: preservedPaidKind ? 'paid' : 'gift',
+            }),
+          ],
+        );
+        return updated.rows[0] ? mapPremiumEntitlementRow(updated.rows[0]) : null;
       }
 
+      // A new bare legacy timestamp has no trustworthy provenance. Never
+      // infer a current paid subscription from an unrelated historical
+      // payment; explicit payment flows persist their own paid row.
+      const legacyState = active ? 'gift' : 'expired';
       const inserted = await dbPool.query(
-        `INSERT INTO premium_entitlements (user_id, tier_name, status, source, starts_at, ends_at, metadata)
-         VALUES ($1, 'premium', $2, 'users.premium_until', $3, $4, $5::jsonb)
+        `INSERT INTO premium_entitlements (
+           user_id, tier_name, status, entitlement_state, source, starts_at, ends_at, metadata
+         )
+         VALUES ($1, 'premium', $2, $3, 'users.premium_until', $4, $5, $6::jsonb)
          RETURNING *`,
         [
           id,
-          endsAt.getTime() > Date.now() ? 'active' : 'expired',
+          active ? 'active' : 'expired',
+          legacyState,
           user.created_at || new Date().toISOString(),
           endsAt.toISOString(),
-          JSON.stringify({ syncedFromUsersTable: true }),
+          JSON.stringify({
+            syncedFromUsersTable: true,
+            legacyKind: 'gift',
+          }),
         ]
       );
       return inserted.rows[0] ? mapPremiumEntitlementRow(inserted.rows[0]) : null;
@@ -2607,12 +2690,43 @@ export const db = {
       if (!DATABASE_URL) return null;
       try {
         const dbPool = getPool();
-        await dbPool.query(
+        const expired = await dbPool.query(
           `UPDATE premium_entitlements
-           SET status = 'expired', updated_at = CURRENT_TIMESTAMP
-           WHERE user_id = $1 AND status = 'active' AND ends_at <= NOW()`,
+           SET status = 'expired', entitlement_state = 'expired', updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = $1
+             AND status IN ('active', 'cancelled')
+             AND ends_at <= NOW()
+           RETURNING source, ends_at, metadata`,
           [id]
         );
+        for (const row of expired.rows || []) {
+          if (row.source !== 'rustore' || !row.metadata?.purchaseId) continue;
+          const purchaseIdHash = crypto
+            .createHash('sha256')
+            .update(String(row.metadata.purchaseId))
+            .digest('hex');
+          await dbPool.query(
+            `INSERT INTO user_app_events (user_id, event_type, section, source, payload_json)
+             SELECT $1, 'subscription_expired', 'premium', 'entitlement_expiry', $2::jsonb
+             WHERE NOT EXISTS (
+               SELECT 1 FROM user_app_events
+               WHERE user_id = $1
+                 AND event_type = 'subscription_expired'
+                 AND payload_json->>'purchase_id_hash' = $3
+                 AND payload_json->>'entitlement_ends_at' IS NOT DISTINCT FROM $4
+             )`,
+            [
+              id,
+              JSON.stringify({
+                entitlement_state: 'expired',
+                entitlement_ends_at: new Date(row.ends_at).toISOString(),
+                purchase_id_hash: purchaseIdHash,
+              }),
+              purchaseIdHash,
+              new Date(row.ends_at).toISOString(),
+            ],
+          );
+        }
 
         await this.syncFromUsersTable(userId);
 
@@ -2620,15 +2734,57 @@ export const db = {
           `SELECT *
            FROM premium_entitlements
            WHERE user_id = $1
-             AND status = 'active'
+             AND status IN ('active', 'cancelled')
+             AND entitlement_state IN ('gift', 'store_trial', 'paid', 'grace', 'cancelled_active')
              AND ends_at > NOW()
-           ORDER BY ends_at DESC
+           ORDER BY
+             CASE
+               WHEN source = 'rustore' THEN 0
+               WHEN source IN ('telegram_stars', 'stars') THEN 1
+               WHEN source = 'admin_gift' THEN 2
+               WHEN source = 'users.premium_until' THEN 4
+               ELSE 3
+             END,
+             ends_at DESC,
+             updated_at DESC,
+             id DESC
            LIMIT 1`,
           [id]
         );
         return result.rows[0] ? mapPremiumEntitlementRow(result.rows[0]) : null;
       } catch (error: any) {
         log.error('[DB] Error getting active premium entitlement', { error: error.message, userId });
+        throw error;
+      }
+    },
+
+    async getLatest(userId: string) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return null;
+      try {
+        const dbPool = getPool();
+        await this.syncFromUsersTable(userId);
+        const result = await dbPool.query(
+          `SELECT *
+           FROM premium_entitlements
+           WHERE user_id = $1
+           ORDER BY
+             CASE
+               WHEN source = 'rustore' THEN 0
+               WHEN source IN ('telegram_stars', 'stars') THEN 1
+               WHEN source = 'admin_gift' THEN 2
+               WHEN source = 'users.premium_until' THEN 4
+               ELSE 3
+             END,
+             updated_at DESC,
+             ends_at DESC,
+             id DESC
+           LIMIT 1`,
+          [id],
+        );
+        return result.rows[0] ? mapPremiumEntitlementRow(result.rows[0]) : null;
+      } catch (error: any) {
+        log.error('[DB] Error getting latest premium entitlement', { error: error.message, userId });
         throw error;
       }
     },

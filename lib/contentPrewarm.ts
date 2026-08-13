@@ -20,16 +20,18 @@ export type PrewarmPlanItem = {
 
 export const FREE_STARTUP_REQUIRED_TASK_IDS = [
   'personal_forecast_day',
+] as const satisfies readonly PrewarmTaskId[];
+
+export const PREMIUM_STARTUP_REQUIRED_TASK_IDS = [
+  'personal_forecast_day',
   'personal_forecast_week',
   'personal_forecast_month',
 ] as const satisfies readonly PrewarmTaskId[];
 
-export const PREMIUM_STARTUP_REQUIRED_TASK_IDS = [
-  ...FREE_STARTUP_REQUIRED_TASK_IDS,
-] as const satisfies readonly PrewarmTaskId[];
-
-export function getStartupRequiredTaskIds(_isPremium: boolean): PrewarmTaskId[] {
-  return [...FREE_STARTUP_REQUIRED_TASK_IDS];
+export function getStartupRequiredTaskIds(isPremium: boolean): PrewarmTaskId[] {
+  return isPremium
+    ? [...PREMIUM_STARTUP_REQUIRED_TASK_IDS]
+    : [...FREE_STARTUP_REQUIRED_TASK_IDS];
 }
 
 const PRIORITY_ORDER: Record<PrewarmPriority, number> = {
@@ -54,10 +56,23 @@ export function buildFreePrewarmPlan(
       contentVariant: 'daily',
       cacheKey: periodKeys.day,
     },
+  ];
+}
+
+export function buildPremiumPrewarmPlan(periodKeys: PersonalForecastPrewarmKeys): PrewarmPlanItem[] {
+  return [
+    {
+      id: 'personal_forecast_day',
+      priority: 'high',
+      accessTier: 'premium',
+      contentSurface: 'forecast',
+      contentVariant: 'daily',
+      cacheKey: periodKeys.day,
+    },
     {
       id: 'personal_forecast_week',
       priority: 'medium',
-      accessTier: 'free',
+      accessTier: 'premium',
       contentSurface: 'forecast',
       contentVariant: 'weekly',
       cacheKey: periodKeys.week,
@@ -65,19 +80,12 @@ export function buildFreePrewarmPlan(
     {
       id: 'personal_forecast_month',
       priority: 'medium',
-      accessTier: 'free',
+      accessTier: 'premium',
       contentSurface: 'forecast',
       contentVariant: 'monthly',
       cacheKey: periodKeys.month,
     },
   ];
-}
-
-export function buildPremiumPrewarmPlan(periodKeys: PersonalForecastPrewarmKeys): PrewarmPlanItem[] {
-  return buildFreePrewarmPlan(periodKeys).map((item) => ({
-    ...item,
-    accessTier: 'premium',
-  }));
 }
 
 export function buildUserPrewarmPlan(

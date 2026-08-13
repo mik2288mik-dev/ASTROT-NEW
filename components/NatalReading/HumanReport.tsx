@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Crown, MessageCircle, Send } from 'lucide-react';
 import type {
@@ -40,6 +40,7 @@ import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { EditorialSticker } from '../EditorialSticker';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
+import type { PaywallContext } from '../../lib/paywallContext';
 
 export type PreloadedNatalReport = {
   report: NatalPermanentFreeReport;
@@ -52,12 +53,15 @@ type Props = {
   chartData: NatalChartData;
   chartId?: number;
   chartSubject?: ChartListItem | null;
-  requestPremium: () => void;
+  requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: PreloadedNatalReport | null;
   editorialSticker?: EditorialStickerAsset | null;
   /** Шапку (имя/дата/интро) рисует родитель (NatalMagazine) — не дублируем. */
   hideIntro?: boolean;
+  premiumContinuation?: PaywallContext | null;
+  onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
+  canPromotePremium?: boolean;
 };
 
 const SIGN_RU: Record<string, string> = {
@@ -602,6 +606,9 @@ export const HumanReport: React.FC<Props> = ({
   preloadedReport,
   editorialSticker,
   hideIntro,
+  premiumContinuation,
+  onPremiumContinuationHandled,
+  canPromotePremium = true,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
   const subjectName = chartSubject?.name || profile.name;
@@ -710,9 +717,16 @@ export const HumanReport: React.FC<Props> = ({
     setQuestionError(null);
   }, [reportIdentity]);
 
-  const openQuestions = () => {
+  const openQuestions = useCallback(() => {
     if (!isPremium) {
-      requestPremium();
+      void requestPremium('natal_questions', {
+        placement: 'natal_questions',
+        featureKey: 'natal_questions',
+        triggerType: 'locked_feature',
+        returnView: 'chart',
+        returnScrollAnchor: 'natal-question-action',
+        returnAction: 'open_natal_questions',
+      });
       return;
     }
     setQuestionOpen(true);
@@ -723,7 +737,33 @@ export const HumanReport: React.FC<Props> = ({
       .then(setQuestionSnapshot)
       .catch((loadError) => setQuestionError(formatError(loadError)))
       .finally(() => setQuestionLoading(false));
-  };
+  }, [chartId, isPremium, requestPremium, userId]);
+
+  useEffect(() => {
+    if (!isPremium || !premiumContinuation || premiumContinuation.returnView !== 'chart') return;
+    if (
+      premiumContinuation.featureKey === 'natal_questions'
+      && premiumContinuation.returnAction === 'open_natal_questions'
+    ) {
+      openQuestions();
+      onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
+      return;
+    }
+    if (
+      (premiumContinuation.featureKey === 'natal_deep'
+        || premiumContinuation.featureKey === 'personality_deep')
+      && premiumReport
+    ) {
+      document.getElementById('natal-deep-premium')?.scrollIntoView({ block: 'center' });
+      onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
+    }
+  }, [
+    isPremium,
+    onPremiumContinuationHandled,
+    openQuestions,
+    premiumContinuation,
+    premiumReport,
+  ]);
 
   const submitQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -852,11 +892,13 @@ export const HumanReport: React.FC<Props> = ({
           premiumLoading && !premiumReport ? (
             null
           ) : premiumReport ? (
-            <PremiumReport
-              report={premiumReport}
-              evidenceById={evidenceById}
-              language={language}
-            />
+            <div id="natal-deep-premium">
+              <PremiumReport
+                report={premiumReport}
+                evidenceById={evidenceById}
+                language={language}
+              />
+            </div>
           ) : premiumError ? (
             <section className="natal-report-error" role="alert">
               <p className="text-[13px] leading-relaxed text-[#a14f4f]">{premiumError}</p>
@@ -869,8 +911,8 @@ export const HumanReport: React.FC<Props> = ({
               </button>
             </section>
           ) : null
-        ) : (
-          <section className="natal-premium-callout">
+        ) : canPromotePremium ? (
+          <section id="natal-deep-premium" className="natal-premium-callout">
             <h2>
               {language === 'ru' ? 'Полный портрет карты' : 'The complete chart portrait'}
             </h2>
@@ -881,18 +923,25 @@ export const HumanReport: React.FC<Props> = ({
             </p>
             <button
               type="button"
-              onClick={requestPremium}
+              onClick={() => void requestPremium('deep_natal', {
+                placement: 'deep_natal',
+                featureKey: 'natal_deep',
+                triggerType: 'locked_feature',
+                returnView: 'chart',
+                returnScrollAnchor: 'natal-deep-premium',
+                returnAction: 'open_deep_natal',
+              })}
               className="natal-premium-button"
             >
               <Crown size={16} strokeWidth={2} />
               {language === 'ru' ? 'Открыть в Premium' : 'Unlock with Premium'}
             </button>
           </section>
-        )}
+        ) : null}
 
         <TechnicalDetails chartData={chartData} language={language} />
 
-        <section className="natal-question-action">
+        <section id="natal-question-action" className="natal-question-action">
           <button
             type="button"
             onClick={openQuestions}

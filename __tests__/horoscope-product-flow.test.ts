@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Horoscope product flow', () => {
-  it('opens with the forecast above the 12-sign grid and scrolls every manual choice back to the reading', () => {
+  it('opens the Today forecast above the 12-sign grid and scrolls every manual choice back to the reading', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
     const picker = read('components/fresh-ui/ZodiacSignGrid.tsx');
     const service = read('services/astrologyService.ts');
@@ -26,7 +26,7 @@ describe('Horoscope product flow', () => {
     expect(picker).toContain('zodiac-sign-picker--persistent');
     expect(picker).toContain('ZodiacIllustration');
     expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
-    expect(source).toContain('horo-reader-controls');
+    expect(source).not.toContain('horo-reader-controls');
     expect(source).toContain('horo-reader-sign-grid');
     expect(source).toContain('horo-reader-period-date');
     expect(source).toContain('horo-reader-article');
@@ -36,8 +36,7 @@ describe('Horoscope product flow', () => {
     expect(source).toContain("<AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'} />");
     expect(source).not.toContain("<h1>{language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}</h1>");
     const render = source.slice(source.indexOf('return (', source.indexOf('const hasReadingFailure')));
-    expect(render.indexOf('horo-reader-period-date')).toBeLessThan(render.indexOf('horo-reader-controls'));
-    expect(render.indexOf('horo-reader-controls')).toBeLessThan(render.indexOf('horo-reader-selected-sign'));
+    expect(render.indexOf('horo-reader-period-date')).toBeLessThan(render.indexOf('horo-reader-selected-sign'));
     expect(render.indexOf('horo-reader-selected-sign')).toBeLessThan(render.indexOf('horo-reader-headline'));
     expect(render.indexOf('horo-reader-headline')).toBeLessThan(render.indexOf('{displayedReading.text}'));
     expect(render.indexOf('{displayedReading.text}')).toBeLessThan(render.indexOf('horo-reader-sign-grid'));
@@ -54,9 +53,10 @@ describe('Horoscope product flow', () => {
     expect(styles).toContain('text-align: center');
     expect(styles).toContain('background: transparent');
     expect(styles).toContain('transform: none');
+    expect(source).toContain("type Period = 'today';");
     expect(source).toContain('ensureDailySignHoroscope');
-    expect(source).toContain('ensureWeeklySignHoroscope');
-    expect(source).toContain('ensureMonthlySignHoroscope');
+    expect(source).not.toContain('ensureWeeklySignHoroscope');
+    expect(source).not.toContain('ensureMonthlySignHoroscope');
     expect(source).toContain('ZODIAC_KEYS');
     expect(source).toContain('{displayedReading.headline}');
     expect(source).toContain('{displayedReading.text}');
@@ -108,8 +108,10 @@ describe('Horoscope product flow', () => {
 
   it('keeps all twelve Today signs free and never replaces the profile own sign while browsing', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
-    expect(source).toContain("period !== 'today'");
-    expect(source).toContain("canAccessFeature('weekly_sign_horoscope'");
+    expect(source).toContain("type Period = 'today';");
+    expect(source).toContain("const period: Period = 'today';");
+    expect(source).not.toContain("period !== 'today'");
+    expect(source).not.toContain("canAccessFeature('weekly_sign_horoscope'");
     expect(source).not.toContain('FREE_EXTRA_QUOTA');
     expect(source).not.toContain('PREMIUM_EXTRA_QUOTA');
     expect(source).not.toContain('lumia:horo-extra-signs');

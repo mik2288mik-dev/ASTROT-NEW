@@ -17,8 +17,8 @@ describe('chart onboarding and lazy sections', () => {
 
   it('returns completed chart onboarding to the requested target', () => {
     const app = read('App.tsx');
-    expect(app).toContain("const targetView = isGuestOnboarding ? 'personality' : onboardingTargetViewRef.current || 'personality'");
-    expect(app).toContain("setView('personality')");
+    expect(app).toContain("const targetView = onboardingTargetViewRef.current || 'dashboard'");
+    expect(app).toContain("setDashboardPeriod('day')");
     expect(app).toContain('setView(targetView)');
     expect(app).toContain('isSetup: true');
     expect(app).toContain('await saveProfile(fullProfile)');

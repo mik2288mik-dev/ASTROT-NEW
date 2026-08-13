@@ -45,11 +45,22 @@ type DashboardProps = {
   currentDateKey?: string;
   onCreateNatalChart?: () => void;
   requestedPeriod?: PersonalForecastPeriod;
+  onPeriodChange?: (period: PersonalForecastPeriod) => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
   ) => Promise<void> | void;
+  onPremiumAnalytics?: (
+    eventType:
+      | 'first_value_viewed'
+      | 'locked_feature_tapped'
+      | 'premium_promo_impression'
+      | 'premium_promo_clicked'
+      | 'premium_promo_dismissed',
+    eventPayload: Record<string, unknown>,
+  ) => void;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
+  canPromotePremium?: boolean;
 };
 
 type PeriodState = {
@@ -122,8 +133,11 @@ export const Dashboard = memo<DashboardProps>(({
   currentDateKey,
   onCreateNatalChart,
   requestedPeriod,
+  onPeriodChange,
   onRequestPremium,
+  onPremiumAnalytics,
   scrollRef,
+  canPromotePremium = true,
 }) => {
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const userId = String(profile.id || 'guest');
@@ -150,6 +164,7 @@ export const Dashboard = memo<DashboardProps>(({
   const pendingSectionRef = useRef<string | null>(null);
   const stickerPlanCacheRef = useRef<Map<string, DiaryEditorialPause[]>>(new Map());
   const recentStickerIdsRef = useRef<string[]>([]);
+  const previousPremiumRef = useRef(premium);
 
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => ({
     day: getPersonalForecastPeriodKey('day', new Date(), timezone),
@@ -245,20 +260,30 @@ export const Dashboard = memo<DashboardProps>(({
     options?: { retry?: boolean; cacheOnly?: boolean },
   ) => {
     if (!chartData || !hasChart) return;
+    if (!premium && period !== 'day') {
+      setPeriodStates((current) => ({
+        ...current,
+        [period]: emptyPeriodState(),
+      }));
+      return;
+    }
     const currentRequest = requestsRef.current[period];
     const cacheOnly = options?.cacheOnly === true;
     if (currentRequest && (!currentRequest.cacheOnly || cacheOnly)) return;
 
     const periodKey = periodKeys[period];
-    const local = readLocalPersonalForecast({
+    const localCandidate = readLocalPersonalForecast({
       profile,
       chartData,
       chartId,
       period,
       periodKey,
     });
+    const expectedAccessTier = premium ? 'premium' : 'free';
+    const local = localCandidate?.accessTier === expectedAccessTier ? localCandidate : null;
     setPeriodStates((current) => {
-      const retained = current[period]?.result || local;
+      const currentResult = current[period]?.result;
+      const retained = currentResult?.accessTier === expectedAccessTier ? currentResult : local;
       return {
         ...current,
         [period]: {
@@ -306,25 +331,34 @@ export const Dashboard = memo<DashboardProps>(({
           (error as PersonalForecastClientError)?.code
             === 'PERSONAL_FORECAST_PREMIUM_REQUIRED'
         ) {
-          setPeriodStates((current) => ({
-            ...current,
-            [period]: {
-              result: current[period]?.result || local,
-              phase: current[period]?.result || local ? 'ready' : 'idle',
-              errorCode: null,
-            },
-          }));
+          setPeriodStates((current) => {
+            const currentResult = current[period]?.result;
+            const retained = currentResult?.accessTier === expectedAccessTier ? currentResult : local;
+            return {
+              ...current,
+              [period]: {
+                result: retained,
+                phase: retained ? 'ready' : 'idle',
+                errorCode: null,
+              },
+            };
+          });
           void onRequestPremium?.('personal_forecast_feed', {
             period,
             periodKey,
-            returnInPlace: true,
+            placement: period,
+            featureKey: period === 'week' ? 'personal_weekly' : 'personal_monthly',
+            triggerType: 'locked_feature',
+            returnView: 'dashboard',
+            returnScrollAnchor: 'personal-forecast-reading',
           });
           return;
         }
         const errorCode = (error as PersonalForecastClientError)?.code
           || 'PERSONAL_FORECAST_GENERATION_FAILED';
         setPeriodStates((current) => {
-          const retained = current[period]?.result || local;
+          const currentResult = current[period]?.result;
+          const retained = currentResult?.accessTier === expectedAccessTier ? currentResult : local;
           return {
             ...current,
             [period]: {
@@ -350,6 +384,7 @@ export const Dashboard = memo<DashboardProps>(({
     premium,
     accessContextKey,
     onRequestPremium,
+    onPremiumAnalytics,
     periodKeys,
     profile,
   ]);
@@ -358,9 +393,28 @@ export const Dashboard = memo<DashboardProps>(({
     loadPeriod(activePeriod);
   }, [activePeriod, contextKey, loadPeriod]);
 
+  useEffect(() => {
+    const wasPremium = previousPremiumRef.current;
+    previousPremiumRef.current = premium;
+    if (!wasPremium && premium) {
+      loadPeriod(activePeriod, { cacheOnly: true });
+    } else if (wasPremium && !premium) {
+      pendingSectionRef.current = null;
+      onPeriodChange?.('day');
+      setPeriodStates({
+        day: emptyPeriodState(),
+        week: emptyPeriodState(),
+        month: emptyPeriodState(),
+      });
+    }
+  }, [activePeriod, loadPeriod, onPeriodChange, premium]);
+
   const state = periodStates[activePeriod];
   const displayPeriod = activePeriod;
-  const result = selectActiveReadyPersonalForecast(activePeriod, periodStates);
+  const candidateResult = selectActiveReadyPersonalForecast(activePeriod, periodStates);
+  const result = candidateResult?.accessTier === (premium ? 'premium' : 'free')
+    ? candidateResult
+    : null;
   const forecast = result?.forecast || null;
   const lockedIds = useMemo(
     () => new Set(result?.lockedSectionIds || []),
@@ -455,15 +509,33 @@ export const Dashboard = memo<DashboardProps>(({
   }, [requestedPeriod, scrollRef]);
 
   const requestPremium = useCallback(() => {
+    if (displayPeriod !== 'day') {
+      onPremiumAnalytics?.('locked_feature_tapped', {
+        placement: displayPeriod,
+        featureKey: displayPeriod === 'week' ? 'personal_weekly' : 'personal_monthly',
+        periodKey: forecast?.periodKey || periodKeys[displayPeriod],
+      });
+    }
     void onRequestPremium?.('personal_forecast_feed', {
       period: displayPeriod,
       periodKey: forecast?.periodKey || periodKeys[displayPeriod],
-      returnInPlace: true,
+      placement: displayPeriod === 'day' ? 'today' : displayPeriod,
+      featureKey: displayPeriod === 'day'
+        ? 'personal_daily_full'
+        : displayPeriod === 'week'
+          ? 'personal_weekly'
+          : 'personal_monthly',
+      triggerType: displayPeriod === 'day' ? 'inline_promo' : 'locked_feature',
+      returnView: 'dashboard',
+      returnScrollAnchor: displayPeriod === 'day'
+        ? 'today-premium-teaser'
+        : 'personal-forecast-reading',
     });
-  }, [displayPeriod, forecast?.periodKey, onRequestPremium, periodKeys]);
+  }, [displayPeriod, forecast?.periodKey, onPremiumAnalytics, onRequestPremium, periodKeys]);
 
   return (
     <div
+      id="personal-forecast-reading"
       className={`fresh-page home-screen forecast-feed-page lumia-main-scroll is-${displayPeriod}`}
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
@@ -514,6 +586,24 @@ export const Dashboard = memo<DashboardProps>(({
             {language === 'ru' ? 'Создать карту' : 'Create a chart'}
           </button>
         </section>
+      ) : !premium && displayPeriod !== 'day' ? (
+        <section className="forecast-feed-status is-locked" aria-live="polite">
+          <h1>
+            {language === 'ru'
+              ? `${displayPeriod === 'week' ? 'Неделя' : 'Месяц'} — в Premium`
+              : `${displayPeriod === 'week' ? 'Week' : 'Month'} is in Premium`}
+          </h1>
+          <p>
+            {language === 'ru'
+              ? 'Этот личный прогноз не создаётся в Free. Открой Premium, когда захочешь продолжить.'
+              : 'This personal forecast is not generated on Free. Open Premium when you want to continue.'}
+          </p>
+          {canPromotePremium ? (
+            <button type="button" onClick={requestPremium}>
+              {language === 'ru' ? 'Посмотреть Premium' : 'View Premium'}
+            </button>
+          ) : null}
+        </section>
       ) : !forecast || forecast.meta.status !== 'ready' ? (
         state.phase === 'error' ? (
           <section
@@ -551,7 +641,28 @@ export const Dashboard = memo<DashboardProps>(({
           userId={userId}
           periodKey={forecast.periodKey}
           language={language}
+          premium={premium}
           onRequestPremium={requestPremium}
+          onFirstValueViewed={() => onPremiumAnalytics?.('first_value_viewed', {
+            placement: 'today',
+            featureKey: 'personal_daily',
+            periodKey: forecast.periodKey,
+          })}
+          onPremiumTeaserImpression={() => onPremiumAnalytics?.('premium_promo_impression', {
+            placement: 'today',
+            featureKey: 'personal_daily_full',
+            periodKey: forecast.periodKey,
+          })}
+          onPremiumTeaserClick={() => onPremiumAnalytics?.('premium_promo_clicked', {
+            placement: 'today',
+            featureKey: 'personal_daily_full',
+            periodKey: forecast.periodKey,
+          })}
+          onPremiumTeaserDismiss={() => onPremiumAnalytics?.('premium_promo_dismissed', {
+            placement: 'today',
+            featureKey: 'personal_daily_full',
+            periodKey: forecast.periodKey,
+          })}
         />
       ) : (
         <article

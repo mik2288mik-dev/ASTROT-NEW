@@ -39,6 +39,7 @@ import {
   resolveCompatibilityPairLevel,
   type CompatibilityPairLevel,
 } from '../../lib/synastry/compatibilityInput';
+import type { PaywallContext } from '../../lib/paywallContext';
 
 type CompatibilityPersonSource = 'birth' | 'saved' | 'sign';
 
@@ -55,11 +56,14 @@ type UnionRoomProps = {
   profile: UserProfile;
   chartData?: NatalChartData | null;
   chartId?: number | null;
-  requestPremium: () => void;
+  requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   initialPrefill?: SynastryPrefill;
   onOpenCharts?: () => void;
   onCreateNatalChart?: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
+  premiumContinuation?: PaywallContext | null;
+  onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
+  canPromotePremium?: boolean;
 };
 
 type Selected = {
@@ -583,7 +587,17 @@ function CompatBlock({ title, index, reduce, children }: {
 }
 
 export function UnionRoom(props: UnionRoomProps) {
-  const { profile, chartData, chartId, requestPremium, initialPrefill, onOpenCharts } = props;
+  const {
+    profile,
+    chartData,
+    chartId,
+    requestPremium,
+    initialPrefill,
+    onOpenCharts,
+    premiumContinuation,
+    onPremiumContinuationHandled,
+    canPromotePremium = true,
+  } = props;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
   const reduce = useReducedMotion();
@@ -681,7 +695,12 @@ export function UnionRoom(props: UnionRoomProps) {
   }, [profile.id, premium, chartId]);
 
   useEffect(() => {
-    if (!premium) setEntryMode('sign');
+    if (!premium) {
+      setEntryMode('sign');
+      setDeep(null);
+      setDeepLoading(false);
+      autoDeepKeyRef.current = null;
+    }
   }, [premium]);
 
   useEffect(() => {
@@ -868,7 +887,6 @@ export function UnionRoom(props: UnionRoomProps) {
   };
 
   const submitAdd = () => {
-    if (!premium) { requestPremium(); return; }
     if (subjectResolvedSource === 'sign' && partnerResolvedSource === 'sign') {
       setError(null);
       openResult({
@@ -881,6 +899,16 @@ export function UnionRoom(props: UnionRoomProps) {
         youGender,
         themGender: fGender,
         calculationLevel: 'sign_only',
+      });
+      return;
+    }
+    if (!premium) {
+      void requestPremium('compatibility_by_charts', {
+        placement: 'compatibility_by_charts',
+        featureKey: 'synastry_by_charts',
+        triggerType: 'locked_feature',
+        returnView: 'synastry',
+        returnAction: 'submit_birth_compatibility',
       });
       return;
     }
@@ -952,7 +980,16 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const runDeep = useCallback(async () => {
     if (!selected || selected.kind !== 'person' || deepLoading) return;
-    if (!premium) { requestPremium(); return; }
+    if (!premium) {
+      void requestPremium('compatibility_by_charts', {
+        placement: 'compatibility_by_charts',
+        featureKey: 'synastry_by_charts',
+        triggerType: 'locked_feature',
+        returnView: 'synastry',
+        returnAction: 'run_deep_compatibility',
+      });
+      return;
+    }
     if (
       (selected.chartId != null && (!peopleLoaded || !availableCharts.some((chart) => chart.id === selected.chartId)))
       || (selected.subjectChartId != null && (!peopleLoaded || !availableCharts.some((chart) => chart.id === selected.subjectChartId)))
@@ -1006,6 +1043,25 @@ export function UnionRoom(props: UnionRoomProps) {
   }, [selected, deepLoading, premium, requestPremium, peopleLoaded, availableCharts, profile, ru]);
 
   useEffect(() => {
+    if (!premium || !premiumContinuation || premiumContinuation.returnView !== 'synastry') return;
+    if (premiumContinuation.featureKey !== 'synastry_by_charts') return;
+    if (premiumContinuation.returnAction === 'run_deep_compatibility') {
+      void runDeep();
+    } else if (premiumContinuation.returnAction === 'submit_birth_compatibility') {
+      submitAdd();
+    } else {
+      setEntryMode('birth');
+      setScreen('add');
+    }
+    onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
+  }, [
+    onPremiumContinuationHandled,
+    premium,
+    premiumContinuation,
+    runDeep,
+  ]);
+
+  useEffect(() => {
     if (screen !== 'result' || selected?.kind !== 'person' || !premium || !peopleLoaded) return;
     const key = [
       selected.subjectSource,
@@ -1035,7 +1091,13 @@ export function UnionRoom(props: UnionRoomProps) {
             onClick={() => {
               lumiaSelectionHaptic();
               if (!premium) {
-                requestPremium();
+                void requestPremium('compatibility_by_charts', {
+                  placement: 'compatibility_by_charts',
+                  featureKey: 'synastry_by_charts',
+                  triggerType: 'locked_feature',
+                  returnView: 'synastry',
+                  returnAction: 'open_birth_compatibility',
+                });
                 return;
               }
               setError(null);
@@ -1398,7 +1460,7 @@ export function UnionRoom(props: UnionRoomProps) {
             </React.Fragment>
           ))}
         </div>
-      ) : (!isPerson || !deep) ? (
+      ) : (!isPerson || (premium && !deep)) ? (
         <p className="union-pad" role="status" aria-live="polite" style={{ marginTop: 12, color: 'var(--fresh-muted)', fontSize: 14 }}>
           {isPerson
             ? (deepLoading ? (ru ? 'Сопоставляем данные…' : 'Comparing the data…') : (ru ? 'Готовим подробный разбор…' : 'Preparing the detailed reading…'))
@@ -1406,7 +1468,7 @@ export function UnionRoom(props: UnionRoomProps) {
         </p>
       ) : null}
 
-      {deep ? (
+      {premium && deep ? (
         <div className="compat-read" style={{ marginTop: 18 }}>
           <CompatBlock title={resultDeepTitles[1]} index={0} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
           <CompatBlock title={resultDeepTitles[2]} index={1} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
@@ -1415,7 +1477,7 @@ export function UnionRoom(props: UnionRoomProps) {
             <EditorialProse text={deep.summary} />
           </EditorialSummary>
         </div>
-      ) : isPerson ? (
+      ) : isPerson && (premium || canPromotePremium) ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} disabled={deepLoading} onClick={() => void runDeep()}>
           <div className="horo-premium-text">
             <div className="horo-premium-kicker">{ru ? 'Подробная совместимость' : 'Detailed compatibility'}</div>
@@ -1425,11 +1487,17 @@ export function UnionRoom(props: UnionRoomProps) {
           </div>
           <span className="horo-premium-cta">{!premium ? 'Premium' : (ru ? 'Открыть' : 'Open')}<ChevronRightIcon size={15} /></span>
         </button>
-      ) : (
+      ) : !isPerson && (premium || canPromotePremium) ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} onClick={() => {
           lumiaSelectionHaptic();
           if (!premium) {
-            requestPremium();
+            void requestPremium('compatibility_by_charts', {
+              placement: 'compatibility_by_charts',
+              featureKey: 'synastry_by_charts',
+              triggerType: 'locked_feature',
+              returnView: 'synastry',
+              returnAction: 'open_birth_compatibility',
+            });
             return;
           }
           setEntryMode('birth');
@@ -1441,7 +1509,7 @@ export function UnionRoom(props: UnionRoomProps) {
           </div>
           <span className="horo-premium-cta">{premium ? (ru ? 'Открыть' : 'Open') : 'Premium'}<ChevronRightIcon size={15} /></span>
         </button>
-      )}
+      ) : null}
 
       {!isPerson && score ? (
         <details className="compat-technical-data">

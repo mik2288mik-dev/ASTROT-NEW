@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 const root = process.cwd();
 const channel = String(process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL || 'development').trim();
@@ -25,6 +26,33 @@ function requireValue(name, value) {
     || /^your[_-]/i.test(normalized)
   ) {
     errors.push(`${name} is required`);
+  }
+}
+
+function csvValues(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function isBase64Aes256Key(value) {
+  const encoded = String(value || '').trim();
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)) return false;
+  const decoded = Buffer.from(encoded, 'base64');
+  return decoded.length === 32 && decoded.toString('base64') === encoded;
+}
+
+function isBase64Pkcs8PrivateKey(value) {
+  const encoded = String(value || '').replace(/\s+/g, '');
+  if (!encoded) return false;
+  try {
+    const decoded = Buffer.from(encoded, 'base64');
+    if (decoded.toString('base64') !== encoded) return false;
+    const key = crypto.createPrivateKey({ key: decoded, format: 'der', type: 'pkcs8' });
+    return key.asymmetricKeyType === 'rsa';
+  } catch {
+    return false;
   }
 }
 
@@ -133,9 +161,43 @@ if (channel === 'rustore' && rustorePaymentsEnabled) {
     errors.push('RUSTORE_PACKAGE_NAME must match applicationId');
   }
   if (release) {
-    requireValue('RUSTORE_PUBLIC_API_TOKEN', process.env.RUSTORE_PUBLIC_API_TOKEN);
+    requireValue('RUSTORE_KEY_ID', process.env.RUSTORE_KEY_ID);
+    requireValue('RUSTORE_PRIVATE_KEY_BASE64', process.env.RUSTORE_PRIVATE_KEY_BASE64);
     requireValue('RUSTORE_NOTIFICATION_AES_KEY', process.env.RUSTORE_NOTIFICATION_AES_KEY);
+    if (String(process.env.RUSTORE_PAY_MODE || '').trim().toLowerCase() !== 'production') {
+      errors.push('RUSTORE_PAY_MODE must be production for a release');
+    }
+
+    const clientProductIds = [
+      process.env.NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH,
+      process.env.NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER,
+      process.env.NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR,
+    ].map((value) => String(value || '').trim()).filter(Boolean);
+    const allowedProductIds = csvValues(process.env.RUSTORE_ALLOWED_PRODUCT_IDS);
+    const clientProductSet = new Set(clientProductIds);
+    const allowedProductSet = new Set(allowedProductIds);
+    const exactProductMatch = clientProductIds.length === 3
+      && clientProductSet.size === 3
+      && allowedProductIds.length === allowedProductSet.size
+      && allowedProductSet.size === clientProductSet.size
+      && [...clientProductSet].every((productId) => allowedProductSet.has(productId));
+    if (!exactProductMatch) {
+      errors.push('RUSTORE_ALLOWED_PRODUCT_IDS must exactly match the three NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_* IDs');
+    }
+
+    const callbackKey = String(process.env.RUSTORE_NOTIFICATION_AES_KEY || '').trim();
+    if (callbackKey && !callbackKey.includes('_REQUIRED') && !isBase64Aes256Key(callbackKey)) {
+      errors.push('RUSTORE_NOTIFICATION_AES_KEY must be a base64-encoded 32-byte AES-256 key');
+    }
+    const privateKey = String(process.env.RUSTORE_PRIVATE_KEY_BASE64 || '').replace(/\s+/g, '');
+    if (privateKey && !privateKey.includes('_REQUIRED') && !isBase64Pkcs8PrivateKey(privateKey)) {
+      errors.push('RUSTORE_PRIVATE_KEY_BASE64 must be a base64-encoded PKCS#8 RSA private key');
+    }
   }
+}
+
+if (release && channel === 'rustore' && !rustorePaymentsEnabled) {
+  errors.push('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED must be enabled for a RuStore release with subscriptions');
 }
 
 if (channel !== 'rustore' && rustorePaymentsEnabled) {

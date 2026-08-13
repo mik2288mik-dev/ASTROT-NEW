@@ -375,7 +375,7 @@ function StorySheet({
   const depthRef = useRef(0);
   const body = isLocked
     ? firstTextLine(card.bodyFree)
-    : paidSection?.content || (isPremium && card.bodyPremium ? card.bodyPremium : card.bodyFree);
+    : (isPremium && paidSection?.content) || (isPremium && card.bodyPremium ? card.bodyPremium : card.bodyFree);
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
     const maxScroll = Math.max(1, target.scrollHeight - target.clientHeight);
@@ -594,6 +594,14 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     const viewedCardsRef = useRef<Set<NatalStoryCardId>>(new Set());
     const dragX = useMotionValue(0);
     const reduceMotion = useReducedMotion();
+
+    useEffect(() => {
+      if (isPremium) return;
+      setPaidSections({});
+      setPaidLoading(null);
+      setUnlockTarget(null);
+      setSectionError(null);
+    }, [isPremium]);
 
     useEffect(() => {
       try {
@@ -955,8 +963,8 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     }
 
     const paidKeyForSheet = sheetCard ? getPaidKey(sheetCard) : null;
-    const paidSectionForSheet = paidKeyForSheet ? paidSections[paidKeyForSheet] : undefined;
-    const isSheetLocked = !!paidKeyForSheet && !isPremium && !paidSectionForSheet;
+    const paidSectionForSheet = isPremium && paidKeyForSheet ? paidSections[paidKeyForSheet] : undefined;
+    const isSheetLocked = !!paidKeyForSheet && !isPremium;
     const nextCards = [1, 2].map((offset) => cards[Math.min(cards.length - 1, activeIndex + offset)]).filter(Boolean);
 
     return (
@@ -1023,6 +1031,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
           ))}
 
           <motion.div
+            id={`natal-story-${activeCard.id}`}
             className="absolute inset-x-0 top-0 z-20 h-full touch-pan-y"
             drag={reduceMotion || !dragEnabled ? false : 'x'}
             dragConstraints={{ left: 0, right: 0 }}
@@ -1188,15 +1197,23 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
             }}
             onPremium={() => {
               const card = cards.find((item) => getPaidKey(item) === unlockTarget);
-              fireStoryEvent('natal_trial_start', {
+              fireStoryEvent('locked_feature_tapped', {
                 card_id: card?.id,
                 source: 'story_unlock_sheet',
-                trial_supported: false,
               });
               setUnlockTarget(null);
               void requestPremium('natal_story_unlock', {
                 card_id: card?.id,
                 section_key: unlockTarget,
+                placement: unlockTarget === 'inner_reactions'
+                  ? 'personality_deep'
+                  : 'deep_natal',
+                featureKey: unlockTarget === 'inner_reactions'
+                  ? 'personality_deep'
+                  : 'natal_deep',
+                triggerType: 'locked_feature',
+                returnView: 'chart',
+                returnScrollAnchor: `natal-story-${card?.id || 'premium'}`,
               });
             }}
           />

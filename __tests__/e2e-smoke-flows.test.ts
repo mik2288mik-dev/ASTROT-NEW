@@ -42,8 +42,10 @@ describe('E2E smoke flow contracts', () => {
 
   it('natal Premium gate is chart-first and Premium-second', () => {
     const access = read('lib/accessMatrix.ts');
-    expect(access).toContain("{ key: 'natal_basic', tier: 'free', needsChart: true");
-    expect(access).toContain("{ key: 'natal_love', tier: 'pro', needsChart: true");
+    expect(access).toContain("'natal_basic'");
+    expect(access).toContain("'natal_love'");
+    expect(access).toContain("buildTierEntries('free', CANONICAL_ACCESS_CONTRACT.free.featureKeys)");
+    expect(access).toContain("buildTierEntries('premium', CANONICAL_ACCESS_CONTRACT.premium.featureKeys)");
     expect(access).toContain("status: 'needs_chart'");
     expect(access).toContain("status: 'needs_premium'");
   });

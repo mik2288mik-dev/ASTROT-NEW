@@ -2780,11 +2780,11 @@ async function mvp039RuStorePay(pool: Pool): Promise<void> {
       external_invoice_id TEXT,
       external_product_id TEXT NOT NULL,
       status TEXT NOT NULL,
-      purchased_at TIMESTAMP,
-      expires_at TIMESTAMP,
-      last_validated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      purchased_at TIMESTAMPTZ,
+      expires_at TIMESTAMPTZ,
+      last_validated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT store_purchases_provider CHECK (provider IN ('rustore'))
     )
   `);
@@ -3338,6 +3338,155 @@ async function mvp043PasswordAuthentication(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+/** Canonical Premium states and crash-safe RuStore callback processing. */
+async function mvp044PremiumEntitlementLifecycle(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_044_premium_entitlement_lifecycle';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`ALTER TABLE premium_entitlements
+    ADD COLUMN IF NOT EXISTS entitlement_state TEXT NOT NULL DEFAULT 'gift'`);
+  await pool.query(`
+    UPDATE premium_entitlements pe
+    SET entitlement_state = CASE
+      WHEN pe.ends_at <= NOW() OR pe.status = 'expired' THEN 'expired'
+      -- Before lifecycle states existed, RuStore HOLD/paused rows were stored
+      -- as cancelled and deliberately excluded from access. Never re-grant
+      -- those rows during backfill; future cancellations use explicit state.
+      WHEN pe.source = 'rustore' AND pe.status = 'cancelled' THEN 'expired'
+      WHEN pe.status = 'cancelled' AND pe.ends_at > NOW() THEN 'cancelled_active'
+      WHEN pe.source = 'rustore' THEN 'paid'
+      WHEN pe.source IN ('telegram_stars', 'stars') THEN 'paid'
+      WHEN pe.source <> 'users.premium_until' AND pe.metadata->>'legacyKind' = 'paid' THEN 'paid'
+      ELSE 'gift'
+    END
+    WHERE pe.entitlement_state = 'gift'
+  `);
+  await pool.query(`
+    UPDATE premium_entitlements
+    SET status = 'expired', updated_at = CURRENT_TIMESTAMP
+    WHERE source = 'rustore'
+      AND entitlement_state = 'expired'
+      AND status <> 'expired'
+  `);
+  await pool.query(`ALTER TABLE premium_entitlements
+    DROP CONSTRAINT IF EXISTS premium_entitlements_lifecycle_state`);
+  await pool.query(`ALTER TABLE premium_entitlements
+    ADD CONSTRAINT premium_entitlements_lifecycle_state
+    CHECK (entitlement_state IN (
+      'free', 'gift', 'store_trial', 'paid', 'grace', 'cancelled_active', 'expired'
+    ))`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_premium_entitlements_lifecycle
+    ON premium_entitlements(user_id, entitlement_state, ends_at DESC)`);
+
+  await pool.query(`ALTER TABLE store_purchases
+    ADD COLUMN IF NOT EXISTS entitlement_state TEXT NOT NULL DEFAULT 'expired'`);
+  await pool.query(`ALTER TABLE store_purchases
+    ADD COLUMN IF NOT EXISTS auto_renewing BOOLEAN`);
+  await pool.query(`
+    UPDATE store_purchases
+    SET entitlement_state = CASE
+      WHEN expires_at IS NULL OR expires_at <= NOW() OR status = 'expired' THEN 'expired'
+      WHEN status IN ('paused', 'hold') THEN 'expired'
+      WHEN status IN ('cancelled', 'cancelled_active') THEN 'cancelled_active'
+      ELSE 'paid'
+    END
+    WHERE entitlement_state = 'expired'
+  `);
+  await pool.query(`ALTER TABLE store_purchases
+    DROP CONSTRAINT IF EXISTS store_purchases_entitlement_state`);
+  await pool.query(`ALTER TABLE store_purchases
+    ADD CONSTRAINT store_purchases_entitlement_state
+    CHECK (entitlement_state IN (
+      'store_trial', 'paid', 'grace', 'cancelled_active', 'expired'
+    ))`);
+
+  await pool.query(`ALTER TABLE payment_provider_events
+    ADD COLUMN IF NOT EXISTS processing_started_at TIMESTAMPTZ`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_provider_events_processing_lease
+    ON payment_provider_events(processing_started_at)
+    WHERE processing_status = 'processing' AND processed_at IS NULL AND failed_at IS NULL`);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
+/** Monotonic provider time prevents an older RuStore callback from regressing access. */
+async function mvp045RuStoreCallbackOrdering(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_045_rustore_callback_ordering';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`ALTER TABLE store_purchases
+    ADD COLUMN IF NOT EXISTS provider_event_time TIMESTAMPTZ`);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
+/** Provider-only GRACE/HOLD facts survive manual validation until a newer callback. */
+async function mvp046RuStoreProviderOverlay(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_046_rustore_provider_overlay';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`ALTER TABLE store_purchases
+    ADD COLUMN IF NOT EXISTS provider_period TEXT`);
+  await pool.query(`ALTER TABLE store_purchases
+    ADD COLUMN IF NOT EXISTS provider_status TEXT`);
+  await pool.query(`ALTER TABLE store_purchases
+    ADD COLUMN IF NOT EXISTS provider_subscription_event_type TEXT`);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
+/** RuStore timestamps are provider-issued absolute instants, never local wall time. */
+async function mvp047RuStoreAbsoluteTimestamps(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_047_rustore_absolute_timestamps';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  // Historical TIMESTAMP values were written from ISO instants while production
+  // PostgreSQL ran in UTC. Convert only old timezone-less columns: on a fresh
+  // schema these are already TIMESTAMPTZ and must not be reinterpreted.
+  await pool.query(`
+    DO $$
+    DECLARE target_column TEXT;
+    BEGIN
+      FOREACH target_column IN ARRAY ARRAY[
+        'purchased_at', 'expires_at', 'last_validated_at', 'created_at', 'updated_at'
+      ] LOOP
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'store_purchases'
+            AND information_schema.columns.column_name = target_column
+            AND data_type = 'timestamp without time zone'
+        ) THEN
+          EXECUTE format(
+            'ALTER TABLE store_purchases ALTER COLUMN %I TYPE TIMESTAMPTZ USING %I AT TIME ZONE ''UTC''',
+            target_column,
+            target_column
+          );
+        END IF;
+      END LOOP;
+    END $$
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 /**
  * Enforce the email canonicalization already used by the application at the
  * database boundary. Existing case-fold collisions stop the migration for
@@ -3497,6 +3646,10 @@ export async function runMigrations(): Promise<void> {
   await mvp043PasswordAuthentication(pool);
   await mvp044EmailIdentityUniqueness(pool);
   await mvp045AuthExpiryTimezone(pool);
+  await mvp044PremiumEntitlementLifecycle(pool);
+  await mvp045RuStoreCallbackOrdering(pool);
+  await mvp046RuStoreProviderOverlay(pool);
+  await mvp047RuStoreAbsoluteTimestamps(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

@@ -28,6 +28,13 @@ jest.mock('../lib/natalChartPersistence', () => ({
   ensureCanonicalPrimaryChart: jest.fn(),
   repairCanonicalChartForUser: (...args: unknown[]) => mockRepairCanonicalChartForUser(...args),
 }));
+jest.mock('../lib/natalChartV2Repository', () => ({
+  natalChartV2Repository: {
+    getAll: (...args: unknown[]) => mockGetAll(...args),
+    getById: jest.fn(),
+    setIdentityMetadata: jest.fn(),
+  },
+}));
 jest.mock('../lib/serverLocks', () => ({
   tryAcquireLock: jest.fn(),
   releaseLock: jest.fn(),

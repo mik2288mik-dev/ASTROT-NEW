@@ -2,6 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireAppUser } from '../../../lib/auth/appAuth';
+import {
+  getPremiumEntitlementState,
+  publicPremiumEntitlementSnapshot,
+} from '../../../lib/contentArchitecture';
 
 // Logging utility
 const log = {
@@ -42,7 +46,7 @@ export default async function handler(
     if (req.method === 'POST') {
       return res.status(410).json({
         error: 'PREMIUM_ACTIVATION_ROUTE_RETIRED',
-        message: 'Use the verified store or Telegram payment flow.',
+        message: 'Direct Premium activation is disabled. Use a provider-validated payment flow.',
       });
     }
 
@@ -55,9 +59,14 @@ export default async function handler(
         return res.status(404).json({ error: 'User not found' });
       }
 
+      const entitlement = publicPremiumEntitlementSnapshot(
+        await getPremiumEntitlementState(id),
+      );
+
       return res.status(200).json({
-        isPremium: user.is_premium || false,
-        activatedAt: user.premium_until || null,
+        isPremium: entitlement.isPremium,
+        activatedAt: entitlement.endsAt,
+        premiumEntitlement: entitlement,
       });
     }
 

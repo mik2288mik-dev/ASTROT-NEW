@@ -3,6 +3,7 @@ import {
   getActiveTelegramInitData,
   getRawTelegramInitData,
 } from './authSessionIntent';
+import { sanitizeUserAppEvent } from '../lib/premiumAnalytics';
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
@@ -121,9 +122,11 @@ export async function recordUserAppEvent(payload: {
   eventType: string;
   section?: string | null;
   source?: string | null;
-  eventPayload?: Record<string, any>;
+  eventPayload?: Record<string, unknown>;
 }): Promise<void> {
   if (typeof window === 'undefined' || !payload.eventType) return;
+  const sanitizedEvent = sanitizeUserAppEvent(payload);
+  if (!sanitizedEvent) return;
 
   // Считаем всех: Telegram (по initData-заголовку) И веб-гостей (по cookie-сессии,
   // поэтому credentials:'include'). Раньше при отсутствии initData событие терялось.
@@ -135,7 +138,7 @@ export async function recordUserAppEvent(payload: {
       'Content-Type': 'application/json',
       ...(initData ? { [INIT_DATA_HEADER]: initData } : {}),
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(sanitizedEvent),
   }).catch((error) => {
     console.warn('[UserEvents] Failed:', error?.message || error);
   });

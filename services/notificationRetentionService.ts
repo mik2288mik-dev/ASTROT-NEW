@@ -93,6 +93,7 @@ type RecipientRow = {
   birthTime: string | null;
   birthPlace: string | null;
   premiumUntil: string | null;
+  hasActivePremiumEntitlement: boolean;
   lastLogin: string | null;
   /** Реальная последняя активность: max(last_login, created_at, последнее событие в user_app_events). */
   lastActivity: string | null;
@@ -831,6 +832,13 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
             u.birth_time,
             u.birth_place,
             u.premium_until,
+            EXISTS (
+              SELECT 1 FROM premium_entitlements pe
+              WHERE pe.user_id = u.id
+                AND pe.status IN ('active', 'cancelled')
+                AND pe.ends_at > NOW()
+                AND pe.entitlement_state IN ('gift', 'store_trial', 'paid', 'grace', 'cancelled_active')
+            ) AS has_active_premium_entitlement,
             u.last_login,
             GREATEST(
               u.last_login,
@@ -875,6 +883,7 @@ async function listRecipients(limit = 250): Promise<RecipientRow[]> {
     birthTime: row.birth_time ? String(row.birth_time).slice(0, 5) : null,
     birthPlace: row.birth_place || null,
     premiumUntil: row.premium_until ? new Date(row.premium_until).toISOString() : null,
+    hasActivePremiumEntitlement: row.has_active_premium_entitlement === true,
     lastLogin: row.last_login ? new Date(row.last_login).toISOString() : null,
     lastActivity: row.last_activity ? new Date(row.last_activity).toISOString() : null,
     language: row.language || 'ru',
@@ -936,6 +945,13 @@ async function getPreparedDailyCard(userId: string, dateKey: string): Promise<Pr
 export async function buildPersonalizationContext(userId: string, now = new Date()): Promise<PersonalizationContext> {
   const result = await getPool().query(
     `SELECT u.id, u.name, u.birth_date, u.birth_time, u.birth_place, u.premium_until, u.last_login,
+            EXISTS (
+              SELECT 1 FROM premium_entitlements pe
+              WHERE pe.user_id = u.id
+                AND pe.status IN ('active', 'cancelled')
+                AND pe.ends_at > $2
+                AND pe.entitlement_state IN ('gift', 'store_trial', 'paid', 'grace', 'cancelled_active')
+            ) AS has_active_premium_entitlement,
             GREATEST(
               u.last_login,
               u.created_at,
@@ -947,7 +963,7 @@ export async function buildPersonalizationContext(userId: string, now = new Date
        SELECT * FROM natal_charts c WHERE c.user_id = u.id ORDER BY c.is_primary DESC NULLS LAST, c.id ASC LIMIT 1
      ) nc ON TRUE
      WHERE u.id = $1`,
-    [userId]
+    [userId, now]
   );
   if (!result.rows[0]) throw new Error('USER_NOT_FOUND');
   const row = result.rows[0];
@@ -958,6 +974,7 @@ export async function buildPersonalizationContext(userId: string, now = new Date
     birthTime: row.birth_time ? String(row.birth_time).slice(0, 5) : null,
     birthPlace: row.birth_place || null,
     premiumUntil: row.premium_until ? new Date(row.premium_until).toISOString() : null,
+    hasActivePremiumEntitlement: row.has_active_premium_entitlement === true,
     lastLogin: row.last_login ? new Date(row.last_login).toISOString() : null,
     lastActivity: row.last_activity ? new Date(row.last_activity).toISOString() : null,
     language: row.language || 'ru',
@@ -1046,7 +1063,8 @@ async function buildContextForRecipient(user: RecipientRow, now: Date): Promise<
     localDate: info.localDate,
     localTime: info.localTime,
     localHour: info.localHour,
-    isPremium: !!(user.premiumUntil && new Date(user.premiumUntil).getTime() > now.getTime()),
+    isPremium: user.hasActivePremiumEntitlement
+      || !!(user.premiumUntil && new Date(user.premiumUntil).getTime() > now.getTime()),
     isBirthdayToday,
     premiumDaysLeft,
     hasBirthDate: !!user.birthDate,

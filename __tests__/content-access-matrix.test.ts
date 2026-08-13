@@ -18,6 +18,7 @@ const freeUser: UserState = {
   userId: 'user-free',
   chartId: 1,
   isPremium: false,
+  entitlementState: 'free',
   unlockedContent: [],
 };
 
@@ -25,12 +26,15 @@ const premiumUser: UserState = {
   ...freeUser,
   userId: 'user-premium',
   isPremium: true,
+  entitlementState: 'paid',
+  entitlementEndsAt: '2099-09-01T00:00:00.000Z',
 };
 
-const trialUser: UserState = {
+const giftUser: UserState = {
   ...freeUser,
-  userId: 'user-trial',
+  userId: 'user-gift',
   isPremium: false,
+  entitlementState: undefined,
   premiumUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
 };
 
@@ -55,8 +59,9 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(freeUser, 'forecast', 'daily')).toBe(true);
     });
 
-    it('allows synastry/brief for free users', () => {
-      expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(true);
+    it('keeps sign compatibility free but gates chart-based synastry', () => {
+      expect(canAccessFeature('zodiac_compatibility', freeUser, null).allowed).toBe(true);
+      expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(false);
     });
 
   });
@@ -75,16 +80,19 @@ describe('contentAccessMatrix', () => {
   });
 
   describe('personal forecast surfaces', () => {
-    it.each(['daily', 'weekly', 'monthly'] as const)(
-      'keeps forecast/%s available before topic-level server slicing',
-      (variant) => {
-        const config = getContentAccessConfig('forecast', variant);
-        expect(config?.defaultAccessTier).toBe('free');
-        expect(config?.unlockOptions).toEqual(['free']);
-        expect(canAccessContent(freeUser, 'forecast', variant)).toBe(true);
-        expect(canAccessContent(premiumUser, 'forecast', variant)).toBe(true);
-      }
-    );
+    it('keeps forecast/daily free', () => {
+      const config = getContentAccessConfig('forecast', 'daily');
+      expect(config?.defaultAccessTier).toBe('free');
+      expect(canAccessContent(freeUser, 'forecast', 'daily')).toBe(true);
+    });
+
+    it.each(['weekly', 'monthly'] as const)('requires Premium for forecast/%s', (variant) => {
+      const config = getContentAccessConfig('forecast', variant);
+      expect(config?.defaultAccessTier).toBe('premium');
+      expect(config?.unlockOptions).toEqual(['premium']);
+      expect(canAccessContent(freeUser, 'forecast', variant)).toBe(false);
+      expect(canAccessContent(premiumUser, 'forecast', variant)).toBe(true);
+    });
 
     it('requires premium for synastry/full', () => {
       const config = getContentAccessConfig('synastry', 'full');
@@ -99,13 +107,13 @@ describe('contentAccessMatrix', () => {
       expect(canAccessContent(premiumUser, 'natal', 'full')).toBe(true);
     });
 
-    it('returns true for trial users with future premiumUntil on premium variants', () => {
-      expect(canAccessContent(trialUser, 'natal', 'full')).toBe(true);
+    it('returns true for legacy gift users with future premiumUntil on premium variants', () => {
+      expect(canAccessContent(giftUser, 'natal', 'full')).toBe(true);
     });
 
-    it('returns true for premium unlock rows', () => {
+    it('does not treat legacy unlock rows as a second Premium entitlement', () => {
       const unlockUser = userWithUnlock('synastry', 'full', 'premium', 'pair-hash');
-      expect(canAccessContent(unlockUser, 'synastry', 'full', 'pair-hash')).toBe(true);
+      expect(canAccessContent(unlockUser, 'synastry', 'full', 'pair-hash')).toBe(false);
     });
   });
 
@@ -145,15 +153,15 @@ describe('contentAccessMatrix', () => {
     const FREE_BASELINE: Array<[UserState['unlockedContent'][number]['surface'], UserState['unlockedContent'][number]['variant']]> = [
       ['natal', 'anchor'],
       ['forecast', 'daily'],
-      ['forecast', 'weekly'],
-      ['forecast', 'monthly'],
-      ['synastry', 'brief'],
     ];
 
     const PREMIUM_ONLY: Array<[UserState['unlockedContent'][number]['surface'], UserState['unlockedContent'][number]['variant']]> = [
       ['natal', 'full'],
       ['natal', 'planet_insight'],
       ['natal', 'living'],
+      ['forecast', 'weekly'],
+      ['forecast', 'monthly'],
+      ['synastry', 'brief'],
       ['synastry', 'full'],
     ];
 
@@ -180,19 +188,18 @@ describe('contentAccessMatrix', () => {
     it('premium users keep access to every free layer', () => {
       expect(canAccessContent(premiumUser, 'natal', 'anchor')).toBe(true);
       expect(canAccessContent(premiumUser, 'forecast', 'daily')).toBe(true);
-      expect(canAccessContent(premiumUser, 'synastry', 'brief')).toBe(true);
     });
 
     it('free users get only the free baseline layers', () => {
       expect(canAccessContent(freeUser, 'natal', 'anchor')).toBe(true);
       expect(canAccessContent(freeUser, 'forecast', 'daily')).toBe(true);
-      expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(true);
 
       expect(canAccessContent(freeUser, 'natal', 'full')).toBe(false);
       expect(canAccessContent(freeUser, 'natal', 'planet_insight')).toBe(false);
       expect(canAccessContent(freeUser, 'natal', 'living')).toBe(false);
-      expect(canAccessContent(freeUser, 'forecast', 'weekly')).toBe(true);
-      expect(canAccessContent(freeUser, 'forecast', 'monthly')).toBe(true);
+      expect(canAccessContent(freeUser, 'forecast', 'weekly')).toBe(false);
+      expect(canAccessContent(freeUser, 'forecast', 'monthly')).toBe(false);
+      expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(false);
       expect(canAccessContent(freeUser, 'synastry', 'full')).toBe(false);
     });
 
@@ -214,9 +221,9 @@ describe('contentAccessMatrix', () => {
 describe('feature access matrix', () => {
   const futurePremiumUntil = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
   const expiredPremiumUntil = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const trialProfile = {
-    id: 'trial-user',
-    name: 'Trial',
+  const giftProfile = {
+    id: 'gift-user',
+    name: 'Gift',
     language: 'ru' as const,
     theme: 'light' as const,
     birthDate: '',
@@ -228,8 +235,8 @@ describe('feature access matrix', () => {
   };
   const chartState = { primaryChartId: 7 };
 
-  it('computes active Premium from legacy flag, premiumUntil, and admin access', () => {
-    expect(hasActivePremium({ isPremium: true })).toBe(true);
+  it('ignores the legacy client flag and computes access from expiry-backed entitlement or admin', () => {
+    expect(hasActivePremium({ isPremium: true })).toBe(false);
     expect(hasActivePremium({ isPremium: false, premiumUntil: futurePremiumUntil })).toBe(true);
     expect(hasActivePremium({ isPremium: false, premiumUntil: expiredPremiumUntil })).toBe(false);
     expect(hasActivePremium({ isPremium: false, isAdmin: true })).toBe(true);
@@ -242,24 +249,24 @@ describe('feature access matrix', () => {
   });
 
   it('keeps general sign content free without a chart', () => {
-    expect(canAccessFeature('daily_sign_horoscope', trialProfile, { hasChart: false })).toMatchObject({
+    expect(canAccessFeature('daily_sign_horoscope', giftProfile, { hasChart: false })).toMatchObject({
       allowed: true,
       status: 'allowed',
     });
-    expect(canAccessFeature('zodiac_compatibility', { ...trialProfile, premiumUntil: null }, { hasChart: false })).toMatchObject({
+    expect(canAccessFeature('zodiac_compatibility', { ...giftProfile, premiumUntil: null }, { hasChart: false })).toMatchObject({
       allowed: true,
       status: 'allowed',
     });
   });
 
-  it('shows create-chart gate before paywall when a pro feature needs a chart', () => {
-    expect(canAccessFeature('personal_daily', trialProfile, { hasChart: false })).toMatchObject({
+  it('shows create-chart gate before paywall when a Premium feature needs a chart', () => {
+    expect(canAccessFeature('personal_weekly', giftProfile, { hasChart: false })).toMatchObject({
       allowed: false,
       status: 'needs_chart',
       hasPremium: true,
       hasChart: false,
     });
-    expect(canAccessFeature('personal_daily', { ...trialProfile, premiumUntil: null }, { hasChart: false })).toMatchObject({
+    expect(canAccessFeature('personal_weekly', { ...giftProfile, premiumUntil: null }, { hasChart: false })).toMatchObject({
       allowed: false,
       status: 'needs_chart',
       hasPremium: false,
@@ -267,15 +274,15 @@ describe('feature access matrix', () => {
     });
   });
 
-  it('allows pro content for trial users after a natal chart exists', () => {
-    expect(canAccessFeature('personal_daily', trialProfile, chartState)).toMatchObject({
+  it('allows Premium content for a legacy gift after a natal chart exists', () => {
+    expect(canAccessFeature('personal_weekly', giftProfile, chartState)).toMatchObject({
       allowed: true,
       status: 'allowed',
     });
   });
 
-  it('shows paywall when chart exists but Premium/trial is inactive', () => {
-    expect(canAccessFeature('natal_love', { ...trialProfile, premiumUntil: expiredPremiumUntil }, chartState)).toMatchObject({
+  it('shows paywall when chart exists but Premium is inactive', () => {
+    expect(canAccessFeature('natal_love', { ...giftProfile, premiumUntil: expiredPremiumUntil }, chartState)).toMatchObject({
       allowed: false,
       status: 'needs_premium',
       hasChart: true,
@@ -283,7 +290,7 @@ describe('feature access matrix', () => {
   });
 
   it('keeps basic natal chart free once chart exists', () => {
-    expect(canAccessFeature('natal_basic', { ...trialProfile, premiumUntil: null }, chartState)).toMatchObject({
+    expect(canAccessFeature('natal_basic', { ...giftProfile, premiumUntil: null }, chartState)).toMatchObject({
       allowed: true,
       status: 'allowed',
     });
@@ -298,16 +305,23 @@ describe('feature access matrix', () => {
       'natal_anger',
       'natal_basic',
       'natal_career',
+      'natal_deep',
       'natal_family',
       'natal_how_others_see_you',
       'natal_love',
       'natal_money',
+      'natal_questions',
       'natal_shadow',
       'natal_talents',
+      'own_chart',
       'personal_daily',
+      'personal_daily_full',
+      'personal_monthly',
       'personal_transits',
       'personal_weekly',
+      'personality_deep',
       'retrograde_tracker',
+      'saved_people',
       'synastry_by_charts',
       'weekly_sign_horoscope',
       'zodiac_compatibility',

@@ -1,6 +1,13 @@
-import type { NatalChartData, UserProfile } from '../types';
+import {
+  PREMIUM_ENTITLEMENT_STATES,
+  type NatalChartData,
+  type PremiumEntitlementState,
+  type UserProfile,
+} from '../types';
 
-export type FeatureTier = 'free' | 'pro';
+export const ENTITLEMENT_STATES = PREMIUM_ENTITLEMENT_STATES;
+export type EntitlementState = PremiumEntitlementState;
+export type FeatureTier = 'free' | 'premium';
 
 export type FeatureKey =
   | 'daily_sign_horoscope'
@@ -9,8 +16,15 @@ export type FeatureKey =
   | 'moon_calendar'
   | 'retrograde_tracker'
   | 'natal_basic'
+  | 'natal_deep'
+  | 'personality_deep'
+  | 'natal_questions'
   | 'personal_daily'
+  | 'personal_daily_full'
   | 'personal_weekly'
+  | 'personal_monthly'
+  | 'own_chart'
+  | 'saved_people'
   | 'natal_love'
   | 'natal_career'
   | 'natal_shadow'
@@ -45,10 +59,31 @@ export type ChartAccessState = {
   isSetup?: boolean | null;
 };
 
-type ProfileAccessState = Partial<UserProfile> & {
+type EntitlementRecordLike = {
+  state?: unknown;
+  status?: unknown;
+  source?: unknown;
+  isPremium?: unknown;
+  endsAt?: unknown;
+  ends_at?: unknown;
+  expiresAt?: unknown;
+  expires_at?: unknown;
+};
+
+export type ProfileAccessState = Partial<UserProfile> & {
   premium_until?: string | Date | null;
   is_premium?: boolean | null;
   is_admin?: boolean | null;
+  entitlementState?: EntitlementState | null;
+  entitlement_state?: EntitlementState | null;
+  entitlementStatus?: string | null;
+  entitlement_status?: string | null;
+  entitlementSource?: string | null;
+  entitlement_source?: string | null;
+  entitlementEndsAt?: string | Date | null;
+  entitlement_ends_at?: string | Date | null;
+  entitlement?: EntitlementRecordLike | null;
+  premiumEntitlement?: EntitlementRecordLike | null;
 };
 
 export type FeatureAccessResult = {
@@ -60,38 +95,200 @@ export type FeatureAccessResult = {
   hasChart: boolean;
 };
 
+export const CANONICAL_ACCESS_CONTRACT = {
+  free: {
+    featureKeys: [
+      'natal_basic',
+      'personal_daily',
+      'daily_sign_horoscope',
+      'zodiac_compatibility',
+      'own_chart',
+      // Existing utility surfaces remain additive to the promised Free core.
+      'moon_calendar',
+      'retrograde_tracker',
+    ] as const satisfies readonly FeatureKey[],
+    ownChartLimit: 1,
+    additionalSavedPeopleLimit: 0,
+    todayOpenFragmentCount: { min: 1, max: 2 },
+  },
+  premium: {
+    featureKeys: [
+      'personal_daily_full',
+      'personal_weekly',
+      'personal_monthly',
+      'natal_deep',
+      'personality_deep',
+      'natal_questions',
+      'synastry_by_charts',
+      'saved_people',
+      // Existing implementation keys are aliases inside the same paid contract.
+      'weekly_sign_horoscope',
+      'natal_love',
+      'natal_career',
+      'natal_shadow',
+      'natal_talents',
+      'personal_transits',
+      'blind_spot',
+      'natal_anger',
+      'natal_money',
+      'natal_family',
+      'natal_how_others_see_you',
+      'deep_report',
+    ] as const satisfies readonly FeatureKey[],
+    ownChartLimit: 1,
+    additionalSavedPeopleLimit: 5,
+  },
+} as const;
+
+export const FREE_ACTIVE_CHART_LIMIT = CANONICAL_ACCESS_CONTRACT.free.ownChartLimit;
+export const PREMIUM_SAVED_PERSON_LIMIT = CANONICAL_ACCESS_CONTRACT.premium.additionalSavedPeopleLimit;
+export const PREMIUM_ACTIVE_CHART_LIMIT = FREE_ACTIVE_CHART_LIMIT + PREMIUM_SAVED_PERSON_LIMIT;
+
+const FEATURE_DETAILS: Record<FeatureKey, Omit<FeatureAccessConfig, 'key' | 'tier'>> = {
+  daily_sign_horoscope: { needsChart: false, label: 'Daily sign horoscope' },
+  weekly_sign_horoscope: { needsChart: false, label: 'Weekly and monthly sign horoscope' },
+  zodiac_compatibility: { needsChart: false, label: 'Zodiac compatibility' },
+  moon_calendar: { needsChart: false, label: 'Moon calendar' },
+  retrograde_tracker: { needsChart: false, label: 'Retrograde tracker' },
+  natal_basic: { needsChart: true, label: 'Basic natal chart' },
+  natal_deep: { needsChart: true, label: 'Deep natal reading' },
+  personality_deep: { needsChart: true, label: 'Deep personality reading' },
+  natal_questions: { needsChart: true, label: 'Questions about the saved natal chart' },
+  personal_daily: { needsChart: true, label: 'Personal daily forecast' },
+  personal_daily_full: { needsChart: true, label: 'Full personal daily forecast' },
+  personal_weekly: { needsChart: true, label: 'Personal weekly forecast' },
+  personal_monthly: { needsChart: true, label: 'Personal monthly forecast' },
+  own_chart: { needsChart: false, label: 'Own natal chart' },
+  saved_people: { needsChart: true, label: 'Additional saved people' },
+  natal_love: { needsChart: true, label: 'Natal love section' },
+  natal_career: { needsChart: true, label: 'Natal career section' },
+  natal_shadow: { needsChart: true, label: 'Natal shadow section' },
+  natal_talents: { needsChart: true, label: 'Natal talents section' },
+  personal_transits: { needsChart: true, label: 'Personal transits' },
+  synastry_by_charts: { needsChart: true, label: 'Synastry by calculated charts' },
+  blind_spot: { needsChart: true, label: 'Blind spot' },
+  natal_anger: { needsChart: true, label: 'Natal anger section' },
+  natal_money: { needsChart: true, label: 'Natal money section' },
+  natal_family: { needsChart: true, label: 'Natal family section' },
+  natal_how_others_see_you: { needsChart: true, label: 'How others see you section' },
+  deep_report: { needsChart: true, label: 'Deep report' },
+};
+
+function buildTierEntries(tier: FeatureTier, keys: readonly FeatureKey[]): FeatureAccessConfig[] {
+  return keys.map((key) => ({ key, tier, ...FEATURE_DETAILS[key] }));
+}
+
 const FEATURE_ACCESS_MATRIX: FeatureAccessConfig[] = [
-  { key: 'daily_sign_horoscope', tier: 'free', needsChart: false, label: 'Daily sign horoscope' },
-  { key: 'weekly_sign_horoscope', tier: 'pro', needsChart: false, label: 'Weekly and monthly sign horoscope' },
-  { key: 'zodiac_compatibility', tier: 'free', needsChart: false, label: 'Zodiac compatibility' },
-  { key: 'moon_calendar', tier: 'free', needsChart: false, label: 'Moon calendar' },
-  { key: 'retrograde_tracker', tier: 'free', needsChart: false, label: 'Retrograde tracker' },
-  { key: 'natal_basic', tier: 'free', needsChart: true, label: 'Basic natal chart' },
-  { key: 'personal_daily', tier: 'free', needsChart: true, label: 'Personal daily forecast' },
-  { key: 'personal_weekly', tier: 'pro', needsChart: true, label: 'Personal weekly forecast' },
-  { key: 'natal_love', tier: 'pro', needsChart: true, label: 'Natal love section' },
-  { key: 'natal_career', tier: 'pro', needsChart: true, label: 'Natal career section' },
-  { key: 'natal_shadow', tier: 'pro', needsChart: true, label: 'Natal shadow section' },
-  { key: 'natal_talents', tier: 'pro', needsChart: true, label: 'Natal talents section' },
-  { key: 'personal_transits', tier: 'pro', needsChart: true, label: 'Personal transits' },
-  { key: 'synastry_by_charts', tier: 'pro', needsChart: true, label: 'Synastry by charts' },
-  { key: 'blind_spot', tier: 'pro', needsChart: true, label: 'Blind spot' },
-  { key: 'natal_anger', tier: 'pro', needsChart: true, label: 'Natal anger section' },
-  { key: 'natal_money', tier: 'pro', needsChart: true, label: 'Natal money section' },
-  { key: 'natal_family', tier: 'pro', needsChart: true, label: 'Natal family section' },
-  { key: 'natal_how_others_see_you', tier: 'pro', needsChart: true, label: 'How others see you section' },
-  { key: 'deep_report', tier: 'pro', needsChart: true, label: 'Deep report' },
+  ...buildTierEntries('free', CANONICAL_ACCESS_CONTRACT.free.featureKeys),
+  ...buildTierEntries('premium', CANONICAL_ACCESS_CONTRACT.premium.featureKeys),
 ];
 
 const FEATURE_ACCESS_INDEX = new Map<FeatureKey, FeatureAccessConfig>(
   FEATURE_ACCESS_MATRIX.map((entry) => [entry.key, entry])
 );
+const ENTITLEMENT_STATE_SET = new Set<string>(ENTITLEMENT_STATES);
+const ACTIVE_ENTITLEMENT_STATES = new Set<EntitlementState>([
+  'gift',
+  'store_trial',
+  'paid',
+  'grace',
+  'cancelled_active',
+]);
 
-function parseFutureDate(value: unknown, nowMs: number): boolean | null {
+function parseDateMs(value: unknown): number | null {
   if (!value) return null;
   const timestamp = value instanceof Date ? value.getTime() : new Date(String(value)).getTime();
-  if (!Number.isFinite(timestamp)) return null;
-  return timestamp > nowMs;
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function normalizeEntitlementState(value: unknown): EntitlementState | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  return ENTITLEMENT_STATE_SET.has(normalized) ? normalized as EntitlementState : null;
+}
+
+function normalizeToken(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function getEntitlementRecord(profile?: ProfileAccessState | null): EntitlementRecordLike | null {
+  if (profile?.premiumEntitlement && typeof profile.premiumEntitlement === 'object') {
+    return profile.premiumEntitlement;
+  }
+  return profile?.entitlement && typeof profile.entitlement === 'object' ? profile.entitlement : null;
+}
+
+export function getProfilePremiumUntil(profile?: ProfileAccessState | null): string | null {
+  const entitlement = getEntitlementRecord(profile);
+  const value = profile?.entitlementEndsAt
+    ?? profile?.entitlement_ends_at
+    ?? entitlement?.endsAt
+    ?? entitlement?.ends_at
+    ?? entitlement?.expiresAt
+    ?? entitlement?.expires_at
+    ?? profile?.premiumUntil
+    ?? profile?.premium_until
+    ?? null;
+  return value ? String(value) : null;
+}
+
+export function resolveEntitlementState(
+  profile?: ProfileAccessState | null,
+  nowMs = Date.now(),
+): EntitlementState {
+  if (!profile) return 'free';
+
+  const entitlement = getEntitlementRecord(profile);
+  const explicitState = normalizeEntitlementState(
+    profile.entitlementState ?? profile.entitlement_state ?? entitlement?.state,
+  );
+  const endsAtMs = parseDateMs(getProfilePremiumUntil(profile));
+
+  // Once a canonical entitlement object exists, malformed or unknown state
+  // must fail closed. Only the legacy top-level premiumUntil field may be
+  // interpreted as a gift during migration.
+  if (entitlement && !explicitState) return 'free';
+
+  if (profile.isAdmin || profile.is_admin) {
+    return explicitState && ACTIVE_ENTITLEMENT_STATES.has(explicitState) ? explicitState : 'gift';
+  }
+
+  if (explicitState === 'free' || explicitState === 'expired') return explicitState;
+  if (explicitState && ACTIVE_ENTITLEMENT_STATES.has(explicitState)) {
+    return endsAtMs !== null && endsAtMs > nowMs ? explicitState : 'expired';
+  }
+
+  const status = normalizeToken(
+    profile.entitlementStatus ?? profile.entitlement_status ?? entitlement?.status,
+  );
+  const source = normalizeToken(
+    profile.entitlementSource ?? profile.entitlement_source ?? entitlement?.source,
+  );
+
+  if (status === 'expired') return 'expired';
+  if (status === 'cancelled' || status === 'canceled' || status === 'paused') {
+    return endsAtMs !== null && endsAtMs > nowMs ? 'cancelled_active' : 'expired';
+  }
+  if (status === 'grace' || status === 'grace_period') {
+    return endsAtMs !== null && endsAtMs > nowMs ? 'grace' : 'expired';
+  }
+  if (status === 'active') {
+    if (endsAtMs === null || endsAtMs <= nowMs) return 'expired';
+    if (source.includes('gift')) return 'gift';
+    if (source.includes('trial')) return 'store_trial';
+    return 'paid';
+  }
+
+  // premiumUntil predates store entitlements. It represents a legacy gift,
+  // regardless of the deprecated trialStartedAt or client isPremium fields.
+  if (endsAtMs !== null) return endsAtMs > nowMs ? 'gift' : 'expired';
+  return 'free';
+}
+
+export function hasActivePremium(profile?: ProfileAccessState | null, nowMs = Date.now()): boolean {
+  if (!profile) return false;
+  if (profile.isAdmin || profile.is_admin) return true;
+  return ACTIVE_ENTITLEMENT_STATES.has(resolveEntitlementState(profile, nowMs));
 }
 
 function toPositiveId(value: unknown): boolean {
@@ -121,18 +318,6 @@ export function listFeatureAccessMatrix(): FeatureAccessConfig[] {
   return FEATURE_ACCESS_MATRIX.slice();
 }
 
-export function getProfilePremiumUntil(profile?: ProfileAccessState | null): string | null {
-  const value = profile?.premiumUntil ?? profile?.premium_until ?? null;
-  return value ? String(value) : null;
-}
-
-export function hasActivePremium(profile?: ProfileAccessState | null, nowMs = Date.now()): boolean {
-  if (!profile) return false;
-  if (profile.isAdmin || profile.is_admin) return true;
-  if (profile.isPremium === true || profile.is_premium === true) return true;
-  return parseFutureDate(getProfilePremiumUntil(profile), nowMs) === true;
-}
-
 export function hasNatalChart(
   profileOrState?: (ProfileAccessState & ChartAccessState) | NatalChartData | null,
   chartState?: ChartAccessState | NatalChartData | null
@@ -152,10 +337,11 @@ export function hasNatalChart(
 export function canAccessFeature(
   featureKey: FeatureKey,
   profile?: ProfileAccessState | null,
-  chartState?: ChartAccessState | NatalChartData | null
+  chartState?: ChartAccessState | NatalChartData | null,
+  nowMs = Date.now(),
 ): FeatureAccessResult {
   const config = getFeatureAccessConfig(featureKey);
-  const premium = hasActivePremium(profile);
+  const premium = hasActivePremium(profile, nowMs);
   const chart = hasNatalChart(profile, chartState);
 
   if (!config) {
@@ -180,7 +366,7 @@ export function canAccessFeature(
     };
   }
 
-  if (config.tier === 'pro' && !premium) {
+  if (config.tier === 'premium' && !premium) {
     return {
       allowed: false,
       status: 'needs_premium',

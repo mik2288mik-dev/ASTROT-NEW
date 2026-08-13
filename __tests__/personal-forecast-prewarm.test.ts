@@ -53,6 +53,22 @@ describe('personal forecast prewarm', () => {
     ]));
   });
 
+  it('preloads only Today for a Free user', async () => {
+    mockedLoad.mockResolvedValue({
+      forecast: personalForecastFixture(),
+      accessTier: 'free',
+      lockedTopicKeys: [],
+      source: 'cache',
+    });
+    const result = await prewarmUserContent({ ...input, isPremium: false, mode: 'cache-only' });
+    expect(result.planSize).toBe(1);
+    expect(mockedLoad).toHaveBeenCalledTimes(1);
+    expect(mockedLoad).toHaveBeenCalledWith(expect.objectContaining({
+      period: 'day',
+      options: { cacheOnly: true, force: true },
+    }));
+  });
+
   it('deduplicates two parallel generate-missing startup calls', async () => {
     let release = () => {};
     const gate = new Promise<void>((resolve) => { release = resolve; });

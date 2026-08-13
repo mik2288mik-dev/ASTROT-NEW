@@ -44,11 +44,14 @@ import {
 } from './lib/natalReading/permanentReport';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
-import { getPaymentProvider } from './services/paymentProvider';
-import { restoreRuStorePurchases } from './services/rustorePayService';
+import { getPaymentProvider, type PaymentResult } from './services/paymentProvider';
+import {
+    openRuStoreSubscriptionManagement,
+    restoreRuStorePurchases,
+} from './services/rustorePayService';
 import type { PremiumPlanId } from './lib/premiumPricing';
 import { getAdminStatus } from './services/adminService';
-import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, updateUserNotificationSettings, waitForTelegramInitData } from './services/sessionService';
+import { recordNotificationAttribution, recordUserAppEvent, recordUserSession, waitForTelegramInitData } from './services/sessionService';
 import { installTelegramFullscreenGuard } from './lib/telegramFullscreen';
 import { applyTelegramSafeAreaCssVars, subscribeTelegramContentSafeAreaChanges } from './lib/telegramSafeAreaInsets';
 import { useSwipeBack } from './lib/useSwipeBack';
@@ -80,6 +83,12 @@ import {
     shouldUseTelegramSession,
     type AuthSessionMode,
 } from './services/authSessionIntent';
+import {
+    createPaywallContextFromRequest,
+    resolvePaywallOutcome,
+    type PaywallContext,
+    type PaywallOutcome,
+} from './lib/paywallContext';
 
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
@@ -90,7 +99,6 @@ const PersonalityReport = dynamic(() => import('./views/PersonalityReport').then
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
 const Settings = dynamic(() => import('./views/Settings').then((module) => module.Settings), { ssr: false });
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
-const PremiumPreview = dynamic(() => import('./components/PremiumPreview').then((module) => module.PremiumPreview), { ssr: false });
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
@@ -100,6 +108,28 @@ const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => modul
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
 const STARTUP_SAFETY_TIMEOUT_MS = 45_000;
+
+function firstValueStorageKey(userId: string | number): string {
+    return `lumia.firstValue.today.${String(userId)}`;
+}
+
+function readFirstValueReached(userId: string | number): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        return window.localStorage.getItem(firstValueStorageKey(userId)) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function persistFirstValueReached(userId: string | number): void {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(firstValueStorageKey(userId), '1');
+    } catch {
+        // The in-memory gate remains authoritative for the current session.
+    }
+}
 
 if (!OWNER_ID) {
     console.warn('[App] OWNER_ID not configured. Admin features will not be available.');
@@ -261,9 +291,10 @@ const App: React.FC = () => {
     const [view, setView] = useState<ViewState>('onboarding');
     const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
-    // Когда задан — paywall показан после онбординга; close/«продолжить бесплатно» ведут сюда.
-    const [paywallTarget, setPaywallTarget] = useState<ViewState | null>(null);
-    const [showPremiumPreview, setShowPremiumPreview] = useState(false);
+    const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
+    const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
+    const [firstValueReached, setFirstValueReached] = useState(false);
+    const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
@@ -279,14 +310,83 @@ const App: React.FC = () => {
     const requestedViewRef = useRef<ViewState | null>(null);
     const notificationLaunchRef = useRef<NotificationLaunchParams | null>(null);
     const notificationAttributionSentRef = useRef(false);
-    const premiumReturnInPlaceRef = useRef(false);
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
-    const onboardingTargetViewRef = useRef<ViewState>('personality');
+    const onboardingTargetViewRef = useRef<ViewState>('dashboard');
     const onboardingCompletionRef = useRef(false);
     const restoredRuStoreUserRef = useRef<string | null>(null);
+    const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
+
+    useEffect(() => {
+        const reached = !!profile?.id
+            && (hasActivePremium(profile) || readFirstValueReached(profile.id));
+        firstValueReachedRef.current = reached;
+        setFirstValueReached(reached);
+        setPremiumContinuation(null);
+    }, [profile?.id]);
+
+    useEffect(() => {
+        const userId = profile?.id ? String(profile.id) : '';
+        const endsAt = getProfilePremiumUntil(profile);
+        const endsAtMs = endsAt ? new Date(endsAt).getTime() : Number.NaN;
+        if (!userId || !hasActivePremium(profile) || !Number.isFinite(endsAtMs)) return;
+
+        let disposed = false;
+        let timer = 0;
+        const refreshEntitlementAtBoundary = async () => {
+            const remaining = endsAtMs - Date.now() + 50;
+            if (remaining > 0) {
+                timer = window.setTimeout(
+                    () => void refreshEntitlementAtBoundary(),
+                    Math.min(2_147_000_000, Math.max(1, remaining)),
+                );
+                return;
+            }
+
+            let refreshed: UserProfile | null = null;
+            try {
+                refreshed = await getProfile();
+            } catch {
+                // The local canonical end still closes access if refresh is offline.
+            }
+            if (disposed) return;
+            if (refreshed && String(refreshed.id) === userId) {
+                if (!hasActivePremium(refreshed)) setDashboardPeriod('day');
+                setProfile(refreshed);
+                return;
+            }
+            setDashboardPeriod('day');
+            setProfile((current) => (
+                current && String(current.id) === userId ? { ...current } : current
+            ));
+        };
+
+        void refreshEntitlementAtBoundary();
+        return () => {
+            disposed = true;
+            window.clearTimeout(timer);
+        };
+    }, [
+        profile?.id,
+        profile?.premiumEntitlement?.state,
+        profile?.premiumEntitlement?.endsAt,
+        profile?.premiumUntil,
+    ]);
+
+    const markFirstValueReached = useCallback(() => {
+        if (!profile?.id || firstValueReachedRef.current) return;
+        firstValueReachedRef.current = true;
+        setFirstValueReached(true);
+        persistFirstValueReached(profile.id);
+    }, [profile?.id]);
+
+    const completePremiumContinuation = useCallback((paywallInstanceId: string) => {
+        setPremiumContinuation((current) => (
+            current?.paywallInstanceId === paywallInstanceId ? null : current
+        ));
+    }, []);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
         return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
@@ -958,6 +1058,7 @@ const App: React.FC = () => {
                 ? false
                 : hasActivePremium({ ...newProfile, premiumUntil: retainedPremiumUntil, isAdmin }),
             premiumUntil: retainedPremiumUntil,
+            premiumEntitlement: isGuestOnboarding ? null : profile?.premiumEntitlement ?? null,
             trialStartedAt: isGuestOnboarding ? null : profile?.trialStartedAt ?? newProfile.trialStartedAt,
             loginStreak: profile?.loginStreak ?? newProfile.loginStreak,
             chartSlots: profile?.chartSlots ?? newProfile.chartSlots,
@@ -1055,41 +1156,19 @@ const App: React.FC = () => {
                 });
             setLoadingProgress(90);
 
-            // Опт-ин уведомлений из онбординга — регистрируем настройки в движке (best-effort).
-            if (newProfile.notificationFrequency && newProfile.notificationFrequency !== 'quiet') {
-                const freq = newProfile.notificationFrequency;
-                void updateUserNotificationSettings({
-                        enabled: true,
-                        morningEnabled: true,
-                        dayEnabled: freq === 'twice_daily',
-                        eveningEnabled: freq === 'daily' || freq === 'twice_daily',
-                        reactivationEnabled: true,
-                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
-                    })
-                    .catch((notifyError: any) => {
-                        console.warn('[App] notification opt-in registration failed:', notifyError?.message || notifyError);
-                    });
-            }
-
             setLoadingProgress(100);
             setLoadingMessage(undefined);
-            const targetView = isGuestOnboarding ? 'personality' : onboardingTargetViewRef.current || 'personality';
+            const targetView = onboardingTargetViewRef.current || 'dashboard';
             if (targetView === 'chart' || targetView === 'personality') {
                 setActiveChartId(undefined);
                 setActiveChartSubject(null);
                 setChartReturnView('dashboard');
             }
-            // После первого расчёта сначала показываем законченный Free-портрет.
-            // Premium предлагается уже после полученной пользы внутри отчёта.
-            const isFirstSetup = !profile?.isSetup;
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            if (isFirstSetup) {
-                setPaywallTarget(null);
-                setView('personality');
-            } else {
-                setView(targetView);
-            }
-            onboardingTargetViewRef.current = 'personality';
+            // First value is the saved chart followed by the personal Today.
+            // Premium remains absent until the user reaches and taps the inline teaser.
+            setDashboardPeriod('day');
+            setView(targetView);
+            onboardingTargetViewRef.current = 'dashboard';
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);
@@ -1271,111 +1350,252 @@ const App: React.FC = () => {
         };
     }, [profile?.id, trackSessionActivity]);
 
-    const requestPremium = async (source = 'app', eventPayload?: Record<string, any>, planId?: PremiumPlanId) => {
-       if (!profile) return;
-       // Без выбранного тарифа ведём пользователя в 3-тарифный пейвол (месяц/3мес/год),
-       // а не запускаем молча покупку недели. Тариф выбирается уже в пейволе.
-       if (!planId) {
-           const returnInPlace = eventPayload?.returnInPlace === true;
-           premiumReturnInPlaceRef.current = returnInPlace;
-           if (returnInPlace) setPaywallTarget(viewRef.current);
-           void recordUserAppEvent({
-               eventType: 'paywall_view',
-               section: 'premium',
-               source,
-               eventPayload: { entry_point: source, ...(eventPayload || {}) },
-           });
-           setView('paywall');
-           return;
-       }
-       console.log('[App] Requesting premium for configured payment provider');
-       const paymentResult = await getPaymentProvider().purchase(profile, planId);
-       const success = paymentResult.status === 'completed';
-       if (!success) {
-           // The current paywall remains visually unchanged. Store channels do
-           // not fall back to Telegram or pretend that a purchase succeeded.
-           if (paymentResult.status !== 'cancelled') {
-               console.warn('[App] Premium purchase was not completed:', paymentResult.reason);
-           }
-           return;
-       }
-       if (success) {
-           console.log('[App] Premium payment successful, refreshing profile...');
-           const returnInPlace = premiumReturnInPlaceRef.current;
-           if (!returnInPlace) {
-               setLoading(true);
-               setLoadingMessage(profile.language === 'en' ? 'Preparing Premium' : 'Готовим Premium');
-               setLoadingProgress(15);
-           }
-           void recordUserAppEvent({
-               eventType: 'natal_upgrade_success',
-               section: source === 'natal_story_unlock' ? 'natal_story' : 'premium',
-               source,
-               eventPayload: {
-                   entry_point: source,
-                   ...(eventPayload || {}),
-               },
-           });
-           let refreshedProfile: UserProfile | null = null;
-           try {
-               for (let i = 0; i <= 2; i++) {
-                   if (i > 0) await new Promise((r) => setTimeout(r, 1200));
-                   const fresh = await getProfile();
-                   if (fresh) {
-                       const isAdmin = await resolveAuthoritativeAdminStatus(profile.id, fresh.isAdmin);
-                       refreshedProfile = { ...fresh, id: profile.id, isAdmin };
-                       setProfile(refreshedProfile);
-                       if (hasActivePremium(refreshedProfile)) break;
-                   }
-               }
-           } catch (error) {
-               console.error('[App] Failed to refresh profile:', error);
-               refreshedProfile = { ...profile, isPremium: true };
-               setProfile(refreshedProfile);
-           }
-           const premiumProfile = refreshedProfile && hasActivePremium(refreshedProfile)
-               ? refreshedProfile
-               : { ...(refreshedProfile || profile), id: profile.id, isPremium: true };
-            setProfile(premiumProfile);
-            try {
-                if (hasActivePremium(premiumProfile) && chartData) {
-                    const chartId = activeChartId ?? await getPrimaryChartId(String(premiumProfile.id));
-                    if (activeChartId == null && chartId != null) setPrimaryChartId(chartId);
-                    void prepareUserContentDbFirst({
-                        userId: String(premiumProfile.id),
-                        chartId,
-                        profile: premiumProfile,
-                        chartData,
-                        isPremium: true,
-                        dateKey: getMoscowTodayKey(),
-                        progressStart: 35,
-                        progressSpan: 60,
-                    }).catch((prewarmError: any) => {
-                        console.warn('[App] Premium DB-first content flow failed:', prewarmError?.message || prewarmError);
-                    });
-                }
-            } catch (contentRefreshError: any) {
-                console.warn(
-                    '[App] Premium activated, but the background content refresh could not start:',
-                    contentRefreshError?.message || contentRefreshError,
-                );
-            } finally {
-                setShowPremiumPreview(false);
-                if (!returnInPlace) {
-                    setLoadingProgress(100);
-                    setLoadingMessage(undefined);
-                    setLoading(false);
-                }
-                const returnView = returnInPlace ? (paywallTarget || 'dashboard') : 'dashboard';
-                premiumReturnInPlaceRef.current = false;
-                setPaywallTarget(null);
-                setView(returnView);
-            }
-       } else {
-           console.log('[App] Premium payment cancelled or failed');
-           setLoading(false);
-           setLoadingMessage(undefined);
-       }
+    const paywallEventPayload = (
+        context: PaywallContext,
+        extra?: Record<string, unknown>,
+    ) => ({
+        placement: context.placement,
+        featureKey: context.featureKey,
+        triggerType: context.triggerType,
+        returnView: context.returnView,
+        returnScrollAnchor: context.returnScrollAnchor || undefined,
+        paywallInstanceId: context.paywallInstanceId,
+        ...(extra || {}),
+    });
+
+    const restoreScrollAnchor = (anchor: string | null) => {
+        if (!anchor || typeof window === 'undefined') return;
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                document.getElementById(anchor)?.scrollIntoView({ block: 'center' });
+            });
+        });
+    };
+
+    const returnFromPaywall = (
+        context: PaywallContext,
+        outcome: PaywallOutcome,
+        notice?: string,
+    ) => {
+        const destination = resolvePaywallOutcome(context, outcome);
+        if (context.placement === 'today') setDashboardPeriod('day');
+        if (outcome === 'purchase_succeeded' && context.placement === 'week') setDashboardPeriod('week');
+        if (outcome === 'purchase_succeeded' && context.placement === 'month') setDashboardPeriod('month');
+        setPaywallContext(null);
+        setPremiumContinuation(destination.shouldOpenFeature ? context : null);
+        setView(destination.view);
+        if (notice) setCheckoutNotice(notice);
+        restoreScrollAnchor(destination.scrollAnchor);
+    };
+
+    const profileFromValidatedPayment = async (
+        result: Extract<PaymentResult, { status: 'completed' }>,
+    ): Promise<UserProfile | null> => {
+        if (result.entitlement) {
+            return {
+                ...profile!,
+                isPremium: result.entitlement.isPremium,
+                premiumUntil: result.entitlement.endsAt,
+                premiumEntitlement: result.entitlement,
+            };
+        }
+        const fresh = await getProfile().catch(() => null);
+        return fresh && hasActivePremium(fresh) ? fresh : null;
+    };
+
+    const purchasePremiumPlan = async (planId: PremiumPlanId) => {
+        if (!profile || !paywallContext) return;
+        const context = paywallContext;
+        void recordUserAppEvent({
+            eventType: 'checkout_started',
+            section: 'premium',
+            source: context.placement,
+            eventPayload: paywallEventPayload(context, { planId }),
+        });
+
+        const paymentResult = await getPaymentProvider().purchase(profile, planId);
+        if (paymentResult.status === 'pending') {
+            setCheckoutNotice('Оплата ещё обрабатывается в RuStore. Дождись результата или нажми «Восстановить покупку».');
+            return;
+        }
+        if (paymentResult.status === 'cancelled') {
+            void recordUserAppEvent({
+                eventType: 'purchase_cancelled',
+                section: 'premium',
+                source: context.placement,
+                eventPayload: paywallEventPayload(context, { planId, reasonCode: 'CHECKOUT_CANCELLED' }),
+            });
+            returnFromPaywall(
+                context,
+                'checkout_cancelled',
+                'Оплата не завершена. Деньги не списаны.',
+            );
+            return;
+        }
+        if (paymentResult.status === 'unavailable') {
+            void recordUserAppEvent({
+                eventType: 'purchase_failed',
+                section: 'premium',
+                source: context.placement,
+                eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
+            });
+            returnFromPaywall(
+                context,
+                'checkout_unavailable',
+                'Покупка сейчас недоступна. Уже действующий Premium продолжит работать.',
+            );
+            return;
+        }
+        if (paymentResult.status === 'failed') {
+            void recordUserAppEvent({
+                eventType: 'purchase_failed',
+                section: 'premium',
+                source: context.placement,
+                eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
+            });
+            returnFromPaywall(
+                context,
+                'checkout_failed',
+                'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.',
+            );
+            return;
+        }
+
+        const validatedProfile = await profileFromValidatedPayment(paymentResult);
+        if (!validatedProfile || !hasActivePremium(validatedProfile)) {
+            void recordUserAppEvent({
+                eventType: 'purchase_failed',
+                section: 'premium',
+                source: context.placement,
+                eventPayload: paywallEventPayload(context, { planId, reasonCode: 'BACKEND_ENTITLEMENT_MISSING' }),
+            });
+            returnFromPaywall(
+                context,
+                'checkout_failed',
+                'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.',
+            );
+            return;
+        }
+
+        setProfile(validatedProfile);
+        firstValueReachedRef.current = true;
+        setFirstValueReached(true);
+        clearPersonalForecastSessionCache();
+        void recordUserAppEvent({
+            eventType: 'purchase_succeeded',
+            section: 'premium',
+            source: context.placement,
+            eventPayload: paywallEventPayload(context, {
+                planId,
+                entitlementState: validatedProfile.premiumEntitlement?.state || 'paid',
+                entitlementEndsAt: validatedProfile.premiumEntitlement?.endsAt || undefined,
+            }),
+        });
+        returnFromPaywall(
+            context,
+            'purchase_succeeded',
+            'Premium открыт. Возвращаем туда, где ты остановился.',
+        );
+    };
+
+    const restorePremiumPurchases = async (context?: PaywallContext): Promise<void> => {
+        const analyticsContext = context || createPaywallContextFromRequest({
+            source: 'settings',
+            currentView: viewRef.current,
+        });
+        void recordUserAppEvent({
+            eventType: 'restore_started',
+            section: 'premium',
+            source: analyticsContext.placement,
+            eventPayload: paywallEventPayload(analyticsContext),
+        });
+        const results = await restoreRuStorePurchases();
+        const completed = results.find((result): result is Extract<PaymentResult, { status: 'completed' }> => (
+            result.status === 'completed'
+        ));
+        const validatedProfile = completed
+            ? await profileFromValidatedPayment(completed)
+            : null;
+        if (!validatedProfile || !hasActivePremium(validatedProfile)) {
+            const reason = results.find((result) => result.status === 'failed' || result.status === 'unavailable');
+            void recordUserAppEvent({
+                eventType: 'restore_failed',
+                section: 'premium',
+                source: analyticsContext.placement,
+                eventPayload: paywallEventPayload(analyticsContext, {
+                    reasonCode: reason && 'reason' in reason ? reason.reason : 'NO_VALID_PURCHASE',
+                }),
+            });
+            throw new Error('RUSTORE_RESTORE_NOT_CONFIRMED');
+        }
+        setProfile(validatedProfile);
+        firstValueReachedRef.current = true;
+        setFirstValueReached(true);
+        clearPersonalForecastSessionCache();
+        void recordUserAppEvent({
+            eventType: 'restore_succeeded',
+            section: 'premium',
+            source: analyticsContext.placement,
+            eventPayload: paywallEventPayload(analyticsContext, {
+                entitlementState: validatedProfile.premiumEntitlement?.state || 'paid',
+                entitlementEndsAt: validatedProfile.premiumEntitlement?.endsAt || undefined,
+            }),
+        });
+        if (context) {
+            returnFromPaywall(
+                context,
+                'purchase_succeeded',
+                'Premium открыт. Возвращаем туда, где ты остановился.',
+            );
+        }
+    };
+
+    const requestPremium = async (
+        source = 'app',
+        eventPayload?: Record<string, unknown>,
+        planId?: PremiumPlanId,
+    ) => {
+        if (!profile) return;
+        if (planId) {
+            await purchasePremiumPlan(planId);
+            return;
+        }
+        const context = createPaywallContextFromRequest({
+            source,
+            payload: eventPayload,
+            currentView: viewRef.current,
+        });
+        setPremiumContinuation(null);
+        if (context.triggerType === 'locked_feature') {
+            void recordUserAppEvent({
+                eventType: 'locked_feature_tapped',
+                section: 'premium',
+                source,
+                eventPayload: paywallEventPayload(context),
+            });
+        }
+        if (!hasActivePremium(profile) && !firstValueReachedRef.current) {
+            setPaywallContext(null);
+            setDashboardPeriod('day');
+            setView('dashboard');
+            setCheckoutNotice(profile.language === 'en'
+                ? 'Your personal Today comes first. Read the open part, then Premium options will appear.'
+                : 'Сначала — твой личный Today. Прочитай открытую часть, и затем появятся возможности Premium.');
+            return;
+        }
+        // A controlled Week/Month request can leave Today mounted behind the
+        // paywall. Disarm it now so close/cancel cannot immediately retrigger;
+        // purchase success restores the requested period in returnFromPaywall.
+        if (!hasActivePremium(profile) && (context.placement === 'week' || context.placement === 'month')) {
+            setDashboardPeriod('day');
+        }
+        setPaywallContext(context);
+        void recordUserAppEvent({
+            eventType: 'paywall_impression',
+            section: 'premium',
+            source,
+            eventPayload: paywallEventPayload(context, { defaultPlanId: 'premium_quarter' }),
+        });
     };
 
     // Navigation logic: user-facing screens should return to the screen they were opened from.
@@ -1439,7 +1659,14 @@ const App: React.FC = () => {
         }
 
         if (access.status === 'needs_premium') {
-            setView('paywall');
+            void requestPremium('feature_gate', {
+                placement: featureKey === 'synastry_by_charts'
+                    ? 'compatibility_by_charts'
+                    : 'deep_natal',
+                featureKey,
+                triggerType: 'locked_feature',
+                returnView: viewRef.current,
+            });
             return false;
         }
 
@@ -1534,6 +1761,10 @@ const App: React.FC = () => {
             setSideDrawerOpen(false);
             return;
         }
+        if (paywallContext) {
+            returnFromPaywall(paywallContext, 'close');
+            return;
+        }
         const currentView = viewRef.current;
         const fallbackView =
             currentView === 'admin'
@@ -1576,7 +1807,7 @@ const App: React.FC = () => {
             return;
         }
         setView(returnView);
-    }, [activeChartId, chartReturnView, chartsReturnView, sideDrawerOpen]);
+    }, [activeChartId, chartReturnView, chartsReturnView, paywallContext, sideDrawerOpen]);
 
     useEffect(() => {
         setSideDrawerOpen(false);
@@ -1597,7 +1828,7 @@ const App: React.FC = () => {
         const backButton = tg?.BackButton;
         if (!backButton) return;
         const handler = () => { void handleBack(); };
-        const isRoot = view === 'dashboard' || view === 'onboarding';
+        const isRoot = !paywallContext && (view === 'dashboard' || view === 'onboarding');
         if (isRoot) {
             backButton.hide?.();
             return;
@@ -1605,7 +1836,7 @@ const App: React.FC = () => {
         backButton.onClick?.(handler);
         backButton.show?.();
         return () => { backButton.offClick?.(handler); };
-    }, [view, handleBack, sideDrawerOpen]);
+    }, [view, handleBack, paywallContext, sideDrawerOpen]);
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
@@ -1620,11 +1851,6 @@ const App: React.FC = () => {
                 setSideDrawerOpen(false);
                 return;
             }
-            if (showPremiumPreview) {
-                setShowPremiumPreview(false);
-                return;
-            }
-
             const detail: NativeBackEventDetail = { handled: false };
             window.dispatchEvent(new CustomEvent<NativeBackEventDetail>(NATIVE_BACK_EVENT, { detail }));
             if (detail.handled) return;
@@ -1660,7 +1886,7 @@ const App: React.FC = () => {
             void backHandle?.remove();
             void appStateHandle?.remove();
         };
-    }, [handleBack, showPremiumPreview, sideDrawerOpen]);
+    }, [handleBack, sideDrawerOpen]);
 
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
@@ -1703,14 +1929,23 @@ const App: React.FC = () => {
     }, [navigateTo]);
 
     const openDrawerDiary = useCallback(() => {
+        setDashboardPeriod('day');
         setSideDrawerOpen(false);
         openBottomToday();
     }, [openBottomToday]);
     const openDrawerPeriod = useCallback((period: PersonalForecastPeriod) => {
-        setDashboardPeriod(period);
+        const shouldShowFirstValue = period !== 'day'
+            && !hasActivePremium(profile)
+            && !firstValueReachedRef.current;
+        setDashboardPeriod(shouldShowFirstValue ? 'day' : period);
+        if (shouldShowFirstValue) {
+            setCheckoutNotice(profile?.language === 'en'
+                ? 'Your personal Today comes first. Week and Month remain unopened until you see it.'
+                : 'Сначала откроем твой личный Today. Неделя и месяц подождут первой ценности.');
+        }
         setSideDrawerOpen(false);
         openBottomToday();
-    }, [openBottomToday]);
+    }, [openBottomToday, profile]);
     const openDrawerHoroscope = useCallback(() => {
         setSideDrawerOpen(false);
         openBottomZodiac();
@@ -1801,7 +2036,7 @@ const App: React.FC = () => {
                 <div className="relative z-10 h-full">
                     <Onboarding
                         onComplete={handleOnboardingComplete}
-                        initialStep={profile && !profile.isGuest && !profile.isSetup ? 'birth' : 'stories'}
+                        initialStep="birth"
                     />
                 </div>
             </div>
@@ -1814,6 +2049,7 @@ const App: React.FC = () => {
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
     const isTelegramMiniApp = hasTelegramMiniAppContext();
 
+    const premiumPromotionAllowed = firstValueReached && !hasActivePremium(profile);
     const dashboardProps = {
         profile,
         chartData,
@@ -1823,7 +2059,25 @@ const App: React.FC = () => {
         onOpenSynastry: openSynastryFromHome,
         onOpenHoroscope: openBottomZodiac,
         requestedPeriod: dashboardPeriod,
+        onPeriodChange: setDashboardPeriod,
         onRequestPremium: requestPremium,
+        canPromotePremium: premiumPromotionAllowed,
+        onPremiumAnalytics: (
+            eventType: 'first_value_viewed'
+                | 'locked_feature_tapped'
+                | 'premium_promo_impression'
+                | 'premium_promo_clicked'
+                | 'premium_promo_dismissed',
+            eventPayload: Record<string, unknown>,
+        ) => {
+            if (eventType === 'first_value_viewed') markFirstValueReached();
+            void recordUserAppEvent({
+                eventType,
+                section: 'personal_forecast',
+                source: 'personal_forecast_feed',
+                eventPayload,
+            });
+        },
     };
 
     return (
@@ -1834,7 +2088,7 @@ const App: React.FC = () => {
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
-            {profile && !loading && !showPremiumPreview && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
+            {profile && !loading && !paywallContext && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
                 <button
                     type="button"
                     className={`lumia-side-drawer-menu-button${isTelegramMiniApp ? ' is-telegram' : ''}`}
@@ -1852,8 +2106,8 @@ const App: React.FC = () => {
             )}
             <main
                 className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
-                aria-hidden={sideDrawerOpen ? true : undefined}
-                inert={sideDrawerOpen ? true : undefined}
+                aria-hidden={sideDrawerOpen || paywallContext ? true : undefined}
+                inert={sideDrawerOpen || paywallContext ? true : undefined}
             >
                 <div
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
@@ -1863,23 +2117,6 @@ const App: React.FC = () => {
                 </div>
                 {view === 'admin' ? (
                     <AdminApp onClose={() => { void handleBack(); }} />
-                ) : view === 'paywall' ? (
-                    <Paywall
-                        profile={profile}
-                        onPurchase={(planId) => { void requestPremium('paywall', undefined, planId); }}
-                        onClose={() => {
-                            const t = paywallTarget;
-                            premiumReturnInPlaceRef.current = false;
-                            setPaywallTarget(null);
-                            setView(t ?? 'dashboard');
-                        }}
-                        onContinueFree={() => {
-                            const t = paywallTarget;
-                            premiumReturnInPlaceRef.current = false;
-                            setPaywallTarget(null);
-                            setView(t ?? 'dashboard');
-                        }}
-                    />
                 ) : view === 'synastry' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <UnionRoom
@@ -1891,6 +2128,9 @@ const App: React.FC = () => {
                             onOpenCharts={() => openCharts('synastry')}
                             onCreateNatalChart={openBottomNatal}
                             onUpdateProfile={handleProfileUpdate}
+                            premiumContinuation={premiumContinuation}
+                            onPremiumContinuationHandled={completePremiumContinuation}
+                            canPromotePremium={premiumPromotionAllowed}
                         />
                         <PromoBanner
                             category="natal"
@@ -1915,7 +2155,6 @@ const App: React.FC = () => {
                             onOpenChart={() => {
                                 navigateTo('chart');
                             }}
-                            onRequestPremium={requestPremium}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
                         />
                     </div>
@@ -1970,6 +2209,9 @@ const App: React.FC = () => {
                             preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
                             onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
                             onOpenPersonalityReport={openPersonalityReport}
+                            premiumContinuation={premiumContinuation}
+                            onPremiumContinuationHandled={completePremiumContinuation}
+                            canPromotePremium={premiumPromotionAllowed}
                         />
                         <PromoBanner
                             category="zodiac"
@@ -1985,8 +2227,15 @@ const App: React.FC = () => {
                         <Settings
                             profile={profile}
                             onUpdate={handleProfileUpdate}
-                            onShowPremiumPreview={() => setShowPremiumPreview(true)}
                             onRequestPremium={() => { void requestPremium('settings'); }}
+                            canPromotePremium={premiumPromotionAllowed}
+                            onRestorePurchase={() => restorePremiumPurchases()}
+                            onManageSubscription={async () => {
+                                const opened = await openRuStoreSubscriptionManagement();
+                                if (!opened) {
+                                    setCheckoutNotice('Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.');
+                                }
+                            }}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
                             onLogout={handleLogout}
@@ -2006,7 +2255,10 @@ const App: React.FC = () => {
                             }}
                             onProfileUpdate={handleProfileUpdate}
                             onPrimaryChartUpdated={refreshPrimaryChartState}
-                            onRequestPremium={() => void requestPremium('charts')}
+                            onRequestPremium={(source, payload) => void requestPremium(source || 'charts', payload)}
+                            premiumContinuation={premiumContinuation}
+                            onPremiumContinuationHandled={completePremiumContinuation}
+                            canPromotePremium={premiumPromotionAllowed}
                             onUseInSynastry={(chart) => {
                                 openSynastryWithPrefill({
                                     source: 'saved-chart',
@@ -2037,9 +2289,45 @@ const App: React.FC = () => {
                 ) : null}
             </main>
 
-            {showPremiumPreview && (
-                <PremiumPreview language={profile?.language || 'ru'} onClose={() => setShowPremiumPreview(false)} onPurchase={requestPremium} />
-            )}
+            {paywallContext ? (
+                <div className="fixed inset-0 z-[150] h-[100dvh] overflow-hidden bg-white">
+                    <Paywall
+                        profile={profile}
+                        context={paywallContext}
+                        onPurchase={purchasePremiumPlan}
+                        onClose={() => returnFromPaywall(paywallContext, 'close')}
+                        onContinueFree={() => returnFromPaywall(paywallContext, 'close')}
+                        onRestore={() => restorePremiumPurchases(paywallContext)}
+                        onPlanSelected={(planId) => {
+                            void recordUserAppEvent({
+                                eventType: 'plan_selected',
+                                section: 'premium',
+                                source: paywallContext.placement,
+                                eventPayload: paywallEventPayload(paywallContext, { planId }),
+                            });
+                        }}
+                    />
+                </div>
+            ) : null}
+
+            {checkoutNotice ? (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="fixed inset-x-4 bottom-6 z-[120] mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-mono-ink shadow-lg"
+                >
+                    <span className="min-w-0 flex-1">{checkoutNotice}</span>
+                    <button
+                        type="button"
+                        className="min-h-[44px] shrink-0 px-2 font-semibold"
+                        aria-label="Закрыть сообщение"
+                        onClick={() => setCheckoutNotice(null)}
+                    >
+                        ×
+                    </button>
+                </div>
+            ) : null}
+
             <LumiaSideDrawer
                 open={sideDrawerOpen}
                 currentView={view}

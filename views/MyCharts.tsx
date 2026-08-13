@@ -16,6 +16,7 @@ import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack
 import { hasActivePremium } from '../lib/accessMatrix';
 import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
 import { getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
+import type { PaywallContext } from '../lib/paywallContext';
 import {
   MonoButton,
   MonoFadeIn,
@@ -33,7 +34,10 @@ interface MyChartsProps {
   onProfileUpdate?: (profile: UserProfile) => void;
   onUseInSynastry?: (chart: ChartListItem) => void;
   onPrimaryChartUpdated?: () => Promise<void> | void;
-  onRequestPremium?: () => void;
+  onRequestPremium?: (source?: string, payload?: Record<string, unknown>) => void;
+  premiumContinuation?: PaywallContext | null;
+  onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
+  canPromotePremium?: boolean;
 }
 
 export const MyCharts: React.FC<MyChartsProps> = ({
@@ -44,6 +48,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   onUseInSynastry,
   onPrimaryChartUpdated: _onPrimaryChartUpdated,
   onRequestPremium,
+  premiumContinuation,
+  onPremiumContinuationHandled,
+  canPromotePremium = true,
 }) => {
   void onBack;
 
@@ -61,6 +68,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [addInvalidFields, setAddInvalidFields] = useState<Array<'date' | 'place'>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [listFilter, setListFilter] = useState<'all' | 'primary' | 'partners'>('all');
+  const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
 
   const lang = profile.language || 'ru';
 
@@ -93,27 +101,57 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     try {
       const res = await getCharts(profile.id);
       setData(res);
+      return res;
     } catch (err: any) {
       console.error('[MyCharts] Load error', err);
       setLoadError(err?.message || (lang === 'ru' ? 'Не удалось загрузить карты.' : 'Could not load charts.'));
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [lang, profile.id]);
+  }, [lang, profile.id, profile.premiumEntitlement?.state, profile.premiumEntitlement?.endsAt]);
 
   useEffect(() => {
     loadCharts();
   }, [loadCharts]);
 
   const charts = data?.charts ?? [];
-  const canAddMore = data?.canAddSavedPeople ?? data?.canAddMore ?? true;
+  const serverCanAddMore = data?.canAddSavedPeople ?? data?.canAddMore ?? true;
   const chartSlots = data?.chartSlots ?? (profile.chartSlots ?? 1);
   const partnerCharts = charts.filter((chart) => getChartSubjectType(chart) === 'saved_person');
-  const accessibleChartCount = charts.filter((chart) => !chart.access_locked).length;
-  const lockedChartCount = charts.length - accessibleChartCount;
   const isSingleChartState = charts.length === 1 && chartSlots > 1;
-  const hasPremiumAccess = data?.isPremium ?? hasActivePremium(profile);
-  const showPremiumSlotsCta = !canAddMore && !hasPremiumAccess && !!onRequestPremium;
+  // The profile carries the latest backend-validated entitlement. A cached
+  // chart-list boolean must never outlive its dated canonical snapshot.
+  const hasPremiumAccess = hasActivePremium(profile, entitlementNow);
+  const canAddMore = hasPremiumAccess && serverCanAddMore;
+  const isChartEffectivelyLocked = useCallback((chart: ChartListItem) => (
+    chart.access_locked === true
+    || (getChartSubjectType(chart) === 'saved_person' && !hasPremiumAccess)
+  ), [hasPremiumAccess]);
+  const accessibleChartCount = charts.filter((chart) => !isChartEffectivelyLocked(chart)).length;
+  const lockedChartCount = charts.length - accessibleChartCount;
+  const showPremiumSlotsCta = canPromotePremium && !canAddMore && !hasPremiumAccess && !!onRequestPremium;
+
+  useEffect(() => {
+    const end = profile.premiumEntitlement?.endsAt || profile.premiumUntil;
+    const endMs = end ? new Date(end).getTime() : Number.NaN;
+    setEntitlementNow(Date.now());
+    if (!Number.isFinite(endMs) || endMs <= Date.now()) return;
+    let timer = 0;
+    const scheduleBoundary = () => {
+      const remaining = endMs - Date.now() + 50;
+      if (remaining <= 0) {
+        setEntitlementNow(Date.now());
+        return;
+      }
+      timer = window.setTimeout(
+        scheduleBoundary,
+        Math.min(2_147_000_000, Math.max(1, remaining)),
+      );
+    };
+    scheduleBoundary();
+    return () => window.clearTimeout(timer);
+  }, [profile.premiumEntitlement?.endsAt, profile.premiumUntil]);
 
   const filteredCharts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -144,6 +182,53 @@ export const MyCharts: React.FC<MyChartsProps> = ({
       setShowAddForm(false);
     }
   }, [canAddMore, showAddForm]);
+
+  const resumePremiumContinuation = useCallback((refreshed: ChartsResponse | null | undefined) => {
+    if (!hasPremiumAccess || !premiumContinuation || !refreshed) return false;
+    if (premiumContinuation.featureKey !== 'saved_people') return false;
+    if (premiumContinuation.returnAction === 'add_saved_person') {
+        setShowAddForm(true);
+    } else if (
+      premiumContinuation.returnAction === 'open_saved_person'
+      && premiumContinuation.returnEntityId
+    ) {
+      const requested = refreshed.charts.find(
+        (chart) => String(chart.id) === premiumContinuation.returnEntityId,
+      );
+      if (!requested?.chart_data || requested.access_locked) {
+        setLoadError(lang === 'ru'
+          ? 'Premium открыт, но запрошенная карта пока не загрузилась. Повтори попытку.'
+          : 'Premium is active, but the requested chart has not loaded yet. Retry.');
+        return false;
+      }
+      onChartSelect?.({ ...requested, access_locked: false });
+    } else {
+      return false;
+    }
+    onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
+    return true;
+  }, [
+    hasPremiumAccess,
+    lang,
+    onChartSelect,
+    onPremiumContinuationHandled,
+    premiumContinuation,
+  ]);
+
+  const reloadAndResume = useCallback(async () => {
+    const refreshed = await loadCharts();
+    resumePremiumContinuation(refreshed);
+  }, [loadCharts, resumePremiumContinuation]);
+
+  useEffect(() => {
+    if (!hasPremiumAccess || !premiumContinuation) return;
+    if (premiumContinuation.featureKey !== 'saved_people') return;
+    void reloadAndResume();
+  }, [
+    hasPremiumAccess,
+    premiumContinuation,
+    reloadAndResume,
+  ]);
 
   const handleAddChart = async () => {
     const missingFields: Array<'date' | 'place'> = [];
@@ -215,8 +300,19 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   };
 
   const handleSelectChart = (chart: ChartListItem) => {
-    if (chart.access_locked) {
-      onRequestPremium?.();
+    if (isChartEffectivelyLocked(chart)) {
+      if (hasPremiumAccess) {
+        void loadCharts();
+        return;
+      }
+      onRequestPremium?.('charts', {
+        placement: 'saved_people',
+        featureKey: 'saved_people',
+        triggerType: 'locked_feature',
+        returnView: 'charts',
+        returnAction: 'open_saved_person',
+        returnEntityId: chart.id,
+      });
       return;
     }
     if (chart.chart_data && onChartSelect) {
@@ -234,7 +330,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         <div className="mx-auto max-w-2xl px-4 pb-8">
           <div role="alert" className="fresh-card space-y-3 p-5">
             <p className="text-[14px] leading-relaxed text-red-700">{loadError}</p>
-            <MonoButton fullWidth onClick={() => { void loadCharts(); }}>
+            <MonoButton fullWidth onClick={() => { void reloadAndResume(); }}>
               {lang === 'ru' ? 'Повторить' : 'Try again'}
             </MonoButton>
           </div>
@@ -258,7 +354,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               </p>
               <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.1em] text-mono-muted">
                 {getText(lang, 'charts.slots')}: {accessibleChartCount} / {chartSlots}
-                {lockedChartCount > 0
+                {lockedChartCount > 0 && canPromotePremium && !hasPremiumAccess
                   ? ` · ${lockedChartCount} ${lang === 'ru' ? 'сохранено с Premium' : 'saved with Premium'}`
                   : ''}
               </p>
@@ -272,7 +368,13 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                   <p className="text-[14px] font-semibold text-mono-ink">{getText(lang, 'charts.slots_full_title')}</p>
                   <p className="text-[13px] text-mono-muted">{getText(lang, 'charts.limit_reached')}</p>
                   {showPremiumSlotsCta && (
-                    <MonoButton fullWidth onClick={onRequestPremium}>{getText(lang, 'charts.premium_slots_cta')}</MonoButton>
+                    <MonoButton fullWidth onClick={() => onRequestPremium?.('charts', {
+                      placement: 'saved_people',
+                      featureKey: 'saved_people',
+                      triggerType: 'locked_feature',
+                      returnView: 'charts',
+                      returnAction: 'add_saved_person',
+                    })}>{getText(lang, 'charts.premium_slots_cta')}</MonoButton>
                   )}
                 </div>
               )}
@@ -301,7 +403,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         {loadError ? (
           <div role="alert" className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             <p>{loadError}</p>
-            <button type="button" className="mt-2 min-h-[44px] font-semibold underline underline-offset-4" onClick={() => { void loadCharts(); }}>
+            <button type="button" className="mt-2 min-h-[44px] font-semibold underline underline-offset-4" onClick={() => { void reloadAndResume(); }}>
               {lang === 'ru' ? 'Повторить' : 'Try again'}
             </button>
           </div>
@@ -324,7 +426,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
               const sunSign = chart.chart_data?.sun?.sign;
               const signLabel = sunSign ? getZodiacSign(lang, sunSign) : '-';
               const isPrimary = isSelfChart(chart);
-              const isLocked = chart.access_locked === true;
+              const isLocked = isChartEffectivelyLocked(chart);
               const isBusy = actionLoading === `delete-${chart.id}`;
               const formattedBirthDate = formatDisplayDate(chart.birth_date, lang) || chart.birth_date;
 
@@ -342,7 +444,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                         <MonoTag dark className="!bg-white/15">{getText(lang, 'charts.primary_badge')}</MonoTag>
                       ) : null}
                       {isLocked ? (
-                        <MonoTag>{lang === 'ru' ? 'Premium' : 'Premium'}</MonoTag>
+                        <MonoTag>{canPromotePremium && !hasPremiumAccess ? 'Premium' : (lang === 'ru' ? 'Закрыто' : 'Locked')}</MonoTag>
                       ) : null}
                     </div>
                     <p className={`mt-1 text-[13px] ${isPrimary ? 'text-white/70' : 'text-mono-muted'}`}>
@@ -363,7 +465,11 @@ export const MyCharts: React.FC<MyChartsProps> = ({
                       {onChartSelect ? (
                         <MonoButton variant={isPrimary ? 'ghost' : 'outline'} className="!min-h-[44px] !px-3 !text-[12px]" onClick={() => handleSelectChart(chart)}>
                           {isLocked
-                            ? (lang === 'ru' ? 'Открыть с Premium' : 'Unlock with Premium')
+                            ? canPromotePremium && !hasPremiumAccess
+                              ? (lang === 'ru' ? 'Открыть с Premium' : 'Unlock with Premium')
+                              : hasPremiumAccess
+                                ? (lang === 'ru' ? 'Обновить доступ' : 'Refresh access')
+                                : (lang === 'ru' ? 'Пока недоступно' : 'Unavailable for now')
                             : getText(lang, 'charts.open_chart')}
                         </MonoButton>
                       ) : null}

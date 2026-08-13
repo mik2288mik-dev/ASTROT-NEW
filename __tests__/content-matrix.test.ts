@@ -32,10 +32,10 @@ describe('Lumia content matrix', () => {
 
   it('delegates access decisions to accessMatrix', () => {
     expect(getContentAccess('sign_daily_horoscope')).toMatchObject({ tier: 'free', needsChart: false });
-    expect(getContentAccess('sign_weekly_horoscope')).toMatchObject({ tier: 'pro', needsChart: false });
-    expect(getContentAccess('sign_monthly_horoscope')).toMatchObject({ tier: 'pro', needsChart: false });
+    expect(getContentAccess('sign_weekly_horoscope')).toMatchObject({ tier: 'premium', needsChart: false });
+    expect(getContentAccess('sign_monthly_horoscope')).toMatchObject({ tier: 'premium', needsChart: false });
     expect(getContentAccess('natal_section', { natalSection: 'basic_identity' })).toMatchObject({ tier: 'free', needsChart: true });
-    expect(getContentAccess('natal_section', { natalSection: 'money' })).toMatchObject({ tier: 'pro', needsChart: true });
+    expect(getContentAccess('natal_section', { natalSection: 'money' })).toMatchObject({ tier: 'premium', needsChart: true });
   });
 
   it('builds shared and personal cache keys without scope collisions', () => {
@@ -61,7 +61,18 @@ describe('Lumia content matrix', () => {
       status: 'needs_premium',
       hasChart: false,
     });
-    expect(canAccessFeature('weekly_sign_horoscope', { isPremium: true }, null))
+    expect(canAccessFeature('weekly_sign_horoscope', {
+      premiumEntitlement: {
+        state: 'paid',
+        isPremium: true,
+        source: 'rustore_pay',
+        startsAt: '2026-08-01T00:00:00.000Z',
+        endsAt: '2099-09-01T00:00:00.000Z',
+        autoRenew: true,
+        productId: 'premium.3m',
+        period: 'P3M',
+      },
+    }, null))
       .toMatchObject({
         allowed: true,
         status: 'allowed',

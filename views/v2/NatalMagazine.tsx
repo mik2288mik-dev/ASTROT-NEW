@@ -11,6 +11,7 @@ import { NatalChartPortrait } from '../../components/NatalReading/NatalChartPort
 import { selectNatalEditorialSticker } from '../../lib/personalForecastVisuals';
 import { buildPersonalForecastChartFingerprint } from '../../lib/personalForecastContract';
 import type { ChartListItem } from '../../services/storageService';
+import type { PaywallContext } from '../../lib/paywallContext';
 
 type NatalMagazineProps = {
   data: NatalChartData | null;
@@ -22,6 +23,9 @@ type NatalMagazineProps = {
   preloadedReport?: PreloadedNatalReport | null;
   onCreateChart?: () => void;
   onOpenPersonalityReport: () => void;
+  premiumContinuation?: PaywallContext | null;
+  onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
+  canPromotePremium?: boolean;
 };
 
 export function NatalMagazine({
@@ -34,6 +38,9 @@ export function NatalMagazine({
   preloadedReport,
   onCreateChart,
   onOpenPersonalityReport,
+  premiumContinuation,
+  onPremiumContinuationHandled,
+  canPromotePremium,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const subjectName = chartSubject?.name || profile.name;
@@ -115,6 +122,9 @@ export function NatalMagazine({
         preloadedReport={preloadedReport}
         hideIntro
         editorialSticker={natalSticker}
+        premiumContinuation={premiumContinuation}
+        onPremiumContinuationHandled={onPremiumContinuationHandled}
+        canPromotePremium={canPromotePremium}
       />
     </div>
   );

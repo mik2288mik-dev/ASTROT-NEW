@@ -106,6 +106,32 @@ describe('personal forecast API entitlement', () => {
     });
   });
 
+  it.each(['day', 'week', 'month'])(
+    'reopens cached Premium %s without a new AI generation',
+    async (period) => {
+      mockGetPremiumEntitlementState.mockResolvedValueOnce({
+        isPremium: true,
+        state: 'paid',
+        entitlement: { status: 'paid' },
+      });
+      mockGetCachedPersonalForecast.mockResolvedValueOnce({
+        forecast: { ...personalForecastFixture(), period },
+      });
+      const { res, status, json } = responseMock();
+      const req = {
+        method: 'GET', query: { period }, body: {}, headers: {},
+      } as unknown as NextApiRequest;
+
+      await handler(req, res);
+
+      expect(status).toHaveBeenCalledWith(200);
+      expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
+      expect(json.mock.calls[0][0]).toMatchObject({
+        accessTier: 'premium', periodLocked: false, source: 'cache',
+      });
+    },
+  );
+
   it('serves a compatible stale day immediately and refreshes it lazily', async () => {
     mockGetCompatibleStalePersonalForecast.mockResolvedValueOnce({
       forecast: personalForecastFixture(),

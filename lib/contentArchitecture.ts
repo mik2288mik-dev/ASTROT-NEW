@@ -1,9 +1,12 @@
-import type {
-  ContentAccessTier,
-  ContentSurface,
-  ContentVariant,
-  ContentInterpretation,
-  ContentUnlock,
+import {
+  PREMIUM_ENTITLEMENT_STATES,
+  type PremiumEntitlementState,
+  type PremiumEntitlementSnapshot,
+  type ContentAccessTier,
+  type ContentSurface,
+  type ContentVariant,
+  type ContentInterpretation,
+  type ContentUnlock,
 } from '../types';
 import { db } from './db';
 import { getConfiguredOwnerId } from './adminAuth';
@@ -224,28 +227,107 @@ export async function unlockContentLayer(
   return { unlock, chartId, cacheKey, via: 'free' };
 }
 
-export async function getPremiumEntitlementState(userId: string) {
+const PREMIUM_ACCESS_STATES = new Set([
+  'gift',
+  'store_trial',
+  'paid',
+  'grace',
+  'cancelled_active',
+]);
+
+export function toPremiumEntitlementSnapshot(entitlement: any | null): PremiumEntitlementSnapshot {
+  if (!entitlement) {
+    return {
+      state: 'free',
+      isPremium: false,
+      source: null,
+      startsAt: null,
+      endsAt: null,
+      autoRenew: null,
+      productId: null,
+      period: null,
+    };
+  }
+
+  const metadata = entitlement.metadata && typeof entitlement.metadata === 'object'
+    ? entitlement.metadata
+    : {};
+  const rawState = String(entitlement.entitlementState || entitlement.state || '').trim();
+  const canonicalState = new Set<string>(PREMIUM_ENTITLEMENT_STATES).has(rawState)
+    ? rawState as PremiumEntitlementState
+    : 'expired';
+  const endsAtMs = entitlement.endsAt ? new Date(entitlement.endsAt).getTime() : Number.NaN;
+  const state = PREMIUM_ACCESS_STATES.has(canonicalState)
+    && (!Number.isFinite(endsAtMs) || endsAtMs <= Date.now())
+    ? 'expired'
+    : canonicalState;
+  const autoRenew = typeof metadata.autoRenewing === 'boolean'
+    ? metadata.autoRenewing
+    : (typeof metadata.autoRenew === 'boolean' ? metadata.autoRenew : null);
+
+  return {
+    state,
+    isPremium: PREMIUM_ACCESS_STATES.has(state),
+    source: entitlement.source ? String(entitlement.source) : null,
+    startsAt: entitlement.startsAt ? String(entitlement.startsAt) : null,
+    endsAt: entitlement.endsAt ? String(entitlement.endsAt) : null,
+    autoRenew,
+    productId: metadata.productId ? String(metadata.productId) : null,
+    period: metadata.period ? String(metadata.period) : null,
+  };
+}
+
+export function publicPremiumEntitlementSnapshot(
+  value: PremiumEntitlementSnapshot,
+): PremiumEntitlementSnapshot {
+  return {
+    state: value.state,
+    isPremium: value.isPremium,
+    source: value.source,
+    startsAt: value.startsAt,
+    endsAt: value.endsAt,
+    autoRenew: value.autoRenew,
+    productId: value.productId,
+    period: value.period,
+  };
+}
+
+function privilegedEntitlement(source: 'owner' | 'admin'): PremiumEntitlementSnapshot {
+  return {
+    state: 'gift',
+    isPremium: true,
+    source,
+    startsAt: null,
+    endsAt: null,
+    autoRenew: null,
+    productId: null,
+    period: null,
+  };
+}
+
+export async function getPremiumEntitlementState(userId: string): Promise<
+  PremiumEntitlementSnapshot & { entitlement: any | null }
+> {
   // Guest IDs stay stable when a recovery identity is linked, so a negative
   // users.id is not by itself proof that the account is still a guest.
   let user: Awaited<ReturnType<typeof db.users.get>> | null = null;
   if (isGuestUserId(userId)) {
     user = await db.users.get(userId);
     if (!user || user.is_guest !== false) {
-      return { isPremium: false, entitlement: null };
+      return { ...toPremiumEntitlementSnapshot(null), entitlement: null };
     }
   }
 
   const ownerId = getConfiguredOwnerId();
   if (ownerId && String(userId) === String(ownerId)) {
-    return {
-      isPremium: true,
-      entitlement: null,
-    };
+    return { ...privilegedEntitlement('owner'), entitlement: null };
   }
 
   let entitlement: Awaited<ReturnType<typeof db.premium_entitlements.getActive>> | null = null;
+  let latest: Awaited<ReturnType<typeof db.premium_entitlements.getLatest>> | null = null;
   try {
     entitlement = await db.premium_entitlements.getActive(userId);
+    if (!entitlement) latest = await db.premium_entitlements.getLatest(userId);
   } catch (error: any) {
     log.warn('Premium entitlement lookup failed; falling back to users.premium_until', {
       userId,
@@ -254,30 +336,30 @@ export async function getPremiumEntitlementState(userId: string) {
   }
 
   if (entitlement) {
-    return {
-      isPremium: true,
-      entitlement,
-    };
+    return { ...toPremiumEntitlementSnapshot(entitlement), entitlement };
   }
 
   user ||= await db.users.get(userId);
   if (user?.is_admin) {
-    return {
-      isPremium: true,
-      entitlement: null,
-    };
+    return { ...privilegedEntitlement('admin'), entitlement: null };
   }
 
   const premiumUntil = user?.premium_until ? new Date(user.premium_until) : null;
   if (premiumUntil && !Number.isNaN(premiumUntil.getTime()) && premiumUntil.getTime() > Date.now()) {
     return {
+      state: 'gift',
       isPremium: true,
+      source: 'users.premium_until',
+      startsAt: null,
+      endsAt: premiumUntil.toISOString(),
+      autoRenew: null,
+      productId: null,
+      period: null,
       entitlement: null,
     };
   }
 
-  return {
-    isPremium: false,
-    entitlement: null,
-  };
+  return latest
+    ? { ...toPremiumEntitlementSnapshot(latest), entitlement: latest }
+    : { ...toPremiumEntitlementSnapshot(null), entitlement: null };
 }
