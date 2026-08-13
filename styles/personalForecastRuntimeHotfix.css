@@ -1,0 +1,163 @@
+/* Runtime parity hotfix. Imported last so legacy newspaper rules cannot override it. */
+
+#__next .forecast-feed-page:is(.is-day, .is-week, .is-month) {
+  --forecast-editorial-width: 40rem;
+  --forecast-editorial-display: Georgia, 'Times New Roman', 'Noto Serif', serif;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+#__next .forecast-feed-page .forecast-feed-reading-header,
+#__next .forecast-feed-page .forecast-editorial-reading {
+  width: min(100%, var(--forecast-editorial-width));
+}
+
+#__next .forecast-feed-page .forecast-feed-reading-header {
+  padding-inline: clamp(1.75rem, 7vw, 3rem);
+}
+
+#__next .forecast-feed-page .forecast-feed-date-zone {
+  margin-top: 0.85rem;
+}
+
+#__next .forecast-feed-page .forecast-editorial-reading {
+  padding-top: clamp(1.25rem, 5vw, 2rem);
+  padding-right: clamp(1.75rem, 7vw, 3rem);
+  padding-left: clamp(1.75rem, 7vw, 3rem);
+}
+
+#__next
+  .today-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-screen-headline,
+#__next
+  .forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-screen-headline {
+  max-width: 14ch !important;
+  margin-bottom: clamp(1.15rem, 4vw, 1.65rem) !important;
+  font-family: var(--forecast-editorial-display) !important;
+  font-size: clamp(2.2rem, 9.6vw, 3.2rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.045em !important;
+  line-height: 1.01 !important;
+}
+
+#__next
+  .today-editorial-feed
+  .today-editorial-beat.is-overview
+  .forecast-feed-section-text.is-lead,
+#__next
+  .forecast-period-editorial-feed
+  .forecast-feed-section-text.is-story-opening {
+  max-width: 34rem !important;
+  font-family: var(--forecast-editorial-display) !important;
+  font-size: clamp(1.08rem, 4.8vw, 1.3rem) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.018em !important;
+  line-height: 1.47 !important;
+}
+
+#__next .today-editorial-feed .forecast-feed-section-text,
+#__next .forecast-period-editorial-feed .forecast-feed-section-text.is-story-continuation {
+  font-size: clamp(0.98rem, 4.1vw, 1.07rem) !important;
+  line-height: 1.62 !important;
+}
+
+#__next .forecast-editorial-quote {
+  max-width: 31rem;
+  padding-left: clamp(1.35rem, 5vw, 1.8rem);
+}
+
+#__next .forecast-editorial-quote p {
+  font-family: var(--forecast-editorial-display) !important;
+  font-size: clamp(1.28rem, 5.8vw, 1.72rem) !important;
+  font-style: italic;
+  font-weight: 400 !important;
+  line-height: 1.28 !important;
+}
+
+#__next .forecast-editorial-visual[data-editorial-size='medium'] {
+  width: min(100%, 9rem);
+}
+
+#__next .forecast-editorial-visual[data-editorial-size='hero'] {
+  width: min(100%, 15rem);
+}
+
+#__next .forecast-editorial-paper-note.has-template {
+  width: min(100%, 15rem);
+}
+
+#__next .forecast-editorial-paper-note.has-template p {
+  font-size: clamp(0.7rem, 3vw, 0.88rem) !important;
+  letter-spacing: 0.055em !important;
+  line-height: 1.35 !important;
+}
+
+/* A cache miss must keep the geometry of the final reading. */
+#__next .forecast-feed-status--loading {
+  box-sizing: border-box;
+  display: block;
+  inline-size: min(100%, var(--forecast-editorial-width));
+  min-block-size: 28rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 6vw, 2.4rem) clamp(1.75rem, 7vw, 3rem) 5rem;
+  text-align: left;
+}
+
+#__next .forecast-feed-status--loading .forecast-feed-loading-indicator,
+#__next .forecast-feed-status--loading .forecast-feed-loading-label {
+  display: none !important;
+}
+
+#__next .forecast-feed-status--loading::before {
+  display: block;
+  width: 100%;
+  height: clamp(24rem, 66vh, 34rem);
+  border-radius: 0;
+  background:
+    linear-gradient(#efefec 0 0) 0 0 / 84% 2.75rem no-repeat,
+    linear-gradient(#efefec 0 0) 0 3.3rem / 62% 2.75rem no-repeat,
+    linear-gradient(#f1f1ee 0 0) 0 7.7rem / 100% 1.05rem no-repeat,
+    linear-gradient(#f1f1ee 0 0) 0 9.35rem / 93% 1.05rem no-repeat,
+    linear-gradient(#f1f1ee 0 0) 0 11rem / 76% 1.05rem no-repeat,
+    linear-gradient(#e6e5e0 0 0) center 14.2rem / 100% 1px no-repeat,
+    linear-gradient(#f1f1ee 0 0) 0 17rem / 72% 0.95rem no-repeat,
+    linear-gradient(#f1f1ee 0 0) 0 18.6rem / 82% 0.95rem no-repeat,
+    linear-gradient(#f1f1ee 0 0) 0 20.2rem / 64% 0.95rem no-repeat,
+    radial-gradient(circle at center, #efefec 0 58%, transparent 59%) 92% 91% / 7.5rem 7.5rem no-repeat;
+  content: '';
+  animation: personal-forecast-runtime-pulse 1.35s ease-in-out infinite;
+}
+
+@keyframes personal-forecast-runtime-pulse {
+  0%, 100% { opacity: 0.56; }
+  50% { opacity: 0.94; }
+}
+
+@media (max-width: 380px) {
+  #__next .forecast-feed-page .forecast-feed-reading-header,
+  #__next .forecast-feed-page .forecast-editorial-reading,
+  #__next .forecast-feed-status--loading {
+    padding-right: 1.35rem;
+    padding-left: 1.35rem;
+  }
+
+  #__next
+    .today-editorial-feed
+    .forecast-feed-story-fragment.is-overview
+    .forecast-feed-screen-headline,
+  #__next
+    .forecast-period-editorial-feed
+    .forecast-feed-story-fragment.is-overview
+    .forecast-feed-screen-headline {
+    font-size: clamp(2rem, 10vw, 2.65rem) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #__next .forecast-feed-status--loading::before {
+    animation: none;
+  }
+}
