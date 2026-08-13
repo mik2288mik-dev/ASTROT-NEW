@@ -126,18 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     if (req.method === 'GET') {
-      return res.status(404).json({
-        error: 'Not found',
-        code: 'PERSONAL_FORECAST_NOT_READY',
-        forecast: createUnavailablePersonalForecast(
-          period,
-          periodKey,
-          timezone,
-          ctx.profile.language === 'en' ? 'en' : 'ru',
-          'unavailable',
-          'PERSONAL_FORECAST_NOT_READY',
-        ),
-      });
+      return res.status(204).end();
     }
 
     const generated = await ensurePersonalForecast(cacheInput);
@@ -171,7 +160,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message,
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return res.status(503).json({
+    return res.status(200).json({
       error: 'Personal forecast unavailable',
       code: diagnosticCode,
       forecast: createUnavailablePersonalForecast(
