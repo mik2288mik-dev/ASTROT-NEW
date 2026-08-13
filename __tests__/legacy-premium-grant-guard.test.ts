@@ -22,7 +22,7 @@ jest.mock('../lib/adminAuth', () => ({
 }));
 
 jest.mock('../lib/auth/appAuth', () => ({
-  requireTelegramPaymentUser: jest.fn().mockResolvedValue({ userId: '42' }),
+  requireAppUser: jest.fn().mockResolvedValue({ userId: '42' }),
 }));
 
 jest.mock('../lib/premiumPlanSettings', () => ({

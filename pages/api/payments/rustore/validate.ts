@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!(await userHasRecoveryIdentity(auth.userId))) {
       return res.status(403).json({
         error: 'RECOVERY_IDENTITY_REQUIRED',
-        message: 'Link VK ID, Yandex ID, Google, or email before purchasing',
+        message: 'Link VK ID, Yandex ID, or email before purchasing',
       });
     }
     const result = await validateRuStorePurchase({
