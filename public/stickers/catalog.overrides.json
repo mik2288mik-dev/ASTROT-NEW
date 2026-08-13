@@ -1,8 +1,0 @@
-{
-  "_comment": "Необязательные точечные оверрайды каталога стикеров. Ключ = имя файла без расширения (напр. 'capy_coffee_sit_calm') ИЛИ образ/предмет (напр. 'palm' — подействует на все palm*). Любое поле необязательно; заданное — перекрывает дефолт из имени/правил. Большинству стикеров запись здесь НЕ нужна. Поля: type ('character'|'object'), moods (['calm','happy',...]), surfaces (['hero','moon','sphere','feed']), positions (['bottom-right-peek',...]), exclude (true — убрать из ротации). Пример ниже закомментирован смыслом ключа '_example'.",
-  "_example": {
-    "moods": ["calm", "happy"],
-    "surfaces": ["hero", "moon"],
-    "positions": ["bottom-right-peek"]
-  }
-}

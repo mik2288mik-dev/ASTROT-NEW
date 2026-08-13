@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import synastryScenes from '../docs/design/newspaper-stickers/synastry-scenes.json';
+import {
+  getPersonalEditorialAssetLibrary,
+  selectSynastryEditorialSticker,
+} from '../lib/personalForecastVisuals';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -107,17 +110,21 @@ describe('compatibility editorial layout', () => {
     expect(extendedApi).not.toContain('computeSynastryAspects');
   });
 
-  it('selects result scenes only with dynamics present in the catalog', () => {
+  it('selects compatibility visuals only from the personal editorial source', () => {
     const room = read('views/v2/UnionRoom.tsx');
-    const start = room.indexOf('type CompatibilityVisualDynamic');
-    const end = room.indexOf('function readingTitles', start);
-    const visualDynamicsBlock = room.slice(start, end);
-    const requested = [...visualDynamicsBlock.matchAll(/'([^']+)'/g)].map((match) => match[1]);
-    const catalogDynamics = new Set(synastryScenes.flatMap((scene) => scene.dynamics));
+    const approved = new Set(getPersonalEditorialAssetLibrary().map((asset) => asset.id));
+    const selected = Array.from({ length: 200 }, (_, index) => selectSynastryEditorialSticker({
+      screenKey: 'compatibility-result',
+      contentKey: `pair-${index}`,
+      context: index % 2 ? 'love' : 'friendship',
+      dynamics: [`dynamic-${index}`],
+    })).filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
 
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(end).toBeGreaterThan(start);
-    expect(requested.length).toBeGreaterThan(12);
-    expect(requested.every((dynamic) => catalogDynamics.has(dynamic))).toBe(true);
+    expect(room).toContain("from '../../lib/personalForecastVisuals'");
+    expect(room).not.toContain('zodiacLegacyVisuals');
+    expect(selected).toHaveLength(200);
+    expect(selected.every((asset) => approved.has(asset.id))).toBe(true);
+    expect(selected.every((asset) => asset.path.startsWith('/assets/personal-editorial/'))).toBe(true);
+    expect(selected.every((asset) => asset.hasEmbeddedText === false)).toBe(true);
   });
 });

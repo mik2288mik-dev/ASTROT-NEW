@@ -66,7 +66,10 @@ describe('Horoscope product flow', () => {
     expect(source).not.toContain("'Вечер'");
     expect(source).not.toContain('displayedReading.astrology');
     expect(source).not.toContain('AstrologyDetailsToggle');
-    expect(source).not.toContain('selectZodiacEditorialSticker');
+    expect(source).toContain('selectZodiacLegacyAsset');
+    expect(source).toContain('<EditorialSticker');
+    expect(source).toContain('horo-zodiac-sticker--inline');
+    expect(source).not.toContain('selectPersonalEditorialAsset');
     expect(source).not.toContain('InfoNote');
     expect(source).not.toContain('horo-reader-personal');
     expect(source).not.toContain('drag=');

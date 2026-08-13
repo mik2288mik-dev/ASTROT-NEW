@@ -1,8 +1,7 @@
 import type { CSSProperties } from 'react';
 import {
   EDITORIAL_PLACEMENT_POLICY,
-  selectDiaryEditorialSticker,
-  selectMainEditorialSticker,
+  selectPersonalEditorialAsset,
 } from './personalForecastVisuals/editorialSelectors';
 import type {
   DiaryEligibleAsset,
@@ -16,7 +15,6 @@ import {
   type ForecastVisualCue,
   type PersonalForecastPeriod,
 } from './personalForecastContract';
-import { getPersonalForecastEditorialVisualLibrary } from './personalForecastVisuals/personalEditorialAllowlist';
 
 export type ForecastVisualSectionInput = {
   id: string;
@@ -75,86 +73,6 @@ export type DiaryEditorialPause = {
 
 type Theme = 'general' | 'love' | 'mood' | 'work_money' | 'home_family' | 'friends' | 'opportunities' | 'decisions' | 'communication' | 'questions' | 'moon' | 'mercury';
 type Lightness = 'light' | 'medium' | 'dark';
-type BackgroundAsset = {
-  id: string;
-  file: string;
-  themes: readonly Theme[];
-  series: string;
-  lightness: Lightness;
-  periods: readonly PersonalForecastPeriod[];
-  priority: number;
-  position: string;
-};
-
-const ALL_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];
-const SERIES: ReadonlyArray<{ name: string; lightness: Lightness; position: string }> = [
-  { name: 'sunset-social', lightness: 'medium', position: '50% 50%' },
-  { name: 'feather-abstract', lightness: 'medium', position: '50% 50%' },
-  { name: 'cosmic-journey', lightness: 'dark', position: '50% 50%' },
-  { name: 'pastel-dream', lightness: 'light', position: '50% 50%' },
-  { name: 'magenta-vision', lightness: 'dark', position: '50% 50%' },
-  { name: 'album-graphic', lightness: 'medium', position: '50% 50%' },
-  { name: 'tropical-daylight', lightness: 'light', position: '50% 50%' },
-  { name: 'tropical-night', lightness: 'medium', position: '50% 50%' },
-  { name: 'floral-air', lightness: 'light', position: '50% 50%' },
-  { name: 'floral-symbols', lightness: 'light', position: '50% 50%' },
-];
-
-const THEME_BY_INDEX: Partial<Record<number, Theme>> = {
-  0: 'friends', 1: 'love', 2: 'mood', 3: 'work_money', 4: 'home_family', 5: 'friends', 6: 'opportunities', 7: 'general', 8: 'decisions', 9: 'work_money',
-  10: 'friends', 11: 'love', 12: 'mood', 13: 'work_money', 14: 'friends', 15: 'friends', 16: 'opportunities', 17: 'mood', 18: 'decisions', 19: 'mood',
-  30: 'general', 31: 'love', 32: 'mood', 33: 'questions', 34: 'work_money', 35: 'opportunities', 36: 'decisions', 37: 'mood', 38: 'decisions', 39: 'general',
-};
-
-function themeForIndex(index: number): Theme {
-  if (THEME_BY_INDEX[index]) return THEME_BY_INDEX[index];
-  const slot = index % 10;
-  return (['general', 'love', 'mood', 'questions', 'work_money', 'opportunities', 'decisions', 'mood', 'decisions', 'general'] as const)[slot];
-}
-
-const ASTRO_BACKGROUND_ASSETS: readonly BackgroundAsset[] = [
-  {
-    id: 'forecast-astro-moon-01',
-    file: '/assets/forecast-feed/forecast-astro-moon-01.webp',
-    themes: ['moon'],
-    series: 'pearl-moon-tides',
-    lightness: 'light',
-    periods: ALL_PERIODS,
-    priority: 320,
-    position: '62% 50%',
-  },
-  {
-    id: 'forecast-astro-mercury-01',
-    file: '/assets/forecast-feed/forecast-astro-mercury-01.webp',
-    themes: ['mercury'],
-    series: 'glass-mercury-signals',
-    lightness: 'light',
-    periods: ALL_PERIODS,
-    priority: 319,
-    position: '47% 50%',
-  },
-] as const;
-
-const LIFESTYLE_BACKGROUND_ASSETS: readonly BackgroundAsset[] = Array.from({ length: 190 }, (_, index) => {
-  const theme = themeForIndex(index);
-  const series = SERIES[Math.floor(index / 20)] || SERIES[SERIES.length - 1];
-  const number = String(index + 1).padStart(3, '0');
-  return {
-    id: `horoscope-${theme.replace('_', '-')}-${number}`,
-    file: `/foni/horoscope-${theme.replace('_', '-')}-${number}.webp`,
-    themes: [theme],
-    series: series.name,
-    lightness: series.lightness,
-    periods: ALL_PERIODS,
-    priority: 190 - index,
-    position: series.position,
-  };
-});
-
-export const PERSONAL_FORECAST_BACKGROUND_MANIFEST: readonly BackgroundAsset[] = [
-  ...ASTRO_BACKGROUND_ASSETS,
-  ...LIFESTYLE_BACKGROUND_ASSETS,
-] as const;
 
 const TAG_THEMES: Record<string, readonly Theme[]> = {
   overview: ['general'], love: ['love'], mood: ['mood'], home: ['home_family'], home_family: ['home_family'], friends: ['friends'],
@@ -266,14 +184,14 @@ export function resolveDiaryEditorialPauses(input: {
   for (const [slot, anchorIndex] of anchorIndexes.entries()) {
     const request = requests[anchorIndex];
     if (!request) continue;
-    const asset = selectDiaryEditorialSticker({
-      contentKey: `${input.period}|${input.periodKey}|${request.sectionId}`,
+    const asset = selectPersonalEditorialAsset({
+      period: input.period,
+      periodKey: `${input.periodKey}|${request.sectionId}`,
       userId: input.userId,
       topics: themesFor(request).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
       excludeIds: [...excluded],
       slot,
       forceVisible: input.period !== 'day',
-      eligibleAssets: getPersonalForecastEditorialVisualLibrary(),
     });
     if (!asset) continue;
     excluded.add(asset.id);
@@ -298,12 +216,13 @@ export function resolveForecastVisualScreen(requests: readonly ForecastVisualReq
   const ordered = [...requests].sort((left, right) => left.sectionIndex - right.sectionIndex);
   const visualRequest = ordered[0];
   const editorialAsset = visualRequest
-    ? selectMainEditorialSticker({
-        screenKey: `personal-forecast:${visualRequest.period}`,
-        contentKey: `${visualRequest.period}|${visualRequest.periodKey}`,
+    ? selectPersonalEditorialAsset({
+        period: visualRequest.period,
+        periodKey: visualRequest.periodKey,
         userId: visualRequest.userId,
         topics: themesFor(visualRequest).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
         excludeIds: options?.excludeAssetIds,
+        forceVisible: true,
       })
     : null;
   for (const request of ordered) {
@@ -394,21 +313,13 @@ export function forecastVisualStyle(assignment: ForecastVisualAssignment | null 
 export const forecastSectionVisualStyle = forecastVisualStyle;
 
 export {
-  NEWSPAPER_VISUAL_MANIFEST_VERSION,
+  PERSONAL_VISUAL_MANIFEST_VERSION,
   EDITORIAL_PLACEMENT_POLICY,
-  getDiaryEditorialStickerCounts,
-  getDiaryEditorialStickerLibrary,
-  getDiaryPaperTemplateLibrary,
-  getDiaryTodayVisualCounts,
-  getDiaryTodayVisualLibrary,
-  getNewspaperVisualCounts,
-  getZodiacEditorialSticker,
-  selectCalmSynastryEditorialSticker,
-  selectDiaryEditorialSticker,
-  selectMainEditorialSticker,
+  getPersonalEditorialAssetLibrary,
+  getPersonalPaperTemplateLibrary,
   selectNatalEditorialSticker,
+  selectPersonalEditorialAsset,
   selectSynastryEditorialSticker,
-  selectZodiacEditorialSticker,
 } from './personalForecastVisuals/editorialSelectors';
 export {
   DIARY_LAYOUTS,
@@ -419,22 +330,17 @@ export {
 } from './personalForecastVisuals/diaryVisualEngine';
 export type {
   EditorialAssetBase,
-  DiaryEditorialAsset,
   DiaryEligibleAsset,
   DiaryPaperTemplateAsset,
   DiaryVisualFamily,
   DiaryVisualDisplayWeight,
   DiaryVisualRarity,
-  EditorialMedium,
   EditorialOrientation,
   EditorialStickerAsset,
   EditorialTone,
   EditorialTopic,
-  EditorialV2Category,
-  EditorialV2VisualAsset,
-  MainEditorialAsset,
-  SynastryEditorialAsset,
-  ZodiacEditorialAsset,
+  PersonalEditorialAsset,
+  PersonalEditorialSource,
 } from './personalForecastVisuals/editorialTypes';
 export type {
   DiaryLayout,

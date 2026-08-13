@@ -1,9 +1,9 @@
-import mainManifest from '../lib/personalForecastVisuals/main.manifest.json';
 import {
   buildForecastVisualRequests,
   forecastVisualStyle,
   getForecastVisualAssignment,
-  getNewspaperVisualCounts,
+  getPersonalEditorialAssetLibrary,
+  getPersonalPaperTemplateLibrary,
   resolveDiaryEditorialPauses,
   resolvePersonalForecastVisuals,
   type ForecastVisualFeedInput,
@@ -57,8 +57,8 @@ describe('personal forecast editorial visual resolver', () => {
   });
 
   it('assigns one inline sticker to each forecast overview and none to text sections', () => {
-    const manifestPaths = new Set(
-      (mainManifest.items as Array<{ path: string }>).map((asset) => asset.path),
+    const manifestPaths = new Set<string>(
+      getPersonalEditorialAssetLibrary().map((asset) => asset.path),
     );
     const samples = Array.from({ length: 120 }, (_, index) => resolvePersonalForecastVisuals({
       userId: `${userId}-${index}`,
@@ -94,18 +94,16 @@ describe('personal forecast editorial visual resolver', () => {
   it('selects the overview sticker from the compiled semantic topic', () => {
     const semanticFeed: ForecastVisualFeedInput = {
       ...feed('2026-08-02'),
-      overview: section('overview', 'overview', 'communication_decisions'),
+      overview: section('overview', 'overview', 'creativity'),
     };
     const resolved = Array.from({ length: 120 }, (_, index) => resolvePersonalForecastVisuals({
       userId: `${userId}-semantic-${index}`,
       forecast: semanticFeed,
     })).find((sample) => !!sample.assignments.overview.path)!;
-    const asset = (mainManifest.items as Array<{
-      path: string;
-      topics: string[];
-    }>).find((item) => item.path === resolved.assignments.overview.path);
+    const asset = getPersonalEditorialAssetLibrary()
+      .find((item) => item.path === resolved.assignments.overview.path);
 
-    expect(asset?.topics).toContain('communication');
+    expect(asset?.topics).toContain('mood');
   });
 
   it('uses the writer-selected story cue for the one forecast sticker', () => {
@@ -119,10 +117,8 @@ describe('personal forecast editorial visual resolver', () => {
       userId: `${userId}-story-${index}`,
       forecast: storyFeed,
     })).find((sample) => !!sample.assignments.overview.path)!;
-    const asset = (mainManifest.items as Array<{
-      path: string;
-      topics: string[];
-    }>).find((item) => item.path === resolved.assignments.overview.path);
+    const asset = getPersonalEditorialAssetLibrary()
+      .find((item) => item.path === resolved.assignments.overview.path);
 
     expect(resolved.assignments.overview.cue).toBe('friends');
     expect(asset?.topics).toContain('friends');
@@ -136,7 +132,7 @@ describe('personal forecast editorial visual resolver', () => {
     const assignment = getForecastVisualAssignment(resolved, 'overview');
     const style = forecastVisualStyle(assignment, 'day');
 
-    expect(style['--forecast-section-image']).toContain('/editorial-stickers/main/');
+    expect(style['--forecast-section-image']).toContain('/assets/personal-editorial/');
     expect(Number(style['--forecast-section-media-opacity'])).toBeGreaterThan(0);
     expect(Number(style['--forecast-section-media-opacity'])).toBeLessThan(0.6);
     expect(Number(style['--forecast-section-media-saturation'])).toBeLessThan(0.8);
@@ -148,12 +144,12 @@ describe('personal forecast editorial visual resolver', () => {
     });
   });
 
-  it('publishes the complete deterministic library counts', () => {
-    expect(getNewspaperVisualCounts()).toEqual({
-      main: 788,
-      synastry: 200,
-      zodiac: 12,
-    });
+  it('publishes the complete separated personal library counts', () => {
+    expect(getPersonalEditorialAssetLibrary()).toHaveLength(309);
+    expect(getPersonalPaperTemplateLibrary()).toHaveLength(19);
+    expect(new Set(getPersonalEditorialAssetLibrary().map((asset) => asset.source))).toEqual(
+      new Set(['editorial-v2', 'cat', 'capybara', 'object']),
+    );
   });
 
   it('places at most two unique inline visual pauses without changing section order', () => {
@@ -168,13 +164,18 @@ describe('personal forecast editorial visual resolver', () => {
     for (const pauses of samples) {
       expect(pauses.length).toBeLessThanOrEqual(2);
       expect(new Set(pauses.map((pause) => pause.asset.id)).size).toBe(pauses.length);
+      expect(pauses.every((pause) => (
+        pause.asset.path.startsWith('/assets/personal-editorial/')
+        && !pause.asset.path.startsWith('/assets/zodiac-legacy-special/')
+        && pause.asset.hasEmbeddedText === false
+      ))).toBe(true);
       expect(pauses.map((pause) => pause.afterSectionId).every((id) => (
         [feed().overview, ...feed().sections].some((item) => item.id === id)
       ))).toBe(true);
     }
   });
 
-  it('gives Week and Month one deterministic personal-editorial visual pause each', () => {
+  it('gives week and month one deterministic canonical visual pause each', () => {
     for (const period of ['week', 'month'] as const) {
       const pauses = resolveDiaryEditorialPauses({
         userId: 'long-reading-user',
@@ -183,8 +184,11 @@ describe('personal forecast editorial visual resolver', () => {
         sections: [feed().overview, ...feed().sections],
       });
       expect(pauses).toHaveLength(1);
-      expect(pauses[0].asset.collection).toBe('editorial-v2');
-      expect(pauses[0].asset.path).toContain('/stickers/editorial-v2/');
+      expect(pauses[0].asset.collection).toBe('personal-editorial');
+      expect(pauses[0].asset.path.startsWith('/assets/personal-editorial/')).toBe(true);
+      expect(pauses[0].asset.path.startsWith('/assets/zodiac-legacy-special/')).toBe(false);
+      expect(pauses[0].asset.hasEmbeddedText).toBe(false);
+      expect(pauses[0].asset.productionSelectable).toBe(true);
     }
   });
 });

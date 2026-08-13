@@ -1,8 +1,8 @@
 import { stableHash } from '../personalForecastContract';
 import {
-  getPersonalForecastEditorialVisualLibrary,
-  getPersonalForecastPaperTemplateLibrary,
-} from './personalEditorialAllowlist';
+  getPersonalEditorialAssetLibrary,
+  getPersonalPaperTemplateLibrary,
+} from './editorialSelectors';
 import {
   DIARY_VISUAL_FAMILY_WEIGHTS,
   type DiaryEligibleAsset,
@@ -35,11 +35,11 @@ export type DiaryTodayVisualPlan = {
 const FAMILY_ORDER = Object.keys(DIARY_VISUAL_FAMILY_WEIGHTS) as DiaryVisualFamily[];
 const ASSETS_BY_FAMILY = Object.fromEntries(FAMILY_ORDER.map((family) => [
   family,
-  getPersonalForecastEditorialVisualLibrary()
+  getPersonalEditorialAssetLibrary()
     .filter((asset) => asset.diaryFamily === family)
     .sort((left, right) => left.id.localeCompare(right.id)),
 ])) as Record<DiaryVisualFamily, DiaryEligibleAsset[]>;
-const PAPER_TEMPLATES = [...getPersonalForecastPaperTemplateLibrary()]
+const PAPER_TEMPLATES = [...getPersonalPaperTemplateLibrary()]
   .sort((left, right) => left.id.localeCompare(right.id));
 const ASSET_COHORT_COUNT = 3;
 const ASSET_COHORT_BY_ID = new Map<string, number>(FAMILY_ORDER.flatMap((family) => (
@@ -123,7 +123,8 @@ function selectAsset(input: {
   const fitsActiveCohort = (asset: DiaryEligibleAsset) => (
     fitsLayout(asset, input.layout)
     && ASSET_COHORT_BY_ID.get(asset.id) === cohort
-    && (!('hasEmbeddedText' in asset) || asset.hasEmbeddedText === false)
+    && asset.hasEmbeddedText === false
+    && asset.productionSelectable
   );
   const familyPool = ASSETS_BY_FAMILY[input.family].filter(fitsActiveCohort);
   const pool = familyPool.length

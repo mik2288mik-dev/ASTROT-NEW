@@ -62,9 +62,11 @@ describe('active root newspaper visual contract', () => {
 
     expect(dashboard).not.toContain('resolvePersonalForecastVisuals');
     expect(dashboard).toContain('resolveDiaryEditorialPauses');
+    expect(dashboard).not.toContain('selectZodiacLegacyAsset');
     expect(sectionBlock).toContain('forecast-feed-editorial-pause');
     expect(sectionBlock).not.toContain('style={forecastVisualStyle');
-    expect(onboarding).not.toContain('selectMainEditorialSticker');
+    expect(onboarding).not.toContain('selectPersonalEditorialAsset');
+    expect(onboarding).not.toContain('selectZodiacLegacyAsset');
     expect(onboarding).not.toContain('EditorialSticker');
     expect(onboarding).not.toContain('Math.random');
   });

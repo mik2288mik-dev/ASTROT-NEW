@@ -149,25 +149,25 @@ the hidden keys. No embeddings or vector database are required for release.
 
 ## Today visual engine
 
-Today has one branded editorial system, not a model-designed collage. The
-original Diary-eligible library remains intact with 895 approved assets:
+Today has one branded editorial system, not a model-designed collage. Personal
+products share 309 assets under `/assets/personal-editorial/`:
 
-- 83 cat/capybara mascots and 24 object stickers from `public/stickers/`;
-- 788 main editorial assets: 180 photo, 140 associative, 60 surreal, 20
-  graphic, and 388 psychedelic-humor.
+- 202 `editorial-v2` assets;
+- 45 cat stickers;
+- 38 capybara stickers;
+- 24 object stickers.
 
-`public/stickers/editorial-v2/` adds 221 app-ready transparent WebP files under
-one manifest. Of 195 non-brand visual entries, 142 text-free visuals enter the
-generic strong-visual selector; 53 embedded-copy entries remain packaged but
-await per-asset locale/copy metadata. Another 19 entries are empty paper
-templates with safe runtime-text metadata. Seven camera, instant-camera,
-laptop, and sneaker files remain packaged but are marked non-selectable pending
-manual review. The generic strong-visual selector therefore sees 1,037 assets;
-the paper templates form a separate deterministic pool.
+Embedded-text and review-excluded assets remain in this library but never enter
+automatic selection. A separate deterministic pool contains 19 empty templates
+under `/assets/personal-paper-templates/`, with safe runtime-text metadata.
 
-Dedicated synastry (200) and zodiac (12) collections stay isolated. Legacy
-`/foni` and astro background images are not eligible because forecast text is
-never placed on imagery.
+Zodiac is the only product that can use retained legacy newspaper imagery. Its
+separate `/assets/zodiac-legacy-special/` source contains 48 explicitly
+allowlisted files: 24 psychedelic images and 24 approved funny-animal images.
+`lib/personalForecastVisuals/editorialSelectors.ts` reads only the personal and
+paper manifests. `lib/zodiacLegacyVisuals/index.ts` reads only
+`zodiac-legacy-special.manifest.json`, backed by a typed allowlist, and cannot
+see retired newspaper assets.
 
 The application chooses one of five layouts: `editorial_right`,
 `editorial_left`, `quote_first`, `visual_overlap`, or `editorial_clean`.
@@ -183,10 +183,8 @@ adjacent days use different layouts. Weighted, disjoint asset families and a
 calendar-indexed asset ring guarantee that the same asset does not occur on
 adjacent days without a database or client history. Manifest rarity, visual
 weight, orientation, aspect, and layout compatibility constrain selection.
-Common mascot, object,
-animal, photo/editorial, and graphic families dominate; associative and surreal
-appear periodically; psychedelic-humor has a real but approximately 3% share
-of illustrated days.
+The selector maps only manifest-declared personal families into this rotation.
+It never reads or falls back to the Zodiac legacy manifest.
 
 Luna never selects an asset, layout, coordinate, colour, or composition. A
 paper note uses a deterministically selected empty template plus the real
@@ -232,11 +230,11 @@ Local-first delivery and Premium access slicing remain unchanged.
 - No visible categories or hidden service keys leak into copy.
 - Presentation metadata obeys prose/quote/note counts and length rules; paper
   text remains a runtime string.
-- All five deterministic layouts, the 1,037 text-free generic strong-visual
-  universe, and all 19 paper templates are reachable without adjacent-day
-  layout or asset repeats. All 195 non-brand v2 visuals remain catalogued; 53
-  embedded-copy entries await metadata and seven review-required files remain
-  excluded.
+- All five deterministic layouts, the 309-asset personal library, and all 19
+  paper templates are covered without adjacent-day layout or asset repeats.
+  Embedded-text and review-excluded assets remain catalogued but are not
+  selected automatically. The separate Zodiac selector can return only its 48
+  explicitly allowlisted legacy assets.
 - Saved natal context personalises prose without visible astrology or invented
   period calculations.
 - Recent history and the rejected draft influence only anti-repeat behavior.

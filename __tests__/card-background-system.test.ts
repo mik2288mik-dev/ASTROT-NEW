@@ -52,7 +52,7 @@ describe('card background UI wiring', () => {
     const matrix = read('views/v2/MatrixRoom.tsx');
     const app = read('pages/_app.tsx');
 
-    expect(visuals).toContain('selectMainEditorialSticker');
+    expect(visuals).toContain('selectPersonalEditorialAsset');
     expect(visuals).toContain('resolvePersonalForecastVisuals');
     expect(visuals).toContain("'--forecast-section-image'");
     expect(visuals).toContain("'--forecast-section-position-mobile'");

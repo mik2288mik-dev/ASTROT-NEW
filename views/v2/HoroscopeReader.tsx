@@ -29,8 +29,10 @@ import {
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { FreshTabs, ZodiacSignGrid } from '../../components/fresh-ui';
+import { EditorialSticker } from '../../components/EditorialSticker';
 import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
+import { selectZodiacLegacyAsset } from '../../lib/zodiacLegacyVisuals';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -251,6 +253,11 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
   const displayedSignDateRange = formatZodiacDateRange(displayedSign, language);
   const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
   const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
+  const zodiacLegacyAsset = useMemo(() => selectZodiacLegacyAsset({
+    sign: displayedSign,
+    contentKey: `${displayedPeriod}|${displayedPeriodKey}`,
+    userId: profile.id ? String(profile.id) : undefined,
+  }), [displayedPeriod, displayedPeriodKey, displayedSign, profile.id]);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
   const readingSettledForScroll = periodLocked || hasReadingFailure || Boolean(displayedReading);
 
@@ -341,6 +348,13 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({
                 <div className="horo-sign-story">
                   <p>{displayedReading.text}</p>
                 </div>
+
+                {zodiacLegacyAsset ? (
+                  <EditorialSticker
+                    asset={zodiacLegacyAsset}
+                    className="horo-zodiac-sticker--inline"
+                  />
+                ) : null}
 
                 <HoroscopeActivityBar
                   userId={profile.id ? String(profile.id) : undefined}

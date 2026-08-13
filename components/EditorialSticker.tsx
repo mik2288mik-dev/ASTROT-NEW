@@ -1,5 +1,13 @@
 import React, { type CSSProperties } from 'react';
-import type { EditorialStickerAsset } from '../lib/personalForecastVisuals/editorialTypes';
+
+type EditorialStickerAsset = {
+  id: string;
+  path: string;
+  width: number;
+  height: number;
+  orientation: 'landscape' | 'portrait' | 'square';
+  collection: string;
+};
 
 type Props = {
   asset: EditorialStickerAsset;

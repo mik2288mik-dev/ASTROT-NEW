@@ -51,12 +51,15 @@ report, a dashboard of cards, a social feed, or a chat.
 - Text is primary. Today has at most one strong visual and one of five app-owned layouts:
   `editorial_right`, `editorial_left`, `quote_first`, `visual_overlap`, or
   image-free `editorial_clean`.
-- The original Diary pool contains 895 approved assets. `editorial-v2` adds
-  195 non-brand visual entries: 142 text-free entries enter generic automatic
-  selection and 53 embedded-copy entries await locale/copy metadata. It also
-  adds 19 empty paper templates; seven packaged review-required files stay
-  excluded by manifest metadata.
-  Synastry/zodiac assets and legacy backgrounds stay isolated.
+- Personal products share 309 assets under `/assets/personal-editorial/`: 202
+  `editorial-v2` assets, 45 cats, 38 capybaras, and 24 objects. Embedded-text
+  and review-excluded assets stay in the library but never enter automatic
+  selection. A separate `/assets/personal-paper-templates/` pool contains 19
+  empty templates for runtime text.
+- Zodiac alone can use the 48 explicitly allowlisted legacy assets under
+  `/assets/zodiac-legacy-special/`: 24 psychedelic and 24 approved
+  funny-animal images. Personal manifests and selectors never import this pool;
+  the Zodiac selector cannot see any other retired newspaper asset.
 - The application derives layout and asset from `userId + periodKey +
   contractVersion`; Luna never chooses design. A paper note is a runtime string
   over an empty template, not text baked into PNG/WebP.

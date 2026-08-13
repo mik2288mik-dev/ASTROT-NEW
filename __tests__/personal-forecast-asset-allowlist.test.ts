@@ -9,40 +9,27 @@ import {
 } from '../lib/personalForecastVisuals/personalEditorialAllowlist';
 
 describe('personal forecast editorial asset allowlist', () => {
-  it('contains only personal cats, capybaras, objects and text-free editorial-v2 assets', () => {
+  it('contains only auto-selectable assets from the canonical personal manifest', () => {
     const library = getPersonalForecastEditorialVisualLibrary();
 
     expect(library.length).toBeGreaterThan(0);
     expect(library.every(isPersonalForecastEditorialAsset)).toBe(true);
-    expect(library.some((asset) => asset.collection === 'main')).toBe(false);
-    expect(library.some((asset) => (
-      asset.path.startsWith('/assets/forecast-feed/editorial-stickers/')
-    ))).toBe(false);
-
     for (const asset of library) {
-      if (asset.collection === 'diary-mascot') {
-        expect(asset.slug).toMatch(/^(?:cat|capy)_/u);
-      } else if (asset.collection === 'diary-object') {
-        expect(asset.path).toMatch(/^\/stickers\/objects\/[^/]+\.webp$/u);
-      } else {
-        if (asset.collection !== 'editorial-v2') {
-          throw new Error(`Unexpected personal forecast asset: ${asset.id}`);
-        }
-        expect(asset.path).toMatch(/^\/stickers\/editorial-v2\//u);
-        expect(asset.hasEmbeddedText).toBe(false);
-        expect(asset.sourceCategory).not.toBe('fixed_text');
-        expect(asset.sourceCategory).not.toBe('newspaper');
-      }
+      expect(asset.collection).toBe('personal-editorial');
+      expect(asset.path).toMatch(/^\/assets\/personal-editorial\//u);
+      expect(['editorial-v2', 'cat', 'capybara', 'object']).toContain(asset.source);
+      expect(asset.hasEmbeddedText).toBe(false);
+      expect(asset.productionSelectable).toBe(true);
     }
   });
 
-  it('keeps paper accents on empty editorial-v2 templates only', () => {
+  it('keeps paper accents on the canonical empty-template manifest only', () => {
     const templates = getPersonalForecastPaperTemplateLibrary();
 
     expect(templates.length).toBeGreaterThan(0);
     expect(templates.every((template) => (
       template.hasEmbeddedText === false
-      && template.path.startsWith('/stickers/editorial-v2/paper_templates/')
+      && template.path.startsWith('/assets/personal-paper-templates/')
     ))).toBe(true);
   });
 

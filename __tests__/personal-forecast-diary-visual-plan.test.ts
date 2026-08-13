@@ -2,9 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import {
   DIARY_LAYOUTS,
+  DIARY_VISUAL_FAMILY_WEIGHTS,
+  getPersonalEditorialAssetLibrary,
   resolveDiaryTodayVisualPlan,
 } from '../lib/personalForecastVisuals';
-import { getPersonalForecastEditorialVisualLibrary } from '../lib/personalForecastVisuals/personalEditorialAllowlist';
 
 function dateKey(dayOffset: number): string {
   const date = new Date(Date.UTC(2026, 0, 1 + dayOffset));
@@ -79,7 +80,7 @@ describe('Today deterministic editorial visual plan', () => {
     ))).toBe(true);
   });
 
-  it('uses every family with ordinary visuals dominant and psychedelic humor rare', () => {
+  it('uses every family with ordinary visuals dominant and psychedelic visuals rare', () => {
     const plans = Array.from({ length: 20_000 }, (_, index) => resolveDiaryTodayVisualPlan({
       userId: `distribution-reader-${index % 127}`,
       periodKey: dateKey(index),
@@ -89,10 +90,18 @@ describe('Today deterministic editorial visual plan', () => {
     for (const plan of plans) {
       counts.set(plan.asset!.diaryFamily, (counts.get(plan.asset!.diaryFamily) || 0) + 1);
     }
-    const activeFamilies = new Set(
-      getPersonalForecastEditorialVisualLibrary().map((asset) => asset.diaryFamily),
-    );
+    expect(plans.every((plan) => (
+      plan.asset!.path.startsWith('/assets/personal-editorial/')
+      && !plan.asset!.path.startsWith('/assets/zodiac-legacy-special/')
+      && plan.asset!.hasEmbeddedText === false
+      && plan.asset!.productionSelectable === true
+    ))).toBe(true);
+    const activeFamilies = new Set(getPersonalEditorialAssetLibrary()
+      .filter((asset) => asset.hasEmbeddedText === false && asset.productionSelectable === true)
+      .map((asset) => asset.diaryFamily));
     expect(new Set(counts.keys())).toEqual(activeFamilies);
+    expect([...activeFamilies].every((family) => family in DIARY_VISUAL_FAMILY_WEIGHTS))
+      .toBe(true);
     const share = (families: string[]) => families.reduce(
       (sum, family) => sum + (counts.get(family) || 0),
       0,
@@ -100,8 +109,8 @@ describe('Today deterministic editorial visual plan', () => {
     expect(share(['mascot', 'object', 'animal', 'graphic'])).toBeGreaterThan(0.8);
     expect(share(['surreal'])).toBeGreaterThan(0.07);
     expect(share(['surreal'])).toBeLessThan(0.13);
-    expect(share(['psychedelic-humor'])).toBeGreaterThan(0.02);
-    expect(share(['psychedelic-humor'])).toBeLessThan(0.07);
+    expect(share(['psychedelic'])).toBeGreaterThan(0.02);
+    expect(share(['psychedelic'])).toBeLessThan(0.07);
   });
 
   it('includes the contract version in the plan seed and never uses Math.random', () => {
@@ -126,13 +135,14 @@ describe('Today deterministic editorial visual plan', () => {
   });
 
   it('keeps every eligible asset UI-ready without design instructions from Luna', () => {
-    const library = getPersonalForecastEditorialVisualLibrary();
+    const library = getPersonalEditorialAssetLibrary()
+      .filter((asset) => asset.hasEmbeddedText === false && asset.productionSelectable === true);
     expect(library.length).toBeGreaterThan(0);
     for (const asset of library) {
       expect(asset).toMatchObject({
         id: expect.any(String),
-        path: expect.any(String),
-        collection: expect.any(String),
+        path: expect.stringMatching(/^\/assets\/personal-editorial\//),
+        collection: 'personal-editorial',
         medium: expect.any(String),
         topics: expect.any(Array),
         tone: expect.any(String),
@@ -141,6 +151,8 @@ describe('Today deterministic editorial visual plan', () => {
         diaryFamily: expect.any(String),
         rarity: expect.any(String),
         visualWeight: expect.any(Number),
+        hasEmbeddedText: false,
+        productionSelectable: true,
       });
     }
   });

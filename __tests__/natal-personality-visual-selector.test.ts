@@ -9,7 +9,7 @@ const NATAL_SAFE_CATEGORIES = new Set([
 ]);
 
 describe('natal personality visual selector', () => {
-  it('selects only text-free editorial-v2 assets from the natal allowlist', () => {
+  it('selects only text-free editorial-v2 sources from the canonical personal allowlist', () => {
     const firstInput = { chartKey: 'saved:42:fingerprint', userId: 'reader-7' };
     const first = selectNatalEditorialSticker(firstInput);
 
@@ -33,11 +33,13 @@ describe('natal personality visual selector', () => {
         hasEmbeddedText?: boolean;
       };
 
-      expect(asset.collection).toBe('editorial-v2');
-      expect(asset.path).toMatch(/^\/stickers\/editorial-v2\//);
+      expect(asset.collection).toBe('personal-editorial');
+      expect(asset.source).toBe('editorial-v2');
+      expect(asset.path).toMatch(/^\/assets\/personal-editorial\//);
       expect(NATAL_SAFE_CATEGORIES.has(metadata.sourceCategory || '')).toBe(true);
       expect(metadata.hasEmbeddedText).toBe(false);
-      expect(asset.path).not.toMatch(/\/(?:fixed_text|newspaper|psychedelic)\//);
+      expect(asset.productionSelectable).toBe(true);
+      expect(metadata.sourceCategory).not.toMatch(/^(?:fixed_text|newspaper|psychedelic)$/);
       expect(asset.path).not.toMatch(/^\/assets\/forecast-feed\/editorial-stickers\//);
     }
   });

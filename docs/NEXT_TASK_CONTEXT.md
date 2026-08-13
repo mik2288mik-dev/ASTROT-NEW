@@ -7,7 +7,7 @@
 - The generation input must contain the exact date/range, timezone, available birth date/time/place, and a compact saved natal profile. It must not invent or calculate a new period transit/evidence package.
 - `lib/personalForecastCache.ts` persists only the completed forecast package; deterministic visual layout/assets are derived separately and are not stored.
 - Keep forecast copy short, concrete, personal, and readable: one heading plus 4–6 Today fragments or one Week/Month story, at most 150 words. Advice is optional; do not add visible themes, lists, explanations, questions, or CTAs.
-- Today layouts and assets are application-owned. The original 895 assets plus 142 text-free `editorial-v2` auto-picks rotate deterministically across five compositions; 53 embedded-copy entries await locale/copy metadata, 19 separate empty paper templates carry runtime note text, and seven review-required files stay metadata-disabled. Luna never chooses images, coordinates, colours, or layout.
+- Today layouts and assets are application-owned. The personal source contains 309 assets under `/assets/personal-editorial/` (202 `editorial-v2`, 45 cats, 38 capybaras, and 24 objects), plus 19 empty runtime-text templates under `/assets/personal-paper-templates/`. Embedded-text and review-excluded assets stay catalogued but are not auto-selected. Its manifests and selector are separate from the Zodiac-only legacy source of 48 explicitly allowlisted assets under `/assets/zodiac-legacy-special/` (24 psychedelic and 24 approved funny-animal). Luna never chooses images, coordinates, colours, or layout.
 - `lib/appVoice.ts` is the only shared runtime voice source.
 
 ## Keep separate

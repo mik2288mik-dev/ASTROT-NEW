@@ -206,12 +206,10 @@ export function TodayEditorialFeed({
             {pause ? (
               <EditorialForecastVisual
                 asset={pause.asset}
-                size={pause.asset.collection === 'editorial-v2'
-                  ? clampDiaryVisualSize(
-                      resolveTodayEditorialVisualSize(layout),
-                      pause.asset.displayWeight,
-                    )
-                  : resolveTodayEditorialVisualSize(layout)}
+                size={clampDiaryVisualSize(
+                  resolveTodayEditorialVisualSize(layout),
+                  pause.asset.displayWeight,
+                )}
                 priority={index <= 1}
               />
             ) : null}

@@ -1,11 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import editorialV2Manifest from '../public/stickers/editorial-v2/manifest.json';
+import editorialV2Manifest from '../lib/personalForecastVisuals/editorial-v2-source.manifest.json';
 import {
-  getDiaryEditorialStickerLibrary,
-  getDiaryPaperTemplateLibrary,
-  getDiaryTodayVisualCounts,
-  getDiaryTodayVisualLibrary,
+  getPersonalEditorialAssetLibrary,
+  getPersonalPaperTemplateLibrary,
   resolveDiaryTodayVisualPlan,
 } from '../lib/personalForecastVisuals';
 
@@ -29,7 +27,10 @@ describe('editorial-v2 Today integration', () => {
   it('keeps all files but marks exactly seven brand-review assets non-selectable', () => {
     expect(editorialV2Manifest.assets).toHaveLength(221);
     for (const asset of editorialV2Manifest.assets) {
-      expect(asset.path).toBe(`/stickers/editorial-v2/${asset.category}/${asset.id}.webp`);
+      const expectedRoot = asset.category === 'paper_templates'
+        ? '/assets/personal-paper-templates/'
+        : '/assets/personal-editorial/editorial-v2/';
+      expect(asset.path).toBe(`${expectedRoot}${asset.id}.webp`);
       expect(asset.aspectRatio).toBeCloseTo(asset.width / asset.height, 4);
       if (asset.orientation === 'portrait') expect(asset.aspectRatio).toBeLessThan(0.85);
       if (asset.orientation === 'square') {
@@ -49,35 +50,27 @@ describe('editorial-v2 Today integration', () => {
     }
   });
 
-  it('preserves the legacy 895 assets and adds 195 Today visuals plus 19 note templates', () => {
-    expect(getDiaryEditorialStickerLibrary()).toHaveLength(895);
-    expect(getDiaryTodayVisualCounts()).toEqual({
-      legacy: 895,
-      editorialV2: 195,
-      paperTemplates: 19,
-      excludedForReview: 7,
-      total: 1090,
-    });
+  it('publishes the 309 personal assets and 19 separate runtime note templates', () => {
+    const personalLibrary = getPersonalEditorialAssetLibrary();
+    const templates = getPersonalPaperTemplateLibrary();
+    const editorialV2Assets = personalLibrary.filter((asset) => asset.source === 'editorial-v2');
 
-    const todayLibrary = getDiaryTodayVisualLibrary();
-    const templates = getDiaryPaperTemplateLibrary();
-    const editorialV2Assets = todayLibrary.filter(
-      (asset) => asset.collection === 'editorial-v2',
-    );
-    expect(todayLibrary).toHaveLength(1090);
+    expect(personalLibrary).toHaveLength(309);
     expect(templates).toHaveLength(19);
-    expect(editorialV2Assets).toHaveLength(195);
+    expect(editorialV2Assets).toHaveLength(202);
+    expect(personalLibrary.filter((asset) => asset.source === 'cat')).toHaveLength(45);
+    expect(personalLibrary.filter((asset) => asset.source === 'capybara')).toHaveLength(38);
+    expect(personalLibrary.filter((asset) => asset.source === 'object')).toHaveLength(24);
     expect(editorialV2Assets.every((asset) => (
-      asset.collection === 'editorial-v2'
+      asset.collection === 'personal-editorial'
       && ['light', 'medium', 'hero'].includes(asset.displayWeight)
-      && ['common', 'occasional', 'rare'].includes(asset.selectionRarity)
-      && asset.familyWeight > 0
-      && ['common', 'uncommon', 'rare'].includes(asset.sourceRarity)
+      && ['common', 'occasional', 'rare'].includes(asset.rarity)
       && fs.existsSync(path.join(ROOT, 'public', asset.path.replace(/^\//, '')))
     ))).toBe(true);
-    expect(todayLibrary.some((asset) => (
-      asset.collection === 'editorial-v2' && BRAND_REVIEW_IDS.has(asset.sourceId)
-    ))).toBe(false);
+    expect(personalLibrary.filter((asset) => asset.hasEmbeddedText)).toHaveLength(54);
+    expect(new Set(personalLibrary.filter(
+      (asset) => asset.productionSelectable === false,
+    ).map((asset) => asset.sourceId))).toEqual(BRAND_REVIEW_IDS);
     expect(templates.every((template) => (
       template.hasEmbeddedText === false
       && template.safeTextArea.length === 4
@@ -97,7 +90,7 @@ describe('editorial-v2 Today integration', () => {
       periodKey: dateKey(42),
       contractVersion: 'contract-editorial-v2',
     })).toEqual(plans[42]);
-    expect(plans.some((plan) => plan.asset?.collection === 'editorial-v2')).toBe(true);
+    expect(plans.some((plan) => plan.asset?.source === 'editorial-v2')).toBe(true);
 
     for (let day = 0; day < plans.length; day += 1) {
       const plan = plans[day];
@@ -117,21 +110,20 @@ describe('editorial-v2 Today integration', () => {
   });
 
   it('keeps embedded-copy assets in the library but out of generic automatic selection', () => {
-    const embeddedCopyAssets = getDiaryTodayVisualLibrary().filter((asset) => (
-      asset.collection === 'editorial-v2' && asset.hasEmbeddedText
-    ));
+    const embeddedCopyAssets = getPersonalEditorialAssetLibrary().filter(
+      (asset) => asset.hasEmbeddedText,
+    );
     const plans = Array.from({ length: 365 }, (_, day) => resolveDiaryTodayVisualPlan({
       userId: 'editorial-v2-reader-without-copy-metadata',
       periodKey: dateKey(day),
       contractVersion: 'contract-editorial-v2',
     }));
 
-    expect(embeddedCopyAssets).toHaveLength(53);
-    expect(plans.some((plan) => plan.asset?.collection === 'editorial-v2')).toBe(true);
+    expect(embeddedCopyAssets).toHaveLength(54);
+    expect(plans.some((plan) => plan.asset?.source === 'editorial-v2')).toBe(true);
     expect(plans.every((plan) => (
       !plan.asset
-      || plan.asset.collection !== 'editorial-v2'
-      || plan.asset.hasEmbeddedText === false
+      || (plan.asset.hasEmbeddedText === false && plan.asset.productionSelectable === true)
     ))).toBe(true);
   });
 
