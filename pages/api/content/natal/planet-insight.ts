@@ -15,7 +15,8 @@ import {
 } from '../../../../lib/planetInsights';
 import { buildPlanetInsight } from '../../../../lib/planetInsightContent';
 import { type NatalPlanetKey } from '../../../../lib/natalPlanetMeta';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
@@ -48,6 +49,7 @@ async function resolveContext(
   const chart = chartId != null
     ? await db.natal_charts.getById(chartId)
     : await db.natal_charts.getPrimary(userId);
+  if (chart && String(chart.user_id) !== userId) return null;
 
   if (!chart?.chart_data && !chartDataFallback) {
     return { user, profile: toProfile(user, profileFallback), chartId: chart?.id ?? null, chartData: null };
@@ -93,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const safeUserId = userId.trim();
   try {
-    requireTelegramUserId(req, safeUserId);
+    await requireAppUser(req, { expectedUserId: safeUserId, allowGuest: false });
   } catch (error) {
     if (error instanceof AdminAuthError) {
       return handleAdminError(res, error);

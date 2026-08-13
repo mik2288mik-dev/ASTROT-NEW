@@ -9,7 +9,10 @@ import { getZodiacSign } from '../constants';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
 
-interface OnboardingProps { onComplete: (profile: UserProfile) => Promise<void>; }
+interface OnboardingProps {
+  onComplete: (profile: UserProfile) => Promise<void>;
+  initialStep?: 'stories' | 'birth';
+}
 type FieldKey = 'name' | 'date' | 'time' | 'place';
 type ErrorField = FieldKey | 'uncertainty' | null;
 
@@ -24,8 +27,8 @@ const STORIES: Story[] = [
   { color:'#38BDF8', icon:<HeartIcon size={52}/>, title:'Совместимость', text:'Сравни две карты: что помогает договориться, где чаще начинаются проблемы и что каждый понимает по-своему.' },
   { color:'#64748B', icon:<SparkIcon size={52}/>, title:'Больше в Premium', text:'Подробные разборы отношений, денег и работы, все периоды прогноза и ответы на личные вопросы.' },
 ];
-export const Onboarding:React.FC<OnboardingProps>=({onComplete})=>{
-  const [step,setStep]=useState<'stories'|'birth'>('stories');
+export const Onboarding:React.FC<OnboardingProps>=({onComplete,initialStep='stories'})=>{
+  const [step,setStep]=useState<'stories'|'birth'>(initialStep);
   const [storyIndex,setStoryIndex]=useState(0);
   const [name,setName]=useState('');
   const [gender,setGender]=useState<'male'|'female'|'unspecified'>('unspecified');

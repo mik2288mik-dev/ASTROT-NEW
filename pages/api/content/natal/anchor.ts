@@ -14,7 +14,8 @@ import {
   NATAL_ANCHOR_CACHE_KEY,
   NATAL_ANCHOR_PROMPT_VERSION,
 } from '../../../../lib/natalReadings';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { persistNatalReadingHistory } from '../../../../lib/astrologyHistoryPersistence';
 import { buildCanonicalNatalReport, isNatalChartDataV2 } from '../../../../lib/natal/canonicalReport';
 
@@ -48,6 +49,7 @@ async function resolveContext(
   const chart = chartId != null
     ? await db.natal_charts.getById(chartId)
     : await db.natal_charts.getPrimary(userId);
+  if (chart && String(chart.user_id) !== userId) return null;
 
   return {
     user,
@@ -91,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const safeUserId = userId.trim();
   try {
-    requireTelegramUserId(req, safeUserId);
+    await requireAppUser(req, { expectedUserId: safeUserId, allowGuest: false });
   } catch (error) {
     if (error instanceof AdminAuthError) {
       return handleAdminError(res, error);

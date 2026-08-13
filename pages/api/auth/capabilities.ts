@@ -3,6 +3,12 @@ import {
   getEmailPasswordAuthCapabilities,
   getNativeProviderAuthCapabilities,
 } from '../../../lib/auth/nativeProviderAuth';
+import {
+  canUseAccountAuthProvider,
+  DistributionChannelError,
+  resolveDistributionChannel,
+  type DistributionChannel,
+} from '../../../lib/distributionChannel';
 
 type AccountAuthRuntime = 'native' | 'browser';
 
@@ -26,11 +32,16 @@ function browserOriginReady(): boolean {
   }
 }
 
-export function getAccountAuthCapabilities(runtime: AccountAuthRuntime) {
+export function getAccountAuthCapabilities(
+  runtime: AccountAuthRuntime,
+  channel: DistributionChannel = resolveDistributionChannel(),
+) {
   const providers = runtime === 'native'
     ? getNativeProviderAuthCapabilities()
     : {
-        google: false,
+        google: browserOriginReady()
+          && !!configuredValue('GOOGLE_AUTH_CLIENT_ID')
+          && !!configuredValue('GOOGLE_AUTH_CLIENT_SECRET'),
         yandex: browserOriginReady()
           && !!configuredValue('YANDEX_AUTH_CLIENT_ID')
           && !!configuredValue('YANDEX_AUTH_CLIENT_SECRET'),
@@ -42,6 +53,7 @@ export function getAccountAuthCapabilities(runtime: AccountAuthRuntime) {
   const email = getEmailPasswordAuthCapabilities();
   return {
     ...providers,
+    google: canUseAccountAuthProvider('google', channel) && providers.google,
     // `email` remains a compatibility alias for clients deployed before the
     // password-login and code-delivery capabilities were split.
     email: email.delivery,
@@ -54,5 +66,15 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'GET') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   const runtime: AccountAuthRuntime = req.query.runtime === 'native' ? 'native' : 'browser';
-  return res.status(200).json(getAccountAuthCapabilities(runtime));
+  try {
+    // Client channel is display context only; the deployment configuration is
+    // the server-side authorization boundary.
+    const channel = resolveDistributionChannel();
+    return res.status(200).json(getAccountAuthCapabilities(runtime, channel));
+  } catch (error) {
+    if (error instanceof DistributionChannelError) {
+      return res.status(400).json({ error: 'DISTRIBUTION_CHANNEL_INVALID' });
+    }
+    throw error;
+  }
 }

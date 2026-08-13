@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getVerifiedTelegramUser } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 import { getPool } from '../../../lib/db';
 
 function readBoolean(value: unknown): boolean | null {
@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const telegramUser = getVerifiedTelegramUser(req);
+    const auth = await requireAppUser(req, { allowGuest: false });
     const pool = getPool();
 
     if (req.method === 'GET') {
@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 to_char(quiet_hours_start, 'HH24:MI') AS quiet_hours_start,
                 to_char(quiet_hours_end, 'HH24:MI') AS quiet_hours_end, timezone
          FROM user_notification_settings WHERE user_id = $1`,
-        [telegramUser.id]
+        [auth.userId]
       );
       return res.status(200).json({ success: true, settings: existing.rows[0] || null });
     }
@@ -85,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                  to_char(quiet_hours_start, 'HH24:MI') AS quiet_hours_start,
                  to_char(quiet_hours_end, 'HH24:MI') AS quiet_hours_end, timezone`,
       [
-        telegramUser.id,
+        auth.userId,
         enabled,
         morningEnabled,
         dayEnabled,

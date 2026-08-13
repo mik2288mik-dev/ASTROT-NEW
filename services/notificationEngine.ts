@@ -911,6 +911,14 @@ export async function recordNotificationAttribution(input: {
   const logId = input.notificationLogId && Number.isFinite(Number(input.notificationLogId))
     ? Number(input.notificationLogId)
     : null;
+  const ownedLogId = logId
+    ? (
+        await pool.query(
+          `SELECT id FROM notification_logs WHERE id = $1 AND user_id = $2`,
+          [logId, input.userId]
+        )
+      ).rows[0]?.id ?? null
+    : null;
   await pool.query(
     `INSERT INTO user_app_events (user_id, event_type, scenario_key, notification_log_id, section, source, payload_json)
      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
@@ -918,19 +926,19 @@ export async function recordNotificationAttribution(input: {
       input.userId,
       input.eventType,
       input.scenarioKey ?? null,
-      logId,
+      ownedLogId,
       input.section ?? null,
       input.source ?? null,
       JSON.stringify(input.payload || {}),
     ]
   );
-  if (logId) {
+  if (ownedLogId) {
     await pool.query(
       `UPDATE notification_logs
        SET clicked_at = COALESCE(clicked_at, CASE WHEN $2 = 'click' THEN CURRENT_TIMESTAMP ELSE clicked_at END),
            opened_at = COALESCE(opened_at, CASE WHEN $2 IN ('click', 'open') THEN CURRENT_TIMESTAMP ELSE opened_at END)
-       WHERE id = $1`,
-      [logId, input.eventType]
+       WHERE id = $1 AND user_id = $3`,
+      [ownedLogId, input.eventType, input.userId]
     );
   }
   await pool.query(

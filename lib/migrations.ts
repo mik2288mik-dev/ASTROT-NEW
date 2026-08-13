@@ -3338,6 +3338,90 @@ async function mvp043PasswordAuthentication(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+/**
+ * Enforce the email canonicalization already used by the application at the
+ * database boundary. Existing case-fold collisions stop the migration for
+ * manual recovery; accounts are never selected or merged automatically.
+ */
+async function mvp044EmailIdentityUniqueness(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_044_email_identity_uniqueness';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  const collisions = await pool.query(`
+    SELECT lower(btrim(provider_subject)) AS canonical_email,
+           array_agg(user_id ORDER BY user_id) AS user_ids
+    FROM account_identities
+    WHERE provider = 'email'
+    GROUP BY lower(btrim(provider_subject))
+    HAVING COUNT(*) > 1
+    LIMIT 10
+  `);
+  if (collisions.rowCount) {
+    throw new Error(
+      'Email identity case-fold collisions require manual account recovery; automatic merge is forbidden',
+    );
+  }
+
+  await pool.query(`
+    UPDATE account_identities
+    SET provider_subject = lower(btrim(provider_subject)),
+        normalized_email = lower(btrim(COALESCE(normalized_email, provider_subject))),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE provider = 'email'
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_account_identities_email_canonical
+      ON account_identities (lower(btrim(provider_subject)))
+      WHERE provider = 'email'
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
+/**
+ * Auth deadlines are written by Node as ISO-8601 UTC instants. The original
+ * tables used TIMESTAMP WITHOUT TIME ZONE, which discards the `Z` offset and
+ * can make short-lived codes expire immediately when PostgreSQL is not on UTC.
+ * Existing values came from UTC ISO strings, so attach UTC before changing the
+ * columns to TIMESTAMPTZ.
+ */
+async function mvp045AuthExpiryTimezone(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_045_auth_expiry_timezone';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  const expiryColumns = [
+    ['app_sessions', 'expires_at'],
+    ['app_session_revocations', 'expires_at'],
+    ['auth_challenges', 'expires_at'],
+    ['auth_exchange_codes', 'expires_at'],
+  ] as const;
+  for (const [table, column] of expiryColumns) {
+    const current = await pool.query(
+      `SELECT data_type
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2`,
+      [table, column],
+    );
+    if (current.rows[0]?.data_type === 'timestamp without time zone') {
+      await pool.query(
+        `ALTER TABLE ${table}
+         ALTER COLUMN ${column} TYPE TIMESTAMPTZ
+         USING ${column} AT TIME ZONE 'UTC'`,
+      );
+    }
+  }
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3411,6 +3495,8 @@ export async function runMigrations(): Promise<void> {
   await mvp041AstrologyHistoryFoundation(pool);
   await mvp042SavedPersonIdentity(pool);
   await mvp043PasswordAuthentication(pool);
+  await mvp044EmailIdentityUniqueness(pool);
+  await mvp045AuthExpiryTimezone(pool);
   await syncNotificationCatalogFromSeed(pool);
   await cancelStaleScheduledNotifications(pool);
   await verifyTablesExist(pool);

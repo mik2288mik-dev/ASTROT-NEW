@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import type { PoolClient } from 'pg';
 import { getPool } from '../db';
 import { AdminAuthError, getConfiguredOwnerId } from '../adminAuth';
+import { canUseAccountAuthProvider, resolveDistributionChannel } from '../distributionChannel';
 import {
   hashOAuthBrowserExchange,
   oauthBrowserBindingMatches,
@@ -98,7 +99,7 @@ async function createAccountUser(
        VALUES ($1, $2, 'ru', 'light', FALSE, NULL, NULL, FALSE, 'native', 'native')
        ON CONFLICT (id) DO NOTHING
        RETURNING id`,
-      [userId, displayName || 'Пользователь'],
+      [userId, displayName || ''],
     );
     if (inserted.rowCount) return String(inserted.rows[0]?.id || userId);
   }
@@ -118,7 +119,8 @@ export async function resolveVerifiedIdentity(
     requiredSession?: { userId: string; sessionId: string };
   } = {},
 ): Promise<{ userId: string; linked: boolean; existing: boolean }> {
-  const subject = String(identity.subject || '').trim();
+  const rawSubject = String(identity.subject || '').trim();
+  const subject = identity.provider === 'email' ? normalizeEmail(rawSubject) : rawSubject;
   if (!subject) throw new AdminAuthError(400, 'IDENTITY_SUBJECT_REQUIRED', 'Verified provider subject is required');
   const email = identity.email ? normalizeEmail(identity.email) : null;
   const client = await getPool().connect();
@@ -128,12 +130,33 @@ export async function resolveVerifiedIdentity(
       'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
       [`account-identity:${identity.provider}:${subject}`],
     );
+
+    let lockedCurrentUser: { is_guest?: boolean; is_blocked?: boolean } | null = null;
+    if (currentUserId) {
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [`account-provider:${currentUserId}:${identity.provider}`],
+      );
+      const user = await client.query(
+        'SELECT id, is_guest, is_blocked FROM users WHERE id = $1 FOR UPDATE',
+        [currentUserId],
+      );
+      if (!user.rowCount) throw new AdminAuthError(404, 'ACCOUNT_NOT_FOUND', 'Account no longer exists');
+      lockedCurrentUser = user.rows[0] || {};
+
+      if (lockedCurrentUser?.is_blocked === true) {
+        throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
+      }
+    }
+
     if (options.requiredSession) {
       const requiredUserId = String(options.requiredSession.userId || '');
       const requiredSessionId = String(options.requiredSession.sessionId || '');
       if (!currentUserId || currentUserId !== requiredUserId || !requiredSessionId) {
         throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
       }
+      // Keep the lock order aligned with account blocking: users first, then
+      // app_sessions. This prevents linking and blocking from deadlocking.
       const activeSession = await client.query(
         `SELECT session_id FROM app_sessions
          WHERE session_id = $1 AND user_id = $2
@@ -182,13 +205,7 @@ export async function resolveVerifiedIdentity(
     let userId = currentUserId || null;
     let upgradingGuest = false;
     if (userId) {
-      await client.query(
-        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
-        [`account-provider:${userId}:${identity.provider}`],
-      );
-      const user = await client.query('SELECT id, is_guest FROM users WHERE id = $1 FOR UPDATE', [userId]);
-      if (!user.rowCount) throw new AdminAuthError(404, 'ACCOUNT_NOT_FOUND', 'Account no longer exists');
-      upgradingGuest = user.rows[0].is_guest === true;
+      upgradingGuest = lockedCurrentUser?.is_guest === true;
       const providerIdentity = await client.query(
         `SELECT provider_subject FROM account_identities
          WHERE user_id = $1 AND provider = $2 FOR UPDATE`,
@@ -374,7 +391,16 @@ export async function assertAppSessionActive(sessionId: string, userId: string):
      RETURNING session_id`,
     [sessionId, userId],
   );
-  if (!result.rowCount) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+  if (!result.rowCount) {
+    const account = await getPool().query(
+      'SELECT is_blocked FROM users WHERE id = $1',
+      [userId],
+    );
+    if (account.rows[0]?.is_blocked === true) {
+      throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
+    }
+    throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+  }
 }
 
 export async function revokeSessions(userId: string, sessionId?: string | null): Promise<number> {
@@ -387,6 +413,54 @@ export async function revokeSessions(userId: string, sessionId?: string | null):
     params,
   );
   return result.rowCount || 0;
+}
+
+/**
+ * Changes the account block state while serializing against session issuance.
+ * The users row is always locked before app_sessions, matching linking and
+ * session-creation lock order. Blocking and revoking every active session are
+ * committed atomically, so an old token cannot become valid after unblocking.
+ */
+export async function setAccountBlockedState(
+  userId: string,
+  isBlocked: boolean,
+): Promise<{ revokedSessions: number }> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const account = await client.query(
+      'SELECT id FROM users WHERE id = $1 FOR UPDATE',
+      [userId],
+    );
+    if (!account.rowCount) {
+      throw new AdminAuthError(404, 'USER_NOT_FOUND', 'User not found');
+    }
+
+    let revokedSessions = 0;
+    if (isBlocked) {
+      const revoked = await client.query(
+        `UPDATE app_sessions
+         SET revoked_at = CURRENT_TIMESTAMP, revoke_reason = 'account_blocked'
+         WHERE user_id = $1 AND revoked_at IS NULL`,
+        [userId],
+      );
+      revokedSessions = revoked.rowCount || 0;
+    }
+
+    await client.query(
+      `UPDATE users
+       SET is_blocked = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [userId, isBlocked],
+    );
+    await client.query('COMMIT');
+    return { revokedSessions };
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function userHasRecoveryIdentity(userId: string): Promise<boolean> {
@@ -406,6 +480,9 @@ export async function beginOAuth(input: {
   browserBindingHash: string;
   requiredSession?: { userId: string; sessionId: string };
 }): Promise<{ authorizationUrl: string }> {
+  if (!canUseAccountAuthProvider(input.provider, resolveDistributionChannel())) {
+    throw new AdminAuthError(403, 'AUTH_PROVIDER_UNAVAILABLE', 'This sign-in provider is unavailable');
+  }
   if (!/^[a-f0-9]{64}$/.test(input.browserBindingHash)) {
     throw new AdminAuthError(400, 'OAUTH_BROWSER_BINDING_INVALID', 'OAuth browser binding is invalid');
   }
@@ -476,6 +553,19 @@ export async function beginOAuth(input: {
   return { authorizationUrl: url.toString() };
 }
 
+export function resolveOAuthIdentitySubject(
+  provider: 'vk' | 'yandex' | 'google',
+  user: Record<string, unknown>,
+): string {
+  return String(
+    provider === 'yandex'
+      ? (user.psuid || user.sub || user.id || user.user_id || '')
+      : provider === 'vk'
+        ? (user.user_id || '')
+        : (user.sub || user.id || user.user_id || ''),
+  ).trim();
+}
+
 async function fetchOAuthIdentity(
   provider: 'vk' | 'yandex' | 'google',
   code: string,
@@ -508,6 +598,9 @@ async function fetchOAuthIdentity(
   if (!tokenResponse.ok || !token.access_token) {
     throw new AdminAuthError(401, 'OAUTH_CODE_EXCHANGE_FAILED', 'OAuth provider rejected the code');
   }
+  if (provider === 'vk' && String(token.state || '') !== state) {
+    throw new AdminAuthError(401, 'OAUTH_STATE_INVALID', 'VK ID returned an invalid state');
+  }
 
   const userInfoUrl = provider === 'vk'
     ? `${config.userInfoUrl}?client_id=${encodeURIComponent(config.clientId)}`
@@ -530,7 +623,14 @@ async function fetchOAuthIdentity(
   const raw = await userInfoResponse.json().catch(() => ({})) as any;
   if (!userInfoResponse.ok) throw new AdminAuthError(401, 'OAUTH_USERINFO_FAILED', 'OAuth user info failed');
   const user = raw.user || raw.response?.[0] || raw;
-  const subject = String(user.sub || user.id || user.user_id || '').trim();
+  if (provider === 'vk') {
+    const tokenSubject = String(token.user_id || '').trim();
+    const infoSubject = String(user.user_id || '').trim();
+    if (!tokenSubject || !infoSubject || tokenSubject !== infoSubject) {
+      throw new AdminAuthError(401, 'OAUTH_IDENTITY_MISMATCH', 'VK ID returned inconsistent identity data');
+    }
+  }
+  const subject = resolveOAuthIdentitySubject(provider, user);
   if (!subject) throw new AdminAuthError(401, 'OAUTH_IDENTITY_MISSING', 'OAuth provider did not return an id');
   const displayName = String(
     user.name || user.display_name || [user.first_name, user.last_name].filter(Boolean).join(' '),
@@ -540,7 +640,10 @@ async function fetchOAuthIdentity(
     subject,
     email: typeof user.email === 'string' ? user.email : null,
     displayName,
-    metadata: { provider },
+    metadata: {
+      provider,
+      ...(provider === 'yandex' ? { subjectType: user.psuid ? 'psuid' : 'id' } : {}),
+    },
   };
 }
 
@@ -551,6 +654,9 @@ export async function finishOAuth(input: {
   deviceId?: string;
   browserBinding: string;
 }): Promise<{ exchangeCode: string; userId: string; redirectUri: string }> {
+  if (!canUseAccountAuthProvider(input.provider, resolveDistributionChannel())) {
+    throw new AdminAuthError(403, 'AUTH_PROVIDER_UNAVAILABLE', 'This sign-in provider is unavailable');
+  }
   const [challengeId, stateSecret] = input.state.split('.');
   if (!challengeId || !stateSecret) throw new AdminAuthError(400, 'OAUTH_STATE_INVALID', 'Invalid OAuth state');
   const client = await getPool().connect();
@@ -623,6 +729,54 @@ export async function finishOAuth(input: {
       userId: account.userId,
       redirectUri: challenge.redirect_uri,
     };
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function cancelOAuth(input: {
+  provider: 'vk' | 'yandex' | 'google';
+  state: string;
+  browserBinding: string;
+}): Promise<void> {
+  if (!canUseAccountAuthProvider(input.provider, resolveDistributionChannel())) {
+    throw new AdminAuthError(403, 'AUTH_PROVIDER_UNAVAILABLE', 'This sign-in provider is unavailable');
+  }
+  const [challengeId, stateSecret] = input.state.split('.');
+  if (!challengeId || !stateSecret) {
+    throw new AdminAuthError(400, 'OAUTH_STATE_INVALID', 'Invalid OAuth state');
+  }
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query(
+      `SELECT state_hash, metadata FROM auth_challenges
+       WHERE challenge_id = $1 AND provider = $2
+         AND consumed_at IS NULL AND expires_at > NOW()
+       FOR UPDATE`,
+      [challengeId, input.provider],
+    );
+    const challenge = result.rows[0];
+    const metadata = typeof challenge?.metadata === 'string'
+      ? JSON.parse(challenge.metadata)
+      : challenge?.metadata || {};
+    if (
+      !challenge
+      || challenge.state_hash !== sha256(stateSecret)
+      || !input.browserBinding
+      || typeof metadata.oauthBindingHash !== 'string'
+      || !oauthBrowserBindingMatches(input.browserBinding, metadata.oauthBindingHash)
+    ) {
+      throw new AdminAuthError(400, 'OAUTH_STATE_INVALID', 'Invalid or expired OAuth state');
+    }
+    await client.query(
+      'UPDATE auth_challenges SET consumed_at = CURRENT_TIMESTAMP WHERE challenge_id = $1',
+      [challengeId],
+    );
+    await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw error;

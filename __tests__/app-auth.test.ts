@@ -76,13 +76,91 @@ describe('app auth providers and API security', () => {
     expect(read('pages/api/charts/index.ts')).not.toContain('expectedUserId: userId');
     expect(read('lib/natalReading/apiHelper.ts')).toContain('String(chart.user_id) === String(userId)');
     expect(read('lib/dailyAstroSignalResolver.ts')).not.toContain('chartDataFallback || primaryChart?.chart_data');
+    for (const file of [
+      'pages/api/content/natal/anchor.ts',
+      'pages/api/content/natal/full.ts',
+      'pages/api/content/natal/living.ts',
+      'pages/api/content/natal/planet-insight.ts',
+    ]) {
+      expect(read(file)).toContain('String(chart.user_id) !== userId');
+    }
+  });
+
+  it('requires an explicit strong app-session secret in production without BOT_TOKEN fallback', () => {
+    const mutableEnv = process.env as Record<string, string | undefined>;
+    const originalNodeEnv = mutableEnv.NODE_ENV;
+    const originalAppSecret = mutableEnv.APP_SESSION_SECRET;
+    const originalBotToken = mutableEnv.BOT_TOKEN;
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.APP_SESSION_SECRET;
+    mutableEnv.BOT_TOKEN = 'telegram-bot-token-that-is-not-a-session-key';
+    try {
+      expect(() => createAppSessionToken({
+        userId: '123',
+        sessionId: 'production-session',
+        provider: 'native',
+      })).toThrow('APP_SESSION_SECRET must contain at least 32 bytes');
+      mutableEnv.APP_SESSION_SECRET = 'replace-with-a-long-random-secret';
+      expect(() => createAppSessionToken({
+        userId: '123',
+        sessionId: 'placeholder-session',
+        provider: 'native',
+      })).toThrow('APP_SESSION_SECRET must contain at least 32 bytes');
+    } finally {
+      if (originalNodeEnv === undefined) delete mutableEnv.NODE_ENV;
+      else mutableEnv.NODE_ENV = originalNodeEnv;
+      if (originalAppSecret === undefined) delete mutableEnv.APP_SESSION_SECRET;
+      else mutableEnv.APP_SESSION_SECRET = originalAppSecret;
+      if (originalBotToken === undefined) delete mutableEnv.BOT_TOKEN;
+      else mutableEnv.BOT_TOKEN = originalBotToken;
+    }
+  });
+
+  it('rejects a production session key reused for another auth HMAC domain', () => {
+    const mutableEnv = process.env as Record<string, string | undefined>;
+    const previous = {
+      nodeEnv: mutableEnv.NODE_ENV,
+      app: mutableEnv.APP_SESSION_SECRET,
+      email: mutableEnv.EMAIL_OTP_HASH_SECRET,
+      rate: mutableEnv.AUTH_RATE_LIMIT_SECRET,
+    };
+    mutableEnv.NODE_ENV = 'production';
+    mutableEnv.APP_SESSION_SECRET = 'reused-production-auth-secret-at-least-32-bytes';
+    mutableEnv.EMAIL_OTP_HASH_SECRET = mutableEnv.APP_SESSION_SECRET;
+    mutableEnv.AUTH_RATE_LIMIT_SECRET = 'independent-rate-limit-secret-at-least-32-bytes';
+    try {
+      expect(() => createAppSessionToken({
+        userId: '123',
+        sessionId: 'reused-session-key',
+        provider: 'native',
+      })).toThrow('APP_SESSION_SECRET must be independent from auth HMAC secrets');
+    } finally {
+      for (const [key, value] of Object.entries({
+        NODE_ENV: previous.nodeEnv,
+        APP_SESSION_SECRET: previous.app,
+        EMAIL_OTP_HASH_SECRET: previous.email,
+        AUTH_RATE_LIMIT_SECRET: previous.rate,
+      })) {
+        if (value === undefined) delete mutableEnv[key];
+        else mutableEnv[key] = value;
+      }
+    }
   });
 
   it('never grants trial or trusts client Premium for a web guest', () => {
-    expect(read('pages/api/users/[id].ts')).toContain('!existing&&!appUser.isGuest');
+    const profileRoute = read('pages/api/users/[id].ts');
+    expect(profileRoute).toContain("if(!saved)return res.status(401).json({error:'APP_SESSION_REVOKED'");
+    expect(profileRoute).not.toContain('NEW_USER_TRIAL_DAYS');
+    expect(profileRoute).not.toContain('trial_started_at=');
+    expect(profileRoute).not.toContain('premium_until=');
+    expect(profileRoute).toContain('db.users.updateExisting(userId,dbUser)');
+    expect(read('lib/db.ts')).toContain('WHERE id = $1 AND is_blocked = FALSE');
     expect(read('lib/contentArchitecture.ts')).toContain('user.is_guest !== false');
     expect(read('pages/api/content/natal/human-section.ts')).not.toContain('entitlement.isPremium || profile?.isPremium');
     expect(read('pages/api/content/forecast/personal.ts')).not.toContain('if (profile?.isPremium)');
+    const legacyPremium = read('pages/api/subscriptions/premium.ts');
+    expect(legacyPremium).toContain('PREMIUM_ACTIVATION_ROUTE_RETIRED');
+    expect(legacyPremium).not.toContain("baseDate.getTime() + 7 * 24 * 60 * 60 * 1000");
   });
 
   it('repairs primary charts on reads and reports an incomplete birth profile explicitly', () => {

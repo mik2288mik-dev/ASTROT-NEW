@@ -5,12 +5,14 @@ import {
   authenticateWithProvider,
   completePasswordReset,
   getAccountAuthCapabilities,
+  loginWithTelegram,
   loginWithEmailPassword,
   registerEmailPassword,
   requestPasswordReset,
   verifyEmailPasswordRegistration,
   type AccountAuthCapabilities,
 } from '../services/accountAuthService';
+import { hasTelegramMiniAppContext } from '../services/authSessionIntent';
 
 type AuthGateProps = {
   deleted?: boolean;
@@ -19,9 +21,10 @@ type AuthGateProps = {
 };
 
 type AuthScreen = 'register' | 'verify' | 'login' | 'forgot' | 'reset';
-type Provider = 'yandex' | 'vk';
+type Provider = 'google' | 'yandex' | 'vk';
 
 const PROVIDERS: Array<{ id: Provider; label: string }> = [
+  { id: 'google', label: 'Продолжить с Google' },
   { id: 'yandex', label: 'Продолжить с Яндексом' },
   { id: 'vk', label: 'Продолжить с VK ID' },
 ];
@@ -122,6 +125,10 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
 
   const emailPasswordReady = capabilities?.emailPassword === true;
   const emailDeliveryReady = capabilities?.emailDelivery === true;
+  const availableProviders = PROVIDERS.filter((provider) => capabilities?.[provider.id] === true);
+  const telegramReady = hasTelegramMiniAppContext();
+  const emailFlowVisible = screen === 'verify' || screen === 'reset'
+    || (screen === 'login' ? emailPasswordReady : emailDeliveryReady);
   const passwordFieldsValid = useMemo(
     () => email.trim().length > 0 && password.length >= 12 && password === passwordConfirmation,
     [email, password, passwordConfirmation],
@@ -153,6 +160,20 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
     }
   };
 
+  const runTelegram = async () => {
+    if (busy || !hasTelegramMiniAppContext()) return;
+    setError('');
+    setNotice('');
+    setBusy('telegram');
+    try {
+      onAccountLogin(await loginWithTelegram());
+    } catch (nextError) {
+      setError(readableAuthError(nextError));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const submitRegistration = async () => {
     if (busy || !passwordFieldsValid) return;
     setError('');
@@ -167,7 +188,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
       setChallengeId(result.challengeId);
       setCode('');
       setScreen('verify');
-      setNotice('Отправили шестизначный код на указанный email.');
+      setNotice('Если email свободен, шестизначный код отправлен. Если аккаунт уже существует — войди или восстанови пароль: профили автоматически не объединяются.');
     } catch (nextError) {
       setError(readableAuthError(nextError));
     } finally {
@@ -264,21 +285,31 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
 
           {(isRegister || isLogin) ? (
             <div className="mt-7 grid gap-2.5">
-              {PROVIDERS.map((provider) => (
+              {PROVIDERS.filter((provider) => capabilities?.[provider.id] === true).map((provider) => (
                 <button
                   key={provider.id}
                   type="button"
                   className={providerClass}
-                  disabled={busy !== null || capabilities?.[provider.id] !== true}
+                  disabled={busy !== null}
                   onClick={() => { void runProvider(provider.id); }}
                 >
                   {busy === provider.id ? 'Открываем…' : provider.label}
                 </button>
               ))}
+              {telegramReady ? (
+                <button
+                  type="button"
+                  className={providerClass}
+                  disabled={busy !== null}
+                  onClick={() => { void runTelegram(); }}
+                >
+                  {busy === 'telegram' ? 'Открываем…' : 'Войти через Telegram'}
+                </button>
+              ) : null}
             </div>
           ) : null}
 
-          {(isRegister || isLogin) ? (
+          {(isRegister || isLogin) && emailFlowVisible && (availableProviders.length > 0 || telegramReady) ? (
             <div className="my-5 flex items-center gap-3 text-[12px] uppercase tracking-[0.12em] text-[#9aa0aa]">
               <span className="h-px flex-1 bg-[#e5e7eb]" />
               или
@@ -286,7 +317,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
             </div>
           ) : null}
 
-          <div className={(isRegister || isLogin) ? 'grid gap-2.5' : 'mt-7 grid gap-2.5'}>
+          {emailFlowVisible ? <div className={(isRegister || isLogin) ? 'grid gap-2.5' : 'mt-7 grid gap-2.5'}>
             {screen !== 'verify' && screen !== 'reset' ? (
               <input
                 className={fieldClass}
@@ -359,7 +390,17 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
                 {busy === 'email' ? 'Сохраняем…' : 'Сохранить новый пароль'}
               </button>
             )}
-          </div>
+          </div> : null}
+
+          {screen === 'verify' ? (
+            <button type="button" className="mx-auto mt-3 block text-[14px] font-medium text-[#395a50]" disabled={busy !== null} onClick={() => { void submitRegistration(); }}>
+              Отправить новый код
+            </button>
+          ) : screen === 'reset' ? (
+            <button type="button" className="mx-auto mt-3 block text-[14px] font-medium text-[#395a50]" disabled={busy !== null} onClick={() => { void beginReset(); }}>
+              Отправить новый код
+            </button>
+          ) : null}
 
           {isLogin ? (
             <button type="button" className="mx-auto mt-4 block text-[14px] font-medium text-[#395a50]" disabled={busy !== null} onClick={() => changeScreen('forgot')}>
@@ -400,6 +441,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
                 Повторить
               </button>
             </div>
+          ) : null}
+          {!capabilities && !capabilitiesLoadFailed ? (
+            <p className="mt-4 text-center text-[12px] leading-4 text-[#687079]">Загружаем доступные способы входа…</p>
           ) : null}
           {notice ? <p role="status" className="mt-4 rounded-2xl bg-[#eef5f1] px-4 py-3 text-[14px] leading-5 text-[#315348]">{notice}</p> : null}
           {error ? <p role="alert" className="mt-4 rounded-2xl bg-[#fff3f2] px-4 py-3 text-[14px] leading-5 text-[#b42318]">{error}</p> : null}

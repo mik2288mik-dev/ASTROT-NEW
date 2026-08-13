@@ -13,6 +13,12 @@ const INVALID_NATIVE_SESSION_CODES = new Set([
   'ACCOUNT_BLOCKED',
 ]);
 
+export const APP_SESSION_INVALIDATED_EVENT = 'lumia:app-session-invalidated';
+export type AppSessionInvalidatedDetail = {
+  code: string;
+  status: number;
+};
+
 type NativeSessionResponse = {
   token: string;
   profile: unknown;
@@ -20,15 +26,23 @@ type NativeSessionResponse = {
 
 let nativeSessionRequest: Promise<NativeSessionResponse> | null = null;
 
-async function rejectsCurrentNativeSession(response: Response): Promise<boolean> {
-  if (response.status !== 401 && response.status !== 403) return false;
+async function sessionInvalidationFromResponse(
+  response: Response,
+): Promise<AppSessionInvalidatedDetail | null> {
+  if (response.status !== 401 && response.status !== 403) return null;
   const payload = await response.clone().json().catch(() => ({})) as {
     code?: unknown;
     error?: unknown;
   };
-  return [payload.code, payload.error].some(
-    (value) => typeof value === 'string' && INVALID_NATIVE_SESSION_CODES.has(value),
+  const code = [payload.code, payload.error].find(
+    (value): value is string => typeof value === 'string' && INVALID_NATIVE_SESSION_CODES.has(value),
   );
+  return code ? { code, status: response.status } : null;
+}
+
+function dispatchSessionInvalidation(detail: AppSessionInvalidatedDetail): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(APP_SESSION_INVALIDATED_EVENT, { detail }));
 }
 
 export function isNativeAppRuntime(): boolean {
@@ -65,13 +79,16 @@ async function requestNativeSession(): Promise<NativeSessionResponse> {
       method: 'POST',
       headers,
     });
-    const invalidatesStoredSession = await rejectsCurrentNativeSession(response);
+    const invalidatedSession = await sessionInvalidationFromResponse(response);
     const payload = await response.json().catch(() => ({})) as Partial<NativeSessionResponse> & {
       error?: string;
       message?: string;
     };
     if (!response.ok || !payload.token) {
-      if (invalidatesStoredSession) await nativeSessionStore.clearToken();
+      if (invalidatedSession) {
+        await nativeSessionStore.clearToken().catch(() => undefined);
+        dispatchSessionInvalidation(invalidatedSession);
+      }
       throw new Error(payload.message || payload.error || `Native session failed: ${response.status}`);
     }
     await nativeSessionStore.setToken(payload.token);
@@ -85,11 +102,12 @@ async function requestNativeSession(): Promise<NativeSessionResponse> {
 
 export async function getAppAuthHeaders(): Promise<Record<string, string>> {
   if (isNativeAppRuntime()) {
+    const mode = getAuthSessionMode();
+    if (requiresExplicitAuthentication(mode)) return {};
     const storedToken = await nativeSessionStore.getToken();
     if (storedToken) return { Authorization: `Bearer ${storedToken}` };
 
-    const mode = getAuthSessionMode();
-    if (requiresExplicitAuthentication(mode) || mode !== 'guest') return {};
+    if (mode !== 'guest') return {};
     const token = (await requestNativeSession()).token;
     return { Authorization: `Bearer ${token}` };
   }
@@ -135,11 +153,13 @@ export async function apiFetch(
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
   const response = await fetchOnce(path, init, timeoutMs);
-  if (isNativeAppRuntime() && await rejectsCurrentNativeSession(response)) {
+  const invalidatedSession = await sessionInvalidationFromResponse(response);
+  if (invalidatedSession) {
     // An invalid or revoked native token must return the user to the explicit
     // sign-in choice. Silently creating a new guest here used to hide logout
     // failures and could switch accounts behind the user's back.
-    await clearNativeSession();
+    if (isNativeAppRuntime()) await clearNativeSession().catch(() => undefined);
+    dispatchSessionInvalidation(invalidatedSession);
   }
   return response;
 }
@@ -149,7 +169,8 @@ export async function clearNativeSession(): Promise<void> {
 }
 
 export async function clearAppSessionAndLocalData(): Promise<void> {
-  await clearNativeSession();
-  if (typeof window === 'undefined') return;
-  try { window.localStorage.clear(); window.sessionStorage.clear(); } catch { /* unavailable storage */ }
+  await Promise.allSettled([clearNativeSession()]);
+  if (typeof window !== 'undefined') {
+    try { window.localStorage.clear(); window.sessionStorage.clear(); } catch { /* unavailable storage */ }
+  }
 }

@@ -15,7 +15,12 @@ import {
     isProfileBlockedError,
     type ChartListItem,
 } from './services/storageService';
-import { clearAppSessionAndLocalData, isNativeAppRuntime } from './services/apiClient';
+import {
+    APP_SESSION_INVALIDATED_EVENT,
+    clearAppSessionAndLocalData,
+    isNativeAppRuntime,
+    type AppSessionInvalidatedDetail,
+} from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
 import { prewarmUserContent } from './services/contentPrewarmService';
 import { CACHE_ONLY_PREWARM_BUDGET_MS } from './lib/appStartupFlags';
@@ -128,7 +133,7 @@ function getTelegramDisplayName(tgUser?: TelegramWebAppUser | null): string {
         .trim();
     if (fullName) return fullName;
     const username = String(tgUser?.username || '').trim();
-    return username || 'Гость';
+    return username;
 }
 
 function normalizeStartupProfile(
@@ -156,7 +161,7 @@ function normalizeStartupProfile(
 }
 
 function needsStartupProfileNormalizationSave(storedProfile: UserProfile): boolean {
-    return !storedProfile.name?.trim() || !storedProfile.language || !storedProfile.theme;
+    return !storedProfile.language || !storedProfile.theme;
 }
 
 const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
@@ -807,10 +812,10 @@ const App: React.FC = () => {
                 });
 
                 if (!updatedProfile.isSetup) {
-                    console.log('[App] Profile is not setup; opening dashboard without chart/prewarm');
+                    console.log('[App] Profile is not setup; opening birth data without chart/prewarm');
                     logStartupMetric('startup_local_chart_hit', false);
                     resetPrimaryChartState();
-                    showStartupDashboard('dashboard');
+                    showStartupDashboard('onboarding');
                     return;
                 }
 
@@ -1106,8 +1111,10 @@ const App: React.FC = () => {
             clearHumanReadingSessionCache(String(profile.id));
         }
         clearPersonalForecastSessionCache();
-        await clearAppSessionAndLocalData();
-        await clearNativeProviderCredentialState();
+        await Promise.allSettled([
+            clearAppSessionAndLocalData(),
+            clearNativeProviderCredentialState(),
+        ]);
         setAuthSessionMode(nextMode);
         setAuthSessionModeState(nextMode);
         setAuthGateMessage(message);
@@ -1127,7 +1134,7 @@ const App: React.FC = () => {
         await deleteCurrentAccount();
         await resetLocalAccountState(
             'deleted',
-            'Аккаунт и связанные данные удалены. Можно войти снова или начать с нового гостевого профиля.',
+            'Аккаунт и связанные данные удалены. Можно создать новый аккаунт или войти в существующий.',
         );
     }, [resetLocalAccountState]);
 
@@ -1137,6 +1144,21 @@ const App: React.FC = () => {
             'signed_out',
             'Ты вышел с этого устройства. Войди снова, чтобы вернуть карту, историю и Premium.',
         );
+    }, [resetLocalAccountState]);
+
+    useEffect(() => {
+        const handleInvalidatedSession = (event: Event) => {
+            const detail = (event as CustomEvent<AppSessionInvalidatedDetail>).detail;
+            const blocked = detail?.code === 'ACCOUNT_BLOCKED';
+            void resetLocalAccountState(
+                'signed_out',
+                blocked
+                    ? 'Этот аккаунт заблокирован. Войди в другой аккаунт или обратись в поддержку.'
+                    : 'Сессия завершена. Войди снова, чтобы вернуть карту, историю и Premium.',
+            );
+        };
+        window.addEventListener(APP_SESSION_INVALIDATED_EVENT, handleInvalidatedSession);
+        return () => window.removeEventListener(APP_SESSION_INVALIDATED_EVENT, handleInvalidatedSession);
     }, [resetLocalAccountState]);
 
     const resumeAuthenticatedStartup = useCallback((
@@ -1731,7 +1753,10 @@ const App: React.FC = () => {
         return (
             <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
                 <div className="relative z-10 h-full">
-                    <Onboarding onComplete={handleOnboardingComplete} />
+                    <Onboarding
+                        onComplete={handleOnboardingComplete}
+                        initialStep={profile && !profile.isGuest && !profile.isSetup ? 'birth' : 'stories'}
+                    />
                 </div>
             </div>
         );

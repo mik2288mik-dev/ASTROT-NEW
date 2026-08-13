@@ -559,8 +559,8 @@ function isFutureTimestamp(value: unknown): boolean {
   return Number.isFinite(timestamp) && timestamp > Date.now();
 }
 
-function resolveIsSetup(row: any, birthDate?: unknown, birthPlace?: unknown): boolean {
-  return !!row?.is_setup || (!!(birthDate ?? row?.birth_date) && !!(birthPlace ?? row?.birth_place));
+function resolveIsSetup(row: any): boolean {
+  return row?.is_setup === true;
 }
 
 /**
@@ -725,7 +725,10 @@ export const db = {
           : null;
         const genderRaw = merge('gender');
         const gender = ['male', 'female', 'unspecified'].includes(String(genderRaw)) ? String(genderRaw) : null;
-        const finalIsSetup = !!(data.is_setup ?? existingUser?.is_setup) || !!(birthDate && birthPlace);
+        const hasExplicitIsSetup = data.is_setup !== undefined;
+        const finalIsSetup = hasExplicitIsSetup
+          ? data.is_setup === true
+          : existingUser?.is_setup === true;
         let premiumUntil = data.premium_until;
         if (premiumUntil === undefined && data.is_premium !== undefined) {
           premiumUntil = data.is_premium
@@ -754,7 +757,7 @@ export const db = {
             ascendant = COALESCE(EXCLUDED.ascendant, users.ascendant),
             premium_until = EXCLUDED.premium_until,
             trial_started_at = COALESCE(EXCLUDED.trial_started_at, users.trial_started_at),
-            is_setup = EXCLUDED.is_setup,
+            is_setup = CASE WHEN $23::boolean THEN EXCLUDED.is_setup ELSE users.is_setup END,
             selected_zodiac_sign = EXCLUDED.selected_zodiac_sign,
             language = COALESCE(EXCLUDED.language, users.language),
             theme = COALESCE(EXCLUDED.theme, users.theme),
@@ -785,6 +788,7 @@ export const db = {
             merge('theme', 'dark'),
             merge('is_admin', false),
             gender,
+            hasExplicitIsSetup,
           ]
         );
         const u = result.rows[0];
@@ -811,6 +815,69 @@ export const db = {
         log.error('[DB] Error setting user', { error: error.message, userId });
         throw error;
       }
+    },
+
+    async updateExisting(userId: string, data: any) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+      const birthDate = data.birth_date ?? null;
+      const birthTime = data.birth_time ?? null;
+      const birthPlace = data.birth_place ?? null;
+      const selectedZodiacSign = data.selected_zodiac_sign !== undefined
+        ? (String(data.selected_zodiac_sign || '').trim() || null)
+        : undefined;
+      const gender = data.gender !== undefined && ['male', 'female', 'unspecified'].includes(String(data.gender))
+        ? String(data.gender)
+        : data.gender === undefined ? undefined : null;
+      const result = await getPool().query(
+        `UPDATE users SET
+           name = COALESCE($2, name),
+           birth_date = COALESCE($3, birth_date),
+           birth_time = $4,
+           birth_place = COALESCE($5, birth_place),
+           is_setup = COALESCE($6::boolean, is_setup),
+           selected_zodiac_sign = CASE WHEN $7::boolean THEN $8 ELSE selected_zodiac_sign END,
+           language = COALESCE($9, language),
+           theme = COALESCE($10, theme),
+           gender = CASE WHEN $11::boolean THEN $12 ELSE gender END,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1 AND is_blocked = FALSE
+         RETURNING *`,
+        [
+          id,
+          data.name ?? null,
+          birthDate,
+          birthTime,
+          birthPlace,
+          data.is_setup === undefined ? null : data.is_setup === true,
+          selectedZodiacSign !== undefined,
+          selectedZodiacSign ?? null,
+          data.language ?? null,
+          data.theme ?? null,
+          gender !== undefined,
+          gender ?? null,
+        ],
+      );
+      if (!result.rows[0]) return null;
+      const u = result.rows[0];
+      return {
+        id: String(u.id),
+        name: u.name,
+        birth_date: u.birth_date,
+        birth_time: u.birth_time,
+        birth_place: u.birth_place,
+        premium_until: u.premium_until,
+        trial_started_at: u.trial_started_at,
+        is_setup: resolveIsSetup(u),
+        language: u.language || 'ru',
+        theme: u.theme || 'dark',
+        is_premium: isFutureTimestamp(u.premium_until),
+        is_admin: u.is_admin ?? false,
+        created_at: u.created_at,
+        updated_at: u.updated_at,
+        selected_zodiac_sign: u.selected_zodiac_sign,
+        gender: u.gender ?? null,
+      };
     },
 
     async getOrCreate(userId: string, data?: any) {

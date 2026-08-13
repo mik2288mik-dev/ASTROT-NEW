@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# GoogleIdentityAuthHandler is present only in development/googlePlay and is
+# deliberately loaded by name so RuStore does not package Google auth classes.
+-keep class ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler {
+    public <init>(...);
+    public *;
+}

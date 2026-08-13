@@ -85,8 +85,8 @@ describe('Telegram Stars canonical account authentication', () => {
 
   it('accepts a linked Telegram identity for a different canonical users.id', async () => {
     getPoolQuery.mockImplementation(async (sql: string) => {
-      if (sql.includes('SELECT is_guest FROM users')) {
-        return { rowCount: 1, rows: [{ is_guest: false }] };
+      if (sql.includes('SELECT is_guest, is_blocked FROM users')) {
+        return { rowCount: 1, rows: [{ is_guest: false, is_blocked: false }] };
       }
       return { rowCount: 0, rows: [] };
     });
@@ -101,8 +101,8 @@ describe('Telegram Stars canonical account authentication', () => {
 
   it('rejects Stars when Telegram belongs to a different account', async () => {
     getPoolQuery.mockImplementation(async (sql: string) => {
-      if (sql.includes('SELECT is_guest FROM users')) {
-        return { rowCount: 1, rows: [{ is_guest: false }] };
+      if (sql.includes('SELECT is_guest, is_blocked FROM users')) {
+        return { rowCount: 1, rows: [{ is_guest: false, is_blocked: false }] };
       }
       return { rowCount: 0, rows: [] };
     });

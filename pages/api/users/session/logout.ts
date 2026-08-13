@@ -12,9 +12,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     clearAppSessionCookie(res);
     return res.status(200).json({ ok: true });
   } catch (error: any) {
-    if (error?.status === 401) {
-      // An expired, revoked, or malformed session is already signed out on the
-      // server. Clearing the cookie makes logout safely idempotent.
+    if (error?.status === 401 || (error?.status === 403 && error?.code === 'ACCOUNT_BLOCKED')) {
+      // An expired, revoked, malformed, or blocked session is already unusable
+      // on the server. Clearing the cookie makes logout safely idempotent.
       clearAppSessionCookie(res);
       return res.status(200).json({ ok: true, alreadySignedOut: true });
     }

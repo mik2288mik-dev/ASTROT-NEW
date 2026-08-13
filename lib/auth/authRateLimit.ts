@@ -14,17 +14,24 @@ let lastCleanupAt = 0;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 function rateLimitSecret(): string {
-  const value = String(
-    process.env.AUTH_RATE_LIMIT_SECRET
-    || process.env.EMAIL_OTP_HASH_SECRET
-    || process.env.APP_SESSION_SECRET
-    || '',
-  ).trim();
+  const configured = String(process.env.AUTH_RATE_LIMIT_SECRET || '').trim();
+  const value = /^(?:replace-with|your[_-])/i.test(configured) ? '' : configured;
   if (!value && process.env.NODE_ENV === 'production') {
-    throw new Error('AUTH_RATE_LIMIT_SECRET or EMAIL_OTP_HASH_SECRET is required');
+    throw new Error('AUTH_RATE_LIMIT_SECRET is required');
   }
   if (value && process.env.NODE_ENV === 'production' && Buffer.byteLength(value, 'utf8') < 32) {
     throw new Error('AUTH_RATE_LIMIT_SECRET must contain at least 32 bytes');
+  }
+  if (
+    value
+    && process.env.NODE_ENV === 'production'
+    && [
+      process.env.EMAIL_OTP_HASH_SECRET,
+      process.env.APP_SESSION_SECRET,
+    ]
+      .some((other) => String(other || '').trim() === value)
+  ) {
+    throw new Error('AUTH_RATE_LIMIT_SECRET must be independent');
   }
   return value || 'local-development-auth-rate-limit-secret';
 }

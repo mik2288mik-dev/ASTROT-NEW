@@ -48,6 +48,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
     private final Object vkInitializationLock = new Object();
 
     private volatile PluginCall activeSignInCall;
+    private volatile GoogleIdentityAuthDelegate googleAuthDelegate;
     private volatile boolean vkInitialized;
     private YandexAuthSdk yandexAuthSdk;
     private SecureSessionStore secureSessionStore;
@@ -74,6 +75,15 @@ public class NativeIdentityAuthPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             try {
                 switch (provider) {
+                    case "google":
+                        if (!BuildConfig.GOOGLE_AUTH_ENABLED
+                            || !("google_play".equals(BuildConfig.DISTRIBUTION_CHANNEL)
+                                || "development".equals(BuildConfig.DISTRIBUTION_CHANNEL))) {
+                            rejectSignIn(call, AUTH_CONFIGURATION);
+                        } else {
+                            startGoogleSignIn(call);
+                        }
+                        break;
                     case "yandex":
                         startYandexSignIn(call);
                         break;
@@ -87,6 +97,46 @@ public class NativeIdentityAuthPlugin extends Plugin {
                 rejectSignIn(call, AUTH_CONFIGURATION);
             }
         });
+    }
+
+    private void startGoogleSignIn(PluginCall call) {
+        String configuredClientId = BuildConfig.GOOGLE_AUTH_SERVER_CLIENT_ID.trim();
+        String requestedClientId = option(call, "clientId");
+        String nonce = option(call, "nonce");
+        if (!matchesConfiguredClient(configuredClientId, requestedClientId) || isBlank(nonce)) {
+            rejectSignIn(call, AUTH_CONFIGURATION);
+            return;
+        }
+
+        GoogleIdentityAuthDelegate delegate = getGoogleAuthDelegate();
+        if (delegate == null) {
+            rejectSignIn(call, AUTH_CONFIGURATION);
+            return;
+        }
+        delegate.start(
+            getContext(),
+            getActivity(),
+            configuredClientId,
+            nonce,
+            new GoogleIdentityAuthDelegate.Callback() {
+                @Override
+                public void onSuccess(String idToken) {
+                    getActivity().runOnUiThread(() -> {
+                        JSObject result = new JSObject();
+                        result.put("idToken", idToken);
+                        resolveSignIn(call, result);
+                    });
+                }
+
+                @Override
+                public void onError(String code) {
+                    getActivity().runOnUiThread(() -> rejectSignIn(
+                        call,
+                        !isNetworkAvailable() ? AUTH_NETWORK : code
+                    ));
+                }
+            }
+        );
     }
 
     /**
@@ -217,13 +267,37 @@ public class NativeIdentityAuthPlugin extends Plugin {
     @PluginMethod
     public void clearCredentialState(PluginCall call) {
         String provider = option(call, "provider").toLowerCase(Locale.ROOT);
-        if (!provider.isEmpty() && !"yandex".equals(provider) && !"vk".equals(provider)) {
+        if (!provider.isEmpty() && !"google".equals(provider) && !"yandex".equals(provider) && !"vk".equals(provider)) {
             reject(call, AUTH_CONFIGURATION);
             return;
         }
 
         // Yandex and our external-PKCE VK flow do not retain an app access token.
-        call.resolve(new JSObject().put("cleared", true));
+        if (!provider.isEmpty() && !"google".equals(provider)) {
+            call.resolve(new JSObject().put("cleared", true));
+            return;
+        }
+
+        if (!BuildConfig.GOOGLE_AUTH_ENABLED) {
+            call.resolve(new JSObject().put("cleared", true));
+            return;
+        }
+        GoogleIdentityAuthDelegate delegate = getGoogleAuthDelegate();
+        if (delegate == null) {
+            reject(call, AUTH_CONFIGURATION);
+            return;
+        }
+        delegate.clear(getContext(), new GoogleIdentityAuthDelegate.ClearCallback() {
+            @Override
+            public void onSuccess() {
+                call.resolve(new JSObject().put("cleared", true));
+            }
+
+            @Override
+            public void onError(String code) {
+                reject(call, code);
+            }
+        });
     }
 
     @PluginMethod
@@ -269,6 +343,8 @@ public class NativeIdentityAuthPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        GoogleIdentityAuthDelegate delegate = googleAuthDelegate;
+        if (delegate != null) delegate.cancel();
         PluginCall call = activeSignInCall;
         if (call != null && signInInFlight.compareAndSet(true, false)) {
             activeSignInCall = null;
@@ -282,6 +358,20 @@ public class NativeIdentityAuthPlugin extends Plugin {
             yandexAuthSdk = YandexAuthSdk.create(new YandexAuthOptions(getContext()));
         }
         return yandexAuthSdk;
+    }
+
+    private synchronized GoogleIdentityAuthDelegate getGoogleAuthDelegate() {
+        if (!BuildConfig.GOOGLE_AUTH_ENABLED) return null;
+        if (googleAuthDelegate != null) return googleAuthDelegate;
+        try {
+            Class<?> handler = Class.forName(
+                "ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler"
+            );
+            googleAuthDelegate = (GoogleIdentityAuthDelegate) handler.getDeclaredConstructor().newInstance();
+            return googleAuthDelegate;
+        } catch (ReflectiveOperationException | ClassCastException error) {
+            return null;
+        }
     }
 
     private void ensureVkInitialized() {

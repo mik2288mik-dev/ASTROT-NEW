@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../lib/db';
-import { AdminAuthError, handleAdminError, requireTelegramUserId } from '../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 
 // Logging utility
 const log = {
@@ -23,7 +24,7 @@ export default async function handler(
     return res.status(400).json({ error: 'User ID is required' });
   }
   try {
-    requireTelegramUserId(req, id);
+    await requireAppUser(req, { expectedUserId: id, allowGuest: false });
   } catch (error) {
     if (error instanceof AdminAuthError) {
       return handleAdminError(res, error);
@@ -39,49 +40,9 @@ export default async function handler(
 
   try {
     if (req.method === 'POST') {
-      if (process.env.BOT_TOKEN) {
-        return res.status(410).json({
-          error: 'Deprecated',
-          message: 'Use Telegram Stars flow: create-invoice -> openInvoice -> webhook. This route is disabled when BOT_TOKEN is set.',
-        });
-      }
-
-      // Legacy/sim only: direct activation when BOT_TOKEN not set.
-      const { starsAmount, transactionId } = req.body;
-
-      log.info('Activating premium (legacy/sim)', { userId: id, starsAmount, transactionId });
-
-      const user = await db.users.get(id);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const existingUntil = user.premium_until ? new Date(user.premium_until) : null;
-      const now = new Date();
-      const baseDate = existingUntil && existingUntil > now ? existingUntil : now;
-      const premiumUntil = new Date(baseDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      await db.users.set(id, { premium_until: premiumUntil.toISOString() });
-
-      const updatedUser = await db.users.get(id);
-      log.info('Premium activated (legacy)', { userId: id });
-
-      const clientUser = {
-        id: updatedUser!.id,
-        name: updatedUser!.name,
-        birthDate: updatedUser!.birth_date,
-        birthTime: updatedUser!.birth_time,
-        birthPlace: updatedUser!.birth_place,
-        isSetup: updatedUser!.is_setup,
-        language: updatedUser!.language,
-        theme: updatedUser!.theme,
-        isPremium: updatedUser!.is_premium,
-        isAdmin: updatedUser!.is_admin,
-        loginStreak: updatedUser!.login_streak ?? 0,
-      };
-
-      return res.status(200).json({
-        success: true,
-        user: clientUser
+      return res.status(410).json({
+        error: 'PREMIUM_ACTIVATION_ROUTE_RETIRED',
+        message: 'Use the verified store or Telegram payment flow.',
       });
     }
 

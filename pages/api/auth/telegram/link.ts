@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getVerifiedTelegramUser, handleAdminError } from '../../../../lib/adminAuth';
+import { AdminAuthError, getVerifiedTelegramUser, handleAdminError } from '../../../../lib/adminAuth';
 import {
   createAppUserSession,
   requireAppUser,
@@ -19,6 +19,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     authReq.headers = { ...req.headers };
     delete authReq.headers['x-telegram-init-data'];
     const auth = await requireAppUser(authReq, { allowGuest: true });
+    if (!auth.sessionId) {
+      throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
+    }
     const telegramReq = Object.create(req) as NextApiRequest;
     telegramReq.headers = {
       ...req.headers,
@@ -33,6 +36,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         metadata: { username: telegram.rawUser.username || null },
       },
       auth.userId,
+      {
+        requiredSession: {
+          userId: auth.userId,
+          sessionId: auth.sessionId,
+        },
+      },
     );
     let nextAuth: AppUserContext = { ...auth, isGuest: false };
     let token: string | undefined;

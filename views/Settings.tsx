@@ -46,15 +46,33 @@ function readableIdentityError(error: unknown, language: 'ru' | 'en'): string {
         || (error as { message?: string } | null)?.message
         || '');
     if (code.includes('AUTH_CANCELLED')) return '';
-    if (code.includes('IDENTITY_ALREADY_LINKED')) {
+    if (code.includes('IDENTITY_ALREADY_LINKED') || code.includes('PROVIDER_ALREADY_LINKED')) {
         return language === 'en'
             ? 'This sign-in method already belongs to another account. Choose “Restore an existing account”; two filled profiles are never merged automatically.'
             : 'Этот способ уже привязан к другому аккаунту. Выбери «Восстановить существующий аккаунт»: два заполненных профиля автоматически не объединяются.';
+    }
+    if (code.includes('APP_SESSION') || code.includes('ACCOUNT_BLOCKED')) {
+        return language === 'en'
+            ? 'This session is no longer active. Sign in again before changing sign-in methods.'
+            : 'Эта сессия больше не активна. Войди снова перед изменением способов входа.';
+    }
+    if (code.includes('RATE_LIMIT')) {
+        return language === 'en'
+            ? 'Too many attempts. Wait a little and try again.'
+            : 'Слишком много попыток. Подожди немного и попробуй снова.';
     }
     return language === 'en'
         ? 'The sign-in method could not be updated. Try again.'
         : 'Не удалось обновить способ входа. Попробуй ещё раз.';
 }
+
+const IDENTITY_LABELS: Record<LinkedIdentity['provider'], string> = {
+    vk: 'VK ID',
+    yandex: 'Яндекс',
+    google: 'Google',
+    email: 'Email',
+    telegram: 'Telegram',
+};
 
 interface SettingsProps {
     profile: UserProfile;
@@ -136,6 +154,9 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
     const [logoutError, setLogoutError] = useState('');
     const [identities, setIdentities] = useState<LinkedIdentity[]>([]);
     const [identityError, setIdentityError] = useState('');
+    const [identityNotice, setIdentityNotice] = useState('');
+    const [identityLoadFailed, setIdentityLoadFailed] = useState(false);
+    const [identityReload, setIdentityReload] = useState(0);
     const [emailValue, setEmailValue] = useState('');
     const [emailChallengeId, setEmailChallengeId] = useState('');
     const [emailCode, setEmailCode] = useState('');
@@ -163,13 +184,18 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 if (!alive) return;
                 setIdentities(result.identities);
                 setAuthCapabilities(capabilities);
+                setIdentityLoadFailed(false);
             })
-            .catch(() => undefined);
+            .catch(() => {
+                if (!alive) return;
+                setIdentityLoadFailed(true);
+            });
         return () => { alive = false; };
-    }, [profile.id]);
+    }, [identityReload, profile.id]);
 
     const linkOAuth = (provider: 'vk' | 'yandex' | 'google') => {
         setIdentityError('');
+        setIdentityNotice('');
         setIdentityBusy(true);
         void authenticateWithProvider(provider, authPurpose)
             .then(async (fresh) => {
@@ -182,6 +208,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     const linkTelegram = () => {
         setIdentityError('');
+        setIdentityNotice('');
         setIdentityBusy(true);
         void linkCurrentTelegramIdentity()
             .then(async (fresh) => {
@@ -195,6 +222,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     const requestEmailCode = () => {
         setIdentityError('');
+        setIdentityNotice('');
         setIdentityBusy(true);
         const action = authPurpose === 'login'
             ? loginWithEmailPassword(emailValue, emailPassword).then(async (fresh) => {
@@ -206,7 +234,12 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 password: emailPassword,
                 passwordConfirmation: emailPasswordConfirmation,
                 purpose: 'link',
-            }).then((result) => setEmailChallengeId(result.challengeId));
+            }).then((result) => {
+                setEmailChallengeId(result.challengeId);
+                setIdentityNotice(profile.language === 'en'
+                    ? 'If this email can be linked, a six-digit code was sent. Existing accounts are never merged automatically.'
+                    : 'Если этот email можно привязать, шестизначный код отправлен. Существующие аккаунты автоматически не объединяются.');
+            });
         void action
             .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
@@ -214,6 +247,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
 
     const confirmEmailCode = () => {
         setIdentityError('');
+        setIdentityNotice('');
         setIdentityBusy(true);
         void verifyEmailPasswordRegistration(emailChallengeId, emailCode)
             .then(async (fresh) => {
@@ -707,33 +741,46 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                 </h3>
                 <p className="lumia-muted mt-1 text-sm">
                     {profile.language === 'en'
-                        ? 'Link at least one method to restore this account and Premium on another device.'
-                        : 'Привяжи хотя бы один способ, чтобы восстановить этот аккаунт и Premium на другом устройстве.'}
+                        ? 'Every linked method opens this same account with its chart, history, settings and Premium.'
+                        : 'Каждый привязанный способ открывает этот же аккаунт с картой, историей, настройками и Premium.'}
                 </p>
-                {profile.isGuest ? (
-                    <button
-                        type="button"
-                        className="mt-2 text-sm font-medium text-mono-accent"
-                        onClick={() => setAuthPurpose((value) => value === 'link' ? 'login' : 'link')}
-                    >
-                        {authPurpose === 'link'
-                            ? (profile.language === 'en' ? 'Restore an existing account instead' : 'Восстановить существующий аккаунт')
-                            : (profile.language === 'en' ? 'Link this guest account instead' : 'Привязать текущий гостевой аккаунт')}
-                    </button>
-                ) : null}
+                <p className="mt-1 text-xs text-mono-muted">
+                    {profile.language === 'en'
+                        ? 'Two existing profiles are never merged automatically. To switch accounts, choose sign in below.'
+                        : 'Два существующих профиля никогда не объединяются автоматически. Чтобы сменить аккаунт, выбери вход ниже.'}
+                </p>
+                <button
+                    type="button"
+                    className="mt-2 text-sm font-medium text-mono-accent"
+                    onClick={() => setAuthPurpose((value) => value === 'link' ? 'login' : 'link')}
+                >
+                    {authPurpose === 'link'
+                        ? (profile.language === 'en' ? 'Sign in to another account' : 'Войти в другой аккаунт')
+                        : (profile.language === 'en' ? 'Link a method to this account' : 'Привязать способ к этому аккаунту')}
+                </button>
                 {authPurpose === 'login' ? (
                     <p className="mt-2 text-xs text-mono-muted">
                         {profile.language === 'en'
-                            ? 'Signing in switches to the existing account; guest data is not merged automatically.'
-                            : 'Вход переключит приложение на существующий аккаунт. Данные гостя автоматически не объединяются.'}
+                            ? 'Signing in switches to the existing account; current data is not merged into it.'
+                            : 'Вход переключит приложение на существующий аккаунт. Данные текущего профиля в него не переносятся.'}
                     </p>
                 ) : null}
                 {identities.length ? (
-                    <p className="mt-2 text-sm text-mono-ink">
-                        {identities.map((identity) => identity.provider === 'email'
-                            ? identity.email || 'email'
-                            : identity.provider).join(' · ')}
-                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-mono-ink">
+                        {identities.map((identity) => (
+                            <span key={identity.provider} className="rounded-full bg-black/5 px-3 py-1.5">
+                                {IDENTITY_LABELS[identity.provider]}{identity.provider === 'email' && identity.email ? `: ${identity.email}` : ''} · {profile.language === 'en' ? 'linked' : 'подключён'}
+                            </span>
+                        ))}
+                    </div>
+                ) : null}
+                {identityLoadFailed ? (
+                    <div className="mt-2 text-sm text-red-700">
+                        <p>{profile.language === 'en' ? 'Could not load sign-in methods.' : 'Не удалось загрузить способы входа.'}</p>
+                        <button type="button" className="mt-1 font-medium underline" onClick={() => setIdentityReload((value) => value + 1)}>
+                            {profile.language === 'en' ? 'Retry' : 'Повторить'}
+                        </button>
+                    </div>
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                     {hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
@@ -748,12 +795,13 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                     ) : null}
                     {(['vk', 'yandex', 'google'] as const)
                       .filter((provider) => authCapabilities?.[provider] === true)
+                      .filter((provider) => authPurpose === 'login' || !identities.some((identity) => identity.provider === provider))
                       .map((provider) => (
                         <button
                             key={provider}
                             type="button"
                             className="fresh-btn-ghost"
-                            disabled={identityBusy || identities.some((identity) => identity.provider === provider)}
+                            disabled={identityBusy}
                             onClick={() => linkOAuth(provider)}
                         >
                             {provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс ID' : 'Google'}
@@ -772,6 +820,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                             value={emailValue}
                             onChange={(event) => setEmailValue(event.target.value)}
                             placeholder={profile.language === 'en' ? 'Email' : 'Email для входа'}
+                            aria-label={profile.language === 'en' ? 'Email' : 'Email для входа'}
                         />
                         {!emailChallengeId ? (
                             <input
@@ -781,6 +830,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                 value={emailPassword}
                                 onChange={(event) => setEmailPassword(event.target.value)}
                                 placeholder={profile.language === 'en' ? 'Password' : 'Пароль'}
+                                aria-label={profile.language === 'en' ? 'Password' : 'Пароль'}
                             />
                         ) : null}
                         {authPurpose === 'link' && !emailChallengeId ? (
@@ -791,6 +841,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                 value={emailPasswordConfirmation}
                                 onChange={(event) => setEmailPasswordConfirmation(event.target.value)}
                                 placeholder={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
+                                aria-label={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
                             />
                         ) : null}
                         {emailChallengeId ? (
@@ -802,6 +853,7 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                     value={emailCode}
                                     onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
                                     placeholder={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
+                                    aria-label={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
                                 />
                                 <button type="button" className="fresh-btn-ghost" disabled={identityBusy || emailCode.length !== 6} onClick={confirmEmailCode}>
                                     {profile.language === 'en' ? 'Confirm' : 'Подтвердить'}
@@ -819,8 +871,14 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate, onShowPre
                                     : (profile.language === 'en' ? 'Send code' : 'Отправить код')}
                             </button>
                         )}
+                        {emailChallengeId ? (
+                            <button type="button" className="text-left text-sm font-medium text-mono-accent" disabled={identityBusy} onClick={requestEmailCode}>
+                                {profile.language === 'en' ? 'Send a new code' : 'Отправить новый код'}
+                            </button>
+                        ) : null}
                     </div>
                 ) : null}
+                {identityNotice ? <p role="status" className="mt-2 text-sm text-mono-muted">{identityNotice}</p> : null}
                 {identityError ? <p role="alert" className="mt-2 text-sm text-red-700">{identityError}</p> : null}
             </section>
 

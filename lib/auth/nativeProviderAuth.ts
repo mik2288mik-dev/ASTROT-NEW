@@ -1,13 +1,16 @@
 import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import { AdminAuthError } from '../adminAuth';
 import { getPool } from '../db';
+import { canUseAccountAuthProvider, resolveDistributionChannel } from '../distributionChannel';
 import { resolveVerifiedIdentity } from './accountIdentity';
 
-export const NATIVE_AUTH_PROVIDERS = ['yandex', 'vk'] as const;
+export const NATIVE_AUTH_PROVIDERS = ['google', 'yandex', 'vk'] as const;
 export type NativeAuthProvider = typeof NATIVE_AUTH_PROVIDERS[number];
 export type NativeAuthPurpose = 'login' | 'link';
 
 type NativeProviderCredential = {
+  idToken?: string;
   accessToken?: string;
   code?: string;
   deviceId?: string;
@@ -33,6 +36,8 @@ type VerifiedNativeIdentity = {
   metadata: Record<string, unknown>;
 };
 
+const GOOGLE_ISSUERS = new Set(['accounts.google.com', 'https://accounts.google.com']);
+const GOOGLE_TOKEN_MAX_LENGTH = 16_384;
 const OPAQUE_TOKEN_MAX_LENGTH = 8_192;
 const PROVIDER_REQUEST_TIMEOUT_MS = 10_000;
 const CHALLENGE_TTL_MS = 10 * 60 * 1000;
@@ -72,9 +77,11 @@ function configuredValue(name: string): string {
 }
 
 function requiredClientId(provider: NativeAuthProvider): string {
-  const value = provider === 'yandex'
-    ? configuredValue('YANDEX_AUTH_CLIENT_ID')
-    : configuredValue('VK_AUTH_CLIENT_ID');
+  const value = provider === 'google'
+    ? configuredValue('GOOGLE_AUTH_WEB_CLIENT_ID') || configuredValue('GOOGLE_AUTH_CLIENT_ID')
+    : provider === 'yandex'
+      ? configuredValue('YANDEX_AUTH_CLIENT_ID')
+      : configuredValue('VK_AUTH_CLIENT_ID');
   if (!value) {
     throw new AdminAuthError(
       503,
@@ -118,6 +125,14 @@ function safeEmail(value: unknown): string | null {
   return normalized;
 }
 
+function isNetworkLikeError(error: unknown): boolean {
+  const candidate = error as { name?: unknown; code?: unknown; cause?: { code?: unknown } } | null;
+  const name = String(candidate?.name || '');
+  const code = String(candidate?.code || candidate?.cause?.code || '');
+  return name === 'AbortError'
+    || /^(?:EAI_AGAIN|ECONNRESET|ECONNREFUSED|ENETUNREACH|ENOTFOUND|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT)$/i.test(code);
+}
+
 function providerUnavailable(): AdminAuthError {
   return new AdminAuthError(
     503,
@@ -138,7 +153,7 @@ export function getNativeProviderAuthCapabilities(): {
 } {
   const email = getEmailPasswordAuthCapabilities();
   return {
-    google: false,
+    google: !!(configuredValue('GOOGLE_AUTH_WEB_CLIENT_ID') || configuredValue('GOOGLE_AUTH_CLIENT_ID')),
     yandex: !!configuredValue('YANDEX_AUTH_CLIENT_ID'),
     vk: !!configuredValue('VK_AUTH_CLIENT_ID'),
     email: email.delivery,
@@ -150,14 +165,18 @@ export function getEmailPasswordAuthCapabilities(): {
   delivery: boolean;
 } {
   const production = process.env.NODE_ENV === 'production';
-  const appSessionSecret = configuredValue('APP_SESSION_SECRET') || configuredValue('BOT_TOKEN');
-  const rateLimitSecret = configuredValue('AUTH_RATE_LIMIT_SECRET')
-    || configuredValue('EMAIL_OTP_HASH_SECRET')
-    || configuredValue('APP_SESSION_SECRET');
+  const appSessionSecret = configuredValue('APP_SESSION_SECRET');
+  const rateLimitSecret = configuredValue('AUTH_RATE_LIMIT_SECRET');
   const emailCodeSecret = configuredValue('EMAIL_OTP_HASH_SECRET');
   const hasProductionSecret = (value: string) => Buffer.byteLength(value, 'utf8') >= 32;
-  const appSessionReady = !production || !!appSessionSecret;
-  const rateLimitReady = !production || hasProductionSecret(rateLimitSecret);
+  const appSessionReady = !production || hasProductionSecret(appSessionSecret);
+  const independentEmailCodeSecret = !!emailCodeSecret
+    && emailCodeSecret !== appSessionSecret;
+  const independentRateLimitSecret = !!rateLimitSecret
+    && rateLimitSecret !== emailCodeSecret
+    && rateLimitSecret !== appSessionSecret;
+  const rateLimitReady = !production
+    || (hasProductionSecret(rateLimitSecret) && independentRateLimitSecret);
   const login = appSessionReady && rateLimitReady;
   let deliveryEndpointReady = false;
   try {
@@ -168,7 +187,7 @@ export function getEmailPasswordAuthCapabilities(): {
   return {
     login,
     delivery: login
-      && (!production || hasProductionSecret(emailCodeSecret))
+      && (!production || (hasProductionSecret(emailCodeSecret) && independentEmailCodeSecret))
       && deliveryEndpointReady
       && !!configuredValue('EMAIL_OTP_DELIVERY_SECRET'),
   };
@@ -187,6 +206,9 @@ export async function beginNativeProviderAuth(input: {
   if (!NATIVE_AUTH_PROVIDERS.includes(input.provider)) {
     throw new AdminAuthError(400, 'AUTH_PROVIDER_INVALID', 'Unsupported sign-in provider');
   }
+  if (!canUseAccountAuthProvider(input.provider, resolveDistributionChannel())) {
+    throw new AdminAuthError(403, 'AUTH_PROVIDER_UNAVAILABLE', 'This sign-in provider is unavailable');
+  }
   if (input.purpose !== 'login' && input.purpose !== 'link') {
     throw new AdminAuthError(400, 'AUTH_PURPOSE_INVALID', 'Unsupported sign-in purpose');
   }
@@ -202,7 +224,11 @@ export async function beginNativeProviderAuth(input: {
   let metadata: Record<string, unknown> = {};
   let config: Record<string, string>;
 
-  if (input.provider === 'yandex') {
+  if (input.provider === 'google') {
+    const nonce = randomBase64Url();
+    metadata = { nonce };
+    config = { webClientId: clientId, nonce };
+  } else if (input.provider === 'yandex') {
     config = { clientId };
   } else {
     const state = randomBase64Url();
@@ -326,6 +352,46 @@ async function settleChallenge(challengeId: string, consume: boolean): Promise<v
   );
 }
 
+async function verifyGoogle(
+  credential: NativeProviderCredential,
+  challenge: ChallengeRow & { metadata: Record<string, unknown> },
+): Promise<VerifiedNativeIdentity> {
+  const idToken = requiredCredential(credential.idToken, GOOGLE_TOKEN_MAX_LENGTH);
+  const clientId = requiredClientId('google');
+  const expectedNonce = String(challenge.metadata.nonce || '');
+  if (!expectedNonce) throw invalidProviderCredential();
+
+  try {
+    // google-auth-library verifies the token signature and standard issuer,
+    // audience and expiry claims. The server additionally binds it to this
+    // one-time Android challenge through nonce.
+    const ticket = await new OAuth2Client({
+      transporterOptions: { timeout: PROVIDER_REQUEST_TIMEOUT_MS },
+    }).verifyIdToken({ idToken, audience: clientId });
+    const payload = ticket.getPayload();
+    if (
+      !payload?.sub
+      || !payload.iss
+      || !GOOGLE_ISSUERS.has(payload.iss)
+      || payload.aud !== clientId
+      || payload.nonce !== expectedNonce
+    ) {
+      throw invalidProviderCredential();
+    }
+    return {
+      provider: 'google',
+      subject: payload.sub,
+      email: payload.email_verified === true ? safeEmail(payload.email) : null,
+      displayName: safeDisplayName(payload.name),
+      metadata: { provider: 'google', emailVerified: payload.email_verified === true },
+    };
+  } catch (error) {
+    if (error instanceof AdminAuthError) throw error;
+    if (isNetworkLikeError(error)) throw providerUnavailable();
+    throw invalidProviderCredential();
+  }
+}
+
 async function requestProviderJson(
   url: string,
   init: RequestInit,
@@ -403,7 +469,7 @@ async function verifyVk(
   });
   assertProviderResponse(tokenResult.response);
   const accessToken = requiredCredential(tokenResult.payload.access_token, OPAQUE_TOKEN_MAX_LENGTH);
-  if (tokenResult.payload.state && String(tokenResult.payload.state) !== state) {
+  if (String(tokenResult.payload.state || '') !== state) {
     throw invalidProviderCredential();
   }
 
@@ -419,9 +485,8 @@ async function verifyVk(
     : userInfoResult.payload;
   const tokenSubject = String(tokenResult.payload.user_id || '').trim();
   const infoSubject = String(user.user_id || '').trim();
-  if (tokenSubject && infoSubject && tokenSubject !== infoSubject) throw invalidProviderCredential();
-  const subject = infoSubject || tokenSubject;
-  if (!subject || subject.length > 512) throw invalidProviderCredential();
+  if (!tokenSubject || !infoSubject || tokenSubject !== infoSubject) throw invalidProviderCredential();
+  const subject = infoSubject;
   const displayName = safeDisplayName(
     user.name || [user.first_name, user.last_name].filter((part) => typeof part === 'string').join(' '),
   );
@@ -444,6 +509,9 @@ export async function completeNativeProviderAuth(input: {
   if (!NATIVE_AUTH_PROVIDERS.includes(input.provider)) {
     throw new AdminAuthError(400, 'AUTH_PROVIDER_INVALID', 'Unsupported sign-in provider');
   }
+  if (!canUseAccountAuthProvider(input.provider, resolveDistributionChannel())) {
+    throw new AdminAuthError(403, 'AUTH_PROVIDER_UNAVAILABLE', 'This sign-in provider is unavailable');
+  }
   const challenge = await claimChallenge({
     provider: input.provider,
     challengeId: input.challengeId,
@@ -452,9 +520,11 @@ export async function completeNativeProviderAuth(input: {
   });
 
   try {
-    const identity = input.provider === 'yandex'
-      ? await verifyYandex(input.credential)
-      : await verifyVk(input.credential, challenge);
+    const identity = input.provider === 'google'
+      ? await verifyGoogle(input.credential, challenge)
+      : input.provider === 'yandex'
+        ? await verifyYandex(input.credential)
+        : await verifyVk(input.credential, challenge);
     const linkUserId = challenge.purpose === 'link' ? String(challenge.user_id) : null;
     if (linkUserId && !input.currentSessionId) {
       throw new AdminAuthError(401, 'AUTH_LINK_SESSION_REQUIRED', 'An active account session is required');

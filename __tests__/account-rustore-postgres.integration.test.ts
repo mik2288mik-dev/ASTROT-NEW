@@ -21,7 +21,29 @@ import {
   validateRuStorePurchase,
 } from '../lib/rustorePayments';
 
-const describePostgres = process.env.DATABASE_URL ? describe : describe.skip;
+const TEST_DATABASE_URL = String(process.env.ACCOUNT_AUTH_TEST_DATABASE_URL || '').trim();
+const RUN_POSTGRES = process.env.RUN_ACCOUNT_AUTH_POSTGRES === '1';
+if (RUN_POSTGRES && (!TEST_DATABASE_URL || process.env.DATABASE_URL !== TEST_DATABASE_URL)) {
+  throw new Error('RuStore PostgreSQL integration must use the guarded ACCOUNT_AUTH_TEST_DATABASE_URL');
+}
+if (RUN_POSTGRES) {
+  let parsed: URL;
+  try {
+    parsed = new URL(TEST_DATABASE_URL);
+  } catch {
+    throw new Error('RuStore PostgreSQL integration requires a valid guarded PostgreSQL URL');
+  }
+  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\//, '')).toLowerCase();
+  const localHost = ['localhost', '127.0.0.1', '[::1]', '::1'].includes(parsed.hostname.toLowerCase());
+  if (
+    !['postgres:', 'postgresql:'].includes(parsed.protocol)
+    || !localHost
+    || !/(^|[_-])test($|[_-])/.test(databaseName)
+  ) {
+    throw new Error('RuStore PostgreSQL integration requires a dedicated local database with a standalone "test" name token');
+  }
+}
+const describePostgres = RUN_POSTGRES ? describe : describe.skip;
 
 function nextUserId(): string {
   return String(-(BigInt(Date.now()) * 10000n + BigInt(crypto.randomInt(1, 9999))));

@@ -1,8 +1,13 @@
 export type EmailAuthCodePurpose = 'register' | 'password_reset';
+export const EMAIL_AUTH_CODE_DELIVERY_TIMEOUT_MS = 2_000;
 
 function requiredServerValue(name: string): string {
   const value = String(process.env[name] || '').trim();
-  if (!value || value.includes('_REQUIRED')) throw new Error('EMAIL_DELIVERY_NOT_CONFIGURED');
+  if (
+    !value
+    || value.includes('_REQUIRED')
+    || /^(?:replace-with|your[_-])/i.test(value)
+  ) throw new Error('EMAIL_DELIVERY_NOT_CONFIGURED');
   return value;
 }
 
@@ -32,7 +37,7 @@ export async function sendEmailAuthCode(input: {
       code: input.code,
       expiresInMinutes: 10,
     }),
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(EMAIL_AUTH_CODE_DELIVERY_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error('EMAIL_DELIVERY_FAILED');
 }

@@ -5,17 +5,28 @@ const root = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
 
 describe('Android account authentication UI', () => {
-  test('offers the RuStore sign-up and sign-in methods without Google', () => {
+  test('renders only providers allowed for the active distribution channel', () => {
     const gate = read('views/AuthGate.tsx');
+    const settings = read('views/Settings.tsx');
+    const service = read('services/accountAuthService.ts');
+    const capabilities = read('pages/api/auth/capabilities.ts');
+    const distribution = read('lib/distributionChannel.ts');
 
     expect(gate).toContain('Создать аккаунт');
-    expect(gate).not.toContain('Продолжить с Google');
     expect(gate).toContain('Продолжить с Яндексом');
     expect(gate).toContain('Продолжить с VK ID');
     expect(gate).toContain('Повторите пароль');
     expect(gate).toContain('Уже есть аккаунт?');
     expect(gate).toContain('Забыли пароль?');
     expect(gate).toContain('Код из письма');
+    expect(gate).toContain('PROVIDERS.filter');
+    expect(gate).not.toContain('capabilities?.[provider.id] !== true');
+    expect(settings).toContain(".filter((provider) => authCapabilities?.[provider] === true)");
+    expect(service).toContain('resolveDistributionChannel');
+    expect(service).toContain('channel=${channel}');
+    expect(capabilities).toContain('canUseAccountAuthProvider');
+    expect(distribution).toContain("channel === 'google_play' || channel === 'development'");
+    expect(distribution).toContain("if (provider !== 'google') return true");
   });
 
   test('uses native provider credentials in Android and password server routes', () => {
@@ -31,15 +42,16 @@ describe('Android account authentication UI', () => {
     expect(service).toContain("'/api/auth/password/reset-request'");
     expect(service).toContain("'/api/auth/password/reset-complete'");
     expect(service).toContain('providerRequest');
-    expect(bridge).toContain("export type NativeIdentityProvider = 'vk' | 'yandex'");
-    expect(bridge).not.toContain("| 'google'");
   });
 
-  test('does not make Telegram or guest access primary in the Android gate', () => {
+  test('offers Telegram login only inside a verified Telegram Mini App context', () => {
     const gate = read('views/AuthGate.tsx');
 
     expect(gate).not.toContain('Продолжить как гость');
-    expect(gate).not.toContain('Войти через Telegram');
+    expect(gate).toContain('hasTelegramMiniAppContext');
+    expect(gate).toContain('loginWithTelegram');
+    expect(gate).toContain('hasTelegramMiniAppContext()');
+    expect(gate).toContain('Войти через Telegram');
   });
 
   test('fresh native automatic mode does not silently create a guest account', () => {
@@ -62,7 +74,7 @@ describe('Android account authentication UI', () => {
     expect(gate).toContain('capabilitiesLoadFailed');
     expect(gate).toContain('Повторить');
     expect(service).toContain("usesNativeAndroidProviderAuth() ? 'native' : 'browser'");
-    expect(service).toContain('`/api/auth/capabilities?runtime=${runtime}`');
+    expect(service).toContain('`/api/auth/capabilities?runtime=${runtime}&channel=${channel}`');
     expect(service).toContain('usesNativeAndroidProviderAuth()');
     expect(service).toContain("body: JSON.stringify({ purpose, native: false })");
     expect(gate).toContain('emailPasswordReady');
@@ -89,6 +101,8 @@ describe('Android account authentication UI', () => {
     expect(settings).toContain('authenticateWithProvider(provider, authPurpose)');
     expect(settings).toContain("purpose: 'link'");
     expect(settings).toContain('verifyEmailPasswordRegistration');
+    expect(settings).toContain('два заполненных профиля автоматически не объединяются');
+    expect(settings).toContain('Восстановить существующий аккаунт');
     expect(identities).toContain('IDENTITY_ALREADY_LINKED');
     expect(identities).toContain('PROVIDER_ALREADY_LINKED');
     expect(identities).toContain('account-provider:');

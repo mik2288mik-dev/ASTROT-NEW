@@ -44,23 +44,19 @@ function normalizeInput(args: ChartInput) {
 }
 
 async function ensureMinimalUser(args: ChartInput, normalized: ReturnType<typeof normalizeInput>, syncSelfBirthTime: boolean) {
-  const existing = await db.users.get(args.userId);
-  if (!existing) {
-    await db.users.set(args.userId, {
-      name: args.name,
-      birth_date: normalized.birthDate,
-      birth_time: normalized.time.localTime,
-      birth_place: normalized.birthPlace,
-      is_setup: false,
-      language: args.language || 'ru',
-      theme: 'light',
-      is_admin: false,
-    });
-    await birthProfileRepository.set(args.userId, normalized.time);
-  } else if (syncSelfBirthTime) {
-    await birthProfileRepository.set(args.userId, normalized.time);
-  }
-  return db.users.get(args.userId);
+  const existing = syncSelfBirthTime
+    ? await db.users.updateExisting(args.userId, {
+        name: args.name,
+        birth_date: normalized.birthDate,
+        birth_time: normalized.time.localTime,
+        birth_place: normalized.birthPlace,
+        language: args.language || 'ru',
+        theme: 'light',
+      })
+    : await db.users.get(args.userId, { hydratePrimaryChart: false });
+  if (!existing) throw new Error('ACCOUNT_NO_LONGER_EXISTS');
+  if (syncSelfBirthTime) await birthProfileRepository.set(args.userId, normalized.time);
+  return existing;
 }
 
 function isStoredCanonicalChart(chart: any): boolean {

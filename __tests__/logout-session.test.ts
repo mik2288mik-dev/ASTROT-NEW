@@ -58,6 +58,20 @@ describe('idempotent app logout', () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
+  it('clears the cookie and succeeds when the account is blocked', async () => {
+    requireAppUser.mockRejectedValue({
+      status: 403,
+      code: 'ACCOUNT_BLOCKED',
+    });
+    const res = response();
+
+    await handler({ method: 'POST' } as any, res);
+
+    expect(clearAppSessionCookie).toHaveBeenCalledWith(res);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ ok: true, alreadySignedOut: true });
+  });
+
   it('keeps a genuine server failure visible', async () => {
     requireAppUser.mockResolvedValue({
       userId: '-42',

@@ -97,8 +97,8 @@ describe('Telegram canonical identity resolution', () => {
       if (sql.includes('SELECT user_id FROM account_identities')) {
         return { rowCount: 0, rows: [] };
       }
-      if (sql.includes('SELECT id, is_guest FROM users')) {
-        return { rowCount: 1, rows: [{ id: '-42', is_guest: true }] };
+      if (sql.includes('SELECT id, is_guest, is_blocked FROM users')) {
+        return { rowCount: 1, rows: [{ id: '-42', is_guest: true, is_blocked: false }] };
       }
       return { rowCount: 1, rows: [] };
     });
@@ -119,8 +119,8 @@ describe('Telegram canonical identity resolution', () => {
       if (sql.includes('SELECT user_id FROM account_identities')) {
         return { rowCount: 0, rows: [] };
       }
-      if (sql.includes('SELECT id, is_guest FROM users')) {
-        return { rowCount: 1, rows: [{ id: '-42', is_guest: false }] };
+      if (sql.includes('SELECT id, is_guest, is_blocked FROM users')) {
+        return { rowCount: 1, rows: [{ id: '-42', is_guest: false, is_blocked: false }] };
       }
       if (sql.includes('SELECT provider_subject FROM account_identities')) {
         return { rowCount: 1, rows: [{ provider_subject: 'another-google-subject' }] };

@@ -35,6 +35,7 @@ jest.mock('../lib/auth/appAuth', () => ({
 import {
   consumeAuthExchange,
   finishOAuth,
+  resolveOAuthIdentitySubject,
 } from '../lib/auth/accountIdentity';
 import startOAuthHandler from '../pages/api/auth/oauth/[provider]/start';
 import exchangeHandler from '../pages/api/auth/exchange';
@@ -86,8 +87,9 @@ describe('browser OAuth binding', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.PUBLIC_APP_ORIGIN = 'https://app.example.test';
-    process.env.YANDEX_AUTH_CLIENT_ID = 'yandex-client';
-    process.env.YANDEX_AUTH_CLIENT_SECRET = 'yandex-secret';
+    process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'google_play';
+    process.env.GOOGLE_AUTH_CLIENT_ID = 'google-client';
+    process.env.GOOGLE_AUTH_CLIENT_SECRET = 'google-secret';
     mockPoolQuery.mockResolvedValue({ rowCount: 1, rows: [] });
     mockConnect.mockResolvedValue({
       query: mockClientQuery,
@@ -114,7 +116,7 @@ describe('browser OAuth binding', () => {
 
     await startOAuthHandler({
       method: 'POST',
-      query: { provider: 'yandex' },
+      query: { provider: 'google' },
       body: { purpose: 'login' },
       headers: {},
       socket: { remoteAddress: '127.0.0.1' },
@@ -157,7 +159,7 @@ describe('browser OAuth binding', () => {
 
     await startOAuthHandler({
       method: 'POST',
-      query: { provider: 'yandex' },
+      query: { provider: 'google' },
       body: { purpose: 'login', native: true },
       headers: {},
       socket: { remoteAddress: '127.0.0.1' },
@@ -168,12 +170,32 @@ describe('browser OAuth binding', () => {
     expect(mockPoolQuery).not.toHaveBeenCalled();
   });
 
+  it('rejects direct Google browser OAuth starts in the RuStore deployment', async () => {
+    process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'rustore';
+    const { response, result } = mockResponse();
+
+    await startOAuthHandler({
+      method: 'POST',
+      query: { provider: 'google' },
+      body: { purpose: 'login' },
+      headers: {},
+      socket: { remoteAddress: '127.0.0.1' },
+    } as any, response);
+
+    expect(result.statusCode).toBe(403);
+    expect(result.body).toMatchObject({ error: 'AUTH_PROVIDER_UNAVAILABLE' });
+    expect(mockPoolQuery).not.toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO auth_challenges'),
+      expect.anything(),
+    );
+  });
+
   it('binds account linking to the initiating active app session through callback completion', async () => {
     const { response, result } = mockResponse();
 
     await startOAuthHandler({
       method: 'POST',
-      query: { provider: 'yandex' },
+      query: { provider: 'google' },
       body: { purpose: 'link' },
       headers: {},
       socket: { remoteAddress: '127.0.0.1' },
@@ -199,11 +221,11 @@ describe('browser OAuth binding', () => {
           rowCount: 1,
           rows: [{
             challenge_id: 'challenge-1',
-            provider: 'yandex',
+            provider: 'google',
             purpose: 'login',
             user_id: null,
             state_hash: sha256(stateSecret),
-            redirect_uri: 'https://app.example.test/api/auth/oauth/yandex/callback',
+            redirect_uri: 'https://app.example.test/api/auth/oauth/google/callback',
             metadata: {
               codeVerifier: 'pkce-verifier',
               oauthBindingHash: sha256(attackerBinding),
@@ -216,7 +238,7 @@ describe('browser OAuth binding', () => {
     global.fetch = jest.fn() as any;
 
     await expect((finishOAuth as any)({
-      provider: 'yandex',
+      provider: 'google',
       code: 'provider-code',
       state: `challenge-1.${stateSecret}`,
       browserBinding: 'different-browser-binding',
@@ -225,6 +247,24 @@ describe('browser OAuth binding', () => {
       code: 'OAUTH_BROWSER_BINDING_INVALID',
     });
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('uses the same psuid-first canonical Yandex subject as native login', async () => {
+    expect(resolveOAuthIdentitySubject('yandex', {
+      psuid: 'canonical-yandex-psuid',
+      id: 'legacy-yandex-id',
+    })).toBe('canonical-yandex-psuid');
+    expect(resolveOAuthIdentitySubject('yandex', { id: 'legacy-yandex-id' }))
+      .toBe('legacy-yandex-id');
+  });
+
+  it('uses only VK user_id as the cross-channel canonical subject', () => {
+    expect(resolveOAuthIdentitySubject('vk', {
+      user_id: 'canonical-vk-user-id',
+      id: 'non-canonical-id',
+      sub: 'non-canonical-sub',
+    })).toBe('canonical-vk-user-id');
+    expect(resolveOAuthIdentitySubject('vk', { id: 'non-canonical-id' })).toBe('');
   });
 
   it('accepts only the browser binding that was used to hash an exchange code', async () => {

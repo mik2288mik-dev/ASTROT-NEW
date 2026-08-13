@@ -14,7 +14,11 @@ export class DistributionChannelError extends Error {
  * agent: a browser can be embedded by more than one distribution channel.
  */
 export function resolveDistributionChannel(value = process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL): DistributionChannel {
-  const normalized = String(value || 'development').trim().toLowerCase();
+  const configured = String(value || '').trim();
+  if (!configured && process.env.NODE_ENV === 'production') {
+    throw new DistributionChannelError('');
+  }
+  const normalized = String(configured || 'development').toLowerCase();
   if ((DISTRIBUTION_CHANNELS as readonly string[]).includes(normalized)) {
     return normalized as DistributionChannel;
   }
@@ -40,4 +44,19 @@ export function canUseRuStorePay(
 
 export function isStoreChannel(channel = resolveDistributionChannel()): boolean {
   return channel === 'rustore' || channel === 'google_play';
+}
+
+export type AccountAuthProvider = 'vk' | 'yandex' | 'google';
+
+/**
+ * Google sign-in is intentionally isolated to the future Google Play branch
+ * (and development builds). RuStore keeps the database provider type for
+ * account portability, but must not advertise or start Google authentication.
+ */
+export function canUseAccountAuthProvider(
+  provider: AccountAuthProvider,
+  channel = resolveDistributionChannel(),
+): boolean {
+  if (provider !== 'google') return true;
+  return channel === 'google_play' || channel === 'development';
 }

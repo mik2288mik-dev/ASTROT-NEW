@@ -78,6 +78,12 @@ describe('Telegram identity linking session rotation', () => {
     expect(resolveVerifiedIdentity).toHaveBeenCalledWith(
       expect.objectContaining({ provider: 'telegram', subject: '777' }),
       '-42',
+      {
+        requiredSession: {
+          userId: '-42',
+          sessionId: 'anonymous-session',
+        },
+      },
     );
     expect(createAppUserSession).toHaveBeenCalledWith({ userId: '-42', kind: 'web' });
     expect(setAppSessionCookie).toHaveBeenCalledWith(res, 'rotated-session-token');
@@ -103,6 +109,16 @@ describe('Telegram identity linking session rotation', () => {
       body: { initData: 'verified-telegram-proof' },
     } as any, res);
 
+    expect(resolveVerifiedIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'telegram', subject: '777' }),
+      '-42',
+      {
+        requiredSession: {
+          userId: '-42',
+          sessionId: 'registered-session',
+        },
+      },
+    );
     expect(createAppUserSession).not.toHaveBeenCalled();
     expect(setAppSessionCookie).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);

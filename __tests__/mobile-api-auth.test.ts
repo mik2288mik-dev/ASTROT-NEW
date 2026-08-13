@@ -276,6 +276,8 @@ describe('mobile API and native auth', () => {
     const cors = read('lib/apiCors.ts');
     expect(middleware).toContain("matcher: '/api/:path*'");
     expect(middleware).toContain("request.method === 'OPTIONS'");
+    expect(middleware).toContain("fetchSite === 'cross-site'");
+    expect(middleware).toContain("'CROSS_SITE_REQUEST_DENIED'");
     expect(cors).toContain("headers.get('x-forwarded-host')");
     expect(cors).toContain("headers.get('x-forwarded-proto')");
     expect(middleware).toContain("'Vary'");

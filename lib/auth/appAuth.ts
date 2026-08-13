@@ -26,8 +26,27 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 60;
 type SessionPayload = { userId: string; provider: 'web_guest' | 'native'; sessionId: string; exp: number };
 
 function secret(): string {
-  const value = process.env.APP_SESSION_SECRET || process.env.BOT_TOKEN || '';
-  if (!value && process.env.NODE_ENV === 'production') throw new AdminAuthError(500, 'APP_AUTH_NOT_CONFIGURED', 'APP_SESSION_SECRET is required');
+  const configured = String(process.env.APP_SESSION_SECRET || '').trim();
+  const value = /^(?:replace-with|your[_-])/i.test(configured) ? '' : configured;
+  if (process.env.NODE_ENV === 'production' && Buffer.byteLength(value, 'utf8') < 32) {
+    throw new AdminAuthError(
+      500,
+      'APP_AUTH_NOT_CONFIGURED',
+      'APP_SESSION_SECRET must contain at least 32 bytes',
+    );
+  }
+  if (
+    process.env.NODE_ENV === 'production'
+    && value
+    && [process.env.EMAIL_OTP_HASH_SECRET, process.env.AUTH_RATE_LIMIT_SECRET]
+      .some((other) => String(other || '').trim() === value)
+  ) {
+    throw new AdminAuthError(
+      500,
+      'APP_AUTH_NOT_CONFIGURED',
+      'APP_SESSION_SECRET must be independent from auth HMAC secrets',
+    );
+  }
   return value || 'lumia-local-development-session-secret';
 }
 
@@ -318,7 +337,24 @@ export async function requireAppUser(req: NextApiRequest, options: {
     if (await isRevokedSession(payload.sessionId)) {
       throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
     }
-    await assertAppSessionActive(payload.sessionId, payload.userId);
+    try {
+      await assertAppSessionActive(payload.sessionId, payload.userId);
+    } catch (error) {
+      // Blocking revokes sessions atomically. Preserve the more useful blocked
+      // account response while the block is active; after an unblock the same
+      // old token remains revoked and receives APP_SESSION_REVOKED.
+      const blocked = process.env.DATABASE_URL
+        ? await getPool()
+            .query('SELECT is_blocked FROM users WHERE id = $1', [payload.userId])
+            .then((result) => result.rows[0]?.is_blocked === true)
+            .catch(() => false)
+        : false;
+      if (blocked) {
+        await revokeSessions(payload.userId).catch(() => undefined);
+        throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
+      }
+      throw error;
+    }
     context = {
       userId: payload.userId,
       provider: payload.provider,
@@ -341,7 +377,7 @@ export async function requireAppUser(req: NextApiRequest, options: {
       : null;
     if (!user) throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This account no longer exists');
     if (account.rows[0].is_blocked === true) {
-      await revokeSessions(context.userId, context.sessionId).catch(() => undefined);
+      await revokeSessions(context.userId).catch(() => undefined);
       throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
     }
     context = { ...context, isGuest: account.rows[0].is_guest === true };
@@ -356,9 +392,9 @@ export async function requireAppUser(req: NextApiRequest, options: {
  * Telegram Stars requires two independent facts: a canonical revocable app
  * session and fresh Telegram-signed launch proof belonging to that account.
  */
-export async function requireTelegramPaymentUser(
+export async function requireLinkedTelegramAppUser(
   req: NextApiRequest,
-  expectedUserId: unknown,
+  expectedUserId?: unknown,
 ): Promise<AppUserContext> {
   const telegram = getVerifiedTelegramUser(req);
   const context = await requireAppUser(req, {
@@ -373,8 +409,15 @@ export async function requireTelegramPaymentUser(
     throw new AdminAuthError(
       403,
       'TELEGRAM_IDENTITY_NOT_LINKED',
-      'Link this Telegram account before paying with Telegram Stars',
+      'Link this Telegram identity to the active account first',
     );
   }
   return { ...context, telegramUserId: telegram.id };
+}
+
+export async function requireTelegramPaymentUser(
+  req: NextApiRequest,
+  expectedUserId: unknown,
+): Promise<AppUserContext> {
+  return requireLinkedTelegramAppUser(req, expectedUserId);
 }

@@ -16,7 +16,14 @@ function read(relativePath) {
 }
 
 function requireValue(name, value) {
-  if (!String(value || '').trim() || String(value).includes('_REQUIRED') || String(value).includes('[УКАЖИТЕ')) {
+  const normalized = String(value || '').trim();
+  if (
+    !normalized
+    || normalized.includes('_REQUIRED')
+    || normalized.includes('[УКАЖИТЕ')
+    || /^replace-with/i.test(normalized)
+    || /^your[_-]/i.test(normalized)
+  ) {
     errors.push(`${name} is required`);
   }
 }
@@ -70,7 +77,7 @@ if (release) {
   for (const name of ['RELEASE_STORE_FILE', 'RELEASE_STORE_PASSWORD', 'RELEASE_KEY_ALIAS', 'RELEASE_KEY_PASSWORD']) {
     requireValue(name, process.env[name]);
   }
-  for (const name of [
+  const authProviderNames = [
     'PUBLIC_APP_ORIGIN',
     'VK_AUTH_CLIENT_ID',
     'VK_ID_ANDROID_CLIENT_SECRET',
@@ -81,12 +88,29 @@ if (release) {
     'EMAIL_OTP_DELIVERY_SECRET',
     'EMAIL_OTP_HASH_SECRET',
     'AUTH_RATE_LIMIT_SECRET',
-  ]) requireValue(name, process.env[name]);
-  for (const name of ['EMAIL_OTP_HASH_SECRET', 'AUTH_RATE_LIMIT_SECRET']) {
+    'APP_SESSION_SECRET',
+  ];
+  if (channel === 'google_play') {
+    authProviderNames.push('GOOGLE_AUTH_CLIENT_ID', 'GOOGLE_AUTH_CLIENT_SECRET');
+  }
+  for (const name of authProviderNames) requireValue(name, process.env[name]);
+  for (const name of ['EMAIL_OTP_HASH_SECRET', 'AUTH_RATE_LIMIT_SECRET', 'APP_SESSION_SECRET']) {
     const value = String(process.env[name] || '').trim();
     if (value && !value.includes('_REQUIRED') && Buffer.byteLength(value, 'utf8') < 32) {
       errors.push(`${name} must contain at least 32 bytes`);
     }
+  }
+  const rateLimitSecret = String(process.env.AUTH_RATE_LIMIT_SECRET || '').trim();
+  const emailHashSecret = String(process.env.EMAIL_OTP_HASH_SECRET || '').trim();
+  const appSessionSecret = String(process.env.APP_SESSION_SECRET || '').trim();
+  if (rateLimitSecret && rateLimitSecret === emailHashSecret) {
+    errors.push('AUTH_RATE_LIMIT_SECRET must be independent from EMAIL_OTP_HASH_SECRET');
+  }
+  if (rateLimitSecret && appSessionSecret && rateLimitSecret === appSessionSecret) {
+    errors.push('AUTH_RATE_LIMIT_SECRET must be independent from APP_SESSION_SECRET');
+  }
+  if (emailHashSecret && appSessionSecret && emailHashSecret === appSessionSecret) {
+    errors.push('EMAIL_OTP_HASH_SECRET must be independent from APP_SESSION_SECRET');
   }
   if (process.env.PUBLIC_APP_ORIGIN && !/^https:\/\//.test(process.env.PUBLIC_APP_ORIGIN)) {
     errors.push('PUBLIC_APP_ORIGIN must use HTTPS');

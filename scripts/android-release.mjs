@@ -5,24 +5,25 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { parseEnv } from 'node:util';
 
-const ANDROID_AUTH_ENV_NAMES = [
+const SHARED_ANDROID_AUTH_ENV_NAMES = [
   'YANDEX_AUTH_CLIENT_ID',
   'VK_AUTH_CLIENT_ID',
   'VK_ID_ANDROID_CLIENT_SECRET',
 ];
 
-function loadAndroidAuthEnv() {
-  const providedByShell = new Set(ANDROID_AUTH_ENV_NAMES.filter((name) => process.env[name]));
+function loadAndroidAuthEnv(channel) {
+  const names = channel === 'google_play'
+    ? ['GOOGLE_AUTH_CLIENT_ID', ...SHARED_ANDROID_AUTH_ENV_NAMES]
+    : SHARED_ANDROID_AUTH_ENV_NAMES;
+  const providedByShell = new Set(names.filter((name) => process.env[name]));
   const loaded = {};
   for (const file of ['.env', '.env.local']) {
     if (fs.existsSync(file)) Object.assign(loaded, parseEnv(fs.readFileSync(file, 'utf8')));
   }
-  for (const name of ANDROID_AUTH_ENV_NAMES) {
+  for (const name of names) {
     if (!providedByShell.has(name) && typeof loaded[name] === 'string') process.env[name] = loaded[name];
   }
 }
-
-loadAndroidAuthEnv();
 
 const target = process.argv[2];
 const tasks = {
@@ -35,6 +36,7 @@ if (!tasks[target]) {
   process.exit(1);
 }
 const channel = target.startsWith('rustore') ? 'rustore' : 'google_play';
+loadAndroidAuthEnv(channel);
 process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = channel;
 process.env.MOBILE_BUILD = '1';
 process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';

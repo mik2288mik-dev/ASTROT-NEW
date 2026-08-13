@@ -1,10 +1,17 @@
 import crypto from 'crypto';
 
 function codeSecret(): string {
-  const configured = String(process.env.EMAIL_OTP_HASH_SECRET || '').trim();
+  const raw = String(process.env.EMAIL_OTP_HASH_SECRET || '').trim();
+  const configured = /^(?:replace-with|your[_-])/i.test(raw) ? '' : raw;
   if (configured) {
     if (process.env.NODE_ENV === 'production' && Buffer.byteLength(configured, 'utf8') < 32) {
       throw new Error('EMAIL_OTP_HASH_SECRET must contain at least 32 bytes');
+    }
+    if (
+      process.env.NODE_ENV === 'production'
+      && configured === String(process.env.APP_SESSION_SECRET || '').trim()
+    ) {
+      throw new Error('EMAIL_OTP_HASH_SECRET must be independent from APP_SESSION_SECRET');
     }
     return configured;
   }

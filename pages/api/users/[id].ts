@@ -10,12 +10,10 @@ import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 
 const log={info:(message:string,data?:any)=>console.log(`[API/users/[id]] ${message}`,data||''),error:(message:string,error?:any)=>console.error(`[API/users/[id]] ERROR: ${message}`,error||''),warn:(message:string,error?:any)=>console.warn(`[API/users/[id]] WARN: ${message}`,error||'')};
 const NOTIFICATION_FREQUENCIES=new Set(['quiet','important','daily','twice_daily']);
-const NEW_USER_TRIAL_DAYS=14;
 
 function resolveIsAdmin(userId:string,dbIsAdmin:boolean|undefined):boolean { const ownerId=getConfiguredOwnerId(); return ownerId&&String(userId)===String(ownerId)?true:!!dbIsAdmin; }
 function normalizeNullableString(value:unknown):string|null { if(value===undefined||value===null)return null; const normalized=String(value).trim(); return normalized||null; }
 function normalizeNotificationFrequency(value:unknown):string|null { const normalized=typeof value==='string'?value.trim():''; return NOTIFICATION_FREQUENCIES.has(normalized)?normalized:null; }
-function trialWindow(){const started=Date.now();return{trialStartedAt:new Date(started).toISOString(),premiumUntil:new Date(started+NEW_USER_TRIAL_DAYS*86400000).toISOString()};}
 async function getNotificationFrequency(userId:string):Promise<string|null>{if(!hasDatabaseUrl())return null;try{const result=await getPool().query('SELECT notification_frequency FROM users WHERE id = $1 LIMIT 1',[userId]);return normalizeNotificationFrequency(result.rows[0]?.notification_frequency);}catch(error:any){log.warn('notification read failed',error?.message);return null;}}
 async function saveNotificationFrequency(userId:string,value:unknown):Promise<void>{const normalized=normalizeNotificationFrequency(value);if(!normalized||!hasDatabaseUrl())return;try{await getPool().query('UPDATE users SET notification_frequency = $1 WHERE id = $2',[normalized,userId]);}catch(error:any){log.warn('notification save failed',error?.message);}}
 
@@ -37,7 +35,7 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
   if(!isValidUserId(rawId))return res.status(400).json(invalidUserIdPayload('ru'));
   const userId=String(rawId).trim();
   try{
-    const appUser=await requireAppUser(req,{expectedUserId:userId,allowGuest:true});
+    await requireAppUser(req,{expectedUserId:userId,allowGuest:true});
     if(req.method==='GET'){
       if(!hasDatabaseUrl())return res.status(404).json({error:'User not found'});
       const user=await db.users.get(userId,{hydratePrimaryChart:false});
@@ -50,19 +48,20 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     if(req.method!=='POST'&&req.method!=='PUT')return res.status(405).json({error:'Method not allowed'});
     if(!hasDatabaseUrl())return res.status(500).json({error:'Database not configured',message:'DATABASE_URL is not set.'});
 
-    const data=req.body||{}; const existing=await db.users.get(userId);
+    const data=req.body||{};
     let time;
     try{
       time=normalizeBirthTimeInput({mode:data.birthTimeMode,localTime:data.birthTime,uncertaintyMinutes:data.birthTimeUncertaintyMinutes,rangeStart:data.birthTimeRangeStart,rangeEnd:data.birthTimeRangeEnd,legacyBirthTime:data.birthTime});
     }catch(error:any){return res.status(400).json({error:'Invalid birth time',message:error.message});}
     const dbUser:Record<string,any>={
       name:normalizeNullableString(data.name),birth_date:normalizeNullableString(data.birthDate),birth_time:time.localTime,
-      birth_place:normalizeNullableString(data.birthPlace),is_setup:!!data.isSetup,language:data.language||'ru',theme:data.theme||'light',
+      birth_place:normalizeNullableString(data.birthPlace),language:data.language||'ru',theme:data.theme||'light',
     };
+    if(data.isSetup!==undefined)dbUser.is_setup=data.isSetup===true;
     if(data.selectedZodiacSign!==undefined||data.selected_zodiac_sign!==undefined)dbUser.selected_zodiac_sign=normalizeNullableString(data.selectedZodiacSign??data.selected_zodiac_sign);
     if(data.gender!==undefined){const gender=String(data.gender??'');dbUser.gender=['male','female','unspecified'].includes(gender)?gender:null;}
-    if(!existing&&!appUser.isGuest){const trial=trialWindow();dbUser.trial_started_at=trial.trialStartedAt;dbUser.premium_until=trial.premiumUntil;}
-    const saved=await db.users.set(userId,dbUser);
+    const saved=await db.users.updateExisting(userId,dbUser);
+    if(!saved)return res.status(401).json({error:'APP_SESSION_REVOKED',message:'This account no longer exists'});
     await birthProfileRepository.set(userId,time);
     await saveNotificationFrequency(userId,data.notificationFrequency);
     const refreshed=await db.users.get(userId);

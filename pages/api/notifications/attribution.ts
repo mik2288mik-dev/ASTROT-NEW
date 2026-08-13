@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { AdminAuthError, getVerifiedTelegramUser, handleAdminError } from '../../../lib/adminAuth';
+import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { requireAppUser } from '../../../lib/auth/appAuth';
 import { recordNotificationAttribution } from '../../../services/notificationService';
 import { recordRetentionAttribution } from '../../../services/notificationRetentionService';
 
@@ -9,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const telegramUser = getVerifiedTelegramUser(req);
+    const auth = await requireAppUser(req, { allowGuest: false });
     const eventType = req.body?.eventType === 'click' ? 'click' : 'open';
     const nl = req.body?.nl != null ? Number(req.body.nl) : null;
     const notificationId = req.body?.notification_id != null ? Number(req.body.notification_id) : null;
@@ -21,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ? 'clicked'
           : 'opened_app';
     await recordRetentionAttribution({
-      userId: telegramUser.id,
+      userId: auth.userId,
       notificationId: Number.isFinite(notificationId as number) && Number(notificationId) > 0 ? Number(notificationId) : null,
       notificationLogId: Number.isFinite(nl as number) && Number(nl) > 0 ? Number(nl) : null,
       campaignId: Number.isFinite(campaignId as number) && Number(campaignId) > 0 ? Number(campaignId) : null,
@@ -33,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       payload: req.body || {},
     });
     await recordNotificationAttribution({
-      userId: telegramUser.id,
+      userId: auth.userId,
       notificationLogId: Number.isFinite(nl as number) && Number(nl) > 0 ? Number(nl) : null,
       scenarioKey: typeof req.body?.scenario === 'string' ? req.body.scenario : null,
       section: typeof req.body?.section === 'string' ? req.body.section : null,

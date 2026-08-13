@@ -1347,14 +1347,29 @@ async function recordEvent(input: {
   source?: string | null;
   metadata?: Record<string, any>;
 }) {
-  await getPool().query(
+  const pool = getPool();
+  const [notification, notificationLog] = await Promise.all([
+    input.notificationId
+      ? pool.query(
+          `SELECT id FROM scheduled_notifications WHERE id = $1 AND user_id = $2`,
+          [input.notificationId, input.userId]
+        )
+      : Promise.resolve({ rows: [] }),
+    input.notificationLogId
+      ? pool.query(
+          `SELECT id FROM notification_logs WHERE id = $1 AND user_id = $2`,
+          [input.notificationLogId, input.userId]
+        )
+      : Promise.resolve({ rows: [] }),
+  ]);
+  await pool.query(
     `INSERT INTO notification_events (
        notification_id, notification_log_id, campaign_id, user_id, notification_type, event_type, screen, source, metadata
      )
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
     [
-      input.notificationId ?? null,
-      input.notificationLogId ?? null,
+      notification.rows[0]?.id ?? null,
+      notificationLog.rows[0]?.id ?? null,
       input.campaignId ?? null,
       input.userId,
       input.notificationType ?? null,
@@ -1843,8 +1858,8 @@ export async function recordRetentionAttribution(input: {
     await pool.query(
       `UPDATE scheduled_notifications
        SET payload_json = payload_json || $2::jsonb, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1`,
-      [input.notificationId, JSON.stringify({ lastAttribution: input.eventType })]
+       WHERE id = $1 AND user_id = $3`,
+      [input.notificationId, JSON.stringify({ lastAttribution: input.eventType }), input.userId]
     ).catch(() => undefined);
   }
   if (input.notificationLogId) {
@@ -1852,8 +1867,8 @@ export async function recordRetentionAttribution(input: {
       `UPDATE notification_logs
        SET clicked_at = COALESCE(clicked_at, CASE WHEN $2 = 'clicked' THEN CURRENT_TIMESTAMP ELSE clicked_at END),
            opened_at = COALESCE(opened_at, CASE WHEN $2 IN ('clicked', 'opened_app', 'opened_target_screen') THEN CURRENT_TIMESTAMP ELSE opened_at END)
-       WHERE id = $1`,
-      [input.notificationLogId, input.eventType]
+       WHERE id = $1 AND user_id = $3`,
+      [input.notificationLogId, input.eventType, input.userId]
     ).catch(() => undefined);
   }
   await pool.query(

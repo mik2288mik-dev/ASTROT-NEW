@@ -2,12 +2,17 @@ import crypto from 'crypto';
 import type { PoolClient } from 'pg';
 import { AdminAuthError } from '../adminAuth';
 import { getPool } from '../db';
+import { logger } from '../logger';
 import { createAuthCode, hashAuthCode, verifyAuthCode } from './authCode';
 import {
   clearAuthRateLimit,
   consumeAuthRateLimit,
 } from './authRateLimit';
-import { assertEmailDeliveryConfigured, sendEmailAuthCode } from './emailDelivery';
+import {
+  assertEmailDeliveryConfigured,
+  EMAIL_AUTH_CODE_DELIVERY_TIMEOUT_MS,
+  sendEmailAuthCode,
+} from './emailDelivery';
 import { resolveVerifiedIdentity } from './accountIdentity';
 import {
   assertValidNewPassword,
@@ -20,7 +25,10 @@ const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
-const MIN_CODE_REQUEST_MS = 1_000;
+// Both deliverable and suppressed requests cross the same response floor.
+// Delivery is forcibly bounded below it so a slow/outage adapter cannot reveal
+// whether the email exists through request duration.
+const MIN_CODE_REQUEST_MS = EMAIL_AUTH_CODE_DELIVERY_TIMEOUT_MS + 1_000;
 const DUMMY_PASSWORD_HASH = 'scrypt$v=1$ln=15,r=8,p=3$3lI0asj1Bh-Tm6NKKMQVFg$OZxJ2ZPMovAjzcZDsmGp_EPf1vtsp4-qxDGG01BwxpUMGj0ge_cbw5jW9OA9L04KXKOP4fM_Bx5zu1N9P8wbTg';
 
 type ChallengePurpose = 'register' | 'password_reset';
@@ -249,11 +257,13 @@ export async function beginEmailPasswordRegistration(input: {
     challengeId,
     codeHash: hashAuthCode(challengeId, code),
   });
-  let deliveryError: unknown = null;
   await deliverPendingChallenge({ challengeId, email, code, purpose: 'register', shouldDeliver })
-    .catch((error) => { deliveryError = error; });
+    .catch(() => {
+      // Keep the public response indistinguishable from a suppressed duplicate.
+      // The challenge row carries the failure state; telemetry contains no email.
+      logger.error({ scope: 'account-auth', event: 'email_code_delivery_failed', status: 'register' });
+    });
   await waitForUniformCodeResponse(startedAt);
-  if (deliveryError) throw deliveryError;
   return { challengeId };
 }
 
@@ -282,16 +292,16 @@ export async function beginPasswordReset(input: {
     challengeId,
     codeHash: hashAuthCode(challengeId, code),
   });
-  let deliveryError: unknown = null;
   await deliverPendingChallenge({
     challengeId,
     email,
     code,
     purpose: 'password_reset',
     shouldDeliver: !!userId,
-  }).catch((error) => { deliveryError = error; });
+  }).catch(() => {
+    logger.error({ scope: 'account-auth', event: 'email_code_delivery_failed', status: 'password_reset' });
+  });
   await waitForUniformCodeResponse(startedAt);
-  if (deliveryError) throw deliveryError;
   return { challengeId };
 }
 

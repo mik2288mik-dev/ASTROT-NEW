@@ -9,7 +9,7 @@ import {
   setOAuthBrowserBindingCookie,
 } from '../../../../../lib/auth/oauthBrowserBinding';
 
-const PROVIDERS = ['vk', 'yandex'] as const;
+const PROVIDERS = ['vk', 'yandex', 'google'] as const;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');

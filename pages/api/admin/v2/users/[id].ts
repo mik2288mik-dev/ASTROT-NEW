@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
 import { requireAdminPermission, roleHasPermission } from '../../../../../lib/admin/rbac';
 import { recordAdminAction } from '../../../../../lib/admin/audit';
+import { setAccountBlockedState } from '../../../../../lib/auth/accountIdentity';
 import { db } from '../../../../../lib/db';
 
 const MASK = '•••';
@@ -79,9 +80,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (typeof body.name === 'string') patch.name = body.name;
       if (body.language === 'ru' || body.language === 'en') patch.language = body.language;
       if (typeof body.chartSlots === 'number') patch.chartSlots = body.chartSlots;
-      if (typeof body.isBlocked === 'boolean') patch.isBlocked = body.isBlocked;
 
       await db.admin.updateUser(userId, patch);
+      if (togglingBlock) {
+        await setAccountBlockedState(userId, body.isBlocked);
+      }
       const after = await db.admin.getUserDetail(userId);
 
       await recordAdminAction({

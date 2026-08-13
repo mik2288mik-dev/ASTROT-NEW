@@ -24,7 +24,24 @@ function addCorsHeaders(response: NextResponse, origin: string): NextResponse {
 
 export function middleware(request: NextRequest) {
   const origin = request.headers.get('origin');
-  if (!origin) return NextResponse.next();
+  if (!origin) {
+    const fetchSite = request.headers.get('sec-fetch-site');
+    const contentType = String(request.headers.get('content-type') || '').toLowerCase();
+    const browserFormPost = request.method === 'POST'
+      && fetchSite === 'cross-site'
+      && (
+        contentType.includes('application/x-www-form-urlencoded')
+        || contentType.includes('multipart/form-data')
+        || contentType.includes('text/plain')
+      );
+    if (browserFormPost) {
+      return NextResponse.json(
+        { error: 'CROSS_SITE_REQUEST_DENIED', message: 'Cross-site browser form requests are not allowed' },
+        { status: 403 },
+      );
+    }
+    return NextResponse.next();
+  }
 
   // Behind Railway/other reverse proxies request.nextUrl.origin can describe the
   // internal container (for example http://0.0.0.0:8080) while browser POSTs send

@@ -74,6 +74,30 @@ describe('email and password authentication', () => {
     expect(hashAuthCode('challenge-1', '123456')).not.toBe(digest);
   });
 
+  it('rejects an OTP HMAC key reused as the production session key', () => {
+    const mutableEnv = process.env as Record<string, string | undefined>;
+    const previousNodeEnv = mutableEnv.NODE_ENV;
+    const previousAppSecret = mutableEnv.APP_SESSION_SECRET;
+    const previousCodeSecret = mutableEnv.EMAIL_OTP_HASH_SECRET;
+    mutableEnv.NODE_ENV = 'production';
+    mutableEnv.APP_SESSION_SECRET = 'reused-production-auth-secret-at-least-32-bytes';
+    mutableEnv.EMAIL_OTP_HASH_SECRET = mutableEnv.APP_SESSION_SECRET;
+    try {
+      expect(() => hashAuthCode('challenge-1', '123456'))
+        .toThrow('EMAIL_OTP_HASH_SECRET must be independent from APP_SESSION_SECRET');
+      mutableEnv.EMAIL_OTP_HASH_SECRET = 'replace-with-a-long-random-secret';
+      expect(() => hashAuthCode('challenge-1', '123456'))
+        .toThrow('EMAIL_OTP_HASH_SECRET is required');
+    } finally {
+      if (previousNodeEnv === undefined) delete mutableEnv.NODE_ENV;
+      else mutableEnv.NODE_ENV = previousNodeEnv;
+      if (previousAppSecret === undefined) delete mutableEnv.APP_SESSION_SECRET;
+      else mutableEnv.APP_SESSION_SECRET = previousAppSecret;
+      if (previousCodeSecret === undefined) delete mutableEnv.EMAIL_OTP_HASH_SECRET;
+      else mutableEnv.EMAIL_OTP_HASH_SECRET = previousCodeSecret;
+    }
+  });
+
   it('does not expose unexpected backend errors through password routes', () => {
     expect(sanitizeEmailPasswordError(new Error('database detail'))).toMatchObject({
       status: 503,

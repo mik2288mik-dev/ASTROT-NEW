@@ -5,7 +5,6 @@ import {
   APP_SESSION_COOKIE,
   createAppUserSession,
   requireAppUser,
-  setAppSessionCookie,
 } from '../../../../../lib/auth/appAuth';
 import { consumeAuthRateLimit, getAuthClientKey } from '../../../../../lib/auth/authRateLimit';
 import {
@@ -54,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       provider,
       challengeId: String(req.body?.challengeId || ''),
       credential: {
+        idToken: req.body?.idToken,
         accessToken: req.body?.accessToken,
         code: req.body?.code,
         deviceId: req.body?.deviceId,
@@ -62,19 +62,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       currentUserId: currentAuth?.userId || null,
       currentSessionId: currentAuth?.sessionId || null,
     });
-    const kind = req.body?.native === false ? 'web' : 'native';
     const session = await createAppUserSession({
       userId: result.userId,
-      kind,
+      kind: 'native',
       deviceId: typeof req.body?.appDeviceId === 'string' ? req.body.appDeviceId : null,
     });
-    if (kind === 'web') setAppSessionCookie(res, session.token);
     const user = await db.users.get(result.userId);
     return res.status(200).json({
-      token: kind === 'native' ? session.token : undefined,
+      token: session.token,
       profile: toPublicAppProfile(user, {
         userId: result.userId,
-        provider: kind === 'native' ? 'native' : 'web_guest',
+        provider: 'native',
         isGuest: false,
         sessionId: session.sessionId,
       }),
