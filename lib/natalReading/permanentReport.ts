@@ -12,20 +12,25 @@ import type {
   NatalChartDataV2,
   NatalPositionV2,
 } from '../natalChartV2Types';
-import { APP_VOICE_VERSION, withAppVoiceCacheKey, withAppVoiceVersion } from '../appVoice';
+import {
+  APP_VOICE_VERSION,
+  hasAppVoiceViolation,
+  withAppVoiceCacheKey,
+  withAppVoiceVersion,
+} from '../appVoice';
 
-export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v6';
+export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v7';
 export const NATAL_PERMANENT_FREE_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v5`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v6`,
 );
 export const NATAL_PERMANENT_PREMIUM_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v5`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v6`,
 );
 export const NATAL_PERMANENT_FREE_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.free.v6',
+  'natal.permanent.free.v7',
 );
 export const NATAL_PERMANENT_PREMIUM_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.premium.v6',
+  'natal.permanent.premium.v7',
 );
 
 export type NatalReadingLanguage = 'ru' | 'en';
@@ -78,6 +83,29 @@ export type NatalEvidenceFact = {
   data: Record<string, unknown>;
 };
 
+export type NatalPersonalityDomain =
+  | 'base_portrait'
+  | 'first_impression'
+  | 'close_relationship'
+  | 'thinking'
+  | 'communication'
+  | 'emotional_world'
+  | 'relationships_deep'
+  | 'conflict'
+  | 'control_freedom_trust'
+  | 'work_ambition'
+  | 'strengths'
+  | 'central_contradictions'
+  | 'misunderstood';
+
+export type NatalReportPlanItem = {
+  key: NatalPersonalityDomain;
+  access: 'free' | 'premium';
+  evidenceIds: string[];
+  /** Facts that must all be cited together for a claim to be grounded. */
+  requiredEvidenceIds: string[];
+};
+
 export type NatalModelContext = {
   subject: {
     name: string;
@@ -109,6 +137,7 @@ export type NatalModelContext = {
     calculationMetadata?: Record<string, unknown>;
   };
   evidence: NatalEvidenceFact[];
+  reportPlan: NatalReportPlanItem[];
 };
 
 export type BuiltNatalModelContext = {
@@ -120,6 +149,7 @@ export type BuiltNatalModelContext = {
   ascendantIncluded: boolean;
   reliableAngleKeys: Set<NatalAngleKey>;
   reliableHouseNumbers: Set<number>;
+  reportPlanByKey: ReadonlyMap<NatalPersonalityDomain, NatalReportPlanItem>;
 };
 
 export type RawNatalStatement = {
@@ -209,7 +239,9 @@ function text(value: unknown): string {
 }
 
 function qualityOf(chart: NatalChartData | NatalChartDataV2): NatalBirthTimeQuality {
-  const value = chart.birthTimeQuality || chart.chartQuality?.birthTimeQuality;
+  const value = isV2(chart)
+    ? chart.chartQuality.birthTimeQuality
+    : chart.birthTimeQuality || chart.chartQuality?.birthTimeQuality;
   return value === 'exact' || value === 'approximate' ? value : 'unknown';
 }
 
@@ -391,6 +423,149 @@ function aspectPayload(
 function aspectUsesAngle(aspect: NatalAspectV2 | Record<string, unknown>): boolean {
   return angleKeyFromAspectEndpoint(aspect, 'from') != null
     || angleKeyFromAspectEndpoint(aspect, 'to') != null;
+}
+
+const HARD_ASPECT_TYPES = new Set(['square', 'opposition']);
+const HARMONIOUS_ASPECT_TYPES = new Set(['trine', 'sextile']);
+
+function buildReportPlan(input: {
+  evidence: NatalEvidenceFact[];
+  ascendantIncluded: boolean;
+}): NatalReportPlanItem[] {
+  const byId = new Map(input.evidence.map((fact) => [fact.id, fact]));
+  const placement = (key: NatalBodyKey) => {
+    const id = `natal.position.${key}`;
+    const fact = byId.get(id);
+    return fact?.kind === 'placement' && text(fact.data.sign) ? id : null;
+  };
+  const endpointEvidence = (key: string) => {
+    const positionId = `natal.position.${key}`;
+    const positionFact = byId.get(positionId);
+    if (positionFact?.kind === 'placement' && text(positionFact.data.sign)) return positionId;
+    const angleId = `natal.angle.${key}`;
+    const angleFact = byId.get(angleId);
+    return angleFact?.kind === 'angle' && text(angleFact.data.sign) ? angleId : null;
+  };
+  const ids = (...values: Array<string | null | undefined>) => (
+    [...new Set(values.filter((value): value is string => !!value && byId.has(value)))]
+  );
+  const aspectsFor = (...keys: string[]) => input.evidence.filter((fact) => {
+    if (fact.kind !== 'aspect') return false;
+    const from = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
+    const to = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
+    return (keys.includes(from) || keys.includes(to))
+      && !!endpointEvidence(from)
+      && !!endpointEvidence(to);
+  });
+  const aspectBundle = (fact: NatalEvidenceFact | null | undefined) => {
+    if (!fact || fact.kind !== 'aspect') return [];
+    const fromKey = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
+    const toKey = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
+    return ids(fact.id, endpointEvidence(fromKey), endpointEvidence(toKey));
+  };
+  const firstAspect = (...keys: string[]) => aspectsFor(...keys)[0] || null;
+  const firstAspectBundle = (...keys: string[]) => aspectBundle(firstAspect(...keys));
+  const aspectBetween = (left: string, right: string) => input.evidence.find((fact) => {
+    if (fact.kind !== 'aspect') return false;
+    const from = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
+    const to = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
+    return ((from === left && to === right) || (from === right && to === left))
+      && !!endpointEvidence(from)
+      && !!endpointEvidence(to);
+  }) || null;
+  const hardAspects = input.evidence.filter((fact) => (
+    fact.kind === 'aspect' && HARD_ASPECT_TYPES.has(text(fact.data.type).toLocaleLowerCase('en-US'))
+  ));
+  const harmoniousAspects = input.evidence.filter((fact) => (
+    fact.kind === 'aspect' && HARMONIOUS_ASPECT_TYPES.has(text(fact.data.type).toLocaleLowerCase('en-US'))
+  ));
+  const plan: NatalReportPlanItem[] = [];
+  const add = (
+    key: NatalPersonalityDomain,
+    access: 'free' | 'premium',
+    evidenceIds: string[],
+    requiredEvidenceIds: string[] = [],
+    minimumEvidence = 2,
+  ) => {
+    const supported = ids(...evidenceIds);
+    const required = ids(...requiredEvidenceIds);
+    if (supported.length < minimumEvidence || required.some((id) => !supported.includes(id))) return;
+    plan.push({ key, access, evidenceIds: supported, requiredEvidenceIds: required });
+  };
+
+  const basePortraitCore = ids(placement('sun'), placement('moon'));
+  add('base_portrait', 'free', ids(
+    ...basePortraitCore, ...firstAspectBundle('sun', 'moon'), placement('mercury'),
+  ), basePortraitCore);
+  if (input.ascendantIncluded) {
+    add('first_impression', 'free', ids(
+      'natal.angle.ascendant', placement('sun'), ...firstAspectBundle('ascendant'),
+    ), ['natal.angle.ascendant'], 1);
+  }
+  const thinkingCore = ids(placement('mercury'), placement('sun'));
+  add('thinking', 'free', ids(
+    ...thinkingCore, ...firstAspectBundle('mercury'),
+  ), thinkingCore);
+  const communicationCore = ids(placement('mercury'), placement('mars'));
+  add('communication', 'free', ids(
+    ...communicationCore, ...firstAspectBundle('mercury', 'mars'),
+  ), communicationCore);
+  const emotionalCore = ids(placement('moon'), placement('venus'));
+  add('emotional_world', 'free', ids(
+    ...emotionalCore, ...firstAspectBundle('moon', 'venus'),
+  ), emotionalCore);
+  const strengthBundle = aspectBundle(harmoniousAspects[0]);
+  if (strengthBundle.length >= 3) {
+    add('strengths', 'free', strengthBundle, strengthBundle, 3);
+  }
+
+  add('close_relationship', 'premium', ids(
+    ...emotionalCore, ...firstAspectBundle('moon', 'venus'),
+  ), emotionalCore);
+  const relationshipCore = ids(placement('venus'), placement('mars'));
+  add('relationships_deep', 'premium', ids(
+    ...relationshipCore, placement('moon'), ...aspectBundle(aspectBetween('venus', 'mars')),
+  ), relationshipCore);
+  const conflictCandidate = aspectBetween('mercury', 'mars');
+  const conflictAspect = conflictCandidate
+    && HARD_ASPECT_TYPES.has(text(conflictCandidate.data.type).toLocaleLowerCase('en-US'))
+      ? conflictCandidate
+      : null;
+  const conflictBundle = aspectBundle(conflictAspect);
+  if (conflictBundle.length >= 3) {
+    add('conflict', 'premium', ids(
+      ...communicationCore, ...conflictBundle,
+    ), conflictBundle, 3);
+  }
+  const controlBundle = firstAspectBundle('saturn', 'uranus', 'pluto');
+  if (controlBundle.length >= 3) {
+    add('control_freedom_trust', 'premium', controlBundle, controlBundle, 3);
+  }
+  const workBundle = firstAspectBundle('mars', 'saturn', 'jupiter');
+  const workCore = ids(placement('mars'), placement('saturn'), placement('jupiter'));
+  const workEvidence = ids(
+    ...workCore,
+    ...workBundle, 'natal.angle.mc',
+  );
+  add('work_ambition', 'premium', workEvidence, workCore, 3);
+
+  for (const aspect of hardAspects) {
+    const fromKey = text(aspect.data.fromKey || aspect.data.from).toLocaleLowerCase('en-US') as NatalBodyKey;
+    const toKey = text(aspect.data.toKey || aspect.data.to).toLocaleLowerCase('en-US') as NatalBodyKey;
+    const required = ids(aspect.id, placement(fromKey), placement(toKey));
+    if (required.length !== 3) continue;
+    add('central_contradictions', 'premium', ids(
+      ...required,
+      ...hardAspects.map((fact) => fact.id),
+    ), required, 3);
+    break;
+  }
+  const misunderstoodBundle = firstAspectBundle('uranus', 'neptune', 'pluto');
+  if (misunderstoodBundle.length >= 3) {
+    add('misunderstood', 'premium', misunderstoodBundle, misunderstoodBundle, 3);
+  }
+
+  return plan;
 }
 
 function modelBirthData(
@@ -601,6 +776,7 @@ export function buildNatalModelContext(
 
   const anglesIncluded = reliableAngleKeys.size > 0;
   const housesIncluded = reliableHouseNumbers.size > 0;
+  const ascendantIncluded = reliableAngleKeys.has('ascendant');
   const qualityEvidence = evidence.find((item) => item.id === 'natal.quality.birth-time');
   if (qualityEvidence) {
     qualityEvidence.data = {
@@ -612,6 +788,7 @@ export function buildNatalModelContext(
     };
   }
 
+  const reportPlan = buildReportPlan({ evidence, ascendantIncluded });
   const context: NatalModelContext = {
     subject: {
       name: text(profile.name),
@@ -638,6 +815,7 @@ export function buildNatalModelContext(
       ...(calculationMetadata ? { calculationMetadata } : {}),
     },
     evidence,
+    reportPlan,
   };
 
   return {
@@ -646,10 +824,71 @@ export function buildNatalModelContext(
     birthTimeQuality: reliability.quality,
     anglesIncluded,
     housesIncluded,
-    ascendantIncluded: reliableAngleKeys.has('ascendant'),
+    ascendantIncluded,
     reliableAngleKeys,
     reliableHouseNumbers,
+    reportPlanByKey: new Map(reportPlan.map((item) => [item.key, item])),
   };
+}
+
+/**
+ * Model-visible context intentionally omits raw birth input and coordinates.
+ * Luna receives only deterministic calculation output, reliability, evidence,
+ * and the evidence-driven report plan; it never gets inputs it could recalculate.
+ */
+export function buildNatalPromptContext(built: BuiltNatalModelContext) {
+  const modelChart = {
+    schemaVersion: built.context.chart.schemaVersion,
+    positions: built.context.chart.positions,
+    ...(built.context.chart.angles ? { angles: built.context.chart.angles } : {}),
+    ...(built.context.chart.houses ? { houses: built.context.chart.houses } : {}),
+    aspects: built.context.chart.aspects,
+  };
+  return {
+    birthTimeQuality: built.context.birthTimeQuality,
+    reliability: built.context.reliability,
+    calculationVersion: built.context.calculationVersion,
+    chartQuality: built.context.chartQuality,
+    chart: modelChart,
+    evidence: built.context.evidence,
+    reportPlan: built.context.reportPlan,
+  };
+}
+
+/** Facts safe enough to ground user-facing prose for this reliability policy. */
+export function getNatalNarrativeEvidenceIds(built: BuiltNatalModelContext): Set<string> {
+  return new Set(
+    built.context.evidence
+      .filter((fact) => {
+        if (fact.kind === 'quality') return false;
+        if (fact.kind === 'placement' || fact.kind === 'angle') {
+          return Boolean(text(fact.data.sign));
+        }
+        if (fact.kind === 'house') {
+          return finite(fact.data.house) != null && Boolean(text(fact.data.sign));
+        }
+        if (fact.kind === 'aspect') {
+          const from = text(fact.data.fromKey || fact.data.from).toLocaleLowerCase('en-US');
+          const to = text(fact.data.toKey || fact.data.to).toLocaleLowerCase('en-US');
+          const hasEndpoint = (key: string) => {
+            const placement = built.context.evidence.find((candidate) => (
+              candidate.id === `natal.position.${key}`
+              && candidate.kind === 'placement'
+              && Boolean(text(candidate.data.sign))
+            ));
+            if (placement) return true;
+            return built.context.evidence.some((candidate) => (
+              candidate.id === `natal.angle.${key}`
+              && candidate.kind === 'angle'
+              && Boolean(text(candidate.data.sign))
+            ));
+          };
+          return fact.data.reliable !== false && hasEndpoint(from) && hasEndpoint(to);
+        }
+        return false;
+      })
+      .map((fact) => fact.id),
+  );
 }
 
 function stableContextForHash(context: NatalModelContext): unknown {
@@ -681,14 +920,42 @@ export function buildPermanentNatalInputHash(input: {
   })).digest('hex');
 }
 
+/**
+ * Full client cache identity for a permanent natal report. It mirrors the
+ * server input hash instead of the forecast fingerprint, which intentionally
+ * truncates aspects and is therefore not strong enough for this surface.
+ */
+export function buildPermanentNatalChartFingerprint(
+  profile: UserProfile,
+  chartData: NatalChartData | NatalChartDataV2,
+): string {
+  const built = buildNatalModelContext(profile, chartData);
+  const value = JSON.stringify({
+    chart: stableContextForHash(built.context),
+    reportPlan: built.context.reportPlan,
+  });
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 export function buildNatalReportScopeKey(
   userId: string,
   chartId?: number,
   language?: NatalReadingLanguage,
+  cacheIdentity?: {
+    chartFingerprint: string;
+    reportVersion: string;
+  },
 ): string {
   const owner = String(userId || '').trim();
   const chart = chartId != null ? String(chartId) : 'primary';
-  return `${owner}:${chart}:${language || 'default'}`;
+  const fingerprint = text(cacheIdentity?.chartFingerprint || 'chart-unresolved');
+  const reportVersion = text(cacheIdentity?.reportVersion || NATAL_PERMANENT_CONTRACT_VERSION);
+  return `${owner}:${chart}:${language || 'default'}:${fingerprint}:${reportVersion}`;
 }
 
 function normalizedEvidenceIds(value: unknown, allowed: Set<string>): string[] | null {
@@ -696,6 +963,33 @@ function normalizedEvidenceIds(value: unknown, allowed: Set<string>): string[] |
   const ids = [...new Set(value.map(text).filter(Boolean))];
   if (ids.length === 0 || ids.some((id) => !allowed.has(id))) return null;
   return ids;
+}
+
+const VISIBLE_ASTRO_PLACEMENT = /(?:(?:солнц\w*|лун\w*|меркур\w*|венер\w*|марс\w*|юпитер\w*|сатурн\w*|уран\w*|нептун\w*|плутон\w*|хирон\w*|узел\w*)\s+(?:в|во)\s+(?:овн\w*|тельц\w*|близнец\w*|рак\w*|льв\w*|дев\w*|вес\w*|скорпион\w*|стрельц\w*|козерог\w*|водоле\w*|рыб\w*)|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|node)\s+in\s+(?:aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces)\b)/iu;
+const VISIBLE_ASTRO_ASPECT = /(?:(?:соединени\w*|секстил\w*|квадрат\w*|трин\w*|оппозиц\w*)[^.!?\n]{0,80}(?:солнц\w*|лун\w*|меркур\w*|венер\w*|марс\w*|юпитер\w*|сатурн\w*|уран\w*|нептун\w*|плутон\w*|хирон\w*|узл\w*)|\b(?:conjunction|sextile|square|trine|opposition)\b[^.!?\n]{0,80}\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|node)\b)/iu;
+const VISIBLE_ASTRO_TECHNICAL = /(?:(?:^|[^\p{L}])(?:асцендент|ретроград[а-яё]*|куспид[а-яё]*|орб[а-яё]*|(?:мс|mc)(?![\p{L}]))|(?:^|[^\p{L}])(?:солнц[а-яё]*|лун[а-яё]*|меркур[а-яё]*|венер[а-яё]*|марс[а-яё]*|юпитер[а-яё]*|сатурн[а-яё]*|уран[а-яё]*|нептун[а-яё]*|плутон[а-яё]*|хирон[а-яё]*|узел[а-яё]*)\s+(?:в|во)\s+\d{1,2}(?:-м|м|ом)?\s+дом[а-яё]*|\b(?:ascendant|midheaven|retrograde|cusp\w*|orb\w*)\b|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|node)\s+in\s+(?:the\s+)?\d{1,2}(?:st|nd|rd|th)?\s+house\b)/iu;
+const VISIBLE_ASTRO_OBJECT = /(?:(?:^|[^\p{L}])(?:солнц[а-яё]*|лун[а-яё]*|меркур[а-яё]*|венер[а-яё]*|марс[а-яё]*|юпитер[а-яё]*|сатурн[а-яё]*|уран[а-яё]*|нептун[а-яё]*|плутон[а-яё]*|хирон[а-яё]*|(?:северн[а-яё]*|южн[а-яё]*)\s+узел[а-яё]*)(?=$|[^\p{L}])|\b(?:sun|moon|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|chiron|north node|south node)\b)/iu;
+const VISIBLE_ZODIAC_SIGN = /(?:(?:^|[^\p{L}])(?:овен|овна|овну|овном|овне|телец|тельца|тельцу|тельцом|тельце|близнецы|близнецов|близнецам|близнецами|близнецах|рак|рака|раку|раком|раке|лев|льва|льву|львом|льве|дева|девы|деве|деву|девой|девою|весы|весов|весам|весами|весах|скорпион|скорпиона|скорпиону|скорпионом|скорпионе|стрелец|стрельца|стрельцу|стрельцом|стрельце|козерог|козерога|козерогу|козерогом|козероге|водолей|водолея|водолею|водолеем|водолее|рыбы|рыб|рыбам|рыбами|рыбах)(?=$|[^\p{L}])|\b(?:aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces)\b)/iu;
+const VISIBLE_WORDED_HOUSE = /(?:(?:перв|втор|трет|четв[её]рт|пят|шест|седьм|восьм|девят|десят|одиннадцат|двенадцат)[а-яё]*\s+дом[а-яё]*|\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\s+house\b)/iu;
+const NATAL_FORBIDDEN_COPY = /(?:зв[её]зд[а-яё]*\s+говор[а-яё]*|вселенн[а-яё]*\s+приглаша[а-яё]*|уникальн[а-яё]*\s+энерги[а-яё]*|важно\s+прислуша[а-яё]*\s+к\s+себе|облада[а-яё]*\s+глубок[а-яё]*\s+внутренн[а-яё]*\s+мир[а-яё]*|\b(?:the stars say|the universe invites|your unique energy|listen to yourself|deep inner world)\b)/iu;
+const NATAL_DIAGNOSIS_OR_GUARANTEE = /(?:диагноз\w*|диагностир\w*|расстройств\w*|травм\w*|гарантир\w*|обязательно\s+(?:случ\w*|произойд\w*|стан\w*|добь\w*)|\b(?:diagnos\w*|disorder\w*|trauma\w*|guaranteed?|definitely will)\b)/iu;
+
+export function hasNatalPersonalityCopyViolation(value: string): boolean {
+  return hasAppVoiceViolation(value)
+    || NATAL_FORBIDDEN_COPY.test(value)
+    || NATAL_DIAGNOSIS_OR_GUARANTEE.test(value)
+    || VISIBLE_ASTRO_PLACEMENT.test(value)
+    || VISIBLE_ASTRO_ASPECT.test(value)
+    || VISIBLE_ASTRO_TECHNICAL.test(value)
+    || VISIBLE_ASTRO_OBJECT.test(value)
+    || VISIBLE_ZODIAC_SIGN.test(value)
+    || VISIBLE_WORDED_HOUSE.test(value);
+}
+
+function hasReadableNarrativeShape(value: string): boolean {
+  const normalized = text(value);
+  if (normalized.length < 80 || normalized.length > 1400) return false;
+  return normalized.split(/\n\s*\n/u).filter(Boolean).length <= 2;
 }
 
 const TIME_DEPENDENT_READING_EN = /\b(?:today|tomorrow|tonight|this week|next week|this month|next month|coming (?:day|week|month)|transits?|timing|future events?)\b/iu;
@@ -775,10 +1069,9 @@ export function isNatalReliabilityTextAllowed(
 function parseStatement(
   raw: RawNatalStatement | null | undefined,
   allowed: Set<string>,
-  reliability: BuiltNatalModelContext,
 ): NatalReadingStatement | null {
   const value = text(raw?.text);
-  if (!value) return null;
+  if (!value || hasNatalPersonalityCopyViolation(value)) return null;
   const evidenceIds = normalizedEvidenceIds(raw?.evidence_ids, allowed);
   return evidenceIds ? { text: value, evidenceIds } : null;
 }
@@ -821,6 +1114,15 @@ const FREE_SECTION_SLOT_KEYS: readonly InterpretationSection['key'][] = [
   'potential_purpose',
 ];
 
+const FREE_DOMAIN_SECTION_KEYS: Partial<Record<NatalPersonalityDomain, InterpretationSection['key']>> = {
+  base_portrait: 'base_portrait',
+  first_impression: 'how_others_see_you',
+  thinking: 'thinking',
+  communication: 'communication',
+  emotional_world: 'emotional_world',
+  strengths: 'strengths',
+};
+
 type ParsedNatalSection = {
   key: string;
   title: string;
@@ -846,12 +1148,20 @@ function parseNatalSections(
     const key = text(rawSection?.section_key);
     const title = text(rawSection?.title);
     const content = text(rawSection?.content);
+    const planned = built.reportPlanByKey.get(key as NatalPersonalityDomain);
     if (
       !key
       || seenKeys.has(key)
       || rawSection?.free !== options.expectedFree
+      || !planned
+      || planned.access !== (options.expectedFree ? 'free' : 'premium')
       || !title
       || !content
+      || title.length < 3
+      || title.length > 90
+      || !hasReadableNarrativeShape(content)
+      || hasNatalPersonalityCopyViolation(title)
+      || hasNatalPersonalityCopyViolation(content)
       || containsChangingTimeReference(title)
       || containsChangingTimeReference(content)
       || !isNatalReliabilityTextAllowed(title, built)
@@ -860,24 +1170,48 @@ function parseNatalSections(
     const statement = parseStatement(
       { text: content, evidence_ids: rawSection.evidence_ids },
       built.evidenceIds,
-      built,
     );
     if (!statement) return null;
+    if (statement.evidenceIds.some((id) => !planned.evidenceIds.includes(id))) return null;
+    if (planned.requiredEvidenceIds.some((id) => !statement.evidenceIds.includes(id))) return null;
     seenKeys.add(key);
     parsed.push({ key, title, free: options.expectedFree, statement });
   }
   return parsed;
 }
 
+function completeSectionsInPlanOrder(
+  parsed: ParsedNatalSection[],
+  requestedKeys: NatalPersonalityDomain[],
+  requireComplete: boolean | undefined,
+): ParsedNatalSection[] | null {
+  if (!requireComplete) return parsed;
+  if (
+    parsed.length !== requestedKeys.length
+    || requestedKeys.some((key) => !parsed.some((item) => item.key === key))
+  ) return null;
+  return requestedKeys.map((key) => parsed.find((item) => item.key === key)!);
+}
+
 export function materializePermanentFreeReport(input: {
   raw: RawNatalFreePayload;
   profile: UserProfile;
   built: BuiltNatalModelContext;
+  requireComplete?: boolean;
 }): NatalPermanentFreeReport | null {
   const { raw, profile, built } = input;
-  const hook = parseStatement(raw.hook, built.evidenceIds, built);
+  const hook = parseStatement(raw.hook, built.evidenceIds);
+  const freeEvidenceIds = new Set(
+    built.context.reportPlan
+      .filter((item) => item.access === 'free')
+      .flatMap((item) => item.evidenceIds),
+  );
   if (
     !hook
+    || hook.text.length < 40
+    || hook.text.length > 500
+    || hook.text.split(/\n\s*\n/u).filter(Boolean).length > 1
+    || hook.evidenceIds.some((id) => !freeEvidenceIds.has(id))
     || containsChangingTimeReference(hook.text)
     || !isNatalReliabilityTextAllowed(hook.text, built)
   ) return null;
@@ -885,14 +1219,21 @@ export function materializePermanentFreeReport(input: {
     expectedFree: true,
   });
   if (!parsed) return null;
+  const requestedKeys = built.context.reportPlan
+    .filter((item) => item.access === 'free')
+    .map((item) => item.key);
+  const ordered = completeSectionsInPlanOrder(parsed, requestedKeys, input.requireComplete);
+  if (!ordered?.length) return null;
   const language: NatalReadingLanguage = profile.language === 'en' ? 'en' : 'ru';
-  const freeSections = parsed.map((item, index) => section(
-    FREE_SECTION_SLOT_KEYS[index] || 'summary',
+  const freeSections = ordered.map((item, index) => section(
+    FREE_DOMAIN_SECTION_KEYS[item.key as NatalPersonalityDomain]
+      || FREE_SECTION_SLOT_KEYS[index]
+      || 'summary',
     item.title,
     [item.statement],
   ));
-  const evidenceIds = uniqueStrings(parsed.flatMap((item) => item.statement.evidenceIds));
-  const first = parsed[0];
+  const evidenceIds = uniqueStrings(ordered.flatMap((item) => item.statement.evidenceIds));
+  const first = ordered[0];
   return {
     schemaVersion: 'natal-permanent-free-v3',
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
@@ -924,14 +1265,34 @@ export function materializePermanentFreeReport(input: {
 export function isNatalPermanentFreeReport(
   value: NatalInterpretationReport | null | undefined,
 ): value is NatalPermanentFreeReport {
-  return !!value
-    && (value as Partial<NatalPermanentFreeReport>).schemaVersion === 'natal-permanent-free-v3'
-    && (value as Partial<NatalPermanentFreeReport>).contractVersion === NATAL_PERMANENT_CONTRACT_VERSION;
+  if (!value || typeof value !== 'object') return false;
+  const report = value as Partial<NatalPermanentFreeReport>;
+  return report.schemaVersion === 'natal-permanent-free-v3'
+    && report.contractVersion === NATAL_PERMANENT_CONTRACT_VERSION
+    && report.tier === 'free'
+    && Array.isArray(report.evidenceIds)
+    && report.evidenceIds.every((id) => typeof id === 'string' && id.length > 0)
+    && !!report.hook
+    && typeof report.hook.text === 'string'
+    && report.hook.text.length >= 40
+    && Array.isArray(report.hook.evidenceIds)
+    && report.hook.evidenceIds.length > 0
+    && Array.isArray(report.freeSections)
+    && report.freeSections.length > 0
+    && report.freeSections.every((item) => (
+      !!item
+      && typeof item.title === 'string'
+      && typeof item.content === 'string'
+      && item.content.length > 0
+      && Array.isArray(item.evidenceIds)
+      && item.evidenceIds.length > 0
+    ));
 }
 
 export function materializePermanentPremiumReport(input: {
   raw: RawNatalPremiumPayload;
   built: BuiltNatalModelContext;
+  requireComplete?: boolean;
 }): NatalPermanentPremiumReport | null {
   const parsed = parseNatalSections(
     input.raw.sections,
@@ -941,9 +1302,14 @@ export function materializePermanentPremiumReport(input: {
     },
   );
   if (!parsed) return null;
-  const first = parsed[0];
-  const last = parsed[parsed.length - 1];
-  const sections: NatalPermanentPremiumSection[] = parsed.map((item) => ({
+  const requestedKeys = input.built.context.reportPlan
+    .filter((item) => item.access === 'premium')
+    .map((item) => item.key);
+  const ordered = completeSectionsInPlanOrder(parsed, requestedKeys, input.requireComplete);
+  if (!ordered?.length) return null;
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+  const sections: NatalPermanentPremiumSection[] = ordered.map((item) => ({
     id: item.key,
     title: item.title,
     paragraphs: [item.statement],
@@ -959,7 +1325,7 @@ export function materializePermanentPremiumReport(input: {
     strategies: [],
     pitfalls: [],
     conclusion: last.statement,
-    evidenceIds: uniqueStrings(parsed.flatMap((item) => item.statement.evidenceIds)),
+    evidenceIds: uniqueStrings(ordered.flatMap((item) => item.statement.evidenceIds)),
   };
 }
 

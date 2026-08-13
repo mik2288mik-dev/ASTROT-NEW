@@ -1,15 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import {
   ensureValidContext,
-  saveReading,
 } from '../../../../lib/natalReading/apiHelper';
-import {
-  buildPermanentPremiumFallback,
-} from '../../../../lib/natalReading/permanentReport';
 import {
   generatePermanentPremiumWithLock,
   getCachedPermanentPremiumReport,
-  permanentPremiumCacheOptions,
 } from '../../../../lib/natalReading/permanentApi';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
@@ -21,9 +16,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   }
-  const ready = await ensureValidContext(req, res);
+  const ready = await ensureValidContext(req, res, {
+    requireCanonicalSnapshot: true,
+    repairCanonicalSnapshot: false,
+  });
   if (!ready) return;
   const { userId, ctx } = ready;
+  const language = ctx.profile.language === 'en' ? 'en' : 'ru';
   const entitlement = await getPremiumEntitlementState(userId);
   if (!entitlement.isPremium) {
     return res.status(403).json({
@@ -33,7 +32,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const cacheOptions = permanentPremiumCacheOptions(ctx);
   const cached = await getCachedPermanentPremiumReport(ctx);
   if (cached) {
     return res.status(200).json({
@@ -66,21 +64,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       '[natal/human-premium] generation failed:',
       error instanceof Error ? error.message : error,
     );
-    const fallback = buildPermanentPremiumFallback(ctx.profile, ctx.chartData!);
-    const saved = await saveReading(
-      ctx,
-      {
-        ...cacheOptions,
-        isPersistent: false,
-        validTo: new Date(Date.now() + 6 * 60 * 60 * 1000),
-        history: { source: 'deterministic_fallback', generationAttempts: 0 },
-      },
-      fallback,
-    ).catch(() => null);
-    return res.status(200).json({
-      interpretation: saved || { content: fallback, promptVersion: cacheOptions.promptVersion },
-      source: saved ? 'fallback' : 'fallback-inline',
-      accessTier: 'premium',
+    return res.status(503).json({
+      error: 'NATAL_PREMIUM_GENERATION_FAILED',
+      code: 'NATAL_PREMIUM_GENERATION_FAILED',
+      message: language === 'en'
+        ? 'The detailed reading could not be prepared right now. Try again — the saved chart has not changed.'
+        : 'Подробный разбор сейчас не собрался. Попробуй ещё раз — сохранённая карта не изменилась.',
+      retryable: true,
     });
   }
 }

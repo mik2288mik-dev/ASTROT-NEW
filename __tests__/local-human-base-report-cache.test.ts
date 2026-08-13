@@ -1,4 +1,5 @@
-import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../types';
+import type { NatalChartData, UserProfile } from '../types';
+import type { NatalPermanentFreeReport } from '../lib/natalReading/permanentReport';
 import {
   buildLocalHumanBaseReportCacheKey,
   clearLocalHumanBaseReport,
@@ -14,9 +15,24 @@ const profile: UserProfile = {
   isSetup: true, language: 'ru', theme: 'light', isPremium: true,
 };
 const report = {
+  schemaVersion: 'natal-permanent-free-v3',
+  contractVersion: 'natal-permanent-report-v7',
+  tier: 'free',
+  evidenceIds: ['natal.position.sun'],
+  hook: {
+    text: 'You notice quickly when a discussion loses its point and bring it back to the decision.',
+    evidenceIds: ['natal.position.sun'],
+  },
   userName: 'Saved person', birthData: { birthDate: '1992-02-03', birthTime: '04:05', birthPlace: 'London' },
-  shortCard: { title: 'Title', text: 'Text', keywords: [], advice: 'Advice' }, freeSections: [],
-} as unknown as NatalInterpretationReport;
+  calculatedAt: '2026-08-13T00:00:00.000Z',
+  shortCard: { title: 'Title', text: 'Text', keywords: [], advice: 'Advice' },
+  freeSections: [{
+    key: 'base_portrait', title: 'Title', access: 'free', content: 'Complete portrait',
+    evidenceIds: ['natal.position.sun'],
+  }],
+  paidSections: [],
+  premiumSections: [],
+} as NatalPermanentFreeReport;
 const chart = {
   sun: { sign: 'Aries', degree: 1 }, moon: { sign: 'Taurus', degree: 2 }, rising: { sign: 'Gemini', degree: 3 },
   mercury: { sign: 'Aries', degree: 4 }, venus: { sign: 'Taurus', degree: 5 }, mars: { sign: 'Gemini', degree: 6 },

@@ -25,7 +25,8 @@ function profileIdentity(profile: UserProfile) {
 
 function isChartData(value: unknown): value is NatalChartData {
   const chart = value as NatalChartData | null;
-  return !!chart?.sun && !!chart?.moon && !!chart?.rising;
+  const quality = chart?.birthTimeQuality || chart?.chartQuality?.birthTimeQuality;
+  return !!chart?.sun && !!chart?.moon && (quality === 'unknown' || !!chart?.rising);
 }
 
 function getStorage(): Storage | null {

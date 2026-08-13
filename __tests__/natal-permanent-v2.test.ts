@@ -23,6 +23,7 @@ import {
 } from '../lib/natalReading/permanentReport';
 import { buildPermanentNatalPremiumPrompt } from '../lib/natalReading/permanentGeneration';
 import {
+  buildNatalQuestionPrompt,
   buildNatalQuestionPromptContext,
   validateNatalQuestionAnswer,
 } from '../lib/natalReading/natalQuestion';
@@ -221,63 +222,93 @@ const profile: UserProfile = {
 };
 
 function freePayload(evidenceIds: string[], _includeAscendant: boolean): RawNatalFreePayload {
-  const id = (index: number) => evidenceIds[index % evidenceIds.length];
+  const pick = (wanted: string, fallbackIndex: number) => (
+    evidenceIds.includes(wanted) ? wanted : evidenceIds[fallbackIndex % evidenceIds.length]
+  );
   return {
     hook: {
-      text: 'You move once the exact point is visible and dislike vague agreements.',
-      evidence_ids: [id(0)],
+      text: 'You move once the exact point is visible, and you rarely accept a vague agreement just to end the conversation.',
+      evidence_ids: [pick('natal.position.sun', 0)],
     },
     sections: [
       {
-        section_key: 'personality',
+        section_key: 'base_portrait',
         title: 'Who you are',
         free: true,
-        content: 'You act decisively after you have found the exact point that matters.',
-        evidence_ids: [id(0)],
+        content: 'You act decisively after you have found the exact point that matters, but you still check whether the result can survive contact with the details.',
+        evidence_ids: [pick('natal.position.sun', 0), pick('natal.position.moon', 1)],
       },
       {
         section_key: 'thinking',
         title: 'How you think and speak',
         free: true,
-        content: 'Your mind turns a complicated thought into a practical decision.',
-        evidence_ids: [id(1)],
+        content: 'Your mind turns a complicated thought into a practical decision, especially when other people are still debating the shape of the problem.',
+        evidence_ids: [pick('natal.position.mercury', 2), pick('natal.position.sun', 0)],
       },
       {
-        section_key: 'relationships',
-        title: 'Love and relationships',
+        section_key: 'communication',
+        title: 'How you explain yourself',
         free: true,
-        content: 'You notice what makes an agreement fair without hiding the difficult detail.',
-        evidence_ids: [id(2)],
+        content: 'You notice what makes an explanation precise without hiding the difficult detail, and your tone gets firmer when the facts are being blurred.',
+        evidence_ids: [pick('natal.position.mercury', 2), pick('natal.position.mars', 4)],
       },
       {
-        section_key: 'vulnerabilities',
-        title: 'Your vulnerable points',
+        section_key: 'emotional_world',
+        title: 'How feelings move',
         free: true,
-        content: 'Part of you pushes ahead while another part checks the emotional cost.',
-        evidence_ids: [id(3)],
+        content: 'Part of you pushes ahead while another part checks the emotional cost, so a quick decision can be followed by a serious internal review.',
+        evidence_ids: [pick('natal.position.moon', 1), pick('natal.position.venus', 3)],
       },
     ],
   };
 }
 
 function premiumPayload(evidenceIds: string[]): RawNatalPremiumPayload {
-  const id = (index: number) => evidenceIds[index % evidenceIds.length];
+  const pick = (wanted: string, fallbackIndex: number) => (
+    evidenceIds.includes(wanted) ? wanted : evidenceIds[fallbackIndex % evidenceIds.length]
+  );
   const definitions = [
-    ['vocation_money', 'Vocation and money'],
-    ['career', 'Career'],
-    ['health', 'Health and energy'],
-    ['shadow', 'Your shadow'],
-    ['life_path', 'Life path'],
-    ['year_advice', 'Growth strategy'],
+    ['close_relationship', 'When someone gets close'],
+    ['relationships_deep', 'Relationships'],
+    ['conflict', 'Conflict'],
+    ['control_freedom_trust', 'Control and trust'],
+    ['work_ambition', 'Work and ambition'],
+    ['misunderstood', 'What others miss'],
   ] as const;
+  const evidenceBySection: Record<string, string[]> = {
+    close_relationship: [pick('natal.position.moon', 1), pick('natal.position.venus', 3)],
+    relationships_deep: [pick('natal.position.venus', 3), pick('natal.position.mars', 4)],
+    conflict: [pick('natal.position.mars', 4), pick('natal.position.mercury', 2)],
+    control_freedom_trust: [pick('natal.position.saturn', 6), pick('natal.position.uranus', 7)],
+    work_ambition: [pick('natal.position.mars', 4), pick('natal.position.saturn', 6)],
+    misunderstood: [pick('natal.position.uranus', 7), pick('natal.position.neptune', 8)],
+  };
   return {
     sections: definitions.map(([sectionKey, title], index) => ({
       section_key: sectionKey,
       title,
       free: false,
-      content: `This is a concrete permanent observation number ${index + 1} about choices and reactions.`,
-      evidence_ids: [id(index)],
+      content: `This is a concrete permanent observation number ${index + 1} about choices and reactions, grounded in the way two strong tendencies operate together.`,
+      evidence_ids: evidenceBySection[sectionKey] || [evidenceIds[index]],
     })),
+  };
+}
+
+function premiumPayloadForPlan(
+  built: ReturnType<typeof buildNatalModelContext>,
+): RawNatalPremiumPayload {
+  return {
+    sections: built.context.reportPlan
+      .filter((item) => item.access === 'premium')
+      .map((item, index) => ({
+        section_key: item.key,
+        title: `Permanent section ${index + 1}`,
+        free: false,
+        content: `This is a concrete permanent observation number ${index + 1} about choices and reactions, grounded in the way the supplied tendencies operate together.`,
+        evidence_ids: item.requiredEvidenceIds.length
+          ? item.requiredEvidenceIds
+          : item.evidenceIds,
+      })),
   };
 }
 
@@ -351,13 +382,15 @@ describe('permanent natal V2 contract', () => {
     });
     expect(free?.schemaVersion).toBe('natal-permanent-free-v3');
     expect(free?.freeSections.map((section) => section.key)).toEqual([
-      'base_portrait', 'thinking', 'relationships_deep', 'difficulties',
+      'base_portrait', 'thinking', 'communication', 'emotional_world',
     ]);
     const premium = materializePermanentPremiumReport({
-      raw: premiumPayload(ids),
+      raw: premiumPayloadForPlan(exact),
       built: exact,
     });
-    expect(premium?.sections).toHaveLength(6);
+    expect(premium?.sections).toHaveLength(
+      exact.context.reportPlan.filter((item) => item.access === 'premium').length,
+    );
     expect(premium?.strategies).toHaveLength(0);
 
     const unknown = buildNatalModelContext(profile, chart('unknown'));
@@ -505,6 +538,65 @@ describe('permanent natal V2 contract', () => {
     ), allowed)).toBeNull();
   });
 
+  test('rejects mystical, coaching, and visible technical copy in natal answers', () => {
+    const allowed = new Set(['natal.position.sun']);
+    const raw = (answer: string) => ({ answer, evidence_ids: ['natal.position.sun'] });
+
+    expect(validateNatalQuestionAnswer(raw(
+      'The stars say you have the right answer. The universe invites you to trust it. Your unique energy makes this certain.',
+    ), allowed)).toBeNull();
+    expect(validateNatalQuestionAnswer(raw(
+      'Mars makes you answer before others finish. That placement speeds every disagreement. It decides how you defend a point.',
+    ), allowed)).toBeNull();
+  });
+
+  test('cannot ground a question answer in a variable-in-range placement', () => {
+    const variableMoon = chart('unknown');
+    variableMoon.positions.moon.reliability = 'variable_in_range';
+    variableMoon.positions.moon.stable.sign = false;
+    variableMoon.positions.moon.stable.retrograde = false;
+    variableMoon.chartQuality.variableBodies = ['moon'];
+    const built = buildNatalModelContext(profile, variableMoon);
+
+    expect(validateNatalQuestionAnswer({
+      answer: 'You pause before naming a reaction. The first feeling is not always the final one. You prefer to check it before speaking.',
+      evidence_ids: ['natal.position.moon'],
+    }, built.evidenceIds, built)).toBeNull();
+
+    const context = buildNatalQuestionPromptContext({
+      chartId: 101,
+      profile,
+      chartData: variableMoon,
+      permanentReport: materializePermanentPremiumReport({
+        raw: premiumPayloadForPlan(built),
+        built,
+      })!,
+      history: [],
+      question: 'How do I react?',
+    }).context;
+    expect(context.chart.evidence.some((fact) => fact.id === 'natal.position.moon')).toBe(false);
+    expect(context.chart.chart.positions).not.toHaveProperty('moon');
+  });
+
+  test('question prompt keeps astrology terminology out of the visible answer', () => {
+    const built = buildNatalModelContext(profile, chart('exact'));
+    const context = buildNatalQuestionPromptContext({
+      chartId: 101,
+      profile,
+      chartData: chart('exact'),
+      permanentReport: materializePermanentPremiumReport({
+        raw: premiumPayloadForPlan(built),
+        built,
+      })!,
+      history: [],
+      question: 'How do I argue?',
+    }).context;
+    const prompt = buildNatalQuestionPrompt('en', context);
+
+    expect(prompt).toContain('Translate those factors into ordinary human language');
+    expect(prompt).toContain('keep technical facts only in evidence_ids');
+  });
+
   test('rejects future timing and unreliable structures in natal answers but accepts a timing refusal', () => {
     const exact = buildNatalModelContext(profile, chart('exact'));
     const unknown = buildNatalModelContext(profile, chart('unknown'));
@@ -544,7 +636,7 @@ describe('permanent natal V2 contract', () => {
   test('question context contains the full sanitized chart and only the last eight pairs for this chart', () => {
     const built = buildNatalModelContext(profile, chart('exact'));
     const premium = materializePermanentPremiumReport({
-      raw: premiumPayload([...built.evidenceIds]),
+      raw: premiumPayloadForPlan(built),
       built,
     })!;
     const messages: NatalQuestionStoredMessage[] = Array.from({ length: 10 }, (_, index) => {
@@ -640,7 +732,7 @@ describe('permanent natal V2 contract', () => {
       'natal',
       'questions.ts',
     ), 'utf8');
-    expect(endpoint).toContain('resolveReadingContext(userId, null)');
+    expect(endpoint).toMatch(/resolveReadingContext\(\s*userId,\s*null,[\s\S]*?\{ repairCanonical: false \}/u);
     expect(endpoint).toContain('primaryContext?.profile.birthTimezone');
     expect(endpoint).toContain("getPersonalForecastPeriodKey('day', new Date(), quotaTimezone)");
     expect(endpoint).toContain('timezone: quotaTimezone');

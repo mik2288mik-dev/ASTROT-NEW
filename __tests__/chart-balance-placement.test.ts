@@ -27,7 +27,8 @@ describe('chart balance placement and copy', () => {
     expect(natalMagazine).not.toContain('<ChartBalance');
     expect(natalMagazine).not.toContain('<TechnicalDetails');
     expect(humanReport).not.toContain('<ChartBalance');
-    expect(humanReport).toContain('{showAstrology ? <TechnicalDetails');
+    expect(humanReport).toContain('<details className="natal-technical-details');
+    expect(humanReport).toContain('<TechnicalDetails chartData={chartData} language={language} />');
     expect(humanReport).toContain('freeSections.map');
     expect(humanReport).toContain('<PremiumReport');
   });

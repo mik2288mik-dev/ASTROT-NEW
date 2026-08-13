@@ -744,6 +744,87 @@
   padding: 0;
 }
 
+.natal-editorial-page .natal-evidence-disclosure {
+  max-width: 34rem;
+  margin-top: 14px;
+}
+
+.natal-editorial-page .natal-evidence-disclosure summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #71757c;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.natal-editorial-page .natal-report-retry {
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 10px 16px;
+  border: 1px solid var(--natal-editorial-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--natal-editorial-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.natal-editorial-page .natal-personality-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  margin: 0 auto 28px;
+  padding: 22px 20px;
+  border-top: 1px solid var(--natal-editorial-line);
+  border-bottom: 1px solid var(--natal-editorial-line);
+}
+
+.natal-editorial-page .natal-personality-entry h2,
+.natal-editorial-page .natal-personality-entry p {
+  margin: 0;
+}
+
+.natal-editorial-page .natal-personality-entry h2 {
+  font-size: 21px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.natal-editorial-page .natal-personality-entry p {
+  max-width: 34rem;
+  margin-top: 7px;
+  color: var(--natal-editorial-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.natal-editorial-page .natal-personality-entry button {
+  min-height: 44px;
+  padding: 10px 17px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--natal-editorial-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .natal-editorial-page .natal-personality-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .natal-editorial-page .natal-personality-entry button {
+    width: 100%;
+  }
+}
+
 .natal-editorial-page .natal-statement + .natal-statement {
   margin-top: 0.9em;
 }

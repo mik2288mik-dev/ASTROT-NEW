@@ -82,13 +82,28 @@ export function isCanonicalNatalChartDataComplete(chartData: any): boolean {
   if (!data || typeof data !== 'object') return false;
   if (data.schemaVersion !== NATAL_CHART_SCHEMA_VERSION) return false;
   if (data.calculationVersion !== CANONICAL_NATAL_CALCULATION_VERSION) return false;
-  if (!data.birth || !data.positions || !data.angles || !data.chartQuality || !data.calculationMetadata) return false;
+  if (!data.birth || !data.positions || !data.chartQuality || !data.calculationMetadata) return false;
   if (!data.positions.sun || !data.positions.moon || !data.positions.chiron || !data.positions.northNode) return false;
   if (!Array.isArray(data.houses) || !Array.isArray(data.aspects)) return false;
-  if (data.birth.time?.mode === 'exact') {
-    if (!data.angles.ascendant || !data.angles.mc || data.houses.length !== 12) return false;
-  } else if (data.birth.time?.mode === 'unknown') {
-    if (data.angles.ascendant || data.angles.mc || data.houses.length !== 0) return false;
+  const timeMode = data.birth.time?.mode;
+  if (!['exact', 'approximate', 'range', 'unknown'].includes(timeMode)) return false;
+  const expectedQuality = timeMode === 'exact'
+    ? 'exact'
+    : timeMode === 'unknown'
+      ? 'unknown'
+      : 'approximate';
+  if (
+    data.chartQuality.birthTimeMode !== timeMode
+    || data.chartQuality.birthTimeQuality !== expectedQuality
+    || data.birthTimeQuality !== expectedQuality
+  ) return false;
+
+  if (timeMode === 'exact') {
+    if (!data.angles?.ascendant || !data.angles?.mc || data.houses.length !== 12) return false;
+  } else if (timeMode === 'unknown') {
+    if (Object.values(data.angles || {}).some(Boolean) || data.houses.length !== 0) return false;
+  } else if (!data.angles || typeof data.angles !== 'object' || data.houses.length !== 12) {
+    return false;
   }
   return true;
 }

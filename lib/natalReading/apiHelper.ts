@@ -78,7 +78,8 @@ export async function resolveReadingContext(
   userId: string,
   chartId: number | null,
   profileFallback?: Partial<UserProfile>,
-  _chartDataFallback?: NatalChartData | null
+  _chartDataFallback?: NatalChartData | null,
+  options: { repairCanonical?: boolean } = {},
 ): Promise<ReadingContext | null> {
   const user = await db.users.get(userId);
   if (!user) return null;
@@ -96,7 +97,8 @@ export async function resolveReadingContext(
     (resolvedChart?.birth_date || user.birth_date)
     && (resolvedChart?.birth_place || user.birth_place),
   );
-  if (!resolvedChart && chartId == null && profileHasBirthData) {
+  const repairCanonical = options.repairCanonical !== false;
+  if (repairCanonical && !resolvedChart && chartId == null && profileHasBirthData) {
     console.info('[natal/context] restoring missing primary V2 chart from birth profile', { userId });
     const repaired = await repairCanonicalChartForUser(userId);
     if (repaired?.chart && isCanonicalNatalChartDataComplete(repaired.chart.chart_data)) {
@@ -104,7 +106,9 @@ export async function resolveReadingContext(
     }
   }
   if (
-    resolvedChart
+    repairCanonical
+    && resolvedChart
+    && isSelfChart(resolvedChart)
     && !isCanonicalNatalChartDataComplete(resolvedChart.chart_data)
     && resolvedChart.birth_date
     && resolvedChart.birth_place
@@ -272,6 +276,8 @@ export async function isPremium(userId: string): Promise<boolean> {
 type EnsureValidContextOptions = {
   allowGuest?: boolean;
   requireSelfChart?: boolean;
+  requireCanonicalSnapshot?: boolean;
+  repairCanonicalSnapshot?: boolean;
   onAuthSuccess?: (detail: { userId: string }) => void;
   onAuthFailed?: (detail: { userId?: string | null; status: number; code: string; error?: unknown }) => void;
   onChartResolved?: (detail: { userId: string; chartId: number | null; hasChartData: boolean }) => void;
@@ -389,7 +395,8 @@ export async function ensureValidContext(
     userId,
     chartId,
     req.method === 'POST' ? req.body?.profile : undefined,
-    req.method === 'POST' ? req.body?.chartData : undefined
+    req.method === 'POST' ? req.body?.chartData : undefined,
+    { repairCanonical: options.repairCanonicalSnapshot !== false },
   );
   if (!ctx) {
     options.onChartFailed?.({
@@ -413,6 +420,20 @@ export async function ensureValidContext(
     res.status(409).json({
       error: 'PRIMARY_CHART_MISSING',
       message: 'A saved natal chart is required for the natal reading.',
+    });
+    return null;
+  }
+  if (options.requireCanonicalSnapshot && !isCanonicalNatalChartDataComplete(ctx.chartData)) {
+    options.onChartFailed?.({
+      userId,
+      chartId: ctx.chartId ?? chartId,
+      status: 409,
+      code: 'NATAL_SNAPSHOT_INVALID',
+      error: new Error('A complete saved natal snapshot is required.'),
+    });
+    res.status(409).json({
+      error: 'NATAL_SNAPSHOT_INVALID',
+      message: 'A complete saved natal snapshot is required. Open the natal chart and check its data.',
     });
     return null;
   }

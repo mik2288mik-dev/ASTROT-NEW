@@ -7,7 +7,6 @@ import {
 } from '../../../../lib/natalReading/apiHelper';
 import {
   buildPermanentNatalCacheKey,
-  buildPermanentFreeFallback,
   buildPermanentNatalInputHash,
   NATAL_PERMANENT_FREE_CACHE_KEY,
   NATAL_PERMANENT_FREE_PROMPT_VERSION,
@@ -26,7 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   }
-  const ready = await ensureValidContext(req, res, { allowGuest: true });
+  const ready = await ensureValidContext(req, res, {
+    allowGuest: true,
+    requireCanonicalSnapshot: true,
+    repairCanonicalSnapshot: false,
+  });
   if (!ready) return;
   const { userId, ctx } = ready;
 
@@ -93,20 +96,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error) {
     console.error('[natal/human-base] generation failed:', error instanceof Error ? error.message : error);
-    const fallback = buildPermanentFreeFallback(ctx.profile, ctx.chartData!);
-    const saved = await saveReading(
-      ctx,
-      {
-        ...cacheOpts,
-        isPersistent: false,
-        validTo: new Date(Date.now() + 6 * 60 * 60 * 1000),
-        history: { source: 'deterministic_fallback', generationAttempts: 0 },
-      },
-      fallback
-    ).catch(() => null);
-    return res.status(200).json({
-      interpretation: saved || { content: fallback, promptVersion: cacheOpts.promptVersion },
-      source: saved ? 'fallback' : 'fallback-inline',
+    return res.status(503).json({
+      error: 'NATAL_REPORT_GENERATION_FAILED',
+      code: 'NATAL_REPORT_GENERATION_FAILED',
+      message: language === 'en'
+        ? 'The reading could not be prepared right now. Try again — the saved chart has not changed.'
+        : 'Разбор сейчас не собрался. Попробуй ещё раз — сохранённая карта не изменилась.',
+      retryable: true,
     });
   }
 }

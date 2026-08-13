@@ -1224,6 +1224,7 @@ export type ViewState =
   | 'paywall'
   | 'dashboard'
   | 'chart'
+  | 'personality'
   | 'horoscope'
   | 'synastry'
   | 'matrix'

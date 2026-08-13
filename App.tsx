@@ -3,7 +3,8 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
-import { UserProfile, NatalChartData, ViewState, NatalInterpretationReport } from './types';
+import { UserProfile, NatalChartData, ViewState } from './types';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
 import {
     getProfile,
     saveProfile,
@@ -37,6 +38,10 @@ import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
 import { LumiaSideDrawer } from './components/lumia-ui/LumiaSideDrawer';
 import type { PersonalForecastPeriod } from './lib/personalForecastContract';
+import {
+    NATAL_PERMANENT_CONTRACT_VERSION,
+    buildPermanentNatalChartFingerprint,
+} from './lib/natalReading/permanentReport';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
 import { getPaymentProvider } from './services/paymentProvider';
@@ -81,6 +86,7 @@ const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => m
     loading: () => <Loading />,
 });
 const NatalMagazine = dynamic(() => import('./views/v2/NatalMagazine').then((module) => module.NatalMagazine), { ssr: false });
+const PersonalityReport = dynamic(() => import('./views/PersonalityReport').then((module) => module.PersonalityReport), { ssr: false });
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
 const Settings = dynamic(() => import('./views/Settings').then((module) => module.Settings), { ssr: false });
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
@@ -109,6 +115,11 @@ type SynastryPrefill = {
 } | null;
 
 type ChartLoadState = 'idle' | 'loading' | 'ready' | 'error';
+const hasReadableNatalChart = (chart: NatalChartData | null | undefined): chart is NatalChartData => {
+    if (!chart?.sun || !chart?.moon) return false;
+    const quality = chart.birthTimeQuality || chart.chartQuality?.birthTimeQuality;
+    return quality === 'unknown' || !!chart.rising;
+};
 type TelegramWebAppUser = {
     id?: string | number;
     first_name?: string;
@@ -236,7 +247,7 @@ const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
     const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
-    const [preloadedHumanReport, setPreloadedHumanReport] = useState<NatalInterpretationReport | null>(null);
+    const [preloadedHumanReport, setPreloadedHumanReport] = useState<PreloadedNatalReport | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [activeChartSubject, setActiveChartSubject] = useState<ChartListItem | null>(null);
     const [primaryChartId, setPrimaryChartId] = useState<number | null>(null);
@@ -272,7 +283,7 @@ const App: React.FC = () => {
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<ViewState>('onboarding');
-    const onboardingTargetViewRef = useRef<ViewState>('dashboard');
+    const onboardingTargetViewRef = useRef<ViewState>('personality');
     const onboardingCompletionRef = useRef(false);
     const restoredRuStoreUserRef = useRef<string | null>(null);
     const navigationHistoryRef = useRef<ViewState[]>([]);
@@ -306,22 +317,26 @@ const App: React.FC = () => {
         targetChartData?: NatalChartData | null,
     ) => {
         const userId = targetProfile.id ? String(targetProfile.id) : '';
-        if (!userId) return null;
+        if (!userId || !targetChartData) return null;
         const cacheContext = { chartData: targetChartData || null };
+        const reportCacheIdentity = {
+            chartFingerprint: buildPermanentNatalChartFingerprint(targetProfile, targetChartData),
+            reportVersion: NATAL_PERMANENT_CONTRACT_VERSION,
+        };
 
-        const cached = getHumanBaseReportCached(userId, targetChartId, targetProfile.language)
+        const cached = getHumanBaseReportCached(userId, targetChartId, targetProfile.language, reportCacheIdentity)
             || readLocalHumanBaseReportWithFallback(targetProfile, targetChartId, cacheContext);
         if (cached) {
-            setPreloadedHumanReport(cached);
+            setPreloadedHumanReport({ report: cached, ...reportCacheIdentity });
             return cached;
         }
-        const dbCached = await getCachedHumanBaseReport(userId, targetChartId, targetProfile.language).catch((error: any) => {
+        const dbCached = await getCachedHumanBaseReport(userId, targetChartId, targetProfile.language, reportCacheIdentity).catch((error: any) => {
             console.warn('[App] Human base report cache read failed:', error?.message || error);
             return null;
         });
         if (dbCached) {
             writeLocalHumanBaseReport(targetProfile, dbCached, targetChartId, cacheContext);
-            setPreloadedHumanReport(dbCached);
+            setPreloadedHumanReport({ report: dbCached, ...reportCacheIdentity });
             return dbCached;
         }
         return null;
@@ -379,7 +394,7 @@ const App: React.FC = () => {
         const key = getPrimaryChartLoadKey(targetProfile);
         const current = primaryChartSessionRef.current;
 
-        if (current.key === key && current.data?.sun && current.data?.moon && current.data?.rising) {
+        if (current.key === key && hasReadableNatalChart(current.data)) {
             setChartData(current.data);
             setChartLoadState('ready');
             return current.data;
@@ -421,7 +436,7 @@ const App: React.FC = () => {
         setChartLoadState('loading');
         const promise = getOrCalculateChart(targetProfile)
             .then((chart) => {
-                if (chart?.sun && chart?.moon && chart?.rising) {
+                if (hasReadableNatalChart(chart)) {
                     primaryChartSessionRef.current = { key, data: chart, promise: null };
                     primaryChartDataRef.current = chart;
                     writeLocalNatalChart(targetProfile, chart);
@@ -617,20 +632,32 @@ const App: React.FC = () => {
             refreshChartFromDb: boolean,
         ) => {
             const userId = String(targetProfile.id);
-            const startHumanBasePrefetch = (chartId: number, reportChartData: NatalChartData) => {
-                void prefetchHumanBaseReport(userId, chartId, targetProfile.language)
+            const startHumanBasePrefetch = (
+                chartId: number,
+                reportChartData: NatalChartData,
+                isCurrentSnapshot: () => boolean,
+            ) => {
+                const reportCacheIdentity = {
+                    chartFingerprint: buildPermanentNatalChartFingerprint(targetProfile, reportChartData),
+                    reportVersion: NATAL_PERMANENT_CONTRACT_VERSION,
+                };
+                void prefetchHumanBaseReport(userId, chartId, targetProfile.language, reportCacheIdentity)
                     .then((report) => {
                         writeLocalHumanBaseReport(targetProfile, report, chartId, {
                             chartData: reportChartData,
                         });
-                        if (!cancelled) setPreloadedHumanReport(report);
+                        if (!cancelled && isCurrentSnapshot()) {
+                            setPreloadedHumanReport({ report, ...reportCacheIdentity });
+                        }
                     })
                     .catch((error: any) => {
                         console.warn('[App] Human base report background prefetch failed:', error?.message || error);
                     });
             };
             if (initialChartId != null) {
-                startHumanBasePrefetch(initialChartId, initialChart);
+                startHumanBasePrefetch(initialChartId, initialChart, () => (
+                    primaryChartDataRef.current === initialChart
+                ));
             }
 
             void (async () => {
@@ -640,13 +667,17 @@ const App: React.FC = () => {
                 const chartRefresh = refreshChartFromDb
                     ? getChartFromDB(String(targetProfile.id))
                         .then((freshChart) => {
-                            if (!freshChart?.sun || !freshChart?.moon || !freshChart?.rising) return;
+                            if (!hasReadableNatalChart(freshChart)) return;
                             chart = freshChart;
                             const key = getPrimaryChartLoadKey(targetProfile);
                             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
                             primaryChartDataRef.current = freshChart;
                             writeLocalNatalChart(targetProfile, freshChart, chartId ?? undefined);
                             if (!cancelled) {
+                                const freshFingerprint = buildPermanentNatalChartFingerprint(targetProfile, freshChart);
+                                setPreloadedHumanReport((current) => (
+                                    current?.chartFingerprint === freshFingerprint ? current : null
+                                ));
                                 setChartData(freshChart);
                                 setChartLoadState('ready');
                             }
@@ -661,7 +692,12 @@ const App: React.FC = () => {
                         if (freshPrimaryChartId == null) return;
                         chartId = freshPrimaryChartId;
                         writeLocalNatalChart(targetProfile, chart, freshPrimaryChartId);
-                        if (initialChartId == null) startHumanBasePrefetch(freshPrimaryChartId, chart);
+                        if (initialChartId == null) {
+                            const reportChart = chart;
+                            startHumanBasePrefetch(freshPrimaryChartId, reportChart, () => (
+                                primaryChartDataRef.current === reportChart
+                            ));
+                        }
                         if (!cancelled) {
                             setPrimaryChartId(freshPrimaryChartId);
                         }
@@ -1037,23 +1073,23 @@ const App: React.FC = () => {
 
             setLoadingProgress(100);
             setLoadingMessage(undefined);
-            const targetView = isGuestOnboarding ? 'chart' : onboardingTargetViewRef.current || 'dashboard';
-            if (targetView === 'chart') {
+            const targetView = isGuestOnboarding ? 'personality' : onboardingTargetViewRef.current || 'personality';
+            if (targetView === 'chart' || targetView === 'personality') {
                 setActiveChartId(undefined);
                 setActiveChartSubject(null);
                 setChartReturnView('dashboard');
             }
-            // Первая регистрация → показываем тарифы (триал уже активен). Повторное
-            // редактирование карты ведёт сразу в приложение, без пейвола.
+            // После первого расчёта сначала показываем законченный Free-портрет.
+            // Premium предлагается уже после полученной пользы внутри отчёта.
             const isFirstSetup = !profile?.isSetup;
             await new Promise((resolve) => setTimeout(resolve, 300));
             if (isFirstSetup) {
-                setPaywallTarget(targetView);
-                setView('paywall');
+                setPaywallTarget(null);
+                setView('personality');
             } else {
                 setView(targetView);
             }
-            onboardingTargetViewRef.current = 'dashboard';
+            onboardingTargetViewRef.current = 'personality';
             
         } catch (error: any) {
             console.error('[App] Error during onboarding:', error);
@@ -1475,7 +1511,7 @@ const App: React.FC = () => {
             setChartData(freshChart);
             setActiveChartId(undefined);
             setActiveChartSubject(null);
-            if (freshChart?.sun && freshChart?.moon && freshChart?.rising) {
+            if (hasReadableNatalChart(freshChart)) {
                 void prepareUserContentDbFirst({
                     userId: String(profile.id),
                     chartId: freshPrimaryChartId,
@@ -1504,6 +1540,8 @@ const App: React.FC = () => {
                 ? 'settings'
                 : currentView === 'charts'
                   ? chartsReturnView
+                  : currentView === 'personality'
+                    ? 'chart'
                   : currentView === 'chart'
                       ? chartReturnView
                       : 'dashboard';
@@ -1634,6 +1672,14 @@ const App: React.FC = () => {
         setSynastryPrefill(prefill);
         navigateTo('synastry');
     }, [gateFeatureAccess, navigateTo]);
+
+    const openPersonalityReport = useCallback(() => {
+        if (!chartData) {
+            openNatalSetupOnboarding(viewRef.current, 'personality');
+            return;
+        }
+        navigateTo('personality');
+    }, [chartData, navigateTo, openNatalSetupOnboarding]);
 
     const openBottomToday = useCallback(() => {
         navigateTo('dashboard', { replace: true });
@@ -1873,6 +1919,45 @@ const App: React.FC = () => {
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
                         />
                     </div>
+                ) : view === 'personality' && chartData ? (
+                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                        <PersonalityReport
+                            profile={profile}
+                            primaryChartData={primaryChartDataRef.current || chartData}
+                            primaryChartId={primaryChartId ?? undefined}
+                            preloadedReport={preloadedHumanReport}
+                            requestPremium={() => { void requestPremium('personality'); }}
+                            onBack={() => { void handleBack(); }}
+                            onOpenNatalChart={(selected) => {
+                                if (selected) {
+                                    setChartData(selected.chart_data);
+                                    setActiveChartId(selected.id);
+                                    setActiveChartSubject(selected);
+                                    setChartReturnView('personality');
+                                } else {
+                                    setChartData(primaryChartDataRef.current || chartData);
+                                    setActiveChartId(undefined);
+                                    setActiveChartSubject(null);
+                                    setChartReturnView('personality');
+                                }
+                                pushReturnView('personality');
+                                setView('chart');
+                            }}
+                            onCompareWithMe={(selected) => {
+                                if (primaryChartDataRef.current) setChartData(primaryChartDataRef.current);
+                                setActiveChartId(undefined);
+                                setActiveChartSubject(null);
+                                openSynastryWithPrefill({
+                                    source: 'saved-chart',
+                                    partnerChartId: selected.id,
+                                    partnerName: selected.name,
+                                    partnerDate: selected.birth_date,
+                                    partnerTime: selected.birth_time || undefined,
+                                    partnerPlace: selected.birth_place,
+                                });
+                            }}
+                        />
+                    </div>
                 ) : view === 'chart' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <NatalMagazine
@@ -1884,6 +1969,7 @@ const App: React.FC = () => {
                             onUpdateProfile={handleProfileUpdate}
                             preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}
                             onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}
+                            onOpenPersonalityReport={openPersonalityReport}
                         />
                         <PromoBanner
                             category="zodiac"

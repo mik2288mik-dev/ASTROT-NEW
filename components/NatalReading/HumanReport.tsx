@@ -4,7 +4,6 @@ import { ChevronDown, Crown, MessageCircle, Send } from 'lucide-react';
 import type {
   InterpretationSection,
   NatalChartData,
-  NatalInterpretationReport,
   UserProfile,
 } from '../../types';
 import {
@@ -22,14 +21,18 @@ import {
 } from '../../services/natalReadingService';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import {
+  NATAL_PERMANENT_CONTRACT_VERSION,
+  buildPermanentNatalChartFingerprint,
   buildNatalModelContext,
   getPermanentNatalReliability,
+  isNatalPermanentFreeReport,
   type NatalEvidenceFact,
   type NatalPermanentFreeReport,
   type NatalPermanentPremiumReport,
   type NatalReadingStatement,
 } from '../../lib/natalReading/permanentReport';
 import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
+import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
 import type { EditorialStickerAsset } from '../../lib/personalForecastVisuals/editorialTypes';
 import type { ChartListItem } from '../../services/storageService';
 import { PlanetIcon } from '../icons/PlanetIcon';
@@ -37,10 +40,12 @@ import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { EditorialSticker } from '../EditorialSticker';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
-import {
-  AstrologyDetailsToggle,
-  useAstrologyDetailsPreference,
-} from '../AstrologyDetailsToggle';
+
+export type PreloadedNatalReport = {
+  report: NatalPermanentFreeReport;
+  chartFingerprint: string;
+  reportVersion: string;
+};
 
 type Props = {
   profile: UserProfile;
@@ -49,7 +54,7 @@ type Props = {
   chartSubject?: ChartListItem | null;
   requestPremium: () => void;
   onUpdateProfile?: (profile: UserProfile) => void;
-  preloadedReport?: NatalInterpretationReport | null;
+  preloadedReport?: PreloadedNatalReport | null;
   editorialSticker?: EditorialStickerAsset | null;
   /** Шапку (имя/дата/интро) рисует родитель (NatalMagazine) — не дублируем. */
   hideIntro?: boolean;
@@ -246,22 +251,31 @@ const NatalEvidenceDetails: React.FC<{
   if (!labels.length) return null;
 
   return (
-    <ul
-      className="natal-inline-evidence"
-      aria-label={language === 'ru' ? 'Астрологические основания' : 'Astrological evidence'}
-    >
-      {labels.map((label) => <li key={label}>{label}</li>)}
-    </ul>
+    <details className="natal-evidence-disclosure">
+      <summary>{language === 'ru' ? 'Почему так?' : 'Why this?'}</summary>
+      <ul
+        className="natal-inline-evidence"
+        aria-label={language === 'ru' ? 'Астрологические основания' : 'Astrological evidence'}
+      >
+        {labels.map((label) => <li key={label}>{label}</li>)}
+      </ul>
+    </details>
   );
 };
+
+function questionMessageEvidenceIds(message: NatalQuestionStoredMessage): string[] {
+  const value = message.payload?.evidenceIds || message.payload?.evidence_ids;
+  return Array.isArray(value)
+    ? [...new Set(value.map((id) => String(id || '').trim()).filter(Boolean))]
+    : [];
+}
 
 const SectionText: React.FC<{
   section: InterpretationSection;
   index?: number;
-  showAstrology: boolean;
   evidenceById: NatalEvidenceMap;
   language: 'ru' | 'en';
-}> = ({ section, index = 0, showAstrology, evidenceById, language }) => {
+}> = ({ section, index = 0, evidenceById, language }) => {
   const reduce = useReducedMotion();
   const Comp = reduce ? 'section' : motion.section;
   return (
@@ -287,13 +301,11 @@ const SectionText: React.FC<{
         className="natal-sec-body max-w-none"
         paragraphClassName="natal-sec-p"
       />
-      {showAstrology ? (
-        <NatalEvidenceDetails
-          evidenceIds={section.evidenceIds}
-          evidenceById={evidenceById}
-          language={language}
-        />
-      ) : null}
+      <NatalEvidenceDetails
+        evidenceIds={section.evidenceIds}
+        evidenceById={evidenceById}
+        language={language}
+      />
     </Comp>
   );
 };
@@ -338,15 +350,34 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
   language,
 }) => {
   const reliability = getPermanentNatalReliability(chartData);
+  const technicalProfile = {
+    id: '',
+    name: '',
+    birthDate: '',
+    birthTime: '',
+    birthPlace: '',
+    isSetup: true,
+    isPremium: false,
+    language,
+    theme: 'light' as const,
+  };
+  const technicalEvidence = buildNatalModelContext(technicalProfile, chartData).context.evidence;
+  const usablePlacementIds = new Set(
+    technicalEvidence
+      .filter((fact) => fact.kind === 'placement' && !!fact.data.sign)
+      .map((fact) => fact.id),
+  );
   const positions = chartData.positions as Record<string, any> | undefined;
   const chartQualityV2 = chartData.chartQuality as unknown as {
     stableHousePlacements?: string[];
     variableAngles?: string[];
     variableHouses?: number[];
+    variableAspectIds?: string[];
   } | undefined;
   const stableHousePlacements = new Set(chartQualityV2?.stableHousePlacements || []);
   const variableAngles = new Set(chartQualityV2?.variableAngles || []);
   const variableHouses = new Set(chartQualityV2?.variableHouses || []);
+  const variableAspectIds = new Set(chartQualityV2?.variableAspectIds || []);
   const reliableAngleKeys = new Set(
     Object.entries(chartData.angles || {})
       .filter(([key, value]: [string, any]) => (
@@ -376,6 +407,7 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
         ? (chartData.angles?.mc || chartData.mc)
         : positions?.[item.key] || (chartData as any)[item.key];
     if (!position?.sign) return null;
+    if (!isAngle && !usablePlacementIds.has(`natal.position.${item.key}`)) return null;
     const showHouse = reliability.housesIncluded
       && (
         reliability.quality === 'exact'
@@ -386,16 +418,19 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
       ...item,
       label: language === 'ru' ? item.labelRu : item.labelEn,
       sign: language === 'ru' ? ruSign(position.sign) : String(position.sign),
-      degree: fmtDegree(position.degree),
+      degree: reliability.quality === 'exact' || position.reliability === 'exact'
+        ? fmtDegree(position.degree)
+        : '',
       house: showHouse && position.house != null
         ? `${position.house} ${language === 'ru' ? 'дом' : 'house'}`
         : '',
-      retrograde: position.retrograde === true,
+      retrograde: position.retrograde === true
+        && (reliability.quality === 'exact' || position.stable?.retrograde === true),
     };
   }).filter(Boolean);
   const aspects = (chartData.aspects || [])
     .filter((aspect: any) => {
-      if (aspect?.reliable === false) return false;
+      if (aspect?.reliable === false || variableAspectIds.has(String(aspect?.id || ''))) return false;
       if (!aspectUsesAngle(aspect)) return true;
       const from = normalizedAngleKey(aspect.fromKey || aspect.from);
       const to = normalizedAngleKey(aspect.toKey || aspect.to);
@@ -484,13 +519,11 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
 const StatementText: React.FC<{
   statement: NatalReadingStatement;
   className?: string;
-  showAstrology: boolean;
   evidenceById: NatalEvidenceMap;
   language: 'ru' | 'en';
 }> = ({
   statement,
   className = '',
-  showAstrology,
   evidenceById,
   language,
 }) => (
@@ -500,22 +533,19 @@ const StatementText: React.FC<{
       className={`max-w-none ${className}`}
       paragraphClassName="natal-sec-p"
     />
-    {showAstrology ? (
-      <NatalEvidenceDetails
-        evidenceIds={statement.evidenceIds}
-        evidenceById={evidenceById}
-        language={language}
-      />
-    ) : null}
+    <NatalEvidenceDetails
+      evidenceIds={statement.evidenceIds}
+      evidenceById={evidenceById}
+      language={language}
+    />
   </div>
 );
 
 const PremiumReport: React.FC<{
   report: NatalPermanentPremiumReport;
-  showAstrology: boolean;
   evidenceById: NatalEvidenceMap;
   language: 'ru' | 'en';
-}> = ({ report, showAstrology, evidenceById, language }) => (
+}> = ({ report, evidenceById, language }) => (
   <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
     {report.sections.map((section) => (
       <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
@@ -525,7 +555,6 @@ const PremiumReport: React.FC<{
             <StatementText
               key={`${section.id}-${index}`}
               statement={paragraph}
-              showAstrology={showAstrology}
               evidenceById={evidenceById}
               language={language}
             />
@@ -570,22 +599,34 @@ export const HumanReport: React.FC<Props> = ({
   chartSubject,
   requestPremium,
   onUpdateProfile: _onUpdateProfile,
+  preloadedReport,
   editorialSticker,
   hideIntro,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
   const subjectName = chartSubject?.name || profile.name;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const { showAstrology, setShowAstrology } = useAstrologyDetailsPreference();
+  const cacheIdentity = useMemo(() => ({
+    chartFingerprint: buildPermanentNatalChartFingerprint(profile, chartData),
+    reportVersion: NATAL_PERMANENT_CONTRACT_VERSION,
+  }), [chartData, profile]);
+  const matchingPreloadedReport = useMemo(() => (
+    preloadedReport
+    && preloadedReport.chartFingerprint === cacheIdentity.chartFingerprint
+    && preloadedReport.reportVersion === cacheIdentity.reportVersion
+    && isNatalPermanentFreeReport(preloadedReport.report)
+      ? preloadedReport.report
+      : null
+  ), [cacheIdentity.chartFingerprint, cacheIdentity.reportVersion, preloadedReport]);
   const evidenceById = useMemo<NatalEvidenceMap>(() => {
     const built = buildNatalModelContext(profile, chartData);
     return new Map(built.context.evidence.map((fact) => [fact.id, fact]));
   }, [chartData, profile]);
-  const cachedBase = userId ? getHumanBaseReportCached(userId, chartId, language) : null;
-  // Legacy preloaded reports do not carry a chart fingerprint. Reusing them
-  // here could display one saved person's reading for another chart.
-  const initialBase = cachedBase;
-  const cachedPremium = userId ? getHumanPremiumReportCached(userId, chartId, language)?.content || null : null;
+  const cachedBase = userId ? getHumanBaseReportCached(userId, chartId, language, cacheIdentity) : null;
+  const initialBase = matchingPreloadedReport || cachedBase;
+  const cachedPremium = userId
+    ? getHumanPremiumReportCached(userId, chartId, language, cacheIdentity)?.content || null
+    : null;
   const [report, setReport] = useState<NatalPermanentFreeReport | null>(initialBase);
   const [premiumReport, setPremiumReport] = useState<NatalPermanentPremiumReport | null>(cachedPremium);
   const [loading, setLoading] = useState(!initialBase);
@@ -597,7 +638,9 @@ export const HumanReport: React.FC<Props> = ({
   const [questionText, setQuestionText] = useState('');
   const [questionLoading, setQuestionLoading] = useState(false);
   const [questionError, setQuestionError] = useState<string | null>(null);
-  const reportIdentity = `${userId}:${chartId ?? 'primary'}:${language}`;
+  const [baseRetryToken, setBaseRetryToken] = useState(0);
+  const [premiumRetryToken, setPremiumRetryToken] = useState(0);
+  const reportIdentity = `${userId}:${chartId ?? 'primary'}:${language}:${cacheIdentity.chartFingerprint}:${cacheIdentity.reportVersion}`;
   const baseIdentityRef = useRef(reportIdentity);
   const premiumIdentityRef = useRef(reportIdentity);
 
@@ -611,25 +654,27 @@ export const HumanReport: React.FC<Props> = ({
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    const cached = getHumanBaseReportCached(userId, chartId, language);
+    const cached = getHumanBaseReportCached(userId, chartId, language, cacheIdentity);
+    const preload = matchingPreloadedReport;
+    const available = cached || preload;
     const identityChanged = baseIdentityRef.current !== reportIdentity;
     baseIdentityRef.current = reportIdentity;
-    if (cached) setReport(cached);
+    if (available) setReport(available);
     else if (identityChanged) setReport(null);
-    setLoading(!cached);
+    setLoading(!available);
     setError(null);
-    void ensureHumanBaseReport(userId, chartId, language)
+    void ensureHumanBaseReport(userId, chartId, language, cacheIdentity)
       .then((next) => {
         if (!cancelled) setReport(next);
       })
       .catch((loadError) => {
-        if (!cancelled && !cached) setError(formatError(loadError));
+        if (!cancelled && !available) setError(formatError(loadError));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [chartId, language, reportIdentity, userId]);
+  }, [baseRetryToken, cacheIdentity, chartId, language, matchingPreloadedReport, reportIdentity, userId]);
 
   useEffect(() => {
     if (!isPremium || !userId) {
@@ -638,14 +683,14 @@ export const HumanReport: React.FC<Props> = ({
       return;
     }
     let cancelled = false;
-    const cached = getHumanPremiumReportCached(userId, chartId, language)?.content || null;
+    const cached = getHumanPremiumReportCached(userId, chartId, language, cacheIdentity)?.content || null;
     const identityChanged = premiumIdentityRef.current !== reportIdentity;
     premiumIdentityRef.current = reportIdentity;
     if (cached) setPremiumReport(cached);
     else if (identityChanged) setPremiumReport(null);
     setPremiumLoading(!cached);
     setPremiumError(null);
-    void ensureHumanPremiumReport(userId, chartId, language)
+    void ensureHumanPremiumReport(userId, chartId, language, cacheIdentity)
       .then((result) => {
         if (!cancelled) setPremiumReport(result.content);
       })
@@ -656,7 +701,7 @@ export const HumanReport: React.FC<Props> = ({
         if (!cancelled) setPremiumLoading(false);
       });
     return () => { cancelled = true; };
-  }, [chartId, isPremium, language, reportIdentity, userId]);
+  }, [cacheIdentity, chartId, isPremium, language, premiumRetryToken, reportIdentity, userId]);
 
   useEffect(() => {
     setQuestionOpen(false);
@@ -733,7 +778,7 @@ export const HumanReport: React.FC<Props> = ({
               {language === 'ru' ? 'Натальная карта' : 'Natal chart'}
             </p>
             <h1 className="mt-3 font-sans text-[36px] font-semibold leading-[1.02] tracking-[-0.035em] text-[#1f1f1f] sm:text-[44px]">
-              {report?.userName || subjectName || (language === 'ru' ? 'Твоя карта' : 'Your chart')}
+              {subjectName || report?.userName || (language === 'ru' ? 'Твоя карта' : 'Your chart')}
             </h1>
           </header>
         ) : null}
@@ -741,32 +786,16 @@ export const HumanReport: React.FC<Props> = ({
         {reliability.quality === 'unknown' ? (
           <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
             {language === 'ru'
-              ? (showAstrology
-                ? 'Время рождения неизвестно. Асцендент, MC, дома, куспиды и управители домов полностью исключены из разбора.'
-                : 'Время рождения неизвестно, поэтому разбор не использует детали, которые зависят от него.')
-              : (showAstrology
-                ? 'Birth time is unknown. Ascendant, MC, houses, cusps, and house rulers are fully excluded from this reading.'
-                : 'Birth time is unknown, so the reading excludes details that depend on it.')}
+              ? 'Время рождения неизвестно, поэтому разбор не использует первое впечатление, дома и другие детали, которые зависят от времени. Остальной портрет опирается на надёжные положения и аспекты.'
+              : 'Birth time is unknown, so the reading excludes first impressions, houses, and other time-dependent details. The rest uses reliable placements and aspects.'}
           </p>
         ) : reliability.quality === 'approximate' ? (
           <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
             {language === 'ru'
-              ? (showAstrology
-                ? 'Время рождения приблизительное. В разбор включены только те углы и дома, которые расчёт пометил как устойчивые.'
-                : 'Время рождения приблизительное, поэтому в разбор вошли только устойчивые к погрешности данные.')
-              : (showAstrology
-                ? 'Birth time is approximate. Only angles and houses explicitly marked stable by the calculation are included.'
-                : 'Birth time is approximate, so the reading uses only details stable within that uncertainty.')}
+              ? 'Время рождения приблизительное, поэтому в разбор вошли только данные, устойчивые к этой погрешности.'
+              : 'Birth time is approximate, so the reading uses only details stable within that uncertainty.'}
           </p>
         ) : null}
-
-        <div className="natal-astrology-toggle-row">
-          <AstrologyDetailsToggle
-            checked={showAstrology}
-            onChange={setShowAstrology}
-            language={language}
-          />
-        </div>
 
         <div aria-live="polite" aria-busy={loading && !report}>
           {loading && !report ? (
@@ -777,6 +806,13 @@ export const HumanReport: React.FC<Props> = ({
                 {language === 'ru' ? 'Интерпретация сейчас недоступна' : 'The interpretation is unavailable'}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-[#666]">{error}</p>
+              <button
+                type="button"
+                className="natal-report-retry"
+                onClick={() => setBaseRetryToken((value) => value + 1)}
+              >
+                {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
+              </button>
             </section>
           ) : (
             <>
@@ -786,20 +822,17 @@ export const HumanReport: React.FC<Props> = ({
                   className="natal-reading-hook-text"
                   paragraphClassName="natal-reading-hook-paragraph"
                 />
-                {showAstrology ? (
-                  <NatalEvidenceDetails
-                    evidenceIds={report.hook.evidenceIds}
-                    evidenceById={evidenceById}
-                    language={language}
-                  />
-                ) : null}
+                <NatalEvidenceDetails
+                  evidenceIds={report.hook.evidenceIds}
+                  evidenceById={evidenceById}
+                  language={language}
+                />
               </header>
               {freeSections.map((item, index) => (
                 <Fragment key={item.key}>
                   <SectionText
                     section={item}
                     index={index}
-                    showAstrology={showAstrology}
                     evidenceById={evidenceById}
                     language={language}
                   />
@@ -821,12 +854,20 @@ export const HumanReport: React.FC<Props> = ({
           ) : premiumReport ? (
             <PremiumReport
               report={premiumReport}
-              showAstrology={showAstrology}
               evidenceById={evidenceById}
               language={language}
             />
           ) : premiumError ? (
-            <p className="py-5 text-[13px] leading-relaxed text-[#a14f4f]" role="alert">{premiumError}</p>
+            <section className="natal-report-error" role="alert">
+              <p className="text-[13px] leading-relaxed text-[#a14f4f]">{premiumError}</p>
+              <button
+                type="button"
+                className="natal-report-retry"
+                onClick={() => setPremiumRetryToken((value) => value + 1)}
+              >
+                {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
+              </button>
+            </section>
           ) : null
         ) : (
           <section className="natal-premium-callout">
@@ -835,8 +876,8 @@ export const HumanReport: React.FC<Props> = ({
             </h2>
             <p>
               {language === 'ru'
-                ? 'Один цельный постоянный разбор личности, отношений, решений, работы, денег, способностей и внутренних противоречий.'
-                : 'One cohesive permanent reading of personality, relationships, decisions, work, money, abilities, and inner contradictions.'}
+                ? 'Больше глубины там, где карта даёт надёжную опору: отношения, конфликты, работа, доверие и внутренние противоречия.'
+                : 'More depth where the chart provides reliable support: relationships, conflict, work, trust, and inner contradictions.'}
             </p>
             <button
               type="button"
@@ -849,7 +890,7 @@ export const HumanReport: React.FC<Props> = ({
           </section>
         )}
 
-        {showAstrology ? <TechnicalDetails chartData={chartData} language={language} /> : null}
+        <TechnicalDetails chartData={chartData} language={language} />
 
         <section className="natal-question-action">
           <button
@@ -865,12 +906,8 @@ export const HumanReport: React.FC<Props> = ({
         <section className="natal-disclaimer">
           <p>
             {language === 'ru'
-              ? (showAstrology
-                ? 'Это ознакомительная интерпретация астрологического расчёта. Она не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
-                : 'Это ознакомительный разбор. Он не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.')
-              : (showAstrology
-                ? 'This is an informational interpretation of an astrological calculation. It does not replace medical, legal, financial, or other professional advice.'
-                : 'This is an informational reading. It does not replace medical, legal, financial, or other professional advice.')}
+              ? 'Это ознакомительный разбор. Он не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
+              : 'This is an informational reading. It does not replace medical, legal, financial, or other professional advice.'}
           </p>
         </section>
 
@@ -894,7 +931,14 @@ export const HumanReport: React.FC<Props> = ({
                   ? 'ml-8 rounded-[18px] bg-white/12 px-4 py-3 text-[14px] leading-relaxed text-white'
                   : 'mr-4 rounded-[18px] bg-black/28 px-4 py-3 text-[14px] leading-relaxed text-white/88'}
               >
-                {message.text}
+                <p>{message.text}</p>
+                {message.role === 'assistant' ? (
+                  <NatalEvidenceDetails
+                    evidenceIds={questionMessageEvidenceIds(message)}
+                    evidenceById={evidenceById}
+                    language={language}
+                  />
+                ) : null}
               </div>
             ))}
           </div>

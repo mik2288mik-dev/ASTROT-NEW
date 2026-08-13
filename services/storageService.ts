@@ -471,9 +471,12 @@ const normalizeChartListItem = (chart: ChartListItem): ChartListItem => ({
 /**
  * Get all charts for user (multi-chart flow)
  */
-export const getCharts = async (userId: string): Promise<ChartsResponse> => {
+export const getCharts = async (
+  userId: string,
+  options: { repairPrimary?: boolean } = {},
+): Promise<ChartsResponse> => {
   if (!isValidUserId(userId)) throw new Error('UserId is required');
-  const url = '/api/charts';
+  const url = options.repairPrimary === false ? '/api/charts?repairPrimary=0' : '/api/charts';
   const res = await apiFetch(url, { headers: getTelegramInitDataHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

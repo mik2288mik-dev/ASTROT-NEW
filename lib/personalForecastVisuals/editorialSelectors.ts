@@ -6,6 +6,8 @@ import type {
   EditorialMedium,
   EditorialTone,
   EditorialTopic,
+  EditorialV2Category,
+  EditorialV2VisualAsset,
   DiaryEditorialAsset,
   DiaryEligibleAsset,
   DiaryVisualFamily,
@@ -26,9 +28,18 @@ export const NEWSPAPER_VISUAL_MANIFEST_VERSION = 'newspaper-v4-diary-universe';
 export const EDITORIAL_PLACEMENT_POLICY = {
   diary: { visiblePercent: 40, maxPauses: 2 },
   zodiac: { visiblePercent: 60 },
-  natal: { visiblePercent: 65, psychedelicPercentOfVisible: 1 },
+  natal: { visiblePercent: 65 },
   synastry: { psychedelicAllowed: false },
 } as const;
+
+const NATAL_EDITORIAL_VISUAL_VERSION = 'natal-personality-editorial-v2-v1';
+const NATAL_EDITORIAL_SAFE_CATEGORIES: readonly EditorialV2Category[] = [
+  'animals',
+  'graphic',
+  'mascots',
+  'objects',
+  'surreal',
+];
 
 const MAIN_ASSETS = mainManifest.items as MainEditorialAsset[];
 const SYNASTRY_ASSETS = synastryManifest.items as SynastryEditorialAsset[];
@@ -193,6 +204,18 @@ const DIARY_TODAY_VISUAL_ASSETS: readonly DiaryEligibleAsset[] = [
   ...EDITORIAL_V2_TODAY_ASSETS,
 ];
 
+function isNatalEditorialAsset(
+  asset: DiaryEligibleAsset,
+): asset is DiaryEligibleAsset & EditorialV2VisualAsset {
+  return asset.collection === 'editorial-v2'
+    && NATAL_EDITORIAL_SAFE_CATEGORIES.includes(asset.sourceCategory)
+    && asset.hasEmbeddedText === false;
+}
+
+const NATAL_EDITORIAL_ASSETS = EDITORIAL_V2_TODAY_ASSETS.filter(
+  isNatalEditorialAsset,
+);
+
 const MEDIUM_CYCLE: readonly EditorialMedium[] = [
   'photo', 'photo', 'photo', 'photo', 'photo', 'photo', 'photo', 'photo', 'photo',
   'associative', 'associative', 'associative', 'associative', 'associative', 'associative', 'associative',
@@ -227,14 +250,6 @@ function diaryFamilyForSeed(seed: string): DiaryVisualFamily {
     if (bucket < cursor) return family;
   }
   return 'editorial';
-}
-
-function natalMedium(seed: string): EditorialMedium {
-  const bucket = percentageBucket(`medium|${seed}`);
-  if (bucket < EDITORIAL_PLACEMENT_POLICY.natal.psychedelicPercentOfVisible) {
-    return 'psychedelic-humor';
-  }
-  return bucket < 70 ? 'associative' : 'surreal';
 }
 
 export function selectMainEditorialSticker(input: {
@@ -371,17 +386,18 @@ export function selectZodiacEditorialSticker(input: {
 export function selectNatalEditorialSticker(input: {
   chartKey: string;
   userId?: string | null;
-}): MainEditorialAsset | null {
-  const seed = ['natal', input.chartKey, input.userId || 'guest'].join('|');
-  if (!isEligible(seed, EDITORIAL_PLACEMENT_POLICY.natal.visiblePercent)) return null;
-  return selectMainEditorialSticker({
-    screenKey: 'natal-reading',
-    contentKey: input.chartKey,
-    userId: input.userId,
-    topics: ['general', 'mood', 'decisions'],
-    allowedMedia: [natalMedium(seed)],
-    allowedTones: ['neutral', 'quiet', 'warm', 'strange'],
-  });
+}): MainEditorialAsset | EditorialV2VisualAsset | null {
+  const seed = [input.chartKey, input.userId || 'guest'].join('|');
+  const visibilityBucket = stableHash([
+    NATAL_EDITORIAL_VISUAL_VERSION,
+    'eligibility',
+    seed,
+  ].join('|')) % 100;
+  if (visibilityBucket >= EDITORIAL_PLACEMENT_POLICY.natal.visiblePercent) return null;
+  return pickStable(NATAL_EDITORIAL_ASSETS, [
+    NATAL_EDITORIAL_VISUAL_VERSION,
+    seed,
+  ].join('|'));
 }
 
 /** Synastry is deliberately confined to the calm dedicated collection. */

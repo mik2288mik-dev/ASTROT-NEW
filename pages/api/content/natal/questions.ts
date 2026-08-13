@@ -77,7 +77,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' });
   }
-  const ready = await ensureValidContext(req, res);
+  const ready = await ensureValidContext(req, res, {
+    requireCanonicalSnapshot: true,
+    repairCanonicalSnapshot: false,
+  });
   if (!ready) return;
   const { userId, ctx } = ready;
   const entitlement = await getPremiumEntitlementState(userId);
@@ -96,7 +99,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const chartId = ctx.chartId;
-  const primaryContext = await resolveReadingContext(userId, null);
+  const primaryContext = await resolveReadingContext(
+    userId,
+    null,
+    undefined,
+    undefined,
+    { repairCanonical: false },
+  );
   const quotaTimezone = normalizeForecastTimezone(
     primaryContext?.profile.birthTimezone
       || primaryContext?.chartData?.timezone

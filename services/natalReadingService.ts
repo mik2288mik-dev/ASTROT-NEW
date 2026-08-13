@@ -1,7 +1,6 @@
 import type {
   ContentAccessTier,
   InterpretationSection,
-  NatalInterpretationReport,
   NatalStoryCardId,
   NatalStoryShareFormat,
   ProfileCard,
@@ -12,6 +11,7 @@ import type {
   NatalPermanentPremiumReport,
 } from '../lib/natalReading/permanentReport';
 import { buildNatalReportScopeKey } from '../lib/natalReading/permanentReport';
+import type { NatalReadingLanguage } from '../lib/natalReading/permanentReport';
 import type { NatalQuestionSnapshot } from '../lib/natalReading/natalQuestion';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
@@ -51,6 +51,11 @@ const paidSectionInFlight = new Map<string, Promise<HumanReadingResult<Interpret
 const profileCardsCache = new Map<string, NatalProfileCardsResponse>();
 const profileCardsInFlight = new Map<string, Promise<NatalProfileCardsResponse>>();
 
+export type NatalReportCacheIdentity = {
+  chartFingerprint: string;
+  reportVersion: string;
+};
+
 function chartKey(chartId?: number): string {
   return chartId != null ? String(chartId) : 'primary';
 }
@@ -58,9 +63,10 @@ function chartKey(chartId?: number): string {
 function baseKey(
   userId: string,
   chartId?: number,
-  language?: 'ru' | 'en',
+  language?: NatalReadingLanguage,
+  cacheIdentity?: NatalReportCacheIdentity,
 ): string {
-  return buildNatalReportScopeKey(userId, chartId, language);
+  return buildNatalReportScopeKey(userId, chartId, language, cacheIdentity);
 }
 
 function paidKey(
@@ -138,16 +144,18 @@ export function getHumanBaseReportCached(
   userId: string,
   chartId?: number,
   language?: 'ru' | 'en',
+  cacheIdentity?: NatalReportCacheIdentity,
 ): NatalPermanentFreeReport | null {
-  return baseReportCache.get(baseKey(userId, chartId, language)) || null;
+  return baseReportCache.get(baseKey(userId, chartId, language, cacheIdentity)) || null;
 }
 
 export function getHumanPremiumReportCached(
   userId: string,
   chartId?: number,
   language?: 'ru' | 'en',
+  cacheIdentity?: NatalReportCacheIdentity,
 ): HumanReadingResult<NatalPermanentPremiumReport> | null {
-  return premiumReportCache.get(baseKey(userId, chartId, language)) || null;
+  return premiumReportCache.get(baseKey(userId, chartId, language, cacheIdentity)) || null;
 }
 
 export function getHumanPaidSectionCached(
@@ -279,8 +287,9 @@ export async function getCachedHumanBaseReport(
   userId: string,
   chartId?: number,
   language?: 'ru' | 'en',
+  cacheIdentity?: NatalReportCacheIdentity,
 ): Promise<NatalPermanentFreeReport | null> {
-  const key = baseKey(userId, chartId, language);
+  const key = baseKey(userId, chartId, language, cacheIdentity);
   const memory = baseReportCache.get(key);
   if (memory) return memory;
   const cached = await getHuman<NatalPermanentFreeReport>('human-base', userId, { chartId });
@@ -293,9 +302,10 @@ export async function ensureHumanBaseReport(
   userId: string,
   chartId?: number,
   language?: 'ru' | 'en',
+  cacheIdentity?: NatalReportCacheIdentity,
 ): Promise<NatalPermanentFreeReport> {
-  const key = baseKey(userId, chartId, language);
-  const cached = await getCachedHumanBaseReport(userId, chartId, language);
+  const key = baseKey(userId, chartId, language, cacheIdentity);
+  const cached = await getCachedHumanBaseReport(userId, chartId, language, cacheIdentity);
   if (cached) return cached;
   const existing = baseReportInFlight.get(key);
   if (existing) return existing;
@@ -324,8 +334,9 @@ export async function getCachedHumanPremiumReport(
   userId: string,
   chartId?: number,
   language?: 'ru' | 'en',
+  cacheIdentity?: NatalReportCacheIdentity,
 ): Promise<HumanReadingResult<NatalPermanentPremiumReport> | null> {
-  const key = baseKey(userId, chartId, language);
+  const key = baseKey(userId, chartId, language, cacheIdentity);
   const memory = premiumReportCache.get(key);
   if (memory) return memory;
   try {
@@ -347,9 +358,10 @@ export async function ensureHumanPremiumReport(
   userId: string,
   chartId?: number,
   language?: 'ru' | 'en',
+  cacheIdentity?: NatalReportCacheIdentity,
 ): Promise<HumanReadingResult<NatalPermanentPremiumReport>> {
-  const key = baseKey(userId, chartId, language);
-  const cached = await getCachedHumanPremiumReport(userId, chartId, language);
+  const key = baseKey(userId, chartId, language, cacheIdentity);
+  const cached = await getCachedHumanPremiumReport(userId, chartId, language, cacheIdentity);
   if (cached) return cached;
   const existing = premiumReportInFlight.get(key);
   if (existing) return existing;

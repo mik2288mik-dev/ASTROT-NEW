@@ -1,5 +1,6 @@
 import React from 'react';
-import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../../types';
+import type { NatalChartData, UserProfile } from '../../types';
+import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
@@ -18,8 +19,9 @@ type NatalMagazineProps = {
   chartSubject?: ChartListItem | null;
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   onUpdateProfile?: (profile: UserProfile) => void;
-  preloadedReport?: NatalInterpretationReport | null;
+  preloadedReport?: PreloadedNatalReport | null;
   onCreateChart?: () => void;
+  onOpenPersonalityReport: () => void;
 };
 
 export function NatalMagazine({
@@ -31,6 +33,7 @@ export function NatalMagazine({
   onUpdateProfile,
   preloadedReport,
   onCreateChart,
+  onOpenPersonalityReport,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const subjectName = chartSubject?.name || profile.name;
@@ -84,6 +87,20 @@ export function NatalMagazine({
         <h1>{language === 'ru' ? 'Натальная карта' : 'Natal chart'}</h1>
         <p>{subjectName} · {formatDisplayDate(subjectBirthDate, language)}</p>
       </header>
+
+      <section className="natal-personality-entry">
+        <div>
+          <h2>{language === 'ru' ? 'Разбор личности' : 'Personality reading'}</h2>
+          <p>
+            {language === 'ru'
+              ? 'Сначала — живой портрет человека. Расчёт и профессиональные детали останутся в карте.'
+              : 'Start with a clear human portrait. The calculation and professional details stay in the chart.'}
+          </p>
+        </div>
+        <button type="button" onClick={onOpenPersonalityReport}>
+          {language === 'ru' ? 'Открыть разбор' : 'Open reading'}
+        </button>
+      </section>
 
       <NatalChartPortrait chart={data} language={language} />
 

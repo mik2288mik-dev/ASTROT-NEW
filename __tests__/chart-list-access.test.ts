@@ -1,6 +1,7 @@
 const mockGetAll = jest.fn();
 const mockRequireAppUser = jest.fn();
 const mockGetPremiumEntitlementState = jest.fn();
+const mockRepairCanonicalChartForUser = jest.fn();
 
 jest.mock('../lib/db', () => ({
   db: {
@@ -8,6 +9,12 @@ jest.mock('../lib/db', () => ({
       getAll: (...args: unknown[]) => mockGetAll(...args),
       getById: jest.fn(),
     },
+  },
+}));
+jest.mock('../lib/natalChartV2Repository', () => ({
+  natalChartV2Repository: {
+    getAll: (...args: unknown[]) => mockGetAll(...args),
+    setIdentityMetadata: jest.fn(),
   },
 }));
 jest.mock('../lib/auth/appAuth', () => ({
@@ -19,7 +26,7 @@ jest.mock('../lib/contentArchitecture', () => ({
 jest.mock('../lib/natalChartPersistence', () => ({
   createOrReuseCanonicalChart: jest.fn(),
   ensureCanonicalPrimaryChart: jest.fn(),
-  repairCanonicalChartForUser: jest.fn(),
+  repairCanonicalChartForUser: (...args: unknown[]) => mockRepairCanonicalChartForUser(...args),
 }));
 jest.mock('../lib/serverLocks', () => ({
   tryAcquireLock: jest.fn(),
@@ -111,5 +118,16 @@ describe('chart list entitlement access', () => {
     expect(payload.charts.slice(1)).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 2, access_locked: false, chart_data: savedPeople[0].chart_data }),
     ]));
+  });
+
+  it('can list existing snapshots for personality selection without repairing the primary chart', async () => {
+    mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: true, entitlement: { id: 9 } });
+    const res = response();
+
+    await handler({ method: 'GET', query: { repairPrimary: '0' }, headers: {} } as any, res);
+
+    expect(mockRepairCanonicalChartForUser).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json.mock.calls[0][0].charts).toHaveLength(6);
   });
 });

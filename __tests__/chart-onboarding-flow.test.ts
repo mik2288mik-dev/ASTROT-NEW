@@ -17,7 +17,8 @@ describe('chart onboarding and lazy sections', () => {
 
   it('returns completed chart onboarding to the requested target', () => {
     const app = read('App.tsx');
-    expect(app).toContain("const targetView = isGuestOnboarding ? 'chart' : onboardingTargetViewRef.current || 'dashboard'");
+    expect(app).toContain("const targetView = isGuestOnboarding ? 'personality' : onboardingTargetViewRef.current || 'personality'");
+    expect(app).toContain("setView('personality')");
     expect(app).toContain('setView(targetView)');
     expect(app).toContain('isSetup: true');
     expect(app).toContain('await saveProfile(fullProfile)');
@@ -95,8 +96,8 @@ describe('chart onboarding and lazy sections', () => {
     const report = read('components/NatalReading/HumanReport.tsx');
     expect(report).not.toContain('if (loading) {');
     expect(report).toContain('data-testid="human-report-loading-area"');
-    expect(report).toContain('<TechnicalDetails chartData={chartData} />');
-    expect(report).toContain("report?.userName || subjectName || 'Твоя карта'");
+    expect(report).toContain('<TechnicalDetails chartData={chartData} language={language} />');
+    expect(report).toContain("report?.userName || subjectName || (language === 'ru' ? 'Твоя карта' : 'Your chart')");
     expect(report).toContain('Интерпретация сейчас недоступна');
   });
 });

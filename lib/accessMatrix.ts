@@ -102,7 +102,8 @@ function toPositiveId(value: unknown): boolean {
 
 function isNatalChartData(value: unknown): value is NatalChartData {
   const chart = value as NatalChartData | null;
-  return !!chart && !!chart.sun && !!chart.moon && !!chart.rising;
+  const quality = chart?.birthTimeQuality || chart?.chartQuality?.birthTimeQuality;
+  return !!chart && !!chart.sun && !!chart.moon && (quality === 'unknown' || !!chart.rising);
 }
 
 function readChartData(input: unknown): NatalChartData | null {

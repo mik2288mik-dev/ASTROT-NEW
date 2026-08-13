@@ -11,14 +11,17 @@ describe('human report local-cache flow', () => {
   it('uses the chart-scoped local human-base synchronously before showing a loading state', () => {
     expect(app).toContain('const cacheContext = { chartData: targetChartData || null };');
     expect(app).toContain('readLocalHumanBaseReportWithFallback(targetProfile, targetChartId, cacheContext)');
-    expect(source).toContain('const initialBase = isNatalPermanentFreeReport(preloadedReport)');
+    expect(source).toContain('const matchingPreloadedReport = useMemo');
+    expect(source).toContain('preloadedReport.chartFingerprint === cacheIdentity.chartFingerprint');
+    expect(source).toContain('preloadedReport.reportVersion === cacheIdentity.reportVersion');
+    expect(source).toContain('const initialBase = matchingPreloadedReport || cachedBase');
     expect(source).toContain('const [loading, setLoading] = useState(!initialBase)');
   });
 
   it('keeps language-specific service caches and only clears text when language changes', () => {
-    expect(source).toContain('getHumanBaseReportCached(userId, chartId, language)');
-    expect(source).toContain('const languageChanged = baseLanguageRef.current !== language;');
-    expect(source).toContain('else if (languageChanged) setReport(null);');
+    expect(source).toContain('getHumanBaseReportCached(userId, chartId, language, cacheIdentity)');
+    expect(source).toContain('reportVersion: NATAL_PERMANENT_CONTRACT_VERSION');
+    expect(source).toContain('const identityChanged = baseIdentityRef.current !== reportIdentity;');
   });
 
   it('writes server cache and background generation results with chart context', () => {
@@ -27,8 +30,14 @@ describe('human report local-cache flow', () => {
     expect(app).toContain('chartData: reportChartData');
   });
 
+  it('never publishes a background preload after the active snapshot changed', () => {
+    expect(app).toContain('isCurrentSnapshot: () => boolean');
+    expect(app).toContain('if (!cancelled && isCurrentSnapshot())');
+    expect(app).toContain('current?.chartFingerprint === freshFingerprint ? current : null');
+  });
+
   it('loads one cohesive Premium report instead of the legacy section map', () => {
-    expect(source).toContain('ensureHumanPremiumReport(userId, chartId, language)');
+    expect(source).toContain('ensureHumanPremiumReport(userId, chartId, language, cacheIdentity)');
     expect(source).not.toContain('HUMAN_MAP_SECTION_KEYS');
     expect(source).not.toContain('loadHumanPaidSection');
   });
@@ -54,11 +63,10 @@ describe('human report local-cache flow', () => {
   });
 
   it('shows the chart summary immediately while the human-base API is slow', () => {
-    // Мгновенная сводка карты теперь рисуется синхронно из chartData в NatalMagazine
-    // («большая тройка» + «Карта в цифрах»), а HumanReport показывает мягкое сообщение загрузки.
-    const magazine = read('views/v2/NatalMagazine.tsx');
-    expect(magazine).toContain('natal-big3');
-    expect(source).toContain('Подготавливаем постоянный разбор карты.');
+    // Дочерний экран сразу использует рассчитанную chartData; ожидание относится только к тексту Luna.
+    const personality = read('views/PersonalityReport.tsx');
+    expect(personality).toContain('chartData={chartData}');
+    expect(source).toContain('Подготавливаем разбор карты.');
     expect(source).not.toContain('Загружаем интерпретацию карты');
     expect(source).not.toContain('Array.from({ length: 5 })');
   });

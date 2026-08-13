@@ -9,6 +9,9 @@ import {
 } from '../personalForecastQuestionModeration';
 import {
   buildNatalModelContext,
+  buildNatalPromptContext,
+  getNatalNarrativeEvidenceIds,
+  hasNatalPersonalityCopyViolation,
   isNatalReliabilityTextAllowed,
   NATAL_PERMANENT_CONTRACT_VERSION,
   type BuiltNatalModelContext,
@@ -45,7 +48,7 @@ export type NatalQuestionSnapshot = {
 
 export type NatalQuestionPromptContext = {
   chartId: number;
-  chart: BuiltNatalModelContext['context'];
+  chart: ReturnType<typeof buildNatalPromptContext>;
   permanentReport: NatalPermanentPremiumReport;
   recentMessages: Array<{
     role: 'user' | 'assistant';
@@ -109,6 +112,31 @@ export function buildNatalQuestionPromptContext(input: {
   question: string;
 }): { built: BuiltNatalModelContext; context: NatalQuestionPromptContext } {
   const built = buildNatalModelContext(input.profile, input.chartData);
+  const promptChart = buildNatalPromptContext(built);
+  const narrativeEvidenceIds = getNatalNarrativeEvidenceIds(built);
+  const hasNarrativeEvidence = (value: Record<string, unknown>) => (
+    narrativeEvidenceIds.has(text(value.evidenceId))
+  );
+  const { angles: allAngles, houses: allHouses, ...chartWithoutTimeDependentFacts } = promptChart.chart;
+  const positions = Object.fromEntries(
+    Object.entries(promptChart.chart.positions).filter(([, value]) => hasNarrativeEvidence(value)),
+  );
+  const aspects = promptChart.chart.aspects.filter(hasNarrativeEvidence);
+  const angles = allAngles
+    ? Object.fromEntries(Object.entries(allAngles).filter(([, value]) => hasNarrativeEvidence(value)))
+    : {};
+  const houses = allHouses?.filter(hasNarrativeEvidence) || [];
+  const questionChart: ReturnType<typeof buildNatalPromptContext> = {
+    ...promptChart,
+    chart: {
+      ...chartWithoutTimeDependentFacts,
+      positions,
+      aspects,
+      ...(Object.keys(angles).length > 0 ? { angles } : {}),
+      ...(houses.length > 0 ? { houses } : {}),
+    },
+    evidence: promptChart.evidence.filter((fact) => narrativeEvidenceIds.has(fact.id)),
+  };
   const chartMessages = input.history.filter((message) => message.chartId === input.chartId);
   const answersByQuestionId = new Map<number, NatalQuestionStoredMessage>();
   for (const message of chartMessages) {
@@ -137,7 +165,7 @@ export function buildNatalQuestionPromptContext(input: {
     built,
     context: {
       chartId: input.chartId,
-      chart: built.context,
+      chart: questionChart,
       permanentReport: input.permanentReport,
       recentMessages,
       question: normalizePersonalForecastQuestionInput(input.question),
@@ -159,6 +187,7 @@ Answer the user's question from the permanent calculated birth chart and the per
 Rules:
 - Return JSON only: {"answer":"3-5 complete sentences","evidence_ids":["existing evidence id"]}.
 - Give a direct answer first, then connect it to concrete chart factors.
+- Translate those factors into ordinary human language. Do not name planets, signs, houses, aspects, angles, retrograde motion, orbs, or degrees in the answer; keep technical facts only in evidence_ids for the closed “Why?” layer.
 - Use previous messages only for conversational continuity. They are not calculation evidence.
 - Every astrological claim must be supported by one or more evidence_ids that exist in chart.evidence.
 - Never recalculate or invent placements, houses, aspects, biography, trauma, diagnoses, relationship history, guaranteed events, financial outcomes, karmic facts, or professional prescriptions.
@@ -210,6 +239,9 @@ export function validateNatalQuestionAnswer(
   reliability?: BuiltNatalModelContext,
 ): NatalQuestionAnswer | null {
   const answer = text(raw?.answer);
+  const narrativeEvidenceIds = reliability
+    ? getNatalNarrativeEvidenceIds(reliability)
+    : allowedEvidenceIds;
   const ids = Array.isArray(raw?.evidence_ids)
     ? [...new Set(raw.evidence_ids.map(text).filter(Boolean))]
     : [];
@@ -220,7 +252,8 @@ export function validateNatalQuestionAnswer(
     || sentences < 3
     || sentences > 5
     || ids.length === 0
-    || ids.some((id) => !allowedEvidenceIds.has(id))
+    || ids.some((id) => !allowedEvidenceIds.has(id) || !narrativeEvidenceIds.has(id))
+    || hasNatalPersonalityCopyViolation(answer)
     || DIAGNOSTIC_ANSWER_EN.test(answer)
     || DIAGNOSTIC_ANSWER_RU.test(answer)
     || PROFESSIONAL_IMPERATIVE_EN.test(answer)
@@ -259,7 +292,11 @@ export async function generateNatalQuestionAnswer(input: {
     maxTokens: 900,
     temperature: 0.25,
   });
-  const answer = validateNatalQuestionAnswer(raw, built.evidenceIds, built);
+  const answer = validateNatalQuestionAnswer(
+    raw,
+    getNatalNarrativeEvidenceIds(built),
+    built,
+  );
   if (!answer) throw new Error('NATAL_QUESTION_VALIDATION_FAILED');
   return answer;
 }

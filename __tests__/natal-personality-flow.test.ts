@@ -1,0 +1,57 @@
+import fs from 'fs';
+import path from 'path';
+
+const ROOT = path.resolve(__dirname, '..');
+const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+describe('natal personality product flow', () => {
+  it('opens the complete Free portrait immediately after chart onboarding', () => {
+    const app = read('App.tsx');
+    const magazine = read('views/v2/NatalMagazine.tsx');
+
+    expect(app).toContain("onboardingTargetViewRef = useRef<ViewState>('personality')");
+    expect(app).toContain("const targetView = isGuestOnboarding ? 'personality'");
+    expect(app).toContain("setView('personality')");
+    expect(app).toContain('<PersonalityReport');
+    expect(app).toContain('onOpenPersonalityReport={openPersonalityReport}');
+    expect(magazine).toContain('onOpenPersonalityReport: () => void');
+  });
+
+  it('uses selected saved snapshots and the existing compatibility route without Swiss calls', () => {
+    const app = read('App.tsx');
+    const view = read('views/PersonalityReport.tsx');
+
+    expect(view).toContain('getCharts(profile.id, { repairPrimary: false })');
+    expect(view).toContain('isCanonicalNatalChartDataComplete(primaryChart.chart_data)');
+    expect(view).toContain('isCanonicalNatalChartDataComplete(selectedChart.chart_data)');
+    expect(view).not.toMatch(/calculateNatalChart|createOrReuseCanonicalChart|createChart\(/);
+    expect(view).toContain('Сравнить со мной');
+    expect(view).toContain('Открыть натальную карту');
+    expect(app).toContain('openSynastryWithPrefill({');
+    expect(app).toContain("source: 'saved-chart'");
+    expect(app).toContain('partnerChartId: selected.id');
+  });
+
+  it('keeps evidence and professional chart facts closed by default', () => {
+    const report = read('components/NatalReading/HumanReport.tsx');
+
+    expect(report).toContain('<details className="natal-evidence-disclosure">');
+    expect(report).toContain('Почему так?');
+    expect(report).toContain('<details className="natal-technical-details');
+    expect(report).not.toContain('<details open');
+  });
+
+  it('shows the current subject name even when a chart-stable cached report has an older name', () => {
+    const report = read('components/NatalReading/HumanReport.tsx');
+
+    expect(report).toContain("subjectName || report?.userName || (language === 'ru' ? 'Твоя карта' : 'Your chart')");
+  });
+
+  it('lets every grounded assistant answer reveal its evidence', () => {
+    const report = read('components/NatalReading/HumanReport.tsx');
+
+    expect(report).toContain('function questionMessageEvidenceIds');
+    expect(report).toContain("message.role === 'assistant'");
+    expect(report).toContain('evidenceIds={questionMessageEvidenceIds(message)}');
+  });
+});

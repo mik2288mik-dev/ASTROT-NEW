@@ -109,19 +109,16 @@ describe('sparse editorial placement policy', () => {
     expect(library.every((asset) => !['synastry', 'zodiac'].includes(asset.collection))).toBe(true);
   });
 
-  it('keeps natal accents mostly associative or surreal and psychedelic very rare', () => {
+  it('keeps natal accents inside the text-free editorial-v2 allowlist', () => {
     const selected = Array.from({ length: 4000 }, (_, index) => (
       selectNatalEditorialSticker({ chartKey: `chart-${index}`, userId: `user-${index}` })
     )).filter((asset): asset is NonNullable<typeof asset> => !!asset);
-    const psychedelic = selected.filter((asset) => asset.medium === 'psychedelic-humor');
-    const editorial = selected.filter((asset) => (
-      asset.medium === 'associative' || asset.medium === 'surreal'
-    ));
 
     expect(selected.length / 4000).toBeGreaterThan(0.6);
     expect(selected.length / 4000).toBeLessThan(0.7);
-    expect(editorial.length / selected.length).toBeGreaterThan(0.96);
-    expect(psychedelic.length / selected.length).toBeLessThanOrEqual(0.03);
+    expect(selected.every((asset) => asset.collection === 'editorial-v2')).toBe(true);
+    expect(selected.every((asset) => asset.hasEmbeddedText === false)).toBe(true);
+    expect(selected.every((asset) => !asset.path.match(/\/(?:fixed_text|newspaper|psychedelic)\//))).toBe(true);
   });
 
   it('shows a zodiac cutout sparsely and never crosses collections in synastry', () => {

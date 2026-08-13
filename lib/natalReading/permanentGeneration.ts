@@ -1,9 +1,13 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
-import { llmJson } from '../anthropic';
 import { getAppSystemVoice } from '../appVoice';
 import {
+  createLunaStructuredResponse,
+  type StrictJsonSchema,
+} from '../openaiResponses';
+import {
   buildNatalModelContext,
+  buildNatalPromptContext,
   materializePermanentFreeReport,
   materializePermanentPremiumReport,
   type BuiltNatalModelContext,
@@ -13,6 +17,64 @@ import {
   type RawNatalFreePayload,
   type RawNatalPremiumPayload,
 } from './permanentReport';
+
+function requestedDomains(
+  built: BuiltNatalModelContext,
+  access: 'free' | 'premium',
+) {
+  return built.context.reportPlan.filter((item) => item.access === access);
+}
+
+function buildPermanentNatalResponseSchema(
+  built: BuiltNatalModelContext,
+  access: 'free' | 'premium',
+): StrictJsonSchema {
+  const domains = requestedDomains(built, access);
+  const sectionSchema = {
+    type: 'object',
+    properties: {
+      section_key: { type: 'string', enum: domains.map((item) => item.key) },
+      title: { type: 'string', minLength: 3, maxLength: 90 },
+      free: { type: 'boolean', enum: [access === 'free'] },
+      content: { type: 'string', minLength: 80, maxLength: 1400 },
+      evidence_ids: { type: 'array', items: { type: 'string' }, minItems: 1 },
+    },
+    required: ['section_key', 'title', 'free', 'content', 'evidence_ids'],
+    additionalProperties: false,
+  };
+  return {
+    type: 'object',
+    properties: {
+      ...(access === 'free' ? {
+        hook: {
+          type: 'object',
+          properties: {
+            text: { type: 'string', minLength: 40, maxLength: 500 },
+            evidence_ids: { type: 'array', items: { type: 'string' }, minItems: 1 },
+          },
+          required: ['text', 'evidence_ids'],
+          additionalProperties: false,
+        },
+      } : {}),
+      sections: {
+        type: 'array',
+        minItems: domains.length,
+        maxItems: domains.length,
+        items: sectionSchema,
+      },
+    },
+    required: [...(access === 'free' ? ['hook'] : []), 'sections'],
+    additionalProperties: false,
+  };
+}
+
+function parsePayload<T>(value: string): T {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    throw new Error('NATAL_PERMANENT_INVALID_JSON');
+  }
+}
 
 export function getPermanentNatalSystemPrompt(language: NatalReadingLanguage): string {
   const task = language === 'ru'
@@ -46,6 +108,9 @@ function permanentInputRules(built: BuiltNatalModelContext): string {
 - Interpret only the supplied calculated facts. Never recalculate a position, aspect, house, orb, or degree.
 - Do not invent biography, childhood, trauma, diagnoses, a profession, income, relationship history, guaranteed events, or karmic facts.
 - Every section must cite one or more evidence_ids that exist verbatim in the supplied evidence array.
+- Use only the section_key values listed in reportPlan. Write exactly one section for every requested item for this tier.
+- A section may cite only evidenceIds listed for its reportPlan item. It must cite every requiredEvidenceId.
+- For central_contradictions, explain both strong pulls and how they coexist; never erase one by declaring the other the person's real nature.
 - Evidence identifiers are machine references. Do not print them inside user-facing text.
 - No Markdown and no fields outside the requested JSON object.
 - ${angleRule}
@@ -58,9 +123,9 @@ export function buildPermanentNatalFreePrompt(
 ): string {
   const instructions = language === 'ru'
     ? `Создай короткий человеческий hook: одно узнаваемое наблюдение о человеке, подтверждённое фактами карты, а не рекламный слоган.
-Затем создай только те самостоятельные смысловые разделы, которые действительно нужны для цельного базового портрета этой карты. Сам выбери их количество, темы, порядок и естественные короткие заголовки. Не пытайся механически охватить заданный набор сфер и не добавляй раздел ради заполнения структуры. Каждый раздел — один или два коротких абзаца без повторения одной мысли. Для каждого раздела задай уникальный короткий section_key в snake_case и free: true.`
+Затем напиши по одному самостоятельному разделу для каждого free-пункта reportPlan. Этот список уже собран сервером только из достаточно подтверждённых областей конкретной карты — не добавляй другие темы и не пропускай указанные. Каждый раздел — один или два коротких абзаца без повторения одной мысли; section_key возьми из reportPlan, free: true.`
     : `Create a concise human hook: one recognisable observation about the person, grounded in chart facts rather than an advertising slogan.
-Then create only the self-contained narrative sections genuinely needed for a coherent base portrait of this chart. Choose their count, themes, order, and natural short titles yourself. Do not mechanically cover a predefined set of life areas or add a section merely to fill the structure. Each section is one or two short paragraphs and does not repeat the same point. Give every section a unique short snake_case section_key and set free to true.`;
+Then write one self-contained section for every free reportPlan item. The server has already included only sufficiently supported areas for this chart: add no other themes and omit none. Each section is one or two short paragraphs without repetition; use the reportPlan section_key and set free to true.`;
   return `${permanentInputRules(built)}
 
 ${instructions}
@@ -74,7 +139,7 @@ Return JSON only:
 }
 
 AUTHORITATIVE CALCULATED BIRTH CHART:
-${JSON.stringify(built.context, null, 2)}`;
+${JSON.stringify(buildNatalPromptContext(built), null, 2)}`;
 }
 
 export function buildPermanentNatalPremiumPrompt(
@@ -82,8 +147,8 @@ export function buildPermanentNatalPremiumPrompt(
   built: BuiltNatalModelContext,
 ): string {
   const instructions = language === 'ru'
-    ? `Создай только те самостоятельные углублённые разделы постоянного портрета, которые действительно добавляют новый смысл. Сам выбери их количество, темы, порядок и естественные короткие заголовки по наиболее содержательным сочетаниям фактов этой карты. Не используй обязательный список сфер и не добавляй раздел ради заполнения структуры. Каждый раздел — один или два плотных абзаца, раскрывающих отдельную мысль без повторов. Для каждого раздела задай уникальный короткий section_key в snake_case и free: false. Это постоянный портрет: никаких текущих транзитов, календарных дат, будущих событий или timing.`
-    : `Create only the self-contained deeper sections of a permanent portrait that genuinely add a new insight. Choose their count, themes, order, and natural short titles from the most substantial combinations of facts in this chart. Do not use a mandatory list of life areas or add a section merely to fill the structure. Each section is one or two dense paragraphs that develops a distinct point without repetition. Give every section a unique short snake_case section_key and set free to false. This is a permanent portrait: no current transits, calendar dates, future events, or timing.`;
+    ? `Напиши по одному самостоятельному углублённому разделу для каждого premium-пункта reportPlan. Сервер включил только области, для которых в этой карте достаточно надёжных факторов: не добавляй другие и не пропускай указанные. Каждый раздел — один или два плотных коротких абзаца без повторов; section_key возьми из reportPlan, free: false. В central_contradictions честно удержи обе сильные реакции и объясни их совместную работу. Это постоянный портрет: никаких текущих транзитов, календарных дат, будущих событий или timing.`
+    : `Write one self-contained deeper section for every premium reportPlan item. The server included only areas with enough reliable support in this chart: add no others and omit none. Each section is one or two dense short paragraphs without repetition; use the reportPlan section_key and set free to false. In central_contradictions, preserve and explain both strong pulls. This is a permanent portrait: no current transits, calendar dates, future events, or timing.`;
   return `${permanentInputRules(built)}
 
 ${instructions}
@@ -96,7 +161,7 @@ Return JSON only:
 }
 
 AUTHORITATIVE CALCULATED BIRTH CHART:
-${JSON.stringify(built.context, null, 2)}`;
+${JSON.stringify(buildNatalPromptContext(built), null, 2)}`;
 }
 
 export async function generatePermanentNatalFreeReport(
@@ -105,18 +170,18 @@ export async function generatePermanentNatalFreeReport(
 ): Promise<NatalPermanentFreeReport> {
   const language: NatalReadingLanguage = profile.language === 'en' ? 'en' : 'ru';
   const built = buildNatalModelContext(profile, chart);
-  const raw = await llmJson<RawNatalFreePayload>({
-    system: getPermanentNatalSystemPrompt(language),
-    user: buildPermanentNatalFreePrompt(language, built),
-    model: {
-      accessTier: 'free',
-      contentSurface: 'natal',
-      contentVariant: 'brief',
-    },
-    maxTokens: 3200,
-    temperature: 0.25,
+  if (requestedDomains(built, 'free').length === 0) {
+    throw new Error('NATAL_PERMANENT_FREE_PLAN_EMPTY');
+  }
+  const response = await createLunaStructuredResponse({
+    instructions: getPermanentNatalSystemPrompt(language),
+    input: buildPermanentNatalFreePrompt(language, built),
+    maxOutputTokens: 3200,
+    schemaName: 'natal_personality_free',
+    schema: buildPermanentNatalResponseSchema(built, 'free'),
   });
-  const report = materializePermanentFreeReport({ raw, profile, built });
+  const raw = parsePayload<RawNatalFreePayload>(response.content);
+  const report = materializePermanentFreeReport({ raw, profile, built, requireComplete: true });
   if (!report) throw new Error('NATAL_PERMANENT_FREE_VALIDATION_FAILED');
   return report;
 }
@@ -127,18 +192,18 @@ export async function generatePermanentNatalPremiumReport(
 ): Promise<NatalPermanentPremiumReport> {
   const language: NatalReadingLanguage = profile.language === 'en' ? 'en' : 'ru';
   const built = buildNatalModelContext(profile, chart);
-  const raw = await llmJson<RawNatalPremiumPayload>({
-    system: getPermanentNatalSystemPrompt(language),
-    user: buildPermanentNatalPremiumPrompt(language, built),
-    model: {
-      accessTier: 'premium',
-      contentSurface: 'natal',
-      contentVariant: 'full',
-    },
-    maxTokens: 7000,
-    temperature: 0.25,
+  if (requestedDomains(built, 'premium').length === 0) {
+    throw new Error('NATAL_PERMANENT_PREMIUM_PLAN_EMPTY');
+  }
+  const response = await createLunaStructuredResponse({
+    instructions: getPermanentNatalSystemPrompt(language),
+    input: buildPermanentNatalPremiumPrompt(language, built),
+    maxOutputTokens: 7000,
+    schemaName: 'natal_personality_premium',
+    schema: buildPermanentNatalResponseSchema(built, 'premium'),
   });
-  const report = materializePermanentPremiumReport({ raw, built });
+  const raw = parsePayload<RawNatalPremiumPayload>(response.content);
+  const report = materializePermanentPremiumReport({ raw, built, requireComplete: true });
   if (!report) throw new Error('NATAL_PERMANENT_PREMIUM_VALIDATION_FAILED');
   return report;
 }

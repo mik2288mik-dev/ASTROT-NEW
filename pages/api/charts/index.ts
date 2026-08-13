@@ -35,7 +35,8 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
     if (req.method==='GET') {
       let charts=getActiveCharts(await natalChartV2Repository.getAll(userId));
       const selfChart=getSelfChart(charts);
-      if (!selfChart||!isCanonicalNatalChartDataComplete(selfChart.chart_data)) {
+      const repairPrimary=req.query.repairPrimary!=='0';
+      if (repairPrimary&&(!selfChart||!isCanonicalNatalChartDataComplete(selfChart.chart_data))) {
         console.info('[API/charts] restoring primary V2 chart for chart-list request', {
           userId,
           reason:selfChart?'invalid_chart_data':'primary_chart_missing',

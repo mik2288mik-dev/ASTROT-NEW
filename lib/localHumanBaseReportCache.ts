@@ -1,7 +1,11 @@
-import type { NatalChartData, NatalInterpretationReport, UserProfile } from '../types';
+import type { NatalChartData, UserProfile } from '../types';
 import type { ChartSubjectType } from './chartAccessPolicy';
-import { NATAL_PERMANENT_FREE_PROMPT_VERSION } from './natalReading/permanentReport';
-import { buildPersonalForecastChartFingerprint } from './personalForecastContract';
+import {
+  NATAL_PERMANENT_FREE_PROMPT_VERSION,
+  buildPermanentNatalChartFingerprint,
+  isNatalPermanentFreeReport,
+  type NatalPermanentFreeReport,
+} from './natalReading/permanentReport';
 
 const SCHEMA_VERSION = 3;
 const CACHE_PREFIX = `lumia:natal-human-base:v${SCHEMA_VERSION}`;
@@ -35,7 +39,7 @@ type LocalHumanBaseReportEntry = {
   inputHash: string;
   calculationVersion: string;
   promptVersion: string;
-  report: NatalInterpretationReport;
+  report: NatalPermanentFreeReport;
   updatedAt: string;
 };
 
@@ -65,7 +69,7 @@ function resolveCacheIdentity(
     birthPlace: profile.birthPlace,
   };
   const chartFingerprint = context.chartData
-    ? buildPersonalForecastChartFingerprint(context.chartData)
+    ? buildPermanentNatalChartFingerprint(profile, context.chartData)
     : 'chart-unavailable';
   const calculationVersion = normalizeText(
     context.calculationVersion || context.chartData?.calculationVersion || 'unknown',
@@ -135,15 +139,14 @@ function isValidEntry(
     && value.inputHash === identity.inputHash
     && value.calculationVersion === identity.calculationVersion
     && value.promptVersion === NATAL_PERMANENT_FREE_PROMPT_VERSION
-    && !!value.report
-    && typeof value.report === 'object';
+    && isNatalPermanentFreeReport(value.report);
 }
 
 export function readLocalHumanBaseReport(
   profile: UserProfile,
   chartId?: number,
   context: HumanBaseReportCacheContext = {},
-): NatalInterpretationReport | null {
+): NatalPermanentFreeReport | null {
   const storage = getStorage();
   if (!storage || !profile.id) return null;
   try {
@@ -161,7 +164,7 @@ export function readLocalHumanBaseReportWithFallback(
   profile: UserProfile,
   chartId?: number,
   context: HumanBaseReportCacheContext = {},
-): NatalInterpretationReport | null {
+): NatalPermanentFreeReport | null {
   const exact = readLocalHumanBaseReport(profile, chartId, context);
   if (exact || chartId == null || context.subjectType === 'saved_person') return exact;
 
@@ -173,7 +176,7 @@ export function readLocalHumanBaseReportWithFallback(
 
 export function writeLocalHumanBaseReport(
   profile: UserProfile,
-  report: NatalInterpretationReport,
+  report: NatalPermanentFreeReport,
   chartId?: number,
   context: HumanBaseReportCacheContext = {},
 ): void {
