@@ -11,10 +11,13 @@ import {
   getPersonalForecastPeriodKey,
   isPersonalForecastPackage,
   normalizeForecastTimezone,
+  resolvePersonalForecastWindow,
+  slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
+import { createPersonalForecastDeliveryFallback } from '../lib/personalForecastDeliveryFallback';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
 
@@ -134,7 +137,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
     ? new Set(allSectionIds)
     : expectedPeriodLocked
       ? new Set<string>()
-    : new Set(['overview', ...freeSelectionIds]);
+      : new Set(['overview', ...freeSelectionIds]);
   const expectedLockedIds = allSectionIds.filter((id) => !expectedOpenIds.has(id));
   const lockedIds = new Set(result.lockedSectionIds);
   if (
@@ -233,6 +236,33 @@ function writeStored(key: string, result: PersonalForecastClientResult): void {
   }
 }
 
+function createDeliveryFallbackResult(input: {
+  profile: UserProfile;
+  chartData: NatalChartData;
+  period: PersonalForecastPeriod;
+  periodKey: string;
+}): PersonalForecastClientResult {
+  const timezone = normalizeForecastTimezone(
+    input.chartData.timezone || input.profile.birthTimezone,
+  );
+  const forecast = createPersonalForecastDeliveryFallback({
+    profile: input.profile,
+    chartData: input.chartData,
+    period: input.period,
+    window: resolvePersonalForecastWindow(input.period, input.periodKey, timezone),
+    diagnosticCode: 'PERSONAL_FORECAST_BACKGROUND_REFRESH',
+  });
+  const premium = hasActivePremium(input.profile);
+  const sliced = slicePersonalForecastForAccess(forecast, premium);
+  return {
+    forecast: sliced.forecast,
+    accessTier: premium ? 'premium' : 'free',
+    lockedSectionIds: sliced.lockedSectionIds,
+    periodLocked: sliced.periodLocked,
+    source: 'stale',
+  };
+}
+
 /**
  * A tab may render only its own ready package. Keeping the last successful
  * package on screen made a failed month look like a valid daily forecast.
@@ -284,20 +314,18 @@ async function fetchCached(input: {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
   });
-  if (response.status === 404) return null;
+  if (response.status === 404 || response.status === 204) return null;
   if (!response.ok) throw await parseError(response);
   const payload = await response.json().catch(() => null);
   return parseAccessPayload(payload, 'cache', input);
 }
 
-async function generate(input: {
-  profile: UserProfile;
+function generationRequest(input: {
   chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
-  maxInProgressRetries: number;
-}): Promise<PersonalForecastClientResult> {
-  const response = await apiFetch('/api/content/forecast/personal', {
+}) {
+  return apiFetch('/api/content/forecast/personal', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -309,21 +337,41 @@ async function generate(input: {
       periodKey: input.periodKey,
     }),
   });
+}
+
+async function generate(input: {
+  profile: UserProfile;
+  chartId?: number | null;
+  period: PersonalForecastPeriod;
+  periodKey: string;
+  maxInProgressRetries: number;
+}): Promise<PersonalForecastClientResult> {
+  let response = await generationRequest(input);
   if (response.status !== 202) {
     if (!response.ok) throw await parseError(response);
     const payload = await response.json().catch(() => null);
     return parseAccessPayload(payload, undefined, input);
   }
 
-  const payload = await response.json().catch(() => ({}));
-  const retryAfterMs = Math.min(
+  let payload = await response.json().catch(() => ({}));
+  let retryAfterMs = Math.min(
     3_000,
     Math.max(500, Number(payload?.retryAfterMs) || 1500),
   );
   for (let attempt = 0; attempt < input.maxInProgressRetries; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-    const cached = await fetchCached(input);
-    if (cached) return cached;
+    response = await generationRequest(input);
+    if (response.status === 202) {
+      payload = await response.json().catch(() => ({}));
+      retryAfterMs = Math.min(
+        3_000,
+        Math.max(500, Number(payload?.retryAfterMs) || retryAfterMs),
+      );
+      continue;
+    }
+    if (!response.ok) throw await parseError(response);
+    const readyPayload = await response.json().catch(() => null);
+    return parseAccessPayload(readyPayload, undefined, input);
   }
   const error = new Error('Personal forecast generation is still in progress') as PersonalForecastClientError;
   error.status = 202;
@@ -363,17 +411,43 @@ export async function loadPersonalForecast(input: {
   const resolved = { ...input, periodKey };
   const key = contextKey(resolved);
   const local = input.options?.force ? null : readStored(key);
+  if (local && !input.options?.force) return local;
+
+  if (!input.options?.cacheOnly && !input.options?.force) {
+    const fallback = createDeliveryFallbackResult(resolved);
+    const backgroundKey = `${key}:background`;
+    if (!inFlight.has(backgroundKey)) {
+      const background = generate({
+        ...resolved,
+        maxInProgressRetries: Math.min(
+          60,
+          Math.max(0, input.options?.maxInProgressRetries ?? 60),
+        ),
+      }).then((generated) => {
+        writeStored(key, generated);
+        return generated;
+      }).catch(() => fallback).finally(() => {
+        if (inFlight.get(backgroundKey) === background) inFlight.delete(backgroundKey);
+      });
+      inFlight.set(backgroundKey, background);
+    }
+    return fallback;
+  }
+
   if (input.options?.cacheOnly && local) return local;
   const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : 'ensure'}`;
   const current = inFlight.get(inFlightKey);
   if (current) return current;
 
   const request = (async () => {
-    const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
-      const retryableCacheFailure = Number(error.status) >= 500;
-      if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
-      return null;
-    });
+    const shouldProbeCache = input.options?.cacheOnly || !input.options?.force;
+    const serverCached = shouldProbeCache
+      ? await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
+          const retryableCacheFailure = Number(error.status) >= 500;
+          if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
+          return null;
+        })
+      : null;
     if (serverCached) {
       writeStored(key, serverCached);
       return serverCached;
