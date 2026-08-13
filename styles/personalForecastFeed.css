@@ -2,8 +2,20 @@
   --forecast-feed-base: #ffffff;
   --forecast-feed-copy: #242a36;
   --forecast-feed-reading-width: 620px;
+  --forecast-editorial-width: 44rem;
+  --forecast-editorial-display: Georgia, 'Times New Roman', 'Noto Serif', serif;
+  --forecast-editorial-font: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --forecast-editorial-ink: #171717;
+  --forecast-editorial-copy: #292927;
+  --forecast-editorial-muted: #74736e;
+  --forecast-editorial-rule: #deddd8;
+  --forecast-editorial-paper: #f2ead7;
   position: relative;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
   min-height: 100%;
+  flex: 1 1 auto;
   padding-top: 0;
   overflow-x: hidden;
   overscroll-behavior-y: contain;
@@ -176,8 +188,7 @@
 }
 
 .forecast-feed-page .home-top {
-  padding-top: calc(var(--home-safe-top) + 54px);
-  padding-bottom: 0;
+  padding: 0;
 }
 
 .forecast-feed-page .home-top-content {
@@ -408,14 +419,33 @@
 
 .forecast-feed-status--loading {
   box-sizing: border-box;
-  width: 100%;
-  max-width: 620px;
-  min-height: 196px;
+  inline-size: min(100%, var(--forecast-editorial-width));
+  max-inline-size: none;
+  min-block-size: clamp(16rem, 50dvh, 30rem);
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 0.9rem;
   margin: 0 auto;
-  padding: 32px 24px 72px;
+  padding:
+    clamp(2rem, 8vw, 4rem)
+    max(
+      1.25rem,
+      env(safe-area-inset-right, 0px),
+      var(--tg-content-safe-area-inset-right, 0px),
+      var(--tg-safe-area-inset-right, 0px)
+    )
+    max(
+      5rem,
+      calc(env(safe-area-inset-bottom, 0px) + 3rem),
+      calc(var(--tg-content-safe-area-inset-bottom, 0px) + 3rem),
+      calc(var(--tg-safe-area-inset-bottom, 0px) + 3rem)
+    )
+    max(
+      1.25rem,
+      env(safe-area-inset-left, 0px),
+      var(--tg-content-safe-area-inset-left, 0px),
+      var(--tg-safe-area-inset-left, 0px)
+    );
   background: #ffffff;
   text-align: center;
 }
@@ -430,6 +460,15 @@
 
 .forecast-feed-loading-spinner {
   animation: forecast-feed-loading-spin 0.8s linear infinite;
+}
+
+.forecast-feed-status--loading .forecast-feed-loading-label {
+  max-width: 19rem;
+  color: #5f5d58;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-wrap: balance;
 }
 
 @keyframes forecast-feed-loading-spin {
@@ -1440,7 +1479,12 @@
 
 .forecast-feed-page .forecast-feed-story {
   width: 100%;
-  padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 3rem));
+  padding-bottom: max(
+    5rem,
+    calc(env(safe-area-inset-bottom, 0px) + 3rem),
+    calc(var(--tg-content-safe-area-inset-bottom, 0px) + 3rem),
+    calc(var(--tg-safe-area-inset-bottom, 0px) + 3rem)
+  );
 }
 
 .forecast-feed-page .forecast-feed-story .forecast-feed-story-fragment {
@@ -1633,8 +1677,8 @@
   }
 }
 
-/* Today editorial feed ---------------------------------------------------- */
-.forecast-feed-page.is-day {
+/* Personal forecast editorial canvas ------------------------------------- */
+.forecast-feed-page:is(.is-day, .is-week, .is-month) {
   --forecast-editorial-font: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --forecast-editorial-ink: #171717;
   --forecast-editorial-copy: #292927;
@@ -1648,7 +1692,7 @@
   font-family: var(--forecast-editorial-font);
 }
 
-.forecast-feed-page.is-day .forecast-feed-reading-header {
+.forecast-feed-page .forecast-feed-reading-header {
   width: min(100%, var(--forecast-editorial-width));
   padding-inline-start: max(
     1.25rem,
@@ -1664,11 +1708,11 @@
   );
 }
 
-.forecast-feed-page.is-day .forecast-feed-date-zone {
+.forecast-feed-page .forecast-feed-date-zone {
   margin-top: clamp(1.1rem, 4vw, 1.7rem);
 }
 
-.forecast-feed-page.is-day .forecast-feed-date-weekday {
+.forecast-feed-page .forecast-feed-date-weekday {
   color: var(--forecast-editorial-muted);
   font-size: 0.75rem;
   font-weight: 600;
@@ -1676,7 +1720,7 @@
   line-height: 1.35;
 }
 
-.forecast-feed-page.is-day .forecast-feed-date-value {
+.forecast-feed-page .forecast-feed-date-value {
   color: var(--forecast-editorial-ink);
   font-size: 0.94rem;
   font-weight: 500;
@@ -1684,8 +1728,7 @@
   line-height: 1.35;
 }
 
-.today-editorial-feed {
-  container-name: today-editorial-feed;
+.forecast-editorial-reading {
   container-type: inline-size;
   box-sizing: border-box;
   width: min(100%, var(--forecast-editorial-width));
@@ -1712,8 +1755,16 @@
   overflow: visible;
 }
 
-.today-editorial-feed,
-.today-editorial-feed * {
+.today-editorial-feed {
+  container-name: today-editorial-feed;
+}
+
+.forecast-period-editorial-feed {
+  container-name: period-editorial-feed;
+}
+
+.forecast-editorial-reading,
+.forecast-editorial-reading * {
   min-inline-size: 0;
 }
 
@@ -1731,16 +1782,13 @@
   padding-top: 0;
 }
 
-.today-editorial-beat:not(:first-child)::before {
+.today-editorial-beat:nth-child(2)::before {
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
   height: 1px;
   background: var(--forecast-editorial-rule);
   content: '';
-}
-
-.today-editorial-beat:nth-child(2)::before {
   inset-block-start: -0.3rem;
   height: 0.6rem;
   background:
@@ -2155,6 +2203,201 @@
 .today-editorial-feed[data-today-layout='typography-first']
   .forecast-editorial-quote {
   max-width: 30rem;
+}
+
+/* Reference-led type hierarchy: display serif, calm sans-serif reading copy. */
+#__next .forecast-feed-page .app-top-bar-context {
+  padding-block: 0.15rem 0.35rem;
+  color: #85817b;
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+#__next .forecast-feed-page .forecast-feed-date-value {
+  color: #5f5d58;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+#__next
+  .today-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-screen-headline,
+#__next
+  .forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-screen-headline {
+  max-width: 15ch;
+  margin: 0 0 clamp(1.35rem, 5vw, 2rem);
+  color: var(--forecast-editorial-ink);
+  font-family: var(--forecast-editorial-display);
+  font-size: clamp(2.65rem, 12vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.052em;
+  line-height: 0.99;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+#__next
+  .today-editorial-feed
+  .today-editorial-beat.is-overview
+  .forecast-feed-section-text.is-lead,
+#__next
+  .forecast-period-editorial-feed
+  .forecast-feed-section-text.is-story-opening {
+  max-width: 36rem;
+  color: #20201e;
+  font-family: var(--forecast-editorial-display);
+  font-size: clamp(1.25rem, 5.7vw, 1.58rem);
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  line-height: 1.43;
+}
+
+#__next .today-editorial-feed .forecast-feed-section-text,
+#__next .forecast-period-editorial-feed .forecast-feed-section-text.is-story-continuation {
+  color: var(--forecast-editorial-copy);
+  font-family: var(--forecast-editorial-font);
+  font-size: clamp(1.02rem, 4.5vw, 1.13rem);
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  line-height: 1.64;
+}
+
+#__next .forecast-editorial-quote p {
+  font-family: var(--forecast-editorial-display);
+  font-size: clamp(1.45rem, 6.7vw, 2rem);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.27;
+}
+
+#__next .forecast-editorial-paper-note p {
+  font-family: var(--forecast-editorial-font);
+  font-size: clamp(0.78rem, 3.5vw, 0.98rem);
+  font-weight: 650;
+  letter-spacing: 0.075em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* Week and Month remain one story, with presentation-only reading pauses. */
+.forecast-period-editorial-feed {
+  display: block;
+}
+
+#__next
+  .forecast-feed-page
+  .forecast-period-editorial-feed
+  .forecast-feed-story-fragment {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#__next
+  .forecast-feed-page
+  .forecast-period-editorial-feed
+  .forecast-feed-story-fragment
+  .forecast-feed-section-content,
+#__next
+  .forecast-feed-page
+  .forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-overview
+  .forecast-feed-section-content {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+#__next .forecast-period-editorial-feed .forecast-period-editorial-copy {
+  display: grid;
+  max-width: none;
+  gap: clamp(1.55rem, 6vw, 2.4rem);
+  margin: 0;
+}
+
+.forecast-period-editorial-divider {
+  position: relative;
+  width: 100%;
+  height: 0.6rem;
+  margin-block: clamp(0.8rem, 3vw, 1.35rem) clamp(0.35rem, 2vw, 0.8rem);
+  background:
+    radial-gradient(circle at center, var(--forecast-editorial-ink) 0 0.22rem, transparent 0.24rem),
+    linear-gradient(var(--forecast-editorial-rule), var(--forecast-editorial-rule)) center / 100% 1px no-repeat;
+}
+
+.forecast-period-editorial-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1.1rem, 5vw, 2rem);
+}
+
+.forecast-period-editorial-scene .forecast-editorial-visual {
+  width: min(44%, 11rem);
+  justify-self: end;
+}
+
+@container period-editorial-feed (min-width: 22rem) {
+  .forecast-period-editorial-scene {
+    grid-template-columns: minmax(12rem, 1fr) minmax(6.5rem, 31%);
+  }
+
+  .forecast-period-editorial-scene .forecast-feed-section-text {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .forecast-period-editorial-scene .forecast-editorial-visual {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+  }
+}
+
+@container period-editorial-feed (max-width: 21.99rem) {
+  .forecast-period-editorial-scene {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .forecast-period-editorial-scene > * {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .forecast-period-editorial-scene .forecast-editorial-visual {
+    width: min(46%, 8.25rem);
+    transform: none;
+  }
+}
+
+/* The forecast menu and fixed title bar share one safe-area rail. */
+.lumia-app-shell.telegram-diary-menu-offset
+  .lumia-side-drawer-menu-button.is-telegram {
+  top: calc(max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-content-safe-area-inset-top, 0px),
+    var(--tg-safe-area-inset-top, 0px)
+  ) + 10px);
+  left: calc(max(
+    env(safe-area-inset-left, 0px),
+    var(--tg-content-safe-area-inset-left, 0px),
+    var(--tg-safe-area-inset-left, 0px)
+  ) + 14px);
 }
 
 /* Calm first-load placeholder with the same page geometry. */

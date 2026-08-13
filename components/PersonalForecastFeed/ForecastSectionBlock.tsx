@@ -3,9 +3,15 @@ import type {
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
-import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
-import { EditorialSticker } from '../EditorialSticker';
-import { resolveVisibleForecastTitle } from './editorialLayout';
+import {
+  clampDiaryVisualSize,
+  type DiaryEditorialPause,
+} from '../../lib/personalForecastVisuals';
+import { EditorialForecastVisual } from './EditorialForecastVisual';
+import {
+  resolveLongForecastParagraphs,
+  resolveVisibleForecastTitle,
+} from './editorialLayout';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
@@ -16,7 +22,54 @@ type ForecastSectionBlockProps = {
   onRequestPremium: () => void;
 };
 
-function renderContentBlocks(section: ForecastSection) {
+function renderContentBlocks(
+  section: ForecastSection,
+  period: PersonalForecastPeriod,
+  sticker?: DiaryEditorialPause['asset'] | null,
+) {
+  if (period !== 'day') {
+    const paragraphs = resolveLongForecastParagraphs(
+      section.contentBlocks.map((block) => block.text),
+    );
+    const visualParagraphIndex = Math.min(1, paragraphs.length - 1);
+
+    return (
+      <div className="forecast-feed-section-copy forecast-period-editorial-copy">
+        {paragraphs.map((text, index) => {
+          const paragraph = (
+            <p
+              className={[
+                'forecast-feed-section-text',
+                index === 0 ? 'is-lead is-story-opening' : 'is-body is-story-continuation',
+              ].join(' ')}
+              data-story-paragraph={index + 1}
+            >
+              {text}
+            </p>
+          );
+
+          return (
+            <React.Fragment key={`story-paragraph-${index + 1}`}>
+              {index === 1 ? (
+                <div className="forecast-period-editorial-divider" aria-hidden="true" />
+              ) : null}
+              {sticker && index === visualParagraphIndex ? (
+                <div className="forecast-period-editorial-scene">
+                  {paragraph}
+                  <EditorialForecastVisual
+                    asset={sticker}
+                    size={clampDiaryVisualSize('medium', sticker.displayWeight)}
+                    priority
+                  />
+                </div>
+              ) : paragraph}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="forecast-feed-section-copy">
       {section.contentBlocks.map((block) => (
@@ -117,16 +170,16 @@ export function ForecastSectionBlock({
               {language === 'ru' ? 'Показать продолжение' : 'Show the rest'}
             </button>
           </div>
-        ) : renderContentBlocks(section)}
+        ) : renderContentBlocks(section, period, sticker)}
       </div>
-      {!locked && sticker ? (
+      {!locked && period === 'day' && sticker ? (
         <div
           className={`forecast-feed-editorial-pause is-${sticker.collection}`}
           aria-hidden="true"
         >
-          <EditorialSticker
+          <EditorialForecastVisual
             asset={sticker}
-            className="forecast-feed-editorial-pause-image"
+            size={clampDiaryVisualSize('medium', sticker.displayWeight)}
           />
         </div>
       ) : null}

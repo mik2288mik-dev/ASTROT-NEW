@@ -1,8 +1,8 @@
 import { stableHash } from '../personalForecastContract';
 import {
-  getDiaryPaperTemplateLibrary,
-  getDiaryTodayVisualLibrary,
-} from './editorialSelectors';
+  getPersonalForecastEditorialVisualLibrary,
+  getPersonalForecastPaperTemplateLibrary,
+} from './personalEditorialAllowlist';
 import {
   DIARY_VISUAL_FAMILY_WEIGHTS,
   type DiaryEligibleAsset,
@@ -12,7 +12,7 @@ import {
   type DiaryVisualRarity,
 } from './editorialTypes';
 
-export const DIARY_TODAY_VISUAL_ENGINE_VERSION = 'diary-today-editorial-v3';
+export const DIARY_TODAY_VISUAL_ENGINE_VERSION = 'diary-today-editorial-v4';
 
 export const DIARY_LAYOUTS = [
   'editorial_right',
@@ -35,11 +35,11 @@ export type DiaryTodayVisualPlan = {
 const FAMILY_ORDER = Object.keys(DIARY_VISUAL_FAMILY_WEIGHTS) as DiaryVisualFamily[];
 const ASSETS_BY_FAMILY = Object.fromEntries(FAMILY_ORDER.map((family) => [
   family,
-  getDiaryTodayVisualLibrary()
+  getPersonalForecastEditorialVisualLibrary()
     .filter((asset) => asset.diaryFamily === family)
     .sort((left, right) => left.id.localeCompare(right.id)),
 ])) as Record<DiaryVisualFamily, DiaryEligibleAsset[]>;
-const PAPER_TEMPLATES = [...getDiaryPaperTemplateLibrary()]
+const PAPER_TEMPLATES = [...getPersonalForecastPaperTemplateLibrary()]
   .sort((left, right) => left.id.localeCompare(right.id));
 const ASSET_COHORT_COUNT = 3;
 const ASSET_COHORT_BY_ID = new Map<string, number>(FAMILY_ORDER.flatMap((family) => (
@@ -75,14 +75,20 @@ function stablePermutation<T extends string>(items: readonly T[], seed: string):
   ));
 }
 
+const ACTIVE_FAMILY_ORDER = FAMILY_ORDER.filter((family) => ASSETS_BY_FAMILY[family].length > 0);
+const ACTIVE_FAMILY_WEIGHT = ACTIVE_FAMILY_ORDER.reduce(
+  (sum, family) => sum + DIARY_VISUAL_FAMILY_WEIGHTS[family],
+  0,
+);
+
 function selectFamily(seed: string): DiaryVisualFamily {
-  const bucket = stableHash(`${seed}|family`) % 100;
+  const bucket = stableHash(`${seed}|family`) % ACTIVE_FAMILY_WEIGHT;
   let cursor = 0;
-  for (const family of FAMILY_ORDER) {
+  for (const family of ACTIVE_FAMILY_ORDER) {
     cursor += DIARY_VISUAL_FAMILY_WEIGHTS[family];
     if (bucket < cursor) return family;
   }
-  return 'editorial';
+  return ACTIVE_FAMILY_ORDER[0] || 'mascot';
 }
 
 function fitsLayout(asset: DiaryEligibleAsset, layout: DiaryLayout): boolean {
@@ -114,13 +120,16 @@ function selectAsset(input: {
   identitySeed: string;
 }): DiaryEligibleAsset | null {
   const cohort = positiveModulo(input.day, ASSET_COHORT_COUNT);
-  const pool = ASSETS_BY_FAMILY[input.family].filter((asset) => (
+  const fitsActiveCohort = (asset: DiaryEligibleAsset) => (
     fitsLayout(asset, input.layout)
     && ASSET_COHORT_BY_ID.get(asset.id) === cohort
-    // Embedded copy has no per-asset locale/copy approval yet. Keep every
-    // manifest entry available to the library, but not to generic auto-picks.
     && (!('hasEmbeddedText' in asset) || asset.hasEmbeddedText === false)
-  ));
+  );
+  const familyPool = ASSETS_BY_FAMILY[input.family].filter(fitsActiveCohort);
+  const pool = familyPool.length
+    ? familyPool
+    : ACTIVE_FAMILY_ORDER.flatMap((family) => ASSETS_BY_FAMILY[family])
+      .filter(fitsActiveCohort);
   if (!pool.length) return null;
   const weightedPool = weightedByRarity(pool);
   const assetOffset = stableHash(
@@ -167,15 +176,6 @@ export function resolveDiaryTodayVisualPlan(input: {
   const layoutOffset = stableHash(`${identitySeed}|layout-offset`) % layouts.length;
   const layout = layouts[positiveModulo(day + layoutOffset, layouts.length)];
   const paperTemplate = selectPaperTemplate({ day, identitySeed });
-
-  if (layout === 'editorial_clean') {
-    return {
-      version: DIARY_TODAY_VISUAL_ENGINE_VERSION,
-      layout,
-      asset: null,
-      paperTemplate,
-    };
-  }
 
   const dailySeed = [identitySeed, input.periodKey].join('|');
   const family = selectFamily(dailySeed);

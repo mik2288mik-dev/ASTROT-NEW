@@ -102,9 +102,7 @@ describe('editorial-v2 Today integration', () => {
     for (let day = 0; day < plans.length; day += 1) {
       const plan = plans[day];
       expect(plan.paperTemplate).not.toBeNull();
-      if (plan.layout === 'editorial_clean') {
-        expect(plan.asset).toBeNull();
-      }
+      expect(plan.asset).not.toBeNull();
       if (plan.layout === 'editorial_left' || plan.layout === 'editorial_right') {
         expect(plan.asset?.orientation).not.toBe('landscape');
         expect(plan.asset?.displayWeight).not.toBe('hero');

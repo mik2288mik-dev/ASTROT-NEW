@@ -30,7 +30,7 @@ describe('personal forecast screen layout', () => {
     expect(app).toContain('openDrawerPeriod');
   });
 
-  it('keeps Week and Month as one calm prose reading column', () => {
+  it('keeps Week and Month as one continuous editorial reading', () => {
     const dashboard = read('views/Dashboard.tsx');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
     const forecastStyles = read('styles/personalForecastFeed.css');
@@ -38,9 +38,11 @@ describe('personal forecast screen layout', () => {
     expect(forecastStyles).not.toContain('.forecast-feed-period-tabs');
     expect(dashboard).toContain('[forecast.overview, ...forecast.sections]');
     expect(dashboard).toContain('storySections.map((section)');
+    expect(dashboard).toContain('forecast-period-editorial-feed');
+    expect(dashboard).toContain('data-forecast-period={displayPeriod}');
     expect(dashboard).toContain('sticker={stickerPausesBySection.get(section.id) || null}');
     expect(sectionBlock).toContain('forecast-feed-story-fragment');
-    expect(sectionBlock).toContain('<EditorialSticker');
+    expect(sectionBlock).toContain('<EditorialForecastVisual');
     expect(sectionBlock).not.toContain('data-editorial-role');
     expect(sectionBlock).not.toContain('forecast-feed-section--${section.kind}');
     expect(forecastStyles).toContain('.forecast-feed-story .forecast-feed-story-fragment');
@@ -57,26 +59,30 @@ describe('personal forecast screen layout', () => {
     expect(dashboard).not.toContain('ForecastSideNavigator');
   });
 
-  it('shows the editorial skeleton only for a first-load Today without local content', () => {
+  it('uses one honest full-width loading state for every period', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const skeleton = read('components/PersonalForecastFeed/ForecastEditorialSkeleton.tsx');
     const forecastStyles = read('styles/personalForecastFeed.css');
 
     expect(dashboard).toContain('const retained = current[period]?.result || local');
-    expect(dashboard).toContain('<ForecastEditorialSkeleton');
-    expect(dashboard).toMatch(/displayPeriod === 'day' \? \(\s*<ForecastEditorialSkeleton/);
-    expect(skeleton).toContain('aria-busy="true"');
-    expect(skeleton).toContain('forecast-editorial-skeleton-headline');
-    expect(skeleton).toContain('forecast-editorial-skeleton-lead');
-    expect(skeleton).toContain('forecast-editorial-skeleton-body');
-    expect(skeleton).toContain('forecast-editorial-skeleton-visual');
-    expect(skeleton).toContain("layout !== 'typography-first'");
-    expect(skeleton).toContain("'--forecast-skeleton-visual-ratio'");
-    expect(skeleton).toContain('`${visual.width} / ${visual.height}`');
-    expect(skeleton).toContain('aria-hidden="true"');
-    expect(forecastStyles).toContain('.forecast-editorial-skeleton-headline');
-    expect(forecastStyles).toContain("[data-forecast-skeleton-layout='hero-visual-note']");
+    expect(dashboard).not.toContain('<ForecastEditorialSkeleton');
+    expect(dashboard).toContain('forecast-feed-status--loading');
+    expect(dashboard).toContain('forecast-feed-loading-label');
+    expect(dashboard).toContain('aria-busy="true"');
+    expect(forecastStyles).toContain('inline-size: min(100%, var(--forecast-editorial-width));');
+    expect(forecastStyles).toContain('min-block-size: clamp(16rem, 50dvh, 30rem);');
     expect(forecastStyles).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+
+  it('reserves the shared top bar and keeps the period label out of the reading rail', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const forecastStyles = read('styles/personalForecastFeed.css');
+
+    expect(dashboard).toContain('subtitle={activePeriodTitle}');
+    expect(dashboard).not.toContain('reserveSpace={false}');
+    expect(dashboard).not.toContain('forecast-feed-date-weekday');
+    expect(forecastStyles).toContain('.forecast-feed-page .home-top');
+    expect(forecastStyles).toContain('padding: 0;');
+    expect(forecastStyles).toContain('.lumia-app-shell.telegram-diary-menu-offset');
   });
 
   it('scrolls nested editorial fragments relative to the actual scroll root', () => {
@@ -92,6 +98,8 @@ describe('personal forecast screen layout', () => {
 
     expect(dashboard).toContain("displayPeriod === 'day'");
     expect(dashboard).toContain('<TodayEditorialFeed');
+    expect(read('components/PersonalForecastFeed/TodayEditorialFeed.tsx'))
+      .toContain('forecast-editorial-reading');
     expect(dashboard).toContain('storySections.map((section)');
     expect(dashboard).toContain('<ForecastSectionBlock');
     expect(dashboard).toContain('[forecast.overview, ...forecast.sections]');

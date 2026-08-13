@@ -16,6 +16,7 @@ import {
   type ForecastVisualCue,
   type PersonalForecastPeriod,
 } from './personalForecastContract';
+import { getPersonalForecastEditorialVisualLibrary } from './personalForecastVisuals/personalEditorialAllowlist';
 
 export type ForecastVisualSectionInput = {
   id: string;
@@ -271,6 +272,8 @@ export function resolveDiaryEditorialPauses(input: {
       topics: themesFor(request).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
       excludeIds: [...excluded],
       slot,
+      forceVisible: input.period !== 'day',
+      eligibleAssets: getPersonalForecastEditorialVisualLibrary(),
     });
     if (!asset) continue;
     excluded.add(asset.id);

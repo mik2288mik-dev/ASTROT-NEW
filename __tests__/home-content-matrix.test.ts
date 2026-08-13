@@ -44,7 +44,8 @@ describe('mvp home surface', () => {
 
     expect(app).toContain('<Dashboard {...dashboardProps}');
     expect(app).toContain('onRequestPremium: requestPremium');
-    expect(dashboard).toContain('setActivePeriod');
+    expect(dashboard).toContain('resolveRequestedPersonalForecastPeriod(requestedPeriod)');
+    expect(dashboard).not.toContain('setActivePeriod');
     expect(dashboard).toContain('ForecastSectionBlock');
     expect(dashboard).not.toContain('FreshTabs');
     expect(dashboard).not.toContain('ForecastSideNavigator');

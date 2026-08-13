@@ -1231,20 +1231,6 @@
   padding-bottom: 28px;
 }
 
-/* The Telegram menu button extends below the fixed title bar; keep it out of the reading rail. */
-.lumia-app-shell.telegram-diary-menu-offset
-  .forecast-feed-page
-  .forecast-feed-section.is-overview
-  .forecast-feed-section-content {
-  padding-top: 50px;
-}
-
-.lumia-app-shell.telegram-diary-menu-offset
-  .forecast-feed-page
-  .forecast-feed-status {
-  padding-top: 50px;
-}
-
 .forecast-feed-page .forecast-feed-section-title {
   margin: 0 0 14px;
   max-width: 18ch;

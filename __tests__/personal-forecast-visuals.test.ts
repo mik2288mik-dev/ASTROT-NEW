@@ -174,7 +174,7 @@ describe('personal forecast editorial visual resolver', () => {
     }
   });
 
-  it('keeps week and month to one visual pause at most', () => {
+  it('gives Week and Month one deterministic personal-editorial visual pause each', () => {
     for (const period of ['week', 'month'] as const) {
       const pauses = resolveDiaryEditorialPauses({
         userId: 'long-reading-user',
@@ -182,7 +182,9 @@ describe('personal forecast editorial visual resolver', () => {
         periodKey: `2026-${period}`,
         sections: [feed().overview, ...feed().sections],
       });
-      expect(pauses.length).toBeLessThanOrEqual(1);
+      expect(pauses).toHaveLength(1);
+      expect(pauses[0].asset.collection).toBe('editorial-v2');
+      expect(pauses[0].asset.path).toContain('/stickers/editorial-v2/');
     }
   });
 });

@@ -136,7 +136,7 @@ export function TodayEditorialFeed({
 
   return (
     <article
-      className="forecast-feed-story today-editorial-feed"
+      className="forecast-feed-story forecast-editorial-reading today-editorial-feed"
       data-today-layout={layout}
       lang={language}
     >

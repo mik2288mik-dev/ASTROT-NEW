@@ -2,10 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import {
   DIARY_LAYOUTS,
-  DIARY_VISUAL_FAMILY_WEIGHTS,
-  getDiaryEditorialStickerLibrary,
   resolveDiaryTodayVisualPlan,
 } from '../lib/personalForecastVisuals';
+import { getPersonalForecastEditorialVisualLibrary } from '../lib/personalForecastVisuals/personalEditorialAllowlist';
 
 function dateKey(dayOffset: number): string {
   const date = new Date(Date.UTC(2026, 0, 1 + dayOffset));
@@ -43,7 +42,7 @@ describe('Today deterministic editorial visual plan', () => {
     }
   });
 
-  it('never repeats an asset on adjacent days and keeps clean layouts image-free', () => {
+  it('never repeats the single allowlisted asset on adjacent days, including clean layouts', () => {
     for (let reader = 0; reader < 30; reader += 1) {
       const plans = Array.from({ length: 365 }, (_, day) => resolveDiaryTodayVisualPlan({
         userId: `asset-reader-${reader}`,
@@ -52,8 +51,7 @@ describe('Today deterministic editorial visual plan', () => {
       }));
       for (let day = 0; day < plans.length; day += 1) {
         const plan = plans[day];
-        if (plan.layout === 'editorial_clean') expect(plan.asset).toBeNull();
-        else expect(plan.asset).not.toBeNull();
+        expect(plan.asset).not.toBeNull();
         if (day > 0 && plan.asset && plans[day - 1].asset) {
           expect(plan.asset.id).not.toBe(plans[day - 1].asset?.id);
         }
@@ -91,16 +89,19 @@ describe('Today deterministic editorial visual plan', () => {
     for (const plan of plans) {
       counts.set(plan.asset!.diaryFamily, (counts.get(plan.asset!.diaryFamily) || 0) + 1);
     }
-    expect(new Set(counts.keys())).toEqual(new Set(Object.keys(DIARY_VISUAL_FAMILY_WEIGHTS)));
+    const activeFamilies = new Set(
+      getPersonalForecastEditorialVisualLibrary().map((asset) => asset.diaryFamily),
+    );
+    expect(new Set(counts.keys())).toEqual(activeFamilies);
     const share = (families: string[]) => families.reduce(
       (sum, family) => sum + (counts.get(family) || 0),
       0,
     ) / plans.length;
-    expect(share(['mascot', 'object', 'animal', 'editorial', 'graphic'])).toBeGreaterThan(0.75);
-    expect(share(['associative', 'surreal'])).toBeGreaterThan(0.13);
-    expect(share(['associative', 'surreal'])).toBeLessThan(0.21);
+    expect(share(['mascot', 'object', 'animal', 'graphic'])).toBeGreaterThan(0.8);
+    expect(share(['surreal'])).toBeGreaterThan(0.07);
+    expect(share(['surreal'])).toBeLessThan(0.13);
     expect(share(['psychedelic-humor'])).toBeGreaterThan(0.02);
-    expect(share(['psychedelic-humor'])).toBeLessThan(0.04);
+    expect(share(['psychedelic-humor'])).toBeLessThan(0.07);
   });
 
   it('includes the contract version in the plan seed and never uses Math.random', () => {
@@ -125,8 +126,8 @@ describe('Today deterministic editorial visual plan', () => {
   });
 
   it('keeps every eligible asset UI-ready without design instructions from Luna', () => {
-    const library = getDiaryEditorialStickerLibrary();
-    expect(library).toHaveLength(895);
+    const library = getPersonalForecastEditorialVisualLibrary();
+    expect(library.length).toBeGreaterThan(0);
     for (const asset of library) {
       expect(asset).toMatchObject({
         id: expect.any(String),

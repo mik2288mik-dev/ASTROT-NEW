@@ -1777,7 +1777,6 @@ const App: React.FC = () => {
         onOpenSynastry: openSynastryFromHome,
         onOpenHoroscope: openBottomZodiac,
         requestedPeriod: dashboardPeriod,
-        onPeriodChange: setDashboardPeriod,
         onRequestPremium: requestPremium,
     };
 

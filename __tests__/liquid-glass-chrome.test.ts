@@ -51,7 +51,8 @@ describe('liquid glass application chrome', () => {
     expect(topBar).toContain('reserveSpace = true');
     expect(freshHeaders).not.toContain('FreshInnerHeader');
     expect(dashboard).toContain('<AppTopBar');
-    expect(dashboard).toContain('reserveSpace={false}');
+    expect(dashboard).toContain('subtitle={activePeriodTitle}');
+    expect(dashboard).not.toContain('reserveSpace={false}');
     expect(application).toContain("title={profile.language === 'en' ? 'My charts' : 'Мои карты'}");
   });
 

@@ -9,7 +9,6 @@ import React, {
 import { LoaderCircle, RefreshCw } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
-import { lumiaSelectionHaptic } from '../lib/haptics';
 import {
   PERSONAL_FORECAST_CONTRACT_VERSION,
   buildPersonalForecastChartFingerprint,
@@ -32,9 +31,11 @@ import {
   type DiaryEditorialPause,
 } from '../lib/personalForecastVisuals';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
-import { ForecastEditorialSkeleton } from '../components/PersonalForecastFeed/ForecastEditorialSkeleton';
 import { TodayEditorialFeed } from '../components/PersonalForecastFeed/TodayEditorialFeed';
-import { resolveTodayEditorialLayoutFromVisualPlan } from '../components/PersonalForecastFeed/editorialLayout';
+import {
+  resolveRequestedPersonalForecastPeriod,
+  updatePersonalForecastPeriodBucket,
+} from '../components/PersonalForecastFeed/periodSelection';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 
 type DashboardProps = {
@@ -44,7 +45,6 @@ type DashboardProps = {
   currentDateKey?: string;
   onCreateNatalChart?: () => void;
   requestedPeriod?: PersonalForecastPeriod;
-  onPeriodChange?: (period: PersonalForecastPeriod) => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -61,11 +61,6 @@ type PeriodState = {
 type PeriodRequest = {
   cacheOnly: boolean;
   promise: Promise<void>;
-};
-
-type PendingPeriodSelection = {
-  period: PersonalForecastPeriod;
-  targetSectionId?: string;
 };
 
 const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];
@@ -127,7 +122,6 @@ export const Dashboard = memo<DashboardProps>(({
   currentDateKey,
   onCreateNatalChart,
   requestedPeriod,
-  onPeriodChange,
   onRequestPremium,
   scrollRef,
 }) => {
@@ -144,7 +138,7 @@ export const Dashboard = memo<DashboardProps>(({
   const chartFingerprint = chartData
     ? buildPersonalForecastChartFingerprint(chartData)
     : 'none';
-  const [activePeriod, setActivePeriod] = useState<PersonalForecastPeriod>('day');
+  const activePeriod = resolveRequestedPersonalForecastPeriod(requestedPeriod);
   const [periodStates, setPeriodStates] = useState<Record<PersonalForecastPeriod, PeriodState>>({
     day: emptyPeriodState(),
     week: emptyPeriodState(),
@@ -154,7 +148,6 @@ export const Dashboard = memo<DashboardProps>(({
   const contextRef = useRef('');
   const accessContextRef = useRef('');
   const pendingSectionRef = useRef<string | null>(null);
-  const pendingPeriodRef = useRef<PendingPeriodSelection | null>(null);
   const stickerPlanCacheRef = useRef<Map<string, DiaryEditorialPause[]>>(new Map());
   const recentStickerIdsRef = useRef<string[]>([]);
 
@@ -299,10 +292,11 @@ export const Dashboard = memo<DashboardProps>(({
           accessContextRef.current !== requestContextKey
           || requestsRef.current[period] !== requestEntry
         ) return;
-        setPeriodStates((current) => ({
-          ...current,
-          [period]: { result: next, phase: 'ready', errorCode: null },
-        }));
+        setPeriodStates((current) => updatePersonalForecastPeriodBucket(
+          current,
+          period,
+          { result: next, phase: 'ready', errorCode: null },
+        ));
       } catch (error) {
         if (
           accessContextRef.current !== requestContextKey
@@ -361,8 +355,8 @@ export const Dashboard = memo<DashboardProps>(({
   ]);
 
   useEffect(() => {
-    loadPeriod('day');
-  }, [contextKey, loadPeriod]);
+    loadPeriod(activePeriod);
+  }, [activePeriod, contextKey, loadPeriod]);
 
   const state = periodStates[activePeriod];
   const displayPeriod = activePeriod;
@@ -454,42 +448,11 @@ export const Dashboard = memo<DashboardProps>(({
     return () => window.cancelAnimationFrame(frame);
   }, [forecast, scrollToSection]);
 
-  const selectPeriod = useCallback((
-    period: PersonalForecastPeriod,
-    targetSectionId?: string,
-    silently = false,
-  ) => {
-    if (!silently) lumiaSelectionHaptic();
-    if (targetSectionId) pendingSectionRef.current = targetSectionId;
-    loadPeriod(period);
-    if (!selectActiveReadyPersonalForecast(period, periodStates)) {
-      if (periodStates[period].phase !== 'error') {
-        pendingPeriodRef.current = { period, targetSectionId };
-      } else {
-        pendingPeriodRef.current = null;
-      }
-      return;
-    }
-    pendingPeriodRef.current = null;
-    setActivePeriod(period);
-    onPeriodChange?.(period);
-    if (!targetSectionId) {
-      scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [loadPeriod, onPeriodChange, periodStates, scrollRef]);
-
   useEffect(() => {
-    if (!requestedPeriod || requestedPeriod === activePeriod) return;
-    if (periodStates[requestedPeriod].phase === 'error') return;
-    selectPeriod(requestedPeriod, undefined, true);
-  }, [activePeriod, periodStates, requestedPeriod, selectPeriod]);
-
-  useEffect(() => {
-    const pending = pendingPeriodRef.current;
-    if (!pending || periodStates[pending.period].phase === 'error') return;
-    if (!selectActiveReadyPersonalForecast(pending.period, periodStates)) return;
-    selectPeriod(pending.period, pending.targetSectionId, true);
-  }, [periodStates, selectPeriod]);
+    if (!requestedPeriod) return;
+    pendingSectionRef.current = null;
+    scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [requestedPeriod, scrollRef]);
 
   const requestPremium = useCallback(() => {
     void onRequestPremium?.('personal_forecast_feed', {
@@ -510,7 +473,7 @@ export const Dashboard = memo<DashboardProps>(({
       >
         <AppTopBar
           title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
-          reserveSpace={false}
+          subtitle={activePeriodTitle}
         />
       </section>
       <div className="forecast-feed-ambient" aria-hidden />
@@ -523,7 +486,6 @@ export const Dashboard = memo<DashboardProps>(({
           >
             <div className="forecast-feed-date-cluster">
               <p className="forecast-feed-date">
-                <span className="forecast-feed-date-weekday">{activePeriodTitle}</span>
                 <time
                   className="forecast-feed-date-value"
                   dateTime={activeWindow.periodStart}
@@ -565,12 +527,6 @@ export const Dashboard = memo<DashboardProps>(({
               {language === 'ru' ? 'Повторить' : 'Retry'}
             </button>
           </section>
-        ) : displayPeriod === 'day' ? (
-          <ForecastEditorialSkeleton
-            label={personalForecastLoadingLabel(activePeriod, language)}
-            layout={resolveTodayEditorialLayoutFromVisualPlan(todayVisualPlan.layout)}
-            visual={todayVisualPlan.asset}
-          />
         ) : (
           <section
             className={`forecast-feed-status forecast-feed-status--loading is-${state.phase}`}
@@ -581,6 +537,9 @@ export const Dashboard = memo<DashboardProps>(({
             <div className="forecast-feed-loading-indicator" aria-hidden="true">
               <LoaderCircle className="forecast-feed-loading-spinner" size={28} strokeWidth={2} />
             </div>
+            <p className="forecast-feed-loading-label">
+              {personalForecastLoadingLabel(activePeriod, language)}
+            </p>
           </section>
         )
       ) : displayPeriod === 'day' ? (
@@ -595,7 +554,11 @@ export const Dashboard = memo<DashboardProps>(({
           onRequestPremium={requestPremium}
         />
       ) : (
-        <div className="forecast-feed-story">
+        <article
+          className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
+          data-forecast-period={displayPeriod}
+          lang={language}
+        >
           {storySections.map((section) => (
             <ForecastSectionBlock
               key={`${displayPeriod}:${forecast.periodKey}:${section.id}`}
@@ -607,7 +570,7 @@ export const Dashboard = memo<DashboardProps>(({
               onRequestPremium={requestPremium}
             />
           ))}
-        </div>
+        </article>
       )}
     </div>
   );

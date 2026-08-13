@@ -65,7 +65,7 @@ describe('card background UI wiring', () => {
     expect(promoBanner).toContain('return null;');
     expect(promoBanner).not.toContain('selectPromoBanner');
     expect(promoBanner).not.toContain('<picture');
-    expect(sectionBlock).toContain('<EditorialSticker');
+    expect(sectionBlock).toContain('<EditorialForecastVisual');
     expect(sectionBlock).toContain('forecast-feed-editorial-pause');
     expect(feedStyles).toContain('.forecast-feed-editorial-pause');
     expect(feedStyles).not.toContain('background-image: var(--forecast-section-image)');

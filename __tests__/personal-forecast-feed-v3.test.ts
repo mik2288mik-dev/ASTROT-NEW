@@ -11,8 +11,9 @@ describe('personal forecast Luna architecture', () => {
 
     expect(dashboard).toContain("const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];");
     expect(dashboard).toContain('requestedPeriod?: PersonalForecastPeriod;');
-    expect(dashboard).toContain('loadPeriod(\'day\')');
-    expect(dashboard).toContain('selectPeriod(requestedPeriod, undefined, true);');
+    expect(dashboard).toContain('resolveRequestedPersonalForecastPeriod(requestedPeriod)');
+    expect(dashboard).toContain('loadPeriod(activePeriod);');
+    expect(dashboard).not.toContain('pendingPeriodRef');
     expect(dashboard).not.toContain('forecast-feed-period-tabs');
     expect(dashboard).not.toContain('<ForecastQuestions');
     expect(exists('components/PersonalForecastFeed/ForecastQuestions.tsx')).toBe(false);

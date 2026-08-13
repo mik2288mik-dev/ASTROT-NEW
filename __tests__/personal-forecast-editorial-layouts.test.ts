@@ -8,6 +8,7 @@ import {
   resolveTodayVisualAnchorId,
   resolveEditorialPaperTreatment,
   resolveForecastEditorialLayout,
+  resolveLongForecastParagraphs,
   resolveVisibleForecastTitle,
 } from '../components/PersonalForecastFeed/editorialLayout';
 import { clampDiaryVisualSize } from '../lib/personalForecastVisuals';
@@ -160,6 +161,23 @@ describe('Today editorial layout system', () => {
       kind: 'overview',
       title: 'Личный гороскоп на сегодня',
     })).toBe('');
+  });
+
+  it('turns a long Week or Month story into balanced visual paragraphs without changing its words', () => {
+    const story = [
+      'The week begins with a useful pause before the next important decision arrives.',
+      'You can hear what matters when the surrounding noise is allowed to settle.',
+      'A practical conversation then becomes easier because your position is already clear.',
+      'Keep the promise small enough to complete it with care and without haste.',
+      'That steady rhythm leaves room for warmth instead of another round of explanations.',
+      'By staying with one direction, you finish the story with more confidence.',
+    ].join(' ');
+
+    const paragraphs = resolveLongForecastParagraphs([story]);
+
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs.join(' ')).toBe(story);
+    expect(paragraphs.every((paragraph) => paragraph.trim().length > 0)).toBe(true);
   });
 
   it('keeps fallback paper stable while template-backed note text stays live', () => {

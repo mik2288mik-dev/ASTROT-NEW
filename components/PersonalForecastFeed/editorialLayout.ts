@@ -133,6 +133,62 @@ export function isRenderableTodaySection(
     );
 }
 
+function wordCount(value: string): number {
+  return value.trim().split(/\s+/u).filter(Boolean).length;
+}
+
+/**
+ * Creates presentation-only paragraphs for a cohesive Week or Month story.
+ * Sentence order and copy stay untouched; only visual reading pauses are added.
+ */
+export function resolveLongForecastParagraphs(
+  blocks: readonly string[],
+): string[] {
+  const source = blocks.map((block) => block.trim()).filter(Boolean).join(' ');
+  if (!source) return [];
+  const sentences = source.split(/(?<=[.!?…])\s+/u).filter(Boolean);
+  const totalWords = wordCount(source);
+  const desiredGroups = totalWords >= 72 ? 3 : totalWords >= 38 ? 2 : 1;
+  const groupCount = Math.min(desiredGroups, sentences.length);
+  if (groupCount <= 1) return [source];
+
+  const paragraphs: string[] = [];
+  let sentenceIndex = 0;
+  let remainingWords = totalWords;
+
+  for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
+    const remainingGroups = groupCount - groupIndex;
+    if (remainingGroups === 1) {
+      paragraphs.push(sentences.slice(sentenceIndex).join(' '));
+      break;
+    }
+
+    const targetWords = remainingWords / remainingGroups;
+    const lastAllowedEnd = sentences.length - (remainingGroups - 1);
+    let chosenEnd = sentenceIndex + 1;
+    let chosenWords = wordCount(sentences[sentenceIndex]);
+    let candidateWords = 0;
+    let smallestDistance = Number.POSITIVE_INFINITY;
+
+    for (let end = sentenceIndex + 1; end <= lastAllowedEnd; end += 1) {
+      candidateWords += wordCount(sentences[end - 1]);
+      const distance = Math.abs(candidateWords - targetWords);
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        chosenEnd = end;
+        chosenWords = candidateWords;
+      }
+      if (candidateWords >= targetWords) break;
+    }
+
+    paragraphs.push(sentences.slice(sentenceIndex, chosenEnd).join(' '));
+    sentenceIndex = chosenEnd;
+    remainingWords -= chosenWords;
+  }
+
+  return paragraphs;
+}
+
 export function resolveEditorialPaperTreatment(seed: string): {
   shape: EditorialPaperShape;
   rotationDeg: number;

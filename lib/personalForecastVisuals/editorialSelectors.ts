@@ -329,6 +329,7 @@ export function selectDiaryEditorialSticker(input: {
   excludeIds?: readonly string[];
   slot?: number;
   forceVisible?: boolean;
+  eligibleAssets?: readonly DiaryEligibleAsset[];
 }): DiaryEligibleAsset | null {
   const slot = input.slot ?? 0;
   const seed = ['diary', input.contentKey, input.userId || 'guest', String(slot)].join('|');
@@ -337,7 +338,8 @@ export function selectDiaryEditorialSticker(input: {
   }
   const excluded = new Set(input.excludeIds || []);
   const family = diaryFamilyForSeed(seed);
-  const eligible = DIARY_ELIGIBLE_ASSETS.filter((asset) => !excluded.has(asset.id));
+  const eligible = (input.eligibleAssets || DIARY_ELIGIBLE_ASSETS)
+    .filter((asset) => !excluded.has(asset.id));
   const familyMatches = eligible.filter((asset) => asset.diaryFamily === family);
   const base = familyMatches.length ? familyMatches : eligible;
   const topicMatches = input.topics?.length
