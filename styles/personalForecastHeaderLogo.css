@@ -138,6 +138,13 @@ body,
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
+  filter:
+    brightness(0)
+    contrast(1.35)
+    drop-shadow(0.5px 0 0 #000000)
+    drop-shadow(-0.5px 0 0 #000000)
+    drop-shadow(0 0.5px 0 #000000)
+    drop-shadow(0 -0.5px 0 #000000);
 }
 
 .lumia-side-drawer-menu-icon line {
@@ -167,21 +174,24 @@ body,
 }
 
 .forecast-feed-page .forecast-feed-reading-header {
+  margin-top: 0;
   padding-top: 0;
 }
 
 .forecast-feed-page .forecast-feed-date-zone {
-  margin-top: 5px;
+  margin: 6px auto 0;
   padding-inline: 0;
 }
 
 .forecast-feed-page .forecast-feed-date-value {
   display: block;
-  color: #70706c;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  line-height: 1.35;
+  color: #696762;
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: 14px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.012em;
+  line-height: 1.25;
   text-transform: lowercase;
 }
 
@@ -199,6 +209,14 @@ body,
   .forecast-feed-page .app-top-bar-context--period {
     padding-top: 20px;
     font-size: 2rem;
+  }
+
+  .forecast-feed-page .forecast-feed-date-zone {
+    margin-top: 5px;
+  }
+
+  .forecast-feed-page .forecast-feed-date-value {
+    font-size: 13.5px;
   }
 }
 
