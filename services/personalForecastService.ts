@@ -2,6 +2,7 @@ import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
 import { APP_VOICE_VERSION } from '../lib/appVoice';
 import {
+  AI_PERSONAL_HOROSCOPE_TIMEZONE,
   AI_PERSONAL_HOROSCOPE_VERSION,
   buildAiPersonalHoroscopeProfileFingerprint,
   isAiPersonalHoroscopePackage,
@@ -43,6 +44,12 @@ type PersonalForecastPeriodResultState = {
   result: PersonalForecastClientResult | null;
 };
 
+type ResolvedPersonalHoroscopeRequest = {
+  period: PersonalForecastPeriod;
+  periodKey: string;
+  timezone: string;
+};
+
 /**
  * Bumped deliberately: chart-based local packages must never survive the move
  * to the AI-only horoscope product.
@@ -59,17 +66,15 @@ function contextKey(input: {
   profile: UserProfile;
   period: PersonalForecastPeriod;
   periodKey: string;
+  timezone: string;
 }): string {
-  const timezone = normalizeForecastTimezone(
-    input.profile.birthTimezone || 'Europe/Moscow',
-  );
   return [
     AI_PERSONAL_HOROSCOPE_VERSION,
     userId(input.profile),
     buildAiPersonalHoroscopeProfileFingerprint(input.profile),
     input.period,
     input.periodKey,
-    timezone,
+    normalizeForecastTimezone(input.timezone),
     input.profile.language === 'en' ? 'en' : 'ru',
     hasActivePremium(input.profile) ? 'premium' : 'free',
     PERSONAL_FORECAST_CALCULATION_VERSION,
@@ -243,13 +248,11 @@ export function selectActiveReadyPersonalForecast(
   return candidate;
 }
 
-function buildUrl(input: {
-  period: PersonalForecastPeriod;
-  periodKey: string;
-}): string {
+function buildUrl(input: ResolvedPersonalHoroscopeRequest): string {
   const params = new URLSearchParams({
     period: input.period,
     periodKey: input.periodKey,
+    timezone: input.timezone,
   });
   return `/api/content/forecast/personal?${params.toString()}`;
 }
@@ -265,10 +268,9 @@ async function parseError(response: Response): Promise<PersonalForecastClientErr
   return error;
 }
 
-async function fetchCached(input: {
-  period: PersonalForecastPeriod;
-  periodKey: string;
-}): Promise<PersonalForecastClientResult | null> {
+async function fetchCached(
+  input: ResolvedPersonalHoroscopeRequest,
+): Promise<PersonalForecastClientResult | null> {
   const response = await apiFetch(buildUrl(input), {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
@@ -279,10 +281,7 @@ async function fetchCached(input: {
   return parseAccessPayload(payload, 'cache', input);
 }
 
-function generationRequest(input: {
-  period: PersonalForecastPeriod;
-  periodKey: string;
-}) {
+function generationRequest(input: ResolvedPersonalHoroscopeRequest) {
   return apiFetch('/api/content/forecast/personal', {
     method: 'POST',
     headers: {
@@ -292,13 +291,12 @@ function generationRequest(input: {
     body: JSON.stringify({
       period: input.period,
       periodKey: input.periodKey,
+      timezone: input.timezone,
     }),
   });
 }
 
-async function generate(input: {
-  period: PersonalForecastPeriod;
-  periodKey: string;
+async function generate(input: ResolvedPersonalHoroscopeRequest & {
   maxInProgressRetries: number;
 }): Promise<PersonalForecastClientResult> {
   let response = await generationRequest(input);
@@ -335,6 +333,22 @@ async function generate(input: {
   throw error;
 }
 
+function resolveRequest(input: {
+  profile: UserProfile;
+  period: PersonalForecastPeriod;
+  periodKey?: string;
+}): ResolvedPersonalHoroscopeRequest {
+  const timezone = normalizeForecastTimezone(
+    input.profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
+  );
+  return {
+    period: input.period,
+    periodKey: input.periodKey
+      || getPersonalForecastPeriodKey(input.period, new Date(), timezone),
+    timezone,
+  };
+}
+
 export function readLocalPersonalForecast(input: {
   profile: UserProfile;
   /** Legacy-compatible inputs are deliberately ignored. */
@@ -343,12 +357,8 @@ export function readLocalPersonalForecast(input: {
   period: PersonalForecastPeriod;
   periodKey?: string;
 }): PersonalForecastClientResult | null {
-  const timezone = normalizeForecastTimezone(
-    input.profile.birthTimezone || 'Europe/Moscow',
-  );
-  const periodKey = input.periodKey
-    || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
-  return readStored(contextKey({ profile: input.profile, period: input.period, periodKey }));
+  const resolved = resolveRequest(input);
+  return readStored(contextKey({ profile: input.profile, ...resolved }));
 }
 
 export async function loadPersonalForecast(input: {
@@ -360,12 +370,7 @@ export async function loadPersonalForecast(input: {
   periodKey?: string;
   options?: LoadOptions;
 }): Promise<PersonalForecastClientResult> {
-  const timezone = normalizeForecastTimezone(
-    input.profile.birthTimezone || 'Europe/Moscow',
-  );
-  const periodKey = input.periodKey
-    || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
-  const resolved = { period: input.period, periodKey };
+  const resolved = resolveRequest(input);
   const key = contextKey({ profile: input.profile, ...resolved });
   const local = input.options?.force ? null : readStored(key);
   if (local) return local;
