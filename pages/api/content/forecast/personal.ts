@@ -102,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const auth = await requireAppUser(req, { allowGuest: true });
     userId = auth.userId;
-    const user = await db.users.get(userId);
+    const user = await db.users.get(userId, { hydratePrimaryChart: false });
     if (!user) {
       return res.status(404).json({
         error: 'Profile not found',
@@ -185,6 +185,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
       });
     }
+    // PERSONAL_FORECAST_NOT_READY is represented by HTTP 204 for the cache-only GET.
     if (req.method === 'GET') return res.status(204).end();
 
     const generated = await ensurePersonalForecast(cacheInput);
