@@ -43,6 +43,7 @@ import {
   ensurePersonalForecast,
   getCompatibleStalePersonalForecast,
 } from '../lib/personalForecastCache';
+import { buildForecastLockedPreview } from '../lib/personalForecastContract';
 import { aiPersonalHoroscopeFixture } from './ai-personal-horoscope-fixture';
 
 const profile = {
@@ -94,15 +95,29 @@ describe('AI personal horoscope profile cache path', () => {
 
   it('passes recent AI horoscope text as anti-repeat context', async () => {
     const current = aiPersonalHoroscopeFixture();
+    const yesterdayBase = aiPersonalHoroscopeFixture();
+    const yesterdayOpening = 'Михаил, вчера планы шумели громче результата. Ты это уже видел.';
+    const yesterdayOverview = {
+      ...yesterdayBase.overview,
+      text: yesterdayOpening,
+      contentBlocks: yesterdayBase.overview.contentBlocks.map((block, index) => (
+        index === 0 ? { ...block, text: yesterdayOpening } : block
+      )),
+      semanticFingerprint: 'ai:yesterday:overview',
+      lockedPreview: buildForecastLockedPreview(
+        yesterdayOpening,
+        yesterdayBase.overview.premiumTeaser,
+      ),
+      explanationAnchors: yesterdayBase.overview.explanationAnchors.map((anchor, index) => (
+        index === 0 ? { ...anchor, conclusion: yesterdayOpening } : anchor
+      )),
+    };
     const yesterday = {
-      ...aiPersonalHoroscopeFixture(),
+      ...yesterdayBase,
       periodKey: '2026-07-25',
       periodStart: '2026-07-25',
       periodEnd: '2026-07-25',
-      overview: {
-        ...aiPersonalHoroscopeFixture().overview,
-        text: 'Михаил, вчера планы шумели громче результата. Ты это уже видел.',
-      },
+      overview: yesterdayOverview,
     };
     mockContentInterpretations.getLatestByUserVariant.mockResolvedValueOnce({
       content: yesterday,
