@@ -19,7 +19,6 @@ import {
 const NOW = Date.parse('2026-08-13T10:00:00.000Z');
 const FUTURE = '2026-09-13T10:00:00.000Z';
 const PAST = '2026-07-13T10:00:00.000Z';
-const chartState = { primaryChartId: 7 };
 
 describe('canonical Free/Premium entitlement contract', () => {
   it('publishes every supported entitlement state explicitly', () => {
@@ -158,17 +157,40 @@ describe('canonical Free/Premium entitlement contract', () => {
     ]));
   });
 
-  it('keeps Today free and gates Week and Month before premium', () => {
-    expect(canAccessFeature('personal_daily', null, chartState).allowed).toBe(true);
-    expect(canAccessFeature('personal_weekly', null, chartState).status).toBe('needs_premium');
-    expect(canAccessFeature('personal_monthly', null, chartState).status).toBe('needs_premium');
+  it('keeps Today free and gates Week and Month by Premium only, without a chart', () => {
+    expect(canAccessFeature('personal_daily', null, null)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+      hasChart: false,
+    });
+    expect(canAccessFeature('personal_weekly', null, null)).toMatchObject({
+      allowed: false,
+      status: 'needs_premium',
+      hasChart: false,
+    });
+    expect(canAccessFeature('personal_monthly', null, null)).toMatchObject({
+      allowed: false,
+      status: 'needs_premium',
+      hasChart: false,
+    });
+    const paid = { entitlementState: 'paid' as const, entitlementEndsAt: FUTURE };
+    expect(canAccessFeature('personal_weekly', paid, null)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+      hasChart: false,
+    });
+    expect(canAccessFeature('personal_monthly', paid, null)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+      hasChart: false,
+    });
   });
 });
 
 describe('legacy surface adapter derives access from the canonical contract', () => {
   const freeUser: UserState = {
     userId: 'free-user',
-    chartId: 7,
+    chartId: null,
     entitlementState: 'free',
     unlockedContent: [],
   };
@@ -179,9 +201,10 @@ describe('legacy surface adapter derives access from the canonical contract', ()
     entitlementEndsAt: FUTURE,
   };
 
-  it.each(['weekly', 'monthly'] as const)('maps forecast/%s to Premium', (variant) => {
+  it.each(['weekly', 'monthly'] as const)('maps forecast/%s to Premium without requiring a chart', (variant) => {
     expect(getContentAccessConfig('forecast', variant)).toMatchObject({
       defaultAccessTier: 'premium',
+      calculationRequired: false,
       unlockOptions: ['premium'],
       lockedBehavior: { requirePremium: true },
     });
@@ -203,7 +226,7 @@ describe('legacy surface adapter derives access from the canonical contract', ()
   });
 });
 
-describe('personal forecast prewarm respects entitlement', () => {
+describe('personal horoscope prewarm respects entitlement', () => {
   const periodKeys = {
     day: '2026-08-13',
     week: '2026-W33',

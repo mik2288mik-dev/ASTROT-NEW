@@ -15,7 +15,7 @@ export type GeneratedContentType =
   | 'deep_report';
 
 export type AiContentModelTier = 'fast' | 'main' | 'deep';
-export type ContentCacheScope = 'shared' | 'user_chart' | 'chart_version';
+export type ContentCacheScope = 'shared' | 'user' | 'user_chart' | 'chart_version';
 export type ContentCacheTtl = '24h' | '7d' | '30d' | 'forever' | 'forever_until_chart_changes';
 export type GenerationPolicy = 'once_per_day' | 'once_per_week' | 'once_per_month' | 'once_per_chart_version' | 'explicit_only';
 export type ContentPlacement = 'push' | 'home' | 'horoscope' | 'natal' | 'synastry' | 'report';
@@ -82,9 +82,9 @@ const CONTENT_MATRIX: Record<GeneratedContentType, ContentPolicy> = {
     style: 'Одна слепая зона поведения с одним примером и одним следующим действием.', placements: ['home', 'natal'], generationPolicy: 'once_per_week',
   },
   personal_daily: {
-    type: 'personal_daily', featureKey: 'personal_daily', modelTier: 'main', words: { min: 0, max: 130 },
-    cacheTtl: '24h', cacheScope: 'user_chart', promptVersion: 'personal_daily.v2', purpose: 'Личный прогноз на день',
-    style: 'Один вывод, одно возможное жизненное проявление и один ориентир; без обязательного минимума.', placements: ['home', 'horoscope'], generationPolicy: 'once_per_day',
+    type: 'personal_daily', featureKey: 'personal_daily', modelTier: 'main', words: { min: 0, max: 170 },
+    cacheTtl: '24h', cacheScope: 'user', promptVersion: 'personal_ai_horoscope.v1', purpose: 'Личный AI-гороскоп на день по профилю и истории пользователя',
+    style: 'Дерзкий вход, цельный прогноз и 2–3 конкретных совета; без Swiss, натальной карты и видимой астрологии.', placements: ['home', 'horoscope'], generationPolicy: 'once_per_day',
   },
   natal_section: {
     type: 'natal_section', featureKey: 'natal_basic', modelTier: 'main', words: { min: 150, max: 200 },
@@ -134,7 +134,6 @@ export function getCacheTtlMs(type: GeneratedContentType): number | null {
   return null;
 }
 
-
 export type ContentCacheKeyParts = {
   contentKey?: string;
   dateKey?: string;
@@ -153,7 +152,7 @@ export function buildContentCacheKey(type: GeneratedContentType, parts: ContentC
   if (parts.periodKey) values.push(`period:${parts.periodKey}`);
   if (parts.zodiacSign) values.push(`sign:${parts.zodiacSign.toLowerCase()}`);
   if (parts.userId) values.push(`user:${parts.userId}`);
-  if (parts.chartId != null) values.push(`chart:${parts.chartId}`);
+  if (parts.chartId != null && type !== 'personal_daily') values.push(`chart:${parts.chartId}`);
   if (parts.chartHash) values.push(`hash:${parts.chartHash}`);
   return values.join('|');
 }

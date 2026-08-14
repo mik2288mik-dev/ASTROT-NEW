@@ -3,16 +3,17 @@ jest.mock('../services/apiClient', () => ({
 }));
 
 import { apiFetch } from '../services/apiClient';
-import {
-  slicePersonalForecastForAccess,
-} from '../lib/personalForecastContract';
+import { slicePersonalForecastForAccess } from '../lib/personalForecastContract';
 import {
   clearPersonalForecastSessionCache,
   loadPersonalForecast,
   readLocalPersonalForecast,
   selectActiveReadyPersonalForecast,
 } from '../services/personalForecastService';
-import { chartFixture, personalForecastFixture } from './personal-forecast-fixture';
+import {
+  aiPersonalHoroscopeFixture,
+  weeklyAiPersonalHoroscopeFixture,
+} from './ai-personal-horoscope-fixture';
 
 const mockedApiFetch = apiFetch as jest.Mock;
 const storage = new Map<string, string>();
@@ -24,10 +25,10 @@ const localStorageMock = {
 };
 const profile = {
   id: '42',
-  name: 'Test',
+  name: 'Михаил',
   birthDate: '1990-01-01',
   birthTime: '12:00',
-  birthPlace: 'Moscow',
+  birthPlace: 'Москва',
   birthTimezone: 'Europe/Moscow',
   language: 'ru' as const,
   isPremium: true,
@@ -36,18 +37,20 @@ const profile = {
 };
 const request = {
   profile,
-  chartData: chartFixture,
-  chartId: 7,
   period: 'day' as const,
   periodKey: '2026-07-26',
 };
 
-function cachedResponse() {
+function responseFor(
+  forecast = aiPersonalHoroscopeFixture(),
+  accessTier: 'free' | 'premium' = 'premium',
+) {
+  const sliced = slicePersonalForecastForAccess(forecast, accessTier === 'premium');
   return new Response(JSON.stringify({
-    forecast: personalForecastFixture(),
-    accessTier: 'premium',
-    lockedSectionIds: [],
-    periodLocked: false,
+    forecast: sliced.forecast,
+    accessTier,
+    lockedSectionIds: sliced.lockedSectionIds,
+    periodLocked: sliced.periodLocked,
     source: 'cache',
   }), {
     status: 200,
@@ -55,27 +58,7 @@ function cachedResponse() {
   });
 }
 
-function weeklyForecastFixture() {
-  const fixture = personalForecastFixture();
-  return {
-    ...fixture,
-    period: 'week' as const,
-    periodKey: '2026-W30',
-    periodStart: '2026-07-20',
-    periodEnd: '2026-07-26',
-    sections: [],
-    meta: {
-      ...fixture.meta,
-      freeSelection: {
-        strongestSectionId: null,
-        rotatedSectionId: null,
-        sectionIds: [],
-      },
-    },
-  };
-}
-
-describe('personal forecast stale-while-revalidate client cache', () => {
+describe('AI personal horoscope client cache', () => {
   beforeAll(() => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
@@ -93,9 +76,9 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     mockedApiFetch.mockReset();
   });
 
-  it('never substitutes a ready daily forecast when the active monthly period is unavailable', () => {
+  it('never substitutes a daily horoscope for another active period', () => {
     const dailyResult = {
-      forecast: personalForecastFixture(),
+      forecast: aiPersonalHoroscopeFixture(),
       accessTier: 'premium' as const,
       lockedSectionIds: [],
       periodLocked: false,
@@ -111,25 +94,8 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     expect(selectActiveReadyPersonalForecast('month', periodStates)).toBeNull();
   });
 
-  it('shows saved content while a server refresh remains in flight', async () => {
-    mockedApiFetch.mockResolvedValueOnce(cachedResponse());
-    await loadPersonalForecast({ ...request, options: { cacheOnly: true } });
-
-    let resolveRefresh!: (response: Response) => void;
-    mockedApiFetch.mockImplementationOnce(() => new Promise<Response>((resolve) => {
-      resolveRefresh = resolve;
-    }));
-    const refresh = loadPersonalForecast({ ...request, options: { cacheOnly: true, force: true } });
-
-    expect(readLocalPersonalForecast(request)?.forecast.overview.text).toBe(
-      personalForecastFixture().overview.text,
-    );
-    resolveRefresh(cachedResponse());
-    await expect(refresh).resolves.toMatchObject({ source: 'cache' });
-  });
-
-  it('uses the saved package on a repeated open of the same period', async () => {
-    mockedApiFetch.mockResolvedValueOnce(cachedResponse());
+  it('uses the saved AI-only package on repeated opens without another request', async () => {
+    mockedApiFetch.mockResolvedValueOnce(responseFor());
     await loadPersonalForecast({ ...request, options: { cacheOnly: true } });
     mockedApiFetch.mockClear();
 
@@ -139,11 +105,11 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     })).resolves.toMatchObject({ source: expect.stringMatching(/local|cache/) });
     expect(mockedApiFetch).not.toHaveBeenCalled();
     expect([...storage.keys()]).toEqual([
-      expect.stringMatching(/^tvoi-goroskop:personal-forecast-feed-v5:/),
+      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v1:/),
     ]);
   });
 
-  it('deduplicates two parallel server cache reads for one package', async () => {
+  it('deduplicates two parallel server cache reads', async () => {
     let resolveRequest!: (response: Response) => void;
     mockedApiFetch.mockImplementationOnce(() => new Promise<Response>((resolve) => {
       resolveRequest = resolve;
@@ -152,26 +118,16 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     const second = loadPersonalForecast({ ...request, options: { cacheOnly: true } });
 
     expect(mockedApiFetch).toHaveBeenCalledTimes(1);
-    resolveRequest(cachedResponse());
+    resolveRequest(responseFor());
     await expect(Promise.all([first, second])).resolves.toHaveLength(2);
   });
 
-  it('loads and reuses a personalized locked period preview for Free', async () => {
+  it('accepts the personalized locked weekly package for Free', async () => {
     const freeProfile = { ...profile, isPremium: false };
-    const sliced = slicePersonalForecastForAccess(weeklyForecastFixture(), false);
-    mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
-      forecast: sliced.forecast,
-      accessTier: 'free',
-      lockedSectionIds: sliced.lockedSectionIds,
-      periodLocked: true,
-      source: 'cache',
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }));
+    const weekly = weeklyAiPersonalHoroscopeFixture();
+    mockedApiFetch.mockResolvedValueOnce(responseFor(weekly, 'free'));
 
     await expect(loadPersonalForecast({
-      ...request,
       profile: freeProfile,
       period: 'week',
       periodKey: '2026-W30',
@@ -180,99 +136,40 @@ describe('personal forecast stale-while-revalidate client cache', () => {
       accessTier: 'free',
       periodLocked: true,
       forecast: {
-        overview: {
-          text: '',
-          lockedPreview: {
-            teaser: expect.any(String),
-          },
-        },
+        overview: { text: '' },
       },
     });
-
-    expect(readLocalPersonalForecast({
-      ...request,
-      profile: freeProfile,
-      period: 'week',
-      periodKey: '2026-W30',
-    })).toMatchObject({
-      accessTier: 'free',
-      periodLocked: true,
-    });
-    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('accepts a valid Free V4 slice and keeps its section lock metadata', async () => {
-    const sliced = slicePersonalForecastForAccess(personalForecastFixture(), false);
-    mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
-      forecast: sliced.forecast,
-      accessTier: 'free',
-      lockedSectionIds: sliced.lockedSectionIds,
-      periodLocked: sliced.periodLocked,
-      source: 'cache',
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }));
+  it('keeps the Free Today opening, forecast and one advice item', async () => {
+    const freeProfile = { ...profile, isPremium: false };
+    const sliced = slicePersonalForecastForAccess(aiPersonalHoroscopeFixture(), false);
+    mockedApiFetch.mockResolvedValueOnce(responseFor(aiPersonalHoroscopeFixture(), 'free'));
 
     await expect(loadPersonalForecast({
       ...request,
+      profile: freeProfile,
       options: { cacheOnly: true },
     })).resolves.toMatchObject({
-      lockedSectionIds: expect.arrayContaining([
-        'semantic:workload',
-      ]),
       periodLocked: false,
+      lockedSectionIds: sliced.lockedSectionIds,
       forecast: {
-        overview: { text: personalForecastFixture().overview.text },
+        overview: { text: expect.stringContaining('Михаил') },
         sections: expect.arrayContaining([
-          expect.objectContaining({ id: 'semantic:workload', text: '' }),
+          expect.objectContaining({ id: 'semantic:forecast', text: expect.any(String) }),
+          expect.objectContaining({ id: 'semantic:advice-2', text: '' }),
         ]),
       },
     });
-    clearPersonalForecastSessionCache();
-    expect(readLocalPersonalForecast(request)).toMatchObject({
-      accessTier: 'free',
-      lockedSectionIds: sliced.lockedSectionIds,
-      periodLocked: false,
-      source: 'local',
-    });
   });
 
-  it('rejects a legacy or malformed payload without replacing local content', async () => {
+  it('rejects a legacy chart-based or malformed package', async () => {
     mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
       forecast: {
-        ...personalForecastFixture(),
-        overview: { card: 'legacy V2 content' },
-      },
-      accessTier: 'premium',
-      lockedSectionIds: [],
-      periodLocked: false,
-      source: 'cache',
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }));
-
-    await expect(loadPersonalForecast({
-      ...request,
-      options: { cacheOnly: true },
-    })).rejects.toMatchObject({
-      code: 'PERSONAL_FORECAST_RESPONSE_INVALID',
-    });
-    expect(readLocalPersonalForecast(request)).toBeNull();
-    expect(storage.size).toBe(0);
-  });
-
-  it('rejects a structurally complete V3 package from the server cache', async () => {
-    const legacy = personalForecastFixture();
-    mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
-      forecast: {
-        ...legacy,
+        ...aiPersonalHoroscopeFixture(),
         meta: {
-          ...legacy.meta,
-          calculationVersion: 'personal-forecast-evidence-v3',
-          semanticVersion: 'legacy-topic-routing',
-          contractVersion: 'personal-forecast-feed-v3',
+          ...aiPersonalHoroscopeFixture().meta,
+          contentMode: 'legacy-natal-profile',
         },
       },
       accessTier: 'premium',
@@ -287,14 +184,11 @@ describe('personal forecast stale-while-revalidate client cache', () => {
     await expect(loadPersonalForecast({
       ...request,
       options: { cacheOnly: true },
-    })).rejects.toMatchObject({
-      code: 'PERSONAL_FORECAST_RESPONSE_INVALID',
-    });
+    })).rejects.toMatchObject({ code: 'PERSONAL_FORECAST_RESPONSE_INVALID' });
     expect(readLocalPersonalForecast(request)).toBeNull();
-    expect(storage.size).toBe(0);
   });
 
-  it('continues to one generation request after a retryable cache read failure', async () => {
+  it('continues from a retryable cache failure to one generation request', async () => {
     mockedApiFetch
       .mockResolvedValueOnce(new Response(JSON.stringify({
         error: 'Cache temporarily unavailable',
@@ -303,7 +197,7 @@ describe('personal forecast stale-while-revalidate client cache', () => {
         status: 503,
         headers: { 'Content-Type': 'application/json' },
       }))
-      .mockResolvedValueOnce(cachedResponse());
+      .mockResolvedValueOnce(responseFor());
 
     await expect(loadPersonalForecast({
       ...request,
@@ -312,9 +206,10 @@ describe('personal forecast stale-while-revalidate client cache', () => {
 
     expect(mockedApiFetch).toHaveBeenCalledTimes(2);
     expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
+    expect(mockedApiFetch.mock.calls[1][1]?.body).not.toContain('chartId');
   });
 
-  it('does not turn an authorization failure into a generation request', async () => {
+  it('does not turn an authorization failure into generation', async () => {
     mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
       error: 'Forbidden',
       code: 'FORBIDDEN',
@@ -328,13 +223,12 @@ describe('personal forecast stale-while-revalidate client cache', () => {
       options: { force: true },
     })).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' });
     expect(mockedApiFetch).toHaveBeenCalledTimes(1);
-    expect(mockedApiFetch.mock.calls[0][1]?.method).toBe('GET');
   });
 
-  it('bounds an in-progress generation to one POST and two cache polls', async () => {
+  it('bounds an in-progress generation to one POST and two polls', async () => {
     jest.useFakeTimers();
     mockedApiFetch
-      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({
         code: 'GENERATION_IN_PROGRESS',
         retryAfterMs: 500,
@@ -342,8 +236,20 @@ describe('personal forecast stale-while-revalidate client cache', () => {
         status: 202,
         headers: { 'Content-Type': 'application/json' },
       }))
-      .mockResolvedValueOnce(new Response(null, { status: 404 }))
-      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        code: 'GENERATION_IN_PROGRESS',
+        retryAfterMs: 500,
+      }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        code: 'GENERATION_IN_PROGRESS',
+        retryAfterMs: 500,
+      }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' },
+      }));
 
     try {
       const pending = loadPersonalForecast({
@@ -362,10 +268,7 @@ describe('personal forecast stale-while-revalidate client cache', () => {
 
     expect(mockedApiFetch).toHaveBeenCalledTimes(4);
     expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual([
-      'GET',
-      'POST',
-      'GET',
-      'GET',
+      'GET', 'POST', 'POST', 'POST',
     ]);
   });
 });

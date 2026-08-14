@@ -36,15 +36,19 @@ describe('first value before Premium', () => {
     expect(completion).not.toContain('триал уже активен');
   });
 
-  it('uses one inline Today offer after readable Free content', () => {
-    const feed = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
+  it('uses one inline Today offer only after readable Free AI horoscope content', () => {
+    const dashboard = read('views/Dashboard.tsx');
+    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
 
-    expect(feed).toContain('resolveTodayPremiumTeaserInsertion');
-    expect(feed).toContain('data-premium-inline-teaser');
-    expect(feed).toContain('Главное на сегодня уже открыто. В Premium — продолжение Today, личные неделя и месяц.');
-    expect(feed).toContain('Показать весь Today');
-    expect(feed).toContain('onPremiumTeaserImpression');
-    expect(feed).toContain('onPremiumTeaserDismiss');
+    expect(dashboard).toContain("onPremiumAnalytics?.('first_value_viewed'");
+    expect(dashboard).toContain("onPremiumAnalytics?.('premium_promo_impression'");
+    expect(dashboard).toContain("onPremiumAnalytics?.('premium_promo_clicked'");
+    expect(dashboard).toContain('lockedSectionIds={lockedIds}');
+    expect(reading).toContain('hasLockedContinuation');
+    expect(reading).toContain('data-premium-inline-teaser="today"');
+    expect(reading).toContain('Главное открыто. Остальные точные советы — в Premium.');
+    expect(reading).toContain('Показать всё');
+    expect(reading).toContain('onClick={onRequestPremium}');
   });
 
   it('suppresses Premium promotion globally for an active Premium profile', () => {

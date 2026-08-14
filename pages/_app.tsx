@@ -17,6 +17,7 @@ import '../styles/liquidGlassChrome.css';
 import '../styles/personalityReport.css';
 import '../styles/personalForecastRuntimeHotfix.css';
 import '../styles/personalForecastHeaderLogo.css';
+import '../styles/aiPersonalHoroscope.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 import { UniversalDrawerTrigger } from '../components/lumia-ui/UniversalDrawerTrigger';
 
