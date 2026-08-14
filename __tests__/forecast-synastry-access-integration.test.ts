@@ -26,7 +26,7 @@ function chartData(sign: string) {
   };
 }
 
-describe('forecast and synastry chart access integration', () => {
+describe('forecast and synastry access integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -66,22 +66,26 @@ describe('forecast and synastry chart access integration', () => {
     }
   });
 
-  it('requires the authenticated self chart for personal forecasts', () => {
+  it('authenticates personal horoscopes by profile and never sends or reads a chart', () => {
     const route = read('pages/api/content/forecast/personal.ts');
-    expect(route).toContain('ensureValidContext(req, res, { requireSelfChart: true })');
-    expect(route).not.toContain('expectedUserId');
+    expect(route).toContain('requireAppUser(req, { allowGuest: true })');
+    expect(route).toContain('profileFromUser');
+    expect(route).not.toContain('ensureValidContext');
+    expect(route).not.toContain('requireSelfChart');
+    expect(route).not.toContain('ctx.chartData');
 
     const service = read('services/personalForecastService.ts');
     const buildUrlStart = service.indexOf('function buildUrl');
     const parseErrorStart = service.indexOf('async function parseError', buildUrlStart);
     const buildUrl = service.slice(buildUrlStart, parseErrorStart);
     expect(buildUrl).not.toContain('userId:');
-    expect(buildUrl).not.toContain("params.set('userId'");
+    expect(buildUrl).not.toContain('chartId');
 
-    const generateStart = service.indexOf('async function generate');
-    const loadStart = service.indexOf('export async function loadPersonalForecast', generateStart);
-    const generate = service.slice(generateStart, loadStart);
-    expect(generate).not.toContain('userId:');
+    const generationStart = service.indexOf('function generationRequest');
+    const generationEnd = service.indexOf('async function generate', generationStart);
+    const request = service.slice(generationStart, generationEnd);
+    expect(request).not.toContain('chartId');
+    expect(request).not.toContain('chartData');
   });
 
   it('derives synastry identity from the session and validates both selected charts on the server', () => {
@@ -106,7 +110,7 @@ describe('forecast and synastry chart access integration', () => {
     expect(request).toContain('subjectChartId');
   });
 
-  it('keeps legacy saved-person filtering and exposes every readable saved chart in the new pair selector', () => {
+  it('keeps legacy saved-person filtering and exposes every readable saved chart in the pair selector', () => {
     const view = read('views/Synastry.tsx');
     expect(view).toContain("chart.subject_type === 'saved_person'");
     expect(view).toContain('!chart.archived_at');
