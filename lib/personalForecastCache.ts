@@ -1,6 +1,7 @@
 import type { ContentInterpretation, UserProfile } from '../types';
 import { APP_VOICE_VERSION } from './appVoice';
 import {
+  AI_PERSONAL_HOROSCOPE_TIMEZONE,
   buildAiPersonalHoroscopeCacheKey,
   buildAiPersonalHoroscopeInputHash,
   isAiPersonalHoroscopePackage,
@@ -52,6 +53,7 @@ export type PersonalForecastCacheContext = {
   ctx?: { profile: UserProfile };
   period: PersonalForecastPeriod;
   periodKey: string;
+  timezone?: string;
 };
 
 function profileFrom(input: PersonalForecastCacheContext): UserProfile {
@@ -64,7 +66,9 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
   const profile = profileFrom(input);
   const model = OPENAI_LUNA_MODEL;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
-  const timezone = normalizeForecastTimezone(profile.birthTimezone || 'Europe/Moscow');
+  const timezone = normalizeForecastTimezone(
+    input.timezone || profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
+  );
   const window = resolvePersonalForecastWindow(input.period, input.periodKey, timezone);
   const common = {
     profile,
@@ -214,7 +218,12 @@ export async function getRecentPersonalForecastHistory(
     );
     try {
       const cached = await getCachedPersonalForecast(
-        { profile: identity.profile, period: input.period, periodKey: previousKey },
+        {
+          profile: identity.profile,
+          period: input.period,
+          periodKey: previousKey,
+          timezone: identity.window.timezone,
+        },
         { allowExpired: true },
       );
       add(cached ? readingFromUnknown(cached.forecast) : null);
