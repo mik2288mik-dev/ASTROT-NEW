@@ -13,6 +13,7 @@ import {
 export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v1' as const;
 export const AI_PERSONAL_HOROSCOPE_EVIDENCE_ID = 'profile:ai-horoscope' as const;
 export const AI_PERSONAL_HOROSCOPE_CONTENT_MODE = AI_PERSONAL_HOROSCOPE_VERSION;
+export const AI_PERSONAL_HOROSCOPE_TIMEZONE = 'Europe/Moscow' as const;
 
 export type AiPersonalHoroscopeReading = {
   opening: string;
@@ -50,7 +51,6 @@ export function buildAiPersonalHoroscopeProfileSnapshot(profile: UserProfile) {
     birthDate: clean(profile.birthDate, 10),
     birthTime: clean(profile.birthTime, 8),
     birthPlace: clean(profile.birthPlace, 160),
-    birthTimezone: normalizeForecastTimezone(profile.birthTimezone),
     gender: profile.gender === 'male' || profile.gender === 'female'
       ? profile.gender
       : 'unspecified',
