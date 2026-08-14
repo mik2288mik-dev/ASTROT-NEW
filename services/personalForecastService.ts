@@ -1,25 +1,23 @@
 import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
+import { APP_VOICE_VERSION } from '../lib/appVoice';
 import {
-  APP_VOICE_VERSION,
-} from '../lib/appVoice';
+  AI_PERSONAL_HOROSCOPE_VERSION,
+  buildAiPersonalHoroscopeProfileFingerprint,
+  isAiPersonalHoroscopePackage,
+} from '../lib/aiPersonalHoroscope';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
-  buildPersonalForecastChartFingerprint,
   getPersonalForecastPeriodKey,
-  isPersonalForecastPackage,
   normalizeForecastTimezone,
-  resolvePersonalForecastWindow,
-  slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
-import { createPersonalForecastDeliveryFallback } from '../lib/personalForecastDeliveryFallback';
-import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
+import { getTelegramInitDataHeaders } from './sessionService';
 
 type LoadOptions = {
   cacheOnly?: boolean;
@@ -45,7 +43,11 @@ type PersonalForecastPeriodResultState = {
   result: PersonalForecastClientResult | null;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v5';
+/**
+ * Bumped deliberately: chart-based local packages must never survive the move
+ * to the AI-only horoscope product.
+ */
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v1';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 
@@ -55,24 +57,21 @@ function userId(profile: UserProfile): string {
 
 function contextKey(input: {
   profile: UserProfile;
-  chartData: NatalChartData;
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }): string {
   const timezone = normalizeForecastTimezone(
-    input.chartData.timezone || input.profile.birthTimezone,
+    input.profile.birthTimezone || 'Europe/Moscow',
   );
   return [
+    AI_PERSONAL_HOROSCOPE_VERSION,
     userId(input.profile),
-    input.chartId ?? 'primary',
+    buildAiPersonalHoroscopeProfileFingerprint(input.profile),
     input.period,
     input.periodKey,
     timezone,
     input.profile.language === 'en' ? 'en' : 'ru',
     hasActivePremium(input.profile) ? 'premium' : 'free',
-    input.chartData.calculationVersion || 'unknown',
-    buildPersonalForecastChartFingerprint(input.chartData),
     PERSONAL_FORECAST_CALCULATION_VERSION,
     PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
@@ -110,15 +109,6 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
   }
 
   const allSections = [forecast.overview, ...forecast.sections];
-  if (allSections.some((section) => (
-    !section
-    || typeof section !== 'object'
-    || typeof section.id !== 'string'
-    || !section.id.trim()
-    || typeof section.text !== 'string'
-  ))) {
-    return false;
-  }
   const allSectionIds = allSections.map((section) => section.id);
   const allSectionIdSet = new Set(allSectionIds);
   if (
@@ -162,7 +152,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
     }
   }
 
-  return isPersonalForecastPackage(forecast, {
+  return isAiPersonalHoroscopePackage(forecast, {
     redactedSectionIds: result.lockedSectionIds,
     promptVersion: result.source === 'stale'
       ? forecast.meta.promptVersion
@@ -172,7 +162,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
 
 function invalidResponseError(): PersonalForecastClientError {
   const error = new Error(
-    'Personal forecast response does not match the V4 contract',
+    'Personal horoscope response does not match the AI-only contract',
   ) as PersonalForecastClientError;
   error.code = 'PERSONAL_FORECAST_RESPONSE_INVALID';
   return error;
@@ -185,12 +175,15 @@ function parseAccessPayload(
 ): PersonalForecastClientResult {
   if (!value || typeof value !== 'object') throw invalidResponseError();
   const payload = value as PersonalForecastAccessPayload;
+  const source = payload.source || sourceOverride;
   const result: PersonalForecastClientResult = {
     forecast: payload.forecast,
     accessTier: payload.accessTier,
     lockedSectionIds: payload.lockedSectionIds,
     periodLocked: payload.periodLocked,
-    source: payload.source || sourceOverride,
+    source: source === 'cache' || source === 'stale' || source === 'generated'
+      ? source
+      : 'cache',
   };
   if (!isStoredResult(result)) throw invalidResponseError();
   if (
@@ -232,41 +225,11 @@ function writeStored(key: string, result: PersonalForecastClientResult): void {
   try {
     window.localStorage.setItem(localStorageKey(key), JSON.stringify(result));
   } catch {
-    // A storage quota failure must not break the personal screen.
+    // Storage quota failure must not break the horoscope screen.
   }
 }
 
-function createDeliveryFallbackResult(input: {
-  profile: UserProfile;
-  chartData: NatalChartData;
-  period: PersonalForecastPeriod;
-  periodKey: string;
-}): PersonalForecastClientResult {
-  const timezone = normalizeForecastTimezone(
-    input.chartData.timezone || input.profile.birthTimezone,
-  );
-  const forecast = createPersonalForecastDeliveryFallback({
-    profile: input.profile,
-    chartData: input.chartData,
-    period: input.period,
-    window: resolvePersonalForecastWindow(input.period, input.periodKey, timezone),
-    diagnosticCode: 'PERSONAL_FORECAST_BACKGROUND_REFRESH',
-  });
-  const premium = hasActivePremium(input.profile);
-  const sliced = slicePersonalForecastForAccess(forecast, premium);
-  return {
-    forecast: sliced.forecast,
-    accessTier: premium ? 'premium' : 'free',
-    lockedSectionIds: sliced.lockedSectionIds,
-    periodLocked: sliced.periodLocked,
-    source: 'stale',
-  };
-}
-
-/**
- * A tab may render only its own ready package. Keeping the last successful
- * package on screen made a failed month look like a valid daily forecast.
- */
+/** A tab may render only its own ready package. */
 export function selectActiveReadyPersonalForecast(
   period: PersonalForecastPeriod,
   states: Record<PersonalForecastPeriod, PersonalForecastPeriodResultState>,
@@ -281,7 +244,6 @@ export function selectActiveReadyPersonalForecast(
 }
 
 function buildUrl(input: {
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }): string {
@@ -289,14 +251,13 @@ function buildUrl(input: {
     period: input.period,
     periodKey: input.periodKey,
   });
-  if (input.chartId != null) params.set('chartId', String(input.chartId));
   return `/api/content/forecast/personal?${params.toString()}`;
 }
 
 async function parseError(response: Response): Promise<PersonalForecastClientError> {
   const payload = await response.json().catch(() => ({}));
   const error = new Error(
-    payload?.message || payload?.error || `Personal forecast failed (${response.status})`,
+    payload?.message || payload?.error || `Personal horoscope failed (${response.status})`,
   ) as PersonalForecastClientError;
   error.status = response.status;
   error.code = payload?.code;
@@ -305,8 +266,6 @@ async function parseError(response: Response): Promise<PersonalForecastClientErr
 }
 
 async function fetchCached(input: {
-  profile: UserProfile;
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }): Promise<PersonalForecastClientResult | null> {
@@ -321,7 +280,6 @@ async function fetchCached(input: {
 }
 
 function generationRequest(input: {
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }) {
@@ -332,7 +290,6 @@ function generationRequest(input: {
       ...getTelegramInitDataHeaders(),
     },
     body: JSON.stringify({
-      chartId: input.chartId,
       period: input.period,
       periodKey: input.periodKey,
     }),
@@ -340,8 +297,6 @@ function generationRequest(input: {
 }
 
 async function generate(input: {
-  profile: UserProfile;
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
   maxInProgressRetries: number;
@@ -356,7 +311,7 @@ async function generate(input: {
   let payload = await response.json().catch(() => ({}));
   let retryAfterMs = Math.min(
     3_000,
-    Math.max(500, Number(payload?.retryAfterMs) || 1500),
+    Math.max(500, Number(payload?.retryAfterMs) || 1_500),
   );
   for (let attempt = 0; attempt < input.maxInProgressRetries; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
@@ -373,7 +328,7 @@ async function generate(input: {
     const readyPayload = await response.json().catch(() => null);
     return parseAccessPayload(readyPayload, undefined, input);
   }
-  const error = new Error('Personal forecast generation is still in progress') as PersonalForecastClientError;
+  const error = new Error('Personal horoscope generation is still in progress') as PersonalForecastClientError;
   error.status = 202;
   error.code = 'GENERATION_IN_PROGRESS';
   error.retryAfterMs = retryAfterMs;
@@ -382,78 +337,55 @@ async function generate(input: {
 
 export function readLocalPersonalForecast(input: {
   profile: UserProfile;
-  chartData: NatalChartData;
+  /** Legacy-compatible inputs are deliberately ignored. */
+  chartData?: NatalChartData | null;
   chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey?: string;
 }): PersonalForecastClientResult | null {
   const timezone = normalizeForecastTimezone(
-    input.chartData.timezone || input.profile.birthTimezone,
+    input.profile.birthTimezone || 'Europe/Moscow',
   );
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
-  return readStored(contextKey({ ...input, periodKey }));
+  return readStored(contextKey({ profile: input.profile, period: input.period, periodKey }));
 }
 
 export async function loadPersonalForecast(input: {
   profile: UserProfile;
-  chartData: NatalChartData;
+  /** Legacy-compatible inputs are deliberately ignored. */
+  chartData?: NatalChartData | null;
   chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey?: string;
   options?: LoadOptions;
 }): Promise<PersonalForecastClientResult> {
   const timezone = normalizeForecastTimezone(
-    input.chartData.timezone || input.profile.birthTimezone,
+    input.profile.birthTimezone || 'Europe/Moscow',
   );
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
-  const resolved = { ...input, periodKey };
-  const key = contextKey(resolved);
+  const resolved = { period: input.period, periodKey };
+  const key = contextKey({ profile: input.profile, ...resolved });
   const local = input.options?.force ? null : readStored(key);
-  if (local && !input.options?.force) return local;
+  if (local) return local;
 
-  if (!input.options?.cacheOnly && !input.options?.force) {
-    const fallback = createDeliveryFallbackResult(resolved);
-    const backgroundKey = `${key}:background`;
-    if (!inFlight.has(backgroundKey)) {
-      const background = generate({
-        ...resolved,
-        maxInProgressRetries: Math.min(
-          60,
-          Math.max(0, input.options?.maxInProgressRetries ?? 60),
-        ),
-      }).then((generated) => {
-        writeStored(key, generated);
-        return generated;
-      }).catch(() => fallback).finally(() => {
-        if (inFlight.get(backgroundKey) === background) inFlight.delete(backgroundKey);
-      });
-      inFlight.set(backgroundKey, background);
-    }
-    return fallback;
-  }
-
-  if (input.options?.cacheOnly && local) return local;
   const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : 'ensure'}`;
   const current = inFlight.get(inFlightKey);
   if (current) return current;
 
   const request = (async () => {
-    const shouldProbeCache = input.options?.cacheOnly || !input.options?.force;
-    const serverCached = shouldProbeCache
-      ? await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
-          const retryableCacheFailure = Number(error.status) >= 500;
-          if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
-          return null;
-        })
-      : null;
+    const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
+      const retryableCacheFailure = Number(error.status) >= 500;
+      if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
+      return null;
+    });
     if (serverCached) {
       writeStored(key, serverCached);
       return serverCached;
     }
     if (input.options?.cacheOnly) {
-      const error = new Error('Personal forecast is not cached') as PersonalForecastClientError;
+      const error = new Error('Personal horoscope is not cached') as PersonalForecastClientError;
       error.status = 404;
       error.code = 'PERSONAL_FORECAST_NOT_READY';
       throw error;
