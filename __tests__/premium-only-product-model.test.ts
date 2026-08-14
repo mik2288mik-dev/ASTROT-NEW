@@ -13,7 +13,6 @@ const EXCLUDED_PATH_SNIPPETS = [
   'lib/migrations.ts',
   '__tests__/',
   'docs/',
-  'lib/migrations.ts',
   'lib/db.ts',
   'lib/starsPaymentVerify.ts',
   'services/premiumService.ts',
@@ -86,40 +85,34 @@ describe('Premium-only product model', () => {
 
   it('runtime code avoids one-off Stars purchase copy', () => {
     const violations: string[] = [];
-
     for (const file of runtimeFiles) {
       const rel = path.relative(ROOT, file).replace(/\\/g, '/');
       const content = fs.readFileSync(file, 'utf8');
       const hits = FORBIDDEN_PHRASES.filter(({ pattern }) => pattern.test(content)).map(({ label }) => label);
       if (hits.length) violations.push(`${rel}: ${hits.join(', ')}`);
     }
-
     expect(violations).toEqual([]);
   });
 
   it('runtime code does not reference removed one-off symbols', () => {
     const violations: string[] = [];
-
     for (const file of runtimeFiles) {
       const rel = path.relative(ROOT, file).replace(/\\/g, '/');
       const content = fs.readFileSync(file, 'utf8');
       const hits = FORBIDDEN_SYMBOLS.filter((token) => content.includes(token));
       if (hits.length) violations.push(`${rel}: ${hits.join(', ')}`);
     }
-
     expect(violations).toEqual([]);
   });
 
   it('runtime code does not use stars/lumi access tiers or paid unlock shortcuts', () => {
     const violations: string[] = [];
-
     for (const file of runtimeFiles) {
       const rel = path.relative(ROOT, file).replace(/\\/g, '/');
       const content = fs.readFileSync(file, 'utf8');
       const hits = FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(content)).map((pattern) => pattern.source);
       if (hits.length) violations.push(`${rel}: ${hits.join(', ')}`);
     }
-
     expect(violations).toEqual([]);
   });
 
@@ -131,45 +124,31 @@ describe('Premium-only product model', () => {
     }
   });
 
-  it('Personal forecast premium content opens Premium in place from the continuous feed', () => {
+  it('Personal horoscope opens Premium in place from the continuous reading', () => {
     const app = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     const dashboard = fs.readFileSync(path.join(ROOT, 'views', 'Dashboard.tsx'), 'utf8');
-    const sectionBlock = fs.readFileSync(
-      path.join(ROOT, 'components', 'PersonalForecastFeed', 'ForecastSectionBlock.tsx'),
-      'utf8',
-    );
-    const todayFeed = fs.readFileSync(
-      path.join(ROOT, 'components', 'PersonalForecastFeed', 'TodayEditorialFeed.tsx'),
+    const reading = fs.readFileSync(
+      path.join(ROOT, 'components', 'PersonalForecastFeed', 'AiPersonalHoroscopeReading.tsx'),
       'utf8',
     );
 
     expect(dashboard).toContain('const requestPremium = useCallback');
     expect(dashboard).toContain("onRequestPremium?.('personal_forecast_feed'");
     expect(dashboard).toContain("returnView: 'dashboard'");
-    expect(dashboard).toContain("returnScrollAnchor: displayPeriod === 'day'");
+    expect(dashboard).toContain("returnScrollAnchor: 'personal-forecast-reading'");
     expect(dashboard).toContain('onRequestPremium={requestPremium}');
     expect(dashboard).not.toContain("phase: 'needs_premium'");
-    expect(dashboard).not.toContain("!premium && activePeriod !== 'day'");
     expect(dashboard).not.toContain('is-premium-required');
-    expect(dashboard).toContain('sections={storySections}');
     expect(dashboard).toContain('lockedSectionIds={lockedIds}');
-    expect(todayFeed).toContain('resolveTodayPremiumTeaserInsertion');
-    expect(todayFeed).toContain('id="today-premium-teaser"');
-    expect(dashboard).toContain('accessContextRef.current !== requestContextKey');
     expect(dashboard).toContain("loadPeriod(activePeriod, { retry: true })");
-    expect(sectionBlock).toContain('section.lockedPreview');
-    expect(sectionBlock).toContain("locked ? 'is-locked' : ''");
-    expect(sectionBlock).toContain('forecast-feed-locked-blur');
-    expect(sectionBlock).toMatch(
-      /className="forecast-feed-locked-teaser"[\s\S]*?onClick=\{onRequestPremium\}/,
-    );
-    expect(sectionBlock).toContain('forecast-feed-premium-cta');
-    expect(sectionBlock).toContain('onClick={onRequestPremium}');
-    expect(sectionBlock).toContain('Unlock with Premium');
+    expect(reading).toContain('data-premium-inline-teaser="today"');
+    expect(reading).toContain('hasLockedContinuation');
+    expect(reading).toContain('onClick={onRequestPremium}');
+    expect(reading).toContain('Показать всё');
     expect(app).toContain("'purchase_succeeded'");
     expect(app).toContain('setPremiumContinuation(destination.shouldOpenFeature ? context : null)');
     expect(app).toContain('setView(destination.view)');
-    expect(`${dashboard}\n${todayFeed}\n${sectionBlock}`).not.toContain('requestStarsOneOffPayment');
+    expect(`${dashboard}\n${reading}`).not.toContain('requestStarsOneOffPayment');
   });
 
   it('removed Oracle chat runtime instead of routing it through payments', () => {
