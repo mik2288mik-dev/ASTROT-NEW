@@ -63,7 +63,9 @@ body,
 }
 
 .lumia-side-drawer-menu-button,
-.lumia-side-drawer-menu-button.is-telegram {
+.lumia-side-drawer-menu-button.is-telegram,
+.lumia-universal-drawer-button,
+.lumia-universal-drawer-button.is-telegram {
   left: var(--lumia-shared-menu-left) !important;
   z-index: 120;
   display: grid;
@@ -81,32 +83,53 @@ body,
   background: transparent;
   box-shadow: none;
   color: #202020;
+  cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-.lumia-side-drawer-menu-button {
+.lumia-side-drawer-menu-button,
+.lumia-universal-drawer-button {
   top: var(--lumia-shared-menu-top) !important;
 }
 
-.lumia-side-drawer-menu-button.is-telegram {
+.lumia-side-drawer-menu-button.is-telegram,
+.lumia-universal-drawer-button.is-telegram {
   top: var(--lumia-shared-menu-top-telegram) !important;
 }
 
-.lumia-side-drawer-menu-button:hover {
+/* App.tsx still owns the legacy trigger state; the global trigger below replaces its visuals. */
+.lumia-app-shell > .lumia-side-drawer-menu-button {
+  display: none !important;
+}
+
+.lumia-universal-drawer-button {
+  position: fixed;
+}
+
+.lumia-universal-drawer-button.is-expanded {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.12);
+}
+
+.lumia-side-drawer-menu-button:hover,
+.lumia-universal-drawer-button:hover {
   background: rgba(17, 24, 39, 0.035);
 }
 
-.lumia-side-drawer-menu-button:active {
+.lumia-side-drawer-menu-button:active,
+.lumia-universal-drawer-button:active {
   background: rgba(17, 24, 39, 0.07);
 }
 
-.lumia-side-drawer-menu-button:focus-visible {
+.lumia-side-drawer-menu-button:focus-visible,
+.lumia-universal-drawer-button:focus-visible {
   outline: 2px solid rgba(17, 24, 39, 0.7);
   outline-offset: 1px;
 }
 
-.lumia-side-drawer-menu-icon {
+.lumia-side-drawer-menu-icon,
+.lumia-universal-drawer-mark {
   display: block;
   width: 46px;
   height: 35px;
@@ -167,7 +190,8 @@ body,
 }
 
 @media (max-width: 380px) {
-  .lumia-side-drawer-menu-icon {
+  .lumia-side-drawer-menu-icon,
+  .lumia-universal-drawer-mark {
     width: 44px;
     height: 33px;
   }
@@ -179,7 +203,8 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lumia-side-drawer-menu-button {
+  .lumia-side-drawer-menu-button,
+  .lumia-universal-drawer-button {
     transition: none;
   }
 }

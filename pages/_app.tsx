@@ -18,6 +18,7 @@ import '../styles/personalityReport.css';
 import '../styles/personalForecastRuntimeHotfix.css';
 import '../styles/personalForecastHeaderLogo.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
+import { UniversalDrawerTrigger } from '../components/lumia-ui/UniversalDrawerTrigger';
 
 export default function App({ Component, pageProps }: AppProps) {
   // Database migrations are handled during build process (npm run migrate)
@@ -25,6 +26,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       {/* Global hand-drawn SVG filter defs for the doodle skin (visual-only) */}
       <DoodleDefs />
+      <UniversalDrawerTrigger />
       <Component {...pageProps} />
     </>
   );

@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, HeartHandshake, Sparkles, Star } from 'lucide-react';
 import { getZodiacSign } from '../../constants';
 import type { UserProfile, ViewState } from '../../types';
 import type { PersonalForecastPeriod } from '../../lib/personalForecastContract';
 import { getApproximateSunSignByDate } from '../../lib/zodiac-utils';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import { CosmicSurface } from './CosmicSurface';
+
+const DRAWER_TOGGLE_EVENT = 'lumia:toggle-side-drawer';
+const DRAWER_STATE_EVENT = 'lumia:side-drawer-state';
 
 interface LumiaSideDrawerProps {
     open: boolean;
@@ -39,10 +43,23 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
     onOpenSettings,
 }) => {
     const isEnglish = profile?.language === 'en';
+    const [externalOpen, setExternalOpen] = useState(false);
+    const effectiveOpen = open || externalOpen;
     const drawerRef = useRef<HTMLElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
+
+    const closeDrawer = useCallback(() => {
+        setExternalOpen(false);
+        onCloseRef.current();
+    }, []);
+
+    const runDrawerAction = useCallback((action: () => void) => {
+        setExternalOpen(false);
+        action();
+    }, []);
+
     const displayDate = useMemo(() => {
         const supplied = todayLabel?.split('\n').map((part) => part.trim()).filter(Boolean) || [];
         const locale = isEnglish ? 'en-GB' : 'ru-RU';
@@ -75,7 +92,48 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
         : null;
 
     useEffect(() => {
-        if (!open || typeof document === 'undefined') return;
+        if (open) setExternalOpen(false);
+    }, [open]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleToggle = () => setExternalOpen((current) => !current);
+        window.addEventListener(DRAWER_TOGGLE_EVENT, handleToggle);
+        return () => window.removeEventListener(DRAWER_TOGGLE_EVENT, handleToggle);
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent(DRAWER_STATE_EVENT, {
+            detail: { open: effectiveOpen },
+        }));
+    }, [effectiveOpen]);
+
+    useEffect(() => {
+        if (!externalOpen || typeof document === 'undefined') return;
+        const shell = document.querySelector<HTMLElement>('.lumia-app-shell');
+        const main = shell?.querySelector<HTMLElement>(':scope > main') || null;
+        const previousAriaHidden = main?.getAttribute('aria-hidden') ?? null;
+        const previousInert = main?.inert ?? false;
+
+        shell?.classList.add('side-drawer-open');
+        if (main) {
+            main.setAttribute('aria-hidden', 'true');
+            main.inert = true;
+        }
+
+        return () => {
+            if (open) return;
+            shell?.classList.remove('side-drawer-open');
+            if (!main) return;
+            if (previousAriaHidden == null) main.removeAttribute('aria-hidden');
+            else main.setAttribute('aria-hidden', previousAriaHidden);
+            main.inert = previousInert;
+        };
+    }, [externalOpen, open]);
+
+    useEffect(() => {
+        if (!effectiveOpen || typeof document === 'undefined') return;
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         previousFocusRef.current = document.activeElement instanceof HTMLElement
@@ -87,7 +145,7 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                onCloseRef.current();
+                closeDrawer();
                 return;
             }
             if (event.key !== 'Tab') return;
@@ -105,30 +163,65 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                 first.focus();
             }
         };
+        const handleNativeBack = (event: Event) => {
+            const nativeEvent = event as CustomEvent<NativeBackEventDetail>;
+            if (!nativeEvent.detail || nativeEvent.detail.handled) return;
+            nativeEvent.detail.handled = true;
+            closeDrawer();
+        };
         document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
         return () => {
             window.cancelAnimationFrame(frame);
             document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
             document.body.style.overflow = previousOverflow;
             previousFocusRef.current?.focus({ preventScroll: true });
             previousFocusRef.current = null;
         };
-    }, [open]);
+    }, [closeDrawer, effectiveOpen]);
+
     const items = [
-        { view: 'dashboard' as ViewState, label: isEnglish ? 'Personal horoscope' : 'Личный гороскоп', Icon: BookOpen, onClick: onOpenDiary },
-        { view: 'horoscope' as ViewState, label: isEnglish ? 'Sign horoscope' : 'Гороскоп по знакам', Icon: Sparkles, onClick: onOpenSignHoroscope },
-        { view: 'synastry' as ViewState, label: isEnglish ? 'Compatibility' : 'Совместимость', Icon: HeartHandshake, onClick: onOpenCompatibility },
-        { view: 'chart' as ViewState, label: isEnglish ? 'Natal chart' : 'Натальная карта', Icon: Star, onClick: onOpenNatalChart },
+        {
+            view: 'dashboard' as ViewState,
+            label: isEnglish ? 'Personal horoscope' : 'Личный гороскоп',
+            Icon: BookOpen,
+            onClick: onOpenDiary,
+        },
+        {
+            view: 'horoscope' as ViewState,
+            label: isEnglish ? 'Sign horoscope' : 'Гороскоп по знакам',
+            Icon: Sparkles,
+            onClick: onOpenSignHoroscope,
+        },
+        {
+            view: 'synastry' as ViewState,
+            label: isEnglish ? 'Compatibility' : 'Совместимость',
+            Icon: HeartHandshake,
+            onClick: onOpenCompatibility,
+        },
+        {
+            view: 'chart' as ViewState,
+            label: isEnglish ? 'Natal chart' : 'Натальная карта',
+            Icon: Star,
+            onClick: onOpenNatalChart,
+        },
     ];
 
     return (
-        <div className={`lumia-side-drawer-root${open ? ' is-open' : ''}`} aria-hidden={!open}>
+        <div
+            className={`lumia-side-drawer-root${effectiveOpen ? ' is-open' : ''}`}
+            aria-hidden={!effectiveOpen}
+            data-drawer-enabled={profile ? 'true' : 'false'}
+            data-current-view={currentView}
+            data-language={isEnglish ? 'en' : 'ru'}
+        >
             <button
                 type="button"
                 className="lumia-side-drawer-backdrop"
                 aria-label={isEnglish ? 'Close navigation' : 'Закрыть навигацию'}
-                tabIndex={open ? 0 : -1}
-                onClick={onClose}
+                tabIndex={effectiveOpen ? 0 : -1}
+                onClick={closeDrawer}
             />
             <CosmicSurface
                 ref={drawerRef}
@@ -156,22 +249,28 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                             type="button"
                             className={`lumia-side-drawer-item${currentView === view ? ' is-active' : ''}`}
                             aria-current={currentView === view ? 'page' : undefined}
-                            tabIndex={open ? 0 : -1}
-                            onClick={onClick}
+                            tabIndex={effectiveOpen ? 0 : -1}
+                            onClick={() => runDrawerAction(onClick)}
                         >
                             <Icon aria-hidden="true" size={24} strokeWidth={1.8} />
                             <span>{label}</span>
                         </button>
                     ))}
-                    <div className="lumia-side-drawer-periods" role="group" aria-label={isEnglish ? 'Personal forecast period' : 'Период личного прогноза'}>
+                    <div
+                        className="lumia-side-drawer-periods"
+                        role="group"
+                        aria-label={isEnglish ? 'Personal forecast period' : 'Период личного прогноза'}
+                    >
                         {(['day', 'week', 'month'] as const).map((period) => (
                             <button
                                 key={period}
                                 type="button"
-                                className={`lumia-side-drawer-period${currentView === 'dashboard' && activePeriod === period ? ' is-active' : ''}`}
+                                className={`lumia-side-drawer-period${
+                                    currentView === 'dashboard' && activePeriod === period ? ' is-active' : ''
+                                }`}
                                 aria-pressed={currentView === 'dashboard' && activePeriod === period}
-                                tabIndex={open ? 0 : -1}
-                                onClick={() => onSelectPeriod(period)}
+                                tabIndex={effectiveOpen ? 0 : -1}
+                                onClick={() => runDrawerAction(() => onSelectPeriod(period))}
                             >
                                 {period === 'day'
                                     ? (isEnglish ? 'Today' : 'Сегодня')
@@ -187,8 +286,8 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                             type="button"
                             className={`lumia-side-drawer-item${currentView === view ? ' is-active' : ''}`}
                             aria-current={currentView === view ? 'page' : undefined}
-                            tabIndex={open ? 0 : -1}
-                            onClick={onClick}
+                            tabIndex={effectiveOpen ? 0 : -1}
+                            onClick={() => runDrawerAction(onClick)}
                         >
                             <Icon aria-hidden="true" size={24} strokeWidth={1.8} />
                             <span>{label}</span>
@@ -198,11 +297,15 @@ export const LumiaSideDrawer: React.FC<LumiaSideDrawerProps> = ({
                 <button
                     type="button"
                     className="lumia-side-drawer-profile"
-                    tabIndex={open ? 0 : -1}
-                    onClick={onOpenSettings}
+                    tabIndex={effectiveOpen ? 0 : -1}
+                    onClick={() => runDrawerAction(onOpenSettings)}
                 >
-                    <span className="lumia-side-drawer-profile-name">{profile?.name?.trim() || (isEnglish ? 'Profile' : 'Профиль')}</span>
-                    <span className="lumia-side-drawer-profile-caption">{isEnglish ? 'Settings' : 'Настройки'}</span>
+                    <span className="lumia-side-drawer-profile-name">
+                        {profile?.name?.trim() || (isEnglish ? 'Profile' : 'Профиль')}
+                    </span>
+                    <span className="lumia-side-drawer-profile-caption">
+                        {isEnglish ? 'Settings' : 'Настройки'}
+                    </span>
                 </button>
             </CosmicSurface>
         </div>
