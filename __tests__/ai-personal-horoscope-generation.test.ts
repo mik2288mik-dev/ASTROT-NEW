@@ -139,7 +139,7 @@ describe('AI-only personal horoscope generation', () => {
     expect(prompt).toContain('дерзкий приятель');
     expect(prompt).toContain('лёгким нахальством');
     expect(prompt).toContain('не ведись');
-    expect(prompt).toContain('не оскорбляй');
+    expect(prompt).toContain('Не оскорбляй');
     expect(prompt).toContain('Никакой астрологии');
     expect(prompt).toContain('выдохни');
     expect(prompt).toContain('позволь себе');
