@@ -1,0 +1,72 @@
+name: AI Personal Horoscope Check
+
+on:
+  push:
+    paths:
+      - 'lib/aiPersonalHoroscope*.ts'
+      - 'lib/personalForecastCache.ts'
+      - 'lib/accessMatrix.ts'
+      - 'lib/contentAccessMatrix.ts'
+      - 'lib/contentMatrix.ts'
+      - 'pages/api/content/forecast/personal.ts'
+      - 'services/personalForecastService.ts'
+      - 'services/contentPrewarmService.ts'
+      - 'views/Dashboard.tsx'
+      - 'components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx'
+      - 'styles/aiPersonalHoroscope.css'
+      - '__tests__/ai-personal-horoscope-*.ts'
+      - '__tests__/personal-forecast-*.test.ts'
+      - '__tests__/content-*.test.ts'
+      - '__tests__/canonical-entitlement-contract.test.ts'
+      - '.github/workflows/ai-personal-horoscope-check.yml'
+  pull_request:
+    paths:
+      - 'lib/aiPersonalHoroscope*.ts'
+      - 'lib/personalForecastCache.ts'
+      - 'lib/accessMatrix.ts'
+      - 'lib/contentAccessMatrix.ts'
+      - 'lib/contentMatrix.ts'
+      - 'pages/api/content/forecast/personal.ts'
+      - 'services/personalForecastService.ts'
+      - 'services/contentPrewarmService.ts'
+      - 'views/Dashboard.tsx'
+      - 'components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx'
+      - 'styles/aiPersonalHoroscope.css'
+      - '__tests__/ai-personal-horoscope-*.ts'
+      - '__tests__/personal-forecast-*.test.ts'
+      - '__tests__/content-*.test.ts'
+      - '__tests__/canonical-entitlement-contract.test.ts'
+
+jobs:
+  focused-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Focused personal horoscope tests
+        run: >-
+          npm test -- --runInBand --forceExit
+          __tests__/ai-personal-horoscope-generation.test.ts
+          __tests__/personal-forecast-service.test.ts
+          __tests__/personal-forecast-history-cache.test.ts
+          __tests__/personal-forecast-screen-layout.test.ts
+          __tests__/personal-forecast-feed-v3.test.ts
+          __tests__/personal-forecast-editorial-layouts.test.ts
+          __tests__/content-matrix.test.ts
+          __tests__/content-access-matrix.test.ts
+          __tests__/canonical-entitlement-contract.test.ts
