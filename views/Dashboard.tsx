@@ -98,7 +98,7 @@ function errorMessage(
       return 'The text missed the quality bar. Retry this period only.';
     }
     if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
-      return 'Luna returned an incomplete horoscope. Retry this period only.';
+      return 'The horoscope was incomplete. Retry this period only.';
     }
     return 'The horoscope did not load. Other application sections still work.';
   }
@@ -106,7 +106,7 @@ function errorMessage(
     return 'Текст не прошёл проверку качества. Повторим только этот период.';
   }
   if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
-    return 'Luna вернула неполный гороскоп. Повторим только этот период.';
+    return 'Текст получился неполным. Повторим только этот период.';
   }
   return 'Гороскоп не загрузился. Остальные разделы приложения работают.';
 }
@@ -372,8 +372,8 @@ export const Dashboard = memo<DashboardProps>(({
           </h1>
           <p>
             {language === 'ru'
-              ? 'Этот личный AI-гороскоп создаётся для Premium.'
-              : 'This personal AI horoscope is generated for Premium.'}
+              ? 'Этот личный гороскоп доступен в Premium.'
+              : 'This personal horoscope is available with Premium.'}
           </p>
           {canPromotePremium ? (
             <button type="button" onClick={requestPremium}>
