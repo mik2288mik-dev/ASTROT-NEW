@@ -1,0 +1,115 @@
+/*
+ * Visual-only pass for the shared drawer trigger and the personal forecast header.
+ * Imported last so these focused overrides do not disturb forecast logic or content.
+ */
+
+.lumia-side-drawer-menu-button {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: none;
+  color: #202020;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lumia-side-drawer-menu-button:hover {
+  background: rgba(17, 24, 39, 0.035);
+}
+
+.lumia-side-drawer-menu-button:active {
+  background: rgba(17, 24, 39, 0.07);
+}
+
+.lumia-side-drawer-menu-button:focus-visible {
+  outline: 2px solid rgba(17, 24, 39, 0.7);
+  outline-offset: 2px;
+}
+
+.lumia-side-drawer-menu-icon {
+  display: block;
+  width: 36px;
+  height: 28px;
+  overflow: visible;
+  background-image: url('/assets/brand/personal-horoscope-mark.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.lumia-side-drawer-menu-icon line {
+  display: none;
+}
+
+.forecast-feed-page .app-top-bar-title--personal-forecast {
+  color: #1d1d1d;
+  font-size: 16.5px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.forecast-feed-page .app-top-bar-context--period {
+  box-sizing: border-box;
+  width: min(100%, var(--forecast-feed-reading-width, 620px));
+  margin: 0 auto;
+  padding: clamp(22px, 6vw, 30px) 24px 0;
+  color: #171717;
+  font-family: Georgia, 'Times New Roman', 'Noto Serif', serif;
+  font-size: clamp(2rem, 9vw, 2.4rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.forecast-feed-page .forecast-feed-reading-header {
+  padding-top: 0;
+}
+
+.forecast-feed-page .forecast-feed-date-zone {
+  margin-top: 5px;
+  padding-inline: 0;
+}
+
+.forecast-feed-page .forecast-feed-date-value {
+  display: block;
+  color: #70706c;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: lowercase;
+}
+
+.forecast-feed-page .forecast-feed-date-value::first-letter {
+  text-transform: uppercase;
+}
+
+@media (max-width: 380px) {
+  .lumia-side-drawer-menu-button {
+    left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + 10px);
+  }
+
+  .lumia-side-drawer-menu-icon {
+    width: 34px;
+    height: 27px;
+  }
+
+  .forecast-feed-page .app-top-bar-context--period {
+    padding-top: 20px;
+    font-size: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lumia-side-drawer-menu-button {
+    transition: none;
+  }
+}

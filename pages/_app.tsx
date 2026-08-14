@@ -16,6 +16,7 @@ import '../styles/newspaperVisual.css';
 import '../styles/liquidGlassChrome.css';
 import '../styles/personalityReport.css';
 import '../styles/personalForecastRuntimeHotfix.css';
+import '../styles/personalForecastHeaderLogo.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
 
 export default function App({ Component, pageProps }: AppProps) {

@@ -20,6 +20,13 @@ export function AppTopBar({
   rightAction,
   reserveSpace = true,
 }: AppTopBarProps) {
+  const isPersonalForecastHeader = title === 'Твой Гороскоп' || title === 'Your Horoscope';
+  const resolvedTitle = title === 'Твой Гороскоп'
+    ? 'Личный гороскоп'
+    : title === 'Your Horoscope'
+      ? 'Personal horoscope'
+      : title;
+
   return (
     <>
       <div className="home-logo-bar app-top-bar">
@@ -36,14 +43,28 @@ export function AppTopBar({
           ) : null}
         </div>
 
-        <span className="home-logo-wordmark app-top-bar-title">{title}</span>
+        <span
+          className={`home-logo-wordmark app-top-bar-title${
+            isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : ''
+          }`}
+        >
+          {resolvedTitle}
+        </span>
 
         <div className="app-top-bar-side app-top-bar-side--end">
           {rightAction}
         </div>
       </div>
       {reserveSpace ? <div className="app-top-bar-spacer" aria-hidden /> : null}
-      {reserveSpace && subtitle ? <div className="app-top-bar-context">{subtitle}</div> : null}
+      {reserveSpace && subtitle ? (
+        <div
+          className={`app-top-bar-context${
+            isPersonalForecastHeader ? ' app-top-bar-context--period' : ''
+          }`}
+        >
+          {subtitle}
+        </div>
+      ) : null}
     </>
   );
 }
