@@ -63,7 +63,6 @@ describe('contentAccessMatrix', () => {
       expect(canAccessFeature('zodiac_compatibility', freeUser, null).allowed).toBe(true);
       expect(canAccessContent(freeUser, 'synastry', 'brief')).toBe(false);
     });
-
   });
 
   describe('premium-only natal surfaces', () => {
@@ -79,19 +78,21 @@ describe('contentAccessMatrix', () => {
     });
   });
 
-  describe('personal forecast surfaces', () => {
-    it('keeps forecast/daily free', () => {
+  describe('personal horoscope surfaces', () => {
+    it('keeps forecast/daily free and calculation-free', () => {
       const config = getContentAccessConfig('forecast', 'daily');
       expect(config?.defaultAccessTier).toBe('free');
-      expect(canAccessContent(freeUser, 'forecast', 'daily')).toBe(true);
+      expect(config?.calculationRequired).toBe(false);
+      expect(canAccessContent({ ...freeUser, chartId: null }, 'forecast', 'daily')).toBe(true);
     });
 
-    it.each(['weekly', 'monthly'] as const)('requires Premium for forecast/%s', (variant) => {
+    it.each(['weekly', 'monthly'] as const)('requires Premium but no chart for forecast/%s', (variant) => {
       const config = getContentAccessConfig('forecast', variant);
       expect(config?.defaultAccessTier).toBe('premium');
       expect(config?.unlockOptions).toEqual(['premium']);
-      expect(canAccessContent(freeUser, 'forecast', variant)).toBe(false);
-      expect(canAccessContent(premiumUser, 'forecast', variant)).toBe(true);
+      expect(config?.calculationRequired).toBe(false);
+      expect(canAccessContent({ ...freeUser, chartId: null }, 'forecast', variant)).toBe(false);
+      expect(canAccessContent({ ...premiumUser, chartId: null }, 'forecast', variant)).toBe(true);
     });
 
     it('requires premium for synastry/full', () => {
@@ -118,8 +119,10 @@ describe('contentAccessMatrix', () => {
   });
 
   describe('calculation and persistence flags', () => {
-    it('marks calculation-required surfaces for precalculation', () => {
-      expect(shouldPrecalculate('forecast', 'daily')).toBe(true);
+    it('does not pre-calculate AI personal horoscopes but still pre-calculates chart products', () => {
+      expect(shouldPrecalculate('forecast', 'daily')).toBe(false);
+      expect(shouldPrecalculate('forecast', 'weekly')).toBe(false);
+      expect(shouldPrecalculate('forecast', 'monthly')).toBe(false);
       expect(shouldPrecalculate('synastry', 'full')).toBe(true);
     });
 
@@ -259,29 +262,27 @@ describe('feature access matrix', () => {
     });
   });
 
-  it('shows create-chart gate before paywall when a Premium feature needs a chart', () => {
-    expect(canAccessFeature('personal_weekly', giftProfile, { hasChart: false })).toMatchObject({
-      allowed: false,
-      status: 'needs_chart',
+  it('keeps personal horoscopes chart-free and applies only the Premium gate', () => {
+    expect(canAccessFeature('personal_daily', { ...giftProfile, premiumUntil: null }, null)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+      hasChart: false,
+    });
+    expect(canAccessFeature('personal_weekly', giftProfile, null)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
       hasPremium: true,
       hasChart: false,
     });
-    expect(canAccessFeature('personal_weekly', { ...giftProfile, premiumUntil: null }, { hasChart: false })).toMatchObject({
+    expect(canAccessFeature('personal_weekly', { ...giftProfile, premiumUntil: null }, null)).toMatchObject({
       allowed: false,
-      status: 'needs_chart',
+      status: 'needs_premium',
       hasPremium: false,
       hasChart: false,
     });
   });
 
-  it('allows Premium content for a legacy gift after a natal chart exists', () => {
-    expect(canAccessFeature('personal_weekly', giftProfile, chartState)).toMatchObject({
-      allowed: true,
-      status: 'allowed',
-    });
-  });
-
-  it('shows paywall when chart exists but Premium is inactive', () => {
+  it('shows paywall when a chart-based Premium natal feature has no active Premium', () => {
     expect(canAccessFeature('natal_love', { ...giftProfile, premiumUntil: expiredPremiumUntil }, chartState)).toMatchObject({
       allowed: false,
       status: 'needs_premium',
