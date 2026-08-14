@@ -1,15 +1,81 @@
 /*
- * Visual-only pass for the shared drawer trigger and the personal forecast header.
- * Imported last so these focused overrides do not disturb forecast logic or content.
+ * Shared visual chrome for the app shell.
+ * This file is imported last so the menu trigger and white application canvas
+ * stay identical on every primary screen without touching forecast logic.
  */
 
-.lumia-side-drawer-menu-button {
-  width: 44px;
-  min-width: 44px;
-  max-width: 44px;
-  height: 44px;
-  min-height: 44px;
-  max-height: 44px;
+:root {
+  --app-canvas: #ffffff;
+  --bg-primary: #ffffff;
+  --bg-card: #ffffff;
+  --lumia-home-bg: #ffffff;
+  --lumia-home-bg-wash: #ffffff;
+  --lumia-home-surface: #ffffff;
+  --lumia-shared-menu-left: calc(
+    max(
+      env(safe-area-inset-left, 0px),
+      var(--tg-content-safe-area-inset-left, 0px),
+      var(--tg-safe-area-inset-left, 0px)
+    ) + 14px
+  );
+  --lumia-shared-menu-top: calc(
+    max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-content-safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px),
+      18px
+    ) + 5px
+  );
+  --lumia-shared-menu-top-telegram: calc(
+    max(
+      env(safe-area-inset-top, 0px),
+      var(--tg-content-safe-area-inset-top, 0px),
+      var(--tg-safe-area-inset-top, 0px),
+      18px
+    ) + 51px
+  );
+}
+
+html,
+body,
+#__next,
+.lumia-app-shell,
+.lumia-app-shell > main,
+.lumia-main-scroll {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+.app-top-bar,
+.app-top-bar.home-logo-bar {
+  border: 0 !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-top-bar::before,
+.app-top-bar::after {
+  display: none !important;
+  background: none !important;
+}
+
+.lumia-side-drawer-menu-button,
+.lumia-side-drawer-menu-button.is-telegram {
+  left: var(--lumia-shared-menu-left) !important;
+  z-index: 120;
+  display: grid;
+  box-sizing: border-box;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  padding: 0;
+  place-items: center;
   border: 0;
   border-radius: 12px;
   background: transparent;
@@ -17,6 +83,14 @@
   color: #202020;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.lumia-side-drawer-menu-button {
+  top: var(--lumia-shared-menu-top) !important;
+}
+
+.lumia-side-drawer-menu-button.is-telegram {
+  top: var(--lumia-shared-menu-top-telegram) !important;
 }
 
 .lumia-side-drawer-menu-button:hover {
@@ -29,13 +103,13 @@
 
 .lumia-side-drawer-menu-button:focus-visible {
   outline: 2px solid rgba(17, 24, 39, 0.7);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 .lumia-side-drawer-menu-icon {
   display: block;
-  width: 36px;
-  height: 28px;
+  width: 46px;
+  height: 35px;
   overflow: visible;
   background-image: url('/assets/brand/personal-horoscope-mark.svg');
   background-position: center;
@@ -93,13 +167,9 @@
 }
 
 @media (max-width: 380px) {
-  .lumia-side-drawer-menu-button {
-    left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + 10px);
-  }
-
   .lumia-side-drawer-menu-icon {
-    width: 34px;
-    height: 27px;
+    width: 44px;
+    height: 33px;
   }
 
   .forecast-feed-page .app-top-bar-context--period {

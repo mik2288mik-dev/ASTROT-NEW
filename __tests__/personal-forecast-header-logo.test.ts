@@ -17,7 +17,7 @@ describe('personal forecast header and shared drawer mark', () => {
     expect(dashboard).toContain('activeDateValue');
   });
 
-  it('replaces the hamburger artwork with the app planet mark without changing drawer behavior', () => {
+  it('uses the mark traced from the supplied production icon without the rounded tile', () => {
     const app = read('App.tsx');
     const styles = read('styles/personalForecastHeaderLogo.css');
     const mark = read('public/assets/brand/personal-horoscope-mark.svg');
@@ -26,10 +26,26 @@ describe('personal forecast header and shared drawer mark', () => {
     expect(app).toContain('lumia-side-drawer-menu-button');
     expect(app).toContain('setSideDrawerOpen((open) => !open)');
     expect(styles).toContain("url('/assets/brand/personal-horoscope-mark.svg')");
-    expect(styles).toContain('.lumia-side-drawer-menu-icon line');
-    expect(styles).toContain('display: none;');
-    expect(mark).toContain('<circle');
-    expect(mark).toContain('<ellipse');
+    expect(styles).toContain('width: 46px;');
+    expect(styles).toContain('height: 35px;');
+    expect(mark).toContain('Geometry traced from the supplied production app icon');
+    expect(mark).toContain('viewBox="0 0 672 511"');
+    expect(mark).toContain('<path');
+    expect(mark).not.toContain('<circle');
+    expect(mark).not.toContain('<ellipse');
     expect(nextApp).toContain("import '../styles/personalForecastHeaderLogo.css';");
+  });
+
+  it('pins the shared trigger and keeps the app canvas and header pure white', () => {
+    const styles = read('styles/personalForecastHeaderLogo.css');
+
+    expect(styles).toContain('--lumia-shared-menu-left');
+    expect(styles).toContain('--lumia-shared-menu-top');
+    expect(styles).toContain('--lumia-shared-menu-top-telegram');
+    expect(styles).toContain('.lumia-side-drawer-menu-button.is-telegram');
+    expect(styles).toContain('left: var(--lumia-shared-menu-left) !important;');
+    expect(styles).toContain('background-color: #ffffff !important;');
+    expect(styles).toContain('background: #ffffff !important;');
+    expect(styles).toContain('backdrop-filter: none !important;');
   });
 });
