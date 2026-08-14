@@ -4,22 +4,20 @@ import path from 'path';
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-describe('active root newspaper visual contract', () => {
-  it('keeps the personal forecast as one unnumbered stream without visible evidence details', () => {
+describe('active root visual contract', () => {
+  it('keeps the personal horoscope as one clean reading without visible evidence', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const sectionBlock = read(
-      'components/PersonalForecastFeed/ForecastSectionBlock.tsx',
-    );
-    const styles = read('styles/newspaperVisual.css');
+    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
+    const styles = read('styles/aiPersonalHoroscope.css');
 
-    expect(dashboard).toContain('storySections.map((section)');
-    expect(dashboard).not.toContain('sectionNumber=');
+    expect(dashboard).toContain('<AiPersonalHoroscopeReading');
     expect(dashboard).not.toContain('AstrologyDetailsToggle');
-    expect(sectionBlock).not.toContain('sectionNumber: number');
-    expect(sectionBlock).not.toContain('forecast-feed-section-number');
-    expect(sectionBlock).not.toContain('forecast-feed-astro-details');
-    expect(styles).not.toContain('.forecast-feed-page .forecast-feed-section-number');
-    expect(styles).not.toContain('grid-template-columns: 2.7rem minmax(0, 1fr)');
+    expect(reading).not.toContain('explanationAnchors');
+    expect(reading).not.toContain('inlineAstroAccent');
+    expect(reading).toContain('ai-personal-horoscope-opening');
+    expect(reading).toContain('ai-personal-horoscope-forecast');
+    expect(reading).toContain('ai-personal-horoscope-advice');
+    expect(styles).toContain('background: #ffffff;');
   });
 
   it('scopes the white paper skin to every active non-v2 root', () => {
@@ -42,29 +40,18 @@ describe('active root newspaper visual contract', () => {
     expect(styles).not.toContain('--news-action: #1d1d1b');
     expect(styles).toContain('.forecast-feed-page .forecast-feed-status button');
     expect(styles).toContain('background: var(--news-action) !important');
-    expect(styles).toContain('.settings-editorial-page .fresh-btn-ghost');
-    expect(styles).toContain(".settings-editorial-page button[class*='bg-mono-accent']");
-    expect(styles).toContain(".charts-editorial-page button[class*='bg-mono-accent']");
-    expect(styles).toContain(".auth-editorial-page button[class*='bg-[#168de2]']");
-    expect(styles).toContain('.compat-editorial-page .people-dim-val');
-    expect(styles).toContain('.compat-editorial-page .people-dim-track');
-    expect(styles).toContain('.compat-editorial-page .people-ring circle:first-child');
-    expect(styles).toContain('width: clamp(5rem, 22vw, 7.5rem)');
-    expect(styles).not.toContain('width: min(100%, 32rem)');
-    expect(styles).not.toContain('min-height: 24rem');
     expect(styles).not.toMatch(/\.lumia-bottom-(?:nav|bar)/);
   });
 
-  it('uses only restrained inline diary stickers and leaves onboarding quiet', () => {
+  it('removes old diary sticker planning from the active personal horoscope', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
+    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
     expect(dashboard).not.toContain('resolvePersonalForecastVisuals');
-    expect(dashboard).toContain('resolveDiaryEditorialPauses');
-    expect(dashboard).not.toContain('selectZodiacLegacyAsset');
-    expect(sectionBlock).toContain('forecast-feed-editorial-pause');
-    expect(sectionBlock).not.toContain('style={forecastVisualStyle');
+    expect(dashboard).not.toContain('resolveDiaryEditorialPauses');
+    expect(dashboard).not.toContain('resolveDiaryTodayVisualPlan');
+    expect(reading).not.toContain('EditorialSticker');
     expect(onboarding).not.toContain('selectPersonalEditorialAsset');
     expect(onboarding).not.toContain('selectZodiacLegacyAsset');
     expect(onboarding).not.toContain('EditorialSticker');
