@@ -25,9 +25,8 @@ describe('mvp home surface', () => {
     }
   });
 
-  it('keeps the continuous Dashboard focused on the approved destinations', () => {
+  it('keeps the continuous Dashboard focused on approved destinations', () => {
     const dashboard = read('views/Dashboard.tsx');
-
     expect(dashboard).toContain('onCreateNatalChart');
     expect(dashboard).toContain('onRequestPremium');
     expect(dashboard).not.toContain('ForecastPromotion');
@@ -37,16 +36,16 @@ describe('mvp home surface', () => {
     expect(dashboard).not.toContain('/api/weather');
   });
 
-  it('keeps every personal period inside the single continuous Dashboard feed', () => {
+  it('keeps every personal period inside one AI horoscope Dashboard', () => {
     const app = read('App.tsx');
     const dashboard = read('views/Dashboard.tsx');
     const types = read('types.ts');
-
     expect(app).toContain('<Dashboard {...dashboardProps}');
     expect(app).toContain('onRequestPremium: requestPremium');
     expect(dashboard).toContain('resolveRequestedPersonalForecastPeriod(requestedPeriod)');
-    expect(dashboard).not.toContain('setActivePeriod');
-    expect(dashboard).toContain('ForecastSectionBlock');
+    expect(dashboard).toContain('AiPersonalHoroscopeReading');
+    expect(dashboard).not.toContain('ForecastSectionBlock');
+    expect(dashboard).not.toContain('TodayEditorialFeed');
     expect(dashboard).not.toContain('FreshTabs');
     expect(dashboard).not.toContain('ForecastSideNavigator');
     expect(dashboard).not.toContain('ForecastBottomSheet');
@@ -54,18 +53,18 @@ describe('mvp home surface', () => {
     expect(app).not.toContain("navigateTo('personal_daily')");
     expect(app).not.toContain("view === 'personal_daily'");
     expect(types).not.toContain('personal_daily');
-    expect(app).not.toContain("view === 'oracle'");
-    expect(app).not.toContain("view === 'hook'");
   });
 
-  it('protects private personal forecast content with server identity and entitlement slicing', () => {
+  it('protects private AI horoscope content with server identity and entitlement slicing', () => {
     const route = read('pages/api/content/forecast/personal.ts');
     const service = read('services/personalForecastService.ts');
-
-    expect(route).toContain('ensureValidContext');
+    expect(route).toContain('requireAppUser(req, { allowGuest: true })');
     expect(route).toContain('getPremiumEntitlementState');
     expect(route).toContain('slicePersonalForecastForAccess');
+    expect(route).not.toContain('ensureValidContext');
+    expect(route).not.toContain('ctx.chartData');
     expect(service).toContain("'Content-Type': 'application/json'");
     expect(service).toContain('...getTelegramInitDataHeaders()');
+    expect(service).not.toContain("params.set('chartId'");
   });
 });
