@@ -5,6 +5,7 @@ import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
 import { db } from '../../../../lib/db';
+import { AI_PERSONAL_HOROSCOPE_TIMEZONE } from '../../../../lib/aiPersonalHoroscope';
 import {
   getAiPersonalHoroscopeGenerationDiagnosticCode,
 } from '../../../../lib/aiPersonalHoroscopeGeneration';
@@ -36,6 +37,11 @@ function readPeriodKey(req: NextApiRequest): string {
   return String(req.method === 'GET' ? req.query.periodKey || '' : req.body?.periodKey || '').trim();
 }
 
+function readTimezone(req: NextApiRequest): string {
+  const raw = String(req.method === 'GET' ? req.query.timezone || '' : req.body?.timezone || '').trim();
+  return normalizeForecastTimezone(raw || AI_PERSONAL_HOROSCOPE_TIMEZONE);
+}
+
 function dateOnly(value: unknown): string {
   if (!value) return '';
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -60,7 +66,6 @@ function profileFromUser(
     birthDate: dateOnly(user.birth_date),
     birthTime: timeOnly(user.birth_time),
     birthPlace: String(user.birth_place || '').trim(),
-    birthTimezone: user.birth_timezone ? String(user.birth_timezone) : null,
     gender: user.gender === 'male' || user.gender === 'female'
       ? user.gender
       : 'unspecified',
@@ -126,7 +131,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const timezone = normalizeForecastTimezone(profile.birthTimezone || 'Europe/Moscow');
+  const timezone = readTimezone(req);
   const requestedPeriodKey = readPeriodKey(req);
   const periodKey = requestedPeriodKey
     || getPersonalForecastPeriodKey(period, new Date(), timezone);
@@ -140,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const cacheInput = { profile, period, periodKey };
+  const cacheInput = { profile, period, periodKey, timezone };
 
   try {
     const entitlement = await getPremiumEntitlementState(userId);
