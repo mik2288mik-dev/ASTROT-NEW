@@ -24,6 +24,13 @@ describe('Lumia content matrix', () => {
       words: { min: 0, max: 130 },
       promptVersion: expect.stringContaining('sign_monthly_horoscope.v4'),
     });
+    expect(getContentPolicy('personal_daily')).toMatchObject({
+      featureKey: 'personal_daily',
+      modelTier: 'main',
+      cacheScope: 'user',
+      promptVersion: expect.stringContaining('personal_ai_horoscope.v1'),
+      generationPolicy: 'once_per_day',
+    });
     expect(getCacheTtlMs('sign_compatibility')).toBeNull();
     expect(getContentPolicy('deep_report')).toMatchObject({
       modelTier: 'deep', generationPolicy: 'explicit_only', cacheTtl: 'forever_until_chart_changes',
@@ -34,27 +41,28 @@ describe('Lumia content matrix', () => {
     expect(getContentAccess('sign_daily_horoscope')).toMatchObject({ tier: 'free', needsChart: false });
     expect(getContentAccess('sign_weekly_horoscope')).toMatchObject({ tier: 'premium', needsChart: false });
     expect(getContentAccess('sign_monthly_horoscope')).toMatchObject({ tier: 'premium', needsChart: false });
+    expect(getContentAccess('personal_daily')).toMatchObject({ tier: 'free', needsChart: false });
     expect(getContentAccess('natal_section', { natalSection: 'basic_identity' })).toMatchObject({ tier: 'free', needsChart: true });
     expect(getContentAccess('natal_section', { natalSection: 'money' })).toMatchObject({ tier: 'premium', needsChart: true });
   });
 
-  it('builds shared and personal cache keys without scope collisions', () => {
+  it('builds shared, user, and chart cache keys without scope collisions', () => {
     expect(buildContentCacheKey('sign_daily_horoscope', { dateKey: '2026-06-06', zodiacSign: 'Aries' }))
       .toBe('sign_daily_horoscope|date:2026-06-06|sign:aries');
     expect(buildContentCacheKey('personal_daily', { dateKey: '2026-06-06', userId: '42', chartId: 7 }))
-      .toBe('personal_daily|date:2026-06-06|user:42|chart:7');
+      .toBe('personal_daily|date:2026-06-06|user:42');
     expect(buildContentCacheKey('natal_section', { contentKey: 'love', userId: '42', chartId: 7, chartHash: 'abc' }))
       .toBe('natal_section|love|user:42|chart:7|hash:abc');
   });
 
-  it('requires a complete chart or persisted chart id as strict proof', () => {
+  it('requires a complete chart or persisted chart id as strict proof only for natal products', () => {
     expect(hasNatalChart({ isSetup: true, birthDate: '2000-01-01', birthPlace: 'Moscow' })).toBe(false);
     expect(hasNatalChart({ hasChart: true })).toBe(false);
     expect(hasNatalChart({ primaryChartId: 7 })).toBe(true);
     expect(hasNatalChart({ chartData: { sun: {} as any, moon: {} as any, rising: {} as any } as any })).toBe(true);
   });
 
-  it('keeps generic sign content chart-free and gates personal content', () => {
+  it('keeps sign and personal horoscope content chart-free while preserving Premium gates', () => {
     expect(canAccessFeature('daily_sign_horoscope', null, null).allowed).toBe(true);
     expect(canAccessFeature('weekly_sign_horoscope', null, null)).toMatchObject({
       allowed: false,
@@ -72,13 +80,21 @@ describe('Lumia content matrix', () => {
         productId: 'premium.3m',
         period: 'P3M',
       },
-    }, null))
-      .toMatchObject({
-        allowed: true,
-        status: 'allowed',
-        hasChart: false,
-      });
+    }, null)).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+      hasChart: false,
+    });
     expect(canAccessFeature('zodiac_compatibility', null, null).allowed).toBe(true);
-    expect(canAccessFeature('personal_daily', { isPremium: true }, { primaryChartId: null })).toMatchObject({ status: 'needs_chart' });
+    expect(canAccessFeature('personal_daily', null, { primaryChartId: null })).toMatchObject({
+      allowed: true,
+      status: 'allowed',
+      hasChart: false,
+    });
+    expect(canAccessFeature('personal_weekly', null, null)).toMatchObject({
+      allowed: false,
+      status: 'needs_premium',
+      hasChart: false,
+    });
   });
 });
