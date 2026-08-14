@@ -20,13 +20,13 @@ describe('personal horoscope Luna architecture', () => {
   });
 
   it('uses only the user profile, period, previous horoscopes and dialogue as writer context', () => {
-    const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
+    const voice = read('lib/aiPersonalHoroscopeVoice.ts');
     const cache = read('lib/personalForecastCache.ts');
     const route = read('pages/api/content/forecast/personal.ts');
 
-    expect(generation).toContain('buildAiPersonalHoroscopeProfileSnapshot');
-    expect(generation).toContain('recentForecasts');
-    expect(generation).toContain('conversationMemory');
+    expect(voice).toContain('buildAiPersonalHoroscopeProfileSnapshot');
+    expect(voice).toContain('recentForecasts');
+    expect(voice).toContain('conversationMemory');
     expect(cache).toContain('generateAiPersonalHoroscopePackage');
     expect(cache).not.toContain('generatePersonalForecastPackage');
     expect(cache).not.toContain('buildPersonalForecastChartFingerprint');
@@ -37,14 +37,15 @@ describe('personal horoscope Luna architecture', () => {
 
   it('uses Luna strict structured output and keeps the sign horoscope separate', () => {
     const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
+    const voice = read('lib/aiPersonalHoroscopeVoice.ts');
     const responses = read('lib/openaiResponses.ts');
     const zodiac = read('views/v2/HoroscopeReader.tsx');
 
     expect(generation).toContain('createLunaStructuredResponse');
-    expect(generation).toContain('RESPONSE_SCHEMA');
-    expect(generation).toContain('opening');
-    expect(generation).toContain('forecast');
-    expect(generation).toContain('advice');
+    expect(generation).toContain('AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA');
+    expect(voice).toContain('opening');
+    expect(voice).toContain('forecast');
+    expect(voice).toContain('advice');
     expect(responses).toContain("type: 'json_schema'");
     expect(responses).toContain('strict: true');
     expect(zodiac).toContain("type Period = 'today';");
