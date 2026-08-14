@@ -115,7 +115,6 @@ export const Dashboard = memo<DashboardProps>(({
   profile,
   currentDateKey,
   requestedPeriod,
-  onPeriodChange,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
@@ -253,11 +252,6 @@ export const Dashboard = memo<DashboardProps>(({
   useEffect(() => {
     loadPeriod(activePeriod);
   }, [activePeriod, loadPeriod, productContextKey]);
-
-  useEffect(() => {
-    if (premium) return;
-    if (activePeriod !== 'day') onPeriodChange?.('day');
-  }, [activePeriod, onPeriodChange, premium]);
 
   useEffect(() => {
     scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
