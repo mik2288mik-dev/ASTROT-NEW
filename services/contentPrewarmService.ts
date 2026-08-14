@@ -18,8 +18,10 @@ export type PrewarmMode = 'cache-only' | 'generate-missing';
 
 export type PrewarmUserContentInput = {
   userId: string;
+  /** Legacy App input; never passed into personal horoscope generation. */
   chartId?: number | null;
   profile: UserProfile;
+  /** Legacy App input; never passed into personal horoscope generation. */
   chartData: NatalChartData;
   isPremium: boolean;
   dateKey?: string;
@@ -63,7 +65,7 @@ function personalForecastPeriodKeys(
   input: PrewarmUserContentInput,
 ): Record<PersonalForecastPeriod, string> {
   const timezone = normalizeForecastTimezone(
-    input.chartData.timezone || input.profile.birthTimezone,
+    input.profile.birthTimezone || 'Europe/Moscow',
   );
   const now = new Date();
   return {
@@ -81,8 +83,6 @@ async function probePrewarmItem(
   try {
     await loadPersonalForecast({
       profile: input.profile,
-      chartData: input.chartData,
-      chartId: input.chartId,
       period,
       periodKey: input.periodKeys[period],
       options: { cacheOnly: true, force: true },
@@ -101,8 +101,6 @@ async function generatePrewarmItem(
   const period = PERIOD_BY_TASK_ID[item.id];
   await loadPersonalForecast({
     profile: input.profile,
-    chartData: input.chartData,
-    chartId: input.chartId,
     period,
     periodKey: input.periodKeys[period],
     options: { force: true },
@@ -167,7 +165,6 @@ export async function prewarmUserContent(
     : 'all';
   const key = [
     input.userId,
-    input.chartId ?? 'primary',
     periodKeys.day,
     periodKeys.week,
     periodKeys.month,
