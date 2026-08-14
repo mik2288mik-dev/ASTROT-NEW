@@ -131,8 +131,8 @@ body,
 .lumia-side-drawer-menu-icon,
 .lumia-universal-drawer-mark {
   display: block;
-  width: 46px;
-  height: 35px;
+  width: 43px;
+  height: 33px;
   overflow: visible;
   background-image: url('/assets/brand/personal-horoscope-mark.svg');
   background-position: center;
@@ -140,15 +140,15 @@ body,
   background-size: contain;
   filter:
     brightness(0)
-    contrast(1.8)
-    drop-shadow(1px 0 0 #000000)
-    drop-shadow(-1px 0 0 #000000)
-    drop-shadow(0 1px 0 #000000)
-    drop-shadow(0 -1px 0 #000000)
-    drop-shadow(0.7px 0.7px 0 #000000)
-    drop-shadow(-0.7px 0.7px 0 #000000)
-    drop-shadow(0.7px -0.7px 0 #000000)
-    drop-shadow(-0.7px -0.7px 0 #000000);
+    contrast(1.6)
+    drop-shadow(0.75px 0 0 #000000)
+    drop-shadow(-0.75px 0 0 #000000)
+    drop-shadow(0 0.75px 0 #000000)
+    drop-shadow(0 -0.75px 0 #000000)
+    drop-shadow(0.4px 0.4px 0 #000000)
+    drop-shadow(-0.4px 0.4px 0 #000000)
+    drop-shadow(0.4px -0.4px 0 #000000)
+    drop-shadow(-0.4px -0.4px 0 #000000);
 }
 
 .lumia-side-drawer-menu-icon line {
@@ -227,8 +227,8 @@ body,
 @media (max-width: 380px) {
   .lumia-side-drawer-menu-icon,
   .lumia-universal-drawer-mark {
-    width: 44px;
-    height: 33px;
+    width: 41px;
+    height: 31px;
   }
 
   .forecast-feed-page .app-top-bar-context--period {
