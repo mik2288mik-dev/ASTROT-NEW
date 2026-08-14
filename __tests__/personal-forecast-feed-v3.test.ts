@@ -5,8 +5,8 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const exists = (file: string) => fs.existsSync(path.join(ROOT, file));
 
-describe('personal forecast Luna architecture', () => {
-  it('keeps day, week, and month as drawer-controlled diary periods without the retired forecast-question block', () => {
+describe('personal horoscope Luna architecture', () => {
+  it('keeps day, week, and month as drawer-controlled periods without forecast questions', () => {
     const dashboard = read('views/Dashboard.tsx');
 
     expect(dashboard).toContain("const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];");
@@ -19,23 +19,32 @@ describe('personal forecast Luna architecture', () => {
     expect(exists('components/PersonalForecastFeed/ForecastQuestions.tsx')).toBe(false);
   });
 
-  it('uses the saved natal profile as the writer context, without recalculating period evidence', () => {
-    const generation = read('lib/personalForecastGeneration.ts');
+  it('uses only the user profile, period, previous horoscopes and dialogue as writer context', () => {
+    const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
     const cache = read('lib/personalForecastCache.ts');
+    const route = read('pages/api/content/forecast/personal.ts');
 
-    expect(generation).toContain('buildPersonalForecastNatalContext');
-    expect(generation).toContain('PERSONAL_FORECAST_PROFILE_EVIDENCE_ID');
-    expect(generation).not.toContain('calculatePersonalForecastEvidence(');
-    expect(cache).not.toContain('calculatePersonalForecastEvidence(');
+    expect(generation).toContain('buildAiPersonalHoroscopeProfileSnapshot');
+    expect(generation).toContain('recentForecasts');
+    expect(generation).toContain('conversationMemory');
+    expect(cache).toContain('generateAiPersonalHoroscopePackage');
+    expect(cache).not.toContain('generatePersonalForecastPackage');
+    expect(cache).not.toContain('buildPersonalForecastChartFingerprint');
+    expect(route).not.toContain('ensureValidContext');
+    expect(route).not.toContain('chartData');
+    expect(route).not.toContain('chartId');
   });
 
-  it('uses Luna structured output and keeps the sign horoscope system separate', () => {
-    const generation = read('lib/personalForecastGeneration.ts');
+  it('uses Luna strict structured output and keeps the sign horoscope separate', () => {
+    const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
     const responses = read('lib/openaiResponses.ts');
     const zodiac = read('views/v2/HoroscopeReader.tsx');
 
     expect(generation).toContain('createLunaStructuredResponse');
-    expect(generation).toContain('PERSONAL_FORECAST_RESPONSE_SCHEMA');
+    expect(generation).toContain('RESPONSE_SCHEMA');
+    expect(generation).toContain('opening');
+    expect(generation).toContain('forecast');
+    expect(generation).toContain('advice');
     expect(responses).toContain("type: 'json_schema'");
     expect(responses).toContain('strict: true');
     expect(zodiac).toContain("type Period = 'today';");
