@@ -11,13 +11,13 @@ import {
   generateAiPersonalHoroscopePackage,
 } from './aiPersonalHoroscopeGeneration';
 import { loadAiPersonalHoroscopeDialogueMemory } from './aiPersonalHoroscopeMemory';
-import { getUnifiedContentModel } from './appSettings';
 import {
   buildContentGenerationLockKey,
   withContentGenerationLock,
   type ContentGenerationLockResult,
 } from './contentGenerationLock';
 import { db } from './db';
+import { OPENAI_LUNA_MODEL } from './openai-models';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -62,7 +62,7 @@ function profileFrom(input: PersonalForecastCacheContext): UserProfile {
 
 async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
   const profile = profileFrom(input);
-  const model = await getUnifiedContentModel();
+  const model = OPENAI_LUNA_MODEL;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const timezone = normalizeForecastTimezone(profile.birthTimezone || 'Europe/Moscow');
   const window = resolvePersonalForecastWindow(input.period, input.periodKey, timezone);
