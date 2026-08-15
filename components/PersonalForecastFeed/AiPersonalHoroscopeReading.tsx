@@ -79,8 +79,8 @@ export function AiPersonalHoroscopeReading({
         <section className="ai-personal-horoscope-premium" data-premium-inline-teaser="today">
           <p>
             {language === 'ru'
-              ? 'Главное открыто. Остальные советы — в Premium.'
-              : 'The main reading is open. The remaining advice is in Premium.'}
+              ? 'Главное открыто. Остальные точные советы — в Premium.'
+              : 'The main reading is open. The remaining direct advice is in Premium.'}
           </p>
           <button type="button" onClick={onRequestPremium}>
             {language === 'ru' ? 'Показать всё' : 'Show everything'}
