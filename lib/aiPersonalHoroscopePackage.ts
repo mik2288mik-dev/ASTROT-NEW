@@ -73,6 +73,16 @@ function makeSection(input: {
   };
 }
 
+function scopeReadingFingerprint(
+  fingerprint: string,
+  surface: 'opening' | 'forecast' | 'period',
+): string {
+  // The package contract requires a unique fingerprint for every visible
+  // section. Keep the same semantic memory, but mark which surface carries it.
+  const parsed = JSON.parse(fingerprint) as Record<string, unknown>;
+  return JSON.stringify({ ...parsed, surface });
+}
+
 export function buildAiPersonalHoroscopePackage(input: {
   profile: UserProfile;
   language: 'ru' | 'en';
@@ -81,6 +91,7 @@ export function buildAiPersonalHoroscopePackage(input: {
   model: string;
   value: ValidatedHoroscope;
   attempts: 1 | 2;
+  validationStatus?: 'valid' | 'deterministic_fallback';
 }): AiPersonalHoroscopePackage {
   const readingFingerprint = buildAiPersonalHoroscopeSemanticFingerprint({
     version: 2,
@@ -92,6 +103,11 @@ export function buildAiPersonalHoroscopePackage(input: {
     irony: input.value.memory.ironyKey,
     adviceKeys: input.value.memory.adviceKeys,
   });
+  const overviewFingerprint = scopeReadingFingerprint(
+    readingFingerprint,
+    input.period === 'day' ? 'opening' : 'period',
+  );
+  const forecastFingerprint = scopeReadingFingerprint(readingFingerprint, 'forecast');
   const adviceFingerprints = input.value.memory.adviceKeys.map((adviceKey) => (
     buildAiPersonalHoroscopeSemanticFingerprint({
       version: 2,
@@ -118,7 +134,7 @@ export function buildAiPersonalHoroscopePackage(input: {
         ],
     importance: 100,
     language: input.language,
-    semanticFingerprint: readingFingerprint,
+    semanticFingerprint: overviewFingerprint,
   });
 
   const sections = input.period === 'day'
@@ -130,7 +146,7 @@ export function buildAiPersonalHoroscopePackage(input: {
           blocks: [{ role: 'detail', text: input.value.forecast, atomId: 'ai_forecast' }],
           importance: 100,
           language: input.language,
-          semanticFingerprint: readingFingerprint,
+          semanticFingerprint: forecastFingerprint,
         }),
         ...input.value.advice.map((advice, index) => makeSection({
           id: `semantic:advice-${index + 1}`,
@@ -185,7 +201,7 @@ export function buildAiPersonalHoroscopePackage(input: {
       semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       generationAttempts: input.attempts,
-      validationStatus: 'valid',
+      validationStatus: input.validationStatus || 'valid',
       generatedAt: new Date().toISOString(),
       status: 'ready',
       diagnosticCode: null,

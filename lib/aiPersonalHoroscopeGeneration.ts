@@ -13,7 +13,9 @@ import {
   getAiPersonalHoroscopeAsOfDate,
   getAiPersonalHoroscopeSystemPrompt,
   validateAiPersonalHoroscopePayload,
+  type AiPersonalHoroscopeDomain,
   type GeneratedHoroscopePayload,
+  type ValidatedHoroscope,
 } from './aiPersonalHoroscopeVoice';
 import { OPENAI_LUNA_MODEL } from './openai-models';
 import { createLunaStructuredResponse } from './openaiResponses';
@@ -40,9 +42,126 @@ export type AiPersonalHoroscopeGenerationMetrics = {
 };
 
 function maxOutputTokens(period: PersonalForecastPeriod): number {
-  if (period === 'day') return 850;
-  if (period === 'week') return 1_050;
-  return 1_250;
+  // The Responses API counts hidden reasoning inside the output budget too.
+  // The old caps could finish the reasoning budget before the strict JSON was complete.
+  if (period === 'day') return 2_000;
+  if (period === 'week') return 2_600;
+  return 3_200;
+}
+
+function cleanText(value: unknown, maxLength: number): string {
+  return typeof value === 'string'
+    ? value.trim().replace(/\r\n?/gu, '\n').replace(/[ \t]+/gu, ' ').slice(0, maxLength)
+    : '';
+}
+
+function oneLine(value: unknown, maxLength: number): string {
+  return cleanText(value, maxLength).replace(/\s+/gu, ' ').trim();
+}
+
+function wordCount(value: string): number {
+  return value.trim().split(/\s+/u).filter(Boolean).length;
+}
+
+function sentenceCount(value: string): number {
+  return (value.match(/[^.!?]+(?:[.!?]+|$)/gu) || [])
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .length;
+}
+
+function normalize(value: string): string {
+  return value
+    .normalize('NFKC')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/ё/gu, 'е')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/gu, ' ');
+}
+
+function isRecoverableEditorialError(error: string): boolean {
+  return (
+    /^opening requires \d+-\d+ (?:sentences|words); received \d+$/u.test(error)
+    || /^forecast requires \d+-\d+ (?:sentences|words); received \d+$/u.test(error)
+    || /^advice \d+ requires \d+-\d+ words$/u.test(error)
+    || error === 'forecast has no visible development and turn'
+  );
+}
+
+function recoverEditorialDraft(input: {
+  raw: GeneratedHoroscopePayload;
+  errors: string[];
+  period: PersonalForecastPeriod;
+  requiredPrimaryDomain: AiPersonalHoroscopeDomain;
+}): ValidatedHoroscope | null {
+  // A draft may miss a narrow word-count or transition-marker check while still
+  // being safe, specific and in the requested voice. Hard failures — planner
+  // language, repeated advice, mysticism, dates, insults, generic checklists —
+  // are never recovered here.
+  if (!input.errors.length || !input.errors.every(isRecoverableEditorialError)) return null;
+
+  const opening = cleanText(input.raw.opening, 360);
+  const forecast = cleanText(input.raw.forecast, 1_800);
+  const advice = Array.isArray(input.raw.advice)
+    ? input.raw.advice.map((item) => oneLine(item, 220)).filter(Boolean)
+    : [];
+  const memory = input.raw.memory && typeof input.raw.memory === 'object' && !Array.isArray(input.raw.memory)
+    ? input.raw.memory
+    : null;
+  const primaryDomain = oneLine(memory?.primary_domain, 40) as AiPersonalHoroscopeDomain;
+  const mainIdeaKey = oneLine(memory?.main_idea_key, 120);
+  const situationKey = oneLine(memory?.situation_key, 120);
+  const turnKey = oneLine(memory?.turn_key, 120);
+  const ironyKey = oneLine(memory?.irony_key, 120);
+  const adviceKeys = Array.isArray(memory?.advice_keys)
+    ? memory.advice_keys.map((item) => oneLine(item, 100)).filter(Boolean)
+    : [];
+
+  if (!opening || !forecast || advice.length !== 3) return null;
+  if (primaryDomain !== input.requiredPrimaryDomain) return null;
+  if (!mainIdeaKey || !situationKey || !turnKey || adviceKeys.length !== 3) return null;
+  if (new Set(advice.map(normalize)).size !== advice.length) return null;
+  if (new Set(adviceKeys.map(normalize)).size !== adviceKeys.length) return null;
+
+  const openingWords = wordCount(opening);
+  const openingSentences = sentenceCount(opening);
+  if (openingWords < 3 || openingWords > 42 || openingSentences < 1 || openingSentences > 3) {
+    return null;
+  }
+
+  const broadLimits = input.period === 'day'
+    ? { minWords: 35, maxWords: 130, minSentences: 3, maxSentences: 8 }
+    : input.period === 'week'
+      ? { minWords: 50, maxWords: 170, minSentences: 4, maxSentences: 9 }
+      : { minWords: 70, maxWords: 210, minSentences: 5, maxSentences: 10 };
+  const forecastWords = wordCount(forecast);
+  const forecastSentences = sentenceCount(forecast);
+  if (
+    forecastWords < broadLimits.minWords
+    || forecastWords > broadLimits.maxWords
+    || forecastSentences < broadLimits.minSentences
+    || forecastSentences > broadLimits.maxSentences
+  ) return null;
+
+  if (advice.some((item) => {
+    const words = wordCount(item);
+    return words < 2 || words > 18 || sentenceCount(item) !== 1;
+  })) return null;
+
+  return {
+    opening,
+    forecast,
+    advice,
+    memory: {
+      primaryDomain,
+      mainIdeaKey,
+      situationKey,
+      turnKey,
+      ironyKey,
+      adviceKeys,
+    },
+  };
 }
 
 export async function generateAiPersonalHoroscopePackage(input: {
@@ -67,6 +186,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
   let rejectedDraft: GeneratedHoroscopePayload | null = null;
   let repairErrors: string[] = [];
   let incompleteSeen = false;
+  let recoverableDraft: { value: ValidatedHoroscope; attempts: 1 | 2 } | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const startedAt = Date.now();
@@ -121,6 +241,24 @@ export async function generateAiPersonalHoroscopePackage(input: {
         validationPassed: !!validated.value,
       });
       if (!validated.value) {
+        console.warn('[ai-personal-horoscope] Luna draft rejected', {
+          period: input.period,
+          periodKey: input.window.periodKey,
+          attempt,
+          errors: validated.errors,
+        });
+        const recovered = recoverEditorialDraft({
+          raw: parsed,
+          errors: validated.errors,
+          period: input.period,
+          requiredPrimaryDomain: editorialBrief.primaryDomain,
+        });
+        if (recovered) {
+          recoverableDraft = {
+            value: recovered,
+            attempts: attempt as 1 | 2,
+          };
+        }
         rejectedDraft = parsed;
         repairErrors = validated.errors;
         continue;
@@ -134,13 +272,33 @@ export async function generateAiPersonalHoroscopePackage(input: {
         model: OPENAI_LUNA_MODEL,
         value: validated.value,
         attempts: attempt as 1 | 2,
+        validationStatus: 'valid',
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('OPENAI_RESPONSE_INCOMPLETE')) incompleteSeen = true;
       repairErrors = [message.slice(0, 240)];
+      console.warn('[ai-personal-horoscope] Luna request failed', {
+        period: input.period,
+        periodKey: input.window.periodKey,
+        attempt,
+        message: repairErrors[0],
+      });
       if (attempt === MAX_ATTEMPTS) break;
     }
+  }
+
+  if (recoverableDraft) {
+    return buildAiPersonalHoroscopePackage({
+      profile: input.profile,
+      language,
+      period: input.period,
+      window: input.window,
+      model: OPENAI_LUNA_MODEL,
+      value: recoverableDraft.value,
+      attempts: recoverableDraft.attempts,
+      validationStatus: 'deterministic_fallback',
+    });
   }
 
   if (incompleteSeen) throw new Error('PERSONAL_FORECAST_WRITER_INCOMPLETE');

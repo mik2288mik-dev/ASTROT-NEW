@@ -118,10 +118,13 @@ async function runPlan(
   const cachedTaskIds: PrewarmTaskId[] = [];
   const mode = input.mode || 'cache-only';
 
-  await Promise.all(plan.map(async (item) => {
+  // Today, Week and Month share one continuity history. Generate them in plan
+  // order instead of starting three competing requests at once. Today remains
+  // first, and every later period can see the text and advice already saved.
+  for (const item of plan) {
     if (Date.now() >= deadline) {
       missingTaskIds.push(item.id);
-      return;
+      continue;
     }
     try {
       const cached = await probePrewarmItem(item, input);
@@ -144,7 +147,7 @@ async function runPlan(
     } finally {
       input.onProgress?.((completed.length + failed.length) / Math.max(plan.length, 1));
     }
-  }));
+  }
 
   return {
     planSize: plan.length,
