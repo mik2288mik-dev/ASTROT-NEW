@@ -32,7 +32,7 @@ const profile = {
   theme: 'light' as const,
 };
 
-const window = resolvePersonalForecastWindow('day', '2026-08-15', 'Europe/Moscow');
+const window = resolvePersonalForecastWindow('day', '2026-08-14', 'Europe/Moscow');
 
 function softEditorialMissPayload() {
   return {
