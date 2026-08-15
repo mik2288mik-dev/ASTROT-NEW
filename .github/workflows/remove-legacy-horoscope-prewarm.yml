@@ -35,8 +35,12 @@ jobs:
               "import type { PersonalForecastPeriod } from './lib/personalForecastContract';",
               "import type { AiPersonalHoroscopePeriod as PersonalForecastPeriod } from './lib/aiPersonalHoroscope';",
           )
-          text = text.replace("    const prewarmCompletedKeyRef = useRef<string | null>(null);\n", '')
-          text = text.replace("            prewarmCompletedKeyRef.current = null;\n", '')
+          text = re.sub(
+              r"^.*prewarmCompletedKeyRef.*\n",
+              "",
+              text,
+              flags=re.M,
+          )
 
           text, count = re.subn(
               r"\n    const prepareUserContentDbFirst = useCallback\(async \(input: \{.*?\n    \}, \[prefetchBaseReportForChart\]\);\n",
