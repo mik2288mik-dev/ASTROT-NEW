@@ -26,6 +26,7 @@ on:
       - __tests__/personal-forecast-feed-v3.test.ts
       - __tests__/personal-forecast-screen-layout.test.ts
       - __tests__/home-content-matrix.test.ts
+      - __tests__/api-personal-forecast-entitlement.test.ts
       - __tests__/api-personal-forecast-questions.test.ts
       - __tests__/api-admin-personal-forecast-questions.test.ts
       - .github/workflows/simple-horoscope-refactor-check.yml
@@ -53,5 +54,6 @@ jobs:
           __tests__/personal-forecast-feed-v3.test.ts
           __tests__/personal-forecast-screen-layout.test.ts
           __tests__/home-content-matrix.test.ts
+          __tests__/api-personal-forecast-entitlement.test.ts
           __tests__/api-personal-forecast-questions.test.ts
           __tests__/api-admin-personal-forecast-questions.test.ts
