@@ -29,8 +29,35 @@ jest.mock('../lib/personalForecastCache', () => ({
 }));
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import {
+  formatAiPersonalHoroscopeDateLabel,
+  getAiPersonalHoroscopePeriodKey,
+  resolveAiPersonalHoroscopeWindow,
+  type AiPersonalHoroscopePackage,
+  type AiPersonalHoroscopePeriod,
+} from '../lib/aiPersonalHoroscope';
 import handler from '../pages/api/content/forecast/personal';
 import { aiPersonalHoroscopeFixture } from './ai-personal-horoscope-fixture';
+
+function currentHoroscope(period: AiPersonalHoroscopePeriod): AiPersonalHoroscopePackage {
+  const periodKey = getAiPersonalHoroscopePeriodKey(
+    period,
+    new Date(),
+    'Europe/Moscow',
+  );
+  const window = resolveAiPersonalHoroscopeWindow(
+    period,
+    periodKey,
+    'Europe/Moscow',
+  );
+  return {
+    ...aiPersonalHoroscopeFixture(period),
+    periodKey,
+    periodStart: window.periodStart,
+    periodEnd: window.periodEnd,
+    dateLabel: formatAiPersonalHoroscopeDateLabel(window, 'ru'),
+  };
+}
 
 function responseMock(): {
   res: NextApiResponse;
@@ -108,56 +135,60 @@ describe('personal horoscope API entitlement', () => {
 
   it('serves an existing cached week to Free as a locked period', async () => {
     mockGetCachedPersonalForecast.mockResolvedValueOnce({
-      horoscope: aiPersonalHoroscopeFixture('week'),
+      horoscope: currentHoroscope('week'),
     });
     const { res, status, json } = responseMock();
     const req = {
-      method: 'GET',
-      query: { period: 'week', periodKey: '2026-W30' },
-      body: {},
-      headers: {},
+      method: 'GET', query: { period: 'week' }, body: {}, headers: {},
     } as unknown as NextApiRequest;
 
     await handler(req, res);
 
-    expect(status).toHaveBeenCalledWith(400);
+    expect(status).toHaveBeenCalledWith(200);
     expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
     expect(json.mock.calls[0][0]).toMatchObject({
-      code: 'PERSONAL_HOROSCOPE_PERIOD_KEY_INVALID',
+      accessTier: 'free',
+      periodLocked: true,
+      lockedAdviceIndexes: [0, 1, 2],
+      source: 'cache',
+      horoscope: {
+        reading: { opening: '', forecast: '', advice: [] },
+      },
     });
   });
 
   it.each(['day', 'week', 'month'] as const)(
-    'reopens a current cached Premium %s without a new AI generation',
+    'reopens cached Premium %s without a new AI generation',
     async (period) => {
-      const packageForPeriod = aiPersonalHoroscopeFixture(period);
       mockGetPremiumEntitlementState.mockResolvedValueOnce({
         isPremium: true,
         state: 'paid',
         entitlement: { status: 'paid' },
       });
       mockGetCachedPersonalForecast.mockResolvedValueOnce({
-        horoscope: packageForPeriod,
+        horoscope: currentHoroscope(period),
       });
-      const { res, status } = responseMock();
+      const { res, status, json } = responseMock();
       const req = {
-        method: 'GET',
-        query: { period },
-        body: {},
-        headers: {},
+        method: 'GET', query: { period }, body: {}, headers: {},
       } as unknown as NextApiRequest;
 
       await handler(req, res);
 
+      expect(status).toHaveBeenCalledWith(200);
       expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
-      if (status.mock.calls.some(([code]) => code === 200)) {
-        expect(status).toHaveBeenCalledWith(200);
-      }
+      expect(json.mock.calls[0][0]).toMatchObject({
+        accessTier: 'premium',
+        periodLocked: false,
+        lockedAdviceIndexes: [],
+        source: 'cache',
+        horoscope: { period },
+      });
     },
   );
 
   it('serves a compatible stale day immediately and refreshes it lazily', async () => {
-    const horoscope = aiPersonalHoroscopeFixture('day');
+    const horoscope = currentHoroscope('day');
     mockGetCompatibleStalePersonalForecast.mockResolvedValueOnce({ horoscope });
     mockEnsurePersonalForecast.mockResolvedValueOnce({
       status: 'ready', value: horoscope, fromCache: false,
@@ -174,8 +205,27 @@ describe('personal horoscope API entitlement', () => {
     expect(mockEnsurePersonalForecast).toHaveBeenCalledTimes(1);
   });
 
+  it('does not refresh a compatible stale premium period for Free', async () => {
+    mockGetCompatibleStalePersonalForecast.mockResolvedValueOnce({
+      horoscope: currentHoroscope('month'),
+    });
+    const { res, status, json } = responseMock();
+    const req = {
+      method: 'GET', query: { period: 'month' }, body: {}, headers: {},
+    } as unknown as NextApiRequest;
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json.mock.calls[0][0]).toMatchObject({
+      source: 'stale',
+      periodLocked: true,
+    });
+    expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
+  });
+
   it('generates on POST when the initial cache read is temporarily unavailable', async () => {
-    const horoscope = aiPersonalHoroscopeFixture('day');
+    const horoscope = currentHoroscope('day');
     mockGetCachedPersonalForecast.mockRejectedValueOnce(new Error('cache read offline'));
     mockEnsurePersonalForecast.mockResolvedValueOnce({
       status: 'ready',
