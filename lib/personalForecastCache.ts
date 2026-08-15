@@ -13,7 +13,6 @@ import {
 } from './aiPersonalHoroscopeGeneration';
 import { loadAiPersonalHoroscopeDialogueMemory } from './aiPersonalHoroscopeMemory';
 import {
-  buildContentGenerationLockKey,
   withContentGenerationLock,
   type ContentGenerationLockResult,
 } from './contentGenerationLock';
@@ -37,6 +36,12 @@ const VARIANT_BY_PERIOD = {
   week: 'weekly',
   month: 'monthly',
 } as const;
+
+const ALL_PERSONAL_HOROSCOPE_VARIANTS = [
+  VARIANT_BY_PERIOD.day,
+  VARIANT_BY_PERIOD.week,
+  VARIANT_BY_PERIOD.month,
+] as const;
 
 const HISTORY_LIMIT_BY_PERIOD: Record<PersonalForecastPeriod, number> = {
   day: 4,
@@ -89,6 +94,15 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
     inputHash: buildAiPersonalHoroscopeInputHash(common),
     contentVariant: VARIANT_BY_PERIOD[input.period],
   };
+}
+
+export function buildAiPersonalHoroscopeGenerationLockKey(userId: string): string {
+  return [
+    'ai-personal-horoscope-generation',
+    String(userId).trim(),
+    'all-periods',
+    PERSONAL_FORECAST_PROMPT_VERSION,
+  ].join(':');
 }
 
 export async function getCachedPersonalForecast(
@@ -187,25 +201,32 @@ export async function getRecentPersonalForecastHistory(
   const seen = new Set<string>();
   const add = (reading: AiPersonalHoroscopeRecentReading | null) => {
     if (!reading) return;
-    const key = `${reading.periodKey}:${reading.fragments.map((fragment) => fragment.text).join('\n')}`;
+    const key = `${reading.period || 'unknown'}:${reading.periodKey}:${reading.fragments
+      .map((fragment) => fragment.text)
+      .join('\n')}`;
     if (seen.has(key)) return;
     seen.add(key);
     readings.push(reading);
   };
 
-  try {
-    const latest = await db.content_interpretations.getLatestByUserVariant(
-      identity.userId,
-      CANONICAL_CACHE_TIER,
-      'forecast',
-      identity.contentVariant,
-    );
-    add(readingFromUnknown((latest as ContentInterpretation<unknown> | null)?.content));
-  } catch (error) {
-    console.warn(
-      '[ai-personal-horoscope] latest history unavailable; continuing:',
-      error instanceof Error ? error.message : String(error),
-    );
+  // Always load the latest Today, Week and Month together. This makes the
+  // writer treat every other active period as negative anti-repeat context,
+  // including its advice, rather than checking only the same tab's history.
+  for (const contentVariant of ALL_PERSONAL_HOROSCOPE_VARIANTS) {
+    try {
+      const latest = await db.content_interpretations.getLatestByUserVariant(
+        identity.userId,
+        CANONICAL_CACHE_TIER,
+        'forecast',
+        contentVariant,
+      );
+      add(readingFromUnknown((latest as ContentInterpretation<unknown> | null)?.content));
+    } catch (error) {
+      console.warn(
+        `[ai-personal-horoscope] latest ${contentVariant} history unavailable; continuing:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 
   let previousKey = input.periodKey;
@@ -235,7 +256,7 @@ export async function getRecentPersonalForecastHistory(
     }
   }
 
-  return readings.slice(0, historyLimit + 1);
+  return readings.slice(0, 8);
 }
 
 async function savePersonalForecast(
@@ -264,15 +285,10 @@ export async function ensurePersonalForecast(
 ): Promise<ContentGenerationLockResult<PersonalForecastPackage>> {
   const identity = await resolveCacheIdentity(input);
   return withContentGenerationLock<PersonalForecastPackage>({
-    lockKey: buildContentGenerationLockKey({
-      userId: identity.userId,
-      chartId: null,
-      accessTier: CANONICAL_CACHE_TIER,
-      contentSurface: 'forecast',
-      contentVariant: identity.contentVariant,
-      cacheKey: identity.cacheKey,
-      promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-    }),
+    // Today, Week and Month share one writer lock. Concurrent prewarm requests
+    // are therefore serialized, so the next period can see and reject the
+    // themes and advice generated for the previous one.
+    lockKey: buildAiPersonalHoroscopeGenerationLockKey(identity.userId),
     operation: `ai-personal-horoscope-${input.period}`,
     allowLocalLockFallback: true,
     readCached: async () => {
