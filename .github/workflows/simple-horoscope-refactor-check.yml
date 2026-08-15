@@ -1,0 +1,56 @@
+name: Simple Horoscope Refactor Check
+
+on:
+  push:
+    branches:
+      - refactor/simple-ai-horoscope-path
+    paths:
+      - App.tsx
+      - views/Dashboard.tsx
+      - services/personalForecastService.ts
+      - services/contentPrewarmService.ts
+      - lib/aiPersonalHoroscope.ts
+      - lib/aiPersonalHoroscopeVoice.ts
+      - lib/aiPersonalHoroscopeGeneration.ts
+      - lib/personalForecastCache.ts
+      - pages/api/content/forecast/personal.ts
+      - pages/api/content/forecast/questions.ts
+      - pages/api/admin/v2/forecast-questions/**
+      - components/PersonalForecastFeed/**
+      - __tests__/ai-personal-horoscope-generation.test.ts
+      - __tests__/personal-horoscope-runtime-resilience.test.ts
+      - __tests__/personal-forecast-service.test.ts
+      - __tests__/personal-forecast-history-cache.test.ts
+      - __tests__/personal-forecast-prewarm.test.ts
+      - __tests__/personal-forecast-feed-v3.test.ts
+      - __tests__/personal-forecast-screen-layout.test.ts
+      - __tests__/home-content-matrix.test.ts
+      - __tests__/api-personal-forecast-questions.test.ts
+      - __tests__/api-admin-personal-forecast-questions.test.ts
+      - .github/workflows/simple-horoscope-refactor-check.yml
+
+jobs:
+  focused-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Focused tests
+        run: >-
+          npm test -- --runInBand --forceExit
+          __tests__/ai-personal-horoscope-generation.test.ts
+          __tests__/personal-horoscope-runtime-resilience.test.ts
+          __tests__/personal-forecast-service.test.ts
+          __tests__/personal-forecast-history-cache.test.ts
+          __tests__/personal-forecast-prewarm.test.ts
+          __tests__/personal-forecast-feed-v3.test.ts
+          __tests__/personal-forecast-screen-layout.test.ts
+          __tests__/home-content-matrix.test.ts
+          __tests__/api-personal-forecast-questions.test.ts
+          __tests__/api-admin-personal-forecast-questions.test.ts
