@@ -81,6 +81,7 @@ export function buildAiPersonalHoroscopePackage(input: {
   model: string;
   value: ValidatedHoroscope;
   attempts: 1 | 2;
+  validationStatus?: 'valid' | 'deterministic_fallback';
 }): AiPersonalHoroscopePackage {
   const readingFingerprint = buildAiPersonalHoroscopeSemanticFingerprint({
     version: 2,
@@ -185,7 +186,7 @@ export function buildAiPersonalHoroscopePackage(input: {
       semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       generationAttempts: input.attempts,
-      validationStatus: 'valid',
+      validationStatus: input.validationStatus || 'valid',
       generatedAt: new Date().toISOString(),
       status: 'ready',
       diagnosticCode: null,
