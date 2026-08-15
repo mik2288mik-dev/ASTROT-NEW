@@ -10,7 +10,7 @@ import {
   type PersonalForecastPeriod,
 } from './personalForecastContract';
 
-export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v1' as const;
+export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v2' as const;
 export const AI_PERSONAL_HOROSCOPE_EVIDENCE_ID = 'profile:ai-horoscope' as const;
 export const AI_PERSONAL_HOROSCOPE_CONTENT_MODE = AI_PERSONAL_HOROSCOPE_VERSION;
 export const AI_PERSONAL_HOROSCOPE_TIMEZONE = 'Europe/Moscow' as const;
@@ -28,6 +28,8 @@ export type AiPersonalHoroscopeRecentFragment = {
 };
 
 export type AiPersonalHoroscopeRecentReading = {
+  /** Optional for source compatibility with v1 fixtures; current packages always set it. */
+  period?: PersonalForecastPeriod;
   periodKey: string;
   fragments: AiPersonalHoroscopeRecentFragment[];
 };
@@ -194,5 +196,7 @@ export function personalHoroscopeReadingToRecent(
       semanticFingerprint: section?.semanticFingerprint || null,
     });
   });
-  return fragments.length ? { periodKey: forecast.periodKey, fragments } : null;
+  return fragments.length
+    ? { period: forecast.period, periodKey: forecast.periodKey, fragments }
+    : null;
 }
