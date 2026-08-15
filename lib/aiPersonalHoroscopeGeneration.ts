@@ -1,11 +1,16 @@
 import type { UserProfile } from '../types';
-import type { AiPersonalHoroscopePackage, AiPersonalHoroscopeRecentReading } from './aiPersonalHoroscope';
+import type {
+  AiPersonalHoroscopePackage,
+  AiPersonalHoroscopeRecentReading,
+} from './aiPersonalHoroscope';
 import type { AiPersonalHoroscopeDialogueMemory } from './aiPersonalHoroscopeMemory';
 import { buildAiPersonalHoroscopePackage } from './aiPersonalHoroscopePackage';
 import {
   AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA,
   AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME,
+  buildAiPersonalHoroscopeEditorialBrief,
   buildAiPersonalHoroscopePrompt,
+  getAiPersonalHoroscopeAsOfDate,
   getAiPersonalHoroscopeSystemPrompt,
   validateAiPersonalHoroscopePayload,
   type GeneratedHoroscopePayload,
@@ -18,7 +23,9 @@ import type {
 } from './personalForecastContract';
 
 export {
+  buildAiPersonalHoroscopeEditorialBrief,
   buildAiPersonalHoroscopePrompt,
+  getAiPersonalHoroscopeAsOfDate,
   getAiPersonalHoroscopeSystemPrompt,
 } from './aiPersonalHoroscopeVoice';
 
@@ -32,6 +39,12 @@ export type AiPersonalHoroscopeGenerationMetrics = {
   validationPassed: boolean;
 };
 
+function maxOutputTokens(period: PersonalForecastPeriod): number {
+  if (period === 'day') return 850;
+  if (period === 'week') return 1_050;
+  return 1_250;
+}
+
 export async function generateAiPersonalHoroscopePackage(input: {
   profile: UserProfile;
   /** Kept for source compatibility; Luna is always authoritative here. */
@@ -43,6 +56,14 @@ export async function generateAiPersonalHoroscopePackage(input: {
   onMetrics?: (metrics: AiPersonalHoroscopeGenerationMetrics) => void;
 }): Promise<AiPersonalHoroscopePackage> {
   const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
+  const asOfDate = getAiPersonalHoroscopeAsOfDate(input.window);
+  const editorialBrief = buildAiPersonalHoroscopeEditorialBrief({
+    language,
+    period: input.period,
+    window: input.window,
+    profile: input.profile,
+    asOfDate,
+  });
   let rejectedDraft: GeneratedHoroscopePayload | null = null;
   let repairErrors: string[] = [];
   let incompleteSeen = false;
@@ -57,12 +78,13 @@ export async function generateAiPersonalHoroscopePackage(input: {
           period: input.period,
           window: input.window,
           profile: input.profile,
+          asOfDate,
           recentForecasts: input.recentForecasts,
           conversationMemory: input.conversationMemory,
           rejectedDraft,
           repairErrors,
         }),
-        maxOutputTokens: input.period === 'day' ? 1_100 : 1_500,
+        maxOutputTokens: maxOutputTokens(input.period),
         schemaName: AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME,
         schema: AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA,
       });
@@ -85,6 +107,10 @@ export async function generateAiPersonalHoroscopePackage(input: {
       const validated = validateAiPersonalHoroscopePayload(parsed, {
         language,
         period: input.period,
+        window: input.window,
+        profile: input.profile,
+        asOfDate,
+        requiredPrimaryDomain: editorialBrief.primaryDomain,
         recentForecasts: input.recentForecasts,
       });
       input.onMetrics?.({
