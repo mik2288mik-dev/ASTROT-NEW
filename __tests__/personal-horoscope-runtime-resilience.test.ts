@@ -6,9 +6,11 @@ jest.mock('../services/personalForecastService', () => ({
   loadPersonalForecast: jest.fn(),
 }));
 
+import fs from 'fs';
+import path from 'path';
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import { generateAiPersonalHoroscopePackage } from '../lib/aiPersonalHoroscopeGeneration';
-import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
+import { resolveAiPersonalHoroscopeWindow } from '../lib/aiPersonalHoroscope';
 import { loadPersonalForecast } from '../services/personalForecastService';
 import {
   prewarmUserContent,
@@ -17,6 +19,7 @@ import {
 
 const mockedLuna = createLunaStructuredResponse as jest.Mock;
 const mockedLoadPersonalForecast = loadPersonalForecast as jest.Mock;
+const ROOT = path.resolve(__dirname, '..');
 
 const profile = {
   id: '42',
@@ -32,29 +35,17 @@ const profile = {
   theme: 'light' as const,
 };
 
-const window = resolvePersonalForecastWindow('day', '2026-08-14', 'Europe/Moscow');
+const window = resolveAiPersonalHoroscopeWindow('day', '2026-08-15', 'Europe/Moscow');
 
-function softEditorialMissPayload() {
+function payload() {
   return {
-    opening: 'Михаил, сегодня один уверенный тон попробует выдать себя за правду. Не покупайся.',
-    forecast: 'Один разговор сегодня быстро станет громче своего смысла. Человек напротив будет уверенно повторять одну мысль, будто громкость добавляет ей веса. Тебя потянет ответить тем же тоном и наконец поставить точку. Настоящий поворот появится, когда ты перестанешь спорить с подачей и спросишь о сути. После такого вопроса лишняя уверенность заметно сдуется, а решение станет гораздо проще.',
+    opening: 'Михаил, сегодня шум будет громче смысла. Не покупайся.',
+    forecast: 'Один разговор попробует занять больше места, чем заслуживает. Человек напротив будет повторять одну мысль с таким видом, будто громкость добавляет ей веса. Тебя потянет ответить тем же тоном, но это только растянет сцену. Спроси о сути и оставь пафос без зрителей. После этого решение окажется обычным и довольно простым.',
     advice: [
-      'Спроси, что человек хочет сказать без красивой подачи.',
+      'Спроси, что человек хочет сказать по существу.',
       'Не повышай голос вслед за собеседником.',
-      'Заканчивай разговор, если ответ снова пошёл по кругу.',
+      'Заканчивай разговор, если ответ снова идёт по кругу.',
     ],
-    memory: {
-      primary_domain: 'conversation',
-      main_idea_key: 'уверенный тон не равен правоте',
-      situation_key: 'разговор становится громче своего смысла',
-      turn_key: 'прямой вопрос возвращает разговор к сути',
-      irony_key: 'громкость пытается заменить аргумент',
-      advice_keys: [
-        'спросить о сути',
-        'не поднимать голос',
-        'закончить повторяющийся разговор',
-      ],
-    },
   };
 }
 
@@ -65,20 +56,16 @@ describe('personal horoscope runtime resilience', () => {
     resetPrewarmSessionForTests();
   });
 
-  it('returns a safe draft when only a brittle editorial marker misses twice', async () => {
+  it('retries an incomplete provider response without reintroducing a heavy fallback layer', async () => {
     mockedLuna
+      .mockRejectedValueOnce(new Error('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens'))
       .mockResolvedValueOnce({
-        content: JSON.stringify(softEditorialMissPayload()),
-        inputTokens: 500,
-        outputTokens: 420,
-      })
-      .mockResolvedValueOnce({
-        content: JSON.stringify(softEditorialMissPayload()),
+        content: JSON.stringify(payload()),
         inputTokens: 520,
         outputTokens: 430,
       });
 
-    const forecast = await generateAiPersonalHoroscopePackage({
+    const horoscope = await generateAiPersonalHoroscopePackage({
       profile,
       period: 'day',
       window,
@@ -86,12 +73,11 @@ describe('personal horoscope runtime resilience', () => {
 
     expect(mockedLuna).toHaveBeenCalledTimes(2);
     expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(2_000);
-    expect(forecast.meta.validationStatus).toBe('deterministic_fallback');
-    expect(forecast.overview.text).toContain('Михаил');
-    expect(forecast.sections).toHaveLength(4);
+    expect(horoscope.reading.opening).toContain('Михаил');
+    expect(horoscope.meta.generationAttempts).toBe(2);
   });
 
-  it('prewarms Today, Week and Month in order instead of racing them', async () => {
+  it('prewarms Today, Week and Month in order and needs no chartData', async () => {
     mockedLoadPersonalForecast.mockImplementation(async (input: {
       period: 'day' | 'week' | 'month';
       options?: { cacheOnly?: boolean };
@@ -101,13 +87,12 @@ describe('personal horoscope runtime resilience', () => {
         error.status = 404;
         throw error;
       }
-      return { forecast: { period: input.period } };
+      return { horoscope: { period: input.period } };
     });
 
     await prewarmUserContent({
       userId: '42',
       profile,
-      chartData: {} as never,
       isPremium: true,
       mode: 'generate-missing',
     });
@@ -123,5 +108,13 @@ describe('personal horoscope runtime resilience', () => {
       ['month', 'probe'],
       ['month', 'generate'],
     ]);
+
+    const prewarmSource = fs.readFileSync(
+      path.join(ROOT, 'services/contentPrewarmService.ts'),
+      'utf8',
+    );
+    expect(prewarmSource).not.toContain('NatalChartData');
+    expect(prewarmSource).not.toContain('chartData:');
+    expect(prewarmSource).not.toContain('chartId?:');
   });
 });

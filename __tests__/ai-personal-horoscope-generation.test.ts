@@ -2,22 +2,21 @@ jest.mock('../lib/openaiResponses', () => ({
   createLunaStructuredResponse: jest.fn(),
 }));
 
+import fs from 'fs';
+import path from 'path';
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import {
-  AI_PERSONAL_HOROSCOPE_CONTENT_MODE,
-  isAiPersonalHoroscopePackage,
-  readAiPersonalHoroscopeReading,
-} from '../lib/aiPersonalHoroscope';
-import {
-  buildAiPersonalHoroscopeEditorialBrief,
+  AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA,
   buildAiPersonalHoroscopePrompt,
-  generateAiPersonalHoroscopePackage,
   getAiPersonalHoroscopeSystemPrompt,
-} from '../lib/aiPersonalHoroscopeGeneration';
-import { validateAiPersonalHoroscopePayload } from '../lib/aiPersonalHoroscopeVoice';
-import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
+  validateAiPersonalHoroscopePayload,
+} from '../lib/aiPersonalHoroscopeVoice';
+import { generateAiPersonalHoroscopePackage } from '../lib/aiPersonalHoroscopeGeneration';
+import { resolveAiPersonalHoroscopeWindow } from '../lib/aiPersonalHoroscope';
 
 const mockedLuna = createLunaStructuredResponse as jest.Mock;
+const ROOT = path.resolve(__dirname, '..');
+
 const profile = {
   id: '42',
   name: 'Михаил',
@@ -31,218 +30,151 @@ const profile = {
   isSetup: true,
   theme: 'light' as const,
 };
-const window = resolvePersonalForecastWindow('day', '2026-08-14', 'Europe/Moscow');
+const window = resolveAiPersonalHoroscopeWindow('day', '2026-08-14', 'Europe/Moscow');
 
 function validPayload() {
   return {
-    opening: 'Михаил, сегодня чужая уверенность будет звучать убедительнее фактов. Не спеши соглашаться.',
-    forecast: 'С утра один разговор может начаться вполне спокойно, а потом незаметно превратиться в спор о формулировках. Тебя потянет ответить быстрее и жёстче, чем нужно, просто чтобы прекратить эту возню. Чуть позже станет ясно, что собеседник защищает не мысль, а своё право не менять позицию. После этого продолжать доказательства уже бессмысленно. К вечеру выиграет тот вариант, где ты коротко обозначишь своё решение и перестанешь ждать чужого одобрения.',
+    opening: 'Михаил, сегодня всё будет пытаться выглядеть срочным. Не покупайся.',
+    forecast: 'Один вопрос действительно потребует внимания, остальные просто будут шуметь рядом. Люди могут торопить, но их скорость не обязана становиться твоей. Самая глупая ошибка сегодня — начать переделывать то, что уже нормально работает. Оставь рабочее рабочим и закончи одну вещь до конца. День станет проще, как только перестанешь добавлять ему лишние этажи.',
     advice: [
-      'Спроси один раз, что человек действительно хочет сказать.',
-      'Не объясняй свою позицию третий раз.',
-      'Заканчивай разговор, когда ответы уже начали повторяться.',
+      'Выбери одно дело и доведи его до конца.',
+      'Не объясняй очевидное третий раз.',
+      'Новое начинай только после закрытого старого.',
     ],
-    memory: {
-      primary_domain: 'conversation',
-      main_idea_key: 'не путать уверенный тон с правотой',
-      situation_key: 'разговор уходит в спор о формулировках',
-      turn_key: 'становится видно, что позицию защищают ради самой позиции',
-      irony_key: 'спор ради права не менять мнение',
-      advice_keys: [
-        'уточнить реальный смысл',
-        'не повторять позицию',
-        'закончить повторяющийся разговор',
-      ],
-    },
   };
 }
 
-function rejectedPlannerPayload() {
-  return {
-    opening: 'Михаил, сегодня день точной настройки, а не показательного героизма.',
-    forecast: 'С утра главная задача — выбрать одно важное дело и не распыляться. Потом люди принесут новые вводные и попросят видимый результат. В середине дня проверь цифры и назначь каждому обещанию конкретный срок. После этого наведи порядок в бытовых задачах. К вечеру закрой один старый пункт и не становись диспетчером чужого хаоса.',
-    advice: [
-      'До 10 августа пересмотри все текущие обещания.',
-      'Дважды проверь сумму и получателя.',
-      'Закрой один бытовой хвост.',
-    ],
-    memory: {
-      primary_domain: 'conversation',
-      main_idea_key: 'порядок в задачах',
-      situation_key: 'люди приносят новые вводные',
-      turn_key: 'закрытие старых пунктов',
-      irony_key: 'диспетчер чужого хаоса',
-      advice_keys: ['назначить сроки', 'проверить перевод', 'закрыть хвост'],
-    },
-  };
-}
-
-describe('AI-only personal horoscope generation', () => {
+describe('simple AI personal horoscope generation', () => {
   beforeEach(() => {
     mockedLuna.mockReset();
   });
 
-  it('sends Luna only profile, period, editorial brief, history and dialogue context', () => {
+  it('uses only profile, period, current date and compact anti-repeat memory', () => {
     const prompt = buildAiPersonalHoroscopePrompt({
       language: 'ru',
       period: 'day',
       window,
       profile,
-      asOfDate: '2026-08-14',
-      recentForecasts: [],
-      conversationMemory: [{
-        question: 'Как не сорваться на лишний спор?',
-        answer: 'Не отвечай сразу, если разговор уже ходит по кругу.',
-        answeredAt: '2026-08-13T10:00:00.000Z',
+      recentMemory: [{
+        period: 'week',
+        periodKey: '2026-W33',
+        themeKeywords: ['разговор', 'границы'],
+        adviceKeywords: ['ответ', 'пауза'],
       }],
     });
 
-    expect(prompt).toContain('personal_profile');
-    expect(prompt).toContain('birthDate');
-    expect(prompt).toContain('editorial_brief');
-    expect(prompt).toContain('"primary_domain": "conversation"');
-    expect(prompt).toContain('"as_of_date": "2026-08-14"');
-    expect(prompt).toContain('recent_forecasts');
-    expect(prompt).toContain('recent_dialogue');
+    expect(prompt).toContain('"name": "Михаил"');
+    expect(prompt).toContain('"birthDate": "1989-03-06"');
+    expect(prompt).toContain('"birthTime": "23:15"');
+    expect(prompt).toContain('"birthPlace": "Сергиев Посад"');
+    expect(prompt).toContain('"currentDate":');
+    expect(prompt).toContain('"themeKeywords"');
+    expect(prompt).toContain('"adviceKeywords"');
+    expect(prompt).not.toContain('editorial_brief');
+    expect(prompt).not.toContain('openingMode');
+    expect(prompt).not.toContain('arcMode');
+    expect(prompt).not.toContain('previous_attempt');
+    expect(prompt).not.toContain('conversationMemory');
     expect(prompt).not.toContain('chartData');
-    expect(prompt).not.toContain('chartId');
-    expect(prompt).not.toContain('aspects');
-    expect(prompt).not.toContain('houses');
     expect(prompt).not.toContain('transits');
   });
 
-  it('assigns Today, Week and Month different editorial domains on the same date', () => {
-    const asOfDate = '2026-08-14';
-    const day = buildAiPersonalHoroscopeEditorialBrief({
-      language: 'ru',
-      period: 'day',
-      window,
-      profile,
-      asOfDate,
-    });
-    const week = buildAiPersonalHoroscopeEditorialBrief({
-      language: 'ru',
-      period: 'week',
-      window: resolvePersonalForecastWindow('week', '2026-W33', 'Europe/Moscow'),
-      profile,
-      asOfDate,
-    });
-    const month = buildAiPersonalHoroscopeEditorialBrief({
-      language: 'ru',
-      period: 'month',
-      window: resolvePersonalForecastWindow('month', '2026-08', 'Europe/Moscow'),
-      profile,
-      asOfDate,
-    });
-
-    expect(new Set([
-      day.primaryDomain,
-      week.primaryDomain,
-      month.primaryDomain,
-    ]).size).toBe(3);
+  it('requires exactly the three visible JSON fields and no hidden memory', () => {
+    expect(AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA.required).toEqual([
+      'opening',
+      'forecast',
+      'advice',
+    ]);
+    expect(AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA.properties).not.toHaveProperty('memory');
   });
 
-  it('builds a valid Today package with a short opening, one forecast arc and three advices', async () => {
+  it('builds a direct package without PersonalForecastPackage sections or evidence', async () => {
     mockedLuna.mockResolvedValueOnce({
       content: JSON.stringify(validPayload()),
       inputTokens: 500,
-      outputTokens: 240,
+      outputTokens: 260,
     });
 
-    const forecast = await generateAiPersonalHoroscopePackage({
+    const horoscope = await generateAiPersonalHoroscopePackage({
       profile,
       period: 'day',
       window,
     });
 
-    expect(isAiPersonalHoroscopePackage(forecast)).toBe(true);
-    expect((forecast.meta as any).contentMode).toBe(AI_PERSONAL_HOROSCOPE_CONTENT_MODE);
-    expect(forecast.sections.map((section) => section.id)).toEqual([
-      'semantic:forecast',
-      'semantic:advice-1',
-      'semantic:advice-2',
-      'semantic:advice-3',
-    ]);
-    expect(readAiPersonalHoroscopeReading(forecast)).toEqual({
-      opening: validPayload().opening,
-      forecast: validPayload().forecast,
-      advice: validPayload().advice,
-    });
-    expect(forecast.overview.semanticFingerprint).toContain('"domain":"conversation"');
+    expect(horoscope.reading).toEqual(validPayload());
+    expect(horoscope).not.toHaveProperty('overview');
+    expect(horoscope).not.toHaveProperty('sections');
+    expect(horoscope).not.toHaveProperty('evidence');
+    expect(horoscope.continuity.themeKeywords.length).toBeGreaterThan(0);
+    expect(mockedLuna.mock.calls[0][0].schema).not.toHaveProperty('properties.memory');
   });
 
-  it('rejects the planner-like text shown in the screenshots and repairs it once', async () => {
+  it('retries with short error codes and never sends the rejected draft back', async () => {
+    const bad = {
+      ...validPayload(),
+      opening: 'Михаил, выдохни и отпусти ситуацию.',
+    };
     mockedLuna
       .mockResolvedValueOnce({
-        content: JSON.stringify(rejectedPlannerPayload()),
-        inputTokens: 450,
-        outputTokens: 210,
+        content: JSON.stringify(bad),
+        inputTokens: 400,
+        outputTokens: 200,
       })
       .mockResolvedValueOnce({
         content: JSON.stringify(validPayload()),
-        inputTokens: 520,
-        outputTokens: 230,
+        inputTokens: 430,
+        outputTokens: 220,
       });
 
-    const forecast = await generateAiPersonalHoroscopePackage({
+    const horoscope = await generateAiPersonalHoroscopePackage({
       profile,
       period: 'day',
       window,
     });
 
-    expect(mockedLuna).toHaveBeenCalledTimes(2);
-    expect(forecast.meta.generationAttempts).toBe(2);
-    expect(mockedLuna.mock.calls[1][0].input).toContain('generic planner phrase');
+    expect(horoscope.meta.generationAttempts).toBe(2);
+    const secondPrompt = mockedLuna.mock.calls[1][0].input as string;
+    expect(secondPrompt).toContain('empty_cliche');
+    expect(secondPrompt).not.toContain('выдохни и отпусти ситуацию');
   });
 
-  it('rejects explicit calendar deadlines inside a current horoscope', () => {
-    const candidate = validPayload();
-    candidate.advice[0] = 'До 10 августа реши, отвечать этому человеку или нет.';
-    const result = validateAiPersonalHoroscopePayload(candidate, {
-      language: 'ru',
-      period: 'day',
-      window,
-      profile,
-      asOfDate: '2026-08-14',
-      requiredPrimaryDomain: 'conversation',
-    });
+  it('keeps only basic bans and does not reject by word count or forced transitions', () => {
+    const compact = {
+      opening: 'Михаил, без цирка.',
+      forecast: 'Сегодня один разговор окажется проще, чем его пытаются подать. Скажи главное и не растягивай.',
+      advice: ['Ответь коротко.', 'Не спорь по кругу.', 'Закончи разговор вовремя.'],
+    };
+    expect(validateAiPersonalHoroscopePayload(compact, { language: 'ru' }).value).not.toBeNull();
 
-    expect(result.value).toBeNull();
-    expect(result.errors).toContain('explicit calendar date inside horoscope');
+    const voiceSource = fs.readFileSync(
+      path.join(ROOT, 'lib/aiPersonalHoroscopeVoice.ts'),
+      'utf8',
+    );
+    expect(voiceSource).not.toContain('buildAiPersonalHoroscopeEditorialBrief');
+    expect(voiceSource).not.toContain('TIME_SHIFT_PATTERNS');
+    expect(voiceSource).not.toContain('TOPIC_SIGNAL_GROUPS');
+    expect(voiceSource).not.toContain('MANAGER_WORD_PATTERN');
+    expect(voiceSource).not.toContain('minWords');
+    expect(voiceSource).not.toContain('minSentences');
   });
 
-  it('rejects advice copied from another active period', () => {
-    const candidate = validPayload();
-    const result = validateAiPersonalHoroscopePayload(candidate, {
-      language: 'ru',
-      period: 'day',
-      window,
-      profile,
-      asOfDate: '2026-08-14',
-      requiredPrimaryDomain: 'conversation',
-      recentForecasts: [{
-        period: 'week',
-        periodKey: '2026-W33',
-        fragments: [{
-          kind: 'advice',
-          text: candidate.advice[0],
-          semanticFingerprint: null,
-        }],
-      }],
-    });
-
-    expect(result.value).toBeNull();
-    expect(result.errors).toContain('advice repeats recent forecast');
-  });
-
-  it('defines the requested voice and explicitly rejects coaching and manager filler', () => {
+  it('keeps the requested direct voice and basic safety bans', () => {
     const prompt = getAiPersonalHoroscopeSystemPrompt('ru', 'day');
-    expect(prompt).toContain('дерзкий приятель');
-    expect(prompt).toContain('лёгким нахальством');
-    expect(prompt).toContain('Это гороскоп, а не коучинг');
-    expect(prompt).toContain('Главная задача — выбрать одно важное дело');
-    expect(prompt).toContain('Не оскорбляй');
-    expect(prompt).toContain('Никакой астрологии');
-    expect(prompt).toContain('дважды проверь сумму и получателя');
+    expect(prompt).toContain('Никто не назначает тебе тему');
+    expect(prompt).toContain('говорит правду в лицо');
+    expect(prompt).toContain('Михаил, день нормальный');
+    expect(prompt).toContain('Не натягивай шаблоны');
+
+    const astrology = validateAiPersonalHoroscopePayload({
+      ...validPayload(),
+      forecast: 'Меркурий сегодня всё решит за тебя.',
+    }, { language: 'ru' });
+    expect(astrology.errors).toContain('visible_astrology');
+
+    const insult = validateAiPersonalHoroscopePayload({
+      ...validPayload(),
+      opening: 'Михаил, не будь идиотом.',
+    }, { language: 'ru' });
+    expect(insult.errors).toContain('insult');
   });
 });

@@ -1,14 +1,14 @@
-import type { NatalChartData, UserProfile } from '../types';
+import type { UserProfile } from '../types';
 import {
   buildUserPrewarmPlan,
   type PrewarmPlanItem,
   type PrewarmTaskId,
 } from '../lib/contentPrewarm';
 import {
-  getPersonalForecastPeriodKey,
-  normalizeForecastTimezone,
-  type PersonalForecastPeriod,
-} from '../lib/personalForecastContract';
+  getAiPersonalHoroscopePeriodKey,
+  normalizeAiPersonalHoroscopeTimezone,
+  type AiPersonalHoroscopePeriod,
+} from '../lib/aiPersonalHoroscope';
 import {
   loadPersonalForecast,
   type PersonalForecastClientError,
@@ -18,11 +18,7 @@ export type PrewarmMode = 'cache-only' | 'generate-missing';
 
 export type PrewarmUserContentInput = {
   userId: string;
-  /** Legacy App input; never passed into personal horoscope generation. */
-  chartId?: number | null;
   profile: UserProfile;
-  /** Legacy App input; never passed into personal horoscope generation. */
-  chartData: NatalChartData;
   isPremium: boolean;
   dateKey?: string;
   mode?: PrewarmMode;
@@ -52,26 +48,26 @@ const GENERATE_MISSING_DEFAULT_BUDGET_MS = 120_000;
 const prewarmInFlight = new Map<string, Promise<PrewarmUserContentResult>>();
 
 type PrewarmExecutionInput = PrewarmUserContentInput & {
-  periodKeys: Record<PersonalForecastPeriod, string>;
+  periodKeys: Record<AiPersonalHoroscopePeriod, string>;
 };
 
-const PERIOD_BY_TASK_ID: Record<PrewarmTaskId, PersonalForecastPeriod> = {
+const PERIOD_BY_TASK_ID: Record<PrewarmTaskId, AiPersonalHoroscopePeriod> = {
   personal_forecast_day: 'day',
   personal_forecast_week: 'week',
   personal_forecast_month: 'month',
 };
 
-function personalForecastPeriodKeys(
+function personalHoroscopePeriodKeys(
   input: PrewarmUserContentInput,
-): Record<PersonalForecastPeriod, string> {
-  const timezone = normalizeForecastTimezone(
+): Record<AiPersonalHoroscopePeriod, string> {
+  const timezone = normalizeAiPersonalHoroscopeTimezone(
     input.profile.birthTimezone || 'Europe/Moscow',
   );
   const now = new Date();
   return {
-    day: getPersonalForecastPeriodKey('day', now, timezone),
-    week: getPersonalForecastPeriodKey('week', now, timezone),
-    month: getPersonalForecastPeriodKey('month', now, timezone),
+    day: getAiPersonalHoroscopePeriodKey('day', now, timezone),
+    week: getAiPersonalHoroscopePeriodKey('week', now, timezone),
+    month: getAiPersonalHoroscopePeriodKey('month', now, timezone),
   };
 }
 
@@ -118,9 +114,6 @@ async function runPlan(
   const cachedTaskIds: PrewarmTaskId[] = [];
   const mode = input.mode || 'cache-only';
 
-  // Today, Week and Month share one continuity history. Generate them in plan
-  // order instead of starting three competing requests at once. Today remains
-  // first, and every later period can see the text and advice already saved.
   for (const item of plan) {
     if (Date.now() >= deadline) {
       missingTaskIds.push(item.id);
@@ -158,10 +151,16 @@ async function runPlan(
   };
 }
 
-export async function prewarmUserContent(
-  input: PrewarmUserContentInput,
+/**
+ * Personal horoscope prewarm depends only on the saved user profile and access
+ * tier. The generic keeps older callers source-compatible even if their wider
+ * startup object still contains unrelated natal-chart fields; those fields are
+ * neither part of this contract nor read here.
+ */
+export async function prewarmUserContent<T extends PrewarmUserContentInput>(
+  input: T,
 ): Promise<PrewarmUserContentResult> {
-  const periodKeys = personalForecastPeriodKeys(input);
+  const periodKeys = personalHoroscopePeriodKeys(input);
   const mode = input.mode || 'cache-only';
   const scope = input.onlyTaskIds?.length
     ? [...input.onlyTaskIds].sort().join(',')

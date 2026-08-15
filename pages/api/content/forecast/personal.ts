@@ -5,7 +5,15 @@ import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { getPremiumEntitlementState } from '../../../../lib/contentArchitecture';
 import { generationInProgressPayload } from '../../../../lib/contentGenerationLock';
 import { db } from '../../../../lib/db';
-import { AI_PERSONAL_HOROSCOPE_TIMEZONE } from '../../../../lib/aiPersonalHoroscope';
+import {
+  AI_PERSONAL_HOROSCOPE_TIMEZONE,
+  getAiPersonalHoroscopePeriodKey,
+  isCurrentAiPersonalHoroscopePeriodKey,
+  normalizeAiPersonalHoroscopeTimezone,
+  sliceAiPersonalHoroscopeForAccess,
+  type AiPersonalHoroscopeAccessPayload,
+  type AiPersonalHoroscopePeriod,
+} from '../../../../lib/aiPersonalHoroscope';
 import {
   getAiPersonalHoroscopeGenerationDiagnosticCode,
 } from '../../../../lib/aiPersonalHoroscopeGeneration';
@@ -14,22 +22,13 @@ import {
   getCompatibleStalePersonalForecast,
   getCachedPersonalForecast,
 } from '../../../../lib/personalForecastCache';
-import {
-  createUnavailablePersonalForecast,
-  getPersonalForecastPeriodKey,
-  isCurrentPersonalForecastPeriodKey,
-  normalizeForecastTimezone,
-  slicePersonalForecastForAccess,
-  type PersonalForecastAccessPayload,
-  type PersonalForecastPeriod,
-} from '../../../../lib/personalForecastContract';
 
 export const config = { maxDuration: 180 };
 
-function readPeriod(req: NextApiRequest): PersonalForecastPeriod | null {
+function readPeriod(req: NextApiRequest): AiPersonalHoroscopePeriod | null {
   const raw = String(req.method === 'GET' ? req.query.period || '' : req.body?.period || '').trim();
-  return (['day', 'week', 'month'] as const).includes(raw as PersonalForecastPeriod)
-    ? raw as PersonalForecastPeriod
+  return (['day', 'week', 'month'] as const).includes(raw as AiPersonalHoroscopePeriod)
+    ? raw as AiPersonalHoroscopePeriod
     : null;
 }
 
@@ -39,7 +38,7 @@ function readPeriodKey(req: NextApiRequest): string {
 
 function readTimezone(req: NextApiRequest): string {
   const raw = String(req.method === 'GET' ? req.query.timezone || '' : req.body?.timezone || '').trim();
-  return normalizeForecastTimezone(raw || AI_PERSONAL_HOROSCOPE_TIMEZONE);
+  return normalizeAiPersonalHoroscopeTimezone(raw || AI_PERSONAL_HOROSCOPE_TIMEZONE);
 }
 
 function dateOnly(value: unknown): string {
@@ -83,15 +82,15 @@ function profileFromUser(
 }
 
 function responsePayload(
-  forecast: Parameters<typeof slicePersonalForecastForAccess>[0],
+  horoscope: Parameters<typeof sliceAiPersonalHoroscopeForAccess>[0],
   isPremium: boolean,
-  source: PersonalForecastAccessPayload['source'],
-): PersonalForecastAccessPayload {
-  const sliced = slicePersonalForecastForAccess(forecast, isPremium);
+  source: AiPersonalHoroscopeAccessPayload['source'],
+): AiPersonalHoroscopeAccessPayload {
+  const sliced = sliceAiPersonalHoroscopeForAccess(horoscope, isPremium);
   return {
-    forecast: sliced.forecast,
+    horoscope: sliced.horoscope,
     accessTier: isPremium ? 'premium' : 'free',
-    lockedSectionIds: sliced.lockedSectionIds,
+    lockedAdviceIndexes: sliced.lockedAdviceIndexes,
     periodLocked: sliced.periodLocked,
     source,
   };
@@ -111,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!user) {
       return res.status(404).json({
         error: 'Profile not found',
-        code: 'PERSONAL_FORECAST_PROFILE_NOT_FOUND',
+        code: 'PERSONAL_HOROSCOPE_PROFILE_NOT_FOUND',
       });
     }
     profile = profileFromUser(userId, user, auth);
@@ -127,21 +126,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!period) {
     return res.status(400).json({
       error: 'Bad request',
-      code: 'PERSONAL_FORECAST_PERIOD_INVALID',
+      code: 'PERSONAL_HOROSCOPE_PERIOD_INVALID',
     });
   }
 
   const timezone = readTimezone(req);
   const requestedPeriodKey = readPeriodKey(req);
   const periodKey = requestedPeriodKey
-    || getPersonalForecastPeriodKey(period, new Date(), timezone);
+    || getAiPersonalHoroscopePeriodKey(period, new Date(), timezone);
   if (
     requestedPeriodKey
-    && !isCurrentPersonalForecastPeriodKey(period, periodKey, timezone)
+    && !isCurrentAiPersonalHoroscopePeriodKey(period, periodKey, timezone)
   ) {
     return res.status(400).json({
-      error: 'Only the current personal forecast period can be requested',
-      code: 'PERSONAL_FORECAST_PERIOD_KEY_INVALID',
+      error: 'Only the current personal horoscope period can be requested',
+      code: 'PERSONAL_HOROSCOPE_PERIOD_KEY_INVALID',
     });
   }
 
@@ -158,12 +157,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return null;
     });
     if (cached) {
-      return res.status(200).json(responsePayload(cached.forecast, entitlement.isPremium, 'cache'));
+      return res.status(200).json(
+        responsePayload(cached.horoscope, entitlement.isPremium, 'cache'),
+      );
     }
 
     const stale = await getCompatibleStalePersonalForecast(cacheInput).catch((error) => {
       console.warn(
-        '[ai-personal-horoscope] compatible stale read failed:',
+        '[ai-personal-horoscope] compatible cache read failed:',
         error instanceof Error ? error.message : String(error),
       );
       return null;
@@ -177,35 +178,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           );
         });
       }
-      return res.status(200).json(responsePayload(
-        stale.forecast,
-        entitlement.isPremium,
-        'stale',
-      ));
+      return res.status(200).json(
+        responsePayload(stale.horoscope, entitlement.isPremium, 'stale'),
+      );
     }
 
     if (!entitlement.isPremium && period !== 'day') {
       return res.status(403).json({
         error: 'Premium required',
-        code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
+        code: 'PERSONAL_HOROSCOPE_PREMIUM_REQUIRED',
       });
     }
-    // PERSONAL_FORECAST_NOT_READY is represented by HTTP 204 for the cache-only GET.
+
     if (req.method === 'GET') return res.status(204).end();
 
     const generated = await ensurePersonalForecast(cacheInput);
     if (generated.status === 'in_progress') {
-      return res.status(202).json({
-        ...generationInProgressPayload(generated.retryAfterMs),
-        forecast: createUnavailablePersonalForecast(
-          period,
-          periodKey,
-          timezone,
-          profile.language === 'en' ? 'en' : 'ru',
-          'generating',
-          'PERSONAL_FORECAST_GENERATING',
-        ),
-      });
+      return res.status(202).json(generationInProgressPayload(generated.retryAfterMs));
     }
     return res.status(200).json(responsePayload(
       generated.value,

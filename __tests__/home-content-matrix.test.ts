@@ -60,7 +60,7 @@ describe('mvp home surface', () => {
     const service = read('services/personalForecastService.ts');
     expect(route).toContain('requireAppUser(req, { allowGuest: true })');
     expect(route).toContain('getPremiumEntitlementState');
-    expect(route).toContain('slicePersonalForecastForAccess');
+    expect(route).toContain('sliceAiPersonalHoroscopeForAccess');
     expect(route).not.toContain('ensureValidContext');
     expect(route).not.toContain('ctx.chartData');
     expect(service).toContain("'Content-Type': 'application/json'");

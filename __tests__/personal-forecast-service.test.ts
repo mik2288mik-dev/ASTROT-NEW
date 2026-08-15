@@ -3,7 +3,7 @@ jest.mock('../services/apiClient', () => ({
 }));
 
 import { apiFetch } from '../services/apiClient';
-import { slicePersonalForecastForAccess } from '../lib/personalForecastContract';
+import { sliceAiPersonalHoroscopeForAccess } from '../lib/aiPersonalHoroscope';
 import {
   clearPersonalForecastSessionCache,
   loadPersonalForecast,
@@ -42,14 +42,17 @@ const request = {
 };
 
 function responseFor(
-  forecast = aiPersonalHoroscopeFixture(),
+  horoscope = aiPersonalHoroscopeFixture(),
   accessTier: 'free' | 'premium' = 'premium',
 ) {
-  const sliced = slicePersonalForecastForAccess(forecast, accessTier === 'premium');
+  const sliced = sliceAiPersonalHoroscopeForAccess(
+    horoscope,
+    accessTier === 'premium',
+  );
   return new Response(JSON.stringify({
-    forecast: sliced.forecast,
+    horoscope: sliced.horoscope,
     accessTier,
-    lockedSectionIds: sliced.lockedSectionIds,
+    lockedAdviceIndexes: sliced.lockedAdviceIndexes,
     periodLocked: sliced.periodLocked,
     source: 'cache',
   }), {
@@ -58,7 +61,7 @@ function responseFor(
   });
 }
 
-describe('AI personal horoscope client cache', () => {
+describe('simple AI personal horoscope client cache', () => {
   beforeAll(() => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
@@ -78,9 +81,9 @@ describe('AI personal horoscope client cache', () => {
 
   it('never substitutes a daily horoscope for another active period', () => {
     const dailyResult = {
-      forecast: aiPersonalHoroscopeFixture(),
+      horoscope: aiPersonalHoroscopeFixture(),
       accessTier: 'premium' as const,
-      lockedSectionIds: [],
+      lockedAdviceIndexes: [],
       periodLocked: false,
       source: 'cache' as const,
     };
@@ -94,7 +97,7 @@ describe('AI personal horoscope client cache', () => {
     expect(selectActiveReadyPersonalForecast('month', periodStates)).toBeNull();
   });
 
-  it('uses the saved AI-only package on repeated opens without another request', async () => {
+  it('uses the saved simple package on repeated opens without another request', async () => {
     mockedApiFetch.mockResolvedValueOnce(responseFor());
     await loadPersonalForecast({ ...request, options: { cacheOnly: true } });
     mockedApiFetch.mockClear();
@@ -105,7 +108,7 @@ describe('AI personal horoscope client cache', () => {
     })).resolves.toMatchObject({ source: expect.stringMatching(/local|cache/) });
     expect(mockedApiFetch).not.toHaveBeenCalled();
     expect([...storage.keys()]).toEqual([
-      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v1:/),
+      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v3:/),
     ]);
   });
 
@@ -122,7 +125,7 @@ describe('AI personal horoscope client cache', () => {
     await expect(Promise.all([first, second])).resolves.toHaveLength(2);
   });
 
-  it('accepts the personalized locked weekly package for Free', async () => {
+  it('accepts the locked weekly package for Free', async () => {
     const freeProfile = { ...profile, isPremium: false };
     const weekly = weeklyAiPersonalHoroscopeFixture();
     mockedApiFetch.mockResolvedValueOnce(responseFor(weekly, 'free'));
@@ -135,15 +138,15 @@ describe('AI personal horoscope client cache', () => {
     })).resolves.toMatchObject({
       accessTier: 'free',
       periodLocked: true,
-      forecast: {
-        overview: { text: '' },
+      lockedAdviceIndexes: [0, 1, 2],
+      horoscope: {
+        reading: { opening: '', forecast: '', advice: [] },
       },
     });
   });
 
-  it('keeps the Free Today opening, forecast and one advice item', async () => {
+  it('keeps Free Today opening, forecast and one advice item', async () => {
     const freeProfile = { ...profile, isPremium: false };
-    const sliced = slicePersonalForecastForAccess(aiPersonalHoroscopeFixture(), false);
     mockedApiFetch.mockResolvedValueOnce(responseFor(aiPersonalHoroscopeFixture(), 'free'));
 
     await expect(loadPersonalForecast({
@@ -152,28 +155,25 @@ describe('AI personal horoscope client cache', () => {
       options: { cacheOnly: true },
     })).resolves.toMatchObject({
       periodLocked: false,
-      lockedSectionIds: sliced.lockedSectionIds,
-      forecast: {
-        overview: { text: expect.stringContaining('Михаил') },
-        sections: expect.arrayContaining([
-          expect.objectContaining({ id: 'semantic:forecast', text: expect.any(String) }),
-          expect.objectContaining({ id: 'semantic:advice-2', text: '' }),
-        ]),
+      lockedAdviceIndexes: [1, 2],
+      horoscope: {
+        reading: {
+          opening: expect.stringContaining('Михаил'),
+          forecast: expect.any(String),
+          advice: [expect.any(String)],
+        },
       },
     });
   });
 
-  it('rejects a legacy chart-based or malformed package', async () => {
+  it('rejects a malformed or legacy transport object', async () => {
     mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
-      forecast: {
+      horoscope: {
         ...aiPersonalHoroscopeFixture(),
-        meta: {
-          ...aiPersonalHoroscopeFixture().meta,
-          contentMode: 'legacy-natal-profile',
-        },
+        version: 'legacy-personal-forecast-package',
       },
       accessTier: 'premium',
-      lockedSectionIds: [],
+      lockedAdviceIndexes: [],
       periodLocked: false,
       source: 'cache',
     }), {
@@ -184,7 +184,7 @@ describe('AI personal horoscope client cache', () => {
     await expect(loadPersonalForecast({
       ...request,
       options: { cacheOnly: true },
-    })).rejects.toMatchObject({ code: 'PERSONAL_FORECAST_RESPONSE_INVALID' });
+    })).rejects.toMatchObject({ code: 'PERSONAL_HOROSCOPE_RESPONSE_INVALID' });
     expect(readLocalPersonalForecast(request)).toBeNull();
   });
 
@@ -202,11 +202,12 @@ describe('AI personal horoscope client cache', () => {
     await expect(loadPersonalForecast({
       ...request,
       options: { force: true },
-    })).resolves.toMatchObject({ forecast: { period: 'day' } });
+    })).resolves.toMatchObject({ horoscope: { period: 'day' } });
 
     expect(mockedApiFetch).toHaveBeenCalledTimes(2);
     expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
     expect(mockedApiFetch.mock.calls[1][1]?.body).not.toContain('chartId');
+    expect(mockedApiFetch.mock.calls[1][1]?.body).not.toContain('chartData');
   });
 
   it('does not turn an authorization failure into generation', async () => {
