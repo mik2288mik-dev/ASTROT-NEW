@@ -5,7 +5,7 @@ export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v3' as const
 export const AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.simple-voice.v1' as const;
 export const AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-simple-v1' as const;
 export const AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-no-calculation-v1' as const;
-export const AI_PERSONAL_HOROSCOPE_TIMEZONE = 'Europe/Moscow' as const;
+export const AI_PERSONAL_HOROSCOPE_TIMEZONE: string = 'Europe/Moscow';
 
 export type AiPersonalHoroscopePeriod = 'day' | 'week' | 'month';
 
@@ -100,6 +100,16 @@ export function buildAiPersonalHoroscopeProfileFingerprint(profile: UserProfile)
   ).toString(36);
 }
 
+export function normalizeAiPersonalHoroscopeTimezone(value?: string | null): string {
+  const candidate = String(value || '').trim() || AI_PERSONAL_HOROSCOPE_TIMEZONE;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(new Date());
+    return candidate;
+  } catch {
+    return AI_PERSONAL_HOROSCOPE_TIMEZONE;
+  }
+}
+
 export function buildAiPersonalHoroscopeCacheKey(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
@@ -164,16 +174,6 @@ function datePartsInTimezone(date: Date, timezone: string) {
   return { year: read('year'), month: read('month'), day: read('day') };
 }
 
-export function normalizeAiPersonalHoroscopeTimezone(value?: string | null): string {
-  const candidate = String(value || '').trim() || AI_PERSONAL_HOROSCOPE_TIMEZONE;
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(new Date());
-    return candidate;
-  } catch {
-    return AI_PERSONAL_HOROSCOPE_TIMEZONE;
-  }
-}
-
 function isoWeekFromDate(year: number, month: number, day: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
   const weekday = date.getUTCDay() || 7;
@@ -187,7 +187,7 @@ function isoWeekFromDate(year: number, month: number, day: number) {
 export function getAiPersonalHoroscopePeriodKey(
   period: AiPersonalHoroscopePeriod,
   date = new Date(),
-  timezone = AI_PERSONAL_HOROSCOPE_TIMEZONE,
+  timezone: string = AI_PERSONAL_HOROSCOPE_TIMEZONE,
 ): string {
   const safeTimezone = normalizeAiPersonalHoroscopeTimezone(timezone);
   const { year, month, day } = datePartsInTimezone(date, safeTimezone);
@@ -200,7 +200,7 @@ export function getAiPersonalHoroscopePeriodKey(
 export function isCurrentAiPersonalHoroscopePeriodKey(
   period: AiPersonalHoroscopePeriod,
   periodKey: string,
-  timezone = AI_PERSONAL_HOROSCOPE_TIMEZONE,
+  timezone: string = AI_PERSONAL_HOROSCOPE_TIMEZONE,
   now = new Date(),
 ): boolean {
   return periodKey === getAiPersonalHoroscopePeriodKey(period, now, timezone);
@@ -381,7 +381,7 @@ export function buildAiPersonalHoroscopeContinuity(
   };
 }
 
-function stringArray(value: unknown, maxItems: number, maxLength: number): value is string[] {
+function validStringArray(value: unknown, maxItems: number, maxLength: number): value is string[] {
   return Array.isArray(value)
     && value.length <= maxItems
     && value.every((item) => (
@@ -409,14 +409,13 @@ export function isAiPersonalHoroscopePackage(
     || typeof horoscope.timezone !== 'string'
     || horoscope.timezone !== normalizeAiPersonalHoroscopeTimezone(horoscope.timezone)
     || !horoscope.reading
-    || typeof horoscope.reading !== 'object'
     || typeof horoscope.reading.opening !== 'string'
     || typeof horoscope.reading.forecast !== 'string'
     || !Array.isArray(horoscope.reading.advice)
     || horoscope.reading.advice.some((item) => typeof item !== 'string')
     || !horoscope.continuity
-    || !stringArray(horoscope.continuity.themeKeywords, 12, 80)
-    || !stringArray(horoscope.continuity.adviceKeywords, 12, 80)
+    || !validStringArray(horoscope.continuity.themeKeywords, 12, 80)
+    || !validStringArray(horoscope.continuity.adviceKeywords, 12, 80)
     || !horoscope.meta
     || typeof horoscope.meta.model !== 'string'
     || !horoscope.meta.model.trim()
@@ -429,9 +428,7 @@ export function isAiPersonalHoroscopePackage(
     || !Number.isFinite(new Date(horoscope.meta.generatedAt).getTime())
   ) return false;
 
-  if (options.allowRedacted) {
-    return horoscope.reading.advice.length <= 3;
-  }
+  if (options.allowRedacted) return horoscope.reading.advice.length <= 3;
   return !!horoscope.reading.opening.trim()
     && !!horoscope.reading.forecast.trim()
     && horoscope.reading.advice.length === 3
