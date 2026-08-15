@@ -9,14 +9,14 @@ import React, {
 import { LoaderCircle, RefreshCw } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
-import { buildAiPersonalHoroscopeProfileFingerprint } from '../lib/aiPersonalHoroscope';
 import {
-  formatPersonalForecastDateLabel,
-  getPersonalForecastPeriodKey,
-  normalizeForecastTimezone,
-  resolvePersonalForecastWindow,
-  type PersonalForecastPeriod,
-} from '../lib/personalForecastContract';
+  buildAiPersonalHoroscopeProfileFingerprint,
+  formatAiPersonalHoroscopeDateLabel,
+  getAiPersonalHoroscopePeriodKey,
+  normalizeAiPersonalHoroscopeTimezone,
+  resolveAiPersonalHoroscopeWindow,
+  type AiPersonalHoroscopePeriod,
+} from '../lib/aiPersonalHoroscope';
 import {
   loadPersonalForecast,
   readLocalPersonalForecast,
@@ -24,9 +24,12 @@ import {
   type PersonalForecastClientError,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
+import { prewarmUserContent } from '../services/contentPrewarmService';
 import { AiPersonalHoroscopeReading } from '../components/PersonalForecastFeed/AiPersonalHoroscopeReading';
 import { resolveRequestedPersonalForecastPeriod } from '../components/PersonalForecastFeed/periodSelection';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+
+type PersonalForecastPeriod = AiPersonalHoroscopePeriod;
 
 type DashboardProps = {
   profile: UserProfile;
@@ -94,18 +97,18 @@ function errorMessage(
   language: 'ru' | 'en',
 ): string {
   if (language === 'en') {
-    if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
-      return 'The text missed the quality bar. Retry this period only.';
+    if (code === 'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED') {
+      return 'The text missed a basic safety check. Retry this period only.';
     }
-    if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
+    if (code === 'PERSONAL_HOROSCOPE_WRITER_INCOMPLETE') {
       return 'The horoscope was incomplete. Retry this period only.';
     }
     return 'The horoscope did not load. Other application sections still work.';
   }
-  if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
-    return 'Текст не прошёл проверку качества. Повторим только этот период.';
+  if (code === 'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED') {
+    return 'Текст не прошёл базовую проверку. Повторим только этот период.';
   }
-  if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
+  if (code === 'PERSONAL_HOROSCOPE_WRITER_INCOMPLETE') {
     return 'Текст получился неполным. Повторим только этот период.';
   }
   return 'Гороскоп не загрузился. Остальные разделы приложения работают.';
@@ -123,7 +126,9 @@ export const Dashboard = memo<DashboardProps>(({
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const premium = hasActivePremium(profile);
   const activePeriod = resolveRequestedPersonalForecastPeriod(requestedPeriod);
-  const timezone = normalizeForecastTimezone(profile.birthTimezone || 'Europe/Moscow');
+  const timezone = normalizeAiPersonalHoroscopeTimezone(
+    profile.birthTimezone || 'Europe/Moscow',
+  );
   const profileFingerprint = buildAiPersonalHoroscopeProfileFingerprint(profile);
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const firstValueSeenRef = useRef<Set<string>>(new Set());
@@ -137,17 +142,21 @@ export const Dashboard = memo<DashboardProps>(({
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => {
     const now = new Date();
     return {
-      day: getPersonalForecastPeriodKey('day', now, timezone),
-      week: getPersonalForecastPeriodKey('week', now, timezone),
-      month: getPersonalForecastPeriodKey('month', now, timezone),
+      day: getAiPersonalHoroscopePeriodKey('day', now, timezone),
+      week: getAiPersonalHoroscopePeriodKey('week', now, timezone),
+      month: getAiPersonalHoroscopePeriodKey('month', now, timezone),
     };
   }, [currentDateKey, timezone]);
   const activeWindow = useMemo(
-    () => resolvePersonalForecastWindow(activePeriod, periodKeys[activePeriod], timezone),
+    () => resolveAiPersonalHoroscopeWindow(
+      activePeriod,
+      periodKeys[activePeriod],
+      timezone,
+    ),
     [activePeriod, periodKeys, timezone],
   );
   const activeDateLines = useMemo(
-    () => formatPersonalForecastDateLabel(activeWindow, language)
+    () => formatAiPersonalHoroscopeDateLabel(activeWindow, language)
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean),
@@ -237,7 +246,9 @@ export const Dashboard = memo<DashboardProps>(({
         [period]: {
           result: current[period]?.result || null,
           phase: current[period]?.result ? 'ready' : 'error',
-          errorCode: current[period]?.result ? null : error.code || 'PERSONAL_FORECAST_GENERATION_FAILED',
+          errorCode: current[period]?.result
+            ? null
+            : error.code || 'PERSONAL_HOROSCOPE_GENERATION_FAILED',
         },
       }));
     }).finally(() => {
@@ -254,33 +265,48 @@ export const Dashboard = memo<DashboardProps>(({
   }, [activePeriod, loadPeriod, productContextKey]);
 
   useEffect(() => {
+    if (!profile.id) return;
+    void prewarmUserContent({
+      userId: String(profile.id),
+      profile,
+      isPremium: premium,
+      mode: 'generate-missing',
+    }).catch((error: unknown) => {
+      console.warn(
+        '[Dashboard] Background personal horoscope prewarm failed:',
+        error instanceof Error ? error.message : String(error),
+      );
+    });
+  }, [productContextKey, premium, profile]);
+
+  useEffect(() => {
     scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activePeriod, scrollRef]);
 
   const state = periodStates[activePeriod];
   const result = selectActiveReadyPersonalForecast(activePeriod, periodStates);
-  const forecast = result?.forecast || null;
-  const lockedIds = useMemo(
-    () => new Set(result?.lockedSectionIds || []),
-    [result?.lockedSectionIds],
+  const horoscope = result?.horoscope || null;
+  const lockedAdviceIndexes = useMemo(
+    () => new Set(result?.lockedAdviceIndexes || []),
+    [result?.lockedAdviceIndexes],
   );
 
   useEffect(() => {
-    if (!forecast || activePeriod !== 'day') return;
-    const key = `${String(profile.id || 'guest')}:${forecast.periodKey}`;
+    if (!horoscope || activePeriod !== 'day') return;
+    const key = `${String(profile.id || 'guest')}:${horoscope.periodKey}`;
     if (firstValueSeenRef.current.has(key)) return;
     firstValueSeenRef.current.add(key);
     onPremiumAnalytics?.('first_value_viewed', {
       placement: 'today',
       featureKey: 'personal_daily',
-      periodKey: forecast.periodKey,
+      periodKey: horoscope.periodKey,
       contentMode: 'ai-personal-horoscope',
     });
-  }, [activePeriod, forecast, onPremiumAnalytics, profile.id]);
+  }, [activePeriod, horoscope, onPremiumAnalytics, profile.id]);
 
   useEffect(() => {
-    if (!forecast || !lockedIds.size || !canPromotePremium) return;
-    const key = `${String(profile.id || 'guest')}:${forecast.periodKey}:promo`;
+    if (!horoscope || !lockedAdviceIndexes.size || !canPromotePremium) return;
+    const key = `${String(profile.id || 'guest')}:${horoscope.periodKey}:promo`;
     if (promoSeenRef.current.has(key)) return;
     promoSeenRef.current.add(key);
     onPremiumAnalytics?.('premium_promo_impression', {
@@ -290,9 +316,9 @@ export const Dashboard = memo<DashboardProps>(({
         : activePeriod === 'week'
           ? 'personal_weekly'
           : 'personal_monthly',
-      periodKey: forecast.periodKey,
+      periodKey: horoscope.periodKey,
     });
-  }, [activePeriod, canPromotePremium, forecast, lockedIds.size, onPremiumAnalytics, profile.id]);
+  }, [activePeriod, canPromotePremium, horoscope, lockedAdviceIndexes.size, onPremiumAnalytics, profile.id]);
 
   const requestPremium = useCallback(() => {
     if (activePeriod !== 'day') {
@@ -305,12 +331,12 @@ export const Dashboard = memo<DashboardProps>(({
       onPremiumAnalytics?.('premium_promo_clicked', {
         placement: 'today',
         featureKey: 'personal_daily_full',
-        periodKey: forecast?.periodKey || periodKeys.day,
+        periodKey: horoscope?.periodKey || periodKeys.day,
       });
     }
     void onRequestPremium?.('personal_forecast_feed', {
       period: activePeriod,
-      periodKey: forecast?.periodKey || periodKeys[activePeriod],
+      periodKey: horoscope?.periodKey || periodKeys[activePeriod],
       placement: activePeriod === 'day' ? 'today' : activePeriod,
       featureKey: activePeriod === 'day'
         ? 'personal_daily_full'
@@ -321,7 +347,7 @@ export const Dashboard = memo<DashboardProps>(({
       returnView: 'dashboard',
       returnScrollAnchor: 'personal-forecast-reading',
     });
-  }, [activePeriod, forecast?.periodKey, onPremiumAnalytics, onRequestPremium, periodKeys]);
+  }, [activePeriod, horoscope?.periodKey, onPremiumAnalytics, onRequestPremium, periodKeys]);
 
   return (
     <div
@@ -375,10 +401,10 @@ export const Dashboard = memo<DashboardProps>(({
             </button>
           ) : null}
         </section>
-      ) : forecast ? (
+      ) : horoscope ? (
         <AiPersonalHoroscopeReading
-          forecast={forecast}
-          lockedSectionIds={lockedIds}
+          horoscope={horoscope}
+          lockedAdviceIndexes={lockedAdviceIndexes}
           language={language}
           canPromotePremium={canPromotePremium}
           onRequestPremium={requestPremium}

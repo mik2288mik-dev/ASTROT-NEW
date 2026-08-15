@@ -9,11 +9,6 @@ const mockContentInterpretations = {
 
 jest.mock('../lib/db', () => ({
   db: { content_interpretations: mockContentInterpretations },
-  getPool: jest.fn(),
-}));
-
-jest.mock('../lib/appSettings', () => ({
-  getUnifiedContentModel: jest.fn(async () => 'gpt-5.6-luna'),
 }));
 
 jest.mock('../lib/contentGenerationLock', () => ({
@@ -34,16 +29,15 @@ jest.mock('../lib/aiPersonalHoroscopeGeneration', () => ({
   ),
 }));
 
-jest.mock('../lib/aiPersonalHoroscopeMemory', () => ({
-  loadAiPersonalHoroscopeDialogueMemory: jest.fn(async () => []),
-}));
-
+import {
+  AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
+  AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
+} from '../lib/aiPersonalHoroscope';
 import {
   buildAiPersonalHoroscopeGenerationLockKey,
   ensurePersonalForecast,
   getCompatibleStalePersonalForecast,
 } from '../lib/personalForecastCache';
-import { buildForecastLockedPreview } from '../lib/personalForecastContract';
 import {
   aiPersonalHoroscopeFixture,
   weeklyAiPersonalHoroscopeFixture,
@@ -62,7 +56,7 @@ const profile = {
   theme: 'light' as const,
 };
 
-describe('AI personal horoscope profile cache path', () => {
+describe('simple AI personal horoscope cache path', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockContentInterpretations.getByUser.mockResolvedValue(null);
@@ -78,86 +72,66 @@ describe('AI personal horoscope profile cache path', () => {
     expect(key).not.toContain(':monthly:');
   });
 
-  it('persists one user-level Luna horoscope without chart identity or calculations', async () => {
-    const forecast = aiPersonalHoroscopeFixture();
-    mockGenerateAiPersonalHoroscopePackage.mockResolvedValueOnce(forecast);
+  it('persists one user-level Luna horoscope without chart identity or PersonalForecastPackage', async () => {
+    const horoscope = aiPersonalHoroscopeFixture();
+    mockGenerateAiPersonalHoroscopePackage.mockResolvedValueOnce(horoscope);
 
     await expect(ensurePersonalForecast({
       profile,
       period: 'day',
       periodKey: '2026-07-26',
-    })).resolves.toMatchObject({ status: 'ready', value: forecast });
+    })).resolves.toMatchObject({ status: 'ready', value: horoscope });
 
     expect(mockGenerateAiPersonalHoroscopePackage).toHaveBeenCalledWith(expect.objectContaining({
       period: 'day',
-      model: 'gpt-5.6-luna',
       profile: expect.objectContaining({ id: '42' }),
+      recentMemory: expect.any(Array),
     }));
     const generationInput = mockGenerateAiPersonalHoroscopePackage.mock.calls[0][0];
     expect(generationInput).not.toHaveProperty('chartData');
     expect(generationInput).not.toHaveProperty('chartId');
+    expect(generationInput).not.toHaveProperty('conversationMemory');
+    expect(generationInput).not.toHaveProperty('recentForecasts');
     expect(mockContentInterpretations.upsertByUser).toHaveBeenCalledWith(
       '42',
-      expect.objectContaining({ content: forecast }),
+      expect.objectContaining({
+        content: horoscope,
+        promptVersion: AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
+        calculationVersion: AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
+      }),
     );
     expect(mockContentInterpretations.upsertByChart).not.toHaveBeenCalled();
     expect(mockContentInterpretations.getByChart).not.toHaveBeenCalled();
   });
 
-  it('passes recent AI horoscope text as anti-repeat context', async () => {
+  it('passes only compact keywords from previous horoscopes', async () => {
     const current = aiPersonalHoroscopeFixture();
-    const yesterdayBase = aiPersonalHoroscopeFixture();
-    const yesterdayOpening = 'Михаил, вчера планы шумели громче результата. Ты это уже видел.';
-    const yesterdayOverview = {
-      ...yesterdayBase.overview,
-      text: yesterdayOpening,
-      contentBlocks: yesterdayBase.overview.contentBlocks.map((block, index) => (
-        index === 0 ? { ...block, text: yesterdayOpening } : block
-      )),
-      semanticFingerprint: 'ai:yesterday:overview',
-      lockedPreview: buildForecastLockedPreview(
-        yesterdayOpening,
-        yesterdayBase.overview.premiumTeaser,
-      ),
-      explanationAnchors: yesterdayBase.overview.explanationAnchors.map((anchor, index) => (
-        index === 0 ? { ...anchor, conclusion: yesterdayOpening } : anchor
-      )),
-    };
-    const yesterday = {
-      ...yesterdayBase,
-      periodKey: '2026-07-25',
-      periodStart: '2026-07-25',
-      periodEnd: '2026-07-25',
-      overview: yesterdayOverview,
-    };
+    const previous = aiPersonalHoroscopeFixture();
     mockContentInterpretations.getLatestByUserVariant.mockResolvedValueOnce({
-      content: yesterday,
+      content: previous,
     });
     mockGenerateAiPersonalHoroscopePackage.mockResolvedValueOnce(current);
 
-    await expect(ensurePersonalForecast({
+    await ensurePersonalForecast({
       profile,
       period: 'day',
       periodKey: '2026-07-26',
-    })).resolves.toMatchObject({ status: 'ready', value: current });
+    });
 
-    expect(mockGenerateAiPersonalHoroscopePackage).toHaveBeenCalledWith(expect.objectContaining({
-      recentForecasts: [
-        expect.objectContaining({
-          period: 'day',
-          periodKey: '2026-07-25',
-          fragments: expect.arrayContaining([
-            expect.objectContaining({
-              kind: 'opening',
-              text: expect.stringContaining('планы шумели'),
-            }),
-          ]),
-        }),
-      ],
-    }));
+    const generationInput = mockGenerateAiPersonalHoroscopePackage.mock.calls[0][0];
+    expect(generationInput.recentMemory).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        period: 'day',
+        periodKey: '2026-07-26',
+        themeKeywords: expect.any(Array),
+        adviceKeywords: expect.any(Array),
+      }),
+    ]));
+    expect(JSON.stringify(generationInput.recentMemory)).not.toContain(previous.reading.forecast);
+    expect(JSON.stringify(generationInput.recentMemory)).not.toContain(previous.reading.advice[0]);
   });
 
-  it('passes another active period and its advice as anti-repeat context', async () => {
+  it('includes compact memory from another active period without its full prose', async () => {
     const current = aiPersonalHoroscopeFixture();
     const weekly = weeklyAiPersonalHoroscopeFixture();
     mockContentInterpretations.getLatestByUserVariant.mockImplementation(
@@ -167,42 +141,38 @@ describe('AI personal horoscope profile cache path', () => {
     );
     mockGenerateAiPersonalHoroscopePackage.mockResolvedValueOnce(current);
 
-    await expect(ensurePersonalForecast({
+    await ensurePersonalForecast({
       profile,
       period: 'day',
       periodKey: '2026-07-26',
-    })).resolves.toMatchObject({ status: 'ready', value: current });
+    });
 
-    expect(mockGenerateAiPersonalHoroscopePackage).toHaveBeenCalledWith(expect.objectContaining({
-      recentForecasts: expect.arrayContaining([
-        expect.objectContaining({
-          period: 'week',
-          periodKey: '2026-W30',
-          fragments: expect.arrayContaining([
-            expect.objectContaining({
-              kind: 'advice',
-              text: expect.stringContaining('Оставь три главных дела'),
-            }),
-          ]),
-        }),
-      ]),
-    }));
+    const generationInput = mockGenerateAiPersonalHoroscopePackage.mock.calls[0][0];
+    expect(generationInput.recentMemory).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        period: 'week',
+        periodKey: '2026-W30',
+        themeKeywords: weekly.continuity.themeKeywords,
+        adviceKeywords: weekly.continuity.adviceKeywords,
+      }),
+    ]));
+    expect(JSON.stringify(generationInput.recentMemory)).not.toContain(weekly.reading.forecast);
   });
 
-  it('never serves an old natal-profile product as compatible stale content', async () => {
-    const legacy = aiPersonalHoroscopeFixture();
+  it('never serves an old PersonalForecastPackage as compatible content', async () => {
+    const legacy = {
+      period: 'day',
+      periodKey: '2026-07-26',
+      overview: { text: 'legacy' },
+      sections: [],
+      meta: { promptVersion: AI_PERSONAL_HOROSCOPE_PROMPT_VERSION },
+    };
     mockContentInterpretations.getLatestByUserVariant.mockResolvedValueOnce({
       cacheKey: 'old-cache-key',
       inputHash: 'old-input-hash',
-      promptVersion: legacy.meta.promptVersion,
-      calculationVersion: legacy.meta.calculationVersion,
-      content: {
-        ...legacy,
-        meta: {
-          ...legacy.meta,
-          contentMode: 'legacy-natal-profile',
-        },
-      },
+      promptVersion: AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
+      calculationVersion: AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
+      content: legacy,
     });
 
     await expect(getCompatibleStalePersonalForecast({

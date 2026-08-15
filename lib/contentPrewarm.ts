@@ -1,5 +1,5 @@
 import type { ContentAccessTier, ContentSurface } from '../types';
-import type { PersonalForecastPeriod } from './personalForecastContract';
+import type { AiPersonalHoroscopePeriod } from './aiPersonalHoroscope';
 
 export type PrewarmPriority = 'high' | 'medium' | 'low';
 export type PrewarmTaskId =
@@ -7,7 +7,7 @@ export type PrewarmTaskId =
   | 'personal_forecast_week'
   | 'personal_forecast_month';
 
-export type PersonalForecastPrewarmKeys = Record<PersonalForecastPeriod, string>;
+export type PersonalForecastPrewarmKeys = Record<AiPersonalHoroscopePeriod, string>;
 
 export type PrewarmPlanItem = {
   id: PrewarmTaskId;
@@ -47,19 +47,19 @@ export function sortPrewarmPlan(plan: PrewarmPlanItem[]): PrewarmPlanItem[] {
 export function buildFreePrewarmPlan(
   periodKeys: PersonalForecastPrewarmKeys,
 ): PrewarmPlanItem[] {
-  return [
-    {
-      id: 'personal_forecast_day',
-      priority: 'high',
-      accessTier: 'free',
-      contentSurface: 'forecast',
-      contentVariant: 'daily',
-      cacheKey: periodKeys.day,
-    },
-  ];
+  return [{
+    id: 'personal_forecast_day',
+    priority: 'high',
+    accessTier: 'free',
+    contentSurface: 'forecast',
+    contentVariant: 'daily',
+    cacheKey: periodKeys.day,
+  }];
 }
 
-export function buildPremiumPrewarmPlan(periodKeys: PersonalForecastPrewarmKeys): PrewarmPlanItem[] {
+export function buildPremiumPrewarmPlan(
+  periodKeys: PersonalForecastPrewarmKeys,
+): PrewarmPlanItem[] {
   return [
     {
       id: 'personal_forecast_day',

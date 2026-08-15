@@ -8,12 +8,10 @@ import {
   resetPrewarmSessionForTests,
 } from '../services/contentPrewarmService';
 import { buildPersonalForecastPrewarmTargets } from '../lib/personalForecastPrewarm';
-import { chartFixture, personalForecastFixture } from './personal-forecast-fixture';
 
 const mockedLoad = loadPersonalForecast as jest.Mock;
 const input = {
   userId: '42',
-  chartId: 7,
   profile: {
     id: '42',
     name: 'Test',
@@ -26,21 +24,21 @@ const input = {
     isSetup: true,
     theme: 'light' as const,
   },
-  chartData: chartFixture,
   isPremium: true,
 };
 
-describe('personal forecast prewarm', () => {
+describe('personal horoscope prewarm', () => {
   beforeEach(() => {
     resetPrewarmSessionForTests();
     mockedLoad.mockReset();
   });
 
-  it('preloads day, week, and month packages before the reader needs a tab switch', async () => {
+  it('preloads day, week, and month before the reader needs a tab switch', async () => {
     mockedLoad.mockResolvedValue({
-      forecast: personalForecastFixture(),
+      horoscope: { period: 'day' },
       accessTier: 'premium',
-      lockedTopicKeys: [],
+      lockedAdviceIndexes: [],
+      periodLocked: false,
       source: 'cache',
     });
     const result = await prewarmUserContent({ ...input, mode: 'cache-only' });
@@ -55,12 +53,17 @@ describe('personal forecast prewarm', () => {
 
   it('preloads only Today for a Free user', async () => {
     mockedLoad.mockResolvedValue({
-      forecast: personalForecastFixture(),
+      horoscope: { period: 'day' },
       accessTier: 'free',
-      lockedTopicKeys: [],
+      lockedAdviceIndexes: [1, 2],
+      periodLocked: false,
       source: 'cache',
     });
-    const result = await prewarmUserContent({ ...input, isPremium: false, mode: 'cache-only' });
+    const result = await prewarmUserContent({
+      ...input,
+      isPremium: false,
+      mode: 'cache-only',
+    });
     expect(result.planSize).toBe(1);
     expect(mockedLoad).toHaveBeenCalledTimes(1);
     expect(mockedLoad).toHaveBeenCalledWith(expect.objectContaining({
@@ -78,9 +81,10 @@ describe('personal forecast prewarm', () => {
       }
       await gate;
       return {
-        forecast: personalForecastFixture(),
+        horoscope: { period: request.period },
         accessTier: 'premium',
-        lockedTopicKeys: [],
+        lockedAdviceIndexes: [],
+        periodLocked: false,
         source: 'generated',
       };
     });
@@ -90,6 +94,15 @@ describe('personal forecast prewarm', () => {
     release();
     await Promise.all([first, second]);
     expect(mockedLoad).toHaveBeenCalledTimes(6);
+  });
+
+  it('has no natal-chart dependency in its public input', async () => {
+    await expect(prewarmUserContent({
+      ...input,
+      mode: 'cache-only',
+    })).resolves.toBeDefined();
+    expect(input).not.toHaveProperty('chartData');
+    expect(input).not.toHaveProperty('chartId');
   });
 
   it('does not schedule server-side personal forecast generation', () => {

@@ -1,22 +1,19 @@
-import type { NatalChartData, UserProfile } from '../types';
+import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
-import { APP_VOICE_VERSION } from '../lib/appVoice';
 import {
+  AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
+  AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION,
+  AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
   AI_PERSONAL_HOROSCOPE_TIMEZONE,
   AI_PERSONAL_HOROSCOPE_VERSION,
   buildAiPersonalHoroscopeProfileFingerprint,
+  getAiPersonalHoroscopePeriodKey,
   isAiPersonalHoroscopePackage,
+  normalizeAiPersonalHoroscopeTimezone,
+  type AiPersonalHoroscopeAccessPayload,
+  type AiPersonalHoroscopePackage,
+  type AiPersonalHoroscopePeriod,
 } from '../lib/aiPersonalHoroscope';
-import {
-  PERSONAL_FORECAST_CALCULATION_VERSION,
-  PERSONAL_FORECAST_CONTRACT_VERSION,
-  PERSONAL_FORECAST_PROMPT_VERSION,
-  getPersonalForecastPeriodKey,
-  normalizeForecastTimezone,
-  type PersonalForecastAccessPayload,
-  type PersonalForecastPackage,
-  type PersonalForecastPeriod,
-} from '../lib/personalForecastContract';
 import { apiFetch } from './apiClient';
 import { getTelegramInitDataHeaders } from './sessionService';
 
@@ -27,9 +24,9 @@ type LoadOptions = {
 };
 
 export type PersonalForecastClientResult = {
-  forecast: PersonalForecastPackage;
+  horoscope: AiPersonalHoroscopePackage;
   accessTier: 'free' | 'premium';
-  lockedSectionIds: string[];
+  lockedAdviceIndexes: number[];
   periodLocked: boolean;
   source: 'local' | 'cache' | 'stale' | 'generated';
 };
@@ -45,16 +42,12 @@ type PersonalForecastPeriodResultState = {
 };
 
 type ResolvedPersonalHoroscopeRequest = {
-  period: PersonalForecastPeriod;
+  period: AiPersonalHoroscopePeriod;
   periodKey: string;
   timezone: string;
 };
 
-/**
- * Bumped deliberately: chart-based local packages must never survive the move
- * to the AI-only horoscope product.
- */
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v1';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v3';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 
@@ -64,7 +57,7 @@ function userId(profile: UserProfile): string {
 
 function contextKey(input: {
   profile: UserProfile;
-  period: PersonalForecastPeriod;
+  period: AiPersonalHoroscopePeriod;
   periodKey: string;
   timezone: string;
 }): string {
@@ -74,13 +67,12 @@ function contextKey(input: {
     buildAiPersonalHoroscopeProfileFingerprint(input.profile),
     input.period,
     input.periodKey,
-    normalizeForecastTimezone(input.timezone),
+    normalizeAiPersonalHoroscopeTimezone(input.timezone),
     input.profile.language === 'en' ? 'en' : 'ru',
     hasActivePremium(input.profile) ? 'premium' : 'free',
-    PERSONAL_FORECAST_CALCULATION_VERSION,
-    PERSONAL_FORECAST_CONTRACT_VERSION,
-    PERSONAL_FORECAST_PROMPT_VERSION,
-    APP_VOICE_VERSION,
+    AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
+    AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION,
+    AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
   ].join('|');
 }
 
@@ -93,98 +85,71 @@ function localStorageKey(key: string): string {
   return `${LOCAL_CACHE_PREFIX}:${(hash >>> 0).toString(36)}`;
 }
 
+function lockedIndexesValid(value: unknown): value is number[] {
+  return Array.isArray(value)
+    && value.every((index) => Number.isInteger(index) && index >= 0 && index <= 2)
+    && new Set(value).size === value.length;
+}
+
+function sameIndexes(left: number[], right: number[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 function isStoredResult(value: unknown): value is PersonalForecastClientResult {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const result = value as PersonalForecastClientResult;
-  const forecast = result.forecast;
   if (
-    !forecast
-    || typeof forecast !== 'object'
-    || !Array.isArray(forecast.sections)
-    || !forecast.overview
-    || typeof forecast.overview !== 'object'
-    || !Array.isArray(result.lockedSectionIds)
-    || result.lockedSectionIds.some((id) => typeof id !== 'string' || !id.trim())
-    || new Set(result.lockedSectionIds).size !== result.lockedSectionIds.length
-    || typeof result.periodLocked !== 'boolean'
+    !isAiPersonalHoroscopePackage(result.horoscope, { allowRedacted: true })
     || (result.accessTier !== 'free' && result.accessTier !== 'premium')
+    || typeof result.periodLocked !== 'boolean'
+    || !lockedIndexesValid(result.lockedAdviceIndexes)
     || !(['local', 'cache', 'stale', 'generated'] as const).includes(result.source)
-  ) {
-    return false;
+  ) return false;
+
+  if (result.accessTier === 'premium') {
+    return !result.periodLocked
+      && result.lockedAdviceIndexes.length === 0
+      && isAiPersonalHoroscopePackage(result.horoscope);
   }
 
-  const allSections = [forecast.overview, ...forecast.sections];
-  const allSectionIds = allSections.map((section) => section.id);
-  const allSectionIdSet = new Set(allSectionIds);
-  if (
-    allSectionIdSet.size !== allSectionIds.length
-    || result.lockedSectionIds.some((id) => !allSectionIdSet.has(id))
-  ) {
-    return false;
+  if (result.horoscope.period !== 'day') {
+    return result.periodLocked
+      && sameIndexes(result.lockedAdviceIndexes, [0, 1, 2])
+      && !result.horoscope.reading.opening
+      && !result.horoscope.reading.forecast
+      && result.horoscope.reading.advice.length === 0;
   }
 
-  const freeSelectionIds = forecast.meta?.freeSelection?.sectionIds;
-  if (!Array.isArray(freeSelectionIds)) return false;
-  const expectedPeriodLocked = result.accessTier === 'free' && forecast.period !== 'day';
-  if (result.periodLocked !== expectedPeriodLocked) return false;
-
-  const expectedOpenIds = result.accessTier === 'premium'
-    ? new Set(allSectionIds)
-    : expectedPeriodLocked
-      ? new Set<string>()
-      : new Set(['overview', ...freeSelectionIds]);
-  const expectedLockedIds = allSectionIds.filter((id) => !expectedOpenIds.has(id));
-  const lockedIds = new Set(result.lockedSectionIds);
-  if (
-    expectedLockedIds.length !== lockedIds.size
-    || expectedLockedIds.some((id) => !lockedIds.has(id))
-  ) {
-    return false;
-  }
-
-  for (const section of allSections) {
-    if (lockedIds.has(section.id)) {
-      if (
-        section.text.trim()
-        || !Array.isArray(section.explanationAnchors)
-        || section.explanationAnchors.length
-        || section.inlineAstroAccent
-      ) {
-        return false;
-      }
-    } else if (!section.text.trim()) {
-      return false;
-    }
-  }
-
-  return isAiPersonalHoroscopePackage(forecast, {
-    redactedSectionIds: result.lockedSectionIds,
-    promptVersion: result.source === 'stale'
-      ? forecast.meta.promptVersion
-      : undefined,
-  });
+  return !result.periodLocked
+    && sameIndexes(result.lockedAdviceIndexes, [1, 2])
+    && !!result.horoscope.reading.opening.trim()
+    && !!result.horoscope.reading.forecast.trim()
+    && result.horoscope.reading.advice.length === 1
+    && !!result.horoscope.reading.advice[0]?.trim();
 }
 
 function invalidResponseError(): PersonalForecastClientError {
   const error = new Error(
-    'Personal horoscope response does not match the AI-only contract',
+    'Personal horoscope response does not match the simple AI contract',
   ) as PersonalForecastClientError;
-  error.code = 'PERSONAL_FORECAST_RESPONSE_INVALID';
+  error.code = 'PERSONAL_HOROSCOPE_RESPONSE_INVALID';
   return error;
 }
 
 function parseAccessPayload(
   value: unknown,
   sourceOverride?: PersonalForecastClientResult['source'],
-  expected?: Pick<PersonalForecastPackage, 'period' | 'periodKey'>,
+  expected?: Pick<AiPersonalHoroscopePackage, 'period' | 'periodKey'>,
 ): PersonalForecastClientResult {
-  if (!value || typeof value !== 'object') throw invalidResponseError();
-  const payload = value as PersonalForecastAccessPayload;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw invalidResponseError();
+  }
+  const payload = value as AiPersonalHoroscopeAccessPayload;
   const source = payload.source || sourceOverride;
   const result: PersonalForecastClientResult = {
-    forecast: payload.forecast,
+    horoscope: payload.horoscope,
     accessTier: payload.accessTier,
-    lockedSectionIds: payload.lockedSectionIds,
+    lockedAdviceIndexes: payload.lockedAdviceIndexes,
     periodLocked: payload.periodLocked,
     source: source === 'cache' || source === 'stale' || source === 'generated'
       ? source
@@ -194,12 +159,10 @@ function parseAccessPayload(
   if (
     expected
     && (
-      result.forecast.period !== expected.period
-      || result.forecast.periodKey !== expected.periodKey
+      result.horoscope.period !== expected.period
+      || result.horoscope.periodKey !== expected.periodKey
     )
-  ) {
-    throw invalidResponseError();
-  }
+  ) throw invalidResponseError();
   return result;
 }
 
@@ -230,20 +193,19 @@ function writeStored(key: string, result: PersonalForecastClientResult): void {
   try {
     window.localStorage.setItem(localStorageKey(key), JSON.stringify(result));
   } catch {
-    // Storage quota failure must not break the horoscope screen.
+    // A storage quota failure must not break the horoscope screen.
   }
 }
 
-/** A tab may render only its own ready package. */
 export function selectActiveReadyPersonalForecast(
-  period: PersonalForecastPeriod,
-  states: Record<PersonalForecastPeriod, PersonalForecastPeriodResultState>,
+  period: AiPersonalHoroscopePeriod,
+  states: Record<AiPersonalHoroscopePeriod, PersonalForecastPeriodResultState>,
 ): PersonalForecastClientResult | null {
   const candidate = states[period]?.result;
   if (
     !candidate
-    || candidate.forecast.period !== period
-    || candidate.forecast.meta.status !== 'ready'
+    || candidate.horoscope.period !== period
+    || candidate.horoscope.meta.status !== 'ready'
   ) return null;
   return candidate;
 }
@@ -335,26 +297,23 @@ async function generate(input: ResolvedPersonalHoroscopeRequest & {
 
 function resolveRequest(input: {
   profile: UserProfile;
-  period: PersonalForecastPeriod;
+  period: AiPersonalHoroscopePeriod;
   periodKey?: string;
 }): ResolvedPersonalHoroscopeRequest {
-  const timezone = normalizeForecastTimezone(
+  const timezone = normalizeAiPersonalHoroscopeTimezone(
     input.profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
   );
   return {
     period: input.period,
     periodKey: input.periodKey
-      || getPersonalForecastPeriodKey(input.period, new Date(), timezone),
+      || getAiPersonalHoroscopePeriodKey(input.period, new Date(), timezone),
     timezone,
   };
 }
 
 export function readLocalPersonalForecast(input: {
   profile: UserProfile;
-  /** Legacy-compatible inputs are deliberately ignored. */
-  chartData?: NatalChartData | null;
-  chartId?: number | null;
-  period: PersonalForecastPeriod;
+  period: AiPersonalHoroscopePeriod;
   periodKey?: string;
 }): PersonalForecastClientResult | null {
   const resolved = resolveRequest(input);
@@ -363,10 +322,7 @@ export function readLocalPersonalForecast(input: {
 
 export async function loadPersonalForecast(input: {
   profile: UserProfile;
-  /** Legacy-compatible inputs are deliberately ignored. */
-  chartData?: NatalChartData | null;
-  chartId?: number | null;
-  period: PersonalForecastPeriod;
+  period: AiPersonalHoroscopePeriod;
   periodKey?: string;
   options?: LoadOptions;
 }): Promise<PersonalForecastClientResult> {
@@ -392,7 +348,7 @@ export async function loadPersonalForecast(input: {
     if (input.options?.cacheOnly) {
       const error = new Error('Personal horoscope is not cached') as PersonalForecastClientError;
       error.status = 404;
-      error.code = 'PERSONAL_FORECAST_NOT_READY';
+      error.code = 'PERSONAL_HOROSCOPE_NOT_READY';
       throw error;
     }
     const generated = await generate({

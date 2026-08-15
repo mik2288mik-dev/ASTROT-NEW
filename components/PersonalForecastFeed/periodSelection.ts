@@ -1,15 +1,15 @@
-import type { PersonalForecastPeriod } from '../../lib/personalForecastContract';
+import type { AiPersonalHoroscopePeriod } from '../../lib/aiPersonalHoroscope';
 
 export function resolveRequestedPersonalForecastPeriod(
-  requestedPeriod: PersonalForecastPeriod | undefined,
-): PersonalForecastPeriod {
+  requestedPeriod: AiPersonalHoroscopePeriod | undefined,
+): AiPersonalHoroscopePeriod {
   return requestedPeriod || 'day';
 }
 
 export function updatePersonalForecastPeriodBucket<T>(
-  current: Readonly<Record<PersonalForecastPeriod, T>>,
-  period: PersonalForecastPeriod,
+  current: Readonly<Record<AiPersonalHoroscopePeriod, T>>,
+  period: AiPersonalHoroscopePeriod,
   next: T,
-): Record<PersonalForecastPeriod, T> {
+): Record<AiPersonalHoroscopePeriod, T> {
   return { ...current, [period]: next };
 }
