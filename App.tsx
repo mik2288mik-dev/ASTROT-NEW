@@ -23,8 +23,6 @@ import {
     type AppSessionInvalidatedDetail,
 } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
-import { prewarmUserContent } from './services/contentPrewarmService';
-import { CACHE_ONLY_PREWARM_BUDGET_MS } from './lib/appStartupFlags';
 import { clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
 import {
     clearLocalHumanBaseReport,
@@ -37,7 +35,7 @@ import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
 import { LumiaSideDrawer } from './components/lumia-ui/LumiaSideDrawer';
-import type { PersonalForecastPeriod } from './lib/personalForecastContract';
+import type { AiPersonalHoroscopePeriod as PersonalForecastPeriod } from './lib/aiPersonalHoroscope';
 import {
     NATAL_PERMANENT_CONTRACT_VERSION,
     buildPermanentNatalChartFingerprint,
@@ -300,7 +298,6 @@ const App: React.FC = () => {
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
     const [currentDateKey, setCurrentDateKey] = useState(() => getMoscowTodayKey());
     const lastSessionPingRef = useRef(0);
-    const prewarmCompletedKeyRef = useRef<string | null>(null);
     const primaryChartSessionRef = useRef<{
         key: string;
         data: NatalChartData | null;
@@ -442,53 +439,6 @@ const App: React.FC = () => {
         return null;
     }, []);
 
-    const prepareUserContentDbFirst = useCallback(async (input: {
-        userId: string;
-        chartId: number | null;
-        profile: UserProfile;
-        chartData: NatalChartData;
-        isPremium: boolean;
-        dateKey: string;
-        progressStart?: number;
-        progressSpan?: number;
-    }) => {
-        const prewarmKey = `${input.userId}:${input.chartId ?? 'primary'}:${input.dateKey}:${input.isPremium ? 'premium' : 'free'}`;
-        const progressStart = input.progressStart ?? 68;
-        const progressSpan = input.progressSpan ?? 20;
-
-        const cacheResult = await prewarmUserContent({
-            userId: input.userId,
-            chartId: input.chartId,
-            profile: input.profile,
-            chartData: input.chartData,
-            isPremium: input.isPremium,
-            dateKey: input.dateKey,
-            mode: 'cache-only',
-            blockingBudgetMs: CACHE_ONLY_PREWARM_BUDGET_MS,
-            onProgress: (ratio) => setLoadingProgress(progressStart + Math.round(ratio * progressSpan)),
-        });
-
-        prewarmCompletedKeyRef.current = prewarmKey;
-        void prewarmUserContent({
-            userId: input.userId,
-            chartId: input.chartId,
-            profile: input.profile,
-            chartData: input.chartData,
-            isPremium: input.isPremium,
-            dateKey: input.dateKey,
-            mode: 'generate-missing',
-        }).catch((error: any) => {
-            console.warn('[App] Background personal forecast prewarm failed:', error?.message || error);
-        });
-        void prefetchBaseReportForChart(
-            input.profile,
-            input.chartId ?? undefined,
-            input.chartData,
-        ).catch((error: any) => {
-            console.warn('[App] Human base report cache prefetch failed:', error?.message || error);
-        });
-        return cacheResult;
-    }, [prefetchBaseReportForChart]);
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
         const key = getPrimaryChartLoadKey(targetProfile);
@@ -808,20 +758,6 @@ const App: React.FC = () => {
 
                 await Promise.all([chartRefresh, chartIdRefresh]);
 
-                void prepareUserContentDbFirst({
-                    userId: String(targetProfile.id),
-                    chartId,
-                    profile: targetProfile,
-                    chartData: chart,
-                    isPremium: hasActivePremium(targetProfile),
-                    dateKey: getMoscowTodayKey(),
-                })
-                    .catch((prewarmError: any) => {
-                        console.warn('[App] Startup DB-first content flow failed:', prewarmError?.message || prewarmError);
-                    })
-                    .finally(() => {
-                        logStartupMetric('startup_prewarm_done_ms', startupElapsedMs());
-                    });
             })();
         };
 
@@ -1028,7 +964,7 @@ const App: React.FC = () => {
             cancelled = true;
             clearSafety();
         };
-    }, [loadPrimaryChartOnce, prepareUserContentDbFirst, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus, startupRetryNonce]);
+    }, [loadPrimaryChartOnce, resetPrimaryChartState, resolveAuthoritativeAdminStatus, getFallbackAdminStatus, startupRetryNonce]);
 
     const handleOnboardingComplete = async (newProfile: UserProfile) => {
         if (onboardingCompletionRef.current) return;
@@ -1142,14 +1078,7 @@ const App: React.FC = () => {
                         setPrimaryChartId(primaryChartId);
                         writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
                     }
-                    return prepareUserContentDbFirst({
-                        userId: String(fullProfile.id),
-                        chartId: primaryChartId,
-                        profile: fullProfile,
-                        chartData: generatedChart,
-                        isPremium: hasActivePremium(fullProfile),
-                        dateKey: getMoscowTodayKey(),
-                    });
+                    return undefined;
                 })
                 .catch((prewarmError: any) => {
                     console.warn('[App] Onboarding background content flow failed:', prewarmError?.message || prewarmError);
@@ -1236,7 +1165,6 @@ const App: React.FC = () => {
         setProfile(null);
         resetPrimaryChartState();
         restoredRuStoreUserRef.current = null;
-        prewarmCompletedKeyRef.current = null;
         navigationHistoryRef.current = [];
         setStartupError(null);
         setLoadingMessage(undefined);
@@ -1287,7 +1215,6 @@ const App: React.FC = () => {
             clearPersonalForecastSessionCache();
             resetPrimaryChartState();
             restoredRuStoreUserRef.current = null;
-            prewarmCompletedKeyRef.current = null;
         }
         setAuthSessionMode(nextMode);
         setAuthSessionModeState(nextMode);
@@ -1738,23 +1665,11 @@ const App: React.FC = () => {
             setChartData(freshChart);
             setActiveChartId(undefined);
             setActiveChartSubject(null);
-            if (hasReadableNatalChart(freshChart)) {
-                void prepareUserContentDbFirst({
-                    userId: String(profile.id),
-                    chartId: freshPrimaryChartId,
-                    profile,
-                    chartData: freshChart,
-                    isPremium: hasActivePremium(profile),
-                    dateKey: getMoscowTodayKey(),
-                }).catch((error: any) => {
-                    console.warn('[App] Refreshed chart prewarm failed:', error?.message || error);
-                });
-            }
         } catch (error) {
             console.error('[App] Failed to refresh primary chart state:', error);
             // Keep the existing local/session chart on transient DB errors.
         }
-    }, [prefetchBaseReportForChart, prepareUserContentDbFirst, primaryChartId, profile]);
+    }, [prefetchBaseReportForChart, primaryChartId, profile]);
 
     const handleBack = useCallback(async () => {
         if (sideDrawerOpen) {
