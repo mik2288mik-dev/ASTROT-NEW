@@ -17,6 +17,7 @@ on:
       - pages/api/content/forecast/questions.ts
       - pages/api/admin/v2/forecast-questions/**
       - components/PersonalForecastFeed/**
+      - __tests__/ai-personal-horoscope-fixture.ts
       - __tests__/ai-personal-horoscope-generation.test.ts
       - __tests__/personal-horoscope-runtime-resilience.test.ts
       - __tests__/personal-forecast-service.test.ts
