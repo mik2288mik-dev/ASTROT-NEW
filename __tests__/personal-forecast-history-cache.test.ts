@@ -17,7 +17,6 @@ jest.mock('../lib/appSettings', () => ({
 }));
 
 jest.mock('../lib/contentGenerationLock', () => ({
-  buildContentGenerationLockKey: jest.fn(() => 'lock-ai-horoscope-v1'),
   withContentGenerationLock: jest.fn(async (input: {
     readCached: () => Promise<unknown>;
     generate: () => Promise<unknown>;
@@ -40,11 +39,15 @@ jest.mock('../lib/aiPersonalHoroscopeMemory', () => ({
 }));
 
 import {
+  buildAiPersonalHoroscopeGenerationLockKey,
   ensurePersonalForecast,
   getCompatibleStalePersonalForecast,
 } from '../lib/personalForecastCache';
 import { buildForecastLockedPreview } from '../lib/personalForecastContract';
-import { aiPersonalHoroscopeFixture } from './ai-personal-horoscope-fixture';
+import {
+  aiPersonalHoroscopeFixture,
+  weeklyAiPersonalHoroscopeFixture,
+} from './ai-personal-horoscope-fixture';
 
 const profile = {
   id: '42',
@@ -65,6 +68,14 @@ describe('AI personal horoscope profile cache path', () => {
     mockContentInterpretations.getByUser.mockResolvedValue(null);
     mockContentInterpretations.getLatestByUserVariant.mockResolvedValue(null);
     mockContentInterpretations.upsertByUser.mockResolvedValue(undefined);
+  });
+
+  it('uses one writer lock for Today Week and Month', () => {
+    const key = buildAiPersonalHoroscopeGenerationLockKey('42');
+    expect(key).toContain(':42:all-periods:');
+    expect(key).not.toContain(':daily:');
+    expect(key).not.toContain(':weekly:');
+    expect(key).not.toContain(':monthly:');
   });
 
   it('persists one user-level Luna horoscope without chart identity or calculations', async () => {
@@ -133,6 +144,7 @@ describe('AI personal horoscope profile cache path', () => {
     expect(mockGenerateAiPersonalHoroscopePackage).toHaveBeenCalledWith(expect.objectContaining({
       recentForecasts: [
         expect.objectContaining({
+          period: 'day',
           periodKey: '2026-07-25',
           fragments: expect.arrayContaining([
             expect.objectContaining({
@@ -142,6 +154,38 @@ describe('AI personal horoscope profile cache path', () => {
           ]),
         }),
       ],
+    }));
+  });
+
+  it('passes another active period and its advice as anti-repeat context', async () => {
+    const current = aiPersonalHoroscopeFixture();
+    const weekly = weeklyAiPersonalHoroscopeFixture();
+    mockContentInterpretations.getLatestByUserVariant.mockImplementation(
+      async (_userId, _tier, _surface, variant) => (
+        variant === 'weekly' ? { content: weekly } : null
+      ),
+    );
+    mockGenerateAiPersonalHoroscopePackage.mockResolvedValueOnce(current);
+
+    await expect(ensurePersonalForecast({
+      profile,
+      period: 'day',
+      periodKey: '2026-07-26',
+    })).resolves.toMatchObject({ status: 'ready', value: current });
+
+    expect(mockGenerateAiPersonalHoroscopePackage).toHaveBeenCalledWith(expect.objectContaining({
+      recentForecasts: expect.arrayContaining([
+        expect.objectContaining({
+          period: 'week',
+          periodKey: '2026-W30',
+          fragments: expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'advice',
+              text: expect.stringContaining('Оставь три главных дела'),
+            }),
+          ]),
+        }),
+      ]),
     }));
   });
 
