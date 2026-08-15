@@ -3,7 +3,6 @@ import { APP_VOICE_VERSION } from './appVoice';
 import {
   AI_PERSONAL_HOROSCOPE_CONTENT_MODE,
   AI_PERSONAL_HOROSCOPE_EVIDENCE_ID,
-  AI_PERSONAL_HOROSCOPE_VERSION,
   type AiPersonalHoroscopePackage,
 } from './aiPersonalHoroscope';
 import {
@@ -14,14 +13,16 @@ import {
   formatPersonalForecastDateLabel,
   getPersonalForecastPackageValidationError,
   selectTodayFreeSections,
-  stableHash,
   type ForecastContentBlock,
   type ForecastContentBlockRole,
   type ForecastSection,
   type PersonalForecastPeriod,
   type PersonalForecastWindow,
 } from './personalForecastContract';
-import type { ValidatedHoroscope } from './aiPersonalHoroscopeVoice';
+import {
+  buildAiPersonalHoroscopeSemanticFingerprint,
+  type ValidatedHoroscope,
+} from './aiPersonalHoroscopeVoice';
 
 function makeSection(input: {
   id: string;
@@ -30,6 +31,7 @@ function makeSection(input: {
   blocks: Array<{ role: ForecastContentBlockRole; text: string; atomId: string }>;
   importance: number;
   language: 'ru' | 'en';
+  semanticFingerprint: string;
 }): ForecastSection {
   const factId = AI_PERSONAL_HOROSCOPE_EVIDENCE_ID;
   const anchorId = `anchor:${input.id}`;
@@ -55,7 +57,7 @@ function makeSection(input: {
     text: sectionText,
     contentBlocks,
     semanticFactIds: [factId],
-    semanticFingerprint: `${AI_PERSONAL_HOROSCOPE_VERSION}:${input.id}:${stableHash(sectionText).toString(36)}`,
+    semanticFingerprint: input.semanticFingerprint,
     importance: input.importance,
     visualTag: input.kind === 'overview' ? 'ai-opening' : input.id.replace(/^semantic:/u, 'ai-'),
     visualCue: null,
@@ -80,6 +82,25 @@ export function buildAiPersonalHoroscopePackage(input: {
   value: ValidatedHoroscope;
   attempts: 1 | 2;
 }): AiPersonalHoroscopePackage {
+  const readingFingerprint = buildAiPersonalHoroscopeSemanticFingerprint({
+    version: 2,
+    kind: 'reading',
+    domain: input.value.memory.primaryDomain,
+    idea: input.value.memory.mainIdeaKey,
+    situation: input.value.memory.situationKey,
+    turn: input.value.memory.turnKey,
+    irony: input.value.memory.ironyKey,
+    adviceKeys: input.value.memory.adviceKeys,
+  });
+  const adviceFingerprints = input.value.memory.adviceKeys.map((adviceKey) => (
+    buildAiPersonalHoroscopeSemanticFingerprint({
+      version: 2,
+      kind: 'advice',
+      domain: input.value.memory.primaryDomain,
+      advice: adviceKey,
+    })
+  ));
+
   const overview = makeSection({
     id: 'overview',
     kind: 'overview',
@@ -97,6 +118,7 @@ export function buildAiPersonalHoroscopePackage(input: {
         ],
     importance: 100,
     language: input.language,
+    semanticFingerprint: readingFingerprint,
   });
 
   const sections = input.period === 'day'
@@ -108,6 +130,7 @@ export function buildAiPersonalHoroscopePackage(input: {
           blocks: [{ role: 'detail', text: input.value.forecast, atomId: 'ai_forecast' }],
           importance: 100,
           language: input.language,
+          semanticFingerprint: readingFingerprint,
         }),
         ...input.value.advice.map((advice, index) => makeSection({
           id: `semantic:advice-${index + 1}`,
@@ -116,6 +139,7 @@ export function buildAiPersonalHoroscopePackage(input: {
           blocks: [{ role: 'action', text: advice, atomId: `ai_advice_${index + 1}` }],
           importance: 72 - index,
           language: input.language,
+          semanticFingerprint: adviceFingerprints[index],
         })),
       ]
     : [];
