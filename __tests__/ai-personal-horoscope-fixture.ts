@@ -15,6 +15,9 @@ const profile = {
   birthTime: '12:00',
   birthPlace: 'Москва',
   language: 'ru' as const,
+  isSetup: true,
+  theme: 'light' as const,
+  isPremium: true,
 };
 
 function periodWindow(period: AiPersonalHoroscopePeriod) {
