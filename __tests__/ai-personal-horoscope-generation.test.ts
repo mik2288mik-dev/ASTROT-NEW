@@ -211,6 +211,30 @@ describe('AI-only personal horoscope generation', () => {
     expect(result.errors).toContain('explicit calendar date inside horoscope');
   });
 
+  it('rejects advice copied from another active period', () => {
+    const candidate = validPayload();
+    const result = validateAiPersonalHoroscopePayload(candidate, {
+      language: 'ru',
+      period: 'day',
+      window,
+      profile,
+      asOfDate: '2026-08-14',
+      requiredPrimaryDomain: 'conversation',
+      recentForecasts: [{
+        period: 'week',
+        periodKey: '2026-W33',
+        fragments: [{
+          kind: 'advice',
+          text: candidate.advice[0],
+          semanticFingerprint: null,
+        }],
+      }],
+    });
+
+    expect(result.value).toBeNull();
+    expect(result.errors).toContain('advice repeats recent forecast');
+  });
+
   it('defines the requested voice and explicitly rejects coaching and manager filler', () => {
     const prompt = getAiPersonalHoroscopeSystemPrompt('ru', 'day');
     expect(prompt).toContain('дерзкий приятель');
