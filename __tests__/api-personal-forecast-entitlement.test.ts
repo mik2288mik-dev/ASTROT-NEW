@@ -2,7 +2,6 @@ const mockRequireAppUser = jest.fn();
 const mockGetUser = jest.fn();
 const mockGetPremiumEntitlementState = jest.fn();
 const mockGetCachedPersonalForecast = jest.fn();
-const mockGetCompatibleStalePersonalForecast = jest.fn();
 const mockEnsurePersonalForecast = jest.fn();
 
 jest.mock('../lib/auth/appAuth', () => ({
@@ -22,8 +21,6 @@ jest.mock('../lib/contentArchitecture', () => ({
 jest.mock('../lib/personalForecastCache', () => ({
   getCachedPersonalForecast: (...args: unknown[]) =>
     mockGetCachedPersonalForecast(...args),
-  getCompatibleStalePersonalForecast: (...args: unknown[]) =>
-    mockGetCompatibleStalePersonalForecast(...args),
   ensurePersonalForecast: (...args: unknown[]) =>
     mockEnsurePersonalForecast(...args),
 }));
@@ -31,6 +28,7 @@ jest.mock('../lib/personalForecastCache', () => ({
 import type { NextApiRequest, NextApiResponse } from 'next';
 import {
   formatAiPersonalHoroscopeDateLabel,
+  getAiPersonalHoroscopeCurrentDate,
   getAiPersonalHoroscopePeriodKey,
   resolveAiPersonalHoroscopeWindow,
   type AiPersonalHoroscopePackage,
@@ -53,6 +51,7 @@ function currentHoroscope(period: AiPersonalHoroscopePeriod): AiPersonalHoroscop
   return {
     ...aiPersonalHoroscopeFixture(period),
     periodKey,
+    currentDate: getAiPersonalHoroscopeCurrentDate(window),
     periodStart: window.periodStart,
     periodEnd: window.periodEnd,
     dateLabel: formatAiPersonalHoroscopeDateLabel(window, 'ru'),
@@ -102,7 +101,6 @@ describe('personal horoscope API entitlement', () => {
       entitlement: null,
     });
     mockGetCachedPersonalForecast.mockResolvedValue(null);
-    mockGetCompatibleStalePersonalForecast.mockResolvedValue(null);
   });
 
   it.each(['week', 'month'] as const)(
@@ -187,41 +185,46 @@ describe('personal horoscope API entitlement', () => {
     },
   );
 
-  it('serves a compatible stale day immediately and refreshes it lazily', async () => {
-    const horoscope = currentHoroscope('day');
-    mockGetCompatibleStalePersonalForecast.mockResolvedValueOnce({ horoscope });
-    mockEnsurePersonalForecast.mockResolvedValueOnce({
-      status: 'ready', value: horoscope, fromCache: false,
-    });
-    const { res, status, json } = responseMock();
+  it('returns 204 on GET when the current date snapshot is not cached', async () => {
+    const { res, status, end } = responseMock();
     const req = {
       method: 'GET', query: { period: 'day' }, body: {}, headers: {},
     } as unknown as NextApiRequest;
 
     await handler(req, res);
 
-    expect(status).toHaveBeenCalledWith(200);
-    expect(json.mock.calls[0][0]).toMatchObject({ source: 'stale' });
-    expect(mockEnsurePersonalForecast).toHaveBeenCalledTimes(1);
+    expect(status).toHaveBeenCalledWith(204);
+    expect(end).toHaveBeenCalledTimes(1);
+    expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
   });
 
-  it('does not refresh a compatible stale premium period for Free', async () => {
-    mockGetCompatibleStalePersonalForecast.mockResolvedValueOnce({
-      horoscope: currentHoroscope('month'),
+  it('regenerate skips the server cache and forces one fresh Luna write', async () => {
+    const horoscope = currentHoroscope('day');
+    mockEnsurePersonalForecast.mockResolvedValueOnce({
+      status: 'ready',
+      value: horoscope,
+      fromCache: false,
     });
     const { res, status, json } = responseMock();
     const req = {
-      method: 'GET', query: { period: 'month' }, body: {}, headers: {},
+      method: 'POST',
+      query: {},
+      body: { period: 'day', regenerate: true },
+      headers: {},
     } as unknown as NextApiRequest;
 
     await handler(req, res);
 
+    expect(mockGetCachedPersonalForecast).not.toHaveBeenCalled();
+    expect(mockEnsurePersonalForecast).toHaveBeenCalledWith(
+      expect.objectContaining({ period: 'day' }),
+      { forceRegenerate: true },
+    );
     expect(status).toHaveBeenCalledWith(200);
     expect(json.mock.calls[0][0]).toMatchObject({
-      source: 'stale',
-      periodLocked: true,
+      source: 'generated',
+      horoscope: { period: 'day' },
     });
-    expect(mockEnsurePersonalForecast).not.toHaveBeenCalled();
   });
 
   it('generates on POST when the initial cache read is temporarily unavailable', async () => {
@@ -252,7 +255,10 @@ describe('personal horoscope API entitlement', () => {
     }
 
     expect(status).toHaveBeenCalledWith(200);
-    expect(mockEnsurePersonalForecast).toHaveBeenCalledTimes(1);
+    expect(mockEnsurePersonalForecast).toHaveBeenCalledWith(
+      expect.any(Object),
+      { forceRegenerate: false },
+    );
     expect(json.mock.calls[0][0]).toMatchObject({
       source: 'generated',
       horoscope: { reading: { opening: expect.any(String) } },
@@ -261,13 +267,13 @@ describe('personal horoscope API entitlement', () => {
     expect(JSON.stringify(mockEnsurePersonalForecast.mock.calls[0][0])).not.toContain('chartData');
   });
 
-  it('returns a safe diagnostic code when Luna fails the basic response checks', async () => {
+  it('returns a stable diagnostic code when the structured response is incomplete', async () => {
     mockGetPremiumEntitlementState.mockResolvedValueOnce({
       isPremium: true,
       entitlement: null,
     });
     mockEnsurePersonalForecast.mockRejectedValueOnce(new Error(
-      'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED:empty_cliche',
+      'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED:response_shape_invalid',
     ));
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const { res, status, json } = responseMock();

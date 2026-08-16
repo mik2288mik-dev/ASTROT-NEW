@@ -7,9 +7,11 @@ import {
   AI_PERSONAL_HOROSCOPE_TIMEZONE,
   AI_PERSONAL_HOROSCOPE_VERSION,
   buildAiPersonalHoroscopeProfileFingerprint,
+  getAiPersonalHoroscopeCurrentDate,
   getAiPersonalHoroscopePeriodKey,
   isAiPersonalHoroscopePackage,
   normalizeAiPersonalHoroscopeTimezone,
+  resolveAiPersonalHoroscopeWindow,
   type AiPersonalHoroscopeAccessPayload,
   type AiPersonalHoroscopePackage,
   type AiPersonalHoroscopePeriod,
@@ -28,7 +30,7 @@ export type PersonalForecastClientResult = {
   accessTier: 'free' | 'premium';
   lockedAdviceIndexes: number[];
   periodLocked: boolean;
-  source: 'local' | 'cache' | 'stale' | 'generated';
+  source: 'local' | 'cache' | 'generated';
 };
 
 export type PersonalForecastClientError = Error & {
@@ -44,10 +46,12 @@ type PersonalForecastPeriodResultState = {
 type ResolvedPersonalHoroscopeRequest = {
   period: AiPersonalHoroscopePeriod;
   periodKey: string;
+  currentDate: string;
   timezone: string;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v3';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v4';
+const ALL_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 
@@ -59,6 +63,7 @@ function contextKey(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
   periodKey: string;
+  currentDate: string;
   timezone: string;
 }): string {
   return [
@@ -67,6 +72,7 @@ function contextKey(input: {
     buildAiPersonalHoroscopeProfileFingerprint(input.profile),
     input.period,
     input.periodKey,
+    input.currentDate,
     normalizeAiPersonalHoroscopeTimezone(input.timezone),
     input.profile.language === 'en' ? 'en' : 'ru',
     hasActivePremium(input.profile) ? 'premium' : 'free',
@@ -103,7 +109,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
     || (result.accessTier !== 'free' && result.accessTier !== 'premium')
     || typeof result.periodLocked !== 'boolean'
     || !lockedIndexesValid(result.lockedAdviceIndexes)
-    || !(['local', 'cache', 'stale', 'generated'] as const).includes(result.source)
+    || !(['local', 'cache', 'generated'] as const).includes(result.source)
   ) return false;
 
   if (result.accessTier === 'premium') {
@@ -130,7 +136,7 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
 
 function invalidResponseError(): PersonalForecastClientError {
   const error = new Error(
-    'Personal horoscope response does not match the simple AI contract',
+    'Personal horoscope response does not match the direct AI contract',
   ) as PersonalForecastClientError;
   error.code = 'PERSONAL_HOROSCOPE_RESPONSE_INVALID';
   return error;
@@ -139,7 +145,7 @@ function invalidResponseError(): PersonalForecastClientError {
 function parseAccessPayload(
   value: unknown,
   sourceOverride?: PersonalForecastClientResult['source'],
-  expected?: Pick<AiPersonalHoroscopePackage, 'period' | 'periodKey'>,
+  expected?: Pick<AiPersonalHoroscopePackage, 'period' | 'periodKey' | 'currentDate'>,
 ): PersonalForecastClientResult {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw invalidResponseError();
@@ -151,9 +157,7 @@ function parseAccessPayload(
     accessTier: payload.accessTier,
     lockedAdviceIndexes: payload.lockedAdviceIndexes,
     periodLocked: payload.periodLocked,
-    source: source === 'cache' || source === 'stale' || source === 'generated'
-      ? source
-      : 'cache',
+    source: source === 'generated' ? 'generated' : 'cache',
   };
   if (!isStoredResult(result)) throw invalidResponseError();
   if (
@@ -161,6 +165,7 @@ function parseAccessPayload(
     && (
       result.horoscope.period !== expected.period
       || result.horoscope.periodKey !== expected.periodKey
+      || result.horoscope.currentDate !== expected.currentDate
     )
   ) throw invalidResponseError();
   return result;
@@ -186,8 +191,17 @@ function readStored(key: string): PersonalForecastClientResult | null {
   }
 }
 
+function removeStored(key: string): void {
+  memoryCache.delete(key);
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(localStorageKey(key));
+  } catch {
+    // Storage can be unavailable in restricted webviews.
+  }
+}
+
 function writeStored(key: string, result: PersonalForecastClientResult): void {
-  if (result.source === 'stale') return;
   memoryCache.set(key, result);
   if (typeof window === 'undefined') return;
   try {
@@ -243,7 +257,10 @@ async function fetchCached(
   return parseAccessPayload(payload, 'cache', input);
 }
 
-function generationRequest(input: ResolvedPersonalHoroscopeRequest) {
+function generationRequest(
+  input: ResolvedPersonalHoroscopeRequest,
+  regenerate: boolean,
+) {
   return apiFetch('/api/content/forecast/personal', {
     method: 'POST',
     headers: {
@@ -254,14 +271,16 @@ function generationRequest(input: ResolvedPersonalHoroscopeRequest) {
       period: input.period,
       periodKey: input.periodKey,
       timezone: input.timezone,
+      regenerate,
     }),
   });
 }
 
 async function generate(input: ResolvedPersonalHoroscopeRequest & {
   maxInProgressRetries: number;
+  regenerate: boolean;
 }): Promise<PersonalForecastClientResult> {
-  let response = await generationRequest(input);
+  let response = await generationRequest(input, input.regenerate);
   if (response.status !== 202) {
     if (!response.ok) throw await parseError(response);
     const payload = await response.json().catch(() => null);
@@ -275,7 +294,9 @@ async function generate(input: ResolvedPersonalHoroscopeRequest & {
   );
   for (let attempt = 0; attempt < input.maxInProgressRetries; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-    response = await generationRequest(input);
+    // Regeneration is requested only once. Polls use the ordinary path so they
+    // can return the freshly written cache instead of starting another rewrite.
+    response = await generationRequest(input, false);
     if (response.status === 202) {
       payload = await response.json().catch(() => ({}));
       retryAfterMs = Math.min(
@@ -303,10 +324,13 @@ function resolveRequest(input: {
   const timezone = normalizeAiPersonalHoroscopeTimezone(
     input.profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
   );
+  const periodKey = input.periodKey
+    || getAiPersonalHoroscopePeriodKey(input.period, new Date(), timezone);
+  const window = resolveAiPersonalHoroscopeWindow(input.period, periodKey, timezone);
   return {
     period: input.period,
-    periodKey: input.periodKey
-      || getAiPersonalHoroscopePeriodKey(input.period, new Date(), timezone),
+    periodKey,
+    currentDate: getAiPersonalHoroscopeCurrentDate(window),
     timezone,
   };
 }
@@ -328,22 +352,27 @@ export async function loadPersonalForecast(input: {
 }): Promise<PersonalForecastClientResult> {
   const resolved = resolveRequest(input);
   const key = contextKey({ profile: input.profile, ...resolved });
-  const local = input.options?.force ? null : readStored(key);
+  const force = input.options?.force === true;
+  if (force) removeStored(key);
+  const local = force ? null : readStored(key);
   if (local) return local;
 
-  const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : 'ensure'}`;
+  const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : force ? 'regenerate' : 'ensure'}`;
   const current = inFlight.get(inFlightKey);
   if (current) return current;
 
   const request = (async () => {
-    const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
-      const retryableCacheFailure = Number(error.status) >= 500;
-      if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
-      return null;
-    });
-    if (serverCached) {
-      writeStored(key, serverCached);
-      return serverCached;
+    const shouldReadServerCache = input.options?.cacheOnly === true || !force;
+    if (shouldReadServerCache) {
+      const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
+        const retryableCacheFailure = Number(error.status) >= 500;
+        if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
+        return null;
+      });
+      if (serverCached) {
+        writeStored(key, serverCached);
+        return serverCached;
+      }
     }
     if (input.options?.cacheOnly) {
       const error = new Error('Personal horoscope is not cached') as PersonalForecastClientError;
@@ -353,6 +382,7 @@ export async function loadPersonalForecast(input: {
     }
     const generated = await generate({
       ...resolved,
+      regenerate: force,
       maxInProgressRetries: Math.min(
         60,
         Math.max(0, input.options?.maxInProgressRetries ?? 60),
@@ -370,4 +400,15 @@ export async function loadPersonalForecast(input: {
 export function clearPersonalForecastSessionCache(): void {
   memoryCache.clear();
   inFlight.clear();
+  if (typeof window === 'undefined') return;
+  try {
+    const keys: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(ALL_LOCAL_CACHE_PREFIX)) keys.push(key);
+    }
+    keys.forEach((key) => window.localStorage.removeItem(key));
+  } catch {
+    // Storage can be unavailable in restricted webviews.
+  }
 }

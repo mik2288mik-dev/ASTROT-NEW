@@ -5,13 +5,12 @@ import {
   AI_PERSONAL_HOROSCOPE_TIMEZONE,
   buildAiPersonalHoroscopeCacheKey,
   buildAiPersonalHoroscopeInputHash,
-  getPreviousAiPersonalHoroscopePeriodKey,
+  getAiPersonalHoroscopeCurrentDate,
   isAiPersonalHoroscopePackage,
   normalizeAiPersonalHoroscopeTimezone,
   resolveAiPersonalHoroscopeWindow,
   type AiPersonalHoroscopePackage,
   type AiPersonalHoroscopePeriod,
-  type AiPersonalHoroscopeRecentMemory,
 } from './aiPersonalHoroscope';
 import { generateAiPersonalHoroscopePackage } from './aiPersonalHoroscopeGeneration';
 import {
@@ -29,18 +28,6 @@ const VARIANT_BY_PERIOD = {
   month: 'monthly',
 } as const;
 
-const ALL_VARIANTS = [
-  VARIANT_BY_PERIOD.day,
-  VARIANT_BY_PERIOD.week,
-  VARIANT_BY_PERIOD.month,
-] as const;
-
-const HISTORY_LIMIT_BY_PERIOD: Record<AiPersonalHoroscopePeriod, number> = {
-  day: 4,
-  week: 2,
-  month: 2,
-};
-
 export type PersonalForecastCacheContext = {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
@@ -56,10 +43,12 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
     input.timezone || input.profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
   );
   const window = resolveAiPersonalHoroscopeWindow(input.period, input.periodKey, timezone);
+  const currentDate = getAiPersonalHoroscopeCurrentDate(window);
   const common = {
     profile: input.profile,
     period: input.period,
     periodKey: input.periodKey,
+    currentDate,
     timezone: window.timezone,
     language,
     modelId: model,
@@ -68,6 +57,7 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
     profile: input.profile,
     userId: String(input.profile.id),
     common,
+    currentDate,
     model,
     window,
     cacheKey: buildAiPersonalHoroscopeCacheKey(common),
@@ -76,11 +66,18 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
   };
 }
 
-export function buildAiPersonalHoroscopeGenerationLockKey(userId: string): string {
+export function buildAiPersonalHoroscopeGenerationLockKey(input: {
+  userId: string;
+  period: AiPersonalHoroscopePeriod;
+  periodKey: string;
+  currentDate: string;
+}): string {
   return [
     'ai-personal-horoscope-generation',
-    String(userId).trim(),
-    'all-periods',
+    String(input.userId).trim(),
+    input.period,
+    input.periodKey,
+    input.currentDate,
     AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
   ].join(':');
 }
@@ -111,6 +108,7 @@ export async function getCachedPersonalForecast(
     || interpretation.calculationVersion !== AI_PERSONAL_HOROSCOPE_CACHE_VERSION
     || !isAiPersonalHoroscopePackage(interpretation.content)
     || interpretation.content.meta.model !== identity.model
+    || interpretation.content.currentDate !== identity.currentDate
   ) return null;
 
   return {
@@ -119,112 +117,6 @@ export async function getCachedPersonalForecast(
     cacheKey: identity.cacheKey,
     inputHash: identity.inputHash,
   };
-}
-
-export async function getCompatibleStalePersonalForecast(
-  input: PersonalForecastCacheContext,
-): Promise<{
-  horoscope: AiPersonalHoroscopePackage;
-  model: string;
-  cacheKey: string;
-  inputHash: string;
-} | null> {
-  const identity = await resolveCacheIdentity(input);
-  const existing = await db.content_interpretations.getLatestByUserVariant(
-    identity.userId,
-    CANONICAL_CACHE_TIER,
-    'forecast',
-    identity.contentVariant,
-  );
-  const interpretation = existing as ContentInterpretation<AiPersonalHoroscopePackage> | null;
-  const horoscope = interpretation?.content;
-  if (
-    !interpretation
-    || !horoscope
-    || interpretation.promptVersion !== AI_PERSONAL_HOROSCOPE_PROMPT_VERSION
-    || interpretation.calculationVersion !== AI_PERSONAL_HOROSCOPE_CACHE_VERSION
-    || interpretation.inputHash !== identity.inputHash
-    || !isAiPersonalHoroscopePackage(horoscope)
-    || horoscope.period !== input.period
-    || horoscope.periodKey !== input.periodKey
-    || horoscope.meta.model !== identity.model
-  ) return null;
-
-  return {
-    horoscope,
-    model: identity.model,
-    cacheKey: interpretation.cacheKey,
-    inputHash: identity.inputHash,
-  };
-}
-
-function recentMemoryFromUnknown(value: unknown): AiPersonalHoroscopeRecentMemory | null {
-  if (!isAiPersonalHoroscopePackage(value)) return null;
-  return {
-    period: value.period,
-    periodKey: value.periodKey,
-    themeKeywords: value.continuity.themeKeywords.slice(0, 8),
-    adviceKeywords: value.continuity.adviceKeywords.slice(0, 8),
-  };
-}
-
-export async function getRecentPersonalForecastMemory(
-  input: PersonalForecastCacheContext,
-): Promise<AiPersonalHoroscopeRecentMemory[]> {
-  const identity = await resolveCacheIdentity(input);
-  const memories: AiPersonalHoroscopeRecentMemory[] = [];
-  const seen = new Set<string>();
-  const add = (memory: AiPersonalHoroscopeRecentMemory | null) => {
-    if (!memory) return;
-    const key = JSON.stringify(memory);
-    if (seen.has(key)) return;
-    seen.add(key);
-    memories.push(memory);
-  };
-
-  for (const contentVariant of ALL_VARIANTS) {
-    try {
-      const latest = await db.content_interpretations.getLatestByUserVariant(
-        identity.userId,
-        CANONICAL_CACHE_TIER,
-        'forecast',
-        contentVariant,
-      );
-      add(recentMemoryFromUnknown(
-        (latest as ContentInterpretation<unknown> | null)?.content,
-      ));
-    } catch (error) {
-      console.warn(
-        `[ai-personal-horoscope] compact ${contentVariant} memory unavailable; continuing:`,
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }
-
-  let previousKey = input.periodKey;
-  for (let index = 0; index < HISTORY_LIMIT_BY_PERIOD[input.period]; index += 1) {
-    previousKey = getPreviousAiPersonalHoroscopePeriodKey(
-      input.period,
-      previousKey,
-      identity.window.timezone,
-    );
-    try {
-      const cached = await getCachedPersonalForecast({
-        profile: identity.profile,
-        period: input.period,
-        periodKey: previousKey,
-        timezone: identity.window.timezone,
-      }, { allowExpired: true });
-      add(cached ? recentMemoryFromUnknown(cached.horoscope) : null);
-    } catch (error) {
-      console.warn(
-        `[ai-personal-horoscope] compact history unavailable for ${previousKey}; continuing:`,
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }
-
-  return memories.slice(0, 8);
 }
 
 async function savePersonalForecast(
@@ -250,13 +142,21 @@ async function savePersonalForecast(
 
 export async function ensurePersonalForecast(
   input: PersonalForecastCacheContext,
+  options: { forceRegenerate?: boolean } = {},
 ): Promise<ContentGenerationLockResult<AiPersonalHoroscopePackage>> {
   const identity = await resolveCacheIdentity(input);
+  const forceRegenerate = options.forceRegenerate === true;
   return withContentGenerationLock<AiPersonalHoroscopePackage>({
-    lockKey: buildAiPersonalHoroscopeGenerationLockKey(identity.userId),
+    lockKey: buildAiPersonalHoroscopeGenerationLockKey({
+      userId: identity.userId,
+      period: input.period,
+      periodKey: input.periodKey,
+      currentDate: identity.currentDate,
+    }),
     operation: `ai-personal-horoscope-${input.period}`,
     allowLocalLockFallback: true,
     readCached: async () => {
+      if (forceRegenerate) return null;
       try {
         const cached = await getCachedPersonalForecast(input);
         return cached ? { value: cached.horoscope, source: 'cache' } : null;
@@ -269,18 +169,11 @@ export async function ensurePersonalForecast(
       }
     },
     generate: async () => {
-      const recentMemory = await getRecentPersonalForecastMemory(input).catch((error) => {
-        console.warn(
-          '[ai-personal-horoscope] compact memory unavailable; continuing:',
-          error instanceof Error ? error.message : String(error),
-        );
-        return [];
-      });
       const horoscope = await generateAiPersonalHoroscopePackage({
         profile: identity.profile,
         period: input.period,
         window: identity.window,
-        recentMemory,
+        currentDate: identity.currentDate,
       });
       if (!isAiPersonalHoroscopePackage(horoscope)) {
         throw new Error('PERSONAL_HOROSCOPE_PACKAGE_INVALID');

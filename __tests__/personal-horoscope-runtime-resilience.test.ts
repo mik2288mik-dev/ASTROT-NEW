@@ -2,23 +2,13 @@ jest.mock('../lib/openaiResponses', () => ({
   createLunaStructuredResponse: jest.fn(),
 }));
 
-jest.mock('../services/personalForecastService', () => ({
-  loadPersonalForecast: jest.fn(),
-}));
-
 import fs from 'fs';
 import path from 'path';
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
 import { generateAiPersonalHoroscopePackage } from '../lib/aiPersonalHoroscopeGeneration';
 import { resolveAiPersonalHoroscopeWindow } from '../lib/aiPersonalHoroscope';
-import { loadPersonalForecast } from '../services/personalForecastService';
-import {
-  prewarmUserContent,
-  resetPrewarmSessionForTests,
-} from '../services/contentPrewarmService';
 
 const mockedLuna = createLunaStructuredResponse as jest.Mock;
-const mockedLoadPersonalForecast = loadPersonalForecast as jest.Mock;
 const ROOT = path.resolve(__dirname, '..');
 
 const profile = {
@@ -39,12 +29,12 @@ const window = resolveAiPersonalHoroscopeWindow('day', '2026-08-15', 'Europe/Mos
 
 function payload() {
   return {
-    opening: 'Михаил, сегодня шум будет громче смысла. Не покупайся.',
-    forecast: 'Один разговор попробует занять больше места, чем заслуживает. Человек напротив будет повторять одну мысль с таким видом, будто громкость добавляет ей веса. Тебя потянет ответить тем же тоном, но это только растянет сцену. Спроси о сути и оставь пафос без зрителей. После этого решение окажется обычным и довольно простым.',
+    opening: 'Михаил, день сегодня щедрый на хорошие повороты. Не пропусти их из скромности.',
+    forecast: 'Общение будет складываться легко, и один разговор способен дать приятный результат без долгой подготовки. Хорошо пойдут дела, где нужен вкус, смелость и быстрая реакция. В личной теме станет теплее: искренность сегодня работает лучше сложных намёков. День поддерживает новые идеи и нормальные маленькие радости. Используй удачный момент, но не превращай его в очередной проект века.',
     advice: [
-      'Спроси, что человек хочет сказать по существу.',
-      'Не повышай голос вслед за собеседником.',
-      'Заканчивай разговор, если ответ снова идёт по кругу.',
+      'Скажи прямо, чего тебе хочется от этого дня.',
+      'Поддержи разговор, который приносит удовольствие.',
+      'Потрать часть времени на то, что давно радует.',
     ],
   };
 }
@@ -52,11 +42,9 @@ function payload() {
 describe('personal horoscope runtime resilience', () => {
   beforeEach(() => {
     mockedLuna.mockReset();
-    mockedLoadPersonalForecast.mockReset();
-    resetPrewarmSessionForTests();
   });
 
-  it('retries an incomplete provider response without reintroducing a heavy fallback layer', async () => {
+  it('retries an incomplete provider response without adding an editorial fallback layer', async () => {
     mockedLuna
       .mockRejectedValueOnce(new Error('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens'))
       .mockResolvedValueOnce({
@@ -75,46 +63,35 @@ describe('personal horoscope runtime resilience', () => {
     expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(2_000);
     expect(horoscope.reading.opening).toContain('Михаил');
     expect(horoscope.meta.generationAttempts).toBe(2);
+    expect(horoscope).not.toHaveProperty('continuity');
   });
 
-  it('prewarms Today, Week and Month in order and needs no chartData', async () => {
-    mockedLoadPersonalForecast.mockImplementation(async (input: {
-      period: 'day' | 'week' | 'month';
-      options?: { cacheOnly?: boolean };
-    }) => {
-      if (input.options?.cacheOnly) {
-        const error = new Error('not cached') as Error & { status?: number };
-        error.status = 404;
-        throw error;
-      }
-      return { horoscope: { period: input.period } };
+  it('accepts the first complete positive forecast exactly as Luna returned it', async () => {
+    mockedLuna.mockResolvedValueOnce({
+      content: JSON.stringify(payload()),
+      inputTokens: 480,
+      outputTokens: 360,
     });
 
-    await prewarmUserContent({
-      userId: '42',
+    const horoscope = await generateAiPersonalHoroscopePackage({
       profile,
-      isPremium: true,
-      mode: 'generate-missing',
+      period: 'day',
+      window,
     });
 
-    expect(mockedLoadPersonalForecast.mock.calls.map((call) => [
-      call[0].period,
-      call[0].options?.cacheOnly === true ? 'probe' : 'generate',
-    ])).toEqual([
-      ['day', 'probe'],
-      ['day', 'generate'],
-      ['week', 'probe'],
-      ['week', 'generate'],
-      ['month', 'probe'],
-      ['month', 'generate'],
-    ]);
+    expect(mockedLuna).toHaveBeenCalledTimes(1);
+    expect(horoscope.reading).toEqual(payload());
+    expect(horoscope.meta.generationAttempts).toBe(1);
+  });
 
-    const prewarmSource = fs.readFileSync(
-      path.join(ROOT, 'services/contentPrewarmService.ts'),
+  it('loads only the selected period and never prewarms Week or Month in the background', () => {
+    const dashboardSource = fs.readFileSync(
+      path.join(ROOT, 'views/Dashboard.tsx'),
       'utf8',
     );
-    expect(prewarmSource).not.toContain('NatalChartData');
-    expect(prewarmSource).not.toContain('chartData:');
-    expect(prewarmSource).not.toContain('chartId?:');
+    expect(dashboardSource).toContain('loadPeriod(activePeriod);');
+    expect(dashboardSource).not.toContain('prewarmUserContent');
+    expect(dashboardSource).not.toContain('contentPrewarmService');
+    expect(dashboardSource).not.toContain("mode: 'generate-missing'");
   });
 });

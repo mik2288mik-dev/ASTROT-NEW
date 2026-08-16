@@ -24,7 +24,6 @@ import {
   type PersonalForecastClientError,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
-import { prewarmUserContent } from '../services/contentPrewarmService';
 import { AiPersonalHoroscopeReading } from '../components/PersonalForecastFeed/AiPersonalHoroscopeReading';
 import { resolveRequestedPersonalForecastPeriod } from '../components/PersonalForecastFeed/periodSelection';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
@@ -98,7 +97,7 @@ function errorMessage(
 ): string {
   if (language === 'en') {
     if (code === 'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED') {
-      return 'The text missed a basic safety check. Retry this period only.';
+      return 'The structured answer was incomplete. Retry this period only.';
     }
     if (code === 'PERSONAL_HOROSCOPE_WRITER_INCOMPLETE') {
       return 'The horoscope was incomplete. Retry this period only.';
@@ -106,7 +105,7 @@ function errorMessage(
     return 'The horoscope did not load. Other application sections still work.';
   }
   if (code === 'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED') {
-    return 'Текст не прошёл базовую проверку. Повторим только этот период.';
+    return 'Структурированный ответ получился неполным. Повторим только этот период.';
   }
   if (code === 'PERSONAL_HOROSCOPE_WRITER_INCOMPLETE') {
     return 'Текст получился неполным. Повторим только этот период.';
@@ -263,21 +262,6 @@ export const Dashboard = memo<DashboardProps>(({
   useEffect(() => {
     loadPeriod(activePeriod);
   }, [activePeriod, loadPeriod, productContextKey]);
-
-  useEffect(() => {
-    if (!profile.id) return;
-    void prewarmUserContent({
-      userId: String(profile.id),
-      profile,
-      isPremium: premium,
-      mode: 'generate-missing',
-    }).catch((error: unknown) => {
-      console.warn(
-        '[Dashboard] Background personal horoscope prewarm failed:',
-        error instanceof Error ? error.message : String(error),
-      );
-    });
-  }, [productContextKey, premium, profile]);
 
   useEffect(() => {
     scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
