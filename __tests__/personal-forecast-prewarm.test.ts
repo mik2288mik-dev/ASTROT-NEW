@@ -5,39 +5,38 @@ import { buildPersonalForecastPrewarmTargets } from '../lib/personalForecastPrew
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-describe('personal horoscope on-demand generation', () => {
-  it('does not trigger client prewarm from Dashboard', () => {
+describe('personal horoscope startup generation', () => {
+  it('starts missing forecasts after the first foreground load without changing the visible Dashboard', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const service = read('services/personalForecastService.ts');
+
     expect(dashboard).toContain('loadPeriod(activePeriod);');
     expect(dashboard).not.toContain('prewarmUserContent');
-    expect(dashboard).not.toContain('contentPrewarmService');
-    expect(dashboard).not.toContain("mode: 'generate-missing'");
+    expect(service).toContain('scheduleStartupPrewarm');
+    expect(service).toContain('if (!input.options?.background) scheduleStartupPrewarm(input.profile);');
+    expect(service).toContain('background: true');
   });
 
-  it('does not schedule server-side personal horoscope generation', () => {
+  it('generates Today Week and Month for Premium and only Today for Free', () => {
+    const service = read('services/personalForecastService.ts');
+
+    expect(service).toContain("? ['day', 'week', 'month']");
+    expect(service).toContain(": ['day'];");
+    expect(service).toContain('for (const period of periods)');
+  });
+
+  it('does not recurse when the background request finishes', () => {
+    const service = read('services/personalForecastService.ts');
+
+    expect(service).toContain('background?: boolean;');
+    expect(service).toContain('if (!input.options?.background) scheduleStartupPrewarm(input.profile);');
+  });
+
+  it('keeps the unrelated server-side scheduler disabled for this product', () => {
     const ordinary = buildPersonalForecastPrewarmTargets(
       new Date('2026-07-15T09:00:00.000Z'),
       'Europe/Moscow',
     );
     expect(ordinary).toEqual([]);
-    const boundary = buildPersonalForecastPrewarmTargets(
-      new Date('2026-12-30T19:30:00.000Z'),
-      'Europe/Moscow',
-    );
-    expect(boundary).toEqual([]);
-  });
-
-  it('keeps the dormant prewarm utility outside the active personal horoscope path', () => {
-    const activePath = [
-      read('views/Dashboard.tsx'),
-      read('services/personalForecastService.ts'),
-      read('pages/api/content/forecast/personal.ts'),
-      read('lib/personalForecastCache.ts'),
-      read('lib/aiPersonalHoroscopeGeneration.ts'),
-    ].join('\n');
-    expect(activePath).not.toContain('prewarmUserContent');
-    expect(activePath).not.toContain('buildUserPrewarmPlan');
-    expect(activePath).not.toContain('personal_forecast_week');
-    expect(activePath).not.toContain('personal_forecast_month');
   });
 });
