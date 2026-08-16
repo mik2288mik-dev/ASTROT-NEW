@@ -173,6 +173,7 @@ export async function ensurePersonalForecast(
         profile: identity.profile,
         period: input.period,
         window: identity.window,
+        currentDate: identity.currentDate,
       });
       if (!isAiPersonalHoroscopePackage(horoscope)) {
         throw new Error('PERSONAL_HOROSCOPE_PACKAGE_INVALID');
