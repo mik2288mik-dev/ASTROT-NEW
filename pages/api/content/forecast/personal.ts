@@ -19,7 +19,6 @@ import {
 } from '../../../../lib/aiPersonalHoroscopeGeneration';
 import {
   ensurePersonalForecast,
-  getCompatibleStalePersonalForecast,
   getCachedPersonalForecast,
 } from '../../../../lib/personalForecastCache';
 
@@ -39,6 +38,10 @@ function readPeriodKey(req: NextApiRequest): string {
 function readTimezone(req: NextApiRequest): string {
   const raw = String(req.method === 'GET' ? req.query.timezone || '' : req.body?.timezone || '').trim();
   return normalizeAiPersonalHoroscopeTimezone(raw || AI_PERSONAL_HOROSCOPE_TIMEZONE);
+}
+
+function readRegenerate(req: NextApiRequest): boolean {
+  return req.method === 'POST' && req.body?.regenerate === true;
 }
 
 function dateOnly(value: unknown): string {
@@ -144,43 +147,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  const regenerate = readRegenerate(req);
   const cacheInput = { profile, period, periodKey, timezone };
 
   try {
     const entitlement = await getPremiumEntitlementState(userId);
-    const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
-      if (req.method === 'GET') throw error;
-      console.error(
-        '[ai-personal-horoscope] initial cache read failed; generating directly:',
-        error instanceof Error ? error.message : String(error),
-      );
-      return null;
-    });
-    if (cached) {
-      return res.status(200).json(
-        responsePayload(cached.horoscope, entitlement.isPremium, 'cache'),
-      );
-    }
 
-    const stale = await getCompatibleStalePersonalForecast(cacheInput).catch((error) => {
-      console.warn(
-        '[ai-personal-horoscope] compatible cache read failed:',
-        error instanceof Error ? error.message : String(error),
-      );
-      return null;
-    });
-    if (stale) {
-      if (entitlement.isPremium || period === 'day') {
-        void ensurePersonalForecast(cacheInput).catch((error) => {
-          console.error(
-            '[ai-personal-horoscope] lazy refresh failed:',
-            error instanceof Error ? error.message : String(error),
-          );
-        });
+    if (!regenerate) {
+      const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
+        if (req.method === 'GET') throw error;
+        console.error(
+          '[ai-personal-horoscope] initial cache read failed; generating directly:',
+          error instanceof Error ? error.message : String(error),
+        );
+        return null;
+      });
+      if (cached) {
+        return res.status(200).json(
+          responsePayload(cached.horoscope, entitlement.isPremium, 'cache'),
+        );
       }
-      return res.status(200).json(
-        responsePayload(stale.horoscope, entitlement.isPremium, 'stale'),
-      );
     }
 
     if (!entitlement.isPremium && period !== 'day') {
@@ -192,7 +178,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'GET') return res.status(204).end();
 
-    const generated = await ensurePersonalForecast(cacheInput);
+    const generated = await ensurePersonalForecast(cacheInput, {
+      forceRegenerate: regenerate,
+    });
     if (generated.status === 'in_progress') {
       return res.status(202).json(generationInProgressPayload(generated.retryAfterMs));
     }
@@ -207,6 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId,
       period,
       periodKey,
+      regenerate,
       diagnosticCode,
       name: error instanceof Error ? error.name : 'UnknownError',
       message: error instanceof Error ? error.message : String(error),
