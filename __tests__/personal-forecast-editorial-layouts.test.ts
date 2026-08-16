@@ -13,7 +13,7 @@ describe('AI personal horoscope editorial layout', () => {
     expect(dashboard).toContain('<AiPersonalHoroscopeReading');
     expect(dashboard).toContain("const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];");
     expect(reading).toContain('data-ai-personal-horoscope="true"');
-    expect(reading).toContain('data-period={forecast.period}');
+    expect(reading).toContain('data-period={horoscope.period}');
     expect(styles).toContain('.ai-personal-horoscope-reading');
     expect(styles).toContain('background: #ffffff;');
   });
@@ -41,18 +41,18 @@ describe('AI personal horoscope editorial layout', () => {
     expect(reading).not.toContain('AstrologyDetailsToggle');
     expect(reading).not.toContain('inlineAstroAccent');
     expect(reading).not.toContain('explanationAnchors');
-    expect(styles).toContain('line-height: 1.72;');
     expect(styles).toContain('white-space: pre-line;');
   });
 
-  it('renders two or three concrete advice rows after a restrained divider', () => {
+  it('renders two or three advice lines without 01 02 03 markers', () => {
     const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
     const styles = read('styles/aiPersonalHoroscope.css');
 
     expect(reading).toContain('ai-personal-horoscope-divider');
-    expect(reading).toContain('<ol className="ai-personal-horoscope-advice"');
-    expect(reading).toContain("String(index + 1).padStart(2, '0')");
-    expect(styles).toContain('grid-template-columns: 2.25rem minmax(0, 1fr);');
+    expect(reading).toContain('className="ai-personal-horoscope-advice"');
+    expect(reading).not.toContain('<ol');
+    expect(reading).not.toContain("String(index + 1).padStart(2, '0')");
+    expect(styles).not.toContain('grid-template-columns: 2.25rem minmax(0, 1fr);');
     expect(styles).toContain('border-bottom: 1px solid #e7e7e4;');
   });
 

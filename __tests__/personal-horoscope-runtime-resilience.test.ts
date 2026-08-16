@@ -29,12 +29,11 @@ const window = resolveAiPersonalHoroscopeWindow('day', '2026-08-15', 'Europe/Mos
 
 function payload() {
   return {
-    opening: 'Михаил, день сегодня щедрый на хорошие повороты. Не пропусти их из скромности.',
-    forecast: 'Общение будет складываться легко, и один разговор способен дать приятный результат без долгой подготовки. Хорошо пойдут дела, где нужен вкус, смелость и быстрая реакция. В личной теме станет теплее: искренность сегодня работает лучше сложных намёков. День поддерживает новые идеи и нормальные маленькие радости. Используй удачный момент, но не превращай его в очередной проект века.',
+    opening: 'Привет. Сегодня день проверит, умеешь ли ты пользоваться удачей без лишнего спектакля.',
+    forecast: 'Один разговор даст больше, чем ты от него ждёшь. Дела пойдут нормально, если не усложнять простое. В личной теме появится живой интерес. День получится удачным, но сам за тебя ничего не сделает.',
     advice: [
-      'Скажи прямо, чего тебе хочется от этого дня.',
-      'Поддержи разговор, который приносит удовольствие.',
-      'Потрать часть времени на то, что давно радует.',
+      'Ответь тому, с кем действительно хочется продолжить разговор.',
+      'Используй удачный момент сразу.',
     ],
   };
 }
@@ -50,7 +49,7 @@ describe('personal horoscope runtime resilience', () => {
       .mockResolvedValueOnce({
         content: JSON.stringify(payload()),
         inputTokens: 520,
-        outputTokens: 430,
+        outputTokens: 250,
       });
 
     const horoscope = await generateAiPersonalHoroscopePackage({
@@ -61,16 +60,15 @@ describe('personal horoscope runtime resilience', () => {
 
     expect(mockedLuna).toHaveBeenCalledTimes(2);
     expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(2_000);
-    expect(horoscope.reading.opening).toContain('Михаил');
     expect(horoscope.meta.generationAttempts).toBe(2);
     expect(horoscope).not.toHaveProperty('continuity');
   });
 
-  it('accepts the first complete positive forecast exactly as Luna returned it', async () => {
+  it('accepts the first complete answer exactly as Luna returned it', async () => {
     mockedLuna.mockResolvedValueOnce({
       content: JSON.stringify(payload()),
       inputTokens: 480,
-      outputTokens: 360,
+      outputTokens: 220,
     });
 
     const horoscope = await generateAiPersonalHoroscopePackage({
@@ -84,14 +82,14 @@ describe('personal horoscope runtime resilience', () => {
     expect(horoscope.meta.generationAttempts).toBe(1);
   });
 
-  it('loads only the selected period and never prewarms Week or Month in the background', () => {
-    const dashboardSource = fs.readFileSync(
-      path.join(ROOT, 'views/Dashboard.tsx'),
+  it('starts the remaining periods invisibly after the foreground forecast is ready', () => {
+    const serviceSource = fs.readFileSync(
+      path.join(ROOT, 'services/personalForecastService.ts'),
       'utf8',
     );
-    expect(dashboardSource).toContain('loadPeriod(activePeriod);');
-    expect(dashboardSource).not.toContain('prewarmUserContent');
-    expect(dashboardSource).not.toContain('contentPrewarmService');
-    expect(dashboardSource).not.toContain("mode: 'generate-missing'");
+    expect(serviceSource).toContain('scheduleStartupPrewarm');
+    expect(serviceSource).toContain("? ['day', 'week', 'month']");
+    expect(serviceSource).toContain('background: true');
+    expect(serviceSource).toContain('if (!input.options?.background) scheduleStartupPrewarm(input.profile);');
   });
 });

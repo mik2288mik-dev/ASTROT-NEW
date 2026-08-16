@@ -1,10 +1,10 @@
 import { fromZonedTime } from 'date-fns-tz';
 import type { UserProfile } from '../types';
 
-export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v4' as const;
-export const AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.balanced-direct.v2' as const;
-export const AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-direct-v2' as const;
-export const AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-daily-snapshot-v2' as const;
+export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v5' as const;
+export const AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.exact-user-prompt.v3' as const;
+export const AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-direct-v3' as const;
+export const AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-history-15-v3' as const;
 export const AI_PERSONAL_HOROSCOPE_TIMEZONE: string = 'Europe/Moscow';
 
 export type AiPersonalHoroscopePeriod = 'day' | 'week' | 'month';
@@ -21,6 +21,15 @@ export type AiPersonalHoroscopeWindow = {
 };
 
 export type AiPersonalHoroscopeReading = {
+  opening: string;
+  forecast: string;
+  advice: string[];
+};
+
+export type AiPersonalHoroscopeHistoryItem = {
+  period: AiPersonalHoroscopePeriod;
+  periodKey: string;
+  currentDate: string;
   opening: string;
   forecast: string;
   advice: string[];
@@ -363,7 +372,8 @@ export function isAiPersonalHoroscopePackage(
   if (options.allowRedacted) return horoscope.reading.advice.length <= 3;
   return !!horoscope.reading.opening.trim()
     && !!horoscope.reading.forecast.trim()
-    && horoscope.reading.advice.length === 3
+    && horoscope.reading.advice.length >= 2
+    && horoscope.reading.advice.length <= 3
     && horoscope.reading.advice.every((item) => !!item.trim());
 }
 
@@ -384,13 +394,14 @@ export function sliceAiPersonalHoroscopeForAccess(
   if (isPremium) {
     return { horoscope, lockedAdviceIndexes: [], periodLocked: false };
   }
+  const allAdviceIndexes = horoscope.reading.advice.map((_, index) => index);
   if (horoscope.period !== 'day') {
     return {
       horoscope: {
         ...horoscope,
         reading: { opening: '', forecast: '', advice: [] },
       },
-      lockedAdviceIndexes: [0, 1, 2],
+      lockedAdviceIndexes: allAdviceIndexes,
       periodLocked: true,
     };
   }
@@ -403,7 +414,7 @@ export function sliceAiPersonalHoroscopeForAccess(
         advice: horoscope.reading.advice.slice(0, 1),
       },
     },
-    lockedAdviceIndexes: [1, 2],
+    lockedAdviceIndexes: allAdviceIndexes.slice(1),
     periodLocked: false,
   };
 }

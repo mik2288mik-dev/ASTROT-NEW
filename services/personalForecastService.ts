@@ -23,6 +23,7 @@ type LoadOptions = {
   cacheOnly?: boolean;
   force?: boolean;
   maxInProgressRetries?: number;
+  background?: boolean;
 };
 
 export type PersonalForecastClientResult = {
@@ -50,10 +51,11 @@ type ResolvedPersonalHoroscopeRequest = {
   timezone: string;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v4';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v5';
 const ALL_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
+const startupPrewarmInFlight = new Map<string, Promise<void>>();
 
 function userId(profile: UserProfile): string {
   return String(profile.id || '').trim();
@@ -97,8 +99,8 @@ function lockedIndexesValid(value: unknown): value is number[] {
     && new Set(value).size === value.length;
 }
 
-function sameIndexes(left: number[], right: number[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+function matchesSequentialIndexes(value: number[], start: number): boolean {
+  return value.every((index, offset) => index === start + offset);
 }
 
 function isStoredResult(value: unknown): value is PersonalForecastClientResult {
@@ -120,14 +122,18 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
 
   if (result.horoscope.period !== 'day') {
     return result.periodLocked
-      && sameIndexes(result.lockedAdviceIndexes, [0, 1, 2])
+      && result.lockedAdviceIndexes.length >= 2
+      && result.lockedAdviceIndexes.length <= 3
+      && matchesSequentialIndexes(result.lockedAdviceIndexes, 0)
       && !result.horoscope.reading.opening
       && !result.horoscope.reading.forecast
       && result.horoscope.reading.advice.length === 0;
   }
 
   return !result.periodLocked
-    && sameIndexes(result.lockedAdviceIndexes, [1, 2])
+    && result.lockedAdviceIndexes.length >= 1
+    && result.lockedAdviceIndexes.length <= 2
+    && matchesSequentialIndexes(result.lockedAdviceIndexes, 1)
     && !!result.horoscope.reading.opening.trim()
     && !!result.horoscope.reading.forecast.trim()
     && result.horoscope.reading.advice.length === 1
@@ -294,8 +300,6 @@ async function generate(input: ResolvedPersonalHoroscopeRequest & {
   );
   for (let attempt = 0; attempt < input.maxInProgressRetries; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-    // Regeneration is requested only once. Polls use the ordinary path so they
-    // can return the freshly written cache instead of starting another rewrite.
     response = await generationRequest(input, false);
     if (response.status === 202) {
       payload = await response.json().catch(() => ({}));
@@ -335,6 +339,53 @@ function resolveRequest(input: {
   };
 }
 
+function scheduleStartupPrewarm(profile: UserProfile): void {
+  const id = userId(profile);
+  if (!id) return;
+  const timezone = normalizeAiPersonalHoroscopeTimezone(
+    profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
+  );
+  const now = new Date();
+  const periods: AiPersonalHoroscopePeriod[] = hasActivePremium(profile)
+    ? ['day', 'week', 'month']
+    : ['day'];
+  const periodKeys = Object.fromEntries(periods.map((period) => [
+    period,
+    getAiPersonalHoroscopePeriodKey(period, now, timezone),
+  ])) as Partial<Record<AiPersonalHoroscopePeriod, string>>;
+  const key = [
+    id,
+    buildAiPersonalHoroscopeProfileFingerprint(profile),
+    getAiPersonalHoroscopePeriodKey('day', now, timezone),
+    hasActivePremium(profile) ? 'premium' : 'free',
+  ].join(':');
+  if (startupPrewarmInFlight.has(key)) return;
+
+  const task = (async () => {
+    for (const period of periods) {
+      try {
+        await loadPersonalForecast({
+          profile,
+          period,
+          periodKey: periodKeys[period],
+          options: {
+            background: true,
+            maxInProgressRetries: 60,
+          },
+        });
+      } catch (error) {
+        console.warn(
+          `[personal-horoscope] background ${period} generation failed:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+  })().finally(() => {
+    if (startupPrewarmInFlight.get(key) === task) startupPrewarmInFlight.delete(key);
+  });
+  startupPrewarmInFlight.set(key, task);
+}
+
 export function readLocalPersonalForecast(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
@@ -355,7 +406,10 @@ export async function loadPersonalForecast(input: {
   const force = input.options?.force === true;
   if (force) removeStored(key);
   const local = force ? null : readStored(key);
-  if (local) return local;
+  if (local) {
+    if (!input.options?.background) scheduleStartupPrewarm(input.profile);
+    return local;
+  }
 
   const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : force ? 'regenerate' : 'ensure'}`;
   const current = inFlight.get(inFlightKey);
@@ -394,12 +448,16 @@ export async function loadPersonalForecast(input: {
     if (inFlight.get(inFlightKey) === request) inFlight.delete(inFlightKey);
   });
   inFlight.set(inFlightKey, request);
-  return request;
+
+  const result = await request;
+  if (!input.options?.background) scheduleStartupPrewarm(input.profile);
+  return result;
 }
 
 export function clearPersonalForecastSessionCache(): void {
   memoryCache.clear();
   inFlight.clear();
+  startupPrewarmInFlight.clear();
   if (typeof window === 'undefined') return;
   try {
     const keys: string[] = [];

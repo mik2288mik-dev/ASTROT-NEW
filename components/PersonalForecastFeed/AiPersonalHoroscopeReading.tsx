@@ -61,17 +61,14 @@ export function AiPersonalHoroscopeReading({
             <i />
             <span />
           </div>
-          <ol
+          <section
             className="ai-personal-horoscope-advice"
             aria-label={language === 'ru' ? 'Советы на период' : 'Advice'}
           >
             {reading.advice.map((advice, index) => (
-              <li key={`${horoscope.periodKey}:advice:${index + 1}`}>
-                <span aria-hidden>{String(index + 1).padStart(2, '0')}</span>
-                <p>{advice}</p>
-              </li>
+              <p key={`${horoscope.periodKey}:advice:${index + 1}`}>{advice}</p>
             ))}
-          </ol>
+          </section>
         </>
       ) : null}
 
