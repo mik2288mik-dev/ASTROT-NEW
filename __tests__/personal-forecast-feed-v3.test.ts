@@ -13,63 +13,76 @@ describe('direct personal horoscope Luna architecture', () => {
     expect(dashboard).toContain('requestedPeriod?: PersonalForecastPeriod;');
     expect(dashboard).toContain('resolveRequestedPersonalForecastPeriod(requestedPeriod)');
     expect(dashboard).toContain('loadPeriod(activePeriod);');
-    expect(dashboard).not.toContain('pendingPeriodRef');
-    expect(dashboard).not.toContain('forecast-feed-period-tabs');
     expect(dashboard).not.toContain('<ForecastQuestions');
     expect(exists('components/PersonalForecastFeed/ForecastQuestions.tsx')).toBe(false);
   });
 
-  it('uses only profile and selected date window with no cross-period memory or background generation', () => {
+  it('passes the profile, date window and previous 15 full forecasts without keyword memory', () => {
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
     const cache = read('lib/personalForecastCache.ts');
+    const history = read('lib/aiPersonalHoroscopeHistory.ts');
     const route = read('pages/api/content/forecast/personal.ts');
-    const dashboard = read('views/Dashboard.tsx');
 
     expect(voice).toContain('buildAiPersonalHoroscopeProfileSnapshot');
-    expect(voice).toContain('currentDate');
-    expect(voice).not.toContain('recentMemory');
+    expect(voice).toContain('previousForecasts');
+    expect(cache).toContain('loadPreviousAiPersonalHoroscopes(identity.userId, 15)');
+    expect(history).toContain("LIMIT $2");
+    expect(history).toContain("content_variant IN ('daily', 'weekly', 'monthly')");
     expect(voice).not.toContain('themeKeywords');
     expect(voice).not.toContain('adviceKeywords');
     expect(voice).not.toContain('editorial_brief');
-    expect(voice).not.toContain('conversationMemory');
     expect(voice).not.toContain('previous_attempt');
-    expect(cache).not.toContain('recentMemory');
-    expect(cache).not.toContain('getRecentPersonalForecastMemory');
-    expect(cache).not.toContain('getLatestByUserVariant');
-    expect(dashboard).not.toContain('prewarmUserContent');
-    expect(dashboard).not.toContain('contentPrewarmService');
     expect(route).not.toContain('chartData');
     expect(route).not.toContain('chartId');
   });
 
-  it('uses Luna strict JSON with only opening forecast and advice', () => {
+  it('uses Luna strict JSON with only opening forecast and 2-3 advice', () => {
     const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
     const responses = read('lib/openaiResponses.ts');
-    const zodiac = read('views/v2/HoroscopeReader.tsx');
 
     expect(generation).toContain('createLunaStructuredResponse');
-    expect(generation).toContain('AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA');
+    expect(generation).toContain('readAiPersonalHoroscopePayload');
     expect(voice).toContain("required: ['opening', 'forecast', 'advice']");
-    expect(voice).not.toContain("properties: {\n    memory:");
+    expect(voice).toContain('minItems: 2');
+    expect(voice).toContain('maxItems: 3');
     expect(responses).toContain("type: 'json_schema'");
     expect(responses).toContain('strict: true');
-    expect(zodiac).toContain("type Period = 'today';");
-    expect(zodiac).toContain('getCachedDailySignHoroscope');
   });
 
-  it('keeps a balanced prompt without embedded examples, forced negativity or mandatory jokes', () => {
+  it('contains the exact requested prompt and no editorial or stop-word layer', () => {
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
+    const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
 
-    expect(voice).toContain('Он может быть удачным, лёгким, романтичным, радостным');
-    expect(voice).toContain('Если период хороший — скажи об этом прямо');
-    expect(voice).toContain('Не создавай искусственный баланс');
-    expect(voice).toContain('Прогноз не обязан одновременно содержать и позитив, и предупреждение');
-    expect(voice).toContain('Шутка, укол, слоган и вопрос не обязательны');
-    expect(voice).not.toContain('ПРИМЕРЫ РИТМА');
-    expect(voice).not.toContain('день нормальный');
-    expect(voice).not.toContain('всё будет делать вид, что оно срочное');
-    expect(voice).not.toContain('доказывать очевидное');
+    expect(voice).toContain('Ты АСТРОЛОГ');
+    expect(voice).toContain('предыдущие 15 прогнозов');
+    expect(voice).toContain('forecast — 3–6 предложений');
+    expect(voice).toContain('advice — 2–3');
+    expect(voice).toContain('родителей');
+    expect(voice).not.toContain('RU_EMPTY_CLICHES');
+    expect(voice).not.toContain('ASTROLOGY_OR_ESOTERICISM');
+    expect(voice).not.toContain('MANAGER_WORD_PATTERN');
+    expect(generation).not.toContain('validationErrors');
+    expect(generation).not.toContain('repairHints');
+  });
+
+  it('starts missing forecasts in the background after the first foreground load', () => {
+    const service = read('services/personalForecastService.ts');
+
+    expect(service).toContain('scheduleStartupPrewarm');
+    expect(service).toContain("? ['day', 'week', 'month']");
+    expect(service).toContain('background: true');
+    expect(service).toContain('if (!input.options?.background) scheduleStartupPrewarm(input.profile);');
+  });
+
+  it('renders advice without the old 01 02 03 markers', () => {
+    const renderer = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
+    const css = read('styles/aiPersonalHoroscope.css');
+
+    expect(renderer).not.toContain('padStart(2');
+    expect(renderer).not.toContain('<ol');
+    expect(renderer).toContain('className="ai-personal-horoscope-advice"');
+    expect(css).not.toContain('grid-template-columns: 2.25rem');
   });
 
   it('does not use PersonalForecastPackage or the old forecast contract as transport', () => {
@@ -83,8 +96,6 @@ describe('direct personal horoscope Luna architecture', () => {
     ].map(read).join('\n');
 
     expect(activeFiles).not.toContain('PersonalForecastPackage');
-    expect(activeFiles).not.toContain("from './personalForecastContract'");
-    expect(activeFiles).not.toContain("from '../lib/personalForecastContract'");
     expect(activeFiles).not.toContain('semanticFingerprint');
     expect(activeFiles).not.toContain('explanationAnchors');
     expect(activeFiles).not.toContain('semanticFactIds');
