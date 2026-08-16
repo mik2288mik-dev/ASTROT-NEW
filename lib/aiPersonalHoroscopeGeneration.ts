@@ -4,11 +4,10 @@ import {
   AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION,
   AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
   AI_PERSONAL_HOROSCOPE_VERSION,
-  buildAiPersonalHoroscopeContinuity,
   formatAiPersonalHoroscopeDateLabel,
+  getAiPersonalHoroscopeCurrentDate,
   type AiPersonalHoroscopePackage,
   type AiPersonalHoroscopePeriod,
-  type AiPersonalHoroscopeRecentMemory,
   type AiPersonalHoroscopeWindow,
 } from './aiPersonalHoroscope';
 import {
@@ -28,7 +27,7 @@ export {
   getAiPersonalHoroscopeSystemPrompt,
 } from './aiPersonalHoroscopeVoice';
 
-const MAX_ATTEMPTS = 2;
+const MAX_PROVIDER_ATTEMPTS = 2;
 
 export type AiPersonalHoroscopeGenerationMetrics = {
   model: string;
@@ -55,6 +54,7 @@ function buildPackage(input: {
     version: AI_PERSONAL_HOROSCOPE_VERSION,
     period: input.period,
     periodKey: input.window.periodKey,
+    currentDate: getAiPersonalHoroscopeCurrentDate(input.window),
     periodStart: input.window.periodStart,
     periodEnd: input.window.periodEnd,
     dateLabel: formatAiPersonalHoroscopeDateLabel(
@@ -63,7 +63,6 @@ function buildPackage(input: {
     ),
     timezone: input.window.timezone,
     reading: input.reading,
-    continuity: buildAiPersonalHoroscopeContinuity(input.reading, input.profile),
     meta: {
       model: OPENAI_LUNA_MODEL,
       promptVersion: AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
@@ -80,14 +79,13 @@ export async function generateAiPersonalHoroscopePackage(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
-  recentMemory?: AiPersonalHoroscopeRecentMemory[];
   onMetrics?: (metrics: AiPersonalHoroscopeGenerationMetrics) => void;
 }): Promise<AiPersonalHoroscopePackage> {
   const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
-  let repairHints: string[] = [];
   let incompleteSeen = false;
+  let lastFailure = 'provider_error';
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+  for (let attempt = 1; attempt <= MAX_PROVIDER_ATTEMPTS; attempt += 1) {
     const startedAt = Date.now();
     try {
       const response = await createLunaStructuredResponse({
@@ -97,8 +95,6 @@ export async function generateAiPersonalHoroscopePackage(input: {
           period: input.period,
           window: input.window,
           profile: input.profile,
-          recentMemory: input.recentMemory,
-          repairHints,
         }),
         maxOutputTokens: maxOutputTokens(input.period),
         schemaName: AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME,
@@ -109,7 +105,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
       try {
         parsed = JSON.parse(response.content) as GeneratedHoroscopePayload;
       } catch {
-        repairHints = ['invalid_json'];
+        lastFailure = 'invalid_json';
         input.onMetrics?.({
           model: OPENAI_LUNA_MODEL,
           inputTokens: response.inputTokens,
@@ -120,51 +116,49 @@ export async function generateAiPersonalHoroscopePackage(input: {
         continue;
       }
 
-      const validated = validateAiPersonalHoroscopePayload(parsed, { language });
+      const normalized = validateAiPersonalHoroscopePayload(parsed);
       input.onMetrics?.({
         model: OPENAI_LUNA_MODEL,
         inputTokens: response.inputTokens,
         outputTokens: response.outputTokens,
         latencyMs: Date.now() - startedAt,
-        validationPassed: !!validated.value,
+        validationPassed: !!normalized.value,
       });
-      if (!validated.value) {
-        repairHints = validated.errors;
-        console.warn('[ai-personal-horoscope] Luna response rejected by basic safety checks', {
-          period: input.period,
-          periodKey: input.window.periodKey,
-          attempt,
-          errors: repairHints,
-        });
+      if (!normalized.value) {
+        lastFailure = normalized.errors.join('|') || 'response_shape_invalid';
         continue;
       }
 
+      // The first complete structured draft is final. There is no topic,
+      // positivity, tone, cliché, or editorial scoring layer after Luna.
       return buildPackage({
         profile: input.profile,
         period: input.period,
         window: input.window,
-        reading: validated.value,
+        reading: normalized.value,
         attempts: attempt as 1 | 2,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('OPENAI_RESPONSE_INCOMPLETE')) incompleteSeen = true;
-      repairHints = [message.includes('OPENAI_RESPONSE_REFUSAL')
+      lastFailure = message.includes('OPENAI_RESPONSE_REFUSAL')
         ? 'provider_refusal'
         : message.includes('OPENAI_RESPONSE_EMPTY')
           ? 'empty_response'
-          : 'provider_error'];
+          : message.includes('OPENAI_RESPONSE_INCOMPLETE')
+            ? 'incomplete_response'
+            : 'provider_error';
       console.warn('[ai-personal-horoscope] Luna request failed', {
         period: input.period,
         periodKey: input.window.periodKey,
         attempt,
-        code: repairHints[0],
+        code: lastFailure,
       });
     }
   }
 
   if (incompleteSeen) throw new Error('PERSONAL_HOROSCOPE_WRITER_INCOMPLETE');
-  throw new Error(`PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED:${repairHints.join('|')}`);
+  throw new Error(`PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED:${lastFailure}`);
 }
 
 export function getAiPersonalHoroscopeGenerationDiagnosticCode(error: unknown): string {
