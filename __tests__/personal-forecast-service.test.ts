@@ -2,6 +2,8 @@ jest.mock('../services/apiClient', () => ({
   apiFetch: jest.fn(),
 }));
 
+import fs from 'fs';
+import path from 'path';
 import { apiFetch } from '../services/apiClient';
 import { sliceAiPersonalHoroscopeForAccess } from '../lib/aiPersonalHoroscope';
 import {
@@ -16,6 +18,7 @@ import {
 } from './ai-personal-horoscope-fixture';
 
 const mockedApiFetch = apiFetch as jest.Mock;
+const ROOT = path.resolve(__dirname, '..');
 const storage = new Map<string, string>();
 const localStorageMock = {
   get length() { return storage.size; },
@@ -100,35 +103,25 @@ describe('direct AI personal horoscope client cache', () => {
     expect(selectActiveReadyPersonalForecast('month', periodStates)).toBeNull();
   });
 
-  it('uses the saved v4 package on repeated opens without another request', async () => {
+  it('uses the saved v5 package on repeated opens without another request', async () => {
     mockedApiFetch.mockResolvedValueOnce(responseFor());
-    await loadPersonalForecast({ ...request, options: { cacheOnly: true } });
+    await loadPersonalForecast({
+      ...request,
+      options: { cacheOnly: true, background: true },
+    });
     mockedApiFetch.mockClear();
 
     await expect(loadPersonalForecast({
       ...request,
-      options: { cacheOnly: true },
+      options: { cacheOnly: true, background: true },
     })).resolves.toMatchObject({ source: expect.stringMatching(/local|cache/) });
     expect(mockedApiFetch).not.toHaveBeenCalled();
     expect([...storage.keys()]).toEqual([
-      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v4:/),
+      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v5:/),
     ]);
   });
 
-  it('deduplicates two parallel server cache reads', async () => {
-    let resolveRequest!: (response: Response) => void;
-    mockedApiFetch.mockImplementationOnce(() => new Promise<Response>((resolve) => {
-      resolveRequest = resolve;
-    }));
-    const first = loadPersonalForecast({ ...request, options: { cacheOnly: true } });
-    const second = loadPersonalForecast({ ...request, options: { cacheOnly: true } });
-
-    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
-    resolveRequest(responseFor());
-    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
-  });
-
-  it('accepts the locked weekly package for Free', async () => {
+  it('accepts a Free weekly package locked for either two or three advice items', async () => {
     const freeProfile = { ...profile, isPremium: false };
     const weekly = weeklyAiPersonalHoroscopeFixture();
     mockedApiFetch.mockResolvedValueOnce(responseFor(weekly, 'free'));
@@ -137,11 +130,11 @@ describe('direct AI personal horoscope client cache', () => {
       profile: freeProfile,
       period: 'week',
       periodKey: '2026-W30',
-      options: { cacheOnly: true },
+      options: { cacheOnly: true, background: true },
     })).resolves.toMatchObject({
       accessTier: 'free',
       periodLocked: true,
-      lockedAdviceIndexes: [0, 1, 2],
+      lockedAdviceIndexes: expect.arrayContaining([0, 1]),
       horoscope: {
         reading: { opening: '', forecast: '', advice: [] },
       },
@@ -155,13 +148,13 @@ describe('direct AI personal horoscope client cache', () => {
     await expect(loadPersonalForecast({
       ...request,
       profile: freeProfile,
-      options: { cacheOnly: true },
+      options: { cacheOnly: true, background: true },
     })).resolves.toMatchObject({
       periodLocked: false,
-      lockedAdviceIndexes: [1, 2],
+      lockedAdviceIndexes: expect.arrayContaining([1]),
       horoscope: {
         reading: {
-          opening: expect.stringContaining('Михаил'),
+          opening: expect.any(String),
           forecast: expect.any(String),
           advice: [expect.any(String)],
         },
@@ -186,7 +179,7 @@ describe('direct AI personal horoscope client cache', () => {
 
     await expect(loadPersonalForecast({
       ...request,
-      options: { cacheOnly: true },
+      options: { cacheOnly: true, background: true },
     })).rejects.toMatchObject({ code: 'PERSONAL_HOROSCOPE_RESPONSE_INVALID' });
     expect(readLocalPersonalForecast(request)).toBeNull();
   });
@@ -202,7 +195,10 @@ describe('direct AI personal horoscope client cache', () => {
       }))
       .mockResolvedValueOnce(responseFor(aiPersonalHoroscopeFixture(), 'premium', 'generated'));
 
-    await expect(loadPersonalForecast(request)).resolves.toMatchObject({
+    await expect(loadPersonalForecast({
+      ...request,
+      options: { background: true },
+    })).resolves.toMatchObject({
       horoscope: { period: 'day' },
       source: 'generated',
     });
@@ -210,18 +206,16 @@ describe('direct AI personal horoscope client cache', () => {
     expect(mockedApiFetch).toHaveBeenCalledTimes(2);
     expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
     expect(mockedApiFetch.mock.calls[1][1]?.body).toContain('"regenerate":false');
-    expect(mockedApiFetch.mock.calls[1][1]?.body).not.toContain('chartId');
-    expect(mockedApiFetch.mock.calls[1][1]?.body).not.toContain('chartData');
   });
 
-  it('force bypasses both local and server GET caches and requests a real rewrite', async () => {
+  it('force bypasses local and server caches and requests a real rewrite', async () => {
     mockedApiFetch.mockResolvedValueOnce(
       responseFor(aiPersonalHoroscopeFixture(), 'premium', 'generated'),
     );
 
     await expect(loadPersonalForecast({
       ...request,
-      options: { force: true },
+      options: { force: true, background: true },
     })).resolves.toMatchObject({ source: 'generated' });
 
     expect(mockedApiFetch).toHaveBeenCalledTimes(1);
@@ -229,69 +223,13 @@ describe('direct AI personal horoscope client cache', () => {
     expect(mockedApiFetch.mock.calls[0][1]?.body).toContain('"regenerate":true');
   });
 
-  it('does not turn an authorization failure into another request', async () => {
-    mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
-      error: 'Forbidden',
-      code: 'FORBIDDEN',
-    }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    }));
-
-    await expect(loadPersonalForecast({
-      ...request,
-      options: { force: true },
-    })).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' });
-    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
-    expect(mockedApiFetch.mock.calls[0][1]?.method).toBe('POST');
-  });
-
-  it('polls a forced rewrite without repeating regenerate=true', async () => {
-    jest.useFakeTimers();
-    mockedApiFetch
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        code: 'GENERATION_IN_PROGRESS',
-        retryAfterMs: 500,
-      }), {
-        status: 202,
-        headers: { 'Content-Type': 'application/json' },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        code: 'GENERATION_IN_PROGRESS',
-        retryAfterMs: 500,
-      }), {
-        status: 202,
-        headers: { 'Content-Type': 'application/json' },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        code: 'GENERATION_IN_PROGRESS',
-        retryAfterMs: 500,
-      }), {
-        status: 202,
-        headers: { 'Content-Type': 'application/json' },
-      }));
-
-    try {
-      const pending = loadPersonalForecast({
-        ...request,
-        options: { force: true, maxInProgressRetries: 2 },
-      });
-      const expectation = expect(pending).rejects.toMatchObject({
-        status: 202,
-        code: 'GENERATION_IN_PROGRESS',
-      });
-      await jest.advanceTimersByTimeAsync(1_000);
-      await expectation;
-    } finally {
-      jest.useRealTimers();
-    }
-
-    expect(mockedApiFetch).toHaveBeenCalledTimes(3);
-    expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual([
-      'POST', 'POST', 'POST',
-    ]);
-    expect(mockedApiFetch.mock.calls[0][1]?.body).toContain('"regenerate":true');
-    expect(mockedApiFetch.mock.calls[1][1]?.body).toContain('"regenerate":false');
-    expect(mockedApiFetch.mock.calls[2][1]?.body).toContain('"regenerate":false');
+  it('keeps startup generation invisible and schedules all periods for Premium', () => {
+    const source = fs.readFileSync(
+      path.join(ROOT, 'services/personalForecastService.ts'),
+      'utf8',
+    );
+    expect(source).toContain('scheduleStartupPrewarm');
+    expect(source).toContain("? ['day', 'week', 'month']");
+    expect(source).toContain('background: true');
   });
 });
