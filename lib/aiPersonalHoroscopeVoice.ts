@@ -4,12 +4,11 @@ import {
   formatAiPersonalHoroscopeDateLabel,
   getAiPersonalHoroscopeCurrentDate,
   type AiPersonalHoroscopePeriod,
-  type AiPersonalHoroscopeRecentMemory,
   type AiPersonalHoroscopeWindow,
 } from './aiPersonalHoroscope';
 import type { StrictJsonSchema } from './openaiResponses';
 
-export const AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME = 'ai_personal_horoscope_simple_v1';
+export const AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME = 'ai_personal_horoscope_direct_v2';
 
 export const AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -39,72 +38,14 @@ export type ValidatedHoroscope = {
   advice: string[];
 };
 
-const RU_EMPTY_CLICHES: readonly RegExp[] = [
-  /(?:^|[^\p{L}])выдохн\p{L}*(?!\p{L})/iu,
-  /(?:^|[^\p{L}])отпусти\p{L}*(?:\s+ситуаци\p{L}*|\s+контрол\p{L}*)?(?!\p{L})/iu,
-  /(?:^|[^\p{L}])прими(?:\s+это|\s+себя|\s+ситуаци\p{L}*)?(?!\p{L})/iu,
-  /позволь\p{L}*\s+себе/iu,
-  /просто\s+будь(?!\p{L})/iu,
-  /будь\s+в\s+поток\p{L}*/iu,
-  /закрой\p{L}*\s+двер\p{L}*/iu,
-  /вс[её]\s+будет\s+хорошо/iu,
-  /доверь\p{L}*\s+процесс\p{L}*/iu,
-  /прислуша\p{L}*\s+к\s+себе/iu,
-  /будь\s+в\s+моменте/iu,
-  /дай\s+себе\s+время/iu,
-  /внутренн\p{L}*\s+(?:опор\p{L}*|ясност\p{L}*|ресурс\p{L}*)/iu,
-  /точк\p{L}*\s+опор\p{L}*/iu,
-  /день\s+просит/iu,
-  /ритм\s+дня/iu,
-  /пространств\p{L}*\s+для\s+себя/iu,
-];
-
-const EN_EMPTY_CLICHES: readonly RegExp[] = [
-  /\b(?:breathe|let\s+go|allow\s+yourself|just\s+be|trust\s+the\s+process|go\s+with\s+the\s+flow|everything\s+will\s+be\s+fine|listen\s+to\s+yourself|be\s+present)\b/iu,
-];
-
-const ASTROLOGY_OR_ESOTERICISM: readonly RegExp[] = [
-  /(?:^|[^\p{L}])(?:астролог\p{L}*|натальн\p{L}*|транзит\p{L}*|аспект\p{L}*|асцендент\p{L}*|ретроград\p{L}*|планет\p{L}*|зв[её]зд\p{L}*|зодиак\p{L}*|меркур\p{L}*|венер\p{L}*|марс\p{L}*|юпитер\p{L}*|сатурн\p{L}*|вселенн\p{L}*|вибрац\p{L}*|карм\p{L}*|космическ\p{L}*)(?!\p{L})/iu,
-  /\b(?:astrolog\w*|natal|transit\w*|aspect\w*|ascendant|retrograde|planet\w*|stars?|zodiac|mercury|venus|mars|jupiter|saturn|universe|vibration\w*|karma|cosmic)\b/iu,
-];
-
-const INSULTS: readonly RegExp[] = [
-  /(?:^|[^\p{L}])(?:дурак\p{L}*|туп\p{L}*|лох\p{L}*|дебил\p{L}*|идиот\p{L}*|кретин\p{L}*)(?!\p{L})/iu,
-  /\b(?:idiot|stupid|dumb|loser|moron)\b/iu,
-];
-
-const DANGEROUS_OR_GUARANTEED_PREDICTIONS: readonly RegExp[] = [
-  /(?:^|[^\p{L}])(?:ты|тебя|тебе)\s+(?:точно|обязательно|непременно)\s+(?:заболе\p{L}*|вылеч\p{L}*|разбогате\p{L}*|потеря\p{L}*|увол\p{L}*|встрет\p{L}*|позвон\p{L}*|напиш\p{L}*|получ\p{L}*|жд[её]т\p{L}*)(?!\p{L})/iu,
-  /(?:^|[^\p{L}])кто-то\s+(?:точно|обязательно|непременно)\s+(?:позвонит|напишет|прид[её]т|верн[её]т|заплатит|предложит)(?!\p{L})/iu,
-  /(?:^|[^\p{L}])(?:диагноз|лечение|лекарств\p{L}*|смерт\p{L}*|авари\p{L}*|катастроф\p{L}*)(?!\p{L})/iu,
-  /\b(?:you\s+will\s+definitely|someone\s+will\s+definitely|diagnosis|treatment|death|accident|guaranteed\s+profit)\b/iu,
-];
-
-const CALENDAR_DATE_PATTERN = /(?:^|[^\d])\d{1,2}\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?=$|[^\p{L}])/iu;
-const MARKDOWN_PATTERN = /(?:^|\n)\s*(?:#{1,6}\s|[-*+]\s|\d+[.)]\s)|```/u;
-
-function cleanText(value: unknown, maxLength: number): string {
+function cleanText(value: unknown): string {
   return typeof value === 'string'
-    ? value.trim().replace(/\r\n?/gu, '\n').replace(/[ \t]+/gu, ' ').slice(0, maxLength)
+    ? value.trim().replace(/\r\n?/gu, '\n').replace(/[ \t]+/gu, ' ')
     : '';
 }
 
-function oneLine(value: unknown, maxLength: number): string {
-  return cleanText(value, maxLength).replace(/\s+/gu, ' ').trim();
-}
-
-function normalize(value: string): string {
-  return value
-    .normalize('NFKC')
-    .toLocaleLowerCase('ru-RU')
-    .replace(/ё/gu, 'е')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim()
-    .replace(/\s+/gu, ' ');
-}
-
-function matchesAny(value: string, patterns: readonly RegExp[]): boolean {
-  return patterns.some((pattern) => pattern.test(value));
+function oneLine(value: unknown): string {
+  return cleanText(value).replace(/\s+/gu, ' ').trim();
 }
 
 function periodName(period: AiPersonalHoroscopePeriod, language: 'ru' | 'en'): string {
@@ -112,68 +53,58 @@ function periodName(period: AiPersonalHoroscopePeriod, language: 'ru' | 'en'): s
   return period === 'day' ? 'день' : period === 'week' ? 'неделю' : 'месяц';
 }
 
+function forecastSize(period: AiPersonalHoroscopePeriod, language: 'ru' | 'en'): string {
+  if (language === 'en') {
+    return period === 'day'
+      ? 'about 5–7 concise sentences'
+      : 'about 7–9 concise sentences';
+  }
+  return period === 'day'
+    ? 'примерно 5–7 коротких предложений'
+    : 'примерно 7–9 коротких предложений';
+}
+
 export function getAiPersonalHoroscopeSystemPrompt(
   language: 'ru' | 'en',
   period: AiPersonalHoroscopePeriod,
 ): string {
   if (language === 'en') {
-    return `Write a personal forecast for the user's ${periodName(period, language)}.
+    return `Write a personal horoscope for the user's ${periodName(period, language)}.
 
-You know the user's name, birth date, birth time, and birth place. You do the horoscope reasoning yourself from that information and the current date. Nobody assigns a topic to you.
+You know the user's name, birth date, birth time, and birth place. Do the horoscope reasoning yourself from that information and the current date. No code-selected topic, prior forecast, keyword list, or editorial brief tells you what to write about.
 
-Your voice is a friend who tells the truth directly. No filler. No visible astrology or mysticism. No therapy clichés. Write briefly and clearly, with an occasional sharp joke or precise tease when it fits.
+Choose the actual character of the period freely. It may be lucky, light, romantic, funny, productive, calm, vivid, mixed, or difficult. Problems, warnings, self-control, overload, and productivity advice must not be the default. When the period looks good, say so directly and concretely: show where there is pleasure, affection, easy contact, a useful chance, inspiration, progress, money, rest, confidence, or a pleasant turn. Do not add positivity mechanically; use what follows from your own reasoning.
+
+If there is tension, name it plainly, but do not turn the whole horoscope into prohibitions. Do not recycle one universal plot about rushing, pressure, noise, boundaries, pausing, or finishing old tasks. Do not write a task-manager or coaching note.
+
+Voice: alive, direct, confident, and occasionally bold. Boldness comes from a precise sentence, not from permanent negativity. Humor, irony, a tease, or a question are optional and must appear only when natural. Never insert a joke merely to satisfy a format.
 
 Structure:
-1. opening — usually 1–2 sentences: a greeting plus a short jab, observation, slogan, or question.
-2. forecast — usually 4–6 sentences: describe what the period brings, what may be annoying, what to do, and what to avoid. Never pad the text just to hit a count.
-3. advice — exactly three short, concrete pieces of advice, one sentence each.
+1. opening — one or two natural sentences. You may use the name, a greeting, a direct observation, or a clear statement. No mandatory joke, jab, slogan, or question.
+2. forecast — ${forecastSize(period, language)}. Give one coherent forecast with development. Say what can go well, what deserves attention, what may complicate the period, and how to use it well. Do not list every life area.
+3. advice — exactly three short, concrete sentences that follow from this forecast. Keep them varied. At least one should say what to do or use, not merely what to avoid. Do not make all three prohibitions.
 
-The forecast needs a natural story and development, but never force “first”, “then”, or “by evening”. Use time transitions only when they belong naturally.
-
-Voice rhythm examples only; never copy their wording or topic:
-- “The day is fine. You are about to make it complicated. Don’t.”
-- “Everything will pretend to be urgent. It is not. Half of it is just loud.”
-- “Someone may insist on proving the obvious. Do not help them make it longer.”
-
-Do not use empty clichés, visible astrology, insults, diagnoses, guaranteed events, explicit dates, Markdown, or technical explanations. Do not invent a profession, family situation, illness, message, call, payment, or meeting as a guaranteed fact.
+Write in ordinary human language. Keep visible astrology and mysticism out of the answer. Do not use therapy clichés, insults, diagnoses, treatment instructions, or guaranteed medical or financial outcomes. You may describe likely situations and opportunities, but do not invent an exact external event, profession, family role, message, call, payment, or meeting as a guaranteed fact. Do not use Markdown or explain how the horoscope was produced.
 
 Return JSON only with opening, forecast, and advice.`;
   }
 
-  return `Ты пишешь личный прогноз на ${periodName(period, language)} для пользователя.
+  return `Ты пишешь личный гороскоп на ${periodName(period, language)} для пользователя.
 
-Знаешь о нём:
-- имя
-- дата рождения
-- время рождения
-- место рождения
+Ты знаешь его имя, дату рождения, время рождения и место рождения. Сам проведи гороскопное рассуждение по этим данным и текущей дате. Никакой код, список тем, прошлый прогноз, набор ключевых слов или редакционная заготовка не указывает тебе, о чём писать.
 
-Ты САМ проводишь гороскопное рассуждение на основе этой информации и текущей даты. Никто не назначает тебе тему.
+Сам выбери настоящий характер периода. Он может быть удачным, лёгким, романтичным, весёлым, продуктивным, спокойным, насыщенным, смешанным или сложным. Проблемы, предостережения, самоконтроль, перегруз и советы по продуктивности не являются вариантом по умолчанию. Если период хороший — скажи об этом прямо и конкретно: покажи, где будет радость, симпатия, любовь, приятное общение, удачный шанс, вдохновение, результат, деньги, отдых, уверенность или хороший поворот. Не добавляй позитив для галочки — бери только то, что следует из твоего собственного рассуждения.
 
-Твой стиль — друг, который говорит правду в лицо. Без воды. Без эзотерики. Без «выдохни», «отпусти», «позволь себе». Пиши коротко и прямо. Иногда используй точную дерзкую шутку или лёгкий укол, если он действительно подходит к прогнозу. Не превращай каждый текст в стендап.
+Если есть напряжение, назови его прямо, но не превращай весь гороскоп в список запретов. Не повторяй один универсальный сюжет про спешку, давление, шум, границы, паузу, контроль или необходимость закончить старое. Не пиши заметку из планировщика и не скатывайся в коучинг.
+
+Голос: живой, прямой, уверенный, иногда дерзкий. Дерзость — в точности фразы, а не в вечном негативе. Юмор, ирония, лёгкий укол или вопрос не обязательны и появляются только когда звучат естественно. Не вставляй шутку ради формата.
 
 Структура:
-1. opening — обычно 1–2 предложения: приветствие плюс короткий укол, наблюдение, слоган или вопрос.
-2. forecast — обычно 4–6 предложений: опиши, что будет происходить в периоде, что может напрягать, что делать и чего избегать. Не добивай объём водой ради числа.
-3. advice — ровно 3 коротких конкретных совета, каждый одним предложением.
+1. opening — одно-два естественных предложения. Можно обратиться по имени, поздороваться, сразу назвать суть или дать точное наблюдение. Шутка, укол, слоган и вопрос не обязательны.
+2. forecast — ${forecastSize(period, language)}. Напиши один цельный прогноз с развитием: что может пройти хорошо, что заслуживает внимания, что способно осложнить период и как прожить его с пользой. Не перечисляй подряд все сферы жизни.
+3. advice — ровно три коротких конкретных предложения, которые следуют именно из этого прогноза. Сделай их разными. Хотя бы один совет должен говорить, что сделать или чем воспользоваться, а не только что запретить. Не делай все три совета отрицательными командами.
 
-В прогнозе должен быть естественный сюжет и развитие. Не натягивай шаблоны «сначала», «потом», «к вечеру». Используй переходы времени только когда они звучат органично.
-
-ПРИМЕРЫ РИТМА — НЕ КОПИРУЙ СЛОВА И ТЕМЫ:
-- «Михаил, день нормальный. Это ты сейчас попробуешь сделать его сложнее. Не надо.»
-- «Сегодня всё будет делать вид, что оно срочное. Не верь. Половина просто шумит.»
-- «Кто-то захочет долго доказывать очевидное. Не помогай ему делать это ещё дольше.»
-
-Не используй:
-- пустые штампы и психологическую воду;
-- астрологию, эзотерику, звёзды, планеты, Вселенную, энергии и вибрации в видимом тексте;
-- оскорбления;
-- диагнозы, лечение и опасные предсказания;
-- гарантированные звонки, сообщения, деньги, встречи или поступки других людей;
-- конкретные даты внутри текста;
-- Markdown, технические пояснения и рассказ о том, как ты сделал прогноз.
-
-Не придумывай пользователю профессию, семью, болезнь или конкретное событие как факт.
+Пиши обычным человеческим языком. Не показывай в ответе астрологию и эзотерику. Не используй психологические штампы, оскорбления, диагнозы, лечение и гарантии медицинского или финансового результата. Можно описывать вероятные ситуации и возможности, но нельзя выдумывать точное внешнее событие, профессию, семейную роль, сообщение, звонок, платёж или встречу как гарантированный факт. Не используй Markdown и не объясняй, как был создан гороскоп.
 
 Верни только JSON с полями opening, forecast и advice.`;
 }
@@ -183,15 +114,7 @@ export function buildAiPersonalHoroscopePrompt(input: {
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
   profile: UserProfile;
-  recentMemory?: AiPersonalHoroscopeRecentMemory[];
-  repairHints?: string[];
 }): string {
-  const recentMemory = (input.recentMemory || []).slice(0, 8).map((item) => ({
-    period: item.period,
-    periodKey: item.periodKey,
-    themeKeywords: item.themeKeywords.slice(0, 8),
-    adviceKeywords: item.adviceKeywords.slice(0, 8),
-  }));
   const context = {
     language: input.language,
     period: input.period,
@@ -200,44 +123,36 @@ export function buildAiPersonalHoroscopePrompt(input: {
     periodEnd: input.window.periodEnd,
     periodLabel: formatAiPersonalHoroscopeDateLabel(input.window, input.language),
     user: buildAiPersonalHoroscopeProfileSnapshot(input.profile),
-    recentMemory,
-    repairHints: (input.repairHints || []).slice(0, 8),
   };
-  return `Используй этот приватный контекст. Не цитируй его и не объясняй. recentMemory содержит только короткие ключевые слова прошлых тем и советов: не повторяй их механически, но не пытайся продолжать несуществующую историю.\n${JSON.stringify(context, null, 2)}`;
+  const instruction = input.language === 'en'
+    ? 'Use this private context. Do not quote it or explain it.'
+    : 'Используй этот приватный контекст. Не цитируй его и не объясняй.';
+  return `${instruction}\n${JSON.stringify(context, null, 2)}`;
 }
 
+/**
+ * Strict JSON Schema guarantees the public shape. This function only normalizes
+ * transport whitespace and checks that the three visible fields are present.
+ * It deliberately does not score tone, topics, positivity, wording, or style,
+ * and it never rejects a complete Luna draft for editorial reasons.
+ */
 export function validateAiPersonalHoroscopePayload(
   raw: GeneratedHoroscopePayload,
-  input: { language: 'ru' | 'en' },
 ): { value: ValidatedHoroscope | null; errors: string[] } {
   const errors: string[] = [];
-  const opening = cleanText(raw.opening, 360);
-  const forecast = cleanText(raw.forecast, 1_800);
+  const opening = cleanText(raw.opening);
+  const forecast = cleanText(raw.forecast);
   const advice = Array.isArray(raw.advice)
-    ? raw.advice.map((item) => oneLine(item, 220)).filter(Boolean)
+    ? raw.advice.map(oneLine)
     : [];
 
   if (!opening) errors.push('opening_empty');
   if (!forecast) errors.push('forecast_empty');
   if (advice.length !== 3) errors.push('advice_count');
-  if (advice.some((item) => !item.trim())) errors.push('advice_empty');
-  if (new Set(advice.map(normalize)).size !== advice.length) errors.push('advice_duplicate');
-
-  const visible = [opening, forecast, ...advice].join('\n');
-  const clichéPatterns = input.language === 'ru'
-    ? [...RU_EMPTY_CLICHES, ...EN_EMPTY_CLICHES]
-    : [...EN_EMPTY_CLICHES, ...RU_EMPTY_CLICHES];
-  if (matchesAny(visible, clichéPatterns)) errors.push('empty_cliche');
-  if (matchesAny(visible, ASTROLOGY_OR_ESOTERICISM)) errors.push('visible_astrology');
-  if (matchesAny(visible, INSULTS)) errors.push('insult');
-  if (matchesAny(visible, DANGEROUS_OR_GUARANTEED_PREDICTIONS)) {
-    errors.push('dangerous_or_guaranteed_prediction');
-  }
-  if (CALENDAR_DATE_PATTERN.test(visible)) errors.push('explicit_date');
-  if (MARKDOWN_PATTERN.test(visible)) errors.push('markdown');
+  if (advice.some((item) => !item)) errors.push('advice_empty');
 
   return {
     value: errors.length ? null : { opening, forecast, advice },
-    errors: [...new Set(errors)],
+    errors,
   };
 }
