@@ -1,10 +1,10 @@
 import { fromZonedTime } from 'date-fns-tz';
 import type { UserProfile } from '../types';
 
-export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v3' as const;
-export const AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.simple-voice.v1' as const;
-export const AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-simple-v1' as const;
-export const AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-no-calculation-v1' as const;
+export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v4' as const;
+export const AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.balanced-direct.v2' as const;
+export const AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-direct-v2' as const;
+export const AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-daily-snapshot-v2' as const;
 export const AI_PERSONAL_HOROSCOPE_TIMEZONE: string = 'Europe/Moscow';
 
 export type AiPersonalHoroscopePeriod = 'day' | 'week' | 'month';
@@ -26,26 +26,16 @@ export type AiPersonalHoroscopeReading = {
   advice: string[];
 };
 
-export type AiPersonalHoroscopeContinuity = {
-  themeKeywords: string[];
-  adviceKeywords: string[];
-};
-
-export type AiPersonalHoroscopeRecentMemory = AiPersonalHoroscopeContinuity & {
-  period: AiPersonalHoroscopePeriod;
-  periodKey: string;
-};
-
 export type AiPersonalHoroscopePackage = {
   version: typeof AI_PERSONAL_HOROSCOPE_VERSION;
   period: AiPersonalHoroscopePeriod;
   periodKey: string;
+  currentDate: string;
   periodStart: string;
   periodEnd: string;
   dateLabel: string;
   timezone: string;
   reading: AiPersonalHoroscopeReading;
-  continuity: AiPersonalHoroscopeContinuity;
   meta: {
     model: string;
     promptVersion: typeof AI_PERSONAL_HOROSCOPE_PROMPT_VERSION;
@@ -62,7 +52,7 @@ export type AiPersonalHoroscopeAccessPayload = {
   accessTier: 'free' | 'premium';
   lockedAdviceIndexes: number[];
   periodLocked: boolean;
-  source: 'cache' | 'stale' | 'generated';
+  source: 'cache' | 'generated';
 };
 
 function clean(value: unknown, maxLength: number): string | null {
@@ -114,6 +104,7 @@ export function buildAiPersonalHoroscopeCacheKey(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
   periodKey: string;
+  currentDate: string;
   timezone: string;
   language: 'ru' | 'en';
   modelId: string;
@@ -124,19 +115,22 @@ export function buildAiPersonalHoroscopeCacheKey(input: {
     buildAiPersonalHoroscopeProfileFingerprint(input.profile),
     input.period,
     input.periodKey,
+    input.currentDate,
     normalizeAiPersonalHoroscopeTimezone(input.timezone),
     input.language,
     input.modelId,
     AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
     AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION,
+    AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
   ].join('|');
-  return `${AI_PERSONAL_HOROSCOPE_VERSION}:${aiPersonalHoroscopeStableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
+  return `${AI_PERSONAL_HOROSCOPE_VERSION}:${aiPersonalHoroscopeStableHash(identity).toString(36)}:${input.period}:${input.periodKey}:${input.currentDate}`;
 }
 
 export function buildAiPersonalHoroscopeInputHash(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
   periodKey: string;
+  currentDate: string;
   timezone: string;
   language: 'ru' | 'en';
   modelId: string;
@@ -146,11 +140,13 @@ export function buildAiPersonalHoroscopeInputHash(input: {
     profile: buildAiPersonalHoroscopeProfileSnapshot(input.profile),
     period: input.period,
     periodKey: input.periodKey,
+    currentDate: input.currentDate,
     timezone: normalizeAiPersonalHoroscopeTimezone(input.timezone),
     language: input.language,
     modelId: input.modelId,
     promptVersion: AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
     contractVersion: AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION,
+    cacheVersion: AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
   })).toString(36);
 }
 
@@ -278,19 +274,6 @@ export function resolveAiPersonalHoroscopeWindow(
   };
 }
 
-export function getPreviousAiPersonalHoroscopePeriodKey(
-  period: AiPersonalHoroscopePeriod,
-  periodKey: string,
-  timezone?: string | null,
-): string {
-  const window = resolveAiPersonalHoroscopeWindow(period, periodKey, timezone);
-  return getAiPersonalHoroscopePeriodKey(
-    period,
-    new Date(window.startsAt.getTime() - 60_000),
-    window.timezone,
-  );
-}
-
 export function getAiPersonalHoroscopeCurrentDate(
   window: AiPersonalHoroscopeWindow,
   now = new Date(),
@@ -336,59 +319,8 @@ export function formatAiPersonalHoroscopeDateLabel(
   return `${format.format(start)} — ${format.format(end)}`.toLocaleUpperCase(locale);
 }
 
-const KEYWORD_STOP_WORDS = new Set([
-  'этот', 'эта', 'это', 'эти', 'того', 'тому', 'тебя', 'тебе', 'твой', 'твоя', 'твои',
-  'сегодня', 'неделя', 'месяц', 'день', 'будет', 'будут', 'может', 'можно', 'нужно',
-  'когда', 'если', 'чтобы', 'который', 'которая', 'которые', 'просто', 'очень', 'сейчас',
-  'после', 'перед', 'через', 'между', 'вместо', 'только', 'свою', 'свой', 'свои', 'себя',
-  'your', 'you', 'this', 'that', 'today', 'week', 'month', 'will', 'with', 'from', 'into',
-  'when', 'then', 'just', 'very', 'about', 'have', 'what', 'which', 'while', 'before', 'after',
-]);
-
-function normalizedTokens(value: string, excluded: Set<string>): string[] {
-  return value
-    .normalize('NFKC')
-    .toLocaleLowerCase('ru-RU')
-    .replace(/ё/gu, 'е')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .split(/\s+/u)
-    .map((token) => token.trim())
-    .filter((token) => token.length >= 4)
-    .filter((token) => !KEYWORD_STOP_WORDS.has(token))
-    .filter((token) => !excluded.has(token));
-}
-
-function topKeywords(values: string[], excluded: Set<string>, limit: number): string[] {
-  const counts = new Map<string, number>();
-  values.flatMap((value) => normalizedTokens(value, excluded)).forEach((token) => {
-    counts.set(token, (counts.get(token) || 0) + 1);
-  });
-  return [...counts.entries()]
-    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], 'ru'))
-    .slice(0, limit)
-    .map(([token]) => token);
-}
-
-export function buildAiPersonalHoroscopeContinuity(
-  reading: AiPersonalHoroscopeReading,
-  profile?: UserProfile,
-): AiPersonalHoroscopeContinuity {
-  const excluded = new Set<string>();
-  normalizedTokens(String(profile?.name || ''), new Set()).forEach((token) => excluded.add(token));
-  return {
-    themeKeywords: topKeywords([reading.opening, reading.forecast], excluded, 8),
-    adviceKeywords: topKeywords(reading.advice, excluded, 8),
-  };
-}
-
-function validStringArray(value: unknown, maxItems: number, maxLength: number): value is string[] {
-  return Array.isArray(value)
-    && value.length <= maxItems
-    && value.every((item) => (
-      typeof item === 'string'
-      && !!item.trim()
-      && item.length <= maxLength
-    ));
+function validDateKey(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/u.test(value);
 }
 
 export function isAiPersonalHoroscopePackage(
@@ -402,8 +334,11 @@ export function isAiPersonalHoroscopePackage(
     || !(['day', 'week', 'month'] as const).includes(horoscope.period)
     || typeof horoscope.periodKey !== 'string'
     || !horoscope.periodKey.trim()
+    || !validDateKey(horoscope.currentDate)
     || typeof horoscope.periodStart !== 'string'
     || typeof horoscope.periodEnd !== 'string'
+    || horoscope.currentDate < horoscope.periodStart
+    || horoscope.currentDate > horoscope.periodEnd
     || typeof horoscope.dateLabel !== 'string'
     || !horoscope.dateLabel.trim()
     || typeof horoscope.timezone !== 'string'
@@ -413,9 +348,6 @@ export function isAiPersonalHoroscopePackage(
     || typeof horoscope.reading.forecast !== 'string'
     || !Array.isArray(horoscope.reading.advice)
     || horoscope.reading.advice.some((item) => typeof item !== 'string')
-    || !horoscope.continuity
-    || !validStringArray(horoscope.continuity.themeKeywords, 12, 80)
-    || !validStringArray(horoscope.continuity.adviceKeywords, 12, 80)
     || !horoscope.meta
     || typeof horoscope.meta.model !== 'string'
     || !horoscope.meta.model.trim()
