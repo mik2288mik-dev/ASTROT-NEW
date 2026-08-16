@@ -86,30 +86,13 @@
 .ai-personal-horoscope-advice {
   margin: 0;
   padding: 0;
-  list-style: none;
   border-top: 1px solid #e7e7e4;
 }
 
-.ai-personal-horoscope-advice li {
-  display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: baseline;
+.ai-personal-horoscope-advice > p {
+  margin: 0;
   padding: 1rem 0;
   border-bottom: 1px solid #e7e7e4;
-}
-
-.ai-personal-horoscope-advice li > span {
-  color: #8a8984;
-  font-family: var(--font-app, 'Manrope', sans-serif);
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
-}
-
-.ai-personal-horoscope-advice p {
-  margin: 0;
   color: #171717;
   font-family: var(--font-app, 'Manrope', sans-serif);
   font-size: clamp(0.98rem, 4.15vw, 1.06rem);
