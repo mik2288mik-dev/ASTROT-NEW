@@ -47,6 +47,7 @@ function buildPackage(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
+  currentDate: string;
   reading: ValidatedHoroscope;
   attempts: 1 | 2;
 }): AiPersonalHoroscopePackage {
@@ -54,7 +55,7 @@ function buildPackage(input: {
     version: AI_PERSONAL_HOROSCOPE_VERSION,
     period: input.period,
     periodKey: input.window.periodKey,
-    currentDate: getAiPersonalHoroscopeCurrentDate(input.window),
+    currentDate: input.currentDate,
     periodStart: input.window.periodStart,
     periodEnd: input.window.periodEnd,
     dateLabel: formatAiPersonalHoroscopeDateLabel(
@@ -79,9 +80,11 @@ export async function generateAiPersonalHoroscopePackage(input: {
   profile: UserProfile;
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
+  currentDate?: string;
   onMetrics?: (metrics: AiPersonalHoroscopeGenerationMetrics) => void;
 }): Promise<AiPersonalHoroscopePackage> {
   const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
+  const currentDate = input.currentDate || getAiPersonalHoroscopeCurrentDate(input.window);
   let incompleteSeen = false;
   let lastFailure = 'provider_error';
 
@@ -95,6 +98,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
           period: input.period,
           window: input.window,
           profile: input.profile,
+          currentDate,
         }),
         maxOutputTokens: maxOutputTokens(input.period),
         schemaName: AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME,
@@ -135,6 +139,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
         profile: input.profile,
         period: input.period,
         window: input.window,
+        currentDate,
         reading: normalized.value,
         attempts: attempt as 1 | 2,
       });
