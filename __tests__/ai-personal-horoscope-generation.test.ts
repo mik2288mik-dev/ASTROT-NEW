@@ -34,33 +34,27 @@ const window = resolveAiPersonalHoroscopeWindow('day', '2026-08-14', 'Europe/Mos
 
 function validPayload() {
   return {
-    opening: 'Михаил, сегодня всё будет пытаться выглядеть срочным. Не покупайся.',
-    forecast: 'Один вопрос действительно потребует внимания, остальные просто будут шуметь рядом. Люди могут торопить, но их скорость не обязана становиться твоей. Самая глупая ошибка сегодня — начать переделывать то, что уже нормально работает. Оставь рабочее рабочим и закончи одну вещь до конца. День станет проще, как только перестанешь добавлять ему лишние этажи.',
+    opening: 'Михаил, сегодня день явно на твоей стороне. Пользуйся, пока он не передумал.',
+    forecast: 'Общение будет складываться легче обычного, и один разговор способен приятно сдвинуть дело с места. Хорошо пойдут занятия, где нужен вкус, реакция и немного смелости. В личной теме станет проще говорить прямо и получать нормальный ответ. День даст заметный результат там, где ты уже начал действовать. Оставь место для спонтанной идеи: сегодня она может оказаться полезнее длинного плана.',
     advice: [
-      'Выбери одно дело и доведи его до конца.',
-      'Не объясняй очевидное третий раз.',
-      'Новое начинай только после закрытого старого.',
+      'Напиши человеку, с которым давно хотел поговорить.',
+      'Используй первую удачную идею без долгой раскачки.',
+      'Оставь вечер свободным для приятного продолжения дня.',
     ],
   };
 }
 
-describe('simple AI personal horoscope generation', () => {
+describe('balanced direct AI personal horoscope generation', () => {
   beforeEach(() => {
     mockedLuna.mockReset();
   });
 
-  it('uses only profile, period, current date and compact anti-repeat memory', () => {
+  it('uses only the birth profile and selected date window, with no prior-text anchors', () => {
     const prompt = buildAiPersonalHoroscopePrompt({
       language: 'ru',
       period: 'day',
       window,
       profile,
-      recentMemory: [{
-        period: 'week',
-        periodKey: '2026-W33',
-        themeKeywords: ['разговор', 'границы'],
-        adviceKeywords: ['ответ', 'пауза'],
-      }],
     });
 
     expect(prompt).toContain('"name": "Михаил"');
@@ -68,8 +62,9 @@ describe('simple AI personal horoscope generation', () => {
     expect(prompt).toContain('"birthTime": "23:15"');
     expect(prompt).toContain('"birthPlace": "Сергиев Посад"');
     expect(prompt).toContain('"currentDate":');
-    expect(prompt).toContain('"themeKeywords"');
-    expect(prompt).toContain('"adviceKeywords"');
+    expect(prompt).not.toContain('recentMemory');
+    expect(prompt).not.toContain('themeKeywords');
+    expect(prompt).not.toContain('adviceKeywords');
     expect(prompt).not.toContain('editorial_brief');
     expect(prompt).not.toContain('openingMode');
     expect(prompt).not.toContain('arcMode');
@@ -79,16 +74,17 @@ describe('simple AI personal horoscope generation', () => {
     expect(prompt).not.toContain('transits');
   });
 
-  it('requires exactly the three visible JSON fields and no hidden memory', () => {
+  it('requires exactly the three visible JSON fields', () => {
     expect(AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA.required).toEqual([
       'opening',
       'forecast',
       'advice',
     ]);
     expect(AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA.properties).not.toHaveProperty('memory');
+    expect(AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA.additionalProperties).toBe(false);
   });
 
-  it('builds a direct package without PersonalForecastPackage sections or evidence', async () => {
+  it('builds a direct package without keyword memory or legacy forecast transport', async () => {
     mockedLuna.mockResolvedValueOnce({
       content: JSON.stringify(validPayload()),
       inputTokens: 500,
@@ -102,24 +98,41 @@ describe('simple AI personal horoscope generation', () => {
     });
 
     expect(horoscope.reading).toEqual(validPayload());
+    expect(horoscope.currentDate).toBe('2026-08-14');
+    expect(horoscope).not.toHaveProperty('continuity');
     expect(horoscope).not.toHaveProperty('overview');
     expect(horoscope).not.toHaveProperty('sections');
     expect(horoscope).not.toHaveProperty('evidence');
-    expect(horoscope.continuity.themeKeywords.length).toBeGreaterThan(0);
-    expect(mockedLuna.mock.calls[0][0].schema).not.toHaveProperty('properties.memory');
+    expect(mockedLuna).toHaveBeenCalledTimes(1);
   });
 
-  it('retries with short error codes and never sends the rejected draft back', async () => {
-    const bad = {
-      ...validPayload(),
-      opening: 'Михаил, выдохни и отпусти ситуацию.',
+  it('does not discard a complete first draft for tone, topic, wording or length', async () => {
+    const completeButVeryShort = {
+      opening: 'Михаил, день сегодня добрый.',
+      forecast: 'Люди идут навстречу. Пользуйся этим.',
+      advice: ['Позвони первым.', 'Прими приглашение.', 'Сделай себе приятное.'],
     };
+    mockedLuna.mockResolvedValueOnce({
+      content: JSON.stringify(completeButVeryShort),
+      inputTokens: 300,
+      outputTokens: 90,
+    });
+
+    const horoscope = await generateAiPersonalHoroscopePackage({
+      profile,
+      period: 'day',
+      window,
+    });
+
+    expect(horoscope.reading).toEqual(completeButVeryShort);
+    expect(horoscope.meta.generationAttempts).toBe(1);
+    expect(mockedLuna).toHaveBeenCalledTimes(1);
+    expect(validateAiPersonalHoroscopePayload(completeButVeryShort).value).not.toBeNull();
+  });
+
+  it('retries only a technical incomplete response, not an editorial rejection', async () => {
     mockedLuna
-      .mockResolvedValueOnce({
-        content: JSON.stringify(bad),
-        inputTokens: 400,
-        outputTokens: 200,
-      })
+      .mockRejectedValueOnce(new Error('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens'))
       .mockResolvedValueOnce({
         content: JSON.stringify(validPayload()),
         inputTokens: 430,
@@ -133,48 +146,32 @@ describe('simple AI personal horoscope generation', () => {
     });
 
     expect(horoscope.meta.generationAttempts).toBe(2);
-    const secondPrompt = mockedLuna.mock.calls[1][0].input as string;
-    expect(secondPrompt).toContain('empty_cliche');
-    expect(secondPrompt).not.toContain('выдохни и отпусти ситуацию');
+    expect(mockedLuna).toHaveBeenCalledTimes(2);
+    expect(mockedLuna.mock.calls[0][0].input).toBe(mockedLuna.mock.calls[1][0].input);
   });
 
-  it('keeps only basic bans and does not reject by word count or forced transitions', () => {
-    const compact = {
-      opening: 'Михаил, без цирка.',
-      forecast: 'Сегодня один разговор окажется проще, чем его пытаются подать. Скажи главное и не растягивай.',
-      advice: ['Ответь коротко.', 'Не спорь по кругу.', 'Закончи разговор вовремя.'],
-    };
-    expect(validateAiPersonalHoroscopePayload(compact, { language: 'ru' }).value).not.toBeNull();
+  it('removes the old negative examples and explicitly allows positive, romantic and joyful periods', () => {
+    const prompt = getAiPersonalHoroscopeSystemPrompt('ru', 'day');
+    expect(prompt).toContain('Никакой код, список тем, прошлый прогноз');
+    expect(prompt).toContain('Он может быть удачным, лёгким, романтичным, весёлым');
+    expect(prompt).toContain('Если период хороший — скажи об этом прямо');
+    expect(prompt).toContain('Шутка, укол, слоган и вопрос не обязательны');
+    expect(prompt).toContain('Не делай все три совета отрицательными командами');
+    expect(prompt).not.toContain('ПРИМЕРЫ РИТМА');
+    expect(prompt).not.toContain('день нормальный');
+    expect(prompt).not.toContain('всё будет делать вид, что оно срочное');
+    expect(prompt).not.toContain('доказывать очевидное');
 
     const voiceSource = fs.readFileSync(
       path.join(ROOT, 'lib/aiPersonalHoroscopeVoice.ts'),
       'utf8',
     );
-    expect(voiceSource).not.toContain('buildAiPersonalHoroscopeEditorialBrief');
+    expect(voiceSource).not.toContain('RU_EMPTY_CLICHES');
+    expect(voiceSource).not.toContain('ASTROLOGY_OR_ESOTERICISM');
     expect(voiceSource).not.toContain('TIME_SHIFT_PATTERNS');
     expect(voiceSource).not.toContain('TOPIC_SIGNAL_GROUPS');
     expect(voiceSource).not.toContain('MANAGER_WORD_PATTERN');
     expect(voiceSource).not.toContain('minWords');
     expect(voiceSource).not.toContain('minSentences');
-  });
-
-  it('keeps the requested direct voice and basic safety bans', () => {
-    const prompt = getAiPersonalHoroscopeSystemPrompt('ru', 'day');
-    expect(prompt).toContain('Никто не назначает тебе тему');
-    expect(prompt).toContain('говорит правду в лицо');
-    expect(prompt).toContain('Михаил, день нормальный');
-    expect(prompt).toContain('Не натягивай шаблоны');
-
-    const astrology = validateAiPersonalHoroscopePayload({
-      ...validPayload(),
-      forecast: 'Меркурий сегодня всё решит за тебя.',
-    }, { language: 'ru' });
-    expect(astrology.errors).toContain('visible_astrology');
-
-    const insult = validateAiPersonalHoroscopePayload({
-      ...validPayload(),
-      opening: 'Михаил, не будь идиотом.',
-    }, { language: 'ru' });
-    expect(insult.errors).toContain('insult');
   });
 });
