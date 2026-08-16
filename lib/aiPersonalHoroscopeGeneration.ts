@@ -6,6 +6,7 @@ import {
   AI_PERSONAL_HOROSCOPE_VERSION,
   formatAiPersonalHoroscopeDateLabel,
   getAiPersonalHoroscopeCurrentDate,
+  type AiPersonalHoroscopeHistoryItem,
   type AiPersonalHoroscopePackage,
   type AiPersonalHoroscopePeriod,
   type AiPersonalHoroscopeWindow,
@@ -15,9 +16,9 @@ import {
   AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME,
   buildAiPersonalHoroscopePrompt,
   getAiPersonalHoroscopeSystemPrompt,
-  validateAiPersonalHoroscopePayload,
+  readAiPersonalHoroscopePayload,
   type GeneratedHoroscopePayload,
-  type ValidatedHoroscope,
+  type ParsedHoroscope,
 } from './aiPersonalHoroscopeVoice';
 import { OPENAI_LUNA_MODEL } from './openai-models';
 import { createLunaStructuredResponse } from './openaiResponses';
@@ -48,7 +49,7 @@ function buildPackage(input: {
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
   currentDate: string;
-  reading: ValidatedHoroscope;
+  reading: ParsedHoroscope;
   attempts: 1 | 2;
 }): AiPersonalHoroscopePackage {
   return {
@@ -81,6 +82,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
   currentDate?: string;
+  previousForecasts?: AiPersonalHoroscopeHistoryItem[];
   onMetrics?: (metrics: AiPersonalHoroscopeGenerationMetrics) => void;
 }): Promise<AiPersonalHoroscopePackage> {
   const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
@@ -99,6 +101,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
           window: input.window,
           profile: input.profile,
           currentDate,
+          previousForecasts: input.previousForecasts,
         }),
         maxOutputTokens: maxOutputTokens(input.period),
         schemaName: AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME,
@@ -120,27 +123,25 @@ export async function generateAiPersonalHoroscopePackage(input: {
         continue;
       }
 
-      const normalized = validateAiPersonalHoroscopePayload(parsed);
+      const reading = readAiPersonalHoroscopePayload(parsed);
       input.onMetrics?.({
         model: OPENAI_LUNA_MODEL,
         inputTokens: response.inputTokens,
         outputTokens: response.outputTokens,
         latencyMs: Date.now() - startedAt,
-        validationPassed: !!normalized.value,
+        validationPassed: !!reading,
       });
-      if (!normalized.value) {
-        lastFailure = normalized.errors.join('|') || 'response_shape_invalid';
+      if (!reading) {
+        lastFailure = 'response_shape_invalid';
         continue;
       }
 
-      // The first complete structured draft is final. There is no topic,
-      // positivity, tone, cliché, or editorial scoring layer after Luna.
       return buildPackage({
         profile: input.profile,
         period: input.period,
         window: input.window,
         currentDate,
-        reading: normalized.value,
+        reading,
         attempts: attempt as 1 | 2,
       });
     } catch (error) {
