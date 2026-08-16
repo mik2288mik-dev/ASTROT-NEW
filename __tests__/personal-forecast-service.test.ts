@@ -18,6 +18,8 @@ import {
 const mockedApiFetch = apiFetch as jest.Mock;
 const storage = new Map<string, string>();
 const localStorageMock = {
+  get length() { return storage.size; },
+  key: (index: number) => [...storage.keys()][index] ?? null,
   getItem: (key: string) => storage.get(key) ?? null,
   setItem: (key: string, value: string) => { storage.set(key, value); },
   removeItem: (key: string) => { storage.delete(key); },
@@ -44,6 +46,7 @@ const request = {
 function responseFor(
   horoscope = aiPersonalHoroscopeFixture(),
   accessTier: 'free' | 'premium' = 'premium',
+  source: 'cache' | 'generated' = 'cache',
 ) {
   const sliced = sliceAiPersonalHoroscopeForAccess(
     horoscope,
@@ -54,14 +57,14 @@ function responseFor(
     accessTier,
     lockedAdviceIndexes: sliced.lockedAdviceIndexes,
     periodLocked: sliced.periodLocked,
-    source: 'cache',
+    source,
   }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
-describe('simple AI personal horoscope client cache', () => {
+describe('direct AI personal horoscope client cache', () => {
   beforeAll(() => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
@@ -97,7 +100,7 @@ describe('simple AI personal horoscope client cache', () => {
     expect(selectActiveReadyPersonalForecast('month', periodStates)).toBeNull();
   });
 
-  it('uses the saved simple package on repeated opens without another request', async () => {
+  it('uses the saved v4 package on repeated opens without another request', async () => {
     mockedApiFetch.mockResolvedValueOnce(responseFor());
     await loadPersonalForecast({ ...request, options: { cacheOnly: true } });
     mockedApiFetch.mockClear();
@@ -108,7 +111,7 @@ describe('simple AI personal horoscope client cache', () => {
     })).resolves.toMatchObject({ source: expect.stringMatching(/local|cache/) });
     expect(mockedApiFetch).not.toHaveBeenCalled();
     expect([...storage.keys()]).toEqual([
-      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v3:/),
+      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v4:/),
     ]);
   });
 
@@ -188,7 +191,7 @@ describe('simple AI personal horoscope client cache', () => {
     expect(readLocalPersonalForecast(request)).toBeNull();
   });
 
-  it('continues from a retryable cache failure to one generation request', async () => {
+  it('continues from a retryable cache failure to one ordinary generation request', async () => {
     mockedApiFetch
       .mockResolvedValueOnce(new Response(JSON.stringify({
         error: 'Cache temporarily unavailable',
@@ -197,20 +200,36 @@ describe('simple AI personal horoscope client cache', () => {
         status: 503,
         headers: { 'Content-Type': 'application/json' },
       }))
-      .mockResolvedValueOnce(responseFor());
+      .mockResolvedValueOnce(responseFor(aiPersonalHoroscopeFixture(), 'premium', 'generated'));
 
-    await expect(loadPersonalForecast({
-      ...request,
-      options: { force: true },
-    })).resolves.toMatchObject({ horoscope: { period: 'day' } });
+    await expect(loadPersonalForecast(request)).resolves.toMatchObject({
+      horoscope: { period: 'day' },
+      source: 'generated',
+    });
 
     expect(mockedApiFetch).toHaveBeenCalledTimes(2);
     expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual(['GET', 'POST']);
+    expect(mockedApiFetch.mock.calls[1][1]?.body).toContain('"regenerate":false');
     expect(mockedApiFetch.mock.calls[1][1]?.body).not.toContain('chartId');
     expect(mockedApiFetch.mock.calls[1][1]?.body).not.toContain('chartData');
   });
 
-  it('does not turn an authorization failure into generation', async () => {
+  it('force bypasses both local and server GET caches and requests a real rewrite', async () => {
+    mockedApiFetch.mockResolvedValueOnce(
+      responseFor(aiPersonalHoroscopeFixture(), 'premium', 'generated'),
+    );
+
+    await expect(loadPersonalForecast({
+      ...request,
+      options: { force: true },
+    })).resolves.toMatchObject({ source: 'generated' });
+
+    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockedApiFetch.mock.calls[0][1]?.method).toBe('POST');
+    expect(mockedApiFetch.mock.calls[0][1]?.body).toContain('"regenerate":true');
+  });
+
+  it('does not turn an authorization failure into another request', async () => {
     mockedApiFetch.mockResolvedValueOnce(new Response(JSON.stringify({
       error: 'Forbidden',
       code: 'FORBIDDEN',
@@ -224,12 +243,12 @@ describe('simple AI personal horoscope client cache', () => {
       options: { force: true },
     })).rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' });
     expect(mockedApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockedApiFetch.mock.calls[0][1]?.method).toBe('POST');
   });
 
-  it('bounds an in-progress generation to one POST and two polls', async () => {
+  it('polls a forced rewrite without repeating regenerate=true', async () => {
     jest.useFakeTimers();
     mockedApiFetch
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({
         code: 'GENERATION_IN_PROGRESS',
         retryAfterMs: 500,
@@ -267,9 +286,12 @@ describe('simple AI personal horoscope client cache', () => {
       jest.useRealTimers();
     }
 
-    expect(mockedApiFetch).toHaveBeenCalledTimes(4);
+    expect(mockedApiFetch).toHaveBeenCalledTimes(3);
     expect(mockedApiFetch.mock.calls.map((call) => call[1]?.method)).toEqual([
-      'GET', 'POST', 'POST', 'POST',
+      'POST', 'POST', 'POST',
     ]);
+    expect(mockedApiFetch.mock.calls[0][1]?.body).toContain('"regenerate":true');
+    expect(mockedApiFetch.mock.calls[1][1]?.body).toContain('"regenerate":false');
+    expect(mockedApiFetch.mock.calls[2][1]?.body).toContain('"regenerate":false');
   });
 });
