@@ -114,11 +114,12 @@ export function buildAiPersonalHoroscopePrompt(input: {
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
   profile: UserProfile;
+  currentDate?: string;
 }): string {
   const context = {
     language: input.language,
     period: input.period,
-    currentDate: getAiPersonalHoroscopeCurrentDate(input.window),
+    currentDate: input.currentDate || getAiPersonalHoroscopeCurrentDate(input.window),
     periodStart: input.window.periodStart,
     periodEnd: input.window.periodEnd,
     periodLabel: formatAiPersonalHoroscopeDateLabel(input.window, input.language),
