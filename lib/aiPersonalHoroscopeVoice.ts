@@ -148,9 +148,13 @@ export function readAiPersonalHoroscopePayload(
     || raw.advice.some((item) => typeof item !== 'string')
   ) return null;
 
-  const opening = raw.opening.trim();
-  const forecast = raw.forecast.trim();
-  const advice = raw.advice.map((item) => String(item).trim());
-  if (!opening || !forecast || advice.some((item) => !item)) return null;
-  return { opening, forecast, advice };
+  const advice = raw.advice as string[];
+  if (!raw.opening.trim() || !raw.forecast.trim() || advice.some((item) => !item.trim())) {
+    return null;
+  }
+  return {
+    opening: raw.opening,
+    forecast: raw.forecast,
+    advice: [...advice],
+  };
 }
