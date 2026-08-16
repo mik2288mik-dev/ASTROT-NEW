@@ -150,13 +150,15 @@ describe('balanced direct AI personal horoscope generation', () => {
     expect(mockedLuna.mock.calls[0][0].input).toBe(mockedLuna.mock.calls[1][0].input);
   });
 
-  it('removes the old negative examples and explicitly allows positive, romantic and joyful periods', () => {
+  it('removes the old negative examples and lets Luna choose positive, mixed or difficult periods', () => {
     const prompt = getAiPersonalHoroscopeSystemPrompt('ru', 'day');
-    expect(prompt).toContain('Никакой код, список тем, прошлый прогноз');
-    expect(prompt).toContain('Он может быть удачным, лёгким, романтичным, весёлым');
+    expect(prompt).toContain('Никакой код, прошлый гороскоп, список ключевых слов');
+    expect(prompt).toContain('Он может быть удачным, лёгким, романтичным, радостным');
     expect(prompt).toContain('Если период хороший — скажи об этом прямо');
     expect(prompt).toContain('Шутка, укол, слоган и вопрос не обязательны');
-    expect(prompt).toContain('Не делай все три совета отрицательными командами');
+    expect(prompt).toContain('не превращай все три в запреты');
+    expect(prompt).toContain('Не создавай искусственный баланс');
+    expect(prompt).toContain('Прогноз не обязан одновременно содержать и позитив, и предупреждение');
     expect(prompt).not.toContain('ПРИМЕРЫ РИТМА');
     expect(prompt).not.toContain('день нормальный');
     expect(prompt).not.toContain('всё будет делать вид, что оно срочное');
