@@ -58,11 +58,13 @@ describe('direct personal horoscope Luna architecture', () => {
     expect(zodiac).toContain('getCachedDailySignHoroscope');
   });
 
-  it('keeps a balanced prompt without embedded examples or mandatory jokes', () => {
+  it('keeps a balanced prompt without embedded examples, forced negativity or mandatory jokes', () => {
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
 
-    expect(voice).toContain('Он может быть удачным, лёгким, романтичным, весёлым');
+    expect(voice).toContain('Он может быть удачным, лёгким, романтичным, радостным');
     expect(voice).toContain('Если период хороший — скажи об этом прямо');
+    expect(voice).toContain('Не создавай искусственный баланс');
+    expect(voice).toContain('Прогноз не обязан одновременно содержать и позитив, и предупреждение');
     expect(voice).toContain('Шутка, укол, слоган и вопрос не обязательны');
     expect(voice).not.toContain('ПРИМЕРЫ РИТМА');
     expect(voice).not.toContain('день нормальный');
