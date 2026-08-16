@@ -13,6 +13,7 @@ import {
   type AiPersonalHoroscopePeriod,
 } from './aiPersonalHoroscope';
 import { generateAiPersonalHoroscopePackage } from './aiPersonalHoroscopeGeneration';
+import { loadPreviousAiPersonalHoroscopes } from './aiPersonalHoroscopeHistory';
 import {
   withContentGenerationLock,
   type ContentGenerationLockResult,
@@ -169,11 +170,13 @@ export async function ensurePersonalForecast(
       }
     },
     generate: async () => {
+      const previousForecasts = await loadPreviousAiPersonalHoroscopes(identity.userId, 15);
       const horoscope = await generateAiPersonalHoroscopePackage({
         profile: identity.profile,
         period: input.period,
         window: identity.window,
         currentDate: identity.currentDate,
+        previousForecasts,
       });
       if (!isAiPersonalHoroscopePackage(horoscope)) {
         throw new Error('PERSONAL_HOROSCOPE_PACKAGE_INVALID');
