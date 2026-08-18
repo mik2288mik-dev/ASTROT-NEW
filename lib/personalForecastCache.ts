@@ -22,6 +22,7 @@ import { db } from './db';
 import { OPENAI_LUNA_MODEL } from './openai-models';
 
 const CANONICAL_CACHE_TIER = 'premium' as const;
+const PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT = 'few-shot-v1' as const;
 
 const VARIANT_BY_PERIOD = {
   day: 'daily',
@@ -39,6 +40,7 @@ export type PersonalForecastCacheContext = {
 async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
   if (!input.profile?.id) throw new Error('PERSONAL_HOROSCOPE_PROFILE_REQUIRED');
   const model = OPENAI_LUNA_MODEL;
+  const cacheModelId = `${model}:${PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT}`;
   const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
   const timezone = normalizeAiPersonalHoroscopeTimezone(
     input.timezone || input.profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
@@ -52,7 +54,7 @@ async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
     currentDate,
     timezone: window.timezone,
     language,
-    modelId: model,
+    modelId: cacheModelId,
   };
   return {
     profile: input.profile,
@@ -80,6 +82,7 @@ export function buildAiPersonalHoroscopeGenerationLockKey(input: {
     input.periodKey,
     input.currentDate,
     AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
+    PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT,
   ].join(':');
 }
 

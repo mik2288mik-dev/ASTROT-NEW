@@ -36,7 +36,7 @@ describe('direct personal horoscope Luna architecture', () => {
     expect(route).not.toContain('chartId');
   });
 
-  it('uses Luna strict JSON with only opening forecast and 2-3 advice', () => {
+  it('uses Luna strict JSON with only opening forecast and 2-3 closing lines', () => {
     const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
     const responses = read('lib/openaiResponses.ts');
@@ -50,15 +50,26 @@ describe('direct personal horoscope Luna architecture', () => {
     expect(responses).toContain('strict: true');
   });
 
-  it('contains the exact requested prompt and no editorial or stop-word layer', () => {
+  it('keeps a lean human voice prompt and period-specific real-shaped few-shot examples', () => {
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
+    const fewShot = read('lib/aiPersonalHoroscopeFewShot.ts');
     const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
 
-    expect(voice).toContain('Ты АСТРОЛОГ');
-    expect(voice).toContain('предыдущие 15 прогнозов');
-    expect(voice).toContain('forecast — 3–6 предложений');
-    expect(voice).toContain('advice — 2–3');
-    expect(voice).toContain('родителей');
+    expect(voice).toContain('один узнаваемый живой человек');
+    expect(voice).toContain('Дерзость живёт в формулировке, а не в вечном негативе');
+    expect(voice).toContain('opening — это заход, а не краткий пересказ периода');
+    expect(voice).toContain('Никогда не используй пренебрежительное «Ну привет»');
+    expect(voice).toContain('Не своди текст по умолчанию к работе, делам, планам');
+    expect(voice).toContain('Никакого психологического, терапевтического, мотивационного или псевдокоучингового тона');
+    expect(voice).toContain('forecast — 2–3 коротких предложения');
+    expect(voice).toContain('forecast — 3–5 коротких предложений');
+    expect(voice).toContain('forecast — 4–6 коротких предложений');
+    expect(voice).toContain('buildAiPersonalHoroscopeFewShotBlock');
+    expect(fewShot).toContain('FEW-SHOT ПРИМЕРЫ');
+    expect(fewShot).toContain("'INPUT'");
+    expect(fewShot).toContain("'OUTPUT'");
+    expect(fewShot).toContain('Артём, сегодня тебе идёт быть заметным');
+    expect(fewShot).toContain('Хорошая компания, вкусная еда и немного денег на глупости');
     expect(voice).not.toContain('RU_EMPTY_CLICHES');
     expect(voice).not.toContain('ASTROLOGY_OR_ESOTERICISM');
     expect(voice).not.toContain('MANAGER_WORD_PATTERN');
