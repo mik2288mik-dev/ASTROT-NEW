@@ -14,6 +14,7 @@ type LunaResponseInput = {
   instructions: string;
   input: string;
   maxOutputTokens: number;
+  verbosity?: 'low' | 'medium' | 'high';
 };
 
 type LunaStructuredResponseInput = LunaResponseInput & {
@@ -45,6 +46,7 @@ export function buildLunaStructuredResponseParams(input: LunaStructuredResponseI
         strict: true,
         schema: input.schema,
       },
+      ...(input.verbosity ? { verbosity: input.verbosity } : {}),
     },
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
@@ -55,7 +57,10 @@ export function buildLunaJsonResponseParams(input: LunaResponseInput) {
     instructions: input.instructions,
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
-    text: { format: { type: 'json_object' as const } },
+    text: {
+      format: { type: 'json_object' as const },
+      ...(input.verbosity ? { verbosity: input.verbosity } : {}),
+    },
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
 
@@ -65,6 +70,7 @@ export function buildLunaTextResponseParams(input: LunaResponseInput) {
     instructions: input.instructions,
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
+    ...(input.verbosity ? { text: { verbosity: input.verbosity } } : {}),
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
 
