@@ -34,7 +34,7 @@ describe('separated editorial asset system', () => {
       .toBe(376);
   });
 
-  it('uses an explicit typed allowlist for the two retained legacy categories', () => {
+  it('uses an explicit typed allowlist for the retained legacy Zodiac catalog', () => {
     expect(ZODIAC_LEGACY_ALLOWLIST).toHaveLength(48);
     expect(ZODIAC_LEGACY_ALLOWLIST.filter((asset) => asset.category === 'psychedelic'))
       .toHaveLength(24);
@@ -109,20 +109,20 @@ describe('separated editorial asset system', () => {
     expect(retained.every((asset) => exists(`public${asset.path}`))).toBe(true);
   });
 
-  it('wires each source only into its intended active reading screens', () => {
+  it('keeps Zodiac legacy assets out of the active sign reader while leaving other screens untouched', () => {
     const horoscope = read('views/v2/HoroscopeReader.tsx');
     const natal = read('views/v2/NatalMagazine.tsx');
     const compatibility = read('views/v2/UnionRoom.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
-    expect(horoscope).toContain('selectZodiacLegacyAsset');
+    expect(horoscope).not.toContain('selectZodiacLegacyAsset');
+    expect(horoscope).not.toContain('EditorialSticker');
+    expect(horoscope).not.toContain('horo-zodiac-sticker--inline');
     expect(horoscope).not.toContain('selectPersonalEditorialAsset');
     expect(natal).toContain('selectNatalEditorialSticker');
     expect(compatibility).toContain('selectSynastryEditorialSticker');
-    for (const source of [horoscope, compatibility]) {
-      expect(source).toContain('EditorialSticker');
-    }
+    expect(compatibility).toContain('EditorialSticker');
     expect(natal).toContain('editorialSticker={natalSticker}');
     for (const source of [matrix, onboarding]) {
       expect(source).not.toContain('selectPersonalEditorialAsset');
@@ -131,7 +131,7 @@ describe('separated editorial asset system', () => {
     }
   });
 
-  it('keeps editorial stickers mobile-sized and renders them as restrained accents', () => {
+  it('keeps editorial stickers mobile-sized for screens that still use them', () => {
     const component = read('components/EditorialSticker.tsx');
     const styles = read('styles/newspaperVisual.css');
 

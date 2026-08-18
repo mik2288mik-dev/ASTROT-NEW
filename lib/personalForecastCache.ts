@@ -22,7 +22,7 @@ import { db } from './db';
 import { OPENAI_LUNA_MODEL } from './openai-models';
 
 const CANONICAL_CACHE_TIER = 'premium' as const;
-const PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT = 'few-shot-v1' as const;
+const PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT = 'gold-examples-v4' as const;
 
 const VARIANT_BY_PERIOD = {
   day: 'daily',

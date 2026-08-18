@@ -17,7 +17,7 @@ describe('direct personal horoscope Luna architecture', () => {
     expect(exists('components/PersonalForecastFeed/ForecastQuestions.tsx')).toBe(false);
   });
 
-  it('passes the profile, date window and previous 15 full forecasts without keyword memory', () => {
+  it('passes profile and period context while keeping anti-repeat history on the current prompt version', () => {
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
     const cache = read('lib/personalForecastCache.ts');
     const history = read('lib/aiPersonalHoroscopeHistory.ts');
@@ -25,8 +25,10 @@ describe('direct personal horoscope Luna architecture', () => {
 
     expect(voice).toContain('buildAiPersonalHoroscopeProfileSnapshot');
     expect(voice).toContain('previousForecasts');
+    expect(voice).toContain('.slice(0, 8)');
     expect(cache).toContain('loadPreviousAiPersonalHoroscopes(identity.userId, 15)');
-    expect(history).toContain("LIMIT $2");
+    expect(history).toContain('AND prompt_version = $2');
+    expect(history).toContain('LIMIT $3');
     expect(history).toContain("content_variant IN ('daily', 'weekly', 'monthly')");
     expect(voice).not.toContain('themeKeywords');
     expect(voice).not.toContain('adviceKeywords');
@@ -42,7 +44,7 @@ describe('direct personal horoscope Luna architecture', () => {
     const responses = read('lib/openaiResponses.ts');
 
     expect(generation).toContain('createLunaStructuredResponse');
-    expect(generation).toContain('readAiPersonalHoroscopePayload');
+    expect(generation).toContain('readAiPersonalHoroscopePayload(parsed, input.period)');
     expect(voice).toContain("required: ['opening', 'forecast', 'advice']");
     expect(voice).toContain('minItems: 2');
     expect(voice).toContain('maxItems: 3');
@@ -50,31 +52,36 @@ describe('direct personal horoscope Luna architecture', () => {
     expect(responses).toContain('strict: true');
   });
 
-  it('keeps a lean human voice prompt and period-specific real-shaped few-shot examples', () => {
+  it('uses a lean example-led voice prompt and a large Russian gold corpus', () => {
     const voice = read('lib/aiPersonalHoroscopeVoice.ts');
     const fewShot = read('lib/aiPersonalHoroscopeFewShot.ts');
     const generation = read('lib/aiPersonalHoroscopeGeneration.ts');
 
-    expect(voice).toContain('один узнаваемый живой человек');
-    expect(voice).toContain('Дерзость живёт в формулировке, а не в вечном негативе');
-    expect(voice).toContain('opening — это заход, а не краткий пересказ периода');
-    expect(voice).toContain('Никогда не используй пренебрежительное «Ну привет»');
-    expect(voice).toContain('Не своди текст по умолчанию к работе, делам, планам');
-    expect(voice).toContain('Никакого психологического, терапевтического, мотивационного или псевдокоучингового тона');
-    expect(voice).toContain('forecast — 2–3 коротких предложения');
-    expect(voice).toContain('forecast — 3–5 коротких предложений');
-    expect(voice).toContain('forecast — 4–6 коротких предложений');
+    expect(voice).toContain('настоящего личного гороскопа-прогноза');
+    expect(voice).toContain('простыми разговорными словами, прямо, точно, уверенно и с характером');
+    expect(voice).toContain('opening — отдельная короткая ударная реплика');
+    expect(voice).toContain('нет астрологических терминов и объяснений, психологии, терапии, self-help, коучинга, псевдокоучинга');
+    expect(voice).toContain('forecast: ровно 2 предложения');
+    expect(voice).toContain('forecast: ровно 3 предложения');
+    expect(voice).toContain('forecast: ровно 4 предложения');
     expect(voice).toContain('buildAiPersonalHoroscopeFewShotBlock');
-    expect(fewShot).toContain('FEW-SHOT ПРИМЕРЫ');
+    expect(fewShot).toContain('ЭТАЛОННЫЕ ПРИМЕРЫ');
     expect(fewShot).toContain("'INPUT'");
     expect(fewShot).toContain("'OUTPUT'");
-    expect(fewShot).toContain('Артём, сегодня тебе идёт быть заметным');
-    expect(fewShot).toContain('Хорошая компания, вкусная еда и немного денег на глупости');
-    expect(voice).not.toContain('RU_EMPTY_CLICHES');
-    expect(voice).not.toContain('ASTROLOGY_OR_ESOTERICISM');
-    expect(voice).not.toContain('MANAGER_WORD_PATTERN');
-    expect(generation).not.toContain('validationErrors');
+    expect(fewShot).toContain('Скука сегодня идёт мимо');
+    expect(fewShot).toContain('Фотографий станет заметно больше');
+    expect((fewShot.match(/language: 'ru', period: '(?:day|week|month)'/gu) || []).length).toBe(21);
+    expect(generation).toContain("if (period === 'day') return 1_200");
     expect(generation).not.toContain('repairHints');
+  });
+
+  it('bumps the direct prompt contract so old cached copy is not reused', () => {
+    const contract = read('lib/aiPersonalHoroscope.ts');
+
+    expect(contract).toContain("AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v6'");
+    expect(contract).toContain("AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.gold-examples.v4'");
+    expect(contract).toContain("AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-direct-v4'");
+    expect(contract).toContain("AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-history-current-v4'");
   });
 
   it('starts missing forecasts in the background after the first foreground load', () => {

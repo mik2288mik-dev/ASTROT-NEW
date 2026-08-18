@@ -1,7 +1,8 @@
 import { getPool } from './db';
-import type {
-  AiPersonalHoroscopeHistoryItem,
-  AiPersonalHoroscopePeriod,
+import {
+  AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
+  type AiPersonalHoroscopeHistoryItem,
+  type AiPersonalHoroscopePeriod,
 } from './aiPersonalHoroscope';
 
 function readObject(value: unknown): Record<string, unknown> | null {
@@ -66,9 +67,10 @@ export async function loadPreviousAiPersonalHoroscopes(
          AND content_surface = 'forecast'
          AND content_variant IN ('daily', 'weekly', 'monthly')
          AND chart_id IS NULL
+         AND prompt_version = $2
        ORDER BY updated_at DESC
-       LIMIT $2`,
-      [String(userId), safeLimit],
+       LIMIT $3`,
+      [String(userId), AI_PERSONAL_HOROSCOPE_PROMPT_VERSION, safeLimit],
     );
     return result.rows
       .map((row: { content?: unknown }) => readHistoryItem(row.content))

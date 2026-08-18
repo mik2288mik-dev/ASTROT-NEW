@@ -49,21 +49,21 @@ const previousForecasts: AiPersonalHoroscopeHistoryItem[] = Array.from(
 
 function validPayload() {
   return {
-    opening: 'Михаил, хорошие новости: сегодня мир не требует от тебя подвига.',
-    forecast: 'День подходит для спокойного удовольствия от привычных вещей. Поесть вкусно, куда-нибудь выбраться, увидеться с приятным человеком, купить мелочь, которая давно нравилась, — всё это сегодня заходит особенно хорошо.',
+    opening: 'Михаил, харизму не прячь.',
+    forecast: 'Внимания вокруг тебя сегодня больше, и оно скорее приятное: люди охотнее поддерживают разговор, а симпатия считывается без долгих расшифровок. Хорошо заходят встречи, лёгкий флирт и всё, где можно быть собой без серьёзного лица.',
     advice: [
-      'Никакой драмы. Просто хороший человеческий день.',
-      'Потрать его хотя бы частично на себя, а не только на полезное.',
+      'Тебя сегодня замечают.',
+      'Улыбнуться в ответ — вполне рабочая стратегия.',
     ],
   };
 }
 
-describe('human voice few-shot personal horoscope prompt', () => {
+describe('gold-example personal horoscope prompt', () => {
   beforeEach(() => {
     mockedLuna.mockReset();
   });
 
-  it('passes real-shaped INPUT -> OUTPUT demonstrations before private context', () => {
+  it('puts production-shaped INPUT -> OUTPUT demonstrations before private input', () => {
     const prompt = buildAiPersonalHoroscopePrompt({
       language: 'ru',
       period: 'day',
@@ -72,21 +72,19 @@ describe('human voice few-shot personal horoscope prompt', () => {
       previousForecasts,
     });
 
-    expect(prompt).toContain('FEW-SHOT ПРИМЕРЫ');
+    expect(prompt).toContain('ЭТАЛОННЫЕ ПРИМЕРЫ');
     expect(prompt).toContain('EXAMPLE 1');
     expect(prompt).toContain('INPUT');
     expect(prompt).toContain('OUTPUT');
-    expect(prompt).not.toContain('cue:');
-    expect((prompt.match(/EXAMPLE \d+/gu) || []).length).toBe(5);
-    expect(prompt.indexOf('FEW-SHOT ПРИМЕРЫ')).toBeLessThan(prompt.indexOf('PRIVATE CONTEXT'));
-    expect(prompt).toContain('"name": "Артём"');
-    expect(prompt).toContain('Артём, сегодня тебе идёт быть заметным');
+    expect((prompt.match(/EXAMPLE \d+/gu) || []).length).toBe(4);
+    expect(prompt.indexOf('ЭТАЛОННЫЕ ПРИМЕРЫ')).toBeLessThan(prompt.indexOf('PRIVATE INPUT'));
     expect(prompt).toContain('"name": "Михаил"');
     expect(prompt).toContain('"birthDate": "1989-03-06"');
     expect(prompt).toContain('"birthTime": "23:15"');
     expect(prompt).toContain('"birthPlace": "Сергиев Посад"');
     expect(prompt).toContain('"previousForecasts"');
-    expect(prompt).toContain('"forecast": "Прогноз 15"');
+    expect(prompt).toContain('"forecast": "Прогноз 8"');
+    expect(prompt).not.toContain('"forecast": "Прогноз 9"');
     expect(prompt).not.toContain('editorial_brief');
     expect(prompt).not.toContain('themeKeywords');
     expect(prompt).not.toContain('repairHints');
@@ -94,30 +92,24 @@ describe('human voice few-shot personal horoscope prompt', () => {
     expect(prompt).not.toContain('transits');
   });
 
-  it('uses five different Russian examples for each period', () => {
+  it('keeps a 21-example Russian gold corpus while sending only four examples per request', () => {
+    const source = fs.readFileSync(
+      path.join(ROOT, 'lib/aiPersonalHoroscopeFewShot.ts'),
+      'utf8',
+    );
+    expect((source.match(/language: 'ru', period: '(?:day|week|month)'/gu) || []).length).toBe(21);
+
     const weekWindow = resolveAiPersonalHoroscopeWindow('week', '2026-W33', 'Europe/Moscow');
     const monthWindow = resolveAiPersonalHoroscopeWindow('month', '2026-08', 'Europe/Moscow');
     const weekPrompt = buildAiPersonalHoroscopePrompt({
-      language: 'ru',
-      period: 'week',
-      window: weekWindow,
-      profile,
-      previousForecasts,
+      language: 'ru', period: 'week', window: weekWindow, profile, previousForecasts,
     });
     const monthPrompt = buildAiPersonalHoroscopePrompt({
-      language: 'ru',
-      period: 'month',
-      window: monthWindow,
-      profile,
-      previousForecasts,
+      language: 'ru', period: 'month', window: monthWindow, profile, previousForecasts,
     });
 
-    expect((weekPrompt.match(/EXAMPLE \d+/gu) || []).length).toBe(5);
-    expect((monthPrompt.match(/EXAMPLE \d+/gu) || []).length).toBe(5);
-    expect(weekPrompt).toContain('Похоже, у тебя намечается неделя с хорошим вкусом');
-    expect(weekPrompt).toContain('Неожиданный поворот: привычное вдруг начинает нравиться снова');
-    expect(monthPrompt).toContain('фотографий в телефоне станет больше');
-    expect(monthPrompt).toContain('Хорошая компания, вкусная еда и немного денег на глупости');
+    expect((weekPrompt.match(/EXAMPLE \d+/gu) || []).length).toBe(4);
+    expect((monthPrompt.match(/EXAMPLE \d+/gu) || []).length).toBe(4);
   });
 
   it('keeps only opening, forecast and 2-3 closing lines in strict JSON', () => {
@@ -135,51 +127,37 @@ describe('human voice few-shot personal horoscope prompt', () => {
     expect(AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA.additionalProperties).toBe(false);
   });
 
-  it('defines the human voice, non-template opening and period-specific size', () => {
+  it('defines the direct human voice and exact period-specific size', () => {
     const dayPrompt = getAiPersonalHoroscopeSystemPrompt('ru', 'day');
     const weekPrompt = getAiPersonalHoroscopeSystemPrompt('ru', 'week');
     const monthPrompt = getAiPersonalHoroscopeSystemPrompt('ru', 'month');
 
-    expect(dayPrompt).toContain('один узнаваемый живой человек');
-    expect(dayPrompt).toContain('Дерзость живёт в формулировке, а не в вечном негативе');
-    expect(dayPrompt).toContain('Хороший период может быть просто хорошим');
-    expect(dayPrompt).toContain('opening — это заход, а не краткий пересказ периода');
-    expect(dayPrompt).toContain('Никогда не используй пренебрежительное «Ну привет»');
-    expect(dayPrompt).toContain('Не своди текст по умолчанию к работе, делам, планам');
-    expect(dayPrompt).toContain('Никакого психологического, терапевтического, мотивационного или псевдокоучингового тона');
-    expect(dayPrompt).toContain('forecast — 2–3 коротких предложения');
-    expect(dayPrompt).toContain('advice — ровно 2 финальные строки');
-    expect(weekPrompt).toContain('forecast — 3–5 коротких предложений');
-    expect(weekPrompt).toContain('advice — ровно 3 финальные строки');
-    expect(monthPrompt).toContain('forecast — 4–6 коротких предложений');
-    expect(monthPrompt).toContain('advice — ровно 3 финальные строки');
-    expect(dayPrompt).not.toContain('ты психолог');
+    expect(dayPrompt).toContain('настоящего личного гороскопа-прогноза');
+    expect(dayPrompt).toContain('простыми разговорными словами, прямо, точно, уверенно и с характером');
+    expect(dayPrompt).toContain('opening — отдельная короткая ударная реплика');
+    expect(dayPrompt).toContain('нет астрологических терминов и объяснений, психологии, терапии, self-help, коучинга, псевдокоучинга');
+    expect(dayPrompt).toContain('forecast: ровно 2 предложения');
+    expect(dayPrompt).toContain('advice: ровно 2 короткие финальные реплики');
+    expect(weekPrompt).toContain('forecast: ровно 3 предложения');
+    expect(weekPrompt).toContain('advice: ровно 3 короткие финальные реплики');
+    expect(monthPrompt).toContain('forecast: ровно 4 предложения');
+    expect(monthPrompt).toContain('advice: ровно 3 короткие финальные реплики');
     expect(dayPrompt).not.toContain('FEW-SHOT ПРИМЕРЫ');
-
-    const voiceSource = fs.readFileSync(
-      path.join(ROOT, 'lib/aiPersonalHoroscopeVoice.ts'),
-      'utf8',
-    );
-    expect(voiceSource).not.toContain('RU_EMPTY_CLICHES');
-    expect(voiceSource).not.toContain('ASTROLOGY_OR_ESOTERICISM');
-    expect(voiceSource).not.toContain('TIME_SHIFT_PATTERNS');
-    expect(voiceSource).not.toContain('MANAGER_WORD_PATTERN');
   });
 
-  it('accepts either two or three closing lines without an editorial filter', () => {
-    expect(readAiPersonalHoroscopePayload(validPayload())).toEqual(validPayload());
-    const withThree = {
+  it('accepts the target Today shape and rejects a long two-sentence opening', () => {
+    expect(readAiPersonalHoroscopePayload(validPayload(), 'day')).toEqual(validPayload());
+    expect(readAiPersonalHoroscopePayload({
       ...validPayload(),
-      advice: [...validPayload().advice, 'Иногда второй заход оказывается лучше первого.'],
-    };
-    expect(readAiPersonalHoroscopePayload(withThree)).toEqual(withThree);
+      opening: 'Сегодня всё будет складываться очень хорошо. Это точно стоит использовать.',
+    }, 'day')).toBeNull();
   });
 
-  it('returns the first complete structured Luna answer unchanged', async () => {
+  it('returns a concise complete Luna answer unchanged', async () => {
     mockedLuna.mockResolvedValueOnce({
       content: JSON.stringify(validPayload()),
       inputTokens: 500,
-      outputTokens: 220,
+      outputTokens: 120,
     });
 
     const horoscope = await generateAiPersonalHoroscopePackage({
@@ -192,17 +170,25 @@ describe('human voice few-shot personal horoscope prompt', () => {
     expect(horoscope.reading).toEqual(validPayload());
     expect(horoscope.meta.generationAttempts).toBe(1);
     expect(mockedLuna).toHaveBeenCalledTimes(1);
-    expect(mockedLuna.mock.calls[0][0].input).toContain('FEW-SHOT ПРИМЕРЫ');
+    expect(mockedLuna.mock.calls[0][0].input).toContain('ЭТАЛОННЫЕ ПРИМЕРЫ');
     expect(mockedLuna.mock.calls[0][0].input).toContain('"previousForecasts"');
+    expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(1_200);
   });
 
-  it('retries only a technically incomplete provider response', async () => {
+  it('retries a structurally verbose draft and accepts the corrected one', async () => {
     mockedLuna
-      .mockRejectedValueOnce(new Error('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens'))
+      .mockResolvedValueOnce({
+        content: JSON.stringify({
+          ...validPayload(),
+          opening: 'Сегодня всё будет складываться очень хорошо. Это точно стоит использовать.',
+        }),
+        inputTokens: 430,
+        outputTokens: 170,
+      })
       .mockResolvedValueOnce({
         content: JSON.stringify(validPayload()),
         inputTokens: 430,
-        outputTokens: 200,
+        outputTokens: 120,
       });
 
     const horoscope = await generateAiPersonalHoroscopePackage({
@@ -214,6 +200,5 @@ describe('human voice few-shot personal horoscope prompt', () => {
 
     expect(horoscope.meta.generationAttempts).toBe(2);
     expect(mockedLuna).toHaveBeenCalledTimes(2);
-    expect(mockedLuna.mock.calls[0][0].input).toBe(mockedLuna.mock.calls[1][0].input);
   });
 });
