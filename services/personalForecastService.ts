@@ -51,8 +51,9 @@ type ResolvedPersonalHoroscopeRequest = {
   timezone: string;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v5';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-v6';
 const ALL_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:ai-personal-horoscope-';
+const CLIENT_PROMPT_VARIANT = 'few-shot-v2';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 const startupPrewarmInFlight = new Map<string, Promise<void>>();
@@ -70,6 +71,7 @@ function contextKey(input: {
 }): string {
   return [
     AI_PERSONAL_HOROSCOPE_VERSION,
+    CLIENT_PROMPT_VARIANT,
     userId(input.profile),
     buildAiPersonalHoroscopeProfileFingerprint(input.profile),
     input.period,
