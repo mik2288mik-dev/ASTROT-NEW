@@ -63,7 +63,7 @@ describe('exact user personal horoscope prompt', () => {
     mockedLuna.mockReset();
   });
 
-  it('passes birth data, current period and the previous 15 full forecasts', () => {
+  it('passes birth data, current period, few-shot style examples and the previous 15 full forecasts', () => {
     const prompt = buildAiPersonalHoroscopePrompt({
       language: 'ru',
       period: 'day',
@@ -72,6 +72,11 @@ describe('exact user personal horoscope prompt', () => {
       previousForecasts,
     });
 
+    expect(prompt).toContain('ПРИМЕРЫ СТИЛЯ');
+    expect(prompt).toContain('EXAMPLE 1');
+    expect(prompt).toContain('cue:');
+    expect(prompt).toContain('output:');
+    expect(prompt.indexOf('ПРИМЕРЫ СТИЛЯ')).toBeLessThan(prompt.indexOf('PRIVATE CONTEXT'));
     expect(prompt).toContain('"name": "Михаил"');
     expect(prompt).toContain('"birthDate": "1989-03-06"');
     expect(prompt).toContain('"birthTime": "23:15"');
@@ -100,16 +105,16 @@ describe('exact user personal horoscope prompt', () => {
     expect(AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA.additionalProperties).toBe(false);
   });
 
-  it('uses the exact requested voice instructions without examples or hidden editorial rules', () => {
+  it('keeps role and hard product rules lean while few-shot examples live in the user input', () => {
     const prompt = getAiPersonalHoroscopeSystemPrompt('ru', 'day');
     expect(prompt).toContain('Ты АСТРОЛОГ');
-    expect(prompt).toContain('предыдущие 15 прогнозов');
-    expect(prompt).toContain('Без «выдохни», «отпусти», «позволь себе», «не торопись», «не распыляйся»');
-    expect(prompt).toContain('opening — 1–2 предложения');
-    expect(prompt).toContain('forecast — 3–6 предложений');
+    expect(prompt).toContain('Не учи человека жить');
+    expect(prompt).toContain('opening — 1 короткое предложение');
+    expect(prompt).toContain('forecast — 1–2 коротких предложения');
     expect(prompt).toContain('advice — 2–3');
     expect(prompt).toContain('родителей');
-    expect(prompt).not.toContain('ПРИМЕРЫ РИТМА');
+    expect(prompt).not.toContain('ты психолог');
+    expect(prompt).not.toContain('ПРИМЕРЫ СТИЛЯ');
     expect(prompt).not.toContain('главная линия');
     expect(prompt).not.toContain('реальный контраст');
 
@@ -149,6 +154,7 @@ describe('exact user personal horoscope prompt', () => {
     expect(horoscope.reading).toEqual(validPayload());
     expect(horoscope.meta.generationAttempts).toBe(1);
     expect(mockedLuna).toHaveBeenCalledTimes(1);
+    expect(mockedLuna.mock.calls[0][0].input).toContain('ПРИМЕРЫ СТИЛЯ');
     expect(mockedLuna.mock.calls[0][0].input).toContain('"previousForecasts"');
   });
 
