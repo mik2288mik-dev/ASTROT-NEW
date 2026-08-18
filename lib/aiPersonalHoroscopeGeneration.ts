@@ -39,9 +39,9 @@ export type AiPersonalHoroscopeGenerationMetrics = {
 };
 
 function maxOutputTokens(period: AiPersonalHoroscopePeriod): number {
-  if (period === 'day') return 2_000;
-  if (period === 'week') return 2_600;
-  return 3_200;
+  if (period === 'day') return 1_200;
+  if (period === 'week') return 1_600;
+  return 2_000;
 }
 
 function buildPackage(input: {
@@ -123,7 +123,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
         continue;
       }
 
-      const reading = readAiPersonalHoroscopePayload(parsed);
+      const reading = readAiPersonalHoroscopePayload(parsed, input.period);
       input.onMetrics?.({
         model: OPENAI_LUNA_MODEL,
         inputTokens: response.inputTokens,
