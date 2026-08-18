@@ -7,6 +7,10 @@ import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import {
   formatDisplayDate,
+  formatMonthPretty,
+  formatWeekRangePretty,
+  getMoscowIsoWeekKey,
+  getMoscowMonthKey,
   getMoscowTodayKey,
 } from '../../lib/date-utils';
 import { getHoroscopeEngagementDateKey } from '../../lib/horoscope/signEngagement';
@@ -15,19 +19,27 @@ import { shareToTelegram } from '../../lib/botLink';
 import { APPROXIMATE_SUN_SIGN_DATES } from '../../lib/zodiac-utils';
 import {
   ensureDailySignHoroscope,
+  ensureMonthlySignHoroscope,
+  ensureWeeklySignHoroscope,
   getCachedDailySignHoroscope,
+  getCachedMonthlySignHoroscope,
+  getCachedWeeklySignHoroscope,
   prefetchSignHoroscopePeriod,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
-import { ZodiacSignGrid } from '../../components/fresh-ui';
-import { EditorialSticker } from '../../components/EditorialSticker';
+import { FreshTabs, ZodiacSignGrid } from '../../components/fresh-ui';
 import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
-import { selectZodiacLegacyAsset } from '../../lib/zodiacLegacyVisuals';
 
-type Period = 'today';
+type Period = 'today' | 'week' | 'month';
 
-function formatHoroscopePeriodDate(periodKey: string, language: 'ru' | 'en'): string {
+function formatHoroscopePeriodDate(
+  period: Period,
+  periodKey: string,
+  language: 'ru' | 'en',
+): string {
+  if (period === 'week') return formatWeekRangePretty(periodKey, language);
+  if (period === 'month') return formatMonthPretty(periodKey, language);
   return formatDisplayDate(periodKey, language);
 }
 
@@ -66,6 +78,7 @@ export type HoroscopeReaderProps = {
 export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
+  const [period, setPeriod] = useState<Period>('today');
   const reduceMotion = useReducedMotion();
   const readingAnchorRef = useRef<HTMLDivElement | null>(null);
   const pendingReadingScrollRef = useRef<ZodiacKey | null>(null);
@@ -82,7 +95,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
   }, [ownSign]);
 
   const [signIndex, setSignIndex] = useState(initialIndex);
-  const period: Period = 'today';
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null>>({});
   const [loadRevision, setLoadRevision] = useState(0);
   const [lastReadyReading, setLastReadyReading] = useState<ReadyReadingSnapshot | null>(null);
@@ -105,8 +117,16 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
     };
   }, []);
 
+  const periodTabs = useMemo(() => ([
+    { id: 'today', label: language === 'ru' ? 'Сегодня' : 'Today' },
+    { id: 'week', label: language === 'ru' ? 'Неделя' : 'Week' },
+    { id: 'month', label: language === 'ru' ? 'Месяц' : 'Month' },
+  ]), [language]);
+
+  const weekKey = useMemo(() => getMoscowIsoWeekKey(), [today]);
+  const monthKey = useMemo(() => getMoscowMonthKey(), [today]);
   const sign = ZODIAC_KEYS[signIndex] as ZodiacKey;
-  const periodKey = today;
+  const periodKey = period === 'week' ? weekKey : period === 'month' ? monthKey : today;
   const readingKey = `${sign.toLowerCase()}|${period}|${periodKey}|${language}`;
   const localReading = useMemo(
     () => readLocalSignHoroscope(period, sign, periodKey, language),
@@ -121,10 +141,10 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
   }, [period, periodKey, reading, readingKey, sign]);
 
   const displayed = reading
-      ? { key: readingKey, reading, sign, period, periodKey }
-      : lastReadyReading?.key === readingKey
-        ? lastReadyReading
-        : null;
+    ? { key: readingKey, reading, sign, period, periodKey }
+    : lastReadyReading?.key === readingKey
+      ? lastReadyReading
+      : null;
 
   useEffect(() => {
     let active = true;
@@ -141,11 +161,20 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
     };
     const load = async () => {
       try {
-        const cachedReading = await getCachedDailySignHoroscope(sign, periodKey, language);
+        const cachedReading = period === 'week'
+          ? await getCachedWeeklySignHoroscope(sign, periodKey, language)
+          : period === 'month'
+            ? await getCachedMonthlySignHoroscope(sign, periodKey, language)
+            : await getCachedDailySignHoroscope(sign, periodKey, language);
         if (active && cachedReading) {
           setReadings((current) => ({ ...current, [readingKey]: cachedReading }));
         }
-        const selectedReading = await ensureDailySignHoroscope(sign, periodKey, language);
+
+        const selectedReading = period === 'week'
+          ? await ensureWeeklySignHoroscope(sign, periodKey, language)
+          : period === 'month'
+            ? await ensureMonthlySignHoroscope(sign, periodKey, language)
+            : await ensureDailySignHoroscope(sign, periodKey, language);
         if (active) setReadings((current) => ({ ...current, [readingKey]: selectedReading }));
       } catch {
         if (active && !readLocalSignHoroscope(period, sign, periodKey, language)) {
@@ -197,6 +226,13 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
     window.requestAnimationFrame(scrollForecastToTop);
   };
 
+  const choosePeriod = (next: string) => {
+    if (next !== 'today' && next !== 'week' && next !== 'month') return;
+    lumiaSelectionHaptic();
+    setPeriod(next);
+    window.requestAnimationFrame(scrollForecastToTop);
+  };
+
   const retryCurrent = () => {
     lumiaSelectionHaptic();
     setReadings((current) => {
@@ -213,13 +249,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
   const displayedPeriodKey = displayedReading?.periodKey ?? periodKey;
   const displayedSignLabel = getZodiacSign(language, displayedSign);
   const displayedSignDateRange = formatZodiacDateRange(displayedSign, language);
-  const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriodKey, language);
+  const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
   const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
-  const zodiacLegacyAsset = useMemo(() => selectZodiacLegacyAsset({
-    sign: displayedSign,
-    contentKey: `${displayedPeriod}|${displayedPeriodKey}`,
-    userId: profile.id ? String(profile.id) : undefined,
-  }), [displayedPeriod, displayedPeriodKey, displayedSign, profile.id]);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
   const readingSettledForScroll = hasReadingFailure || Boolean(displayedReading);
 
@@ -235,6 +266,13 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
   return (
     <div className="fresh-page horo-reader-page">
       <AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'} />
+
+      <FreshTabs
+        tabs={periodTabs}
+        activeTab={period}
+        onTabChange={choosePeriod}
+        className="horo-reader-period-tabs"
+      />
 
       <header className="horo-reader-heading">
         <p className="horo-reader-period-date">{displayedPeriodDate}</p>
@@ -280,13 +318,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
                 <div className="horo-sign-story">
                   <p>{displayedReading.text}</p>
                 </div>
-
-                {zodiacLegacyAsset ? (
-                  <EditorialSticker
-                    asset={zodiacLegacyAsset}
-                    className="horo-zodiac-sticker--inline"
-                  />
-                ) : null}
 
                 <HoroscopeActivityBar
                   userId={profile.id ? String(profile.id) : undefined}
