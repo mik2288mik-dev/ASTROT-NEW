@@ -10,7 +10,7 @@ import {
 import { buildAiPersonalHoroscopeFewShotBlock } from './aiPersonalHoroscopeFewShot';
 import type { StrictJsonSchema } from './openaiResponses';
 
-export const AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME = 'ai_personal_horoscope_direct_v3';
+export const AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME = 'ai_personal_horoscope_direct_v4';
 
 export const AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -40,119 +40,122 @@ export type ParsedHoroscope = {
   advice: string[];
 };
 
-function periodName(period: AiPersonalHoroscopePeriod, language: 'ru' | 'en'): string {
-  if (language === 'en') return period === 'day' ? 'day' : period === 'week' ? 'week' : 'month';
-  return period === 'day' ? 'день' : period === 'week' ? 'неделю' : 'месяц';
+type Language = 'ru' | 'en';
+
+type OutputLimits = {
+  openingMaxWords: number;
+  openingMaxChars: number;
+  forecastMinWords: number;
+  forecastMaxWords: number;
+  adviceMinItems: number;
+  adviceMaxItems: number;
+  adviceMaxWords: number;
+};
+
+const LIMITS: Record<AiPersonalHoroscopePeriod, OutputLimits> = {
+  day: {
+    openingMaxWords: 10,
+    openingMaxChars: 90,
+    forecastMinWords: 20,
+    forecastMaxWords: 55,
+    adviceMinItems: 2,
+    adviceMaxItems: 2,
+    adviceMaxWords: 14,
+  },
+  week: {
+    openingMaxWords: 10,
+    openingMaxChars: 90,
+    forecastMinWords: 45,
+    forecastMaxWords: 90,
+    adviceMinItems: 2,
+    adviceMaxItems: 3,
+    adviceMaxWords: 16,
+  },
+  month: {
+    openingMaxWords: 10,
+    openingMaxChars: 90,
+    forecastMinWords: 75,
+    forecastMaxWords: 130,
+    adviceMinItems: 3,
+    adviceMaxItems: 3,
+    adviceMaxWords: 18,
+  },
+};
+
+const RU_STYLE_LEAKS: readonly RegExp[] = [
+  /(?:^|[^а-яё])период(?:а|е|ом|ы)?(?![а-яё])/iu,
+  /располага(?:ет|ют|ла|ло|ли)/iu,
+  /полезно\s+(?:сделать|решить|выбрать|проверить|сосредоточиться|обратить)/iu,
+  /(?:осознанност|проработ|ресурс|заземл|внутренн(?:яя|ий)\s+(?:опора|ясность)|прислуша\w*\s+к\s+себе|позволь\w*\s+себе)/iu,
+  /(?:астролог|натальн|транзит|аспект|асцендент|ретроград|зодиак|зв[её]зд)/iu,
+];
+
+const EN_STYLE_LEAKS: readonly RegExp[] = [
+  /\b(?:period|astrolog|natal|transit|aspect|zodiac|retrograde)\w*\b/iu,
+  /\b(?:inner clarity|inner support|allow yourself|listen to yourself|work through|your resource)\b/iu,
+];
+
+function wordCount(value: string): number {
+  return value.trim().split(/\s+/u).filter(Boolean).length;
 }
 
-function outputGuide(
-  period: AiPersonalHoroscopePeriod,
-  language: 'ru' | 'en',
-): string {
+function periodName(period: AiPersonalHoroscopePeriod, language: Language): string {
+  if (language === 'en') return period === 'day' ? 'today' : period === 'week' ? 'the week' : 'the month';
+  return period === 'day' ? 'сегодня' : period === 'week' ? 'неделю' : 'месяц';
+}
+
+function outputContract(period: AiPersonalHoroscopePeriod, language: Language): string {
   if (language === 'en') {
     if (period === 'day') {
-      return `1. opening — 1 short hook.
-2. forecast — 2–3 concise sentences.
-3. advice — exactly 2 closing lines: first a conclusion, then a practical human suggestion.`;
+      return `opening: one sharp hook, 3–10 words.\nforecast: 20–55 words, about two concise sentences.\nadvice: exactly 2 short closing lines.`;
     }
     if (period === 'week') {
-      return `1. opening — 1 short hook.
-2. forecast — 3–5 concise sentences, broader than Today.
-3. advice — exactly 3 closing lines: conclusion, practical suggestion, final human remark.`;
+      return `opening: one sharp hook, 3–10 words.\nforecast: 45–90 words, broader than Today.\nadvice: 2–3 short closing lines.`;
     }
-    return `1. opening — 1 short hook.
-2. forecast — 4–6 concise sentences, broad enough to feel like a month rather than an expanded Today.
-3. advice — exactly 3 closing lines: conclusion, practical suggestion, final thought.`;
+    return `opening: one sharp hook, 3–10 words.\nforecast: 75–130 words, broad enough to feel like a whole month.\nadvice: exactly 3 short closing lines.`;
   }
 
   if (period === 'day') {
-    return `1. opening — 1 короткий заход.
-2. forecast — 2–3 коротких предложения.
-3. advice — ровно 2 финальные строки: сначала вывод, затем конкретный человеческий совет.`;
+    return `opening: одна короткая ударная фраза, 3–10 слов.\nforecast: 20–55 слов, примерно 2 коротких предложения.\nadvice: ровно 2 короткие финальные строки.`;
   }
   if (period === 'week') {
-    return `1. opening — 1 короткий заход.
-2. forecast — 3–5 коротких предложений, заметно шире Today.
-3. advice — ровно 3 финальные строки: вывод, конкретный совет, ещё одна живая финальная реплика.`;
+    return `opening: одна короткая ударная фраза, 3–10 слов.\nforecast: 45–90 слов, заметно шире Today.\nadvice: 2–3 короткие финальные строки.`;
   }
-  return `1. opening — 1 короткий заход.
-2. forecast — 4–6 коротких предложений, шире недели и с ощущением целого месяца.
-3. advice — ровно 3 финальные строки: вывод, конкретный совет, финальная мысль без морализаторства.`;
+  return `opening: одна короткая ударная фраза, 3–10 слов.\nforecast: 75–130 слов, ощутимо шире недели и про месяц целиком.\nadvice: ровно 3 короткие финальные строки.`;
 }
 
 export function getAiPersonalHoroscopeSystemPrompt(
-  language: 'ru' | 'en',
+  language: Language,
   period: AiPersonalHoroscopePeriod,
 ): string {
   if (language === 'en') {
-    return `You write a personal horoscope-style forecast for the user's ${periodName(period, language)}.
-
-You know the user's name, birth date, birth time, birth place, current period, and up to 15 previous forecasts. Use the private context to create the forecast. Do not expose astrology, calculations, or reasoning in the visible text.
-
-VOICE
-Sound like one recognizable human writer, not a template. Direct, precise, conversational, confident, occasionally cheeky or funny, always respectful. Sharpness is in phrasing, not hostility. A positive period is allowed to be simply positive; never invent a problem to make the text feel deep. A difficult period can still sound proportionate and supportive rather than bleak.
-
-THE OPENING
-The opening is a hook, not a summary of the period. It may be a pointed observation, a playful line, a question, a name, an occasional greeting, or a clean statement. Vary it naturally. Do not mechanically begin with “Today…”, “This week…”, or “This month…”. Do not force the name, a greeting, a joke, or a jab every time. Never use a dismissive greeting such as “Well, hi”.
-
-THE FORECAST
-Write about life broadly, not a task manager. Do not default to work, tasks, plans, productivity, or problems. Depending on the actual forecast, life may include people, attraction, friends, home, money, purchases, leisure, food, places, travel, appearance, interests, rest, curiosity, luck, ordinary pleasure, or a mix of these. Do not mechanically cycle through categories.
-Do not split the forecast into morning/day/evening or other timeline segments unless a transition is genuinely natural. Do not put explicit calendar dates in the visible text.
-Previous forecasts are anti-repeat context: avoid the same opening construction, joke, central situation, advice, and rhythm. Repetition is allowed only when it sounds natural rather than formulaic.
-
-NO COACHING
-No therapy voice, self-help voice, pseudo-psychology, or life lessons. Avoid clichés such as “inner support”, “awareness”, “work through”, “resource”, “boundaries”, “let go”, “listen to yourself”, “allow yourself”, “focus on what matters”, or “do not spread yourself too thin”. Do not turn every forecast into “something is wrong → fix it”.
-
-SAFETY AND TRUTH
-Do not invent biography, diagnoses, treatment, guaranteed events, guaranteed money, or exact actions by other people as facts. Money and purchases may appear as ordinary life themes, but never as financial guarantees or professional financial advice. No insults. No Markdown.
-
-FORMAT
-${outputGuide(period, language)}
-The field named advice is only a transport field for the closing lines; they do not all have to be advice. Do not add labels such as “Conclusion:” or “Advice:”.
-Every field must add new information instead of repeating the same thought.
-
-Return only JSON with opening, forecast, and advice.`;
+    return `IDENTITY\nYou are the author of a personal horoscope in a modern consumer app.\n\nTASK\nWrite the user's horoscope for ${periodName(period, language)} in plain everyday language. The result must feel like a real forecast, not self-help copy. Keep any astrology or internal reasoning invisible.\n\nVOICE TARGET\nHuman, direct, specific, confident. A little cheeky when it fits. Dry humor is welcome when it lands naturally. Warmth and pleasure are allowed; a good forecast may simply be good. Vary rhythm, openings, topics, and sentence construction so consecutive readings do not feel templated.\n\nCONTENT TARGET\nTalk about life, not a task list: people, attraction, friends, money, purchases, home, leisure, food, places, travel, curiosity, luck, ordinary pleasure, changes, or other natural life themes. Use only themes that belong in this reading; never cycle through a checklist. Write predictions as plausible tendencies or possibilities, not guaranteed events.\n\nBOUNDARIES\nVisible copy contains no astrology terminology, therapy language, coaching language, mysticism, diagnoses, or financial promises. It does not lecture the reader or turn the forecast into a lesson. Do not restate the calendar label; the UI already shows it.\n\nOUTPUT CONTRACT\n${outputContract(period, language)}\nEach closing line adds a new thought. No labels such as “Conclusion” or “Advice”. No Markdown. Return only JSON with opening, forecast, and advice.\n\nThe reference examples in the user input are the strongest guide for voice, density, rhythm, and level of specificity.`;
   }
 
-  return `Ты пишешь личный гороскоп-прогноз на ${periodName(period, language)} для пользователя.
+  return `IDENTITY\nТы автор личного гороскопа в современном приложении.\n\nTASK\nНапиши гороскоп пользователя на ${periodName(period, language)} простыми живыми словами. На выходе должен быть именно прогноз, а не мотивационный текст или разбор характера. Астрологию и внутренние рассуждения наружу не показывай.\n\nVOICE TARGET\nЖивой человек. Прямо, точно, уверенно. Где уместно — дерзко, колко или с сухой шуткой, но без хамства. Хороший прогноз может быть просто хорошим: с радостью, симпатией, удачей, удовольствием. Меняй ритм, заходы, темы и конструкцию фраз, чтобы соседние тексты не выглядели серией по шаблону.\n\nCONTENT TARGET\nПиши про жизнь, а не про список задач: люди, симпатия, друзья, деньги, покупки, дом, отдых, еда, места, поездки, интерес, удача, приятные случайности, перемены и другие нормальные жизненные темы. Бери только то, что естественно звучит в конкретном прогнозе; не проходись по сферам по списку. Прогноз формулируй как вероятные тенденции и возможности, без гарантированных событий.\n\nBOUNDARIES\nВ видимом тексте нет астрологических терминов, психологии, психотерапии, коучинга, эзотерики, диагнозов и финансовых обещаний. Текст не воспитывает пользователя и не превращается в жизненный урок. Не пересказывай название периода и даты — они уже показаны интерфейсом.\n\nOUTPUT CONTRACT\n${outputContract(period, language)}\nКаждая финальная строка добавляет новую мысль. Без меток «Вывод», «Совет», «Напоследок». Без Markdown. Верни только JSON с opening, forecast и advice.\n\nЭталонные INPUT → OUTPUT примеры во входе — главный ориентир по голосу, плотности, ритму и уровню конкретики.`;
+}
 
-Ты знаешь имя, дату, время и место рождения, текущий период и до 15 предыдущих прогнозов. По приватному контексту сам формируй прогноз. В видимом тексте не показывай астрологию, расчёты и ход рассуждения.
-
-ГОЛОС
-Пиши как один узнаваемый живой человек, а не как генератор шаблонов. Прямо, точно, разговорно, уверенно, иногда дерзко, колко или смешно — но всегда уважительно. Дерзость живёт в формулировке, а не в вечном негативе. Хороший период может быть просто хорошим: не придумывай обязательную проблему ради «глубины». Сложный период тоже не превращай в мрак — говори по делу и оставляй ощущение нормальной человеческой поддержки.
-
-ЗАХОД
-opening — это заход, а не краткий пересказ периода. Он может быть колким наблюдением, точной фразой, вопросом, шуткой, именем, редким приветствием или спокойным утверждением. Каждый раз выбирай естественно.
-Не начинай механически с «Сегодня будет…», «Неделя будет…», «Этот месяц…», «Период будет…». Не вставляй имя, приветствие, шутку или укол по обязанности. Никогда не используй пренебрежительное «Ну привет».
-
-ПРОГНОЗ
-Пиши про жизнь широко, а не как ежедневник или менеджер задач. Не своди текст по умолчанию к работе, делам, планам, продуктивности, обязанностям и проблемам. В зависимости от самого прогноза в жизни могут быть люди, симпатия, друзья, дом, деньги, покупки, отдых, еда, места, поездки, внешний вид, интересы, любопытство, удача, обычные удовольствия или сочетание нескольких тем. Не проходись механически по списку сфер.
-Не раскладывай период шаблонно на утро/день/вечер или другие временные куски. Временной переход допустим только если звучит естественно. Не пиши конкретные календарные даты внутри видимого текста.
-Предыдущие прогнозы — это anti-repeat контекст. Не повторяй механически конструкцию захода, одну и ту же шутку, центральную ситуацию, совет и ритм. Повторяться иногда можно, как повторяются живые люди, но текст не должен ощущаться серийным.
-
-БЕЗ КОУЧИНГА
-Никакого психологического, терапевтического, мотивационного или псевдокоучингового тона. Не пиши про «внутреннюю опору», «осознанность», «проработку», «ресурс», «границы», «отпусти», «прислушайся к себе», «позволь себе», «сфокусируйся на главном», «не распыляйся» и подобную воду.
-Не строй каждый текст по схеме «есть проблема → исправь себя → вот урок».
-
-БЕЗОПАСНОСТЬ И ФАКТЫ
-Не выдумывай биографию, диагнозы, лечение, гарантированные события, гарантированные деньги или точные поступки других людей как факт. Деньги, покупки и выгода могут быть обычной частью жизни, но без финансовых гарантий и профессиональных финансовых рекомендаций. Не оскорбляй пользователя. Не используй Markdown.
-
-ФОРМАТ
-${outputGuide(period, language)}
-Поле advice — техническое поле для финальных строк; не все строки обязаны быть советами. Не пиши внутри них метки «Вывод:», «Совет:», «Напоследок:».
-Каждое поле должно добавлять новую мысль, а не пересказывать предыдущую другими словами.
-
-Верни только JSON с полями opening, forecast и advice.`;
+function compactHistory(previous: AiPersonalHoroscopeHistoryItem[]) {
+  const bounded = previous.slice(0, 10);
+  return {
+    recentOpenings: bounded.map((item) => item.opening.trim()).filter(Boolean),
+    recentClosings: bounded
+      .flatMap((item) => item.advice)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 12),
+  };
 }
 
 export function buildAiPersonalHoroscopePrompt(input: {
-  language: 'ru' | 'en';
+  language: Language;
   period: AiPersonalHoroscopePeriod;
   window: AiPersonalHoroscopeWindow;
   profile: UserProfile;
   currentDate?: string;
   previousForecasts?: AiPersonalHoroscopeHistoryItem[];
 }): string {
+  const history = compactHistory(input.previousForecasts || []);
   const context = {
     language: input.language,
     period: input.period,
@@ -161,34 +164,55 @@ export function buildAiPersonalHoroscopePrompt(input: {
     periodEnd: input.window.periodEnd,
     periodLabel: formatAiPersonalHoroscopeDateLabel(input.window, input.language),
     user: buildAiPersonalHoroscopeProfileSnapshot(input.profile),
-    previousForecasts: (input.previousForecasts || []).slice(0, 15),
+    recentOpenings: history.recentOpenings,
+    recentClosings: history.recentClosings,
   };
-  const instruction = input.language === 'en'
-    ? 'Study the few-shot demonstrations as examples of the transformation and voice. Then write a new forecast using only the PRIVATE CONTEXT. Do not copy example facts, themes, openings, jokes, or wording. Use previousForecasts only to avoid repetition; do not pretend they are a continuing real-world story.'
-    : 'Изучи few-shot пары как примеры преобразования входа и голоса. Затем напиши новый прогноз только по PRIVATE CONTEXT. Не копируй факты, темы, заходы, шутки и формулировки примеров. previousForecasts используй только для защиты от повторов; не изображай их как продолжающуюся реальную историю.';
 
-  return `${instruction}\n\n${buildAiPersonalHoroscopeFewShotBlock(input.language, input.period)}\n\nPRIVATE CONTEXT\n${JSON.stringify(context, null, 2)}`;
+  const task = input.language === 'en'
+    ? 'Write a NEW reading from CURRENT INPUT. Match the reference quality and voice, but do not copy their wording, situations, or jokes. recentOpenings and recentClosings are only anti-repeat memory.'
+    : 'Напиши НОВЫЙ прогноз по CURRENT INPUT. Держи уровень и голос эталонов, но не копируй их формулировки, ситуации и шутки. recentOpenings и recentClosings нужны только для защиты от повторов.';
+
+  return `${buildAiPersonalHoroscopeFewShotBlock(input.language, input.period)}\n\n${task}\n\nCURRENT INPUT\n${JSON.stringify(context, null, 2)}`;
+}
+
+function containsStyleLeak(value: string, language: Language): boolean {
+  const patterns = language === 'ru' ? RU_STYLE_LEAKS : EN_STYLE_LEAKS;
+  return patterns.some((pattern) => pattern.test(value));
 }
 
 export function readAiPersonalHoroscopePayload(
   raw: GeneratedHoroscopePayload,
+  period: AiPersonalHoroscopePeriod = 'day',
+  language: Language = 'ru',
 ): ParsedHoroscope | null {
   if (
     typeof raw.opening !== 'string'
     || typeof raw.forecast !== 'string'
     || !Array.isArray(raw.advice)
-    || raw.advice.length < 2
-    || raw.advice.length > 3
     || raw.advice.some((item) => typeof item !== 'string')
   ) return null;
 
-  const advice = raw.advice as string[];
-  if (!raw.opening.trim() || !raw.forecast.trim() || advice.some((item) => !item.trim())) {
-    return null;
-  }
-  return {
-    opening: raw.opening,
-    forecast: raw.forecast,
-    advice: [...advice],
-  };
+  const opening = raw.opening.trim();
+  const forecast = raw.forecast.trim();
+  const advice = (raw.advice as string[]).map((item) => item.trim());
+  if (!opening || !forecast || advice.some((item) => !item)) return null;
+
+  const limits = LIMITS[period];
+  const openingWords = wordCount(opening);
+  const forecastWords = wordCount(forecast);
+  if (
+    openingWords < 2
+    || openingWords > limits.openingMaxWords
+    || opening.length > limits.openingMaxChars
+    || forecastWords < limits.forecastMinWords
+    || forecastWords > limits.forecastMaxWords
+    || advice.length < limits.adviceMinItems
+    || advice.length > limits.adviceMaxItems
+    || advice.some((item) => wordCount(item) > limits.adviceMaxWords)
+  ) return null;
+
+  const visible = [opening, forecast, ...advice];
+  if (visible.some((item) => containsStyleLeak(item, language))) return null;
+
+  return { opening, forecast, advice };
 }

@@ -39,9 +39,9 @@ export type AiPersonalHoroscopeGenerationMetrics = {
 };
 
 function maxOutputTokens(period: AiPersonalHoroscopePeriod): number {
-  if (period === 'day') return 2_000;
-  if (period === 'week') return 2_600;
-  return 3_200;
+  if (period === 'day') return 1_200;
+  if (period === 'week') return 1_600;
+  return 2_200;
 }
 
 function buildPackage(input: {
@@ -104,6 +104,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
           previousForecasts: input.previousForecasts,
         }),
         maxOutputTokens: maxOutputTokens(input.period),
+        verbosity: 'low',
         schemaName: AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA_NAME,
         schema: AI_PERSONAL_HOROSCOPE_RESPONSE_SCHEMA,
       });
@@ -123,7 +124,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
         continue;
       }
 
-      const reading = readAiPersonalHoroscopePayload(parsed);
+      const reading = readAiPersonalHoroscopePayload(parsed, input.period, language);
       input.onMetrics?.({
         model: OPENAI_LUNA_MODEL,
         inputTokens: response.inputTokens,
@@ -132,7 +133,7 @@ export async function generateAiPersonalHoroscopePackage(input: {
         validationPassed: !!reading,
       });
       if (!reading) {
-        lastFailure = 'response_shape_invalid';
+        lastFailure = 'response_style_invalid';
         continue;
       }
 

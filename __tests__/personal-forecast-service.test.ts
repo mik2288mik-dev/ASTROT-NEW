@@ -103,7 +103,7 @@ describe('direct AI personal horoscope client cache', () => {
     expect(selectActiveReadyPersonalForecast('month', periodStates)).toBeNull();
   });
 
-  it('uses the saved v5 package on repeated opens without another request', async () => {
+  it('uses the refreshed v6 client package on repeated opens without another request', async () => {
     mockedApiFetch.mockResolvedValueOnce(responseFor());
     await loadPersonalForecast({
       ...request,
@@ -117,7 +117,7 @@ describe('direct AI personal horoscope client cache', () => {
     })).resolves.toMatchObject({ source: expect.stringMatching(/local|cache/) });
     expect(mockedApiFetch).not.toHaveBeenCalled();
     expect([...storage.keys()]).toEqual([
-      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v5:/),
+      expect.stringMatching(/^tvoi-goroskop:ai-personal-horoscope-v6:/),
     ]);
   });
 
@@ -231,5 +231,6 @@ describe('direct AI personal horoscope client cache', () => {
     expect(source).toContain('scheduleStartupPrewarm');
     expect(source).toContain("? ['day', 'week', 'month']");
     expect(source).toContain('background: true');
+    expect(source).toContain("CLIENT_PROMPT_VARIANT = 'few-shot-v2'");
   });
 });
