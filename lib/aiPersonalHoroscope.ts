@@ -1,10 +1,10 @@
 import { fromZonedTime } from 'date-fns-tz';
 import type { UserProfile } from '../types';
 
-export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v5' as const;
-export const AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.exact-user-prompt.v3' as const;
-export const AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-direct-v3' as const;
-export const AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-history-15-v3' as const;
+export const AI_PERSONAL_HOROSCOPE_VERSION = 'ai-personal-horoscope-v6' as const;
+export const AI_PERSONAL_HOROSCOPE_PROMPT_VERSION = 'ai-personal-horoscope.gold-examples.v4' as const;
+export const AI_PERSONAL_HOROSCOPE_CONTRACT_VERSION = 'ai-personal-horoscope-direct-v4' as const;
+export const AI_PERSONAL_HOROSCOPE_CACHE_VERSION = 'ai-personal-horoscope-history-current-v4' as const;
 export const AI_PERSONAL_HOROSCOPE_TIMEZONE: string = 'Europe/Moscow';
 
 export type AiPersonalHoroscopePeriod = 'day' | 'week' | 'month';
