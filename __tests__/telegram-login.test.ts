@@ -78,6 +78,7 @@ describe('explicit Telegram login', () => {
       userId: '-42',
       kind: 'web',
       deviceId: null,
+      sessionVersion: 1,
     });
     expect(setAppSessionCookie).toHaveBeenCalledWith(res, 'signed-random-session');
     expect(getUser).toHaveBeenCalledWith('-42');
@@ -101,10 +102,45 @@ describe('explicit Telegram login', () => {
       userId: '-42',
       kind: 'native',
       deviceId: 'device-1',
+      sessionVersion: 1,
     });
     expect(setAppSessionCookie).not.toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       token: 'signed-random-session',
     }));
+  });
+
+  it('falls back to a legacy session when session v2 storage fails', async () => {
+    createAppUserSession
+      .mockRejectedValueOnce(new Error('session v2 insert failed'))
+      .mockResolvedValueOnce({
+        token: 'legacy-session',
+        accessToken: 'legacy-session',
+        sessionId: 'legacy-session-id',
+        sessionVersion: 1,
+        expiresAt: 123,
+      });
+    const res = response();
+
+    await handler({
+      method: 'POST',
+      headers: {},
+      body: { initData: 'verified-by-admin-auth', sessionVersion: 2 },
+    } as any, res);
+
+    expect(createAppUserSession).toHaveBeenNthCalledWith(1, {
+      userId: '-42',
+      kind: 'web',
+      deviceId: null,
+      sessionVersion: 2,
+    });
+    expect(createAppUserSession).toHaveBeenNthCalledWith(2, {
+      userId: '-42',
+      kind: 'web',
+      deviceId: null,
+      sessionVersion: 1,
+    });
+    expect(setAppSessionCookie).toHaveBeenCalledWith(res, 'legacy-session');
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 });

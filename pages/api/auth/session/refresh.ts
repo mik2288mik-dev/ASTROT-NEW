@@ -22,22 +22,26 @@ function normalizedOrigin(value: string): string {
   }
 }
 
+function requestOrigin(req: NextApiRequest): string {
+  const forwardedHost = firstHeader(req, 'x-forwarded-host').split(',')[0]?.trim();
+  const host = forwardedHost || firstHeader(req, 'host').trim();
+  const forwardedProto = firstHeader(req, 'x-forwarded-proto').split(',')[0]?.trim();
+  const protocol = forwardedProto || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  return host ? normalizedOrigin(`${protocol}://${host}`) : '';
+}
+
 function assertWebRefreshOrigin(req: NextApiRequest): void {
   const origin = normalizedOrigin(firstHeader(req, 'origin'));
   const configured = normalizedOrigin(String(process.env.PUBLIC_APP_ORIGIN || ''));
+  const sameOrigin = requestOrigin(req);
   if (process.env.NODE_ENV === 'production') {
-    if (!configured) {
-      throw new AdminAuthError(500, 'APP_AUTH_NOT_CONFIGURED', 'PUBLIC_APP_ORIGIN is required');
-    }
-    if (!origin || origin !== configured) {
+    if (!origin || (origin !== configured && origin !== sameOrigin)) {
       throw new AdminAuthError(403, 'APP_SESSION_REFRESH_ORIGIN_INVALID', 'The refresh origin is not allowed');
     }
     return;
   }
 
-  const host = firstHeader(req, 'host');
-  const local = normalizedOrigin(`${firstHeader(req, 'x-forwarded-proto') || 'http'}://${host}`);
-  if (origin && origin !== configured && origin !== local) {
+  if (origin && origin !== configured && origin !== sameOrigin) {
     throw new AdminAuthError(403, 'APP_SESSION_REFRESH_ORIGIN_INVALID', 'The refresh origin is not allowed');
   }
 }

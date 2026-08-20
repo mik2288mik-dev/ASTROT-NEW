@@ -76,7 +76,10 @@ import {
     getHumanBaseReportCached,
     prefetchHumanBaseReport,
 } from './services/natalReadingService';
-import { clearPersonalForecastSessionCache } from './services/personalForecastService';
+import {
+    clearPersonalForecastSessionCache,
+    loadPersonalForecast,
+} from './services/personalForecastService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
 import {
     clearNativeProviderCredentialState,
@@ -312,6 +315,32 @@ function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
     }
 
     return Math.max(250, (upper - start) + 50);
+}
+
+async function loadStartupPersonalForecasts(
+    targetProfile: UserProfile,
+    targetChart: NatalChartData,
+    targetChartId: number | null,
+): Promise<void> {
+    const periods: PersonalForecastPeriod[] = hasActivePremium(targetProfile) ? ['day', 'week', 'month'] : ['day'];
+    const timezone = normalizeForecastTimezone(
+        targetChart.timezone || targetProfile.birthTimezone,
+    );
+    const now = new Date();
+    const results = await Promise.allSettled(periods.map((period) => loadPersonalForecast({
+        profile: targetProfile,
+        chartData: targetChart,
+        chartId: targetChartId,
+        period,
+        periodKey: getPersonalForecastPeriodKey(period, now, timezone),
+        options: { maxInProgressRetries: 60 },
+    })));
+    const failed = results.find((result) => result.status === 'rejected');
+    if (failed?.status === 'rejected') {
+        const error = new Error('PERSONAL_FORECAST_STARTUP_FAILED') as Error & { cause?: unknown };
+        error.cause = failed.reason;
+        throw error;
+    }
 }
 
 const App: React.FC = () => {
@@ -703,7 +732,7 @@ const App: React.FC = () => {
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
             startupVisible = true;
             safetyCleared = true;
-            setStartupError('«Твой Гороскоп» не успел загрузить профиль. Обнови страницу и попробуй ещё раз.');
+            setStartupError('«Твой Гороскоп» не успел подготовить данные. Попробуй ещё раз.');
             setLoadingProgress(100);
             setLoadingMessage(undefined);
             setLoading(false);
@@ -724,6 +753,22 @@ const App: React.FC = () => {
             setView(targetView);
             setLoading(false);
             logStartupMetric('startup_dashboard_visible_ms', startupElapsedMs());
+        };
+
+        const prepareStartupPersonalForecasts = async (
+            targetProfile: UserProfile,
+            targetChart: NatalChartData,
+            targetChartId: number | null,
+        ) => {
+            if (cancelled) return;
+            setLoadingMessage(
+                targetProfile.language === 'en'
+                    ? 'Preparing your horoscope'
+                    : 'Готовим твой гороскоп',
+            );
+            setLoadingProgress(82);
+            await loadStartupPersonalForecasts(targetProfile, targetChart, targetChartId);
+            setLoadingProgress(96);
         };
 
         const scheduleStartupBackgroundWork = (
@@ -956,6 +1001,12 @@ const App: React.FC = () => {
                         writeLocalNatalChart(updatedProfile, localEntry.chartData, startupChartId);
                     }
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
+                    await prepareStartupPersonalForecasts(
+                        updatedProfile,
+                        localEntry.chartData,
+                        startupChartId,
+                    );
+                    if (cancelled) return;
                     showStartupDashboard('dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true);
                     return;
@@ -971,6 +1022,8 @@ const App: React.FC = () => {
                 if (chart?.sun && chart?.moon) {
                     console.log('[App] Chart loaded successfully');
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
+                    await prepareStartupPersonalForecasts(updatedProfile, chart, null);
+                    if (cancelled) return;
                     showStartupDashboard(requestedViewRef.current || 'dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, chart, null, false);
                 } else {
@@ -997,7 +1050,9 @@ const App: React.FC = () => {
                     setStartupError(null);
                 } else {
                     setStartupError(
-                        error?.message === 'PROFILE_NOT_FOUND'
+                        error?.message === 'PERSONAL_FORECAST_STARTUP_FAILED'
+                            ? 'Не удалось подготовить личный гороскоп. Попробуй ещё раз.'
+                            : error?.message === 'PROFILE_NOT_FOUND'
                             ? 'Аккаунт для этой сессии не найден. Выйди на экран входа и авторизуйся снова.'
                             : 'Не удалось загрузить профиль. Проверь соединение и попробуй ещё раз.'
                     );
@@ -1122,6 +1177,13 @@ const App: React.FC = () => {
             setChartLoadState('ready');
             setChartData(generatedChart);
             writeLocalNatalChart(fullProfile, generatedChart);
+            setLoadingMessage(
+                fullProfile.language === 'en'
+                    ? 'Preparing your horoscope'
+                    : 'Готовим твой гороскоп',
+            );
+            setLoadingProgress(82);
+            await loadStartupPersonalForecasts(fullProfile, generatedChart, null);
             void getPrimaryChartId(String(fullProfile.id))
                 .then((primaryChartId) => {
                     if (primaryChartId != null) {

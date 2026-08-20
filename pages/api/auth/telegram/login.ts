@@ -10,6 +10,23 @@ import { resolveTelegramIdentityForLogin } from '../../../../lib/auth/accountIde
 import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { db } from '../../../../lib/db';
 
+async function createTelegramAppSession(input: {
+  userId: string;
+  kind: 'web' | 'native';
+  deviceId: string | null;
+  sessionVersion: 1 | 2;
+}) {
+  try {
+    return await createAppUserSession(input);
+  } catch (error: any) {
+    if (input.sessionVersion !== 2 || (error?.status && error.status < 500)) throw error;
+    console.error('[auth.telegram.login] session v2 unavailable; using legacy session', {
+      code: typeof error?.code === 'string' ? error.code : 'SESSION_V2_FAILED',
+    });
+    return createAppUserSession({ ...input, sessionVersion: 1 });
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -31,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       telegram.id,
     );
     const kind = req.body?.native === true ? 'native' : 'web';
-    const session = await createAppUserSession({
+    const session = await createTelegramAppSession({
       userId: identity.userId,
       kind,
       deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
