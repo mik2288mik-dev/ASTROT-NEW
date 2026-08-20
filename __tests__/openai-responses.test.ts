@@ -57,6 +57,30 @@ describe('OpenAI Luna structured response request', () => {
     });
   });
 
+  it('can disable provider storage for private personal-forecast input without changing other calls', () => {
+    const privateParams = buildLunaStructuredResponseParams({
+      instructions: 'Return the requested forecast object.',
+      input: 'Private saved natal context',
+      maxOutputTokens: 900,
+      store: false,
+      schemaName: 'personal_forecast',
+      schema: {
+        type: 'object',
+        properties: { text: { type: 'string' } },
+        required: ['text'],
+        additionalProperties: false,
+      },
+    });
+    expect(privateParams.store).toBe(false);
+
+    const ordinaryParams = buildLunaTextResponseParams({
+      instructions: 'Return text.',
+      input: 'Input',
+      maxOutputTokens: 200,
+    });
+    expect(ordinaryParams).not.toHaveProperty('store');
+  });
+
   it('keeps a provider refusal distinct from a generic empty response', () => {
     expect(() => readLunaResponseContent({
       status: 'completed',

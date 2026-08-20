@@ -5,8 +5,9 @@ jest.mock('../lib/openaiResponses', () => ({
 import fs from 'fs';
 import path from 'path';
 import { createLunaStructuredResponse } from '../lib/openaiResponses';
-import { generateAiPersonalHoroscopePackage } from '../lib/aiPersonalHoroscopeGeneration';
-import { resolveAiPersonalHoroscopeWindow } from '../lib/aiPersonalHoroscope';
+import { generatePersonalForecastPackage } from '../lib/personalForecastGeneration';
+import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
+import { chartFixture } from './personal-forecast-fixture';
 
 const mockedLuna = createLunaStructuredResponse as jest.Mock;
 const ROOT = path.resolve(__dirname, '..');
@@ -25,16 +26,43 @@ const profile = {
   theme: 'light' as const,
 };
 
-const window = resolveAiPersonalHoroscopeWindow('day', '2026-08-15', 'Europe/Moscow');
+const window = resolvePersonalForecastWindow('day', '2026-08-15', 'Europe/Moscow');
+
+function words(count: number, prefix: string): string {
+  return Array.from({ length: count }, (_, index) => `${prefix}${index + 1}`).join(' ');
+}
 
 function payload() {
   return {
-    opening: 'Привет. Сегодня день проверит, умеешь ли ты пользоваться удачей без лишнего спектакля.',
-    forecast: 'Один разговор даст больше, чем ты от него ждёшь. Дела пойдут нормально, если не усложнять простое. В личной теме появится живой интерес. День получится удачным, но сам за тебя ничего не сделает.',
-    advice: [
-      'Ответь тому, с кем действительно хочется продолжить разговор.',
-      'Используй удачный момент сразу.',
-    ],
+    headline: {
+      text: 'Точный личный прогноз дня',
+      evidence_ids: ['profile:personal'],
+    },
+    fragments: Array.from({ length: 5 }, (_, index) => ({
+      text: index === 0
+        ? `${words(21, `фрагмент${index + 1}слово`)} разговор`
+        : words(index === 4 ? 18 : 22, `фрагмент${index + 1}слово`),
+      presentation_style: 'prose',
+      main_idea_key: `мысль ${index + 1}`,
+      life_plot_key: `сюжет ${index + 1}`,
+      advice_key: index % 2 === 0 ? `совет ${index + 1}` : '',
+      comparison_key: index === 3 ? 'сравнение четыре' : '',
+      evidence_ids: ['profile:personal'],
+    })),
+    closing: {
+      text: 'Сделай один точный шаг.',
+      kind: 'action',
+      advice_key: 'сделать один точный шаг',
+      evidence_ids: ['profile:personal'],
+    },
+  };
+}
+
+function providerResponse() {
+  return {
+    content: JSON.stringify(payload()),
+    inputTokens: 520,
+    outputTokens: 250,
   };
 }
 
@@ -46,40 +74,44 @@ describe('personal horoscope runtime resilience', () => {
   it('retries an incomplete provider response without adding an editorial fallback layer', async () => {
     mockedLuna
       .mockRejectedValueOnce(new Error('OPENAI_RESPONSE_INCOMPLETE:max_output_tokens'))
-      .mockResolvedValueOnce({
-        content: JSON.stringify(payload()),
-        inputTokens: 520,
-        outputTokens: 250,
-      });
+      .mockResolvedValueOnce(providerResponse());
 
-    const horoscope = await generateAiPersonalHoroscopePackage({
-      profile,
+    const forecast = await generatePersonalForecastPackage({
+      profile: profile as never,
+      chartData: chartFixture,
+      model: 'gpt-5.6-luna',
       period: 'day',
       window,
     });
 
     expect(mockedLuna).toHaveBeenCalledTimes(2);
-    expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(2_000);
-    expect(horoscope.meta.generationAttempts).toBe(2);
-    expect(horoscope).not.toHaveProperty('continuity');
+    expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(1_000);
+    expect(mockedLuna.mock.calls[1][0].store).toBe(false);
+    expect(forecast.meta.generationAttempts).toBe(2);
+    expect(forecast).not.toHaveProperty('continuity');
   });
 
-  it('accepts the first complete answer exactly as Luna returned it', async () => {
+  it('materializes the first complete PersonalForecastPackage without retrying', async () => {
+    const completePayload = payload();
     mockedLuna.mockResolvedValueOnce({
-      content: JSON.stringify(payload()),
-      inputTokens: 480,
-      outputTokens: 220,
+      ...providerResponse(),
+      content: JSON.stringify(completePayload),
     });
 
-    const horoscope = await generateAiPersonalHoroscopePackage({
-      profile,
+    const forecast = await generatePersonalForecastPackage({
+      profile: profile as never,
+      chartData: chartFixture,
+      model: 'gpt-5.6-luna',
       period: 'day',
       window,
     });
 
     expect(mockedLuna).toHaveBeenCalledTimes(1);
-    expect(horoscope.reading).toEqual(payload());
-    expect(horoscope.meta.generationAttempts).toBe(1);
+    expect(forecast.overview.title).toBe(completePayload.headline.text);
+    expect(forecast.overview.text).toBe(completePayload.fragments[0].text);
+    expect(forecast.sections).toHaveLength(4);
+    expect(forecast.sections.at(-1)?.text).toContain(completePayload.closing.text);
+    expect(forecast.meta.generationAttempts).toBe(1);
   });
 
   it('starts the remaining periods invisibly after the foreground forecast is ready', () => {
@@ -90,6 +122,9 @@ describe('personal horoscope runtime resilience', () => {
     expect(serviceSource).toContain('scheduleStartupPrewarm');
     expect(serviceSource).toContain("? ['day', 'week', 'month']");
     expect(serviceSource).toContain('background: true');
-    expect(serviceSource).toContain('if (!input.options?.background) scheduleStartupPrewarm(input.profile);');
+    expect(serviceSource).toContain('if (!input.options?.background) {');
+    expect(serviceSource).toContain('chartData: input.chartData');
+    expect(serviceSource).toContain('chartId: input.chartId');
+    expect(serviceSource).toContain('buildPersonalForecastProfileFingerprint(input.profile)');
   });
 });

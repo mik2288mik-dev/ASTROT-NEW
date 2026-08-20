@@ -42,6 +42,15 @@ describe('personal forecast anti-repeat guard', () => {
     expect(errors.join(' ')).toContain('repeated headline');
   });
 
+  test('rejects a close paraphrase of a 2–5-word headline', () => {
+    const errors = findPersonalForecastRepeatViolations([
+      fragment('Сегодня можно наглеть', { kind: 'headline' }),
+    ], [
+      fragment('Сегодня пора наглеть', { kind: 'headline' }),
+    ]);
+    expect(errors.join(' ')).toContain('repeated headline');
+  });
+
   test('rejects near-identical wording against recent generated copy', () => {
     const current = fragment(
       'Тебе будет проще закончить разговор без лишних объяснений и оставить решение за собой.',
@@ -76,6 +85,16 @@ describe('personal forecast anti-repeat guard', () => {
     const errors = findPersonalForecastRepeatViolations([current], [recent]).join(' ');
     expect(errors).toContain('repeated advice');
     expect(errors).toContain('repeated comparison');
+  });
+
+  test('rejects a copied wish or motivational ending with changed framing', () => {
+    const errors = findPersonalForecastRepeatViolations([
+      fragment('Желаю закончить неделю легко: нужное сделано, приятное случилось, силы остались.'),
+    ], [
+      fragment('Пусть неделя закончится легко: нужное сделано, приятное случилось, силы остались.'),
+    ]).join(' ');
+
+    expect(errors).toContain('repeated advice');
   });
 
   test('rejects a paraphrased life plot recovered from a persisted fingerprint', () => {

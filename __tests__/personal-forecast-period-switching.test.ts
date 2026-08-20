@@ -67,14 +67,15 @@ describe('personal forecast period switching regressions', () => {
     const app = read('App.tsx');
 
     expect(dashboard).toContain(
-      'const activePeriod = resolveRequestedPersonalForecastPeriod(requestedPeriod);',
+      "const activePeriod: PersonalForecastPeriod = requestedPeriod || 'day';",
     );
     expect(dashboard).toContain('loadPeriod(activePeriod);');
-    expect(dashboard).toContain('updatePersonalForecastPeriodBucket(');
+    expect(dashboard).toContain('requestsRef.current[period] !== requestEntry');
+    expect(dashboard).toContain('[period]: { result, phase: \'ready\', errorCode: null }');
     expect(dashboard).not.toContain('pendingPeriodRef');
     expect(dashboard).not.toContain('setActivePeriod');
-    expect(dashboard).not.toContain('onPeriodChange');
+    expect(dashboard).toContain('onPeriodChange?.(period)');
     expect(app).toContain('requestedPeriod: dashboardPeriod');
-    expect(app).not.toContain('onPeriodChange: setDashboardPeriod');
+    expect(app).toContain('onPeriodChange: setDashboardPeriod');
   });
 });

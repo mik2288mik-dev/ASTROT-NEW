@@ -4,23 +4,25 @@ import path from 'path';
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-describe('liquid glass application chrome', () => {
-  it('uses the requested labels and recognizable navigation icons', () => {
+describe('application chrome', () => {
+  it('uses the requested three-zone navigation and recognizable icons', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const icons = read('components/icons/UiIcons.tsx');
 
-    expect(tabs).toContain("today: 'Diary'");
-    expect(tabs).toContain("today: 'Дневник'");
-    expect(tabs).toContain("id: 'diary'");
-    expect(tabs).toContain('BookOpenText');
+    expect(tabs).toContain('data-nav-id="personal"');
+    expect(tabs).toContain('data-nav-id="zodiac"');
+    expect(tabs).toContain('today-bottom-nav-quick-links');
+    expect(tabs).toContain('today-bottom-nav-hub');
+    expect(tabs).toContain('today-bottom-nav-services');
+    expect(tabs).toContain("activeSheet: 'hub' | 'services' | 'profile' | null");
     expect(tabs).toContain('ZodiacWheelIcon');
-    expect(tabs).toContain('Handshake');
-    expect(tabs).not.toContain("id: 'today'");
+    expect(tabs).toContain('HeartHandshake');
     expect(icons).toContain('export function ZodiacWheelIcon');
   });
 
-  it('keeps the fixed header pure white and applies live neutral glass to the bottom bar', () => {
+  it('keeps the fixed header pure white and lets Today replace bottom glass with a hairline shell', () => {
     const styles = read('styles/liquidGlassChrome.css');
+    const todayStyles = read('styles/todayHome.css');
     const app = read('pages/_app.tsx');
     const topBar = read('components/lumia-ui/AppTopBar.tsx');
     const freshHeaders = read('components/fresh-ui/FreshHeaders.tsx');
@@ -29,6 +31,9 @@ describe('liquid glass application chrome', () => {
 
     expect(app.indexOf("import '../styles/liquidGlassChrome.css'")).toBeGreaterThan(
       app.indexOf("import '../styles/newspaperVisual.css'"),
+    );
+    expect(app.indexOf("import '../styles/todayHome.css'")).toBeGreaterThan(
+      app.indexOf("import '../styles/liquidGlassChrome.css'"),
     );
     expect(styles).toContain('--app-glass-filter: blur(30px) saturate(1.68) contrast(1.025)');
     expect(styles).not.toContain('brightness(');
@@ -51,8 +56,9 @@ describe('liquid glass application chrome', () => {
     expect(topBar).toContain('reserveSpace = true');
     expect(freshHeaders).not.toContain('FreshInnerHeader');
     expect(dashboard).toContain('<AppTopBar');
-    expect(dashboard).toContain('subtitle={activePeriodTitle}');
     expect(dashboard).not.toContain('reserveSpace={false}');
+    expect(todayStyles).toContain('.forecast-feed-page .app-top-bar');
+    expect(todayStyles).toContain('background: #fff !important');
     expect(application).toContain("title={profile.language === 'en' ? 'My charts' : 'Мои карты'}");
   });
 
@@ -89,45 +95,31 @@ describe('liquid glass application chrome', () => {
     expect(obsoleteHeaderStyles).not.toContain('.fresh-back-btn');
   });
 
-  it('uses one draggable liquid lens with spring settling and preserved tab buttons', () => {
+  it('replaces the draggable liquid lens with a thin static navigation line', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
-    const styles = read('styles/liquidGlassChrome.css');
-    const homeStyles = read('styles/homeMvpLayout.css');
-    const globals = read('styles/globals.css');
+    const styles = read('styles/todayHome.css');
 
-    expect(tabs).toContain('lumia-bottom-tab-liquid-lens');
-    expect(tabs).toContain('useMotionValue');
-    expect(tabs).toContain('onPointerMove={updateLiquidDrag}');
-    expect(tabs).toContain('setPointerCapture(event.pointerId)');
-    expect(tabs).toContain('const stretch = Math.min(Math.abs(velocityX) / 1800, 0.16)');
-    expect(tabs).toContain("type: 'spring' as const");
-    expect(tabs).toContain('items[nextIndex]?.onClick()');
-    expect(tabs).toContain('aria-current={item.active');
-    expect(styles).toContain('.lumia-bottom-tab-liquid-lens');
-    expect(styles).toContain('.lumia-bottom-tab-bar.is-dragging');
-    expect(styles).toContain('touch-action: pan-y');
-    expect(styles).toContain('height: 3.55rem');
-    expect(styles).toContain('blur(18px) saturate(1.90) contrast(1.04)');
-    expect(styles).toContain('color: #4b5563');
-    expect(styles).toContain('font-size: 8.75px');
-    expect(styles).toContain('font-size: 8.25px');
-    expect(styles).toContain('.lumia-bottom-tab-item:focus-visible');
+    expect(tabs).not.toContain('lumia-bottom-tab-liquid-lens');
+    expect(tabs).not.toContain('useMotionValue');
+    expect(tabs).not.toContain('onPointerMove');
+    expect(styles).toContain('.today-bottom-navigation::before');
+    expect(styles).toContain('height: 1px;');
+    expect(styles).toContain('border-radius: 0;');
+    expect(styles).toContain('box-shadow: none;');
+    expect(styles).toContain('touch-action: manipulation;');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(tabs).not.toContain('lumia-bottom-tab-active-pill');
-    expect(styles).not.toContain('lumia-bottom-tab-active-pill');
-    expect(homeStyles).not.toContain('lumia-bottom-tab-active-pill');
-    expect(globals).not.toContain('lumia-bottom-tab-active-pill');
   });
 
   it('preserves safe-area clearance, minimum tap targets and a single shared mount', () => {
     const globals = read('styles/globals.css');
+    const todayStyles = read('styles/todayHome.css');
     const app = read('App.tsx');
 
     expect(globals).toContain('--lumia-bottom-tab-safe-bottom: max(env(safe-area-inset-bottom');
-    expect(globals).toContain('--lumia-bottom-tab-clearance: calc(');
+    expect(todayStyles).toContain('--lumia-bottom-tab-clearance: calc(');
     expect(globals).toContain('.lumia-main-scroll.lumia-bottom-tab-scroll');
     expect(globals).toContain('scroll-padding-bottom: var(--lumia-bottom-tab-clearance)');
-    expect(globals).toContain('min-height: 3.24rem');
+    expect(todayStyles).toContain('min-height: 3rem');
     expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
   });
 });

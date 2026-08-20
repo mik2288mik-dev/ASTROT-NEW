@@ -33,6 +33,8 @@ describe('app voice validation', () => {
     'Сегодня намёки не сработают. Нужен конкретный вопрос и такой же конкретный ответ.',
     'С деньгами слабое место — решения на эмоциях. Проверь цену и условия до оплаты.',
     'Ты долго терпишь, а потом резко обрываешь разговор.',
+    'День твой. Забирай.',
+    'Удача вышла на смену.',
     'The main risk is agreeing before you have checked the numbers.',
   ])('accepts direct concrete wording: %s', (text) => {
     expect(hasAppVoiceViolation(text)).toBe(false);
@@ -46,6 +48,14 @@ describe('app voice validation', () => {
     'Your strength is in calm presence.',
     'Protect your inner clarity and inner support.',
   ])('rejects smooth AI psychology in personal forecasts: %s', (text) => {
+    expect(hasPersonalForecastVoiceViolation(text)).toBe(true);
+  });
+
+  it.each([
+    'Космос сегодня на твоей стороне.',
+    'Твоя аура притягивает нужных людей.',
+    'Это знак свыше и подарок судьбы.',
+  ])('rejects cosmic and esoteric language in personal forecasts: %s', (text) => {
     expect(hasPersonalForecastVoiceViolation(text)).toBe(true);
   });
 

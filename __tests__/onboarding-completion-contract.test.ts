@@ -8,6 +8,7 @@ describe('first-run onboarding completion flow', () => {
   it('opens the birth form directly and reaches personal Today before any Premium surface', () => {
     const onboarding = read('views/Onboarding.tsx');
     const app = read('App.tsx');
+    const dashboard = read('views/Dashboard.tsx');
     const completionFlow = app.slice(
       app.indexOf('const handleOnboardingComplete'),
       app.indexOf('const handleAccountLogin'),
@@ -81,7 +82,7 @@ describe('first-run onboarding completion flow', () => {
     expect(completionFlow.indexOf('getOrCalculateChart(pendingProfile)'))
       .toBeLessThan(completionFlow.indexOf('setView(targetView)'));
 
-    expect(app).toContain("mode: 'generate-missing'");
-    expect(app).toContain('void prepareUserContentDbFirst');
+    expect(app).not.toContain('prepareUserContentDbFirst');
+    expect(dashboard).toContain('loadPersonalForecast({');
   });
 });

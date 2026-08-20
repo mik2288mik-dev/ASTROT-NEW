@@ -5,7 +5,7 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('local natal chart app flow', () => {
-  it('shows the cached startup dashboard before background forecast and refresh work', () => {
+  it('shows the cached startup dashboard before background chart refresh work', () => {
     const app = read('App.tsx');
     const startupLocalRead = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)');
     const ready = app.indexOf("setChartLoadState('ready')", startupLocalRead);
@@ -14,7 +14,6 @@ describe('local natal chart app flow', () => {
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
     const dbRefresh = app.indexOf('getChartFromDB(String(targetProfile.id))', scheduler);
     const idRefresh = app.indexOf('getPrimaryChartId(String(targetProfile.id))', scheduler);
-    const prewarm = app.indexOf('void prepareUserContentDbFirst({', scheduler);
 
     expect(startupLocalRead).toBeGreaterThan(-1);
     expect(ready).toBeGreaterThan(startupLocalRead);
@@ -23,12 +22,13 @@ describe('local natal chart app flow', () => {
     expect(app.slice(ready, dashboard)).not.toContain('await prewarmUserContent');
     expect(dbRefresh).toBeGreaterThan(scheduler);
     expect(idRefresh).toBeGreaterThan(scheduler);
-    expect(prewarm).toBeGreaterThan(scheduler);
+    expect(app).not.toContain('prepareUserContentDbFirst');
     expect(app).toContain('Background primary chart refresh failed; keeping local cache');
   });
 
-  it('opens dashboard immediately after a DB chart and schedules forecast prewarm in background', () => {
+  it('opens dashboard immediately after a DB chart and leaves forecast loading to Dashboard', () => {
     const app = read('App.tsx');
+    const dashboardView = read('views/Dashboard.tsx');
     const dbChart = app.indexOf('const chart = await loadPrimaryChartOnce(updatedProfile)');
     const dashboard = app.indexOf("showStartupDashboard(requestedViewRef.current || 'dashboard')", dbChart);
     const background = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, chart, null, false)', dashboard);
@@ -37,7 +37,8 @@ describe('local natal chart app flow', () => {
     expect(dashboard).toBeGreaterThan(dbChart);
     expect(background).toBeGreaterThan(dashboard);
     expect(app.slice(dbChart, dashboard)).not.toContain('await prewarmUserContent');
-    expect(app).toContain('void prepareUserContentDbFirst({');
+    expect(app).not.toContain('prepareUserContentDbFirst');
+    expect(dashboardView).toContain('loadPersonalForecast({');
   });
 
   it('emits startup timing and cache-hit metrics', () => {
@@ -47,7 +48,6 @@ describe('local natal chart app flow', () => {
       'startup_local_chart_hit',
       'startup_chart_ready_ms',
       'startup_dashboard_visible_ms',
-      'startup_prewarm_done_ms',
     ]) {
       expect(app).toContain(metric);
     }
@@ -78,15 +78,15 @@ describe('local natal chart app flow', () => {
     const dashboard = app.indexOf("showStartupDashboard('dashboard')", localRead);
     const scheduleCall = app.indexOf('scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true)', dashboard);
     const scheduler = app.indexOf('const scheduleStartupBackgroundWork');
-    const earlyPrefetch = app.indexOf('startHumanBasePrefetch(initialChartId, initialChart);', scheduler);
-    const prewarm = app.indexOf('void prepareUserContentDbFirst({', scheduler);
+    const earlyPrefetch = app.indexOf('startHumanBasePrefetch(initialChartId, initialChart, () => (', scheduler);
+    const backgroundRefresh = app.indexOf('void (async () => {', scheduler);
 
     expect(dashboard).toBeGreaterThan(localRead);
     expect(scheduleCall).toBeGreaterThan(dashboard);
     expect(earlyPrefetch).toBeGreaterThan(scheduler);
-    expect(earlyPrefetch).toBeLessThan(prewarm);
-    expect(app).toContain('prefetchHumanBaseReport(userId, chartId, targetProfile.language)');
-    expect(app).toContain('if (initialChartId == null) startHumanBasePrefetch(freshPrimaryChartId, chart)');
+    expect(earlyPrefetch).toBeLessThan(backgroundRefresh);
+    expect(app).toContain('prefetchHumanBaseReport(userId, chartId, targetProfile.language, reportCacheIdentity)');
+    expect(app).toContain('startHumanBasePrefetch(freshPrimaryChartId, reportChart, () => (');
   });
 
 });

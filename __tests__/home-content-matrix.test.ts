@@ -36,16 +36,17 @@ describe('mvp home surface', () => {
     expect(dashboard).not.toContain('/api/weather');
   });
 
-  it('keeps every personal period inside one AI horoscope Dashboard', () => {
+  it('keeps every personal period inside one PersonalForecastPackage Dashboard', () => {
     const app = read('App.tsx');
     const dashboard = read('views/Dashboard.tsx');
     const types = read('types.ts');
     expect(app).toContain('<Dashboard {...dashboardProps}');
     expect(app).toContain('onRequestPremium: requestPremium');
-    expect(dashboard).toContain('resolveRequestedPersonalForecastPeriod(requestedPeriod)');
-    expect(dashboard).toContain('AiPersonalHoroscopeReading');
-    expect(dashboard).not.toContain('ForecastSectionBlock');
-    expect(dashboard).not.toContain('TodayEditorialFeed');
+    expect(dashboard).toContain("const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month']");
+    expect(dashboard).toContain("const activePeriod: PersonalForecastPeriod = requestedPeriod || 'day';");
+    expect(dashboard).toContain('TodayEditorialFeed');
+    expect(dashboard).toContain('ForecastSectionBlock');
+    expect(dashboard).not.toContain('AiPersonalHoroscopeReading');
     expect(dashboard).not.toContain('FreshTabs');
     expect(dashboard).not.toContain('ForecastSideNavigator');
     expect(dashboard).not.toContain('ForecastBottomSheet');
@@ -55,16 +56,20 @@ describe('mvp home surface', () => {
     expect(types).not.toContain('personal_daily');
   });
 
-  it('protects private AI horoscope content with server identity and entitlement slicing', () => {
+  it('protects private personal forecasts with server chart ownership and entitlement slicing', () => {
     const route = read('pages/api/content/forecast/personal.ts');
     const service = read('services/personalForecastService.ts');
-    expect(route).toContain('requireAppUser(req, { allowGuest: true })');
-    expect(route).toContain('getPremiumEntitlementState');
-    expect(route).toContain('sliceAiPersonalHoroscopeForAccess');
-    expect(route).not.toContain('ensureValidContext');
-    expect(route).not.toContain('ctx.chartData');
+    expect(route).toContain('ensureValidContext(req, res, {');
+    expect(route).toContain('allowGuest: true');
+    expect(route).toContain('requireSelfChart: true');
+    expect(route).toContain('getPremiumEntitlementState(userId)');
+    expect(route).toContain('slicePersonalForecastForAccess');
+    expect(route).toContain('ctx.chartData');
+    expect(route).toContain('lockedSectionIds');
+    expect(service).toContain('isPersonalForecastPackage');
     expect(service).toContain("'Content-Type': 'application/json'");
     expect(service).toContain('...getTelegramInitDataHeaders()');
-    expect(service).not.toContain("params.set('chartId'");
+    expect(service).not.toContain("params.set('userId'");
+    expect(service).toContain("params.set('chartId', String(input.chartId))");
   });
 });

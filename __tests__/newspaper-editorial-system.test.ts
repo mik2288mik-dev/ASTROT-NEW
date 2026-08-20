@@ -109,20 +109,21 @@ describe('separated editorial asset system', () => {
     expect(retained.every((asset) => exists(`public${asset.path}`))).toBe(true);
   });
 
-  it('wires each source only into its intended active reading screens', () => {
+  it('keeps legacy cutouts out of the new editorial reading screens', () => {
     const horoscope = read('views/v2/HoroscopeReader.tsx');
     const natal = read('views/v2/NatalMagazine.tsx');
     const compatibility = read('views/v2/UnionRoom.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
-    expect(horoscope).toContain('selectZodiacLegacyAsset');
+    expect(horoscope).not.toContain('selectZodiacLegacyAsset');
     expect(horoscope).not.toContain('selectPersonalEditorialAsset');
+    expect(horoscope).not.toContain('EditorialSticker');
+    expect(horoscope).toContain('EditorialProfileButton');
     expect(natal).toContain('selectNatalEditorialSticker');
-    expect(compatibility).toContain('selectSynastryEditorialSticker');
-    for (const source of [horoscope, compatibility]) {
-      expect(source).toContain('EditorialSticker');
-    }
+    expect(compatibility).not.toContain('selectSynastryEditorialSticker');
+    expect(compatibility).not.toContain('EditorialSticker');
+    expect(compatibility).toContain('EditorialProfileButton');
     expect(natal).toContain('editorialSticker={natalSticker}');
     for (const source of [matrix, onboarding]) {
       expect(source).not.toContain('selectPersonalEditorialAsset');

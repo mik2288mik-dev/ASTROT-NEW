@@ -45,20 +45,37 @@ function modelResponse(period: 'day' | 'week' | 'month', options: {
   const count = period === 'day' ? 5 : 1;
   const paragraphWords = period === 'day' ? 22 : period === 'week' ? 82 : 105;
   const evidenceId = options.evidenceId || 'profile:personal';
+  const closing = period === 'month'
+    ? {
+        text: 'Зафиксируй одно решение письменно.',
+        kind: 'action',
+        advice_key: 'зафиксировать одно решение письменно',
+        evidence_ids: [evidenceId],
+      }
+    : {
+        text: 'Сделай один точный шаг.',
+        kind: 'action',
+        advice_key: 'сделать один точный шаг',
+        evidence_ids: [evidenceId],
+      };
   return {
     content: JSON.stringify({
       headline: { text: 'Точный личный прогноз дня', evidence_ids: [evidenceId] },
-      fragments: Array.from({ length: count }, (_, index) => ({
-        ...fragment(index + 1, paragraphWords, `${options.prefix || `фрагмент${index + 1}`}слово`),
-        ...(period === 'day'
-          ? {
-              text: index === 0
-                ? `${words(paragraphWords - 1, `${options.prefix || 'фрагмент1'}слово`)} разговор`
-                : fragment(index + 1, paragraphWords, `${options.prefix || `фрагмент${index + 1}`}слово`).text,
-            }
-          : { presentation_style: undefined }),
-        evidence_ids: [evidenceId],
-      })),
+      fragments: Array.from({ length: count }, (_, index) => {
+        const prefix = `${options.prefix || `фрагмент${index + 1}`}слово`;
+        const text = index === count - 1
+          ? words(paragraphWords - 4, prefix)
+          : index === 0 && period === 'day'
+            ? `${words(paragraphWords - 1, prefix)} разговор`
+            : words(paragraphWords, prefix);
+        return {
+          ...fragment(index + 1, paragraphWords, prefix),
+          text,
+          ...(period === 'day' ? {} : { presentation_style: undefined }),
+          evidence_ids: [evidenceId],
+        };
+      }),
+      closing,
     }),
     inputTokens: 100,
     outputTokens: 140,
@@ -89,6 +106,8 @@ describe('personal forecast Responses delivery', () => {
       'фрагмент4слово1',
       'фрагмент5слово1',
     ]);
+    expect(forecast.sections.at(-1)?.text).toContain('Сделай один точный шаг.');
+    expect(JSON.stringify(forecast)).not.toContain('"closing"');
     expect(forecast.sections.every((section) => section.title === undefined)).toBe(true);
     expect([forecast.overview, ...forecast.sections].every(
       (section) => section.presentationStyle === 'prose',
@@ -107,7 +126,9 @@ describe('personal forecast Responses delivery', () => {
       ...item,
       text: index === 0
         ? `${words(counts[index] - 1, `стиль${index + 1}слово`)} разговор`
-        : words(counts[index], `стиль${index + 1}слово`),
+        : index === payload.fragments.length - 1
+          ? words(counts[index] - 4, `стиль${index + 1}слово`)
+          : words(counts[index], `стиль${index + 1}слово`),
       presentation_style: styles[index],
     }));
     mockStructuredResponse.mockResolvedValueOnce({
@@ -131,7 +152,7 @@ describe('personal forecast Responses delivery', () => {
   it.each(['week', 'month'] as const)(
     'assembles %s as one cohesive overview with no sections',
     async (period) => {
-      mockStructuredResponse.mockResolvedValueOnce(modelResponse(period));
+      mockStructuredResponse.mockResolvedValue(modelResponse(period));
       const periodKey = getPersonalForecastPeriodKey(
         period,
         new Date('2026-08-03T09:00:00.000Z'),
@@ -175,7 +196,7 @@ describe('personal forecast Responses delivery', () => {
       window: resolvePersonalForecastWindow('day', '2026-08-03', 'Europe/Moscow'),
       recentForecasts: [{
         periodKey: '2026-08-02',
-        fragments: Array.from({ length: 5 }, (_, index) => ({
+        fragments: Array.from({ length: 5 }, () => ({
           text: words(22, `повторслово`),
           semanticFingerprint: null,
         })),
@@ -199,7 +220,7 @@ describe('personal forecast Responses delivery', () => {
       }],
     });
 
-    const params = mockStructuredResponse.mock.calls[0][0] as { input: string };
+    const params = mockStructuredResponse.mock.calls[0][0] as { input: string; store?: boolean };
     expect(params.input).toContain('"name": "Мира"');
     expect(params.input).toContain('"birth_date": "1990-01-01"');
     expect(params.input).toContain('"birth_time": "12:00"');
@@ -209,5 +230,6 @@ describe('personal forecast Responses delivery', () => {
     expect(params.input).not.toContain('story_direction');
     expect(params.input).not.toContain('Calculated evidence');
     expect(params.input).not.toContain('transit_planet');
+    expect(params.store).toBe(false);
   });
 });

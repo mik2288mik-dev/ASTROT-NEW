@@ -3,7 +3,7 @@
 ## Products
 
 - Android is the primary platform; the Telegram Mini App remains a supported distribution channel.
-- Personal diary: Today, Week, and Month are periods of one personal AI-reading screen, selected from its drawer.
+- Personal diary: Today, Week, and Month are periods of one personal AI-reading screen, selected by one controlled switcher inside the Diary.
 - Zodiac: a separate sign-based horoscope product.
 - Natal chart and permanent natal reading.
 - Compatibility by sign and a Premium chart-based relationship reading.
@@ -11,23 +11,25 @@
 
 ## Personal forecast
 
-- The reader lives in `views/Dashboard.tsx`; there is no separate forecast page, period switcher on the main screen, question block, feedback prompt, “hit/miss” control, chat, game, or time-of-day forecast.
-- Today is a continuous personal feed: one 3–8-word shared headline and 4–6 sequential untitled text fragments, no more than 150 visible words in total. The first fragment is `overview`; the following fragments are ordered `sections`. Love/Work/Mood and other categories are never visible.
+- The reader lives in `views/Dashboard.tsx`; one Today/Week/Month tablist sits directly below its header. There is no separate forecast page, question block, feedback prompt, “hit/miss” control, chat, game, or time-of-day forecast.
+- Every period opens with one visible common hook of 2–5 words. Today continues it as a continuous feed of 4–6 sequential untitled fragments, no more than 150 visible words in total. The first fragment is `overview`; the following fragments are ordered `sections`. The final fragment closes with practical value without a visible advice rubric. Love/Work/Mood and other categories are never visible.
 - Week and Month each receive one cohesive personal story for their exact range. They are not multi-card feeds and have no Monday-to-Sunday, week-part, or month-part breakdown.
 - None of the three periods uses a fixed set of life themes, preselected behavioural patterns, separate advice blocks, or generic newspaper-horoscope categories. Internal post-hoc service keys are allowed only for diversity validation and are never rendered.
 - Swiss Ephemeris calculates the saved natal chart. That chart supplies private context for the model; it does not produce a separate transit/evidence payload for the forecast period.
-- OpenAI Luna receives the selected period plus available birth details, saved natal context, and bounded recent forecast excerpts via the Responses API, and writes the forecast itself. Recent excerpts are negative anti-repeat context, not factual biography and not fallback copy.
-- Strict JSON Schema and server validation control the fragment count, 150-word limit, language, forecast-specific voice, safety, unsupported claims, and repetition. The writer has at most two attempts.
-- Each Today fragment carries hidden `presentationStyle`: the first fragment and at least one more are `prose`, with at most one 6–18-word `pull_quote` and at most one 4–12-word `paper_note`. Week and Month stay ordinary prose. A paper note is runtime text over an empty application-owned template, never text baked into an image.
-- `lib/appVoice.ts` is the runtime voice source. Its personal-forecast layer may be sharper and occasionally ironic without changing the global app voice.
+- OpenAI Luna receives the selected period plus available birth details, saved natal context, and up to 15 recent fragments for the same user and chart across `day`, `week`, and `month` via the Responses API. It writes the forecast itself; recent excerpts are negative anti-repeat context, not factual biography or fallback copy.
+- Strict JSON Schema and server validation control the fragment count, required typed closing, 150-word limit, language, forecast-specific voice, safety, unsupported claims, and repetition. The request uses `store: false`; rejected draft text remains inside server validation and is not sent back to Luna. The writer has at most two attempts.
+- Each Today fragment carries hidden `presentationStyle`: the first and final fragments are `prose`, with at most one 6–18-word `pull_quote` and one 4–12-word `paper_note`. The schema validates these values, but the current Today renderer does not branch on them and displays every fragment as continuous prose. Week and Month omit the metadata.
+- `lib/appVoice.ts` is the runtime voice source. Its v3 personal-forecast layer may be sharper and occasionally ironic without changing the global app voice. Ten period-local runtime examples guide form — four Today and three each for Week and Month — while anti-copy validation prevents template reuse.
 
 ## Access and cache
 
 - `/api/content/forecast/personal` owns cache lookup and generation under locks.
 - The client renders a usable local package first and refreshes it in the background.
 - The server slices the package for access tier; client locks are presentation only.
-- Cache identity includes user, chart, period, language, model, prompt version, and voice version.
+- Cache identity includes the authenticated user, owned chart ID, full saved-natal fingerprint, hash of sanitized profile fields, period and timezone-aware key, language, model, and calculation, contract, prompt, and voice versions.
 - Existing Premium slicing and local-first behavior remain unchanged; history lookup does not bypass access control or replace the current-period cache entry.
+- The client checks the server cache with `GET`, starts generation with `POST`, and after a `202` polls with the same `POST` and `regenerate: false`.
+- Startup prewarm is non-blocking. Free prewarms only the current `day`; Premium sequentially prewarms the current `day`, `week`, and `month`.
 
 ## Product boundaries
 
@@ -38,13 +40,12 @@
 
 ## Visual rules
 
-- Primary navigation lives in the left drawer. Forecast periods are internal to the diary.
-- Today uses one app-owned editorial system with five deterministic compositions: `editorial_right`, `editorial_left`, `quote_first`, `visual_overlap`, and image-free `editorial_clean`. Luna does not choose layouts, assets, colours, coordinates, or composition.
-- Side-column compositions use compact portrait/square, non-wide assets. Open quote/overlap compositions may use landscape material.
-- Personal products share 309 assets under `/assets/personal-editorial/`: 202 `editorial-v2` assets, 45 cats, 38 capybaras, and 24 objects. Embedded-text and review-excluded assets stay in this library but never enter automatic selection. A separate personal pool provides 19 empty live-text templates under `/assets/personal-paper-templates/`.
+- One shared `LumiaBottomTabBar` owns primary navigation on the main screens; the old drawer is not mounted. Personal and sign horoscopes are on the left, the product hub is in the centre, Settings/Store/Premium are on the right, and the top profile action opens personal data and saved charts. Forecast periods remain internal to the Diary tablist.
+- Active Today uses one deterministic `calendar-editorial` composition. `TodayLineField` selects one of 12 line presets and `TodayCalendarClock` selects one of 15 clock presets from `userId + periodKey`; the continuous fragments follow as ordinary prose.
+- The former five-layout planner, 309 assets under `/assets/personal-editorial/`, and 19 paper templates under `/assets/personal-paper-templates/` remain library-only and inactive. The current Today path does not mount its image or paper renderers.
 - Zodiac is the only product that can use retained legacy newspaper imagery. Its separate source contains 48 explicitly allowlisted assets under `/assets/zodiac-legacy-special/`: 24 psychedelic images and 24 approved funny-animal images. The personal manifests and selectors never import this pool, and the Zodiac selector cannot see any other retired newspaper asset.
-- The stable seed is `userId + periodKey + contractVersion`; the same day reopens identically, adjacent days cannot repeat a layout or asset, and no visual state is stored in the database.
-- Body prose remains primary and never sits on an image or in an additional card. A `paper_note` is the deliberate live-text-on-empty-paper exception; its deterministic template supplies only the paper surface and safe area. Today has at most one strong visual and some days are deliberately image-free. `lib/personalForecastVisuals/personal.manifest.json` and `paper-templates.manifest.json` feed only the personal selector; `lib/zodiacLegacyVisuals/zodiac-legacy-special.manifest.json` feeds only the Zodiac selector.
+- Clock and line selection is deterministic for the user and date, and no visual state is stored in the database. Luna never chooses either preset, an asset, coordinates, colour, or composition.
+- Body prose remains primary and never sits on an image or in an additional card. Fragment titles and presentation metadata stay hidden in the active Today UI.
 
 ## Android accounts
 

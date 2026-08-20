@@ -26,8 +26,6 @@ import {
   normalizeRelationshipContext,
   type RelationshipContext,
 } from '../../lib/synastry/relationshipContext';
-import { EditorialSticker } from '../../components/EditorialSticker';
-import { selectSynastryEditorialSticker } from '../../lib/personalForecastVisuals';
 import {
   EditorialProse,
   EditorialSectionHeading,
@@ -40,6 +38,11 @@ import {
   type CompatibilityPairLevel,
 } from '../../lib/synastry/compatibilityInput';
 import type { PaywallContext } from '../../lib/paywallContext';
+import {
+  EditorialCurve,
+  EditorialProfileButton,
+  EditorialTabs,
+} from '../../components/editorial/EditorialScreenChrome';
 
 type CompatibilityPersonSource = 'birth' | 'saved' | 'sign';
 
@@ -64,7 +67,11 @@ type UnionRoomProps = {
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
+  onOpenProfile?: () => void;
+  onOpenEncyclopedia?: () => void;
 };
+
+type CompatibilityTab = 'compatibility' | 'signs' | 'details';
 
 type Selected = {
   kind: 'sign' | 'person';
@@ -483,49 +490,6 @@ function RelationshipContextPicker({
   );
 }
 
-type CompatibilityVisualDynamic =
-  | 'adaptation'
-  | 'attention'
-  | 'communication'
-  | 'coordination'
-  | 'curiosity'
-  | 'light-tension'
-  | 'mutual-response'
-  | 'playfulness'
-  | 'reconnection'
-  | 'shared-moment'
-  | 'shared-pace'
-  | 'timing';
-
-function visualDynamicsForCompatibility(
-  score: CompatResult,
-  context: RelationshipContext,
-): CompatibilityVisualDynamic[] {
-  const strongest: Record<CompatDimension, readonly CompatibilityVisualDynamic[]> = {
-    love: ['attention', 'mutual-response', 'shared-pace'],
-    relationship: ['communication', 'coordination', 'timing'],
-    friendship: ['playfulness', 'curiosity', 'shared-moment'],
-    work: ['coordination', 'communication', 'timing'],
-  };
-  const contextual: Record<RelationshipContext, readonly CompatibilityVisualDynamic[]> = {
-    romance: ['mutual-response', 'attention', 'shared-moment'],
-    friendship: ['playfulness', 'curiosity', 'reconnection'],
-    family: ['attention', 'communication', 'adaptation'],
-    work: ['coordination', 'timing', 'communication'],
-  };
-  const pressure: readonly CompatibilityVisualDynamic[] = score.overall < 58
-    ? ['adaptation', 'light-tension', 'reconnection']
-    : score.overall < 70
-      ? ['adaptation', 'communication', 'timing']
-      : ['shared-pace', 'mutual-response', 'coordination'];
-
-  return [...new Set([
-    ...strongest[score.strongest],
-    ...contextual[context],
-    ...pressure,
-  ])];
-}
-
 function readingTitles(context: RelationshipContext, ru: boolean) {
   if (context === 'friendship') {
     return ru
@@ -597,6 +561,8 @@ export function UnionRoom(props: UnionRoomProps) {
     premiumContinuation,
     onPremiumContinuationHandled,
     canPromotePremium = true,
+    onOpenProfile,
+    onOpenEncyclopedia,
   } = props;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
@@ -612,7 +578,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const initialYouGender: CompatGender = profile.gender === 'female' ? 'female' : 'male';
   const initialThemGender: CompatGender = initialYouGender === 'male' ? 'female' : 'male';
 
-  const [screen, setScreen] = useState<'add' | 'result'>(initialPrefill ? 'result' : 'add');
+  const [screen, setScreen] = useState<'add' | 'result' | 'details'>(initialPrefill ? 'result' : 'add');
   const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(premium ? 'birth' : 'sign');
   const [availableCharts, setAvailableCharts] = useState<ChartListItem[]>([]);
   const [peopleLoaded, setPeopleLoaded] = useState(false);
@@ -769,7 +735,6 @@ export function UnionRoom(props: UnionRoomProps) {
 
   useEffect(() => {
     if (screen !== 'result' || !selected) return;
-    setSignText(null); setDeep(null); setError(null);
     let alive = true;
     void getSignCompatibility(
       leftSun,
@@ -790,6 +755,9 @@ export function UnionRoom(props: UnionRoomProps) {
     lumiaSelectionHaptic();
     autoDeepKeyRef.current = null;
     setDeepLoading(false);
+    setSignText(null);
+    setDeep(null);
+    setError(null);
     setSelected(s);
     setScreen('result');
     const their = sunOf(s);
@@ -1075,50 +1043,77 @@ export function UnionRoom(props: UnionRoomProps) {
     void runDeep();
   }, [screen, selected, premium, peopleLoaded, runDeep]);
 
+  const compatibilityTabs = useMemo(() => [
+    { id: 'compatibility' as const, label: ru ? 'Совместимость' : 'Compatibility' },
+    { id: 'signs' as const, label: ru ? 'По знакам зодиака' : 'By zodiac signs' },
+    { id: 'details' as const, label: ru ? 'Детали' : 'Details' },
+  ], [ru]);
+  const activeCompatibilityTab: CompatibilityTab = screen === 'result'
+    ? selected?.kind === 'sign' ? 'signs' : 'details'
+    : screen === 'details'
+      ? 'details'
+      : entryMode === 'sign'
+        ? 'signs'
+        : 'compatibility';
+
+  const selectCompatibilityTab = (tab: CompatibilityTab) => {
+    lumiaSelectionHaptic();
+    setError(null);
+    if (tab === 'compatibility') {
+      if (!premium) {
+        void requestPremium('compatibility_by_charts', {
+          placement: 'compatibility_by_charts',
+          featureKey: 'synastry_by_charts',
+          triggerType: 'locked_feature',
+          returnView: 'synastry',
+          returnAction: 'open_birth_compatibility',
+        });
+        return;
+      }
+      setEntryMode('birth');
+      setScreen('add');
+      return;
+    }
+    if (tab === 'signs') {
+      setEntryMode('sign');
+      setScreen('add');
+      return;
+    }
+    setScreen(selected?.kind === 'person' ? 'result' : 'details');
+  };
+
+  const compatibilityHeader = (withBack = false) => (
+    <>
+      <AppTopBar
+        title={ru ? 'Совместимость' : 'Compatibility'}
+        onBack={withBack ? () => {
+          lumiaSelectionHaptic();
+          setEntryMode(selected?.kind === 'sign' ? 'sign' : 'birth');
+          setScreen('add');
+        } : undefined}
+        rightAction={(
+          <EditorialProfileButton
+            label={ru ? 'Открыть профиль' : 'Open profile'}
+            onClick={onOpenProfile}
+          />
+        )}
+      />
+      <EditorialTabs
+        label={ru ? 'Режим совместимости' : 'Compatibility mode'}
+        tabs={compatibilityTabs}
+        activeTab={activeCompatibilityTab}
+        onTabChange={selectCompatibilityTab}
+        className="compat-editorial-tabs"
+      />
+    </>
+  );
+
   /* ── ДОБАВЛЕНИЕ ── */
   if (screen === 'add') {
     return (
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
-        <AppTopBar
-          title={ru ? 'Совместимость' : 'Compatibility'}
-        />
-
-        <div className="compat-choice-tabs compat-mode-switch" role="group" aria-label={ru ? 'Способ сравнения' : 'Comparison method'}>
-          <button
-            type="button"
-            className={`compat-choice-tab${entryMode === 'birth' ? ' is-active' : ''}`}
-            aria-pressed={entryMode === 'birth'}
-            onClick={() => {
-              lumiaSelectionHaptic();
-              if (!premium) {
-                void requestPremium('compatibility_by_charts', {
-                  placement: 'compatibility_by_charts',
-                  featureKey: 'synastry_by_charts',
-                  triggerType: 'locked_feature',
-                  returnView: 'synastry',
-                  returnAction: 'open_birth_compatibility',
-                });
-                return;
-              }
-              setError(null);
-              setEntryMode('birth');
-            }}
-          >
-            {ru ? 'По данным рождения' : 'By birth details'}
-          </button>
-          <button
-            type="button"
-            className={`compat-choice-tab${entryMode === 'sign' ? ' is-active' : ''}`}
-            aria-pressed={entryMode === 'sign'}
-            onClick={() => {
-              lumiaSelectionHaptic();
-              setError(null);
-              setEntryMode('sign');
-            }}
-          >
-            {ru ? 'По знакам зодиака' : 'By zodiac signs'}
-          </button>
-        </div>
+        {compatibilityHeader()}
+        <EditorialCurve className="compat-entry-curve" />
 
         {entryMode === 'birth' ? (
           <>
@@ -1185,7 +1180,7 @@ export function UnionRoom(props: UnionRoomProps) {
                 )}
               </section>
 
-              <div className="compat-person-divider" aria-hidden="true" />
+              <div className="compat-person-divider" aria-hidden="true"><span>✦</span></div>
 
               <section className="compat-air-person" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
@@ -1361,6 +1356,47 @@ export function UnionRoom(props: UnionRoomProps) {
     );
   }
 
+  if (screen === 'details') {
+    return (
+      <div className="fresh-page compat-editorial-page compat-editorial-page--details">
+        {compatibilityHeader()}
+        <EditorialCurve className="compat-details-curve" />
+        <section className="compat-details-empty" aria-labelledby="compat-details-title">
+          <div className="compat-orbit-visual" aria-hidden="true">
+            <span />
+            <span />
+            <strong>✦</strong>
+          </div>
+          <p>{ru ? 'Подробный разбор' : 'Detailed reading'}</p>
+          <h1 id="compat-details-title">
+            {ru ? 'Сначала сравним двух людей' : 'Compare two people first'}
+          </h1>
+          <span>
+            {ru
+              ? 'Здесь появятся сильные стороны связи, точки напряжения и общий вывод — из уже существующего сценария совместимости.'
+              : 'Strengths, tensions, and the existing compatibility conclusion will appear here.'}
+          </span>
+          <button
+            type="button"
+            className="fresh-btn-primary compat-entry-submit"
+            onClick={() => {
+              setEntryMode(premium ? 'birth' : 'sign');
+              setScreen('add');
+            }}
+          >
+            {ru ? 'Перейти к сравнению' : 'Start comparison'}
+          </button>
+          {onOpenEncyclopedia ? (
+            <button type="button" className="editorial-context-link" onClick={onOpenEncyclopedia}>
+              <span>{ru ? 'Открыть энциклопедию астрологии' : 'Open the astrology encyclopedia'}</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          ) : null}
+        </section>
+      </div>
+    );
+  }
+
   /* ── РЕЗУЛЬТАТ ── */
   const strongestLabel = score ? DIMENSION_LABELS[score.strongest][lang] : '';
   const dimsOrder: CompatDimension[] = ['love', 'relationship', 'friendship', 'work'];
@@ -1369,21 +1405,6 @@ export function UnionRoom(props: UnionRoomProps) {
   const resultContextLabel = getRelationshipContextLabel(resultContext, lang);
   const resultTitles = readingTitles(resultContext, ru);
   const resultDeepTitles = deepReadingTitles(resultContext, ru);
-  const resultVisualDynamics = score
-    ? visualDynamicsForCompatibility(score, resultContext)
-    : [];
-  const resultSticker = selectSynastryEditorialSticker({
-    screenKey: 'compatibility-result',
-    contentKey: [
-      selected?.kind || 'sign',
-      selected?.chartId || 'none',
-      leftSun,
-      theirSun,
-      resultContext,
-    ].join('|'),
-    context: resultContext === 'romance' ? 'love' : resultContext,
-    dynamics: resultVisualDynamics,
-  });
   const leftName = selected?.kind === 'sign'
     ? (ru ? 'Первый человек' : 'First person')
     : (selected?.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart'));
@@ -1408,17 +1429,17 @@ export function UnionRoom(props: UnionRoomProps) {
         { title: resultTitles[2], text: String(signText.communication || '') },
       ].filter((block) => block.text.trim().length > 0)
     : [];
+  const resultPercent = selected?.kind === 'person'
+    ? typeof deep?.compatibilityScore === 'number'
+      ? Math.round(deep.compatibilityScore)
+      : null
+    : typeof score?.overall === 'number'
+      ? Math.round(score.overall)
+      : null;
 
   return (
     <div className="fresh-page compat-editorial-page compat-editorial-page--result" aria-busy={!signText && !error}>
-      <AppTopBar
-        title={ru ? 'Совместимость' : 'Compatibility'}
-        onBack={() => {
-          lumiaSelectionHaptic();
-          setEntryMode(selected?.kind === 'sign' ? 'sign' : 'birth');
-          setScreen('add');
-        }}
-      />
+      {compatibilityHeader(true)}
 
       <header className="compat-result-heading">
         <div className="compat-result-people">
@@ -1426,6 +1447,17 @@ export function UnionRoom(props: UnionRoomProps) {
           <span><strong>{rightName}</strong><small>{rightDetail}</small></span>
         </div>
       </header>
+
+      <div className="compat-result-orbit" role="img" aria-label={resultPercent == null
+        ? (ru ? 'Визуальная схема пары' : 'Pair diagram')
+        : (ru ? `Совместимость ${resultPercent} процентов` : `${resultPercent} percent compatibility`)}>
+        <span className="compat-result-orbit-circle is-left" aria-hidden="true" />
+        <span className="compat-result-orbit-circle is-right" aria-hidden="true" />
+        <span className="compat-result-orbit-center">
+          <strong>{resultPercent == null ? '✦' : `${resultPercent}%`}</strong>
+          <small>{ru ? 'ваша связь' : 'your connection'}</small>
+        </span>
+      </div>
 
       <div className="compat-result-context">
         {ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong>
@@ -1448,16 +1480,7 @@ export function UnionRoom(props: UnionRoomProps) {
       {signReadingBlocks.length ? (
         <div className="compat-read">
           {signReadingBlocks.map((block, index) => (
-            <React.Fragment key={`${block.title}-${index}`}>
-              <CompatBlock title={block.title} index={index} reduce={reduce}>{block.text}</CompatBlock>
-              {index === 0 && resultSticker ? (
-                <EditorialSticker
-                  asset={resultSticker}
-                  className="compat-result-sticker"
-                  priority
-                />
-              ) : null}
-            </React.Fragment>
+            <CompatBlock key={`${block.title}-${index}`} title={block.title} index={index} reduce={reduce}>{block.text}</CompatBlock>
           ))}
         </div>
       ) : (!isPerson || (premium && !deep)) ? (

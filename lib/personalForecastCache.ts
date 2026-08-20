@@ -1,28 +1,33 @@
-import type { ContentInterpretation, UserProfile } from '../types';
+import type { ContentInterpretation } from '../types';
+import { APP_VOICE_VERSION } from './appVoice';
+import { getUnifiedContentModel } from './appSettings';
 import {
-  AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
-  AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
-  AI_PERSONAL_HOROSCOPE_TIMEZONE,
-  buildAiPersonalHoroscopeCacheKey,
-  buildAiPersonalHoroscopeInputHash,
-  getAiPersonalHoroscopeCurrentDate,
-  isAiPersonalHoroscopePackage,
-  normalizeAiPersonalHoroscopeTimezone,
-  resolveAiPersonalHoroscopeWindow,
-  type AiPersonalHoroscopePackage,
-  type AiPersonalHoroscopePeriod,
-} from './aiPersonalHoroscope';
-import { generateAiPersonalHoroscopePackage } from './aiPersonalHoroscopeGeneration';
-import { loadPreviousAiPersonalHoroscopes } from './aiPersonalHoroscopeHistory';
-import {
+  buildContentGenerationLockKey,
   withContentGenerationLock,
   type ContentGenerationLockResult,
 } from './contentGenerationLock';
-import { db } from './db';
-import { OPENAI_LUNA_MODEL } from './openai-models';
+import { db, getPool } from './db';
+import type { ReadingContext } from './natalReading/apiHelper';
+import {
+  PERSONAL_FORECAST_CALCULATION_VERSION,
+  PERSONAL_FORECAST_CONTRACT_VERSION,
+  PERSONAL_FORECAST_PROMPT_VERSION,
+  buildPersonalForecastCacheKey,
+  buildPersonalForecastInputHash,
+  buildPersonalForecastProfileFingerprint,
+  getPersonalForecastPackageValidationError,
+  getPreviousPersonalForecastPeriodKey,
+  isPersonalForecastPackage,
+  resolvePersonalForecastWindow,
+  type PersonalForecastPackage,
+  type PersonalForecastPeriod,
+} from './personalForecastContract';
+import {
+  generatePersonalForecastPackage,
+  type PersonalForecastRecentReading,
+} from './personalForecastGeneration';
 
 const CANONICAL_CACHE_TIER = 'premium' as const;
-const PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT = 'few-shot-v2' as const;
 
 const VARIANT_BY_PERIOD = {
   day: 'daily',
@@ -30,169 +35,385 @@ const VARIANT_BY_PERIOD = {
   month: 'monthly',
 } as const;
 
+const PERSONAL_FORECAST_HISTORY_LIMIT = 15;
+
 export type PersonalForecastCacheContext = {
-  profile: UserProfile;
-  period: AiPersonalHoroscopePeriod;
+  ctx: ReadingContext;
+  period: PersonalForecastPeriod;
   periodKey: string;
-  timezone?: string;
 };
 
 async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
-  if (!input.profile?.id) throw new Error('PERSONAL_HOROSCOPE_PROFILE_REQUIRED');
-  const model = OPENAI_LUNA_MODEL;
-  const cacheModelId = `${model}:${PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT}`;
-  const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
-  const timezone = normalizeAiPersonalHoroscopeTimezone(
-    input.timezone || input.profile.birthTimezone || AI_PERSONAL_HOROSCOPE_TIMEZONE,
-  );
-  const window = resolveAiPersonalHoroscopeWindow(input.period, input.periodKey, timezone);
-  const currentDate = getAiPersonalHoroscopeCurrentDate(window);
+  if (!input.ctx.profile.id || !input.ctx.chartData || input.ctx.chartId == null) {
+    throw new Error('PERSONAL_FORECAST_CHART_REQUIRED');
+  }
+  const model = await getUnifiedContentModel();
+  const language: 'ru' | 'en' = input.ctx.profile.language === 'en' ? 'en' : 'ru';
+  const timezone = input.ctx.chartData.timezone || input.ctx.profile.birthTimezone || 'Europe/Moscow';
+  const window = resolvePersonalForecastWindow(input.period, input.periodKey, timezone);
   const common = {
-    profile: input.profile,
+    userId: String(input.ctx.profile.id),
+    chartId: input.ctx.chartId,
+    chartData: input.ctx.chartData,
     period: input.period,
     periodKey: input.periodKey,
-    currentDate,
     timezone: window.timezone,
     language,
-    modelId: cacheModelId,
+    modelId: model,
+    profileFingerprint: buildPersonalForecastProfileFingerprint(input.ctx.profile),
   };
   return {
-    profile: input.profile,
-    userId: String(input.profile.id),
     common,
-    currentDate,
     model,
+    language,
     window,
-    cacheKey: buildAiPersonalHoroscopeCacheKey(common),
-    inputHash: buildAiPersonalHoroscopeInputHash(common),
+    cacheKey: buildPersonalForecastCacheKey(common),
+    inputHash: buildPersonalForecastInputHash(common),
     contentVariant: VARIANT_BY_PERIOD[input.period],
   };
-}
-
-export function buildAiPersonalHoroscopeGenerationLockKey(input: {
-  userId: string;
-  period: AiPersonalHoroscopePeriod;
-  periodKey: string;
-  currentDate: string;
-}): string {
-  return [
-    'ai-personal-horoscope-generation',
-    String(input.userId).trim(),
-    input.period,
-    input.periodKey,
-    input.currentDate,
-    AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
-    PERSONAL_HOROSCOPE_PROMPT_CACHE_VARIANT,
-  ].join(':');
 }
 
 export async function getCachedPersonalForecast(
   input: PersonalForecastCacheContext,
   options: { allowExpired?: boolean } = {},
 ): Promise<{
-  horoscope: AiPersonalHoroscopePackage;
+  forecast: PersonalForecastPackage;
   model: string;
   cacheKey: string;
   inputHash: string;
 } | null> {
   const identity = await resolveCacheIdentity(input);
-  const existing = await db.content_interpretations.getByUser(
-    identity.userId,
-    CANONICAL_CACHE_TIER,
-    'forecast',
-    identity.contentVariant,
-    identity.cacheKey,
-    options.allowExpired === true,
-  );
-  const interpretation = existing as ContentInterpretation<AiPersonalHoroscopePackage> | null;
+  const userId = String(input.ctx.profile.id);
+  const existing = input.ctx.chartId != null
+    ? await db.content_interpretations.getByChart(
+        input.ctx.chartId,
+        CANONICAL_CACHE_TIER,
+        'forecast',
+        identity.contentVariant,
+        identity.cacheKey,
+        options.allowExpired === true,
+      )
+    : await db.content_interpretations.getByUser(
+        userId,
+        CANONICAL_CACHE_TIER,
+        'forecast',
+        identity.contentVariant,
+        identity.cacheKey,
+        options.allowExpired === true,
+      );
+  const interpretation = existing as ContentInterpretation<PersonalForecastPackage> | null;
   if (
     !interpretation
     || interpretation.inputHash !== identity.inputHash
-    || interpretation.promptVersion !== AI_PERSONAL_HOROSCOPE_PROMPT_VERSION
-    || interpretation.calculationVersion !== AI_PERSONAL_HOROSCOPE_CACHE_VERSION
-    || !isAiPersonalHoroscopePackage(interpretation.content)
+    || interpretation.promptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
+    || interpretation.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
+    || !isPersonalForecastPackage(interpretation.content)
     || interpretation.content.meta.model !== identity.model
-    || interpretation.content.currentDate !== identity.currentDate
-  ) return null;
-
+  ) {
+    return null;
+  }
   return {
-    horoscope: interpretation.content,
+    forecast: interpretation.content,
     model: identity.model,
     cacheKey: identity.cacheKey,
     inputHash: identity.inputHash,
   };
 }
 
+export async function getCompatibleStalePersonalForecast(
+  input: PersonalForecastCacheContext,
+): Promise<{
+  forecast: PersonalForecastPackage;
+  model: string;
+  cacheKey: string;
+  inputHash: string;
+} | null> {
+  const identity = await resolveCacheIdentity(input);
+  const userId = String(input.ctx.profile.id);
+  const existing = input.ctx.chartId != null
+    ? await db.content_interpretations.getLatestByChartVariant(
+        input.ctx.chartId,
+        CANONICAL_CACHE_TIER,
+        'forecast',
+        identity.contentVariant,
+      )
+    : await db.content_interpretations.getLatestByUserVariant(
+        userId,
+        CANONICAL_CACHE_TIER,
+        'forecast',
+        identity.contentVariant,
+      );
+  const interpretation = existing as ContentInterpretation<PersonalForecastPackage> | null;
+  const forecast = interpretation?.content;
+  const stalePromptVersion = interpretation?.promptVersion;
+  if (
+    !interpretation
+    || !forecast
+    || typeof stalePromptVersion !== 'string'
+    || stalePromptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
+    || interpretation.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
+    || forecast.meta.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
+    || forecast.meta.semanticVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
+    || forecast.meta.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
+    || forecast.meta.voiceVersion !== APP_VOICE_VERSION
+    || forecast.meta.model !== identity.model
+    || forecast.period !== input.period
+    || forecast.periodKey !== input.periodKey
+    || !isPersonalForecastPackage(forecast)
+  ) {
+    return null;
+  }
+  const expectedInputHash = buildPersonalForecastInputHash(identity.common, {
+    calculationVersion: forecast.meta.calculationVersion,
+    contractVersion: forecast.meta.contractVersion,
+    promptVersion: stalePromptVersion,
+    voiceVersion: forecast.meta.voiceVersion,
+  });
+  if (interpretation.inputHash !== expectedInputHash) return null;
+  return {
+    forecast,
+    model: identity.model,
+    cacheKey: interpretation.cacheKey,
+    inputHash: expectedInputHash,
+  };
+}
+
+function recentReadingFromUnknown(value: unknown): PersonalForecastRecentReading | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const candidate = value as {
+    periodKey?: unknown;
+    overview?: unknown;
+    sections?: unknown;
+  };
+  if (typeof candidate.periodKey !== 'string' || !candidate.periodKey.trim()) return null;
+  const overview = candidate.overview && typeof candidate.overview === 'object' && !Array.isArray(candidate.overview)
+    ? candidate.overview as { title?: unknown }
+    : null;
+  const headline = typeof overview?.title === 'string' && overview.title.trim()
+    ? [{
+        kind: 'headline' as const,
+        text: overview.title.trim().slice(0, 200),
+        semanticFingerprint: null,
+      }]
+    : [];
+  const rawSections = [candidate.overview, ...(Array.isArray(candidate.sections) ? candidate.sections : [])];
+  const fragments = [...headline, ...rawSections.flatMap((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const section = value as { text?: unknown; semanticFingerprint?: unknown };
+    if (typeof section.text !== 'string' || !section.text.trim()) return [];
+    return [{
+      kind: 'fragment' as const,
+      text: section.text.trim().slice(0, 700),
+      semanticFingerprint: typeof section.semanticFingerprint === 'string'
+        ? section.semanticFingerprint.slice(0, 600)
+        : null,
+    }];
+  })];
+  return fragments.length ? { periodKey: candidate.periodKey, fragments } : null;
+}
+
+/**
+ * Anti-repeat history is negative writer context only. A previous package is
+ * never returned from this path as the forecast for the requested period.
+ */
+export async function getRecentPersonalForecastHistory(
+  input: PersonalForecastCacheContext,
+): Promise<PersonalForecastRecentReading[]> {
+  const identity = await resolveCacheIdentity(input);
+  const userId = String(input.ctx.profile.id);
+  const readings: PersonalForecastRecentReading[] = [];
+  const seen = new Set<string>();
+  const add = (reading: PersonalForecastRecentReading | null) => {
+    if (!reading) return;
+    const identityKey = `${reading.periodKey}:${reading.fragments.map((fragment) => fragment.text).join('\n')}`;
+    if (seen.has(identityKey)) return;
+    seen.add(identityKey);
+    readings.push(reading);
+  };
+
+  try {
+    const result = await getPool().query(
+      `SELECT content
+       FROM content_interpretations
+       WHERE user_id = $1
+         AND chart_id = $2
+         AND access_tier = $3
+         AND content_surface = 'forecast'
+         AND content_variant IN ('daily', 'weekly', 'monthly')
+       ORDER BY updated_at DESC
+       LIMIT $4`,
+      [
+        userId,
+        input.ctx.chartId,
+        CANONICAL_CACHE_TIER,
+        PERSONAL_FORECAST_HISTORY_LIMIT,
+      ],
+    );
+    for (const row of result.rows as Array<{ content?: unknown }>) {
+      add(recentReadingFromUnknown(row.content));
+    }
+    if (readings.length) {
+      return readings.slice(0, PERSONAL_FORECAST_HISTORY_LIMIT);
+    }
+  } catch (error) {
+    console.warn(
+      '[personal-forecast] recent cross-period history unavailable; trying period cache:',
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
+  try {
+    const latest = input.ctx.chartId != null
+      ? await db.content_interpretations.getLatestByChartVariant(
+          input.ctx.chartId,
+          CANONICAL_CACHE_TIER,
+          'forecast',
+          identity.contentVariant,
+        )
+      : await db.content_interpretations.getLatestByUserVariant(
+          userId,
+          CANONICAL_CACHE_TIER,
+          'forecast',
+          identity.contentVariant,
+        );
+    add(recentReadingFromUnknown((latest as ContentInterpretation<unknown> | null)?.content));
+  } catch (error) {
+    console.error(
+      '[personal-forecast] latest anti-repeat history read failed; continuing without it:',
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
+  let previousKey = input.periodKey;
+  const historyLimit = PERSONAL_FORECAST_HISTORY_LIMIT;
+  for (let index = 0; index < historyLimit; index += 1) {
+    previousKey = getPreviousPersonalForecastPeriodKey(
+      input.period,
+      previousKey,
+      identity.window.timezone,
+    );
+    try {
+      const cached = await getCachedPersonalForecast(
+        { ...input, periodKey: previousKey },
+        { allowExpired: true },
+      );
+      add(cached ? recentReadingFromUnknown(cached.forecast) : null);
+    } catch (error) {
+      console.error(
+        `[personal-forecast] anti-repeat history read failed for ${previousKey}; continuing:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+  return readings.slice(0, PERSONAL_FORECAST_HISTORY_LIMIT);
+}
+
 async function savePersonalForecast(
-  horoscope: AiPersonalHoroscopePackage,
+  input: PersonalForecastCacheContext,
+  forecast: PersonalForecastPackage,
   identity: Awaited<ReturnType<typeof resolveCacheIdentity>>,
 ): Promise<void> {
-  await db.content_interpretations.upsertByUser(identity.userId, {
+  const payload = {
     accessTier: CANONICAL_CACHE_TIER,
     contentSurface: 'forecast' as const,
     contentVariant: identity.contentVariant,
     cacheKey: identity.cacheKey,
     inputHash: identity.inputHash,
-    content: horoscope,
+    content: forecast,
     modelTier: 'premium' as const,
-    promptVersion: AI_PERSONAL_HOROSCOPE_PROMPT_VERSION,
-    calculationVersion: AI_PERSONAL_HOROSCOPE_CACHE_VERSION,
+    promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
+    calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
     isPersistent: false,
     legacySource: null,
     validFrom: identity.window.startsAt,
     validTo: identity.window.validTo,
-  });
+  };
+  const userId = String(input.ctx.profile.id);
+  if (input.ctx.chartId != null) {
+    await db.content_interpretations.upsertByChart(
+      input.ctx.chartId,
+      payload,
+      userId,
+    );
+    return;
+  }
+  await db.content_interpretations.upsertByUser(userId, payload);
 }
 
 export async function ensurePersonalForecast(
   input: PersonalForecastCacheContext,
-  options: { forceRegenerate?: boolean } = {},
-): Promise<ContentGenerationLockResult<AiPersonalHoroscopePackage>> {
+  options: {
+    forceRegenerate?: boolean;
+    minimumGeneratedAt?: string | null;
+  } = {},
+): Promise<ContentGenerationLockResult<PersonalForecastPackage>> {
   const identity = await resolveCacheIdentity(input);
   const forceRegenerate = options.forceRegenerate === true;
-  return withContentGenerationLock<AiPersonalHoroscopePackage>({
-    lockKey: buildAiPersonalHoroscopeGenerationLockKey({
-      userId: identity.userId,
-      period: input.period,
-      periodKey: input.periodKey,
-      currentDate: identity.currentDate,
+  const minimumGeneratedAt = options.minimumGeneratedAt
+    ? new Date(options.minimumGeneratedAt).getTime()
+    : Number.NaN;
+  return withContentGenerationLock<PersonalForecastPackage>({
+    lockKey: buildContentGenerationLockKey({
+      userId: String(input.ctx.profile.id),
+      chartId: input.ctx.chartId,
+      accessTier: CANONICAL_CACHE_TIER,
+      contentSurface: 'forecast',
+      contentVariant: identity.contentVariant,
+      cacheKey: identity.cacheKey,
+      promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
     }),
-    operation: `ai-personal-horoscope-${input.period}`,
+    operation: `personal-forecast-feed-${input.period}`,
     allowLocalLockFallback: true,
     readCached: async () => {
       if (forceRegenerate) return null;
       try {
         const cached = await getCachedPersonalForecast(input);
-        return cached ? { value: cached.horoscope, source: 'cache' } : null;
+        if (!cached) return null;
+        if (
+          Number.isFinite(minimumGeneratedAt)
+          && new Date(cached.forecast.meta.generatedAt).getTime() <= minimumGeneratedAt
+        ) {
+          return null;
+        }
+        return { value: cached.forecast, source: 'cache' };
       } catch (error) {
         console.error(
-          '[ai-personal-horoscope] cache read failed; continuing with Luna:',
+          '[personal-forecast] cache read failed; continuing with Luna generation:',
           error instanceof Error ? error.message : String(error),
         );
         return null;
       }
     },
     generate: async () => {
-      const previousForecasts = await loadPreviousAiPersonalHoroscopes(identity.userId, 15);
-      const horoscope = await generateAiPersonalHoroscopePackage({
-        profile: identity.profile,
+      const recentForecasts = await getRecentPersonalForecastHistory(input).catch((error) => {
+        console.error(
+          '[personal-forecast] personal anti-repeat history unavailable; continuing with Luna generation:',
+          error instanceof Error ? error.message : String(error),
+        );
+        return [];
+      });
+      const forecast = await generatePersonalForecastPackage({
+        profile: input.ctx.profile,
+        chartData: identity.common.chartData,
+        model: identity.model,
         period: input.period,
         window: identity.window,
-        currentDate: identity.currentDate,
-        previousForecasts,
+        recentForecasts,
       });
-      if (!isAiPersonalHoroscopePackage(horoscope)) {
-        throw new Error('PERSONAL_HOROSCOPE_PACKAGE_INVALID');
+      if (!isPersonalForecastPackage(forecast)) {
+        throw new Error(
+          `PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`,
+        );
       }
       try {
-        await savePersonalForecast(horoscope, identity);
+        await savePersonalForecast(input, forecast, identity);
       } catch (error) {
         console.error(
-          '[ai-personal-horoscope] cache write failed; returning generated horoscope:',
+          '[personal-forecast] cache write failed; returning generated forecast:',
           error instanceof Error ? error.message : String(error),
         );
       }
-      return horoscope;
+      return forecast;
     },
   });
 }

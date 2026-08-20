@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { Download } from 'lucide-react';
 import { getZodiacSign } from '../../constants';
 import type { NatalChartData } from '../../types';
 import type { NatalChartDataV2 } from '../../lib/natalChartV2Types';
@@ -21,8 +22,15 @@ type WheelPoint = {
 type WheelAspect = {
   id: string;
   type: 'conjunction' | 'sextile' | 'square' | 'trine' | 'opposition';
+  fromKey: string;
+  toKey: string;
   fromLongitude: number;
   toLongitude: number;
+};
+
+type WheelHouse = {
+  house: number;
+  longitude: number;
 };
 
 const BODY_KEYS = [
@@ -102,7 +110,6 @@ function finite(value: unknown): number | null {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
-
 function normalizeLongitude(value: number): number {
   return ((value % 360) + 360) % 360;
 }
@@ -138,10 +145,17 @@ function positionRecord(chart: ChartSource, key: (typeof BODY_KEYS)[number]): Re
   return objectRecord(positions?.[key] ?? rawChart[key]);
 }
 
+function exactWheelCoordinate(chart: ChartSource, value: Record<string, unknown>): boolean {
+  const rawChart = chart as unknown as Record<string, unknown>;
+  if (rawChart.schemaVersion === 'natal-chart-data-v2') return value.reliability === 'exact';
+  return getPermanentNatalReliability(chart).quality === 'exact'
+    && value.reliability !== 'variable_in_range';
+}
+
 function collectBodies(chart: ChartSource): WheelPoint[] {
   return BODY_KEYS.flatMap((key) => {
     const position = positionRecord(chart, key);
-    if (!position) return [];
+    if (!position || !exactWheelCoordinate(chart, position)) return [];
     const longitude = finite(position.longitude);
     if (longitude == null) return [];
     const degree = finite(position.degree);
@@ -159,20 +173,14 @@ function collectBodies(chart: ChartSource): WheelPoint[] {
 
 function angleAllowed(chart: ChartSource, key: 'ascendant' | 'mc'): boolean {
   const reliability = getPermanentNatalReliability(chart);
-  if (!reliability.anglesIncluded || reliability.quality === 'unknown') return false;
+  if (!reliability.anglesIncluded || reliability.quality !== 'exact') return false;
 
   const rawChart = chart as unknown as Record<string, unknown>;
   const angles = objectRecord(rawChart.angles);
   const angle = objectRecord(angles?.[key] ?? (key === 'ascendant' ? rawChart.rising : rawChart.mc));
-  if (!angle || finite(angle.longitude) == null) return false;
-  if (angle.reliability === 'variable_in_range') return false;
-  if (reliability.quality === 'exact') return true;
-
-  const quality = objectRecord(rawChart.chartQuality);
-  const variableAngles = Array.isArray(quality?.variableAngles)
-    ? quality.variableAngles.map(canonicalKey)
-    : [];
-  return angle.stableSign === true && !variableAngles.includes(key);
+  return !!angle
+    && finite(angle.longitude) != null
+    && exactWheelCoordinate(chart, angle);
 }
 
 function collectAngles(chart: ChartSource): WheelPoint[] {
@@ -195,6 +203,36 @@ function collectAngles(chart: ChartSource): WheelPoint[] {
   });
 }
 
+function collectHouses(chart: ChartSource): WheelHouse[] {
+  const reliability = getPermanentNatalReliability(chart);
+  if (reliability.quality !== 'exact' || !reliability.housesIncluded || !Array.isArray(chart.houses)) return [];
+
+  const rawChart = chart as unknown as Record<string, unknown>;
+  const quality = objectRecord(rawChart.chartQuality);
+  const variableHouses = new Set(
+    Array.isArray(quality?.variableHouses)
+      ? quality.variableHouses.map(finite).filter((value): value is number => value != null)
+      : [],
+  );
+
+  return chart.houses.flatMap((raw, index) => {
+    const house = raw as unknown as Record<string, unknown>;
+    const number = finite(house.house) ?? index + 1;
+    const longitude = finite(house.longitude);
+    const reliable = exactWheelCoordinate(chart, house) && !variableHouses.has(number);
+    if (longitude == null || !reliable) return [];
+    return [{ house: number, longitude: normalizeLongitude(longitude) }];
+  }).sort((left, right) => left.house - right.house);
+}
+
+function houseLabelLongitude(house: WheelHouse, houses: WheelHouse[]): number {
+  const nextHouseNumber = house.house === 12 ? 1 : house.house + 1;
+  const next = houses.find((candidate) => candidate.house === nextHouseNumber);
+  if (!next) return normalizeLongitude(house.longitude + 15);
+  const forward = normalizeLongitude(next.longitude - house.longitude);
+  return normalizeLongitude(house.longitude + forward / 2);
+}
+
 function aliasesForPoint(point: WheelPoint): string[] {
   const aliases = [point.key, point.name];
   if (point.key === 'northNode') aliases.push('north node', 'true node');
@@ -208,6 +246,14 @@ function collectAspects(chart: ChartSource, points: WheelPoint[]): WheelAspect[]
   const longitudeByAlias = new Map<string, number>();
   points.forEach((point) => {
     aliasesForPoint(point).forEach((alias) => longitudeByAlias.set(alias, point.longitude));
+    if (point.key === 'ascendant') {
+      longitudeByAlias.set('descendant', normalizeLongitude(point.longitude + 180));
+      longitudeByAlias.set('dsc', normalizeLongitude(point.longitude + 180));
+    }
+    if (point.key === 'mc') {
+      longitudeByAlias.set('ic', normalizeLongitude(point.longitude + 180));
+      longitudeByAlias.set('imumcoeli', normalizeLongitude(point.longitude + 180));
+    }
   });
 
   const aspects = Array.isArray(chart.aspects) ? chart.aspects : [];
@@ -223,6 +269,8 @@ function collectAspects(chart: ChartSource, points: WheelPoint[]): WheelAspect[]
     return [{
       id: String(aspect.id || `${fromKey}-${type}-${toKey}-${index}`),
       type,
+      fromKey,
+      toKey,
       fromLongitude,
       toLongitude,
     }];
@@ -241,19 +289,77 @@ function bodyLane(points: WheelPoint[], index: number): number {
   return nearBefore % 3;
 }
 
-export function NatalChartWheel({ chart, language }: { chart: ChartSource; language: Language }) {
+export function NatalChartWheel({
+  chart,
+  language,
+  downloadName = 'natal-chart',
+}: {
+  chart: ChartSource;
+  language: Language;
+  downloadName?: string;
+}) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const bodies = collectBodies(chart);
   const angles = collectAngles(chart);
+  const houses = collectHouses(chart);
   const allPoints = [...bodies, ...angles];
   const aspects = collectAspects(chart, allPoints);
+  const omittedBodyCount = BODY_KEYS.length - bodies.length;
+  const ascendant = angles.find((angle) => angle.key === 'ascendant');
+  const midheaven = angles.find((angle) => angle.key === 'mc');
+  const wheelRotation = ascendant
+    ? ascendant.longitude + 270
+    : midheaven
+      ? midheaven.longitude
+      : 0;
+  const chartPoint = (longitude: number, radius: number) => pointOnWheel(wheelRotation - longitude, radius);
   const title = language === 'ru' ? 'Круг натальной карты' : 'Natal chart wheel';
   const caption = language === 'ru'
-    ? 'Положения рассчитанных объектов и основные аспекты карты. Линии соединяют только аспекты из расчёта.'
-    : 'Calculated placements and major chart aspects. Lines connect only aspects present in the calculation.';
+    ? `Точные положения рассчитанных объектов и аспекты из карты.${omittedBodyCount > 0 ? ' Координаты с недостаточной точностью не показаны.' : ''}`
+    : `Exact calculated placements and chart aspects.${omittedBodyCount > 0 ? ' Coordinates without sufficient precision are omitted.' : ''}`;
+
+  const downloadChart = async () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', '1440');
+    clone.setAttribute('height', '1440');
+    const source = `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(clone)}`;
+    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    const safeName = downloadName
+      .replace(/[^\p{L}\p{N}_-]+/gu, '-')
+      .replace(/^-+|-+$/g, '') || 'natal-chart';
+    const fileName = `${safeName}.svg`;
+    const shareNavigator = navigator as Navigator & {
+      canShare?: (data: { files: File[] }) => boolean;
+      share?: (data: { files: File[]; title: string }) => Promise<void>;
+    };
+    if (typeof File !== 'undefined' && shareNavigator.share && shareNavigator.canShare) {
+      const file = new File([blob], fileName, { type: blob.type });
+      if (shareNavigator.canShare({ files: [file] })) {
+        try {
+          await shareNavigator.share({ files: [file], title });
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'AbortError') return;
+        }
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   return (
     <figure className="natal-chart-wheel" aria-labelledby="natal-chart-wheel-caption">
       <svg
+        ref={svgRef}
         className="natal-chart-wheel-svg"
         viewBox="0 0 360 360"
         role="img"
@@ -262,14 +368,37 @@ export function NatalChartWheel({ chart, language }: { chart: ChartSource; langu
         <title id="natal-chart-wheel-title">{title}</title>
         <desc id="natal-chart-wheel-description">{caption}</desc>
 
+        <style>{`
+          .natal-chart-wheel-export-bg { fill: #ffffff !important; }
+          .natal-chart-wheel-ring { fill: none !important; stroke: rgba(37,34,31,.22) !important; stroke-width: 1 !important; }
+          .natal-chart-wheel-ring--outer { stroke: rgba(37,34,31,.52) !important; }
+          .natal-chart-wheel-ring--aspects { stroke: rgba(37,34,31,.10) !important; }
+          .natal-chart-wheel-sign { color: #403b36 !important; }
+          .natal-chart-wheel-sign > line, .natal-chart-wheel-house > line { stroke: rgba(37,34,31,.20) !important; stroke-width: 1 !important; }
+          .natal-chart-wheel-house > text { fill: #a49b92 !important; font-family: Manrope, Arial, sans-serif; font-size: 7px; }
+          .natal-chart-wheel-axis line { stroke: rgba(191,143,99,.62) !important; stroke-width: 1 !important; }
+          .natal-chart-wheel-axis text { fill: #655e57 !important; font-family: Manrope, Arial, sans-serif; font-size: 7px; font-weight: 650; }
+          .natal-chart-wheel-aspect { fill: none !important; stroke-width: 1.15 !important; }
+          .natal-chart-wheel-aspect--conjunction { stroke: rgba(78,74,69,.42) !important; }
+          .natal-chart-wheel-aspect--sextile, .natal-chart-wheel-aspect--trine { stroke: rgba(82,132,161,.48) !important; }
+          .natal-chart-wheel-aspect--square, .natal-chart-wheel-aspect--opposition { stroke: rgba(191,143,99,.58) !important; stroke-dasharray: 3 2; }
+          .natal-chart-wheel-marker { color: #24211e !important; }
+          .natal-chart-wheel-marker > circle { fill: #fff !important; stroke: rgba(37,34,31,.20) !important; stroke-width: .9 !important; }
+          .natal-chart-wheel-marker > text { fill: #77716b !important; font-family: Manrope, Arial, sans-serif; font-size: 6px; font-weight: 650; }
+          .natal-chart-wheel-angle { color: #bf8f63 !important; }
+          .natal-chart-wheel-angle > circle { fill: #fffaf6 !important; stroke: rgba(191,143,99,.46) !important; stroke-width: 1 !important; }
+        `}</style>
+
+        <rect className="natal-chart-wheel-export-bg" width="360" height="360" />
+
         <circle className="natal-chart-wheel-ring natal-chart-wheel-ring--outer" cx="180" cy="180" r="166" />
         <circle className="natal-chart-wheel-ring natal-chart-wheel-ring--signs" cx="180" cy="180" r="137" />
         <circle className="natal-chart-wheel-ring natal-chart-wheel-ring--aspects" cx="180" cy="180" r="66" />
 
         {SIGNS.map((sign, index) => {
-          const divider = pointOnWheel(index * 30, 166);
-          const dividerInner = pointOnWheel(index * 30, 137);
-          const glyph = pointOnWheel(index * 30 + 15, 151.5);
+          const divider = chartPoint(index * 30, 166);
+          const dividerInner = chartPoint(index * 30, 137);
+          const glyph = chartPoint(index * 30 + 15, 151.5);
           return (
             <g key={sign} className="natal-chart-wheel-sign" aria-hidden="true">
               <line x1={dividerInner.x} y1={dividerInner.y} x2={divider.x} y2={divider.y} />
@@ -280,10 +409,40 @@ export function NatalChartWheel({ chart, language }: { chart: ChartSource; langu
           );
         })}
 
+        <g className="natal-chart-wheel-houses" aria-hidden="true">
+          {houses.map((house) => {
+            const cusp = chartPoint(house.longitude, 137);
+            const center = chartPoint(house.longitude, 66);
+            const label = chartPoint(houseLabelLongitude(house, houses), 123);
+            return (
+              <g key={house.house} className="natal-chart-wheel-house">
+                <line x1={center.x} y1={center.y} x2={cusp.x} y2={cusp.y} />
+                <text x={label.x} y={label.y + 2.5} textAnchor="middle">{house.house}</text>
+              </g>
+            );
+          })}
+        </g>
+
+        {angles.map((angle) => {
+          const start = chartPoint(angle.longitude, 166);
+          const end = chartPoint(angle.longitude + 180, 166);
+          const startLabel = chartPoint(angle.longitude, 170);
+          const endLabel = chartPoint(angle.longitude + 180, 170);
+          const startText = angle.key === 'ascendant' ? 'ASC' : 'MC';
+          const endText = angle.key === 'ascendant' ? 'DSC' : 'IC';
+          return (
+            <g key={`axis-${angle.key}`} className="natal-chart-wheel-axis" aria-hidden="true">
+              <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} />
+              <text x={startLabel.x} y={startLabel.y + 2.5} textAnchor="middle">{startText}</text>
+              <text x={endLabel.x} y={endLabel.y + 2.5} textAnchor="middle">{endText}</text>
+            </g>
+          );
+        })}
+
         <g className="natal-chart-wheel-aspects" aria-hidden="true">
           {aspects.map((aspect) => {
-            const from = pointOnWheel(aspect.fromLongitude, 66);
-            const to = pointOnWheel(aspect.toLongitude, 66);
+            const from = chartPoint(aspect.fromLongitude, 66);
+            const to = chartPoint(aspect.toLongitude, 66);
             return (
               <line
                 key={aspect.id}
@@ -299,7 +458,7 @@ export function NatalChartWheel({ chart, language }: { chart: ChartSource; langu
 
         {bodies.map((body, index) => {
           const radius = [116, 96, 77][bodyLane(bodies, index)];
-          const marker = pointOnWheel(body.longitude, radius);
+          const marker = chartPoint(body.longitude, radius);
           return (
             <g
               key={body.key}
@@ -311,13 +470,13 @@ export function NatalChartWheel({ chart, language }: { chart: ChartSource; langu
               <g transform="translate(-8 -10)">
                 <PlanetIcon planet={body.icon} size={16} strokeWidth={1.45} />
               </g>
-              <text x="0" y="9" textAnchor="middle">{Math.round(body.degree)}°</text>
+              <text x="0" y="9" textAnchor="middle">{Math.floor(normalizeLongitude(body.degree) % 30)}°</text>
             </g>
           );
         })}
 
         {angles.map((angle) => {
-          const marker = pointOnWheel(angle.longitude, 126);
+          const marker = chartPoint(angle.longitude, 126);
           return (
             <g
               key={angle.key}
@@ -335,15 +494,39 @@ export function NatalChartWheel({ chart, language }: { chart: ChartSource; langu
       </svg>
 
       <figcaption id="natal-chart-wheel-caption" className="natal-chart-wheel-caption">
-        <strong>{title}</strong>
-        <span>{caption}</span>
+        <span className="natal-chart-wheel-caption-copy">
+          <strong>{title}</strong>
+          <span>{caption}</span>
+        </span>
+        <button
+          type="button"
+          className="natal-chart-download"
+          onClick={() => { void downloadChart(); }}
+          aria-label={language === 'ru' ? 'Скачать натальную карту в SVG' : 'Download natal chart as SVG'}
+        >
+          <Download aria-hidden="true" strokeWidth={1.45} />
+        </button>
       </figcaption>
 
       <ul className="natal-chart-wheel-a11y">
         {allPoints.map((point) => (
           <li key={point.key}>
             {PLANET_NAMES[point.key as keyof typeof PLANET_NAMES]?.[language] || point.name}: {' '}
-            {getZodiacSign(language, point.sign)} {point.degree.toFixed(1)}°
+            {getZodiacSign(language, point.sign)} {(normalizeLongitude(point.degree) % 30).toFixed(1)}°
+          </li>
+        ))}
+        {houses.map((house) => {
+          const sign = SIGNS[Math.floor(house.longitude / 30) % SIGNS.length];
+          return (
+            <li key={`house-${house.house}`}>
+              {language === 'ru' ? `Дом ${house.house}` : `House ${house.house}`}: {' '}
+              {getZodiacSign(language, sign)} {(house.longitude % 30).toFixed(1)}°
+            </li>
+          );
+        })}
+        {aspects.map((aspect) => (
+          <li key={`aspect-${aspect.id}`}>
+            {language === 'ru' ? 'Аспект' : 'Aspect'}: {aspect.fromKey} — {aspect.type} — {aspect.toKey}
           </li>
         ))}
       </ul>

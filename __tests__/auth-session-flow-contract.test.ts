@@ -72,9 +72,9 @@ describe('explicit authentication flow contracts', () => {
       /showStartupDashboard\(['"]onboarding['"]\)|setView\(['"]onboarding['"]\)/,
     );
     expect(incompleteProfileBranch).not.toContain("showStartupDashboard('dashboard')");
-    expect(app).toMatch(/<Onboarding[\s\S]*initialStep=\{[^}]*['"]birth['"]/);
+    expect(app).toContain('initialStep="birth"');
     expect(onboarding).toMatch(/initialStep[^\n]*(?:stories|birth)/);
-    expect(onboarding).toMatch(/useState<'stories'\|'birth'>\(initialStep\)/);
+    expect(onboarding).not.toContain("useState<'stories'|'birth'>");
     expect(displayNameResolver).not.toMatch(/['"](?:guest|\u0413\u043e\u0441\u0442\u044c)['"]/i);
     const persistence = read('lib/natalChartPersistence.ts');
     expect(persistence).toContain('db.users.updateExisting(args.userId');

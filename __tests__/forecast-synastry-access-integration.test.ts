@@ -20,9 +20,21 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 function chartData(sign: string) {
   return {
-    sun: { sign },
-    moon: { sign },
-    rising: { sign },
+    schemaVersion: 'natal-chart-data-v2',
+    calculationVersion: 'swisseph-canonical-v2',
+    birth: { time: { mode: 'unknown' } },
+    positions: {
+      sun: { sign },
+      moon: { sign },
+      chiron: { sign },
+      northNode: { sign },
+    },
+    angles: { ascendant: null, mc: null, descendant: null, ic: null },
+    houses: [],
+    aspects: [],
+    chartQuality: { birthTimeMode: 'unknown', birthTimeQuality: 'unknown' },
+    calculationMetadata: { ephemerisEngine: 'Swiss Ephemeris' },
+    birthTimeQuality: 'unknown',
   };
 }
 
@@ -52,7 +64,7 @@ describe('forecast and synastry access integration', () => {
 
     await expect(getPrimaryChartId('1001')).resolves.toBe(10);
     await expect(getChartFromDB('1001')).resolves.toMatchObject({
-      sun: { sign: 'Aries' },
+      positions: { sun: { sign: 'Aries' } },
     });
 
     expect(mockApiFetch).toHaveBeenCalledTimes(2);
@@ -66,25 +78,28 @@ describe('forecast and synastry access integration', () => {
     }
   });
 
-  it('authenticates personal horoscopes by profile and never sends or reads a chart', () => {
+  it('authenticates personal forecasts and validates the selected owned chart on the server', () => {
     const route = read('pages/api/content/forecast/personal.ts');
-    expect(route).toContain('requireAppUser(req, { allowGuest: true })');
-    expect(route).toContain('profileFromUser');
-    expect(route).not.toContain('ensureValidContext');
-    expect(route).not.toContain('requireSelfChart');
-    expect(route).not.toContain('ctx.chartData');
+    expect(route).toContain('ensureValidContext(req, res, {');
+    expect(route).toContain('allowGuest: true');
+    expect(route).toContain('requireSelfChart: true');
+    expect(route).toContain('const { userId, ctx } = ready;');
+    expect(route).toContain('ctx.chartData');
+    expect(route).toContain('getPremiumEntitlementState(userId)');
 
     const service = read('services/personalForecastService.ts');
     const buildUrlStart = service.indexOf('function buildUrl');
     const parseErrorStart = service.indexOf('async function parseError', buildUrlStart);
     const buildUrl = service.slice(buildUrlStart, parseErrorStart);
     expect(buildUrl).not.toContain('userId:');
-    expect(buildUrl).not.toContain('chartId');
+    expect(buildUrl).toContain('chartId');
+    expect(buildUrl).toContain("params.set('chartId', String(input.chartId))");
 
     const generationStart = service.indexOf('function generationRequest');
     const generationEnd = service.indexOf('async function generate', generationStart);
     const request = service.slice(generationStart, generationEnd);
-    expect(request).not.toContain('chartId');
+    expect(request).not.toContain('userId');
+    expect(request).toContain('chartId: input.chartId');
     expect(request).not.toContain('chartData');
   });
 
@@ -121,7 +136,8 @@ describe('forecast and synastry access integration', () => {
     expect(unionRoom).toContain('!chart.archived_at');
     expect(unionRoom).toContain('!chart.access_locked');
     expect(unionRoom).toContain('<PersonSourcePicker');
-    expect(unionRoom).toContain('availableCharts.map');
+    expect(unionRoom).toContain('charts={availableCharts}');
+    expect(unionRoom).toContain('charts.map');
     expect(unionRoom).toContain("selected?.kind !== 'person'");
     expect(unionRoom).toContain('setSelected(null)');
     expect(unionRoom).toContain("setScreen('add')");

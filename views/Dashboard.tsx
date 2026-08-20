@@ -6,17 +6,18 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { LoaderCircle, RefreshCw } from 'lucide-react';
+import { LoaderCircle, RefreshCw, UserRound } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
 import type { NatalChartData, UserProfile } from '../types';
-import { hasActivePremium } from '../lib/accessMatrix';
+import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
 import {
-  buildAiPersonalHoroscopeProfileFingerprint,
-  formatAiPersonalHoroscopeDateLabel,
-  getAiPersonalHoroscopePeriodKey,
-  normalizeAiPersonalHoroscopeTimezone,
-  resolveAiPersonalHoroscopeWindow,
-  type AiPersonalHoroscopePeriod,
-} from '../lib/aiPersonalHoroscope';
+  buildPersonalForecastChartFingerprint,
+  formatPersonalForecastDateLabel,
+  getPersonalForecastPeriodKey,
+  normalizeForecastTimezone,
+  resolvePersonalForecastWindow,
+  type PersonalForecastPeriod,
+} from '../lib/personalForecastContract';
 import {
   loadPersonalForecast,
   readLocalPersonalForecast,
@@ -24,22 +25,25 @@ import {
   type PersonalForecastClientError,
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
-import { AiPersonalHoroscopeReading } from '../components/PersonalForecastFeed/AiPersonalHoroscopeReading';
-import { resolveRequestedPersonalForecastPeriod } from '../components/PersonalForecastFeed/periodSelection';
+import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
+import { TodayEditorialFeed } from '../components/PersonalForecastFeed/TodayEditorialFeed';
+import {
+  TodayCalendarClock,
+  TodayLineField,
+} from '../components/PersonalForecastFeed/TodayCalendarClock';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
-
-type PersonalForecastPeriod = AiPersonalHoroscopePeriod;
+import { lumiaSelectionHaptic } from '../lib/haptics';
 
 type DashboardProps = {
   profile: UserProfile;
-  /** Kept only for App.tsx source compatibility. Personal horoscopes do not read it. */
   chartData: NatalChartData | null;
-  /** Kept only for App.tsx source compatibility. Personal horoscopes do not read it. */
   chartId?: number | null;
   currentDateKey?: string;
   onCreateNatalChart?: () => void;
   requestedPeriod?: PersonalForecastPeriod;
   onPeriodChange?: (period: PersonalForecastPeriod) => void;
+  onOpenProfile?: () => void;
+  profileMenuOpen?: boolean;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -79,15 +83,15 @@ function loadingLabel(
 ): string {
   if (language === 'en') {
     return {
-      day: 'Writing your personal horoscope for today',
-      week: 'Writing your personal horoscope for the week',
-      month: 'Writing your personal horoscope for the month',
+      day: 'Creating your personal reading for today',
+      week: 'Creating your personal reading for the week',
+      month: 'Creating your personal reading for the month',
     }[period];
   }
   return {
-    day: 'Пишем твой личный гороскоп на сегодня',
-    week: 'Пишем твой личный гороскоп на неделю',
-    month: 'Пишем твой личный гороскоп на месяц',
+    day: 'Создаём твой личный прогноз на сегодня',
+    week: 'Создаём твой личный прогноз на неделю',
+    month: 'Создаём твой личный прогноз на месяц',
   }[period];
 }
 
@@ -96,42 +100,57 @@ function errorMessage(
   language: 'ru' | 'en',
 ): string {
   if (language === 'en') {
-    if (code === 'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED') {
+    if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
       return 'The structured answer was incomplete. Retry this period only.';
     }
-    if (code === 'PERSONAL_HOROSCOPE_WRITER_INCOMPLETE') {
-      return 'The horoscope was incomplete. Retry this period only.';
+    if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
+      return 'The forecast was incomplete. Retry this period only.';
     }
-    return 'The horoscope did not load. Other application sections still work.';
+    return 'The forecast did not load. Other application sections still work.';
   }
-  if (code === 'PERSONAL_HOROSCOPE_WRITER_VALIDATION_FAILED') {
+  if (code === 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED') {
     return 'Структурированный ответ получился неполным. Повторим только этот период.';
   }
-  if (code === 'PERSONAL_HOROSCOPE_WRITER_INCOMPLETE') {
+  if (code === 'PERSONAL_FORECAST_WRITER_INCOMPLETE') {
     return 'Текст получился неполным. Повторим только этот период.';
   }
-  return 'Гороскоп не загрузился. Остальные разделы приложения работают.';
+  return 'Прогноз не загрузился. Остальные разделы приложения работают.';
 }
 
 export const Dashboard = memo<DashboardProps>(({
   profile,
+  chartData,
+  chartId,
   currentDateKey,
+  onCreateNatalChart,
   requestedPeriod,
+  onPeriodChange,
+  onOpenProfile,
+  profileMenuOpen = false,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
   canPromotePremium = true,
 }) => {
+  const reduceMotion = useReducedMotion();
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const premium = hasActivePremium(profile);
-  const activePeriod = resolveRequestedPersonalForecastPeriod(requestedPeriod);
-  const timezone = normalizeAiPersonalHoroscopeTimezone(
-    profile.birthTimezone || 'Europe/Moscow',
+  const hasChart = hasNatalChart(profile, {
+    chartData,
+    primaryChartId: chartId ?? null,
+  });
+  const activePeriod: PersonalForecastPeriod = requestedPeriod || 'day';
+  const timezone = normalizeForecastTimezone(
+    chartData?.timezone || profile.birthTimezone,
   );
-  const profileFingerprint = buildAiPersonalHoroscopeProfileFingerprint(profile);
+  const chartFingerprint = chartData
+    ? buildPersonalForecastChartFingerprint(chartData)
+    : 'none';
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const firstValueSeenRef = useRef<Set<string>>(new Set());
   const promoSeenRef = useRef<Set<string>>(new Set());
+  const periodTabRefs = useRef<Partial<Record<PersonalForecastPeriod, HTMLButtonElement | null>>>({});
+  const [focusedPeriod, setFocusedPeriod] = useState<PersonalForecastPeriod>(activePeriod);
   const [periodStates, setPeriodStates] = useState<Record<PersonalForecastPeriod, PeriodState>>({
     day: emptyPeriodState(),
     week: emptyPeriodState(),
@@ -141,13 +160,13 @@ export const Dashboard = memo<DashboardProps>(({
   const periodKeys = useMemo<Record<PersonalForecastPeriod, string>>(() => {
     const now = new Date();
     return {
-      day: getAiPersonalHoroscopePeriodKey('day', now, timezone),
-      week: getAiPersonalHoroscopePeriodKey('week', now, timezone),
-      month: getAiPersonalHoroscopePeriodKey('month', now, timezone),
+      day: getPersonalForecastPeriodKey('day', now, timezone),
+      week: getPersonalForecastPeriodKey('week', now, timezone),
+      month: getPersonalForecastPeriodKey('month', now, timezone),
     };
   }, [currentDateKey, timezone]);
   const activeWindow = useMemo(
-    () => resolveAiPersonalHoroscopeWindow(
+    () => resolvePersonalForecastWindow(
       activePeriod,
       periodKeys[activePeriod],
       timezone,
@@ -155,24 +174,26 @@ export const Dashboard = memo<DashboardProps>(({
     [activePeriod, periodKeys, timezone],
   );
   const activeDateLines = useMemo(
-    () => formatAiPersonalHoroscopeDateLabel(activeWindow, language)
+    () => formatPersonalForecastDateLabel(activeWindow, language)
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean),
     [activeWindow, language],
   );
-  const activePeriodTitle = {
+  const periodLabels: Record<PersonalForecastPeriod, string> = {
     day: language === 'ru' ? 'Сегодня' : 'Today',
     week: language === 'ru' ? 'Неделя' : 'Week',
     month: language === 'ru' ? 'Месяц' : 'Month',
-  }[activePeriod];
+  };
+  const activePeriodTitle = periodLabels[activePeriod];
   const activeDateValue = activePeriod === 'day'
     ? activeDateLines[activeDateLines.length - 1]
     : activeDateLines.join(' ');
 
   const productContextKey = [
     String(profile.id || 'guest'),
-    profileFingerprint,
+    chartId ?? 'primary',
+    chartFingerprint,
     language,
     timezone,
     periodKeys.day,
@@ -181,10 +202,20 @@ export const Dashboard = memo<DashboardProps>(({
 
   useEffect(() => {
     requestsRef.current = {};
+    if (!hasChart || !chartData) {
+      setPeriodStates({
+        day: emptyPeriodState(),
+        week: emptyPeriodState(),
+        month: emptyPeriodState(),
+      });
+      return;
+    }
     setPeriodStates(Object.fromEntries(
       FORECAST_PERIODS.map((period) => {
         const local = readLocalPersonalForecast({
           profile,
+          chartData,
+          chartId,
           period,
           periodKey: periodKeys[period],
         });
@@ -195,12 +226,13 @@ export const Dashboard = memo<DashboardProps>(({
         }];
       }),
     ) as Record<PersonalForecastPeriod, PeriodState>);
-  }, [productContextKey, periodKeys.day, periodKeys.month, periodKeys.week, profile]);
+  }, [chartData, chartId, hasChart, productContextKey, periodKeys.day, periodKeys.month, periodKeys.week, profile]);
 
   const loadPeriod = useCallback((
     period: PersonalForecastPeriod,
     options?: { retry?: boolean },
   ) => {
+    if (!hasChart || !chartData) return;
     if (!premium && period !== 'day') {
       setPeriodStates((current) => ({
         ...current,
@@ -213,7 +245,7 @@ export const Dashboard = memo<DashboardProps>(({
     const periodKey = periodKeys[period];
     const local = options?.retry
       ? null
-      : readLocalPersonalForecast({ profile, period, periodKey });
+      : readLocalPersonalForecast({ profile, chartData, chartId, period, periodKey });
     setPeriodStates((current) => ({
       ...current,
       [period]: {
@@ -226,6 +258,8 @@ export const Dashboard = memo<DashboardProps>(({
     const requestEntry: PeriodRequest = { promise: Promise.resolve() };
     const request = loadPersonalForecast({
       profile,
+      chartData,
+      chartId,
       period,
       periodKey,
       options: {
@@ -247,7 +281,7 @@ export const Dashboard = memo<DashboardProps>(({
           phase: current[period]?.result ? 'ready' : 'error',
           errorCode: current[period]?.result
             ? null
-            : error.code || 'PERSONAL_HOROSCOPE_GENERATION_FAILED',
+            : error.code || 'PERSONAL_FORECAST_GENERATION_FAILED',
         },
       }));
     }).finally(() => {
@@ -257,40 +291,77 @@ export const Dashboard = memo<DashboardProps>(({
     });
     requestEntry.promise = request;
     requestsRef.current[period] = requestEntry;
-  }, [periodKeys, premium, profile]);
+  }, [chartData, chartId, hasChart, periodKeys, premium, profile]);
 
   useEffect(() => {
     loadPeriod(activePeriod);
   }, [activePeriod, loadPeriod, productContextKey]);
 
   useEffect(() => {
-    scrollRef?.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [activePeriod, scrollRef]);
+    scrollRef?.current?.scrollTo({
+      top: 0,
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+  }, [activePeriod, reduceMotion, scrollRef]);
+
+  useEffect(() => {
+    setFocusedPeriod(activePeriod);
+  }, [activePeriod]);
+
+  const selectPeriod = useCallback((period: PersonalForecastPeriod) => {
+    if (period === activePeriod) return;
+    lumiaSelectionHaptic();
+    onPeriodChange?.(period);
+  }, [activePeriod, onPeriodChange]);
+
+  const handlePeriodTabKeyDown = useCallback((
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    period: PersonalForecastPeriod,
+  ) => {
+    const currentIndex = FORECAST_PERIODS.indexOf(period);
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % FORECAST_PERIODS.length;
+    if (event.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + FORECAST_PERIODS.length) % FORECAST_PERIODS.length;
+    }
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = FORECAST_PERIODS.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextPeriod = FORECAST_PERIODS[nextIndex];
+    setFocusedPeriod(nextPeriod);
+    periodTabRefs.current[nextPeriod]?.focus();
+  }, []);
 
   const state = periodStates[activePeriod];
   const result = selectActiveReadyPersonalForecast(activePeriod, periodStates);
-  const horoscope = result?.horoscope || null;
-  const lockedAdviceIndexes = useMemo(
-    () => new Set(result?.lockedAdviceIndexes || []),
-    [result?.lockedAdviceIndexes],
+  const forecast = result?.forecast || null;
+  const storySections = useMemo(
+    () => forecast ? [forecast.overview, ...forecast.sections] : [],
+    [forecast],
+  );
+  const lockedSectionIds = useMemo(
+    () => new Set(result?.lockedSectionIds || []),
+    [result?.lockedSectionIds],
   );
 
   useEffect(() => {
-    if (!horoscope || activePeriod !== 'day') return;
-    const key = `${String(profile.id || 'guest')}:${horoscope.periodKey}`;
+    if (!forecast || activePeriod !== 'day') return;
+    const key = `${String(profile.id || 'guest')}:${forecast.periodKey}`;
     if (firstValueSeenRef.current.has(key)) return;
     firstValueSeenRef.current.add(key);
     onPremiumAnalytics?.('first_value_viewed', {
       placement: 'today',
       featureKey: 'personal_daily',
-      periodKey: horoscope.periodKey,
-      contentMode: 'ai-personal-horoscope',
+      periodKey: forecast.periodKey,
+      contentMode: 'personal-forecast',
     });
-  }, [activePeriod, horoscope, onPremiumAnalytics, profile.id]);
+  }, [activePeriod, forecast, onPremiumAnalytics, profile.id]);
 
   useEffect(() => {
-    if (!horoscope || !lockedAdviceIndexes.size || !canPromotePremium) return;
-    const key = `${String(profile.id || 'guest')}:${horoscope.periodKey}:promo`;
+    if (!forecast || !lockedSectionIds.size || !canPromotePremium) return;
+    const key = `${String(profile.id || 'guest')}:${forecast.periodKey}:promo`;
     if (promoSeenRef.current.has(key)) return;
     promoSeenRef.current.add(key);
     onPremiumAnalytics?.('premium_promo_impression', {
@@ -300,9 +371,9 @@ export const Dashboard = memo<DashboardProps>(({
         : activePeriod === 'week'
           ? 'personal_weekly'
           : 'personal_monthly',
-      periodKey: horoscope.periodKey,
+      periodKey: forecast.periodKey,
     });
-  }, [activePeriod, canPromotePremium, horoscope, lockedAdviceIndexes.size, onPremiumAnalytics, profile.id]);
+  }, [activePeriod, canPromotePremium, forecast, lockedSectionIds.size, onPremiumAnalytics, profile.id]);
 
   const requestPremium = useCallback(() => {
     if (activePeriod !== 'day') {
@@ -315,12 +386,12 @@ export const Dashboard = memo<DashboardProps>(({
       onPremiumAnalytics?.('premium_promo_clicked', {
         placement: 'today',
         featureKey: 'personal_daily_full',
-        periodKey: horoscope?.periodKey || periodKeys.day,
+        periodKey: forecast?.periodKey || periodKeys.day,
       });
     }
     void onRequestPremium?.('personal_forecast_feed', {
       period: activePeriod,
-      periodKey: horoscope?.periodKey || periodKeys[activePeriod],
+      periodKey: forecast?.periodKey || periodKeys[activePeriod],
       placement: activePeriod === 'day' ? 'today' : activePeriod,
       featureKey: activePeriod === 'day'
         ? 'personal_daily_full'
@@ -331,12 +402,12 @@ export const Dashboard = memo<DashboardProps>(({
       returnView: 'dashboard',
       returnScrollAnchor: 'personal-forecast-reading',
     });
-  }, [activePeriod, horoscope?.periodKey, onPremiumAnalytics, onRequestPremium, periodKeys]);
+  }, [activePeriod, forecast?.periodKey, onPremiumAnalytics, onRequestPremium, periodKeys]);
 
   return (
     <div
       id="personal-forecast-reading"
-      className={`fresh-page home-screen forecast-feed-page lumia-main-scroll is-${activePeriod}`}
+      className={`fresh-page home-screen forecast-feed-page lumia-main-scroll lumia-bottom-tab-scroll is-${activePeriod}`}
       ref={scrollRef as React.RefObject<HTMLDivElement>}
     >
       <section
@@ -345,10 +416,58 @@ export const Dashboard = memo<DashboardProps>(({
       >
         <AppTopBar
           title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
-          subtitle={activePeriodTitle}
+          rightAction={(
+            <button
+              type="button"
+              className="app-top-bar-action today-profile-button"
+              aria-label={language === 'ru' ? 'Открыть профиль' : 'Open profile'}
+              aria-haspopup="dialog"
+              aria-expanded={profileMenuOpen}
+              aria-controls="today-navigation-sheet"
+              onClick={onOpenProfile}
+            >
+              <UserRound aria-hidden="true" strokeWidth={1.35} />
+            </button>
+          )}
         />
       </section>
 
+      <nav
+        className="today-period-navigation"
+        role="tablist"
+        aria-label={language === 'ru' ? 'Период личного прогноза' : 'Personal forecast period'}
+      >
+        <div className="today-period-tabs" role="presentation">
+          {FORECAST_PERIODS.map((period) => (
+            <button
+              key={period}
+              id={`today-period-tab-${period}`}
+              type="button"
+              className="today-period-tab"
+              role="tab"
+              ref={(node) => {
+                periodTabRefs.current[period] = node;
+              }}
+              aria-controls="today-period-panel"
+              aria-selected={period === activePeriod}
+              tabIndex={period === focusedPeriod ? 0 : -1}
+              onFocus={() => setFocusedPeriod(period)}
+              onKeyDown={(event) => handlePeriodTabKeyDown(event, period)}
+              onClick={() => selectPeriod(period)}
+            >
+              <span>{periodLabels[period]}</span>
+              {period === activePeriod ? (
+                <span
+                  className="today-period-tab-underline"
+                  aria-hidden="true"
+                />
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {activePeriod !== 'day' ? (
       <div className="forecast-feed-reading-header">
         <div
           className="forecast-feed-date-zone"
@@ -366,8 +485,26 @@ export const Dashboard = memo<DashboardProps>(({
           </div>
         </div>
       </div>
+      ) : null}
 
-      {!premium && activePeriod !== 'day' ? (
+      <div
+        id="today-period-panel"
+        role="tabpanel"
+        aria-labelledby={`today-period-tab-${activePeriod}`}
+      >
+      {!hasChart ? (
+        <section className="forecast-feed-status">
+          <h1>{language === 'ru' ? 'Добавь данные рождения' : 'Add your birth details'}</h1>
+          <p>
+            {language === 'ru'
+              ? 'Карта нужна для личного прогноза. Главный экран останется доступен.'
+              : 'A chart is required for a personal forecast. The home screen stays available.'}
+          </p>
+          <button type="button" onClick={onCreateNatalChart}>
+            {language === 'ru' ? 'Создать карту' : 'Create a chart'}
+          </button>
+        </section>
+      ) : !premium && activePeriod !== 'day' ? (
         <section className="forecast-feed-status is-locked" aria-live="polite">
           <h1>
             {language === 'ru'
@@ -385,22 +522,81 @@ export const Dashboard = memo<DashboardProps>(({
             </button>
           ) : null}
         </section>
-      ) : horoscope ? (
-        <AiPersonalHoroscopeReading
-          horoscope={horoscope}
-          lockedAdviceIndexes={lockedAdviceIndexes}
+      ) : forecast && activePeriod === 'day' ? (
+        <TodayEditorialFeed
+          sections={storySections}
+          lockedSectionIds={lockedSectionIds}
+          userId={String(profile.id || 'guest')}
+          periodKey={forecast.periodKey}
+          timezone={timezone}
           language={language}
-          canPromotePremium={canPromotePremium}
+          premium={premium || !canPromotePremium}
           onRequestPremium={requestPremium}
+          onPremiumTeaserDismiss={() => {
+            onPremiumAnalytics?.('premium_promo_dismissed', {
+              placement: 'today',
+              featureKey: 'personal_daily_full',
+              periodKey: forecast.periodKey,
+            });
+          }}
         />
+      ) : forecast ? (
+        <article
+          className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed"
+          data-forecast-period={activePeriod}
+          lang={language}
+        >
+          {storySections.map((section) => (
+            <ForecastSectionBlock
+              key={`${activePeriod}:${forecast.periodKey}:${section.id}`}
+              section={section}
+              period={activePeriod}
+              language={language}
+              locked={lockedSectionIds.has(section.id)}
+              onRequestPremium={requestPremium}
+            />
+          ))}
+        </article>
       ) : state.phase === 'error' ? (
         <section className="forecast-feed-status is-error" aria-live="polite">
-          <h1>{language === 'ru' ? 'Гороскоп пока не загрузился' : 'The horoscope has not loaded yet'}</h1>
+          <h1>{language === 'ru' ? 'Прогноз пока не загрузился' : 'The forecast has not loaded yet'}</h1>
           <p>{errorMessage(state.errorCode, language)}</p>
           <button type="button" onClick={() => loadPeriod(activePeriod, { retry: true })}>
             <RefreshCw size={17} aria-hidden />
             {language === 'ru' ? 'Повторить' : 'Retry'}
           </button>
+        </section>
+      ) : activePeriod === 'day' ? (
+        <section
+          className="today-minimal-hero today-minimal-loading"
+          aria-live="polite"
+          aria-busy="true"
+          aria-label={loadingLabel(activePeriod, language)}
+        >
+          <h1 className="sr-only">
+            {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+          </h1>
+          <TodayLineField
+            userId={String(profile.id || 'guest')}
+            periodKey={periodKeys.day}
+          />
+          <div className="today-minimal-composition">
+            <TodayCalendarClock
+              userId={String(profile.id || 'guest')}
+              periodKey={periodKeys.day}
+              timezone={timezone}
+              language={language}
+            />
+            <div className="today-minimal-loading-copy" role="status">
+              <LoaderCircle
+                className="forecast-feed-loading-spinner"
+                size={23}
+                strokeWidth={1.5}
+                aria-hidden
+              />
+              <p>{loadingLabel(activePeriod, language)}</p>
+            </div>
+          </div>
         </section>
       ) : (
         <section
@@ -415,6 +611,7 @@ export const Dashboard = memo<DashboardProps>(({
           <p className="forecast-feed-loading-label">{loadingLabel(activePeriod, language)}</p>
         </section>
       )}
+      </div>
     </div>
   );
 });

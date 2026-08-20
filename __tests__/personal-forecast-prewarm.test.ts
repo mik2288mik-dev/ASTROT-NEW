@@ -13,7 +13,10 @@ describe('personal horoscope startup generation', () => {
     expect(dashboard).toContain('loadPeriod(activePeriod);');
     expect(dashboard).not.toContain('prewarmUserContent');
     expect(service).toContain('scheduleStartupPrewarm');
-    expect(service).toContain('if (!input.options?.background) scheduleStartupPrewarm(input.profile);');
+    expect(service).toContain('if (!input.options?.background) {');
+    expect(service).toContain('profile: input.profile');
+    expect(service).toContain('chartData: input.chartData');
+    expect(service).toContain('chartId: input.chartId');
     expect(service).toContain('background: true');
   });
 
@@ -29,7 +32,9 @@ describe('personal horoscope startup generation', () => {
     const service = read('services/personalForecastService.ts');
 
     expect(service).toContain('background?: boolean;');
-    expect(service).toContain('if (!input.options?.background) scheduleStartupPrewarm(input.profile);');
+    expect(service).toContain('if (!input.options?.background) {');
+    expect(service).toContain('scheduleStartupPrewarm({');
+    expect(service).toContain('maxInProgressRetries: 60');
   });
 
   it('keeps the unrelated server-side scheduler disabled for this product', () => {

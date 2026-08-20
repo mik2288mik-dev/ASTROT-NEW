@@ -1,35 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type {
-  ForecastPresentationStyle,
-  ForecastSection,
-} from '../../lib/personalForecastContract';
-import type {
-  DiaryEditorialPause,
-  DiaryTodayVisualPlan,
-} from '../../lib/personalForecastVisuals';
-import { clampDiaryVisualSize } from '../../lib/personalForecastVisuals';
+import { ArrowDown } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
+import type { ForecastSection } from '../../lib/personalForecastContract';
 import { resolveTodayPremiumTeaserInsertion } from '../../lib/todayPremiumTeaser';
-import { EditorialForecastVisual } from './EditorialForecastVisual';
-import { EditorialPaperNote } from './EditorialPaperNote';
-import { EditorialQuote } from './EditorialQuote';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
-import {
-  isRenderableTodaySection,
-  resolveForecastEditorialLayout,
-  resolveTodayEditorialLayoutFromVisualPlan,
-  resolveTodayEditorialVisualSize,
-  resolveTodayVisualAnchorId,
-  resolveVisibleForecastTitle,
-  type TodayEditorialLayout,
-} from './editorialLayout';
+import { isRenderableTodaySection } from './editorialLayout';
+import { TodayCalendarClock, TodayLineField } from './TodayCalendarClock';
 
 type TodayEditorialFeedProps = {
   sections: readonly ForecastSection[];
   lockedSectionIds: ReadonlySet<string>;
-  pauses?: readonly DiaryEditorialPause[];
-  visualPlan?: DiaryTodayVisualPlan | null;
   userId: string;
   periodKey: string;
+  timezone: string;
   language: 'ru' | 'en';
   premium: boolean;
   onRequestPremium: () => void;
@@ -89,84 +72,42 @@ function TodayPremiumTeaser({
   );
 }
 
-function sectionPresentationStyle(
-  section: ForecastSection,
-  locked: boolean,
-): ForecastPresentationStyle {
-  if (locked) return 'prose';
-  const style = section.presentationStyle;
-  return style === 'pull_quote' || style === 'paper_note' ? style : 'prose';
+function resolvePunchline(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.title?.replace(/\s+/gu, ' ').trim() || '';
 }
 
-function EditorialOverviewPresentation({
+function StoryFragment({
   section,
-  style,
-  userId,
-  periodKey,
   language,
-  paperTemplate,
+  locked,
+  onRequestPremium,
 }: {
   section: ForecastSection;
-  style: Exclude<ForecastPresentationStyle, 'prose'>;
-  userId: string;
-  periodKey: string;
   language: 'ru' | 'en';
-  paperTemplate: DiaryTodayVisualPlan['paperTemplate'];
+  locked: boolean;
+  onRequestPremium: () => void;
 }) {
-  const title = resolveVisibleForecastTitle({
-    period: 'day',
-    kind: section.kind,
-    title: section.title,
-  });
-  const sectionElementId = `forecast-section-${section.id}`;
-
+  const untitledSection = section.title
+    ? { ...section, title: '' }
+    : section;
   return (
-    <section
-      id={sectionElementId}
-      data-forecast-section={section.id}
-      data-period="day"
-      className={[
-        'forecast-feed-section',
-        'forecast-feed-story-fragment',
-        'is-overview',
-        title ? 'has-title' : 'is-untitled',
-      ].join(' ')}
-    >
-      <div className="forecast-feed-section-content">
-        {title ? (
-          <h1 className="forecast-feed-section-title forecast-feed-screen-headline">
-            <span>{title}</span>
-          </h1>
-        ) : null}
-        {style === 'pull_quote' ? (
-          <EditorialQuote
-            id={`${sectionElementId}-presentation`}
-            sectionId={section.id}
-            text={section.text}
-            language={language}
-          />
-        ) : (
-          <EditorialPaperNote
-            id={`${sectionElementId}-presentation`}
-            sectionId={section.id}
-            text={section.text}
-            seed={`${userId}|${periodKey}|${section.id}`}
-            language={language}
-            template={paperTemplate}
-          />
-        )}
-      </div>
-    </section>
+    <ForecastSectionBlock
+      section={untitledSection}
+      period="day"
+      language={language}
+      locked={locked}
+      onRequestPremium={onRequestPremium}
+    />
   );
 }
 
 export function TodayEditorialFeed({
   sections,
   lockedSectionIds,
-  pauses = [],
-  visualPlan,
   userId,
   periodKey,
+  timezone,
   language,
   premium,
   onRequestPremium,
@@ -175,20 +116,11 @@ export function TodayEditorialFeed({
   onPremiumTeaserClick,
   onPremiumTeaserDismiss,
 }: TodayEditorialFeedProps) {
+  const reduceMotion = useReducedMotion();
   const [teaserDismissed, setTeaserDismissed] = useState(false);
   const impressionKeyRef = useRef<string | null>(null);
   const teaserRef = useRef<HTMLElement | null>(null);
-  const layout = visualPlan
-    ? resolveTodayEditorialLayoutFromVisualPlan(visualPlan.layout)
-    : resolveForecastEditorialLayout({
-        userId,
-        period: 'day',
-        periodKey,
-      }) as TodayEditorialLayout;
-  const pausesBySection = useMemo(
-    () => new Map(pauses.map((pause) => [pause.afterSectionId, pause])),
-    [pauses],
-  );
+  const readingRef = useRef<HTMLElement | null>(null);
   const renderableSections = useMemo(
     () => sections.filter((section) => isRenderableTodaySection(section, lockedSectionIds)),
     [lockedSectionIds, sections],
@@ -202,10 +134,8 @@ export function TodayEditorialFeed({
     () => renderableSections.filter((section) => !lockedSectionIds.has(section.id)),
     [lockedSectionIds, renderableSections],
   );
-  const visualAnchorId = useMemo(() => resolveTodayVisualAnchorId({
-    layout,
-    sections: visibleSections,
-  }), [layout, visibleSections]);
+  const punchlineSource = visibleSections.find((section) => section.kind === 'overview');
+  const punchline = resolvePunchline(punchlineSource);
 
   useEffect(() => {
     setTeaserDismissed(false);
@@ -237,109 +167,92 @@ export function TodayEditorialFeed({
     userId,
   ]);
 
+  const scrollToReading = () => {
+    readingRef.current?.scrollIntoView({
+      behavior: reduceMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  };
+
   return (
     <article
-      className="forecast-feed-story forecast-editorial-reading today-editorial-feed"
-      data-today-layout={layout}
+      className="forecast-feed-story forecast-editorial-reading today-editorial-feed today-minimal-feed"
+      data-today-layout="calendar-editorial"
       lang={language}
     >
-      {visibleSections.map((section, index) => {
-        const locked = false;
-        const style = sectionPresentationStyle(section, locked);
-        const plannedPause = visualPlan?.asset && section.id === visualAnchorId
-          ? { afterSectionId: section.id, asset: visualPlan.asset }
-          : undefined;
-        const pause = locked
-          ? undefined
-          : (visualPlan
-              ? plannedPause
-              : pausesBySection.get(section.id));
-        const sectionElementId = `forecast-section-${section.id}`;
-        const specialOverviewStyle = section.kind === 'overview' && style !== 'prose'
-          ? style
-          : null;
-        const beatClassName = [
-          'today-editorial-beat',
-          `is-${style.replace('_', '-')}`,
-          section.kind === 'overview' ? 'is-overview' : '',
-          pause ? 'has-visual' : '',
-        ].filter(Boolean).join(' ');
+      <section
+        className="today-minimal-hero"
+        aria-labelledby={punchline ? 'today-punchline' : undefined}
+        aria-label={!punchline
+          ? (language === 'ru' ? 'Личный прогноз на сегодня' : 'Personal forecast for today')
+          : undefined}
+      >
+        <TodayLineField userId={userId} periodKey={periodKey} />
+        <div className="today-minimal-composition">
+          <TodayCalendarClock
+            userId={userId}
+            periodKey={periodKey}
+            timezone={timezone}
+            language={language}
+          />
+          {punchline ? (
+            <p id="today-punchline" className="today-minimal-punchline">
+              {punchline}
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className="today-minimal-scroll-cue"
+          aria-label={language === 'ru' ? 'Перейти к прогнозу' : 'Read the forecast'}
+          onClick={scrollToReading}
+        >
+          <ArrowDown aria-hidden="true" strokeWidth={1.25} />
+        </button>
+      </section>
 
-        return (
-          <React.Fragment key={`day:${periodKey}:${section.id}`}>
-            <div
-              className={beatClassName}
-              data-editorial-beat={index + 1}
-            >
-            {specialOverviewStyle ? (
-              <EditorialOverviewPresentation
+      <section
+        ref={readingRef}
+        className="today-minimal-reading"
+        aria-labelledby="today-reading-title"
+      >
+        <h1 id="today-reading-title" className="sr-only">
+          {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+        </h1>
+
+        <div className="today-minimal-reading-main">
+          {visibleSections.map((section) => (
+            <React.Fragment key={`day:${periodKey}:${section.id}`}>
+              <StoryFragment
                 section={section}
-                style={specialOverviewStyle}
-                userId={userId}
-                periodKey={periodKey}
                 language={language}
-                paperTemplate={visualPlan?.paperTemplate || null}
-              />
-            ) : style === 'pull_quote' ? (
-              <EditorialQuote
-                id={sectionElementId}
-                sectionId={section.id}
-                text={section.text}
-                language={language}
-              />
-            ) : style === 'paper_note' ? (
-              <EditorialPaperNote
-                id={sectionElementId}
-                sectionId={section.id}
-                text={section.text}
-                seed={`${userId}|${periodKey}|${section.id}`}
-                language={language}
-                template={visualPlan?.paperTemplate || null}
-              />
-            ) : (
-              <ForecastSectionBlock
-                section={section}
-                period="day"
-                language={language}
-                locked={locked}
+                locked={false}
                 onRequestPremium={onRequestPremium}
               />
-            )}
-
-            {pause ? (
-              <EditorialForecastVisual
-                asset={pause.asset}
-                size={clampDiaryVisualSize(
-                  resolveTodayEditorialVisualSize(layout),
-                  pause.asset.displayWeight,
-                )}
-                priority={index <= 1}
-              />
-            ) : null}
-            </div>
-            {!teaserDismissed && teaserInsertion?.afterSectionId === section.id ? (
-              <TodayPremiumTeaser
-                language={language}
-                teaserRef={teaserRef}
-                onRequestPremium={onRequestPremium}
-                onPremiumTeaserClick={() => {
-                  const impressionKey = `${userId}:${periodKey}:${teaserInsertion.afterSectionId}`;
-                  if (impressionKeyRef.current !== impressionKey) {
-                    impressionKeyRef.current = impressionKey;
-                    onFirstValueViewed?.();
-                    onPremiumTeaserImpression?.();
-                  }
-                  onPremiumTeaserClick?.();
-                }}
-                onPremiumTeaserDismiss={() => {
-                  setTeaserDismissed(true);
-                  onPremiumTeaserDismiss?.();
-                }}
-              />
-            ) : null}
-          </React.Fragment>
-        );
-      })}
+              {!teaserDismissed && teaserInsertion?.afterSectionId === section.id ? (
+                <TodayPremiumTeaser
+                  language={language}
+                  teaserRef={teaserRef}
+                  onRequestPremium={onRequestPremium}
+                  onPremiumTeaserClick={() => {
+                    const impressionKey = `${userId}:${periodKey}:${teaserInsertion.afterSectionId}`;
+                    if (impressionKeyRef.current !== impressionKey) {
+                      impressionKeyRef.current = impressionKey;
+                      onFirstValueViewed?.();
+                      onPremiumTeaserImpression?.();
+                    }
+                    onPremiumTeaserClick?.();
+                  }}
+                  onPremiumTeaserDismiss={() => {
+                    setTeaserDismissed(true);
+                    onPremiumTeaserDismiss?.();
+                  }}
+                />
+              ) : null}
+            </React.Fragment>
+          ))}
+        </div>
+      </section>
     </article>
   );
 }

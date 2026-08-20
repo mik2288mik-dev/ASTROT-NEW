@@ -5,13 +5,14 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('natal personality product flow', () => {
-  it('opens the complete Free portrait immediately after chart onboarding', () => {
+  it('keeps the complete Free portrait on an explicit personality route', () => {
     const app = read('App.tsx');
     const magazine = read('views/v2/NatalMagazine.tsx');
 
-    expect(app).toContain("onboardingTargetViewRef = useRef<ViewState>('personality')");
-    expect(app).toContain("const targetView = isGuestOnboarding ? 'personality'");
-    expect(app).toContain("setView('personality')");
+    expect(app).toContain("onboardingTargetViewRef = useRef<ViewState>('dashboard')");
+    expect(app).toContain('const openPersonalityReport = useCallback(() => {');
+    expect(app).toContain("openNatalSetupOnboarding(viewRef.current, 'personality')");
+    expect(app).toContain("navigateTo('personality')");
     expect(app).toContain('<PersonalityReport');
     expect(app).toContain('onOpenPersonalityReport={openPersonalityReport}');
     expect(magazine).toContain('onOpenPersonalityReport: () => void');

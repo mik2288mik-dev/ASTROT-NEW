@@ -29,13 +29,21 @@ import {
     readLocalHumanBaseReportWithFallback,
     writeLocalHumanBaseReport,
 } from './lib/localHumanBaseReportCache';
-import { getMoscowTodayKey } from './lib/date-utils';
 import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
-import { LumiaSideDrawer } from './components/lumia-ui/LumiaSideDrawer';
-import type { AiPersonalHoroscopePeriod as PersonalForecastPeriod } from './lib/aiPersonalHoroscope';
+import {
+    LumiaBottomTabBar,
+    LumiaNavigationSheet,
+    shouldShowLumiaBottomNavigation,
+    type LumiaNavigationSheetId,
+} from './components/lumia-ui/LumiaBottomTabBar';
+import {
+    getPersonalForecastPeriodKey,
+    normalizeForecastTimezone,
+    type PersonalForecastPeriod,
+} from './lib/personalForecastContract';
 import {
     NATAL_PERMANENT_CONTRACT_VERSION,
     buildPermanentNatalChartFingerprint,
@@ -100,6 +108,10 @@ const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) =
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
+const AstrologyEncyclopedia = dynamic(
+    () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),
+    { ssr: false },
+);
 const MyCharts = dynamic(() => import('./views/MyCharts').then((module) => module.MyCharts), { ssr: false });
 const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => module.AuthGate), { ssr: false });
 
@@ -211,6 +223,14 @@ const NOTIFICATION_QUERY_VIEWS = new Set<ViewState>([
     'charts',
 ]);
 
+const PRIMARY_CHART_NAVIGATION_VIEWS = new Set<ViewState>([
+    'dashboard',
+    'horoscope',
+    'synastry',
+    'chart',
+    'personality',
+]);
+
 const LEGACY_NOTIFICATION_VIEW_ALIASES: Record<string, ViewState> = {
     daily_love: 'dashboard',
     daily_money: 'dashboard',
@@ -271,6 +291,28 @@ function getNotificationLaunchParams(): NotificationLaunchParams | null {
     };
 }
 
+function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
+    const start = now.getTime();
+    const currentKey = getPersonalForecastPeriodKey('day', now, timezone);
+    let lower = start;
+    let upper = start + (36 * 60 * 60 * 1000);
+
+    if (getPersonalForecastPeriodKey('day', new Date(upper), timezone) === currentKey) {
+        return 60 * 60 * 1000;
+    }
+
+    while (upper - lower > 250) {
+        const midpoint = Math.floor((lower + upper) / 2);
+        if (getPersonalForecastPeriodKey('day', new Date(midpoint), timezone) === currentKey) {
+            lower = midpoint;
+        } else {
+            upper = midpoint;
+        }
+    }
+
+    return Math.max(250, (upper - start) + 50);
+}
+
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
@@ -287,8 +329,9 @@ const App: React.FC = () => {
     const [authSessionMode, setAuthSessionModeState] = useState<AuthSessionMode>('automatic');
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
-    const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
+    const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
+    const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
     const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
     const [firstValueReached, setFirstValueReached] = useState(false);
@@ -296,7 +339,9 @@ const App: React.FC = () => {
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
     const [chartsReturnView, setChartsReturnView] = useState<ViewState>('settings');
     const [chartReturnView, setChartReturnView] = useState<ViewState>('dashboard');
-    const [currentDateKey, setCurrentDateKey] = useState(() => getMoscowTodayKey());
+    const [currentDateKey, setCurrentDateKey] = useState(() => (
+        getPersonalForecastPeriodKey('day', new Date(), 'Europe/Moscow')
+    ));
     const lastSessionPingRef = useRef(0);
     const primaryChartSessionRef = useRef<{
         key: string;
@@ -309,12 +354,17 @@ const App: React.FC = () => {
     const notificationAttributionSentRef = useRef(false);
     const dashboardScrollRef = useRef<HTMLDivElement | null>(null);
     const appScrollRef = useRef<HTMLDivElement | null>(null);
+    const paywallHostRef = useRef<HTMLDivElement | null>(null);
+    const currentDateTimezone = normalizeForecastTimezone(
+        primaryChartDataRef.current?.timezone || profile?.birthTimezone || chartData?.timezone,
+    );
     const viewRef = useRef<ViewState>('onboarding');
     const onboardingTargetViewRef = useRef<ViewState>('dashboard');
     const onboardingCompletionRef = useRef(false);
     const restoredRuStoreUserRef = useRef<string | null>(null);
     const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
+    const natalQuestionSequenceRef = useRef(0);
 
     useEffect(() => {
         const reached = !!profile?.id
@@ -1261,6 +1311,32 @@ const App: React.FC = () => {
     }, [profile?.id]);
 
     useEffect(() => {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+        let timer: number | null = null;
+
+        const refreshDateKey = () => {
+            if (timer !== null) window.clearTimeout(timer);
+            const now = new Date();
+            const nextDateKey = getPersonalForecastPeriodKey('day', now, currentDateTimezone);
+            setCurrentDateKey((current) => current === nextDateKey ? current : nextDateKey);
+            timer = window.setTimeout(
+                refreshDateKey,
+                millisecondsUntilNextForecastDay(now, currentDateTimezone),
+            );
+        };
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') refreshDateKey();
+        };
+
+        refreshDateKey();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            if (timer !== null) window.clearTimeout(timer);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [currentDateTimezone]);
+
+    useEffect(() => {
         if (!profile?.id || typeof document === 'undefined') return;
 
         void trackSessionActivity(true);
@@ -1276,6 +1352,17 @@ const App: React.FC = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [profile?.id, trackSessionActivity]);
+
+    useEffect(() => {
+        if (!paywallContext || typeof window === 'undefined') return;
+        const host = paywallHostRef.current;
+        host?.focus();
+        const frame = window.requestAnimationFrame(() => {
+            const closeButton = host?.querySelector<HTMLButtonElement>('.pw2-close');
+            (closeButton || host)?.focus();
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [paywallContext?.paywallInstanceId]);
 
     const paywallEventPayload = (
         context: PaywallContext,
@@ -1603,6 +1690,15 @@ const App: React.FC = () => {
     const navigateTo = useCallback((newView: ViewState, options?: { replace?: boolean }) => {
         if (!profile) return;
         const currentView = viewRef.current;
+
+        if (PRIMARY_CHART_NAVIGATION_VIEWS.has(newView)) {
+            setActiveChartId(undefined);
+            setActiveChartSubject(null);
+            if (primaryChartDataRef.current) {
+                setChartData(primaryChartDataRef.current);
+            }
+        }
+
         if (newView === currentView) return;
 
         if (!options?.replace) {
@@ -1618,11 +1714,6 @@ const App: React.FC = () => {
         });
 
         if (newView === 'chart') {
-            setActiveChartId(undefined);
-            setActiveChartSubject(null);
-            if (primaryChartDataRef.current) {
-                setChartData(primaryChartDataRef.current);
-            }
             setChartReturnView(currentView === 'chart' ? 'dashboard' : currentView);
         }
 
@@ -1672,8 +1763,8 @@ const App: React.FC = () => {
     }, [prefetchBaseReportForChart, primaryChartId, profile]);
 
     const handleBack = useCallback(async () => {
-        if (sideDrawerOpen) {
-            setSideDrawerOpen(false);
+        if (navigationSheet) {
+            setNavigationSheet(null);
             return;
         }
         if (paywallContext) {
@@ -1722,19 +1813,21 @@ const App: React.FC = () => {
             return;
         }
         setView(returnView);
-    }, [activeChartId, chartReturnView, chartsReturnView, paywallContext, sideDrawerOpen]);
+    }, [activeChartId, chartReturnView, chartsReturnView, navigationSheet, paywallContext]);
+
+    const handleSurfaceBack = useCallback(() => {
+        if (navigationSheet || paywallContext) {
+            void handleBack();
+            return;
+        }
+        const detail: NativeBackEventDetail = { handled: false };
+        window.dispatchEvent(new CustomEvent<NativeBackEventDetail>(NATIVE_BACK_EVENT, { detail }));
+        if (!detail.handled) void handleBack();
+    }, [handleBack, navigationSheet, paywallContext]);
 
     useEffect(() => {
-        setSideDrawerOpen(false);
+        setNavigationSheet(null);
     }, [view]);
-
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setSideDrawerOpen(false);
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
 
     // Нативная кнопка «назад» Telegram заменяет нижний таб-бар:
     // на главной скрыта, на остальных экранах показывается и ведёт назад.
@@ -1742,8 +1835,10 @@ const App: React.FC = () => {
         const tg = (window as any).Telegram?.WebApp;
         const backButton = tg?.BackButton;
         if (!backButton) return;
-        const handler = () => { void handleBack(); };
-        const isRoot = !paywallContext && (view === 'dashboard' || view === 'onboarding');
+        const handler = handleSurfaceBack;
+        const isRoot = !paywallContext
+            && !navigationSheet
+            && (view === 'dashboard' || view === 'onboarding');
         if (isRoot) {
             backButton.hide?.();
             return;
@@ -1751,7 +1846,7 @@ const App: React.FC = () => {
         backButton.onClick?.(handler);
         backButton.show?.();
         return () => { backButton.offClick?.(handler); };
-    }, [view, handleBack, paywallContext, sideDrawerOpen]);
+    }, [handleSurfaceBack, navigationSheet, paywallContext, view]);
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
@@ -1762,8 +1857,8 @@ const App: React.FC = () => {
         let lastRootBackAt = 0;
 
         void CapacitorApp.addListener('backButton', () => {
-            if (sideDrawerOpen) {
-                setSideDrawerOpen(false);
+            if (navigationSheet || paywallContext) {
+                void handleBack();
                 return;
             }
             const detail: NativeBackEventDetail = { handled: false };
@@ -1789,7 +1884,11 @@ const App: React.FC = () => {
 
         void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
             if (!isActive) return;
-            const nextDateKey = getMoscowTodayKey();
+            const nextDateKey = getPersonalForecastPeriodKey(
+                'day',
+                new Date(),
+                currentDateTimezone,
+            );
             setCurrentDateKey((current) => current === nextDateKey ? current : nextDateKey);
         }).then((handle) => {
             if (disposed) void handle.remove();
@@ -1801,7 +1900,7 @@ const App: React.FC = () => {
             void backHandle?.remove();
             void appStateHandle?.remove();
         };
-    }, [handleBack, sideDrawerOpen]);
+    }, [currentDateTimezone, handleBack, navigationSheet, paywallContext]);
 
     const openCharts = useCallback((returnView: ViewState) => {
         setChartsReturnView(returnView);
@@ -1823,6 +1922,7 @@ const App: React.FC = () => {
     }, [chartData, navigateTo, openNatalSetupOnboarding]);
 
     const openBottomToday = useCallback(() => {
+        setDashboardPeriod('day');
         navigateTo('dashboard', { replace: true });
     }, [navigateTo]);
 
@@ -1843,40 +1943,43 @@ const App: React.FC = () => {
         navigateTo('synastry');
     }, [navigateTo]);
 
-    const openDrawerDiary = useCallback(() => {
-        setDashboardPeriod('day');
-        setSideDrawerOpen(false);
-        openBottomToday();
-    }, [openBottomToday]);
-    const openDrawerPeriod = useCallback((period: PersonalForecastPeriod) => {
-        const shouldShowFirstValue = period !== 'day'
-            && !hasActivePremium(profile)
-            && !firstValueReachedRef.current;
-        setDashboardPeriod(shouldShowFirstValue ? 'day' : period);
-        if (shouldShowFirstValue) {
-            setCheckoutNotice(profile?.language === 'en'
-                ? 'Your personal Today comes first. Week and Month remain unopened until you see it.'
-                : 'Сначала откроем твой личный Today. Неделя и месяц подождут первой ценности.');
-        }
-        setSideDrawerOpen(false);
-        openBottomToday();
-    }, [openBottomToday, profile]);
-    const openDrawerHoroscope = useCallback(() => {
-        setSideDrawerOpen(false);
-        openBottomZodiac();
-    }, [openBottomZodiac]);
-    const openDrawerCompatibility = useCallback(() => {
-        setSideDrawerOpen(false);
+    const openNavigationSheet = useCallback((sheet: 'hub' | 'services') => {
+        setNavigationSheet((current) => current === sheet ? null : sheet);
+    }, []);
+    const openProfileSheet = useCallback(() => {
+        setNavigationSheet('profile');
+    }, []);
+    const openNavigationCompatibility = useCallback(() => {
+        setNavigationSheet(null);
         openSynastryFromHome();
     }, [openSynastryFromHome]);
-    const openDrawerNatalChart = useCallback(() => {
-        setSideDrawerOpen(false);
+    const openNavigationNatal = useCallback(() => {
+        setNavigationSheet(null);
         openBottomNatal();
     }, [openBottomNatal]);
-    const openDrawerSettings = useCallback(() => {
-        setSideDrawerOpen(false);
+    const openNavigationQuestion = useCallback(() => {
+        setNavigationSheet(null);
+        natalQuestionSequenceRef.current += 1;
+        setNatalQuestionRequest(natalQuestionSequenceRef.current);
+        openBottomNatal();
+    }, [openBottomNatal]);
+    const openNavigationKnowledge = useCallback(() => {
+        setNavigationSheet(null);
+        navigateTo('encyclopedia');
+    }, [navigateTo]);
+    const openNavigationSettings = useCallback(() => {
+        setNavigationSheet(null);
         openBottomAvatar();
     }, [openBottomAvatar]);
+    const openNavigationPremium = useCallback(() => {
+        setNavigationSheet(null);
+        void requestPremium('settings');
+    }, [requestPremium]);
+    const openNavigationCharts = useCallback(() => {
+        const returnView = viewRef.current === 'charts' ? 'dashboard' : viewRef.current;
+        setNavigationSheet(null);
+        openCharts(returnView);
+    }, [openCharts]);
 
     // Свайп назад от левого края (как в iOS) — на всех экранах, кроме корневых/модальных
     const canSwipeBack =
@@ -1884,7 +1987,7 @@ const App: React.FC = () => {
         view !== 'onboarding' &&
         view !== 'paywall';
     useSwipeBack({
-        onSwipeBack: handleBack,
+        onSwipeBack: handleSurfaceBack,
         enabled: canSwipeBack,
         threshold: 70,
         edgeWidth: 30,
@@ -1962,7 +2065,7 @@ const App: React.FC = () => {
         || activeChartSubject?.is_primary === false;
     const isPrimaryChartView = !isSavedPersonChartView;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
-    const isTelegramMiniApp = hasTelegramMiniAppContext();
+    const showsBottomNavigation = !paywallContext && shouldShowLumiaBottomNavigation(view);
 
     const premiumPromotionAllowed = firstValueReached && !hasActivePremium(profile);
     const dashboardProps = {
@@ -1975,6 +2078,8 @@ const App: React.FC = () => {
         onOpenHoroscope: openBottomZodiac,
         requestedPeriod: dashboardPeriod,
         onPeriodChange: setDashboardPeriod,
+        onOpenProfile: openProfileSheet,
+        profileMenuOpen: navigationSheet === 'profile',
         onRequestPremium: requestPremium,
         canPromotePremium: premiumPromotionAllowed,
         onPremiumAnalytics: (
@@ -1998,31 +2103,15 @@ const App: React.FC = () => {
     return (
         <div
             className={`lumia-app-shell relative isolate flex w-full min-h-0 flex-col overflow-hidden font-sans selection:bg-astro-highlight selection:text-white ${
-                sideDrawerOpen ? 'side-drawer-open' : ''
-            } ${isTelegramMiniApp && view === 'dashboard' ? 'telegram-diary-menu-offset' : ''} ${
+                showsBottomNavigation ? 'has-today-bottom-navigation' : ''
+            } ${
                 lumiaAirShell ? 'text-text-main' : 'text-astro-text'
             }`}
         >
-            {profile && !loading && !paywallContext && ['dashboard', 'horoscope', 'synastry', 'chart', 'settings'].includes(view) && (
-                <button
-                    type="button"
-                    className={`lumia-side-drawer-menu-button${isTelegramMiniApp ? ' is-telegram' : ''}`}
-                    aria-label={sideDrawerOpen
-                        ? (profile.language === 'en' ? 'Close navigation' : 'Закрыть навигацию')
-                        : (profile.language === 'en' ? 'Open navigation' : 'Открыть навигацию')}
-                    aria-expanded={sideDrawerOpen}
-                    onClick={() => setSideDrawerOpen((open) => !open)}
-                >
-                    <svg aria-hidden="true" className="lumia-side-drawer-menu-icon" viewBox="0 0 24 24" fill="none">
-                        <line x1="1.25" y1="8" x2="23" y2="8" />
-                        <line x1="1.25" y1="16" x2="15.25" y2="16" />
-                    </svg>
-                </button>
-            )}
             <main
                 className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
-                aria-hidden={sideDrawerOpen || paywallContext ? true : undefined}
-                inert={sideDrawerOpen || paywallContext ? true : undefined}
+                aria-hidden={navigationSheet || paywallContext ? true : undefined}
+                inert={navigationSheet || paywallContext ? true : undefined}
             >
                 <div
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
@@ -2046,6 +2135,8 @@ const App: React.FC = () => {
                             premiumContinuation={premiumContinuation}
                             onPremiumContinuationHandled={completePremiumContinuation}
                             canPromotePremium={premiumPromotionAllowed}
+                            onOpenProfile={openProfileSheet}
+                            onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
                         <PromoBanner
                             category="natal"
@@ -2071,10 +2162,11 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
+                            onOpenProfile={openProfileSheet}
                         />
                     </div>
                 ) : view === 'personality' && chartData ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <PersonalityReport
                             profile={profile}
                             primaryChartData={primaryChartDataRef.current || chartData}
@@ -2127,6 +2219,11 @@ const App: React.FC = () => {
                             premiumContinuation={premiumContinuation}
                             onPremiumContinuationHandled={completePremiumContinuation}
                             canPromotePremium={premiumPromotionAllowed}
+                            openQuestionRequest={natalQuestionRequest}
+                            onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
+                            onOpenProfile={openProfileSheet}
+                            onOpenMatrix={() => navigateTo('matrix')}
+                            onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
                         <PromoBanner
                             category="zodiac"
@@ -2135,6 +2232,13 @@ const App: React.FC = () => {
                             placementKey="screen:natal:zodiac"
                             language={profile.language === 'en' ? 'en' : 'ru'}
                             onOpen={openBottomZodiac}
+                        />
+                    </div>
+                ) : view === 'encyclopedia' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <AstrologyEncyclopedia
+                            profile={profile}
+                            onOpenProfile={openProfileSheet}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -2158,7 +2262,7 @@ const App: React.FC = () => {
                         />
                     </div>
                 ) : view === 'charts' ? (
-                    <div className="lumia-main-scroll scrollbar-hide" ref={appScrollRef}>
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <AppTopBar
                             title={profile.language === 'en' ? 'My charts' : 'Мои карты'}
                             onBack={() => { void handleBack(); }}
@@ -2205,7 +2309,14 @@ const App: React.FC = () => {
             </main>
 
             {paywallContext ? (
-                <div className="fixed inset-0 z-[150] h-[100dvh] overflow-hidden bg-white">
+                <div
+                    ref={paywallHostRef}
+                    className="fixed inset-0 z-[150] h-[100dvh] overflow-hidden bg-white"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={profile.language === 'en' ? 'Premium' : 'Premium'}
+                    tabIndex={-1}
+                >
                     <Paywall
                         profile={profile}
                         context={paywallContext}
@@ -2225,7 +2336,7 @@ const App: React.FC = () => {
                 </div>
             ) : null}
 
-            {checkoutNotice ? (
+            {checkoutNotice && !paywallContext ? (
                 <div
                     role="status"
                     aria-live="polite"
@@ -2243,20 +2354,30 @@ const App: React.FC = () => {
                 </div>
             ) : null}
 
-            <LumiaSideDrawer
-                open={sideDrawerOpen}
-                currentView={view}
-                profile={profile}
-                sunSign={chartData?.sun?.sign || primaryChartDataRef.current?.sun?.sign || null}
-                onClose={() => setSideDrawerOpen(false)}
-                onOpenDiary={openDrawerDiary}
-                activePeriod={dashboardPeriod}
-                onSelectPeriod={openDrawerPeriod}
-                onOpenSignHoroscope={openDrawerHoroscope}
-                onOpenCompatibility={openDrawerCompatibility}
-                onOpenNatalChart={openDrawerNatalChart}
-                onOpenSettings={openDrawerSettings}
-            />
+            {showsBottomNavigation ? (
+                <>
+                    <LumiaBottomTabBar
+                        profile={profile}
+                        view={view}
+                        activeSheet={navigationSheet}
+                        onOpenToday={openBottomToday}
+                        onOpenZodiac={openBottomZodiac}
+                        onOpenSheet={openNavigationSheet}
+                    />
+                    <LumiaNavigationSheet
+                        activeSheet={navigationSheet}
+                        profile={profile}
+                        onClose={() => setNavigationSheet(null)}
+                        onOpenCompatibility={openNavigationCompatibility}
+                        onOpenNatal={openNavigationNatal}
+                        onAskAstrologer={openNavigationQuestion}
+                        onOpenKnowledge={openNavigationKnowledge}
+                        onOpenSettings={openNavigationSettings}
+                        onOpenPremium={openNavigationPremium}
+                        onOpenCharts={openNavigationCharts}
+                    />
+                </>
+            ) : null}
         </div>
     );
 };

@@ -1,81 +1,184 @@
 import fs from 'fs';
 import path from 'path';
+import {
+  TODAY_EDITORIAL_LAYOUT_VARIANTS,
+  isRenderableTodaySection,
+  resolveEditorialPaperTreatment,
+  resolveForecastEditorialLayout,
+  resolveLongForecastParagraphs,
+  resolveTodayEditorialLayoutFromVisualPlan,
+  resolveTodayEditorialVisualSize,
+  resolveTodayVisualAnchorId,
+  resolveVisibleForecastTitle,
+} from '../components/PersonalForecastFeed/editorialLayout';
+import { clampDiaryVisualSize } from '../lib/personalForecastVisuals';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-describe('AI personal horoscope editorial layout', () => {
-  it('uses one white composition for Today, Week, and Month', () => {
+describe('Today editorial layout system', () => {
+  it('keeps legacy layout helpers deterministic while long periods remain prose', () => {
+    expect(TODAY_EDITORIAL_LAYOUT_VARIANTS).toEqual([
+      'visual-right-note',
+      'visual-left-quote',
+      'text-quote-visual-note',
+      'hero-visual-note',
+      'typography-first',
+    ]);
+    const stableInput = {
+      userId: 'person-42',
+      period: 'day' as const,
+      periodKey: '2026-08-11',
+    };
+    expect(new Set(Array.from(
+      { length: 8 },
+      () => resolveForecastEditorialLayout(stableInput),
+    )).size).toBe(1);
+    expect([
+      resolveTodayEditorialLayoutFromVisualPlan('editorial_right'),
+      resolveTodayEditorialLayoutFromVisualPlan('editorial_left'),
+      resolveTodayEditorialLayoutFromVisualPlan('quote_first'),
+      resolveTodayEditorialLayoutFromVisualPlan('visual_overlap'),
+      resolveTodayEditorialLayoutFromVisualPlan('editorial_clean'),
+    ]).toEqual(TODAY_EDITORIAL_LAYOUT_VARIANTS);
+    expect(resolveForecastEditorialLayout({
+      userId: 'person-42',
+      period: 'week',
+      periodKey: '2026-W33',
+    })).toBe('prose');
+    expect(resolveForecastEditorialLayout({
+      userId: 'person-42',
+      period: 'month',
+      periodKey: '2026-08',
+    })).toBe('prose');
+    expect(read('components/PersonalForecastFeed/editorialLayout.ts')).not.toContain('Math.random');
+  });
+
+  it('keeps visual-anchor helpers deterministic while Today uses the calendar composition', () => {
+    const sections = [
+      { id: 'overview', kind: 'overview' as const, status: 'ready' as const, presentationStyle: 'prose' as const },
+      { id: 'story', kind: 'dynamic' as const, status: 'ready' as const, presentationStyle: 'prose' as const },
+      { id: 'quote', kind: 'dynamic' as const, status: 'ready' as const, presentationStyle: 'pull_quote' as const },
+      { id: 'before-note', kind: 'dynamic' as const, status: 'ready' as const, presentationStyle: 'prose' as const },
+      { id: 'note', kind: 'dynamic' as const, status: 'ready' as const, presentationStyle: 'paper_note' as const },
+    ];
+    expect(resolveTodayVisualAnchorId({ layout: 'visual-left-quote', sections })).toBe('quote');
+    expect(resolveTodayVisualAnchorId({ layout: 'visual-right-note', sections })).toBe('before-note');
+    expect(resolveTodayVisualAnchorId({ layout: 'hero-visual-note', sections })).toBe('note');
+
+    const feed = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
     const dashboard = read('views/Dashboard.tsx');
-    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
-    const styles = read('styles/aiPersonalHoroscope.css');
-
-    expect(dashboard).toContain('<AiPersonalHoroscopeReading');
-    expect(dashboard).toContain("const FORECAST_PERIODS: readonly PersonalForecastPeriod[] = ['day', 'week', 'month'];");
-    expect(reading).toContain('data-ai-personal-horoscope="true"');
-    expect(reading).toContain('data-period={horoscope.period}');
-    expect(styles).toContain('.ai-personal-horoscope-reading');
-    expect(styles).toContain('background: #ffffff;');
+    expect(feed).toContain('isRenderableTodaySection(section, lockedSectionIds)');
+    expect(feed).toContain("section.kind === 'overview'");
+    expect(feed).toContain('<TodayCalendarClock');
+    expect(feed).toContain('<TodayLineField');
+    expect(feed).toContain('data-today-layout="calendar-editorial"');
+    expect(feed).toContain("? { ...section, title: '' }");
+    expect(feed).not.toContain('EditorialForecastVisual');
+    expect(feed).not.toContain('EditorialSticker');
+    expect(feed).not.toContain('Вывод и совет');
+    expect(dashboard).toContain('timezone={timezone}');
   });
 
-  it('renders one centered opening before the forecast', () => {
-    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
-    const styles = read('styles/aiPersonalHoroscope.css');
-
-    const openingIndex = reading.indexOf('ai-personal-horoscope-opening');
-    const forecastIndex = reading.indexOf('ai-personal-horoscope-forecast');
-    expect(openingIndex).toBeGreaterThan(-1);
-    expect(forecastIndex).toBeGreaterThan(openingIndex);
-    expect(styles).toContain('place-items: center;');
-    expect(styles).toContain('text-align: center;');
-    expect(styles).toContain('text-wrap: balance;');
+  it('keeps readable and locked previews while dropping empty or unavailable beats', () => {
+    const lockedIds = new Set(['locked']);
+    expect(isRenderableTodaySection({
+      id: 'ready',
+      status: 'ready',
+      contentBlocks: [{ text: 'Живой фрагмент' }],
+    }, lockedIds)).toBe(true);
+    expect(isRenderableTodaySection({
+      id: 'empty',
+      status: 'ready',
+      contentBlocks: [{ text: '   ' }],
+    }, lockedIds)).toBe(false);
+    expect(isRenderableTodaySection({
+      id: 'locked',
+      status: 'ready',
+      contentBlocks: [],
+    }, lockedIds)).toBe(true);
+    expect(isRenderableTodaySection({
+      id: 'unavailable',
+      status: 'unavailable',
+      contentBlocks: [{ text: 'Не должно появиться' }],
+    }, lockedIds)).toBe(false);
   });
 
-  it('keeps the forecast as readable prose without cards, images, or astrology details', () => {
-    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
-    const styles = read('styles/aiPersonalHoroscope.css');
-
-    expect(reading).toContain('<p>{reading.forecast}</p>');
-    expect(reading).not.toContain('EditorialSticker');
-    expect(reading).not.toContain('EditorialForecastVisual');
-    expect(reading).not.toContain('AstrologyDetailsToggle');
-    expect(reading).not.toContain('inlineAstroAccent');
-    expect(reading).not.toContain('explanationAnchors');
-    expect(styles).toContain('white-space: pre-line;');
+  it('keeps legacy visual scales available without placing stickers in Today', () => {
+    expect(resolveTodayEditorialVisualSize('hero-visual-note')).toBe('hero');
+    expect(resolveTodayEditorialVisualSize('typography-first')).toBe('small');
+    expect(resolveTodayEditorialVisualSize('visual-right-note')).toBe('medium');
+    expect(clampDiaryVisualSize('hero', 'light')).toBe('small');
+    expect(clampDiaryVisualSize('hero', 'medium')).toBe('medium');
+    expect(clampDiaryVisualSize('hero', 'hero')).toBe('hero');
   });
 
-  it('renders two or three advice lines without 01 02 03 markers', () => {
-    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
-    const styles = read('styles/aiPersonalHoroscope.css');
-
-    expect(reading).toContain('ai-personal-horoscope-divider');
-    expect(reading).toContain('className="ai-personal-horoscope-advice"');
-    expect(reading).not.toContain('<ol');
-    expect(reading).not.toContain("String(index + 1).padStart(2, '0')");
-    expect(styles).not.toContain('grid-template-columns: 2.25rem minmax(0, 1fr);');
-    expect(styles).toContain('border-bottom: 1px solid #e7e7e4;');
+  it('hides internal Today titles without hiding the real headline or long-period titles', () => {
+    expect(resolveVisibleForecastTitle({
+      period: 'day',
+      kind: 'dynamic',
+      title: 'Любовь',
+    })).toBe('');
+    expect(resolveVisibleForecastTitle({
+      period: 'day',
+      kind: 'overview',
+      title: 'Сегодня ты не проходишь мимо главного',
+    })).toBe('Сегодня ты не проходишь мимо главного');
+    expect(resolveVisibleForecastTitle({
+      period: 'week',
+      kind: 'overview',
+      title: 'Неделя без лишней суеты',
+    })).toBe('Неделя без лишней суеты');
+    expect(resolveVisibleForecastTitle({
+      period: 'day',
+      kind: 'overview',
+      title: 'Личный гороскоп на сегодня',
+    })).toBe('');
   });
 
-  it('keeps the active personal horoscope free of the removed diary visual engine', () => {
-    const dashboard = read('views/Dashboard.tsx');
-    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
+  it('turns a long Week or Month story into balanced visual paragraphs without changing its words', () => {
+    const story = [
+      'The week begins with a useful pause before the next important decision arrives.',
+      'You can hear what matters when the surrounding noise is allowed to settle.',
+      'A practical conversation then becomes easier because your position is already clear.',
+      'Keep the promise small enough to complete it with care and without haste.',
+      'That steady rhythm leaves room for warmth instead of another round of explanations.',
+      'By staying with one direction, you finish the story with more confidence.',
+    ].join(' ');
+    const paragraphs = resolveLongForecastParagraphs([story]);
 
-    for (const source of [dashboard, reading]) {
-      expect(source).not.toContain('resolveDiaryTodayVisualPlan');
-      expect(source).not.toContain('resolveDiaryEditorialPauses');
-      expect(source).not.toContain('resolvePersonalForecastVisuals');
-      expect(source).not.toContain('TodayEditorialFeed');
-      expect(source).not.toContain('ForecastSectionBlock');
-    }
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs.join(' ')).toBe(story);
+    expect(paragraphs.every((paragraph) => paragraph.trim().length > 0)).toBe(true);
   });
 
-  it('keeps narrow screens inside safe horizontal bounds', () => {
-    const styles = read('styles/aiPersonalHoroscope.css');
+  it('keeps fallback paper stable while template-backed note text stays live', () => {
+    const treatments = Array.from({ length: 200 }, (_, index) => (
+      resolveEditorialPaperTreatment(`note-${index}`)
+    ));
+    expect(resolveEditorialPaperTreatment('note-42'))
+      .toEqual(resolveEditorialPaperTreatment('note-42'));
+    expect(new Set(treatments.map((item) => item.shape)).size).toBe(4);
+    expect(treatments.every((item) => (
+      Math.abs(item.rotationDeg) >= 2 && Math.abs(item.rotationDeg) <= 4
+    ))).toBe(true);
 
+    const note = read('components/PersonalForecastFeed/EditorialPaperNote.tsx');
+    expect(note).toContain('<aside');
+    expect(note).toContain('<p>{text}</p>');
+    expect(note).toContain('data-paper-shape={template ? undefined : treatment.shape}');
+    expect(note).not.toContain('dangerouslySetInnerHTML');
+  });
+
+  it('keeps narrow screens in one column with safe-area and long-copy guards', () => {
+    const styles = read('styles/personalForecastFeed.css');
+    expect(styles).toContain('@container today-editorial-feed (max-width: 20.75rem)');
+    expect(styles).toContain('grid-template-columns: minmax(0, 1fr);');
+    expect(styles).toContain('min-inline-size: 0;');
+    expect(styles).toContain('overflow-x: clip;');
     expect(styles).toContain('env(safe-area-inset-left, 0px)');
     expect(styles).toContain('env(safe-area-inset-right, 0px)');
-    expect(styles).toContain('var(--tg-content-safe-area-inset-left, 0px)');
-    expect(styles).toContain('overflow-wrap: anywhere;');
-    expect(styles).toContain('@media (max-width: 380px)');
+    expect(styles).toContain('hyphens: auto;');
+    expect(styles).toContain('overflow-wrap: break-word;');
   });
 });

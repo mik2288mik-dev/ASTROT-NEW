@@ -18,25 +18,28 @@ describe('cosmic transient surface contract', () => {
     expect(source).toContain('className="cosmic-sheet-backdrop');
   });
 
-  it('uses the three original assets only on transient cosmic surfaces', () => {
+  it('mounts the current navigation shell through CosmicSheet without the legacy drawer', () => {
+    const app = read('App.tsx');
+    const nextApp = read('pages/_app.tsx');
+    const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const surface = read('components/lumia-ui/CosmicSurface.tsx');
-    const drawer = read('components/lumia-ui/LumiaSideDrawer.tsx');
-    const paywall = read('views/Paywall.tsx');
     const css = read('styles/globals.css');
 
-    expect(surface).toContain("drawer: '/assets/cosmic/drawer-stars.webp'");
     expect(surface).toContain("sheet: '/assets/cosmic/sheet.webp'");
-    expect(surface).toContain("paywall: '/assets/cosmic/paywall.webp'");
-    expect(drawer).toContain('variant="drawer"');
-    expect(drawer).toContain('role="dialog"');
-    expect(drawer).toContain('aria-modal="true"');
-    expect(drawer).not.toContain('lumia-side-drawer-context-close');
-    expect(drawer).toContain('onCloseRef.current()');
-    expect(drawer).toContain("currentView === 'dashboard' && activePeriod === period");
-    expect(paywall).toContain('variant="paywall"');
-    expect(drawer).not.toContain('EditorialSticker');
+    expect(app).toContain('LumiaBottomTabBar');
+    expect(app).toContain('LumiaNavigationSheet');
+    expect(app).toContain('navigationSheet');
+    expect(app).not.toContain('LumiaSideDrawer');
+    expect(nextApp).not.toContain('LumiaSideDrawer');
+    expect(navigation).toContain("export type LumiaNavigationSheetId = 'hub' | 'services' | 'profile';");
+    expect(navigation).toContain('today-bottom-navigation');
+    expect(navigation).toContain('today-bottom-nav-hub');
+    expect(navigation).toContain('today-bottom-nav-services');
+    expect(navigation).toContain('CosmicSheet');
+    expect(navigation).toContain('<CosmicSheet');
+    expect(navigation).not.toContain('variant="drawer"');
+    expect(navigation).not.toContain('variant="paywall"');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('.lumia-side-drawer-menu-button,');
     expect(css).toContain('max(env(safe-area-inset-bottom');
     expect(css).toContain('.cosmic-sheet-panel:has(.cosmic-sheet-footer) .cosmic-sheet-content');
   });

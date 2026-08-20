@@ -21,8 +21,9 @@ export const FreshTabs: React.FC<FreshTabsProps> = ({
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     activeTabRef.current?.scrollIntoView({
-      behavior: 'smooth',
+      behavior: reduceMotion ? 'auto' : 'smooth',
       block: 'nearest',
       inline: 'center',
     });
@@ -37,6 +38,7 @@ export const FreshTabs: React.FC<FreshTabsProps> = ({
           className={`fresh-tab ${tab.id === activeTab ? 'active' : ''}`}
           onClick={() => onTabChange(tab.id)}
           type="button"
+          aria-pressed={tab.id === activeTab}
           data-active={tab.id === activeTab}
         >
           {tab.label}

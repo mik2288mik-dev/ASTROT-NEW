@@ -12,7 +12,7 @@ describe('app and personal forecast voice contracts', () => {
     const voice = getAppSystemVoice('ru');
 
     expect(APP_VOICE_VERSION).toBe('10');
-    expect(PERSONAL_FORECAST_VOICE_VERSION).toBe('2');
+    expect(PERSONAL_FORECAST_VOICE_VERSION).toBe('3');
     expect(voice).toContain('точно, спокойно, живо и без церемоний');
     expect(voice).toContain('Используй только переданный надёжный контекст');
     expect(voice).toContain('Говори с человеком на «ты»');
@@ -28,6 +28,9 @@ describe('app and personal forecast voice contracts', () => {
     expect(forecastVoice).toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
     expect(forecastVoice).toContain('прямо, наблюдательно и с характером');
     expect(forecastVoice).toContain('не превращай прогноз в номер');
+    expect(forecastVoice).toContain('сохранённый приватный натальный контекст');
+    expect(forecastVoice).toContain('оставляй его полностью позитивным');
+    expect(forecastVoice).toContain('Финал приносит практическую пользу');
   });
 
   it('puts ordinary-life meaning before astrology and keeps headings purposeful', () => {

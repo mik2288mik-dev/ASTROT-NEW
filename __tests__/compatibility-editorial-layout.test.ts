@@ -1,9 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import {
-  getPersonalEditorialAssetLibrary,
-  selectSynastryEditorialSticker,
-} from '../lib/personalForecastVisuals';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -12,13 +8,16 @@ describe('compatibility editorial layout', () => {
   it('scopes the light flow to every UnionRoom state and preserves its gates', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const styles = read('styles/compatibilityEditorial.css');
+    const studio = read('styles/editorialStudio.css');
     const app = read('pages/_app.tsx');
 
-    expect(room.match(/compat-editorial-page compat-editorial-page--/g)).toHaveLength(2);
+    expect(room.match(/compat-editorial-page compat-editorial-page--/g)).toHaveLength(3);
     expect(room).toContain('compat-editorial-page--add');
+    expect(room).toContain('compat-editorial-page--details');
     expect(room).toContain('compat-editorial-page--result');
     expect(room).not.toContain("if (!hasChart) { onCreateNatalChart?.(); return; }");
-    expect(room).toContain("if (!premium) { requestPremium(); return; }");
+    expect(room).toContain("requestPremium('compatibility_by_charts'");
+    expect(room).toContain("featureKey: 'synastry_by_charts'");
     expect(room).toContain('loadCompatHistory');
     expect(room).toContain('calculateExtendedSynastry');
     expect(room).toContain('RelationshipContextPicker');
@@ -32,22 +31,24 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page--result .compat-person-snapshot');
     expect(styles).toContain('.compat-editorial-page--result .compat-read-block');
     expect(styles).not.toMatch(/^\.fresh-page\s*\{/m);
+    expect(studio).toContain('.fresh-page.compat-editorial-page--details');
+    expect(studio).toContain('.compat-editorial-page .compat-editorial-tabs');
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
+    expect(app).toContain("import '../styles/editorialStudio.css'");
   });
 
   it('matches the compact monochrome form contract from the approved render', () => {
     const room = read('views/v2/UnionRoom.tsx');
-    const styles = read('styles/newspaperVisual.css');
+    const styles = read('styles/editorialStudio.css');
     const addStart = room.indexOf("if (screen === 'add')");
-    const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
+    const addEnd = room.indexOf("if (screen === 'details')", addStart);
     const addFlow = room.slice(addStart, addEnd);
 
-    expect(addFlow).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
-    expect(addFlow).not.toContain('subtitle=');
-    expect(addFlow).toContain("ru ? 'По дате рождения' : 'By birth date'");
-    expect(addFlow).toContain("ru ? 'По знакам зодиака' : 'By zodiac signs'");
-    expect(addFlow).not.toContain('compat-mode-note');
-    expect(addFlow).not.toContain("ru ? 'Кого сравниваем?' : 'Who are we comparing?'");
+    expect(room).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
+    expect(room).toContain('<EditorialTabs');
+    expect(room).toContain("label: ru ? 'Совместимость' : 'Compatibility'");
+    expect(room).toContain("label: ru ? 'По знакам зодиака' : 'By zodiac signs'");
+    expect(room).toContain("label: ru ? 'Детали' : 'Details'");
     expect(addFlow).toContain("ru ? 'Первый человек' : 'First person'");
     expect(addFlow).toContain("ru ? 'Второй человек' : 'Second person'");
     expect(addFlow).not.toContain('aria-hidden=\"true\">01');
@@ -60,22 +61,16 @@ describe('compatibility editorial layout', () => {
     expect(room).not.toContain('onUnknownTimeChange');
     expect(room).not.toContain('sUnknownTime');
     expect(room).not.toContain('setUnknownTime');
-    expect(addFlow).not.toContain('compat-entry-precision-note');
     expect(addFlow).not.toContain('Sparkles');
     expect(addFlow).toContain("ru ? 'Тип отношений' : 'Relationship type'");
-    expect(addFlow).toContain('<div className="compat-person-divider" aria-hidden="true" />');
+    expect(addFlow).toContain('<div className="compat-person-divider" aria-hidden="true"><span>✦</span></div>');
 
-    expect(styles).toContain('Compatibility entry: compact native-form layout');
-    expect(styles).toContain('--compat-air-accent-start');
-    expect(styles).not.toContain('#176f45');
-    expect(styles).toContain('.compat-editorial-page--add .compat-mode-switch');
-    expect(styles).toContain('background: var(--compat-air-ink) !important');
-    expect(styles).toContain('color: #ffffff !important');
+    expect(styles).toContain('.compat-editorial-page--add .compat-entry-form');
+    expect(styles).toContain('.compat-editorial-page--add .compat-person-source-option');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-input');
     expect(styles).toContain('font-size: 16px');
-    expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-precision-note');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-control');
-    expect(styles).toContain('.compat-air-input:focus-visible');
+    expect(styles).toContain('.compat-editorial-page--add .compat-air-field:focus-within');
     expect(room).not.toContain('compat-zodiac-field');
     expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-person');
   });
@@ -85,7 +80,7 @@ describe('compatibility editorial layout', () => {
     const service = read('services/astrologyService.ts');
     const extendedApi = read('pages/api/content/synastry/extended.ts');
     const addStart = room.indexOf("if (screen === 'add')");
-    const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
+    const addEnd = room.indexOf("if (screen === 'details')", addStart);
     const addFlow = room.slice(addStart, addEnd);
 
     expect(room).toContain("const [firstChartId, setFirstChartId] = useState<number | null>(null)");
@@ -93,7 +88,10 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain("const [subjectSource, setSubjectSource] = useState<CompatibilityPersonSource>");
     expect(room).toContain("const [partnerSource, setPartnerSource] = useState<CompatibilityPersonSource>");
     expect(addFlow.match(/<PersonSourcePicker/g)).toHaveLength(2);
-    expect(room).toContain('<option value="saved">');
+    expect(room).toContain("value: 'saved'");
+    expect(room).toContain("value: 'birth'");
+    expect(room).toContain("value: 'sign'");
+    expect(room).toContain('aria-pressed={active}');
     expect(room).toContain("ru ? 'Дата' : 'Date'");
     expect(room).toContain("ru ? 'Карта' : 'Chart'");
     expect(room).toContain("ru ? 'Знак' : 'Sign'");
@@ -110,21 +108,11 @@ describe('compatibility editorial layout', () => {
     expect(extendedApi).not.toContain('computeSynastryAspects');
   });
 
-  it('selects compatibility visuals only from the personal editorial source', () => {
+  it('keeps the compatibility reading image-free and isolated from Zodiac art', () => {
     const room = read('views/v2/UnionRoom.tsx');
-    const approved = new Set(getPersonalEditorialAssetLibrary().map((asset) => asset.id));
-    const selected = Array.from({ length: 200 }, (_, index) => selectSynastryEditorialSticker({
-      screenKey: 'compatibility-result',
-      contentKey: `pair-${index}`,
-      context: index % 2 ? 'love' : 'friendship',
-      dynamics: [`dynamic-${index}`],
-    })).filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
-
-    expect(room).toContain("from '../../lib/personalForecastVisuals'");
+    expect(room).not.toContain('personalForecastVisuals');
     expect(room).not.toContain('zodiacLegacyVisuals');
-    expect(selected).toHaveLength(200);
-    expect(selected.every((asset) => approved.has(asset.id))).toBe(true);
-    expect(selected.every((asset) => asset.path.startsWith('/assets/personal-editorial/'))).toBe(true);
-    expect(selected.every((asset) => asset.hasEmbeddedText === false)).toBe(true);
+    expect(room).not.toContain('compat-result-sticker');
+    expect(room).not.toContain('/assets/');
   });
 });

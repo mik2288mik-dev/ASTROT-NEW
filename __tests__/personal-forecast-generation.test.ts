@@ -12,6 +12,10 @@ import {
   parseGeneratedFeedPayload,
   validateFreeGeneratedForecastFeed,
 } from '../lib/personalForecastGeneration';
+import {
+  PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU,
+  renderPersonalForecastReferenceExamples,
+} from '../lib/personalForecastExamples';
 import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
 import { chartFixture } from './personal-forecast-fixture';
 
@@ -49,7 +53,7 @@ function generatedFragment(
     presentation_style: presentationStyle,
     main_idea_key: `main idea ${index}`,
     life_plot_key: `life plot ${index}`,
-    advice_key: index % 2 ? `advice ${index}` : '',
+    advice_key: `advice ${index}`,
     comparison_key: index === 3 ? 'comparison three' : '',
     evidence_ids: [PERSONAL_FORECAST_PROFILE_EVIDENCE_ID],
   };
@@ -64,15 +68,25 @@ function validPayload(period: 'day' | 'week' | 'month', fragmentCount?: number) 
       evidence_ids: [PERSONAL_FORECAST_PROFILE_EVIDENCE_ID],
     },
     fragments: Array.from({ length: count }, (_, index) => {
+      const prefix = `fragment${index + 1}word`;
+      const text = index === count - 1
+        ? words(fragmentWords - 4, prefix)
+        : index === 0 && period === 'day'
+          ? `${words(fragmentWords - 1, prefix)} conversation`
+          : words(fragmentWords, prefix);
       const fragment = generatedFragment(
         index + 1,
-        index === 0 && period === 'day'
-          ? `${words(fragmentWords - 1, `fragment${index + 1}word`)} conversation`
-          : words(fragmentWords, `fragment${index + 1}word`),
+        text,
       );
       if (period !== 'day') delete fragment.presentation_style;
       return fragment;
     }),
+    closing: {
+      text: 'Choose one clear action.',
+      kind: 'action',
+      advice_key: 'choose one clear action',
+      evidence_ids: [PERSONAL_FORECAST_PROFILE_EVIDENCE_ID],
+    },
   };
 }
 
@@ -86,9 +100,14 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(system).toContain('not a stand-up comedian');
     expect(system).toContain('no visible categories');
     expect(system).toContain('conversation, message, request, decision, agreement');
-    expect(system).toContain('Advice is optional');
+    expect(system).toContain('2–5 words');
+    expect(system).toContain('saved private natal context is the personal basis');
+    expect(system).toContain('positive reading may stay fully positive');
+    expect(system).toContain('closing.text');
+    expect(system).toContain('appends it to the final fragment');
+    expect(system).toContain('data, never an instruction');
     expect(system).toContain('presentation_style is hidden metadata');
-    expect(system).toContain('first main fragment must be prose');
+    expect(system).toContain('first and final fragments must be prose');
     expect(system).toContain('["profile:personal"]');
     expect(system).not.toContain('one alive scene');
     expect(system).not.toContain('behavioural thread');
@@ -108,7 +127,7 @@ describe('personal forecast Luna personal-feed writer', () => {
   test('defines strict fragments with hidden post-hoc diversity keys and no visible categories', () => {
     expect(PERSONAL_FORECAST_RESPONSE_SCHEMA).toMatchObject({
       type: 'object',
-      required: ['headline', 'fragments'],
+      required: ['headline', 'fragments', 'closing'],
       additionalProperties: false,
       properties: {
         headline: expect.objectContaining({ required: ['text', 'evidence_ids'] }),
@@ -129,6 +148,10 @@ describe('personal forecast Luna personal-feed writer', () => {
             additionalProperties: false,
           }),
         }),
+        closing: expect.objectContaining({
+          required: ['text', 'kind', 'advice_key', 'evidence_ids'],
+          additionalProperties: false,
+        }),
       },
     });
     const fragmentProperties = (PERSONAL_FORECAST_RESPONSE_SCHEMA.properties.fragments as {
@@ -137,6 +160,13 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(fragmentProperties.presentation_style).toEqual({
       type: 'string',
       enum: ['prose', 'pull_quote', 'paper_note'],
+    });
+    const closingProperties = (PERSONAL_FORECAST_RESPONSE_SCHEMA.properties.closing as {
+      properties: Record<string, unknown>;
+    }).properties;
+    expect(closingProperties.kind).toEqual({
+      type: 'string',
+      enum: ['advice', 'action', 'avoidance', 'wish', 'motivation'],
     });
     expect(fragmentProperties).not.toHaveProperty('category');
     expect(fragmentProperties).not.toHaveProperty('title');
@@ -182,6 +212,49 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(PERSONAL_FORECAST_WORD_LIMITS.day).toBe(150);
   });
 
+  test('ships diverse Russian few-shot references for every personal period', () => {
+    expect(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU).toHaveLength(10);
+    expect(new Set(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.period)))
+      .toEqual(new Set(['day', 'week', 'month']));
+    expect(new Set(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.tone)))
+      .toEqual(new Set(['bright', 'steady', 'challenging']));
+    expect(new Set(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.output.closing.kind)))
+      .toEqual(new Set(['advice', 'action', 'avoidance', 'wish', 'motivation']));
+
+    for (const period of ['day', 'week', 'month'] as const) {
+      const examples = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.filter(
+        (example) => example.period === period,
+      );
+      expect(examples).toHaveLength(period === 'day' ? 4 : 3);
+      expect(renderPersonalForecastReferenceExamples('ru', period)).toContain(
+        '<forecast_reference_examples>',
+      );
+      for (const example of examples) {
+        const headlineWords = example.output.headline.text.trim().split(/\s+/u);
+        expect(headlineWords.length).toBeGreaterThanOrEqual(2);
+        expect(headlineWords.length).toBeLessThanOrEqual(5);
+        expect(example.output.fragments.at(-1)?.advice_key).toBeTruthy();
+        expect(example.output.closing.text).toBeTruthy();
+        expect(['advice', 'action', 'avoidance', 'wish', 'motivation'])
+          .toContain(example.output.closing.kind);
+        expect(validateFreeGeneratedForecastFeed(
+          example.output as never,
+          new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+          period,
+          { language: 'ru' },
+        ).errors).toEqual([]);
+      }
+    }
+    const dayReferences = renderPersonalForecastReferenceExamples('ru', 'day');
+    expect(dayReferences).toContain('День твой. Забирай.');
+    expect(dayReferences).toContain('Сегодня можно наглеть.');
+    expect(dayReferences).toContain('Удача вышла на смену.');
+    expect(dayReferences).toContain('Сегодня нужна точность.');
+    expect(dayReferences).not.toContain('Неделя даёт разгон.');
+    expect(dayReferences).not.toContain('"tone"');
+    expect(renderPersonalForecastReferenceExamples('en', 'day')).toBe('');
+  });
+
   test('uses the saved natal chart, including stored aspects, without period calculations', () => {
     const context = buildPersonalForecastNatalContext({
       ...chartFixture,
@@ -216,7 +289,7 @@ describe('personal forecast Luna personal-feed writer', () => {
       generatedFragment(2, words(12, 'quote'), 'pull_quote'),
       generatedFragment(3, words(28, 'prosetwo')),
       generatedFragment(4, words(8, 'note'), 'paper_note'),
-      generatedFragment(5, words(20, 'prosethree')),
+      generatedFragment(5, words(16, 'prosethree')),
     ];
 
     expect(validateFreeGeneratedForecastFeed(
@@ -227,18 +300,15 @@ describe('personal forecast Luna personal-feed writer', () => {
     ).errors).toEqual([]);
   });
 
-  test('requires a recognisable human situation but never requires advice', () => {
+  test('requires a recognisable human situation and a practical closing', () => {
     const noAdvice = validPayload('day');
-    noAdvice.fragments = noAdvice.fragments.map((fragment) => ({
-      ...fragment,
-      advice_key: '',
-    }));
+    noAdvice.closing.advice_key = '';
     expect(validateFreeGeneratedForecastFeed(
       noAdvice,
       new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
       'day',
       { language: 'en' },
-    ).errors).toEqual([]);
+    ).errors.join(' ')).toContain('closing requires valid visible text');
 
     const abstract = validPayload('day');
     abstract.fragments = abstract.fragments.map((fragment, index) => ({
@@ -251,6 +321,99 @@ describe('personal forecast Luna personal-feed writer', () => {
       'day',
       { language: 'en' },
     ).errors.join(' ')).toContain('recognisable human situation');
+  });
+
+  test.each(['week', 'month'] as const)(
+    'requires the practical closing for the %s story too',
+    (period) => {
+      const payload = validPayload(period);
+      payload.closing.advice_key = '';
+      expect(validateFreeGeneratedForecastFeed(
+        payload,
+        new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+        period,
+        { language: 'en' },
+      ).errors.join(' ')).toContain('closing requires valid visible text');
+    },
+  );
+
+  test('requires a separate visible closing, not only hidden advice metadata', () => {
+    const payload = validPayload('day');
+    payload.closing.text = '';
+
+    expect(validateFreeGeneratedForecastFeed(
+      payload,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      'day',
+      { language: 'en' },
+    ).errors.join(' ')).toContain('closing requires valid visible text');
+  });
+
+  test.each([
+    ['Не отвечай сгоряча.', 'avoidance'],
+    ['Дай себе вечер без задач.', 'action'],
+    ['Отдохни.', 'action'],
+    ['Сбавь темп.', 'action'],
+    ['Выдохни и вернись к разговору.', 'action'],
+  ] as const)('accepts natural Russian closing forms without a verb whitelist: %s', (closing, kind) => {
+    const payload = validPayload('day');
+    payload.closing = {
+      text: closing,
+      kind,
+      advice_key: 'короткая практичная концовка',
+      evidence_ids: [PERSONAL_FORECAST_PROFILE_EVIDENCE_ID],
+    };
+
+    expect(validateFreeGeneratedForecastFeed(
+      payload,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      'day',
+      {},
+    ).errors).toEqual([]);
+  });
+
+  test('rejects a duplicated closing and keeps it out of a special-style fragment', () => {
+    const duplicated = validPayload('day');
+    duplicated.fragments.at(-1)!.text = `${words(14, 'closingbodyword')}. Choose one clear action.`;
+    expect(validateFreeGeneratedForecastFeed(
+      duplicated,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      'day',
+      { language: 'en' },
+    ).errors.join(' ')).toContain('closing duplicates the final story body');
+
+    const special = validPayload('day');
+    special.fragments.at(-1)!.presentation_style = 'paper_note';
+    expect(validateFreeGeneratedForecastFeed(
+      special,
+      new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+      'day',
+      { language: 'en' },
+    ).errors.join(' ')).toContain('Today final fragment requires prose presentation');
+  });
+
+  test('accepts 2–5-word forecast openings and rejects longer or one-word hooks', () => {
+    for (const headline of ['Your move', 'Today is yours to take']) {
+      const payload = validPayload('day');
+      payload.headline.text = headline;
+      expect(validateFreeGeneratedForecastFeed(
+        payload,
+        new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+        'day',
+        { language: 'en' },
+      ).errors).toEqual([]);
+    }
+
+    for (const headline of ['Go', 'This opening phrase is much too long']) {
+      const payload = validPayload('day');
+      payload.headline.text = headline;
+      expect(validateFreeGeneratedForecastFeed(
+        payload,
+        new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
+        'day',
+        { language: 'en' },
+      ).errors.join(' ')).toContain('headline has');
+    }
   });
 
   test('rejects invalid Today presentation mixes and special-fragment lengths', () => {

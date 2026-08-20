@@ -42,6 +42,7 @@ describe('card background library', () => {
 describe('card background UI wiring', () => {
   it('keeps diary copy image-free while allowing restrained inline visual pauses', () => {
     const dashboard = read('views/Dashboard.tsx');
+    const todayFeed = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
     const visuals = read('lib/personalForecastVisuals.ts');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
     const promotion = read('components/PersonalForecastFeed/ForecastPromotion.tsx');
@@ -67,6 +68,10 @@ describe('card background UI wiring', () => {
     expect(promoBanner).not.toContain('<picture');
     expect(sectionBlock).toContain('<EditorialForecastVisual');
     expect(sectionBlock).toContain('forecast-feed-editorial-pause');
+    expect(todayFeed).not.toContain('EditorialSticker');
+    expect(todayFeed).not.toContain('sticker=');
+    expect(todayFeed).toContain('<TodayCalendarClock');
+    expect(todayFeed).toContain('<TodayLineField');
     expect(feedStyles).toContain('.forecast-feed-editorial-pause');
     expect(feedStyles).not.toContain('background-image: var(--forecast-section-image)');
     expect(dashboard).not.toMatch(
@@ -75,8 +80,9 @@ describe('card background UI wiring', () => {
     expect(dashboard).not.toMatch(/home-day-hero|home-sphere-card|pd-reading-card/);
     expect(natal).toContain('selectNatalEditorialSticker');
     expect(natal).toContain('editorialSticker={natalSticker}');
-    expect(compatibility).toContain('selectSynastryEditorialSticker');
-    expect(compatibility).toContain('<EditorialSticker');
+    expect(compatibility).not.toContain('selectSynastryEditorialSticker');
+    expect(compatibility).not.toContain('<EditorialSticker');
+    expect(compatibility).toContain('EditorialProfileButton');
     expect(matrix).not.toContain('selectMainEditorialSticker');
     expect(matrix).not.toContain('EditorialSticker');
     expect(natal).not.toContain('getUniversalCardBackground');

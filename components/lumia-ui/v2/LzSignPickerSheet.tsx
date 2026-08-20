@@ -13,6 +13,7 @@ type LzSignPickerSheetProps = {
   subtitle?: string;
   onPick: (sign: string) => void;
   onClose: () => void;
+  variant?: 'cosmic' | 'editorial';
 };
 
 export function LzSignPickerSheet({
@@ -23,6 +24,7 @@ export function LzSignPickerSheet({
   subtitle,
   onPick,
   onClose,
+  variant = 'cosmic',
 }: LzSignPickerSheetProps) {
   const lang = language === 'en' ? 'en' : 'ru';
 
@@ -32,32 +34,37 @@ export function LzSignPickerSheet({
       title={title || (lang === 'ru' ? 'Выбери знак' : 'Pick a sign')}
       subtitle={subtitle}
       closeLabel={lang === 'ru' ? 'Закрыть' : 'Close'}
-      className="lz-sheet-panel"
-      contentClassName="lz-sheet-scroll"
+      className={`lz-sheet-panel${variant === 'editorial' ? ' lz-sheet-panel--editorial' : ''}`}
+      contentClassName={`lz-sheet-scroll${variant === 'editorial' ? ' lz-sheet-scroll--editorial' : ''}`}
       onClose={onClose}
     >
-              <div className="grid grid-cols-3 gap-3 pb-[calc(var(--lumia-bottom-tab-clearance)+1.25rem)]">
+              <div className={variant === 'editorial' ? 'lz-sign-grid-editorial' : 'grid grid-cols-3 gap-3 pb-[calc(var(--lumia-bottom-tab-clearance)+1.25rem)]'}>
                 {ZODIAC_KEYS.map((sign) => {
                   const active = !!current && sign.toLowerCase() === current.toLowerCase();
                   return (
                     <button
                       key={sign}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => {
                         onPick(sign);
                         onClose();
                       }}
-                      className={cnSignCell(active)}
+                      className={cnSignCell(active, variant)}
                     >
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+                      <span className={variant === 'editorial' ? 'lz-sign-icon-editorial' : 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10'}>
                         <ZodiacIcon
                           sign={sign}
                           size={30}
-                          stroke={active ? '#ffffff' : 'rgba(241,245,249,0.82)'}
+                          stroke={variant === 'editorial'
+                            ? (active ? '#9b6d45' : '#4d4741')
+                            : (active ? '#ffffff' : 'rgba(241,245,249,0.82)')}
                           strokeWidth={1.5}
                         />
                       </span>
-                      <span className={`text-[12px] font-bold leading-tight ${active ? 'text-white' : 'text-mono-ink'}`}>
+                      <span className={variant === 'editorial'
+                        ? 'lz-sign-label-editorial'
+                        : `text-[12px] font-bold leading-tight ${active ? 'text-white' : 'text-mono-ink'}`}>
                         {getZodiacSign(lang, sign)}
                       </span>
                     </button>
@@ -67,8 +74,10 @@ export function LzSignPickerSheet({
     </CosmicSheet>
   );
 }
-
-function cnSignCell(active: boolean) {
+function cnSignCell(active: boolean, variant: 'cosmic' | 'editorial') {
+  if (variant === 'editorial') {
+    return `lz-sign-cell-editorial${active ? ' is-active' : ''}`;
+  }
   return [
     'flex min-h-[108px] flex-col items-center justify-center gap-2.5 rounded-[20px] border px-2 py-3',
     'transition-transform active:scale-[0.97]',

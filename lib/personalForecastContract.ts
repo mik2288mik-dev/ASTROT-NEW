@@ -1,5 +1,5 @@
 import { fromZonedTime } from 'date-fns-tz';
-import type { NatalChartData } from '../types';
+import type { NatalChartData, UserProfile } from '../types';
 import { CANONICAL_ACCESS_CONTRACT } from './accessMatrix';
 import {
   APP_VOICE_VERSION,
@@ -251,7 +251,7 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v27.luna-editorial-presentations',
+  'personal-forecast-feed.v28.luna-editorial-closing',
 );
 export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-natal-profile-v1';
 export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v13';
@@ -645,6 +645,30 @@ export function stableHash(value: string): number {
   return hash >>> 0;
 }
 
+function normalizePersonalForecastProfileValue(
+  value: unknown,
+  maxLength: number,
+): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().replace(/\s+/gu, ' ').slice(0, maxLength);
+  return normalized || null;
+}
+
+export function buildPersonalForecastProfileFingerprint(
+  profile: Pick<
+    UserProfile,
+    'name' | 'birthDate' | 'birthTime' | 'birthPlace' | 'birthTimezone'
+  >,
+): string {
+  return stableHash(JSON.stringify({
+    name: normalizePersonalForecastProfileValue(profile.name, 80),
+    birthDate: normalizePersonalForecastProfileValue(profile.birthDate, 10),
+    birthTime: normalizePersonalForecastProfileValue(profile.birthTime, 8),
+    birthPlace: normalizePersonalForecastProfileValue(profile.birthPlace, 160),
+    birthTimezone: normalizeForecastTimezone(profile.birthTimezone),
+  })).toString(36);
+}
+
 export function buildPersonalForecastCacheKey(input: {
   userId: string;
   chartId?: number | null;
@@ -654,6 +678,7 @@ export function buildPersonalForecastCacheKey(input: {
   timezone: string;
   language: 'ru' | 'en';
   modelId: string;
+  profileFingerprint?: string;
 }): string {
   const identity = [
     String(input.userId),
@@ -669,6 +694,7 @@ export function buildPersonalForecastCacheKey(input: {
     PERSONAL_FORECAST_PROMPT_VERSION,
     APP_VOICE_VERSION,
     input.modelId,
+    String(input.profileFingerprint || ''),
   ].join('|');
   return `${PERSONAL_FORECAST_CONTRACT_VERSION}:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
 }
@@ -682,6 +708,7 @@ export function buildPersonalForecastInputHash(input: {
   timezone: string;
   language: 'ru' | 'en';
   modelId: string;
+  profileFingerprint?: string;
 }, versions: {
   calculationVersion?: string;
   contractVersion?: string;

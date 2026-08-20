@@ -7,17 +7,19 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 describe('active root visual contract', () => {
   it('keeps the personal horoscope as one clean reading without visible evidence', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
-    const styles = read('styles/aiPersonalHoroscope.css');
+    const reading = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
+    const styles = read('styles/todayHome.css');
 
-    expect(dashboard).toContain('<AiPersonalHoroscopeReading');
+    expect(dashboard).toContain('<TodayEditorialFeed');
+    expect(dashboard).toContain('loadPersonalForecast({');
     expect(dashboard).not.toContain('AstrologyDetailsToggle');
     expect(reading).not.toContain('explanationAnchors');
     expect(reading).not.toContain('inlineAstroAccent');
-    expect(reading).toContain('ai-personal-horoscope-opening');
-    expect(reading).toContain('ai-personal-horoscope-forecast');
-    expect(reading).toContain('ai-personal-horoscope-advice');
-    expect(styles).toContain('background: #ffffff;');
+    expect(reading).not.toContain('EditorialSticker');
+    expect(reading).toContain('<TodayCalendarClock');
+    expect(reading).toContain('<TodayLineField');
+    expect(reading).toContain('<ForecastSectionBlock');
+    expect(styles).toContain('background: #fff;');
   });
 
   it('scopes the white paper skin to every active non-v2 root', () => {
@@ -35,17 +37,19 @@ describe('active root visual contract', () => {
     }
 
     const styles = read('styles/newspaperVisual.css');
+    const todayStyles = read('styles/todayHome.css');
     expect(styles).toContain('--news-paper: var(--app-canvas)');
-    expect(styles).toContain('--news-action: #1478ff');
-    expect(styles).not.toContain('--news-action: #1d1d1b');
+    expect(styles).toContain('--news-action: #171717');
+    expect(styles).not.toContain('--news-action: #1478ff');
     expect(styles).toContain('.forecast-feed-page .forecast-feed-status button');
     expect(styles).toContain('background: var(--news-action) !important');
-    expect(styles).not.toMatch(/\.lumia-bottom-(?:nav|bar)/);
+    expect(todayStyles).toContain('.today-bottom-navigation::before');
+    expect(todayStyles).toContain('height: 1px;');
   });
 
   it('removes old diary sticker planning from the active personal horoscope', () => {
     const dashboard = read('views/Dashboard.tsx');
-    const reading = read('components/PersonalForecastFeed/AiPersonalHoroscopeReading.tsx');
+    const reading = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
     const onboarding = read('views/Onboarding.tsx');
 
     expect(dashboard).not.toContain('resolvePersonalForecastVisuals');

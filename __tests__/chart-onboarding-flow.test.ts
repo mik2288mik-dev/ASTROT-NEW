@@ -8,8 +8,9 @@ describe('chart onboarding and lazy sections', () => {
   it('shows a create-chart CTA instead of auto-starting onboarding from chart navigation', () => {
     const chart = read('views/v2/NatalMagazine.tsx');
     const app = read('App.tsx');
-    expect(chart).toContain('Рассчитай натальную карту');
-    expect(chart).toContain('Для расчёта нужны дата, время и место рождения');
+    expect(chart).toContain('Соберём настоящий натальный круг');
+    expect(chart).toContain('Для расчёта нужны дата, время и место рождения.');
+    expect(chart).toContain('Ввести данные');
     expect(chart).toContain('onCreateChart');
     expect(app).not.toContain("if (newView === 'chart' && getFeatureAccess('natal_basic').status === 'needs_chart')");
     expect(app).toContain("onCreateChart={() => openNatalSetupOnboarding('chart', 'chart')}");
@@ -28,7 +29,7 @@ describe('chart onboarding and lazy sections', () => {
     const app = read('App.tsx');
     expect(app).toContain('const currentProfileId = profile?.id');
     expect(app).toContain('const safeUserId = String(currentProfileId)');
-    expect(app).toContain('const isGuestOnboarding = profile?.isGuest === true || isGuestUserId(safeUserId)');
+    expect(app).toContain('const isGuestOnboarding = profile?.isGuest === true;');
     expect(app).toContain('id: safeUserId');
     expect(app).not.toContain('id: String(newProfile.id)');
     expect(app).toContain('isPremium: isGuestOnboarding');
@@ -45,7 +46,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).not.toContain('const safeUserId = String(newProfile.id)');
   });
 
-  it('keeps one free basic identity and lazy-loads paid sections on open', () => {
+  it('keeps one free basic identity and loads the paid report only for Premium', () => {
     const shared = read('lib/natalHumanShared.ts');
     const semantics = read('lib/natalSemanticCompiler.ts');
     const report = read('components/NatalReading/HumanReport.tsx');
@@ -53,8 +54,10 @@ describe('chart onboarding and lazy sections', () => {
     expect(semantics).toContain("'base_portrait'");
     expect(semantics).toContain("'work_money'");
     expect(shared).toContain('FREE_NATAL_SECTION_KEYS');
-    expect(report).toContain('loadHumanPaidSection');
-    expect(report).toContain('getCachedHumanPaidSection');
+    expect(report).toContain('ensureHumanBaseReport');
+    expect(report).toContain('ensureHumanPremiumReport');
+    expect(report).toContain('getHumanPremiumReportCached');
+    expect(report).toContain('if (!isPremium || !userId)');
     expect(prompt).toContain('natalPromptPayload({ ...compilation, sections: plans })');
     expect(semantics).toContain('requiredBlocks');
     expect(prompt).toContain('validateGeneratedNatalPayload');
@@ -62,9 +65,9 @@ describe('chart onboarding and lazy sections', () => {
     expect(prompt).toContain("contentVariant: 'full'");
   });
 
-  it('uses direct product names and exposes the personal forecast from Zodiac', () => {
+  it('uses direct product names and exposes personal and Zodiac forecasts in navigation', () => {
     const shared = read('lib/natalHumanShared.ts');
-    const horoscope = read('views/v2/HoroscopeReader.tsx');
+    const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     for (const title of [
       'Внутренние реакции',
       'Общение',
@@ -78,8 +81,10 @@ describe('chart onboarding and lazy sections', () => {
     ]) {
       expect(shared).toContain(title);
     }
-    expect(horoscope).toContain('onOpenPersonalForecast');
-    expect(horoscope).toContain('Личный гороскоп');
+    expect(navigation).toContain("data-nav-id=\"personal\"");
+    expect(navigation).toContain('Личный гороскоп');
+    expect(navigation).toContain("data-nav-id=\"zodiac\"");
+    expect(navigation).toContain('Гороскоп по знакам');
   });
 
   it('passes the primary chart ID and report when no saved chart is active', () => {
@@ -90,6 +95,13 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).toContain('chartId={effectiveChartId}');
     expect(app).toContain('chartSubject={activeChartSubject}');
     expect(app).toContain('preloadedReport={isPrimaryChartView ? preloadedHumanReport : null}');
+    expect(app).toContain('PRIMARY_CHART_NAVIGATION_VIEWS.has(newView)');
+    expect(app).toContain("'dashboard',");
+    expect(app).toContain("'horoscope',");
+    expect(app).toContain("'synastry',");
+    expect(app).toContain("'chart',");
+    expect(app).toContain('setActiveChartId(undefined)');
+    expect(app).toContain('setChartData(primaryChartDataRef.current)');
   });
 
   it('keeps chart content visible while the human-base reading loads or fails', () => {
@@ -97,7 +109,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(report).not.toContain('if (loading) {');
     expect(report).toContain('data-testid="human-report-loading-area"');
     expect(report).toContain('<TechnicalDetails chartData={chartData} language={language} />');
-    expect(report).toContain("report?.userName || subjectName || (language === 'ru' ? 'Твоя карта' : 'Your chart')");
+    expect(report).toContain("subjectName || report?.userName || (language === 'ru' ? 'Твоя карта' : 'Your chart')");
     expect(report).toContain('Интерпретация сейчас недоступна');
   });
 });

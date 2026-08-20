@@ -62,6 +62,8 @@ type Props = {
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
+  openQuestionRequest?: number;
+  onQuestionRequestHandled?: () => void;
 };
 
 const SIGN_RU: Record<string, string> = {
@@ -609,6 +611,8 @@ export const HumanReport: React.FC<Props> = ({
   premiumContinuation,
   onPremiumContinuationHandled,
   canPromotePremium = true,
+  openQuestionRequest = 0,
+  onQuestionRequestHandled,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
   const subjectName = chartSubject?.name || profile.name;
@@ -650,6 +654,7 @@ export const HumanReport: React.FC<Props> = ({
   const reportIdentity = `${userId}:${chartId ?? 'primary'}:${language}:${cacheIdentity.chartFingerprint}:${cacheIdentity.reportVersion}`;
   const baseIdentityRef = useRef(reportIdentity);
   const premiumIdentityRef = useRef(reportIdentity);
+  const handledQuestionRequestRef = useRef(0);
 
   const isPremium = hasActivePremium(profile);
   const reliability = getPermanentNatalReliability(chartData);
@@ -738,6 +743,13 @@ export const HumanReport: React.FC<Props> = ({
       .catch((loadError) => setQuestionError(formatError(loadError)))
       .finally(() => setQuestionLoading(false));
   }, [chartId, isPremium, requestPremium, userId]);
+
+  useEffect(() => {
+    if (!openQuestionRequest || handledQuestionRequestRef.current === openQuestionRequest) return;
+    handledQuestionRequestRef.current = openQuestionRequest;
+    openQuestions();
+    onQuestionRequestHandled?.();
+  }, [onQuestionRequestHandled, openQuestionRequest, openQuestions]);
 
   useEffect(() => {
     if (!isPremium || !premiumContinuation || premiumContinuation.returnView !== 'chart') return;

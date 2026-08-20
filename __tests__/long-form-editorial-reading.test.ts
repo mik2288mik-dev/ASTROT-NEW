@@ -21,29 +21,31 @@ describe('long-form v2 editorial reading structure', () => {
     expect(styles).toContain('background: var(--news-paper-soft)');
   });
 
-  it('shows every existing horoscope field in conclusion, semantic sections, evidence, and final focus', () => {
+  it('shows the complete sign-horoscope story with period tabs and the editorial sign picker', () => {
     const source = read('views/v2/HoroscopeReader.tsx');
 
-    expect(source.indexOf('horo-editorial-intro')).toBeLessThan(source.indexOf("title={language === 'ru' ? 'Что происходит'"));
-    expect(source).toContain('reading.summary');
-    expect(source).toContain('reading.reading');
-    expect(source).toContain('reading.chance');
-    expect(source).toContain('reading.risk');
-    expect(source).toContain('reading.advice.slice(0, 3)');
-    expect(source).toContain('reading.context');
-    expect(source).toContain('reading.focus');
-    expect(source).toContain('editorial-reading-list');
+    expect(source.indexOf('<FreshTabs')).toBeLessThan(source.indexOf('displayedReading.headline'));
+    expect(source).toContain('displayedReading.headline');
+    expect(source).toContain('displayedReading.text');
+    expect(source).toContain('<HoroscopeActivityBar');
+    expect(source).toContain('<LzSignPickerSheet');
+    expect(source).toContain("variant=\"editorial\"");
   });
 
-  it('puts the natal takeaway first, keeps free sections unnumbered, and keeps chart data technical', () => {
+  it('puts the natal hook first, keeps full report fields unnumbered, and keeps chart data technical', () => {
     const source = read('components/NatalReading/HumanReport.tsx');
 
-    expect(source.indexOf('natal-reading-overview')).toBeLessThan(source.indexOf('visibleFreeSections.map'));
+    expect(source.indexOf('natal-reading-hook')).toBeLessThan(source.indexOf('freeSections.map'));
     expect(source).not.toContain('number={index + 1}');
-    expect(source).toContain('section.subtitle');
-    expect(source).toContain('natal-sec-bullets');
-    expect(source).toContain('<EditorialBulletText text={item} />');
-    expect(source).toContain('natal-reading-final');
+    expect(source).toContain('report.hook.text');
+    expect(source).toContain('report.hook.evidenceIds');
+    expect(source).toContain('section.title');
+    expect(source).toContain('section.content');
+    expect(source).toContain('section.evidenceIds');
+    expect(source).toContain('report.sections.map');
+    expect(source).toContain('section.paragraphs.map');
+    expect(source).toContain('<NatalEvidenceDetails');
+    expect(source).toContain('<PremiumReport');
     expect(source).toContain('natal-technical-details');
   });
 

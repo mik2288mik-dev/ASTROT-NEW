@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
 import type { NatalChartData, SignHoroscopeReadingV2, UserProfile } from '../../types';
 import { getZodiacSign } from '../../constants';
 import { sunSignFromDate } from '../../lib/synastry/compatScore';
@@ -27,9 +28,14 @@ import {
   prefetchSignHoroscopePeriod,
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
-import { FreshTabs, ZodiacSignGrid } from '../../components/fresh-ui';
+import { FreshTabs } from '../../components/fresh-ui';
 import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
+import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
+import {
+  EditorialCurve,
+  EditorialProfileButton,
+} from '../../components/editorial/EditorialScreenChrome';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -73,9 +79,14 @@ export type HoroscopeReaderProps = {
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
   onOpenPersonalForecast?: () => void;
+  onOpenProfile?: () => void;
 };
 
-export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData }) => {
+export const HoroscopeReader = memo<HoroscopeReaderProps>(({
+  profile,
+  chartData,
+  onOpenProfile,
+}) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const [today, setToday] = useState(() => getMoscowTodayKey());
   const [period, setPeriod] = useState<Period>('today');
@@ -98,6 +109,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
   const [readings, setReadings] = useState<Record<string, SignHoroscopeReadingV2 | null>>({});
   const [loadRevision, setLoadRevision] = useState(0);
   const [lastReadyReading, setLastReadyReading] = useState<ReadyReadingSnapshot | null>(null);
+  const [signPickerOpen, setSignPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!ownSign) return;
@@ -248,7 +260,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
   const displayedPeriod = displayed?.period ?? period;
   const displayedPeriodKey = displayedReading?.periodKey ?? periodKey;
   const displayedSignLabel = getZodiacSign(language, displayedSign);
-  const displayedSignDateRange = formatZodiacDateRange(displayedSign, language);
+  const selectedSignLabel = getZodiacSign(language, sign);
+  const selectedSignDateRange = formatZodiacDateRange(sign, language);
   const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
   const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
@@ -265,38 +278,58 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
 
   return (
     <div className="fresh-page horo-reader-page">
-      <AppTopBar title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'} />
-
-      <FreshTabs
-        tabs={periodTabs}
-        activeTab={period}
-        onTabChange={choosePeriod}
-        className="horo-reader-period-tabs"
+      <AppTopBar
+        title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}
+        rightAction={(
+          <EditorialProfileButton
+            label={language === 'ru' ? 'Открыть профиль' : 'Open profile'}
+            onClick={onOpenProfile}
+          />
+        )}
       />
 
       <header className="horo-reader-heading">
-        <p className="horo-reader-period-date">{displayedPeriodDate}</p>
+        <button
+          type="button"
+          className="horo-reader-sign-trigger"
+          aria-haspopup="dialog"
+          aria-expanded={signPickerOpen}
+          onClick={() => {
+            lumiaSelectionHaptic();
+            setSignPickerOpen(true);
+          }}
+        >
+          <span>{selectedSignLabel}</span>
+          <ChevronDown aria-hidden="true" strokeWidth={1.45} />
+        </button>
+        <p className="horo-reader-sign-range">{selectedSignDateRange}</p>
       </header>
 
+      <div className="horo-reader-controls">
+        <FreshTabs
+          className="horo-period-tabs"
+          tabs={periodTabs}
+          activeTab={period}
+          onTabChange={choosePeriod}
+        />
+      </div>
+
+      <EditorialCurve className="horo-reader-curve" />
+
       <div ref={readingAnchorRef} className="horo-uni-wrap">
-        <motion.article
+        <article
           key={displayed?.key || `pending:${readingKey}`}
           className="horo-uni horo-reader-article"
           aria-busy={!hasReadingFailure && !displayedReading}
-          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0.08 : 0.18, ease: 'easeOut' }}
         >
-          <div className="horo-reader-selected-sign">
-            <div className="horo-reader-selected-sign-main">
-              <span>{displayedSignLabel}</span>
-              <ZodiacSymbol sign={displayedSign} size={30} className="horo-reader-selected-symbol" />
-            </div>
-            <span className="horo-reader-selected-sign-range">{displayedSignDateRange}</span>
+          <div className="horo-reader-symbol-stage" aria-hidden="true">
+            <span className="horo-reader-symbol-rays" />
+            <ZodiacSymbol sign={displayedSign} size={68} className="horo-reader-selected-symbol" />
           </div>
 
           {displayedReading ? (
             <header className="horo-uni-hero">
+              <p className="horo-reader-period-date">{displayedPeriodDate}</p>
               <h2 className="fresh-sticky horo-reader-headline">
                 {displayedReading.headline}
               </h2>
@@ -332,18 +365,19 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(({ profile, chartData 
               </>
             ) : null}
           </div>
-        </motion.article>
+        </article>
       </div>
 
-      <div className="horo-reader-sign-grid">
-        <ZodiacSignGrid
-          signs={ZODIAC_KEYS}
-          active={sign}
-          ownSign={ownSign}
-          language={language}
-          onPick={chooseSign}
-        />
-      </div>
+      <LzSignPickerSheet
+        open={signPickerOpen}
+        language={profile.language}
+        current={sign}
+        title={language === 'ru' ? 'Выбери знак' : 'Choose a sign'}
+        subtitle={language === 'ru' ? 'Прогноз откроется в том же периоде' : 'The same period will stay selected'}
+        variant="editorial"
+        onPick={chooseSign}
+        onClose={() => setSignPickerOpen(false)}
+      />
     </div>
   );
 });
