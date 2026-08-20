@@ -112,8 +112,6 @@ if (release) {
     'VK_AUTH_CLIENT_SECRET',
     'YANDEX_AUTH_CLIENT_ID',
     'YANDEX_AUTH_CLIENT_SECRET',
-    'EMAIL_OTP_DELIVERY_URL',
-    'EMAIL_OTP_DELIVERY_SECRET',
     'EMAIL_OTP_HASH_SECRET',
     'AUTH_RATE_LIMIT_SECRET',
     'APP_SESSION_SECRET',
@@ -122,6 +120,13 @@ if (release) {
     authProviderNames.push('GOOGLE_AUTH_CLIENT_ID', 'GOOGLE_AUTH_CLIENT_SECRET');
   }
   for (const name of authProviderNames) requireValue(name, process.env[name]);
+  const resendConfigured = !!String(process.env.RESEND_API_KEY || '').trim()
+    && !!String(process.env.AUTH_EMAIL_FROM || '').trim();
+  const webhookConfigured = !!String(process.env.EMAIL_OTP_DELIVERY_URL || '').trim()
+    && !!String(process.env.EMAIL_OTP_DELIVERY_SECRET || '').trim();
+  if (!resendConfigured && !webhookConfigured) {
+    errors.push('Email delivery requires RESEND_API_KEY and AUTH_EMAIL_FROM or EMAIL_OTP_DELIVERY_URL and EMAIL_OTP_DELIVERY_SECRET');
+  }
   for (const name of ['EMAIL_OTP_HASH_SECRET', 'AUTH_RATE_LIMIT_SECRET', 'APP_SESSION_SECRET']) {
     const value = String(process.env[name] || '').trim();
     if (value && !value.includes('_REQUIRED') && Buffer.byteLength(value, 'utf8') < 32) {

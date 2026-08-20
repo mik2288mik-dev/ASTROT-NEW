@@ -18,7 +18,10 @@ describe('account identity and session contract', () => {
     expect(env).toContain('GOOGLE_AUTH_CLIENT_SECRET=');
     expect(env).not.toContain('NEXT_PUBLIC_GOOGLE_AUTH_CLIENT_SECRET');
     expect(env).not.toContain('NEXT_PUBLIC_VK_AUTH_CLIENT_SECRET');
-    expect(releaseValidation).toContain("'EMAIL_OTP_DELIVERY_SECRET'");
+    expect(env).toContain('RESEND_API_KEY=');
+    expect(env).toContain('AUTH_EMAIL_FROM=');
+    expect(releaseValidation).toContain('RESEND_API_KEY and AUTH_EMAIL_FROM');
+    expect(releaseValidation).toContain('EMAIL_OTP_DELIVERY_SECRET');
     expect(releaseValidation).toContain("'VK_ID_ANDROID_CLIENT_SECRET'");
     expect(releaseValidation).toContain("'EMAIL_OTP_HASH_SECRET'");
     expect(releaseValidation).toContain("'AUTH_RATE_LIMIT_SECRET'");

@@ -4,6 +4,7 @@ import { AdminAuthError } from '../adminAuth';
 import { getPool } from '../db';
 import { canUseAccountAuthProvider, resolveDistributionChannel } from '../distributionChannel';
 import { resolveVerifiedIdentity } from './accountIdentity';
+import { isEmailDeliveryConfigured } from './emailDelivery';
 
 export const NATIVE_AUTH_PROVIDERS = ['google', 'yandex', 'vk'] as const;
 export type NativeAuthProvider = typeof NATIVE_AUTH_PROVIDERS[number];
@@ -178,18 +179,11 @@ export function getEmailPasswordAuthCapabilities(): {
   const rateLimitReady = !production
     || (hasProductionSecret(rateLimitSecret) && independentRateLimitSecret);
   const login = appSessionReady && rateLimitReady;
-  let deliveryEndpointReady = false;
-  try {
-    deliveryEndpointReady = new URL(configuredValue('EMAIL_OTP_DELIVERY_URL')).protocol === 'https:';
-  } catch {
-    deliveryEndpointReady = false;
-  }
   return {
     login,
     delivery: login
       && (!production || (hasProductionSecret(emailCodeSecret) && independentEmailCodeSecret))
-      && deliveryEndpointReady
-      && !!configuredValue('EMAIL_OTP_DELIVERY_SECRET'),
+      && isEmailDeliveryConfigured(),
   };
 }
 

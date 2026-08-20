@@ -71,6 +71,8 @@ describe('native provider credential authentication', () => {
     process.env.VK_AUTH_CLIENT_ID = '12345678';
     process.env.EMAIL_OTP_DELIVERY_URL = 'https://mailer.example.test/auth-code';
     process.env.EMAIL_OTP_DELIVERY_SECRET = 'test-mailer-secret';
+    delete process.env.RESEND_API_KEY;
+    delete process.env.AUTH_EMAIL_FROM;
     process.env.APP_SESSION_SECRET = 'app-session-secret-that-is-at-least-32-bytes';
     process.env.AUTH_RATE_LIMIT_SECRET = 'rate-limit-secret-that-is-at-least-32-bytes';
     process.env.EMAIL_OTP_HASH_SECRET = 'email-code-secret-that-is-at-least-32-bytes';
@@ -199,6 +201,19 @@ describe('native provider credential authentication', () => {
       if (nodeEnv == null) delete mutableEnv.NODE_ENV;
       else mutableEnv.NODE_ENV = nodeEnv;
     }
+  });
+
+  it('reports email delivery ready when the direct Resend integration is configured', () => {
+    delete process.env.EMAIL_OTP_DELIVERY_URL;
+    delete process.env.EMAIL_OTP_DELIVERY_SECRET;
+    process.env.RESEND_API_KEY = 're_test_server_only_key_1234567890';
+    process.env.AUTH_EMAIL_FROM = 'Твой Гороскоп <noreply@auth.tvoi-goroskop.ru>';
+
+    expect(getServerAccountAuthCapabilities('native')).toMatchObject({
+      email: true,
+      emailPassword: true,
+      emailDelivery: true,
+    });
   });
 
   it('creates a Google challenge and verifies audience, issuer/expiry through the official verifier, and nonce', async () => {
