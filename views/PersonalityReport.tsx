@@ -6,6 +6,7 @@ import type {
 } from '../types';
 import { HumanReport, type PreloadedNatalReport } from '../components/NatalReading/HumanReport';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { EditorialProfileButton } from '../components/editorial/EditorialScreenChrome';
 import { CosmicSheet } from '../components/lumia-ui/CosmicSheet';
 import { formatDisplayDate } from '../lib/date-utils';
 import { getChartSubjectType } from '../lib/chartAccessPolicy';
@@ -22,6 +23,7 @@ export type PersonalityReportProps = {
   preloadedReport?: PreloadedNatalReport | null;
   requestPremium: () => void;
   onBack: () => void;
+  onOpenProfile: () => void;
   onOpenNatalChart: (chart: ChartListItem | null) => void;
   onCompareWithMe: (chart: ChartListItem) => void;
 };
@@ -35,6 +37,7 @@ export function PersonalityReport({
   preloadedReport,
   requestPremium,
   onBack,
+  onOpenProfile,
   onOpenNatalChart,
   onCompareWithMe,
 }: PersonalityReportProps) {
@@ -132,6 +135,12 @@ export function PersonalityReport({
       <AppTopBar
         title={language === 'ru' ? 'Разбор личности' : 'Personality reading'}
         onBack={onBack}
+        rightAction={(
+          <EditorialProfileButton
+            label={language === 'ru' ? 'Открыть профиль' : 'Open profile'}
+            onClick={onOpenProfile}
+          />
+        )}
       />
 
       <main className="personality-report-main">

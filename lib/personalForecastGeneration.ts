@@ -48,16 +48,25 @@ export const PERSONAL_FORECAST_WRITER_MAX_OUTPUT_TOKENS: Record<
   PersonalForecastPeriod,
   number
 > = {
-  day: 1_000,
-  week: 1_000,
-  month: 1_400,
+  day: 1_200,
+  week: 1_200,
+  month: 3_000,
+};
+
+const PERSONAL_FORECAST_WRITER_RETRY_MAX_OUTPUT_TOKENS: Record<
+  PersonalForecastPeriod,
+  number
+> = {
+  day: 1_800,
+  week: 1_800,
+  month: 4_000,
 };
 
 export function getPersonalForecastWriterMaxOutputTokens(
   period: PersonalForecastPeriod,
   retryAfterIncomplete = false,
 ): number {
-  if (period === 'month' && retryAfterIncomplete) return 1_800;
+  if (retryAfterIncomplete) return PERSONAL_FORECAST_WRITER_RETRY_MAX_OUTPUT_TOKENS[period];
   return PERSONAL_FORECAST_WRITER_MAX_OUTPUT_TOKENS[period];
 }
 

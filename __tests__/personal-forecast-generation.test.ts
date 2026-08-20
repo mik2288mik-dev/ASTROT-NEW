@@ -205,10 +205,12 @@ describe('personal forecast Luna personal-feed writer', () => {
   });
 
   test('keeps output budgets bounded and allows one repair attempt', () => {
-    expect(getPersonalForecastWriterMaxOutputTokens('day')).toBe(1_000);
-    expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1_000);
-    expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(1_400);
-    expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(1_800);
+    expect(getPersonalForecastWriterMaxOutputTokens('day')).toBe(1_200);
+    expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1_200);
+    expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(3_000);
+    expect(getPersonalForecastWriterMaxOutputTokens('day', true)).toBe(1_800);
+    expect(getPersonalForecastWriterMaxOutputTokens('week', true)).toBe(1_800);
+    expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(4_000);
     expect(PERSONAL_FORECAST_WORD_LIMITS.day).toBe(150);
   });
 

@@ -34,12 +34,34 @@ describe('Today minimal navigation shell', () => {
     expect(navigation).toContain('Натальная карта');
     expect(navigation).toContain('Спросить астролога');
     expect(navigation).toContain('Хочу знать');
-    expect(navigation).toContain('onClick={onOpenKnowledge}');
+    expect(navigation).toContain('onClick={() => runHubAction(onOpenKnowledge)}');
     expect(app).toContain("navigateTo('encyclopedia')");
     expect(navigation).toContain('Настройки');
     expect(navigation).toContain('Premium и подписка');
     expect(navigation).toContain('Сохранённые карты');
     expect(app).toContain("setNavigationSheet('profile')");
+  });
+
+  it('opens the brand hub as an anchored semicircle instead of a bottom sheet', () => {
+    const app = read('App.tsx');
+    const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
+    const styles = read('styles/todayHome.css');
+
+    expect(navigation).toContain('/assets/brand/personal-horoscope-mark.svg');
+    expect(navigation).toContain("from 'framer-motion'");
+    expect(navigation).toContain('<motion.button');
+    expect(navigation).toContain('useReducedMotion');
+    expect(navigation).toContain('hubMotion(-112, -67, 0)');
+    expect(navigation).toContain('hubMotion(112, -67, 3)');
+    expect(navigation).not.toContain('function TodayHubLogo');
+    expect(navigation).toContain('role="menu"');
+    expect(navigation).toContain('role="menuitem"');
+    expect(navigation).toContain('today-hub-dismiss-layer');
+    expect(navigation).toContain('activeSheet !== null && activeSheet !== \'hub\'');
+    expect(styles).toContain('.today-hub-radial-menu');
+    expect(styles).toContain('.today-hub-radial-action');
+    expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(app).toContain("navigationSheet !== 'hub'");
   });
 
   it('renders three controlled text tabs directly below the Today header', () => {

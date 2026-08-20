@@ -33,6 +33,7 @@ import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
+import { EditorialProfileButton } from './components/editorial/EditorialScreenChrome';
 import {
     LumiaBottomTabBar,
     LumiaNavigationSheet,
@@ -2110,8 +2111,8 @@ const App: React.FC = () => {
         >
             <main
                 className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
-                aria-hidden={navigationSheet || paywallContext ? true : undefined}
-                inert={navigationSheet || paywallContext ? true : undefined}
+                aria-hidden={(navigationSheet && navigationSheet !== 'hub') || paywallContext ? true : undefined}
+                inert={(navigationSheet && navigationSheet !== 'hub') || paywallContext ? true : undefined}
             >
                 <div
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
@@ -2149,7 +2150,11 @@ const App: React.FC = () => {
                     </div>
                 ) : view === 'matrix' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <MatrixRoom profile={profile} onBack={() => { void handleBack(); }} />
+                        <MatrixRoom
+                            profile={profile}
+                            onBack={() => { void handleBack(); }}
+                            onOpenProfile={openProfileSheet}
+                        />
                     </div>
                 ) : view === 'horoscope' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
@@ -2174,6 +2179,7 @@ const App: React.FC = () => {
                             preloadedReport={preloadedHumanReport}
                             requestPremium={() => { void requestPremium('personality'); }}
                             onBack={() => { void handleBack(); }}
+                            onOpenProfile={openProfileSheet}
                             onOpenNatalChart={(selected) => {
                                 if (selected) {
                                     setChartData(selected.chart_data);
@@ -2257,6 +2263,7 @@ const App: React.FC = () => {
                             }}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
+                            onOpenProfile={openProfileSheet}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
                         />
@@ -2266,6 +2273,12 @@ const App: React.FC = () => {
                         <AppTopBar
                             title={profile.language === 'en' ? 'My charts' : 'Мои карты'}
                             onBack={() => { void handleBack(); }}
+                            rightAction={(
+                                <EditorialProfileButton
+                                    label={profile.language === 'en' ? 'Open profile' : 'Открыть профиль'}
+                                    onClick={openProfileSheet}
+                                />
+                            )}
                         />
                         <MyCharts 
                             profile={profile} 
@@ -2363,15 +2376,16 @@ const App: React.FC = () => {
                         onOpenToday={openBottomToday}
                         onOpenZodiac={openBottomZodiac}
                         onOpenSheet={openNavigationSheet}
+                        onOpenCompatibility={openNavigationCompatibility}
+                        onOpenNatal={openNavigationNatal}
+                        onAskAstrologer={openNavigationQuestion}
+                        onOpenKnowledge={openNavigationKnowledge}
                     />
                     <LumiaNavigationSheet
                         activeSheet={navigationSheet}
                         profile={profile}
                         onClose={() => setNavigationSheet(null)}
-                        onOpenCompatibility={openNavigationCompatibility}
                         onOpenNatal={openNavigationNatal}
-                        onAskAstrologer={openNavigationQuestion}
-                        onOpenKnowledge={openNavigationKnowledge}
                         onOpenSettings={openNavigationSettings}
                         onOpenPremium={openNavigationPremium}
                         onOpenCharts={openNavigationCharts}

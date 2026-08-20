@@ -7,6 +7,7 @@ import { updateUserNotificationSettings, getUserNotificationSettings, getTelegra
 import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { EditorialProfileButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
 import {
@@ -84,6 +85,7 @@ interface SettingsProps {
     onManageSubscription?: () => Promise<void> | void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
+    onOpenProfile: () => void;
     onLogout?: () => Promise<void>;
     onDeleteAccount?: () => Promise<void>;
 }
@@ -144,6 +146,7 @@ export const Settings: React.FC<SettingsProps> = ({
     onRestorePurchase,
     onManageSubscription,
     onOpenAdmin,
+    onOpenProfile,
     onLogout,
     onDeleteAccount,
 }) => {
@@ -490,7 +493,15 @@ export const Settings: React.FC<SettingsProps> = ({
 
     return (
         <div className="fresh-page settings-editorial-page">
-          <AppTopBar title={profile.language === 'en' ? 'Settings' : 'Настройки'} />
+          <AppTopBar
+            title={profile.language === 'en' ? 'Settings' : 'Настройки'}
+            rightAction={(
+              <EditorialProfileButton
+                label={profile.language === 'en' ? 'Open profile' : 'Открыть профиль'}
+                onClick={onOpenProfile}
+              />
+            )}
+          />
           <div className="settings-editorial-content">
             <section className="settings-editorial-profile">
                 <div className="flex items-center gap-4">

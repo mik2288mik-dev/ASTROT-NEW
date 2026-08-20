@@ -95,6 +95,22 @@ describe('application chrome', () => {
     expect(obsoleteHeaderStyles).not.toContain('.fresh-back-btn');
   });
 
+  it('keeps the profile action on the right side of every application header', () => {
+    const application = read('App.tsx');
+    const matrix = read('views/v2/MatrixRoom.tsx');
+    const personality = read('views/PersonalityReport.tsx');
+    const settings = read('views/Settings.tsx');
+
+    [matrix, personality, settings].forEach((screen) => {
+      expect(screen).toContain('EditorialProfileButton');
+      expect(screen).toContain('rightAction={(');
+      expect(screen).toContain('onClick={onOpenProfile}');
+    });
+    expect(application).toContain('<MatrixRoom');
+    expect(application).toContain('onOpenProfile={openProfileSheet}');
+    expect(application).toContain("title={profile.language === 'en' ? 'My charts'");
+  });
+
   it('replaces the draggable liquid lens with a thin static navigation line', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const styles = read('styles/todayHome.css');

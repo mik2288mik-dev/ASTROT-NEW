@@ -85,7 +85,8 @@ describe('personal horoscope runtime resilience', () => {
     });
 
     expect(mockedLuna).toHaveBeenCalledTimes(2);
-    expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(1_000);
+    expect(mockedLuna.mock.calls[0][0].maxOutputTokens).toBe(1_200);
+    expect(mockedLuna.mock.calls[1][0].maxOutputTokens).toBe(1_800);
     expect(mockedLuna.mock.calls[1][0].store).toBe(false);
     expect(forecast.meta.generationAttempts).toBe(2);
     expect(forecast).not.toHaveProperty('continuity');

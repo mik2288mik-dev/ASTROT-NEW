@@ -8,6 +8,7 @@ import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { EditorialProfileButton } from '../../components/editorial/EditorialScreenChrome';
 import {
   EditorialEvidence,
   EditorialProse,
@@ -20,9 +21,10 @@ const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 type Props = {
   profile: UserProfile;
   onBack: () => void;
+  onOpenProfile: () => void;
 };
 
-export function MatrixRoom({ profile, onBack }: Props) {
+export function MatrixRoom({ profile, onBack, onOpenProfile }: Props) {
   void onBack;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
@@ -65,7 +67,15 @@ export function MatrixRoom({ profile, onBack }: Props) {
 
   return (
     <div className="fresh-page matrix-editorial-page">
-      <AppTopBar title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en} />
+      <AppTopBar
+        title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}
+        rightAction={(
+          <EditorialProfileButton
+            label={ru ? 'Открыть профиль' : 'Open profile'}
+            onClick={onOpenProfile}
+          />
+        )}
+      />
 
       <section className="product-screen-cover product-screen-cover--matrix" aria-label={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}>
         <div className="product-screen-cover-copy">
