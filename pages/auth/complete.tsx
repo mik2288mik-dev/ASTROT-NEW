@@ -18,7 +18,7 @@ export default function AuthCompletePage() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, sessionVersion: 2 }),
     }).then(async (response) => {
       if (!response.ok) throw new Error('AUTH_EXCHANGE_FAILED');
       window.location.replace('/');

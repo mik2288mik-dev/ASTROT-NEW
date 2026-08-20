@@ -17,7 +17,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
 /**
- * Stores only the app session bearer token; key material never leaves AndroidKeyStore.
+ * Stores one opaque app-session value (legacy bearer or a versioned token bundle);
+ * key material never leaves AndroidKeyStore.
  * https://developer.android.com/privacy-and-security/keystore
  */
 final class SecureSessionStore {
@@ -54,14 +55,15 @@ final class SecureSessionStore {
         Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey());
         byte[] ciphertext = cipher.doFinal(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        preferences.edit()
+        boolean stored = preferences.edit()
             .putString(CIPHERTEXT_KEY, Base64.encodeToString(ciphertext, Base64.NO_WRAP))
             .putString(IV_KEY, Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP))
-            .apply();
+            .commit();
+        if (!stored) throw new GeneralSecurityException("Unable to persist the encrypted app session");
     }
 
     synchronized void clear() {
-        preferences.edit().remove(CIPHERTEXT_KEY).remove(IV_KEY).apply();
+        preferences.edit().remove(CIPHERTEXT_KEY).remove(IV_KEY).commit();
     }
 
     private SecretKey getOrCreateKey() throws GeneralSecurityException {

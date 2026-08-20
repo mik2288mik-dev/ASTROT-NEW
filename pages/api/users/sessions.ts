@@ -10,9 +10,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
       const result = await getPool().query(
         `SELECT session_id, session_kind, device_id, created_at, last_seen_at, expires_at,
+                session_version, absolute_expires_at,
                 (session_id = $2) AS current
          FROM app_sessions
-         WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > NOW()
+         WHERE user_id = $1
+           AND revoked_at IS NULL
+           AND expires_at > clock_timestamp()
+           AND (session_version = 1 OR absolute_expires_at > clock_timestamp())
          ORDER BY last_seen_at DESC`,
         [auth.userId, auth.sessionId || ''],
       );
@@ -24,6 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           createdAt: row.created_at,
           lastSeenAt: row.last_seen_at,
           expiresAt: row.expires_at,
+          absoluteExpiresAt: row.absolute_expires_at,
+          sessionVersion: Number(row.session_version || 1),
           current: row.current === true,
         })),
       });

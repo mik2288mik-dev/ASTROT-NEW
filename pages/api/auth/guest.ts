@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     let auth;
     try { auth = await requireAppUser(req, { allowGuest: true }); } catch (error) { if (!(error instanceof AdminAuthError) || error.status !== 401) throw error; }
-    auth ||= await createGuestAppUser(res);
+    auth ||= await createGuestAppUser(res, req.body?.sessionVersion);
     const user = await db.users.get(auth.userId);
     return res.status(200).json({ profile: toPublicAppProfile(user, auth) });
   } catch (error) { return handleAdminError(res, error); }

@@ -1,11 +1,13 @@
 const requireAppUser = jest.fn();
 const revokeAppSession = jest.fn();
 const clearAppSessionCookie = jest.fn();
+const readAppRefreshCookie = jest.fn();
 
 jest.mock('../lib/auth/appAuth', () => ({
   requireAppUser,
   revokeAppSession,
   clearAppSessionCookie,
+  readAppRefreshCookie,
 }));
 
 import handler from '../pages/api/users/session/logout';
@@ -23,6 +25,7 @@ function response() {
 describe('idempotent app logout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    readAppRefreshCookie.mockReturnValue('');
   });
 
   it('clears the cookie and succeeds when the session is already invalid', async () => {

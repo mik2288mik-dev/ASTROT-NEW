@@ -3,6 +3,7 @@ import { db } from '../../../../../lib/db';
 import { AdminAuthError, handleAdminError } from '../../../../../lib/adminAuth';
 import {
   APP_SESSION_COOKIE,
+  appSessionResponse,
   createAppUserSession,
   requireAppUser,
 } from '../../../../../lib/auth/appAuth';
@@ -66,10 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId: result.userId,
       kind: 'native',
       deviceId: typeof req.body?.appDeviceId === 'string' ? req.body.appDeviceId : null,
+      sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });
     const user = await db.users.get(result.userId);
     return res.status(200).json({
-      token: session.token,
+      ...appSessionResponse(session, true),
       profile: toPublicAppProfile(user, {
         userId: result.userId,
         provider: 'native',

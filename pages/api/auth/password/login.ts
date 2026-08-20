@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../../lib/db';
 import { handleAdminError } from '../../../../lib/adminAuth';
 import {
+  appSessionResponse,
   createPasswordAppUserSession,
   setAppSessionCookie,
 } from '../../../../lib/auth/appAuth';
@@ -27,11 +28,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       passwordVersion: result.passwordVersion,
       kind,
       deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
+      sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });
-    if (kind === 'web') setAppSessionCookie(res, session.token);
+    if (kind === 'web') {
+      if (session.refreshToken) setAppSessionCookie(res, session.token, session.refreshToken);
+      else setAppSessionCookie(res, session.token);
+    }
     const user = await db.users.get(result.userId);
     return res.status(200).json({
-      token: kind === 'native' ? session.token : undefined,
+      ...(session.sessionVersion === 2
+        ? appSessionResponse(session, kind === 'native')
+        : (kind === 'native' ? { token: session.token } : {})),
       profile: toPublicAppProfile(user, {
         userId: result.userId,
         provider: kind === 'native' ? 'native' : 'web_guest',

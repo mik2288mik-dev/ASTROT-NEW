@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getVerifiedTelegramUser, handleAdminError } from '../../../../lib/adminAuth';
 import {
+  appSessionResponse,
   createAppUserSession,
   setAppSessionCookie,
   type AppUserContext,
@@ -34,8 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId: identity.userId,
       kind,
       deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
+      sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });
-    if (kind === 'web') setAppSessionCookie(res, session.token);
+    if (kind === 'web') {
+      if (session.refreshToken) setAppSessionCookie(res, session.token, session.refreshToken);
+      else setAppSessionCookie(res, session.token);
+    }
 
     const auth: AppUserContext = {
       userId: identity.userId,
@@ -46,7 +51,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
     const user = await db.users.get(identity.userId);
     return res.status(200).json({
-      token: kind === 'native' ? session.token : undefined,
+      ...(session.sessionVersion === 2
+        ? appSessionResponse(session, kind === 'native')
+        : (kind === 'native' ? { token: session.token } : {})),
       profile: toPublicAppProfile(user, auth),
     });
   } catch (error) {

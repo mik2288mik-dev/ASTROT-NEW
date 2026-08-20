@@ -7,6 +7,7 @@ import {
   hashOAuthBrowserExchange,
   oauthBrowserBindingMatches,
 } from './oauthBrowserBinding';
+import { LEGACY_SESSION_TTL_SECONDS } from './sessionTokens';
 
 export const EXTERNAL_AUTH_PROVIDERS = ['vk', 'yandex', 'google', 'email', 'telegram'] as const;
 export type ExternalAuthProvider = typeof EXTERNAL_AUTH_PROVIDERS[number];
@@ -32,7 +33,6 @@ type OAuthProviderConfig = {
 
 const AUTH_CHALLENGE_TTL_MS = 10 * 60 * 1000;
 const AUTH_EXCHANGE_TTL_MS = 5 * 60 * 1000;
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 60;
 
 function sha256(value: string): string {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -373,7 +373,7 @@ export async function persistAppSession(input: {
   expiresAt?: number;
 }): Promise<void> {
   if (!process.env.DATABASE_URL) return;
-  const expiresAt = new Date((input.expiresAt || Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS) * 1000);
+  const expiresAt = new Date((input.expiresAt || Math.floor(Date.now() / 1000) + LEGACY_SESSION_TTL_SECONDS) * 1000);
   await getPool().query(
     `INSERT INTO app_sessions (session_id, user_id, session_kind, device_id, expires_at)
      VALUES ($1, $2, $3, $4, $5)
@@ -382,14 +382,22 @@ export async function persistAppSession(input: {
   );
 }
 
-export async function assertAppSessionActive(sessionId: string, userId: string): Promise<void> {
+export async function assertAppSessionActive(
+  sessionId: string,
+  userId: string,
+  sessionVersion: 1 | 2 = 1,
+): Promise<void> {
   if (!process.env.DATABASE_URL) return;
   const result = await getPool().query(
     `UPDATE app_sessions
-     SET last_seen_at = CURRENT_TIMESTAMP
-     WHERE session_id = $1 AND user_id = $2 AND revoked_at IS NULL AND expires_at > NOW()
+     SET last_seen_at = clock_timestamp()
+     WHERE session_id = $1 AND user_id = $2
+       AND session_version = $3
+       AND revoked_at IS NULL
+       AND expires_at > clock_timestamp()
+       AND (session_version = 1 OR absolute_expires_at > clock_timestamp())
      RETURNING session_id`,
-    [sessionId, userId],
+    [sessionId, userId, sessionVersion],
   );
   if (!result.rowCount) {
     const account = await getPool().query(

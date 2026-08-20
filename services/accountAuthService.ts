@@ -1,12 +1,11 @@
 import { Capacitor } from '@capacitor/core';
-import { nativeSessionStore } from './nativeSessionStore';
 import {
   nativeIdentityAuth,
   type NativeIdentityProvider as Provider,
   type NativeProviderCredential,
   type NativeProviderLaunch,
 } from './nativeIdentityAuthBridge';
-import { apiFetch, isNativeAppRuntime } from './apiClient';
+import { apiFetch, isNativeAppRuntime, persistNativeSessionResponse } from './apiClient';
 import {
   getRawTelegramInitData,
   setAuthSessionMode,
@@ -35,6 +34,17 @@ export type LinkedIdentity = {
 };
 
 type AuthPurpose = 'login' | 'link';
+
+type AccountSessionPayload = {
+  profile?: UserProfile;
+  sessionVersion?: number;
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  accessExpiresAt?: number;
+  refreshExpiresAt?: number;
+  absoluteExpiresAt?: number;
+};
 
 type NativeProviderStart = {
   challengeId: string;
@@ -71,13 +81,13 @@ async function authError(response: Response, fallback: string): Promise<Error> {
 }
 
 async function acceptAccountSession(
-  payload: { profile?: UserProfile; token?: string },
+  payload: AccountSessionPayload,
   fallback: string,
 ): Promise<UserProfile> {
   if (!payload.profile) throw new Error(fallback);
   if (isNativeAppRuntime()) {
-    if (!payload.token) throw new Error('NATIVE_SESSION_TOKEN_MISSING');
-    await nativeSessionStore.setToken(payload.token);
+    if (!(payload.token || payload.accessToken)) throw new Error('NATIVE_SESSION_TOKEN_MISSING');
+    await persistNativeSessionResponse(payload);
   }
   setAuthSessionMode('account');
   return payload.profile;
@@ -127,13 +137,13 @@ export async function loginWithTelegram(): Promise<UserProfile> {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ initData, native: isNativeAppRuntime() }),
+    body: JSON.stringify({ initData, native: isNativeAppRuntime(), sessionVersion: 2 }),
   });
   if (!response.ok) throw await authError(response, 'TELEGRAM_LOGIN_FAILED');
 
-  const payload = await response.json() as { profile?: UserProfile; token?: string };
+  const payload = await response.json() as AccountSessionPayload;
   if (!payload.profile) throw new Error('TELEGRAM_LOGIN_FAILED');
-  if (payload.token) await nativeSessionStore.setToken(payload.token);
+  if (payload.token || payload.accessToken) await persistNativeSessionResponse(payload);
   setAuthSessionMode('telegram');
   return payload.profile;
 }
@@ -149,12 +159,12 @@ export async function linkCurrentTelegramIdentity(): Promise<UserProfile> {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ initData }),
+    body: JSON.stringify({ initData, sessionVersion: 2 }),
   });
   if (!response.ok) throw await authError(response, 'TELEGRAM_LINK_FAILED');
-  const payload = await response.json() as { profile?: UserProfile; token?: string };
+  const payload = await response.json() as AccountSessionPayload;
   if (!payload.profile) throw new Error('TELEGRAM_LINK_FAILED');
-  if (payload.token) await nativeSessionStore.setToken(payload.token);
+  if (payload.token || payload.accessToken) await persistNativeSessionResponse(payload);
   setAuthSessionMode('telegram');
   return payload.profile;
 }
@@ -228,9 +238,9 @@ export async function authenticateWithProvider(
       'PROVIDER_AUTH_START_FAILED',
     );
     const credential = await nativeIdentityAuth.signIn(providerLaunchOptions(start));
-    const payload = await postAuthJson<{ profile?: UserProfile; token?: string }>(
+    const payload = await postAuthJson<AccountSessionPayload>(
       `/api/auth/provider/${provider}/complete`,
-      { challengeId: start.challengeId, ...credential, native: true },
+      { challengeId: start.challengeId, ...credential, native: true, sessionVersion: 2 },
       'PROVIDER_AUTH_COMPLETE_FAILED',
     );
     return acceptAccountSession(payload, 'PROVIDER_AUTH_COMPLETE_FAILED');
@@ -268,18 +278,18 @@ export async function verifyEmailPasswordRegistration(
   challengeId: string,
   code: string,
 ): Promise<UserProfile> {
-  const payload = await postAuthJson<{ profile?: UserProfile; token?: string }>(
+  const payload = await postAuthJson<AccountSessionPayload>(
     '/api/auth/password/register-verify',
-    { challengeId, code, native: isNativeAppRuntime() },
+    { challengeId, code, native: isNativeAppRuntime(), sessionVersion: 2 },
     'EMAIL_VERIFICATION_FAILED',
   );
   return acceptAccountSession(payload, 'EMAIL_VERIFICATION_FAILED');
 }
 
 export async function loginWithEmailPassword(email: string, password: string): Promise<UserProfile> {
-  const payload = await postAuthJson<{ profile?: UserProfile; token?: string }>(
+  const payload = await postAuthJson<AccountSessionPayload>(
     '/api/auth/password/login',
-    { email, password, native: isNativeAppRuntime() },
+    { email, password, native: isNativeAppRuntime(), sessionVersion: 2 },
     'EMAIL_PASSWORD_LOGIN_FAILED',
   );
   return acceptAccountSession(payload, 'EMAIL_PASSWORD_LOGIN_FAILED');
@@ -299,9 +309,9 @@ export async function completePasswordReset(input: {
   password: string;
   passwordConfirmation: string;
 }): Promise<UserProfile> {
-  const payload = await postAuthJson<{ profile?: UserProfile; token?: string }>(
+  const payload = await postAuthJson<AccountSessionPayload>(
     '/api/auth/password/reset-complete',
-    { ...input, native: isNativeAppRuntime() },
+    { ...input, native: isNativeAppRuntime(), sessionVersion: 2 },
     'PASSWORD_RESET_FAILED',
   );
   return acceptAccountSession(payload, 'PASSWORD_RESET_FAILED');

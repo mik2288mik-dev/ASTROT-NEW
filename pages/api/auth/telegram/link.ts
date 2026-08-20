@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { AdminAuthError, getVerifiedTelegramUser, handleAdminError } from '../../../../lib/adminAuth';
 import {
+  appSessionResponse,
   createAppUserSession,
   requireAppUser,
   setAppSessionCookie,
@@ -44,12 +45,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     );
     let nextAuth: AppUserContext = { ...auth, isGuest: false };
-    let token: string | undefined;
+    let rotatedSession: Record<string, unknown> = {};
     if (auth.isGuest) {
       const kind = auth.provider === 'native' ? 'native' : 'web';
-      const session = await createAppUserSession({ userId: auth.userId, kind });
-      if (kind === 'web') setAppSessionCookie(res, session.token);
-      else token = session.token;
+      const session = await createAppUserSession({
+        userId: auth.userId,
+        kind,
+        sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
+      });
+      if (kind === 'web') {
+        if (session.refreshToken) setAppSessionCookie(res, session.token, session.refreshToken);
+        else setAppSessionCookie(res, session.token);
+      }
+      rotatedSession = session.sessionVersion === 2
+        ? appSessionResponse(session, kind === 'native')
+        : (kind === 'native' ? { token: session.token } : {});
       nextAuth = {
         userId: auth.userId,
         provider: kind === 'native' ? 'native' : 'web_guest',
@@ -62,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       ok: true,
       userId: auth.userId,
-      token,
+      ...rotatedSession,
       profile: toPublicAppProfile(user, nextAuth),
     });
   } catch (error) {

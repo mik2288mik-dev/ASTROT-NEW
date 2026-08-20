@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import {
+  appSessionResponse,
   createNativeGuestAppUser,
   requireAppUser,
 } from '../../../lib/auth/appAuth';
@@ -19,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const existingToken = bearerToken(req);
     let auth;
-    let token = existingToken;
+    let sessionResponse: Record<string, unknown> = { token: existingToken };
 
     if (req.headers.authorization) {
       auth = await requireAppUser(req, { allowGuest: true });
@@ -27,14 +28,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new AdminAuthError(403, 'NATIVE_SESSION_REQUIRED', 'A native session is required');
       }
     } else {
-      const created = await createNativeGuestAppUser();
+      const created = await createNativeGuestAppUser(req.body?.sessionVersion);
       auth = created.auth;
-      token = created.token;
+      sessionResponse = appSessionResponse(created.session, true);
     }
 
     const user = await db.users.get(auth.userId);
     return res.status(200).json({
-      token,
+      ...sessionResponse,
       profile: toPublicAppProfile(user, auth),
     });
   } catch (error) {

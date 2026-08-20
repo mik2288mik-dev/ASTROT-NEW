@@ -10,6 +10,19 @@ import {
   resolveTelegramIdentityForLogin,
   telegramIdentityBelongsToUser,
 } from './accountIdentity';
+import {
+  ACCESS_TOKEN_TTL_SECONDS,
+  LEGACY_SESSION_TTL_SECONDS,
+  REFRESH_ABSOLUTE_TTL_SECONDS,
+  REFRESH_IDLE_TTL_SECONDS,
+  createAccessSessionToken,
+  createLegacySessionToken,
+  createRefreshSessionToken,
+  hashRefreshSessionToken,
+  verifyAppSessionToken,
+  verifyRefreshSessionToken,
+  type AppSessionProvider,
+} from './sessionTokens';
 
 export type AppAuthProvider = 'telegram' | 'web_guest' | 'native';
 export type AppUserContext = {
@@ -21,62 +34,52 @@ export type AppUserContext = {
 };
 
 export const APP_SESSION_COOKIE = 'lumia_app_session';
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 60;
+export const APP_REFRESH_COOKIE = 'lumia_app_refresh';
+export const APP_SESSION_REFRESH_VERSION = 2;
 
-type SessionPayload = { userId: string; provider: 'web_guest' | 'native'; sessionId: string; exp: number };
+export type AppUserSession = {
+  token: string;
+  accessToken: string;
+  refreshToken?: string;
+  sessionId: string;
+  sessionVersion: 1 | 2;
+  expiresAt: number;
+  refreshExpiresAt?: number;
+  absoluteExpiresAt?: number;
+};
 
-function secret(): string {
-  const configured = String(process.env.APP_SESSION_SECRET || '').trim();
-  const value = /^(?:replace-with|your[_-])/i.test(configured) ? '' : configured;
-  if (process.env.NODE_ENV === 'production' && Buffer.byteLength(value, 'utf8') < 32) {
-    throw new AdminAuthError(
-      500,
-      'APP_AUTH_NOT_CONFIGURED',
-      'APP_SESSION_SECRET must contain at least 32 bytes',
-    );
-  }
-  if (
-    process.env.NODE_ENV === 'production'
-    && value
-    && [process.env.EMAIL_OTP_HASH_SECRET, process.env.AUTH_RATE_LIMIT_SECRET]
-      .some((other) => String(other || '').trim() === value)
-  ) {
-    throw new AdminAuthError(
-      500,
-      'APP_AUTH_NOT_CONFIGURED',
-      'APP_SESSION_SECRET must be independent from auth HMAC secrets',
-    );
-  }
-  return value || 'lumia-local-development-session-secret';
+export function supportsSessionRefresh(value: unknown): boolean {
+  return value === APP_SESSION_REFRESH_VERSION || value === String(APP_SESSION_REFRESH_VERSION);
 }
 
-function b64(value: string | Buffer): string {
-  return Buffer.from(value).toString('base64url');
+export function appSessionResponse(session: AppUserSession, includeTokens: boolean): Record<string, unknown> {
+  if (session.sessionVersion !== 2) return includeTokens ? { token: session.token } : {};
+  const metadata = {
+    sessionVersion: session.sessionVersion,
+    accessExpiresAt: session.expiresAt,
+    refreshExpiresAt: session.refreshExpiresAt,
+    absoluteExpiresAt: session.absoluteExpiresAt,
+  };
+  return includeTokens
+    ? {
+        ...metadata,
+        token: session.token,
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+      }
+    : metadata;
 }
 
-function sign(encoded: string): string {
-  return crypto.createHmac('sha256', secret()).update(encoded).digest('base64url');
+export function createAppSessionToken(input: {
+  userId: string;
+  provider: AppSessionProvider;
+  sessionId: string;
+  exp?: number;
+}): string {
+  return createLegacySessionToken(input);
 }
 
-export function createAppSessionToken(payload: Omit<SessionPayload, 'exp'> & { exp?: number }): string {
-  const encoded = b64(JSON.stringify({ ...payload, exp: payload.exp ?? Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS }));
-  return `${encoded}.${sign(encoded)}`;
-}
-
-export function verifyAppSessionToken(token: string): SessionPayload | null {
-  try {
-    const [encoded, signature] = token.split('.');
-    if (!encoded || !signature) return null;
-    const expected = sign(encoded);
-    if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
-    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SessionPayload;
-    if (!payload.userId || !payload.sessionId || !['web_guest', 'native'].includes(payload.provider)) return null;
-    if (!Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) return null;
-    return payload;
-  } catch {
-    return null;
-  }
-}
+export { verifyAppSessionToken } from './sessionTokens';
 
 function header(req: NextApiRequest, name: string): string {
   const value = req.headers?.[name];
@@ -92,14 +95,62 @@ function cookie(req: NextApiRequest, name: string): string {
   return '';
 }
 
-export function setAppSessionCookie(res: NextApiResponse, token: string): void {
+export function readAppSessionCookie(req: NextApiRequest): string {
+  return cookie(req, APP_SESSION_COOKIE);
+}
+
+export function readAppRefreshCookie(req: NextApiRequest): string {
+  return cookie(req, APP_REFRESH_COOKIE);
+}
+
+function appendSetCookie(res: NextApiResponse, value: string): void {
+  const current = typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : undefined;
+  if (!current) {
+    res.setHeader('Set-Cookie', value);
+    return;
+  }
+  res.setHeader('Set-Cookie', Array.isArray(current) ? [...current, value] : [String(current), value]);
+}
+
+function cookieMaxAge(token: string, fallback: number): number {
+  const payload = verifyAppSessionToken(token, { allowExpired: true });
+  return payload ? Math.max(0, payload.exp - Math.floor(Date.now() / 1000)) : fallback;
+}
+
+export function setAppSessionCookie(
+  res: NextApiResponse,
+  token: string,
+  refreshToken?: string,
+): void {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${APP_SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS}${secure}`);
+  appendSetCookie(
+    res,
+    `${APP_SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${cookieMaxAge(token, ACCESS_TOKEN_TTL_SECONDS)}${secure}`,
+  );
+  if (refreshToken) {
+    const refresh = verifyRefreshSessionToken(refreshToken);
+    const absoluteRemaining = refresh
+      ? Math.max(0, refresh.absoluteExpiresAt - Math.floor(Date.now() / 1000))
+      : REFRESH_IDLE_TTL_SECONDS;
+    appendSetCookie(
+      res,
+      `${APP_REFRESH_COOKIE}=${encodeURIComponent(refreshToken)}; Path=/api/auth/session; HttpOnly; SameSite=Strict; Max-Age=${Math.min(REFRESH_IDLE_TTL_SECONDS, absoluteRemaining)}${secure}`,
+    );
+  } else {
+    appendSetCookie(
+      res,
+      `${APP_REFRESH_COOKIE}=; Path=/api/auth/session; HttpOnly; SameSite=Strict; Max-Age=0${secure}`,
+    );
+  }
 }
 
 export function clearAppSessionCookie(res: NextApiResponse): void {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${APP_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
+  appendSetCookie(res, `${APP_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`);
+  appendSetCookie(
+    res,
+    `${APP_REFRESH_COOKIE}=; Path=/api/auth/session; HttpOnly; SameSite=Strict; Max-Age=0${secure}`,
+  );
 }
 
 async function isRevokedSession(sessionId: string): Promise<boolean> {
@@ -137,7 +188,86 @@ export function createGuestIdentity(): { userId: string; sessionId: string } {
 
 export { isGuestUserId } from '../userId';
 
-export async function createGuestAppUser(res: NextApiResponse): Promise<AppUserContext> {
+type SessionPlan = AppUserSession & {
+  refreshTokenHash: string | null;
+};
+
+function buildSessionPlan(input: {
+  userId: string;
+  sessionId: string;
+  provider: AppSessionProvider;
+  refreshCapable: boolean;
+}): SessionPlan {
+  const now = Math.floor(Date.now() / 1000);
+  if (!input.refreshCapable || !process.env.DATABASE_URL) {
+    const expiresAt = now + LEGACY_SESSION_TTL_SECONDS;
+    const token = createLegacySessionToken({ ...input, exp: expiresAt });
+    return {
+      token,
+      accessToken: token,
+      sessionId: input.sessionId,
+      sessionVersion: 1,
+      expiresAt,
+      refreshTokenHash: null,
+    };
+  }
+
+  const absoluteExpiresAt = now + REFRESH_ABSOLUTE_TTL_SECONDS;
+  const refreshExpiresAt = Math.min(now + REFRESH_IDLE_TTL_SECONDS, absoluteExpiresAt);
+  const expiresAt = Math.min(now + ACCESS_TOKEN_TTL_SECONDS, absoluteExpiresAt);
+  const refreshToken = createRefreshSessionToken({
+    userId: input.userId,
+    sessionId: input.sessionId,
+    generation: 0,
+    absoluteExpiresAt,
+    issuedAt: now,
+  });
+  const token = createAccessSessionToken({
+    userId: input.userId,
+    sessionId: input.sessionId,
+    provider: input.provider,
+    issuedAt: now,
+    exp: expiresAt,
+  });
+  return {
+    token,
+    accessToken: token,
+    refreshToken,
+    sessionId: input.sessionId,
+    sessionVersion: 2,
+    expiresAt,
+    refreshExpiresAt,
+    absoluteExpiresAt,
+    refreshTokenHash: hashRefreshSessionToken(refreshToken),
+  };
+}
+
+function sessionInsertValues(
+  input: { userId: string; kind: 'web' | 'native'; deviceId?: string | null },
+  plan: SessionPlan,
+): unknown[] {
+  const familyExpiresAt = plan.sessionVersion === 2 ? plan.refreshExpiresAt! : plan.expiresAt;
+  return [
+    plan.sessionId,
+    input.userId,
+    input.kind,
+    input.deviceId || null,
+    new Date(familyExpiresAt * 1000).toISOString(),
+    plan.sessionVersion,
+    plan.refreshTokenHash,
+    plan.absoluteExpiresAt ? new Date(plan.absoluteExpiresAt * 1000).toISOString() : null,
+  ];
+}
+
+const INSERT_APP_SESSION_SQL = `INSERT INTO app_sessions
+  (session_id, user_id, session_kind, device_id, expires_at, session_version,
+   refresh_token_hash, refresh_generation, absolute_expires_at, refresh_rotated_at)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, CASE WHEN $6 = 2 THEN clock_timestamp() ELSE NULL END)`;
+
+export async function createGuestAppUser(
+  res: NextApiResponse,
+  sessionVersion?: unknown,
+): Promise<AppUserContext> {
   const identity = createGuestIdentity();
   await db.users.set(identity.userId, {
     name: 'Гость', language: 'ru', theme: 'light', is_setup: false,
@@ -148,13 +278,20 @@ export async function createGuestAppUser(res: NextApiResponse): Promise<AppUserC
       `UPDATE users SET is_guest = TRUE, auth_provider = 'web_guest', platform = 'web' WHERE id = $1`,
       [identity.userId],
     );
-    await persistAppSession({ sessionId: identity.sessionId, userId: identity.userId, kind: 'web' });
   }
-  setAppSessionCookie(res, createAppSessionToken({ ...identity, provider: 'web_guest' }));
-  return { userId: identity.userId, provider: 'web_guest', isGuest: true, sessionId: identity.sessionId };
+  const session = await createAppUserSession({
+    userId: identity.userId,
+    kind: 'web',
+    sessionVersion: supportsSessionRefresh(sessionVersion) ? 2 : 1,
+  });
+  setAppSessionCookie(res, session.token, session.refreshToken);
+  return { userId: identity.userId, provider: 'web_guest', isGuest: true, sessionId: session.sessionId };
 }
 
-export async function createNativeGuestAppUser(): Promise<{ auth: AppUserContext; token: string }> {
+export async function createNativeGuestAppUser(sessionVersion?: unknown): Promise<{
+  auth: AppUserContext;
+  session: AppUserSession;
+}> {
   const identity = createGuestIdentity();
   await db.users.set(identity.userId, {
     name: 'Гость', language: 'ru', theme: 'light', is_setup: false,
@@ -165,16 +302,19 @@ export async function createNativeGuestAppUser(): Promise<{ auth: AppUserContext
       `UPDATE users SET is_guest = TRUE, auth_provider = 'native', platform = 'native' WHERE id = $1`,
       [identity.userId],
     );
-    await persistAppSession({ sessionId: identity.sessionId, userId: identity.userId, kind: 'native' });
   }
-  const token = createAppSessionToken({ ...identity, provider: 'native' });
+  const session = await createAppUserSession({
+    userId: identity.userId,
+    kind: 'native',
+    sessionVersion: supportsSessionRefresh(sessionVersion) ? 2 : 1,
+  });
   return {
-    token,
+    session,
     auth: {
       userId: identity.userId,
       provider: 'native',
       isGuest: true,
-      sessionId: identity.sessionId,
+      sessionId: session.sessionId,
     },
   };
 }
@@ -183,17 +323,23 @@ export async function createAppUserSession(input: {
   userId: string;
   kind: 'web' | 'native';
   deviceId?: string | null;
-}): Promise<{ token: string; sessionId: string; expiresAt: number }> {
+  sessionVersion?: 1 | 2;
+}): Promise<AppUserSession> {
   const sessionId = crypto.randomUUID();
-  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
   const provider = input.kind === 'native' ? 'native' : 'web_guest';
+  const plan = buildSessionPlan({
+    userId: input.userId,
+    sessionId,
+    provider,
+    refreshCapable: input.sessionVersion === 2,
+  });
   if (!process.env.DATABASE_URL) {
     await persistAppSession({
       sessionId,
       userId: input.userId,
       kind: input.kind,
       deviceId: input.deviceId,
-      expiresAt,
+      expiresAt: plan.expiresAt,
     });
   } else {
     const client = await getPool().connect();
@@ -213,10 +359,8 @@ export async function createAppUserSession(input: {
         throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
       }
       await client.query(
-        `INSERT INTO app_sessions
-         (session_id, user_id, session_kind, device_id, expires_at)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [sessionId, input.userId, input.kind, input.deviceId || null, new Date(expiresAt * 1000).toISOString()],
+        INSERT_APP_SESSION_SQL,
+        sessionInsertValues(input, plan),
       );
       await client.query('COMMIT');
     } catch (error) {
@@ -226,11 +370,8 @@ export async function createAppUserSession(input: {
       client.release();
     }
   }
-  return {
-    sessionId,
-    expiresAt,
-    token: createAppSessionToken({ userId: input.userId, sessionId, provider, exp: expiresAt }),
-  };
+  const { refreshTokenHash: _refreshTokenHash, ...session } = plan;
+  return session;
 }
 
 /**
@@ -243,10 +384,16 @@ export async function createPasswordAppUserSession(input: {
   passwordVersion: number;
   kind: 'web' | 'native';
   deviceId?: string | null;
-}): Promise<{ token: string; sessionId: string; expiresAt: number }> {
+  sessionVersion?: 1 | 2;
+}): Promise<AppUserSession> {
   const sessionId = crypto.randomUUID();
-  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
   const provider = input.kind === 'native' ? 'native' : 'web_guest';
+  const plan = buildSessionPlan({
+    userId: input.userId,
+    sessionId,
+    provider,
+    refreshCapable: input.sessionVersion === 2,
+  });
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
@@ -268,10 +415,8 @@ export async function createPasswordAppUserSession(input: {
       throw new AdminAuthError(403, 'ACCOUNT_BLOCKED', 'Account is blocked');
     }
     await client.query(
-      `INSERT INTO app_sessions
-       (session_id, user_id, session_kind, device_id, expires_at)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [sessionId, input.userId, input.kind, input.deviceId || null, new Date(expiresAt * 1000).toISOString()],
+      INSERT_APP_SESSION_SQL,
+      sessionInsertValues(input, plan),
     );
     await client.query('COMMIT');
   } catch (error) {
@@ -280,11 +425,8 @@ export async function createPasswordAppUserSession(input: {
   } finally {
     client.release();
   }
-  return {
-    sessionId,
-    expiresAt,
-    token: createAppSessionToken({ userId: input.userId, sessionId, provider, exp: expiresAt }),
-  };
+  const { refreshTokenHash: _refreshTokenHash, ...session } = plan;
+  return session;
 }
 
 async function resolveTelegramUser(req: NextApiRequest): Promise<AppUserContext> {
@@ -330,15 +472,20 @@ export async function requireAppUser(req: NextApiRequest, options: {
       throw new AdminAuthError(401, 'APP_SESSION_INVALID', 'The app session is invalid');
     }
     const bearer = authorization ? authorization.slice(7).trim() : '';
+    const suppliedToken = bearer || cookieToken;
     const payload = verifyAppSessionToken(bearer || cookieToken);
     if (!payload) {
+      const expiredPayload = verifyAppSessionToken(suppliedToken, { allowExpired: true });
+      if (expiredPayload && expiredPayload.exp <= Math.floor(Date.now() / 1000)) {
+        throw new AdminAuthError(401, 'APP_SESSION_EXPIRED', 'The app session has expired');
+      }
       throw new AdminAuthError(401, 'APP_SESSION_INVALID', 'The app session is invalid');
     }
     if (await isRevokedSession(payload.sessionId)) {
       throw new AdminAuthError(401, 'APP_SESSION_REVOKED', 'This session is no longer valid');
     }
     try {
-      await assertAppSessionActive(payload.sessionId, payload.userId);
+      await assertAppSessionActive(payload.sessionId, payload.userId, payload.version);
     } catch (error) {
       // Blocking revokes sessions atomically. Preserve the more useful blocked
       // account response while the block is active; after an unblock the same

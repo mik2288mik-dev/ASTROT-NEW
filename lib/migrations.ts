@@ -3571,6 +3571,66 @@ async function mvp045AuthExpiryTimezone(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+async function mvp048AppSessionRefresh(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_048_app_session_refresh';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied`);
+    return;
+  }
+
+  await pool.query(`
+    ALTER TABLE app_sessions
+      ADD COLUMN IF NOT EXISTS session_version SMALLINT NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS refresh_token_hash TEXT,
+      ADD COLUMN IF NOT EXISTS refresh_generation BIGINT NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS absolute_expires_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS refresh_rotated_at TIMESTAMPTZ
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_app_sessions_refresh_token_hash
+      ON app_sessions(refresh_token_hash)
+      WHERE refresh_token_hash IS NOT NULL
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'app_sessions_version_check'
+      ) THEN
+        ALTER TABLE app_sessions
+          ADD CONSTRAINT app_sessions_version_check
+          CHECK (session_version IN (1, 2)) NOT VALID;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'app_sessions_refresh_generation_check'
+      ) THEN
+        ALTER TABLE app_sessions
+          ADD CONSTRAINT app_sessions_refresh_generation_check
+          CHECK (refresh_generation >= 0) NOT VALID;
+      END IF;
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'app_sessions_refresh_fields_check'
+      ) THEN
+        ALTER TABLE app_sessions
+          ADD CONSTRAINT app_sessions_refresh_fields_check
+          CHECK (
+            session_version = 1 OR (
+              refresh_token_hash IS NOT NULL
+              AND absolute_expires_at IS NOT NULL
+              AND refresh_rotated_at IS NOT NULL
+            )
+          ) NOT VALID;
+      END IF;
+    END $$
+  `);
+  await pool.query('ALTER TABLE app_sessions VALIDATE CONSTRAINT app_sessions_version_check');
+  await pool.query('ALTER TABLE app_sessions VALIDATE CONSTRAINT app_sessions_refresh_generation_check');
+  await pool.query('ALTER TABLE app_sessions VALIDATE CONSTRAINT app_sessions_refresh_fields_check');
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3646,6 +3706,7 @@ export async function runMigrations(): Promise<void> {
   await mvp043PasswordAuthentication(pool);
   await mvp044EmailIdentityUniqueness(pool);
   await mvp045AuthExpiryTimezone(pool);
+  await mvp048AppSessionRefresh(pool);
   await mvp044PremiumEntitlementLifecycle(pool);
   await mvp045RuStoreCallbackOrdering(pool);
   await mvp046RuStoreProviderOverlay(pool);

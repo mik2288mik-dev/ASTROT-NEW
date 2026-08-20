@@ -208,7 +208,12 @@ export async function ensureWebGuestSession(): Promise<any | null> {
   if (typeof window === 'undefined') return null;
   const response = await apiFetch(
     isNativeAppRuntime() ? '/api/auth/native-guest' : '/api/auth/guest',
-    { method: 'POST', credentials: 'include' },
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionVersion: 2 }),
+    },
   );
   if (!response.ok) throw new Error(`Guest session failed: ${response.status}`);
   const payload = await response.json();
