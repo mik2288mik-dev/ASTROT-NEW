@@ -1,4 +1,4 @@
-import type { PersonalForecastPeriod } from './personalForecastContract';
+﻿import type { PersonalForecastPeriod } from './personalForecastContract';
 
 type PersonalForecastReferenceTone = 'bright' | 'steady' | 'challenging';
 
@@ -476,12 +476,40 @@ export function renderPersonalForecastReferenceExamples(
   if (language !== 'ru') return '';
   const examples = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU
     .filter((example) => example.period === period)
-    .map((example) => ({ input: example.input, output: example.output }));
-  return `<forecast_reference_examples>
-Эти примеры задают голос, краткость, структуру и практичный финал. Это ориентиры, а не шаблоны. Не копируй и близко не пересказывай их заголовок, ситуацию, сравнение, совет или концовку.
-${JSON.stringify(examples, null, 2)}
-</forecast_reference_examples>`;
+    .slice(0, 3)
+    .map((example) => ({
+      input: {
+        personal_profile: {
+          name: example.input.name,
+          birth_date: example.input.birth_date,
+          birth_time: example.input.birth_time,
+          birth_time_mode: example.input.birth_time ? 'exact' : 'unknown',
+          birth_time_uncertainty_minutes: null,
+          birth_place: example.input.birth_place,
+          birth_timezone: 'Europe/Moscow',
+          gender: 'unspecified',
+          language,
+        },
+        selected_period: {
+          period: example.period,
+          period_key: `${example.period}-reference-${example.id}`,
+          current_date: '2026-08-20',
+          period_start: '2026-08-20',
+          period_end: example.period === 'day' ? '2026-08-20' : '2026-08-26',
+          timezone: 'Europe/Moscow',
+        },
+        anti_repeat_context: { recent_forecasts: [] },
+      },
+      output: example.output,
+    }));
+  return examples.map((example) => `<forecast_example_input>
+${JSON.stringify(example.input, null, 2)}
+</forecast_example_input>
+<forecast_example_output>
+${JSON.stringify(example.output, null, 2)}
+</forecast_example_output>`).join('\n\n');
 }
+
 export function getPersonalForecastReferenceFragments(
   period: PersonalForecastPeriod,
 ): Array<{

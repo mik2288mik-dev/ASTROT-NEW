@@ -36,17 +36,15 @@ describe('personal forecast screen layout', () => {
     expect(sectionBlock).toContain('forecast-feed-story-fragment');
     expect(forecastStyles).toContain('.forecast-period-editorial-feed');
     expect(forecastStyles).toContain('background: transparent;');
-    expect(dashboard).not.toContain('AiPersonalHoroscopeReading');
   });
 
-  it('requires the saved natal chart before loading personal forecast content', () => {
+  it('requires only the raw birth profile before loading personal forecast content', () => {
     const dashboard = read('views/Dashboard.tsx');
     const service = read('services/personalForecastService.ts');
 
-    expect(dashboard).toContain('hasNatalChart(profile, {');
-    expect(dashboard).toContain('if (!hasChart || !chartData)');
-    expect(dashboard).toContain('chartData,');
-    expect(service).toContain('buildPersonalForecastChartFingerprint(input.chartData)');
+    expect(dashboard).toContain("!profile.name.trim() || !profile.birthDate.trim()");
+    expect(dashboard).not.toContain('chartData');
+    expect(service).not.toContain('chartId');
   });
 
   it('uses one honest full-width loading and period-scoped retry state', () => {

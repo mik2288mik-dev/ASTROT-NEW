@@ -13,7 +13,7 @@ import {
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
 import { selectNatalEditorialSticker } from '../../lib/personalForecastVisuals';
-import { buildPersonalForecastChartFingerprint } from '../../lib/personalForecastContract';
+import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
 
@@ -150,7 +150,7 @@ export function NatalMagazine({
   const reportSubjectKey = [
     chartSubject?.subject_type || 'self',
     chartSubject?.id ?? chartId ?? 'primary',
-    chartSubject?.input_hash || buildPersonalForecastChartFingerprint(data),
+    chartSubject?.input_hash || buildNatalChartFingerprint(data),
     chartSubject?.calculation_version || data.calculationVersion || 'unknown',
   ].join(':');
   const natalSticker = selectNatalEditorialSticker({

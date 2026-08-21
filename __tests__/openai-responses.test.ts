@@ -60,7 +60,7 @@ describe('OpenAI Luna structured response request', () => {
   it('can disable provider storage for private personal-forecast input without changing other calls', () => {
     const privateParams = buildLunaStructuredResponseParams({
       instructions: 'Return the requested forecast object.',
-      input: 'Private saved natal context',
+      input: 'Private birth profile',
       maxOutputTokens: 900,
       store: false,
       schemaName: 'personal_forecast',

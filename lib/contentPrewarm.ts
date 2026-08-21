@@ -1,5 +1,5 @@
 import type { ContentAccessTier, ContentSurface } from '../types';
-import type { AiPersonalHoroscopePeriod } from './aiPersonalHoroscope';
+import type { PersonalForecastPeriod } from './personalForecastContract';
 
 export type PrewarmPriority = 'high' | 'medium' | 'low';
 export type PrewarmTaskId =
@@ -7,7 +7,7 @@ export type PrewarmTaskId =
   | 'personal_forecast_week'
   | 'personal_forecast_month';
 
-export type PersonalForecastPrewarmKeys = Record<AiPersonalHoroscopePeriod, string>;
+export type PersonalForecastPrewarmKeys = Record<PersonalForecastPeriod, string>;
 
 export type PrewarmPlanItem = {
   id: PrewarmTaskId;

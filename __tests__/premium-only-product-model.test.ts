@@ -128,7 +128,6 @@ describe('Premium-only product model', () => {
     const app = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
     const dashboard = fs.readFileSync(path.join(ROOT, 'views', 'Dashboard.tsx'), 'utf8');
     const reading = fs.readFileSync(
-      path.join(ROOT, 'components', 'PersonalForecastFeed', 'AiPersonalHoroscopeReading.tsx'),
       'utf8',
     );
 

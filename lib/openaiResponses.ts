@@ -14,7 +14,6 @@ type LunaResponseInput = {
   instructions: string;
   input: string;
   maxOutputTokens: number;
-  verbosity?: 'low' | 'medium' | 'high';
   store?: boolean;
 };
 
@@ -40,7 +39,7 @@ export function buildLunaStructuredResponseParams(input: LunaStructuredResponseI
     instructions: input.instructions,
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
-    ...(typeof input.store === 'boolean' ? { store: input.store } : {}),
+    ...(input.store === undefined ? {} : { store: input.store }),
     text: {
       format: {
         type: 'json_schema' as const,
@@ -48,7 +47,6 @@ export function buildLunaStructuredResponseParams(input: LunaStructuredResponseI
         strict: true,
         schema: input.schema,
       },
-      ...(input.verbosity ? { verbosity: input.verbosity } : {}),
     },
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
@@ -59,11 +57,8 @@ export function buildLunaJsonResponseParams(input: LunaResponseInput) {
     instructions: input.instructions,
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
-    ...(typeof input.store === 'boolean' ? { store: input.store } : {}),
-    text: {
-      format: { type: 'json_object' as const },
-      ...(input.verbosity ? { verbosity: input.verbosity } : {}),
-    },
+    ...(input.store === undefined ? {} : { store: input.store }),
+    text: { format: { type: 'json_object' as const } },
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
 
@@ -73,8 +68,7 @@ export function buildLunaTextResponseParams(input: LunaResponseInput) {
     instructions: input.instructions,
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
-    ...(typeof input.store === 'boolean' ? { store: input.store } : {}),
-    ...(input.verbosity ? { text: { verbosity: input.verbosity } } : {}),
+    ...(input.store === undefined ? {} : { store: input.store }),
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
 

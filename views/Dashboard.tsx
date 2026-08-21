@@ -8,10 +8,10 @@ import React, {
 } from 'react';
 import { LoaderCircle, RefreshCw, UserRound } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
-import type { NatalChartData, UserProfile } from '../types';
-import { hasActivePremium, hasNatalChart } from '../lib/accessMatrix';
+import type { UserProfile } from '../types';
+import { hasActivePremium } from '../lib/accessMatrix';
 import {
-  buildPersonalForecastChartFingerprint,
+  buildPersonalForecastBirthProfileFingerprint,
   formatPersonalForecastDateLabel,
   getPersonalForecastPeriodKey,
   normalizeForecastTimezone,
@@ -36,8 +36,6 @@ import { lumiaSelectionHaptic } from '../lib/haptics';
 
 type DashboardProps = {
   profile: UserProfile;
-  chartData: NatalChartData | null;
-  chartId?: number | null;
   currentDateKey?: string;
   onCreateNatalChart?: () => void;
   requestedPeriod?: PersonalForecastPeriod;
@@ -119,8 +117,6 @@ function errorMessage(
 
 export const Dashboard = memo<DashboardProps>(({
   profile,
-  chartData,
-  chartId,
   currentDateKey,
   onCreateNatalChart,
   requestedPeriod,
@@ -135,17 +131,8 @@ export const Dashboard = memo<DashboardProps>(({
   const reduceMotion = useReducedMotion();
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const premium = hasActivePremium(profile);
-  const hasChart = hasNatalChart(profile, {
-    chartData,
-    primaryChartId: chartId ?? null,
-  });
   const activePeriod: PersonalForecastPeriod = requestedPeriod || 'day';
-  const timezone = normalizeForecastTimezone(
-    chartData?.timezone || profile.birthTimezone,
-  );
-  const chartFingerprint = chartData
-    ? buildPersonalForecastChartFingerprint(chartData)
-    : 'none';
+  const timezone = normalizeForecastTimezone(profile.birthTimezone);
   const requestsRef = useRef<Partial<Record<PersonalForecastPeriod, PeriodRequest>>>({});
   const firstValueSeenRef = useRef<Set<string>>(new Set());
   const promoSeenRef = useRef<Set<string>>(new Set());
@@ -192,8 +179,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   const productContextKey = [
     String(profile.id || 'guest'),
-    chartId ?? 'primary',
-    chartFingerprint,
+    buildPersonalForecastBirthProfileFingerprint(profile),
     language,
     timezone,
     periodKeys.day,
@@ -202,7 +188,7 @@ export const Dashboard = memo<DashboardProps>(({
 
   useEffect(() => {
     requestsRef.current = {};
-    if (!hasChart || !chartData) {
+    if (!profile.name.trim() || !profile.birthDate.trim()) {
       setPeriodStates({
         day: emptyPeriodState(),
         week: emptyPeriodState(),
@@ -214,8 +200,6 @@ export const Dashboard = memo<DashboardProps>(({
       FORECAST_PERIODS.map((period) => {
         const local = readLocalPersonalForecast({
           profile,
-          chartData,
-          chartId,
           period,
           periodKey: periodKeys[period],
         });
@@ -226,13 +210,13 @@ export const Dashboard = memo<DashboardProps>(({
         }];
       }),
     ) as Record<PersonalForecastPeriod, PeriodState>);
-  }, [chartData, chartId, hasChart, productContextKey, periodKeys.day, periodKeys.month, periodKeys.week, profile]);
+  }, [productContextKey, periodKeys.day, periodKeys.month, periodKeys.week, profile]);
 
   const loadPeriod = useCallback((
     period: PersonalForecastPeriod,
     options?: { retry?: boolean },
   ) => {
-    if (!hasChart || !chartData) return;
+    if (!profile.name.trim() || !profile.birthDate.trim()) return;
     if (!premium && period !== 'day') {
       setPeriodStates((current) => ({
         ...current,
@@ -245,7 +229,7 @@ export const Dashboard = memo<DashboardProps>(({
     const periodKey = periodKeys[period];
     const local = options?.retry
       ? null
-      : readLocalPersonalForecast({ profile, chartData, chartId, period, periodKey });
+      : readLocalPersonalForecast({ profile, period, periodKey });
     setPeriodStates((current) => ({
       ...current,
       [period]: {
@@ -258,8 +242,6 @@ export const Dashboard = memo<DashboardProps>(({
     const requestEntry: PeriodRequest = { promise: Promise.resolve() };
     const request = loadPersonalForecast({
       profile,
-      chartData,
-      chartId,
       period,
       periodKey,
       options: {
@@ -291,7 +273,7 @@ export const Dashboard = memo<DashboardProps>(({
     });
     requestEntry.promise = request;
     requestsRef.current[period] = requestEntry;
-  }, [chartData, chartId, hasChart, periodKeys, premium, profile]);
+  }, [periodKeys, premium, profile]);
 
   useEffect(() => {
     loadPeriod(activePeriod);
@@ -492,13 +474,13 @@ export const Dashboard = memo<DashboardProps>(({
         role="tabpanel"
         aria-labelledby={`today-period-tab-${activePeriod}`}
       >
-      {!hasChart ? (
+      {!profile.name.trim() || !profile.birthDate.trim() ? (
         <section className="forecast-feed-status">
           <h1>{language === 'ru' ? 'Добавь данные рождения' : 'Add your birth details'}</h1>
           <p>
             {language === 'ru'
-              ? 'Карта нужна для личного прогноза. Главный экран останется доступен.'
-              : 'A chart is required for a personal forecast. The home screen stays available.'}
+              ? 'Нужны имя и дата рождения. Главный экран останется доступен.'
+              : 'A name and birth date are required for a personal forecast. The home screen stays available.'}
           </p>
           <button type="button" onClick={onCreateNatalChart}>
             {language === 'ru' ? 'Создать карту' : 'Create a chart'}

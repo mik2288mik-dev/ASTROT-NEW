@@ -5,10 +5,10 @@ import {
   type PrewarmTaskId,
 } from '../lib/contentPrewarm';
 import {
-  getAiPersonalHoroscopePeriodKey,
-  normalizeAiPersonalHoroscopeTimezone,
-  type AiPersonalHoroscopePeriod,
-} from '../lib/aiPersonalHoroscope';
+  getPersonalForecastPeriodKey,
+  normalizeForecastTimezone,
+  type PersonalForecastPeriod,
+} from '../lib/personalForecastContract';
 import {
   loadPersonalForecast,
   type PersonalForecastClientError,
@@ -48,10 +48,10 @@ const GENERATE_MISSING_DEFAULT_BUDGET_MS = 120_000;
 const prewarmInFlight = new Map<string, Promise<PrewarmUserContentResult>>();
 
 type PrewarmExecutionInput = PrewarmUserContentInput & {
-  periodKeys: Record<AiPersonalHoroscopePeriod, string>;
+  periodKeys: Record<PersonalForecastPeriod, string>;
 };
 
-const PERIOD_BY_TASK_ID: Record<PrewarmTaskId, AiPersonalHoroscopePeriod> = {
+const PERIOD_BY_TASK_ID: Record<PrewarmTaskId, PersonalForecastPeriod> = {
   personal_forecast_day: 'day',
   personal_forecast_week: 'week',
   personal_forecast_month: 'month',
@@ -59,15 +59,15 @@ const PERIOD_BY_TASK_ID: Record<PrewarmTaskId, AiPersonalHoroscopePeriod> = {
 
 function personalHoroscopePeriodKeys(
   input: PrewarmUserContentInput,
-): Record<AiPersonalHoroscopePeriod, string> {
-  const timezone = normalizeAiPersonalHoroscopeTimezone(
+): Record<PersonalForecastPeriod, string> {
+  const timezone = normalizeForecastTimezone(
     input.profile.birthTimezone || 'Europe/Moscow',
   );
   const now = new Date();
   return {
-    day: getAiPersonalHoroscopePeriodKey('day', now, timezone),
-    week: getAiPersonalHoroscopePeriodKey('week', now, timezone),
-    month: getAiPersonalHoroscopePeriodKey('month', now, timezone),
+    day: getPersonalForecastPeriodKey('day', now, timezone),
+    week: getPersonalForecastPeriodKey('week', now, timezone),
+    month: getPersonalForecastPeriodKey('month', now, timezone),
   };
 }
 

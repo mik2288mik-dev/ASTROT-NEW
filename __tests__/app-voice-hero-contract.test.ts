@@ -28,7 +28,7 @@ describe('app and personal forecast voice contracts', () => {
     expect(forecastVoice).toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
     expect(forecastVoice).toContain('прямо, наблюдательно и с характером');
     expect(forecastVoice).toContain('не превращай прогноз в номер');
-    expect(forecastVoice).toContain('сохранённый приватный натальный контекст');
+    expect(forecastVoice).toContain('разрешённая личная основа');
     expect(forecastVoice).toContain('оставляй его полностью позитивным');
     expect(forecastVoice).toContain('Финал приносит практическую пользу');
   });

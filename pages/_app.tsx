@@ -17,7 +17,6 @@ import '../styles/liquidGlassChrome.css';
 import '../styles/personalityReport.css';
 import '../styles/personalForecastRuntimeHotfix.css';
 import '../styles/personalForecastHeaderLogo.css';
-import '../styles/aiPersonalHoroscope.css';
 import '../styles/editorialStudio.css';
 import '../styles/todayHome.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';

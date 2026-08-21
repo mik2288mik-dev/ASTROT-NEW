@@ -24,7 +24,7 @@ import {
   type NatalSemanticSectionPlan,
   type ValidatedNatalBlock,
 } from './natalSemanticCompiler';
-import { buildPersonalForecastChartFingerprint } from './personalForecastContract';
+import { buildNatalChartFingerprint } from './natalChartFingerprint';
 
 type Locale = 'ru' | 'en';
 
@@ -113,7 +113,7 @@ export function buildHumanInputHash(input: {
   return createHash('sha256').update(JSON.stringify({
     userId: input.profile.id || null,
     language: input.profile.language === 'en' ? 'en' : 'ru',
-    chartFingerprint: buildPersonalForecastChartFingerprint(input.chartData),
+    chartFingerprint: buildNatalChartFingerprint(input.chartData),
     chartCalculationVersion: input.chartData.calculationVersion || null,
     semanticVersion: NATAL_SEMANTIC_VERSION,
     sectionKey: input.sectionKey || 'base',

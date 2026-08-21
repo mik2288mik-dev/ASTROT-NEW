@@ -7,8 +7,8 @@ import {
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
   buildForecastLockedPreview,
+  buildPersonalForecastBirthProfileFingerprint,
   buildPersonalForecastCacheKey,
-  buildPersonalForecastChartFingerprint,
   buildPersonalForecastInputHash,
   formatPersonalForecastDateLabel,
   getPersonalForecastPackageValidationError,
@@ -21,7 +21,7 @@ import {
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
-import { chartFixture, personalForecastFixture } from './personal-forecast-fixture';
+import { personalForecastFixture } from './personal-forecast-fixture';
 
 function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPackage {
   const base = personalForecastFixture();
@@ -267,9 +267,9 @@ describe('personal forecast direct-reading contract', () => {
 
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
-    expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-natal-profile-v1');
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v13');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v28.luna-editorial-closing');
+    expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-raw-profile-v2');
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v14-raw-profile');
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v29.raw-profile-only');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
       `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,
@@ -300,11 +300,17 @@ describe('personal forecast direct-reading contract', () => {
     expect(getNextPersonalForecastPeriodKey('week', '2026-W30', 'Europe/Moscow')).toBe('2026-W31');
   });
 
-  test('versions both cache identities with the Luna natal-profile contract', () => {
+  test('versions both cache identities with the Luna raw birth-profile contract', () => {
+    const birthProfile = {
+      name: 'Mira',
+      birthDate: '1990-01-01',
+      birthTime: '12:00',
+      birthPlace: 'Moscow',
+    };
+    const birthProfileFingerprint = buildPersonalForecastBirthProfileFingerprint(birthProfile);
     const shared = {
       userId: 'u1',
-      chartId: 7,
-      chartData: chartFixture,
+      birthProfileFingerprint,
       period: 'day' as const,
       periodKey: '2026-07-26',
       timezone: 'Europe/Moscow',
@@ -313,56 +319,39 @@ describe('personal forecast direct-reading contract', () => {
     };
     const cacheKey = buildPersonalForecastCacheKey(shared);
     const inputHash = buildPersonalForecastInputHash(shared);
-    expect(cacheKey).toMatch(/^personal-forecast-feed-v13:/);
+    expect(cacheKey).toMatch(/^personal-forecast-feed-v14-raw-profile:/);
     expect(inputHash).toMatch(/^[a-z0-9]+$/);
     expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
     expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);
+
+    for (const patch of [
+      { name: 'Mira Two' },
+      { birthDate: '1991-01-01' },
+      { birthTime: '13:00' },
+      { birthPlace: 'Kazan' },
+    ]) {
+      const changedFingerprint = buildPersonalForecastBirthProfileFingerprint({
+        ...birthProfile,
+        ...patch,
+      });
+      expect(changedFingerprint).not.toBe(birthProfileFingerprint);
+      expect(buildPersonalForecastCacheKey({
+        ...shared,
+        birthProfileFingerprint: changedFingerprint,
+      })).not.toBe(cacheKey);
+      expect(buildPersonalForecastInputHash({
+        ...shared,
+        birthProfileFingerprint: changedFingerprint,
+      })).not.toBe(inputHash);
+    }
+
+    expect(buildPersonalForecastBirthProfileFingerprint({
+      ...birthProfile,
+      name: '  Mira  ',
+      birthPlace: '  Moscow ',
+    })).toBe(birthProfileFingerprint);
   });
 
-  test('includes birth-time reliability in the chart fingerprint', () => {
-    const exact = buildPersonalForecastChartFingerprint(chartFixture);
-    const unknown = buildPersonalForecastChartFingerprint({
-      ...chartFixture,
-      birthTimeQuality: 'unknown',
-      chartQuality: {
-        ...chartFixture.chartQuality,
-        birthTimeQuality: 'unknown',
-        housesReliable: false,
-        ascendantReliable: false,
-        houseBasedPersonalization: false,
-        notes: [],
-      },
-    });
-    expect(unknown).not.toBe(exact);
-  });
-
-  test('fingerprints every saved natal field used by the Luna context', () => {
-    const baseChart = {
-      ...chartFixture,
-      sun: { ...chartFixture.sun, retrograde: false },
-      chiron: { ...chartFixture.sun, planet: 'Chiron', sign: 'Virgo', retrograde: false },
-      mc: { ...chartFixture.rising, sign: 'Cancer', stableSign: true },
-      aspects: [{ type: 'trine', angle: 120, orb: 1.2, from: 'Sun', to: 'Moon' }],
-    };
-    const base = buildPersonalForecastChartFingerprint(baseChart as never);
-
-    expect(buildPersonalForecastChartFingerprint({
-      ...baseChart,
-      chiron: { ...baseChart.chiron, sign: 'Libra' },
-    } as never)).not.toBe(base);
-    expect(buildPersonalForecastChartFingerprint({
-      ...baseChart,
-      sun: { ...baseChart.sun, retrograde: true },
-    } as never)).not.toBe(base);
-    expect(buildPersonalForecastChartFingerprint({
-      ...baseChart,
-      mc: { ...baseChart.mc, sign: 'Leo' },
-    } as never)).not.toBe(base);
-    expect(buildPersonalForecastChartFingerprint({
-      ...baseChart,
-      aspects: [{ ...baseChart.aspects[0], orb: 2.4 }],
-    } as never)).not.toBe(base);
-  });
 
   test('accepts one or two valid Free sections for Today', () => {
     const base = personalForecastFixture();

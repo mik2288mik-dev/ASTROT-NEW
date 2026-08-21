@@ -4,7 +4,6 @@ import {
   PERSONAL_FORECAST_RESPONSE_SCHEMA,
   PERSONAL_FORECAST_WORD_LIMITS,
   buildPersonalForecastFeedPrompt,
-  buildPersonalForecastNatalContext,
   getPersonalForecastGenerationDiagnosticCode,
   getPersonalForecastResponseSchema,
   getPersonalForecastSystemPrompt,
@@ -17,7 +16,6 @@ import {
   renderPersonalForecastReferenceExamples,
 } from '../lib/personalForecastExamples';
 import { resolvePersonalForecastWindow } from '../lib/personalForecastContract';
-import { chartFixture } from './personal-forecast-fixture';
 
 const profile = {
   id: 'forecast-profile',
@@ -91,6 +89,12 @@ function validPayload(period: 'day' | 'week' | 'month', fragmentCount?: number) 
 }
 
 describe('personal forecast Luna personal-feed writer', () => {
+  it('locks the complete approved ten-example corpus', () => {
+    const source = fs.readFileSync('lib/personalForecastExamples.ts');
+    expect(crypto.createHash('sha256').update(source).digest('hex')).toBe(
+      '7bae2f5652fc3ebc04bee015778b54869c6efa6ef56b47497d18f3ae7c8ebb8c',
+    );
+  });
   test('defines a forecast-specific voice and a continuous Today feed', () => {
     const system = getPersonalForecastSystemPrompt('en', 'day');
     expect(system).toContain('PERSONAL FORECAST WRITER');
@@ -99,9 +103,9 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(system.toLowerCase()).toContain('occasional irony or one unexpected comparison');
     expect(system).toContain('not a stand-up comedian');
     expect(system).toContain('no visible categories');
-    expect(system).toContain('conversation, message, request, decision, agreement');
+    expect(system).not.toContain('conversation, message, request, decision, agreement');
     expect(system).toContain('2–5 words');
-    expect(system).toContain('saved private natal context is the personal basis');
+    expect(system).toContain('private personal input only');
     expect(system).toContain('positive reading may stay fully positive');
     expect(system).toContain('closing.text');
     expect(system).toContain('appends it to the final fragment');
@@ -180,24 +184,31 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS).toBe(2);
   });
 
-  test('builds primarily from saved personal/natal context, period, and anti-repeat history', () => {
+  test('sends Luna only raw birth details, period, and anti-repeat history', () => {
     const prompt = buildPersonalForecastFeedPrompt({
       language: 'en',
       period: 'month',
       window: resolvePersonalForecastWindow('month', '2026-08', 'Europe/Moscow'),
       profile: profile as never,
-      natalContext: buildPersonalForecastNatalContext(chartFixture),
       recentForecasts: [{
         periodKey: '2026-07',
         fragments: [{ text: 'A recently used central thought.', semanticFingerprint: null }],
       }],
     });
     expect(prompt).toContain('"selected_period"');
-    expect(prompt).toContain('"saved_natal_context"');
+    expect(prompt).toContain('"personal_profile"');
+    expect(prompt).toContain('"name": "Mira"');
+    expect(prompt).toContain('"birth_date": "1990-01-01"');
     expect(prompt).toContain('"birth_time": "12:00"');
     expect(prompt).toContain('"birth_place": "Moscow"');
     expect(prompt).toContain('"anti_repeat_context"');
     expect(prompt).toContain('A recently used central thought.');
+    expect(prompt).not.toContain('"rejected_draft"');
+    expect(prompt).not.toContain('saved_natal_context');
+    expect(prompt).toContain('birth_timezone');
+    expect(prompt).not.toContain('positions');
+    expect(prompt).not.toContain('houses');
+    expect(prompt).not.toContain('aspects');
     expect(prompt).not.toContain('story_direction');
     expect(prompt).not.toContain('Editorial plan');
     expect(prompt).not.toContain('a choice that makes more room');
@@ -205,12 +216,10 @@ describe('personal forecast Luna personal-feed writer', () => {
   });
 
   test('keeps output budgets bounded and allows one repair attempt', () => {
-    expect(getPersonalForecastWriterMaxOutputTokens('day')).toBe(1_200);
-    expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1_200);
-    expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(3_000);
-    expect(getPersonalForecastWriterMaxOutputTokens('day', true)).toBe(1_800);
-    expect(getPersonalForecastWriterMaxOutputTokens('week', true)).toBe(1_800);
-    expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(4_000);
+    expect(getPersonalForecastWriterMaxOutputTokens('day')).toBe(1_000);
+    expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1_000);
+    expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(1_400);
+    expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(1_800);
     expect(PERSONAL_FORECAST_WORD_LIMITS.day).toBe(150);
   });
 
@@ -229,7 +238,7 @@ describe('personal forecast Luna personal-feed writer', () => {
       );
       expect(examples).toHaveLength(period === 'day' ? 4 : 3);
       expect(renderPersonalForecastReferenceExamples('ru', period)).toContain(
-        '<forecast_reference_examples>',
+        '<forecast_example_input>',
       );
       for (const example of examples) {
         const headlineWords = example.output.headline.text.trim().split(/\s+/u);
@@ -251,28 +260,10 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(dayReferences).toContain('День твой. Забирай.');
     expect(dayReferences).toContain('Сегодня можно наглеть.');
     expect(dayReferences).toContain('Удача вышла на смену.');
-    expect(dayReferences).toContain('Сегодня нужна точность.');
+    expect(dayReferences).toContain('<forecast_example_input>');
     expect(dayReferences).not.toContain('Неделя даёт разгон.');
     expect(dayReferences).not.toContain('"tone"');
     expect(renderPersonalForecastReferenceExamples('en', 'day')).toBe('');
-  });
-
-  test('uses the saved natal chart, including stored aspects, without period calculations', () => {
-    const context = buildPersonalForecastNatalContext({
-      ...chartFixture,
-      aspects: [{ type: 'trine', angle: 120, orb: 1.2, from: 'Sun', to: 'Moon' }],
-    });
-    expect(context).toMatchObject({
-      source: 'saved_natal_chart',
-      positions: {
-        sun: { sign: 'Aries' },
-        moon: { sign: 'Taurus' },
-        jupiter: { sign: 'Leo' },
-      },
-      aspects: [expect.objectContaining({ from: 'Sun', to: 'Moon', type: 'trine' })],
-    });
-    expect(context).not.toHaveProperty('transits');
-    expect(context).not.toHaveProperty('period_aspects');
   });
 
   test.each([4, 5, 6])('accepts Today with %s ordered fragments', (count) => {
@@ -394,7 +385,7 @@ describe('personal forecast Luna personal-feed writer', () => {
     ).errors.join(' ')).toContain('Today final fragment requires prose presentation');
   });
 
-  test('accepts 2–5-word forecast openings and rejects longer or one-word hooks', () => {
+  test('accepts 2–5-word forecast openings and rejects longer or empty hooks', () => {
     for (const headline of ['Your move', 'Today is yours to take']) {
       const payload = validPayload('day');
       payload.headline.text = headline;
@@ -651,3 +642,5 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(parseGeneratedFeedPayload(`\`\`\`json\n${JSON.stringify(payload)}\n\`\`\``)).toEqual(payload.data);
   });
 });
+import fs from 'fs';
+import crypto from 'crypto';

@@ -79,7 +79,6 @@ import {
 import {
     clearPersonalForecastSessionCache,
     loadPersonalForecast,
-    primeLocalPersonalForecast,
 } from './services/personalForecastService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
 import {
@@ -320,25 +319,12 @@ function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
 
 async function loadStartupPersonalForecasts(
     targetProfile: UserProfile,
-    targetChart: NatalChartData,
-    targetChartId: number | null,
 ): Promise<void> {
     const periods: PersonalForecastPeriod[] = hasActivePremium(targetProfile) ? ['day', 'week', 'month'] : ['day'];
-    const timezone = normalizeForecastTimezone(
-        targetChart.timezone || targetProfile.birthTimezone,
-    );
+    const timezone = normalizeForecastTimezone(targetProfile.birthTimezone);
     const now = new Date();
-    periods.forEach((period) => primeLocalPersonalForecast({
-        profile: targetProfile,
-        chartData: targetChart,
-        chartId: targetChartId,
-        period,
-        periodKey: getPersonalForecastPeriodKey(period, now, timezone),
-    }));
     const results = await Promise.allSettled(periods.map((period) => loadPersonalForecast({
         profile: targetProfile,
-        chartData: targetChart,
-        chartId: targetChartId,
         period,
         periodKey: getPersonalForecastPeriodKey(period, now, timezone),
         options: { maxInProgressRetries: 60 },
@@ -765,8 +751,8 @@ const App: React.FC = () => {
 
         const prepareStartupPersonalForecasts = async (
             targetProfile: UserProfile,
-            targetChart: NatalChartData,
-            targetChartId: number | null,
+            _targetChart: NatalChartData,
+            _targetChartId: number | null,
         ) => {
             if (cancelled) return;
             setLoadingMessage(
@@ -775,7 +761,7 @@ const App: React.FC = () => {
                     : 'Готовим твой гороскоп',
             );
             setLoadingProgress(82);
-            await loadStartupPersonalForecasts(targetProfile, targetChart, targetChartId);
+            await loadStartupPersonalForecasts(targetProfile);
             setLoadingProgress(96);
         };
 
@@ -1191,7 +1177,7 @@ const App: React.FC = () => {
                     : 'Готовим твой гороскоп',
             );
             setLoadingProgress(82);
-            await loadStartupPersonalForecasts(fullProfile, generatedChart, null);
+            await loadStartupPersonalForecasts(fullProfile);
             void getPrimaryChartId(String(fullProfile.id))
                 .then((primaryChartId) => {
                     if (primaryChartId != null) {
@@ -2141,8 +2127,6 @@ const App: React.FC = () => {
     const premiumPromotionAllowed = firstValueReached && !hasActivePremium(profile);
     const dashboardProps = {
         profile,
-        chartData,
-        chartId: primaryChartId,
         currentDateKey,
         onCreateNatalChart: openBottomNatal,
         onOpenSynastry: openSynastryFromHome,

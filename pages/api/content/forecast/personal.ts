@@ -16,7 +16,8 @@ import {
   type PersonalForecastPeriod,
 } from '../../../../lib/personalForecastContract';
 import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastGeneration';
-import { ensureValidContext } from '../../../../lib/natalReading/apiHelper';
+import { requireAppUser } from '../../../../lib/auth/appAuth';
+import { db } from '../../../../lib/db';
 
 export const config = { maxDuration: 180 };
 
@@ -62,18 +63,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' });
   }
-  const ready = await ensureValidContext(req, res, {
-    allowGuest: true,
-    requireSelfChart: true,
-  });
-  if (!ready) return;
-  const { userId, ctx } = ready;
-  if (!ctx.chartData) {
-    return res.status(409).json({
-      error: 'Natal chart required',
-      code: 'PERSONAL_FORECAST_CHART_REQUIRED',
-    });
+  const auth = await requireAppUser(req, { allowGuest: true });
+  const userId = String(auth.userId);
+  const user = await db.users.get(userId);
+  if (!user || !String(user.name || '').trim() || !String(user.birth_date || '').trim()) {
+    return res.status(409).json({ error: 'Birth profile required', code: 'PERSONAL_FORECAST_PROFILE_REQUIRED' });
   }
+  const stored = user as any;
+  const profile = {
+    id: userId, name: user.name || '', birthDate: String(user.birth_date || ''), birthTime: user.birth_time || '',
+    birthTimeMode: stored.birth_time_mode || undefined, birthTimeUncertaintyMinutes: stored.birth_time_uncertainty_minutes ?? null,
+    birthPlace: user.birth_place || '', birthTimezone: stored.birth_timezone || null,
+    gender: stored.gender === 'male' || stored.gender === 'female' ? stored.gender : 'unspecified', language: user.language === 'en' ? 'en' as const : 'ru' as const,
+  };
   const period = readPeriod(req);
   if (!period) {
     return res.status(400).json({
@@ -81,9 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       code: 'PERSONAL_FORECAST_PERIOD_INVALID',
     });
   }
-  const timezone = normalizeForecastTimezone(
-    ctx.chartData.timezone || ctx.profile.birthTimezone,
-  );
+  const timezone = normalizeForecastTimezone(profile.birthTimezone);
   const requestedPeriodKey = readPeriodKey(req);
   const periodKey = requestedPeriodKey
     || getPersonalForecastPeriodKey(period, new Date(), timezone);
@@ -98,10 +98,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const regenerate = readRegenerate(req);
   const regenerationAfter = readRegenerationAfter(req);
-  const cacheInput = { ctx, period, periodKey };
+  const entitlement = await getPremiumEntitlementState(userId);
+  const cacheInput = { userId, profile, accessTier: entitlement.isPremium ? 'premium' as const : 'free' as const, period, periodKey };
 
   try {
-    const entitlement = await getPremiumEntitlementState(userId);
     if (!regenerate) {
       const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
         if (req.method === 'GET') throw error;
@@ -169,7 +169,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           period,
           periodKey,
           timezone,
-          ctx.profile.language === 'en' ? 'en' : 'ru',
+          profile.language,
           'generating',
           'PERSONAL_FORECAST_GENERATING',
         ),
@@ -201,7 +201,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         period,
         periodKey,
         timezone,
-        ctx.profile.language === 'en' ? 'en' : 'ru',
+        profile.language,
         'unavailable',
         diagnosticCode,
       ),

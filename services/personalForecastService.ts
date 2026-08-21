@@ -1,4 +1,4 @@
-import type { NatalChartData, UserProfile } from '../types';
+import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
 import {
   APP_VOICE_VERSION,
@@ -7,18 +7,14 @@ import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
-  buildPersonalForecastChartFingerprint,
-  buildPersonalForecastProfileFingerprint,
+  buildPersonalForecastBirthProfileFingerprint,
   getPersonalForecastPeriodKey,
   isPersonalForecastPackage,
   normalizeForecastTimezone,
-  resolvePersonalForecastWindow,
-  slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
-import { createPersonalForecastDeliveryFallback } from '../lib/personalForecastDeliveryFallback';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
 
@@ -26,7 +22,6 @@ type LoadOptions = {
   cacheOnly?: boolean;
   force?: boolean;
   maxInProgressRetries?: number;
-  background?: boolean;
 };
 
 export type PersonalForecastClientResult = {
@@ -47,11 +42,9 @@ type PersonalForecastPeriodResultState = {
   result: PersonalForecastClientResult | null;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v6';
-const ALL_LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v6-raw-profile';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
-const startupPrewarmInFlight = new Map<string, Promise<void>>();
 
 function userId(profile: UserProfile): string {
   return String(profile.id || '').trim();
@@ -59,26 +52,18 @@ function userId(profile: UserProfile): string {
 
 function contextKey(input: {
   profile: UserProfile;
-  chartData?: NatalChartData | null;
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }): string {
-  const timezone = normalizeForecastTimezone(
-    input.chartData?.timezone || input.profile.birthTimezone,
-  );
+  const timezone = normalizeForecastTimezone(input.profile.birthTimezone);
   return [
     userId(input.profile),
-    input.chartId ?? 'primary',
     input.period,
     input.periodKey,
     timezone,
     input.profile.language === 'en' ? 'en' : 'ru',
     hasActivePremium(input.profile) ? 'premium' : 'free',
-    input.chartData
-      ? buildPersonalForecastChartFingerprint(input.chartData)
-      : 'chart:missing',
-    buildPersonalForecastProfileFingerprint(input.profile),
+    buildPersonalForecastBirthProfileFingerprint(input.profile),
     PERSONAL_FORECAST_CALCULATION_VERSION,
     PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
@@ -231,16 +216,6 @@ function readStored(key: string): PersonalForecastClientResult | null {
   }
 }
 
-function removeStored(key: string): void {
-  memoryCache.delete(key);
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.removeItem(localStorageKey(key));
-  } catch {
-    // Storage can be unavailable in restricted webviews.
-  }
-}
-
 function writeStored(key: string, result: PersonalForecastClientResult): void {
   if (result.source === 'stale') return;
   memoryCache.set(key, result);
@@ -270,7 +245,6 @@ export function selectActiveReadyPersonalForecast(
 }
 
 function buildUrl(input: {
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }): string {
@@ -278,7 +252,6 @@ function buildUrl(input: {
     period: input.period,
     periodKey: input.periodKey,
   });
-  if (input.chartId != null) params.set('chartId', String(input.chartId));
   return `/api/content/forecast/personal?${params.toString()}`;
 }
 
@@ -295,7 +268,6 @@ async function parseError(response: Response): Promise<PersonalForecastClientErr
 
 async function fetchCached(input: {
   profile: UserProfile;
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey: string;
 }): Promise<PersonalForecastClientResult | null> {
@@ -303,53 +275,28 @@ async function fetchCached(input: {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
   });
-  if (response.status === 404 || response.status === 204) return null;
+  if (response.status === 404) return null;
   if (!response.ok) throw await parseError(response);
   const payload = await response.json().catch(() => null);
   return parseAccessPayload(payload, 'cache', input);
 }
 
-function generationRequest(
-  input: {
-    chartId?: number | null;
-    period: PersonalForecastPeriod;
-    periodKey: string;
-  },
-  options: {
-    regenerate: boolean;
-    regenerationAfter?: string;
-  },
-) {
-  return apiFetch('/api/content/forecast/personal', {
+async function generate(input: {
+  profile: UserProfile;
+  period: PersonalForecastPeriod;
+  periodKey: string;
+  maxInProgressRetries: number;
+}): Promise<PersonalForecastClientResult> {
+  const response = await apiFetch('/api/content/forecast/personal', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...getTelegramInitDataHeaders(),
     },
     body: JSON.stringify({
-      chartId: input.chartId,
       period: input.period,
       periodKey: input.periodKey,
-      regenerate: options.regenerate,
-      ...(options.regenerationAfter
-        ? { regenerationAfter: options.regenerationAfter }
-        : {}),
     }),
-  });
-}
-
-async function generate(input: {
-  profile: UserProfile;
-  chartId?: number | null;
-  period: PersonalForecastPeriod;
-  periodKey: string;
-  maxInProgressRetries: number;
-  regenerate: boolean;
-}): Promise<PersonalForecastClientResult> {
-  const regenerationAfter = input.regenerate ? new Date().toISOString() : undefined;
-  let response = await generationRequest(input, {
-    regenerate: input.regenerate,
-    regenerationAfter,
   });
   if (response.status !== 202) {
     if (!response.ok) throw await parseError(response);
@@ -357,28 +304,15 @@ async function generate(input: {
     return parseAccessPayload(payload, undefined, input);
   }
 
-  let payload = await response.json().catch(() => ({}));
-  let retryAfterMs = Math.min(
+  const payload = await response.json().catch(() => ({}));
+  const retryAfterMs = Math.min(
     3_000,
     Math.max(500, Number(payload?.retryAfterMs) || 1500),
   );
   for (let attempt = 0; attempt < input.maxInProgressRetries; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-    response = await generationRequest(input, {
-      regenerate: false,
-      regenerationAfter,
-    });
-    if (response.status === 202) {
-      payload = await response.json().catch(() => ({}));
-      retryAfterMs = Math.min(
-        3_000,
-        Math.max(500, Number(payload?.retryAfterMs) || retryAfterMs),
-      );
-      continue;
-    }
-    if (!response.ok) throw await parseError(response);
-    const readyPayload = await response.json().catch(() => null);
-    return parseAccessPayload(readyPayload, undefined, input);
+    const cached = await fetchCached(input);
+    if (cached) return cached;
   }
   const error = new Error('Personal forecast generation is still in progress') as PersonalForecastClientError;
   error.status = 202;
@@ -387,160 +321,43 @@ async function generate(input: {
   throw error;
 }
 
-function scheduleStartupPrewarm(input: {
-  profile: UserProfile;
-  chartData?: NatalChartData | null;
-  chartId?: number | null;
-}): void {
-  const id = userId(input.profile);
-  if (!id) return;
-  const timezone = normalizeForecastTimezone(
-    input.chartData?.timezone || input.profile.birthTimezone,
-  );
-  const now = new Date();
-  const periods: PersonalForecastPeriod[] = hasActivePremium(input.profile)
-    ? ['day', 'week', 'month']
-    : ['day'];
-  const periodKeys = Object.fromEntries(periods.map((period) => [
-    period,
-    getPersonalForecastPeriodKey(period, now, timezone),
-  ])) as Partial<Record<PersonalForecastPeriod, string>>;
-  const key = [
-    id,
-    input.chartId ?? 'primary',
-    input.chartData
-      ? buildPersonalForecastChartFingerprint(input.chartData)
-      : 'chart:missing',
-    buildPersonalForecastProfileFingerprint(input.profile),
-    getPersonalForecastPeriodKey('day', now, timezone),
-    hasActivePremium(input.profile) ? 'premium' : 'free',
-  ].join(':');
-  if (startupPrewarmInFlight.has(key)) return;
-
-  const task = (async () => {
-    for (const period of periods) {
-      try {
-        await loadPersonalForecast({
-          ...input,
-          period,
-          periodKey: periodKeys[period],
-          options: {
-            background: true,
-            maxInProgressRetries: 60,
-          },
-        });
-      } catch (error) {
-        console.warn(
-          `[personal-forecast] background ${period} generation failed:`,
-          error instanceof Error ? error.message : String(error),
-        );
-      }
-    }
-  })().finally(() => {
-    if (startupPrewarmInFlight.get(key) === task) {
-      startupPrewarmInFlight.delete(key);
-    }
-  });
-  startupPrewarmInFlight.set(key, task);
-}
-
 export function readLocalPersonalForecast(input: {
   profile: UserProfile;
-  chartData?: NatalChartData | null;
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey?: string;
 }): PersonalForecastClientResult | null {
-  const timezone = normalizeForecastTimezone(
-    input.chartData?.timezone || input.profile.birthTimezone,
-  );
+  const timezone = normalizeForecastTimezone(input.profile.birthTimezone);
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
   return readStored(contextKey({ ...input, periodKey }));
 }
 
-export function primeLocalPersonalForecast(input: {
-  profile: UserProfile;
-  chartData: NatalChartData;
-  chartId?: number | null;
-  period: PersonalForecastPeriod;
-  periodKey?: string;
-}): PersonalForecastClientResult {
-  const timezone = normalizeForecastTimezone(
-    input.chartData.timezone || input.profile.birthTimezone,
-  );
-  const periodKey = input.periodKey
-    || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
-  const resolved = { ...input, periodKey };
-  const key = contextKey(resolved);
-  const existing = readStored(key);
-  if (existing) return existing;
-
-  const premium = hasActivePremium(input.profile);
-  const forecast = createPersonalForecastDeliveryFallback({
-    profile: input.profile,
-    chartData: input.chartData,
-    period: input.period,
-    window: resolvePersonalForecastWindow(input.period, periodKey, timezone),
-  });
-  const sliced = slicePersonalForecastForAccess(forecast, premium);
-  const result: PersonalForecastClientResult = {
-    forecast: sliced.forecast,
-    accessTier: premium ? 'premium' : 'free',
-    lockedSectionIds: sliced.lockedSectionIds,
-    periodLocked: sliced.periodLocked,
-    source: 'local',
-  };
-  writeStored(key, result);
-  return result;
-}
-
 export async function loadPersonalForecast(input: {
   profile: UserProfile;
-  chartData?: NatalChartData | null;
-  chartId?: number | null;
   period: PersonalForecastPeriod;
   periodKey?: string;
   options?: LoadOptions;
 }): Promise<PersonalForecastClientResult> {
-  const timezone = normalizeForecastTimezone(
-    input.chartData?.timezone || input.profile.birthTimezone,
-  );
+  const timezone = normalizeForecastTimezone(input.profile.birthTimezone);
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
   const resolved = { ...input, periodKey };
   const key = contextKey(resolved);
-  const force = input.options?.force === true;
-  if (force) removeStored(key);
-  const local = force ? null : readStored(key);
-  const refreshLocalFallback = input.options?.background === true
-    && local?.forecast.meta.validationStatus === 'deterministic_fallback';
-  if (local && !refreshLocalFallback) {
-    if (!input.options?.background) {
-      scheduleStartupPrewarm({
-        profile: input.profile,
-        chartData: input.chartData,
-        chartId: input.chartId,
-      });
-    }
-    return local;
-  }
-  const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : force ? 'regenerate' : 'ensure'}`;
+  const local = input.options?.force ? null : readStored(key);
+  if (input.options?.cacheOnly && local) return local;
+  const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : 'ensure'}`;
   const current = inFlight.get(inFlightKey);
   if (current) return current;
 
   const request = (async () => {
-    const shouldReadServerCache = input.options?.cacheOnly === true || !force;
-    if (shouldReadServerCache) {
-      const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
-        const retryableCacheFailure = Number(error.status) >= 500;
-        if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
-        return null;
-      });
-      if (serverCached) {
-        writeStored(key, serverCached);
-        return serverCached;
-      }
+    const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
+      const retryableCacheFailure = Number(error.status) >= 500;
+      if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
+      return null;
+    });
+    if (serverCached) {
+      writeStored(key, serverCached);
+      return serverCached;
     }
     if (input.options?.cacheOnly) {
       const error = new Error('Personal forecast is not cached') as PersonalForecastClientError;
@@ -550,7 +367,6 @@ export async function loadPersonalForecast(input: {
     }
     const generated = await generate({
       ...resolved,
-      regenerate: force,
       maxInProgressRetries: Math.min(
         60,
         Math.max(0, input.options?.maxInProgressRetries ?? 60),
@@ -562,30 +378,10 @@ export async function loadPersonalForecast(input: {
     if (inFlight.get(inFlightKey) === request) inFlight.delete(inFlightKey);
   });
   inFlight.set(inFlightKey, request);
-  const result = await request;
-  if (!input.options?.background) {
-    scheduleStartupPrewarm({
-      profile: input.profile,
-      chartData: input.chartData,
-      chartId: input.chartId,
-    });
-  }
-  return result;
+  return request;
 }
 
 export function clearPersonalForecastSessionCache(): void {
   memoryCache.clear();
   inFlight.clear();
-  startupPrewarmInFlight.clear();
-  if (typeof window === 'undefined') return;
-  try {
-    const keys: string[] = [];
-    for (let index = 0; index < window.localStorage.length; index += 1) {
-      const key = window.localStorage.key(index);
-      if (key?.startsWith(ALL_LOCAL_CACHE_PREFIX)) keys.push(key);
-    }
-    keys.forEach((key) => window.localStorage.removeItem(key));
-  } catch {
-    // Storage can be unavailable in restricted webviews.
-  }
 }

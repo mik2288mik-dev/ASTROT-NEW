@@ -1,6 +1,4 @@
 import { fromZonedTime } from 'date-fns-tz';
-import type { NatalChartData, UserProfile } from '../types';
-import { CANONICAL_ACCESS_CONTRACT } from './accessMatrix';
 import {
   APP_VOICE_VERSION,
   withPersonalForecastVoiceVersion,
@@ -251,10 +249,11 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v28.luna-editorial-closing',
+  'personal-forecast-feed.v29.raw-profile-only',
 );
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-natal-profile-v1';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v13';
+/** Input/cache identity, not an astrological calculation version. */
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-v2';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v14-raw-profile';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -541,101 +540,6 @@ export function formatPersonalForecastDateLabel(
   return `${fmt.format(start)} — ${fmt.format(end)}`.toLocaleUpperCase(locale);
 }
 
-function normalizePosition(position: NatalChartData[keyof NatalChartData]) {
-  if (!position || typeof position !== 'object' || !('sign' in position)) return null;
-  const candidate = position as {
-    sign?: string;
-    longitude?: number;
-    degree?: number;
-    house?: string | number;
-    retrograde?: boolean;
-    stableSign?: boolean;
-  };
-  return {
-    sign: String(candidate.sign || ''),
-    longitude: Number.isFinite(candidate.longitude) ? Number(candidate.longitude).toFixed(5) : null,
-    degree: Number.isFinite(candidate.degree) ? Number(candidate.degree).toFixed(3) : null,
-    house: candidate.house == null ? null : String(candidate.house),
-    retrograde: typeof candidate.retrograde === 'boolean' ? candidate.retrograde : null,
-    stableSign: typeof candidate.stableSign === 'boolean' ? candidate.stableSign : null,
-  };
-}
-
-function normalizePersonalForecastAspects(chart: NatalChartData) {
-  return (chart.aspects || [])
-    .flatMap((value) => {
-      const aspect = value as unknown as {
-        from?: unknown;
-        to?: unknown;
-        fromKey?: unknown;
-        toKey?: unknown;
-        type?: unknown;
-        orb?: unknown;
-        reliable?: unknown;
-      };
-      const from = typeof aspect.fromKey === 'string'
-        ? aspect.fromKey
-        : typeof aspect.from === 'string' ? aspect.from : null;
-      const to = typeof aspect.toKey === 'string'
-        ? aspect.toKey
-        : typeof aspect.to === 'string' ? aspect.to : null;
-      const orb = typeof aspect.orb === 'number' && Number.isFinite(aspect.orb)
-        ? aspect.orb
-        : null;
-      if (!from || !to || typeof aspect.type !== 'string' || orb == null || aspect.reliable === false) {
-        return [];
-      }
-      return [{ from, to, type: aspect.type, orb: Number(orb.toFixed(2)) }];
-    })
-    .sort((left, right) => (
-      left.orb - right.orb
-      || left.from.localeCompare(right.from)
-      || left.to.localeCompare(right.to)
-      || left.type.localeCompare(right.type)
-    ))
-    .slice(0, 12);
-}
-
-export function buildPersonalForecastChartFingerprint(chart: NatalChartData): string {
-  const keys = [
-    'sun',
-    'moon',
-    'rising',
-    'mercury',
-    'venus',
-    'mars',
-    'jupiter',
-    'saturn',
-    'uranus',
-    'neptune',
-    'pluto',
-    'chiron',
-    'mc',
-  ] as const;
-  const chartQuality = chart.chartQuality;
-  const value = JSON.stringify({
-    planets: keys.map((key) => [key, normalizePosition(chart[key])]),
-    houses: (chart.houses || []).map((house) => [
-      house.house,
-      Number(house.longitude).toFixed(5),
-    ]),
-    aspects: normalizePersonalForecastAspects(chart),
-    birthTimeQuality: chart.birthTimeQuality || null,
-    chartQuality: chartQuality
-      ? {
-          birthTimeQuality: chartQuality.birthTimeQuality,
-          ascendantReliable: chartQuality.ascendantReliable,
-          housesReliable: chartQuality.housesReliable,
-          houseBasedPersonalization: chartQuality.houseBasedPersonalization,
-          notes: Array.isArray(chartQuality.notes) ? [...chartQuality.notes] : [],
-        }
-      : null,
-    calculationVersion: chart.calculationVersion || null,
-    calculationMetadata: chart.calculationMetadata || null,
-  });
-  return stableHash(value).toString(36);
-}
-
 export function stableHash(value: string): number {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -645,70 +549,88 @@ export function stableHash(value: string): number {
   return hash >>> 0;
 }
 
-function normalizePersonalForecastProfileValue(
-  value: unknown,
-  maxLength: number,
-): string | null {
-  if (typeof value !== 'string') return null;
-  const normalized = value.trim().replace(/\s+/gu, ' ').slice(0, maxLength);
+function normalizedBirthProfileField(value: string | null | undefined): string | null {
+  const normalized = String(value || '')
+    .normalize('NFKC')
+    .trim()
+    .replace(/\s+/gu, ' ');
   return normalized || null;
 }
 
-export function buildPersonalForecastProfileFingerprint(
-  profile: Pick<
-    UserProfile,
-    'name' | 'birthDate' | 'birthTime' | 'birthPlace' | 'birthTimezone'
-  >,
+export type PersonalForecastRawProfile = {
+  id?: string; name: string; birthDate: string; birthTime: string; birthPlace: string;
+  birthTimezone?: string | null; gender?: 'male' | 'female' | 'unspecified' | null;
+  language?: 'ru' | 'en';
+  birthTimeMode?: 'exact' | 'approximate' | 'unknown' | 'range' | null;
+  birthTimeUncertaintyMinutes?: number | null;
+};
+
+export function getPersonalForecastRawProfile(
+  profile: PersonalForecastRawProfile,
+) {
+  const rawTime = normalizedBirthProfileField(profile.birthTime);
+  const rawMode = profile.birthTimeMode;
+  const birthTimeMode = rawMode === 'exact' || rawMode === 'approximate' || rawMode === 'unknown'
+    ? rawMode
+    : rawTime ? 'exact' : 'unknown';
+  return {
+    name: normalizedBirthProfileField(profile.name),
+    birth_date: normalizedBirthProfileField(profile.birthDate),
+    birth_time: birthTimeMode === 'unknown' ? null : rawTime,
+    birth_time_mode: birthTimeMode,
+    birth_time_uncertainty_minutes: birthTimeMode === 'approximate'
+      && Number.isFinite(profile.birthTimeUncertaintyMinutes)
+      ? Math.max(0, Math.round(Number(profile.birthTimeUncertaintyMinutes)))
+      : null,
+    birth_place: normalizedBirthProfileField(profile.birthPlace),
+    birth_timezone: normalizedBirthProfileField(profile.birthTimezone),
+    gender: profile.gender === 'male' || profile.gender === 'female' ? profile.gender : 'unspecified',
+    language: profile.language === 'en' ? 'en' : 'ru',
+  } as const;
+}
+
+export function buildPersonalForecastBirthProfileFingerprint(
+  profile: PersonalForecastRawProfile,
 ): string {
+  const raw = getPersonalForecastRawProfile(profile);
   return stableHash(JSON.stringify({
-    name: normalizePersonalForecastProfileValue(profile.name, 80),
-    birthDate: normalizePersonalForecastProfileValue(profile.birthDate, 10),
-    birthTime: normalizePersonalForecastProfileValue(profile.birthTime, 8),
-    birthPlace: normalizePersonalForecastProfileValue(profile.birthPlace, 160),
-    birthTimezone: normalizeForecastTimezone(profile.birthTimezone),
+    ...raw,
   })).toString(36);
 }
 
 export function buildPersonalForecastCacheKey(input: {
   userId: string;
-  chartId?: number | null;
-  chartData: NatalChartData;
+  birthProfileFingerprint: string;
   period: PersonalForecastPeriod;
   periodKey: string;
   timezone: string;
   language: 'ru' | 'en';
   modelId: string;
-  profileFingerprint?: string;
 }): string {
   const identity = [
     String(input.userId),
-    input.chartId ?? 'primary',
     input.period,
     input.periodKey,
     normalizeForecastTimezone(input.timezone),
     input.language,
-    input.chartData.calculationVersion || 'unknown',
-    buildPersonalForecastChartFingerprint(input.chartData),
+    input.birthProfileFingerprint,
     PERSONAL_FORECAST_CALCULATION_VERSION,
     PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
     APP_VOICE_VERSION,
     input.modelId,
-    String(input.profileFingerprint || ''),
   ].join('|');
   return `${PERSONAL_FORECAST_CONTRACT_VERSION}:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
 }
 
 export function buildPersonalForecastInputHash(input: {
   userId: string;
-  chartId?: number | null;
-  chartData: NatalChartData;
+  birthProfileFingerprint: string;
   period: PersonalForecastPeriod;
   periodKey: string;
   timezone: string;
   language: 'ru' | 'en';
   modelId: string;
-  profileFingerprint?: string;
 }, versions: {
   calculationVersion?: string;
   contractVersion?: string;
@@ -723,8 +645,13 @@ export function buildPersonalForecastInputHash(input: {
     ?? PERSONAL_FORECAST_PROMPT_VERSION;
   const voiceVersion = versions.voiceVersion ?? APP_VOICE_VERSION;
   return stableHash(JSON.stringify({
-    ...input,
-    chartData: buildPersonalForecastChartFingerprint(input.chartData),
+    userId: input.userId,
+    birthProfileFingerprint: input.birthProfileFingerprint,
+    period: input.period,
+    periodKey: input.periodKey,
+    timezone: normalizeForecastTimezone(input.timezone),
+    language: input.language,
+    modelId: input.modelId,
     calculationVersion,
     semanticVersion: contractVersion,
     contractVersion,
@@ -1244,8 +1171,8 @@ export function getPersonalForecastPackageValidationError(
       }
     } else if (
       typeof strongestSectionId !== 'string'
-      || freeSelection.sectionIds.length < CANONICAL_ACCESS_CONTRACT.free.todayOpenFragmentCount.min
-      || freeSelection.sectionIds.length > CANONICAL_ACCESS_CONTRACT.free.todayOpenFragmentCount.max
+      || freeSelection.sectionIds.length < 1
+      || freeSelection.sectionIds.length > 2
       || freeSelection.sectionIds[0] !== strongestSectionId
       || (freeSelection.sectionIds.length === 2
         ? (

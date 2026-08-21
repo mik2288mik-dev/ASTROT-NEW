@@ -1,418 +1,165 @@
-import type { ContentInterpretation } from '../types';
+import type { ContentInterpretation, UserProfile } from '../types';
 import { APP_VOICE_VERSION } from './appVoice';
 import { getUnifiedContentModel } from './appSettings';
-import {
-  buildContentGenerationLockKey,
-  withContentGenerationLock,
-  type ContentGenerationLockResult,
-} from './contentGenerationLock';
+import { buildContentGenerationLockKey, withContentGenerationLock, type ContentGenerationLockResult } from './contentGenerationLock';
 import { db, getPool } from './db';
-import type { ReadingContext } from './natalReading/apiHelper';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
+  buildPersonalForecastBirthProfileFingerprint,
   buildPersonalForecastCacheKey,
   buildPersonalForecastInputHash,
-  buildPersonalForecastProfileFingerprint,
   getPersonalForecastPackageValidationError,
-  getPreviousPersonalForecastPeriodKey,
   isPersonalForecastPackage,
+  normalizeForecastTimezone,
   resolvePersonalForecastWindow,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
+  type PersonalForecastRawProfile,
 } from './personalForecastContract';
 import {
+  PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT,
   generatePersonalForecastPackage,
   type PersonalForecastRecentReading,
+  type PersonalForecastRepeatFragment,
 } from './personalForecastGeneration';
 
-const CANONICAL_CACHE_TIER = 'premium' as const;
-
-const VARIANT_BY_PERIOD = {
-  day: 'daily',
-  week: 'weekly',
-  month: 'monthly',
-} as const;
-
-const PERSONAL_FORECAST_HISTORY_LIMIT = 15;
+const CACHE_TIER = 'premium' as const;
+const HISTORY_LIMIT = 15;
+const CROSS_USER_PACKAGE_LIMIT = 64;
+const VARIANT_BY_PERIOD = { day: 'daily', week: 'weekly', month: 'monthly' } as const;
 
 export type PersonalForecastCacheContext = {
-  ctx: ReadingContext;
+  userId: string;
+  profile: PersonalForecastRawProfile;
+  accessTier: 'free' | 'premium';
   period: PersonalForecastPeriod;
   periodKey: string;
 };
 
-async function resolveCacheIdentity(input: PersonalForecastCacheContext) {
-  if (!input.ctx.profile.id || !input.ctx.chartData || input.ctx.chartId == null) {
-    throw new Error('PERSONAL_FORECAST_CHART_REQUIRED');
-  }
+function profileIsReady(profile: PersonalForecastRawProfile): boolean {
+  return Boolean(String(profile.name || '').trim() && String(profile.birthDate || '').trim());
+}
+
+async function identity(input: PersonalForecastCacheContext) {
+  if (!input.userId || !profileIsReady(input.profile)) throw new Error('PERSONAL_FORECAST_PROFILE_REQUIRED');
   const model = await getUnifiedContentModel();
-  const language: 'ru' | 'en' = input.ctx.profile.language === 'en' ? 'en' : 'ru';
-  const timezone = input.ctx.chartData.timezone || input.ctx.profile.birthTimezone || 'Europe/Moscow';
+  const language: 'ru' | 'en' = input.profile.language === 'en' ? 'en' : 'ru';
+  const timezone = normalizeForecastTimezone(input.profile.birthTimezone);
   const window = resolvePersonalForecastWindow(input.period, input.periodKey, timezone);
   const common = {
-    userId: String(input.ctx.profile.id),
-    chartId: input.ctx.chartId,
-    chartData: input.ctx.chartData,
+    userId: input.userId,
+    birthProfileFingerprint: buildPersonalForecastBirthProfileFingerprint(input.profile),
     period: input.period,
     periodKey: input.periodKey,
     timezone: window.timezone,
     language,
     modelId: model,
-    profileFingerprint: buildPersonalForecastProfileFingerprint(input.ctx.profile),
   };
-  return {
-    common,
-    model,
-    language,
-    window,
-    cacheKey: buildPersonalForecastCacheKey(common),
-    inputHash: buildPersonalForecastInputHash(common),
-    contentVariant: VARIANT_BY_PERIOD[input.period],
-  };
+  return { model, language, window, common, contentVariant: VARIANT_BY_PERIOD[input.period],
+    cacheKey: buildPersonalForecastCacheKey(common), inputHash: buildPersonalForecastInputHash(common) };
 }
 
-export async function getCachedPersonalForecast(
-  input: PersonalForecastCacheContext,
-  options: { allowExpired?: boolean } = {},
-): Promise<{
-  forecast: PersonalForecastPackage;
-  model: string;
-  cacheKey: string;
-  inputHash: string;
-} | null> {
-  const identity = await resolveCacheIdentity(input);
-  const userId = String(input.ctx.profile.id);
-  const existing = input.ctx.chartId != null
-    ? await db.content_interpretations.getByChart(
-        input.ctx.chartId,
-        CANONICAL_CACHE_TIER,
-        'forecast',
-        identity.contentVariant,
-        identity.cacheKey,
-        options.allowExpired === true,
-      )
-    : await db.content_interpretations.getByUser(
-        userId,
-        CANONICAL_CACHE_TIER,
-        'forecast',
-        identity.contentVariant,
-        identity.cacheKey,
-        options.allowExpired === true,
-      );
-  const interpretation = existing as ContentInterpretation<PersonalForecastPackage> | null;
-  if (
-    !interpretation
-    || interpretation.inputHash !== identity.inputHash
-    || interpretation.promptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
-    || interpretation.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
-    || !isPersonalForecastPackage(interpretation.content)
-    || interpretation.content.meta.model !== identity.model
-  ) {
-    return null;
-  }
-  return {
-    forecast: interpretation.content,
-    model: identity.model,
-    cacheKey: identity.cacheKey,
-    inputHash: identity.inputHash,
-  };
-}
-
-export async function getCompatibleStalePersonalForecast(
-  input: PersonalForecastCacheContext,
-): Promise<{
-  forecast: PersonalForecastPackage;
-  model: string;
-  cacheKey: string;
-  inputHash: string;
-} | null> {
-  const identity = await resolveCacheIdentity(input);
-  const userId = String(input.ctx.profile.id);
-  const existing = input.ctx.chartId != null
-    ? await db.content_interpretations.getLatestByChartVariant(
-        input.ctx.chartId,
-        CANONICAL_CACHE_TIER,
-        'forecast',
-        identity.contentVariant,
-      )
-    : await db.content_interpretations.getLatestByUserVariant(
-        userId,
-        CANONICAL_CACHE_TIER,
-        'forecast',
-        identity.contentVariant,
-      );
-  const interpretation = existing as ContentInterpretation<PersonalForecastPackage> | null;
+function valid(interpretation: ContentInterpretation<PersonalForecastPackage> | null, resolved: Awaited<ReturnType<typeof identity>>) {
   const forecast = interpretation?.content;
-  const stalePromptVersion = interpretation?.promptVersion;
-  if (
-    !interpretation
-    || !forecast
-    || typeof stalePromptVersion !== 'string'
-    || stalePromptVersion !== PERSONAL_FORECAST_PROMPT_VERSION
-    || interpretation.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
-    || forecast.meta.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
-    || forecast.meta.semanticVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
-    || forecast.meta.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
-    || forecast.meta.voiceVersion !== APP_VOICE_VERSION
-    || forecast.meta.model !== identity.model
-    || forecast.period !== input.period
-    || forecast.periodKey !== input.periodKey
-    || !isPersonalForecastPackage(forecast)
-  ) {
-    return null;
-  }
-  const expectedInputHash = buildPersonalForecastInputHash(identity.common, {
-    calculationVersion: forecast.meta.calculationVersion,
-    contractVersion: forecast.meta.contractVersion,
-    promptVersion: stalePromptVersion,
-    voiceVersion: forecast.meta.voiceVersion,
-  });
-  if (interpretation.inputHash !== expectedInputHash) return null;
-  return {
-    forecast,
-    model: identity.model,
-    cacheKey: interpretation.cacheKey,
-    inputHash: expectedInputHash,
-  };
+  return Boolean(interpretation && forecast
+    && interpretation.inputHash === resolved.inputHash
+    && interpretation.promptVersion === PERSONAL_FORECAST_PROMPT_VERSION
+    && interpretation.calculationVersion === PERSONAL_FORECAST_CALCULATION_VERSION
+    && forecast.meta.contractVersion === PERSONAL_FORECAST_CONTRACT_VERSION
+    && forecast.meta.voiceVersion === APP_VOICE_VERSION
+    && forecast.meta.model === resolved.model
+    && isPersonalForecastPackage(forecast));
 }
 
-function recentReadingFromUnknown(value: unknown): PersonalForecastRecentReading | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const candidate = value as {
-    periodKey?: unknown;
-    overview?: unknown;
-    sections?: unknown;
-  };
-  if (typeof candidate.periodKey !== 'string' || !candidate.periodKey.trim()) return null;
-  const overview = candidate.overview && typeof candidate.overview === 'object' && !Array.isArray(candidate.overview)
-    ? candidate.overview as { title?: unknown }
-    : null;
-  const headline = typeof overview?.title === 'string' && overview.title.trim()
-    ? [{
-        kind: 'headline' as const,
-        text: overview.title.trim().slice(0, 200),
-        semanticFingerprint: null,
-      }]
-    : [];
-  const rawSections = [candidate.overview, ...(Array.isArray(candidate.sections) ? candidate.sections : [])];
-  const fragments = [...headline, ...rawSections.flatMap((value) => {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
-    const section = value as { text?: unknown; semanticFingerprint?: unknown };
-    if (typeof section.text !== 'string' || !section.text.trim()) return [];
-    return [{
-      kind: 'fragment' as const,
-      text: section.text.trim().slice(0, 700),
-      semanticFingerprint: typeof section.semanticFingerprint === 'string'
-        ? section.semanticFingerprint.slice(0, 600)
-        : null,
-    }];
-  })];
-  return fragments.length ? { periodKey: candidate.periodKey, fragments } : null;
+export async function getCachedPersonalForecast(input: PersonalForecastCacheContext, options: { allowExpired?: boolean } = {}) {
+  const resolved = await identity(input);
+  const raw = await db.content_interpretations.getByUser(input.userId, CACHE_TIER, 'forecast', resolved.contentVariant, resolved.cacheKey, options.allowExpired === true) as ContentInterpretation<PersonalForecastPackage> | null;
+  if (!valid(raw, resolved)) return null;
+  return { forecast: raw!.content, model: resolved.model, cacheKey: resolved.cacheKey, inputHash: resolved.inputHash };
 }
 
-/**
- * Anti-repeat history is negative writer context only. A previous package is
- * never returned from this path as the forecast for the requested period.
- */
-export async function getRecentPersonalForecastHistory(
-  input: PersonalForecastCacheContext,
-): Promise<PersonalForecastRecentReading[]> {
-  const identity = await resolveCacheIdentity(input);
-  const userId = String(input.ctx.profile.id);
-  const readings: PersonalForecastRecentReading[] = [];
+/** Old chart-scoped and previous-contract packages are deliberately never stale-compatible. */
+export async function getCompatibleStalePersonalForecast(input: PersonalForecastCacheContext) {
+  const cached = await getCachedPersonalForecast(input, { allowExpired: true });
+  if (!cached || cached.forecast.period !== input.period || cached.forecast.periodKey !== input.periodKey) return null;
+  return cached;
+}
+
+function reading(value: unknown): PersonalForecastRecentReading | null {
+  if (!isPersonalForecastPackage(value)) return null;
+  const all = [value.overview, ...value.sections];
+  const fragments = [
+    { kind: 'headline' as const, text: value.overview.title || '', semanticFingerprint: null },
+    ...all.filter((section) => section.text.trim()).map((section) => ({ kind: 'fragment' as const, text: section.text, semanticFingerprint: section.semanticFingerprint || null })),
+  ].filter((item) => item.text.trim());
+  return fragments.length ? { periodKey: value.periodKey, fragments } : null;
+}
+
+/** Exactly this user, all three periods, newest first; never provider input from another user. */
+export async function getRecentPersonalForecastHistory(input: PersonalForecastCacheContext): Promise<PersonalForecastRecentReading[]> {
+  const result = await getPool().query(
+    `SELECT content FROM content_interpretations
+     WHERE user_id = $1 AND access_tier = $2 AND content_surface = 'forecast'
+       AND content->'meta'->>'contractVersion' = $3
+     ORDER BY updated_at DESC LIMIT $4`, [input.userId, CACHE_TIER, PERSONAL_FORECAST_CONTRACT_VERSION, HISTORY_LIMIT + 1],
+  );
   const seen = new Set<string>();
-  const add = (reading: PersonalForecastRecentReading | null) => {
-    if (!reading) return;
-    const identityKey = `${reading.periodKey}:${reading.fragments.map((fragment) => fragment.text).join('\n')}`;
-    if (seen.has(identityKey)) return;
-    seen.add(identityKey);
-    readings.push(reading);
-  };
-
-  try {
-    const result = await getPool().query(
-      `SELECT content
-       FROM content_interpretations
-       WHERE user_id = $1
-         AND chart_id = $2
-         AND access_tier = $3
-         AND content_surface = 'forecast'
-         AND content_variant IN ('daily', 'weekly', 'monthly')
-       ORDER BY updated_at DESC
-       LIMIT $4`,
-      [
-        userId,
-        input.ctx.chartId,
-        CANONICAL_CACHE_TIER,
-        PERSONAL_FORECAST_HISTORY_LIMIT,
-      ],
-    );
-    for (const row of result.rows as Array<{ content?: unknown }>) {
-      add(recentReadingFromUnknown(row.content));
-    }
-    if (readings.length) {
-      return readings.slice(0, PERSONAL_FORECAST_HISTORY_LIMIT);
-    }
-  } catch (error) {
-    console.warn(
-      '[personal-forecast] recent cross-period history unavailable; trying period cache:',
-      error instanceof Error ? error.message : String(error),
-    );
-  }
-
-  try {
-    const latest = input.ctx.chartId != null
-      ? await db.content_interpretations.getLatestByChartVariant(
-          input.ctx.chartId,
-          CANONICAL_CACHE_TIER,
-          'forecast',
-          identity.contentVariant,
-        )
-      : await db.content_interpretations.getLatestByUserVariant(
-          userId,
-          CANONICAL_CACHE_TIER,
-          'forecast',
-          identity.contentVariant,
-        );
-    add(recentReadingFromUnknown((latest as ContentInterpretation<unknown> | null)?.content));
-  } catch (error) {
-    console.error(
-      '[personal-forecast] latest anti-repeat history read failed; continuing without it:',
-      error instanceof Error ? error.message : String(error),
-    );
-  }
-
-  let previousKey = input.periodKey;
-  const historyLimit = PERSONAL_FORECAST_HISTORY_LIMIT;
-  for (let index = 0; index < historyLimit; index += 1) {
-    previousKey = getPreviousPersonalForecastPeriodKey(
-      input.period,
-      previousKey,
-      identity.window.timezone,
-    );
-    try {
-      const cached = await getCachedPersonalForecast(
-        { ...input, periodKey: previousKey },
-        { allowExpired: true },
-      );
-      add(cached ? recentReadingFromUnknown(cached.forecast) : null);
-    } catch (error) {
-      console.error(
-        `[personal-forecast] anti-repeat history read failed for ${previousKey}; continuing:`,
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }
-  return readings.slice(0, PERSONAL_FORECAST_HISTORY_LIMIT);
+  return (result.rows as Array<{content: unknown}>).flatMap((row) => {
+    const item = reading(row.content);
+    if (!item || item.periodKey === input.periodKey) return [];
+    const key = `${item.periodKey}:${item.fragments.map((part) => part.text).join('\n')}`;
+    if (seen.has(key)) return [];
+    seen.add(key); return [item];
+  }).slice(0, HISTORY_LIMIT);
 }
 
-async function savePersonalForecast(
-  input: PersonalForecastCacheContext,
-  forecast: PersonalForecastPackage,
-  identity: Awaited<ReturnType<typeof resolveCacheIdentity>>,
-): Promise<void> {
-  const payload = {
-    accessTier: CANONICAL_CACHE_TIER,
-    contentSurface: 'forecast' as const,
-    contentVariant: identity.contentVariant,
-    cacheKey: identity.cacheKey,
-    inputHash: identity.inputHash,
-    content: forecast,
-    modelTier: 'premium' as const,
-    promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-    calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
-    isPersistent: false,
-    legacySource: null,
-    validFrom: identity.window.startsAt,
-    validTo: identity.window.validTo,
-  };
-  const userId = String(input.ctx.profile.id);
-  if (input.ctx.chartId != null) {
-    await db.content_interpretations.upsertByChart(
-      input.ctx.chartId,
-      payload,
-      userId,
-    );
-    return;
-  }
-  await db.content_interpretations.upsertByUser(userId, payload);
+function repeatFragments(value: unknown): PersonalForecastRepeatFragment[] {
+  const item = reading(value);
+  return (item?.fragments || []).map((part) => ({ kind: part.kind, text: part.text, semanticFingerprint: part.semanticFingerprint }));
 }
 
-export async function ensurePersonalForecast(
-  input: PersonalForecastCacheContext,
-  options: {
-    forceRegenerate?: boolean;
-    minimumGeneratedAt?: string | null;
-  } = {},
-): Promise<ContentGenerationLockResult<PersonalForecastPackage>> {
-  const identity = await resolveCacheIdentity(input);
-  const forceRegenerate = options.forceRegenerate === true;
-  const minimumGeneratedAt = options.minimumGeneratedAt
-    ? new Date(options.minimumGeneratedAt).getTime()
-    : Number.NaN;
-  return withContentGenerationLock<PersonalForecastPackage>({
-    lockKey: buildContentGenerationLockKey({
-      userId: String(input.ctx.profile.id),
-      chartId: input.ctx.chartId,
-      accessTier: CANONICAL_CACHE_TIER,
-      contentSurface: 'forecast',
-      contentVariant: identity.contentVariant,
-      cacheKey: identity.cacheKey,
-      promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-    }),
-    operation: `personal-forecast-feed-${input.period}`,
-    allowLocalLockFallback: true,
+/** Server-only local comparison corpus. Its text is never logged or passed to Luna. */
+async function getCrossUserRepeatFragments(input: PersonalForecastCacheContext, resolved: Awaited<ReturnType<typeof identity>>) {
+  const result = await getPool().query(
+    `SELECT content FROM content_interpretations
+     WHERE user_id IS DISTINCT FROM $1 AND access_tier = $2
+       AND content_surface = 'forecast' AND content_variant = $3
+       AND content->>'periodKey' = $4 AND prompt_version = $5 AND calculation_version = $6
+       AND content->'meta'->>'contractVersion' = $7
+     ORDER BY updated_at DESC LIMIT $8`,
+    [input.userId, CACHE_TIER, resolved.contentVariant, input.periodKey, PERSONAL_FORECAST_PROMPT_VERSION, PERSONAL_FORECAST_CALCULATION_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION, CROSS_USER_PACKAGE_LIMIT],
+  );
+  return (result.rows as Array<{content: unknown}>).flatMap((row) => repeatFragments(row.content)).slice(0, PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT);
+}
+
+async function save(input: PersonalForecastCacheContext, forecast: PersonalForecastPackage, resolved: Awaited<ReturnType<typeof identity>>) {
+  await db.content_interpretations.upsertByUser(input.userId, {
+    accessTier: CACHE_TIER, contentSurface: 'forecast', contentVariant: resolved.contentVariant,
+    cacheKey: resolved.cacheKey, inputHash: resolved.inputHash, content: forecast, modelTier: 'premium',
+    promptVersion: PERSONAL_FORECAST_PROMPT_VERSION, calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
+    isPersistent: false, legacySource: null, validFrom: resolved.window.startsAt, validTo: resolved.window.validTo,
+  });
+}
+
+export async function ensurePersonalForecast(input: PersonalForecastCacheContext, options: { forceRegenerate?: boolean; minimumGeneratedAt?: string | null } = {}): Promise<ContentGenerationLockResult<PersonalForecastPackage>> {
+  const resolved = await identity(input);
+  return withContentGenerationLock({
+    lockKey: buildContentGenerationLockKey({ userId: input.userId, accessTier: CACHE_TIER, contentSurface: 'forecast', contentVariant: resolved.contentVariant, cacheKey: resolved.cacheKey, promptVersion: PERSONAL_FORECAST_PROMPT_VERSION }),
+    operation: `personal-forecast-${input.period}`, allowLocalLockFallback: true,
     readCached: async () => {
-      if (forceRegenerate) return null;
-      try {
-        const cached = await getCachedPersonalForecast(input);
-        if (!cached) return null;
-        if (
-          Number.isFinite(minimumGeneratedAt)
-          && new Date(cached.forecast.meta.generatedAt).getTime() <= minimumGeneratedAt
-        ) {
-          return null;
-        }
-        return { value: cached.forecast, source: 'cache' };
-      } catch (error) {
-        console.error(
-          '[personal-forecast] cache read failed; continuing with Luna generation:',
-          error instanceof Error ? error.message : String(error),
-        );
-        return null;
-      }
+      if (options.forceRegenerate) return null;
+      const cached = await getCachedPersonalForecast(input);
+      return cached ? { value: cached.forecast, source: 'cache' as const } : null;
     },
     generate: async () => {
-      const recentForecasts = await getRecentPersonalForecastHistory(input).catch((error) => {
-        console.error(
-          '[personal-forecast] personal anti-repeat history unavailable; continuing with Luna generation:',
-          error instanceof Error ? error.message : String(error),
-        );
-        return [];
-      });
-      const forecast = await generatePersonalForecastPackage({
-        profile: input.ctx.profile,
-        chartData: identity.common.chartData,
-        model: identity.model,
-        period: input.period,
-        window: identity.window,
-        recentForecasts,
-      });
-      if (!isPersonalForecastPackage(forecast)) {
-        throw new Error(
-          `PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`,
-        );
-      }
-      try {
-        await savePersonalForecast(input, forecast, identity);
-      } catch (error) {
-        console.error(
-          '[personal-forecast] cache write failed; returning generated forecast:',
-          error instanceof Error ? error.message : String(error),
-        );
-      }
+      const [recentForecasts, crossUserRepeatFragments] = await Promise.all([
+        getRecentPersonalForecastHistory(input).catch(() => []), getCrossUserRepeatFragments(input, resolved).catch(() => []),
+      ]);
+      const forecast = await generatePersonalForecastPackage({ profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window, recentForecasts, crossUserRepeatFragments });
+      if (!isPersonalForecastPackage(forecast)) throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`);
+      await save(input, forecast, resolved).catch(() => undefined);
       return forecast;
     },
   });

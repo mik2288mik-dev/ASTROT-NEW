@@ -45,7 +45,7 @@ describe('versioned app session tokens', () => {
       userId: '42',
       provider: 'native',
     });
-    expect(payload!.exp - payload!.issuedAt).toBe(ACCESS_TOKEN_TTL_SECONDS);
+    expect(payload!.exp! - payload!.issuedAt!).toBe(ACCESS_TOKEN_TTL_SECONDS);
     expect(ACCESS_TOKEN_TTL_SECONDS).toBe(15 * 60);
   });
 

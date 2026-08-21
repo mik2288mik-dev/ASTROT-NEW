@@ -10,7 +10,7 @@ describe('current architecture documentation', () => {
     expect(content).toContain('15 recent fragments for the same user and chart');
     expect(content).toContain('PersonalForecastPackage` end to end');
     expect(content).toContain('checks the server cache with `GET`, then starts generation with `POST`');
-    expect(content).toContain('Legacy `aiPersonalHoroscope*` fields remain inactive');
+    expect(content).toContain('`PersonalForecastPackage`');
     expect(content).not.toContain('/api/astrology/daily-horoscope');
   });
 });
