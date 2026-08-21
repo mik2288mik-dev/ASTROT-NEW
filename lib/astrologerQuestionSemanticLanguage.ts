@@ -6,7 +6,7 @@ import type {
   ForecastRiskAtom,
   ForecastSemanticDomain,
   ForecastSemanticFact,
-} from './personalForecastSemantics';
+} from './astrologerQuestionSemantics';
 
 export type ForecastWriterLanguage = 'ru' | 'en';
 

@@ -232,10 +232,9 @@ describe('personal forecast direct-reading contract', () => {
     );
   });
 
-  test('accepts a free block label with UI astro evidence', () => {
+  test('accepts a free block label without exposing implementation evidence', () => {
     const base = structuredClone(personalForecastFixture());
     base.sections[0].contentBlocks[0].role = 'work_money' as any;
-    base.sections[0].contentBlocks[0].astro_evidence = 'Mars square natal Mercury';
     expect(isPersonalForecastPackage(base)).toBe(true);
   });
 

@@ -1,8 +1,8 @@
 import {
   buildPersonalForecastIngressAndStationEvidence,
   type PersonalForecastCalculatedEvidence,
-} from '../lib/personalForecastEvidence';
-import { compilePersonalForecastSemanticFacts } from '../lib/personalForecastSemantics';
+} from '../lib/astrologerQuestionEvidence';
+import { compilePersonalForecastSemanticFacts } from '../lib/astrologerQuestionSemantics';
 import { detectTransitAspects } from '../lib/transitAspects';
 import type { CurrentTransits, PlanetTransit } from '../lib/transits-calculator';
 import type { NatalChartData } from '../types';

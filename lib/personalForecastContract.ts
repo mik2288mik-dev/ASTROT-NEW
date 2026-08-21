@@ -43,34 +43,11 @@ export type ForecastSectionKind =
   | 'astro_accent'
   | 'wishes';
 
-export type CalculatedAstroEvidence = {
-  id: string;
-  kind:
-    | 'transit_to_natal'
-    | 'transit_house'
-    | 'lunation'
-    | 'ingress'
-    | 'station'
-    | 'period_aggregate';
-  transitPlanet?: string | null;
-  natalPoint?: string | null;
-  aspect?: string | null;
-  house?: number | null;
-  orb?: number | null;
-  status: 'applying' | 'separating' | 'exact' | 'active' | 'unknown';
-  exactAt?: string | null;
-  startsAt?: string | null;
-  endsAt?: string | null;
-  strength: number;
-  polarity: 'supporting' | 'challenging' | 'mixed' | 'neutral';
-  calculationSource: string;
-};
-
 export type ForecastEvidenceView = {
   id: string;
   factor: string;
   orb: number | null;
-  status: CalculatedAstroEvidence['status'];
+  status: 'applying' | 'separating' | 'exact' | 'active' | 'unknown';
   period: string | null;
   meaning: string;
 };
@@ -82,10 +59,6 @@ export type ExplanationAnchor = {
   evidenceIds: string[];
 };
 
-export type ForecastInlineAstroAccent = {
-  text: string;
-  evidenceIds: string[];
-};
 
 export type ForecastLockedPreview = {
   lead: string;
@@ -124,7 +97,7 @@ export const TODAY_FORECAST_PRESENTATION_WORD_LIMITS: Record<
   ForecastPresentationStyle,
   { minimum: number; maximum: number }
 > = {
-  prose: { minimum: 12, maximum: 42 },
+  prose: { minimum: 1, maximum: 42 },
   pull_quote: { minimum: 6, maximum: 18 },
   paper_note: { minimum: 4, maximum: 12 },
 };
@@ -140,7 +113,6 @@ export type ForecastContentBlock = {
   text: string;
   semanticFactId: string;
   atomId: string;
-  astro_evidence?: string | null;
   /** Calculated evidence cited by this exact piece of copy. */
   evidenceIds?: string[];
   explanationAnchorId?: string | null;
@@ -166,7 +138,6 @@ export type ForecastSection = {
   premiumTeaser: string;
   lockedPreview: ForecastLockedPreview;
   explanationAnchors: ExplanationAnchor[];
-  inlineAstroAccent?: ForecastInlineAstroAccent | null;
 };
 
 export type CrossPeriodLink = {
@@ -771,9 +742,6 @@ function contentBlocksValid(
         || (section.semanticFactIds.length > 0 && !section.semanticFactIds.includes(block.semanticFactId))
       ))
       || (block.atomId !== undefined && (typeof block.atomId !== 'string' || !block.atomId.trim()))
-      || (block.astro_evidence !== undefined && block.astro_evidence !== null && (
-        typeof block.astro_evidence !== 'string'
-      ))
       || (block.evidenceIds !== undefined && (
         !Array.isArray(block.evidenceIds)
         || block.evidenceIds.length < 1
@@ -855,34 +823,17 @@ function sectionValid(
     section.status === 'unavailable'
     && (
       section.explanationAnchors.length > 0
-      || section.inlineAstroAccent
       || section.visualCue
     )
   ) {
     return false;
   }
-  if (redacted && section.inlineAstroAccent) return false;
   if (
     section.kind === 'dynamic'
     && section.title !== undefined
     && !isSimpleDynamicTitle(section.title)
   ) {
     return false;
-  }
-  if (section.inlineAstroAccent) {
-    if (
-      typeof section.inlineAstroAccent.text !== 'string'
-      || !section.inlineAstroAccent.text.trim()
-      || section.inlineAstroAccent.text.length > 360
-      || !Array.isArray(section.inlineAstroAccent.evidenceIds)
-      || section.inlineAstroAccent.evidenceIds.length < 1
-      || section.inlineAstroAccent.evidenceIds.length > 4
-      || new Set(section.inlineAstroAccent.evidenceIds).size
-        !== section.inlineAstroAccent.evidenceIds.length
-      || section.inlineAstroAccent.evidenceIds.some((id) => !evidenceIds.has(id))
-    ) {
-      return false;
-    }
   }
   return true;
 }
@@ -895,7 +846,7 @@ function validIsoTimestamp(value: unknown): value is string {
 
 function evidenceRecordValid(value: unknown): value is Record<string, ForecastEvidenceView> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const statuses = new Set<CalculatedAstroEvidence['status']>([
+  const statuses = new Set<ForecastEvidenceView['status']>([
     'applying',
     'separating',
     'exact',
@@ -1265,7 +1216,6 @@ function emptySection(
     premiumTeaser: '',
     lockedPreview: { lead: '', blurred: '', teaser: '' },
     explanationAnchors: [],
-    inlineAstroAccent: null,
   };
 }
 
@@ -1327,7 +1277,6 @@ function stripLockedSection(
       ? section.lockedPreview
       : { lead: '', blurred: '', teaser: '' },
     explanationAnchors: [],
-    inlineAstroAccent: null,
   };
 }
 
@@ -1418,7 +1367,6 @@ export function slicePersonalForecastForAccess(
     section.explanationAnchors.forEach((anchor) => {
       anchor.evidenceIds.forEach((id) => visibleEvidenceIds.add(id));
     });
-    section.inlineAstroAccent?.evidenceIds.forEach((id) => visibleEvidenceIds.add(id));
   }
   next.evidence = Object.fromEntries(
     Object.entries(navigableForecast.evidence)

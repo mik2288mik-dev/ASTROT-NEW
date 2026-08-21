@@ -2,11 +2,11 @@ import type { NatalChartData } from '../types';
 import type {
   CalculatedAstroEvidence,
   PersonalForecastPeriod,
-} from './personalForecastContract';
+} from './astrologerQuestionAstro';
 import type {
   PersonalForecastCalculatedEvidence,
   PersonalForecastStationDirection,
-} from './personalForecastEvidence';
+} from './astrologerQuestionEvidence';
 
 export const PERSONAL_FORECAST_SEMANTICS_VERSION = 'personal-forecast-semantics-v3';
 

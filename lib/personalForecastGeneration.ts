@@ -67,9 +67,9 @@ export const PERSONAL_FORECAST_WORD_LIMITS: Record<PersonalForecastPeriod, numbe
 };
 
 export const PERSONAL_FORECAST_WORD_MINIMUMS: Record<PersonalForecastPeriod, number> = {
-  day: 90,
-  week: 80,
-  month: 100,
+  day: 45,
+  week: 75,
+  month: 85,
 };
 
 export const PERSONAL_FORECAST_FRAGMENT_LIMITS: Record<
@@ -101,6 +101,17 @@ export const TODAY_PRESENTATION_WORD_LIMITS: Record<
   ForecastPresentationStyle,
   { minimum: number; maximum: number }
 > = TODAY_FORECAST_PRESENTATION_WORD_LIMITS;
+
+function currentDateInTimezone(timezone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value;
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
 
 export function getPersonalForecastSystemPrompt(
   language: ForecastWriterLanguage,
@@ -373,7 +384,7 @@ export function buildPersonalForecastFeedPrompt(input: {
     selected_period: {
       period: input.period,
       period_key: input.window.periodKey,
-      current_date: input.window.periodStart,
+      current_date: currentDateInTimezone(input.window.timezone),
       period_start: input.window.periodStart,
       period_end: input.window.periodEnd,
       timezone: input.window.timezone,
@@ -818,7 +829,6 @@ function matchesAny(value: string, patterns: readonly RegExp[]): boolean {
 }
 
 const VISIBLE_CATEGORY_LABEL_PATTERN = /(?:^|[\n.!?]\s*)(?:любовь|отношения|работа|карьера|деньги|настроение|самочувствие|love|relationships?|work|career|money|mood)\s*[:—-]/iu;
-const TODAY_HUMAN_SITUATION_PATTERN = /(?:разговор|сообщени\p{L}*|переписк\p{L}*|письм\p{L}*|ответ\p{L}*|просьб\p{L}*|попрос\p{L}*|решени\p{L}*|выбор\p{L}*|выбрат\p{L}*|договор\p{L}*|услови\p{L}*|быт\p{L}*|домашн\p{L}*|покупк\p{L}*|работ\p{L}*|задач\p{L}*|пауз\p{L}*|встреч\p{L}*|звон\p{L}*|очеред\p{L}*|\b(?:conversation|message|text|email|reply|request|decision|choice|agreement|condition|household|purchase|work|task|pause|meeting|call)\b)/iu;
 
 function isPredominantlyRussian(value: string): boolean {
   const letters = value.match(/\p{L}/gu) || [];
@@ -1152,12 +1162,6 @@ export function validateFreeGeneratedForecastFeed(
   if (visibleCopy.some((value) => VISIBLE_CATEGORY_LABEL_PATTERN.test(value))) {
     errors.push('visible forecast copy contains a visible category label');
   }
-  if (
-    period === 'day'
-    && !TODAY_HUMAN_SITUATION_PATTERN.test(visibleCopy.join(' '))
-  ) {
-    errors.push('Today requires a recognisable human situation');
-  }
   if (visibleCopy.some(hasPersonalForecastVoiceViolation)) {
     errors.push('visible forecast copy contains a banned forecast voice phrase');
   }
@@ -1276,7 +1280,6 @@ function materializeDirectSection(input: {
     ? 'overview'
     : `semantic:direct-${input.sectionIndex}-${Math.abs(stableHash(input.section.blocks.map((block) => block.text).join(':'))).toString(36)}`;
   const blocks: ForecastContentBlock[] = input.section.blocks.map((block, index) => {
-    const blockEvidence = evidenceForIds(block.evidenceIds, input.evidenceViews);
     return {
       id: `${sectionId}:generated:${index + 1}`,
       role: block.role,
@@ -1284,7 +1287,6 @@ function materializeDirectSection(input: {
       semanticFactId: block.evidenceIds[0],
       atomId: `generated:${sectionId}:${index + 1}`,
       evidenceIds: block.evidenceIds,
-      astro_evidence: blockEvidence.map((item) => item.factor).join(' · ') || null,
       explanationAnchorId: `anchor:${sectionId}:${index + 1}`,
     };
   });
@@ -1325,7 +1327,6 @@ function materializeDirectSection(input: {
     premiumTeaser: teaser,
     lockedPreview: buildForecastLockedPreview(text, teaser),
     explanationAnchors: anchors,
-    inlineAstroAccent: null,
   };
 }
 

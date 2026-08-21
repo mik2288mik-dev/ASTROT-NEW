@@ -144,7 +144,6 @@ function isStoredResult(value: unknown): value is PersonalForecastClientResult {
         section.text.trim()
         || !Array.isArray(section.explanationAnchors)
         || section.explanationAnchors.length
-        || section.inlineAstroAccent
       ) {
         return false;
       }
@@ -275,7 +274,9 @@ async function fetchCached(input: {
     method: 'GET',
     headers: getTelegramInitDataHeaders(),
   });
-  if (response.status === 404) return null;
+  // The API uses 204 for an empty, valid cache and older deployments used
+  // 404. Both mean the caller must begin generation.
+  if (response.status === 404 || response.status === 204) return null;
   if (!response.ok) throw await parseError(response);
   const payload = await response.json().catch(() => null);
   return parseAccessPayload(payload, 'cache', input);

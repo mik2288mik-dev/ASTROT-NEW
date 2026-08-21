@@ -21,12 +21,12 @@ import {
   PERSONAL_FORECAST_CONTRACT_VERSION,
   stableHash,
   type ForecastContentBlockRole,
-  type ForecastEvidenceView,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from './personalForecastContract';
-import { type ForecastWriterLanguage } from './personalForecastSemanticLanguage';
-import { PERSONAL_FORECAST_SEMANTICS_VERSION } from './personalForecastSemantics';
+import { type ForecastEvidenceView } from './astrologerQuestionAstro';
+import { type ForecastWriterLanguage } from './astrologerQuestionSemanticLanguage';
+import { PERSONAL_FORECAST_SEMANTICS_VERSION } from './astrologerQuestionSemantics';
 
 const HISTORY_SCHEMA_VERSION = 'history-v1';
 const MAX_ANSWER_ATTEMPTS = 2;

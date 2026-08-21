@@ -4,7 +4,7 @@ import {
   buildPersonalForecastHouseEvidence,
   buildPersonalForecastIngressAndStationEvidence,
   buildPersonalForecastSampleDates,
-} from '../lib/personalForecastEvidence';
+} from '../lib/astrologerQuestionEvidence';
 import * as transitAspects from '../lib/transitAspects';
 import type {
   CurrentTransits,

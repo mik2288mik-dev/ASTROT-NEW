@@ -92,7 +92,6 @@ function sectionFixture(input: {
       explanation: 'Mars trine Sun. This is a temporary calculated factor for the selected period.',
       evidenceIds: ['e1'],
     }],
-    inlineAstroAccent: null,
   };
 }
 

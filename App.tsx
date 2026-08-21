@@ -317,23 +317,20 @@ function millisecondsUntilNextForecastDay(now: Date, timezone: string): number {
     return Math.max(250, (upper - start) + 50);
 }
 
-async function loadStartupPersonalForecasts(
+function loadStartupPersonalForecasts(
     targetProfile: UserProfile,
-): Promise<void> {
-    const periods: PersonalForecastPeriod[] = hasActivePremium(targetProfile) ? ['day', 'week', 'month'] : ['day'];
+): void {
     const timezone = normalizeForecastTimezone(targetProfile.birthTimezone);
     const now = new Date();
-    const results = await Promise.allSettled(periods.map((period) => loadPersonalForecast({
+    const load = (period: PersonalForecastPeriod) => loadPersonalForecast({
         profile: targetProfile,
         period,
         periodKey: getPersonalForecastPeriodKey(period, now, timezone),
         options: { maxInProgressRetries: 60 },
-    })));
-    const failed = results.filter((result) => result.status === 'rejected');
-    if (failed.length) {
-        console.warn('[App] Personal forecast background refresh could not start', {
-            failedPeriods: failed.length,
-        });
+    }).catch((error) => console.warn('[App] Personal forecast background refresh could not start', error));
+    void load('day');
+    if (hasActivePremium(targetProfile)) {
+        void Promise.allSettled(['week', 'month'].map((period) => load(period as PersonalForecastPeriod)));
     }
 }
 
@@ -749,20 +746,9 @@ const App: React.FC = () => {
             logStartupMetric('startup_dashboard_visible_ms', startupElapsedMs());
         };
 
-        const prepareStartupPersonalForecasts = async (
-            targetProfile: UserProfile,
-            _targetChart: NatalChartData,
-            _targetChartId: number | null,
-        ) => {
+        const prepareStartupPersonalForecasts = (targetProfile: UserProfile) => {
             if (cancelled) return;
-            setLoadingMessage(
-                targetProfile.language === 'en'
-                    ? 'Preparing your horoscope'
-                    : 'Готовим твой гороскоп',
-            );
-            setLoadingProgress(82);
-            await loadStartupPersonalForecasts(targetProfile);
-            setLoadingProgress(96);
+            loadStartupPersonalForecasts(targetProfile);
         };
 
         const scheduleStartupBackgroundWork = (
@@ -995,35 +981,22 @@ const App: React.FC = () => {
                         writeLocalNatalChart(updatedProfile, localEntry.chartData, startupChartId);
                     }
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
-                    await prepareStartupPersonalForecasts(
-                        updatedProfile,
-                        localEntry.chartData,
-                        startupChartId,
-                    );
+                    prepareStartupPersonalForecasts(updatedProfile);
                     if (cancelled) return;
                     showStartupDashboard('dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, localEntry.chartData, startupChartId, true);
                     return;
                 }
 
-                setLoadingMessage(
-                    updatedProfile.language === 'en' ? 'Loading Your Horoscope' : 'Загружаем Твой Гороскоп'
-                );
-                setLoadingProgress(50);
-                console.log('[App] Loading primary chart once...');
-
-                const chart = await loadPrimaryChartOnce(updatedProfile);
-                if (chart?.sun && chart?.moon) {
-                    console.log('[App] Chart loaded successfully');
+                prepareStartupPersonalForecasts(updatedProfile);
+                showStartupDashboard(requestedViewRef.current || 'dashboard');
+                void loadPrimaryChartOnce(updatedProfile).then((chart) => {
+                    if (cancelled || !chart?.sun || !chart?.moon) return;
                     logStartupMetric('startup_chart_ready_ms', startupElapsedMs());
-                    await prepareStartupPersonalForecasts(updatedProfile, chart, null);
-                    if (cancelled) return;
-                    showStartupDashboard(requestedViewRef.current || 'dashboard');
                     scheduleStartupBackgroundWork(updatedProfile, chart, null, false);
-                } else {
-                    console.log('[App] Chart unavailable after startup load, going to dashboard');
-                    showStartupDashboard(requestedViewRef.current || 'dashboard');
-                }
+                }).catch((error: any) => {
+                    console.warn('[App] Background primary chart load failed:', error?.message || error);
+                });
             } catch (error: any) {
                 console.error('[App] Error loading user data:', error);
                 resetPrimaryChartState();
@@ -1177,7 +1150,7 @@ const App: React.FC = () => {
                     : 'Готовим твой гороскоп',
             );
             setLoadingProgress(82);
-            await loadStartupPersonalForecasts(fullProfile);
+            loadStartupPersonalForecasts(fullProfile);
             void getPrimaryChartId(String(fullProfile.id))
                 .then((primaryChartId) => {
                     if (primaryChartId != null) {

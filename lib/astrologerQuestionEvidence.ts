@@ -11,7 +11,7 @@ import {
   type ForecastEvidenceView,
   type PersonalForecastPeriod,
   type PersonalForecastWindow,
-} from './personalForecastContract';
+} from './astrologerQuestionAstro';
 
 export type EvidenceCalculationResult = {
   evidence: PersonalForecastCalculatedEvidence[];

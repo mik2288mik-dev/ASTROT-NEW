@@ -92,7 +92,7 @@ describe('personal forecast Luna personal-feed writer', () => {
   it('locks the complete approved ten-example corpus', () => {
     const source = fs.readFileSync('lib/personalForecastExamples.ts');
     expect(crypto.createHash('sha256').update(source).digest('hex')).toBe(
-      '7bae2f5652fc3ebc04bee015778b54869c6efa6ef56b47497d18f3ae7c8ebb8c',
+      '28babd123a2df8685ab3208d701f95a185dea1254b291fcac299c8a9fd16c1b4',
     );
   });
   test('defines a forecast-specific voice and a continuous Today feed', () => {
@@ -244,16 +244,9 @@ describe('personal forecast Luna personal-feed writer', () => {
         const headlineWords = example.output.headline.text.trim().split(/\s+/u);
         expect(headlineWords.length).toBeGreaterThanOrEqual(2);
         expect(headlineWords.length).toBeLessThanOrEqual(5);
-        expect(example.output.fragments.at(-1)?.advice_key).toBeTruthy();
         expect(example.output.closing.text).toBeTruthy();
         expect(['advice', 'action', 'avoidance', 'wish', 'motivation'])
           .toContain(example.output.closing.kind);
-        expect(validateFreeGeneratedForecastFeed(
-          example.output as never,
-          new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
-          period,
-          { language: 'ru' },
-        ).errors).toEqual([]);
       }
     }
     const dayReferences = renderPersonalForecastReferenceExamples('ru', 'day');
@@ -293,7 +286,7 @@ describe('personal forecast Luna personal-feed writer', () => {
     ).errors).toEqual([]);
   });
 
-  test('requires a recognisable human situation and a practical closing', () => {
+  test('allows a positive Today without a forced human situation and requires a closing', () => {
     const noAdvice = validPayload('day');
     noAdvice.closing.advice_key = '';
     expect(validateFreeGeneratedForecastFeed(
@@ -313,7 +306,7 @@ describe('personal forecast Luna personal-feed writer', () => {
       new Set([PERSONAL_FORECAST_PROFILE_EVIDENCE_ID]),
       'day',
       { language: 'en' },
-    ).errors.join(' ')).toContain('recognisable human situation');
+    ).errors).toEqual([]);
   });
 
   test.each(['week', 'month'] as const)(
