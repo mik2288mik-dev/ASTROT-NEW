@@ -61,6 +61,24 @@ describe('app session issuance account guard', () => {
     expect(mockClientRelease).toHaveBeenCalledTimes(1);
   });
 
+  it('binds the session version with an explicit PostgreSQL type', async () => {
+    mockClientQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('SELECT is_blocked')) return { rowCount: 1, rows: [{ is_blocked: false }] };
+      if (sql.includes('INSERT INTO app_sessions') && !sql.includes('$6::SMALLINT')) {
+        const error = new Error('could not determine data type of parameter $6') as Error & { code?: string };
+        error.code = '42P08';
+        throw error;
+      }
+      return { rowCount: 1, rows: [] };
+    });
+
+    await expect(createAppUserSession({
+      userId: '42',
+      kind: 'web',
+      sessionVersion: 2,
+    })).resolves.toMatchObject({ sessionVersion: 2 });
+  });
+
   it.each([
     ['a blocked account', { rowCount: 1, rows: [{ is_blocked: true }] }, { status: 403, code: 'ACCOUNT_BLOCKED' }],
     ['a missing account', { rowCount: 0, rows: [] }, { status: 401, code: 'APP_ACCOUNT_NOT_FOUND' }],

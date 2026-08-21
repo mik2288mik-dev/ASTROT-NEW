@@ -262,7 +262,8 @@ function sessionInsertValues(
 const INSERT_APP_SESSION_SQL = `INSERT INTO app_sessions
   (session_id, user_id, session_kind, device_id, expires_at, session_version,
    refresh_token_hash, refresh_generation, absolute_expires_at, refresh_rotated_at)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, CASE WHEN $6 = 2 THEN clock_timestamp() ELSE NULL END)`;
+  VALUES ($1, $2, $3, $4, $5, $6::SMALLINT, $7, 0, $8,
+          CASE WHEN $6::SMALLINT = 2 THEN clock_timestamp() ELSE NULL END)`;
 
 export async function createGuestAppUser(
   res: NextApiResponse,
