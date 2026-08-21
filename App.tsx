@@ -79,6 +79,7 @@ import {
 import {
     clearPersonalForecastSessionCache,
     loadPersonalForecast,
+    primeLocalPersonalForecast,
 } from './services/personalForecastService';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from './lib/nativeBack';
 import {
@@ -327,6 +328,13 @@ async function loadStartupPersonalForecasts(
         targetChart.timezone || targetProfile.birthTimezone,
     );
     const now = new Date();
+    periods.forEach((period) => primeLocalPersonalForecast({
+        profile: targetProfile,
+        chartData: targetChart,
+        chartId: targetChartId,
+        period,
+        periodKey: getPersonalForecastPeriodKey(period, now, timezone),
+    }));
     const results = await Promise.allSettled(periods.map((period) => loadPersonalForecast({
         profile: targetProfile,
         chartData: targetChart,
@@ -335,11 +343,11 @@ async function loadStartupPersonalForecasts(
         periodKey: getPersonalForecastPeriodKey(period, now, timezone),
         options: { maxInProgressRetries: 60 },
     })));
-    const failed = results.find((result) => result.status === 'rejected');
-    if (failed?.status === 'rejected') {
-        const error = new Error('PERSONAL_FORECAST_STARTUP_FAILED') as Error & { cause?: unknown };
-        error.cause = failed.reason;
-        throw error;
+    const failed = results.filter((result) => result.status === 'rejected');
+    if (failed.length) {
+        console.warn('[App] Personal forecast background refresh could not start', {
+            failedPeriods: failed.length,
+        });
     }
 }
 

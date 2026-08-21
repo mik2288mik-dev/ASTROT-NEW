@@ -12,10 +12,13 @@ import {
   getPersonalForecastPeriodKey,
   isPersonalForecastPackage,
   normalizeForecastTimezone,
+  resolvePersonalForecastWindow,
+  slicePersonalForecastForAccess,
   type PersonalForecastAccessPayload,
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
 } from '../lib/personalForecastContract';
+import { createPersonalForecastDeliveryFallback } from '../lib/personalForecastDeliveryFallback';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
 
@@ -456,6 +459,42 @@ export function readLocalPersonalForecast(input: {
   return readStored(contextKey({ ...input, periodKey }));
 }
 
+export function primeLocalPersonalForecast(input: {
+  profile: UserProfile;
+  chartData: NatalChartData;
+  chartId?: number | null;
+  period: PersonalForecastPeriod;
+  periodKey?: string;
+}): PersonalForecastClientResult {
+  const timezone = normalizeForecastTimezone(
+    input.chartData.timezone || input.profile.birthTimezone,
+  );
+  const periodKey = input.periodKey
+    || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
+  const resolved = { ...input, periodKey };
+  const key = contextKey(resolved);
+  const existing = readStored(key);
+  if (existing) return existing;
+
+  const premium = hasActivePremium(input.profile);
+  const forecast = createPersonalForecastDeliveryFallback({
+    profile: input.profile,
+    chartData: input.chartData,
+    period: input.period,
+    window: resolvePersonalForecastWindow(input.period, periodKey, timezone),
+  });
+  const sliced = slicePersonalForecastForAccess(forecast, premium);
+  const result: PersonalForecastClientResult = {
+    forecast: sliced.forecast,
+    accessTier: premium ? 'premium' : 'free',
+    lockedSectionIds: sliced.lockedSectionIds,
+    periodLocked: sliced.periodLocked,
+    source: 'local',
+  };
+  writeStored(key, result);
+  return result;
+}
+
 export async function loadPersonalForecast(input: {
   profile: UserProfile;
   chartData?: NatalChartData | null;
@@ -474,7 +513,9 @@ export async function loadPersonalForecast(input: {
   const force = input.options?.force === true;
   if (force) removeStored(key);
   const local = force ? null : readStored(key);
-  if (local) {
+  const refreshLocalFallback = input.options?.background === true
+    && local?.forecast.meta.validationStatus === 'deterministic_fallback';
+  if (local && !refreshLocalFallback) {
     if (!input.options?.background) {
       scheduleStartupPrewarm({
         profile: input.profile,

@@ -9,6 +9,7 @@ import { slicePersonalForecastForAccess } from '../lib/personalForecastContract'
 import {
   clearPersonalForecastSessionCache,
   loadPersonalForecast,
+  primeLocalPersonalForecast,
   readLocalPersonalForecast,
   selectActiveReadyPersonalForecast,
 } from '../services/personalForecastService';
@@ -138,6 +139,27 @@ describe('personal forecast package client cache', () => {
     expect([...storage.keys()]).toEqual([
       expect.stringMatching(/^tvoi-goroskop:personal-forecast-feed-v6:/),
     ]);
+  });
+
+  it('serves an immediate local fallback while a background request refreshes it', async () => {
+    const fallback = primeLocalPersonalForecast(request);
+
+    expect(fallback).toMatchObject({
+      source: 'local',
+      forecast: {
+        period: 'day',
+        periodKey: '2026-07-26',
+        meta: { status: 'ready', validationStatus: 'deterministic_fallback' },
+      },
+    });
+    expect(readLocalPersonalForecast(request)).toEqual(fallback);
+
+    mockedApiFetch.mockResolvedValueOnce(responseFor());
+    await expect(loadPersonalForecast({
+      ...request,
+      options: { cacheOnly: true, background: true },
+    })).resolves.toMatchObject({ source: 'cache' });
+    expect(mockedApiFetch).toHaveBeenCalledTimes(1);
   });
 
   it('keys saved Luna content by both saved profile and natal chart fingerprints', async () => {
