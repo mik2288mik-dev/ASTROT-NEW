@@ -4,6 +4,7 @@ import type {
   NatalChartData,
   UserProfile,
 } from '../../types';
+import { toDateInputValue } from '../date-utils';
 import { db } from '../db';
 import { isCanonicalNatalChartDataComplete } from '../natalChartCanonical';
 import {
@@ -36,10 +37,11 @@ export type ReadingContext = {
 };
 
 function toProfile(user: any, fallback?: Partial<UserProfile>): UserProfile {
+  const birthDate = toDateInputValue(fallback?.birthDate || user.birth_date);
   return {
     id: user.id,
     name: fallback?.name || user.name || '',
-    birthDate: fallback?.birthDate || user.birth_date || '',
+    birthDate,
     birthTime: fallback?.birthTime ?? user.birth_time ?? '',
     birthPlace: fallback?.birthPlace || user.birth_place || '',
     isSetup: user.is_setup ?? true,

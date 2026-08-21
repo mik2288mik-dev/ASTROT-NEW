@@ -120,4 +120,21 @@ describe('saved-person natal report context', () => {
     expect(mockRepairCanonicalChartForUser).not.toHaveBeenCalled();
     expect(mockRepairCanonicalChartRecord).not.toHaveBeenCalled();
   });
+
+  it('normalizes PostgreSQL Date values before exposing the profile', async () => {
+    const storedBirthDate = new Date('1990-01-01T00:00:00.000Z');
+    mockUserGet.mockResolvedValueOnce({
+      id: 'owner-1', name: 'Owner', birth_date: storedBirthDate, birth_time: '12:00',
+      birth_place: 'Moscow', language: 'ru', is_setup: true, is_premium: true,
+    });
+    mockPrimaryGet.mockResolvedValueOnce({
+      id: 1, user_id: 'owner-1', is_primary: true, subject_type: 'self',
+      name: 'Owner', birth_date: storedBirthDate, birth_time: '12:00', birth_place: 'Moscow',
+      chart_data: primaryChartData,
+    });
+
+    const context = await resolveReadingContext('owner-1', null);
+
+    expect(context?.profile.birthDate).toBe('1990-01-01');
+  });
 });
