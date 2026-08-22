@@ -385,7 +385,6 @@ const App: React.FC = () => {
     const restoredRuStoreUserRef = useRef<string | null>(null);
     const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
-    const natalQuestionSequenceRef = useRef(0);
 
     useEffect(() => {
         const reached = !!profile?.id
@@ -1973,8 +1972,8 @@ const App: React.FC = () => {
         navigateTo('synastry');
     }, [navigateTo]);
 
-    const openNavigationSheet = useCallback((sheet: 'hub' | 'services') => {
-        setNavigationSheet((current) => current === sheet ? null : sheet);
+    const openNavigationServices = useCallback(() => {
+        setNavigationSheet((current) => current === 'services' ? null : 'services');
     }, []);
     const openProfileSheet = useCallback(() => {
         setNavigationSheet('profile');
@@ -1985,12 +1984,6 @@ const App: React.FC = () => {
     }, [openSynastryFromHome]);
     const openNavigationNatal = useCallback(() => {
         setNavigationSheet(null);
-        openBottomNatal();
-    }, [openBottomNatal]);
-    const openNavigationQuestion = useCallback(() => {
-        setNavigationSheet(null);
-        natalQuestionSequenceRef.current += 1;
-        setNatalQuestionRequest(natalQuestionSequenceRef.current);
         openBottomNatal();
     }, [openBottomNatal]);
     const openNavigationKnowledge = useCallback(() => {
@@ -2138,8 +2131,8 @@ const App: React.FC = () => {
         >
             <main
                 className="lumia-tg-main-gutter relative z-10 flex-1 w-full max-w-reading-wide mx-auto overflow-hidden min-h-0 bg-white"
-                aria-hidden={(navigationSheet && navigationSheet !== 'hub') || paywallContext ? true : undefined}
-                inert={(navigationSheet && navigationSheet !== 'hub') || paywallContext ? true : undefined}
+                aria-hidden={navigationSheet || paywallContext ? true : undefined}
+                inert={navigationSheet || paywallContext ? true : undefined}
             >
                 <div
                     className={view === 'dashboard' ? 'flex h-full min-h-0 overflow-hidden' : 'hidden'}
@@ -2402,11 +2395,9 @@ const App: React.FC = () => {
                         activeSheet={navigationSheet}
                         onOpenToday={openBottomToday}
                         onOpenZodiac={openBottomZodiac}
-                        onOpenSheet={openNavigationSheet}
+                        onOpenServices={openNavigationServices}
                         onOpenCompatibility={openNavigationCompatibility}
                         onOpenNatal={openNavigationNatal}
-                        onAskAstrologer={openNavigationQuestion}
-                        onOpenKnowledge={openNavigationKnowledge}
                     />
                     <LumiaNavigationSheet
                         activeSheet={navigationSheet}
@@ -2416,6 +2407,7 @@ const App: React.FC = () => {
                         onOpenSettings={openNavigationSettings}
                         onOpenPremium={openNavigationPremium}
                         onOpenCharts={openNavigationCharts}
+                        onOpenKnowledge={openNavigationKnowledge}
                     />
                 </>
             ) : null}

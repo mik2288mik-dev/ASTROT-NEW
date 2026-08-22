@@ -5,7 +5,7 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('Today minimal navigation shell', () => {
-  it('removes the side drawer and mounts one three-zone bottom navigation', () => {
+  it('removes the side drawer and mounts one five-button bottom navigation', () => {
     const app = read('App.tsx');
     const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
 
@@ -13,55 +13,61 @@ describe('Today minimal navigation shell', () => {
     expect(app).not.toContain('sideDrawerOpen');
     expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
     expect(app).toContain('shouldShowLumiaBottomNavigation(view)');
-    expect(navigation).toContain('today-bottom-nav-quick-links');
+    expect(navigation).not.toContain('today-bottom-nav-quick-links');
     expect(navigation).toContain('data-nav-id="personal"');
     expect(navigation).toContain('data-nav-id="zodiac"');
+    expect(navigation).toContain('data-nav-id="compatibility"');
+    expect(navigation).toContain('<MoonStar aria-hidden="true" strokeWidth={1.25} />');
+    expect(navigation).toContain('<Users aria-hidden="true" strokeWidth={1.25} />');
+    expect(navigation).not.toContain('ZodiacWheelIcon');
+    expect(navigation).not.toContain('HeartHandshake');
     expect(navigation).toContain('today-bottom-nav-hub');
     expect(navigation).toContain('today-bottom-nav-services');
     expect(navigation).toContain("'matrix'");
     expect(navigation).toContain("'encyclopedia'");
     expect(navigation).toContain("'charts'");
-    expect(navigation).toContain("aria-current={hubIsCurrent ? 'page' : undefined}");
+    expect(navigation).toContain("aria-current={natalIsCurrent ? 'page' : undefined}");
     expect(navigation).toContain("aria-current={servicesAreCurrent ? 'page' : undefined}");
   });
 
-  it('keeps hub, services, and profile destinations separate', () => {
+  it('keeps direct destinations, radial services, and profile destinations separate', () => {
     const app = read('App.tsx');
     const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
 
-    expect(navigation).toContain("activeSheet: 'hub' | 'services' | 'profile' | null");
+    expect(navigation).toContain("export type LumiaNavigationSheetId = 'services' | 'profile'");
     expect(navigation).toContain('Совместимость');
     expect(navigation).toContain('Натальная карта');
-    expect(navigation).toContain('Спросить астролога');
+    expect(navigation).not.toContain('Спросить астролога');
     expect(navigation).toContain('Хочу знать');
-    expect(navigation).toContain('onClick={() => runHubAction(onOpenKnowledge)}');
+    expect(navigation).toContain('onClick={() => runServiceAction(onOpenKnowledge)}');
     expect(app).toContain("navigateTo('encyclopedia')");
     expect(navigation).toContain('Настройки');
-    expect(navigation).toContain('Premium и подписка');
+    expect(navigation).toContain('Подписка');
     expect(navigation).toContain('Сохранённые карты');
     expect(app).toContain("setNavigationSheet('profile')");
   });
 
-  it('opens the brand hub as an anchored semicircle instead of a bottom sheet', () => {
+  it('opens natal directly and expands services from the right button as a radial menu', () => {
     const app = read('App.tsx');
     const navigation = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const styles = read('styles/todayHome.css');
 
     expect(navigation).toContain('/assets/brand/personal-horoscope-mark.svg');
     expect(navigation).toContain("from 'framer-motion'");
-    expect(navigation).toContain('<motion.button');
-    expect(navigation).toContain('useReducedMotion');
-    expect(navigation).toContain('hubMotion(-112, -67, 0)');
-    expect(navigation).toContain('hubMotion(112, -67, 3)');
-    expect(navigation).not.toContain('function TodayHubLogo');
+    expect(navigation).toContain('onClick={() => runNavigationAction(onOpenNatal)}');
+    expect(navigation).toContain('onClick={() => runNavigationAction(onOpenCompatibility)}');
+    expect(navigation).toContain('onClick={() => runNavigationAction(onOpenServices)}');
+    expect(navigation).toContain('aria-haspopup="menu"');
     expect(navigation).toContain('role="menu"');
-    expect(navigation).toContain('role="menuitem"');
+    expect(navigation.match(/role="menuitem"/g)).toHaveLength(4);
     expect(navigation).toContain('today-hub-dismiss-layer');
-    expect(navigation).toContain('activeSheet !== null && activeSheet !== \'hub\'');
+    expect(navigation).toContain("open={activeSheet === 'profile'}");
     expect(styles).toContain('.today-hub-radial-menu');
     expect(styles).toContain('.today-hub-radial-action');
+    expect(styles).not.toContain(".today-bottom-nav-services[aria-current='page']::after");
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(app).toContain("navigationSheet !== 'hub'");
+    expect(app).toContain("current === 'services' ? null : 'services'");
+    expect(app).not.toContain("navigationSheet !== 'hub'");
   });
 
   it('renders three controlled text tabs directly below the Today header', () => {

@@ -35,6 +35,10 @@ type NatalMagazineProps = {
   onOpenProfile?: () => void;
   onOpenMatrix?: () => void;
   onOpenEncyclopedia?: () => void;
+  uiPreview?: {
+    initialTab?: 'map' | 'reading';
+    openQuestion?: boolean;
+  };
 };
 
 type NatalScreenTab = 'map' | 'reading' | 'matrix' | 'questions';
@@ -57,13 +61,20 @@ export function NatalMagazine({
   onOpenProfile,
   onOpenMatrix,
   onOpenEncyclopedia,
+  uiPreview,
 }: NatalMagazineProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
   const subjectName = chartSubject ? chartSubject.name : profile.name;
   const subjectBirthDate = chartSubject ? chartSubject.birth_date : profile.birthDate;
   const subjectBirthTime = chartSubject ? (chartSubject.birth_time ?? '') : profile.birthTime;
   const subjectBirthPlace = chartSubject ? chartSubject.birth_place : profile.birthPlace;
-  const [activeTab, setActiveTab] = useState<NatalScreenTab>('map');
+  const previewConfig = process.env.NODE_ENV === 'development'
+    && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
+      ? uiPreview
+      : undefined;
+  const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => (
+    previewConfig?.openQuestion ? 'reading' : previewConfig?.initialTab || 'map'
+  ));
   const [questionOpenRequest, setQuestionOpenRequest] = useState(0);
   const handledExternalQuestionRequestRef = useRef(0);
   const tabs = useMemo(() => [
@@ -72,6 +83,14 @@ export function NatalMagazine({
     { id: 'matrix' as const, label: language === 'ru' ? 'Матрица судьбы' : 'Matrix' },
     { id: 'questions' as const, label: language === 'ru' ? 'Вопросы по карте' : 'Chart questions' },
   ], [language]);
+
+  useEffect(() => {
+    if (!previewConfig?.openQuestion) return;
+    const timer = window.setTimeout(() => {
+      setQuestionOpenRequest((value) => value + 1);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [previewConfig?.openQuestion]);
 
   useEffect(() => {
     if (

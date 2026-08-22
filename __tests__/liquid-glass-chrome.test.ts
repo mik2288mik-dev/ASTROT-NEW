@@ -5,16 +5,17 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('application chrome', () => {
-  it('uses the requested three-zone navigation and recognizable icons', () => {
+  it('uses the requested five-button navigation and recognizable icons', () => {
     const tabs = read('components/lumia-ui/LumiaBottomTabBar.tsx');
     const icons = read('components/icons/UiIcons.tsx');
 
     expect(tabs).toContain('data-nav-id="personal"');
     expect(tabs).toContain('data-nav-id="zodiac"');
-    expect(tabs).toContain('today-bottom-nav-quick-links');
+    expect(tabs).not.toContain('today-bottom-nav-quick-links');
+    expect(tabs).toContain('data-nav-id="compatibility"');
     expect(tabs).toContain('today-bottom-nav-hub');
     expect(tabs).toContain('today-bottom-nav-services');
-    expect(tabs).toContain("activeSheet: 'hub' | 'services' | 'profile' | null");
+    expect(tabs).toContain("export type LumiaNavigationSheetId = 'services' | 'profile'");
     expect(tabs).toContain('ZodiacWheelIcon');
     expect(tabs).toContain('HeartHandshake');
     expect(icons).toContain('export function ZodiacWheelIcon');
@@ -135,7 +136,7 @@ describe('application chrome', () => {
     expect(todayStyles).toContain('--lumia-bottom-tab-clearance: calc(');
     expect(globals).toContain('.lumia-main-scroll.lumia-bottom-tab-scroll');
     expect(globals).toContain('scroll-padding-bottom: var(--lumia-bottom-tab-clearance)');
-    expect(todayStyles).toContain('min-height: 3rem');
+    expect(todayStyles).toContain('min-height: 44px');
     expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
   });
 });

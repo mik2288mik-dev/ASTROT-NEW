@@ -1,6 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const isLiveReload = process.env.CAPACITOR_LIVE_RELOAD === '1';
+const liveReloadUrl = isLiveReload
+  ? (process.env.CAPACITOR_LIVE_URL?.trim() || 'http://localhost:3000')
+  : undefined;
 
 const config: CapacitorConfig = {
   appId: 'ru.tvoygoroskop.app',
@@ -17,6 +20,7 @@ const config: CapacitorConfig = {
     // The development emulator uses adb reverse to reach the local Next server.
     // Release builds keep cleartext traffic disabled.
     cleartext: isLiveReload,
+    ...(liveReloadUrl ? { url: liveReloadUrl } : {}),
   },
   plugins: {
     SystemBars: {

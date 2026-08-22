@@ -10,6 +10,8 @@ if (isMobileBuild && !process.env.NEXT_PUBLIC_API_URL) {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Live View is the visual source of truth; keep Next's corner badge off the app navigation.
+  devIndicators: false,
   output: isMobileBuild ? 'export' : 'standalone',
   // Нативные/серверные пакеты не бандлим в серверный билд (в т.ч. instrumentation),
   // иначе webpack пытается разрешить нативный .node и падает.

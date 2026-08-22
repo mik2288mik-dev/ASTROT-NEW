@@ -10,6 +10,7 @@ import {
   type RuStoreProduct,
 } from '../services/rustorePayService';
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
+import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 
 interface PaywallProps {
   profile: UserProfile;
@@ -19,6 +20,14 @@ interface PaywallProps {
   onContinueFree: () => void;
   onRestore: () => Promise<void>;
   onPlanSelected?: (planId: PremiumPlanId) => void;
+  uiPreview?: {
+    plans: Array<{
+      id: PremiumPlanId;
+      periodLabel: string;
+      priceLabel: string;
+      autoRenew: boolean;
+    }>;
+  };
 }
 
 type CatalogPlan = {
@@ -71,21 +80,29 @@ export const Paywall: React.FC<PaywallProps> = ({
   onContinueFree,
   onRestore,
   onPlanSelected,
+  uiPreview,
 }) => {
+  const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const ru = language === 'ru';
   const distributionChannel = resolveDistributionChannel();
   const isRuStoreChannel = distributionChannel === 'rustore';
   const rustorePaymentsEnabled = canUseRuStorePay(distributionChannel);
   const [selected, setSelected] = useState<PremiumPlanId>('premium_quarter');
-  const [plans, setPlans] = useState<Partial<Record<PremiumPlanId, CatalogPlan>>>({});
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [plans, setPlans] = useState<Partial<Record<PremiumPlanId, CatalogPlan>>>(() => (
+    previewFixture
+      ? Object.fromEntries(previewFixture.plans.map((plan) => [plan.id, plan]))
+      : {}
+  ));
+  const [catalogLoading, setCatalogLoading] = useState(!previewFixture);
   const [catalogError, setCatalogError] = useState(false);
   const [paying, setPaying] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState(false);
+  const [previewNotice, setPreviewNotice] = useState('');
 
   useEffect(() => {
+    if (previewFixture) return;
     let cancelled = false;
     setCatalogLoading(true);
     setCatalogError(false);
@@ -146,7 +163,7 @@ export const Paywall: React.FC<PaywallProps> = ({
       });
 
     return () => { cancelled = true; };
-  }, [isRuStoreChannel, language, rustorePaymentsEnabled]);
+  }, [isRuStoreChannel, language, rustorePaymentsEnabled, previewFixture]);
 
   const visiblePlans = useMemo(
     () => ORDER.map((id) => plans[id]).filter((plan): plan is CatalogPlan => Boolean(plan)),
@@ -157,11 +174,16 @@ export const Paywall: React.FC<PaywallProps> = ({
   const selectPlan = (planId: PremiumPlanId) => {
     lumiaSelectionHaptic();
     setSelected(planId);
+    if (previewFixture) return;
     onPlanSelected?.(planId);
   };
 
   const buy = async () => {
     if (paying || !selectedPlan) return;
+    if (previewFixture) {
+      setPreviewNotice('Оплата отключена в локальном Preview.');
+      return;
+    }
     lumiaSelectionHaptic();
     setPaying(true);
     try {
@@ -173,6 +195,10 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const restore = async () => {
     if (restoring) return;
+    if (previewFixture) {
+      setPreviewNotice('Восстановление покупок отключено в локальном Preview.');
+      return;
+    }
     setRestoreError(false);
     setRestoring(true);
     try {
@@ -182,6 +208,12 @@ export const Paywall: React.FC<PaywallProps> = ({
     } finally {
       setRestoring(false);
     }
+  };
+
+  const blockPreviewLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!previewFixture) return;
+    event.preventDefault();
+    setPreviewNotice('Внешние ссылки отключены в локальном Preview.');
   };
 
   const reasons = ru
@@ -203,23 +235,14 @@ export const Paywall: React.FC<PaywallProps> = ({
       className="fresh-page lumia-main-scroll pw2"
       data-paywall-instance-id={context.paywallInstanceId}
       data-paywall-placement={context.placement}
+      data-close-label={ru ? 'Закрыть' : 'Close'}
     >
-      <div className="pw2-topbar">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={ru ? 'Закрыть' : 'Close'}
-          className="pw2-close"
-          style={{ width: 44, height: 44, minWidth: 44, minHeight: 44 }}
-        >
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+      <AppTopBar title="Premium" onBack={onClose} />
 
       <h1 className="pw2-title">{ru ? 'Больше личного. Меньше общего.' : 'More personal. Less generic.'}</h1>
       <p className="pw2-sub">{CONTEXT_COPY[context.placement][language]}</p>
+
+      {previewNotice ? <p className="pw2-foot" role="status">{previewNotice}</p> : null}
 
       <ol className="pw2-compare" aria-label={ru ? 'Что входит в Premium' : 'What Premium includes'}>
         {reasons.map((reason) => (
@@ -313,11 +336,11 @@ export const Paywall: React.FC<PaywallProps> = ({
       ) : null}
 
       <div className="pw2-foot">
-        <a href={STORE_RELEASE_CONFIG.termsUrl} target="_blank" rel="noreferrer">
+        <a href={STORE_RELEASE_CONFIG.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
           {ru ? 'Условия использования' : 'Terms of use'}
         </a>
         {' · '}
-        <a href={STORE_RELEASE_CONFIG.privacyUrl} target="_blank" rel="noreferrer">
+        <a href={STORE_RELEASE_CONFIG.privacyUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
           {ru ? 'Политика конфиденциальности' : 'Privacy policy'}
         </a>
       </div>

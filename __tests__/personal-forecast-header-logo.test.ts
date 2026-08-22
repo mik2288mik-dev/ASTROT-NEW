@@ -41,7 +41,8 @@ describe('personal forecast header and shared navigation', () => {
     expect(nextApp).not.toContain('UniversalDrawerTrigger');
     expect(app).not.toContain('LumiaSideDrawer');
     expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
-    expect(navigation).toContain('today-bottom-nav-quick-links');
+    expect(navigation).not.toContain('today-bottom-nav-quick-links');
+    expect(navigation).toContain('data-nav-id="compatibility"');
     expect(navigation).toContain('today-bottom-nav-hub');
     expect(navigation).toContain('today-bottom-nav-services');
   });

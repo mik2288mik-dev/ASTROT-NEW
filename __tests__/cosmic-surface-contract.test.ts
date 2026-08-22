@@ -31,7 +31,7 @@ describe('cosmic transient surface contract', () => {
     expect(app).toContain('navigationSheet');
     expect(app).not.toContain('LumiaSideDrawer');
     expect(nextApp).not.toContain('LumiaSideDrawer');
-    expect(navigation).toContain("export type LumiaNavigationSheetId = 'hub' | 'services' | 'profile';");
+    expect(navigation).toContain("export type LumiaNavigationSheetId = 'services' | 'profile';");
     expect(navigation).toContain('today-bottom-navigation');
     expect(navigation).toContain('today-bottom-nav-hub');
     expect(navigation).toContain('today-bottom-nav-services');

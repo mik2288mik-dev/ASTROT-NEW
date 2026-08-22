@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown } from 'lucide-react';
-import { useReducedMotion } from 'framer-motion';
 import type { ForecastSection } from '../../lib/personalForecastContract';
 import { resolveTodayPremiumTeaserInsertion } from '../../lib/todayPremiumTeaser';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
@@ -116,11 +114,9 @@ export function TodayEditorialFeed({
   onPremiumTeaserClick,
   onPremiumTeaserDismiss,
 }: TodayEditorialFeedProps) {
-  const reduceMotion = useReducedMotion();
   const [teaserDismissed, setTeaserDismissed] = useState(false);
   const impressionKeyRef = useRef<string | null>(null);
   const teaserRef = useRef<HTMLElement | null>(null);
-  const readingRef = useRef<HTMLElement | null>(null);
   const renderableSections = useMemo(
     () => sections.filter((section) => isRenderableTodaySection(section, lockedSectionIds)),
     [lockedSectionIds, sections],
@@ -167,13 +163,6 @@ export function TodayEditorialFeed({
     userId,
   ]);
 
-  const scrollToReading = () => {
-    readingRef.current?.scrollIntoView({
-      behavior: reduceMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
-
   return (
     <article
       className="forecast-feed-story forecast-editorial-reading today-editorial-feed today-minimal-feed"
@@ -201,18 +190,9 @@ export function TodayEditorialFeed({
             </p>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="today-minimal-scroll-cue"
-          aria-label={language === 'ru' ? 'Перейти к прогнозу' : 'Read the forecast'}
-          onClick={scrollToReading}
-        >
-          <ArrowDown aria-hidden="true" strokeWidth={1.25} />
-        </button>
       </section>
 
       <section
-        ref={readingRef}
         className="today-minimal-reading"
         aria-labelledby="today-reading-title"
       >

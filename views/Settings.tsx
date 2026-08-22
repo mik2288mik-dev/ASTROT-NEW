@@ -88,6 +88,13 @@ interface SettingsProps {
     onOpenProfile: () => void;
     onLogout?: () => Promise<void>;
     onDeleteAccount?: () => Promise<void>;
+    uiPreview?: {
+        notificationEnabled: boolean;
+        quietStart: string;
+        quietEnd: string;
+        identities: LinkedIdentity[];
+        authCapabilities: AccountAuthCapabilities;
+    };
 }
 
 const NOTIFICATION_FREQUENCIES: NotificationFrequency[] = ['quiet', 'important', 'daily', 'twice_daily'];
@@ -149,7 +156,9 @@ export const Settings: React.FC<SettingsProps> = ({
     onOpenProfile,
     onLogout,
     onDeleteAccount,
+    uiPreview,
 }) => {
+    const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
@@ -159,16 +168,16 @@ export const Settings: React.FC<SettingsProps> = ({
     const [dailyPush, setDailyPush] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
     const [dailyPushInfo, setDailyPushInfo] = useState('');
     const [editsUsed, setEditsUsed] = useState(() =>
-        hasActivePremium(profile) ? profileEditsThisMonth(profile.id) : readProfileEdits(profile.id).length
+        previewFixture ? 0 : hasActivePremium(profile) ? profileEditsThisMonth(profile.id) : readProfileEdits(profile.id).length
     );
-    const [notifEnabled, setNotifEnabled] = useState(true);
-    const [quietStart, setQuietStart] = useState('22:00');
-    const [quietEnd, setQuietEnd] = useState('08:00');
+    const [notifEnabled, setNotifEnabled] = useState(previewFixture?.notificationEnabled ?? true);
+    const [quietStart, setQuietStart] = useState(previewFixture?.quietStart || '22:00');
+    const [quietEnd, setQuietEnd] = useState(previewFixture?.quietEnd || '08:00');
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deletionError, setDeletionError] = useState('');
     const [loggingOut, setLoggingOut] = useState(false);
     const [logoutError, setLogoutError] = useState('');
-    const [identities, setIdentities] = useState<LinkedIdentity[]>([]);
+    const [identities, setIdentities] = useState<LinkedIdentity[]>(previewFixture?.identities || []);
     const [identityError, setIdentityError] = useState('');
     const [identityNotice, setIdentityNotice] = useState('');
     const [identityLoadFailed, setIdentityLoadFailed] = useState(false);
@@ -180,9 +189,10 @@ export const Settings: React.FC<SettingsProps> = ({
     const [emailPasswordConfirmation, setEmailPasswordConfirmation] = useState('');
     const [identityBusy, setIdentityBusy] = useState(false);
     const [authPurpose, setAuthPurpose] = useState<'link' | 'login'>('link');
-    const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(null);
+    const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(previewFixture?.authCapabilities || null);
     const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
+    const [previewNotice, setPreviewNotice] = useState('');
 
     useEffect(() => {
         const end = profile.premiumEntitlement?.endsAt || profile.premiumUntil;
@@ -206,6 +216,7 @@ export const Settings: React.FC<SettingsProps> = ({
     }, [profile.premiumEntitlement?.endsAt, profile.premiumUntil]);
 
     useEffect(() => {
+        if (previewFixture) return;
         let alive = true;
         void getUserNotificationSettings().then((s) => {
             if (!alive || !s) return;
@@ -214,9 +225,10 @@ export const Settings: React.FC<SettingsProps> = ({
             if (s.quiet_hours_end) setQuietEnd(s.quiet_hours_end);
         });
         return () => { alive = false; };
-    }, []);
+    }, [previewFixture]);
 
     useEffect(() => {
+        if (previewFixture) return;
         let alive = true;
         void Promise.all([getLinkedIdentities(), getAccountAuthCapabilities()])
             .then(([result, capabilities]) => {
@@ -230,9 +242,13 @@ export const Settings: React.FC<SettingsProps> = ({
                 setIdentityLoadFailed(true);
             });
         return () => { alive = false; };
-    }, [identityReload, profile.id]);
+    }, [identityReload, profile.id, previewFixture]);
 
     const linkOAuth = (provider: 'vk' | 'yandex' | 'google') => {
+        if (previewFixture) {
+            setPreviewNotice(`В Preview вход через ${provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс' : 'Google'} отключён.`);
+            return;
+        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -246,6 +262,10 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const linkTelegram = () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview привязка Telegram отключена.');
+            return;
+        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -260,6 +280,10 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const requestEmailCode = () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview вход и отправка кода отключены.');
+            return;
+        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -285,6 +309,10 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const confirmEmailCode = () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview подтверждение аккаунта отключено.');
+            return;
+        }
         setIdentityError('');
         setIdentityNotice('');
         setIdentityBusy(true);
@@ -303,6 +331,7 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const saveNotif = (patch: { enabled?: boolean; quietHoursStart?: string; quietHoursEnd?: string }) => {
+        if (previewFixture) return;
         void updateUserNotificationSettings({
             enabled: notifEnabled,
             quietHoursStart: quietStart,
@@ -322,6 +351,10 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const sendSelfTest = async () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview тестовые уведомления не отправляются.');
+            return;
+        }
         if (selfTest === 'sending') return;
         setSelfTest('sending');
         setSelfTestInfo('');
@@ -349,6 +382,10 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     const sendDailyPush = async () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview push-уведомления не отправляются.');
+            return;
+        }
         if (dailyPush === 'sending') return;
         setDailyPush('sending');
         setDailyPushInfo('');
@@ -409,6 +446,11 @@ export const Settings: React.FC<SettingsProps> = ({
     );
 
     const restorePurchase = () => {
+        if (previewFixture) {
+            setRestoreState('success');
+            setPreviewNotice('В Preview восстановление покупок отключено.');
+            return;
+        }
         if (!onRestorePurchase || restoreState === 'running') return;
         setRestoreState('running');
         void onRestorePurchase()
@@ -416,18 +458,34 @@ export const Settings: React.FC<SettingsProps> = ({
             .catch(() => setRestoreState('error'));
     };
 
+    const manageSubscription = () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview управление подпиской отключено.');
+            return;
+        }
+        void onManageSubscription?.();
+    };
+
+    const blockPreviewLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
+        if (!previewFixture) return;
+        event.preventDefault();
+        setPreviewNotice('Внешние ссылки отключены в локальном Preview.');
+    };
+
     useEffect(() => {
+        if (previewFixture) return;
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.initDataUnsafe?.user) {
             setTgUser(tg.initDataUnsafe.user);
         }
-    }, []);
+    }, [previewFixture]);
 
     useEffect(() => {
+        if (previewFixture) return;
         const freq = readStoredNotificationFrequency(profile.id) || profile.notificationFrequency || 'important';
         // Регистрируем пользователя в движке уведомлений (таймзона + флаги) — иначе планировщики его не видят
         void updateUserNotificationSettings({ ...notificationFlagsFor(freq), timezone: localTimezone() });
-    }, [profile.id, profile.notificationFrequency]);
+    }, [profile.id, profile.notificationFrequency, previewFixture]);
 
     const hasLinkedTelegram = identities.some((identity) => identity.provider === 'telegram');
     const profileDisplayName = (() => {
@@ -443,6 +501,10 @@ export const Settings: React.FC<SettingsProps> = ({
         const updated = { ...profile, language: newLang };
         console.log('[Settings] Language changed to:', newLang);
         onUpdate(updated);
+        if (previewFixture) {
+            setPreviewNotice('Язык изменён только в локальном Preview.');
+            return;
+        }
         saveProfile(updated).catch(error => {
             console.error('[Settings] Failed to save language:', error);
         });
@@ -453,6 +515,7 @@ export const Settings: React.FC<SettingsProps> = ({
     // Пол иногда терялся при перезагрузке профиля и сбрасывался на «не указывать».
     // Дублируем выбор в localStorage и восстанавливаем его — как частоту уведомлений.
     useEffect(() => {
+        if (previewFixture) return;
         let stored: string | null = null;
         try { stored = window.localStorage.getItem(genderStorageKey); } catch { /* ignore */ }
         if (stored && ['male', 'female', 'unspecified'].includes(stored) && (profile.gender || null) !== stored) {
@@ -460,9 +523,14 @@ export const Settings: React.FC<SettingsProps> = ({
             onUpdate(updated);
             saveProfile(updated).catch(() => { /* ignore */ });
         }
-    }, [profile.id, profile.gender, onUpdate]);
+    }, [profile.id, profile.gender, onUpdate, previewFixture]);
 
     const handleGenderChange = (gender: 'male' | 'female' | 'unspecified') => {
+        if (previewFixture) {
+            onUpdate({ ...profile, gender });
+            setPreviewNotice('Пол изменён только в локальном Preview.');
+            return;
+        }
         try { window.localStorage.setItem(genderStorageKey, gender); } catch { /* ignore */ }
         const updated = { ...profile, gender };
         onUpdate(updated);
@@ -480,6 +548,12 @@ export const Settings: React.FC<SettingsProps> = ({
         }
         const updated = { ...profile, name: tempName, birthPlace: tempPlace };
         onUpdate(updated);
+        if (previewFixture) {
+            setEditsUsed((n) => n + 1);
+            setEditing(false);
+            setPreviewNotice('Профиль изменён только в локальном Preview.');
+            return;
+        }
         saveProfile(updated).then(() => {
             console.log('[Settings] Profile saved successfully');
         }).catch(error => {
@@ -503,6 +577,11 @@ export const Settings: React.FC<SettingsProps> = ({
             )}
           />
           <div className="settings-editorial-content">
+            {previewNotice ? (
+                <p role="status" className="settings-editorial-section lumia-muted text-sm">
+                    {previewNotice}
+                </p>
+            ) : null}
             <section className="settings-editorial-profile">
                 <div className="flex items-center gap-4">
                     {profilePhotoUrl ? (
@@ -529,7 +608,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 </div>
             </section>
 
-            <section className={sectionClass}>
+            <section className={`${sectionClass} settings-editorial-premium`}>
                 <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
                 <h2 className="mt-1.5 font-serif text-xl text-mono-ink sm:text-2xl">
                     {subscriptionPresentation.title}
@@ -550,7 +629,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         </button>
                     ) : null}
                     {subscriptionPresentation.canManageInStore && onManageSubscription ? (
-                        <button type="button" className="fresh-btn-ghost" onClick={() => void onManageSubscription()}>
+                        <button type="button" className="fresh-btn-ghost" onClick={manageSubscription}>
                             {profile.language === 'ru' ? 'Управлять в RuStore' : 'Manage in RuStore'}
                         </button>
                     ) : null}
@@ -843,7 +922,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
-                    {hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
+                    {!previewFixture && hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
                         <button
                             type="button"
                             className="fresh-btn-ghost"
@@ -945,9 +1024,9 @@ export const Settings: React.FC<SettingsProps> = ({
             <section className={sectionClass}>
                 <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Legal and support' : 'Правовая информация и поддержка'}</h3>
                 <div className="mt-3 grid gap-2 text-sm">
-                    <a className="fresh-btn-ghost text-left" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer">{profile.language === 'en' ? 'Privacy Policy' : 'Политика конфиденциальности'}</a>
-                    <a className="fresh-btn-ghost text-left" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer">{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</a>
-                    <a className="fresh-btn-ghost text-left" href={`mailto:${releaseConfig.supportEmail}`}>{profile.language === 'en' ? 'Support' : 'Поддержка'}</a>
+                    <a className="fresh-btn-ghost text-left" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>{profile.language === 'en' ? 'Privacy Policy' : 'Политика конфиденциальности'}</a>
+                    <a className="fresh-btn-ghost text-left" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</a>
+                    <a className="fresh-btn-ghost text-left" href={`mailto:${releaseConfig.supportEmail}`} onClick={blockPreviewLink}>{profile.language === 'en' ? 'Support' : 'Поддержка'}</a>
                 </div>
             </section>
 
@@ -960,6 +1039,10 @@ export const Settings: React.FC<SettingsProps> = ({
                         className="fresh-btn-ghost"
                         disabled={loggingOut || deletingAccount}
                         onClick={() => {
+                            if (previewFixture) {
+                                setPreviewNotice('В Preview выход из аккаунта отключён.');
+                                return;
+                            }
                             if (!onLogout) return;
                             setLogoutError('');
                             setLoggingOut(true);
@@ -975,6 +1058,10 @@ export const Settings: React.FC<SettingsProps> = ({
                             : (profile.language === 'en' ? 'Sign out' : 'Выйти')}
                     </button>
                     <button type="button" disabled={deletingAccount} className="fresh-btn-ghost text-red-700" onClick={() => {
+                        if (previewFixture) {
+                            setPreviewNotice('В Preview удаление аккаунта отключено.');
+                            return;
+                        }
                         if (!window.confirm(profile.language === 'en' ? 'Delete your account and related data permanently?' : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
                         setDeletionError('');
                         setDeletingAccount(true);

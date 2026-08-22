@@ -1,26 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { Fragment, useEffect, useRef } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   BookOpen,
   ChevronRight,
   Crown,
-  HeartHandshake,
   Menu,
-  MessageCircleQuestion,
+  MoonStar,
   Orbit,
   Settings,
   Star,
   UserRound,
+  Users,
   WalletCards,
   type LucideIcon,
 } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
-import { ZodiacWheelIcon } from '../icons/UiIcons';
 import { CosmicSheet } from './CosmicSheet';
 
-export type LumiaNavigationSheetId = 'hub' | 'services' | 'profile';
+export type LumiaNavigationSheetId = 'services' | 'profile';
 
 type LumiaBottomTabBarProps = {
   profile: UserProfile;
@@ -28,21 +27,20 @@ type LumiaBottomTabBarProps = {
   activeSheet: LumiaNavigationSheetId | null;
   onOpenToday: () => void;
   onOpenZodiac: () => void;
-  onOpenSheet: (sheet: 'hub' | 'services') => void;
+  onOpenServices: () => void;
   onOpenCompatibility: () => void;
   onOpenNatal: () => void;
-  onAskAstrologer: () => void;
-  onOpenKnowledge: () => void;
 };
 
 type LumiaNavigationSheetProps = {
-  activeSheet: 'hub' | 'services' | 'profile' | null;
+  activeSheet: LumiaNavigationSheetId | null;
   profile: UserProfile;
   onClose: () => void;
   onOpenNatal: () => void;
   onOpenSettings: () => void;
   onOpenPremium: () => void;
   onOpenCharts: () => void;
+  onOpenKnowledge: () => void;
 };
 
 export const LUMIA_BOTTOM_NAV_VIEWS: readonly ViewState[] = [
@@ -56,8 +54,8 @@ export const LUMIA_BOTTOM_NAV_VIEWS: readonly ViewState[] = [
   'settings',
   'charts',
 ];
-const HUB_VIEWS: ViewState[] = ['chart', 'synastry', 'encyclopedia', 'matrix', 'personality'];
-const SERVICE_VIEWS: ViewState[] = ['settings', 'charts'];
+const NATAL_VIEWS: ViewState[] = ['chart', 'matrix', 'personality'];
+const SERVICE_VIEWS: ViewState[] = ['encyclopedia', 'settings', 'charts'];
 
 export function shouldShowLumiaBottomNavigation(view: ViewState): boolean {
   return LUMIA_BOTTOM_NAV_VIEWS.includes(view);
@@ -74,154 +72,49 @@ export function LumiaBottomTabBar({
   activeSheet,
   onOpenToday,
   onOpenZodiac,
-  onOpenSheet,
+  onOpenServices,
   onOpenCompatibility,
   onOpenNatal,
-  onAskAstrologer,
-  onOpenKnowledge,
 }: LumiaBottomTabBarProps) {
-  const hubTriggerRef = useRef<HTMLButtonElement>(null);
-  const firstHubActionRef = useRef<HTMLButtonElement>(null);
-  const reduceMotion = useReducedMotion();
-  const hubIsOpen = activeSheet === 'hub';
-
-  useEffect(() => {
-    if (hubIsOpen) {
-      firstHubActionRef.current?.focus({ preventScroll: true });
-      return;
-    }
-    if (document.activeElement?.getAttribute('role') === 'menuitem') {
-      hubTriggerRef.current?.focus({ preventScroll: true });
-    }
-  }, [hubIsOpen]);
-
   if (!shouldShowLumiaBottomNavigation(view)) return null;
   const isEnglish = profile.language === 'en';
-  const hubIsCurrent = HUB_VIEWS.includes(view);
+  const natalIsCurrent = NATAL_VIEWS.includes(view);
   const servicesAreCurrent = SERVICE_VIEWS.includes(view);
-
-  const runHubAction = (action: () => void) => {
-    runNavigationAction(action);
-  };
-  const hubMotion = (x: number, y: number, order: number) => ({
-    initial: reduceMotion ? { x, y, opacity: 1 } : { x: 0, y: 0, scale: 0.82, opacity: 0 },
-    animate: { x, y, scale: 1, opacity: 1 },
-    transition: reduceMotion
-      ? { duration: 0 }
-      : { duration: 0.23, delay: order * 0.035, ease: [0.22, 1, 0.36, 1] as const },
-  });
 
   return (
     <div className="lumia-bottom-tab-shell today-bottom-navigation pointer-events-none">
-      {hubIsOpen ? (
-        <button
-          type="button"
-          className="today-hub-dismiss-layer pointer-events-auto"
-          aria-label={isEnglish ? 'Close feature menu' : 'Закрыть главное меню'}
-          onClick={() => onOpenSheet('hub')}
-        />
-      ) : null}
       <nav
         className="lumia-bottom-tab-bar today-bottom-nav-bar pointer-events-auto"
         aria-label={isEnglish ? 'Primary navigation' : 'Основная навигация'}
       >
-        <div className="today-bottom-nav-quick-links">
-          <button
-            type="button"
-            className="today-bottom-nav-quick-action"
-            data-nav-id="personal"
-            aria-label={isEnglish ? 'Personal horoscope' : 'Личный гороскоп'}
-            aria-current={view === 'dashboard' ? 'page' : undefined}
-            onClick={() => runNavigationAction(onOpenToday)}
-          >
-            <Star aria-hidden="true" strokeWidth={1.35} />
-            <span>{isEnglish ? 'Personal horoscope' : 'Личный гороскоп'}</span>
-          </button>
-          <button
-            type="button"
-            className="today-bottom-nav-quick-action"
-            data-nav-id="zodiac"
-            aria-label={isEnglish ? 'Horoscope by sign' : 'Гороскоп по знакам'}
-            aria-current={view === 'horoscope' ? 'page' : undefined}
-            onClick={() => runNavigationAction(onOpenZodiac)}
-          >
-            <ZodiacWheelIcon />
-            <span>{isEnglish ? 'Horoscope by sign' : 'Гороскоп по знакам'}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          className="today-bottom-nav-action"
+          data-nav-id="personal"
+          aria-label={isEnglish ? 'Personal horoscope' : 'Личный гороскоп'}
+          aria-current={view === 'dashboard' ? 'page' : undefined}
+          onClick={() => runNavigationAction(onOpenToday)}
+        >
+          <Star aria-hidden="true" strokeWidth={1.25} />
+        </button>
+        <button
+          type="button"
+          className="today-bottom-nav-action"
+          data-nav-id="zodiac"
+          aria-label={isEnglish ? 'Horoscope by sign' : 'Гороскоп по знакам'}
+          aria-current={view === 'horoscope' ? 'page' : undefined}
+          onClick={() => runNavigationAction(onOpenZodiac)}
+        >
+          <MoonStar aria-hidden="true" strokeWidth={1.25} />
+        </button>
 
-        <div className="today-bottom-nav-hub-wrap" data-open={hubIsOpen}>
-          <AnimatePresence>
-            {hubIsOpen ? (
-              <motion.div
-                id="today-hub-radial-menu"
-                className="today-hub-radial-menu"
-                role="menu"
-                aria-label={isEnglish ? 'Feature menu' : 'Главное меню'}
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduceMotion ? 0 : 0.15 }}
-              >
-                <motion.button
-                  ref={firstHubActionRef}
-                  type="button"
-                  role="menuitem"
-                  className="today-hub-radial-action"
-                  data-position="far-left"
-                  onClick={() => runHubAction(onOpenCompatibility)}
-                  {...hubMotion(-112, -67, 0)}
-                >
-                  <span className="today-hub-radial-icon"><HeartHandshake aria-hidden="true" /></span>
-                  <span>{isEnglish ? 'Compatibility' : 'Совместимость'}</span>
-                </motion.button>
-                <motion.button
-                  type="button"
-                  role="menuitem"
-                  className="today-hub-radial-action"
-                  data-position="near-left"
-                  onClick={() => runHubAction(onOpenNatal)}
-                  {...hubMotion(-43, -131, 1)}
-                >
-                  <span className="today-hub-radial-icon"><Orbit aria-hidden="true" /></span>
-                  <span>{isEnglish ? 'Natal chart' : 'Натальная карта'}</span>
-                </motion.button>
-                <motion.button
-                  type="button"
-                  role="menuitem"
-                  className="today-hub-radial-action"
-                  data-position="near-right"
-                  onClick={() => runHubAction(onAskAstrologer)}
-                  {...hubMotion(43, -131, 2)}
-                >
-                  <span className="today-hub-radial-icon"><MessageCircleQuestion aria-hidden="true" /></span>
-                  <span>{isEnglish ? 'Ask astrologer' : 'Спросить астролога'}</span>
-                </motion.button>
-                <motion.button
-                  type="button"
-                  role="menuitem"
-                  className="today-hub-radial-action"
-                  data-position="far-right"
-                  onClick={() => runHubAction(onOpenKnowledge)}
-                  {...hubMotion(112, -67, 3)}
-                >
-                  <span className="today-hub-radial-icon"><BookOpen aria-hidden="true" /></span>
-                  <span>{isEnglish ? 'I want to know' : 'Хочу знать'}</span>
-                </motion.button>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-
+        <div className="today-bottom-nav-hub-wrap">
           <button
-            ref={hubTriggerRef}
             type="button"
             className="today-bottom-nav-hub"
-            aria-label={isEnglish ? 'Open feature hub' : 'Открыть главное меню'}
-            aria-haspopup="menu"
-            aria-expanded={hubIsOpen}
-            aria-current={hubIsCurrent ? 'page' : undefined}
-            aria-controls="today-hub-radial-menu"
-            onClick={() => runNavigationAction(() => onOpenSheet('hub'))}
+            aria-label={isEnglish ? 'Natal chart' : 'Натальная карта'}
+            aria-current={natalIsCurrent ? 'page' : undefined}
+            onClick={() => runNavigationAction(onOpenNatal)}
           >
             <img
               className="today-bottom-nav-hub-logo"
@@ -234,13 +127,25 @@ export function LumiaBottomTabBar({
 
         <button
           type="button"
+          className="today-bottom-nav-action"
+          data-nav-id="compatibility"
+          aria-label={isEnglish ? 'Compatibility' : 'Совместимость'}
+          aria-current={view === 'synastry' ? 'page' : undefined}
+          onClick={() => runNavigationAction(onOpenCompatibility)}
+        >
+          <Users aria-hidden="true" strokeWidth={1.25} />
+        </button>
+
+        <button
+          id="today-services-trigger"
+          type="button"
           className="today-bottom-nav-services"
           aria-label={isEnglish ? 'Open services' : 'Открыть сервисное меню'}
-          aria-haspopup="dialog"
+          aria-haspopup="menu"
           aria-expanded={activeSheet === 'services'}
           aria-current={servicesAreCurrent ? 'page' : undefined}
-          aria-controls="today-navigation-sheet"
-          onClick={() => runNavigationAction(() => onOpenSheet('services'))}
+          aria-controls="today-services-radial-menu"
+          onClick={() => runNavigationAction(onOpenServices)}
         >
           <Menu aria-hidden="true" strokeWidth={1.25} />
         </button>
@@ -293,53 +198,133 @@ export function LumiaNavigationSheet({
   onOpenSettings,
   onOpenPremium,
   onOpenCharts,
+  onOpenKnowledge,
 }: LumiaNavigationSheetProps) {
+  const firstServiceActionRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef(onClose);
+  const serviceWasOpenRef = useRef(false);
+  const reduceMotion = useReducedMotion();
   const isEnglish = profile.language === 'en';
-  const sheetTitle = activeSheet === 'profile'
-    ? (isEnglish ? 'Profile' : 'Профиль')
-    : activeSheet === 'services'
-      ? (isEnglish ? 'Services' : 'Сервис')
-      : (isEnglish ? 'Explore' : 'Главное');
-  const sheetSubtitle = activeSheet === 'profile'
-    ? (profile.name?.trim() || (isEnglish ? 'Your details and charts' : 'Твои данные и карты'))
-    : activeSheet === 'services'
-      ? (isEnglish ? 'Settings, store, and subscription.' : 'Настройки, магазин и подписка.')
-      : (isEnglish ? 'The key sections of your horoscope.' : 'Ключевые разделы твоего гороскопа.');
+  const serviceIsOpen = activeSheet === 'services';
+  const sheetTitle = isEnglish ? 'Profile' : 'Профиль';
+  const sheetSubtitle = profile.name?.trim() || (isEnglish ? 'Your details and charts' : 'Твои данные и карты');
+
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (serviceIsOpen) {
+      serviceWasOpenRef.current = true;
+      firstServiceActionRef.current?.focus({ preventScroll: true });
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') closeRef.current();
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+
+    if (serviceWasOpenRef.current) {
+      serviceWasOpenRef.current = false;
+      if (document.activeElement?.getAttribute('role') === 'menuitem') {
+        document.getElementById('today-services-trigger')?.focus({ preventScroll: true });
+      }
+    }
+  }, [serviceIsOpen]);
+
+  const serviceMotion = (x: string, y: number, order: number) => ({
+    initial: reduceMotion ? { x, y, opacity: 1 } : { x: 0, y: 0, scale: 0.82, opacity: 0 },
+    animate: { x, y, scale: 1, opacity: 1 },
+    exit: reduceMotion ? { opacity: 0 } : { x: 0, y: 0, scale: 0.82, opacity: 0 },
+    transition: reduceMotion
+      ? { duration: 0 }
+      : { duration: 0.23, delay: order * 0.035, ease: [0.22, 1, 0.36, 1] as const },
+  });
+
+  const runServiceAction = (action: () => void) => runNavigationAction(action);
 
   return (
-    <CosmicSheet
-      open={activeSheet !== null && activeSheet !== 'hub'}
-      title={sheetTitle}
-      subtitle={sheetSubtitle}
-      closeLabel={isEnglish ? 'Close menu' : 'Закрыть меню'}
-      className="today-navigation-sheet"
-      contentClassName="today-navigation-sheet-content"
-      onClose={onClose}
-    >
-      <div id="today-navigation-sheet">
-        {activeSheet === 'services' ? (
-          <div className="today-navigation-sheet-list">
-            <NavigationItem
-              label={isEnglish ? 'Settings' : 'Настройки'}
-              Icon={Settings}
-              onClick={onOpenSettings}
+    <>
+      <AnimatePresence>
+        {serviceIsOpen ? (
+          <Fragment key="services-radial-menu">
+            <motion.button
+              type="button"
+              className="today-hub-dismiss-layer"
+              aria-label={isEnglish ? 'Close services menu' : 'Закрыть сервисное меню'}
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.15 }}
+              onClick={onClose}
             />
-            <NavigationItem
-              label={isEnglish ? 'Store' : 'Магазин'}
-              description={isEnglish ? 'Premium plans and access' : 'Тарифы и доступ Premium'}
-              Icon={WalletCards}
-              onClick={onOpenPremium}
-            />
-            <NavigationItem
-              label={isEnglish ? 'Premium and subscription' : 'Premium и подписка'}
-              description={isEnglish ? 'Status and management' : 'Статус и управление'}
-              Icon={Crown}
-              onClick={onOpenSettings}
-            />
-          </div>
+            <motion.div
+              id="today-services-radial-menu"
+              className="today-hub-radial-menu"
+              role="menu"
+              aria-label={isEnglish ? 'Services' : 'Сервисное меню'}
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.15 }}
+            >
+              <motion.button
+                ref={firstServiceActionRef}
+                type="button"
+                role="menuitem"
+                className="today-hub-radial-action"
+                onClick={() => runServiceAction(onOpenKnowledge)}
+                {...serviceMotion('calc(-40vw - 112px)', -67, 0)}
+              >
+                <span className="today-hub-radial-icon"><BookOpen aria-hidden="true" /></span>
+                <span>{isEnglish ? 'I want to know' : 'Хочу знать'}</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                role="menuitem"
+                className="today-hub-radial-action"
+                onClick={() => runServiceAction(onOpenPremium)}
+                {...serviceMotion('calc(-40vw - 43px)', -131, 1)}
+              >
+                <span className="today-hub-radial-icon"><WalletCards aria-hidden="true" /></span>
+                <span>{isEnglish ? 'Store' : 'Магазин'}</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                role="menuitem"
+                className="today-hub-radial-action"
+                onClick={() => runServiceAction(onOpenSettings)}
+                {...serviceMotion('calc(-40vw + 43px)', -131, 2)}
+              >
+                <span className="today-hub-radial-icon"><Settings aria-hidden="true" /></span>
+                <span>{isEnglish ? 'Settings' : 'Настройки'}</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                role="menuitem"
+                className="today-hub-radial-action"
+                onClick={() => runServiceAction(onOpenSettings)}
+                {...serviceMotion('calc(-40vw + 112px)', -67, 3)}
+              >
+                <span className="today-hub-radial-icon"><Crown aria-hidden="true" /></span>
+                <span>{isEnglish ? 'Premium' : 'Подписка'}</span>
+              </motion.button>
+            </motion.div>
+          </Fragment>
         ) : null}
+      </AnimatePresence>
 
-        {activeSheet === 'profile' ? (
+      <CosmicSheet
+        open={activeSheet === 'profile'}
+        title={sheetTitle}
+        subtitle={sheetSubtitle}
+        closeLabel={isEnglish ? 'Close menu' : 'Закрыть меню'}
+        className="today-navigation-sheet"
+        contentClassName="today-navigation-sheet-content"
+        onClose={onClose}
+      >
+        <div id="today-navigation-sheet">
+          {activeSheet === 'profile' ? (
           <div className="today-navigation-profile">
             <div className="today-navigation-profile-mark" aria-hidden="true">
               <UserRound strokeWidth={1.25} />
@@ -374,8 +359,9 @@ export function LumiaNavigationSheet({
               />
             </div>
           </div>
-        ) : null}
-      </div>
-    </CosmicSheet>
+          ) : null}
+        </div>
+      </CosmicSheet>
+    </>
   );
 }

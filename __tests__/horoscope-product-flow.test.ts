@@ -112,8 +112,9 @@ describe('Horoscope product flow', () => {
     expect(tabs).toContain('data-nav-id="zodiac"');
     expect(tabs).toContain("aria-current={view === 'horoscope' ? 'page' : undefined}");
     expect(tabs).not.toContain('data-nav-id="ask"');
-    expect(tabs).toContain("activeSheet === 'hub'");
-    expect(tabs).toContain('Спросить астролога');
+    expect(tabs).not.toContain("activeSheet === 'hub'");
+    expect(tabs).not.toContain('Спросить астролога');
+    expect(tabs).toContain('onClick={() => runNavigationAction(onOpenNatal)}');
     expect(tabs).toContain('LUMIA_BOTTOM_NAV_VIEWS');
     expect(tabs).toContain("'matrix'");
     expect(tabs).toContain("'encyclopedia'");

@@ -26,9 +26,21 @@ loadAndroidAuthEnv();
 
 const androidDirectory = path.resolve('android');
 const wrapper = path.join(androidDirectory, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
+const bundledJavaHome = 'C:\\Program Files\\Android\\Android Studio\\jbr';
+const detectedAndroidHome = process.env.LOCALAPPDATA
+  ? path.join(process.env.LOCALAPPDATA, 'Android', 'Sdk')
+  : undefined;
+const androidHome = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? detectedAndroidHome;
 process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL || 'development';
+const nativeEnvironment = {
+  ...process.env,
+  ...(process.env.JAVA_HOME || !fs.existsSync(bundledJavaHome) ? {} : { JAVA_HOME: bundledJavaHome }),
+  ...(process.env.ANDROID_HOME || !androidHome ? {} : { ANDROID_HOME: androidHome }),
+  ...(process.env.ANDROID_SDK_ROOT || !androidHome ? {} : { ANDROID_SDK_ROOT: androidHome }),
+};
 const result = spawnSync(wrapper, ['assembleDevelopmentDebug'], {
   cwd: androidDirectory,
+  env: nativeEnvironment,
   stdio: 'inherit',
   shell: process.platform === 'win32',
 });

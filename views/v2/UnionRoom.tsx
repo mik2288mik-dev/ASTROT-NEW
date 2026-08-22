@@ -69,6 +69,25 @@ type UnionRoomProps = {
   canPromotePremium?: boolean;
   onOpenProfile?: () => void;
   onOpenEncyclopedia?: () => void;
+  uiPreview?: {
+    screen: 'input' | 'signs' | 'result';
+    subject: {
+      name: string;
+      date: string;
+      time: string;
+      place: string;
+      sign: string;
+    };
+    partner: {
+      name: string;
+      date: string;
+      time: string;
+      place: string;
+      sign: string;
+    };
+    signCompatibility: SignCompatibilityResult;
+    deepResult: SynastryResult;
+  };
 };
 
 type CompatibilityTab = 'compatibility' | 'signs' | 'details';
@@ -563,12 +582,14 @@ export function UnionRoom(props: UnionRoomProps) {
     canPromotePremium = true,
     onOpenProfile,
     onOpenEncyclopedia,
+    uiPreview,
   } = props;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
   const reduce = useReducedMotion();
 
   const premium = hasActivePremium(profile);
+  const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
   const yourSun = useMemo(
     () => String(chartData?.sun?.sign || profile.selectedZodiacSign || sunSignFromDate(profile.birthDate) || 'aries').toLowerCase(),
     [chartData, profile.selectedZodiacSign, profile.birthDate],
@@ -578,10 +599,15 @@ export function UnionRoom(props: UnionRoomProps) {
   const initialYouGender: CompatGender = profile.gender === 'female' ? 'female' : 'male';
   const initialThemGender: CompatGender = initialYouGender === 'male' ? 'female' : 'male';
 
-  const [screen, setScreen] = useState<'add' | 'result' | 'details'>(initialPrefill ? 'result' : 'add');
-  const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(premium ? 'birth' : 'sign');
+  const previewEnabled = Boolean(previewFixture);
+  const [screen, setScreen] = useState<'add' | 'result' | 'details'>(
+    previewFixture?.screen === 'result' || initialPrefill ? 'result' : 'add',
+  );
+  const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(
+    previewFixture ? (previewFixture.screen === 'signs' ? 'sign' : 'birth') : premium ? 'birth' : 'sign',
+  );
   const [availableCharts, setAvailableCharts] = useState<ChartListItem[]>([]);
-  const [peopleLoaded, setPeopleLoaded] = useState(false);
+  const [peopleLoaded, setPeopleLoaded] = useState(previewEnabled);
   const [firstChartId, setFirstChartId] = useState<number | null>(null);
   const [secondChartId, setSecondChartId] = useState<number | null>(initialPrefill?.partnerChartId ?? null);
   const [subjectSource, setSubjectSource] = useState<CompatibilityPersonSource>(initialPrefill && chartId ? 'saved' : 'birth');
@@ -591,10 +617,31 @@ export function UnionRoom(props: UnionRoomProps) {
   // «Твой» знак теперь можно менять (не жёстко из карты). По умолчанию — солнечный знак из карты.
   const [youSign, setYouSign] = useState<string>(yourSun);
   const [youGender, setYouGender] = useState<CompatGender>(initialYouGender);
-  const [themGender, setThemGender] = useState<CompatGender>(initialThemGender);
+  const [themGender] = useState<CompatGender>(initialThemGender);
   const [relationshipContext, setRelationshipContext] = useState<RelationshipContext>('romance');
   const [selected, setSelected] = useState<Selected | null>(
-    initialPrefill
+    previewFixture?.screen === 'result'
+      ? {
+          kind: 'person',
+          relationshipContext: 'romance',
+          youSign: previewFixture.subject.sign,
+          youGender: initialYouGender,
+          themGender: initialThemGender,
+          subjectName: previewFixture.subject.name,
+          subjectDate: previewFixture.subject.date,
+          subjectTime: previewFixture.subject.time,
+          subjectPlace: previewFixture.subject.place,
+          subjectSource: 'birth',
+          subjectSign: previewFixture.subject.sign,
+          name: previewFixture.partner.name,
+          date: previewFixture.partner.date,
+          time: previewFixture.partner.time,
+          place: previewFixture.partner.place,
+          partnerSource: 'birth',
+          partnerSign: previewFixture.partner.sign,
+          calculationLevel: 'full',
+        }
+      : initialPrefill
       ? {
           kind: 'person',
           relationshipContext: 'romance',
@@ -620,23 +667,28 @@ export function UnionRoom(props: UnionRoomProps) {
       : null,
   );
 
-  const [sName, setSName] = useState('');
-  const [sDate, setSDate] = useState('');
-  const [sTime, setSTime] = useState('');
-  const [sPlace, setSPlace] = useState('');
-  const [fName, setFName] = useState(initialPrefill?.partnerName || '');
-  const [fDate, setFDate] = useState(() => toDateInputValue(initialPrefill?.partnerDate || ''));
-  const [fTime, setFTime] = useState(initialPrefill?.partnerTime || '');
-  const [fPlace, setFPlace] = useState(initialPrefill?.partnerPlace || '');
+  const [sName, setSName] = useState(previewFixture?.subject.name || '');
+  const [sDate, setSDate] = useState(previewFixture?.subject.date || '');
+  const [sTime, setSTime] = useState(previewFixture?.subject.time || '');
+  const [sPlace, setSPlace] = useState(previewFixture?.subject.place || '');
+  const [fName, setFName] = useState(previewFixture?.partner.name || initialPrefill?.partnerName || '');
+  const [fDate, setFDate] = useState(() => toDateInputValue(previewFixture?.partner.date || initialPrefill?.partnerDate || ''));
+  const [fTime, setFTime] = useState(previewFixture?.partner.time || initialPrefill?.partnerTime || '');
+  const [fPlace, setFPlace] = useState(previewFixture?.partner.place || initialPrefill?.partnerPlace || '');
   const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
 
-  const [signText, setSignText] = useState<SignCompatibilityResult | null>(null);
-  const [deep, setDeep] = useState<SynastryResult | null>(null);
+  const [signText, setSignText] = useState<SignCompatibilityResult | null>(
+    previewFixture?.screen === 'result' ? previewFixture.signCompatibility : null,
+  );
+  const [deep, setDeep] = useState<SynastryResult | null>(
+    previewFixture?.screen === 'result' ? previewFixture.deepResult : null,
+  );
   const [deepLoading, setDeepLoading] = useState(false);
   const autoDeepKeyRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (previewEnabled) return;
     if (!profile.id || !premium) {
       setAvailableCharts([]);
       setPeopleLoaded(true);
@@ -658,7 +710,7 @@ export function UnionRoom(props: UnionRoomProps) {
         setAvailableCharts([]);
       })
       .finally(() => setPeopleLoaded(true));
-  }, [profile.id, premium, chartId]);
+  }, [profile.id, premium, chartId, previewEnabled]);
 
   useEffect(() => {
     if (!premium) {
@@ -687,8 +739,12 @@ export function UnionRoom(props: UnionRoomProps) {
 
   // История — ТОЛЬКО по конкретным людям (имя+дата+разбор). Проверки по знакам не храним.
   useEffect(() => {
+    if (previewEnabled) {
+      setHistory([]);
+      return;
+    }
     setHistory(loadCompatHistory(profile.id).filter((entry) => entry.kind === 'person'));
-  }, [profile.id]);
+  }, [profile.id, previewEnabled]);
 
   const firstChart = useMemo(
     () => availableCharts.find((chart) => chart.id === firstChartId) || null,
@@ -735,6 +791,11 @@ export function UnionRoom(props: UnionRoomProps) {
 
   useEffect(() => {
     if (screen !== 'result' || !selected) return;
+    if (previewFixture) {
+      setSignText(previewFixture.signCompatibility);
+      if (selected.kind === 'person') setDeep(previewFixture.deepResult);
+      return;
+    }
     let alive = true;
     void getSignCompatibility(
       leftSun,
@@ -747,7 +808,7 @@ export function UnionRoom(props: UnionRoomProps) {
       .then((r) => { if (alive) setSignText(r); })
       .catch(() => { /* optional */ });
     return () => { alive = false; };
-  }, [screen, selected, leftSun, theirSun, lang, leftGender, rightGender]);
+  }, [screen, selected, leftSun, theirSun, lang, leftGender, rightGender, previewFixture]);
 
   const sunOf = (s: Selected) => String(s.partnerSign || s.sign || sunSignFromDate(s.date) || 'libra').toLowerCase();
 
@@ -762,7 +823,7 @@ export function UnionRoom(props: UnionRoomProps) {
     setScreen('result');
     const their = sunOf(s);
     // Сохраняем в историю только разбор конкретного человека — по знакам не пишем (он и так везде).
-    if (s.kind === 'person') {
+    if (s.kind === 'person' && !previewEnabled) {
       const sc = getCompatScore(s.youSign, their, lang);
       setHistory(addCompatHistory({
         id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date, s.relationshipContext, s.subjectChartId, s.chartId),
@@ -834,7 +895,7 @@ export function UnionRoom(props: UnionRoomProps) {
   };
 
   const shareCompat = () => {
-    if (!selected) return;
+    if (!selected || previewEnabled) return;
     const first = selected.kind === 'sign'
       ? getZodiacSign(lang, leftSun)
       : (selected.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart'));
@@ -948,6 +1009,11 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const runDeep = useCallback(async () => {
     if (!selected || selected.kind !== 'person' || deepLoading) return;
+    if (previewFixture) {
+      setDeep(previewFixture.deepResult);
+      setDeepLoading(false);
+      return;
+    }
     if (!premium) {
       void requestPremium('compatibility_by_charts', {
         placement: 'compatibility_by_charts',
@@ -1008,7 +1074,7 @@ export function UnionRoom(props: UnionRoomProps) {
     } finally {
       if (autoDeepKeyRef.current === requestKey) setDeepLoading(false);
     }
-  }, [selected, deepLoading, premium, requestPremium, peopleLoaded, availableCharts, profile, ru]);
+  }, [selected, deepLoading, premium, requestPremium, peopleLoaded, availableCharts, profile, ru, previewFixture]);
 
   useEffect(() => {
     if (!premium || !premiumContinuation || premiumContinuation.returnView !== 'synastry') return;
@@ -1556,7 +1622,7 @@ export function UnionRoom(props: UnionRoomProps) {
       {!isPerson || deep ? (
         <div className="union-pad" style={{ marginTop: 6 }}>
           <HoroscopeActivityBar
-            userId={profile.id ? String(profile.id) : undefined}
+            userId={!previewEnabled && profile.id ? String(profile.id) : undefined}
             sign={`${leftSun}_${theirSun}`}
             date="2000-01-01"
             language={lang}
