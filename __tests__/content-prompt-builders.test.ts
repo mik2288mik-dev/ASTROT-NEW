@@ -81,7 +81,8 @@ describe('Lumia content prompt builders', () => {
     expect(read('lib/horoscope/signGeneration.ts')).toContain('promptUser(digest, signs, language');
     expect(read('lib/personalForecastGeneration.ts')).toContain('buildPersonalForecastFeedPrompt');
     expect(read('lib/personalForecastGeneration.ts')).not.toContain('buildPersonalForecastTopicPrompt');
-    expect(read('lib/personalForecastGeneration.ts')).toContain('getPersonalForecastSystemVoice');
+    expect(read('lib/personalForecastGeneration.ts')).toContain('getPersonalForecastSystemPrompt');
+    expect(read('lib/personalForecastGeneration.ts')).not.toContain('getPersonalForecastSystemVoice');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('compileNatalSemantics');
     expect(read('lib/natalHumanInterpretation.ts')).toContain('natalPromptPayload');
     expect(read('lib/natalHumanInterpretation.ts')).not.toContain('buildNatalSectionPrompt');

@@ -4,7 +4,7 @@
  */
 
 export const APP_VOICE_VERSION = '10';
-export const PERSONAL_FORECAST_VOICE_VERSION = '6';
+export const PERSONAL_FORECAST_VOICE_VERSION = '7';
 
 const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»
 
@@ -70,27 +70,10 @@ export function getAppSystemVoice(language: 'ru' | 'en' = 'ru'): string {
   return language === 'en' ? APP_SYSTEM_VOICE_EN : APP_SYSTEM_VOICE_RU;
 }
 
-const PERSONAL_FORECAST_SYSTEM_VOICE_RU = `## ГОЛОС ЛИЧНОГО ПРОГНОЗА
-
-Пиши как умный знакомый, который хорошо понимает именно этого читателя: прямо, наблюдательно и с характером. Редкая лёгкая ирония или одно неожиданное сравнение допустимы, когда они делают мысль точнее. Ты не стендап-комик: не шути в каждом фрагменте и не превращай прогноз в номер.
-
-- Благоприятный прогноз может быть полностью позитивным; сложный не нагнетай и не превращай в приговор.
-- Не играй психолога, психотерапевта, коуча, эзотерика, гуру или предсказателя. Не фамильярничай и не хами.
-- Не объясняй персонализацию и не пиши «твоя карта показывает», «по твоей карте» или эквиваленты.
-- Не подменяй наблюдение гладкой AI-психологией или словами «ресурс», «поток», «осознанность», «прислушайся к себе», «позволь себе», «будь в моменте», «внутренний ребёнок», «закрыть гештальт».
-- Текст без названия приложения должен ощущаться написанным одному человеку, а не всем представителям знака.`;
-
-const PERSONAL_FORECAST_SYSTEM_VOICE_EN = `## PERSONAL FORECAST VOICE
-
-Write like an intelligent acquaintance who understands this particular reader: direct, observant, and distinct. Occasional irony or one unexpected comparison is welcome when it sharpens the point. You are not a stand-up comedian: do not joke in every fragment or turn the forecast into a routine.
-
-- A positive reading may stay fully positive; never turn a difficult one into a verdict.
-- Do not role-play a psychologist, therapist, coach, esoteric guide, guru, or fortune-teller. No forced familiarity or rudeness.
-- Never explain personalisation or say “your chart shows”, “according to your chart”, or equivalents.
-- Avoid coaching language such as “protect your resources”, “trust the flow”, “listen to yourself”, “allow yourself”, “be present”, “inner child”, or “close the gestalt”.
-- With the app name removed, the copy must feel written for one person, not everyone with the same sign.`;
-
 const PERSONAL_FORECAST_VOICE_VIOLATION_PATTERNS: readonly RegExp[] = [
+  /не\s+пряч\p{L}*[^.!?]{0,60}(?:идеальн\p{L}*|совершенств\p{L}*)/iu,
+  /(?:черновик\p{L}*[^.!?]{0,40}попал\p{L}*\s+в\s+яблочк\p{L}*|маршрут\p{L}*[^.!?]{0,40}крюк\p{L}*|втор(?:ая|ую)\s+жизн\p{L}*|дистанц\p{L}*[^.!?]{0,40}сда[её]т\p{L}*|вариант\p{L}*[^.!?]{0,25}вариант\p{L}*)/iu,
+  /(?:дом\p{L}*\s+выдох\p{L}*|дому\s+станет\s+легче|домашн\p{L}*\s+революц\p{L}*|жилищ\p{L}*[^.!?]{0,100}освобожд\p{L}*\s+мест\p{L}*|освобод\p{L}*[^.!?]{0,60}(?:мест\p{L}*|участ\p{L}*)[^.!?]{0,60}дом\p{L}*)/iu,
   /(?:^|[^\p{L}])(?:ресурс\p{L}*|проявленност\p{L}*|поток\p{L}*|осознанност\p{L}*|заземл\p{L}*|экологичн\p{L}*|гештальт\p{L}*|внутренн\p{L}*\s+реб[её]н\p{L}*)(?!\p{L})/iu,
   /(?:^|[^\p{L}])(?:космос\p{L}*|аур\p{L}*|судьб\p{L}*|знак\p{L}*\s+свыше)(?!\p{L})/iu,
   /(?:^|[^\p{L}])зв[её]зд\p{L}*\s+(?:обещают|говорят|подсказывают|советуют|предсказывают)(?!\p{L})/iu,
@@ -100,13 +83,6 @@ const PERSONAL_FORECAST_VOICE_VIOLATION_PATTERNS: readonly RegExp[] = [
   /\b(?:your\s+strength\s+is\s+in\s+calm\s+presence|inner\s+clarity|inner\s+support|make\s+space\s+for\s+(?:yourself|your\s+feelings))\b/iu,
   /\b(?:aura|fate|sign\s+from\s+above)\b/iu,
 ];
-
-export function getPersonalForecastSystemVoice(language: 'ru' | 'en' = 'ru'): string {
-  const forecastVoice = language === 'en'
-    ? PERSONAL_FORECAST_SYSTEM_VOICE_EN
-    : PERSONAL_FORECAST_SYSTEM_VOICE_RU;
-  return forecastVoice;
-}
 
 export function hasAppVoiceMysticism(text: string): boolean {
   return APP_VOICE_MYSTICISM_PATTERNS.some((pattern) => pattern.test(text));

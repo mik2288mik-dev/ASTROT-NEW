@@ -24,14 +24,14 @@ const validBrief: PersonalForecastAstrologerBrief = {
 };
 
 describe('personal forecast brief and writer contract', () => {
-  it('keeps six separate strict writer fields', () => {
+  it('keeps exactly the three approved visible writer fields', () => {
     expect(PERSONAL_FORECAST_RESPONSE_SCHEMA).toEqual(expect.objectContaining({
       type: 'object',
       additionalProperties: false,
-      required: ['headline', 'forecast', 'takeaway', 'do', 'dont', 'closing'],
+      required: ['headline', 'forecast', 'closing'],
     }));
     expect(Object.keys(PERSONAL_FORECAST_RESPONSE_SCHEMA.properties)).toEqual([
-      'headline', 'forecast', 'takeaway', 'do', 'dont', 'closing',
+      'headline', 'forecast', 'closing',
     ]);
   });
 
@@ -105,7 +105,7 @@ describe('personal forecast brief and writer contract', () => {
     expect(failed).toHaveBeenCalledTimes(2);
   });
 
-  it('rejects chronology, neutral headlines, and a closing that repeats the headline image', () => {
+  it('rejects chronology and neutral headlines without requiring separate commands', () => {
     expect(validateAstrologerBrief({
       ...validBrief,
       likelyResult: 'К концу периода результат станет заметнее прежнего',
@@ -113,15 +113,27 @@ describe('personal forecast brief and writer contract', () => {
     const result = validateFreeGeneratedForecastFeed({
       headline: 'Твою идею заметят',
       forecast: 'Творческая задумка получит живой отклик и заинтересует людей за пределами привычного круга. Первый вариант окажется убедительнее долгой подготовки и найдёт естественное продолжение.',
-      takeaway: 'Искренний вариант сегодня сильнее идеальной подготовки.',
-      do: 'Покажи задумку раньше.',
-      dont: 'Не прячь пробу надолго.',
       closing: 'Похоже, у идеи будет продолжение.',
     }, new Set(), 'day', { language: 'ru' });
-    expect(result.errors).toEqual(expect.arrayContaining([
+    expect(result.errors).toContain('headline is a neutral reaction summary');
+    expect(validateFreeGeneratedForecastFeed({
+      headline: 'Дома станет лучше',
+      forecast: 'Сегодня обычные бытовые дела сложатся проще, чем ожидалось. Полезное изменение окажется доступным, а результат будет радовать без лишней возни и больших обещаний.',
+      closing: 'Удобство тоже умеет радовать.',
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
       'headline is a neutral reaction summary',
-      'closing repeats the headline image',
-    ]));
+    );
+  });
+
+  it('accepts every approved example as a complete visible forecast', () => {
+    for (const example of PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU) {
+      expect(validateFreeGeneratedForecastFeed(
+        example.output,
+        new Set(),
+        example.period,
+        { language: 'ru' },
+      ).errors).toEqual([]);
+    }
   });
 
   it('keeps few-shot inputs aligned with production writer input and removes the static basis', () => {
@@ -138,14 +150,16 @@ describe('personal forecast brief and writer contract', () => {
     const digest = crypto.createHash('sha256')
       .update(JSON.stringify(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.output)))
       .digest('hex');
-    expect(digest).toBe('ef656ccdb5659b09d4dbf3fbff6cc2e154a2ab1afdad05778c023b14c8a86b29');
+    expect(digest).toBe('8456976e23bdc9c4bcd8adf80b8415c2be5398955bf944a2756e2a9aef3d6cdc');
   });
 
   it('uses only the forecast-specific voice layer', () => {
     const writerPrompt = getPersonalForecastSystemPrompt('ru', 'day');
     expect(writerPrompt).not.toContain(getAppSystemVoice('ru'));
-    expect(writerPrompt).toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
+    expect(writerPrompt).not.toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
     expect(writerPrompt).toContain('astrologer_brief');
+    expect(writerPrompt).toContain('headline, forecast, closing');
+    expect(writerPrompt).not.toMatch(/takeaway|\bdo\b|\bdont\b/);
     expect(writerPrompt).not.toContain('forecast_basis');
   });
 });

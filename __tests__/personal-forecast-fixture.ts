@@ -118,38 +118,12 @@ export function personalForecastFixture(): PersonalForecastPackage {
     sections: [
       sectionFixture({
         id: 'semantic:communication',
-        title: 'Conversations and decisions',
+        title: 'Closing',
         importance: 92,
         fingerprint: 'semantic:communication',
         factId: 'fact:communication',
         blocks: [
-          { role: 'detail', atomId: 'details_require_review', text: 'Wording, numbers, and sequence need another check before you answer.' },
-          { role: 'risk', atomId: 'impulsive_reply_or_missed_detail', text: 'The main risk is an impulsive reply or a missed detail.' },
-          { role: 'action', atomId: 'verify_wording_numbers_and_sequence', text: 'Check the wording, numbers, and order of steps.' },
-        ],
-      }),
-      sectionFixture({
-        id: 'semantic:boundaries',
-        title: 'Action and boundaries',
-        importance: 86,
-        fingerprint: 'semantic:boundaries',
-        factId: 'fact:boundaries',
-        blocks: [
-          { role: 'lead', atomId: 'action_and_boundaries_are_temporarily_active', text: 'Pace of action and personal boundaries are the central issue now.' },
-          { role: 'detail', atomId: 'boundary_response_becomes_more_noticeable', text: 'Pressure is more likely to trigger a direct response or refusal.' },
-          { role: 'action', atomId: 'choose_the_next_action_not_the_whole_battle', text: 'Choose the next concrete action, not the whole battle.' },
-        ],
-      }),
-      sectionFixture({
-        id: 'semantic:workload',
-        title: 'Work and workload',
-        importance: 78,
-        fingerprint: 'semantic:workload',
-        factId: 'fact:workload',
-        blocks: [
-          { role: 'lead', atomId: 'limits_and_commitments_are_temporarily_active', text: 'Limits and commitments cannot be left unchecked right now.' },
-          { role: 'detail', atomId: 'routine_or_workload_context_becomes_more_noticeable', text: 'The main manifestations come through schedules, workload, and daily routines.' },
-          { role: 'risk', atomId: 'ignoring_a_real_limit_or_commitment', text: 'The main risk is ignoring a real limit or commitment.' },
+          { role: 'insight', atomId: 'closing', text: 'The day can handle one honest no.' },
         ],
       }),
     ],
@@ -183,10 +157,68 @@ export function personalForecastFixture(): PersonalForecastPackage {
         secondaryForecast: 'доведение начатого',
         headline: 'fixture headline',
         forecast: 'fixture forecast',
-        do: 'fixture do',
-        dont: 'fixture dont',
         closing: 'fixture closing',
       },
+      freeSelection: {
+        strongestSectionId: 'semantic:communication',
+        rotatedSectionId: null,
+        sectionIds: ['semantic:communication'],
+      },
+    },
+  };
+}
+
+/** Question-product fixture retained separately from the canonical three-part forecast package. */
+export function personalForecastQuestionFixture(): PersonalForecastPackage {
+  const forecast = personalForecastFixture();
+  const sections = [
+    sectionFixture({
+      id: 'semantic:communication',
+      title: 'Conversations and decisions',
+      importance: 92,
+      fingerprint: 'semantic:communication',
+      factId: 'fact:communication',
+      blocks: [
+        { role: 'detail', atomId: 'details_require_review', text: 'Wording, numbers, and sequence need another check before you answer.' },
+        { role: 'risk', atomId: 'impulsive_reply_or_missed_detail', text: 'The main risk is an impulsive reply or a missed detail.' },
+        { role: 'action', atomId: 'verify_wording_numbers_and_sequence', text: 'Check the wording, numbers, and order of steps.' },
+      ],
+    }),
+    sectionFixture({
+      id: 'semantic:boundaries',
+      title: 'Action and boundaries',
+      importance: 86,
+      fingerprint: 'semantic:boundaries',
+      factId: 'fact:boundaries',
+      blocks: [
+        { role: 'lead', atomId: 'action_and_boundaries_are_temporarily_active', text: 'Pace of action and personal boundaries are the central issue now.' },
+        { role: 'detail', atomId: 'boundary_response_becomes_more_noticeable', text: 'Pressure is more likely to trigger a direct response or refusal.' },
+        { role: 'action', atomId: 'choose_the_next_action_not_the_whole_battle', text: 'Choose the next concrete action, not the whole battle.' },
+      ],
+    }),
+    sectionFixture({
+      id: 'semantic:workload',
+      title: 'Work and workload',
+      importance: 78,
+      fingerprint: 'semantic:workload',
+      factId: 'fact:workload',
+      blocks: [
+        { role: 'lead', atomId: 'limits_and_commitments_are_temporarily_active', text: 'Limits and commitments cannot be left unchecked right now.' },
+        { role: 'detail', atomId: 'routine_or_workload_context_becomes_more_noticeable', text: 'The main manifestations come through schedules, workload, and daily routines.' },
+        { role: 'risk', atomId: 'ignoring_a_real_limit_or_commitment', text: 'The main risk is ignoring a real limit or commitment.' },
+      ],
+    }),
+  ];
+  return {
+    ...forecast,
+    sections,
+    visual: {
+      sectionAssetIds: Object.fromEntries(
+        [forecast.overview, ...sections].map((section) => [section.id, null]),
+      ),
+    },
+    meta: {
+      ...forecast.meta,
       freeSelection: {
         strongestSectionId: 'semantic:communication',
         rotatedSectionId: 'semantic:boundaries',

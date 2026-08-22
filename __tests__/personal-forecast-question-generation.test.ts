@@ -10,7 +10,7 @@ import {
   generatePersonalForecastQuestionAnswer,
   parsePersonalForecastQuestionAnswer,
 } from '../lib/personalForecastQuestionGeneration';
-import { personalForecastFixture } from './personal-forecast-fixture';
+import { personalForecastQuestionFixture as personalForecastFixture } from './personal-forecast-fixture';
 
 const historyContext = {
   calculations: [],

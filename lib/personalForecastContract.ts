@@ -165,8 +165,6 @@ export type PersonalForecastSemanticSignature = {
   secondaryForecast: string | null;
   headline: string;
   forecast: string;
-  do: string;
-  dont: string;
   closing: string;
 };
 
@@ -243,12 +241,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v39-validated-brief-writer',
+  'personal-forecast-feed.v40-approved-three-part',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v12-validated-brief-writer';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v13-approved-three-part';
 /** Input/cache identity, not an astrological calculation version. */
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v5';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v23-validated-brief-writer';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v6';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v24-approved-three-part';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -989,8 +987,6 @@ function personalForecastSemanticSignatureValid(
     && (signature.secondaryForecast === null || typeof signature.secondaryForecast === 'string')
     && typeof signature.headline === 'string' && Boolean(signature.headline)
     && typeof signature.forecast === 'string' && Boolean(signature.forecast)
-    && typeof signature.do === 'string' && Boolean(signature.do)
-    && typeof signature.dont === 'string' && Boolean(signature.dont)
     && typeof signature.closing === 'string' && Boolean(signature.closing);
 }
 
@@ -1060,9 +1056,7 @@ export function getPersonalForecastPackageValidationError(
     return 'PACKAGE_COLLECTIONS_INVALID';
   }
   if (
-    (forecast.period === 'day'
-      && (forecast.sections.length < 3 || forecast.sections.length > 5))
-    || (forecast.period !== 'day' && forecast.sections.length !== 0)
+    forecast.sections.length !== 1
   ) {
     return 'PACKAGE_PERIOD_STRUCTURE_INVALID';
   }
@@ -1321,8 +1315,6 @@ export function createUnavailablePersonalForecast(
         secondaryForecast: null,
         headline: 'unavailable',
         forecast: 'unavailable',
-        do: 'unavailable',
-        dont: 'unavailable',
         closing: 'unavailable',
       },
       freeSelection: {
