@@ -55,9 +55,15 @@ type IllustrationProps = {
   sign: string | ZodiacSignKey | null | undefined;
   className?: string;
   alt?: string;
+  priority?: boolean;
 };
 
-export const ZodiacIllustration: React.FC<IllustrationProps> = ({ sign, className = '', alt = '' }) => {
+export const ZodiacIllustration: React.FC<IllustrationProps> = ({
+  sign,
+  className = '',
+  alt = '',
+  priority = false,
+}) => {
   const key = keyOf(sign);
   if (!key) return null;
   return (
@@ -66,8 +72,8 @@ export const ZodiacIllustration: React.FC<IllustrationProps> = ({ sign, classNam
       className={className}
       alt={alt}
       aria-hidden={alt ? undefined : true}
-      loading="lazy"
-      decoding="async"
+      loading={priority ? 'eager' : 'lazy'}
+      decoding={priority ? 'sync' : 'async'}
       draggable={false}
     />
   );

@@ -154,6 +154,7 @@ export function CosmicSheet({
   contentClassName,
   onClose,
 }: CosmicSheetProps) {
+  const isEditorialSheet = className?.includes('lz-sheet-panel--editorial') ?? false;
   const [portalReady, setPortalReady] = useState(false);
   const titleId = useId();
   const subtitleId = useId();
@@ -249,9 +250,10 @@ export function CosmicSheet({
         <motion.div
           ref={layerRef}
           className="cosmic-sheet-layer forecast-bottom-sheet-layer"
-          initial={{ opacity: 0 }}
+          data-editorial-sheet={isEditorialSheet || undefined}
+          initial={isEditorialSheet ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          exit={isEditorialSheet ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.18 }}
         >
           <motion.button
@@ -260,9 +262,9 @@ export function CosmicSheet({
             aria-label={closeLabel}
             tabIndex={-1}
             onClick={() => onCloseRef.current()}
-            initial={{ opacity: 0 }}
+            initial={isEditorialSheet ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={isEditorialSheet ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.18 }}
           />
           <motion.div
@@ -272,7 +274,9 @@ export function CosmicSheet({
             exit={reduceMotion ? { opacity: 0 } : { y: '100%' }}
             transition={reduceMotion
               ? { duration: 0 }
-              : { type: 'spring', stiffness: 380, damping: 36 }}
+              : isEditorialSheet
+                ? { duration: 0.24, ease: [0.25, 1, 0.5, 1] }
+                : { type: 'spring', stiffness: 380, damping: 36 }}
           >
             <CosmicSurface
               as="section"

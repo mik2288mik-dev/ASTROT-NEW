@@ -29,7 +29,7 @@ import {
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { FreshTabs } from '../../components/fresh-ui';
-import { ZodiacIllustration } from '../../components/icons/ZodiacArt';
+import { ZodiacIllustration, zodiacIllustrationUrl } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
 import {
@@ -121,6 +121,15 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   const [loadRevision, setLoadRevision] = useState(0);
   const [lastReadyReading, setLastReadyReading] = useState<ReadyReadingSnapshot | null>(null);
   const [signPickerOpen, setSignPickerOpen] = useState(Boolean(previewFixture?.pickerOpen));
+
+  useEffect(() => {
+    ZODIAC_KEYS.forEach((zodiacSign) => {
+      const source = zodiacIllustrationUrl(zodiacSign);
+      if (!source) return;
+      const image = new Image();
+      image.src = source;
+    });
+  }, []);
 
   useEffect(() => {
     if (!ownSign) return;
@@ -346,7 +355,11 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
               setSignPickerOpen(true);
             }}
           >
-            <ZodiacIllustration sign={displayedSign} className="horo-reader-selected-illustration" />
+            <ZodiacIllustration
+              sign={displayedSign}
+              className="horo-reader-selected-illustration"
+              priority
+            />
           </button>
 
           {displayedReading ? (
