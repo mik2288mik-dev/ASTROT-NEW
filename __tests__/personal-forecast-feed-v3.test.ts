@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { renderPersonalForecastReferenceExamples } from '../lib/personalForecastExamples';
 const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), 'utf8');
 
 describe('personal forecast raw-profile runtime', () => {
@@ -15,10 +16,14 @@ describe('personal forecast raw-profile runtime', () => {
 
   it('keeps a single strict Luna runtime and period-specific few shots', () => {
     const generation = read('lib/personalForecastGeneration.ts');
-    const examples = read('lib/personalForecastExamples.ts');
     expect(generation).toContain('store: false');
-    expect(generation).toContain('createLunaStructuredResponse');
-    expect(examples).toContain('.slice(0, 3)');
-    expect(examples).toContain('<forecast_example_input>');
+    expect(generation).toContain('callStructuredWithBudgetRetry');
+    for (const period of ['day', 'week', 'month'] as const) {
+      const rendered = renderPersonalForecastReferenceExamples('ru', period);
+      expect(rendered.match(/<forecast_example_input>/g)).toHaveLength(3);
+      expect(rendered.match(/<forecast_example_output>/g)).toHaveLength(3);
+      expect(rendered).toContain('"astrologer_brief"');
+      expect(rendered).not.toContain('"personal_profile"');
+    }
   });
 });

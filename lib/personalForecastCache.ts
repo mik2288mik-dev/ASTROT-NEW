@@ -100,6 +100,7 @@ function reading(value: unknown): PersonalForecastRecentReading | null {
     periodKey: value.periodKey,
     fragments,
     semanticSignature: value.meta.semanticSignature,
+    briefSignature: value.meta.astrologerBrief.briefSignature,
   } : null;
 }
 

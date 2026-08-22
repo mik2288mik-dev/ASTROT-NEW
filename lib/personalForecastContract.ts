@@ -243,12 +243,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v38-astrologer-brief-writer',
+  'personal-forecast-feed.v39-validated-brief-writer',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v11-astrologer-brief-writer';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v12-validated-brief-writer';
 /** Input/cache identity, not an astrological calculation version. */
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v4';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v22-astrologer-brief-writer';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v5';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v23-validated-brief-writer';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<

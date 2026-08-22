@@ -12,7 +12,7 @@ describe('app and personal forecast voice contracts', () => {
     const voice = getAppSystemVoice('ru');
 
     expect(APP_VOICE_VERSION).toBe('10');
-    expect(PERSONAL_FORECAST_VOICE_VERSION).toBe('5');
+    expect(Number(PERSONAL_FORECAST_VOICE_VERSION)).toBeGreaterThanOrEqual(6);
     expect(voice).toContain('точно, спокойно, живо и без церемоний');
     expect(voice).toContain('Используй только переданный надёжный контекст');
     expect(voice).toContain('Говори с человеком на «ты»');
@@ -28,9 +28,9 @@ describe('app and personal forecast voice contracts', () => {
     expect(forecastVoice).toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
     expect(forecastVoice).toContain('прямо, наблюдательно и с характером');
     expect(forecastVoice).toContain('не превращай прогноз в номер');
-    expect(forecastVoice).toContain('приватная личная основа');
-    expect(forecastVoice).toContain('оставляй его полностью позитивным');
-    expect(forecastVoice).toContain('Финал приносит практическую пользу');
+    expect(forecastVoice).toContain('Благоприятный прогноз может быть полностью позитивным');
+    expect(forecastVoice).toContain('Не объясняй персонализацию');
+    expect(forecastVoice).toContain('написанным одному человеку');
   });
 
   it('puts ordinary-life meaning before astrology and keeps headings purposeful', () => {
@@ -51,7 +51,7 @@ describe('app and personal forecast voice contracts', () => {
     expect(appVoice).toContain('коучинговой жвачки');
     expect(appVoice).toContain('Не придумывай события, биографию, мотивы');
     expect(forecastVoice).toContain('Не играй психолога, психотерапевта, коуча');
-    expect(forecastVoice).toContain('пустые формулы, а не персональный текст');
+    expect(forecastVoice).toContain('Не подменяй наблюдение гладкой AI-психологией');
     expect(hasAppVoiceViolation('Вселенная подсказывает тебе правильный путь.')).toBe(true);
     expect(hasPersonalForecastVoiceViolation('Твоя сила — в спокойном присутствии.')).toBe(true);
   });

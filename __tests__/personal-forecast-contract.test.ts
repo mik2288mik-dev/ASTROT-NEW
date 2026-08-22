@@ -266,10 +266,10 @@ describe('personal forecast direct-reading contract', () => {
 
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
-    expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-raw-profile-v2');
-    expect(PERSONAL_FORECAST_CACHE_VERSION).toBe('personal-forecast-cache-v3-canonical-developer-prompt');
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v14-raw-profile');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v30.canonical-developer-prompt');
+    expect(PERSONAL_FORECAST_CALCULATION_VERSION).toMatch(/^personal-forecast-luna-raw-profile-brief-v\d+$/);
+    expect(PERSONAL_FORECAST_CACHE_VERSION).toMatch(/^personal-forecast-cache-v\d+-validated-brief-writer$/);
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toMatch(/^personal-forecast-feed-v\d+-validated-brief-writer$/);
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('validated-brief-writer');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
       `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,
     );
@@ -318,7 +318,7 @@ describe('personal forecast direct-reading contract', () => {
     };
     const cacheKey = buildPersonalForecastCacheKey(shared);
     const inputHash = buildPersonalForecastInputHash(shared);
-    expect(cacheKey).toMatch(/^personal-forecast-feed-v14-raw-profile:/);
+    expect(cacheKey.startsWith(`${PERSONAL_FORECAST_CONTRACT_VERSION}:`)).toBe(true);
     expect(inputHash).toMatch(/^[a-z0-9]+$/);
     expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
     expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);

@@ -29,7 +29,12 @@ type LunaResponseResult = {
   responseId: string;
   inputTokens: number;
   outputTokens: number;
+  reasoningTokens: number;
 };
+
+type LunaStructuredRequester = (
+  input: LunaStructuredResponseInput,
+) => Promise<LunaResponseResult>;
 
 type LunaResponseContent = Pick<
   OpenAI.Responses.Response,
@@ -121,6 +126,7 @@ async function createLunaResponse(
     responseId: response.id,
     inputTokens: response.usage?.input_tokens || 0,
     outputTokens: response.usage?.output_tokens || 0,
+    reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens || 0,
   };
 }
 
@@ -134,21 +140,29 @@ export async function callStructuredWithBudgetRetry(
   input: LunaStructuredResponseInput,
   budgets: readonly [number, number],
   onAttempt?: (event: { attempt: 1 | 2; budget: number; result?: LunaResponseResult; error?: string; latencyMs: number }) => void,
+  options: {
+    incompleteErrorCode?: string;
+    request?: LunaStructuredRequester;
+  } = {},
 ): Promise<{ result: LunaResponseResult; attempts: 1 | 2 }> {
+  const request = options.request || createLunaStructuredResponse;
   for (const [index, budget] of budgets.entries()) {
     const startedAt = Date.now();
     try {
-      const result = await createLunaStructuredResponse({ ...input, maxOutputTokens: budget });
+      const result = await request({ ...input, maxOutputTokens: budget });
       onAttempt?.({ attempt: (index + 1) as 1 | 2, budget, result, latencyMs: Date.now() - startedAt });
       return { result, attempts: (index + 1) as 1 | 2 };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       onAttempt?.({ attempt: (index + 1) as 1 | 2, budget, error: message, latencyMs: Date.now() - startedAt });
-      if (index === 0 && message === 'OPENAI_RESPONSE_INCOMPLETE:max_output_tokens') continue;
-      throw new Error(`OPENAI_STRUCTURED_STAGE_FAILED:${message}`);
+      if (message === 'OPENAI_RESPONSE_INCOMPLETE:max_output_tokens') {
+        if (index === 0) continue;
+        throw new Error(options.incompleteErrorCode || 'OPENAI_STRUCTURED_PROVIDER_INCOMPLETE');
+      }
+      throw error;
     }
   }
-  throw new Error('OPENAI_STRUCTURED_STAGE_FAILED:unknown');
+  throw new Error(options.incompleteErrorCode || 'OPENAI_STRUCTURED_PROVIDER_INCOMPLETE');
 }
 
 export async function createLunaJsonResponse(input: LunaResponseInput): Promise<LunaResponseResult> {
