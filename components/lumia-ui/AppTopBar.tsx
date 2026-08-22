@@ -20,12 +20,7 @@ export function AppTopBar({
   rightAction,
   reserveSpace = true,
 }: AppTopBarProps) {
-  const isPersonalForecastHeader = title === 'Твой Гороскоп' || title === 'Your Horoscope';
-  const resolvedTitle = title === 'Твой Гороскоп'
-    ? 'Личный гороскоп'
-    : title === 'Your Horoscope'
-      ? 'Personal horoscope'
-      : title;
+  const isPersonalForecastHeader = title === 'Твой гороскоп' || title === 'Your Horoscope';
 
   return (
     <>
@@ -48,7 +43,7 @@ export function AppTopBar({
             isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : ''
           }`}
         >
-          {resolvedTitle}
+          {title}
         </span>
 
         <div className="app-top-bar-side app-top-bar-side--end">

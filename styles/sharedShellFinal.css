@@ -98,12 +98,22 @@
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab::after,
 .today-period-tab-underline {
   position: absolute;
-  right: 18%;
+  right: 50%;
   bottom: -1px;
-  left: 18%;
+  left: auto;
+  width: 48px;
   height: 1px;
   background: transparent;
   content: '';
+  transform: translateX(50%);
+}
+
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab:nth-child(2)::after {
+  width: 43px;
+}
+
+.fresh-page.horo-reader-page .horo-period-tabs .fresh-tab:nth-child(3)::after {
+  width: 42px;
 }
 
 .editorial-tab.is-active::after,

@@ -397,7 +397,7 @@ export const Dashboard = memo<DashboardProps>(({
         aria-label={language === 'ru' ? 'Личный гороскоп' : 'Personal horoscope'}
       >
         <AppTopBar
-          title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}
+          title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}
           rightAction={(
             <button
               type="button"

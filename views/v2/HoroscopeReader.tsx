@@ -29,7 +29,7 @@ import {
   readLocalSignHoroscope,
 } from '../../services/astrologyService';
 import { FreshTabs } from '../../components/fresh-ui';
-import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
+import { ZodiacIllustration } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
 import {
@@ -303,6 +303,15 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         )}
       />
 
+      <div className="horo-reader-controls">
+        <FreshTabs
+          className="horo-period-tabs"
+          tabs={periodTabs}
+          activeTab={period}
+          onTabChange={choosePeriod}
+        />
+      </div>
+
       <header className="horo-reader-heading">
         <button
           type="button"
@@ -320,15 +329,6 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         <p className="horo-reader-sign-range">{selectedSignDateRange}</p>
       </header>
 
-      <div className="horo-reader-controls">
-        <FreshTabs
-          className="horo-period-tabs"
-          tabs={periodTabs}
-          activeTab={period}
-          onTabChange={choosePeriod}
-        />
-      </div>
-
       <EditorialCurve className="horo-reader-curve" />
 
       <div ref={readingAnchorRef} className="horo-uni-wrap">
@@ -337,10 +337,17 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           className="horo-uni horo-reader-article"
           aria-busy={!hasReadingFailure && !displayedReading}
         >
-          <div className="horo-reader-symbol-stage" aria-hidden="true">
-            <span className="horo-reader-symbol-rays" />
-            <ZodiacSymbol sign={displayedSign} size={68} className="horo-reader-selected-symbol" />
-          </div>
+          <button
+            type="button"
+            className="horo-reader-symbol-stage"
+            aria-label={language === 'ru' ? 'Выбрать другой знак зодиака' : 'Choose another zodiac sign'}
+            onClick={() => {
+              lumiaSelectionHaptic();
+              setSignPickerOpen(true);
+            }}
+          >
+            <ZodiacIllustration sign={displayedSign} className="horo-reader-selected-illustration" />
+          </button>
 
           {displayedReading ? (
             <header className="horo-uni-hero">
