@@ -429,10 +429,10 @@
 }
 
 /* Today hero: a physical calendar-clock beside forecast copy, with no card around it. */
-.forecast-feed-page .today-minimal-feed {
+.forecast-feed-page .forecast-editorial-reading.today-minimal-feed {
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 0 !important;
   background: #fff;
 }
 
@@ -696,10 +696,25 @@
 /* Reading area: continuous copy with only hairlines and editorial waypoints. */
 .today-minimal-reading {
   box-sizing: border-box;
-  width: min(calc(100% - 2.8rem), 32rem);
+  width: min(calc(100% - 2.5rem), 38.75rem) !important;
   margin: 0 auto;
   padding: clamp(1.35rem, 6vw, 2rem) 0 2rem;
   scroll-margin-top: calc(var(--home-safe-top, 18px) + 7.7rem);
+}
+
+.forecast-feed-page .forecast-period-editorial-feed {
+  padding-right: max(
+    1.25rem,
+    env(safe-area-inset-right, 0px),
+    var(--tg-content-safe-area-inset-right, 0px),
+    var(--tg-safe-area-inset-right, 0px)
+  ) !important;
+  padding-left: max(
+    1.25rem,
+    env(safe-area-inset-left, 0px),
+    var(--tg-content-safe-area-inset-left, 0px),
+    var(--tg-safe-area-inset-left, 0px)
+  ) !important;
 }
 
 .today-minimal-reading-main {

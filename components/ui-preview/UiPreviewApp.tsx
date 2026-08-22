@@ -156,7 +156,7 @@ function DiaryScene({
           onRequestPremium={() => onNavigate('paywall')}
         />
       ) : (
-        <article className="forecast-feed-story forecast-editorial-reading ui-preview-long-forecast">
+        <article className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed ui-preview-long-forecast">
           <ForecastSectionBlock
             section={longSection}
             period={period}
