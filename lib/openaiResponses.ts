@@ -15,6 +15,8 @@ type LunaResponseInput = {
   input: string;
   maxOutputTokens: number;
   store?: boolean;
+  reasoningEffort?: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  verbosity?: 'low' | 'medium' | 'high';
 };
 
 type LunaStructuredResponseInput = LunaResponseInput & {
@@ -24,6 +26,7 @@ type LunaStructuredResponseInput = LunaResponseInput & {
 
 type LunaResponseResult = {
   content: string;
+  responseId: string;
   inputTokens: number;
   outputTokens: number;
 };
@@ -40,7 +43,9 @@ export function buildLunaStructuredResponseParams(input: LunaStructuredResponseI
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
     ...(input.store === undefined ? {} : { store: input.store }),
+    ...(input.reasoningEffort === undefined ? {} : { reasoning: { effort: input.reasoningEffort } as never }),
     text: {
+      ...(input.verbosity === undefined ? {} : { verbosity: input.verbosity }),
       format: {
         type: 'json_schema' as const,
         name: input.schemaName,
@@ -58,7 +63,8 @@ export function buildLunaJsonResponseParams(input: LunaResponseInput) {
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
     ...(input.store === undefined ? {} : { store: input.store }),
-    text: { format: { type: 'json_object' as const } },
+    ...(input.reasoningEffort === undefined ? {} : { reasoning: { effort: input.reasoningEffort } as never }),
+    text: { ...(input.verbosity === undefined ? {} : { verbosity: input.verbosity }), format: { type: 'json_object' as const } },
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
 
@@ -69,6 +75,8 @@ export function buildLunaTextResponseParams(input: LunaResponseInput) {
     input: input.input,
     max_output_tokens: input.maxOutputTokens,
     ...(input.store === undefined ? {} : { store: input.store }),
+    ...(input.reasoningEffort === undefined ? {} : { reasoning: { effort: input.reasoningEffort } as never }),
+    ...(input.verbosity === undefined ? { } : { text: { verbosity: input.verbosity } }),
   } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
 }
 
@@ -110,6 +118,7 @@ async function createLunaResponse(
 
   return {
     content,
+    responseId: response.id,
     inputTokens: response.usage?.input_tokens || 0,
     outputTokens: response.usage?.output_tokens || 0,
   };
@@ -119,6 +128,27 @@ export async function createLunaStructuredResponse(
   input: LunaStructuredResponseInput,
 ): Promise<LunaResponseResult> {
   return createLunaResponse(buildLunaStructuredResponseParams(input));
+}
+
+export async function callStructuredWithBudgetRetry(
+  input: LunaStructuredResponseInput,
+  budgets: readonly [number, number],
+  onAttempt?: (event: { attempt: 1 | 2; budget: number; result?: LunaResponseResult; error?: string; latencyMs: number }) => void,
+): Promise<{ result: LunaResponseResult; attempts: 1 | 2 }> {
+  for (const [index, budget] of budgets.entries()) {
+    const startedAt = Date.now();
+    try {
+      const result = await createLunaStructuredResponse({ ...input, maxOutputTokens: budget });
+      onAttempt?.({ attempt: (index + 1) as 1 | 2, budget, result, latencyMs: Date.now() - startedAt });
+      return { result, attempts: (index + 1) as 1 | 2 };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      onAttempt?.({ attempt: (index + 1) as 1 | 2, budget, error: message, latencyMs: Date.now() - startedAt });
+      if (index === 0 && message === 'OPENAI_RESPONSE_INCOMPLETE:max_output_tokens') continue;
+      throw new Error(`OPENAI_STRUCTURED_STAGE_FAILED:${message}`);
+    }
+  }
+  throw new Error('OPENAI_STRUCTURED_STAGE_FAILED:unknown');
 }
 
 export async function createLunaJsonResponse(input: LunaResponseInput): Promise<LunaResponseResult> {

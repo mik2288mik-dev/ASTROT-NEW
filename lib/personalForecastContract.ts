@@ -1,6 +1,6 @@
 import { fromZonedTime } from 'date-fns-tz';
 import {
-  APP_VOICE_VERSION,
+  PERSONAL_FORECAST_VOICE_VERSION,
   withPersonalForecastVoiceVersion,
 } from './appVoice';
 
@@ -149,6 +149,27 @@ export type CrossPeriodLink = {
   label: string;
 };
 
+export type PersonalForecastAstrologerBrief = {
+  tone: 'favorable' | 'mixed' | 'demanding';
+  coreForecast: string;
+  secondaryForecast: string | null;
+  distinctiveDetail: string;
+  opportunity: string | null;
+  friction: string | null;
+  likelyResult: string;
+  briefSignature: string;
+};
+
+export type PersonalForecastSemanticSignature = {
+  coreForecast: string;
+  secondaryForecast: string | null;
+  headline: string;
+  forecast: string;
+  do: string;
+  dont: string;
+  closing: string;
+};
+
 export type PersonalForecastPackage = {
   period: PersonalForecastPeriod;
   periodKey: string;
@@ -176,6 +197,8 @@ export type PersonalForecastPackage = {
     status: 'ready' | 'generating' | 'unavailable';
     diagnosticCode?: string | null;
     visualFallback?: boolean;
+    astrologerBrief: PersonalForecastAstrologerBrief;
+    semanticSignature: PersonalForecastSemanticSignature;
     freeSelection: {
       strongestSectionId: string | null;
       rotatedSectionId: string | null;
@@ -220,11 +243,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v29.raw-profile-only',
+  'personal-forecast-feed.v38-astrologer-brief-writer',
 );
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v11-astrologer-brief-writer';
 /** Input/cache identity, not an astrological calculation version. */
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-v2';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v14-raw-profile';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v4';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v22-astrologer-brief-writer';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -588,7 +612,8 @@ export function buildPersonalForecastCacheKey(input: {
     PERSONAL_FORECAST_CALCULATION_VERSION,
     PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
-    APP_VOICE_VERSION,
+    PERSONAL_FORECAST_VOICE_VERSION,
+    PERSONAL_FORECAST_CACHE_VERSION,
     input.modelId,
   ].join('|');
   return `${PERSONAL_FORECAST_CONTRACT_VERSION}:${stableHash(identity).toString(36)}:${input.period}:${input.periodKey}`;
@@ -614,7 +639,7 @@ export function buildPersonalForecastInputHash(input: {
     ?? PERSONAL_FORECAST_CONTRACT_VERSION;
   const promptVersion = versions.promptVersion
     ?? PERSONAL_FORECAST_PROMPT_VERSION;
-  const voiceVersion = versions.voiceVersion ?? APP_VOICE_VERSION;
+  const voiceVersion = versions.voiceVersion ?? PERSONAL_FORECAST_VOICE_VERSION;
   return stableHash(JSON.stringify({
     userId: input.userId,
     birthProfileFingerprint: input.birthProfileFingerprint,
@@ -628,6 +653,7 @@ export function buildPersonalForecastInputHash(input: {
     contractVersion,
     promptVersion,
     voiceVersion,
+    cacheVersion: PERSONAL_FORECAST_CACHE_VERSION,
   })).toString(36);
 }
 
@@ -942,6 +968,32 @@ function presentationValid(
   });
 }
 
+function personalForecastAstrologerBriefValid(value: unknown): value is PersonalForecastAstrologerBrief {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const basis = value as PersonalForecastAstrologerBrief;
+  return (basis.tone === 'favorable' || basis.tone === 'mixed' || basis.tone === 'demanding')
+    && typeof basis.coreForecast === 'string' && Boolean(basis.coreForecast.trim())
+    && (basis.secondaryForecast === null || typeof basis.secondaryForecast === 'string')
+    && typeof basis.distinctiveDetail === 'string' && Boolean(basis.distinctiveDetail.trim())
+    && (basis.opportunity === null || typeof basis.opportunity === 'string')
+    && (basis.friction === null || typeof basis.friction === 'string')
+    && typeof basis.likelyResult === 'string' && Boolean(basis.likelyResult.trim());
+}
+
+function personalForecastSemanticSignatureValid(
+  value: unknown,
+): value is PersonalForecastSemanticSignature {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const signature = value as PersonalForecastSemanticSignature;
+  return typeof signature.coreForecast === 'string' && Boolean(signature.coreForecast)
+    && (signature.secondaryForecast === null || typeof signature.secondaryForecast === 'string')
+    && typeof signature.headline === 'string' && Boolean(signature.headline)
+    && typeof signature.forecast === 'string' && Boolean(signature.forecast)
+    && typeof signature.do === 'string' && Boolean(signature.do)
+    && typeof signature.dont === 'string' && Boolean(signature.dont)
+    && typeof signature.closing === 'string' && Boolean(signature.closing);
+}
+
 export function getPersonalForecastPackageValidationError(
   value: unknown,
   options: {
@@ -974,10 +1026,12 @@ export function getPersonalForecastPackageValidationError(
     || forecast.meta?.promptVersion !== (
       options.promptVersion ?? PERSONAL_FORECAST_PROMPT_VERSION
     )
-    || forecast.meta?.voiceVersion !== APP_VOICE_VERSION
+    || forecast.meta?.voiceVersion !== PERSONAL_FORECAST_VOICE_VERSION
     || forecast.meta?.calculationVersion !== PERSONAL_FORECAST_CALCULATION_VERSION
     || forecast.meta?.semanticVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
     || forecast.meta?.contractVersion !== PERSONAL_FORECAST_CONTRACT_VERSION
+    || !personalForecastAstrologerBriefValid(forecast.meta?.astrologerBrief)
+    || !personalForecastSemanticSignatureValid(forecast.meta?.semanticSignature)
     || !([0, 1, 2] as const).includes(forecast.meta?.generationAttempts)
     || !(['valid', 'deterministic_fallback'] as const).includes(
       forecast.meta?.validationStatus,
@@ -1243,7 +1297,7 @@ export function createUnavailablePersonalForecast(
     meta: {
       model: '',
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-      voiceVersion: APP_VOICE_VERSION,
+      voiceVersion: PERSONAL_FORECAST_VOICE_VERSION,
       calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
       semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -1252,6 +1306,25 @@ export function createUnavailablePersonalForecast(
       generatedAt: new Date().toISOString(),
       status,
       diagnosticCode,
+      astrologerBrief: {
+        tone: 'mixed',
+        coreForecast: 'unavailable',
+        secondaryForecast: null,
+        distinctiveDetail: 'unavailable',
+        opportunity: null,
+        friction: null,
+        likelyResult: 'unavailable',
+        briefSignature: 'unavailable',
+      },
+      semanticSignature: {
+        coreForecast: 'unavailable',
+        secondaryForecast: null,
+        headline: 'unavailable',
+        forecast: 'unavailable',
+        do: 'unavailable',
+        dont: 'unavailable',
+        closing: 'unavailable',
+      },
       freeSelection: {
         strongestSectionId: null,
         rotatedSectionId: null,

@@ -98,6 +98,8 @@ describe('personal forecast Luna personal-feed writer', () => {
   test('defines a forecast-specific voice and a continuous Today feed', () => {
     const system = getPersonalForecastSystemPrompt('en', 'day');
     expect(system).toContain('PERSONAL FORECAST WRITER');
+    expect(system).not.toContain('THE VOICE OF “YOUR HOROSCOPE”');
+    expect(system).not.toContain('intelligent ally turning trusted personal context');
     expect(system).toContain('4 to 6 sequential text fragments');
     expect(system).toContain('intelligent acquaintance');
     expect(system.toLowerCase()).toContain('occasional irony or one unexpected comparison');
@@ -190,6 +192,9 @@ describe('personal forecast Luna personal-feed writer', () => {
       period: 'month',
       window: resolvePersonalForecastWindow('month', '2026-08', 'Europe/Moscow'),
       profile: profile as never,
+      astrologerBrief: {
+        tone: 'favorable', coreForecast: 'новые впечатления', secondaryForecast: 'живые знакомства', distinctiveDetail: 'новое место', opportunity: 'выйти за привычный маршрут', friction: 'не забивать всё заранее', likelyResult: 'новое впечатление останется', briefSignature: 'test-brief',
+      },
       recentForecasts: [{
         periodKey: '2026-07',
         fragments: [{ text: 'A recently used central thought.', semanticFingerprint: null }],
@@ -220,7 +225,7 @@ describe('personal forecast Luna personal-feed writer', () => {
     expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1_000);
     expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(1_400);
     expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(1_800);
-    expect(PERSONAL_FORECAST_WORD_LIMITS.day).toBe(150);
+    expect(PERSONAL_FORECAST_WORD_LIMITS.day).toBe(90);
   });
 
   test('ships diverse Russian few-shot references for every personal period', () => {
@@ -229,9 +234,6 @@ describe('personal forecast Luna personal-feed writer', () => {
       .toEqual(new Set(['day', 'week', 'month']));
     expect(new Set(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.tone)))
       .toEqual(new Set(['bright', 'steady', 'challenging']));
-    expect(new Set(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.output.closing.kind)))
-      .toEqual(new Set(['advice', 'action', 'avoidance', 'wish', 'motivation']));
-
     for (const period of ['day', 'week', 'month'] as const) {
       const examples = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.filter(
         (example) => example.period === period,
@@ -241,12 +243,14 @@ describe('personal forecast Luna personal-feed writer', () => {
         '<forecast_example_input>',
       );
       for (const example of examples) {
-        const headlineWords = example.output.headline.text.trim().split(/\s+/u);
+        const headlineWords = example.output.headline.trim().split(/\s+/u);
         expect(headlineWords.length).toBeGreaterThanOrEqual(2);
         expect(headlineWords.length).toBeLessThanOrEqual(5);
-        expect(example.output.closing.text).toBeTruthy();
-        expect(['advice', 'action', 'avoidance', 'wish', 'motivation'])
-          .toContain(example.output.closing.kind);
+        expect(example.output.forecast).toBeTruthy();
+        expect(example.output.takeaway).toBeTruthy();
+        expect(example.output.do).toBeTruthy();
+        expect(example.output.dont).toMatch(/^Не\s+/u);
+        expect(example.output.closing).toBeTruthy();
       }
     }
     const dayReferences = renderPersonalForecastReferenceExamples('ru', 'day');

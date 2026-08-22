@@ -1,8 +1,8 @@
 import {
-  APP_VOICE_VERSION,
   PERSONAL_FORECAST_VOICE_VERSION,
 } from '../lib/appVoice';
 import {
+  PERSONAL_FORECAST_CACHE_VERSION,
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
@@ -267,9 +267,9 @@ describe('personal forecast direct-reading contract', () => {
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toBe('personal-forecast-luna-raw-profile-v2');
+    expect(PERSONAL_FORECAST_CACHE_VERSION).toBe('personal-forecast-cache-v3-canonical-developer-prompt');
     expect(PERSONAL_FORECAST_CONTRACT_VERSION).toBe('personal-forecast-feed-v14-raw-profile');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v29.raw-profile-only');
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(`voice.${APP_VOICE_VERSION}`);
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('personal-forecast-feed.v30.canonical-developer-prompt');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
       `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,
     );

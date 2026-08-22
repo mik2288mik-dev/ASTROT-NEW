@@ -1,144 +1,173 @@
 import type { PersonalForecastPeriod } from './personalForecastContract';
+type ExampleBasis = { periodTone: 'favorable' | 'mixed' | 'demanding'; primarySignal: string; secondarySignal: string | null; opportunity: string | null; constraint: string | null };
 
-type ClosingKind = 'advice' | 'action' | 'avoidance' | 'wish' | 'motivation';
 type Tone = 'bright' | 'steady' | 'challenging';
+type Output = {
+  headline: string;
+  forecast: string;
+  takeaway: string;
+  do: string;
+  dont: string;
+  closing: string;
+};
 
 export type PersonalForecastReferenceExample = {
   id: string;
   period: PersonalForecastPeriod;
   tone: Tone;
-  input: { period: PersonalForecastPeriod; name: string; birth_date: string; birth_time: string | null; birth_place: string | null };
-  output: {
-    headline: { text: string; evidence_ids: ['profile:personal'] };
-    fragments: Array<{
-      text: string;
-      presentation_style?: 'prose' | 'pull_quote' | 'paper_note';
-      main_idea_key: string;
-      life_plot_key: string;
-      advice_key: string;
-      comparison_key: string;
-      evidence_ids: ['profile:personal'];
-    }>;
-    closing: { text: string; kind: ClosingKind; advice_key: string; evidence_ids: ['profile:personal'] };
+  input: {
+    personal_profile: {
+      name: string; birth_date: string; birth_time: string | null;
+      birth_time_mode: 'exact' | 'approximate' | 'unknown';
+      birth_time_uncertainty_minutes: number | null; birth_place: string;
+      birth_timezone: string; gender: 'male' | 'female' | 'unspecified'; language: 'ru';
+    };
+    selected_period: {
+      period: PersonalForecastPeriod; period_key: string; current_date: string;
+      period_start: string; period_end: string; timezone: string;
+    };
+    forecast_basis: {
+      basis_id: string; period_tone: ExampleBasis['periodTone'];
+      primary_signal: string; secondary_signal: string | null;
+      opportunity: string | null; constraint: string | null;
+    };
+    anti_repeat_context: { recent_forecasts: [] };
   };
+  output: Output;
 };
 
-const evidenceIds = (): ['profile:personal'] => ['profile:personal'];
+type Profile = {
+  name: string; birthDate: string; birthTime: string | null;
+  birthTimeMode: 'exact' | 'approximate' | 'unknown'; uncertainty?: number;
+  place: string; gender: 'male' | 'female' | 'unspecified';
+};
 
-function reference(
-  id: string,
-  period: PersonalForecastPeriod,
-  tone: Tone,
-  name: string,
-  fragments: string[],
-  headline: string,
-  closing: string,
-  kind: ClosingKind,
-): PersonalForecastReferenceExample {
+function window(period: PersonalForecastPeriod) {
+  const dates = period === 'day'
+    ? ['2026-08-20', '2026-08-20', '2026-08-20']
+    : period === 'week'
+      ? ['2026-W34', '2026-08-17', '2026-08-23']
+      : ['2026-08', '2026-08-01', '2026-08-31'];
+  return { period, period_key: dates[0], current_date: '2026-08-20', period_start: dates[1], period_end: dates[2], timezone: 'Europe/Moscow' };
+}
+
+function example(id: string, period: PersonalForecastPeriod, tone: Tone, profile: Profile, output: Output): PersonalForecastReferenceExample {
+  const basisByTone: Record<Tone, ExampleBasis> = {
+    bright: {
+      periodTone: 'favorable', primarySignal: 'новые впечатления', secondarySignal: 'живые знакомства',
+      opportunity: 'выйти за привычный маршрут', constraint: 'не забивать всё заранее',
+    },
+    steady: {
+      periodTone: 'mixed', primarySignal: 'практичный результат', secondarySignal: 'доведение начатого',
+      opportunity: 'увидеть отдачу от знакомого дела', constraint: 'не усложнять рабочее',
+    },
+    challenging: {
+      periodTone: 'demanding', primarySignal: 'свой темп', secondarySignal: 'ясный выбор',
+      opportunity: 'сделать меньше, но с удовольствием', constraint: 'не жить чужим расписанием',
+    },
+  };
+  const basis = basisByTone[tone];
   return {
-    id,
-    period,
-    tone,
-    input: { period, name, birth_date: '1990-01-01', birth_time: null, birth_place: 'Москва' },
-    output: {
-      headline: { text: headline, evidence_ids: evidenceIds() },
-      fragments: fragments.map((text, index) => ({
-        text,
-        presentation_style: 'prose',
-        main_idea_key: `reference-${id}-${index + 1}`,
-        life_plot_key: `reference-${id}-plot-${index + 1}`,
-        advice_key: `reference-${id}-guidance-${index + 1}`,
-        comparison_key: '',
-        evidence_ids: evidenceIds(),
-      })),
-      closing: { text: closing, kind, advice_key: `reference-${id}-closing`, evidence_ids: evidenceIds() },
+    id, period, tone, output,
+    input: {
+      personal_profile: {
+        name: profile.name, birth_date: profile.birthDate, birth_time: profile.birthTime,
+        birth_time_mode: profile.birthTimeMode,
+        birth_time_uncertainty_minutes: profile.birthTimeMode === 'approximate' ? profile.uncertainty || null : null,
+        birth_place: profile.place, birth_timezone: 'Europe/Moscow', gender: profile.gender, language: 'ru',
+      },
+      selected_period: window(period),
+      forecast_basis: {
+        basis_id: `example:${id}`,
+        period_tone: basis.periodTone,
+        primary_signal: basis.primarySignal,
+        secondary_signal: basis.secondarySignal,
+        opportunity: basis.opportunity,
+        constraint: basis.constraint,
+      },
+      anti_repeat_context: { recent_forecasts: [] },
     },
   };
 }
 
-/**
- * Approved editorial corpus. These are complete input/output few-shots, not
- * reusable templates. Keep the visible text word-for-word unless the product
- * owner explicitly approves a replacement.
- */
+/** Runtime corpus: complete strict-output few-shots, not text templates. */
 export const PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU: readonly PersonalForecastReferenceExample[] = [
-  reference('day-bright-own-it', 'day', 'bright', 'Мира', [
-    'Сегодня многое будет получаться с первого захода.',
-    'Разговоры пойдут легко, решения станут яснее, а люди окажутся сговорчивее обычного.',
-    'Самое время предлагать своё и занимать место, которое тебе действительно интересно.',
-    'Выбери главную цель и иди к ней без лишних церемоний. Можно просить больше, говорить увереннее и соглашаться на интересное.',
-  ], 'День твой. Забирай.', 'Хороший день. Пользуйся щедро.', 'action'),
-  reference('day-bold', 'day', 'steady', 'Ирина', [
-    'В хорошем смысле.',
-    'День поддержит тех, кто действует первым: отправляет сообщение, предлагает встречу, называет свои условия, берётся за интересную задачу.',
-    'Инициатива сегодня прозвучит убедительнее долгих объяснений.',
-    'Направь этот напор в одно точное действие. Ирина, выбери то, что действительно хочется получить, и сделай первый ход.',
-  ], 'Сегодня можно наглеть.', 'Скромность сегодня взяла выходной.', 'motivation'),
-  reference('day-warm-luck', 'day', 'bright', 'Лена', [
-    'Сегодня приятные совпадения будут работать в твою пользу.',
-    'Ответ придёт вовремя, удачная мысль появится к месту, а обычное дело даст результат лучше ожидаемого.',
-    'День явно решил показать, что умеет быть щедрым.',
-    'Оставь в планах немного свободного места.',
-    'Самое интересное может появиться без предварительной записи.',
-    'Соглашайся на живые идеи и выбирай то, от чего прибавляется сил.',
-  ], 'Удача вышла на смену.', 'Похоже, сегодня жизнь за тебя.', 'wish'),
-  reference('day-no-heroics', 'day', 'challenging', 'Марина', [
-    'День может попытаться выдать чужую спешку за твою обязанность.',
-    'Не покупайся.',
-    'Сначала закончи то, что действительно важно тебе, а уже потом отвечай на всё остальное.',
-    'При этом день вполне нормальный: он лучше работает с коротким списком и ясными решениями.',
-    'Хорошо пойдут дела, где можно поставить точку, а не открыть ещё пять вкладок.',
-    'Оставь часть дня себе, нормальной еде и чему-нибудь, что не требует отчёта.',
-  ], 'Сегодня без геройства.', 'Не спасай весь мир. Сегодня он справится сам.', 'avoidance'),
-  reference('week-tasty', 'week', 'bright', 'Саша', [
-    'Появится больше поводов выйти из дома не потому, что надо, а потому что интересно. Хорошо зайдут новые места, короткие поездки, вкусная еда и компания, в которой не приходится смотреть на часы. Симпатия может стать заметнее, а скучный план — внезапно уступить место чему-то лучше. Не забивай календарь до упора: этой неделе нужен воздух для случайной радости. В делах тоже будет толк, если не превращать каждую задачу в государственный проект. Сделал, отметил, пошёл жить дальше.',
-  ], 'Неделя будет вкусной.', 'Оставь место для удовольствия. Оно тоже умеет быть полезным.', 'advice'),
-  reference('week-no-circus', 'week', 'steady', 'Ирина', [
-    'Неделя даст спокойный темп, в котором многое получится без гонки. Деньги потребуют обычной аккуратности, дом — пары удобных решений, а люди — ясных слов без длинных предисловий. Хорошее время для разумных покупок, завершения накопившегося и встреч, которые действительно радуют. Выбирай простые варианты без подозрений: удобное может оказаться лучшим, а пустое место в календаре — вполне серьёзным планом. Чем меньше лишнего шума ты сам добавишь, тем больше успеешь и тем приятнее окажется результат.',
-  ], 'Неделя без цирка.', 'Сделай жизнь немного удобнее. Не всё полезное обязано быть подвигом.', 'action'),
-  reference('week-precision', 'week', 'challenging', 'Денис', [
-    'Несколько дел могут одновременно объявить себя главными, а пара людей — решить, что твоё время лежит в общем доступе. Не спорь с громкостью; смотри на последствия. То, что действительно важно, выдержит уточняющий вопрос и нормальный срок. Остальное быстро сдуется. Тебе пригодится прямота без грубости: назвать цену, отказаться от неудобного, перенести то, что не помещается, и не обещать лишнего ради красивой картинки. И у этой недели есть хороший бонус: один сложный вопрос можно закрыть окончательно, а освободившееся место быстро займёт что-то гораздо приятнее.',
-  ], 'Неделя любит точность.', 'Не покупай чужую срочность своим временем.', 'avoidance'),
-  reference('month-generous', 'month', 'bright', 'Алина', [
-    'У тебя станет больше поводов выйти из привычного маршрута: новое место, интересное предложение, человек с хорошей идеей или занятие, которое неожиданно затянет. Не всё потребует великого решения — и слава богу. Месяц хорош именно тем, что приятные возможности не требуют торжественной музыки. В делах выбирай то, где есть движение и понятная отдача. В отношениях говори прямо, не превращая симпатию в многоходовку. В покупках лучше одна качественная вещь, чем три случайных. Оставляй место для спонтанности: некоторые хорошие решения приходят без презентации и дресс-кода.',
-  ], 'Месяц будет щедрым.', 'Не откладывай хорошее до особого случая. Особый случай уже пришёл.', 'motivation'),
-  reference('month-results', 'month', 'steady', 'Роман', [
-    'То, что долго двигалось мелкими шагами, наконец станет видно целиком: затянувшийся проект приблизится к финалу, привычное место станет удобнее, а навык, который ты осваивал без фанфар, начнёт реально помогать. Не придётся бежать быстрее — полезнее довести начатое и заметить, что часть результата уже у тебя в руках. В общении станет проще отличать пустое обещание от нормального участия. В покупках выиграет качество, в отдыхе — то, что действительно радует, а не просто убивает время. Месяц может получиться спокойным, но совсем не пустым: хорошие вещи часто приходят без салюта, зато остаются надолго.',
-  ], 'Месяц собирает результат.', 'Закрой начатое красиво. Новое само найдёт свободное место.', 'action'),
-  reference('month-refusals', 'month', 'challenging', 'Ника', [
-    'Некоторые планы, покупки и договорённости быстро покажут свою настоящую цену. Всё, что требует слишком много внимания и даёт слишком мало пользы, станет особенно заметным. Большая драма тут не нужна: достаточно перестать продлевать то, что давно держится на привычке. Хорошая сторона месяца в том, что после пары точных отказов станет легче двигать нужное. Появится место для нормального отдыха, живых встреч и работы, за которую не стыдно брать деньги. Не тащи чужую неорганизованность, не соглашайся на мутные условия и не покупай вещь только потому, что скидка смотрит жалобно.',
-  ], 'Лишнее сдаёт позиции.', 'Оставь себе лучшее. Остальное переживёт отказ.', 'avoidance'),
+  example('day-bright-own-it', 'day', 'bright', { name: 'Мира', birthDate: '1994-05-17', birthTime: '09:25', birthTimeMode: 'exact', place: 'Казань', gender: 'female' }, {
+    headline: 'День твой. Забирай.',
+    forecast: 'Сегодня многое складывается в твою пользу без уговоров. Люди охотнее идут навстречу, интересная идея быстро находит поддержку, а спонтанное «почему бы и нет» может оказаться лучшей частью дня.',
+    takeaway: 'День любит тех, кто не уменьшает себя заранее.',
+    do: 'Предлагай своё смелее.', dont: 'Не тяни паузу.', closing: 'Удача сегодня не жадничает.',
+  }),
+  example('day-bold', 'day', 'steady', { name: 'Ирина', birthDate: '1988-11-02', birthTime: null, birthTimeMode: 'unknown', place: 'Тула', gender: 'female' }, {
+    headline: 'Сегодня можно наглеть.',
+    forecast: 'День поддержит инициативу. Предложения будут звучать убедительнее, люди быстрее поймут, чего ты хочешь, а удачные варианты появятся без долгих поисков. Сегодня полезнее самому открыть дверь, чем стоять рядом и ждать приглашения.',
+    takeaway: 'Первый ход сегодня за тобой.', do: 'Называй свои условия.', dont: 'Не уменьшай запрос.', closing: 'Скромность сегодня взяла выходной.',
+  }),
+  example('day-warm-luck', 'day', 'bright', { name: 'Лена', birthDate: '1991-03-28', birthTime: '14:00', birthTimeMode: 'approximate', uncertainty: 30, place: 'Самара', gender: 'female' }, {
+    headline: 'Удача вышла на смену.',
+    forecast: 'Сегодня приятные совпадения будут работать в твою пользу. Нужная мысль придёт к месту, обычное дело даст больше, чем ожидалось, а встреча может оказаться теплее обычного. Оставь немного воздуха: интересное способно появиться без записи.',
+    takeaway: 'Жизнь сегодня явно не жадничает.', do: 'Оставь место случаю.', dont: 'Не забивай всё планами.', closing: 'Похоже, сегодня жизнь за тебя.',
+  }),
+  example('day-steady', 'day', 'challenging', { name: 'Марина', birthDate: '1979-08-11', birthTime: '22:10', birthTimeMode: 'exact', place: 'Пермь', gender: 'female' }, {
+    headline: 'Без лишней суеты.',
+    forecast: 'День не требует от тебя невозможного. Обычные вещи дадут хороший результат, если не раздувать их до марафона. Там, где хочется добавить ещё десять пунктов, лучше оставить нормальный объём и закончить без цирка.',
+    takeaway: 'Нормальный темп часто выигрывает у суеты.', do: 'Делай без марафона.', dont: 'Не усложняй простое.', closing: 'Спокойный день тоже может быть твоим.',
+  }),
+  example('week-tasty', 'week', 'bright', { name: 'Саша', birthDate: '1996-01-24', birthTime: null, birthTimeMode: 'unknown', place: 'Санкт-Петербург', gender: 'unspecified' }, {
+    headline: 'Неделя с аппетитом.',
+    forecast: 'Появится больше поводов выйти из дома не потому, что надо, а потому что интересно. Новые места, короткие поездки, вкусная еда и хорошая компания зайдут лучше привычной гонки. Симпатия может стать заметнее, а скучный план уступит место чему-то гораздо веселее. В обычных делах тоже будет толк, если не превращать каждую мелочь в государственный проект.',
+    takeaway: 'Тебе полезно не только успевать, но и жить с удовольствием.', do: 'Выходи в новые места.', dont: 'Не забивай календарь.', closing: 'Хорошее не нужно заслуживать.',
+  }),
+  example('week-easier', 'week', 'steady', { name: 'Ирина', birthDate: '1985-09-29', birthTime: '07:40', birthTimeMode: 'exact', place: 'Ярославль', gender: 'female' }, {
+    headline: 'Неделя по-человечески.',
+    forecast: 'Неделя не обещает фейерверк — и отлично. Наладятся мелочи, которые давно раздражали: дома станет удобнее, деньги понятнее, а рядом останутся люди, с которыми можно не играть роль. Хорошо покупать то, чем будешь пользоваться, и оставлять себе свободное время без чувства вины. Простые варианты окажутся полезнее красивых усложнений, и это редкий подарок для уставшей головы, между прочим.',
+    takeaway: 'Удобно — это не скучно, а умно.', do: 'Выбирай удобное для себя.', dont: 'Не усложняй простое.', closing: 'Нормальная жизнь тоже считается.',
+  }),
+  example('week-lively', 'week', 'challenging', { name: 'Денис', birthDate: '1983-12-19', birthTime: '18:00', birthTimeMode: 'approximate', uncertainty: 45, place: 'Воронеж', gender: 'male' }, {
+    headline: 'Неделя без серости.',
+    forecast: 'Случайных планов станет меньше, а того, после чего остаётся приятное чувство «не зря», больше. Хорошо пойдут обновления дома, небольшие поездки, покупки для удовольствия и люди, с которыми не надо изображать бодрость. Одна живая идея быстро вытеснит несколько скучных пунктов — и правильно сделает. Свободный вечер даст больше сил, чем ещё один пункт в списке.',
+    takeaway: 'Хорошее настроение не отвлекает от жизни.', do: 'Оставь место хорошему.', dont: 'Не соглашайся на скуку.', closing: 'Жизнь не обязана быть полезной каждую минуту.',
+  }),
+  example('month-generous', 'month', 'bright', { name: 'Алина', birthDate: '1992-03-11', birthTime: '10:20', birthTimeMode: 'exact', place: 'Краснодар', gender: 'female' }, {
+    headline: 'Месяц открывает двери.',
+    forecast: 'Появится движение: интересное приглашение, новое место, симпатия или занятие, от которого жить станет веселее. Не всё хорошее приходит с фанфарами; иногда оно просто оказывается рядом. Скучный маршрут можно менять без комиссии и согласования — наконец-то нормальные новости. Хорошо зайдут обновления дома, внешнего вида и привычного круга. В людях выбирай лёгкость, в покупках — качество. Остальное подождёт, и это не мелочь. И это приятно.',
+    takeaway: 'Жизнь интереснее, когда ты берёшь не только безопасное.', do: 'Меняй привычный маршрут.', dont: 'Не выбирай только безопасное.', closing: 'Особый случай уже пришёл.',
+  }),
+  example('month-results', 'month', 'steady', { name: 'Роман', birthDate: '1987-06-15', birthTime: null, birthTimeMode: 'unknown', place: 'Уфа', gender: 'male' }, {
+    headline: 'Спокойно, зато красиво.',
+    forecast: 'То, что раньше выглядело россыпью мелочей, начнёт собираться в понятную картину. Что-то завершится без драм, привычное место станет удобнее, а навык, который ты развивал без рекламы, начнёт реально помогать. Хорошее не требует рывка века — оно любит, когда его просто не бросают. Люди рядом покажут себя без лишних слов, а пару старых мелочей наконец удастся закрыть без лишней беготни и надрыва.',
+    takeaway: 'Спокойный ход тоже приносит заметный результат.', do: 'Доводи хорошее до конца.', dont: 'Не бросай на середине.', closing: 'Ты не стоишь на месте. Просто без флага.',
+  }),
+  example('month-less-is-better', 'month', 'challenging', { name: 'Ника', birthDate: '1976-10-06', birthTime: '05:50', birthTimeMode: 'exact', place: 'Омск', gender: 'female' }, {
+    headline: 'Лишнее сдаёт позиции.',
+    forecast: 'Станет заметнее цена привычек, которые забирают много сил и мало дают взамен. Ненужные покупки, мутные обещания и вечное «потом» быстро теряют власть, если перестать кормить их вниманием. Скидка не делает вещь нужной — она просто делает ценник красным. Свободного места станет больше — для отдыха, нормальных встреч и вещей, которые правда радуют. Большую драму устраивать не придётся, и это отличная новость, правда.',
+    takeaway: 'Рядом должно оставаться то, от чего тебе хорошо.', do: 'Оставляй полезное рядом.', dont: 'Не корми лишнее вниманием.', closing: 'Остальное как-нибудь переживёт твой отказ.',
+  }),
 ];
+
+const RUNTIME_REFERENCE_IDS: Record<PersonalForecastPeriod, readonly string[]> = {
+  day: ['day-bright-own-it', 'day-bold', 'day-steady'],
+  week: ['week-tasty', 'week-easier', 'week-lively'],
+  month: ['month-generous', 'month-results', 'month-less-is-better'],
+};
 
 export function renderPersonalForecastReferenceExamples(language: 'ru' | 'en', period: PersonalForecastPeriod): string {
   if (language !== 'ru') return '';
-  const examples = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU
-    .filter((example) => example.period === period)
-    .map((example) => ({
-      input: {
-        personal_profile: {
-          name: example.input.name, birth_date: example.input.birth_date, birth_time: example.input.birth_time,
-          birth_time_mode: example.input.birth_time ? 'exact' : 'unknown', birth_time_uncertainty_minutes: null,
-          birth_place: example.input.birth_place, birth_timezone: 'Europe/Moscow', gender: 'unspecified', language,
-        },
-        selected_period: { period: example.period, period_key: `${example.period}-reference-${example.id}`, current_date: '2026-08-20', period_start: '2026-08-20', period_end: example.period === 'day' ? '2026-08-20' : '2026-08-26', timezone: 'Europe/Moscow' },
-        anti_repeat_context: { recent_forecasts: [] },
-      },
-      output: example.output,
-    }));
-  return examples.map((example) => `<forecast_example_input>\n${JSON.stringify(example.input, null, 2)}\n</forecast_example_input>\n<forecast_example_output>\n${JSON.stringify(example.output, null, 2)}\n</forecast_example_output>`).join('\n\n');
+  return PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU
+    .filter((item) => RUNTIME_REFERENCE_IDS[period].includes(item.id))
+    .map((item) => `<forecast_example_input>\n${JSON.stringify(item.input, null, 2)}\n</forecast_example_input>\n<forecast_example_output>\n${JSON.stringify(item.output, null, 2)}\n</forecast_example_output>`)
+    .join('\n\n');
+}
+
+export function getDisabledPersonalForecastRuntimeExampleIds(period: PersonalForecastPeriod): string[] {
+  return PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.filter((item) => item.period === period && !RUNTIME_REFERENCE_IDS[period].includes(item.id)).map((item) => item.id);
 }
 
 export function getPersonalForecastReferenceFragments(period: PersonalForecastPeriod) {
-  return PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.filter((example) => example.period === period).flatMap((example) => [
-    { kind: 'headline' as const, text: example.output.headline.text },
-    ...example.output.fragments.map((fragment, index, fragments) => ({
-      kind: 'fragment' as const,
-      text: index === fragments.length - 1 ? `${fragment.text.trim()} ${example.output.closing.text.trim()}`.trim() : fragment.text,
-      mainIdeaKey: fragment.main_idea_key,
-      lifePlotKey: fragment.life_plot_key,
-      adviceKey: index === fragments.length - 1 ? [fragment.advice_key, example.output.closing.advice_key].filter(Boolean).join('; ') : fragment.advice_key,
-      comparisonKey: fragment.comparison_key,
+  return PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.filter((item) => item.period === period).flatMap((item) => [
+    { kind: 'headline' as const, text: item.output.headline },
+    ...[item.output.forecast, item.output.takeaway, item.output.do, item.output.dont, item.output.closing].map((text) => ({
+      kind: 'fragment' as const, text, mainIdeaKey: '', lifePlotKey: '', adviceKey: '', comparisonKey: '',
     })),
   ]);
 }

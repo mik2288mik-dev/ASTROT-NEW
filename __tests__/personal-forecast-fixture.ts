@@ -1,5 +1,5 @@
 import type { NatalChartData } from '../types';
-import { APP_VOICE_VERSION } from '../lib/appVoice';
+import { PERSONAL_FORECAST_VOICE_VERSION } from '../lib/appVoice';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -159,7 +159,7 @@ export function personalForecastFixture(): PersonalForecastPackage {
     meta: {
       model: 'gpt-4.1',
       promptVersion: PERSONAL_FORECAST_PROMPT_VERSION,
-      voiceVersion: APP_VOICE_VERSION,
+      voiceVersion: PERSONAL_FORECAST_VOICE_VERSION,
       calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
       semanticVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
       contractVersion: PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -168,6 +168,25 @@ export function personalForecastFixture(): PersonalForecastPackage {
       generatedAt: '2026-07-26T10:00:00.000Z',
       status: 'ready',
       diagnosticCode: null,
+      astrologerBrief: {
+        tone: 'mixed',
+        coreForecast: 'практичный результат',
+        secondaryForecast: 'доведение начатого',
+        distinctiveDetail: 'fixture detail',
+        briefSignature: 'fixture-brief',
+        opportunity: 'увидеть отдачу от знакомого дела',
+        friction: 'не усложнять рабочее',
+        likelyResult: 'fixture result',
+      },
+      semanticSignature: {
+        coreForecast: 'практичный результат',
+        secondaryForecast: 'доведение начатого',
+        headline: 'fixture headline',
+        forecast: 'fixture forecast',
+        do: 'fixture do',
+        dont: 'fixture dont',
+        closing: 'fixture closing',
+      },
       freeSelection: {
         strongestSectionId: 'semantic:communication',
         rotatedSectionId: 'semantic:boundaries',

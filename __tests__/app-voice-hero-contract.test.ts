@@ -12,7 +12,7 @@ describe('app and personal forecast voice contracts', () => {
     const voice = getAppSystemVoice('ru');
 
     expect(APP_VOICE_VERSION).toBe('10');
-    expect(PERSONAL_FORECAST_VOICE_VERSION).toBe('3');
+    expect(PERSONAL_FORECAST_VOICE_VERSION).toBe('5');
     expect(voice).toContain('точно, спокойно, живо и без церемоний');
     expect(voice).toContain('Используй только переданный надёжный контекст');
     expect(voice).toContain('Говори с человеком на «ты»');
@@ -20,15 +20,15 @@ describe('app and personal forecast voice contracts', () => {
     expect(voice).not.toContain('добрый, дерзкий и современный друг');
   });
 
-  it('layers a distinct personal forecast voice over the calm app voice', () => {
+  it('keeps the personal forecast voice separate from the app-wide voice', () => {
     const appVoice = getAppSystemVoice('ru');
     const forecastVoice = getPersonalForecastSystemVoice('ru');
 
-    expect(forecastVoice).toContain(appVoice);
+    expect(forecastVoice).not.toContain(appVoice);
     expect(forecastVoice).toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
     expect(forecastVoice).toContain('прямо, наблюдательно и с характером');
     expect(forecastVoice).toContain('не превращай прогноз в номер');
-    expect(forecastVoice).toContain('разрешённая личная основа');
+    expect(forecastVoice).toContain('приватная личная основа');
     expect(forecastVoice).toContain('оставляй его полностью позитивным');
     expect(forecastVoice).toContain('Финал приносит практическую пользу');
   });

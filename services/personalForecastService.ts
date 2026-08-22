@@ -1,9 +1,10 @@
 import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
 import {
-  APP_VOICE_VERSION,
+  PERSONAL_FORECAST_VOICE_VERSION,
 } from '../lib/appVoice';
 import {
+  PERSONAL_FORECAST_CACHE_VERSION,
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
   PERSONAL_FORECAST_PROMPT_VERSION,
@@ -42,7 +43,7 @@ type PersonalForecastPeriodResultState = {
   result: PersonalForecastClientResult | null;
 };
 
-const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v6-raw-profile';
+const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v14-six-part-forecast-basis';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
 
@@ -67,7 +68,8 @@ function contextKey(input: {
     PERSONAL_FORECAST_CALCULATION_VERSION,
     PERSONAL_FORECAST_CONTRACT_VERSION,
     PERSONAL_FORECAST_PROMPT_VERSION,
-    APP_VOICE_VERSION,
+    PERSONAL_FORECAST_VOICE_VERSION,
+    PERSONAL_FORECAST_CACHE_VERSION,
   ].join('|');
 }
 

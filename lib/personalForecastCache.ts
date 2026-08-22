@@ -1,5 +1,5 @@
 import type { ContentInterpretation, UserProfile } from '../types';
-import { APP_VOICE_VERSION } from './appVoice';
+import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
 import { getUnifiedContentModel } from './appSettings';
 import { buildContentGenerationLockKey, withContentGenerationLock, type ContentGenerationLockResult } from './contentGenerationLock';
 import { db, getPool } from './db';
@@ -17,6 +17,7 @@ import {
   type PersonalForecastPackage,
   type PersonalForecastPeriod,
   type PersonalForecastRawProfile,
+  type PersonalForecastSemanticSignature,
 } from './personalForecastContract';
 import {
   PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT,
@@ -68,7 +69,7 @@ function valid(interpretation: ContentInterpretation<PersonalForecastPackage> | 
     && interpretation.promptVersion === PERSONAL_FORECAST_PROMPT_VERSION
     && interpretation.calculationVersion === PERSONAL_FORECAST_CALCULATION_VERSION
     && forecast.meta.contractVersion === PERSONAL_FORECAST_CONTRACT_VERSION
-    && forecast.meta.voiceVersion === APP_VOICE_VERSION
+    && forecast.meta.voiceVersion === PERSONAL_FORECAST_VOICE_VERSION
     && forecast.meta.model === resolved.model
     && isPersonalForecastPackage(forecast));
 }
@@ -94,7 +95,12 @@ function reading(value: unknown): PersonalForecastRecentReading | null {
     { kind: 'headline' as const, text: value.overview.title || '', semanticFingerprint: null },
     ...all.filter((section) => section.text.trim()).map((section) => ({ kind: 'fragment' as const, text: section.text, semanticFingerprint: section.semanticFingerprint || null })),
   ].filter((item) => item.text.trim());
-  return fragments.length ? { periodKey: value.periodKey, fragments } : null;
+  return fragments.length ? {
+    period: value.period,
+    periodKey: value.periodKey,
+    fragments,
+    semanticSignature: value.meta.semanticSignature,
+  } : null;
 }
 
 /** Exactly this user, all three periods, newest first; never provider input from another user. */
@@ -134,6 +140,26 @@ async function getCrossUserRepeatFragments(input: PersonalForecastCacheContext, 
   return (result.rows as Array<{content: unknown}>).flatMap((row) => repeatFragments(row.content)).slice(0, PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT);
 }
 
+/** A compact server-only semantic corpus. No foreign copy is passed to Luna. */
+async function getCrossUserSemanticSignatures(
+  input: PersonalForecastCacheContext,
+  resolved: Awaited<ReturnType<typeof identity>>,
+): Promise<PersonalForecastSemanticSignature[]> {
+  const result = await getPool().query(
+    `SELECT content FROM content_interpretations
+     WHERE user_id IS DISTINCT FROM $1 AND access_tier = $2
+       AND content_surface = 'forecast' AND content_variant = $3
+       AND content->>'periodKey' = $4 AND prompt_version = $5 AND calculation_version = $6
+       AND content->'meta'->>'contractVersion' = $7
+     ORDER BY updated_at DESC LIMIT $8`,
+    [input.userId, CACHE_TIER, resolved.contentVariant, input.periodKey, PERSONAL_FORECAST_PROMPT_VERSION, PERSONAL_FORECAST_CALCULATION_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION, CROSS_USER_PACKAGE_LIMIT],
+  );
+  return (result.rows as Array<{ content: unknown }>).flatMap((row) => {
+    if (!isPersonalForecastPackage(row.content)) return [];
+    return [row.content.meta.semanticSignature];
+  });
+}
+
 async function save(input: PersonalForecastCacheContext, forecast: PersonalForecastPackage, resolved: Awaited<ReturnType<typeof identity>>) {
   await db.content_interpretations.upsertByUser(input.userId, {
     accessTier: CACHE_TIER, contentSurface: 'forecast', contentVariant: resolved.contentVariant,
@@ -154,10 +180,12 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       return cached ? { value: cached.forecast, source: 'cache' as const } : null;
     },
     generate: async () => {
-      const [recentForecasts, crossUserRepeatFragments] = await Promise.all([
-        getRecentPersonalForecastHistory(input).catch(() => []), getCrossUserRepeatFragments(input, resolved).catch(() => []),
+      const [recentForecasts, crossUserRepeatFragments, crossUserSemanticSignatures] = await Promise.all([
+        getRecentPersonalForecastHistory(input).catch(() => []),
+        getCrossUserRepeatFragments(input, resolved).catch(() => []),
+        getCrossUserSemanticSignatures(input, resolved).catch(() => []),
       ]);
-      const forecast = await generatePersonalForecastPackage({ profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window, recentForecasts, crossUserRepeatFragments });
+      const forecast = await generatePersonalForecastPackage({ profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window, recentForecasts, crossUserRepeatFragments, crossUserSemanticSignatures });
       if (!isPersonalForecastPackage(forecast)) throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`);
       await save(input, forecast, resolved).catch(() => undefined);
       return forecast;
