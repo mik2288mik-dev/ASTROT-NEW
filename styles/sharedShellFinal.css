@@ -64,6 +64,12 @@
   box-shadow: none !important;
 }
 
+/* Sign horoscope uses the exact same full-width period rail as the personal forecast. */
+.fresh-page.horo-reader-page .horo-reader-controls {
+  width: 100%;
+  margin-top: 0;
+}
+
 .editorial-tab,
 .today-period-tab,
 .fresh-page.horo-reader-page .horo-period-tabs .fresh-tab {
