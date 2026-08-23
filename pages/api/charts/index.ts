@@ -118,6 +118,11 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse) {
       message:'Сервис расчёта натальной карты временно недоступен. Попробуй позже.',
     });
     const status=['GEOCODING_FAILED','INVALID_TIMEZONE','TIMEZONE_LOOKUP_FAILED','INVALID_BIRTH_TIME'].includes(error.code)?400:500;
+    if(status===500)return res.status(500).json({
+      error:'Internal server error',
+      code:'CHART_REQUEST_FAILED',
+      ...(process.env.NODE_ENV==='production'?{}:{message:error.message}),
+    });
     return res.status(status).json({error:error.message,code:error.code});
   }
 }

@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+echo "[start] Validating production environment"
+npm run validate:production-env
+
 echo "[start] Running database migrations"
 npm run migrate
 

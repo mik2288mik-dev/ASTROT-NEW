@@ -32,7 +32,9 @@ export type VerifiedTelegramUser = {
 };
 
 export function getConfiguredOwnerId(): string {
-  return process.env.NEXT_PUBLIC_OWNER_ID || process.env.OWNER_ID || '';
+  const serverOwnerId = String(process.env.OWNER_ID || '').trim();
+  if (serverOwnerId || process.env.NODE_ENV === 'production') return serverOwnerId;
+  return String(process.env.NEXT_PUBLIC_OWNER_ID || '').trim();
 }
 
 function getHeaderValue(req: NextApiRequest, headerName: string): string {
@@ -199,15 +201,17 @@ export async function requireAdminAccess(req: NextApiRequest) {
 
 export function handleAdminError(res: NextApiResponse, error: unknown) {
   if (error instanceof AdminAuthError) {
+    const hideInternalMessage = process.env.NODE_ENV === 'production' && error.status >= 500;
     return res.status(error.status).json({
       error: error.code,
-      message: error.message,
+      message: hideInternalMessage ? 'Service temporarily unavailable' : error.message,
     });
   }
 
-  const message = error instanceof Error ? error.message : 'Unknown error';
   return res.status(500).json({
     error: 'INTERNAL_SERVER_ERROR',
-    message,
+    message: process.env.NODE_ENV === 'production'
+      ? 'An unexpected error occurred'
+      : (error instanceof Error ? error.message : 'Unknown error'),
   });
 }

@@ -1,7 +1,7 @@
 // Database migrations for Your Horoscope
 // MVP schema plus cleanup migrations
 
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import { resolveDatabaseUrl } from './database-url';
 import { NOTIFICATION_SCENARIO_SEEDS } from './notificationScenarioCatalog';
 import { RETENTION_NOTIFICATION_SCENARIO_SEEDS } from './retentionNotificationCatalog';
@@ -63,7 +63,12 @@ async function markMigrationApplied(pool: Pool, migrationName: string): Promise<
 }
 
 /**
- * Migration: Full database reset - DROP all tables
+ * Historical reset marker.
+ *
+ * Older development deployments used this step to rebuild a disposable schema.
+ * Production startup must never infer that an unmarked database is disposable:
+ * a missing marker on a database with application tables now stops deployment
+ * before any data can be removed.
  */
 async function migrationReset(pool: Pool): Promise<void> {
   const migrationName = 'lumia_reset';
@@ -73,68 +78,25 @@ async function migrationReset(pool: Pool): Promise<void> {
     return;
   }
 
-  log.info('Applying full database reset...');
-
-  const dropOrder = [
-    'personalization_facts',
-    'astrology_messages',
-    'astrology_threads',
-    'generated_artifacts',
-    'astrology_calculation_snapshots',
-    'personal_forecast_questions',
-    'premium_entitlements',
-    'content_unlocks',
-    'content_cache',
-    'content_interpretations',
-    'notification_delivery_log',
-    'notification_rotation_state',
-    'notification_schedules',
-    'notification_templates',
-    'notification_assets',
-    'notification_deliveries',
-    'notification_campaigns',
-    'legacy_notification_templates',
-    'user_sessions',
-    'horoscope_reactions',
-    'horoscope_engagement',
-    'star_payments',
-    'synastry_cache',
-    'astro_questions',
-    'daily_natal_cards',
-    'daily_task_completions',
-    'daily_horoscopes',
-    'roulette_spins',
-    'lumi_transactions',
-    'interpretations',
-    'natal_charts',
-    'dictionary',
-    'daily_horoscope',
-    'user_settings',
-    'deep_dive_analyses',
-    'daily_horoscopes_cache',
-    'regenerations',
-    'forecasts_cache',
-    'synastry_cache',
-    'charts',
-    'users'
-  ];
-
-  for (const table of dropOrder) {
-    try {
-      await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
-      log.info(`Dropped table ${table}`);
-    } catch (e: any) {
-      log.warn(`Drop ${table} failed (may not exist):`, e.message);
-    }
+  const existingTables = await pool.query(
+    `SELECT table_name
+     FROM information_schema.tables
+     WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+       AND table_name <> 'migrations'
+     ORDER BY table_name
+     LIMIT 20`,
+  );
+  if (existingTables.rowCount) {
+    const sample = existingTables.rows.map((row) => String(row.table_name)).join(', ');
+    throw new Error(
+      `DESTRUCTIVE_MIGRATION_BLOCKED: ${migrationName} is missing on a non-empty database `
+      + `(${sample}). Restore/verify migration history or run an owner-approved one-off reset; `
+      + 'automatic production data deletion is disabled.',
+    );
   }
 
-  await pool.query('DROP TYPE IF EXISTS interpretation_type CASCADE');
-
-  await pool.query('TRUNCATE migrations');
-  log.info('Migrations history cleared');
-
   await markMigrationApplied(pool, migrationName);
-  log.info('Migration lumia_reset applied');
+  log.info('Fresh database verified; historical reset marker recorded without deleting data');
 }
 
 /**
@@ -2329,7 +2291,9 @@ async function lumia031AdminFoundation(pool: Pool): Promise<void> {
     SELECT id, 'admin', 'active', CURRENT_TIMESTAMP FROM users WHERE is_admin = TRUE
     ON CONFLICT (user_id) DO NOTHING
   `);
-  const ownerId = process.env.NEXT_PUBLIC_OWNER_ID || process.env.OWNER_ID || '';
+  const ownerId = process.env.OWNER_ID
+    || (process.env.NODE_ENV === 'production' ? '' : process.env.NEXT_PUBLIC_OWNER_ID)
+    || '';
   if (ownerId && /^\d+$/.test(ownerId.trim())) {
     const ownerAdminResult = await pool.query(
       `INSERT INTO admin_users (user_id, role, status, created_at)
@@ -3638,6 +3602,7 @@ export async function runMigrations(): Promise<void> {
   }
 
   let pool: Pool | null = null;
+  let migrationClient: PoolClient | null = null;
   let migrationLockAcquired = false;
 
   try {
@@ -3652,85 +3617,95 @@ export async function runMigrations(): Promise<void> {
     });
 
     await testConnection(pool, 1, 1000);
-    await pool.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
+    migrationClient = await pool.connect();
+    await migrationClient.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
     migrationLockAcquired = true;
     log.info('Migration advisory lock acquired');
-    await createMigrationsTable(pool);
+    // Every migration query must use the same PostgreSQL session that owns the
+    // session-level advisory lock. Pool.query() is not connection-affine.
+    const migrationDb = migrationClient as unknown as Pool;
+    await createMigrationsTable(migrationDb);
 
-    await migrationReset(pool);
-    await lumia001FullSchema(pool);
-    await lumia002MultiChart(pool);
+    await migrationReset(migrationDb);
+    await lumia001FullSchema(migrationDb);
+    await lumia002MultiChart(migrationDb);
     // КРИТИЧНО и РАНО: сверяем колонки users сразу после базовой схемы, ДО длинной
     // цепочки миграций (любая из которых может упасть). Колонки вроде `gender` были
     // дописаны в уже применённую lumia_002 и потому отсутствовали в проде — из-за чего
     // db.users.set падал и НИ ОДИН новый пользователь не мог создать карту.
-    await reconcileUserColumns(pool);
-    await lumia003StarPayments(pool);
-    await lumia004AdminBackoffice(pool);
-  await lumia005AppSettings(pool);
-  await lumia006ScheduledNotifications(pool);
-  await lumia007NotificationVisualHybrid(pool);
-  await lumia008AdminNotificationEnhancements(pool);
-  await lumia008aUsersPremiumUntilColumn(pool);
-  await lumia009ContentArchitecture(pool);
-  await lumia011RemoveDashboardAirVariant(pool);
-  await lumia012DailyLumiTasks(pool);
-  await lumia013CanonicalNatalPersistence(pool);
-  await lumia014PlanetInsightVariant(pool);
-  await lumia016NatalContentUnification(pool);
-  await lumia017NatalHumanReadingV4Archive(pool);
-  await lumia018NotificationFrequencyPreference(pool);
-  await lumia019HoroscopeReactions(pool);
-  await lumia020DailyFeedbackAssistant(pool);
-  await lumia021NotificationScenarioEngine(pool);
-  await lumia022RetentionNotificationQueue(pool);
-  await lumia023StarsAccessTier(pool);
-  await lumia024StarsOneOffPayments(pool);
-  await lumia025RemoveLumiEconomy(pool);
-  await lumia026AccessFoundation(pool);
-  await lumia027ContentMatrixCache(pool);
-  await lumia028HoroscopeEngagement(pool);
-  await lumia029EnableNotificationScenarios(pool);
-  await lumia030DisableRemovedScenarios(pool);
-  await lumia031AdminFoundation(pool);
-  await lumia032Monetization(pool);
-  await lumia033ContentCms(pool);
-  await lumia034Support(pool);
-  await lumia035FeatureFlags(pool);
-  await mvp036SchemaCleanup(pool);
-  await mvp038PersonalForecastQuestions(pool);
-  await mvp039RuStorePay(pool);
-  await mvp040AccountIdentitySessions(pool);
-  await mvp041AstrologyHistoryFoundation(pool);
-  await mvp042SavedPersonIdentity(pool);
-  await mvp043PasswordAuthentication(pool);
-  await mvp044EmailIdentityUniqueness(pool);
-  await mvp045AuthExpiryTimezone(pool);
-  await mvp048AppSessionRefresh(pool);
-  await mvp044PremiumEntitlementLifecycle(pool);
-  await mvp045RuStoreCallbackOrdering(pool);
-  await mvp046RuStoreProviderOverlay(pool);
-  await mvp047RuStoreAbsoluteTimestamps(pool);
-  await syncNotificationCatalogFromSeed(pool);
-  await cancelStaleScheduledNotifications(pool);
-  await verifyTablesExist(pool);
+    await reconcileUserColumns(migrationDb);
+    await lumia003StarPayments(migrationDb);
+    await lumia004AdminBackoffice(migrationDb);
+    await lumia005AppSettings(migrationDb);
+    await lumia006ScheduledNotifications(migrationDb);
+    await lumia007NotificationVisualHybrid(migrationDb);
+    await lumia008AdminNotificationEnhancements(migrationDb);
+    await lumia008aUsersPremiumUntilColumn(migrationDb);
+    await lumia009ContentArchitecture(migrationDb);
+    await lumia011RemoveDashboardAirVariant(migrationDb);
+    await lumia012DailyLumiTasks(migrationDb);
+    await lumia013CanonicalNatalPersistence(migrationDb);
+    await lumia014PlanetInsightVariant(migrationDb);
+    await lumia016NatalContentUnification(migrationDb);
+    await lumia017NatalHumanReadingV4Archive(migrationDb);
+    await lumia018NotificationFrequencyPreference(migrationDb);
+    await lumia019HoroscopeReactions(migrationDb);
+    await lumia020DailyFeedbackAssistant(migrationDb);
+    await lumia021NotificationScenarioEngine(migrationDb);
+    await lumia022RetentionNotificationQueue(migrationDb);
+    await lumia023StarsAccessTier(migrationDb);
+    await lumia024StarsOneOffPayments(migrationDb);
+    await lumia025RemoveLumiEconomy(migrationDb);
+    await lumia026AccessFoundation(migrationDb);
+    await lumia027ContentMatrixCache(migrationDb);
+    await lumia028HoroscopeEngagement(migrationDb);
+    await lumia029EnableNotificationScenarios(migrationDb);
+    await lumia030DisableRemovedScenarios(migrationDb);
+    await lumia031AdminFoundation(migrationDb);
+    await lumia032Monetization(migrationDb);
+    await lumia033ContentCms(migrationDb);
+    await lumia034Support(migrationDb);
+    await lumia035FeatureFlags(migrationDb);
+    await mvp036SchemaCleanup(migrationDb);
+    await mvp038PersonalForecastQuestions(migrationDb);
+    await mvp039RuStorePay(migrationDb);
+    await mvp040AccountIdentitySessions(migrationDb);
+    await mvp041AstrologyHistoryFoundation(migrationDb);
+    await mvp042SavedPersonIdentity(migrationDb);
+    await mvp043PasswordAuthentication(migrationDb);
+    await mvp044EmailIdentityUniqueness(migrationDb);
+    await mvp045AuthExpiryTimezone(migrationDb);
+    await mvp048AppSessionRefresh(migrationDb);
+    await mvp044PremiumEntitlementLifecycle(migrationDb);
+    await mvp045RuStoreCallbackOrdering(migrationDb);
+    await mvp046RuStoreProviderOverlay(migrationDb);
+    await mvp047RuStoreAbsoluteTimestamps(migrationDb);
+    await syncNotificationCatalogFromSeed(migrationDb);
+    await cancelStaleScheduledNotifications(migrationDb);
+    await verifyTablesExist(migrationDb);
 
     log.info('All Lumia migrations completed successfully');
   } catch (error: any) {
     log.error('Migration failed', { error: error.message, stack: error.stack });
     throw error;
   } finally {
-    if (pool) {
+    if (migrationClient) {
       try {
         if (migrationLockAcquired) {
-          await pool.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]);
+          await migrationClient.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]);
           log.info('Migration advisory lock released');
         }
-        await pool.end();
-        log.info('Database connection closed');
       } catch (e: any) {
-        log.warn('Error closing pool', { error: e.message });
+        log.warn('Error releasing migration advisory lock', { error: e.message });
+      } finally {
+        migrationClient.release();
       }
+    }
+    if (pool) {
+      await pool.end().catch((e: any) => {
+        log.warn('Error closing migration pool', { error: e.message });
+      });
+      log.info('Database connection closed');
     }
   }
 }

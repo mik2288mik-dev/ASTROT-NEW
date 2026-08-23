@@ -16,14 +16,20 @@ async function tableExists(client:PoolClient,name:string):Promise<boolean>{
 async function main(){
   const url=resolveDatabaseUrl();
   if(!url){console.log('[natal-v2-migrate] DATABASE_URL is not configured; skipping');return;}
-  const pool=new Pool({connectionString:url});
+  const pool=new Pool({
+    connectionString:url,
+    ssl:process.env.NODE_ENV==='production'?{rejectUnauthorized:false}:false,
+    connectionTimeoutMillis:5000,
+  });
   const client=await pool.connect();
+  let inTransaction=false;
   try{
     await client.query('SELECT pg_advisory_lock($1)',[LOCK_KEY]);
     await client.query(`CREATE TABLE IF NOT EXISTS migrations(id SERIAL PRIMARY KEY,name VARCHAR(255) UNIQUE NOT NULL,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
     const applied=await client.query('SELECT 1 FROM migrations WHERE name=$1 LIMIT 1',[MIGRATION]);
     if(applied.rowCount){console.log('[natal-v2-migrate] already applied');return;}
     await client.query('BEGIN');
+    inTransaction=true;
 
     if(await tableExists(client,'users')){
       await client.query(`ALTER TABLE users
@@ -40,31 +46,31 @@ async function main(){
         ADD COLUMN IF NOT EXISTS birth_time_range_start TIME,
         ADD COLUMN IF NOT EXISTS birth_time_range_end TIME`);
 
-      // Every current chart is test data made by the old calculation contract.
-      // CASCADE removes only data linked to those charts: old readings, forecasts,
-      // history snapshots, synastry and unlock rows. Accounts and payments stay.
-      await client.query('TRUNCATE TABLE natal_charts RESTART IDENTITY CASCADE');
     }
 
-    if(await tableExists(client,'users')){
-      // Force every test account through the new explicit birth-time screen.
-      await client.query(`UPDATE users SET
-        birth_date=NULL,
-        birth_time=NULL,
-        birth_place=NULL,
-        birth_time_mode=NULL,
-        birth_time_uncertainty_minutes=NULL,
-        birth_time_range_start=NULL,
-        birth_time_range_end=NULL,
-        is_setup=FALSE,
-        updated_at=CURRENT_TIMESTAMP`);
+    const chartRows=await tableExists(client,'natal_charts')
+      ? await client.query('SELECT COUNT(*)::int AS count FROM natal_charts')
+      : {rows:[{count:0}]};
+    const profiledUsers=await tableExists(client,'users')
+      ? await client.query(`SELECT COUNT(*)::int AS count FROM users
+          WHERE birth_date IS NOT NULL OR birth_time IS NOT NULL OR birth_place IS NOT NULL`)
+      : {rows:[{count:0}]};
+    const chartCount=Number(chartRows.rows[0]?.count||0);
+    const profileCount=Number(profiledUsers.rows[0]?.count||0);
+    if(chartCount>0||profileCount>0){
+      throw new Error(
+        `DESTRUCTIVE_NATAL_V2_MIGRATION_BLOCKED: found ${chartCount} natal chart rows and `+
+        `${profileCount} users with birth data. Automatic TRUNCATE/profile reset is disabled; `+
+        'take a verified backup and run an owner-reviewed one-off migration.'
+      );
     }
 
     await client.query('INSERT INTO migrations(name) VALUES($1)',[MIGRATION]);
     await client.query('COMMIT');
+    inTransaction=false;
     console.log('[natal-v2-migrate] applied');
   }catch(error){
-    await client.query('ROLLBACK').catch(()=>{});
+    if(inTransaction)await client.query('ROLLBACK').catch(()=>{});
     throw error;
   }finally{
     await client.query('SELECT pg_advisory_unlock($1)',[LOCK_KEY]).catch(()=>{});
@@ -74,6 +80,6 @@ async function main(){
 }
 
 main().catch((error)=>{
-  console.error('[natal-v2-migrate] failed',error);
+  console.error('[natal-v2-migrate] failed',error instanceof Error?error.message:String(error));
   process.exit(1);
 });

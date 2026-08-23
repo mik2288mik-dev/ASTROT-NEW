@@ -40,6 +40,23 @@ import { isGuestUserId } from './userId';
 // This is set in Railway Variables or .env file
 const DATABASE_URL = resolveDatabaseUrl();
 
+function safeDatabaseEndpoint(value: string): string {
+  try {
+    const parsed = new URL(value);
+    const database = decodeURIComponent(parsed.pathname.replace(/^\//, '')) || '(default)';
+    const port = parsed.port || '(default)';
+    return `${parsed.hostname}:${port}/${database}`;
+  } catch {
+    return '(configured; URL details hidden)';
+  }
+}
+
+function configuredServerOwnerId(): string {
+  const ownerId = String(process.env.OWNER_ID || '').trim();
+  if (ownerId || process.env.NODE_ENV === 'production') return ownerId;
+  return String(process.env.NEXT_PUBLIC_OWNER_ID || '').trim();
+}
+
 // Logging utility
 const log = {
   info: (message: string, data?: any) => {
@@ -360,14 +377,7 @@ if (!DATABASE_URL) {
   log.warn('DATABASE_URL is not set. Database operations will fail.');
   log.warn('Please ensure DATABASE_URL is set in Railway environment variables.');
 } else {
-  // Log connection info (without sensitive data)
-  const urlParts = DATABASE_URL.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
-  if (urlParts) {
-    const [, , user, , host, port, database] = urlParts;
-    log.info(`DATABASE_URL configured: postgresql://${user}:***@${host}:${port}/${database}`);
-  } else {
-    log.info(`DATABASE_URL configured: ${DATABASE_URL.substring(0, 30)}...`);
-  }
+  log.info(`DATABASE_URL configured: ${safeDatabaseEndpoint(DATABASE_URL)}`);
 }
 
 // Create connection pool
@@ -429,16 +439,15 @@ export function getPool(): Pool {
       throw new Error('DATABASE_URL is not configured');
     }
     
-    // Parse and log connection info for debugging
-    const urlParts = DATABASE_URL.match(/^postgres(ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/);
-    if (urlParts) {
-      const [, , user, , host, port, database] = urlParts;
-      log.info(`Creating connection pool: ${host}:${port}/${database} (user: ${user})`);
-      
-      // Check if using internal Railway hostname
+    const safeEndpoint = safeDatabaseEndpoint(DATABASE_URL);
+    log.info(`Creating connection pool: ${safeEndpoint}`);
+    try {
+      const host = new URL(DATABASE_URL).hostname;
       if (host.includes('railway.internal')) {
-        log.warn('Using Railway internal hostname. This may not be accessible from Docker containers.');
+        log.info('Using the Railway private database network');
       }
+    } catch {
+      // The pool will return the actionable parse error without logging credentials.
     }
     
     pool = new Pool({
@@ -476,7 +485,7 @@ export async function queryDatabase(query: string, params?: any[]): Promise<any>
   }
 
   try {
-    log.info(`[DB] Executing query: ${query.substring(0, 100)}...`, { params });
+    log.info('[DB] Executing query', { parameterCount: params?.length || 0 });
     
     const dbPool = getPool();
     const result = await dbPool.query(query, params);
@@ -1544,7 +1553,7 @@ export const db = {
           [id],
         );
         const entitlement = entitlementResult.rows[0] || {};
-        const configuredOwnerId = process.env.NEXT_PUBLIC_OWNER_ID || process.env.OWNER_ID || '';
+        const configuredOwnerId = configuredServerOwnerId();
         const isPremium = (
           String(id) === String(configuredOwnerId)
           || entitlement.is_admin === true

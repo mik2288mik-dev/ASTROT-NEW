@@ -74,6 +74,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(error.status).json({ error: error.message, code: error.code });
     }
     log.error('Error', { error: error.message });
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: 'Internal server error',
+      ...(process.env.NODE_ENV === 'production' ? {} : { message: error.message }),
+    });
   }
 }

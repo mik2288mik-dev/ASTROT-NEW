@@ -118,9 +118,9 @@ describe('email and password authentication', () => {
 
   it('adds password credentials and durable auth throttling after the existing identity migration', () => {
     const migration = read('lib/migrations.ts');
-    const identityMigration = migration.indexOf('await mvp040AccountIdentitySessions(pool)');
-    const savedPersonMigration = migration.indexOf('await mvp042SavedPersonIdentity(pool)');
-    const passwordMigration = migration.indexOf('await mvp043PasswordAuthentication(pool)');
+    const identityMigration = migration.indexOf('await mvp040AccountIdentitySessions(migrationDb)');
+    const savedPersonMigration = migration.indexOf('await mvp042SavedPersonIdentity(migrationDb)');
+    const passwordMigration = migration.indexOf('await mvp043PasswordAuthentication(migrationDb)');
 
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS account_password_credentials');
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS auth_rate_limits');

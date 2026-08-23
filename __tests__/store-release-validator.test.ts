@@ -70,6 +70,35 @@ describe('store release validator', () => {
     expect(result.stderr).toContain('RUSTORE_PAY_MODE must be production for a release');
   });
 
+  it('rejects live-reload and development fallbacks in a store release', () => {
+    const result = validate({
+      ...validReleaseEnv(),
+      CAPACITOR_LIVE_RELOAD: '1',
+      CAPACITOR_LIVE_URL: 'http://192.168.1.4:3000',
+      ALLOW_TEST_PREMIUM_SIMULATION: '1',
+      NEXT_PUBLIC_UI_PREVIEW: '1',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('CAPACITOR_LIVE_RELOAD must be disabled');
+    expect(result.stderr).toContain('CAPACITOR_LIVE_URL must not be configured');
+    expect(result.stderr).toContain('ALLOW_TEST_PREMIUM_SIMULATION must be disabled');
+    expect(result.stderr).toContain('NEXT_PUBLIC_UI_PREVIEW must be disabled');
+  });
+
+  it('rejects loopback or path-based native API URLs for a release build', () => {
+    const loopback = validate({ ...validReleaseEnv(), NEXT_PUBLIC_API_URL: 'https://localhost:3000' });
+    expect(loopback.status).toBe(1);
+    expect(loopback.stderr).toContain('credential-free public HTTPS origin');
+
+    const pathBased = validate({ ...validReleaseEnv(), NEXT_PUBLIC_API_URL: 'https://api.example.ru/v1' });
+    expect(pathBased.status).toBe(1);
+    expect(pathBased.stderr).toContain('credential-free public HTTPS origin');
+
+    const privateNetwork = validate({ ...validReleaseEnv(), NEXT_PUBLIC_API_URL: 'https://10.0.0.8' });
+    expect(privateNetwork.status).toBe(1);
+    expect(privateNetwork.stderr).toContain('credential-free public HTTPS origin');
+  });
+
   it('rejects a RuStore subscription release with Pay disabled', () => {
     const result = validate({
       ...validReleaseEnv(),

@@ -61,10 +61,13 @@ describe('E2E smoke flow contracts', () => {
     // notification scheduler is in-process and unaffected.
   });
 
-  it('production observability is exposed through health checks for notification and error signals', () => {
+  it('keeps liveness dependency-free and retains bounded observability diagnostics', () => {
     const health = read('pages/api/health.ts');
+    const readiness = read('pages/api/readiness.ts');
     const observability = read('lib/productionObservability.ts');
-    expect(health).toContain('getProductionObservabilitySnapshot');
+    expect(health).not.toContain('getProductionObservabilitySnapshot');
+    expect(health).toContain('Dependency checks live at /api/readiness');
+    expect(readiness).toContain('getPool');
     expect(observability).toContain('scheduled_notifications');
     expect(observability).toContain('STALE_NOTIFICATION_DISPATCH_LOCKS');
     expect(observability).toContain('NOTIFICATION_FAILURES_LAST_24H');

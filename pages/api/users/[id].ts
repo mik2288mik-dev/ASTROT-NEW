@@ -74,6 +74,9 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     return res.status(200).json(publicUser({...refreshed,...saved,...birthSettings},userId,premiumEntitlement,await getNotificationFrequency(userId),refCode));
   }catch(error:any){
     if(error instanceof AdminAuthError)return handleAdminError(res,error);
-    log.error('Error processing request',{error:error.message,userId});return res.status(500).json({error:'Internal server error',message:error.message});
+    log.error('Error processing request',{error:error.message,userId});return res.status(500).json({
+      error:'Internal server error',
+      ...(process.env.NODE_ENV==='production'?{}:{message:error.message}),
+    });
   }
 }

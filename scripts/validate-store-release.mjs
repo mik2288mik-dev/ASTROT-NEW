@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import net from 'node:net';
 
 const root = process.cwd();
 const channel = String(process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL || 'development').trim();
@@ -11,6 +12,12 @@ const release = process.argv.includes('--release');
 const rustorePaymentsEnabled = ['1', 'true', 'yes', 'on'].includes(
   String(process.env.NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED || '').trim().toLowerCase(),
 );
+
+function enabled(name) {
+  return ['1', 'true', 'yes', 'on'].includes(
+    String(process.env[name] || '').trim().toLowerCase(),
+  );
+}
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -56,13 +63,81 @@ function isBase64Pkcs8PrivateKey(value) {
   }
 }
 
+function isPrivateIpv4(hostname) {
+  const parts = hostname.split('.').map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part))) return false;
+  const [first, second] = parts;
+  return first === 0
+    || first === 10
+    || first === 127
+    || (first === 100 && second >= 64 && second <= 127)
+    || (first === 169 && second === 254)
+    || (first === 172 && second >= 16 && second <= 31)
+    || (first === 192 && second === 168)
+    || (first === 198 && (second === 18 || second === 19))
+    || first >= 224;
+}
+
+function isNonPublicHostname(value) {
+  const hostname = value.replace(/^\[|\]$/g, '').toLowerCase();
+  const ipVersion = net.isIP(hostname);
+  if (ipVersion === 4) return isPrivateIpv4(hostname);
+  if (ipVersion === 6) {
+    return hostname === '::'
+      || hostname === '::1'
+      || hostname.startsWith('fc')
+      || hostname.startsWith('fd')
+      || /^fe[89ab]/.test(hostname);
+  }
+  return !hostname.includes('.')
+    || hostname.endsWith('.local')
+    || hostname.endsWith('.internal');
+}
+
+function validatePublicApiOrigin(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    errors.push('NEXT_PUBLIC_API_URL must be a valid absolute URL');
+    return;
+  }
+  const hostname = parsed.hostname.toLowerCase();
+  if (parsed.protocol !== 'https:') errors.push('NEXT_PUBLIC_API_URL must use HTTPS');
+  if (
+    parsed.username
+    || parsed.password
+    || parsed.search
+    || parsed.hash
+    || (parsed.pathname && parsed.pathname !== '/')
+    || hostname === 'localhost'
+    || isNonPublicHostname(hostname)
+  ) {
+    errors.push('NEXT_PUBLIC_API_URL must be a credential-free public HTTPS origin without a path, query, or fragment');
+  }
+  if (/railway/i.test(hostname)) {
+    errors.push('NEXT_PUBLIC_API_URL must use the stable public API domain, not a Railway URL');
+  }
+}
+
 if (!allowedChannels.has(channel)) errors.push('NEXT_PUBLIC_DISTRIBUTION_CHANNEL must be telegram, rustore, google_play, or development');
 
 const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || '').trim();
 if (release) {
   requireValue('NEXT_PUBLIC_API_URL', apiUrl);
-  if (apiUrl && !/^https:\/\//.test(apiUrl)) errors.push('NEXT_PUBLIC_API_URL must use HTTPS');
-  if (/railway/i.test(apiUrl)) errors.push('NEXT_PUBLIC_API_URL must use the stable public API domain, not a Railway URL');
+  if (apiUrl) validatePublicApiOrigin(apiUrl);
+  for (const name of [
+    'CAPACITOR_LIVE_RELOAD',
+    'NEXT_PUBLIC_DEBUG_STORAGE_LOGS',
+    'NEXT_PUBLIC_UI_PREVIEW',
+    'ALLOW_TEST_PREMIUM_SIMULATION',
+    'ADMIN_WEB_DEV_AUTH_ENABLED',
+  ]) {
+    if (enabled(name)) errors.push(`${name} must be disabled for a store release`);
+  }
+  if (String(process.env.CAPACITOR_LIVE_URL || '').trim()) {
+    errors.push('CAPACITOR_LIVE_URL must not be configured for a store release');
+  }
 }
 
 const appBuild = read('android/app/build.gradle');

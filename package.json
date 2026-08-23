@@ -18,6 +18,7 @@
     "assets:manifest": "node scripts/build-visual-asset-manifests.mjs",
     "assets:audit": "node scripts/audit-visual-assets.mjs",
     "audit:db": "tsx scripts/audit-db.ts",
+    "validate:production-env": "node scripts/validate-production-env.mjs",
     "migrate": "tsx scripts/migrate.ts && tsx scripts/migrate-natal-v2.ts",
     "repair:natal-charts": "tsx scripts/repair-canonical-natal-charts.ts",
     "android:sync": "cross-env NEXT_PUBLIC_DISTRIBUTION_CHANNEL=development npm run build:mobile && cap sync android",

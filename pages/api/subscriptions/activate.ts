@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     log.error('Activation failed', { userId, error: error.message });
     return res.status(500).json({
       error: 'Activation failed',
-      message: error.message,
+      ...(process.env.NODE_ENV === 'production' ? {} : { message: error.message }),
     });
   }
 }

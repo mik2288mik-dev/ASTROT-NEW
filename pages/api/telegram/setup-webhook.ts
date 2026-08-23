@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const log = {
@@ -8,14 +9,17 @@ const log = {
 const WEBHOOK_PATH = '/api/telegram/webhook';
 
 function verifySetupSecret(req: NextApiRequest): boolean {
-  const secret = process.env.WEBHOOK_SETUP_SECRET;
+  const secret = String(process.env.WEBHOOK_SETUP_SECRET || '');
   if (!secret) return false;
   const header = req.headers['x-webhook-setup-secret'];
-  const querySecret = req.query.secret as string;
-  return (typeof header === 'string' && header === secret) || (typeof querySecret === 'string' && querySecret === secret);
+  const candidate = Array.isArray(header) ? header[0] || '' : typeof header === 'string' ? header : '';
+  const actual = Buffer.from(candidate);
+  const expected = Buffer.from(secret);
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -48,6 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
     });
     const data = await tgRes.json();
 
@@ -62,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     log.error('setWebhook failed', { error: error.message });
     return res.status(500).json({
       error: 'Failed to call Telegram API',
-      message: error.message,
+      ...(process.env.NODE_ENV === 'production' ? {} : { message: error.message }),
     });
   }
 }

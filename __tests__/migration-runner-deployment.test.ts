@@ -27,10 +27,14 @@ describe('database migration deployment runner', () => {
     expect(railway.deploy?.startCommand).not.toContain('exec node');
     expect(dockerfile).toContain('CMD ["sh", "scripts/railway-start.sh"]');
     expect(dockerfile).toContain('process.env.PORT||3000');
+    expect(dockerfile).toContain('r.statusCode===200');
     expect(dockerfile).toContain('/app/scripts ./scripts');
     expect(dockerfile).toContain('/app/lib ./lib');
+    expect(startScript).toContain('npm run validate:production-env');
     expect(startScript).toContain('npm run migrate');
     expect(startScript).toContain('exec node server.js');
+    expect(startScript.indexOf('npm run validate:production-env'))
+      .toBeLessThan(startScript.indexOf('npm run migrate'));
   });
 
   it('does not run non-blocking migrations from app database connections', () => {
@@ -58,11 +62,13 @@ describe('database migration deployment runner', () => {
     }
   });
 
-  it('keeps Railway healthcheck as HTTP liveness with dependency diagnostics', () => {
+  it('keeps Railway healthcheck as dependency-free HTTP liveness', () => {
     const health = read('pages/api/health.ts');
 
-    expect(health).toContain('HTTP server is responding');
-    expect(health).toContain('warnings');
+    expect(health).toContain('liveness: { ok: true }');
+    expect(health).toContain('Dependency checks live at /api/readiness');
+    expect(health).not.toContain('getSystemHealth');
+    expect(health).not.toContain('getSwissEphemerisHealth');
     expect(health).not.toContain("health.status === 'error' ? 503 : 200");
     expect(health).not.toContain('return res.status(503).json');
   });

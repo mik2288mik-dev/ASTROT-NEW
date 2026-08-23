@@ -6,6 +6,8 @@ type TelegramSendResult = {
   error?: string;
 };
 
+const TELEGRAM_API_TIMEOUT_MS = 10_000;
+
 export type TelegramInlineKeyboardButton = {
   text: string;
   url?: string;
@@ -52,7 +54,9 @@ export async function resolveBotUsername(): Promise<string> {
   const botToken = getTelegramBotToken();
   if (!botToken) { cachedBotUsername = ''; return ''; }
   try {
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`, {
+      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
+    });
     const data = await response.json();
     cachedBotUsername = String(data?.result?.username || '').replace(/^@/, '').trim();
   } catch {
@@ -73,6 +77,7 @@ export async function refundStarPayment(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: Number(userId), telegram_payment_charge_id: telegramPaymentChargeId }),
+      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
     });
     const data = await response.json().catch(() => ({} as any));
     if (!response.ok || !data?.ok) return { ok: false, error: data?.description || `Telegram refund failed: ${response.status}` };
@@ -111,6 +116,7 @@ export async function sendTelegramTextMessage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
     });
 
     const payload = await response.json().catch(() => ({}));
@@ -163,6 +169,7 @@ export async function sendTelegramPhotoBuffer(
     const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
       method: 'POST',
       body: formData,
+      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
     });
 
     const payload = await response.json().catch(() => ({}));
@@ -220,6 +227,7 @@ export async function sendTelegramPhotoMessage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
     });
 
     const payload = await response.json().catch(() => ({}));
@@ -257,6 +265,7 @@ export async function answerTelegramCallbackQuery(
         text: text || undefined,
         show_alert: false,
       }),
+      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS),
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {

@@ -79,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pre_checkout_query_id: preCheckoutId, ok: true }),
+          signal: AbortSignal.timeout(10_000),
         });
       } catch (e: any) {
         log.error('Failed to answer pre-checkout', { error: e.message });

@@ -62,8 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     log.error('Error building invoice payload', { error: error.message, type, userId });
     return res.status(500).json({
       error: 'Failed to create invoice',
-      code,
-      message: error.message,
+      code: process.env.NODE_ENV === 'production' ? 'INVOICE_BUILD_FAILED' : code,
+      ...(process.env.NODE_ENV === 'production' ? {} : { message: error.message }),
     });
   }
 
@@ -80,6 +80,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const BOT_TOKEN = process.env.BOT_TOKEN;
   if (!BOT_TOKEN) {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(503).json({
+        error: 'Telegram payments unavailable',
+        code: 'TELEGRAM_PAYMENTS_UNAVAILABLE',
+      });
+    }
     log.info('BOT_TOKEN not set, returning sim mode');
     return res.status(200).json({
       ...invoiceResponseBase,
@@ -107,6 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         currency: 'XTR',
         prices: [{ label: product.label, amount: product.starsAmount }],
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     const data = await response.json();
@@ -114,7 +121,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       log.error('Telegram API error', { description: data.description, error_code: data.error_code });
       return res.status(500).json({
         error: 'Failed to create invoice',
-        message: data.description || 'Telegram API error',
+        ...(process.env.NODE_ENV === 'production'
+          ? {}
+          : { message: data.description || 'Telegram API error' }),
       });
     }
 
@@ -137,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     log.error('Error creating invoice', { error: error.message, type, userId });
     return res.status(500).json({
       error: 'Failed to create invoice',
-      message: error.message,
+      ...(process.env.NODE_ENV === 'production' ? {} : { message: error.message }),
     });
   }
 }

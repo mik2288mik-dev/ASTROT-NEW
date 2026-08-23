@@ -87,6 +87,9 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
       code:'EPHEMERIS_UNAVAILABLE',
       message:'Сервис расчёта натальной карты временно недоступен. Попробуй позже.',
     });
-    return res.status(500).json({error:'Internal server error',message:error.message});
+    return res.status(500).json({
+      error:'Internal server error',
+      ...(process.env.NODE_ENV==='production'?{}:{message:error.message}),
+    });
   }
 }

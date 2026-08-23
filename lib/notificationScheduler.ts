@@ -15,6 +15,7 @@ import {
   planRetentionNotifications,
   generateDailyCards,
 } from '../services/notificationRetentionService';
+import { processPendingRuStoreEvents } from './rustorePayments';
 
 const MSK_TZ = 'Europe/Moscow';
 const DISPATCH_INTERVAL_MS = 3 * 60 * 1000; // отправка очереди каждые 3 минуты
@@ -102,6 +103,18 @@ async function dispatchTick() {
     status.lastDispatchAt = new Date().toISOString();
     status.lastDispatchOk = false;
     console.warn('[cron] dispatch failed:', error instanceof Error ? error.message : error);
+  }
+
+  // Renewal/cancellation callbacks are acknowledged only after they are stored
+  // durably. Process that queue on the same resilient cadence so entitlement
+  // lifecycle does not depend on an optional external cron after a restart.
+  try {
+    await processPendingRuStoreEvents(20);
+  } catch (error) {
+    console.warn(
+      '[cron] RuStore payment queue failed:',
+      error instanceof Error ? error.message : error,
+    );
   } finally {
     dispatching = false;
   }
