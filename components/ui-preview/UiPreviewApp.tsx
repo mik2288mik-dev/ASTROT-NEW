@@ -177,12 +177,14 @@ function CompatibilityScene({
   chart,
   onNavigate,
   onOpenProfile,
+  state,
 }: {
   screen: 'compatibility-input' | 'compatibility-signs' | 'compatibility-result';
   profile: ReturnType<typeof createUiPreviewProfile>;
   chart: ReturnType<typeof createUiPreviewChart>;
   onNavigate: (screen: UiPreviewScreen) => void;
   onOpenProfile: () => void;
+  state: UiPreviewState;
 }) {
   const previewScreen: 'input' | 'signs' | 'result' = screen === 'compatibility-input'
     ? 'input'
@@ -190,13 +192,14 @@ function CompatibilityScene({
       ? 'signs'
       : 'result';
   const unionPreview = useMemo(() => ({
-    screen: previewScreen,
     ...UI_PREVIEW_COMPATIBILITY,
-  }), [previewScreen]);
+    screen: previewScreen,
+    ...(state === 'loading' || state === 'error' ? { resultState: state } : {}),
+  }), [previewScreen, state]);
 
   return (
     <UnionRoom
-      key={screen}
+      key={`${screen}:${state}`}
       profile={profile}
       chartData={chart}
       chartId={null}
@@ -409,7 +412,10 @@ export default function UiPreviewApp() {
   };
 
   let scene: React.ReactNode;
-  if (scenario.state !== 'ready') {
+  if (scenario.state !== 'ready' && !(
+    scenario.screen.startsWith('compatibility-')
+    && (scenario.state === 'loading' || scenario.state === 'error')
+  )) {
     scene = (
       <div className="ui-preview-page">
         <AppTopBar title={UI_PREVIEW_SCREEN_LABELS[scenario.screen]} rightAction={<ProfileAction onOpen={openProfile} />} />
@@ -475,6 +481,7 @@ export default function UiPreviewApp() {
         chart={chart}
         onNavigate={navigate}
         onOpenProfile={openProfile}
+        state={scenario.state}
       />
     );
   } else if (scenario.screen === 'settings') {

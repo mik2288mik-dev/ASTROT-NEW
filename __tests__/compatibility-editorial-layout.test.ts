@@ -11,9 +11,8 @@ describe('compatibility editorial layout', () => {
     const studio = read('styles/editorialStudio.css');
     const app = read('pages/_app.tsx');
 
-    expect(room.match(/compat-editorial-page compat-editorial-page--/g)).toHaveLength(3);
+    expect(room.match(/compat-editorial-page compat-editorial-page--/g)).toHaveLength(2);
     expect(room).toContain('compat-editorial-page--add');
-    expect(room).toContain('compat-editorial-page--details');
     expect(room).toContain('compat-editorial-page--result');
     expect(room).not.toContain("if (!hasChart) { onCreateNatalChart?.(); return; }");
     expect(room).toContain("requestPremium('compatibility_by_charts'");
@@ -31,7 +30,6 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page--result .compat-person-snapshot');
     expect(styles).toContain('.compat-editorial-page--result .compat-read-block');
     expect(styles).not.toMatch(/^\.fresh-page\s*\{/m);
-    expect(studio).toContain('.fresh-page.compat-editorial-page--details');
     expect(studio).toContain('.compat-editorial-page .compat-editorial-tabs');
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
     expect(app).toContain("import '../styles/editorialStudio.css'");
@@ -41,26 +39,25 @@ describe('compatibility editorial layout', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const styles = read('styles/editorialStudio.css');
     const addStart = room.indexOf("if (screen === 'add')");
-    const addEnd = room.indexOf("if (screen === 'details')", addStart);
+    const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
     const addFlow = room.slice(addStart, addEnd);
 
     expect(room).toContain("title={ru ? 'Совместимость' : 'Compatibility'}");
     expect(room).toContain('<EditorialTabs');
-    expect(room).toContain("label: ru ? 'Совместимость' : 'Compatibility'");
-    expect(room).toContain("label: ru ? 'По знакам зодиака' : 'By zodiac signs'");
-    expect(room).toContain("label: ru ? 'Детали' : 'Details'");
+    expect(room).toContain("label: ru ? 'По карте' : 'By birth data'");
+    expect(room).toContain("label: ru ? 'По знакам' : 'By zodiac signs'");
     expect(addFlow).toContain("ru ? 'Первый человек' : 'First person'");
     expect(addFlow).toContain("ru ? 'Второй человек' : 'Second person'");
     expect(addFlow).not.toContain('aria-hidden=\"true\">01');
     expect(addFlow).not.toContain('aria-hidden=\"true\">02');
-    expect(addFlow.match(/className="compat-air-person"/g)).toHaveLength(2);
+    expect(addFlow.match(/className="compat-air-person compat-air-person--/g)).toHaveLength(2);
     expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
     expect(addFlow).toContain('sign={youSign}');
     expect(addFlow).toContain('sign={pickSign}');
-    expect(room).not.toContain('compat-time-unknown');
-    expect(room).not.toContain('onUnknownTimeChange');
-    expect(room).not.toContain('sUnknownTime');
-    expect(room).not.toContain('setUnknownTime');
+    expect(room).toContain('compat-air-time-unknown');
+    expect(room).toContain('onUnknownTimeChange');
+    expect(room).toContain('sUnknownTime');
+    expect(room).toContain('fUnknownTime');
     expect(addFlow).not.toContain('Sparkles');
     expect(addFlow).toContain("ru ? 'Тип отношений' : 'Relationship type'");
     expect(addFlow).toContain('<div className="compat-person-divider" aria-hidden="true"><span>✦</span></div>');
@@ -80,7 +77,7 @@ describe('compatibility editorial layout', () => {
     const service = read('services/astrologyService.ts');
     const extendedApi = read('pages/api/content/synastry/extended.ts');
     const addStart = room.indexOf("if (screen === 'add')");
-    const addEnd = room.indexOf("if (screen === 'details')", addStart);
+    const addEnd = room.indexOf('/* ── РЕЗУЛЬТАТ ── */', addStart);
     const addFlow = room.slice(addStart, addEnd);
 
     expect(room).toContain("const [firstChartId, setFirstChartId] = useState<number | null>(null)");
@@ -101,6 +98,8 @@ describe('compatibility editorial layout', () => {
     expect(room).not.toContain('compat-person-primary-row');
     expect(room).not.toContain('compat-saved-picker');
     expect(room).not.toContain("return readable.find((chart) => chart.subject_type === 'self')?.id ?? chartId ?? null;");
+    expect(addFlow).toContain('compat-use-own-chart');
+    expect(room).toContain('compat-saved-quick-option');
     expect(service).toContain('subjectName: subject?.name');
     expect(extendedApi).toContain('const hasManualSubject');
     expect(extendedApi).toContain('buildLunaPersonContext');

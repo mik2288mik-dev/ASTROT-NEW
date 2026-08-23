@@ -17,6 +17,7 @@ describe('UI Preview compatibility adapter', () => {
 
   it('keeps preview data local while leaving the production effects available', () => {
     const room = read('views/v2/UnionRoom.tsx');
+    const preview = read('components/ui-preview/UiPreviewApp.tsx');
     const fixtures = read('components/ui-preview/uiPreviewFixtures.ts');
 
     expect(room).toContain('uiPreview?: {');
@@ -24,6 +25,9 @@ describe('UI Preview compatibility adapter', () => {
     expect(room).toContain("if (s.kind === 'person' && !previewEnabled)");
     expect(room).toContain('if (!selected || previewEnabled) return;');
     expect(room).toContain('userId={!previewEnabled && profile.id');
+    expect(room).toContain('compat-result-status');
+    expect(room).toContain('compat-result-error');
+    expect(preview).toContain('{ resultState: state }');
     expect(fixtures).toContain('UI_PREVIEW_COMPATIBILITY');
     expect(fixtures).toContain("calculationVersion: 'ui-preview-fixture.v1'");
   });

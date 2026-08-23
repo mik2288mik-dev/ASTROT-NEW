@@ -71,6 +71,7 @@ type UnionRoomProps = {
   onOpenEncyclopedia?: () => void;
   uiPreview?: {
     screen: 'input' | 'signs' | 'result';
+    resultState?: 'loading' | 'error';
     subject: {
       name: string;
       date: string;
@@ -90,7 +91,7 @@ type UnionRoomProps = {
   };
 };
 
-type CompatibilityTab = 'compatibility' | 'signs' | 'details';
+type CompatibilityTab = 'birth' | 'sign';
 
 type Selected = {
   kind: 'sign' | 'person';
@@ -200,11 +201,13 @@ function PersonBirthFields({
   time,
   place,
   gender,
+  unknownTime,
   onNameChange,
   onDateChange,
   onTimeChange,
   onPlaceChange,
   onGenderChange,
+  onUnknownTimeChange,
 }: {
   prefix: string;
   ru: boolean;
@@ -213,11 +216,13 @@ function PersonBirthFields({
   time: string;
   place: string;
   gender: CompatGender;
+  unknownTime: boolean;
   onNameChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
   onPlaceChange: (value: string) => void;
   onGenderChange: (value: CompatGender) => void;
+  onUnknownTimeChange: (value: boolean) => void;
 }) {
   const genderLabelId = `${prefix}-gender-label`;
   return (
@@ -242,9 +247,40 @@ function PersonBirthFields({
           <span className="compat-air-label">{ru ? 'Время' : 'Time'}</span>
           <span className="compat-air-control">
             <Clock3 aria-hidden="true" size={20} strokeWidth={1.8} />
-            <input id={`${prefix}-time`} className="compat-air-input" type="time" value={time} onChange={(event) => onTimeChange(event.target.value)} />
+            <input
+              id={`${prefix}-time`}
+              className="compat-air-input"
+              type="time"
+              value={time}
+              disabled={unknownTime}
+              aria-describedby={`${prefix}-time-note`}
+              onChange={(event) => {
+                onUnknownTimeChange(false);
+                onTimeChange(event.target.value);
+              }}
+            />
           </span>
         </label>
+      </div>
+
+      <div className="compat-air-time-row">
+        <button
+          type="button"
+          className={`compat-air-time-unknown${unknownTime ? ' is-active' : ''}`}
+          aria-pressed={unknownTime}
+          onClick={() => {
+            const next = !unknownTime;
+            onUnknownTimeChange(next);
+            if (next) onTimeChange('');
+          }}
+        >
+          {unknownTime ? (ru ? 'Время неизвестно' : 'Time unknown') : (ru ? 'Не знаю точное время' : "I don't know the exact time")}
+        </button>
+        <span id={`${prefix}-time-note`} className="compat-air-time-note">
+          {unknownTime
+            ? (ru ? 'Учтём данные без времени рождения.' : 'We will use the data without a birth time.')
+            : (ru ? 'Можно оставить пустым, если не знаешь.' : 'Leave blank if you do not know it.')}
+        </span>
       </div>
 
       <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
@@ -306,6 +342,29 @@ function PersonSavedFields({
           ))}
         </select>
       </label>
+      {charts.length ? (
+        <div className="compat-saved-quick" role="list" aria-label={ru ? 'Быстрый выбор сохранённой карты' : 'Quick saved chart selection'}>
+          {charts.map((chart) => {
+            const active = chart.id === value;
+            const disabled = chart.id === disabledChartId;
+            return (
+              <button
+                key={chart.id}
+                type="button"
+                role="listitem"
+                className={`compat-saved-quick-option${active ? ' is-active' : ''}`}
+                aria-pressed={active}
+                disabled={disabled}
+                title={chart.name}
+                onClick={() => onChange(chart.id)}
+              >
+                <span>{chart.name}</span>
+                {chart.subject_type === 'self' ? <small>{ru ? 'моя' : 'mine'}</small> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="compat-air-gender-field">
         <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
         <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
@@ -581,7 +640,6 @@ export function UnionRoom(props: UnionRoomProps) {
     onPremiumContinuationHandled,
     canPromotePremium = true,
     onOpenProfile,
-    onOpenEncyclopedia,
     uiPreview,
   } = props;
   const ru = profile.language !== 'en';
@@ -600,7 +658,8 @@ export function UnionRoom(props: UnionRoomProps) {
   const initialThemGender: CompatGender = initialYouGender === 'male' ? 'female' : 'male';
 
   const previewEnabled = Boolean(previewFixture);
-  const [screen, setScreen] = useState<'add' | 'result' | 'details'>(
+  const previewResultState = previewFixture?.resultState;
+  const [screen, setScreen] = useState<'add' | 'result'>(
     previewFixture?.screen === 'result' || initialPrefill ? 'result' : 'add',
   );
   const [entryMode, setEntryMode] = useState<'birth' | 'sign'>(
@@ -670,10 +729,12 @@ export function UnionRoom(props: UnionRoomProps) {
   const [sName, setSName] = useState(previewFixture?.subject.name || '');
   const [sDate, setSDate] = useState(previewFixture?.subject.date || '');
   const [sTime, setSTime] = useState(previewFixture?.subject.time || '');
+  const [sUnknownTime, setSUnknownTime] = useState(false);
   const [sPlace, setSPlace] = useState(previewFixture?.subject.place || '');
   const [fName, setFName] = useState(previewFixture?.partner.name || initialPrefill?.partnerName || '');
   const [fDate, setFDate] = useState(() => toDateInputValue(previewFixture?.partner.date || initialPrefill?.partnerDate || ''));
   const [fTime, setFTime] = useState(previewFixture?.partner.time || initialPrefill?.partnerTime || '');
+  const [fUnknownTime, setFUnknownTime] = useState(false);
   const [fPlace, setFPlace] = useState(previewFixture?.partner.place || initialPrefill?.partnerPlace || '');
   const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
 
@@ -681,11 +742,15 @@ export function UnionRoom(props: UnionRoomProps) {
     previewFixture?.screen === 'result' ? previewFixture.signCompatibility : null,
   );
   const [deep, setDeep] = useState<SynastryResult | null>(
-    previewFixture?.screen === 'result' ? previewFixture.deepResult : null,
+    previewFixture?.screen === 'result' && !previewResultState ? previewFixture.deepResult : null,
   );
-  const [deepLoading, setDeepLoading] = useState(false);
+  const [deepLoading, setDeepLoading] = useState(previewResultState === 'loading');
   const autoDeepKeyRef = useRef<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    previewResultState === 'error'
+      ? (ru ? 'Не удалось собрать подробный разбор. Проверь соединение и попробуй ещё раз.' : 'Could not prepare the detailed reading. Check your connection and try again.')
+      : null,
+  );
 
   useEffect(() => {
     if (previewEnabled) return;
@@ -754,8 +819,12 @@ export function UnionRoom(props: UnionRoomProps) {
     () => availableCharts.find((chart) => chart.id === secondChartId) || null,
     [availableCharts, secondChartId],
   );
-  const subjectResolvedSource: CompatibilityPersonSource = subjectSource === 'birth' && !sDate ? 'sign' : subjectSource;
-  const partnerResolvedSource: CompatibilityPersonSource = partnerSource === 'birth' && !fDate ? 'sign' : partnerSource;
+  const ownSavedChart = useMemo(
+    () => availableCharts.find((chart) => chart.subject_type === 'self') || null,
+    [availableCharts],
+  );
+  const subjectResolvedSource: CompatibilityPersonSource = subjectSource;
+  const partnerResolvedSource: CompatibilityPersonSource = partnerSource;
   const subjectClassification = useMemo(() => classifyCompatibilityPerson({
     source: subjectResolvedSource,
     chartId: firstChart?.id,
@@ -793,7 +862,7 @@ export function UnionRoom(props: UnionRoomProps) {
     if (screen !== 'result' || !selected) return;
     if (previewFixture) {
       setSignText(previewFixture.signCompatibility);
-      if (selected.kind === 'person') setDeep(previewFixture.deepResult);
+      if (selected.kind === 'person' && !previewResultState) setDeep(previewFixture.deepResult);
       return;
     }
     let alive = true;
@@ -812,6 +881,13 @@ export function UnionRoom(props: UnionRoomProps) {
 
   const sunOf = (s: Selected) => String(s.partnerSign || s.sign || sunSignFromDate(s.date) || 'libra').toLowerCase();
 
+  const scrollCompatibilityToTop = () => {
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('.lumia-main-scroll')?.scrollTo({ top: 0, behavior: 'auto' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+  };
+
   const openResult = (s: Selected) => {
     lumiaSelectionHaptic();
     autoDeepKeyRef.current = null;
@@ -821,6 +897,7 @@ export function UnionRoom(props: UnionRoomProps) {
     setError(null);
     setSelected(s);
     setScreen('result');
+    scrollCompatibilityToTop();
     const their = sunOf(s);
     // Сохраняем в историю только разбор конкретного человека — по знакам не пишем (он и так везде).
     if (s.kind === 'person' && !previewEnabled) {
@@ -916,6 +993,14 @@ export function UnionRoom(props: UnionRoomProps) {
   };
 
   const submitAdd = () => {
+    if (subjectSource === 'birth' && !sDate) {
+      setError(ru ? 'Укажи дату рождения первого человека или выбери знак.' : 'Add the first person\'s birth date or choose a sign.');
+      return;
+    }
+    if (partnerSource === 'birth' && !fDate) {
+      setError(ru ? 'Укажи дату рождения второго человека или выбери знак.' : 'Add the second person\'s birth date or choose a sign.');
+      return;
+    }
     if (subjectResolvedSource === 'sign' && partnerResolvedSource === 'sign') {
       setError(null);
       openResult({
@@ -1010,6 +1095,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const runDeep = useCallback(async () => {
     if (!selected || selected.kind !== 'person' || deepLoading) return;
     if (previewFixture) {
+      setError(null);
       setDeep(previewFixture.deepResult);
       setDeepLoading(false);
       return;
@@ -1096,6 +1182,7 @@ export function UnionRoom(props: UnionRoomProps) {
   ]);
 
   useEffect(() => {
+    if (previewResultState) return;
     if (screen !== 'result' || selected?.kind !== 'person' || !premium || !peopleLoaded) return;
     const key = [
       selected.subjectSource,
@@ -1107,25 +1194,22 @@ export function UnionRoom(props: UnionRoomProps) {
     if (autoDeepKeyRef.current === key) return;
     autoDeepKeyRef.current = key;
     void runDeep();
-  }, [screen, selected, premium, peopleLoaded, runDeep]);
+  }, [screen, selected, premium, peopleLoaded, previewResultState, runDeep]);
 
   const compatibilityTabs = useMemo(() => [
-    { id: 'compatibility' as const, label: ru ? 'Совместимость' : 'Compatibility' },
-    { id: 'signs' as const, label: ru ? 'По знакам зодиака' : 'By zodiac signs' },
-    { id: 'details' as const, label: ru ? 'Детали' : 'Details' },
+    { id: 'birth' as const, label: ru ? 'По карте' : 'By birth data' },
+    { id: 'sign' as const, label: ru ? 'По знакам' : 'By zodiac signs' },
   ], [ru]);
   const activeCompatibilityTab: CompatibilityTab = screen === 'result'
-    ? selected?.kind === 'sign' ? 'signs' : 'details'
-    : screen === 'details'
-      ? 'details'
+    ? selected?.kind === 'sign' ? 'sign' : 'birth'
       : entryMode === 'sign'
-        ? 'signs'
-        : 'compatibility';
+        ? 'sign'
+        : 'birth';
 
   const selectCompatibilityTab = (tab: CompatibilityTab) => {
     lumiaSelectionHaptic();
     setError(null);
-    if (tab === 'compatibility') {
+    if (tab === 'birth') {
       if (!premium) {
         void requestPremium('compatibility_by_charts', {
           placement: 'compatibility_by_charts',
@@ -1138,14 +1222,12 @@ export function UnionRoom(props: UnionRoomProps) {
       }
       setEntryMode('birth');
       setScreen('add');
+      scrollCompatibilityToTop();
       return;
     }
-    if (tab === 'signs') {
-      setEntryMode('sign');
-      setScreen('add');
-      return;
-    }
-    setScreen(selected?.kind === 'person' ? 'result' : 'details');
+    setEntryMode('sign');
+    setScreen('add');
+    scrollCompatibilityToTop();
   };
 
   const compatibilityHeader = (withBack = false) => (
@@ -1156,6 +1238,7 @@ export function UnionRoom(props: UnionRoomProps) {
           lumiaSelectionHaptic();
           setEntryMode(selected?.kind === 'sign' ? 'sign' : 'birth');
           setScreen('add');
+          scrollCompatibilityToTop();
         } : undefined}
         rightAction={(
           <EditorialProfileButton
@@ -1190,7 +1273,7 @@ export function UnionRoom(props: UnionRoomProps) {
                 submitAdd();
               }}
             >
-              <section className="compat-air-person" aria-labelledby="compat-first-person-title">
+              <section className="compat-air-person compat-air-person--first" aria-labelledby="compat-first-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
                     <h3 id="compat-first-person-title">{ru ? 'Первый человек' : 'First person'}</h3>
@@ -1202,6 +1285,20 @@ export function UnionRoom(props: UnionRoomProps) {
                     ru={ru}
                   />
                 </header>
+                {ownSavedChart ? (
+                  <button
+                    type="button"
+                    className="compat-use-own-chart"
+                    onClick={() => {
+                      lumiaSelectionHaptic();
+                      setSubjectSource('saved');
+                      setFirstChartId(ownSavedChart.id);
+                    }}
+                  >
+                    <span>{ru ? 'Использовать мою карту' : 'Use my chart'}</span>
+                    <small>{ownSavedChart.name}</small>
+                  </button>
+                ) : null}
                 {subjectSource === 'birth' ? (
                   <PersonBirthFields
                     prefix="compat-first-person"
@@ -1211,6 +1308,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     time={sTime}
                     place={sPlace}
                     gender={youGender}
+                    unknownTime={sUnknownTime}
                     onNameChange={setSName}
                     onDateChange={(value) => {
                       setSDate(value);
@@ -1220,6 +1318,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     onTimeChange={setSTime}
                     onPlaceChange={setSPlace}
                     onGenderChange={setYouGender}
+                    onUnknownTimeChange={setSUnknownTime}
                   />
                 ) : subjectSource === 'saved' ? (
                   <PersonSavedFields
@@ -1248,7 +1347,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
               <div className="compat-person-divider" aria-hidden="true"><span>✦</span></div>
 
-              <section className="compat-air-person" aria-labelledby="compat-second-person-title">
+              <section className="compat-air-person compat-air-person--second" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
                     <h3 id="compat-second-person-title">{ru ? 'Второй человек' : 'Second person'}</h3>
@@ -1269,6 +1368,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     time={fTime}
                     place={fPlace}
                     gender={fGender}
+                    unknownTime={fUnknownTime}
                     onNameChange={setFName}
                     onDateChange={(value) => {
                       setFDate(value);
@@ -1278,6 +1378,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     onTimeChange={setFTime}
                     onPlaceChange={setFPlace}
                     onGenderChange={setFGender}
+                    onUnknownTimeChange={setFUnknownTime}
                   />
                 ) : partnerSource === 'saved' ? (
                   <PersonSavedFields
@@ -1422,47 +1523,6 @@ export function UnionRoom(props: UnionRoomProps) {
     );
   }
 
-  if (screen === 'details') {
-    return (
-      <div className="fresh-page compat-editorial-page compat-editorial-page--details">
-        {compatibilityHeader()}
-        <EditorialCurve className="compat-details-curve" />
-        <section className="compat-details-empty" aria-labelledby="compat-details-title">
-          <div className="compat-orbit-visual" aria-hidden="true">
-            <span />
-            <span />
-            <strong>✦</strong>
-          </div>
-          <p>{ru ? 'Подробный разбор' : 'Detailed reading'}</p>
-          <h1 id="compat-details-title">
-            {ru ? 'Сначала сравним двух людей' : 'Compare two people first'}
-          </h1>
-          <span>
-            {ru
-              ? 'Здесь появятся сильные стороны связи, точки напряжения и общий вывод — из уже существующего сценария совместимости.'
-              : 'Strengths, tensions, and the existing compatibility conclusion will appear here.'}
-          </span>
-          <button
-            type="button"
-            className="fresh-btn-primary compat-entry-submit"
-            onClick={() => {
-              setEntryMode(premium ? 'birth' : 'sign');
-              setScreen('add');
-            }}
-          >
-            {ru ? 'Перейти к сравнению' : 'Start comparison'}
-          </button>
-          {onOpenEncyclopedia ? (
-            <button type="button" className="editorial-context-link" onClick={onOpenEncyclopedia}>
-              <span>{ru ? 'Открыть энциклопедию астрологии' : 'Open the astrology encyclopedia'}</span>
-              <span aria-hidden="true">→</span>
-            </button>
-          ) : null}
-        </section>
-      </div>
-    );
-  }
-
   /* ── РЕЗУЛЬТАТ ── */
   const strongestLabel = score ? DIMENSION_LABELS[score.strongest][lang] : '';
   const dimsOrder: CompatDimension[] = ['love', 'relationship', 'friendship', 'work'];
@@ -1529,6 +1589,24 @@ export function UnionRoom(props: UnionRoomProps) {
         {ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong>
       </div>
 
+      <div className="compat-result-actions">
+        <button
+          type="button"
+          className="compat-result-change"
+          onClick={() => {
+            lumiaSelectionHaptic();
+            setError(null);
+            setEntryMode(selected?.kind === 'sign' ? 'sign' : 'birth');
+            setScreen('add');
+            scrollCompatibilityToTop();
+          }}
+        >
+          {selected?.kind === 'sign'
+            ? (ru ? 'Изменить знаки' : 'Change signs')
+            : (ru ? 'Изменить людей' : 'Change people')}
+        </button>
+      </div>
+
       {isPerson && selected?.calculationLevel ? (
         <div className="compat-accuracy-line compat-accuracy-line--result">
           <span>{ru ? 'Уровень разбора' : 'Reading level'}</span>
@@ -1550,11 +1628,14 @@ export function UnionRoom(props: UnionRoomProps) {
           ))}
         </div>
       ) : (!isPerson || (premium && !deep)) ? (
-        <p className="union-pad" role="status" aria-live="polite" style={{ marginTop: 12, color: 'var(--fresh-muted)', fontSize: 14 }}>
+        <section className="compat-result-status" role="status" aria-live="polite">
+          <span className="compat-result-status-mark" aria-hidden="true" />
+          <p>
           {isPerson
             ? (deepLoading ? (ru ? 'Сопоставляем данные…' : 'Comparing the data…') : (ru ? 'Готовим подробный разбор…' : 'Preparing the detailed reading…'))
             : (ru ? 'Готовим разбор…' : 'Preparing…')}
-        </p>
+          </p>
+        </section>
       ) : null}
 
       {premium && deep ? (
@@ -1617,7 +1698,16 @@ export function UnionRoom(props: UnionRoomProps) {
         </details>
       ) : null}
 
-      {error ? <p className="union-pad" role="alert" style={{ color: '#B91C1C', fontSize: 14, marginTop: 12 }}>{error}</p> : null}
+      {error ? (
+        <section className="compat-result-error" role="alert">
+          <p>{error}</p>
+          {isPerson && premium ? (
+            <button type="button" onClick={() => void runDeep()}>
+              {ru ? 'Повторить расчёт' : 'Try again'}
+            </button>
+          ) : null}
+        </section>
+      ) : null}
 
       {!isPerson || deep ? (
         <div className="union-pad" style={{ marginTop: 6 }}>
