@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useCallback, useEffect, useState } from 'react';
 import { UserProfile } from '../types';
 import {
   createChart,
@@ -13,7 +12,7 @@ import { getText, getZodiacSign } from '../constants';
 import { formatDisplayDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
-import { hasActivePremium } from '../lib/accessMatrix';
+import { hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatrix';
 import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
 import { getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
 import type { PaywallContext } from '../lib/paywallContext';
@@ -21,7 +20,6 @@ import {
   MonoButton,
   MonoFadeIn,
   MonoInput,
-  MonoSegment,
   MonoStagger,
   MonoStaggerItem,
   MonoTag,
@@ -66,8 +64,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [addRelation, setAddRelation] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [addInvalidFields, setAddInvalidFields] = useState<Array<'date' | 'place'>>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [listFilter, setListFilter] = useState<'all' | 'primary' | 'partners'>('all');
   const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
 
   const lang = profile.language || 'ru';
@@ -116,21 +112,23 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }, [loadCharts]);
 
   const charts = data?.charts ?? [];
-  const serverCanAddMore = data?.canAddSavedPeople ?? data?.canAddMore ?? true;
+  // This value comes from the live server entitlement. Do not offer creation
+  // when an older or incomplete response cannot confirm the permission.
+  const serverCanAddMore = data?.canAddSavedPeople ?? data?.canAddMore ?? false;
   const chartSlots = data?.chartSlots ?? (profile.chartSlots ?? 1);
-  const partnerCharts = charts.filter((chart) => getChartSubjectType(chart) === 'saved_person');
-  const isSingleChartState = charts.length === 1 && chartSlots > 1;
+  const selfChart = charts.find(isSelfChart) ?? null;
+  const savedCharts = charts.filter((chart) => getChartSubjectType(chart) === 'saved_person');
   // The profile carries the latest backend-validated entitlement. A cached
   // chart-list boolean must never outlive its dated canonical snapshot.
   const hasPremiumAccess = hasActivePremium(profile, entitlementNow);
   const canAddMore = hasPremiumAccess && serverCanAddMore;
+  const canOpenPremiumFlow = canPromotePremium && Boolean(onRequestPremium);
   const isChartEffectivelyLocked = useCallback((chart: ChartListItem) => (
     chart.access_locked === true
     || (getChartSubjectType(chart) === 'saved_person' && !hasPremiumAccess)
   ), [hasPremiumAccess]);
-  const accessibleChartCount = charts.filter((chart) => !isChartEffectivelyLocked(chart)).length;
-  const lockedChartCount = charts.length - accessibleChartCount;
-  const showPremiumSlotsCta = canPromotePremium && !canAddMore && !hasPremiumAccess && !!onRequestPremium;
+  const lockedChartCount = savedCharts.filter(isChartEffectivelyLocked).length;
+  const showPremiumSlotsCta = canOpenPremiumFlow && !canAddMore && !hasPremiumAccess;
 
   useEffect(() => {
     const end = profile.premiumEntitlement?.endsAt || profile.premiumUntil;
@@ -152,30 +150,6 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     scheduleBoundary();
     return () => window.clearTimeout(timer);
   }, [profile.premiumEntitlement?.endsAt, profile.premiumUntil]);
-
-  const filteredCharts = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return charts.filter((chart) => {
-      const self = isSelfChart(chart);
-      if (listFilter === 'primary' && !self) return false;
-      if (listFilter === 'partners' && self) return false;
-      if (!q) return true;
-      const hay = `${chart.name} ${chart.birth_place || ''}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [charts, listFilter, searchQuery]);
-
-  const filterOptions = lang === 'ru'
-    ? [
-        { value: 'all' as const, label: 'Все' },
-        { value: 'primary' as const, label: 'Моя' },
-        { value: 'partners' as const, label: 'Люди' },
-      ]
-    : [
-        { value: 'all' as const, label: 'All' },
-        { value: 'primary' as const, label: 'Mine' },
-        { value: 'partners' as const, label: 'People' },
-      ];
 
   useEffect(() => {
     if (!canAddMore && showAddForm) {
@@ -271,7 +245,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const handleDelete = async (chart: ChartListItem) => {
     if (!profile.id || isSelfChart(chart)) return;
 
-    const msg = `${getText(lang, 'charts.delete')} "${chart.name}"?`;
+    const msg = lang === 'ru'
+      ? `Убрать «${chart.name}» из сохранённых карт?`
+      : `Remove “${chart.name}” from saved charts?`;
     if (!confirm(msg)) return;
 
     setActionLoading(`delete-${chart.id}`);
@@ -305,6 +281,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         void loadCharts();
         return;
       }
+      if (!canOpenPremiumFlow) return;
       onRequestPremium?.('charts', {
         placement: 'saved_people',
         featureKey: 'saved_people',
@@ -320,14 +297,132 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     }
   };
 
+  const renderChartCard = (chart: ChartListItem) => {
+    const sunSign = chart.chart_data?.sun?.sign;
+    const signLabel = sunSign ? getZodiacSign(lang, sunSign) : null;
+    const isPrimary = isSelfChart(chart);
+    const isLocked = isChartEffectivelyLocked(chart);
+    const isBusy = actionLoading === `delete-${chart.id}`;
+    const formattedBirthDate = formatDisplayDate(chart.birth_date, lang) || chart.birth_date;
+    const canOpenChart = Boolean(onChartSelect) && (!isLocked || hasPremiumAccess || canOpenPremiumFlow);
+    const cardText = isPrimary ? 'text-white' : 'text-mono-ink';
+    const mutedText = isPrimary ? 'text-white/70' : 'text-mono-muted';
+
+    return (
+      <article
+        key={chart.id}
+        className={`rounded-mono-card border p-4 sm:p-5 ${
+          isPrimary ? 'border-mono-ink bg-mono-black' : 'border-mono-line bg-mono-white'
+        }`}
+      >
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className={`break-words text-[18px] font-bold leading-snug ${cardText}`} title={chart.name}>
+              {chart.name}
+            </h3>
+            <p className={`mt-1 text-[13px] leading-relaxed ${mutedText}`}>
+              {isPrimary
+                ? getText(lang, 'charts.primary_role')
+                : chart.relation_label || getText(lang, 'charts.saved_role')}
+            </p>
+          </div>
+          {isPrimary ? (
+            <MonoTag dark className="!bg-white/15">{lang === 'ru' ? 'Моя карта' : 'My chart'}</MonoTag>
+          ) : isLocked ? (
+            <MonoTag>Premium</MonoTag>
+          ) : null}
+        </div>
+
+        <dl className={`mt-4 grid gap-3 text-[13px] leading-relaxed sm:grid-cols-3 ${mutedText}`}>
+          <div className="min-w-0">
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
+              {lang === 'ru' ? 'Дата рождения' : 'Birth date'}
+            </dt>
+            <dd className={`mt-0.5 break-words font-medium ${cardText}`}>
+              <time dateTime={chart.birth_date}>{formattedBirthDate}</time>
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
+              {lang === 'ru' ? 'Место' : 'Place'}
+            </dt>
+            <dd className={`mt-0.5 break-words font-medium ${cardText}`} title={chart.birth_place}>
+              {chart.birth_place || (lang === 'ru' ? 'Не указано' : 'Not specified')}
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
+              {lang === 'ru' ? 'Время рождения' : 'Birth time'}
+            </dt>
+            <dd className={`mt-0.5 break-words font-medium ${cardText}`}>
+              {chart.birth_time || (lang === 'ru' ? 'Не указано' : 'Not specified')}
+            </dd>
+          </div>
+        </dl>
+
+        {signLabel ? (
+          <p className={`mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] ${mutedText}`}>
+            <PlanetIcon planet="sun" size={11} stroke="currentColor" />
+            <span>{signLabel}</span>
+          </p>
+        ) : null}
+
+        {isLocked ? (
+          <p className="mt-4 rounded-mono-card bg-mono-plate px-3 py-2 text-[13px] leading-relaxed text-mono-muted" role="status">
+            {lang === 'ru'
+              ? 'Карта сохранена. Открытие и совместимость вернутся после подключения Premium.'
+              : 'This chart is saved. Reading and compatibility return with Premium.'}
+          </p>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {canOpenChart ? (
+            <MonoButton
+              variant={isPrimary ? 'ghost' : 'outline'}
+              className="!min-h-[44px] !px-3 !text-[13px]"
+              onClick={() => handleSelectChart(chart)}
+            >
+              {isLocked
+                ? hasPremiumAccess
+                  ? (lang === 'ru' ? 'Обновить доступ' : 'Refresh access')
+                  : (lang === 'ru' ? 'Открыть с Premium' : 'Unlock with Premium')
+                : getText(lang, 'charts.open_chart')}
+            </MonoButton>
+          ) : null}
+          {!isPrimary && onUseInSynastry && !isLocked ? (
+            <MonoButton
+              variant="outline"
+              className="!min-h-[44px] !px-3 !text-[13px]"
+              onClick={() => onUseInSynastry(chart)}
+            >
+              {getText(lang, 'charts.use_in_synastry')}
+            </MonoButton>
+          ) : null}
+          {!isPrimary ? (
+            <button
+              type="button"
+              onClick={() => { void handleDelete(chart); }}
+              disabled={isBusy}
+              className="min-h-[44px] rounded-mono-pill border border-red-200 px-3 py-2 text-[13px] font-semibold text-red-700 transition-opacity hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:opacity-50"
+            >
+              {isBusy
+                ? (lang === 'ru' ? 'Убираем…' : 'Removing…')
+                : (lang === 'ru' ? 'Убрать' : 'Remove')}
+            </button>
+          ) : null}
+        </div>
+      </article>
+    );
+  };
+
   if (loading) {
     return <Loading message={getText(lang, 'charts.loading')} />;
   }
 
   if (!data && loadError) {
     return (
-      <div className="fresh-page charts-editorial-page">
-        <div className="mx-auto max-w-2xl px-4 pb-8">
+      <main className="fresh-page charts-editorial-page">
+        <div className="mx-auto max-w-2xl px-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <div role="alert" className="fresh-card space-y-3 p-5">
             <p className="text-[14px] leading-relaxed text-red-700">{loadError}</p>
             <MonoButton fullWidth onClick={() => { void reloadAndResume(); }}>
@@ -335,68 +430,30 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             </MonoButton>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="fresh-page charts-editorial-page">
-      <div className="mx-auto max-w-2xl space-y-4 px-4 pb-8">
+    <main className="fresh-page charts-editorial-page">
+      <div className="mx-auto max-w-2xl space-y-7 px-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <MonoStagger>
           <MonoStaggerItem>
-            <div className="fresh-card p-5">
-              <MonoTag>{getText(lang, 'charts.action_title')}</MonoTag>
-              <h2 className="mt-2 text-[24px] font-bold tracking-[-0.02em] text-mono-ink">
+            <header className="fresh-card p-5 sm:p-6">
+              <h1 className="text-[25px] font-bold tracking-[-0.02em] text-mono-ink">
                 {getText(lang, 'charts.title')}
-              </h2>
+              </h1>
               <p className="mt-2 text-[14px] leading-relaxed text-mono-muted">
-                {getText(lang, 'charts.action_body')}
+                {lang === 'ru'
+                  ? 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.'
+                  : 'Your chart is always available. Other people’s charts are saved and unlocked with Premium.'}
               </p>
-              <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.1em] text-mono-muted">
-                {getText(lang, 'charts.slots')}: {accessibleChartCount} / {chartSlots}
-                {lockedChartCount > 0 && canPromotePremium && !hasPremiumAccess
-                  ? ` · ${lockedChartCount} ${lang === 'ru' ? 'сохранено с Premium' : 'saved with Premium'}`
-                  : ''}
-              </p>
-
               {canAddMore ? (
-                <MonoButton className="mt-4" fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
+                <MonoButton className="mt-5" fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
                   + {getText(lang, 'charts.add_chart')}
                 </MonoButton>
-              ) : (
-                <div className="mt-4 space-y-3 fresh-card fresh-card--flat p-4">
-                  <p className="text-[14px] font-semibold text-mono-ink">{getText(lang, 'charts.slots_full_title')}</p>
-                  <p className="text-[13px] text-mono-muted">{getText(lang, 'charts.limit_reached')}</p>
-                  {showPremiumSlotsCta && (
-                    <MonoButton fullWidth onClick={() => onRequestPremium?.('charts', {
-                      placement: 'saved_people',
-                      featureKey: 'saved_people',
-                      triggerType: 'locked_feature',
-                      returnView: 'charts',
-                      returnAction: 'add_saved_person',
-                    })}>{getText(lang, 'charts.premium_slots_cta')}</MonoButton>
-                  )}
-                </div>
-              )}
-            </div>
-          </MonoStaggerItem>
-
-          <MonoStaggerItem>
-            <MonoInput
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={lang === 'ru' ? 'Поиск по имени или месту' : 'Search by name or place'}
-              aria-label={lang === 'ru' ? 'Поиск карт по имени или месту' : 'Search charts by name or place'}
-            />
-          </MonoStaggerItem>
-
-          <MonoStaggerItem>
-            <MonoSegment
-              value={listFilter}
-              onChange={setListFilter}
-              options={filterOptions}
-              ariaLabel={lang === 'ru' ? 'Фильтр списка карт' : 'Chart list filter'}
-            />
+              ) : null}
+            </header>
           </MonoStaggerItem>
         </MonoStagger>
 
@@ -413,96 +470,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           <div id="charts-add-error" role="alert" className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">{addError}</div>
         ) : null}
 
-        {charts.length === 0 ? (
-          <div className="fresh-card p-6 text-center">
-            <p className="text-[16px] font-semibold text-mono-ink">{getText(lang, 'charts.empty_title')}</p>
-            <p className="mt-2 text-[14px] text-mono-muted">{getText(lang, 'charts.empty_body')}</p>
-          </div>
-        ) : filteredCharts.length === 0 ? (
-          <p className="text-center text-[14px] text-mono-muted">{lang === 'ru' ? 'Ничего не найдено' : 'Nothing found'}</p>
-        ) : (
-          <MonoStagger className="space-y-3">
-            {filteredCharts.map((chart) => {
-              const sunSign = chart.chart_data?.sun?.sign;
-              const signLabel = sunSign ? getZodiacSign(lang, sunSign) : '-';
-              const isPrimary = isSelfChart(chart);
-              const isLocked = isChartEffectivelyLocked(chart);
-              const isBusy = actionLoading === `delete-${chart.id}`;
-              const formattedBirthDate = formatDisplayDate(chart.birth_date, lang) || chart.birth_date;
-
-              return (
-                <MonoStaggerItem key={chart.id}>
-                  <motion.div
-                    whileTap={{ scale: 0.99 }}
-                    className={`rounded-mono-card border p-4 sm:p-5 ${
-                      isPrimary ? 'border-mono-ink bg-mono-black text-white' : 'border-mono-line bg-mono-white text-mono-ink'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="break-words text-[17px] font-bold">{chart.name}</span>
-                      {isPrimary ? (
-                        <MonoTag dark className="!bg-white/15">{getText(lang, 'charts.primary_badge')}</MonoTag>
-                      ) : null}
-                      {isLocked ? (
-                        <MonoTag>{canPromotePremium && !hasPremiumAccess ? 'Premium' : (lang === 'ru' ? 'Закрыто' : 'Locked')}</MonoTag>
-                      ) : null}
-                    </div>
-                    <p className={`mt-1 text-[13px] ${isPrimary ? 'text-white/70' : 'text-mono-muted'}`}>
-                      {isPrimary
-                        ? getText(lang, 'charts.primary_role')
-                        : chart.relation_label || getText(lang, 'charts.saved_role')}
-                    </p>
-                    <p className={`mt-2 text-[13px] ${isPrimary ? 'text-white/65' : 'text-mono-muted'}`}>
-                      {formattedBirthDate} · {chart.birth_place}
-                    </p>
-                    {sunSign ? (
-                      <p className={`mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] ${isPrimary ? 'text-white/60' : 'text-mono-muted'}`}>
-                        <PlanetIcon planet="sun" size={11} stroke="currentColor" />
-                        <span>{signLabel}</span>
-                      </p>
-                    ) : null}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {onChartSelect ? (
-                        <MonoButton variant={isPrimary ? 'ghost' : 'outline'} className="!min-h-[44px] !px-3 !text-[12px]" onClick={() => handleSelectChart(chart)}>
-                          {isLocked
-                            ? canPromotePremium && !hasPremiumAccess
-                              ? (lang === 'ru' ? 'Открыть с Premium' : 'Unlock with Premium')
-                              : hasPremiumAccess
-                                ? (lang === 'ru' ? 'Обновить доступ' : 'Refresh access')
-                                : (lang === 'ru' ? 'Пока недоступно' : 'Unavailable for now')
-                            : getText(lang, 'charts.open_chart')}
-                        </MonoButton>
-                      ) : null}
-                      {!isPrimary && onUseInSynastry && !isLocked ? (
-                        <MonoButton variant="outline" className="!min-h-[44px] !px-3 !text-[12px]" onClick={() => onUseInSynastry(chart)}>
-                          {getText(lang, 'charts.use_in_synastry')}
-                        </MonoButton>
-                      ) : null}
-                      {!isPrimary ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(chart)}
-                          disabled={isBusy}
-                          className="min-h-[44px] rounded-mono-pill border border-red-200 px-3 py-2 text-[12px] font-semibold text-red-600 disabled:opacity-50"
-                        >
-                          {getText(lang, 'charts.delete')}
-                        </button>
-                      ) : null}
-                    </div>
-                  </motion.div>
-                </MonoStaggerItem>
-              );
-            })}
-          </MonoStagger>
-        )}
-
-        {isSingleChartState ? (
-          <p className="text-[13px] text-mono-muted">{getText(lang, 'charts.single_chart_body')}</p>
-        ) : null}
-
         {showAddForm ? (
           <MonoFadeIn className="space-y-4 fresh-card p-5">
-            <h3 className="text-[18px] font-bold text-mono-ink">{getText(lang, 'charts.add_form_title')}</h3>
+            <h2 id="new-chart-heading" className="text-[18px] font-bold text-mono-ink">{getText(lang, 'charts.add_form_title')}</h2>
             <MonoInput id="chart-person-name" label={getText(lang, 'charts.field_name')} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={getText(lang, 'charts.default_chart_name')} />
             <MonoInput id="chart-birth-date" label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => { setAddDate(e.target.value); setAddInvalidFields((fields) => fields.filter((field) => field !== 'date')); }} aria-invalid={addInvalidFields.includes('date') || undefined} aria-describedby={addInvalidFields.includes('date') ? 'charts-add-error' : undefined} />
             <MonoInput label={getText(lang, 'charts.field_birth_time')} type="time" value={addTime} onChange={(e) => setAddTime(e.target.value)} />
@@ -529,10 +499,96 @@ export const MyCharts: React.FC<MyChartsProps> = ({
           </MonoFadeIn>
         ) : null}
 
-        {partnerCharts.length > 0 ? (
-          <p className="text-center text-[12px] text-mono-muted">{getText(lang, 'charts.saved_for_synastry_hint')}</p>
-        ) : null}
+        <section aria-labelledby="my-chart-heading" className="space-y-3">
+          <div>
+            <h2 id="my-chart-heading" className="text-[18px] font-bold text-mono-ink">
+              {lang === 'ru' ? 'Моя карта' : 'My chart'}
+            </h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
+              {lang === 'ru' ? 'Это основная личная карта. Её нельзя заменить картой другого человека.' : 'This is your main personal chart. A saved person cannot replace it.'}
+            </p>
+          </div>
+          {selfChart ? renderChartCard(selfChart) : (
+            <div className="fresh-card p-5">
+              <p className="text-[15px] font-semibold text-mono-ink">
+                {lang === 'ru' ? 'Личная карта пока не загрузилась' : 'Your personal chart has not loaded yet'}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
+                {lang === 'ru' ? 'Обнови экран и попробуй снова.' : 'Refresh this screen and try again.'}
+              </p>
+              <MonoButton className="mt-4" variant="outline" onClick={() => { void reloadAndResume(); }}>
+                {lang === 'ru' ? 'Обновить' : 'Refresh'}
+              </MonoButton>
+            </div>
+          )}
+        </section>
+
+        <section aria-labelledby="saved-charts-heading" className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 id="saved-charts-heading" className="text-[18px] font-bold text-mono-ink">
+                {lang === 'ru' ? 'Сохранённые люди' : 'Saved people'}
+              </h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
+                {hasPremiumAccess
+                  ? (lang === 'ru' ? `Сохранено ${savedCharts.length} из ${PREMIUM_SAVED_PERSON_LIMIT}` : `${savedCharts.length} of ${PREMIUM_SAVED_PERSON_LIMIT} saved`)
+                  : (lang === 'ru' ? `С Premium — до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт` : `Premium includes up to ${PREMIUM_SAVED_PERSON_LIMIT} additional charts`)}
+              </p>
+            </div>
+            {lockedChartCount > 0 ? (
+              <MonoTag>{lang === 'ru' ? `Заблокировано: ${lockedChartCount}` : `Locked: ${lockedChartCount}`}</MonoTag>
+            ) : null}
+          </div>
+
+          {savedCharts.length > 0 ? (
+            <MonoStagger className="space-y-3">
+              {savedCharts.map((chart) => <MonoStaggerItem key={chart.id}>{renderChartCard(chart)}</MonoStaggerItem>)}
+            </MonoStagger>
+          ) : (
+            <div className="fresh-card p-5">
+              <p className="text-[15px] font-semibold text-mono-ink">
+                {lang === 'ru' ? 'Сохранённых карт пока нет' : 'No saved charts yet'}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
+                {hasPremiumAccess
+                  ? (lang === 'ru' ? 'Добавь карту близкого человека для чтения или совместимости.' : 'Add someone close for a reading or compatibility.')
+                  : (lang === 'ru' ? 'Сохранённые карты станут доступны после подключения Premium.' : 'Saved charts become available with Premium.')}
+              </p>
+            </div>
+          )}
+
+          {!hasPremiumAccess ? (
+            <aside className="fresh-card fresh-card--flat space-y-3 p-4" aria-label={lang === 'ru' ? 'Доступ к сохранённым картам' : 'Saved charts access'}>
+              <p className="text-[14px] font-semibold text-mono-ink">
+                {lang === 'ru' ? 'Сохранённые карты доступны с Premium' : 'Saved charts are available with Premium'}
+              </p>
+              <p className="text-[13px] leading-relaxed text-mono-muted">
+                {lockedChartCount > 0
+                  ? (lang === 'ru' ? 'Эти карты не удалены: они снова откроются после подключения Premium.' : 'These charts are not deleted: they unlock again with Premium.')
+                  : (lang === 'ru' ? `Можно сохранить до ${PREMIUM_SAVED_PERSON_LIMIT} дополнительных карт.` : `You can save up to ${PREMIUM_SAVED_PERSON_LIMIT} additional charts.`)}
+              </p>
+              {showPremiumSlotsCta ? (
+                <MonoButton fullWidth onClick={() => onRequestPremium?.('charts', {
+                  placement: 'saved_people',
+                  featureKey: 'saved_people',
+                  triggerType: 'locked_feature',
+                  returnView: 'charts',
+                  returnAction: 'add_saved_person',
+                })}>{getText(lang, 'charts.premium_slots_cta')}</MonoButton>
+              ) : null}
+            </aside>
+          ) : !canAddMore ? (
+            <aside className="fresh-card fresh-card--flat p-4">
+              <p className="text-[14px] font-semibold text-mono-ink">
+                {lang === 'ru' ? 'Лимит сохранённых карт достигнут' : 'Saved chart limit reached'}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-mono-muted">
+                {lang === 'ru' ? `В текущем доступе можно хранить до ${chartSlots - 1} дополнительных карт.` : `Your current access allows up to ${chartSlots - 1} additional charts.`}
+              </p>
+            </aside>
+          ) : null}
+        </section>
       </div>
-    </div>
+    </main>
   );
 };
