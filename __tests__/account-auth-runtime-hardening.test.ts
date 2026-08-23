@@ -1,6 +1,9 @@
 jest.mock('../services/nativeSessionStore', () => ({
   nativeSessionStore: {
+    getSession: jest.fn(),
+    setSession: jest.fn(),
     getToken: jest.fn(),
+    getRefreshToken: jest.fn(),
     setToken: jest.fn(),
     clearToken: jest.fn(),
   },
@@ -74,6 +77,14 @@ describe('account authentication runtime hardening', () => {
     jest.clearAllMocks();
     process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test';
+    mockedNativeSessionStore.getSession.mockResolvedValue({
+      version: 2,
+      accessToken: 'native-session-token',
+      refreshToken: 'native-refresh-token',
+      accessExpiresAt: Math.floor(Date.now() / 1000) + 600,
+      refreshExpiresAt: Math.floor(Date.now() / 1000) + 3_600,
+      absoluteExpiresAt: Math.floor(Date.now() / 1000) + 7_200,
+    });
     mockedNativeSessionStore.getToken.mockResolvedValue('native-session-token');
     mockedNativeSessionStore.setToken.mockResolvedValue(undefined);
     mockedNativeSessionStore.clearToken.mockResolvedValue(undefined);
@@ -134,6 +145,7 @@ describe('account authentication runtime hardening', () => {
       await expect(getAppAuthHeaders()).resolves.toEqual({});
 
       expect(mockedNativeSessionStore.getToken).not.toHaveBeenCalled();
+      expect(mockedNativeSessionStore.getSession).not.toHaveBeenCalled();
     },
   );
 

@@ -4,12 +4,12 @@ import android.app.Activity;
 import android.content.Context;
 
 /**
- * Flavor boundary for Google identity. The implementation is compiled only
- * into development and Google Play variants; RuStore never packages it.
+ * Flavor-neutral boundary for an optional native identity implementation.
+ * Provider SDK types stay outside the common and RuStore source sets.
  */
-public interface GoogleIdentityAuthDelegate {
+public interface OptionalIdentityAuthDelegate {
     interface Callback {
-        void onSuccess(String idToken);
+        void onSuccess(String credential);
         void onError(String code);
     }
 

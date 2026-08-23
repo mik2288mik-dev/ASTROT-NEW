@@ -1011,9 +1011,12 @@ const App: React.FC = () => {
                     setAuthGateMessage('Этот аккаунт заблокирован. Войди в другой аккаунт или обратись в поддержку.');
                     setStartupError(null);
                 } else if (isProfileAuthenticationError(error)) {
+                    const isFreshNativeLaunch = sessionMode === 'automatic' && isNativeAppRuntime();
                     setAuthSessionMode('signed_out');
                     setAuthSessionModeState('signed_out');
-                    setAuthGateMessage('Сессия завершена. Войди снова — старый аккаунт и его данные никуда не пропали.');
+                    setAuthGateMessage(isFreshNativeLaunch
+                        ? null
+                        : 'Сессия завершена. Войди снова — старый аккаунт и его данные никуда не пропали.');
                     setStartupError(null);
                 } else {
                     setStartupError(
@@ -1309,6 +1312,20 @@ const App: React.FC = () => {
 
     const handleAccountLogin = useCallback((nextProfile: UserProfile) => {
         resumeAuthenticatedStartup(nextProfile, 'account');
+    }, [resumeAuthenticatedStartup]);
+
+    const handleGuestStart = useCallback(async () => {
+        const previousMode = getAuthSessionMode();
+        setAuthSessionMode('guest');
+        setAuthSessionModeState('guest');
+        try {
+            const guestProfile = await startGuestAccount();
+            resumeAuthenticatedStartup(guestProfile, 'guest');
+        } catch (error) {
+            setAuthSessionMode(previousMode);
+            setAuthSessionModeState(previousMode);
+            throw error;
+        }
     }, [resumeAuthenticatedStartup]);
 
     useEffect(() => {
@@ -2032,6 +2049,7 @@ const App: React.FC = () => {
                 deleted={authSessionMode === 'deleted'}
                 message={authGateMessage}
                 onAccountLogin={handleAccountLogin}
+                onGuestStart={handleGuestStart}
             />
         );
     }
@@ -2067,8 +2085,9 @@ const App: React.FC = () => {
     if (!profile) {
         return (
             <AuthGate
-                message="Сессия не найдена. Войди в существующий аккаунт или создай новый."
+                message="Сессия не найдена. Продолжи без аккаунта или войди в существующий."
                 onAccountLogin={handleAccountLogin}
+                onGuestStart={handleGuestStart}
             />
         );
     }

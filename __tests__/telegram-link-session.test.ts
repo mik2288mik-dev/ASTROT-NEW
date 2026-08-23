@@ -85,7 +85,11 @@ describe('Telegram identity linking session rotation', () => {
         },
       },
     );
-    expect(createAppUserSession).toHaveBeenCalledWith({ userId: '-42', kind: 'web' });
+    expect(createAppUserSession).toHaveBeenCalledWith({
+      userId: '-42',
+      kind: 'web',
+      sessionVersion: 1,
+    });
     expect(setAppSessionCookie).toHaveBeenCalledWith(res, 'rotated-session-token');
     expect(res.json).toHaveBeenCalledWith({
       ok: true,

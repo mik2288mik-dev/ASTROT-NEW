@@ -48,7 +48,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
     private final Object vkInitializationLock = new Object();
 
     private volatile PluginCall activeSignInCall;
-    private volatile GoogleIdentityAuthDelegate googleAuthDelegate;
+    private volatile OptionalIdentityAuthDelegate googleAuthDelegate;
     private volatile boolean vkInitialized;
     private YandexAuthSdk yandexAuthSdk;
     private SecureSessionStore secureSessionStore;
@@ -108,7 +108,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
             return;
         }
 
-        GoogleIdentityAuthDelegate delegate = getGoogleAuthDelegate();
+        OptionalIdentityAuthDelegate delegate = getGoogleAuthDelegate();
         if (delegate == null) {
             rejectSignIn(call, AUTH_CONFIGURATION);
             return;
@@ -118,7 +118,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
             getActivity(),
             configuredClientId,
             nonce,
-            new GoogleIdentityAuthDelegate.Callback() {
+            new OptionalIdentityAuthDelegate.Callback() {
                 @Override
                 public void onSuccess(String idToken) {
                     getActivity().runOnUiThread(() -> {
@@ -282,12 +282,12 @@ public class NativeIdentityAuthPlugin extends Plugin {
             call.resolve(new JSObject().put("cleared", true));
             return;
         }
-        GoogleIdentityAuthDelegate delegate = getGoogleAuthDelegate();
+        OptionalIdentityAuthDelegate delegate = getGoogleAuthDelegate();
         if (delegate == null) {
             reject(call, AUTH_CONFIGURATION);
             return;
         }
-        delegate.clear(getContext(), new GoogleIdentityAuthDelegate.ClearCallback() {
+        delegate.clear(getContext(), new OptionalIdentityAuthDelegate.ClearCallback() {
             @Override
             public void onSuccess() {
                 call.resolve(new JSObject().put("cleared", true));
@@ -343,7 +343,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
-        GoogleIdentityAuthDelegate delegate = googleAuthDelegate;
+        OptionalIdentityAuthDelegate delegate = googleAuthDelegate;
         if (delegate != null) delegate.cancel();
         PluginCall call = activeSignInCall;
         if (call != null && signInInFlight.compareAndSet(true, false)) {
@@ -360,14 +360,14 @@ public class NativeIdentityAuthPlugin extends Plugin {
         return yandexAuthSdk;
     }
 
-    private synchronized GoogleIdentityAuthDelegate getGoogleAuthDelegate() {
+    private synchronized OptionalIdentityAuthDelegate getGoogleAuthDelegate() {
         if (!BuildConfig.GOOGLE_AUTH_ENABLED) return null;
         if (googleAuthDelegate != null) return googleAuthDelegate;
+        String handlerClass = BuildConfig.OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS.trim();
+        if (handlerClass.isEmpty()) return null;
         try {
-            Class<?> handler = Class.forName(
-                "ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler"
-            );
-            googleAuthDelegate = (GoogleIdentityAuthDelegate) handler.getDeclaredConstructor().newInstance();
+            Class<?> handler = Class.forName(handlerClass);
+            googleAuthDelegate = (OptionalIdentityAuthDelegate) handler.getDeclaredConstructor().newInstance();
             return googleAuthDelegate;
         } catch (ReflectiveOperationException | ClassCastException error) {
             return null;

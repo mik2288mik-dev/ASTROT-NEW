@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { nativeSessionStore, type NativeSessionBundle, type StoredNativeSession } from './nativeSessionStore';
 import { assertNativeNetworkAvailable } from './nativeNetwork';
 import {
@@ -64,7 +65,7 @@ function dispatchSessionInvalidation(detail: AppSessionInvalidatedDetail): void 
 }
 
 export function isNativeAppRuntime(): boolean {
-  return process.env.NEXT_PUBLIC_MOBILE_BUILD === '1';
+  return process.env.NEXT_PUBLIC_MOBILE_BUILD === '1' || Capacitor.isNativePlatform();
 }
 
 function configuredApiBaseUrl(): string {

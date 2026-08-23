@@ -93,7 +93,7 @@ describe('mobile API and native auth', () => {
   it('creates one signed native guest and reuses it on the next request', async () => {
     const { handler, auth, users, set } = await setupNativeHandler();
     const first = mockResponse();
-    await handler({ method: 'POST', headers: {} } as any, first.response);
+    await handler({ method: 'POST', headers: {}, body: { sessionVersion: 2 } } as any, first.response);
 
     expect(first.result.statusCode).toBe(200);
     expect(first.result.body.profile).toMatchObject({
@@ -101,6 +101,9 @@ describe('mobile API and native auth', () => {
       isGuest: true,
       isPremium: false,
     });
+    // The isolated unit has no durable app_sessions database, so the server
+    // intentionally falls back to a signed v1 bearer even when v2 is requested.
+    // PostgreSQL suites cover persisted access/refresh issuance and rotation.
     expect(auth.verifyAppSessionToken(first.result.body.token)).toMatchObject({
       userId: first.result.body.profile.id,
       provider: 'native',
@@ -151,15 +154,24 @@ describe('mobile API and native auth', () => {
     { status: 401, field: 'code', code: 'APP_SESSION_REVOKED' },
     { status: 401, field: 'error', code: 'APP_AUTH_REQUIRED' },
     { status: 403, field: 'code', code: 'ACCOUNT_BLOCKED' },
-  ] as const)('clears a native bearer only for explicit session failure $code', async ({ status, field, code }) => {
+  ] as const)('clears a native session only for explicit session failure $code', async ({ status, field, code }) => {
     jest.resetModules();
     process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test/';
-    let storedToken: string | null = 'expired-token';
+    const session = {
+      version: 2 as const,
+      accessToken: 'active-token',
+      refreshToken: 'active-refresh-token',
+      accessExpiresAt: Math.floor(Date.now() / 1000) + 600,
+      refreshExpiresAt: Math.floor(Date.now() / 1000) + 3_600,
+      absoluteExpiresAt: Math.floor(Date.now() / 1000) + 7_200,
+    };
     const store = {
-      getToken: jest.fn(async () => storedToken),
-      setToken: jest.fn(async (token: string) => { storedToken = token; }),
-      clearToken: jest.fn(async () => { storedToken = null; }),
+      getSession: jest.fn(async () => session),
+      setSession: jest.fn(async () => undefined),
+      getToken: jest.fn(async () => session.accessToken),
+      setToken: jest.fn(async () => undefined),
+      clearToken: jest.fn(async () => undefined),
     };
     jest.doMock('../services/nativeSessionStore', () => ({ nativeSessionStore: store }));
 
@@ -168,6 +180,12 @@ describe('mobile API and native auth', () => {
       const url = String(input);
       const authorization = new Headers(init?.headers).get('Authorization');
       calls.push({ url, authorization });
+      if (url.endsWith('/api/auth/session/refresh')) {
+        return new Response(JSON.stringify({ code: 'APP_SESSION_REFRESH_INVALID' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       return new Response(JSON.stringify({ [field]: code }), {
         status,
         headers: { 'Content-Type': 'application/json' },
@@ -181,12 +199,25 @@ describe('mobile API and native auth', () => {
 
     expect(response.status).toBe(status);
     await expect(response.json()).resolves.toEqual({ [field]: code });
-    expect(calls).toEqual([
-      {
-        url: 'https://api.example.test/api/data',
-        authorization: 'Bearer expired-token',
-      },
-    ]);
+    expect(calls).toEqual(
+      code === 'APP_AUTH_REQUIRED'
+        ? [
+        {
+          url: 'https://api.example.test/api/data',
+          authorization: 'Bearer active-token',
+        },
+        {
+          url: 'https://api.example.test/api/auth/session/refresh',
+          authorization: 'Refresh active-refresh-token',
+        },
+        ]
+        : [
+          {
+            url: 'https://api.example.test/api/data',
+            authorization: 'Bearer active-token',
+          },
+        ],
+    );
     expect(store.clearToken).toHaveBeenCalledTimes(1);
     expect(store.setToken).not.toHaveBeenCalled();
   });
@@ -195,7 +226,17 @@ describe('mobile API and native auth', () => {
     jest.resetModules();
     process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
     process.env.NEXT_PUBLIC_API_URL = 'https://api.example.test';
+    const session = {
+      version: 2 as const,
+      accessToken: 'active-token',
+      refreshToken: 'active-refresh-token',
+      accessExpiresAt: Math.floor(Date.now() / 1000) + 600,
+      refreshExpiresAt: Math.floor(Date.now() / 1000) + 3_600,
+      absoluteExpiresAt: Math.floor(Date.now() / 1000) + 7_200,
+    };
     const store = {
+      getSession: jest.fn(async () => session),
+      setSession: jest.fn(async () => undefined),
       getToken: jest.fn(async () => 'active-token'),
       setToken: jest.fn(async () => undefined),
       clearToken: jest.fn(async () => undefined),
@@ -214,6 +255,17 @@ describe('mobile API and native auth', () => {
 
     expect(store.clearToken).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toEqual({ code: 'INVALID_CREDENTIALS' });
+  });
+
+  it('recognizes an actual Capacitor platform without relying on a build flag', async () => {
+    jest.resetModules();
+    delete process.env.NEXT_PUBLIC_MOBILE_BUILD;
+    const { Capacitor } = await import('@capacitor/core');
+    jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+
+    const { isNativeAppRuntime } = await import('../services/apiClient');
+
+    expect(isNativeAppRuntime()).toBe(true);
   });
 
   it.each(['signed_out', 'account'] as const)(

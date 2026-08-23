@@ -59,8 +59,9 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(plugin).toContain('@CapacitorPlugin(name = "NativeIdentityAuth")');
     expect(plugin).toContain('public void signIn(PluginCall call)');
     expect(plugin).toContain('public void clearCredentialState(PluginCall call)');
-    expect(plugin).toContain('GoogleIdentityAuthDelegate');
-    expect(plugin).toContain('GoogleIdentityAuthHandler');
+    expect(plugin).toContain('OptionalIdentityAuthDelegate');
+    expect(plugin).toContain('BuildConfig.OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS');
+    expect(plugin).not.toContain('ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler');
     expect(googleHandler).toContain('GetSignInWithGoogleOption.Builder');
     expect(googleHandler).toContain('.setNonce(nonce)');
     expect(googleHandler).toContain('GoogleIdTokenCredential.createFrom');
@@ -88,6 +89,24 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(googleCase).toContain('rejectSignIn(call, AUTH_CONFIGURATION)');
     expect(proguard).toContain('-keep class ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler');
     expect(proguard).toContain('public <init>(...);');
+  });
+
+  it('keeps Google implementation classes outside the common and RuStore source sets', () => {
+    const appGradle = read('android/app/build.gradle');
+    const plugin = read(
+      'android/app/src/main/java/ru/tvoygoroskop/app/auth/NativeIdentityAuthPlugin.java',
+    );
+    const commonDelegatePath = path.join(
+      process.cwd(),
+      'android/app/src/main/java/ru/tvoygoroskop/app/auth/GoogleIdentityAuthDelegate.java',
+    );
+
+    expect(fs.existsSync(commonDelegatePath)).toBe(false);
+    expect(appGradle).toContain("development.java.srcDir 'src/googleAuth/java'");
+    expect(appGradle).toContain("googlePlay.java.srcDir 'src/googleAuth/java'");
+    expect(appGradle).not.toContain("rustore.java.srcDir 'src/googleAuth/java'");
+    expect(plugin).not.toContain('com.google.android.libraries.identity');
+    expect(plugin).not.toContain('androidx.credentials');
   });
 
   it('does not load or require Google credentials for a RuStore release', () => {
@@ -148,8 +167,12 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     );
 
     const rustore = validate('rustore');
-    expect(`${rustore.stdout}\n${rustore.stderr}`).not.toContain('GOOGLE_AUTH_');
-    expect(rustore.status).toBe(0);
+    const rustoreOutput = `${rustore.stdout}\n${rustore.stderr}`;
+    expect(rustoreOutput).not.toContain('GOOGLE_AUTH_');
+    expect(rustoreOutput).toContain(
+      'NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED must be enabled for a RuStore release with subscriptions',
+    );
+    expect(rustore.status).toBe(1);
 
     const googlePlayWithoutCredentials = validate('google_play');
     expect(googlePlayWithoutCredentials.status).not.toBe(0);

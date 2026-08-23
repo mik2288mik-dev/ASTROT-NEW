@@ -58,7 +58,7 @@ describe('RuStore account-auth release contract', () => {
     process.env = { ...originalEnv };
   });
 
-  it('does not require Google release credentials for a RuStore release', () => {
+  it('does not report missing Google credentials in the RuStore auth contract', () => {
     const env = releaseEnvironment('rustore');
     delete env.GOOGLE_AUTH_CLIENT_ID;
     delete env.GOOGLE_AUTH_CLIENT_SECRET;
@@ -66,7 +66,10 @@ describe('RuStore account-auth release contract', () => {
     const result = validateRelease(env);
     expect(`${result.stdout}\n${result.stderr}`).not.toContain('GOOGLE_AUTH_CLIENT_ID is required');
     expect(`${result.stdout}\n${result.stderr}`).not.toContain('GOOGLE_AUTH_CLIENT_SECRET is required');
-    expect(result.status).toBe(0);
+    expect(result.stderr).toContain(
+      'NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED must be enabled for a RuStore release with subscriptions',
+    );
+    expect(result.status).toBe(1);
   });
 
   it('keeps Google credentials mandatory for the future Google Play release branch', () => {

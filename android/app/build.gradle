@@ -15,6 +15,7 @@ def releaseSigningReady = releaseStoreFileValue && releaseStorePasswordValue && 
 def authValue = { String name -> (project.findProperty(name) ?: System.getenv(name) ?: '').toString().trim() }
 def buildConfigString = { String value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
 def googleAuthClientId = authValue('GOOGLE_AUTH_CLIENT_ID')
+def googleAuthHandlerClass = 'ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler'
 def yandexAuthClientId = authValue('YANDEX_AUTH_CLIENT_ID')
 def vkAuthClientId = authValue('VK_AUTH_CLIENT_ID')
 def vkIdAndroidClientSecret = authValue('VK_ID_ANDROID_CLIENT_SECRET')
@@ -52,6 +53,7 @@ android {
         buildConfigField 'boolean', 'RUSTORE_PAYMENTS_ENABLED', rustorePaymentsEnabled ? 'true' : 'false'
         buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', '""'
         buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'false'
+        buildConfigField 'String', 'OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS', buildConfigString('')
         buildConfigField 'String', 'YANDEX_AUTH_CLIENT_ID', buildConfigString(yandexAuthClientId)
         buildConfigField 'String', 'VK_ID_CLIENT_ID', buildConfigString(vkAuthClientId)
         buildConfigField 'boolean', 'VK_ID_CONFIGURED', vkIdConfigured ? 'true' : 'false'
@@ -79,6 +81,7 @@ android {
             buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"development"'
             buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', buildConfigString(googleAuthClientId)
             buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'true'
+            buildConfigField 'String', 'OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS', buildConfigString(googleAuthHandlerClass)
         }
         telegram {
             dimension 'distribution'
@@ -94,6 +97,7 @@ android {
             buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"google_play"'
             buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', buildConfigString(googleAuthClientId)
             buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'true'
+            buildConfigField 'String', 'OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS', buildConfigString(googleAuthHandlerClass)
         }
     }
     buildFeatures {
