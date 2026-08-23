@@ -98,13 +98,15 @@ function terminalPurchaseResult(purchase: RuStorePurchase): 'active' | 'cancelle
   return null;
 }
 
+type BackendValidationResult = PaymentResult | {
+  status: 'inactive';
+  entitlement: PaymentEntitlementSnapshot;
+};
+
 async function reconcilePurchaseResult(
   nativeBridge: RuStorePayBridge,
   purchase: RuStorePurchase,
 ): Promise<PaymentResult> {
-  if (!purchase.purchaseId) {
-    return { status: 'failed', reason: 'RUSTORE_PURCHASE_STATUS_UNKNOWN' };
-  }
   let current = purchase;
   for (;;) {
     const terminal = terminalPurchaseResult(current);
@@ -115,9 +117,17 @@ async function reconcilePurchaseResult(
         reason: `RUSTORE_PURCHASE_${String(current.status || 'FAILED').toUpperCase()}`,
       };
     }
-    if (terminal === 'active') {
-      const validated = await validateWithBackend(current);
-      if (validated.status !== 'pending') return validated;
+    if (!current.purchaseId) {
+      return { status: 'failed', reason: 'RUSTORE_PURCHASE_STATUS_UNKNOWN' };
+    }
+
+    // A successful Pay SDK purchase result contains identifiers but no status.
+    // Validate it immediately instead of waiting for getPurchases() to surface
+    // ACTIVE; the Public API remains the only authority that can grant Premium.
+    const validated = await validateWithBackend(current);
+    if (validated.status === 'completed' || validated.status === 'failed') return validated;
+    if (validated.status === 'inactive' && String(current.status || '').toUpperCase() === 'PAUSED') {
+      return { status: 'failed', reason: 'RUSTORE_SUBSCRIPTION_PAUSED' };
     }
 
     await delay(PURCHASE_RECONCILIATION_DELAY_MS);
@@ -133,6 +143,30 @@ async function reconcilePurchaseResult(
       // Keep the checkout locked while RuStore is temporarily unreachable.
     }
   }
+}
+
+async function validateRestoredPurchase(purchase: RuStorePurchase): Promise<PaymentResult> {
+  const terminal = terminalPurchaseResult(purchase);
+  if (terminal === 'cancelled') return { status: 'cancelled' };
+  if (terminal === 'failed') {
+    return {
+      status: 'failed',
+      reason: `RUSTORE_PURCHASE_${String(purchase.status || 'FAILED').toUpperCase()}`,
+    };
+  }
+  if (!purchase.purchaseId) {
+    return { status: 'failed', reason: 'RUSTORE_PURCHASE_STATUS_UNKNOWN' };
+  }
+  const validated = await validateWithBackend(purchase);
+  if (validated.status === 'inactive') {
+    return {
+      status: 'failed',
+      reason: String(purchase.status || '').toUpperCase() === 'PAUSED'
+        ? 'RUSTORE_SUBSCRIPTION_PAUSED'
+        : 'RUSTORE_PREMIUM_NOT_CONFIRMED',
+    };
+  }
+  return validated;
 }
 
 function pendingPurchaseStorageKey(userId: string, productId: string): string {
@@ -243,7 +277,7 @@ async function hasRecoveryIdentity(): Promise<boolean> {
     && payload.identities.some((identity: any) => ['vk', 'yandex', 'google', 'email'].includes(identity?.provider));
 }
 
-async function validateWithBackend(purchase: RuStorePurchase): Promise<PaymentResult> {
+async function validateWithBackend(purchase: RuStorePurchase): Promise<BackendValidationResult> {
   if (!purchase.purchaseId) {
     return { status: 'failed', reason: 'RUSTORE_PURCHASE_STATUS_UNKNOWN' };
   }
@@ -271,14 +305,17 @@ async function validateWithBackend(purchase: RuStorePurchase): Promise<PaymentRe
       }
       return { status: 'pending', reason: 'RUSTORE_SERVER_VALIDATION_PENDING' };
     }
-    if (body?.purchaseActive !== true) {
-      return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
-    }
     const entitlement = parseBackendEntitlement(body?.entitlement);
     if (!entitlement) return { status: 'failed', reason: 'RUSTORE_ENTITLEMENT_SNAPSHOT_INVALID' };
-    return entitlement.isPremium
-      ? { status: 'completed', entitlement }
-      : { status: 'failed', reason: 'RUSTORE_PREMIUM_NOT_CONFIRMED' };
+    if (body?.purchaseActive === true) {
+      return entitlement.isPremium
+        ? { status: 'completed', entitlement }
+        : { status: 'failed', reason: 'RUSTORE_PREMIUM_NOT_CONFIRMED' };
+    }
+    if (body?.purchaseActive === false && entitlement.isPremium === false) {
+      return { status: 'inactive', entitlement };
+    }
+    return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
   } catch {
     return { status: 'pending', reason: 'RUSTORE_SERVER_VALIDATION_PENDING' };
   }
@@ -347,7 +384,7 @@ export async function restoreRuStorePurchases(): Promise<PaymentResult[]> {
       (purchase) => purchase.productType === 'SUBSCRIPTION' && configuredProductIds.has(purchase.productId),
     );
     const settled = await Promise.allSettled(
-      subscriptions.map((purchase) => reconcilePurchaseResult(nativeBridge, purchase)),
+      subscriptions.map((purchase) => validateRestoredPurchase(purchase)),
     );
     return settled.map((entry) => entry.status === 'fulfilled'
       ? entry.value

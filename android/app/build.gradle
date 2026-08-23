@@ -142,7 +142,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
-    rustoreImplementation platform('ru.rustore.sdk:bom:2026.06.01')
+    rustoreImplementation platform('ru.rustore.sdk:bom:2026.08.01')
     rustoreImplementation 'ru.rustore.sdk:pay'
 }
 

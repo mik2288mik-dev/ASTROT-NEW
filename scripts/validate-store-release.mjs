@@ -165,11 +165,20 @@ if (channel === 'rustore' && rustorePaymentsEnabled) {
   if (process.env.RUSTORE_PACKAGE_NAME && process.env.RUSTORE_PACKAGE_NAME !== applicationId) {
     errors.push('RUSTORE_PACKAGE_NAME must match applicationId');
   }
+  const consoleAppId = String(process.env.RUSTORE_CONSOLE_APP_ID || '').trim();
+  if (consoleAppId && !/^\d+$/.test(consoleAppId)) {
+    errors.push('RUSTORE_CONSOLE_APP_ID must be the numeric application ID from the RuStore Console URL');
+  }
+  const payMode = String(process.env.RUSTORE_PAY_MODE || '').trim().toLowerCase();
+  if (!['sandbox', 'production'].includes(payMode)) {
+    errors.push('RUSTORE_PAY_MODE must be sandbox or production');
+  }
   if (release) {
     requireValue('RUSTORE_KEY_ID', process.env.RUSTORE_KEY_ID);
     requireValue('RUSTORE_PRIVATE_KEY_BASE64', process.env.RUSTORE_PRIVATE_KEY_BASE64);
     requireValue('RUSTORE_NOTIFICATION_AES_KEY', process.env.RUSTORE_NOTIFICATION_AES_KEY);
-    if (String(process.env.RUSTORE_PAY_MODE || '').trim().toLowerCase() !== 'production') {
+    requireValue('CRON_SECRET', process.env.CRON_SECRET);
+    if (payMode !== 'production') {
       errors.push('RUSTORE_PAY_MODE must be production for a release');
     }
 

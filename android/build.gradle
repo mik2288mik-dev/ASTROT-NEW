@@ -24,7 +24,7 @@ allprojects {
         maven { url 'https://artifactory-external.vkpartner.ru/artifactory/vkid-sdk-android/' }
         maven { url 'https://artifactory-external.vkpartner.ru/artifactory/maven/' }
         maven { url 'https://artifactory-external.vkpartner.ru/artifactory/vk-id-captcha/android/' }
-        maven { url 'https://artifactory-external.vkpartner.ru/artifactory/maven-rustore-exposed/' }
+        maven { url 'https://nexus-external.vkteam.ru/repository/maven-rustore-exposed/' }
     }
 }
 

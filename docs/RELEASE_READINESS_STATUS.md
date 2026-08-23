@@ -3,7 +3,7 @@
 | Item | Status | Evidence | Remaining | Owner |
 |---|---|---|---|---|
 | Distribution isolation | DONE | `lib/distributionChannel.ts`, tests | Google Billing intentionally absent | engineering |
-| RuStore Pay SDK | DEFERRED | Pay SDK 10.5.0, `rustore` flavor/native bridge/API callback queue; `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=0` produces a free build | Enable only after IP/bank readiness; Console products and sandbox test | owner |
+| RuStore Pay SDK | DEFERRED | Pay SDK 11.1.0, `rustore` flavor/native bridge/API callback queue; `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=0` produces a free build | Enable only after IP/bank readiness; Console products and sandbox test | owner |
 | Server Premium validation | PARTIAL | `lib/rustorePayments.ts`, purchase ownership constraint, durable callback retry queue | apply `mvp_039` + `mvp_040` in staging/production; test with real Public API token | engineering/owner |
 | Guest and account recovery | PARTIAL | email/password with confirmation/reset codes; Google Credential Manager; Yandex LoginSDK 3.1.3; VK ID SDK 2.7.2 with OAuth 2.1/PKCE/state; protected multi-provider `account_identities`; native session restore/link UI | provider credentials/fingerprints, email delivery, Railway secrets, `mvp_043` production migration, live Android tests | owner |
 | Revocable sessions | DONE | `app_sessions`, current/all revoke API, old-token checks, deletion revocation | production migration only | engineering |

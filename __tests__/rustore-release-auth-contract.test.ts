@@ -1,4 +1,5 @@
 import { spawnSync } from 'child_process';
+import { generateKeyPairSync } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,6 +9,9 @@ import { getAccountAuthCapabilities } from '../pages/api/auth/capabilities';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
+const rustorePrivateKey = generateKeyPairSync('rsa', { modulusLength: 2048 })
+  .privateKey.export({ format: 'der', type: 'pkcs8' })
+  .toString('base64');
 
 function releaseEnvironment(channel: 'rustore' | 'google_play'): NodeJS.ProcessEnv {
   return {
@@ -15,7 +19,7 @@ function releaseEnvironment(channel: 'rustore' | 'google_play'): NodeJS.ProcessE
     NODE_ENV: 'production',
     NEXT_PUBLIC_DISTRIBUTION_CHANNEL: channel,
     NEXT_PUBLIC_API_URL: 'https://api.example.test',
-    NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED: '0',
+    NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED: channel === 'rustore' ? '1' : '0',
     APP_VERSION_CODE: '1',
     APP_VERSION_NAME: '1.0.0',
     NEXT_PUBLIC_DEVELOPER_NAME: 'Test Developer',
@@ -40,6 +44,19 @@ function releaseEnvironment(channel: 'rustore' | 'google_play'): NodeJS.ProcessE
     EMAIL_OTP_HASH_SECRET: 'email-code-secret-that-is-at-least-32-bytes',
     AUTH_RATE_LIMIT_SECRET: 'rate-limit-secret-that-is-at-least-32-bytes',
     APP_SESSION_SECRET: 'app-session-secret-that-is-at-least-32-bytes',
+    ...(channel === 'rustore' ? {
+      RUSTORE_CONSOLE_APP_ID: '123456',
+      RUSTORE_PACKAGE_NAME: 'ru.tvoygoroskop.app',
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: 'premium.month',
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: 'premium.quarter',
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: 'premium.year',
+      RUSTORE_ALLOWED_PRODUCT_IDS: 'premium.month,premium.quarter,premium.year',
+      RUSTORE_KEY_ID: '1234567',
+      RUSTORE_PRIVATE_KEY_BASE64: rustorePrivateKey,
+      RUSTORE_NOTIFICATION_AES_KEY: Buffer.alloc(32, 7).toString('base64'),
+      RUSTORE_PAY_MODE: 'production',
+      CRON_SECRET: 'cron-secret-that-is-at-least-32-bytes',
+    } : {}),
   };
 }
 
@@ -66,10 +83,10 @@ describe('RuStore account-auth release contract', () => {
     const result = validateRelease(env);
     expect(`${result.stdout}\n${result.stderr}`).not.toContain('GOOGLE_AUTH_CLIENT_ID is required');
     expect(`${result.stdout}\n${result.stderr}`).not.toContain('GOOGLE_AUTH_CLIENT_SECRET is required');
-    expect(result.stderr).toContain(
+    expect(result.stderr).not.toContain(
       'NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED must be enabled for a RuStore release with subscriptions',
     );
-    expect(result.status).toBe(1);
+    expect(result.status).toBe(0);
   });
 
   it('keeps Google credentials mandatory for the future Google Play release branch', () => {

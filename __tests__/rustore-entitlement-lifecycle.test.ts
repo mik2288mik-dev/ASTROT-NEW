@@ -94,7 +94,7 @@ describe('RuStore server-authoritative entitlement lifecycle', () => {
     expect(source).toContain("const terminallyClosed = snapshot.state === 'expired'");
     expect(source).toContain('const actuallyExpired = terminallyClosed ||');
     expect(source).toContain('expiresAt.getTime() <= validationTime.getTime()');
-    expect(source).toContain("actuallyExpired\n        ? 'subscription_expired'");
+    expect(source).toMatch(/actuallyExpired\s+\? 'subscription_expired'/);
   });
 
   it('keeps callback failures pending with capped retries instead of dead-lettering after ten attempts', () => {
