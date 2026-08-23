@@ -1,0 +1,17 @@
+{
+  "name": "MEOU",
+  "short_name": "MEOU",
+  "description": "Персональные прогнозы и натальная карта.",
+  "lang": "ru-RU",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#fbfaf8",
+  "theme_color": "#fbfaf8",
+  "icons": [
+    {
+      "src": "/assets/brand/personal-horoscope-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

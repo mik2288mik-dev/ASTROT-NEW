@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import App from '../App';
@@ -34,5 +35,12 @@ export default function Home() {
   if (previewSurface === 'pending') return null;
   if (previewSurface === 'preview') return <UiPreviewApp />;
 
-  return <App />;
+  return <>
+    <Head>
+      <title>Твой гороскоп: натальная карта</title>
+      <meta name="application-name" content="Твой гороскоп: натальная карта" />
+      <meta name="robots" content="noindex,nofollow" />
+    </Head>
+    <App />
+  </>;
 }

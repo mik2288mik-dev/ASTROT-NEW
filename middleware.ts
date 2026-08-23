@@ -23,6 +23,22 @@ function addCorsHeaders(response: NextResponse, origin: string): NextResponse {
 }
 
 export function middleware(request: NextRequest) {
+  if (process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1') {
+    if (request.nextUrl.pathname === '/') {
+      return NextResponse.rewrite(new URL('/site', request.url));
+    }
+    return NextResponse.json(
+      { error: 'NOT_FOUND' },
+      {
+        status: 404,
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-Robots-Tag': 'noindex, nofollow',
+        },
+      },
+    );
+  }
+
   const origin = request.headers.get('origin');
   if (!origin) {
     const fetchSite = request.headers.get('sec-fetch-site');
@@ -68,5 +84,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/', '/api/:path*', '/auth/:path*'],
 };

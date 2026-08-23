@@ -1,24 +1,84 @@
-import Head from 'next/head';
-import { STORE_RELEASE_CONFIG as config } from '../lib/storeReleaseConfig';
-
-const pageStyle = { maxWidth: 760, margin: '0 auto', padding: '32px 20px', lineHeight: 1.6 };
+import { LegalPage } from '../components/public-site/PublicSiteShell';
+import { PUBLIC_SITE_CONFIG, mailto } from '../lib/publicSiteConfig';
 
 export default function DeleteAccountPage() {
-  return <main style={pageStyle}>
-    <Head><title>Delete account — {config.appName}</title><meta name="robots" content="index,follow" /></Head>
-    <p><a href="#en">English</a></p>
-    <section lang="ru">
-      <h1>Удаление аккаунта и данных</h1>
-      <p>Войдите в приложение и выберите Настройки → Удалить аккаунт. После подтверждения сервер удаляет аккаунт и связанные с ним пользовательские данные; активные сессии перестают работать.</p>
-      <p>Если войти в приложение невозможно, запрос можно направить в поддержку: <a href={`mailto:${config.supportEmail}`}>{config.supportEmail}</a>. Способ проверки личности и сроки ответа должны быть заполнены оператором до публикации.</p>
-      <p>Исключения из удаления и сроки хранения перечисляются в Политике конфиденциальности после юридической проверки.</p>
-    </section>
-    <hr />
-    <section id="en" lang="en">
-      <h1>Account and data deletion</h1>
-      <p>Sign in to the app and choose Settings → Delete account. After confirmation, the server deletes the account and associated personal data; active sessions stop working.</p>
-      <p>If you cannot sign in, contact support at <a href={`mailto:${config.supportEmail}`}>{config.supportEmail}</a>. The controller must add identity-verification steps and response times before publication.</p>
-      <p>Any retention exceptions and periods will be listed in the Privacy Policy after legal review.</p>
-    </section>
-  </main>;
+  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'Не могу удалить аккаунт MEOU');
+
+  return (
+    <LegalPage
+      title="Удаление аккаунта и данных"
+      description="Как удалить аккаунт MEOU, какие данные удаляются, что обезличивается и какие записи остаются у RuStore."
+      path="/delete-account"
+      lead={<p>Основной и самый быстрый способ удаления находится внутри приложения.</p>}
+    >
+      <section>
+        <h2>Как удалить аккаунт</h2>
+        <ol>
+          <li>Войдите в тот аккаунт MEOU, который хотите удалить.</li>
+          <li>Откройте «Настройки».</li>
+          <li>Выберите «Удалить аккаунт».</li>
+          <li>Прочитайте предупреждение и подтвердите необратимое удаление.</li>
+        </ol>
+        <p>
+          После подтверждения приложение отправляет аутентифицированный запрос на удаление. Активные
+          web/native/Telegram-сессии отзываются, поэтому повторный запрос для уже удалённого аккаунта
+          не создаёт новую ошибку или новый профиль.
+        </p>
+      </section>
+
+      <section>
+        <h2>Что удаляется</h2>
+        <ul>
+          <li>аккаунт, профиль и связанные способы входа;</li>
+          <li>password credentials, коды подтверждения и восстановления;</li>
+          <li>натальная карта пользователя, сохранённые карты и данные совместимости;</li>
+          <li>персональные прогнозы, история, вопросы и ответы ИИ;</li>
+          <li>настройки уведомлений и связанные очереди;</li>
+          <li>активные сессии, tokens и device associations;</li>
+          <li>связь покупки/Premium с удаляемым account ID в базе MEOU.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Что может остаться временно или отдельно</h2>
+        <ul>
+          <li>
+            тексты обращений поддержки могут сохраняться без user ID и author ID, пока это нужно для
+            завершения обращения и защиты от связанных требований;
+          </li>
+          <li>
+            минимальные security/application logs — до {PUBLIC_SITE_CONFIG.applicationLogRetentionDays} дней,
+            кроме отдельно зафиксированного инцидента на законном основании;
+          </li>
+          <li>backup-копии — до плановой ротации, не более {PUBLIC_SITE_CONFIG.backupRetentionDays} дней;</li>
+          <li>обращения поддержки — не более {PUBLIC_SITE_CONFIG.supportRetentionMonths} месяцев после закрытия, если закон не требует другого срока;</li>
+          <li>обязательные финансовые записи — в сроки бухгалтерского и налогового законодательства;</li>
+          <li>
+            покупки и платёжные события в системах RuStore / RuStore Pay — по правилам RuStore;
+            MEOU не может удалить запись из систем другого оператора.
+          </li>
+        </ul>
+        <p>Временно сохранённые данные не используются для персонализации и удаляются по окончании срока.</p>
+      </section>
+
+      <section>
+        <h2>Если войти не получается</h2>
+        <p>
+          Напишите {supportHref ? <a href={supportHref}>{PUBLIC_SITE_CONFIG.supportEmail}</a> : PUBLIC_SITE_CONFIG.supportEmail}.
+          Не отправляйте пароль, одноразовый код, паспорт или платёжные реквизиты. Поддержка запросит
+          только сведения, достаточные для проверки владения аккаунтом, и не удалит данные по одному
+          совпавшему имени или email без подтверждения.
+        </p>
+      </section>
+
+      <section>
+        <h2>Важно перед удалением</h2>
+        <p>
+          Удаление необратимо: восстановить карту, историю и ответы из удалённого аккаунта нельзя.
+          Отмена подписки и удаление аккаунта — разные действия. Если подписка будет включена,
+          автопродление нужно отдельно отменить в RuStore до удаления аккаунта.
+        </p>
+      </section>
+    </LegalPage>
+  );
 }
