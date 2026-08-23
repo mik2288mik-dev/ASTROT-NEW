@@ -7,13 +7,13 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 describe('honest contextual paywall', () => {
   const source = read('views/Paywall.tsx');
 
-  it('names only the four real Premium value groups', () => {
-    expect(source).toContain('Больше личного. Меньше общего.');
+  it('names only the real Premium value groups', () => {
+    expect(source).toContain('Твой прогноз — без обрезанной версии.');
     for (const reason of [
-      'Весь личный Today.',
-      'Личная неделя и месяц.',
+      'Полный Today, личные неделя и месяц.',
       'Глубокий разбор карты и личности.',
-      'Совместимость по данным рождения и сохранённые люди.',
+      'Вопросы по карте и совместимость по данным рождения.',
+      'До 5 сохранённых карт помимо своей.',
     ]) {
       expect(source).toContain(reason);
     }
@@ -33,8 +33,8 @@ describe('honest contextual paywall', () => {
 
   it('shows renewal, cancellation, legal, close, Free, and restore controls', () => {
     for (const copy of [
-      'Автопродление',
-      'Управлять или отменить подписку можно в RuStore',
+      'Подписка продлевается автоматически',
+      'Управлять или отменить подписку можно в RuStore: Профиль → Подписки',
       'Остаться на Free',
       'Восстановить покупку',
       'Условия использования',

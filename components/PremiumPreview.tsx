@@ -1,5 +1,4 @@
 import React from 'react';
-import { getText } from '../constants';
 import { CosmicSheet } from './lumia-ui/CosmicSheet';
 
 interface PremiumPreviewProps {
@@ -10,50 +9,50 @@ interface PremiumPreviewProps {
 
 const COPY = {
   ru: {
-    title: 'Premium',
-    tagline: 'Что откроется',
-    subtitle: 'Все личные прогнозы, ответы на вопросы, подробные разборы натальной карты и полная совместимость.',
+    title: 'MEOU Premium',
+    tagline: 'Полный доступ к личным разделам.',
+    subtitle: 'Подписка открывает то, что уже есть в MEOU: личные прогнозы, карту и совместимость по данным рождения.',
     close: 'Закрыть',
     features: [
       {
-        title: 'Сегодня, неделя и месяц',
-        desc: 'Готовые личные прогнозы по твоей натальной карте и выбранному периоду.',
+        title: 'Личный прогноз',
+        desc: 'Полный Today, а также личные неделя и месяц.',
       },
       {
-        title: 'Ответы на вопросы',
-        desc: 'Отношения, работа, деньги и решения — по расчётам нужной даты.',
+        title: 'Натальная карта',
+        desc: 'Глубокий разбор карты и личности, включая вопросы по карте.',
       },
       {
-        title: 'Подробные разборы карты',
-        desc: 'Отдельные большие разделы про отношения, деньги, работу и другие темы.',
+        title: 'Совместимость',
+        desc: 'Сравнение по данным рождения двух людей.',
       },
       {
-        title: 'Полная совместимость',
-        desc: 'Сравнение двух натальных карт для любви, дружбы, семьи или работы.',
+        title: 'Дополнительные карты',
+        desc: 'До 5 сохранённых карт помимо своей.',
       },
     ],
   },
   en: {
-    title: 'Premium',
-    tagline: 'What you get',
-    subtitle: 'All personal forecasts, question answers, detailed natal readings, and full compatibility.',
+    title: 'MEOU Premium',
+    tagline: 'Full access to personal sections.',
+    subtitle: 'A subscription opens what already exists in MEOU: personal forecasts, chart readings, and birth-data compatibility.',
     close: 'Close',
     features: [
       {
-        title: 'Today, week, and month',
-        desc: 'Ready-to-read personal forecasts based on your natal chart and selected period.',
+        title: 'Personal forecast',
+        desc: 'Full Today, plus your personal week and month.',
       },
       {
-        title: 'Answers to your questions',
-        desc: 'Relationships, work, money, and decisions based on the calculation for that period.',
+        title: 'Natal chart',
+        desc: 'Deep chart and personality readings, including chart questions.',
       },
       {
-        title: 'Detailed natal readings',
-        desc: 'Full sections about relationships, money, work, and other subjects.',
+        title: 'Compatibility',
+        desc: 'A birth-data comparison of two people.',
       },
       {
-        title: 'Full compatibility',
-        desc: 'A comparison of two natal charts for romance, friendship, family, or work.',
+        title: 'Additional charts',
+        desc: 'Up to 5 saved charts in addition to your own.',
       },
     ],
   },
@@ -77,22 +76,21 @@ export const PremiumPreview: React.FC<PremiumPreviewProps> = ({ language, onClos
           onClick={onPurchase}
           className="premium-preview-cosmic-cta"
         >
-          {getText(language, 'premium_preview.cta')}
+          {language === 'ru' ? 'Выбрать подписку' : 'Choose a subscription'}
         </button>
       )}
     >
         <p className="premium-preview-cosmic-intro">{copy.subtitle}</p>
-        <div className="premium-preview-cosmic-features">
+        <dl className="premium-preview-cosmic-features">
           {copy.features.map((feature) => (
             <div key={feature.title} className="premium-preview-cosmic-feature">
-              <span className="premium-preview-cosmic-mark" aria-hidden="true">•</span>
               <div>
-                <h3>{feature.title}</h3>
-                <p>{feature.desc}</p>
+                <dt>{feature.title}</dt>
+                <dd>{feature.desc}</dd>
               </div>
             </div>
           ))}
-        </div>
+        </dl>
     </CosmicSheet>
   );
 };

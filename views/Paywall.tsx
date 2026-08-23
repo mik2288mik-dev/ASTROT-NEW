@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { UserProfile } from '../types';
 import type { PremiumPlanId } from '../lib/premiumPricing';
 import type { PaywallContext } from '../lib/paywallContext';
+import { hasActivePremium } from '../lib/accessMatrix';
 import { lumiaSelectionHaptic } from '../lib/haptics';
-import { apiFetch } from '../services/apiClient';
 import { canUseRuStorePay, resolveDistributionChannel } from '../lib/distributionChannel';
 import {
   loadRuStoreProducts,
@@ -66,12 +66,6 @@ function formatCatalogDuration(duration: string, language: 'ru' | 'en'): string 
   return labels[normalized]?.[language] || duration;
 }
 
-function periodFromDays(days: number, language: 'ru' | 'en'): string {
-  if (days >= 360) return language === 'ru' ? '1 год' : '1 year';
-  if (days >= 85) return language === 'ru' ? '3 месяца' : '3 months';
-  return language === 'ru' ? '1 месяц' : '1 month';
-}
-
 export const Paywall: React.FC<PaywallProps> = ({
   profile,
   context,
@@ -86,8 +80,9 @@ export const Paywall: React.FC<PaywallProps> = ({
   const language: 'ru' | 'en' = profile.language === 'en' ? 'en' : 'ru';
   const ru = language === 'ru';
   const distributionChannel = resolveDistributionChannel();
-  const isRuStoreChannel = distributionChannel === 'rustore';
   const rustorePaymentsEnabled = canUseRuStorePay(distributionChannel);
+  const alreadyPremium = hasActivePremium(profile);
+  const canManageInRuStore = profile.premiumEntitlement?.source === 'rustore';
   const [selected, setSelected] = useState<PremiumPlanId>('premium_quarter');
   const [plans, setPlans] = useState<Partial<Record<PremiumPlanId, CatalogPlan>>>(() => (
     previewFixture
@@ -95,8 +90,11 @@ export const Paywall: React.FC<PaywallProps> = ({
       : {}
   ));
   const [catalogLoading, setCatalogLoading] = useState(!previewFixture);
-  const [catalogError, setCatalogError] = useState(false);
+  const [catalogState, setCatalogState] = useState<'ready' | 'unavailable' | 'empty'>(
+    previewFixture ? 'ready' : 'unavailable',
+  );
   const [paying, setPaying] = useState(false);
+  const [purchaseState, setPurchaseState] = useState<'idle' | 'pending' | 'failed'>('idle');
   const [restoring, setRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState(false);
   const [previewNotice, setPreviewNotice] = useState('');
@@ -105,7 +103,7 @@ export const Paywall: React.FC<PaywallProps> = ({
     if (previewFixture) return;
     let cancelled = false;
     setCatalogLoading(true);
-    setCatalogError(false);
+    setCatalogState('unavailable');
 
     const loadCatalog = rustorePaymentsEnabled
       ? loadRuStoreProducts().then((products) => {
@@ -132,20 +130,7 @@ export const Paywall: React.FC<PaywallProps> = ({
           }
           return Object.fromEntries(entries) as Partial<Record<PremiumPlanId, CatalogPlan>>;
         })
-      : isRuStoreChannel
-        ? Promise.reject(new Error('RUSTORE_CATALOG_UNAVAILABLE'))
-        : apiFetch('/api/subscriptions/plans')
-          .then((response) => response.ok ? response.json() : Promise.reject(new Error('CATALOG_UNAVAILABLE')))
-          .then((payload) => Object.fromEntries(
-            (Array.isArray(payload?.plans) ? payload.plans : [])
-              .filter((plan: any) => ORDER.includes(plan?.id) && plan?.isActive !== false && Number(plan?.stars) > 0)
-              .map((plan: any) => [plan.id, {
-                id: plan.id,
-                periodLabel: periodFromDays(Number(plan.days), language),
-                priceLabel: `${Number(plan.stars)} Stars`,
-                autoRenew: false,
-              }]),
-          ) as Partial<Record<PremiumPlanId, CatalogPlan>>);
+      : Promise.reject(new Error('RUSTORE_CATALOG_UNAVAILABLE'));
 
     void loadCatalog
       .then((nextPlans) => {
@@ -153,17 +138,17 @@ export const Paywall: React.FC<PaywallProps> = ({
         setPlans(nextPlans);
         const available = ORDER.filter((id) => nextPlans[id]);
         if (!nextPlans.premium_quarter && available[0]) setSelected(available[0]);
-        if (!available.length) setCatalogError(true);
+        setCatalogState(available.length ? 'ready' : 'empty');
       })
       .catch(() => {
-        if (!cancelled) setCatalogError(true);
+        if (!cancelled) setCatalogState('unavailable');
       })
       .finally(() => {
         if (!cancelled) setCatalogLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [isRuStoreChannel, language, rustorePaymentsEnabled, previewFixture]);
+  }, [language, rustorePaymentsEnabled, previewFixture]);
 
   const visiblePlans = useMemo(
     () => ORDER.map((id) => plans[id]).filter((plan): plan is CatalogPlan => Boolean(plan)),
@@ -174,20 +159,27 @@ export const Paywall: React.FC<PaywallProps> = ({
   const selectPlan = (planId: PremiumPlanId) => {
     lumiaSelectionHaptic();
     setSelected(planId);
+    setPurchaseState('idle');
     if (previewFixture) return;
     onPlanSelected?.(planId);
   };
 
   const buy = async () => {
-    if (paying || !selectedPlan) return;
+    if (paying || purchaseState === 'pending' || !selectedPlan) return;
     if (previewFixture) {
       setPreviewNotice('Оплата отключена в локальном Preview.');
       return;
     }
     lumiaSelectionHaptic();
+    setPurchaseState('idle');
     setPaying(true);
     try {
       await onPurchase(selectedPlan.id);
+      // The parent closes this view for success, cancellation and known failures.
+      // If it remains mounted, RuStore is still confirming a pending purchase.
+      setPurchaseState('pending');
+    } catch {
+      setPurchaseState('failed');
     } finally {
       setPaying(false);
     }
@@ -218,16 +210,16 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   const reasons = ru
     ? [
-        'Весь личный Today.',
-        'Личная неделя и месяц.',
-        'Глубокий разбор карты и личности.',
-        'Совместимость по данным рождения и сохранённые люди.',
+        ['Личный прогноз', 'Полный Today, личные неделя и месяц.'],
+        ['Натальная карта', 'Глубокий разбор карты и личности.'],
+        ['Вопросы и совместимость', 'Вопросы по карте и совместимость по данным рождения.'],
+        ['Дополнительные карты', 'До 5 сохранённых карт помимо своей.'],
       ]
     : [
-        'All of your personal Today.',
-        'Your personal week and month.',
-        'Deep chart and personality readings.',
-        'Birth-data compatibility and saved people.',
+        ['Personal forecast', 'Full Today, plus your personal week and month.'],
+        ['Natal chart', 'Deep chart and personality readings.'],
+        ['Questions and compatibility', 'Questions about your chart and birth-data compatibility.'],
+        ['Additional charts', 'Up to 5 saved charts in addition to your own.'],
       ];
 
   return (
@@ -239,101 +231,137 @@ export const Paywall: React.FC<PaywallProps> = ({
     >
       <AppTopBar title="Premium" onBack={onClose} />
 
-      <h1 className="pw2-title">{ru ? 'Больше личного. Меньше общего.' : 'More personal. Less generic.'}</h1>
+      <div className="pw2-intro">
+        <p className="pw2-kicker">MEOU Premium</p>
+        <h1 className="pw2-title">{ru ? 'Твой прогноз — без обрезанной версии.' : 'Your forecast, without the cut-down version.'}</h1>
+      </div>
       <p className="pw2-sub">{CONTEXT_COPY[context.placement][language]}</p>
 
       {previewNotice ? <p className="pw2-foot" role="status">{previewNotice}</p> : null}
 
-      <ol className="pw2-compare" aria-label={ru ? 'Что входит в Premium' : 'What Premium includes'}>
-        {reasons.map((reason) => (
-          <li className="pw2-row" key={reason}>
-            <span className="pw2-feat">{reason}</span>
-          </li>
-        ))}
-      </ol>
-
-      {catalogLoading ? (
-        <p className="pw2-foot" role="status">{ru ? 'Загружаем планы из магазина…' : 'Loading plans from the store…'}</p>
-      ) : visiblePlans.length ? (
-        <div className="pw2-plans" role="radiogroup" aria-label={ru ? 'Выбери период Premium' : 'Choose a Premium period'}>
-          {visiblePlans.map((plan) => {
-            const isSelected = plan.id === selected;
-            return (
-              <button
-                key={plan.id}
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
-                data-plan-id={plan.id}
-                className={`pw2-plan ${isSelected ? 'is-sel' : ''}`}
-                onClick={() => selectPlan(plan.id)}
-              >
-                <span className="pw2-plan-period">{plan.periodLabel}</span>
-                <span className="pw2-plan-price">{plan.priceLabel}</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {selectedPlan ? (
-        <div className="pw2-foot">
-          <p>
-            {selectedPlan.autoRenew
-              ? (ru
-                  ? `Автопродление включено: ${selectedPlan.priceLabel} за ${selectedPlan.periodLabel}.`
-                  : `Auto-renewal is on: ${selectedPlan.priceLabel} per ${selectedPlan.periodLabel}.`)
-              : (ru
-                  ? `Разовая оплата: ${selectedPlan.priceLabel} за ${selectedPlan.periodLabel}.`
-                  : `One-time payment: ${selectedPlan.priceLabel} for ${selectedPlan.periodLabel}.`)}
-          </p>
-          {rustorePaymentsEnabled ? (
-            <p>{ru ? 'Управлять или отменить подписку можно в RuStore.' : 'Manage or cancel the subscription in RuStore.'}</p>
+      {alreadyPremium ? (
+        <section className="pw2-active" aria-labelledby="pw2-active-title">
+          <h2 id="pw2-active-title">{ru ? 'Premium уже активен' : 'Premium is already active'}</h2>
+          <p>{ru ? 'Полный доступ открыт для этого аккаунта.' : 'Full access is open for this account.'}</p>
+          {canManageInRuStore ? (
+            <p>{ru ? 'Управление и отмена — в RuStore: Профиль → Подписки.' : 'Manage or cancel in RuStore: Profile → Subscriptions.'}</p>
           ) : null}
-        </div>
-      ) : null}
+          <button type="button" className="pw2-cta" onClick={onClose}>
+            {ru ? 'Продолжить' : 'Continue'}
+          </button>
+        </section>
+      ) : (
+        <>
+          <dl className="pw2-compare" aria-label={ru ? 'Что входит в Premium' : 'What Premium includes'}>
+            {reasons.map(([title, description]) => (
+              <div className="pw2-row" key={title}>
+                <dt className="pw2-feat">{title}</dt>
+                <dd>{description}</dd>
+              </div>
+            ))}
+          </dl>
 
-      <button
-        type="button"
-        className="pw2-cta"
-        onClick={() => void buy()}
-        aria-busy={paying}
-        disabled={paying || catalogLoading || !selectedPlan}
-      >
-        {paying
-          ? (ru ? 'Открываем RuStore…' : 'Opening RuStore…')
-          : selectedPlan
-            ? `${ru ? 'Оформить' : 'Get'} ${selectedPlan.periodLabel} · ${selectedPlan.priceLabel}`
-            : (ru ? 'Покупка сейчас недоступна' : 'Purchase is unavailable')}
-      </button>
+          <section className="pw2-purchase" aria-labelledby="pw2-plan-title">
+            <h2 id="pw2-plan-title" className="pw2-section-title">{ru ? 'Выбери подписку' : 'Choose a subscription'}</h2>
+            {catalogLoading ? (
+              <p className="pw2-state" role="status">{ru ? 'Загружаем цены из RuStore…' : 'Loading prices from RuStore…'}</p>
+            ) : visiblePlans.length ? (
+              <div className="pw2-plans" role="radiogroup" aria-label={ru ? 'Тариф Premium' : 'Premium plan'}>
+                {visiblePlans.map((plan) => {
+                  const isSelected = plan.id === selected;
+                  return (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      data-plan-id={plan.id}
+                      className={`pw2-plan ${isSelected ? 'is-sel' : ''}`}
+                      onClick={() => selectPlan(plan.id)}
+                    >
+                      <span className="pw2-plan-period">{plan.periodLabel}</span>
+                      <span className="pw2-plan-price">{plan.priceLabel}</span>
+                      {isSelected ? <span className="pw2-plan-selected">{ru ? 'Выбрано' : 'Selected'}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
 
-      {catalogError ? (
-        <p className="pw2-foot" role="status">
-          {ru
-            ? 'Покупка сейчас недоступна. Уже действующий Premium продолжит работать.'
-            : 'Purchase is unavailable right now. Existing Premium access keeps working.'}
-        </p>
-      ) : null}
+            {catalogState === 'unavailable' && !catalogLoading ? (
+              <p className="pw2-state" role="status">
+                {ru ? 'RuStore сейчас недоступен. Проверь подключение и попробуй позже.' : 'RuStore is unavailable. Check your connection and try again later.'}
+              </p>
+            ) : null}
+            {catalogState === 'empty' && !catalogLoading ? (
+              <p className="pw2-state" role="status">
+                {ru ? 'Подписки для этого приложения ещё не настроены в RuStore.' : 'No subscriptions are configured for this app in RuStore yet.'}
+              </p>
+            ) : null}
 
-      <button type="button" className="pw2-free" onClick={onContinueFree}>
-        {ru ? 'Остаться на Free' : 'Stay on Free'}
-      </button>
-      <button
-        type="button"
-        className="pw2-free"
-        onClick={() => void restore()}
-        disabled={restoring}
-        aria-busy={restoring}
-      >
-        {restoring
-          ? (ru ? 'Проверяем покупки…' : 'Checking purchases…')
-          : (ru ? 'Восстановить покупку' : 'Restore purchase')}
-      </button>
-      {restoreError ? (
-        <p className="pw2-foot" role="alert">
-          {ru ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
-        </p>
-      ) : null}
+            {selectedPlan ? (
+              <p className="pw2-legal">
+                {selectedPlan.autoRenew
+                  ? (ru
+                      ? `Подписка продлевается автоматически: ${selectedPlan.priceLabel} за ${selectedPlan.periodLabel}. Управлять или отменить подписку можно в RuStore: Профиль → Подписки.`
+                      : `Your subscription renews automatically: ${selectedPlan.priceLabel} per ${selectedPlan.periodLabel}. Manage or cancel it in RuStore: Profile → Subscriptions.`)
+                  : (ru
+                      ? `Разовая оплата: ${selectedPlan.priceLabel} за ${selectedPlan.periodLabel}.`
+                      : `One-time payment: ${selectedPlan.priceLabel} for ${selectedPlan.periodLabel}.`)}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              className="pw2-cta"
+              onClick={() => void buy()}
+              aria-busy={paying}
+              disabled={paying || purchaseState === 'pending' || catalogLoading || !selectedPlan}
+            >
+              {paying
+                ? (ru ? 'Открываем RuStore…' : 'Opening RuStore…')
+                : purchaseState === 'pending'
+                  ? (ru ? 'Оплата обрабатывается' : 'Payment is processing')
+                  : selectedPlan
+                    ? `${ru ? 'Оформить подписку' : 'Subscribe'} · ${selectedPlan.priceLabel}`
+                    : (ru ? 'Покупка сейчас недоступна' : 'Purchase is unavailable')}
+            </button>
+
+            {purchaseState === 'pending' ? (
+              <p className="pw2-state" role="status">
+                {ru ? 'RuStore подтверждает оплату. Не покупай повторно — проверь статус через «Восстановить покупку».' : 'RuStore is confirming the payment. Do not buy again — check through Restore purchase.'}
+              </p>
+            ) : null}
+            {purchaseState === 'failed' ? (
+              <p className="pw2-state" role="alert">
+                {ru ? 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.' : 'Could not open checkout. Check RuStore and your internet connection.'}
+              </p>
+            ) : null}
+          </section>
+
+          <div className="pw2-secondary-actions">
+            <button type="button" className="pw2-free" onClick={onContinueFree}>
+              {ru ? 'Остаться на Free' : 'Stay on Free'}
+            </button>
+            <button
+              type="button"
+              className="pw2-free"
+              onClick={() => void restore()}
+              disabled={restoring}
+              aria-busy={restoring}
+            >
+              {restoring
+                ? (ru ? 'Проверяем покупки…' : 'Checking purchases…')
+                : (ru ? 'Восстановить покупку' : 'Restore purchase')}
+            </button>
+          </div>
+          {restoreError ? (
+            <p className="pw2-state" role="alert">
+              {ru ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
+            </p>
+          ) : null}
+        </>
+      )}
 
       <div className="pw2-foot">
         <a href={STORE_RELEASE_CONFIG.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
