@@ -1,4 +1,10 @@
-# Data inventory (code and schema audit draft)
+# Data inventory (superseded draft)
+
+> Superseded on 23 August 2026 by the production-verified
+> [`docs/legal/DATA_FLOW_MAP.md`](./legal/DATA_FLOW_MAP.md) and
+> [`docs/legal/PROCESSORS_AND_TRANSFERS.md`](./legal/PROCESSORS_AND_TRANSFERS.md).
+> Do not use the older `OWNER_REQUIRED` provider assumptions below for release
+> declarations.
 
 This is an engineering inventory, not legal advice. `Confirmed` means observed in
 code/schema; `OWNER_REQUIRED` means the production vendor or retention rule is

@@ -1,5 +1,12 @@
 # RuStore listing draft
 
+> Legal/data declarations are superseded by
+> [`RUSTORE_LEGAL_RELEASE_CHECKLIST.md`](../../../RUSTORE_LEGAL_RELEASE_CHECKLIST.md).
+> Public identity is currently blocked: the website is MEOU while the installed
+> app/draft listing still says «Твой гороскоп: натальная карта». The owner must
+> select one final name and the Android release worktree must make all surfaces
+> match before Console submission.
+
 All product, payment and legal values are `OWNER_REQUIRED`; this file does not
 invent them.
 
