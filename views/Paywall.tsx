@@ -20,6 +20,8 @@ interface PaywallProps {
   onContinueFree: () => void;
   onRestore: () => Promise<void>;
   onPlanSelected?: (planId: PremiumPlanId) => void;
+  initialPlanId?: PremiumPlanId;
+  resumeNotice?: string | null;
   uiPreview?: {
     plans: Array<{
       id: PremiumPlanId;
@@ -74,6 +76,8 @@ export const Paywall: React.FC<PaywallProps> = ({
   onContinueFree,
   onRestore,
   onPlanSelected,
+  initialPlanId = 'premium_quarter',
+  resumeNotice,
   uiPreview,
 }) => {
   const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
@@ -83,7 +87,7 @@ export const Paywall: React.FC<PaywallProps> = ({
   const rustorePaymentsEnabled = canUseRuStorePay(distributionChannel);
   const alreadyPremium = hasActivePremium(profile);
   const canManageInRuStore = profile.premiumEntitlement?.source === 'rustore';
-  const [selected, setSelected] = useState<PremiumPlanId>('premium_quarter');
+  const [selected, setSelected] = useState<PremiumPlanId>(initialPlanId);
   const [plans, setPlans] = useState<Partial<Record<PremiumPlanId, CatalogPlan>>>(() => (
     previewFixture
       ? Object.fromEntries(previewFixture.plans.map((plan) => [plan.id, plan]))
@@ -238,6 +242,7 @@ export const Paywall: React.FC<PaywallProps> = ({
       <p className="pw2-sub">{CONTEXT_COPY[context.placement][language]}</p>
 
       {previewNotice ? <p className="pw2-foot" role="status">{previewNotice}</p> : null}
+      {resumeNotice ? <p className="pw2-foot" role="status">{resumeNotice}</p> : null}
 
       {alreadyPremium ? (
         <section className="pw2-active" aria-labelledby="pw2-active-title">

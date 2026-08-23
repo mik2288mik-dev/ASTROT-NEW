@@ -2,13 +2,13 @@
 
 ## Current technical baseline
 
-- Public store name: `Твой гороскоп: натальная карта`.
+- Public store and Android system name: `MEOU`.
 - Final Android package/application ID: `ru.tvoygoroskop.app`.
 - Capacitor 8.4.2; Android minSdk 24, compileSdk/targetSdk 36; AGP 8.13.0 and Gradle 8.14.3.
 - Flavors: `development`, `telegram`, `rustore`, `googlePlay`. Only `rustore` compiles RuStore Pay SDK 11.1.0 (`ru.rustore.sdk:bom:2026.08.01` / `pay`); Google Play and Telegram do not include it. This is the current Kotlin/Java version documented by RuStore on 23 August 2026.
 - `telegram` alone can invoke Telegram Stars. `google_play` has no checkout action until Google Play Billing is a separate project.
 - `rustore` uses a Capacitor native bridge, return deep link, server validation, and encrypted callback endpoint. The callback durably enqueues work and returns before Public API validation; `/api/cron/rustore-payment-events` or the common cron tick processes retries. Do not use the deprecated RuStore BillingClient. A subscription release requires `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=1` and passes the release validator only in production mode.
-- A guest may use all Free functions. Before RuStore purchase it must link VK ID, Yandex ID, Google, or an email/password identity with confirmed email. The stable `users.id` is passed as `AppUserId`; Telegram alone does not satisfy Android recovery.
+- A guest may use all Free functions. When a guest selects a subscription, the app keeps the paywall context and selected plan, opens the existing account-link flow, and returns to that plan after VK ID, Yandex ID or confirmed email/password recovery is linked. The same recovery path handles a backend `RECOVERY_IDENTITY_REQUIRED` response. The stable `users.id` is passed as `AppUserId`; Telegram alone does not satisfy Android recovery.
 - Release build has minification, `allowBackup=false`, cleartext disabled and requires signing. Debug remains available as `assembleDevelopmentDebug`.
 
 ## Owner values required before first upload

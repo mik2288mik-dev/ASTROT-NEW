@@ -98,11 +98,11 @@ auth, Android, forecast, compatibility or production-infrastructure work.
 
 - **File/component:** `capacitor.config.ts`, Android string resources, launcher
   labels, RuStore listing/config and public website config.
-- **Current problem:** website name is MEOU; installed/store draft name remains
-  `Твой гороскоп: натальная карта`; RuStore requires presented identity to match.
-- **Required change:** owner chooses final public name, then update installed app,
-  store listing and site in the Android release worktree without changing the
-  package/signing identity unintentionally.
+- **Current state:** MEOU is selected and the source Android labels, Capacitor
+  config, website metadata and RuStore listing draft are aligned. Final signed
+  artifact and Console identity have not yet been verified side-by-side.
+- **Required closure:** inspect the final signed artifact and RuStore Console
+  without changing the package/signing identity unintentionally.
 - **Acceptance criteria:** signed APK label, launcher title, RuStore name/icon and
   website name verified side-by-side; package remains
   `ru.tvoygoroskop.app` unless an explicitly approved migration is performed.

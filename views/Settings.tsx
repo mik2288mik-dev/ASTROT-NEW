@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
@@ -22,6 +23,7 @@ import {
     type LinkedIdentity,
 } from '../services/accountAuthService';
 import { hasTelegramMiniAppContext } from '../services/authSessionIntent';
+import { meetsMinimumPasswordLength } from '../lib/auth/passwordPolicy';
 
 /** Частота из UI → флаги движка уведомлений (реальная таблица user_notification_settings) */
 function notificationFlagsFor(frequency: NotificationFrequency) {
@@ -88,6 +90,8 @@ interface SettingsProps {
     onOpenProfile: () => void;
     onLogout?: () => Promise<void>;
     onDeleteAccount?: () => Promise<void>;
+    recoveryIdentityRequired?: boolean;
+    onRecoveryIdentityReady?: () => void;
     uiPreview?: {
         notificationEnabled: boolean;
         quietStart: string;
@@ -156,6 +160,8 @@ export const Settings: React.FC<SettingsProps> = ({
     onOpenProfile,
     onLogout,
     onDeleteAccount,
+    recoveryIdentityRequired = false,
+    onRecoveryIdentityReady,
     uiPreview,
 }) => {
     const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
@@ -187,12 +193,35 @@ export const Settings: React.FC<SettingsProps> = ({
     const [emailCode, setEmailCode] = useState('');
     const [emailPassword, setEmailPassword] = useState('');
     const [emailPasswordConfirmation, setEmailPasswordConfirmation] = useState('');
+    const [emailPasswordVisible, setEmailPasswordVisible] = useState(false);
+    const [emailPasswordConfirmationVisible, setEmailPasswordConfirmationVisible] = useState(false);
     const [identityBusy, setIdentityBusy] = useState(false);
     const [authPurpose, setAuthPurpose] = useState<'link' | 'login'>('link');
     const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(previewFixture?.authCapabilities || null);
     const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
+
+    const updateLinkedIdentitiesAfterAuth = async (fresh: UserProfile): Promise<void> => {
+        onUpdate(fresh);
+        try {
+            const result = await getLinkedIdentities();
+            setIdentities(result.identities);
+        } finally {
+            // A successful provider/email auth response already proves the
+            // recovery identity. The backend will enforce it again at checkout.
+            if (recoveryIdentityRequired) onRecoveryIdentityReady?.();
+        }
+    };
+
+    useEffect(() => {
+        if (!recoveryIdentityRequired) return;
+        setAuthPurpose('link');
+        const frame = window.requestAnimationFrame(() => {
+            document.getElementById('recovery-identity')?.scrollIntoView({ block: 'start' });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [recoveryIdentityRequired]);
 
     useEffect(() => {
         const end = profile.premiumEntitlement?.endsAt || profile.premiumUntil;
@@ -254,8 +283,7 @@ export const Settings: React.FC<SettingsProps> = ({
         setIdentityBusy(true);
         void authenticateWithProvider(provider, authPurpose)
             .then(async (fresh) => {
-                if (fresh) onUpdate(fresh);
-                if (fresh) setIdentities((await getLinkedIdentities()).identities);
+                if (fresh) await updateLinkedIdentitiesAfterAuth(fresh);
             })
             .catch((error) => setIdentityError(readableIdentityError(error, profile.language === 'en' ? 'en' : 'ru')))
             .finally(() => setIdentityBusy(false));
@@ -289,8 +317,7 @@ export const Settings: React.FC<SettingsProps> = ({
         setIdentityBusy(true);
         const action = authPurpose === 'login'
             ? loginWithEmailPassword(emailValue, emailPassword).then(async (fresh) => {
-                onUpdate(fresh);
-                setIdentities((await getLinkedIdentities()).identities);
+                await updateLinkedIdentitiesAfterAuth(fresh);
             })
             : registerEmailPassword({
                 email: emailValue,
@@ -318,9 +345,7 @@ export const Settings: React.FC<SettingsProps> = ({
         setIdentityBusy(true);
         void verifyEmailPasswordRegistration(emailChallengeId, emailCode)
             .then(async (fresh) => {
-                if (fresh) onUpdate(fresh);
-                const result = await getLinkedIdentities();
-                setIdentities(result.identities);
+                if (fresh) await updateLinkedIdentitiesAfterAuth(fresh);
                 setEmailChallengeId('');
                 setEmailCode('');
                 setEmailPassword('');
@@ -874,10 +899,17 @@ export const Settings: React.FC<SettingsProps> = ({
                 </button>
             )}
 
-            <section className={sectionClass}>
+            <section id="recovery-identity" className={sectionClass}>
                 <h3 className="font-serif text-lg text-mono-ink">
                     {profile.language === 'en' ? 'Sign-in methods' : 'Способы входа'}
                 </h3>
+                {recoveryIdentityRequired ? (
+                    <p className="mt-2 rounded-2xl bg-[#eef5f1] px-4 py-3 text-sm leading-5 text-[#315348]" role="status">
+                        {profile.language === 'en'
+                            ? 'Link VK ID, Yandex or email to restore Premium on another device. Your selected subscription is saved.'
+                            : 'Привяжи VK ID, Яндекс или email, чтобы Premium можно было восстановить на другом устройстве. Выбранный тариф сохранён.'}
+                    </p>
+                ) : null}
                 <p className="lumia-muted mt-1 text-sm">
                     {profile.language === 'en'
                         ? 'Every linked method opens this same account with its chart, history, settings and Premium.'
@@ -962,26 +994,56 @@ export const Settings: React.FC<SettingsProps> = ({
                             aria-label={profile.language === 'en' ? 'Email' : 'Email для входа'}
                         />
                         {!emailChallengeId ? (
-                            <input
-                                className="fresh-input"
-                                type="password"
-                                autoComplete={authPurpose === 'login' ? 'current-password' : 'new-password'}
-                                value={emailPassword}
-                                onChange={(event) => setEmailPassword(event.target.value)}
-                                placeholder={profile.language === 'en' ? 'Password' : 'Пароль'}
-                                aria-label={profile.language === 'en' ? 'Password' : 'Пароль'}
-                            />
+                            <div className="relative">
+                                <input
+                                    className="fresh-input pr-12"
+                                    type={emailPasswordVisible ? 'text' : 'password'}
+                                    autoComplete={authPurpose === 'login' ? 'current-password' : 'new-password'}
+                                    value={emailPassword}
+                                    onChange={(event) => setEmailPassword(event.target.value)}
+                                    placeholder={authPurpose === 'login'
+                                        ? (profile.language === 'en' ? 'Password' : 'Пароль')
+                                        : (profile.language === 'en' ? 'At least 8 characters' : 'Не менее 8 символов')}
+                                    aria-label={profile.language === 'en' ? 'Password' : 'Пароль'}
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-mono-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-mono-accent disabled:opacity-50"
+                                    aria-label={emailPasswordVisible
+                                        ? (profile.language === 'en' ? 'Hide password' : 'Скрыть пароль')
+                                        : (profile.language === 'en' ? 'Show password' : 'Показать пароль')}
+                                    aria-pressed={emailPasswordVisible}
+                                    disabled={identityBusy}
+                                    onClick={() => setEmailPasswordVisible((visible) => !visible)}
+                                >
+                                    {emailPasswordVisible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+                                </button>
+                            </div>
                         ) : null}
                         {authPurpose === 'link' && !emailChallengeId ? (
-                            <input
-                                className="fresh-input"
-                                type="password"
-                                autoComplete="new-password"
-                                value={emailPasswordConfirmation}
-                                onChange={(event) => setEmailPasswordConfirmation(event.target.value)}
-                                placeholder={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
-                                aria-label={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
-                            />
+                            <div className="relative">
+                                <input
+                                    className="fresh-input pr-12"
+                                    type={emailPasswordConfirmationVisible ? 'text' : 'password'}
+                                    autoComplete="new-password"
+                                    value={emailPasswordConfirmation}
+                                    onChange={(event) => setEmailPasswordConfirmation(event.target.value)}
+                                    placeholder={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
+                                    aria-label={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-mono-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-mono-accent disabled:opacity-50"
+                                    aria-label={emailPasswordConfirmationVisible
+                                        ? (profile.language === 'en' ? 'Hide repeated password' : 'Скрыть повтор пароля')
+                                        : (profile.language === 'en' ? 'Show repeated password' : 'Показать повтор пароля')}
+                                    aria-pressed={emailPasswordConfirmationVisible}
+                                    disabled={identityBusy}
+                                    onClick={() => setEmailPasswordConfirmationVisible((visible) => !visible)}
+                                >
+                                    {emailPasswordConfirmationVisible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+                                </button>
+                            </div>
                         ) : null}
                         {emailChallengeId ? (
                             <div className="flex gap-2">
@@ -1002,7 +1064,7 @@ export const Settings: React.FC<SettingsProps> = ({
                             <button
                                 type="button"
                                 className="fresh-btn-ghost"
-                                disabled={identityBusy || !emailValue.trim() || !emailPassword || (authPurpose === 'link' && (emailPassword.length < 12 || emailPassword !== emailPasswordConfirmation))}
+                                disabled={identityBusy || !emailValue.trim() || !emailPassword || (authPurpose === 'link' && (!meetsMinimumPasswordLength(emailPassword) || emailPassword !== emailPasswordConfirmation))}
                                 onClick={requestEmailCode}
                             >
                                 {authPurpose === 'login'

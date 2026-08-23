@@ -356,6 +356,12 @@ const App: React.FC = () => {
     const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
     const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
+    const [pendingPremiumRecovery, setPendingPremiumRecovery] = useState<{
+        context: PaywallContext;
+        planId: PremiumPlanId;
+    } | null>(null);
+    const [paywallInitialPlanId, setPaywallInitialPlanId] = useState<PremiumPlanId>('premium_quarter');
+    const [paywallResumeNotice, setPaywallResumeNotice] = useState<string | null>(null);
     const [firstValueReached, setFirstValueReached] = useState(false);
     const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null);
     const [synastryPrefill, setSynastryPrefill] = useState<SynastryPrefill>(null);
@@ -1246,6 +1252,9 @@ const App: React.FC = () => {
         setAuthSessionModeState(nextMode);
         setAuthGateMessage(message);
         setProfile(null);
+        setPendingPremiumRecovery(null);
+        setPaywallContext(null);
+        setPaywallResumeNotice(null);
         resetPrimaryChartState();
         restoredRuStoreUserRef.current = null;
         navigationHistoryRef.current = [];
@@ -1443,6 +1452,7 @@ const App: React.FC = () => {
         if (outcome === 'purchase_succeeded' && context.placement === 'week') setDashboardPeriod('week');
         if (outcome === 'purchase_succeeded' && context.placement === 'month') setDashboardPeriod('month');
         setPaywallContext(null);
+        setPaywallResumeNotice(null);
         setPremiumContinuation(destination.shouldOpenFeature ? context : null);
         setView(destination.view);
         if (notice) setCheckoutNotice(notice);
@@ -1475,6 +1485,31 @@ const App: React.FC = () => {
         });
 
         const paymentResult = await getPaymentProvider().purchase(profile, planId);
+        if (
+            (paymentResult.status === 'unavailable' || paymentResult.status === 'failed')
+            && paymentResult.reason === 'RECOVERY_IDENTITY_REQUIRED'
+        ) {
+            void recordUserAppEvent({
+                eventType: 'purchase_failed',
+                section: 'premium',
+                source: context.placement,
+                eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
+            });
+            setPendingPremiumRecovery({ context, planId });
+            setPaywallInitialPlanId(planId);
+            setPaywallResumeNotice(null);
+            setPaywallContext(null);
+            setNavigationSheet(null);
+            setView('settings');
+            if (typeof window !== 'undefined') {
+                window.requestAnimationFrame(() => {
+                    window.requestAnimationFrame(() => {
+                        document.getElementById('recovery-identity')?.scrollIntoView({ block: 'start' });
+                    });
+                });
+            }
+            return;
+        }
         if (paymentResult.status === 'pending') {
             setCheckoutNotice('Оплата ещё обрабатывается в RuStore. Дождись результата или нажми «Восстановить покупку».');
             return;
@@ -1626,6 +1661,8 @@ const App: React.FC = () => {
             payload: eventPayload,
             currentView: viewRef.current,
         });
+        setPaywallInitialPlanId('premium_quarter');
+        setPaywallResumeNotice(null);
         setPremiumContinuation(null);
         if (context.triggerType === 'locked_feature') {
             void recordUserAppEvent({
@@ -2312,6 +2349,16 @@ const App: React.FC = () => {
                             onOpenProfile={openProfileSheet}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
+                            recoveryIdentityRequired={pendingPremiumRecovery !== null}
+                            onRecoveryIdentityReady={() => {
+                                if (!pendingPremiumRecovery) return;
+                                const pending = pendingPremiumRecovery;
+                                setPendingPremiumRecovery(null);
+                                setPaywallInitialPlanId(pending.planId);
+                                setPaywallResumeNotice('Способ восстановления привязан. Выбранный тариф сохранён — можно продолжить покупку.');
+                                setView(pending.context.returnView);
+                                setPaywallContext(pending.context);
+                            }}
                         />
                     </div>
                 ) : view === 'charts' ? (
@@ -2380,10 +2427,13 @@ const App: React.FC = () => {
                         profile={profile}
                         context={paywallContext}
                         onPurchase={purchasePremiumPlan}
+                        initialPlanId={paywallInitialPlanId}
+                        resumeNotice={paywallResumeNotice}
                         onClose={() => returnFromPaywall(paywallContext, 'close')}
                         onContinueFree={() => returnFromPaywall(paywallContext, 'close')}
                         onRestore={() => restorePremiumPurchases(paywallContext)}
                         onPlanSelected={(planId) => {
+                            setPaywallInitialPlanId(planId);
                             void recordUserAppEvent({
                                 eventType: 'plan_selected',
                                 section: 'premium',

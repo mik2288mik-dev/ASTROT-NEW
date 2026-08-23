@@ -37,8 +37,8 @@ export default function Home() {
 
   return <>
     <Head>
-      <title>Твой гороскоп: натальная карта</title>
-      <meta name="application-name" content="Твой гороскоп: натальная карта" />
+      <title>MEOU</title>
+      <meta name="application-name" content="MEOU" />
       <meta name="robots" content="noindex,nofollow" />
     </Head>
     <App />

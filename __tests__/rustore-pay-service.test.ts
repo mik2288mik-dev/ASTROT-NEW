@@ -115,6 +115,41 @@ describe('RuStore Pay client service', () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
+  it('requires a recovery identity before any native RuStore checkout call', async () => {
+    const nativeBridge = {
+      getAvailability: jest.fn(),
+      getProducts: jest.fn(),
+      purchase: jest.fn(),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockResolvedValueOnce(response({ identities: [] }));
+
+    await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_month')).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'RECOVERY_IDENTITY_REQUIRED',
+    });
+    expect(nativeBridge.getAvailability).not.toHaveBeenCalled();
+    expect(nativeBridge.getProducts).not.toHaveBeenCalled();
+    expect(nativeBridge.purchase).not.toHaveBeenCalled();
+  });
+
+  it('treats an unavailable identity check as a technical error, not a missing identity', async () => {
+    const nativeBridge = {
+      getAvailability: jest.fn(),
+      getProducts: jest.fn(),
+      purchase: jest.fn(),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockResolvedValueOnce(response({}, false));
+
+    await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_month')).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'RECOVERY_IDENTITY_CHECK_FAILED',
+    });
+    expect(nativeBridge.getAvailability).not.toHaveBeenCalled();
+    expect(nativeBridge.purchase).not.toHaveBeenCalled();
+  });
+
   it('does not claim cancellation when the SDK cannot reconcile purchase status', async () => {
     const nativeBridge = {
       getAvailability: jest.fn().mockResolvedValue({ available: true }),
@@ -340,6 +375,68 @@ describe('RuStore Pay client service', () => {
       status: 'completed',
       entitlement,
     });
+    expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a backend-rejected pending purchase for retry after recovery linking', async () => {
+    const stored = new Map<string, string>();
+    Object.defineProperty(global, 'window', {
+      configurable: true,
+      value: {
+        localStorage: {
+          getItem: (key: string) => stored.get(key) ?? null,
+          setItem: (key: string, value: string) => stored.set(key, value),
+          removeItem: (key: string) => stored.delete(key),
+        },
+      },
+    });
+    try {
+      const nativeBridge = {
+        getAvailability: jest.fn().mockResolvedValue({ available: true }),
+        getProducts: jest.fn().mockResolvedValue({
+          products: [{
+            productId: 'premium.month',
+            type: 'SUBSCRIPTION',
+            amountLabel: '299 ₽',
+            subscriptionInfo: { periods: [{ type: 'MainPeriod', duration: 'P1M' }] },
+          }],
+        }),
+        purchase: jest.fn().mockResolvedValue({
+          productId: 'premium.month',
+          productType: 'SUBSCRIPTION',
+          purchaseId: 'purchase-recovery',
+        }),
+      };
+      const { apiFetch, service } = loadService(nativeBridge);
+      const entitlement = {
+        state: 'paid',
+        isPremium: true,
+        source: 'rustore',
+        startsAt: '2026-08-24T00:00:00.000Z',
+        endsAt: '2026-09-24T00:00:00.000Z',
+        autoRenew: true,
+        productId: 'premium.month',
+        period: 'P1M',
+      } as const;
+      apiFetch
+        .mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }))
+        .mockResolvedValueOnce(response({ error: 'RECOVERY_IDENTITY_REQUIRED' }, false))
+        .mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }))
+        .mockResolvedValueOnce(response({ purchaseActive: true, entitlement }));
+
+      await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_month')).resolves.toEqual({
+        status: 'failed',
+        reason: 'RECOVERY_IDENTITY_REQUIRED',
+      });
+      await expect(service.requestRuStorePayment({ id: 42 } as never, 'premium_month')).resolves.toEqual({
+        status: 'completed',
+        entitlement,
+      });
+      expect(nativeBridge.purchase).toHaveBeenCalledTimes(1);
+      expect(stored.size).toBe(0);
+    } finally {
+      Reflect.deleteProperty(global, 'window');
+    }
   });
 
   it('settles every restore validation and never grants before backend confirmation', async () => {

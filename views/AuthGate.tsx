@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { UserProfile } from '../types';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
+import { meetsMinimumPasswordLength } from '../lib/auth/passwordPolicy';
 import {
   authenticateWithProvider,
   completePasswordReset,
@@ -48,7 +50,7 @@ function readableAuthError(error: unknown): string {
     return 'Email или пароль не подошли.';
   }
   if (code.includes('PASSWORD_TOO_SHORT')) {
-    return 'Пароль должен содержать не меньше 12 символов.';
+    return 'Не менее 8 символов';
   }
   if (code.includes('PASSWORD_CONFIRMATION')) {
     return 'Пароли не совпадают.';
@@ -85,6 +87,8 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordConfirmationVisible, setPasswordConfirmationVisible] = useState(false);
   const [code, setCode] = useState('');
   const [challengeId, setChallengeId] = useState('');
   const [capabilities, setCapabilities] = useState<AccountAuthCapabilities | null>(null);
@@ -136,7 +140,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const emailFlowVisible = screen === 'verify' || screen === 'reset'
     || (screen === 'login' ? emailPasswordReady : emailDeliveryReady);
   const passwordFieldsValid = useMemo(
-    () => email.trim().length > 0 && password.length >= 12 && password === passwordConfirmation,
+    () => email.trim().length > 0 && meetsMinimumPasswordLength(password) && password === passwordConfirmation,
     [email, password, passwordConfirmation],
   );
 
@@ -149,6 +153,8 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     setChallengeId('');
     setPassword('');
     setPasswordConfirmation('');
+    setPasswordVisible(false);
+    setPasswordConfirmationVisible(false);
   };
 
   const runProvider = async (provider: Provider) => {
@@ -294,7 +300,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       <div className="flex min-h-full w-full items-center justify-center px-5 py-8">
         <section className="w-full max-w-sm rounded-[28px] border border-[#e8e5df] bg-white px-5 py-7 shadow-[0_18px_54px_rgba(44,48,45,0.08)] sm:px-7">
           <p className="mb-5 text-center text-[12px] font-semibold uppercase tracking-[0.18em] text-[#6b7280]">
-            Твой Гороскоп
+            MEOU
           </p>
           <h1 className="text-center text-[30px] font-semibold leading-tight tracking-[-0.025em]">{title}</h1>
           {(message || deleted) && isRegister ? (
@@ -372,33 +378,59 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             ) : null}
 
             {(screen === 'register' || screen === 'login' || screen === 'reset') ? (
-              <label className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
-                {screen === 'reset' ? 'Новый пароль' : 'Пароль'}
-                <input
-                  className={fieldClass}
-                  type="password"
-                  autoComplete={screen === 'login' ? 'current-password' : 'new-password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder={screen === 'login' ? 'Введите пароль' : 'Не менее 12 символов'}
-                  disabled={busy !== null}
-                />
-              </label>
+              <div className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
+                <label htmlFor="auth-password">{screen === 'reset' ? 'Новый пароль' : 'Пароль'}</label>
+                <div className="relative">
+                  <input
+                    id="auth-password"
+                    className={`${fieldClass} pr-12`}
+                    type={passwordVisible ? 'text' : 'password'}
+                    autoComplete={screen === 'login' ? 'current-password' : 'new-password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder={screen === 'login' ? 'Введите пароль' : 'Не менее 8 символов'}
+                    disabled={busy !== null}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-[#687079] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#4f6f62] disabled:opacity-50"
+                    aria-label={passwordVisible ? 'Скрыть пароль' : 'Показать пароль'}
+                    aria-pressed={passwordVisible}
+                    disabled={busy !== null}
+                    onClick={() => setPasswordVisible((visible) => !visible)}
+                  >
+                    {passwordVisible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+                  </button>
+                </div>
+              </div>
             ) : null}
 
             {(screen === 'register' || screen === 'reset') ? (
-              <label className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
-                Повторите пароль
-                <input
-                  className={fieldClass}
-                  type="password"
-                  autoComplete="new-password"
-                  value={passwordConfirmation}
-                  onChange={(event) => setPasswordConfirmation(event.target.value)}
-                  placeholder="Повторите пароль"
-                  disabled={busy !== null}
-                />
-              </label>
+              <div className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
+                <label htmlFor="auth-password-confirmation">Повторите пароль</label>
+                <div className="relative">
+                  <input
+                    id="auth-password-confirmation"
+                    className={`${fieldClass} pr-12`}
+                    type={passwordConfirmationVisible ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={passwordConfirmation}
+                    onChange={(event) => setPasswordConfirmation(event.target.value)}
+                    placeholder="Повторите пароль"
+                    disabled={busy !== null}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-[#687079] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#4f6f62] disabled:opacity-50"
+                    aria-label={passwordConfirmationVisible ? 'Скрыть повтор пароля' : 'Показать повтор пароля'}
+                    aria-pressed={passwordConfirmationVisible}
+                    disabled={busy !== null}
+                    onClick={() => setPasswordConfirmationVisible((visible) => !visible)}
+                  >
+                    {passwordConfirmationVisible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+                  </button>
+                </div>
+              </div>
             ) : null}
 
             {(screen === 'verify' || screen === 'reset') ? (

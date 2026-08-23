@@ -7,8 +7,9 @@ permissions.
 
 ## Identity and public links
 
-- [ ] Final name selected. Current mismatch: website **MEOU** versus installed/
-  draft store name **Твой гороскоп: натальная карта**.
+- [x] Final public name selected as **MEOU** and aligned in the website metadata,
+  Capacitor config, Android string locales and RuStore listing draft. Re-check
+  the label in the final signed artifact and Console before submission.
 - [ ] Package verified as `ru.tvoygoroskop.app`; signing key/certificate checked.
 - [ ] Website: `https://tvoi-goroskop.ru/` returns 200 with valid TLS.
 - [ ] Privacy: `/privacy`; Terms: `/terms`; deletion: `/delete-account`;

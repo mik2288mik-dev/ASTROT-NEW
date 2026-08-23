@@ -7,7 +7,7 @@ const liveReloadUrl = isLiveReload
 
 const config: CapacitorConfig = {
   appId: 'ru.tvoygoroskop.app',
-  appName: 'Твой гороскоп: натальная карта',
+  appName: 'MEOU',
   webDir: 'out',
   loggingBehavior: process.env.STORE_RELEASE === '1' || process.env.NODE_ENV === 'production' ? 'none' : 'debug',
   backgroundColor: '#ffffff',

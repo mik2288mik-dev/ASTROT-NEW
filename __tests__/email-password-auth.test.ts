@@ -50,9 +50,10 @@ describe('email and password authentication', () => {
   });
 
   it('rejects weak, mismatched, and unreasonably large passwords', () => {
-    expect(() => assertValidNewPassword('short', 'short')).toThrow(expect.objectContaining({
+    expect(() => assertValidNewPassword('1234567', '1234567')).toThrow(expect.objectContaining({
       code: 'PASSWORD_TOO_SHORT',
     }));
+    expect(() => assertValidNewPassword('12345678', '12345678')).not.toThrow();
     expect(() => assertValidNewPassword('long-enough-password', 'different-password')).toThrow(expect.objectContaining({
       code: 'PASSWORD_CONFIRMATION_MISMATCH',
     }));
@@ -61,6 +62,21 @@ describe('email and password authentication', () => {
       code: 'PASSWORD_TOO_LONG',
     }));
     expect(() => assertValidNewPassword('long-enough-password', 'long-enough-password')).not.toThrow();
+  });
+
+  it('keeps the client and server on the same eight-character password rule', () => {
+    const policy = read('lib/auth/passwordPolicy.ts');
+    const hash = read('lib/auth/passwordHash.ts');
+    const gate = read('views/AuthGate.tsx');
+    const settings = read('views/Settings.tsx');
+
+    expect(policy).toContain('MIN_PASSWORD_LENGTH = 8');
+    expect(hash).toContain("import { MIN_PASSWORD_LENGTH } from './passwordPolicy'");
+    expect(gate).toContain('meetsMinimumPasswordLength(password)');
+    expect(settings).toContain('meetsMinimumPasswordLength(emailPassword)');
+    expect(gate).toContain('Не менее 8 символов');
+    expect(settings).toContain('Не менее 8 символов');
+    expect(`${policy}\n${hash}\n${gate}\n${settings}`).not.toMatch(/(?:Не менее|не меньше) 12 символов|MIN_PASSWORD_LENGTH = 12|password\.length [<>]=? 12/);
   });
 
   it('protects six-digit email codes with a server-side HMAC pepper', () => {

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { MIN_PASSWORD_LENGTH } from './passwordPolicy';
 
 const SCRYPT_VERSION = 1;
 const SCRYPT_LOG_N = 15;
@@ -8,7 +9,6 @@ const SCRYPT_P = 3;
 const SCRYPT_KEY_LENGTH = 64;
 const SCRYPT_SALT_LENGTH = 16;
 const SCRYPT_MAX_MEMORY = 256 * 1024 * 1024;
-const MIN_PASSWORD_LENGTH = 12;
 const MAX_PASSWORD_CHARACTERS = 128;
 const MAX_PASSWORD_BYTES = 512;
 const MAX_CONCURRENT_KDFS = 2;

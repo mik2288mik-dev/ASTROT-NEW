@@ -269,12 +269,14 @@ export async function loadRuStoreProducts(): Promise<Partial<Record<PremiumPlanI
   );
 }
 
-async function hasRecoveryIdentity(): Promise<boolean> {
+async function hasRecoveryIdentity(): Promise<boolean | null> {
   const response = await apiFetch('/api/auth/identities');
-  if (!response.ok) return false;
+  if (!response.ok) return null;
   const payload = await response.json().catch(() => ({}));
-  return Array.isArray(payload?.identities)
-    && payload.identities.some((identity: any) => ['vk', 'yandex', 'google', 'email'].includes(identity?.provider));
+  if (!Array.isArray(payload?.identities)) return null;
+  return payload.identities.some((identity: any) => (
+    ['vk', 'yandex', 'google', 'email'].includes(identity?.provider)
+  ));
 }
 
 async function validateWithBackend(purchase: RuStorePurchase): Promise<BackendValidationResult> {
@@ -332,8 +334,12 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
   }
 
   try {
-    if (!(await hasRecoveryIdentity())) {
+    const recoveryIdentity = await hasRecoveryIdentity();
+    if (recoveryIdentity === false) {
       return { status: 'unavailable', reason: 'RECOVERY_IDENTITY_REQUIRED' };
+    }
+    if (recoveryIdentity === null) {
+      return { status: 'unavailable', reason: 'RECOVERY_IDENTITY_CHECK_FAILED' };
     }
     const availability = await nativeBridge.getAvailability();
     if (!availability.available) return { status: 'unavailable', reason: availability.reason || 'RUSTORE_NOT_AVAILABLE' };
@@ -366,7 +372,9 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
     }
     writePendingPurchase(canonicalUserId, purchase);
     const result = await reconcilePurchaseResult(nativeBridge, purchase);
-    clearPendingPurchase(canonicalUserId, productId);
+    if (!(result.status === 'failed' && result.reason === 'RECOVERY_IDENTITY_REQUIRED')) {
+      clearPendingPurchase(canonicalUserId, productId);
+    }
     return result;
   } catch (error: any) {
     const message = String(error?.message || error?.code || 'RUSTORE_PURCHASE_FAILED');

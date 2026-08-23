@@ -31,7 +31,7 @@ export default function AuthCompletePage() {
       : error || 'Завершаем безопасный вход…';
   return (
     <main style={{ maxWidth: 520, margin: '64px auto', padding: 24, fontFamily: 'system-ui' }}>
-      <h1>Вход в «Твой Гороскоп»</h1>
+      <h1>Вход в MEOU</h1>
       <p>{message}</p>
       {(cancelled || failed || error) ? <a href="/">Вернуться в приложение</a> : null}
     </main>

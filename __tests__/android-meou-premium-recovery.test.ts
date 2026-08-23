@@ -1,0 +1,74 @@
+import fs from 'fs';
+import path from 'path';
+
+const root = path.resolve(__dirname, '..');
+const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
+
+describe('MEOU Android release controls', () => {
+  it('resolves every Android system label to MEOU without changing the application id', () => {
+    const capacitor = read('capacitor.config.ts');
+    const manifest = read('android/app/src/main/AndroidManifest.xml');
+    const strings = read('android/app/src/main/res/values/strings.xml');
+    const stringsEn = read('android/app/src/main/res/values-en/strings.xml');
+    const env = read('.env.example');
+    const releaseConfig = read('lib/storeReleaseConfig.ts');
+    const page = read('pages/index.tsx');
+
+    expect(capacitor).toContain("appId: 'ru.tvoygoroskop.app'");
+    expect(capacitor).toContain("appName: 'MEOU'");
+    expect(manifest).toContain('android:label="@string/app_name"');
+    expect(manifest).toContain('android:label="@string/title_activity_main"');
+    for (const source of [strings, stringsEn]) {
+      expect(source).toContain('<string name="app_name">MEOU</string>');
+      expect(source).toContain('<string name="title_activity_main">MEOU</string>');
+      expect(source).toContain('<string name="package_name">ru.tvoygoroskop.app</string>');
+    }
+    expect(env).toContain('NEXT_PUBLIC_APP_NAME=MEOU');
+    expect(releaseConfig).toContain("process.env.NEXT_PUBLIC_APP_NAME || 'MEOU'");
+    expect(page).toContain('<meta name="application-name" content="MEOU" />');
+  });
+
+  it('preserves the selected plan across the existing recovery-identity flow', () => {
+    const app = read('App.tsx');
+    const settings = read('views/Settings.tsx');
+    const paywall = read('views/Paywall.tsx');
+    const rustore = read('services/rustorePayService.ts');
+
+    const recoveryBranch = app.slice(
+      app.indexOf("paymentResult.reason === 'RECOVERY_IDENTITY_REQUIRED'"),
+      app.indexOf("if (paymentResult.status === 'pending')"),
+    );
+    expect(recoveryBranch).toContain('setPendingPremiumRecovery({ context, planId })');
+    expect(recoveryBranch).toContain("setView('settings')");
+    expect(app).toContain('recoveryIdentityRequired={pendingPremiumRecovery !== null}');
+    expect(app).toContain('setPaywallInitialPlanId(pending.planId)');
+    expect(app).toContain('setPaywallContext(pending.context)');
+    expect(paywall).toContain('useState<PremiumPlanId>(initialPlanId)');
+    expect(settings).toContain('authenticateWithProvider(provider, authPurpose)');
+    expect(settings).toContain("purpose: 'link'");
+    expect(settings).toContain('verifyEmailPasswordRegistration');
+    expect(settings).toContain('if (recoveryIdentityRequired) onRecoveryIdentityReady?.()');
+    expect(settings).toContain('VK ID, Яндекс или email');
+    expect(rustore.indexOf('await hasRecoveryIdentity()')).toBeLessThan(rustore.indexOf('await nativeBridge.purchase'));
+    expect(rustore).toContain("result.status === 'failed' && result.reason === 'RECOVERY_IDENTITY_REQUIRED'");
+  });
+
+  it('shows accessible password visibility controls and MEOU on user auth screens', () => {
+    const gate = read('views/AuthGate.tsx');
+    const settings = read('views/Settings.tsx');
+    const complete = read('pages/auth/complete.tsx');
+
+    expect(gate).toContain("import { Eye, EyeOff } from 'lucide-react'");
+    expect(gate).toContain("type={passwordVisible ? 'text' : 'password'}");
+    expect(gate).toContain("type={passwordConfirmationVisible ? 'text' : 'password'}");
+    expect(gate).toContain("aria-label={passwordVisible ? 'Скрыть пароль' : 'Показать пароль'}");
+    expect(gate).toContain('aria-pressed={passwordVisible}');
+    expect(settings).toContain("type={emailPasswordVisible ? 'text' : 'password'}");
+    expect(settings).toContain("type={emailPasswordConfirmationVisible ? 'text' : 'password'}");
+    expect(settings).toContain('aria-pressed={emailPasswordVisible}');
+    expect(settings).toContain('aria-pressed={emailPasswordConfirmationVisible}');
+    expect(gate).toContain('MEOU');
+    expect(complete).toContain('Вход в MEOU');
+    expect(`${gate}\n${complete}`).not.toMatch(/Твой Гороскоп|Твой гороскоп/);
+  });
+});
