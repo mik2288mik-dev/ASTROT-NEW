@@ -1,5 +1,10 @@
 # Account deletion and retention
 
+> The deletion transaction described here remains current. Provider/log/backup
+> gaps and the release retention register are maintained in
+> [`docs/legal/DATA_FLOW_MAP.md`](./legal/DATA_FLOW_MAP.md) and
+> [`docs/legal/COMPLIANCE_IMPLEMENTATION_TASKS.md`](./legal/COMPLIANCE_IMPLEMENTATION_TASKS.md).
+
 `DELETE /api/users/account` uses one PostgreSQL transaction. It first revokes every web/native/Telegram app session, cancels queued notifications, removes the user row and all FK-owned personal records, clears the signed cookie, and is idempotent: repeating the deletion service returns `alreadyDeleted` instead of a 500.
 
 Immediately deleted through user FKs: profile, natal charts, interpretations/caches, forecasts, questions, notification settings/state/logs/queues, app events, sessions, Premium entitlements, Stars and store purchase records, and content unlocks. The deletion service also deletes promo redemptions and legacy-content archives.
