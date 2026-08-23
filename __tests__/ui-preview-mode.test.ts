@@ -23,7 +23,10 @@ describe('development-only UI Preview mode', () => {
 
     expect(document).toContain("process.env.NODE_ENV === 'development'");
     expect(document).toContain("process.env.NEXT_PUBLIC_UI_PREVIEW === '1'");
-    expect(document).toContain('!isUiPreviewBuild ? <script src="https://telegram.org/js/telegram-web-app.js"');
+    expect(document).toContain('const loadTelegramAppDependencies = !publicDocument && !isUiPreviewBuild');
+    expect(document).toContain('PUBLIC_ROUTES.has(ctx.pathname)');
+    expect(document).toContain('{loadTelegramAppDependencies ? (');
+    expect(document).toContain('<script src="https://telegram.org/js/telegram-web-app.js"></script>');
   });
 
   it('keeps the native Live View URL development-only', () => {

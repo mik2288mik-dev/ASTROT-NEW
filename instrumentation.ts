@@ -5,6 +5,10 @@
  */
 export async function register() {
   if (process.env.NEXT_PUBLIC_MOBILE_BUILD === '1') return;
+  if (
+    process.env.MEOU_PUBLIC_SITE === '1'
+    || process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1'
+  ) return;
 
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     await import('./instrumentation.node');

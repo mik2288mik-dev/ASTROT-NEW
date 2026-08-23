@@ -1,4 +1,7 @@
 const isMobileBuild = process.env.MOBILE_BUILD === '1';
+const isPublicWebsiteBuild = process.env.MEOU_PUBLIC_SITE === '1'
+  || process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
+const isLegalPreview = process.env.NEXT_PUBLIC_LEGAL_PREVIEW === '1';
 const distributionChannel = process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL;
 const excludesTelegramStars = isMobileBuild
   && (distributionChannel === 'google_play' || distributionChannel === 'rustore');
@@ -6,6 +9,72 @@ const excludesTelegramStars = isMobileBuild
 if (isMobileBuild && !process.env.NEXT_PUBLIC_API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL is required when MOBILE_BUILD=1');
 }
+
+if (isPublicWebsiteBuild && !isLegalPreview) {
+  const requiredPublicValues = [
+    ['NEXT_PUBLIC_SUPPORT_EMAIL', /^[^\s@]+@[^\s@]+\.[^\s@]+$/],
+    ['NEXT_PUBLIC_PRIVACY_EMAIL', /^[^\s@]+@[^\s@]+\.[^\s@]+$/],
+    ['NEXT_PUBLIC_DEVELOPER_NAME', /\S+/],
+    ['NEXT_PUBLIC_OPERATOR_ADDRESS', /\S+/],
+    ['NEXT_PUBLIC_OPERATOR_INN', /^(?:\d{10}|\d{12})$/],
+    ['NEXT_PUBLIC_OPERATOR_OGRNIP', /^\d{15}$/],
+    ['NEXT_PUBLIC_LEGAL_PUBLICATION_DATE', /^\d{4}-\d{2}-\d{2}$/],
+    ['NEXT_PUBLIC_PUBLIC_BASE_URL', /^https:\/\//],
+    ['NEXT_PUBLIC_RUSSIAN_HOSTING_PROVIDER', /\S+/],
+    ['NEXT_PUBLIC_RUSSIAN_DATA_LOCATION', /\S+/],
+    ['NEXT_PUBLIC_WEBSITE_HOSTING_PROVIDER', /\S+/],
+    ['NEXT_PUBLIC_TRANSACTIONAL_EMAIL_PROVIDER', /\S+/],
+    ['NEXT_PUBLIC_TRANSACTIONAL_EMAIL_COUNTRY', /\S+/],
+    ['NEXT_PUBLIC_SUPPORT_MAIL_PROVIDER', /\S+/],
+    ['NEXT_PUBLIC_SUPPORT_MAIL_COUNTRY', /\S+/],
+    ['NEXT_PUBLIC_GEOCODING_PROVIDER', /\S+/],
+    ['NEXT_PUBLIC_GEOCODING_COUNTRY', /\S+/],
+    ['NEXT_PUBLIC_APP_LOG_RETENTION_DAYS', /^\d{1,3}$/],
+    ['NEXT_PUBLIC_BACKUP_RETENTION_DAYS', /^\d{1,3}$/],
+    ['NEXT_PUBLIC_SUPPORT_RETENTION_MONTHS', /^\d{1,3}$/],
+    ['NEXT_PUBLIC_MINIMUM_AGE', /^(?:[6-9]|1[0-8])$/],
+    ['NEXT_PUBLIC_DATA_LOCALIZATION_CONFIRMED', /^1$/],
+    ['NEXT_PUBLIC_CROSS_BORDER_NOTIFICATIONS_CONFIRMED', /^1$/],
+  ];
+  const invalid = requiredPublicValues
+    .filter(([name, pattern]) => !pattern.test(String(process.env[name] || '').trim()))
+    .map(([name]) => name);
+  if (invalid.length > 0) {
+    throw new Error(`Public website legal configuration is incomplete: ${invalid.join(', ')}`);
+  }
+}
+
+const publicScriptSource = process.env.NODE_ENV === 'development'
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  : "script-src 'self' 'unsafe-inline'";
+
+const publicCsp = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "connect-src 'self'",
+  "font-src 'self' data:",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+  "img-src 'self' data:",
+  "object-src 'none'",
+  publicScriptSource,
+  "style-src 'self' 'unsafe-inline'",
+  'upgrade-insecure-requests',
+].join('; ');
+
+const commonSecurityHeaders = [
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+];
+
+const publicPageHeaders = [
+  ...commonSecurityHeaders,
+  { key: 'Content-Security-Policy', value: publicCsp },
+  { key: 'X-Frame-Options', value: 'DENY' },
+];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -32,6 +101,9 @@ const nextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  env: {
+    NEXT_PUBLIC_MEOU_PUBLIC_SITE: isPublicWebsiteBuild ? '1' : '0',
   },
   // Next передаёт собственный экземпляр webpack в callback. Не require('webpack') здесь:
   // webpack не является прямой зависимостью проекта, и чистый Docker/npm ci обязан работать без
@@ -73,32 +145,58 @@ const nextConfig = {
     }
     return config;
   },
-  // Для работы с Telegram WebApp
   ...(!isMobileBuild ? {
-    async headers() {
+    async redirects() {
       return [
-      {
-        // Telegram встраивает мини-апп в iframe — нужно всем путям
-        source: '/:path*',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL',
-          },
-        ],
-      },
-      {
-        // HTML-оболочка приложения НЕ кэшируется, иначе Telegram держит
-        // старую вёрстку до часа. Хешированные ассеты /_next/static Next
-        // кэширует сам (immutable) — их это не трогает.
-        source: '/',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, max-age=0, must-revalidate',
-          },
-        ],
-      },
+        {
+          source: '/:path*',
+          has: [{ type: 'host', value: 'www.tvoi-goroskop.ru' }],
+          destination: 'https://tvoi-goroskop.ru/:path*',
+          permanent: true,
+        },
+        {
+          source: '/contacts',
+          destination: '/support',
+          permanent: true,
+        },
+        ...(isPublicWebsiteBuild ? [{
+          source: '/site',
+          destination: '/',
+          permanent: true,
+        }] : []),
+      ];
+    },
+    async headers() {
+      if (isPublicWebsiteBuild) {
+        return [{
+          source: '/:path*',
+          headers: [
+            ...publicPageHeaders,
+            ...(isLegalPreview ? [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] : []),
+          ],
+        }];
+      }
+
+      const publicRoutes = [
+        '/404',
+        '/delete-account',
+        '/personal-data-consent',
+        '/privacy',
+        '/requisites',
+        '/site',
+        '/support',
+        '/terms',
+      ];
+      return [
+        ...publicRoutes.map((source) => ({ source, headers: publicPageHeaders })),
+        {
+          // Telegram embeds only the app shell. Legal and marketing routes deny framing.
+          source: '/',
+          headers: [
+            { key: 'X-Frame-Options', value: 'ALLOWALL' },
+            { key: 'Cache-Control', value: 'no-store, max-age=0, must-revalidate' },
+          ],
+        },
       ];
     },
   } : {}),
