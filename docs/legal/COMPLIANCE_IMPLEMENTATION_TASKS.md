@@ -145,10 +145,12 @@ auth, Android, forecast, compatibility or production-infrastructure work.
 
 - **File/component:** onboarding/Terms acknowledgement; RuStore rating form;
   `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED` and purchase presentation.
-- **Current problem:** no implemented age gate was found; Premium is deliberately
-  disabled and must not be described as sold.
+- **Current problem:** no implemented age gate was found. Premium is currently
+  disabled while its release gates are incomplete, although the target first
+  RuStore release includes Premium.
 - **Required change:** owner/legal selects minimum age and parental-consent flow;
   complete RuStore questionnaire; enable Premium only after products, prices,
   auto-renewal/cancel/restore texts and production callbacks are verified.
-- **Acceptance criteria:** UI, Terms, store rating and actual build agree; first
-  free release contains no purchase CTA or false subscription disclosure.
+- **Acceptance criteria:** UI, Terms, store rating and actual build agree;
+  RuStore Console products, production environment and sandbox purchase/cancel/
+  restore/callback tests pass before Premium is enabled in the release build.

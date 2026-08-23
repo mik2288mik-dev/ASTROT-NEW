@@ -19,17 +19,21 @@ Evidence checked 23 August 2026:
 | Layer | Verdict | Why |
 |---|---|---|
 | Public website | **CONDITIONAL, not final release-safe** | A no-form/no-tracker static site minimises data, but Railway still receives and logs visitor IP/UA outside Russia. It may be used only as a temporary marketing host after the operator approves/reflects that transfer; an RF host is the clean answer. |
-| Backend/API | **BLOCKED** | A Russian DB alone would not solve it: names, email, birth details, questions, tokens and IDs enter Amsterdam instance memory and can reach HTTP/app/error logs, caches or temp state. This is foreign processing before the DB write. |
+| Backend/API | **BLOCKED in the current architecture** | The current primary database and logs/storage are abroad. Moving only the primary DB to Russia would still require proof that personal data is not recorded in foreign logs, caches, queues, temporary files, volumes or backups. Foreign compute and transfer must be assessed separately under Article 12; foreign compute by itself is not stated here as an automatic breach of Article 18(5). |
 | Database | **BLOCKED** | Current production is not evidenced in Russia. A Railway PostgreSQL service is foreign storage/accumulation and fails the intended localisation architecture. |
 | Logs/cache/temp/backups | **BLOCKED** | Railway access/app logs are foreign and not deletion-aware. Cache/temp/queue/volume locations and enabled backup policy have not been proven. Environment variables also sit in the foreign service control plane. |
 
 ## Can Railway compute remain if the primary database is in Russia?
 
-**Not for this release architecture.** Article 18(5) localisation is not reduced
-to the final database address. MEOU's personal data would first be collected and
-processed by foreign application compute and observability. A Russian primary
-DB helps but does not remove that earlier foreign collection/processing or the
-separate Article 12 obligations.
+**Potentially, but not in the current architecture.** The present release is
+blocked because the evidenced primary database and logs/storage are abroad. A
+Russian primary database is necessary for the target localisation design, but
+does not close the question if personal data is also recorded or accumulated in
+foreign logs, caches, queues, temporary files, volumes or backups. If foreign
+application compute remains after those storage paths are removed, that transfer
+requires a separate fact-specific assessment and, where applicable, the Article
+12 procedure; this document does not treat foreign compute alone as an automatic
+Article 18(5) violation.
 
 ## Fastest safe cutover
 

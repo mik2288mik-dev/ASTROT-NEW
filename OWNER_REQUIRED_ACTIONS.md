@@ -62,7 +62,9 @@ closed and preview builds remain `noindex`.
    Android Manifest permissions.
 3. Enter the final website, Privacy Policy, Terms, account-deletion and support
    URLs after production verification.
-4. Complete age rating/developer contacts and confirm first-release Premium is
-   disabled unless the signed build and RuStore products are actually ready.
+4. Complete age rating/developer contacts. The target first release includes
+   Premium: enable it only after the signed build, RuStore Console products,
+   production environment and sandbox purchase/cancel/restore/callback tests
+   are ready.
 5. Sign/submit the release and save the declaration export/screenshots,
    moderation receipt and published store URL.

@@ -64,12 +64,14 @@ Do not declare advertising or analytics unless the final build adds them.
 
 ## Premium/subscriptions
 
-- First-release config is `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=0`; therefore do
-  not advertise or expose a fake Premium purchase/restore flow.
-- If Premium is enabled later: declare purchases, actual price/period/trial,
-  auto-renewal, cancellation and restore exactly as RuStore implements them;
-  server-validate purchase ownership and callbacks; never claim MEOU stores card
-  data.
+- The target first RuStore release includes Premium. Keep
+  `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=0` until RuStore Console products,
+  production environment and the sandbox purchase/cancel/restore/callback flow
+  are configured and verified.
+- Before submission, enable Premium in the signed release build, declare
+  purchases and describe the actual price/period/trial, auto-renewal,
+  cancellation and restore exactly as RuStore implements them. Server-validate
+  purchase ownership and callbacks; never claim MEOU stores card data.
 
 ## Age, content and listing consistency
 
