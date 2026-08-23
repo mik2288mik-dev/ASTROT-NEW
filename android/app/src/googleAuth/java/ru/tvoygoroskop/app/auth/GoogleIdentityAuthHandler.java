@@ -22,7 +22,7 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 
 /** Google implementation shared only by development and Google Play flavors. */
-public final class GoogleIdentityAuthHandler implements GoogleIdentityAuthDelegate {
+public final class GoogleIdentityAuthHandler implements OptionalIdentityAuthDelegate {
     private static final String AUTH_CANCELLED = "AUTH_CANCELLED";
     private static final String AUTH_CONFIGURATION = "AUTH_CONFIGURATION";
     private static final String AUTH_FAILED = "AUTH_FAILED";

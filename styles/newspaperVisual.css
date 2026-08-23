@@ -1078,7 +1078,6 @@
 .onboarding-editorial-page .onb-hero,
 .onboarding-editorial-page .onb-notify,
 .auth-editorial-page section,
-.pw2 .pw2-trial,
 .pw2 .pw2-compare,
 .pw2 .pw2-plan {
   background: #fff !important;
@@ -1126,12 +1125,6 @@
 .pw2 .pw2-plan.is-best {
   border-color: var(--news-action) !important;
   background: var(--news-paper-soft) !important;
-}
-
-.pw2 .pw2-plan-badge,
-.pw2 .pw2-trial-dot {
-  background: var(--news-action) !important;
-  color: #fff !important;
 }
 
 .pw2 .pw2-col--prem,

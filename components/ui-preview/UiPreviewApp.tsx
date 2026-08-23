@@ -12,6 +12,7 @@ import {
 import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
 import { UnionRoom } from '../../views/v2/UnionRoom';
+import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
 import { Settings } from '../../views/Settings';
 import { Paywall } from '../../views/Paywall';
 import type { PaywallContext } from '../../lib/paywallContext';
@@ -429,6 +430,8 @@ export default function UiPreviewApp() {
     );
   } else if (scenario.screen === 'paywall') {
     scene = <PaywallScene profile={profile} onClose={() => navigate('today')} />;
+  } else if (scenario.screen === 'encyclopedia') {
+    scene = <AstrologyEncyclopedia profile={profile} onOpenProfile={openProfile} />;
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
     scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} onNavigate={navigate} onOpenProfile={openProfile} />;
   } else if (scenario.screen === 'horoscope' || scenario.screen === 'zodiac-picker') {
@@ -457,7 +460,7 @@ export default function UiPreviewApp() {
         canPromotePremium={scenario.access !== 'premium'}
         onOpenProfile={openProfile}
         onOpenMatrix={() => setLocalNotice('Матрица откроется отдельным Preview-сценарием.')}
-        onOpenEncyclopedia={() => setLocalNotice('Энциклопедия доступна через сервисное меню.')}
+        onOpenEncyclopedia={() => navigate('encyclopedia')}
         uiPreview={{
           initialTab: scenario.screen === 'natal' ? 'map' : 'reading',
           openQuestion: scenario.screen === 'question',
@@ -524,10 +527,7 @@ export default function UiPreviewApp() {
             onOpenSettings={() => navigate('settings')}
             onOpenPremium={() => navigate('paywall')}
             onOpenCharts={() => navigate('natal')}
-            onOpenKnowledge={() => {
-              setNavigationSheet(null);
-              setLocalNotice('Раздел «Хочу знать» доступен без сетевых запросов в этом Preview.');
-            }}
+            onOpenKnowledge={() => navigate('encyclopedia')}
           />
         </>
       ) : null}

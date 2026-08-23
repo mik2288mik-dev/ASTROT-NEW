@@ -6,7 +6,7 @@ const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), '
 describe('RuStore Pay integration contract', () => {
   it('uses the current Pay SDK only in the Rustore flavor', () => {
     const gradle = read('android/app/build.gradle');
-    expect(gradle).toContain("rustoreImplementation platform('ru.rustore.sdk:bom:2026.06.01')");
+    expect(gradle).toContain("rustoreImplementation platform('ru.rustore.sdk:bom:2026.08.01')");
     expect(gradle).toContain("rustoreImplementation 'ru.rustore.sdk:pay'");
     expect(gradle).toContain("googlePlay");
     expect(gradle).not.toContain('BillingClient');

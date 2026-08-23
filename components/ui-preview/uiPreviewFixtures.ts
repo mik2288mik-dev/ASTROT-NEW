@@ -31,6 +31,7 @@ export const UI_PREVIEW_SCREENS = [
   'compatibility-input',
   'compatibility-signs',
   'compatibility-result',
+  'encyclopedia',
   'settings',
   'menu',
   'paywall',
@@ -72,6 +73,7 @@ export const UI_PREVIEW_SCREEN_LABELS: Record<UiPreviewScreen, string> = {
   'compatibility-input': 'Совместимость — данные',
   'compatibility-signs': 'Совместимость — знаки',
   'compatibility-result': 'Совместимость — результат',
+  encyclopedia: 'Хочу знать',
   settings: 'Настройки',
   menu: 'Меню',
   paywall: 'Paywall',
@@ -132,6 +134,7 @@ export function previewViewForScreen(screen: UiPreviewScreen): ViewState {
   }
   if (screen === 'zodiac-picker' || screen === 'horoscope') return 'horoscope';
   if (screen.startsWith('compatibility-')) return 'synastry';
+  if (screen === 'encyclopedia') return 'encyclopedia';
   if (screen === 'settings' || screen === 'menu') return 'settings';
   if (screen === 'natal-reading') return 'personality';
   return 'chart';

@@ -18,6 +18,7 @@ type AuthGateProps = {
   deleted?: boolean;
   message?: string | null;
   onAccountLogin: (profile: UserProfile) => void;
+  onGuestStart: () => Promise<void>;
 };
 
 type AuthScreen = 'register' | 'verify' | 'login' | 'forgot' | 'reset';
@@ -71,7 +72,12 @@ const fieldClass = 'min-h-[50px] w-full rounded-2xl border border-[#dfe3e8] bg-w
 const primaryClass = 'min-h-[52px] w-full rounded-2xl bg-[#1f3a32] px-5 text-[16px] font-semibold text-white shadow-[0_10px_28px_rgba(31,58,50,0.16)] transition-opacity disabled:cursor-not-allowed disabled:opacity-50';
 const providerClass = 'min-h-[52px] w-full rounded-2xl border border-[#d9dde4] bg-white px-5 text-[15px] font-semibold text-[#1f2937] transition-colors disabled:cursor-not-allowed disabled:bg-[#f6f7f8] disabled:text-[#9aa0aa]';
 
-export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, onAccountLogin }) => {
+export const AuthGate: React.FC<AuthGateProps> = ({
+  deleted = false,
+  message,
+  onAccountLogin,
+  onGuestStart,
+}) => {
   const [screen, setScreen] = useState<AuthScreen>('register');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -174,6 +180,20 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
     }
   };
 
+  const runGuest = async () => {
+    if (busy) return;
+    setError('');
+    setNotice('');
+    setBusy('guest');
+    try {
+      await onGuestStart();
+    } catch (nextError) {
+      setError(readableAuthError(nextError));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const submitRegistration = async () => {
     if (busy || !passwordFieldsValid) return;
     setError('');
@@ -260,7 +280,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
   const isRegister = screen === 'register';
   const isLogin = screen === 'login';
   const title = screen === 'register'
-    ? 'Создать аккаунт'
+    ? 'Начать'
     : screen === 'verify'
       ? 'Подтвердить email'
       : screen === 'login'
@@ -283,8 +303,24 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
             </p>
           ) : null}
 
+          {isRegister ? (
+            <>
+              <p className="mx-auto mt-3 text-center text-[14px] leading-5 text-[#687079]">
+                Можно пользоваться приложением без регистрации. Аккаунт можно привязать позже, чтобы восстановить данные на новом устройстве.
+              </p>
+              <button
+                type="button"
+                className={`${primaryClass} mt-6`}
+                disabled={busy !== null}
+                onClick={() => { void runGuest(); }}
+              >
+                {busy === 'guest' ? 'Создаём гостевой профиль…' : 'Продолжить без аккаунта'}
+              </button>
+            </>
+          ) : null}
+
           {(isRegister || isLogin) ? (
-            <div className="mt-7 grid gap-2.5">
+            <div className={isRegister ? 'mt-3 grid gap-2.5' : 'mt-7 grid gap-2.5'}>
               {PROVIDERS.filter((provider) => capabilities?.[provider.id] === true).map((provider) => (
                 <button
                   key={provider.id}
@@ -319,54 +355,67 @@ export const AuthGate: React.FC<AuthGateProps> = ({ deleted = false, message, on
 
           {emailFlowVisible ? <div className={(isRegister || isLogin) ? 'grid gap-2.5' : 'mt-7 grid gap-2.5'}>
             {screen !== 'verify' && screen !== 'reset' ? (
-              <input
-                className={fieldClass}
-                type="email"
-                inputMode="email"
-                autoCapitalize="none"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="Email"
-                disabled={busy !== null}
-              />
+              <label className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
+                Email
+                <input
+                  className={fieldClass}
+                  type="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="name@example.com"
+                  disabled={busy !== null}
+                />
+              </label>
             ) : null}
 
             {(screen === 'register' || screen === 'login' || screen === 'reset') ? (
-              <input
-                className={fieldClass}
-                type="password"
-                autoComplete={screen === 'login' ? 'current-password' : 'new-password'}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder={screen === 'reset' ? 'Новый пароль' : 'Пароль'}
-                disabled={busy !== null}
-              />
+              <label className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
+                {screen === 'reset' ? 'Новый пароль' : 'Пароль'}
+                <input
+                  className={fieldClass}
+                  type="password"
+                  autoComplete={screen === 'login' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder={screen === 'login' ? 'Введите пароль' : 'Не менее 12 символов'}
+                  disabled={busy !== null}
+                />
+              </label>
             ) : null}
 
             {(screen === 'register' || screen === 'reset') ? (
-              <input
-                className={fieldClass}
-                type="password"
-                autoComplete="new-password"
-                value={passwordConfirmation}
-                onChange={(event) => setPasswordConfirmation(event.target.value)}
-                placeholder="Повторите пароль"
-                disabled={busy !== null}
-              />
+              <label className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
+                Повторите пароль
+                <input
+                  className={fieldClass}
+                  type="password"
+                  autoComplete="new-password"
+                  value={passwordConfirmation}
+                  onChange={(event) => setPasswordConfirmation(event.target.value)}
+                  placeholder="Повторите пароль"
+                  disabled={busy !== null}
+                />
+              </label>
             ) : null}
 
             {(screen === 'verify' || screen === 'reset') ? (
-              <input
-                className={fieldClass}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={code}
-                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="Код из письма"
-                aria-label="Код из письма"
-                disabled={busy !== null}
-              />
+              <label className="grid gap-1.5 text-[13px] font-medium text-[#4b5563]">
+                Шестизначный код из письма
+                <input
+                  className={fieldClass}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  disabled={busy !== null}
+                />
+              </label>
             ) : null}
 
             {screen === 'register' ? (

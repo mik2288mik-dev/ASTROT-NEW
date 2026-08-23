@@ -88,7 +88,7 @@ describe('explicit authentication flow contracts', () => {
     );
   });
 
-  it('uses channel-filtered Android providers and contextual Telegram login without guest fallback', () => {
+  it('uses explicit guest-first access, channel-filtered providers, and contextual Telegram login', () => {
     const gate = read('views/AuthGate.tsx');
     const app = read('App.tsx');
 
@@ -101,7 +101,10 @@ describe('explicit authentication flow contracts', () => {
     expect(gate).toContain('PROVIDERS.filter');
     expect(gate).toContain('hasTelegramMiniAppContext()');
     expect(gate).toContain('loginWithTelegram');
-    expect(gate).not.toContain('Продолжить как гость');
+    expect(gate).toContain('Продолжить без аккаунта');
+    expect(gate).toContain('await onGuestStart()');
+    expect(app).toContain('const handleGuestStart = useCallback(async () => {');
+    expect(app).toContain("resumeAuthenticatedStartup(guestProfile, 'guest')");
     expect(app).toContain("!isNativeAppRuntime() && sessionMode === 'automatic'");
   });
 
@@ -111,7 +114,6 @@ describe('explicit authentication flow contracts', () => {
 
     expect(apiClient).toContain('requiresExplicitAuthentication');
     expect(apiClient).not.toContain('getActiveTelegramInitData');
-    expect(apiClient).toContain('never as a global fallback');
     expect(sessionService).toContain('getActiveTelegramInitData');
     expect(sessionService).toContain('getRawTelegramInitData');
     expect(sessionService).not.toContain('typeof window === \'undefined\' || getTelegramInitData()');
@@ -241,7 +243,7 @@ describe('explicit Telegram login client', () => {
     expect(apiFetch).toHaveBeenCalledWith('/api/auth/telegram/login', expect.objectContaining({
       method: 'POST',
       credentials: 'include',
-      body: JSON.stringify({ initData: 'signed-login-proof', native: false }),
+      body: JSON.stringify({ initData: 'signed-login-proof', native: false, sessionVersion: 2 }),
     }));
     expect(intent.getAuthSessionMode()).toBe('telegram');
   });

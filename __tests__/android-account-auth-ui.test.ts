@@ -12,13 +12,14 @@ describe('Android account authentication UI', () => {
     const capabilities = read('pages/api/auth/capabilities.ts');
     const distribution = read('lib/distributionChannel.ts');
 
-    expect(gate).toContain('Создать аккаунт');
+    expect(gate).toContain("? 'Начать'");
+    expect(gate).toContain('Продолжить без аккаунта');
     expect(gate).toContain('Продолжить с Яндексом');
     expect(gate).toContain('Продолжить с VK ID');
     expect(gate).toContain('Повторите пароль');
     expect(gate).toContain('Уже есть аккаунт?');
     expect(gate).toContain('Забыли пароль?');
-    expect(gate).toContain('Код из письма');
+    expect(gate).toContain('Шестизначный код из письма');
     expect(gate).toContain('PROVIDERS.filter');
     expect(gate).not.toContain('capabilities?.[provider.id] !== true');
     expect(settings).toContain(".filter((provider) => authCapabilities?.[provider] === true)");
@@ -44,10 +45,16 @@ describe('Android account authentication UI', () => {
     expect(service).toContain('providerRequest');
   });
 
-  test('offers Telegram login only inside a verified Telegram Mini App context', () => {
+  test('offers guest access independently and Telegram only inside a verified Mini App context', () => {
     const gate = read('views/AuthGate.tsx');
+    const app = read('App.tsx');
 
-    expect(gate).not.toContain('Продолжить как гость');
+    expect(gate).toContain('onGuestStart: () => Promise<void>');
+    expect(gate).toContain('await onGuestStart()');
+    expect(gate).toContain('Продолжить без аккаунта');
+    expect(app).toContain("setAuthSessionMode('guest')");
+    expect(app).toContain('const guestProfile = await startGuestAccount()');
+    expect(app).toContain("resumeAuthenticatedStartup(guestProfile, 'guest')");
     expect(gate).toContain('hasTelegramMiniAppContext');
     expect(gate).toContain('loginWithTelegram');
     expect(gate).toContain('hasTelegramMiniAppContext()');
@@ -61,6 +68,9 @@ describe('Android account authentication UI', () => {
     expect(api).toContain("mode !== 'guest'");
     expect(api).not.toContain("mode !== 'automatic' && mode !== 'guest'");
     expect(app).toContain("!isNativeAppRuntime() && sessionMode === 'automatic'");
+    expect(app).toContain("const isFreshNativeLaunch = sessionMode === 'automatic' && isNativeAppRuntime()");
+    expect(app).toContain('setAuthGateMessage(isFreshNativeLaunch');
+    expect(app).toContain('onGuestStart={handleGuestStart}');
   });
 
   test('retries authentication capabilities after reconnect and by explicit user action', () => {
@@ -79,6 +89,26 @@ describe('Android account authentication UI', () => {
     expect(service).toContain("body: JSON.stringify({ purpose, native: false })");
     expect(gate).toContain('emailPasswordReady');
     expect(gate).toContain('emailDeliveryReady');
+    const guestAction = gate.indexOf('Продолжить без аккаунта');
+    const capabilityFailure = gate.indexOf('capabilitiesLoadFailed ?');
+    expect(guestAction).toBeGreaterThan(-1);
+    expect(capabilityFailure).toBeGreaterThan(guestAction);
+  });
+
+  test('detects the native runtime from Capacitor even when the build flag is unavailable', () => {
+    const api = read('services/apiClient.ts');
+
+    expect(api).toContain("process.env.NEXT_PUBLIC_MOBILE_BUILD === '1' || Capacitor.isNativePlatform()");
+  });
+
+  test('keeps Android Back inside multi-step authentication before root exit', () => {
+    const gate = read('views/AuthGate.tsx');
+
+    expect(gate).toContain('window.addEventListener(NATIVE_BACK_EVENT, onNativeBack)');
+    expect(gate).toContain('window.removeEventListener(NATIVE_BACK_EVENT, onNativeBack)');
+    expect(gate).toContain("if (screen === 'register') return");
+    expect(gate).toContain("setScreen(screen === 'verify' ? 'register' : screen === 'reset' ? 'forgot' : 'register')");
+    expect(gate).toContain('if (detail) detail.handled = true');
   });
 
   test('native sessions use the Keystore-backed bridge instead of Capacitor Preferences', () => {

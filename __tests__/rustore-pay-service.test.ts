@@ -215,7 +215,9 @@ describe('RuStore Pay client service', () => {
     status = 'CANCELLED';
     await jest.advanceTimersByTimeAsync(1_000);
     await expect(result).resolves.toEqual({ status: 'cancelled' });
-    expect(apiFetch).toHaveBeenCalledTimes(1);
+    // One identity lookup plus repeated server validation while the provider
+    // remains non-terminal. None of those client-side polls can grant Premium.
+    expect(apiFetch.mock.calls.length).toBeGreaterThan(1);
     jest.useRealTimers();
   });
 
@@ -344,8 +346,8 @@ describe('RuStore Pay client service', () => {
     const nativeBridge = {
       getPurchases: jest.fn().mockResolvedValue({
         purchases: [
-          { productId: 'premium.month', productType: 'SUBSCRIPTION', purchaseId: 'purchase-1' },
-          { productId: 'premium.year', productType: 'SUBSCRIPTION', purchaseId: 'purchase-2' },
+          { productId: 'premium.month', productType: 'SUBSCRIPTION', purchaseId: 'purchase-1', status: 'ACTIVE' },
+          { productId: 'premium.year', productType: 'SUBSCRIPTION', purchaseId: 'purchase-2', status: 'ACTIVE' },
           { productId: 'other.product', productType: 'CONSUMABLE', purchaseId: 'purchase-3' },
         ],
       }),
@@ -381,7 +383,7 @@ describe('RuStore Pay client service', () => {
           period: 'P1M',
         },
       },
-      { status: 'failed', reason: 'RUSTORE_SERVER_VALIDATION_FAILED' },
+      { status: 'pending', reason: 'RUSTORE_SERVER_VALIDATION_PENDING' },
     ]);
     expect(apiFetch).toHaveBeenCalledTimes(2);
   });
@@ -389,7 +391,7 @@ describe('RuStore Pay client service', () => {
   it('fails closed when backend omits the canonical entitlement snapshot', async () => {
     const nativeBridge = {
       getPurchases: jest.fn().mockResolvedValue({
-        purchases: [{ productId: 'premium.month', productType: 'SUBSCRIPTION', purchaseId: 'purchase-1' }],
+        purchases: [{ productId: 'premium.month', productType: 'SUBSCRIPTION', purchaseId: 'purchase-1', status: 'ACTIVE' }],
       }),
     };
     const { apiFetch, service } = loadService(nativeBridge);
@@ -398,6 +400,38 @@ describe('RuStore Pay client service', () => {
     await expect(service.restoreRuStorePurchases()).resolves.toEqual([
       { status: 'failed', reason: 'RUSTORE_ENTITLEMENT_SNAPSHOT_INVALID' },
     ]);
+  });
+
+  it('server-validates PAUSED restores once and finishes without granting Premium', async () => {
+    const nativeBridge = {
+      getPurchases: jest.fn().mockResolvedValue({
+        purchases: [{
+          productId: 'premium.month',
+          productType: 'SUBSCRIPTION',
+          purchaseId: 'purchase-hold',
+          status: 'PAUSED',
+        }],
+      }),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockResolvedValueOnce(response({
+      purchaseActive: false,
+      entitlement: {
+        state: 'expired',
+        isPremium: false,
+        source: 'rustore',
+        startsAt: '2026-08-13T00:00:00.000Z',
+        endsAt: '2026-09-13T00:00:00.000Z',
+        autoRenew: true,
+        productId: 'premium.month',
+        period: 'P1M',
+      },
+    }));
+
+    await expect(service.restoreRuStorePurchases()).resolves.toEqual([
+      { status: 'failed', reason: 'RUSTORE_SUBSCRIPTION_PAUSED' },
+    ]);
+    expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 
   it('returns an explicit restore failure when the native purchase query fails', async () => {
@@ -428,6 +462,8 @@ describe('RuStore Pay client service', () => {
     );
     expect(native).toContain('getSubscriptionInfo()');
     expect(native).toContain('MainPeriod');
+    expect(native).toContain('RUSTORE_PROMO_NOT_SUPPORTED');
+    expect(native).toContain('payload.put("status", "CANCELLED")');
     expect(native).toContain('openSubscriptionManagement');
     expect(native).toContain('rustore://profile/subscriptions');
   });

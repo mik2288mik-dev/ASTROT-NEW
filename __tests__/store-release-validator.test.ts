@@ -36,6 +36,8 @@ const validReleaseEnv = (): NodeJS.ProcessEnv => ({
   EMAIL_OTP_DELIVERY_SECRET: 'email-delivery-secret',
   EMAIL_OTP_HASH_SECRET: 'h'.repeat(32),
   AUTH_RATE_LIMIT_SECRET: 'r'.repeat(32),
+  APP_SESSION_SECRET: 's'.repeat(32),
+  CRON_SECRET: 'c'.repeat(32),
   RUSTORE_CONSOLE_APP_ID: '123456',
   RUSTORE_PACKAGE_NAME: 'ru.tvoygoroskop.app',
   NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: 'premium.month',
@@ -102,5 +104,17 @@ describe('store release validator', () => {
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('RUSTORE_PRIVATE_KEY_BASE64 must be a base64-encoded PKCS#8 RSA private key');
+  });
+
+  it('requires the callback worker secret for a production subscription release', () => {
+    const result = validate({ ...validReleaseEnv(), CRON_SECRET: '' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('CRON_SECRET is required');
+  });
+
+  it('requires a numeric RuStore Console application ID', () => {
+    const result = validate({ ...validReleaseEnv(), RUSTORE_CONSOLE_APP_ID: 'app-123' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('RUSTORE_CONSOLE_APP_ID must be the numeric application ID');
   });
 });

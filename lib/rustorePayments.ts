@@ -79,6 +79,13 @@ function apiRoot(sandbox: boolean): string {
     : 'https://public-api.rustore.ru/public';
 }
 
+export function resolveRuStoreSandboxMode(): boolean {
+  const mode = String(process.env.RUSTORE_PAY_MODE || '').trim().toLowerCase();
+  if (mode === 'sandbox') return true;
+  if (mode === 'production') return false;
+  throw new RuStorePaymentError('RUSTORE_PAY_MODE_REQUIRED');
+}
+
 function ruStorePrivateKey(): crypto.KeyObject {
   const encoded = required('RUSTORE_PRIVATE_KEY_BASE64').replace(/\s+/g, '');
   try {
@@ -750,11 +757,7 @@ export async function processRuStoreCallback(callback: RuStoreCallback) {
   const sandbox = data.sandbox === true
     || payload.sandbox === true
     || notificationType.endsWith('_SANDBOX');
-  const configuredMode = String(process.env.RUSTORE_PAY_MODE || '').trim().toLowerCase();
-  if (!['sandbox', 'production'].includes(configuredMode)) {
-    throw new RuStorePaymentError('RUSTORE_PAY_MODE_REQUIRED');
-  }
-  if (sandbox !== (configuredMode === 'sandbox')) {
+  if (sandbox !== resolveRuStoreSandboxMode()) {
     throw new RuStorePaymentError('RUSTORE_CALLBACK_ENVIRONMENT_MISMATCH');
   }
   const testEvent = notificationType === 'TEST_EVENT'

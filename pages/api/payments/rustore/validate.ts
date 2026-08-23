@@ -1,7 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
 import { userHasRecoveryIdentity } from '../../../../lib/auth/accountIdentity';
-import { RuStorePaymentError, validateRuStorePurchase } from '../../../../lib/rustorePayments';
+import {
+  resolveRuStoreSandboxMode,
+  RuStorePaymentError,
+  validateRuStorePurchase,
+} from '../../../../lib/rustorePayments';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -17,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId: auth.userId,
       productId: typeof req.body?.productId === 'string' ? req.body.productId : '',
       purchaseId: typeof req.body?.purchaseId === 'string' ? req.body.purchaseId : '',
-      sandbox: process.env.RUSTORE_PAY_MODE === 'sandbox',
+      sandbox: resolveRuStoreSandboxMode(),
     });
     return res.status(200).json({
       entitlement: result.entitlement,

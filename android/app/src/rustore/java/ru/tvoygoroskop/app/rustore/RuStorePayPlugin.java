@@ -163,6 +163,10 @@ public class RuStorePayPlugin extends Plugin {
                         call.reject("RUSTORE_TRIAL_NOT_SUPPORTED");
                         return;
                     }
+                    if (period instanceof PromoPeriod) {
+                        call.reject("RUSTORE_PROMO_NOT_SUPPORTED");
+                        return;
+                    }
                     if (period instanceof MainPeriod && !((MainPeriod) period).getDuration().isEmpty()) {
                         hasMainPeriod = true;
                     }
@@ -199,7 +203,11 @@ public class RuStorePayPlugin extends Plugin {
                             RuStorePaymentException.ProductPurchaseCancelled cancelled =
                                 (RuStorePaymentException.ProductPurchaseCancelled) error;
                             if (cancelled.getPurchaseId() == null) {
-                                call.reject("RUSTORE_PURCHASE_STATUS_UNKNOWN", asException(error));
+                                JSObject payload = new JSObject();
+                                payload.put("productId", productId);
+                                payload.put("productType", ProductType.SUBSCRIPTION.name());
+                                payload.put("status", "CANCELLED");
+                                call.resolve(payload);
                                 return;
                             }
                             client().getPurchaseInteractor().getPurchase(cancelled.getPurchaseId())
