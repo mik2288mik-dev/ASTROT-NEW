@@ -5,14 +5,16 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('first value before Premium', () => {
-  it('opens birth data immediately and never asks for notifications in first-run', () => {
+  it('moves from the accepted welcome screens to birth data without notifications or Premium', () => {
     const onboarding = read('views/Onboarding.tsx');
 
-    expect(onboarding).not.toContain('const STORIES');
-    expect(onboarding).not.toContain("useState<'stories'|'birth'>");
+    expect(onboarding).toContain("initialStep = 'stories'");
+    expect(onboarding).toContain("setScreen(currentIndex === introScreens.length - 1 ? 'choice'");
+    expect(onboarding).toContain('Создать личный прогноз');
     expect(onboarding).not.toContain('onb-notify');
     expect(onboarding).not.toContain('Присылать уведомления');
-    expect(onboarding).toContain('Данные для расчёта');
+    expect(onboarding).not.toContain("setView('paywall')");
+    expect(onboarding).toContain('Немного данных —');
     expect(onboarding).toContain("notificationFrequency: 'quiet'");
   });
 

@@ -8983,3 +8983,548 @@ body,
     opacity: 0.72;
   }
 }
+
+/* ── MEOU first-run onboarding ─────────────────────────────────────────── */
+.meou-onboarding {
+  --meou-ink: #171717;
+  --meou-muted: #77777b;
+  --meou-line: #e9dfd4;
+  --meou-gold: #bd8758;
+  min-height: 100dvh;
+  background: #fff;
+  color: var(--meou-ink);
+  overflow-x: hidden;
+}
+
+.meou-onboarding-shell {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 31rem);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: max(env(safe-area-inset-top, 0px), 1.6rem) 1.5rem max(env(safe-area-inset-bottom, 0px), 1.3rem);
+}
+
+.meou-onboarding-header { display: grid; gap: 1.25rem; }
+
+.meou-wordmark {
+  justify-self: center;
+  width: 6.95rem;
+  color: var(--meou-ink);
+  line-height: 1;
+}
+
+.meou-wordmark svg { display: block; width: 100%; height: auto; }
+.meou-wordmark-stroke { fill: none; stroke: currentColor; stroke-linecap: square; stroke-linejoin: miter; stroke-width: 2.45; }
+.meou-wordmark-fill { fill: currentColor; }
+
+.meou-wordmark--large {
+  width: min(13.1rem, 64vw);
+}
+
+.meou-progress { display: flex; align-items: center; gap: 1rem; }
+.meou-progress-lines { display: flex; flex: 1; gap: 0.45rem; }
+.meou-progress-lines span { flex: 1; height: 0.18rem; border-radius: 999px; background: #e9e8e7; }
+.meou-progress-lines .is-active { background: var(--meou-ink); }
+.meou-progress-copy { flex: none; color: var(--meou-muted); font-size: 0.78rem; line-height: 1; }
+
+.meou-story { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; cursor: pointer; outline: none; }
+.meou-story:focus-visible { outline: 0; }
+.meou-story-copy { padding-top: clamp(2.4rem, 8vh, 4.3rem); }
+.meou-story h1,
+.meou-choice h1,
+.meou-birth h1,
+.meou-calculating h1 { margin: 0; font-family: 'Helvetica Neue', var(--fresh-font); font-size: clamp(2rem, 8.3vw, 2.45rem); font-weight: 300; letter-spacing: -0.055em; line-height: 1.22; }
+.meou-story h1 span,
+.meou-choice h1 span,
+.meou-birth h1 span,
+.meou-calculating h1 span { color: var(--meou-gold); }
+.meou-story-description { margin: auto 0 0; color: #39393c; font-size: 0.94rem; line-height: 1.62; }
+
+.meou-day-orbit { position: absolute; top: 28%; left: -22%; width: 145%; height: 17rem; border: 1px solid rgba(189, 135, 88, 0.36); border-radius: 50%; transform: rotate(-24deg); }
+.meou-clock { position: relative; z-index: 1; display: grid; align-content: center; justify-items: center; width: min(15.5rem, 74vw); aspect-ratio: 1.25; margin: auto; border: 0.7rem solid #eee8df; border-radius: 1.45rem; background: #080808; box-shadow: -0.55rem 0.75rem 0 #d9d2c8, 0 1.2rem 1.6rem rgba(37, 29, 21, 0.22); color: #f1efec; transform: rotate(-4deg); }
+.meou-clock::after { position: absolute; right: 0.65rem; bottom: -1.05rem; width: 0.45rem; height: 0.78rem; border-radius: 0 0 0.2rem 0.2rem; background: #a9a399; content: ''; }
+.meou-clock-date { font-size: 1.2rem; letter-spacing: 0.06em; }
+.meou-clock-time { margin-top: 1.3rem; font-size: 1.36rem; letter-spacing: 0.03em; }
+.meou-swipe-hint { display: flex; align-items: center; justify-content: center; gap: 0.85rem; margin-top: 3rem; color: var(--meou-muted); font-size: 0.72rem; }
+.meou-swipe-hint span { width: 100%; height: 1px; background: var(--meou-gold); }
+.meou-swipe-hint span::after { display: block; width: 0.55rem; height: 0.55rem; margin-left: auto; border-top: 1px solid var(--meou-gold); border-right: 1px solid var(--meou-gold); content: ''; transform: translateY(-0.22rem) rotate(45deg); }
+
+.meou-natal-orbit { position: relative; width: min(20rem, 86vw); aspect-ratio: 1; margin: auto; border: 1px solid rgba(189, 135, 88, 0.44); border-radius: 50%; background: repeating-conic-gradient(from 0deg, transparent 0 29deg, rgba(189, 135, 88, 0.25) 29.4deg 30deg); }
+.meou-natal-orbit::before { position: absolute; inset: 8%; border: 1px solid rgba(189, 135, 88, 0.25); border-radius: 50%; box-shadow: inset 0 0 0 1.55rem transparent, inset 0 0 0 1.6rem rgba(189, 135, 88, 0.2); content: ''; }
+.meou-orbit-ring { position: absolute; border: 1px solid rgba(189, 135, 88, 0.28); border-radius: 50%; }
+.meou-orbit-ring--outer { inset: 7%; }
+.meou-orbit-ring--middle { inset: 24%; }
+.meou-orbit-ring--inner { inset: 36%; }
+.meou-orbit-line { position: absolute; top: 50%; left: 19%; width: 63%; height: 1px; background: rgba(189, 135, 88, 0.36); transform-origin: center; }
+.meou-orbit-line--one { transform: rotate(24deg); }
+.meou-orbit-line--two { transform: rotate(-42deg); }
+.meou-orbit-node { position: absolute; width: 0.78rem; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 32% 27%, #fff8eb, #b9835f 72%); box-shadow: 0 0.18rem 0.4rem rgba(93, 55, 28, 0.22); }
+.meou-orbit-node--one { top: 31%; left: 23%; }
+.meou-orbit-node--two { right: 26%; bottom: 34%; }
+.meou-orbit-node--three { bottom: 26%; left: 25%; }
+.meou-natal-orbit .meou-spark { position: absolute; top: 45%; left: 45%; font-size: 2rem; }
+.meou-zodiac { position: absolute; color: #aa714c; font-family: 'Noto Sans Symbols 2 Local', 'Segoe UI Symbol', serif; font-size: 1.2rem; line-height: 1; }
+.meou-zodiac--0 { top: 7%; left: calc(50% - 0.5rem); }
+.meou-zodiac--1 { top: 17%; right: 22%; }
+.meou-zodiac--2 { top: 36%; right: 8%; }
+.meou-zodiac--3 { bottom: 27%; right: 12%; }
+.meou-zodiac--4 { right: 26%; bottom: 10%; }
+.meou-zodiac--5 { bottom: 4%; left: calc(50% - 0.5rem); }
+.meou-zodiac--6 { bottom: 11%; left: 24%; }
+.meou-zodiac--7 { bottom: 27%; left: 8%; }
+.meou-zodiac--8 { top: 39%; left: 6%; }
+.meou-zodiac--9 { top: 20%; left: 17%; }
+.meou-zodiac--10 { top: 11%; left: 34%; }
+.meou-zodiac--11 { top: 18%; left: 8%; }
+.meou-spark { color: var(--meou-gold); font-size: 1.5rem; line-height: 1; }
+
+.meou-people-visual { position: relative; width: min(20rem, 88vw); aspect-ratio: 1.05; margin: auto; }
+.meou-people-orbit { position: absolute; top: 13%; width: 57%; aspect-ratio: 1; border: 1px solid rgba(121, 123, 127, 0.34); border-radius: 50%; }
+.meou-people-orbit--one { left: 5%; border-color: rgba(189, 135, 88, 0.38); }
+.meou-people-orbit--two { right: 5%; }
+.meou-person { position: absolute; top: 46%; width: 1.45rem; height: 0.9rem; border: 1px solid #55555a; border-bottom: 0; border-radius: 0.85rem 0.85rem 0 0; }
+.meou-person::before { position: absolute; top: -0.95rem; left: calc(50% - 0.38rem); width: 0.72rem; height: 0.72rem; border: 1px solid #55555a; border-radius: 50%; content: ''; }
+.meou-person--left { left: 22%; }
+.meou-person--right { right: 22%; }
+.meou-people-visual .meou-spark { position: absolute; top: 47%; left: calc(50% - 0.75rem); }
+
+.meou-choice { display: flex; flex: 1; flex-direction: column; align-items: center; padding-top: clamp(3rem, 11vh, 6.5rem); text-align: center; }
+.meou-choice-orbit { position: relative; width: 130%; height: 11.5rem; margin-bottom: 2.35rem; border: 1px solid rgba(189, 135, 88, 0.36); border-radius: 50%; transform: rotate(-18deg); }
+.meou-choice-orbit::after { position: absolute; inset: 27% 26%; border: 1px solid rgba(189, 135, 88, 0.28); border-radius: 50%; content: ''; }
+.meou-choice-orbit .meou-spark { position: absolute; top: 45%; left: 48%; transform: rotate(12deg); }
+.meou-choice h1 { margin-top: 1.6rem; font-size: 2.1rem; }
+.meou-choice-actions { display: grid; width: 100%; margin-top: auto; padding-top: 3rem; gap: 1rem; }
+.meou-choice-actions > p { margin: 0; color: var(--meou-muted); font-size: 0.78rem; line-height: 1.5; }
+.meou-button { box-sizing: border-box; min-height: 3.15rem; border-radius: 999px; padding: 0.75rem 1.2rem; font-family: var(--fresh-font); font-size: 0.98rem; font-weight: 400; line-height: 1.2; cursor: pointer; }
+.meou-button--primary { border: 1px solid var(--meou-ink); background: var(--meou-ink); color: #fff; }
+.meou-button--secondary { border: 1px solid rgba(23, 23, 23, 0.7); background: transparent; color: var(--meou-ink); }
+.meou-button:focus-visible, .meou-sign-in:focus-visible, .meou-time-mode button:focus-visible { outline: 2px solid var(--meou-gold); outline-offset: 2px; }
+.meou-sign-in { border: 0; background: transparent; color: var(--meou-muted); font-family: var(--fresh-font); font-size: 0.8rem; cursor: pointer; }
+.meou-sign-in span { color: var(--meou-gold); }
+
+.meou-birth { flex: 1; }
+.meou-birth-heading { position: relative; padding-top: 1.95rem; }
+.meou-birth-heading h1 { font-size: clamp(2rem, 8.5vw, 2.4rem); }
+.meou-birth-heading > p, .meou-calculating > div > p { margin: 1.15rem 0 0; color: var(--meou-muted); font-size: 0.92rem; line-height: 1.55; }
+.meou-birth-orbit { position: absolute; right: -2rem; bottom: -2rem; width: 12rem; height: 5.6rem; border-top: 1px solid rgba(189, 135, 88, 0.35); border-radius: 50%; transform: rotate(-20deg); }
+.meou-birth-orbit .meou-spark { position: absolute; right: 3rem; bottom: 0.7rem; font-size: 0.9rem; }
+.meou-birth-form { display: grid; gap: 1.15rem; padding-top: 2.5rem; }
+.meou-field { display: grid; gap: 0.25rem; color: var(--meou-ink); font-size: 0.82rem; }
+.meou-field > span, .meou-field > label, .meou-time-mode legend { padding: 0; color: var(--meou-ink); font-size: 0.82rem; font-weight: 400; }
+.meou-field input, .meou-city-field .fresh-input { box-sizing: border-box; width: 100%; min-height: 2.6rem; border: 0; border-bottom: 1px solid rgba(23, 23, 23, 0.15); border-radius: 0; background: transparent; padding: 0.28rem 2rem 0.5rem 0; color: var(--meou-ink); font-family: var(--fresh-font); font-size: 1rem; outline: none; }
+.meou-field input:focus, .meou-city-field .fresh-input:focus { border-bottom-color: var(--meou-ink); }
+.meou-field input::placeholder, .meou-city-field .fresh-input::placeholder { color: #afb0b4; }
+.meou-field input:disabled { color: #afb0b4; }
+.meou-time-mode { margin: 0; padding: 0; border: 0; }
+.meou-time-mode > div { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 0.7rem; overflow: hidden; border: 1px solid rgba(23, 23, 23, 0.08); border-radius: 999px; background: #f4f2f0; }
+.meou-time-mode button { min-height: 2.35rem; border: 0; border-right: 1px solid rgba(23, 23, 23, 0.08); background: transparent; color: var(--meou-muted); font-family: var(--fresh-font); font-size: 0.82rem; cursor: pointer; }
+.meou-time-mode button:last-child { border-right: 0; }
+.meou-time-mode .is-active { border-radius: 999px; background: var(--meou-ink); color: #fff; }
+.meou-city-field { position: relative; }
+.meou-city-field::after { position: absolute; right: 0.1rem; bottom: 0.6rem; width: 0.95rem; height: 0.95rem; border: 1px solid #74767a; border-radius: 50% 50% 50% 0; content: ''; transform: rotate(-45deg); }
+.meou-city-field::before { position: absolute; z-index: 1; right: 0.42rem; bottom: 0.94rem; width: 0.26rem; height: 0.26rem; border: 1px solid #74767a; border-radius: 50%; content: ''; }
+.meou-city-field .city-ac { position: relative; }
+.meou-city-field .city-ac-list { z-index: 2; }
+.meou-form-error { margin: -0.35rem 0 0; color: #ae2626; font-size: 0.78rem; }
+.meou-calculate-button { width: 100%; margin-top: 0.65rem; }
+.meou-calculate-button:disabled { cursor: wait; opacity: 0.7; }
+.meou-privacy { margin: -0.1rem 0 0; text-align: center; color: var(--meou-muted); font-size: 0.74rem; }
+
+.meou-calculating { display: flex; flex: 1; flex-direction: column; padding-top: 1.95rem; }
+.meou-calculating .meou-natal-orbit { width: min(23rem, 95vw); margin: auto; }
+.meou-calculating-footer { display: grid; justify-items: center; gap: 0.75rem; padding-bottom: 1rem; text-align: center; }
+.meou-calculating-footer .meou-spark { font-size: 2rem; }
+.meou-calculating-footer p { margin: 0; color: var(--meou-muted); font-size: 0.92rem; line-height: 1.48; }
+
+@media (max-width: 370px) {
+  .meou-onboarding-shell { padding-right: 1.1rem; padding-left: 1.1rem; }
+  .meou-story-copy { padding-top: 1.7rem; }
+  .meou-story h1 { font-size: 2.1rem; }
+  .meou-birth-form { gap: 0.8rem; padding-top: 1.65rem; }
+  .meou-birth-heading > p { margin-top: 0.75rem; font-size: 0.84rem; }
+}
+
+@media (max-height: 860px) {
+  .meou-birth-form { gap: 0.8rem; padding-top: 1.55rem; }
+  .meou-calculate-button { margin-top: 0.25rem; }
+}
+
+/* TARGET-render alignment: keep onboarding logic untouched and override visuals only. */
+.meou-onboarding {
+  --meou-ink: #202020;
+  --meou-muted: #777c80;
+  --meou-gold: #bd8555;
+  background: #fff;
+  font-family: 'Helvetica Neue', var(--fresh-font);
+}
+
+.meou-onboarding-shell {
+  width: min(100%, 27rem);
+  padding: max(env(safe-area-inset-top, 0px), 1.55rem) 2rem max(env(safe-area-inset-bottom, 0px), 1.4rem);
+}
+
+.meou-onboarding-header {
+  gap: 1.15rem;
+}
+
+.meou-wordmark {
+  width: 7.2rem;
+}
+
+.meou-wordmark svg {
+  overflow: visible;
+}
+
+.meou-wordmark path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 1.8;
+}
+
+.meou-wordmark--large {
+  width: min(16.25rem, 74vw);
+}
+
+.meou-progress {
+  min-height: 0.3rem;
+  gap: 1.1rem;
+}
+
+.meou-progress-lines {
+  gap: 0.5rem;
+}
+
+.meou-progress-lines span {
+  height: 0.14rem;
+  border-radius: 999px;
+  background: #e8e7e5;
+}
+
+.meou-progress-copy {
+  min-width: 2.6rem;
+  color: #777c80;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.meou-progress:not(:has(.meou-progress-copy)) .meou-progress-lines {
+  flex: none;
+  width: min(100%, 14rem);
+  margin: 0 auto;
+}
+
+.meou-story-copy {
+  padding-top: clamp(2.25rem, 6.4vh, 3.4rem);
+}
+
+.meou-story h1,
+.meou-choice h1,
+.meou-birth h1,
+.meou-calculating h1 {
+  font-family: 'Helvetica Neue', var(--fresh-font);
+  font-size: clamp(2.05rem, 8.7vw, 2.38rem);
+  font-weight: 300;
+  letter-spacing: -0.045em;
+  line-height: 1.17;
+}
+
+.meou-story-description {
+  margin-top: auto;
+  color: #303336;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.meou-day-art,
+.meou-natal-wheel,
+.meou-people-art,
+.meou-choice-art,
+.meou-birth-art,
+.meou-spark {
+  display: block;
+}
+
+.meou-day-art {
+  width: calc(100% + 4rem);
+  max-height: 22rem;
+  margin: 0.25rem -2rem 0;
+}
+
+.meou-story--day .meou-story-description {
+  margin-top: -0.2rem;
+}
+
+.meou-swipe-hint {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 0.85rem;
+  margin-top: 2.8rem;
+  color: #7c7f82;
+  font-size: 0.7rem;
+}
+
+.meou-swipe-hint span {
+  position: relative;
+  width: 100%;
+  height: 1px;
+  background: #d6a271;
+}
+
+.meou-swipe-hint span::after {
+  position: absolute;
+  top: -0.3rem;
+  right: 0.08rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin: 0;
+  border-color: #d6a271;
+}
+
+.meou-natal-wheel {
+  width: calc(100% + 3.5rem);
+  margin: 0.6rem -1.75rem 0;
+}
+
+.meou-story--self .meou-story-description {
+  margin-top: 0.2rem;
+}
+
+.meou-people-art {
+  width: calc(100% + 3.25rem);
+  margin: 1rem -1.625rem 0;
+}
+
+.meou-story--people .meou-story-description {
+  margin-top: auto;
+}
+
+.meou-choice {
+  flex: 1;
+  padding-top: 1.35rem;
+}
+
+.meou-choice-art {
+  width: calc(100% + 4rem);
+  margin: 0.2rem -2rem 0.45rem;
+}
+
+.meou-choice .meou-wordmark--large {
+  flex: none;
+}
+
+.meou-choice h1 {
+  margin-top: 1.5rem;
+  font-size: 2rem;
+  letter-spacing: -0.035em;
+}
+
+.meou-choice-actions {
+  gap: 0.8rem;
+  margin-top: 0;
+  padding-top: 2rem;
+}
+
+.meou-choice-actions > p {
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.meou-button {
+  min-height: 3rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 300;
+}
+
+.meou-sign-in {
+  min-height: 2.6rem;
+  padding: 0.5rem;
+  font-size: 0.76rem;
+}
+
+.meou-birth {
+  position: relative;
+  flex: 1;
+}
+
+.meou-birth-heading {
+  padding-top: 1.7rem;
+}
+
+.meou-birth-heading h1 {
+  font-size: clamp(2rem, 8.6vw, 2.35rem);
+}
+
+.meou-birth-heading > p,
+.meou-calculating > div > p {
+  margin-top: 1rem;
+  color: #777c80;
+  font-size: 0.87rem;
+  line-height: 1.5;
+}
+
+.meou-birth-art {
+  position: absolute;
+  right: -2rem;
+  bottom: -2.35rem;
+  width: 13.75rem;
+  pointer-events: none;
+}
+
+.meou-birth-form {
+  gap: 0.95rem;
+  padding-top: 2.35rem;
+}
+
+.meou-field {
+  gap: 0.16rem;
+}
+
+.meou-field > span,
+.meou-field > label,
+.meou-time-mode legend {
+  color: #292b2d;
+  font-size: 0.78rem;
+}
+
+.meou-field input,
+.meou-city-field .fresh-input {
+  min-height: 2.45rem;
+  border-bottom-color: rgba(32, 32, 32, 0.16);
+  padding: 0.25rem 2rem 0.4rem 0;
+  font-size: 0.98rem;
+  font-weight: 300;
+}
+
+.meou-time-field {
+  position: relative;
+}
+
+.meou-time-placeholder {
+  display: none;
+}
+
+.meou-time-field.is-empty .meou-time-placeholder {
+  position: absolute;
+  bottom: 0.58rem;
+  left: 0;
+  display: block;
+  color: #afb0b4;
+  font-size: 0.98rem;
+  font-weight: 300;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+
+.meou-time-field.is-empty input {
+  color: transparent;
+}
+
+.meou-time-mode > div {
+  margin-top: 0.55rem;
+  border-color: rgba(32, 32, 32, 0.08);
+  background: #f4f3f1;
+}
+
+.meou-time-mode button {
+  min-height: 2.2rem;
+  font-size: 0.78rem;
+  font-weight: 300;
+}
+
+.meou-time-mode .is-active {
+  background: #171717;
+}
+
+.meou-calculate-button {
+  margin-top: 0.35rem;
+}
+
+.meou-privacy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: -0.2rem;
+  color: #777c80;
+  font-size: 0.7rem;
+}
+
+.meou-privacy svg {
+  width: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+}
+
+.meou-calculating {
+  padding-top: 1.7rem;
+}
+
+.meou-calculating .meou-natal-wheel {
+  width: calc(100% + 4rem);
+  margin: 0.4rem -2rem 0;
+}
+
+.meou-calculating-footer {
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-bottom: 0.65rem;
+}
+
+.meou-calculating-footer .meou-spark {
+  width: 2.35rem;
+  height: 2.35rem;
+  fill: #bd8555;
+}
+
+.meou-calculating-footer p {
+  color: #777c80;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 370px) {
+  .meou-onboarding-shell {
+    padding-right: 1.55rem;
+    padding-left: 1.55rem;
+  }
+
+  .meou-day-art,
+  .meou-choice-art {
+    width: calc(100% + 3.1rem);
+    margin-right: -1.55rem;
+    margin-left: -1.55rem;
+  }
+
+  .meou-natal-wheel,
+  .meou-people-art {
+    width: calc(100% + 2.7rem);
+    margin-right: -1.35rem;
+    margin-left: -1.35rem;
+  }
+
+  .meou-birth-form {
+    gap: 0.78rem;
+    padding-top: 1.6rem;
+  }
+}
+
+@media (max-height: 760px) {
+  .meou-story-copy { padding-top: 1.45rem; }
+  .meou-day-art { max-height: 18rem; }
+  .meou-natal-wheel { width: calc(100% + 1.5rem); margin-right: -0.75rem; margin-left: -0.75rem; }
+  .meou-people-art { max-height: 16rem; }
+  .meou-choice-art { max-height: 8.4rem; }
+  .meou-choice h1 { margin-top: 0.8rem; }
+  .meou-choice-actions { padding-top: 1rem; }
+  .meou-birth-heading { padding-top: 1.1rem; }
+  .meou-birth-form { gap: 0.68rem; padding-top: 1.15rem; }
+  .meou-field input, .meou-city-field .fresh-input { min-height: 2.1rem; }
+  .meou-calculating { padding-top: 1.1rem; }
+}

@@ -5,8 +5,10 @@ const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('first-run onboarding completion flow', () => {
-  it('opens the birth form directly and reaches personal Today before any Premium surface', () => {
+  it('keeps the accepted welcome flow and reaches personal Today before any Premium surface', () => {
     const onboarding = read('views/Onboarding.tsx');
+    const logo = read('components/onboarding/MeouLogo.tsx');
+    const artwork = read('components/onboarding/OnboardingArtwork.tsx');
     const app = read('App.tsx');
     const dashboard = read('views/Dashboard.tsx');
     const completionFlow = app.slice(
@@ -15,22 +17,27 @@ describe('first-run onboarding completion flow', () => {
     );
 
     for (const preserved of [
-      'className="fresh-page lumia-main-scroll onboarding-editorial-page"',
-      'className="fresh-page-title"',
-      'className="fresh-input"',
-      'className={`onb-gender',
-      'className="fresh-btn-primary"',
+      'className="meou-onboarding fresh-page lumia-main-scroll antialiased"',
+      '<MeouLogo />',
+      '<DayClockArtwork />',
+      '<NatalWheelArtwork />',
+      '<PeopleArtwork />',
       'CityAutocomplete',
-      'Данные для расчёта',
-      'Сначала рассчитаем твою карту, затем подготовим личный Today.',
-      'Рассчитать карту',
+      'Создать личный прогноз',
+      'Немного данных —',
+      'Рассчитать вашу карту',
     ]) {
       expect(onboarding).toContain(preserved);
     }
+    expect(onboarding).toContain("const introScreens: OnboardingScreen[] = ['day', 'self', 'people']");
+    expect(onboarding).toContain("setScreen(currentIndex === introScreens.length - 1 ? 'choice'");
+    expect(onboarding).toContain("initialStep === 'birth' ? 'birth' : 'day'");
     expect(onboarding).not.toContain('const STORIES: Story[]');
     expect(onboarding).not.toContain('nextStory');
     expect(onboarding).not.toContain("setStep('birth')");
     expect(onboarding).not.toContain('className="onb-notify"');
+    expect(logo).toContain('/assets/brand/personal-horoscope-mark.svg');
+    expect(artwork).toContain('export const NatalWheelArtwork');
 
     for (const field of [
       'name: name.trim()',

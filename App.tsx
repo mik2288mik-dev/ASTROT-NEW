@@ -350,6 +350,7 @@ const App: React.FC = () => {
     const [authSessionMode, setAuthSessionModeState] = useState<AuthSessionMode>('automatic');
     const [authGateMessage, setAuthGateMessage] = useState<string | null>(null);
     const [view, setView] = useState<ViewState>('onboarding');
+    const [onboardingInitialStep, setOnboardingInitialStep] = useState<'stories' | 'birth'>('stories');
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
     const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
@@ -1673,6 +1674,7 @@ const App: React.FC = () => {
 
         onboardingTargetViewRef.current = targetView;
         setChartReturnView(safeReturnView === 'chart' ? 'dashboard' : safeReturnView);
+        setOnboardingInitialStep('birth');
         setView('onboarding');
     }, []);
 
@@ -2077,7 +2079,12 @@ const App: React.FC = () => {
                 <div className="relative z-10 h-full">
                     <Onboarding
                         onComplete={handleOnboardingComplete}
-                        initialStep="birth"
+                        initialStep={onboardingInitialStep}
+                        onSkip={() => {
+                            setDashboardPeriod('day');
+                            setView('dashboard');
+                        }}
+                        onSignIn={() => { void handleLogout(); }}
                     />
                 </div>
             </div>

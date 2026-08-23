@@ -1,36 +1,63 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { UserProfile } from '../types';
 import { ensureTelegramFullscreen } from '../lib/telegramFullscreen';
-import { sunSignFromDate } from '../lib/synastry/compatScore';
-import { getZodiacSign } from '../constants';
 import { CityAutocomplete } from '../components/ui/CityAutocomplete';
+import { MeouLogo } from '../components/onboarding/MeouLogo';
+import {
+  BirthOrbitArtwork,
+  ChoiceOrbitArtwork,
+  DayClockArtwork,
+  MeouSpark,
+  NatalWheelArtwork,
+  PeopleArtwork,
+} from '../components/onboarding/OnboardingArtwork';
 import type { BirthTimeMode, BirthTimeUncertaintyMinutes } from '../lib/birthTime';
+
+type OnboardingStart = 'stories' | 'birth';
+type OnboardingScreen = 'day' | 'self' | 'people' | 'choice' | 'birth' | 'calculating';
+type FieldKey = 'name' | 'date' | 'time' | 'place';
+type ErrorField = FieldKey | null;
 
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => Promise<void>;
-  initialStep?: 'stories' | 'birth';
+  initialStep?: OnboardingStart;
+  onSkip: () => void;
+  onSignIn: () => void;
 }
 
-type FieldKey = 'name' | 'date' | 'time' | 'place';
-type ErrorField = FieldKey | 'uncertainty' | null;
+const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
+const OnboardingProgress = ({ current, count, labelled = true }: { current: number; count: number; labelled?: boolean }) => (
+  <div className="meou-progress" aria-label={`${current} из ${count}`}>
+    <div className="meou-progress-lines" aria-hidden="true">
+      {Array.from({ length: count }).map((_, index) => (
+        <span key={index} className={index + 1 === current ? 'is-active' : ''} />
+      ))}
+    </div>
+    {labelled ? <span className="meou-progress-copy">{current} из {count}</span> : null}
+  </div>
+);
 
-export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+export const Onboarding: React.FC<OnboardingProps> = ({
+  onComplete,
+  initialStep = 'stories',
+  onSkip,
+  onSignIn,
+}) => {
+  const [screen, setScreen] = useState<OnboardingScreen>(initialStep === 'birth' ? 'birth' : 'day');
   const [name, setName] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | 'unspecified'>('unspecified');
+  const [gender] = useState<'male' | 'female' | 'unspecified'>('unspecified');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [timeMode, setTimeMode] = useState<Exclude<BirthTimeMode, 'range'>>('exact');
   const [uncertainty, setUncertainty] = useState<BirthTimeUncertaintyMinutes | null>(null);
   const [place, setPlace] = useState('');
-  const [placeCoords, setPlaceCoords] = useState<{
-    lat: number;
-    lon: number;
-    timezone?: string;
-  } | null>(null);
+  const [placeCoords, setPlaceCoords] = useState<{ lat: number; lon: number; timezone?: string } | null>(null);
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<ErrorField>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const touchStartX = useRef<number | null>(null);
+  const pageRef = useRef<HTMLElement | null>(null);
   const nameRef = useRef<HTMLInputElement | null>(null);
   const dateRef = useRef<HTMLInputElement | null>(null);
   const timeRef = useRef<HTMLInputElement | null>(null);
@@ -38,16 +65,30 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   useEffect(() => {
     const tg = (window as any).Telegram?.WebApp;
-    if (tg?.initDataUnsafe?.user) {
-      setName(tg.initDataUnsafe.user.first_name || '');
-    }
+    if (tg?.initDataUnsafe?.user) setName(tg.initDataUnsafe.user.first_name || '');
     ensureTelegramFullscreen();
   }, []);
 
-  const signHint = useMemo(() => {
-    const sign = sunSignFromDate(date);
-    return sign ? getZodiacSign('ru', sign) : '';
-  }, [date]);
+  useEffect(() => {
+    const resetScroll = () => {
+      pageRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    resetScroll();
+    const frame = window.requestAnimationFrame(resetScroll);
+    const timer = window.setTimeout(resetScroll, 0);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [screen]);
+
+  const clearError = () => {
+    setError('');
+    setErrorField(null);
+  };
 
   const focusField = (field: FieldKey) => {
     const refs: Record<FieldKey, React.RefObject<HTMLInputElement | null>> = {
@@ -58,17 +99,24 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     };
     refs[field].current?.focus();
   };
-  const clearError = () => {
-    setError('');
-    setErrorField(null);
+
+  const advanceStory = () => {
+    const currentIndex = introScreens.indexOf(screen);
+    if (currentIndex < 0) return;
+    setScreen(currentIndex === introScreens.length - 1 ? 'choice' : introScreens[currentIndex + 1]);
   };
+
   const chooseTimeMode = (mode: Exclude<BirthTimeMode, 'range'>) => {
     setTimeMode(mode);
     clearError();
     if (mode === 'unknown') {
       setTime('');
       setUncertainty(null);
-    } else if (mode === 'exact') {
+    } else if (mode === 'approximate') {
+      // The existing profile requires an uncertainty value. The compact approved
+      // control maps "Примерно" to the established 30-minute mode.
+      setUncertainty(30);
+    } else {
       setUncertainty(null);
     }
   };
@@ -93,11 +141,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       focusField('time');
       return;
     }
-    if (timeMode === 'approximate' && !uncertainty) {
-      setError('Укажи погрешность времени.');
-      setErrorField('uncertainty');
-      return;
-    }
     if (!place.trim()) {
       setError('Укажи место рождения.');
       setErrorField('place');
@@ -107,6 +150,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
     submittingRef.current = true;
     setIsSubmitting(true);
+    setScreen('calculating');
     clearError();
     try {
       await onComplete({
@@ -129,237 +173,159 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         notificationFrequency: 'quiet',
       });
     } catch (submitError: any) {
+      setScreen('birth');
       setErrorField(null);
-      setError(
-        submitError?.message
-          || 'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.',
-      );
+      setError(submitError?.message || 'Не удалось сохранить данные и рассчитать карту. Попробуй ещё раз.');
     } finally {
       submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
 
+  const introIndex = introScreens.indexOf(screen) + 1;
+  const isIntro = introIndex > 0;
+
   return (
-    <div
-      className="fresh-page lumia-main-scroll onboarding-editorial-page"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100dvh',
-        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)) + 16px)',
-      }}
-    >
-      <div style={{ padding: '4px 20px 0' }}>
-        <p className="lumia-brand-wordmark">Твой Гороскоп</p>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          flex: 1,
-          flexDirection: 'column',
-          maxWidth: '28rem',
-          width: '100%',
-          margin: '0 auto',
-        }}
-      >
-        <div style={{ padding: '8px 20px 0' }}>
-          <h1 className="fresh-page-title" style={{ maxWidth: '18rem' }}>
-            Данные для расчёта
-          </h1>
-          <p
-            style={{
-              marginTop: 12,
-              maxWidth: '21rem',
-              fontSize: 14.5,
-              lineHeight: 1.55,
-              color: 'var(--fresh-muted)',
+    <main ref={pageRef} className="meou-onboarding fresh-page lumia-main-scroll antialiased">
+      <div className="meou-onboarding-shell">
+        <header className="meou-onboarding-header">
+          <MeouLogo />
+          {isIntro ? <OnboardingProgress current={screen === 'day' ? 1 : 2} count={3} labelled={false} /> : null}
+          {screen === 'choice' ? <OnboardingProgress current={3} count={3} labelled={false} /> : null}
+          {screen === 'birth' ? <OnboardingProgress current={1} count={2} /> : null}
+          {screen === 'calculating' ? <OnboardingProgress current={2} count={2} /> : null}
+        </header>
+
+        {isIntro ? (
+          <section
+            className={`meou-story meou-story--${screen}`}
+            role="button"
+            tabIndex={0}
+            aria-label="Продолжить"
+            onClick={advanceStory}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                advanceStory();
+              }
+            }}
+            onTouchStart={(event) => { touchStartX.current = event.touches[0]?.clientX ?? null; }}
+            onTouchEnd={(event) => {
+              const start = touchStartX.current;
+              const end = event.changedTouches[0]?.clientX;
+              touchStartX.current = null;
+              if (start != null && end != null && start - end > 36) advanceStory();
             }}
           >
-            Сначала рассчитаем твою карту, затем подготовим личный Today. Дата,
-            время и место рождения нужны для Swiss Ephemeris; часовой пояс
-            определим по городу и дате.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '22px 20px 0' }}>
-          <div>
-            <label className="fresh-field-label" htmlFor="onboarding-name">Имя</label>
-            <input
-              id="onboarding-name"
-              ref={nameRef}
-              type="text"
-              value={name}
-              onChange={(event) => { setName(event.target.value); clearError(); }}
-              className="fresh-input"
-              placeholder="Как к тебе обращаться"
-              aria-invalid={errorField === 'name' || undefined}
-              aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined}
-            />
-          </div>
-
-          <div>
-            <span id="onboarding-gender-label" className="fresh-field-label">Пол</span>
-            <div role="group" aria-labelledby="onboarding-gender-label" style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              {([
-                ['male', 'Мужской'],
-                ['female', 'Женский'],
-                ['unspecified', 'Не указывать'],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setGender(value)}
-                  aria-pressed={gender === value}
-                  style={{ minHeight: 44 }}
-                  className={`onb-gender ${gender === value ? 'is-on' : ''}`}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="meou-story-copy">
+              {screen === 'day' ? <h1>Твой день.<br />Без воды<span>.</span></h1> : null}
+              {screen === 'self' ? <h1>Разберём,<br />как ты устроен<span>.</span></h1> : null}
+              {screen === 'people' ? <h1>Сравниваем<br />людей,<br />не картинки<span>.</span></h1> : null}
             </div>
-          </div>
 
-          <div>
-            <label className="fresh-field-label" htmlFor="onboarding-birth-date">Дата рождения</label>
-            <input
-              id="onboarding-birth-date"
-              ref={dateRef}
-              type="date"
-              value={date}
-              onChange={(event) => { setDate(event.target.value); clearError(); }}
-              className="fresh-input"
-              aria-invalid={errorField === 'date' || undefined}
-              aria-describedby={errorField === 'date' ? 'onboarding-error' : undefined}
-            />
-          </div>
+            {screen === 'day' ? (
+              <>
+                <DayClockArtwork />
+                <p className="meou-story-description">Сегодня, неделя и месяц —<br />персонально по твоим данным.</p>
+                <div className="meou-swipe-hint" aria-hidden="true"><span />Свайп, чтобы продолжить</div>
+              </>
+            ) : null}
 
-          <div>
-            <span id="onboarding-time-mode-label" className="fresh-field-label">Время рождения</span>
-            <div
-              role="group"
-              aria-labelledby="onboarding-time-mode-label"
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 6 }}
-            >
-              {([
-                ['exact', 'Знаю точно'],
-                ['approximate', 'Знаю примерно'],
-                ['unknown', 'Не знаю'],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => chooseTimeMode(value)}
-                  aria-pressed={timeMode === value}
-                  style={{ minHeight: 44 }}
-                  className={`onb-gender ${timeMode === value ? 'is-on' : ''}`}
-                >
-                  {label}
-                </button>
-              ))}
+            {screen === 'self' ? (
+              <>
+                <NatalWheelArtwork />
+                <p className="meou-story-description">Сильные стороны, привычные<br />реакции и важные детали<br />расчёта — простыми словами.</p>
+              </>
+            ) : null}
+
+            {screen === 'people' ? (
+              <>
+                <PeopleArtwork />
+                <p className="meou-story-description">Партнёр, друг или новый<br />знакомый — по данным<br />рождения или быстро по знакам.</p>
+              </>
+            ) : null}
+          </section>
+        ) : null}
+
+        {screen === 'choice' ? (
+          <section className="meou-choice">
+            <ChoiceOrbitArtwork />
+            <MeouLogo large />
+            <h1>Как начнём?</h1>
+            <div className="meou-choice-actions">
+              <button type="button" className="meou-button meou-button--primary" onClick={() => setScreen('birth')}>
+                Создать личный прогноз
+              </button>
+              <p>Имя, дата, место и время —<br />если знаешь</p>
+              <button type="button" className="meou-button meou-button--secondary" onClick={onSkip}>
+                Смотреть без данных
+              </button>
+              <button type="button" className="meou-sign-in" onClick={onSignIn}>
+                Уже есть аккаунт — <span>войти</span>
+              </button>
             </div>
-          </div>
+          </section>
+        ) : null}
 
-          {timeMode !== 'unknown' ? (
-            <div>
-              <label className="fresh-field-label" htmlFor="onboarding-birth-time">Часы и минуты</label>
-              <input
-                id="onboarding-birth-time"
-                ref={timeRef}
-                type="time"
-                step={60}
-                value={time}
-                onChange={(event) => { setTime(event.target.value); clearError(); }}
-                className="fresh-input"
-                aria-invalid={errorField === 'time' || undefined}
-                aria-describedby={errorField === 'time' ? 'onboarding-error' : undefined}
-              />
+        {screen === 'birth' ? (
+          <section className="meou-birth">
+            <div className="meou-birth-heading">
+              <h1>Немного данных —<br />и карта готова<span>.</span></h1>
+              <p>Нам нужны ваши дата, время<br />и место рождения. Без точного времени<br />тоже можно — мы всё учтём.</p>
+              <BirthOrbitArtwork />
             </div>
-          ) : null}
 
-          {timeMode === 'approximate' ? (
-            <div>
-              <span id="onboarding-uncertainty-label" className="fresh-field-label">Погрешность</span>
-              <div
-                role="group"
-                aria-labelledby="onboarding-uncertainty-label"
-                aria-describedby={errorField === 'uncertainty' ? 'onboarding-error' : undefined}
-                style={{ display: 'flex', gap: 8, marginTop: 6 }}
-              >
-                {([15, 30, 60] as const).map((minutes) => (
-                  <button
-                    key={minutes}
-                    type="button"
-                    onClick={() => { setUncertainty(minutes); clearError(); }}
-                    aria-pressed={uncertainty === minutes}
-                    style={{ minHeight: 44 }}
-                    className={`onb-gender ${uncertainty === minutes ? 'is-on' : ''}`}
-                  >
-                    {minutes === 60 ? 'до 1 часа' : `до ${minutes} минут`}
-                  </button>
-                ))}
+            <form className="meou-birth-form" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+              <label className="meou-field" htmlFor="onboarding-name">
+                <span>Имя</span>
+                <input id="onboarding-name" ref={nameRef} name="name" type="text" value={name} placeholder="Ваше имя" onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} />
+              </label>
+              <label className="meou-field" htmlFor="onboarding-birth-date">
+                <span>Дата рождения</span>
+                <input id="onboarding-birth-date" ref={dateRef} name="birth-date" type="date" value={date} onChange={(event) => { setDate(event.target.value); clearError(); }} aria-invalid={errorField === 'date' || undefined} />
+              </label>
+              <label className={`meou-field meou-time-field${time ? '' : ' is-empty'}`} htmlFor="onboarding-birth-time">
+                <span>Время рождения</span>
+                <input id="onboarding-birth-time" ref={timeRef} name="birth-time" type="time" step={60} value={time} disabled={timeMode === 'unknown'} onChange={(event) => { setTime(event.target.value); clearError(); }} aria-invalid={errorField === 'time' || undefined} />
+                <span className="meou-time-placeholder" aria-hidden="true">чч:мм</span>
+              </label>
+              <fieldset className="meou-time-mode">
+                <legend>Насколько точно вы знаете время?</legend>
+                <div>
+                  {([
+                    ['exact', 'Знаю'],
+                    ['approximate', 'Примерно'],
+                    ['unknown', 'Не знаю'],
+                  ] as const).map(([value, label]) => (
+                    <button key={value} type="button" className={timeMode === value ? 'is-active' : ''} aria-pressed={timeMode === value} onClick={() => chooseTimeMode(value)}>{label}</button>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="meou-field meou-city-field">
+                <label htmlFor="onboarding-birth-place">Место рождения</label>
+                <CityAutocomplete id="onboarding-birth-place" value={place} inputRef={placeRef} placeholder="Город, страна" ariaInvalid={errorField === 'place'} onChange={(value, coords) => { setPlace(value); setPlaceCoords(coords ?? null); clearError(); }} />
               </div>
+              {error ? <p id="onboarding-error" className="meou-form-error" role="alert">{error}</p> : null}
+              <button type="submit" className="meou-button meou-button--primary meou-calculate-button" disabled={isSubmitting}>Рассчитать вашу карту</button>
+              <p className="meou-privacy">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="8.5" width="11" height="8" rx="1.5" /><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2" /></svg>
+                Ваши данные защищены
+              </p>
+            </form>
+          </section>
+        ) : null}
+
+        {screen === 'calculating' ? (
+          <section className="meou-calculating" aria-live="polite">
+            <div>
+              <h1>Считаем вашу<br />натальную карту<span>.</span></h1>
+              <p>Определяем положение Солнца, Луны<br />и планет на момент вашего рождения.</p>
             </div>
-          ) : null}
-
-          {timeMode === 'unknown' ? (
-            <p style={{ margin: '-6px 0 0', fontSize: 13, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-              Время не подставляем. Дома, Асцендент и MC не считаем.
-            </p>
-          ) : timeMode === 'approximate' ? (
-            <p style={{ margin: '-6px 0 0', fontSize: 13, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-              Проверим весь диапазон и отметим только то, что в нём не меняется.
-            </p>
-          ) : null}
-
-          {signHint ? (
-            <p style={{ margin: '-6px 0 0', fontSize: 13, fontWeight: 700, color: 'var(--fresh-link)' }}>
-              Знак зодиака: {signHint}
-            </p>
-          ) : null}
-
-          <div>
-            <label className="fresh-field-label" htmlFor="onboarding-birth-place">Место рождения</label>
-            <CityAutocomplete
-              id="onboarding-birth-place"
-              value={place}
-              inputRef={placeRef}
-              placeholder="Начни вводить город…"
-              ariaInvalid={errorField === 'place'}
-              ariaDescribedBy={errorField === 'place' ? 'onboarding-error' : undefined}
-              onChange={(value, coords) => {
-                setPlace(value);
-                setPlaceCoords(coords ?? null);
-                clearError();
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 'auto', paddingTop: 22 }}>
-          {error ? (
-            <p
-              id="onboarding-error"
-              role="alert"
-              style={{ margin: '0 20px 12px', fontSize: 12.5, lineHeight: 1.45, color: '#B91C1C' }}
-            >
-              {error}
-            </p>
-          ) : null}
-          <button
-            type="button"
-            className="fresh-btn-primary"
-            disabled={isSubmitting}
-            aria-busy={isSubmitting}
-            onClick={() => void handleSubmit()}
-          >
-            {isSubmitting ? 'Рассчитываем карту…' : 'Рассчитать карту'}
-          </button>
-          <p style={{ margin: '12px 20px 0', maxWidth: '21rem', fontSize: 10.5, lineHeight: 1.45, color: 'var(--fresh-muted)' }}>
-            Если расчёт или подготовка Today прервутся, введённые данные останутся здесь для повторной попытки.
-          </p>
-        </div>
+            <NatalWheelArtwork compact />
+            <div className="meou-calculating-footer"><MeouSpark /><p>Обычно это занимает<br />до 10 секунд</p></div>
+          </section>
+        ) : null}
       </div>
-    </div>
+    </main>
   );
 };

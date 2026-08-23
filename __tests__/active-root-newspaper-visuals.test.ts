@@ -27,7 +27,7 @@ describe('active root visual contract', () => {
       'views/Dashboard.tsx': 'forecast-feed-page',
       'views/Settings.tsx': 'settings-editorial-page',
       'views/MyCharts.tsx': 'charts-editorial-page',
-      'views/Onboarding.tsx': 'onboarding-editorial-page',
+      'views/Onboarding.tsx': 'meou-onboarding',
       'views/AuthGate.tsx': 'auth-editorial-page',
       'views/Paywall.tsx': 'pw2',
     };
