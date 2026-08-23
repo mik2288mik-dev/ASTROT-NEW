@@ -1,4 +1,4 @@
-import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, Crown, MessageCircle, Send } from 'lucide-react';
 import type {
@@ -33,12 +33,10 @@ import {
 } from '../../lib/natalReading/permanentReport';
 import type { NatalQuestionSnapshot } from '../../lib/natalReading/natalQuestion';
 import type { NatalQuestionStoredMessage } from '../../lib/natalReading/natalQuestionStore';
-import type { EditorialStickerAsset } from '../../lib/personalForecastVisuals/editorialTypes';
 import type { ChartListItem } from '../../services/storageService';
 import { PlanetIcon } from '../icons/PlanetIcon';
 import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
-import { EditorialSticker } from '../EditorialSticker';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 import type { PaywallContext } from '../../lib/paywallContext';
 
@@ -56,7 +54,6 @@ type Props = {
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
   onUpdateProfile?: (profile: UserProfile) => void;
   preloadedReport?: PreloadedNatalReport | null;
-  editorialSticker?: EditorialStickerAsset | null;
   /** Шапку (имя/дата/интро) рисует родитель (NatalMagazine) — не дублируем. */
   hideIntro?: boolean;
   premiumContinuation?: PaywallContext | null;
@@ -64,6 +61,10 @@ type Props = {
   canPromotePremium?: boolean;
   openQuestionRequest?: number;
   onQuestionRequestHandled?: () => void;
+  uiPreview?: {
+    state?: 'ready' | 'loading' | 'error';
+    premiumReport?: NatalPermanentPremiumReport | null;
+  };
 };
 
 const SIGN_RU: Record<string, string> = {
@@ -553,6 +554,9 @@ const PremiumReport: React.FC<{
   language: 'ru' | 'en';
 }> = ({ report, evidenceById, language }) => (
   <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
+    <p className="natal-premium-kicker">
+      {language === 'ru' ? 'Продолжение Premium' : 'Premium continuation'}
+    </p>
     {report.sections.map((section) => (
       <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
         {section.title ? <h2 className="natal-sec-title">{section.title}</h2> : null}
@@ -598,6 +602,21 @@ const NatalReadingSkeleton: React.FC<{ language: 'ru' | 'en' }> = ({ language })
   </section>
 );
 
+const NatalPremiumSkeleton: React.FC<{ language: 'ru' | 'en' }> = ({ language }) => (
+  <section
+    className="natal-premium-skeleton"
+    role="status"
+    aria-label={language === 'ru' ? 'Подготавливаем полный разбор' : 'Preparing the full reading'}
+  >
+    <span className="sr-only">
+      {language === 'ru' ? 'Подготавливаем полный разбор.' : 'Preparing the full reading.'}
+    </span>
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+    <span aria-hidden="true" />
+  </section>
+);
+
 export const HumanReport: React.FC<Props> = ({
   profile,
   chartData,
@@ -606,13 +625,13 @@ export const HumanReport: React.FC<Props> = ({
   requestPremium,
   onUpdateProfile: _onUpdateProfile,
   preloadedReport,
-  editorialSticker,
   hideIntro,
   premiumContinuation,
   onPremiumContinuationHandled,
   canPromotePremium = true,
   openQuestionRequest = 0,
   onQuestionRequestHandled,
+  uiPreview,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
   const subjectName = chartSubject?.name || profile.name;
@@ -629,19 +648,31 @@ export const HumanReport: React.FC<Props> = ({
       ? preloadedReport.report
       : null
   ), [cacheIdentity.chartFingerprint, cacheIdentity.reportVersion, preloadedReport]);
+  const previewConfig = process.env.NODE_ENV === 'development'
+    && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
+      ? uiPreview
+      : undefined;
+  const previewState = previewConfig?.state || 'ready';
+  const previewPremiumReport = previewConfig?.premiumReport || null;
   const evidenceById = useMemo<NatalEvidenceMap>(() => {
     const built = buildNatalModelContext(profile, chartData);
     return new Map(built.context.evidence.map((fact) => [fact.id, fact]));
   }, [chartData, profile]);
   const cachedBase = userId ? getHumanBaseReportCached(userId, chartId, language, cacheIdentity) : null;
-  const initialBase = matchingPreloadedReport || cachedBase;
+  const initialBase = previewConfig && previewState !== 'ready'
+    ? null
+    : matchingPreloadedReport || cachedBase;
   const cachedPremium = userId
     ? getHumanPremiumReportCached(userId, chartId, language, cacheIdentity)?.content || null
     : null;
   const [report, setReport] = useState<NatalPermanentFreeReport | null>(initialBase);
-  const [premiumReport, setPremiumReport] = useState<NatalPermanentPremiumReport | null>(cachedPremium);
-  const [loading, setLoading] = useState(!initialBase);
-  const [error, setError] = useState<string | null>(null);
+  const [premiumReport, setPremiumReport] = useState<NatalPermanentPremiumReport | null>(
+    previewPremiumReport || cachedPremium,
+  );
+  const [loading, setLoading] = useState(previewConfig ? previewState === 'loading' : !initialBase);
+  const [error, setError] = useState<string | null>(
+    previewConfig && previewState === 'error' ? 'Проверь соединение и попробуй снова.' : null,
+  );
   const [premiumLoading, setPremiumLoading] = useState(false);
   const [premiumError, setPremiumError] = useState<string | null>(null);
   const [questionOpen, setQuestionOpen] = useState(false);
@@ -659,11 +690,17 @@ export const HumanReport: React.FC<Props> = ({
   const isPremium = hasActivePremium(profile);
   const reliability = getPermanentNatalReliability(chartData);
   const freeSections = report?.freeSections || [];
-  const stickerAfterSectionIndex = editorialSticker && freeSections.length
-    ? Math.min(1, freeSections.length - 1)
-    : -1;
-
   useEffect(() => {
+    if (previewConfig) {
+      setReport(previewState === 'ready' ? matchingPreloadedReport : null);
+      setLoading(previewState === 'loading');
+      setError(previewState === 'error'
+        ? (language === 'ru'
+            ? 'Проверь соединение и попробуй снова.'
+            : 'Check your connection and try again.')
+        : null);
+      return;
+    }
     if (!userId) return;
     let cancelled = false;
     const cached = getHumanBaseReportCached(userId, chartId, language, cacheIdentity);
@@ -686,9 +723,25 @@ export const HumanReport: React.FC<Props> = ({
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [baseRetryToken, cacheIdentity, chartId, language, matchingPreloadedReport, reportIdentity, userId]);
+  }, [
+    baseRetryToken,
+    cacheIdentity,
+    chartId,
+    language,
+    matchingPreloadedReport,
+    previewConfig,
+    previewState,
+    reportIdentity,
+    userId,
+  ]);
 
   useEffect(() => {
+    if (previewConfig) {
+      setPremiumReport(isPremium ? previewPremiumReport : null);
+      setPremiumLoading(false);
+      setPremiumError(null);
+      return;
+    }
     if (!isPremium || !userId) {
       setPremiumReport(null);
       setPremiumLoading(false);
@@ -713,7 +766,17 @@ export const HumanReport: React.FC<Props> = ({
         if (!cancelled) setPremiumLoading(false);
       });
     return () => { cancelled = true; };
-  }, [cacheIdentity, chartId, isPremium, language, premiumRetryToken, reportIdentity, userId]);
+  }, [
+    cacheIdentity,
+    chartId,
+    isPremium,
+    language,
+    premiumRetryToken,
+    previewConfig,
+    previewPremiumReport,
+    reportIdentity,
+    userId,
+  ]);
 
   useEffect(() => {
     setQuestionOpen(false);
@@ -795,27 +858,28 @@ export const HumanReport: React.FC<Props> = ({
   };
 
   const questionFooter = (
-    <form onSubmit={submitQuestion} className="grid gap-2.5">
+    <form onSubmit={submitQuestion} className="natal-question-sheet-form">
       <label htmlFor="natal-question-input" className="sr-only">
-        {language === 'ru' ? 'Вопрос астрологу' : 'Question for the astrologer'}
+        {language === 'ru' ? 'Узнать о себе' : 'Learn about yourself'}
       </label>
       <textarea
         id="natal-question-input"
+        name="natal-question"
         value={questionText}
         onChange={(event) => setQuestionText(event.target.value)}
         maxLength={300}
         rows={2}
         placeholder={language === 'ru' ? 'Спроси о себе по натальной карте' : 'Ask about yourself through your birth chart'}
-        className="w-full resize-none rounded-[18px] border border-white/16 bg-black/28 px-4 py-3 text-[15px] leading-snug text-white outline-none placeholder:text-white/45 focus:border-white/38"
+        className="natal-question-input"
       />
       <button
         type="submit"
         disabled={questionLoading || !questionText.trim() || (questionSnapshot?.usage.remaining ?? 1) <= 0}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-[14px] font-semibold text-[#111827] disabled:opacity-50"
+        className="natal-question-submit"
       >
-        <Send size={16} strokeWidth={2} />
+        <Send aria-hidden="true" size={16} strokeWidth={2} />
         {questionLoading
-          ? (language === 'ru' ? 'Отвечаем...' : 'Answering...')
+          ? (language === 'ru' ? 'Отвечаем…' : 'Answering…')
           : (language === 'ru' ? 'Задать вопрос' : 'Ask')}
       </button>
     </form>
@@ -836,13 +900,13 @@ export const HumanReport: React.FC<Props> = ({
         ) : null}
 
         {reliability.quality === 'unknown' ? (
-          <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
+          <p className="natal-reliability-note">
             {language === 'ru'
               ? 'Время рождения неизвестно, поэтому разбор не использует первое впечатление, дома и другие детали, которые зависят от времени. Остальной портрет опирается на надёжные положения и аспекты.'
               : 'Birth time is unknown, so the reading excludes first impressions, houses, and other time-dependent details. The rest uses reliable placements and aspects.'}
           </p>
         ) : reliability.quality === 'approximate' ? (
-          <p className="mb-6 rounded-[16px] bg-[#faf7ef] px-4 py-3 font-sans text-[13px] leading-relaxed text-[#6f6654]">
+          <p className="natal-reliability-note">
             {language === 'ru'
               ? 'Время рождения приблизительное, поэтому в разбор вошли только данные, устойчивые к этой погрешности.'
               : 'Birth time is approximate, so the reading uses only details stable within that uncertainty.'}
@@ -853,11 +917,11 @@ export const HumanReport: React.FC<Props> = ({
           {loading && !report ? (
             <NatalReadingSkeleton language={language} />
           ) : error || !report ? (
-            <section className="py-8 sm:py-10" role="alert">
-              <p className="font-sans text-[20px] font-semibold tracking-[-0.02em] text-[#1f1f1f]">
+            <section className="natal-report-error natal-report-error--base" role="alert">
+              <h2>
                 {language === 'ru' ? 'Интерпретация сейчас недоступна' : 'The interpretation is unavailable'}
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-[#666]">{error}</p>
+              </h2>
+              <p>{error}</p>
               <button
                 type="button"
                 className="natal-report-retry"
@@ -881,107 +945,105 @@ export const HumanReport: React.FC<Props> = ({
                 />
               </header>
               {freeSections.map((item, index) => (
-                <Fragment key={item.key}>
-                  <SectionText
-                    section={item}
-                    index={index}
-                    evidenceById={evidenceById}
-                    language={language}
-                  />
-                  {index === stickerAfterSectionIndex && editorialSticker ? (
-                    <EditorialSticker
-                      asset={editorialSticker}
-                      className="natal-editorial-sticker natal-editorial-sticker--inline"
-                    />
-                  ) : null}
-                </Fragment>
+                <SectionText
+                  key={item.key}
+                  section={item}
+                  index={index}
+                  evidenceById={evidenceById}
+                  language={language}
+                />
               ))}
             </>
           )}
         </div>
 
-        {isPremium ? (
-          premiumLoading && !premiumReport ? (
-            null
-          ) : premiumReport ? (
-            <div id="natal-deep-premium">
-              <PremiumReport
-                report={premiumReport}
-                evidenceById={evidenceById}
-                language={language}
-              />
-            </div>
-          ) : premiumError ? (
-            <section className="natal-report-error" role="alert">
-              <p className="text-[13px] leading-relaxed text-[#a14f4f]">{premiumError}</p>
+        {report ? (
+          <>
+            {isPremium ? (
+              premiumLoading && !premiumReport ? (
+                <NatalPremiumSkeleton language={language} />
+              ) : premiumReport ? (
+                <div id="natal-deep-premium">
+                  <PremiumReport
+                    report={premiumReport}
+                    evidenceById={evidenceById}
+                    language={language}
+                  />
+                </div>
+              ) : premiumError ? (
+                <section className="natal-report-error" role="alert">
+                  <p>{premiumError}</p>
+                  <button
+                    type="button"
+                    className="natal-report-retry"
+                    onClick={() => setPremiumRetryToken((value) => value + 1)}
+                  >
+                    {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
+                  </button>
+                </section>
+              ) : null
+            ) : canPromotePremium ? (
+              <section id="natal-deep-premium" className="natal-premium-callout">
+                <h2>
+                  {language === 'ru' ? 'Полный портрет карты' : 'The complete chart portrait'}
+                </h2>
+                <p>
+                  {language === 'ru'
+                    ? 'Больше глубины там, где карта даёт надёжную опору: отношения, конфликты, работа, доверие и внутренние противоречия.'
+                    : 'More depth where the chart provides reliable support: relationships, conflict, work, trust, and inner contradictions.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void requestPremium('deep_natal', {
+                    placement: 'deep_natal',
+                    featureKey: 'natal_deep',
+                    triggerType: 'locked_feature',
+                    returnView: 'chart',
+                    returnScrollAnchor: 'natal-deep-premium',
+                    returnAction: 'open_deep_natal',
+                  })}
+                  className="natal-premium-button"
+                >
+                  <Crown aria-hidden="true" size={16} strokeWidth={2} />
+                  {language === 'ru' ? 'Открыть в Premium' : 'Unlock with Premium'}
+                </button>
+              </section>
+            ) : null}
+
+            <TechnicalDetails chartData={chartData} language={language} />
+
+            <section id="natal-question-action" className="natal-question-action">
               <button
                 type="button"
-                className="natal-report-retry"
-                onClick={() => setPremiumRetryToken((value) => value + 1)}
+                onClick={openQuestions}
+                className="natal-question-button"
               >
-                {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
+                <MessageCircle aria-hidden="true" size={17} strokeWidth={2} />
+                {language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'}
               </button>
             </section>
-          ) : null
-        ) : canPromotePremium ? (
-          <section id="natal-deep-premium" className="natal-premium-callout">
-            <h2>
-              {language === 'ru' ? 'Полный портрет карты' : 'The complete chart portrait'}
-            </h2>
-            <p>
-              {language === 'ru'
-                ? 'Больше глубины там, где карта даёт надёжную опору: отношения, конфликты, работа, доверие и внутренние противоречия.'
-                : 'More depth where the chart provides reliable support: relationships, conflict, work, trust, and inner contradictions.'}
-            </p>
-            <button
-              type="button"
-              onClick={() => void requestPremium('deep_natal', {
-                placement: 'deep_natal',
-                featureKey: 'natal_deep',
-                triggerType: 'locked_feature',
-                returnView: 'chart',
-                returnScrollAnchor: 'natal-deep-premium',
-                returnAction: 'open_deep_natal',
-              })}
-              className="natal-premium-button"
-            >
-              <Crown size={16} strokeWidth={2} />
-              {language === 'ru' ? 'Открыть в Premium' : 'Unlock with Premium'}
-            </button>
-          </section>
+
+            <section className="natal-disclaimer">
+              <p>
+                {language === 'ru'
+                  ? 'Это ознакомительный разбор. Он не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
+                  : 'This is an informational reading. It does not replace medical, legal, financial, or other professional advice.'}
+              </p>
+            </section>
+          </>
         ) : null}
-
-        <TechnicalDetails chartData={chartData} language={language} />
-
-        <section id="natal-question-action" className="natal-question-action">
-          <button
-            type="button"
-            onClick={openQuestions}
-            className="natal-question-button"
-          >
-            <MessageCircle size={17} strokeWidth={2} />
-            {language === 'ru' ? 'Задать вопрос астрологу' : 'Ask the astrologer'}
-          </button>
-        </section>
-
-        <section className="natal-disclaimer">
-          <p>
-            {language === 'ru'
-              ? 'Это ознакомительный разбор. Он не заменяет медицинские, юридические, финансовые или иные профессиональные рекомендации.'
-              : 'This is an informational reading. It does not replace medical, legal, financial, or other professional advice.'}
-          </p>
-        </section>
 
       </div>
 
       <CosmicSheet
         open={questionOpen}
-        title={language === 'ru' ? 'Вопрос астрологу' : 'Ask the astrologer'}
+        title={language === 'ru' ? 'Узнать о себе' : 'Learn about yourself'}
         subtitle={language === 'ru' ? 'Ответ по этой натальной карте' : 'An answer from this birth chart'}
         closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
         onClose={() => setQuestionOpen(false)}
+        className="lz-sheet-panel--editorial natal-question-sheet"
         footer={questionFooter}
-        contentClassName="space-y-4"
+        contentClassName="lz-sheet-scroll--editorial natal-question-sheet-content"
       >
         {questionSnapshot?.messages.length ? (
           <div className="space-y-3" aria-live="polite">

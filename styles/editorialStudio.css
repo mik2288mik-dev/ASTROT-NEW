@@ -445,6 +445,611 @@
   }
 }
 
+/* Active Android natal flow. This layer intentionally overrides the older
+   newspaper natal selectors without changing the legacy components. */
+.fresh-page.natal-editorial-page.natal-mvp-page {
+  --natal-mvp-ink: #242321;
+  --natal-mvp-muted: #74716c;
+  --natal-mvp-line: rgba(36, 35, 33, 0.12);
+  box-sizing: border-box;
+  min-height: 100%;
+  overflow-x: clip;
+  padding-bottom: calc(
+    48px
+    + max(
+      env(safe-area-inset-bottom, 0px),
+      var(--tg-content-safe-area-inset-bottom, 0px)
+    )
+  );
+  background: #fff !important;
+  color: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-editorial-tabs {
+  --editorial-tab-count: 3;
+  min-height: 52px;
+}
+
+.fresh-page.natal-mvp-page .editorial-tab {
+  min-height: 52px !important;
+  padding: 8px 7px;
+  color: var(--natal-mvp-muted) !important;
+  font-size: clamp(12px, 3.55vw, 13px);
+  font-weight: 560;
+  line-height: 1.22;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .editorial-tab.is-active {
+  color: var(--natal-mvp-ink) !important;
+  font-weight: 560;
+}
+
+.fresh-page.natal-mvp-page .editorial-tab:focus-visible,
+.fresh-page.natal-mvp-page .natal-chart-download:focus-visible,
+.fresh-page.natal-mvp-page .editorial-context-link:focus-visible,
+.fresh-page.natal-mvp-page .natal-personality-entry:focus-visible,
+.fresh-page.natal-mvp-page .natal-report-retry:focus-visible,
+.fresh-page.natal-mvp-page .natal-premium-button:focus-visible,
+.fresh-page.natal-mvp-page .natal-question-button:focus-visible {
+  outline: 2px solid var(--natal-mvp-ink);
+  outline-offset: 3px;
+  text-decoration: none;
+}
+
+.fresh-page.natal-mvp-page .natal-map-stage,
+.fresh-page.natal-mvp-page .natal-reading-stage,
+.fresh-page.natal-mvp-page .natal-empty-content {
+  width: min(100%, 620px);
+  padding-right: max(env(safe-area-inset-right, 0px), 0px);
+  padding-left: max(env(safe-area-inset-left, 0px), 0px);
+}
+
+.fresh-page.natal-mvp-page .natal-map-heading {
+  padding: 24px 22px 0;
+}
+
+.fresh-page.natal-mvp-page .natal-map-heading p,
+.fresh-page.natal-mvp-page .natal-empty-kicker {
+  color: var(--natal-mvp-muted);
+  font-size: 11px;
+  font-weight: 620;
+  letter-spacing: 0.075em;
+}
+
+.fresh-page.natal-mvp-page .natal-map-heading h1 {
+  margin-top: 7px;
+  color: var(--natal-mvp-ink);
+  font-size: clamp(25px, 7vw, 31px);
+  font-weight: 560;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel {
+  box-sizing: border-box;
+  width: min(calc(100% - 24px), 520px);
+  max-width: 520px;
+  margin: 16px auto 0;
+  padding: 0;
+  background: transparent;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-svg {
+  display: block;
+  width: min(100%, 480px);
+  max-width: 480px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-precision-note circle {
+  fill: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-precision-note line {
+  stroke: rgba(36, 35, 33, 0.16);
+  stroke-width: 1;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-precision-note text {
+  fill: var(--natal-mvp-muted);
+  font-family: var(--fresh-font, 'Manrope', system-ui, sans-serif);
+  font-size: 8px;
+  font-weight: 560;
+  letter-spacing: 0.025em;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-caption {
+  box-sizing: border-box;
+  width: min(100%, 480px);
+  max-width: 480px;
+  min-height: 50px;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-caption-copy {
+  min-width: 0;
+  gap: 4px;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-caption strong {
+  color: var(--natal-mvp-ink);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-wheel-caption-copy > span {
+  color: var(--natal-mvp-muted);
+  font-size: 12px;
+  line-height: 1.48;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-chart-download {
+  width: 46px;
+  height: 46px;
+  flex-basis: 46px;
+  border-color: var(--natal-mvp-line);
+  background: #fff;
+  color: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-map-meta {
+  box-sizing: border-box;
+  width: min(calc(100% - 40px), 480px);
+  margin-top: 22px;
+}
+
+.fresh-page.natal-mvp-page .natal-map-meta > div {
+  grid-template-columns: minmax(84px, 0.34fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom-color: var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-map-meta > div:first-child {
+  border-top-color: var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-map-meta dt {
+  color: var(--natal-mvp-muted);
+  font-size: 12px;
+}
+
+.fresh-page.natal-mvp-page .natal-map-meta dt svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-map-meta dd {
+  color: var(--natal-mvp-ink);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.fresh-page.natal-mvp-page .editorial-context-link {
+  box-sizing: border-box;
+  width: min(calc(100% - 40px), 480px);
+  min-height: 52px;
+  margin-top: 10px;
+  color: var(--natal-mvp-ink);
+  font-size: 14px;
+  font-weight: 560;
+  line-height: 1.35;
+  text-align: start;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading {
+  margin-top: 28px;
+  padding: 0 22px;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading p {
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading h1 {
+  max-width: 13ch;
+  margin-top: 11px;
+  color: var(--natal-mvp-ink);
+  font-size: clamp(32px, 9vw, 43px);
+  font-weight: 520;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-curve {
+  height: 58px;
+  margin-top: -5px;
+}
+
+.fresh-page.natal-mvp-page .natal-personality-entry {
+  display: flex;
+  box-sizing: border-box;
+  width: calc(100% - 40px);
+  min-height: 74px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 auto 4px;
+  padding: 15px 0;
+  border: 0;
+  border-top: 1px solid var(--natal-mvp-line);
+  border-bottom: 1px solid var(--natal-mvp-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.fresh-page.natal-mvp-page .natal-personality-entry-copy {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.fresh-page.natal-mvp-page .natal-personality-entry-copy strong {
+  font-size: 16px;
+  font-weight: 620;
+  line-height: 1.25;
+}
+
+.fresh-page.natal-mvp-page .natal-personality-entry-copy > span {
+  max-width: 42ch;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  line-height: 1.48;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-personality-entry > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--natal-mvp-muted);
+}
+
+.fresh-page.natal-mvp-page .natal-editorial-report {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 0 22px 36px;
+  background: #fff;
+}
+
+.fresh-page.natal-mvp-page .natal-editorial-report-inner {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-reliability-note {
+  position: relative;
+  margin: 20px 0 6px;
+  padding: 14px 0 14px 17px;
+  border-top: 1px solid var(--natal-mvp-line);
+  border-bottom: 1px solid var(--natal-mvp-line);
+  background: transparent;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  line-height: 1.56;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-reliability-note::before {
+  position: absolute;
+  top: 1.22rem;
+  left: 1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--natal-mvp-ink);
+  content: '';
+}
+
+.fresh-page.natal-mvp-page .natal-reading-hook {
+  padding: 28px 0 24px;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-hook-text {
+  max-width: 36rem;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-hook-paragraph {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: clamp(20px, 5.4vw, 23px);
+  font-weight: 540;
+  letter-spacing: -0.025em;
+  line-height: 1.34;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-sec,
+.fresh-page.natal-mvp-page .editorial-reading-section {
+  margin: 0;
+  padding: 32px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--natal-mvp-line) !important;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fresh-page.natal-mvp-page .natal-sec-title {
+  max-width: 25ch;
+  margin: 0 0 13px;
+  color: var(--natal-mvp-ink);
+  font-size: clamp(23px, 6.3vw, 28px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.14;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-kicker {
+  margin: 0;
+  padding: 28px 0 12px;
+  border-top: 1px solid var(--natal-mvp-line);
+  color: var(--natal-mvp-muted);
+  font-size: 11px;
+  font-weight: 620;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-kicker + .natal-sec {
+  padding-top: 14px !important;
+  border-top: 0 !important;
+}
+
+.fresh-page.natal-mvp-page .natal-sec-body {
+  max-width: 65ch;
+  margin-top: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-sec-p {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 16px;
+  font-weight: 430;
+  letter-spacing: 0;
+  line-height: 1.68;
+  overflow-wrap: break-word;
+}
+
+.fresh-page.natal-mvp-page .natal-evidence-disclosure {
+  max-width: 65ch;
+  margin-top: 10px;
+}
+
+.fresh-page.natal-mvp-page .natal-evidence-disclosure summary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.fresh-page.natal-mvp-page .natal-inline-evidence {
+  max-width: 65ch;
+  margin-top: 3px;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-callout,
+.fresh-page.natal-mvp-page .natal-question-action,
+.fresh-page.natal-mvp-page .natal-disclaimer,
+.fresh-page.natal-mvp-page .natal-technical-details,
+.fresh-page.natal-mvp-page .natal-report-error,
+.fresh-page.natal-mvp-page .natal-premium-skeleton {
+  margin: 0;
+  padding: 28px 0;
+  border: 0;
+  border-top: 1px solid var(--natal-mvp-line) !important;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-callout h2,
+.fresh-page.natal-mvp-page .natal-report-error h2 {
+  max-width: 25ch;
+  margin: 0 0 9px;
+  color: var(--natal-mvp-ink);
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.22;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-callout p,
+.fresh-page.natal-mvp-page .natal-report-error p,
+.fresh-page.natal-mvp-page .natal-disclaimer p {
+  max-width: 65ch;
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 14px;
+  line-height: 1.58;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-button,
+.fresh-page.natal-mvp-page .natal-question-button,
+.fresh-page.natal-mvp-page .natal-report-retry {
+  min-height: 46px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 620;
+  transition: transform 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fresh-page.natal-mvp-page .natal-premium-button {
+  background: var(--natal-mvp-ink);
+  box-shadow: none;
+  color: #fff;
+}
+
+.fresh-page.natal-mvp-page .natal-question-button {
+  width: 100%;
+  border: 1px solid rgba(36, 35, 33, 0.24);
+  background: #fff;
+  color: var(--natal-mvp-ink);
+}
+
+.fresh-page.natal-mvp-page .natal-premium-button:active,
+.fresh-page.natal-mvp-page .natal-question-button:active,
+.fresh-page.natal-mvp-page .natal-report-retry:active,
+.fresh-page.natal-mvp-page .natal-personality-entry:active {
+  transform: scale(0.96);
+}
+
+.fresh-page.natal-mvp-page .natal-technical-details {
+  margin-top: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-technical-details summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  color: var(--natal-mvp-ink);
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.fresh-page.natal-mvp-page .natal-technical-details li {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.fresh-page.natal-mvp-page .natal-technical-details li > span:last-child {
+  margin-left: auto;
+  overflow-wrap: anywhere;
+  text-align: end;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-skeleton {
+  display: grid;
+  gap: 10px;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-skeleton > span:not(.sr-only) {
+  display: block;
+  width: 100%;
+  height: 14px;
+  border-radius: 3px;
+  background: #ecebea;
+  animation: natal-reading-skeleton-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-skeleton > span:nth-of-type(2) {
+  width: 48%;
+  height: 24px;
+}
+
+.fresh-page.natal-mvp-page .natal-premium-skeleton > span:last-child {
+  width: 72%;
+}
+
+.fresh-page.natal-mvp-page .natal-empty-content {
+  padding: 4px 22px 44px;
+}
+
+.fresh-page.natal-mvp-page .natal-empty-content h1 {
+  color: var(--natal-mvp-ink);
+  font-weight: 520;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-empty-content > p:not(.natal-empty-kicker) {
+  color: var(--natal-mvp-muted);
+  font-size: 16px;
+  line-height: 1.58;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-empty-content .fresh-btn-primary {
+  min-height: 50px;
+  border-radius: 999px;
+  background: var(--natal-mvp-ink) !important;
+}
+
+@media (max-width: 360px) {
+  .fresh-page.natal-mvp-page .app-top-bar-title {
+    font-size: 16px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-editorial-tabs {
+    width: calc(100% - 24px);
+  }
+
+  .fresh-page.natal-mvp-page .editorial-tab {
+    padding-inline: 4px;
+    font-size: 12px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-map-heading,
+  .fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading,
+  .fresh-page.natal-mvp-page .natal-empty-content,
+  .fresh-page.natal-mvp-page .natal-editorial-report {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-chart-wheel {
+    width: calc(100% - 20px);
+  }
+
+  .fresh-page.natal-mvp-page .natal-map-meta,
+  .fresh-page.natal-mvp-page .editorial-context-link,
+  .fresh-page.natal-mvp-page .natal-personality-entry {
+    width: calc(100% - 36px);
+  }
+
+  .fresh-page.natal-mvp-page .natal-personality-entry-copy > span {
+    font-size: 12.5px;
+  }
+}
+
+@media (min-width: 520px) {
+  .fresh-page.natal-mvp-page .natal-premium-button {
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fresh-page.natal-mvp-page .natal-premium-button,
+  .fresh-page.natal-mvp-page .natal-question-button,
+  .fresh-page.natal-mvp-page .natal-report-retry,
+  .fresh-page.natal-mvp-page .natal-personality-entry {
+    transition: none;
+  }
+
+  .fresh-page.natal-mvp-page .natal-premium-skeleton > span:not(.sr-only) {
+    animation: none;
+  }
+}
+
 /* Compatibility */
 .fresh-page.compat-editorial-page {
   --compat-air-ink: var(--editorial-studio-ink);
@@ -1506,6 +2111,83 @@
       var(--tg-safe-area-inset-bottom, 0px)
     )
   );
+}
+
+.lz-sheet-panel--editorial .cosmic-sheet-footer {
+  border-top: 1px solid var(--editorial-studio-line);
+  background: #fff;
+}
+
+.natal-question-sheet .cosmic-sheet-content {
+  color: var(--editorial-studio-ink);
+}
+
+.lz-sheet-panel--editorial .cosmic-sheet-close:focus-visible,
+.lz-sheet-panel--editorial .cosmic-sheet-content :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--editorial-studio-ink);
+  outline-offset: 3px;
+}
+
+.natal-question-sheet-content > div {
+  display: grid;
+  gap: 12px;
+}
+
+.natal-question-sheet-content > div > div {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--editorial-studio-line);
+  color: var(--editorial-studio-ink);
+}
+
+.natal-question-sheet-form {
+  display: grid;
+  gap: 10px;
+}
+
+.natal-question-sheet .natal-question-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 76px;
+  resize: none;
+  padding: 13px 14px;
+  border: 1px solid rgba(37, 34, 31, 0.18);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--editorial-studio-ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  outline: none;
+}
+
+.natal-question-sheet .natal-question-input::placeholder {
+  color: rgba(37, 34, 31, 0.46);
+}
+
+.natal-question-sheet .natal-question-input:focus-visible {
+  outline: 2px solid var(--editorial-studio-ink);
+  outline-offset: -2px;
+}
+
+.natal-question-sheet .natal-question-submit {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--editorial-studio-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.natal-question-sheet .natal-question-submit:disabled {
+  opacity: 0.48;
 }
 
 .lz-sign-grid-editorial {

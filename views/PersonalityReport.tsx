@@ -5,6 +5,7 @@ import type {
   UserProfile,
 } from '../types';
 import { HumanReport, type PreloadedNatalReport } from '../components/NatalReading/HumanReport';
+import type { NatalPermanentPremiumReport } from '../lib/natalReading/permanentReport';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialProfileButton } from '../components/editorial/EditorialScreenChrome';
 import { CosmicSheet } from '../components/lumia-ui/CosmicSheet';
@@ -26,6 +27,11 @@ export type PersonalityReportProps = {
   onOpenProfile: () => void;
   onOpenNatalChart: (chart: ChartListItem | null) => void;
   onCompareWithMe: (chart: ChartListItem) => void;
+  uiPreview?: {
+    charts: ChartListItem[];
+    reportState?: 'ready' | 'loading' | 'error';
+    premiumReport?: NatalPermanentPremiumReport | null;
+  };
 };
 
 type ChartsLoadState = 'loading' | 'ready' | 'error';
@@ -40,8 +46,13 @@ export function PersonalityReport({
   onOpenProfile,
   onOpenNatalChart,
   onCompareWithMe,
+  uiPreview,
 }: PersonalityReportProps) {
   const language = profile.language === 'en' ? 'en' : 'ru';
+  const previewConfig = process.env.NODE_ENV === 'development'
+    && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
+      ? uiPreview
+      : undefined;
   const [charts, setCharts] = useState<ChartListItem[]>([]);
   const [chartsLoadState, setChartsLoadState] = useState<ChartsLoadState>('loading');
   const [reloadToken, setReloadToken] = useState(0);
@@ -55,6 +66,11 @@ export function PersonalityReport({
 
   useEffect(() => {
     let active = true;
+    if (previewConfig) {
+      setCharts(previewConfig.charts);
+      setChartsLoadState('ready');
+      return () => { active = false; };
+    }
     if (!profile.id) {
       setChartsLoadState('error');
       return () => { active = false; };
@@ -73,7 +89,7 @@ export function PersonalityReport({
       });
 
     return () => { active = false; };
-  }, [profile.id, reloadToken]);
+  }, [previewConfig, profile.id, reloadToken]);
 
   const primaryChart = useMemo(
     () => charts.find((chart) => getChartSubjectType(chart) === 'self') ?? null,
@@ -131,7 +147,7 @@ export function PersonalityReport({
   };
 
   return (
-    <div className="fresh-page personality-report-page">
+    <div className="fresh-page personality-report-page natal-personality-mvp-page">
       <AppTopBar
         title={language === 'ru' ? 'Разбор личности' : 'Personality reading'}
         onBack={onBack}
@@ -143,7 +159,7 @@ export function PersonalityReport({
         )}
       />
 
-      <main className="personality-report-main">
+      <div className="personality-report-main">
         <section className="personality-report-subject" aria-labelledby="personality-report-subject-label">
           <p id="personality-report-subject-label" className="personality-report-subject-label">
             {language === 'ru' ? 'Кого разбираем' : 'Whose chart'}
@@ -202,6 +218,10 @@ export function PersonalityReport({
               chartSubject={chartSubject}
               requestPremium={requestPremium}
               preloadedReport={isSelf ? preloadedReport : null}
+              uiPreview={previewConfig ? {
+                state: previewConfig.reportState || 'ready',
+                premiumReport: previewConfig.premiumReport,
+              } : undefined}
             />
           )}
         </div>
@@ -224,7 +244,7 @@ export function PersonalityReport({
             {language === 'ru' ? 'Открыть натальную карту' : 'Open natal chart'}
           </button>
         </footer>
-      </main>
+      </div>
 
       <CosmicSheet
         open={selectorOpen}
@@ -234,9 +254,10 @@ export function PersonalityReport({
           : 'The reading uses an existing calculated natal chart.'}
         closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
         onClose={() => setSelectorOpen(false)}
-        contentClassName="personality-report-sheet-content"
+        className="lz-sheet-panel--editorial personality-report-sheet"
+        contentClassName="lz-sheet-scroll--editorial personality-report-sheet-content"
       >
-        <ul className="personality-report-subject-list">
+        <ul className="personality-report-subject-list" role="list">
           <li>
             <button
               type="button"

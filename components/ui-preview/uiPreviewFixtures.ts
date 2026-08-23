@@ -5,6 +5,7 @@ import {
   buildNatalModelContext,
   buildPermanentNatalChartFingerprint,
   type NatalPermanentFreeReport,
+  type NatalPermanentPremiumReport,
 } from '../../lib/natalReading/permanentReport';
 import type {
   BirthTimeQuality,
@@ -18,6 +19,7 @@ import type {
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import type { PremiumPlanId } from '../../lib/premiumPricing';
 import type { AccountAuthCapabilities, LinkedIdentity } from '../../services/accountAuthService';
+import type { ChartListItem } from '../../services/storageService';
 
 export const UI_PREVIEW_SCREENS = [
   'onboarding',
@@ -77,7 +79,7 @@ export const UI_PREVIEW_SCREEN_LABELS: Record<UiPreviewScreen, string> = {
   settings: 'Настройки',
   menu: 'Меню',
   paywall: 'Paywall',
-  question: 'Вопрос астрологу',
+  question: 'Узнать о себе',
 };
 
 const ACCESS_ALIASES: Record<string, UiPreviewAccess> = {
@@ -318,6 +320,82 @@ export function createUiPreviewNatalReport(
     chartFingerprint: buildPermanentNatalChartFingerprint(profile, chart),
     reportVersion: NATAL_PERMANENT_CONTRACT_VERSION,
   };
+}
+
+export function createUiPreviewNatalPremiumReport(
+  profile: UserProfile,
+  chart: NatalChartData,
+): NatalPermanentPremiumReport {
+  const evidenceIds = buildNatalModelContext(profile, chart).context.evidence.map((fact) => fact.id);
+  const evidenceAt = (index: number) => evidenceIds[index % evidenceIds.length] || 'natal.quality.birth-time';
+  const statement = (text: string, index: number) => ({ text, evidenceIds: [evidenceAt(index)] });
+  const sections: NatalPermanentPremiumReport['sections'] = [
+    {
+      id: 'relationships',
+      title: 'Близость и доверие',
+      paragraphs: [
+        statement('Тебе важно, чтобы близость не отменяла ясность. Ты лучше раскрываешься рядом с человеком, который не торопит тебя с выводами и умеет говорить прямо без давления.', 1),
+        statement('Когда доверие уже есть, ты замечаешь тонкие перемены в разговоре и можешь вовремя вернуть ему спокойный, предметный ритм.', 2),
+      ],
+    },
+    {
+      id: 'conflict',
+      title: 'Как ты проходишь через конфликт',
+      paragraphs: [
+        statement('В напряжённой ситуации тебе полезно сначала отделить сам факт от первой реакции. После этой паузы ты точнее видишь, что действительно требует ответа, а что можно оставить без продолжения.', 3),
+      ],
+    },
+    {
+      id: 'work',
+      title: 'Работа и собственный темп',
+      paragraphs: [
+        statement('Ты сильнее там, где можно держать в поле зрения несколько деталей, но всё равно прийти к одному понятному решению. Слишком шумная среда расходует внимание быстрее, чем сложная задача.', 4),
+      ],
+    },
+    {
+      id: 'contradictions',
+      title: 'Внутренние противоречия',
+      paragraphs: [
+        statement('Иногда желание разобраться во всём до конца спорит с потребностью сохранить силы. Для тебя особенно ценен момент, когда уже достаточно фактов, чтобы выбрать направление и не продолжать проверку по инерции.', 5),
+      ],
+    },
+  ];
+  return {
+    schemaVersion: 'natal-permanent-premium-v2',
+    contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
+    tier: 'premium',
+    headline: 'Полный портрет карты',
+    headlineEvidenceIds: [evidenceAt(0)],
+    lead: statement('Продолжение раскрывает устойчивые способы строить близость, работать и проходить через напряжение.', 0),
+    sections,
+    strategies: [],
+    pitfalls: [],
+    conclusion: statement('Твоя опора — ясность, которой не нужно становиться жёсткостью.', 6),
+    evidenceIds: Array.from(new Set(sections.flatMap((section) => (
+      section.paragraphs.flatMap((paragraph) => paragraph.evidenceIds)
+    )))),
+  };
+}
+
+export function createUiPreviewCharts(
+  profile: UserProfile,
+  chart: NatalChartData,
+): ChartListItem[] {
+  return [{
+    id: 1,
+    user_id: String(profile.id || 'ui-preview-user'),
+    name: profile.name || 'Алина',
+    chart_data: chart,
+    birth_date: profile.birthDate || '1990-03-14',
+    birth_time: profile.birthTime || null,
+    birth_place: profile.birthPlace || 'Москва, Россия',
+    input_hash: 'ui-preview-primary',
+    calculation_version: chart.calculationVersion || 'ui-preview-fixture.v1',
+    is_primary: true,
+    subject_type: 'self',
+    relation_label: null,
+    access_locked: false,
+  }];
 }
 
 export const UI_PREVIEW_HOROSCOPE: {

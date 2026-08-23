@@ -11,6 +11,7 @@ import {
 } from '../lumia-ui/LumiaBottomTabBar';
 import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
+import { PersonalityReport } from '../../views/PersonalityReport';
 import { UnionRoom } from '../../views/v2/UnionRoom';
 import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
 import { Settings } from '../../views/Settings';
@@ -30,7 +31,9 @@ import {
   UI_PREVIEW_TODAY_SECTIONS,
   UI_PREVIEW_WEEK_SECTION,
   createUiPreviewChart,
+  createUiPreviewCharts,
   createUiPreviewNatalReport,
+  createUiPreviewNatalPremiumReport,
   createUiPreviewProfile,
   parseUiPreviewScenario,
   previewViewForScreen,
@@ -356,6 +359,14 @@ export default function UiPreviewApp() {
     () => createUiPreviewNatalReport(natalProfile, chart),
     [chart, natalProfile],
   );
+  const natalPremiumReport = useMemo(
+    () => createUiPreviewNatalPremiumReport(natalProfile, chart),
+    [chart, natalProfile],
+  );
+  const natalCharts = useMemo(
+    () => createUiPreviewCharts(natalProfile, chart),
+    [chart, natalProfile],
+  );
   const view = previewViewForScreen(scenario.screen);
   const showsBottomNavigation = !['onboarding', 'paywall'].includes(scenario.screen);
 
@@ -412,10 +423,12 @@ export default function UiPreviewApp() {
   };
 
   let scene: React.ReactNode;
-  if (scenario.state !== 'ready' && !(
-    scenario.screen.startsWith('compatibility-')
-    && (scenario.state === 'loading' || scenario.state === 'error')
-  )) {
+  const usesRealNatalState = scenario.screen === 'natal'
+    || scenario.screen === 'natal-reading'
+    || scenario.screen === 'question';
+  const usesRealCompatibilityState = scenario.screen.startsWith('compatibility-')
+    && (scenario.state === 'loading' || scenario.state === 'error');
+  if (scenario.state !== 'ready' && !usesRealNatalState && !usesRealCompatibilityState) {
     scene = (
       <div className="ui-preview-page">
         <AppTopBar title={UI_PREVIEW_SCREEN_LABELS[scenario.screen]} rightAction={<ProfileAction onOpen={openProfile} />} />
@@ -453,16 +466,38 @@ export default function UiPreviewApp() {
         }}
       />
     );
+  } else if (scenario.screen === 'natal-reading' && scenario.state !== 'empty') {
+    scene = (
+      <PersonalityReport
+        key={`${scenario.screen}:${scenario.access}:${scenario.state}:${scenario.birthTime}`}
+        profile={natalProfile}
+        primaryChartData={chart}
+        primaryChartId={1}
+        preloadedReport={natalReport}
+        requestPremium={() => navigate('paywall')}
+        onBack={() => navigate('natal')}
+        onOpenProfile={openProfile}
+        onOpenNatalChart={() => navigate('natal')}
+        onCompareWithMe={() => navigate('compatibility-input')}
+        uiPreview={{
+          charts: natalCharts,
+          reportState: scenario.state === 'loading' || scenario.state === 'error'
+            ? scenario.state
+            : 'ready',
+          premiumReport: scenario.access === 'premium' ? natalPremiumReport : null,
+        }}
+      />
+    );
   } else if (scenario.screen === 'natal' || scenario.screen === 'natal-reading' || scenario.screen === 'question') {
     scene = (
       <NatalMagazine
         key={`${scenario.screen}:${scenario.access}:${scenario.birthTime}`}
-        data={chart}
+        data={scenario.state === 'empty' ? null : chart}
         profile={natalProfile}
         requestPremium={() => navigate('paywall')}
         preloadedReport={natalReport}
         onCreateChart={() => navigate('onboarding')}
-        onOpenPersonalityReport={() => setLocalNotice('Разбор личности остаётся локальным в Preview.')}
+        onOpenPersonalityReport={() => navigate('natal-reading')}
         canPromotePremium={scenario.access !== 'premium'}
         onOpenProfile={openProfile}
         onOpenMatrix={() => setLocalNotice('Матрица откроется отдельным Preview-сценарием.')}
@@ -470,6 +505,10 @@ export default function UiPreviewApp() {
         uiPreview={{
           initialTab: scenario.screen === 'natal' ? 'map' : 'reading',
           openQuestion: scenario.screen === 'question',
+          reportState: scenario.state === 'loading' || scenario.state === 'error'
+            ? scenario.state
+            : 'ready',
+          premiumReport: scenario.access === 'premium' ? natalPremiumReport : null,
         }}
       />
     );

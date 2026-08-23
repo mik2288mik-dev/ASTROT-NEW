@@ -299,6 +299,7 @@ export function NatalChartWheel({
   downloadName?: string;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const reliability = getPermanentNatalReliability(chart);
   const bodies = collectBodies(chart);
   const angles = collectAngles(chart);
   const houses = collectHouses(chart);
@@ -317,6 +318,11 @@ export function NatalChartWheel({
   const caption = language === 'ru'
     ? `Точные положения рассчитанных объектов и аспекты из карты.${omittedBodyCount > 0 ? ' Координаты с недостаточной точностью не показаны.' : ''}`
     : `Exact calculated placements and chart aspects.${omittedBodyCount > 0 ? ' Coordinates without sufficient precision are omitted.' : ''}`;
+  const precisionLabel = reliability.quality === 'unknown'
+    ? (language === 'ru' ? 'Время не указано' : 'Time not specified')
+    : reliability.quality === 'approximate'
+      ? (language === 'ru' ? 'Время примерное' : 'Approximate time')
+      : null;
 
   const downloadChart = async () => {
     const svg = svgRef.current;
@@ -394,6 +400,15 @@ export function NatalChartWheel({
         <circle className="natal-chart-wheel-ring natal-chart-wheel-ring--outer" cx="180" cy="180" r="166" />
         <circle className="natal-chart-wheel-ring natal-chart-wheel-ring--signs" cx="180" cy="180" r="137" />
         <circle className="natal-chart-wheel-ring natal-chart-wheel-ring--aspects" cx="180" cy="180" r="66" />
+
+        {precisionLabel ? (
+          <g className="natal-chart-wheel-precision-note" aria-hidden="true">
+            <circle cx="180" cy="180" r="3" />
+            <line x1="172" y1="180" x2="148" y2="180" />
+            <line x1="188" y1="180" x2="212" y2="180" />
+            <text x="180" y="196" textAnchor="middle">{precisionLabel}</text>
+          </g>
+        ) : null}
 
         {SIGNS.map((sign, index) => {
           const divider = chartPoint(index * 30, 166);

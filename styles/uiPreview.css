@@ -58,7 +58,7 @@ body.ui-preview-document-scroll {
 .ui-preview-app input,
 .ui-preview-app textarea,
 .ui-preview-app select {
-  font: inherit;
+  font-family: inherit;
 }
 
 .ui-preview-primary-button,

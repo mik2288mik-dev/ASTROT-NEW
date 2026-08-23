@@ -16,8 +16,9 @@ describe('natal chart editorial layout', () => {
     expect(magazine.match(/fresh-page natal-editorial-page/g)).toHaveLength(2);
     expect(magazine).not.toContain('getUniversalCardBackground');
     expect(magazine).not.toContain('FreshHeroCard');
-    expect(magazine).toContain('selectNatalEditorialSticker');
-    expect(magazine).toContain('editorialSticker={natalSticker}');
+    expect(magazine).not.toContain('selectNatalEditorialSticker');
+    expect(magazine).not.toContain('editorialSticker={natalSticker}');
+    expect(magazine.match(/natal-mvp-page/g)).toHaveLength(2);
     expect(magazine).toContain('<EditorialTabs');
     expect(magazine).toContain('natal-empty-content');
     expect(magazine).toContain('onClick={onCreateChart}');
@@ -37,7 +38,7 @@ describe('natal chart editorial layout', () => {
     expect(report).toContain('ensureHumanPremiumReport');
     expect(report).toContain('<PremiumReport');
     expect(report).toContain('<TechnicalDetails chartData={chartData} language={language} />');
-    expect(report).toContain('editorialSticker');
+    expect(report).not.toContain('editorialSticker');
     expect(styles).toContain('.natal-editorial-page .natal-sec');
     expect(styles).toContain('.natal-chart-wheel-svg');
     expect(styles).toContain('.natal-chart-wheel-aspect');
@@ -45,6 +46,7 @@ describe('natal chart editorial layout', () => {
     expect(studioStyles).toContain('.natal-map-stage');
     expect(studioStyles).toContain('.natal-map-meta');
     expect(studioStyles).toContain('.natal-reading-stage');
+    expect(studioStyles).toContain('.fresh-page.natal-editorial-page.natal-mvp-page');
     expect(styles).not.toMatch(/display:\s*none[^}]*natal-premium/i);
     expect(app).toContain("import '../styles/natalEditorial.css'");
     expect(app).toContain("import '../styles/editorialStudio.css'");

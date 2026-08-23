@@ -120,11 +120,11 @@ describe('separated editorial asset system', () => {
     expect(horoscope).not.toContain('selectPersonalEditorialAsset');
     expect(horoscope).not.toContain('EditorialSticker');
     expect(horoscope).toContain('EditorialProfileButton');
-    expect(natal).toContain('selectNatalEditorialSticker');
+    expect(natal).not.toContain('selectNatalEditorialSticker');
     expect(compatibility).not.toContain('selectSynastryEditorialSticker');
     expect(compatibility).not.toContain('EditorialSticker');
     expect(compatibility).toContain('EditorialProfileButton');
-    expect(natal).toContain('editorialSticker={natalSticker}');
+    expect(natal).not.toContain('editorialSticker={natalSticker}');
     for (const source of [matrix, onboarding]) {
       expect(source).not.toContain('selectPersonalEditorialAsset');
       expect(source).not.toContain('selectZodiacLegacyAsset');

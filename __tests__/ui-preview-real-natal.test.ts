@@ -7,6 +7,8 @@ import {
 } from '../lib/natalReading/permanentReport';
 import {
   createUiPreviewChart,
+  createUiPreviewCharts,
+  createUiPreviewNatalPremiumReport,
   createUiPreviewNatalReport,
   createUiPreviewProfile,
 } from '../components/ui-preview/uiPreviewFixtures';
@@ -26,15 +28,30 @@ describe('real natal UI Preview surface', () => {
     expect(preloaded.report.freeSections).toHaveLength(4);
   });
 
-  it('mounts NatalMagazine and its real HumanReport without the standalone preview scene', () => {
+  it('builds a complete Premium continuation and a selectable chart subject', () => {
+    const profile = createUiPreviewProfile('premium', 'exact');
+    const chart = createUiPreviewChart('exact');
+    const premium = createUiPreviewNatalPremiumReport(profile, chart);
+    const charts = createUiPreviewCharts(profile, chart);
+
+    expect(premium.sections).toHaveLength(4);
+    expect(charts).toHaveLength(1);
+    expect(charts[0]?.subject_type).toBe('self');
+  });
+
+  it('mounts the real map and PersonalityReport flows without a standalone preview scene', () => {
     const preview = read('components/ui-preview/UiPreviewApp.tsx');
     const magazine = read('views/v2/NatalMagazine.tsx');
 
     expect(preview).toContain("import { NatalMagazine } from '../../views/v2/NatalMagazine'");
+    expect(preview).toContain("import { PersonalityReport } from '../../views/PersonalityReport'");
     expect(preview).toContain('<NatalMagazine');
+    expect(preview).toContain('<PersonalityReport');
     expect(preview).toContain("const natalProfile = useMemo(() => ({ ...profile, id: '' })");
     expect(preview).toContain('preloadedReport={natalReport}');
     expect(preview).toContain("initialTab: scenario.screen === 'natal' ? 'map' : 'reading'");
+    expect(preview).toContain('reportState: scenario.state');
+    expect(preview).toContain("premiumReport: scenario.access === 'premium' ? natalPremiumReport : null");
     expect(preview).toContain("openQuestion: scenario.screen === 'question'");
     expect(preview).not.toContain('function NatalScene');
     expect(preview).not.toContain('ui-preview-question-sheet');

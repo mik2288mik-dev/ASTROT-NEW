@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Clock3, MapPin } from 'lucide-react';
+import { CalendarDays, ChevronRight, Clock3, MapPin } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
+import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
-import { ShimmerStyles } from '../../components/NatalReading/Skeleton';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
 import {
@@ -12,7 +12,6 @@ import {
   EditorialProfileButton,
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
-import { selectNatalEditorialSticker } from '../../lib/personalForecastVisuals';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
 import type { ChartListItem } from '../../services/storageService';
 import type { PaywallContext } from '../../lib/paywallContext';
@@ -38,10 +37,12 @@ type NatalMagazineProps = {
   uiPreview?: {
     initialTab?: 'map' | 'reading';
     openQuestion?: boolean;
+    reportState?: 'ready' | 'loading' | 'error';
+    premiumReport?: NatalPermanentPremiumReport | null;
   };
 };
 
-type NatalScreenTab = 'map' | 'reading' | 'matrix' | 'questions';
+type NatalScreenTab = 'map' | 'reading' | 'matrix';
 
 export function NatalMagazine({
   data,
@@ -79,9 +80,8 @@ export function NatalMagazine({
   const handledExternalQuestionRequestRef = useRef(0);
   const tabs = useMemo(() => [
     { id: 'map' as const, label: language === 'ru' ? 'Карта' : 'Chart' },
-    { id: 'reading' as const, label: language === 'ru' ? 'Натальная карта' : 'Reading' },
+    { id: 'reading' as const, label: language === 'ru' ? 'Разбор' : 'Reading' },
     { id: 'matrix' as const, label: language === 'ru' ? 'Матрица судьбы' : 'Matrix' },
-    { id: 'questions' as const, label: language === 'ru' ? 'Вопросы по карте' : 'Chart questions' },
   ], [language]);
 
   useEffect(() => {
@@ -112,15 +112,6 @@ export function NatalMagazine({
       onOpenMatrix?.();
       return;
     }
-    if (tab === 'questions') {
-      if (!data) {
-        onCreateChart?.();
-        return;
-      }
-      setActiveTab('reading');
-      setQuestionOpenRequest((value) => value + 1);
-      return;
-    }
     setActiveTab(tab);
   };
 
@@ -135,19 +126,21 @@ export function NatalMagazine({
           />
         )}
       />
-      <EditorialTabs
-        label={language === 'ru' ? 'Разделы натальной карты' : 'Natal chart sections'}
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={selectTab}
-        className="natal-editorial-tabs"
-      />
+      {data ? (
+        <EditorialTabs
+          label={language === 'ru' ? 'Разделы натальной карты' : 'Natal chart sections'}
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={selectTab}
+          className="natal-editorial-tabs"
+        />
+      ) : null}
     </>
   );
 
   if (!data) {
     return (
-      <div className="fresh-page natal-editorial-page">
+      <div className="fresh-page natal-editorial-page natal-mvp-page">
         {header}
         <EditorialCurve className="natal-empty-curve" />
         <section className="natal-empty-content">
@@ -172,14 +165,8 @@ export function NatalMagazine({
     chartSubject?.input_hash || buildNatalChartFingerprint(data),
     chartSubject?.calculation_version || data.calculationVersion || 'unknown',
   ].join(':');
-  const natalSticker = selectNatalEditorialSticker({
-    chartKey: reportSubjectKey,
-    userId: profile.id ? String(profile.id) : null,
-  });
-
   return (
-    <div className="fresh-page natal-editorial-page">
-      <ShimmerStyles />
+    <div className="fresh-page natal-editorial-page natal-mvp-page">
       {header}
 
       {activeTab === 'map' ? (
@@ -225,19 +212,21 @@ export function NatalMagazine({
             <h1>{language === 'ru' ? 'Кто вы на самом деле?' : 'Who are you, really?'}</h1>
           </header>
           <EditorialCurve className="natal-reading-curve" />
-          <section className="natal-personality-entry">
-            <div>
-              <h2>{language === 'ru' ? 'Разбор личности' : 'Personality reading'}</h2>
-              <p>
+          <button
+            type="button"
+            className="natal-personality-entry"
+            onClick={onOpenPersonalityReport}
+          >
+            <span className="natal-personality-entry-copy">
+              <strong>{language === 'ru' ? 'Выбрать карту для разбора' : 'Choose a chart to read'}</strong>
+              <span>
                 {language === 'ru'
-                  ? 'Сначала — живой портрет человека. Расчёт и профессиональные детали останутся в карте.'
-                  : 'Start with a clear human portrait. The calculation and professional details stay in the chart.'}
-              </p>
-            </div>
-            <button type="button" onClick={onOpenPersonalityReport}>
-              {language === 'ru' ? 'Открыть разбор' : 'Open reading'}
-            </button>
-          </section>
+                  ? 'Откроется разбор для вас или сохранённого человека.'
+                  : 'Open a reading for you or a saved person.'}
+              </span>
+            </span>
+            <ChevronRight aria-hidden="true" strokeWidth={1.5} />
+          </button>
           <HumanReport
             key={reportSubjectKey}
             profile={profile}
@@ -248,11 +237,14 @@ export function NatalMagazine({
             onUpdateProfile={onUpdateProfile}
             preloadedReport={preloadedReport}
             hideIntro
-            editorialSticker={natalSticker}
             openQuestionRequest={questionOpenRequest}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
             canPromotePremium={canPromotePremium}
+            uiPreview={previewConfig ? {
+              state: previewConfig.reportState || 'ready',
+              premiumReport: previewConfig.premiumReport,
+            } : undefined}
           />
         </section>
       )}
