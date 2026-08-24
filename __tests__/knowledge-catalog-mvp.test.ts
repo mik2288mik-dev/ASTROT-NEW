@@ -71,7 +71,8 @@ describe('first-release knowledge catalog', () => {
     }
 
     const russianCopy = JSON.stringify(KNOWLEDGE_TOPIC_SOURCES.map((topic) => topic.copy.ru));
-    expect(russianCopy).not.toMatch(/проявля|энерги|ресурс|проработ|паттерн|внутренн(?:яя|ей|юю) опор|сценари|подсвеч|реализац(?:ия|ии) потенциал|глубинн(?:ая|ой|ую) трансформац|вселенн|судьба велит|кармическ(?:ий|ая|ое)/iu);
+    expect(russianCopy).not.toMatch(/проявл|энерги|ресурс|проработ|паттерн|внутренн(?:яя|ей|юю) опор|сценари|подсвеч|реализац(?:ия|ии) потенциал|глубинн(?:ая|ой|ую) трансформац|вселенн|судьба велит|кармическ(?:ий|ая|ое)/iu);
+    expect(russianCopy).not.toMatch(/\d/u);
   });
 
   it('finds familiar words, abbreviations, aliases, and spelling variants locally', () => {

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import {
   buildKnowledgeInlineLinkCandidates,
+  getKnowledgeTopics,
   splitKnowledgeTextWithLinks,
   type KnowledgeTopic,
 } from '../lib/knowledge';
@@ -64,5 +65,26 @@ describe('knowledge article inline links', () => {
     expect(source).toContain('navigationTrail');
     expect(source).toContain('className="encyclopedia-inline-link"');
     expect(source).toContain('event.preventDefault()');
+  });
+
+  it('links real terms inside the four reference articles', () => {
+    const realTopics = getKnowledgeTopics('ru');
+    const byId = new Map(realTopics.map((item) => [item.id, item]));
+
+    for (const topicId of ['retrograde-mercury', 'ascendant', 'house-7', 'aspect-square']) {
+      const current = byId.get(topicId)!;
+      const candidates = buildKnowledgeInlineLinkCandidates(realTopics, topicId);
+      const visibleParagraphs = [
+        current.summary,
+        ...current.sections.flatMap((section) => section.paragraphs),
+      ];
+      const linkedDestinations = visibleParagraphs.flatMap((paragraph) => (
+        splitKnowledgeTextWithLinks(paragraph, candidates)
+          .filter((segment) => segment.kind === 'link')
+          .map((segment) => segment.topicId)
+      ));
+
+      expect(linkedDestinations.length).toBeGreaterThan(0);
+    }
   });
 });
