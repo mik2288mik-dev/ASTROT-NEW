@@ -1210,16 +1210,6 @@ export function UnionRoom(props: UnionRoomProps) {
     lumiaSelectionHaptic();
     setError(null);
     if (tab === 'birth') {
-      if (!premium) {
-        void requestPremium('compatibility_by_charts', {
-          placement: 'compatibility_by_charts',
-          featureKey: 'synastry_by_charts',
-          triggerType: 'locked_feature',
-          returnView: 'synastry',
-          returnAction: 'open_birth_compatibility',
-        });
-        return;
-      }
       setEntryMode('birth');
       setScreen('add');
       scrollCompatibilityToTop();
