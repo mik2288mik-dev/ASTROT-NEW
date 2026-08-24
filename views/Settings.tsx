@@ -25,6 +25,7 @@ import { updateUserNotificationSettings, getUserNotificationSettings, getTelegra
 import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
@@ -1478,6 +1479,12 @@ export const Settings: React.FC<SettingsProps> = ({
                     : settingsDetailBusy
                         ? undefined
                         : returnToSettingsRoot}
+                rightAction={settingsScreen === 'root' && onOpenCharts ? (
+                    <EditorialChartsButton
+                        label={profile.language === 'en' ? 'Open my charts' : 'Открыть мои карты'}
+                        onClick={onOpenCharts}
+                    />
+                ) : undefined}
             />
             <div
                 ref={settingsContentRef}

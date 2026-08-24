@@ -54,6 +54,7 @@ describe('development-only UI Preview mode', () => {
       'compatibility-signs',
       'compatibility-result',
       'settings',
+      'charts',
       'menu',
       'paywall',
       'question',
@@ -74,6 +75,11 @@ describe('development-only UI Preview mode', () => {
     expect(preview).not.toContain('<MoreHub');
     expect(preview).toContain("scenario.screen === 'menu'");
     expect(preview).toContain('<ServiceScreen');
+    expect(preview).toContain("setServiceTab('charts')");
+    expect(preview).toContain('chartsContent={(');
+    expect(preview).toContain('<EditorialChartsButton label="Открыть мои карты"');
+    expect(preview).toContain('scenario.screen === \'charts\' ? undefined');
+    expect(preview).toContain('embedded');
     expect(preview).toContain("onOpenServices={() => navigate('menu')}");
     expect(preview).not.toContain("from '../../services/");
     expect(preview).not.toContain('swisseph');

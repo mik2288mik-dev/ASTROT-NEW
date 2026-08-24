@@ -34,7 +34,6 @@ import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
-import { EditorialProfileButton } from './components/editorial/EditorialScreenChrome';
 import {
     LumiaBottomTabBar,
     LumiaNavigationSheet,
@@ -2041,8 +2040,12 @@ const App: React.FC = () => {
         setNavigationSheet(null);
         navigateTo('services');
     }, [navigateTo]);
-    const openSettingsFromServices = useCallback(() => {
+    const openSettings = useCallback(() => {
         navigateTo('settings');
+    }, [navigateTo]);
+    const openServiceCharts = useCallback(() => {
+        setServiceTab('charts');
+        navigateTo('services');
     }, [navigateTo]);
     const openNavigationCompatibility = useCallback(() => {
         setNavigationSheet(null);
@@ -2187,8 +2190,7 @@ const App: React.FC = () => {
         onOpenHoroscope: openBottomZodiac,
         requestedPeriod: dashboardPeriod,
         onPeriodChange: setDashboardPeriod,
-        onOpenProfile: openProfileSheet,
-        profileMenuOpen: navigationSheet === 'profile',
+        onOpenSettings: openSettings,
         onRequestPremium: requestPremium,
         canPromotePremium: premiumPromotionAllowed,
         onPremiumAnalytics: (
@@ -2208,6 +2210,44 @@ const App: React.FC = () => {
             });
         },
     };
+
+    const renderMyCharts = (returnView: ViewState, embedded = false) => (
+        <MyCharts
+            profile={profile}
+            embedded={embedded}
+            onProfileUpdate={handleProfileUpdate}
+            onPrimaryChartUpdated={refreshPrimaryChartState}
+            onRequestPremium={(source, payload) => void requestPremium(source || 'charts', payload)}
+            premiumContinuation={premiumContinuation}
+            onPremiumContinuationHandled={completePremiumContinuation}
+            canPromotePremium={premiumPromotionAllowed}
+            onUseInSynastry={(chart) => {
+                openSynastryWithPrefill({
+                    source: 'saved-chart',
+                    partnerChartId: chart.id,
+                    partnerName: chart.name,
+                    partnerDate: chart.birth_date,
+                    partnerTime: chart.birth_time || undefined,
+                    partnerPlace: chart.birth_place,
+                });
+            }}
+            onChartSelect={(chart) => {
+                appDebugLog('navigation', {
+                    action: 'select_saved_chart',
+                    from: viewRef.current,
+                    to: 'chart',
+                    returnView,
+                    chartId: !!chart.id,
+                });
+                setChartData(chart.chart_data);
+                setActiveChartId(chart.id);
+                setActiveChartSubject(chart);
+                setChartReturnView(returnView);
+                pushReturnView(viewRef.current);
+                setView('chart');
+            }}
+        />
+    );
 
     return (
         <div
@@ -2238,13 +2278,12 @@ const App: React.FC = () => {
                             chartId={primaryChartId ?? null}
                             requestPremium={requestPremium}
                             initialPrefill={synastryPrefill}
-                            onOpenCharts={() => openCharts('synastry')}
+                            onOpenCharts={openServiceCharts}
                             onCreateNatalChart={openBottomNatal}
                             onUpdateProfile={handleProfileUpdate}
                             premiumContinuation={premiumContinuation}
                             onPremiumContinuationHandled={completePremiumContinuation}
                             canPromotePremium={premiumPromotionAllowed}
-                            onOpenProfile={openProfileSheet}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
                         <PromoBanner
@@ -2275,7 +2314,7 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
-                            onOpenProfile={openProfileSheet}
+                            onOpenSettings={openSettings}
                         />
                     </div>
                 ) : view === 'personality' && chartData ? (
@@ -2337,7 +2376,7 @@ const App: React.FC = () => {
                             canPromotePremium={premiumPromotionAllowed}
                             openQuestionRequest={natalQuestionRequest}
                             onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
-                            onOpenProfile={openProfileSheet}
+                            onOpenCharts={openServiceCharts}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
                         <PromoBanner
@@ -2356,17 +2395,17 @@ const App: React.FC = () => {
                             activeTab={serviceTab}
                             onTabChange={setServiceTab}
                             onOpenStore={openServiceStore}
-                            onOpenSettings={openSettingsFromServices}
+                            onOpenSettings={openSettings}
+                            chartsContent={renderMyCharts('services', true)}
                             onRestorePurchase={() => restorePremiumPurchases()}
                             onManageSubscription={managePremiumSubscription}
-                            onOpenProfile={openProfileSheet}
                         />
                     </div>
                 ) : view === 'encyclopedia' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <AstrologyEncyclopedia
                             profile={profile}
-                            onOpenProfile={openProfileSheet}
+                            onOpenSettings={openSettings}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -2379,7 +2418,7 @@ const App: React.FC = () => {
                             onRestorePurchase={() => restorePremiumPurchases()}
                             onManageSubscription={managePremiumSubscription}
                             onOpenAdmin={() => navigateTo('admin')}
-                            onOpenCharts={() => openCharts('settings')}
+                            onOpenCharts={openServiceCharts}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
                             recoveryIdentityRequired={pendingPremiumRecovery !== null}
@@ -2391,50 +2430,8 @@ const App: React.FC = () => {
                         <AppTopBar
                             title={profile.language === 'en' ? 'My charts' : 'Мои карты'}
                             onBack={() => { void handleBack(); }}
-                            rightAction={(
-                                <EditorialProfileButton
-                                    label={profile.language === 'en' ? 'Open profile' : 'Открыть профиль'}
-                                    onClick={openProfileSheet}
-                                />
-                            )}
                         />
-                        <MyCharts 
-                            profile={profile} 
-                            onBack={() => {
-                                void handleBack();
-                            }}
-                            onProfileUpdate={handleProfileUpdate}
-                            onPrimaryChartUpdated={refreshPrimaryChartState}
-                            onRequestPremium={(source, payload) => void requestPremium(source || 'charts', payload)}
-                            premiumContinuation={premiumContinuation}
-                            onPremiumContinuationHandled={completePremiumContinuation}
-                            canPromotePremium={premiumPromotionAllowed}
-                            onUseInSynastry={(chart) => {
-                                openSynastryWithPrefill({
-                                    source: 'saved-chart',
-                                    partnerChartId: chart.id,
-                                    partnerName: chart.name,
-                                    partnerDate: chart.birth_date,
-                                    partnerTime: chart.birth_time || undefined,
-                                    partnerPlace: chart.birth_place,
-                                });
-                            }}
-                            onChartSelect={(chart) => {
-                                appDebugLog('navigation', {
-                                    action: 'select_saved_chart',
-                                    from: viewRef.current,
-                                    to: 'chart',
-                                    returnView: 'charts',
-                                    chartId: !!chart.id,
-                                });
-                                setChartData(chart.chart_data);
-                                setActiveChartId(chart.id);
-                                setActiveChartSubject(chart);
-                                setChartReturnView('charts');
-                                pushReturnView(viewRef.current);
-                                setView('chart');
-                            }}
-                        />
+                        {renderMyCharts('charts')}
                     </div>
                 ) : null}
             </main>

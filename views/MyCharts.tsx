@@ -27,7 +27,6 @@ import {
 
 interface MyChartsProps {
   profile: UserProfile;
-  onBack: () => void;
   onChartSelect?: (chart: ChartListItem) => void;
   onProfileUpdate?: (profile: UserProfile) => void;
   onUseInSynastry?: (chart: ChartListItem) => void;
@@ -36,11 +35,12 @@ interface MyChartsProps {
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
+  uiPreview?: ChartsResponse;
+  embedded?: boolean;
 }
 
 export const MyCharts: React.FC<MyChartsProps> = ({
   profile,
-  onBack,
   onChartSelect,
   onProfileUpdate: _onProfileUpdate,
   onUseInSynastry,
@@ -49,11 +49,16 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   premiumContinuation,
   onPremiumContinuationHandled,
   canPromotePremium = true,
+  uiPreview,
+  embedded = false,
 }) => {
-  void onBack;
+  const previewData = process.env.NODE_ENV === 'development'
+    && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
+      ? uiPreview
+      : undefined;
 
-  const [data, setData] = useState<ChartsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ChartsResponse | null>(previewData ?? null);
+  const [loading, setLoading] = useState(!previewData);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -90,6 +95,11 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }, [resetAddForm, showAddForm]);
 
   const loadCharts = useCallback(async () => {
+    if (previewData) {
+      setData(previewData);
+      setLoading(false);
+      return previewData;
+    }
     if (!profile.id) return;
 
     setLoading(true);
@@ -105,7 +115,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [lang, profile.id, profile.premiumEntitlement?.state, profile.premiumEntitlement?.endsAt]);
+  }, [lang, previewData, profile.id, profile.premiumEntitlement?.state, profile.premiumEntitlement?.endsAt]);
 
   useEffect(() => {
     loadCharts();
@@ -435,27 +445,33 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   }
 
   return (
-    <main className="fresh-page charts-editorial-page">
-      <div className="mx-auto max-w-2xl space-y-7 px-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-        <MonoStagger>
-          <MonoStaggerItem>
-            <header className="fresh-card p-5 sm:p-6">
-              <h1 className="text-[25px] font-bold tracking-[-0.02em] text-mono-ink">
-                {getText(lang, 'charts.title')}
-              </h1>
-              <p className="mt-2 text-[14px] leading-relaxed text-mono-muted">
-                {lang === 'ru'
-                  ? 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.'
-                  : 'Your chart is always available. Other people’s charts are saved and unlocked with Premium.'}
-              </p>
-              {canAddMore ? (
-                <MonoButton className="mt-5" fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
-                  + {getText(lang, 'charts.add_chart')}
-                </MonoButton>
-              ) : null}
-            </header>
-          </MonoStaggerItem>
-        </MonoStagger>
+    <main className={`fresh-page charts-editorial-page${embedded ? ' charts-editorial-page--embedded' : ''}`}>
+      <div className={`mx-auto max-w-2xl px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] ${embedded ? 'space-y-5' : 'space-y-7'}`}>
+        {!embedded ? (
+          <MonoStagger>
+            <MonoStaggerItem>
+              <header className="fresh-card p-5 sm:p-6">
+                <h1 className="text-[25px] font-bold tracking-[-0.02em] text-mono-ink">
+                  {getText(lang, 'charts.title')}
+                </h1>
+                <p className="mt-2 text-[14px] leading-relaxed text-mono-muted">
+                  {lang === 'ru'
+                    ? 'Твоя карта доступна всегда. Карты других людей сохраняются и открываются с Premium.'
+                    : 'Your chart is always available. Other people’s charts are saved and unlocked with Premium.'}
+                </p>
+                {canAddMore ? (
+                  <MonoButton className="mt-5" fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
+                    + {getText(lang, 'charts.add_chart')}
+                  </MonoButton>
+                ) : null}
+              </header>
+            </MonoStaggerItem>
+          </MonoStagger>
+        ) : canAddMore ? (
+          <MonoButton fullWidth onClick={() => { setAddError(null); setShowAddForm(true); }}>
+            + {getText(lang, 'charts.add_chart')}
+          </MonoButton>
+        ) : null}
 
         {loadError ? (
           <div role="alert" className="rounded-mono-card border border-red-200 bg-red-50 p-3 text-sm text-red-700">

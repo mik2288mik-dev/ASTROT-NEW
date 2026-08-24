@@ -4,7 +4,7 @@ import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import {
   EditorialCurve,
-  EditorialProfileButton,
+  EditorialSettingsButton,
 } from '../../components/editorial/EditorialScreenChrome';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import {
@@ -29,7 +29,7 @@ type EncyclopediaLocation =
 
 export type AstrologyEncyclopediaProps = {
   profile: UserProfile;
-  onOpenProfile?: () => void;
+  onOpenSettings?: () => void;
   embedded?: boolean;
 };
 
@@ -44,7 +44,7 @@ function russianMaterialCount(count: number): string {
 
 export function AstrologyEncyclopedia({
   profile,
-  onOpenProfile,
+  onOpenSettings,
   embedded = false,
 }: AstrologyEncyclopediaProps) {
   const language = knowledgeLanguage(profile.language);
@@ -197,7 +197,7 @@ export function AstrologyEncyclopedia({
         {!embedded ? (
           <AppTopBar
             title={ru ? 'Хочу знать' : 'Learn'}
-            rightAction={<EditorialProfileButton label={ru ? 'Открыть профиль' : 'Open profile'} onClick={onOpenProfile} />}
+            rightAction={<EditorialSettingsButton label={ru ? 'Открыть настройки' : 'Open settings'} onClick={onOpenSettings} />}
           />
         ) : null}
         <div className="encyclopedia-content encyclopedia-empty">
@@ -215,7 +215,7 @@ export function AstrologyEncyclopedia({
         <AppTopBar
           title={ru ? 'Хочу знать' : 'Learn'}
           onBack={headerBack}
-          rightAction={<EditorialProfileButton label={ru ? 'Открыть профиль' : 'Open profile'} onClick={onOpenProfile} />}
+          rightAction={<EditorialSettingsButton label={ru ? 'Открыть настройки' : 'Open settings'} onClick={onOpenSettings} />}
         />
       ) : null}
 

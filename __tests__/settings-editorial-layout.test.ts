@@ -29,6 +29,8 @@ describe('settings mobile information architecture', () => {
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(settings).not.toContain('settings-editorial-premium');
     expect(settings).not.toContain('EditorialProfileButton');
+    expect(settings).toContain('EditorialChartsButton');
+    expect(settings).toContain("settingsScreen === 'root' && onOpenCharts");
     expect(settings).not.toContain('font-serif');
     expect(styles).not.toContain('linear-gradient');
     expect(styles).not.toContain('radial-gradient');

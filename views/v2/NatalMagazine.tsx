@@ -10,7 +10,7 @@ import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
 import { MatrixRoom } from './MatrixRoom';
 import {
   EditorialCurve,
-  EditorialProfileButton,
+  EditorialChartsButton,
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
 import { buildNatalChartFingerprint } from '../../lib/natalChartFingerprint';
@@ -34,7 +34,7 @@ type NatalMagazineProps = {
   canPromotePremium?: boolean;
   openQuestionRequest?: number;
   onQuestionRequestHandled?: () => void;
-  onOpenProfile?: () => void;
+  onOpenCharts?: () => void;
   onOpenEncyclopedia?: () => void;
   uiPreview?: {
     initialTab?: 'map' | 'reading';
@@ -63,7 +63,7 @@ export function NatalMagazine({
   canPromotePremium,
   openQuestionRequest,
   onQuestionRequestHandled,
-  onOpenProfile,
+  onOpenCharts,
   onOpenEncyclopedia,
   uiPreview,
 }: NatalMagazineProps) {
@@ -122,9 +122,9 @@ export function NatalMagazine({
       <AppTopBar
         title={language === 'ru' ? 'Натальная карта' : 'Natal chart'}
         rightAction={(
-          <EditorialProfileButton
-            label={language === 'ru' ? 'Открыть профиль' : 'Open profile'}
-            onClick={onOpenProfile}
+          <EditorialChartsButton
+            label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
+            onClick={onOpenCharts}
           />
         )}
       />
@@ -286,7 +286,6 @@ export function NatalMagazine({
           <MatrixRoom
             profile={profile}
             onBack={() => setActiveTab('map')}
-            onOpenProfile={onOpenProfile}
             embedded
           />
         </div>

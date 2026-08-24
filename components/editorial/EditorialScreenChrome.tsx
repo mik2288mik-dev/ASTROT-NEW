@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserRound } from 'lucide-react';
+import { Settings as SettingsIcon, UserRound } from 'lucide-react';
 
 export type EditorialTabItem<T extends string> = {
   id: T;
@@ -47,6 +47,45 @@ export function EditorialTabs<T extends string>({
 export function EditorialProfileButton({
   label,
   onClick,
+  opensDialog = true,
+}: {
+  label: string;
+  onClick?: () => void;
+  opensDialog?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className="app-top-bar-action editorial-profile-button"
+      aria-label={label}
+      aria-haspopup={onClick && opensDialog ? 'dialog' : undefined}
+      onClick={onClick}
+      disabled={!onClick}
+    >
+      <UserRound aria-hidden="true" strokeWidth={1.35} />
+    </button>
+  );
+}
+
+export function EditorialChartsButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick?: () => void;
+}) {
+  return (
+    <EditorialProfileButton
+      label={label}
+      onClick={onClick}
+      opensDialog={false}
+    />
+  );
+}
+
+export function EditorialSettingsButton({
+  label,
+  onClick,
 }: {
   label: string;
   onClick?: () => void;
@@ -54,13 +93,12 @@ export function EditorialProfileButton({
   return (
     <button
       type="button"
-      className="app-top-bar-action editorial-profile-button"
+      className="app-top-bar-action editorial-settings-button"
       aria-label={label}
-      aria-haspopup={onClick ? 'dialog' : undefined}
       onClick={onClick}
       disabled={!onClick}
     >
-      <UserRound aria-hidden="true" strokeWidth={1.35} />
+      <SettingsIcon aria-hidden="true" strokeWidth={1.35} />
     </button>
   );
 }

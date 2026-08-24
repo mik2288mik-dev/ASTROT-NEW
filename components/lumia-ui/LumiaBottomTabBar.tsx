@@ -98,7 +98,7 @@ export function LumiaBottomTabBar({
           onClick={() => runNavigationAction(onOpenZodiac)}
         >
           <MoonStar aria-hidden="true" strokeWidth={1.25} />
-          <span className="today-bottom-nav-label" aria-hidden="true">Зодиак</span>
+          <span className="today-bottom-nav-label" aria-hidden="true">Знаки</span>
         </button>
 
         <div className="today-bottom-nav-hub-wrap">

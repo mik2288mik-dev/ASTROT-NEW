@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { LoaderCircle, RefreshCw, UserRound } from 'lucide-react';
+import { LoaderCircle, RefreshCw } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 import type { UserProfile } from '../types';
 import { hasActivePremium } from '../lib/accessMatrix';
@@ -32,6 +32,7 @@ import {
   TodayLineField,
 } from '../components/PersonalForecastFeed/TodayCalendarClock';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
+import { EditorialSettingsButton } from '../components/editorial/EditorialScreenChrome';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 
 type DashboardProps = {
@@ -40,8 +41,7 @@ type DashboardProps = {
   onCreateNatalChart?: () => void;
   requestedPeriod?: PersonalForecastPeriod;
   onPeriodChange?: (period: PersonalForecastPeriod) => void;
-  onOpenProfile?: () => void;
-  profileMenuOpen?: boolean;
+  onOpenSettings?: () => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -121,8 +121,7 @@ export const Dashboard = memo<DashboardProps>(({
   onCreateNatalChart,
   requestedPeriod,
   onPeriodChange,
-  onOpenProfile,
-  profileMenuOpen = false,
+  onOpenSettings,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
@@ -399,17 +398,10 @@ export const Dashboard = memo<DashboardProps>(({
         <AppTopBar
           title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}
           rightAction={(
-            <button
-              type="button"
-              className="app-top-bar-action today-profile-button"
-              aria-label={language === 'ru' ? 'Открыть профиль' : 'Open profile'}
-              aria-haspopup="dialog"
-              aria-expanded={profileMenuOpen}
-              aria-controls="today-navigation-sheet"
-              onClick={onOpenProfile}
-            >
-              <UserRound aria-hidden="true" strokeWidth={1.35} />
-            </button>
+            <EditorialSettingsButton
+              label={language === 'ru' ? 'Открыть настройки' : 'Open settings'}
+              onClick={onOpenSettings}
+            />
           )}
         />
       </section>

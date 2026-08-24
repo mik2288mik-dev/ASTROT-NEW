@@ -98,12 +98,27 @@ describe('application chrome', () => {
     expect(obsoleteHeaderStyles).not.toContain('.fresh-back-btn');
   });
 
-  it('keeps profile actions on content headers and a Back-only utility header in Settings', () => {
+  it('uses Settings and My Charts actions only where they are useful', () => {
     const application = read('App.tsx');
+    const dashboard = read('views/Dashboard.tsx');
+    const horoscope = read('views/v2/HoroscopeReader.tsx');
+    const natal = read('views/v2/NatalMagazine.tsx');
+    const compatibility = read('views/v2/UnionRoom.tsx');
+    const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
+    const services = read('views/v2/ServiceScreen.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
     const personality = read('views/PersonalityReport.tsx');
     const settings = read('views/Settings.tsx');
 
+    [dashboard, horoscope, encyclopedia, services].forEach((screen) => {
+      expect(screen).toContain('EditorialSettingsButton');
+      expect(screen).toContain('Открыть настройки');
+    });
+    [natal, compatibility].forEach((screen) => {
+      expect(screen).toContain('EditorialChartsButton');
+      expect(screen).toContain('Открыть мои карты');
+      expect(screen).toContain('onClick={onOpenCharts}');
+    });
     [matrix, personality].forEach((screen) => {
       expect(screen).toContain('EditorialProfileButton');
       expect(screen).toContain('rightAction={(');
@@ -113,10 +128,14 @@ describe('application chrome', () => {
     expect(settings).toContain("onBack={settingsScreen === 'root'");
     expect(settings).toContain('settingsDetailBusy');
     expect(settings).not.toContain('EditorialProfileButton');
-    expect(settings).not.toContain('rightAction={(');
+    expect(settings).toContain('EditorialChartsButton');
+    expect(settings).toContain("settingsScreen === 'root' && onOpenCharts");
     expect(application).toContain('<MatrixRoom');
     expect(application).toContain('onOpenProfile={openProfileSheet}');
     expect(application).toContain("title={profile.language === 'en' ? 'My charts'");
+    expect(application).toContain("setServiceTab('charts')");
+    expect(application).toContain('onOpenSettings={openSettings}');
+    expect(application).toContain('onOpenCharts={openServiceCharts}');
   });
 
   it('replaces the draggable liquid lens with a thin static navigation line', () => {

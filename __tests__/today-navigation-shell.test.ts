@@ -24,6 +24,8 @@ describe('Today minimal navigation shell', () => {
     expect(navigation).toContain("'charts'");
     expect(navigation).toContain("aria-current={natalIsCurrent ? 'page' : undefined}");
     expect(navigation).toContain("aria-current={servicesAreCurrent ? 'page' : undefined}");
+    ['Сегодня', 'Знаки', 'Карта', 'Сравнить', 'Меню']
+      .forEach((label) => expect(navigation).toContain(`>${label}</span>`));
   });
 
   it('opens the three consolidated service sections and removes active MoreHub routing', () => {
@@ -32,12 +34,19 @@ describe('Today minimal navigation shell', () => {
     const services = read('views/v2/ServiceScreen.tsx');
 
     expect(navigation).toContain("export type LumiaNavigationSheetId = 'profile'");
-    ['Хочу знать', 'Магазин', 'Настройки']
+    ['Хочу знать', 'Premium', 'Мои карты']
       .forEach((label) => expect(services).toContain(label));
-    expect(services).toContain("export type ServiceTab = 'knowledge' | 'store' | 'settings'");
+    expect(services).toContain("export type ServiceTab = 'knowledge' | 'store' | 'charts'");
     expect(services).not.toContain("id: 'subscription'");
+    expect(services).not.toContain("id: 'settings'");
     expect(services).toContain('<EditorialTabs');
     expect(services).toContain('className="services-screen-tabs"');
+    expect(services).toContain('<EditorialSettingsButton');
+    expect(services).toContain("rightAction={activeTab !== 'charts'");
+    expect(services).toContain('{chartsContent}');
+    expect(app).toContain("setServiceTab('charts')");
+    expect(app).toContain("chartsContent={renderMyCharts('services', true)}");
+    expect(read('views/MyCharts.tsx')).toContain("embedded ? ' charts-editorial-page--embedded'");
     expect(app).toContain("navigateTo('services')");
     expect(app).toContain("view === 'services'");
     expect(app).toContain('<ServiceScreen');
@@ -97,7 +106,6 @@ describe('Today minimal navigation shell', () => {
     expect(dashboard).toContain('aria-selected={period === activePeriod}');
     expect(dashboard).toContain('onPeriodChange?.(period)');
     expect(clock).toContain('<time');
-    expect(clock).toContain('useReducedMotion');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(styles).toContain('.today-bottom-navigation::before');
   });

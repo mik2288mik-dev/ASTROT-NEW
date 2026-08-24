@@ -82,7 +82,7 @@ describe('card background UI wiring', () => {
     expect(natal).not.toContain('editorialSticker={natalSticker}');
     expect(compatibility).not.toContain('selectSynastryEditorialSticker');
     expect(compatibility).not.toContain('<EditorialSticker');
-    expect(compatibility).toContain('EditorialProfileButton');
+    expect(compatibility).toContain('EditorialChartsButton');
     expect(matrix).not.toContain('selectMainEditorialSticker');
     expect(matrix).not.toContain('EditorialSticker');
     expect(natal).not.toContain('getUniversalCardBackground');

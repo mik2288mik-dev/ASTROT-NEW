@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import {
-  EditorialProfileButton,
+  EditorialSettingsButton,
   EditorialTabs,
   type EditorialTabItem,
 } from '../../components/editorial/EditorialScreenChrome';
@@ -9,13 +9,13 @@ import { describePremiumEntitlement } from '../../lib/subscriptionPresentation';
 import type { PremiumEntitlementSnapshot, UserProfile } from '../../types';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
-export type ServiceTab = 'knowledge' | 'store' | 'settings';
+export type ServiceTab = 'knowledge' | 'store' | 'charts';
 
 export type ServiceScreenProps = {
   profile: UserProfile;
   onOpenStore: () => void;
   onOpenSettings: () => void;
-  onOpenProfile: () => void;
+  chartsContent: React.ReactNode;
   onRestorePurchase?: () => Promise<void>;
   onManageSubscription?: () => Promise<void> | void;
   initialTab?: ServiceTab;
@@ -25,26 +25,26 @@ export type ServiceScreenProps = {
 
 const SERVICE_TABS_RU: readonly EditorialTabItem<ServiceTab>[] = [
   { id: 'knowledge', label: 'Хочу знать' },
-  { id: 'store', label: 'Магазин' },
-  { id: 'settings', label: 'Настройки' },
+  { id: 'store', label: 'Premium' },
+  { id: 'charts', label: 'Мои карты' },
 ];
 
 const SERVICE_TABS_EN: readonly EditorialTabItem<ServiceTab>[] = [
   { id: 'knowledge', label: 'Learn' },
-  { id: 'store', label: 'Store' },
-  { id: 'settings', label: 'Settings' },
+  { id: 'store', label: 'Premium' },
+  { id: 'charts', label: 'My charts' },
 ];
 
 const SERVICE_TITLES_RU: Record<ServiceTab, string> = {
   knowledge: 'Хочу знать',
-  store: 'Магазин',
-  settings: 'Настройки',
+  store: 'Premium',
+  charts: 'Мои карты',
 };
 
 const SERVICE_TITLES_EN: Record<ServiceTab, string> = {
   knowledge: 'Learn',
-  store: 'Store',
-  settings: 'Settings',
+  store: 'Premium',
+  charts: 'My charts',
 };
 
 function legacyGiftEntitlement(profile: UserProfile): PremiumEntitlementSnapshot | null {
@@ -155,7 +155,7 @@ export function ServiceScreen({
   onTabChange,
   onOpenStore,
   onOpenSettings,
-  onOpenProfile,
+  chartsContent,
   onRestorePurchase,
   onManageSubscription,
   profile,
@@ -166,10 +166,6 @@ export function ServiceScreen({
   const ru = profile.language !== 'en';
 
   const selectTab = (tab: ServiceTab) => {
-    if (tab === 'settings') {
-      onOpenSettings();
-      return;
-    }
     if (controlledTab === undefined) setInternalTab(tab);
     onTabChange?.(tab);
     window.requestAnimationFrame(() => {
@@ -181,12 +177,12 @@ export function ServiceScreen({
     <div ref={rootRef} className="fresh-page services-screen-page">
       <AppTopBar
         title={(ru ? SERVICE_TITLES_RU : SERVICE_TITLES_EN)[activeTab]}
-        rightAction={(
-          <EditorialProfileButton
-            label={ru ? 'Открыть профиль' : 'Open profile'}
-            onClick={onOpenProfile}
+        rightAction={activeTab !== 'charts' ? (
+          <EditorialSettingsButton
+            label={ru ? 'Открыть настройки' : 'Open settings'}
+            onClick={onOpenSettings}
           />
-        )}
+        ) : undefined}
       />
       <EditorialTabs
         className="services-screen-tabs"
@@ -200,15 +196,18 @@ export function ServiceScreen({
         <AstrologyEncyclopedia
           embedded
           profile={profile}
-          onOpenProfile={onOpenProfile}
         />
-      ) : (
+      ) : activeTab === 'store' ? (
         <StoreSection
           profile={profile}
           onOpenStore={onOpenStore}
           onRestorePurchase={onRestorePurchase}
           onManageSubscription={onManageSubscription}
         />
+      ) : (
+        <div className="services-charts-content">
+          {chartsContent}
+        </div>
       )}
     </div>
   );

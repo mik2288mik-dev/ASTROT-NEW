@@ -53,7 +53,7 @@ describe('contextual paywall return contract', () => {
     expect(app).toContain('onRequestPremium={openServiceStore}');
     const settingsRoute = app.slice(app.indexOf("view === 'settings'"), app.indexOf("view === 'charts'"));
     expect(settingsRoute).not.toContain('canPromotePremium={premiumPromotionAllowed}');
-    expect(services).toContain("{ id: 'store', label: 'Магазин' }");
+    expect(services).toContain("{ id: 'store', label: 'Premium' }");
     expect(services).toContain('onClick={onOpenStore}');
     expect(app).not.toContain("returnView: 'more'");
   });

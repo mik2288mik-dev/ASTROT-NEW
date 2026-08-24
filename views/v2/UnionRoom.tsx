@@ -40,7 +40,7 @@ import {
 import type { PaywallContext } from '../../lib/paywallContext';
 import {
   EditorialCurve,
-  EditorialProfileButton,
+  EditorialChartsButton,
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
 
@@ -67,7 +67,6 @@ type UnionRoomProps = {
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
-  onOpenProfile?: () => void;
   onOpenEncyclopedia?: () => void;
   uiPreview?: {
     screen: 'input' | 'signs' | 'result';
@@ -639,7 +638,6 @@ export function UnionRoom(props: UnionRoomProps) {
     premiumContinuation,
     onPremiumContinuationHandled,
     canPromotePremium = true,
-    onOpenProfile,
     uiPreview,
   } = props;
   const ru = profile.language !== 'en';
@@ -1231,9 +1229,9 @@ export function UnionRoom(props: UnionRoomProps) {
           scrollCompatibilityToTop();
         } : undefined}
         rightAction={(
-          <EditorialProfileButton
-            label={ru ? 'Открыть профиль' : 'Open profile'}
-            onClick={onOpenProfile}
+          <EditorialChartsButton
+            label={ru ? 'Открыть мои карты' : 'Open my charts'}
+            onClick={onOpenCharts}
           />
         )}
       />
