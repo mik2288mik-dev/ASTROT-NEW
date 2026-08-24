@@ -39,6 +39,12 @@ import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 import type { PaywallContext } from '../../lib/paywallContext';
+import {
+  questionTextForOpenRequest,
+  type NatalQuestionOpenRequest,
+} from '../../lib/natalReading/questionOpenRequest';
+
+export type { NatalQuestionOpenRequest } from '../../lib/natalReading/questionOpenRequest';
 
 export type PreloadedNatalReport = {
   report: NatalPermanentFreeReport;
@@ -59,7 +65,7 @@ type Props = {
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
-  openQuestionRequest?: number;
+  openQuestionRequest?: NatalQuestionOpenRequest | null;
   onQuestionRequestHandled?: () => void;
   uiPreview?: {
     state?: 'ready' | 'loading' | 'error';
@@ -629,7 +635,7 @@ export const HumanReport: React.FC<Props> = ({
   premiumContinuation,
   onPremiumContinuationHandled,
   canPromotePremium = true,
-  openQuestionRequest = 0,
+  openQuestionRequest = null,
   onQuestionRequestHandled,
   uiPreview,
 }) => {
@@ -807,11 +813,24 @@ export const HumanReport: React.FC<Props> = ({
       .finally(() => setQuestionLoading(false));
   }, [chartId, isPremium, requestPremium, userId]);
 
-  useEffect(() => {
-    if (!openQuestionRequest || handledQuestionRequestRef.current === openQuestionRequest) return;
-    handledQuestionRequestRef.current = openQuestionRequest;
+  const openEmptyQuestions = useCallback(() => {
+    setQuestionText('');
     openQuestions();
-    onQuestionRequestHandled?.();
+  }, [openQuestions]);
+
+  useEffect(() => {
+    if (
+      !openQuestionRequest
+      || handledQuestionRequestRef.current === openQuestionRequest.requestId
+    ) return;
+    const timer = window.setTimeout(() => {
+      if (handledQuestionRequestRef.current === openQuestionRequest.requestId) return;
+      handledQuestionRequestRef.current = openQuestionRequest.requestId;
+      setQuestionText(questionTextForOpenRequest(openQuestionRequest));
+      openQuestions();
+      onQuestionRequestHandled?.();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [onQuestionRequestHandled, openQuestionRequest, openQuestions]);
 
   useEffect(() => {
@@ -1015,7 +1034,7 @@ export const HumanReport: React.FC<Props> = ({
             <section id="natal-question-action" className="natal-question-action">
               <button
                 type="button"
-                onClick={openQuestions}
+                onClick={openEmptyQuestions}
                 className="natal-question-button"
               >
                 <MessageCircle aria-hidden="true" size={17} strokeWidth={2} />

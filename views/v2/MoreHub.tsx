@@ -7,7 +7,8 @@ import {
 } from '../../components/editorial/EditorialScreenChrome';
 import { hasActivePremium } from '../../lib/accessMatrix';
 import { describePremiumEntitlement } from '../../lib/subscriptionPresentation';
-import type { PremiumEntitlementSnapshot } from '../../types';
+import type { NatalChartData, PremiumEntitlementSnapshot } from '../../types';
+import type { PersonalKnowledgeReliability } from '../../lib/knowledge';
 import { Settings, type SettingsProps } from '../Settings';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
@@ -18,6 +19,10 @@ export type MoreHubProps = Omit<SettingsProps, 'embedded' | 'onRequestPremium'> 
   initialTab?: MoreHubTab;
   activeTab?: MoreHubTab;
   onTabChange?: (tab: MoreHubTab) => void;
+  primaryChartData?: NatalChartData | null;
+  personalReliability?: PersonalKnowledgeReliability | null;
+  onAskAboutSelf?: (question: string) => void;
+  onSpecifyBirthTime?: () => void;
 };
 
 const MORE_TABS_RU: readonly EditorialTabItem<MoreHubTab>[] = [
@@ -154,6 +159,10 @@ export function MoreHub({
   activeTab: controlledTab,
   onTabChange,
   onOpenPremium,
+  primaryChartData,
+  personalReliability,
+  onAskAboutSelf,
+  onSpecifyBirthTime,
   ...settingsProps
 }: MoreHubProps) {
   const [internalTab, setInternalTab] = useState<MoreHubTab>(initialTab);
@@ -189,6 +198,10 @@ export function MoreHub({
           embedded
           profile={settingsProps.profile}
           onOpenProfile={settingsProps.onOpenProfile}
+          primaryChartData={primaryChartData}
+          personalReliability={personalReliability}
+          onAskAboutSelf={onAskAboutSelf}
+          onSpecifyBirthTime={onSpecifyBirthTime}
         />
       ) : activeTab === 'premium' ? (
         <PremiumHub

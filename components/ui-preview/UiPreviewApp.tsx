@@ -11,6 +11,7 @@ import {
 } from '../lumia-ui/LumiaBottomTabBar';
 import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
+import type { NatalQuestionOpenRequest } from '../NatalReading/HumanReport';
 import { MoreHub, type MoreHubTab } from '../../views/v2/MoreHub';
 import { PersonalityReport } from '../../views/PersonalityReport';
 import { UnionRoom } from '../../views/v2/UnionRoom';
@@ -18,6 +19,8 @@ import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
 import { Settings } from '../../views/Settings';
 import { Paywall } from '../../views/Paywall';
 import type { PaywallContext } from '../../lib/paywallContext';
+import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
+import type { NatalChartData } from '../../types';
 import {
   UI_PREVIEW_ACCESS,
   UI_PREVIEW_BIRTH_TIMES,
@@ -250,16 +253,22 @@ function SettingsScene({
 
 function MoreScene({
   profile,
+  chart,
   activeTab,
   onTabChange,
   onOpenPremium,
+  onAskAboutSelf,
+  onSpecifyBirthTime,
   onNavigate,
   onOpenProfile,
 }: {
   profile: ReturnType<typeof createUiPreviewProfile>;
+  chart: NatalChartData;
   activeTab: MoreHubTab;
   onTabChange: (tab: MoreHubTab) => void;
   onOpenPremium: () => void;
+  onAskAboutSelf: (question: string) => void;
+  onSpecifyBirthTime: () => void;
   onNavigate: (screen: UiPreviewScreen) => void;
   onOpenProfile: () => void;
 }) {
@@ -283,6 +292,10 @@ function MoreScene({
       onOpenProfile={onOpenProfile}
       onLogout={async () => undefined}
       onDeleteAccount={async () => undefined}
+      primaryChartData={chart}
+      personalReliability={getPermanentNatalReliability(chart)}
+      onAskAboutSelf={onAskAboutSelf}
+      onSpecifyBirthTime={onSpecifyBirthTime}
       uiPreview={UI_PREVIEW_SETTINGS}
     />
   );
@@ -389,6 +402,8 @@ export default function UiPreviewApp() {
   const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
   const [moreTab, setMoreTab] = useState<MoreHubTab>('knowledge');
   const [paywallReturnScreen, setPaywallReturnScreen] = useState<UiPreviewScreen>('today');
+  const [natalQuestionRequest, setNatalQuestionRequest] = useState<NatalQuestionOpenRequest | null>(null);
+  const natalQuestionRequestIdRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const profile = useMemo(
@@ -489,7 +504,20 @@ export default function UiPreviewApp() {
   } else if (scenario.screen === 'paywall') {
     scene = <PaywallScene profile={profile} onClose={() => navigate(paywallReturnScreen)} />;
   } else if (scenario.screen === 'encyclopedia') {
-    scene = <AstrologyEncyclopedia profile={profile} onOpenProfile={openProfile} />;
+    scene = (
+      <AstrologyEncyclopedia
+        profile={profile}
+        onOpenProfile={openProfile}
+        primaryChartData={chart}
+        personalReliability={getPermanentNatalReliability(chart)}
+        onAskAboutSelf={(question) => {
+          natalQuestionRequestIdRef.current += 1;
+          setNatalQuestionRequest({ requestId: natalQuestionRequestIdRef.current, text: question });
+          navigate('natal');
+        }}
+        onSpecifyBirthTime={() => navigate('onboarding')}
+      />
+    );
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
     scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} onNavigate={navigate} onOpenProfile={openProfile} />;
   } else if (scenario.screen === 'horoscope' || scenario.screen === 'zodiac-picker') {
@@ -538,6 +566,8 @@ export default function UiPreviewApp() {
         onCreateChart={() => navigate('onboarding')}
         onOpenPersonalityReport={() => navigate('natal-reading')}
         canPromotePremium={scenario.access !== 'premium'}
+        openQuestionRequest={natalQuestionRequest}
+        onQuestionRequestHandled={() => setNatalQuestionRequest(null)}
         onOpenProfile={openProfile}
         onOpenEncyclopedia={() => navigate('encyclopedia')}
         uiPreview={{
@@ -567,12 +597,19 @@ export default function UiPreviewApp() {
     scene = (
       <MoreScene
         profile={profile}
+        chart={chart}
         activeTab={moreTab}
         onTabChange={setMoreTab}
         onOpenPremium={() => {
           setMoreTab('premium');
           navigate('paywall');
         }}
+        onAskAboutSelf={(question) => {
+          natalQuestionRequestIdRef.current += 1;
+          setNatalQuestionRequest({ requestId: natalQuestionRequestIdRef.current, text: question });
+          navigate('natal');
+        }}
+        onSpecifyBirthTime={() => navigate('onboarding')}
         onNavigate={navigate}
         onOpenProfile={openProfile}
       />

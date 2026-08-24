@@ -4,7 +4,10 @@ import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { UserProfile, NatalChartData, ViewState } from './types';
-import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import type {
+    NatalQuestionOpenRequest,
+    PreloadedNatalReport,
+} from './components/NatalReading/HumanReport';
 import {
     getProfile,
     saveProfile,
@@ -48,6 +51,7 @@ import {
 import {
     NATAL_PERMANENT_CONTRACT_VERSION,
     buildPermanentNatalChartFingerprint,
+    getPermanentNatalReliability,
 } from './lib/natalReading/permanentReport';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
@@ -356,7 +360,7 @@ const App: React.FC = () => {
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
     const [moreTab, setMoreTab] = useState<MoreHubTab>('knowledge');
-    const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
+    const [natalQuestionRequest, setNatalQuestionRequest] = useState<NatalQuestionOpenRequest | null>(null);
     const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
     const [pendingPremiumRecovery, setPendingPremiumRecovery] = useState<{
@@ -395,6 +399,7 @@ const App: React.FC = () => {
     const restoredRuStoreUserRef = useRef<string | null>(null);
     const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
+    const natalQuestionRequestIdRef = useRef(0);
 
     useEffect(() => {
         const reached = !!profile?.id
@@ -2014,6 +2019,29 @@ const App: React.FC = () => {
         navigateTo('personality');
     }, [chartData, navigateTo, openNatalSetupOnboarding]);
 
+    const openKnowledgeQuestion = useCallback((text: string) => {
+        const savedPersonActive = activeChartSubject?.subject_type === 'saved_person'
+            || activeChartSubject?.is_primary === false;
+        const ownChart = primaryChartDataRef.current || (!savedPersonActive ? chartData : null);
+        if (!ownChart) {
+            openNatalSetupOnboarding(viewRef.current, 'chart');
+            return;
+        }
+        natalQuestionRequestIdRef.current += 1;
+        setChartData(ownChart);
+        setActiveChartId(undefined);
+        setActiveChartSubject(null);
+        setNatalQuestionRequest({
+            requestId: natalQuestionRequestIdRef.current,
+            text,
+        });
+        navigateTo('chart');
+    }, [activeChartSubject, chartData, navigateTo, openNatalSetupOnboarding]);
+
+    const specifyBirthTimeFromKnowledge = useCallback(() => {
+        openNatalSetupOnboarding(viewRef.current, 'chart');
+    }, [openNatalSetupOnboarding]);
+
     const openBottomToday = useCallback(() => {
         setDashboardPeriod('day');
         navigateTo('dashboard', { replace: true });
@@ -2172,6 +2200,10 @@ const App: React.FC = () => {
         || activeChartSubject?.is_primary === false;
     const isPrimaryChartView = !isSavedPersonChartView;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
+    const primaryKnowledgeChart = primaryChartDataRef.current || (isPrimaryChartView ? chartData : null);
+    const primaryKnowledgeReliability = primaryKnowledgeChart
+        ? getPermanentNatalReliability(primaryKnowledgeChart)
+        : null;
     const showsBottomNavigation = !paywallContext && shouldShowLumiaBottomNavigation(view);
 
     const premiumPromotionAllowed = firstValueReached && !hasActivePremium(profile);
@@ -2332,7 +2364,7 @@ const App: React.FC = () => {
                             onPremiumContinuationHandled={completePremiumContinuation}
                             canPromotePremium={premiumPromotionAllowed}
                             openQuestionRequest={natalQuestionRequest}
-                            onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
+                            onQuestionRequestHandled={() => setNatalQuestionRequest(null)}
                             onOpenProfile={openProfileSheet}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
@@ -2363,6 +2395,10 @@ const App: React.FC = () => {
                             onDeleteAccount={handleDeleteAccount}
                             recoveryIdentityRequired={pendingPremiumRecovery !== null}
                             onRecoveryIdentityReady={completePremiumRecoveryIdentity}
+                            primaryChartData={primaryKnowledgeChart}
+                            personalReliability={primaryKnowledgeReliability}
+                            onAskAboutSelf={openKnowledgeQuestion}
+                            onSpecifyBirthTime={specifyBirthTimeFromKnowledge}
                         />
                     </div>
                 ) : view === 'encyclopedia' ? (
@@ -2370,6 +2406,10 @@ const App: React.FC = () => {
                         <AstrologyEncyclopedia
                             profile={profile}
                             onOpenProfile={openProfileSheet}
+                            primaryChartData={primaryKnowledgeChart}
+                            personalReliability={primaryKnowledgeReliability}
+                            onAskAboutSelf={openKnowledgeQuestion}
+                            onSpecifyBirthTime={specifyBirthTimeFromKnowledge}
                         />
                     </div>
                 ) : view === 'settings' ? (
