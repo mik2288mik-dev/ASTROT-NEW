@@ -1,18 +1,20 @@
 # Railway Database Migrations
 
-Railway starts the app with:
+Railway runs production validation and migrations in its pre-deploy container:
 
 ```text
-sh scripts/railway-start.sh
+sh scripts/railway-predeploy.sh
 ```
 
-This is configured in `railway.json` and mirrored in the Dockerfile `CMD`.
+After that succeeds, Railway starts the HTTP container with `node server.js`.
+Both commands are configured in `railway.json`; the Dockerfile `CMD` mirrors
+only the HTTP start command.
 
 ## Runtime Contract
 
 - `npm run validate:production-env` must pass before the database is touched.
-- `npm run migrate` must finish successfully before `node server.js` starts.
-- `exec node server.js` makes the Next.js server the main container process after migrations, so it receives shutdown signals directly.
+- `npm run migrate` must finish successfully before Railway creates the HTTP container.
+- `node server.js` is the only start command, so validation or migration failures are reported as pre-deploy failures instead of healthcheck failures.
 - In Railway/production/CI, missing `DATABASE_URL` is a fatal error.
 - Any migration error exits with code `1`.
 - Database URLs are logged only as safe connection metadata: host, port, database, user, and optional `sslmode`.

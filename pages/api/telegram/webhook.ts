@@ -1,6 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { answerTelegramCallbackQuery } from '../../../lib/telegramBot';
 import { processTelegramSuccessfulPayment } from '../../../lib/starsPaymentService';
+import {
+  getTelegramBotToken,
+  getTelegramWebhookSecret,
+  isTelegramWebhookEnabled,
+} from '../../../lib/telegramWebhookMode';
 import { handleNotificationCallback } from '../../../services/notificationRetentionService';
 
 const log = {
@@ -13,19 +18,17 @@ const log = {
  * Verify webhook authenticity per Telegram Bot API:
  * https://core.telegram.org/bots/api#setwebhook
  * secret_token is sent in header "X-Telegram-Bot-Api-Secret-Token"
- * When BOT_TOKEN is set (production), WEBHOOK_SECRET_TOKEN must be set and match.
+ * In enabled webhook mode, a configured bot token and strong secret must match.
  */
 function verifyWebhookSecret(req: NextApiRequest): boolean {
-  const secret = process.env.WEBHOOK_SECRET_TOKEN;
+  const botToken = getTelegramBotToken();
+  const secret = getTelegramWebhookSecret();
   const header = req.headers['x-telegram-bot-api-secret-token'];
-  if (process.env.BOT_TOKEN) {
-    if (!secret) {
-      log.error('WEBHOOK_SECRET_TOKEN required when BOT_TOKEN is set');
-      return false;
-    }
-    return typeof header === 'string' && header === secret;
+  if (!botToken || !secret) {
+    log.error('Telegram webhook credentials are incomplete');
+    return false;
   }
-  return true;
+  return typeof header === 'string' && header === secret;
 }
 
 interface SuccessfulPayment {
@@ -59,6 +62,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (!isTelegramWebhookEnabled()) {
+    return res.status(503).json({ error: 'TELEGRAM_WEBHOOK_DISABLED' });
+  }
+
   if (!verifyWebhookSecret(req)) {
     log.error('Webhook rejected: invalid or missing X-Telegram-Bot-Api-Secret-Token');
     return res.status(403).json({ error: 'Forbidden' });
@@ -71,11 +78,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (update.pre_checkout_query) {
     log.info('Pre-checkout query received - approving');
-    const BOT_TOKEN = process.env.BOT_TOKEN;
-    if (BOT_TOKEN) {
+    const botToken = getTelegramBotToken();
+    if (botToken) {
       try {
         const preCheckoutId = (update.pre_checkout_query as { id: string }).id;
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerPreCheckoutQuery`, {
+        await fetch(`https://api.telegram.org/bot${botToken}/answerPreCheckoutQuery`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pre_checkout_query_id: preCheckoutId, ok: true }),
@@ -98,12 +105,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           userId: String(callback.from.id),
           data,
         });
-        if (process.env.BOT_TOKEN) {
+        if (getTelegramBotToken()) {
           await answerTelegramCallbackQuery(callback.id, result.message).catch(() => undefined);
         }
       } catch (error: any) {
         log.error('Failed to process notification callback', { error: error.message });
-        if (process.env.BOT_TOKEN) {
+        if (getTelegramBotToken()) {
           await answerTelegramCallbackQuery(callback.id, 'Не удалось обработать действие').catch(() => undefined);
         }
       }

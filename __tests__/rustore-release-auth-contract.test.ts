@@ -89,6 +89,15 @@ describe('RuStore account-auth release contract', () => {
     expect(result.status).toBe(0);
   });
 
+  it('reports VK unavailable while the runtime credentials are absent', () => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+    process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'rustore';
+    delete process.env.VK_AUTH_CLIENT_ID;
+    delete process.env.VK_AUTH_CLIENT_SECRET;
+
+    expect(getAccountAuthCapabilities('native')).toMatchObject({ vk: false });
+  });
+
   it('keeps Google credentials mandatory for the future Google Play release branch', () => {
     const env = releaseEnvironment('google_play');
     delete env.GOOGLE_AUTH_CLIENT_ID;

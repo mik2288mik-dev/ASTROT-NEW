@@ -10,8 +10,6 @@ function validProductionEnv(): NodeJS.ProcessEnv {
     OPENAI_API_KEY: 'openai-server-key',
     DEEPSEEK_API_KEY: 'deepseek-server-key',
     DEEPSEEK_BASE_URL: 'https://api.deepseek.com',
-    VK_AUTH_CLIENT_ID: 'vk-client-id',
-    VK_AUTH_CLIENT_SECRET: 'vk-server-secret',
     YANDEX_AUTH_CLIENT_ID: 'yandex-client-id',
     YANDEX_AUTH_CLIENT_SECRET: 'yandex-server-secret',
     APP_SESSION_SECRET: 's'.repeat(32),
@@ -34,7 +32,12 @@ function validProductionEnv(): NodeJS.ProcessEnv {
     'EMAIL_OTP_DELIVERY_SECRET',
     'BOT_TOKEN',
     'TELEGRAM_BOT_TOKEN',
+    'TELEGRAM_WEBHOOK_ENABLED',
+    'WEBHOOK_BASE_URL',
+    'WEBHOOK_SECRET_TOKEN',
     'CRON_SECRET',
+    'VK_AUTH_CLIENT_ID',
+    'VK_AUTH_CLIENT_SECRET',
     'NEXT_PUBLIC_APP_SESSION_SECRET',
     'NEXT_PUBLIC_DATABASE_URL',
   ]) delete env[name];
@@ -54,6 +57,60 @@ describe('production environment validator', () => {
     const result = validate(validProductionEnv());
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Production environment contract is valid');
+  });
+
+  it('boots without VK credentials but rejects a partial VK configuration', () => {
+    const withoutVk = validate(validProductionEnv());
+    expect(withoutVk.status).toBe(0);
+
+    const partialVk = validate({ ...validProductionEnv(), VK_AUTH_CLIENT_ID: 'vk-client-id' });
+    expect(partialVk.status).toBe(1);
+    expect(partialVk.stderr).toContain(
+      'VK_AUTH_CLIENT_SECRET is required when VK authentication is configured',
+    );
+  });
+
+  it('allows outbound Telegram configuration without enabling the webhook', () => {
+    const result = validate({
+      ...validProductionEnv(),
+      BOT_TOKEN: '123456:abcdefghijklmnopqrstuvwxyz_12345',
+    });
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain('WEBHOOK_BASE_URL is required');
+  });
+
+  it('requires the complete webhook contract only when webhook mode is enabled', () => {
+    const incomplete = validate({
+      ...validProductionEnv(),
+      TELEGRAM_WEBHOOK_ENABLED: '1',
+      BOT_TOKEN: '123456:abcdefghijklmnopqrstuvwxyz_12345',
+    });
+    expect(incomplete.status).toBe(1);
+    expect(incomplete.stderr).toContain('WEBHOOK_SECRET_TOKEN is required');
+    expect(incomplete.stderr).toContain('WEBHOOK_BASE_URL is required');
+
+    const complete = validate({
+      ...validProductionEnv(),
+      TELEGRAM_WEBHOOK_ENABLED: '1',
+      BOT_TOKEN: '123456:abcdefghijklmnopqrstuvwxyz_12345',
+      WEBHOOK_SECRET_TOKEN: 'w'.repeat(32),
+      WEBHOOK_BASE_URL: 'https://api.example.ru',
+    });
+    expect(complete.status).toBe(0);
+  });
+
+  it('requires a strong cron secret only in external-cron mode', () => {
+    const inProcess = validate({ ...validProductionEnv(), CRON_SECRET: 'stale-short-secret' });
+    expect(inProcess.status).toBe(0);
+    expect(inProcess.stderr).toContain('Weak CRON_SECRET is disabled for external cron routes');
+
+    const external = validate({
+      ...validProductionEnv(),
+      DISABLE_INPROCESS_CRON: '1',
+      CRON_SECRET: 'stale-short-secret',
+    });
+    expect(external.status).toBe(1);
+    expect(external.stderr).toContain('CRON_SECRET must contain at least 32 bytes');
   });
 
   it('requires independent long session, OTP and rate-limit secrets', () => {

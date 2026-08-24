@@ -137,8 +137,14 @@ requireValue('OPENAI_API_KEY');
 requireValue('DEEPSEEK_API_KEY');
 if (configured('DEEPSEEK_BASE_URL')) parseUrl('DEEPSEEK_BASE_URL', ['https:']);
 
-for (const name of ['VK_AUTH_CLIENT_ID', 'VK_AUTH_CLIENT_SECRET', 'YANDEX_AUTH_CLIENT_ID', 'YANDEX_AUTH_CLIENT_SECRET']) {
+for (const name of ['YANDEX_AUTH_CLIENT_ID', 'YANDEX_AUTH_CLIENT_SECRET']) {
   requireValue(name);
+}
+const vkClientId = configured('VK_AUTH_CLIENT_ID');
+const vkClientSecret = configured('VK_AUTH_CLIENT_SECRET');
+if (vkClientId || vkClientSecret) {
+  if (!vkClientId) errors.push('VK_AUTH_CLIENT_ID is required when VK authentication is configured');
+  if (!vkClientSecret) errors.push('VK_AUTH_CLIENT_SECRET is required when VK authentication is configured');
 }
 
 const appSessionSecret = requireSecret('APP_SESSION_SECRET');
@@ -177,8 +183,12 @@ if (!['0', '1'].includes(trustProxy)) errors.push('AUTH_TRUST_PROXY must be 0 or
 const disableInProcessCron = raw('DISABLE_INPROCESS_CRON') || '0';
 if (!['0', '1'].includes(disableInProcessCron)) errors.push('DISABLE_INPROCESS_CRON must be 0 or 1');
 if (disableInProcessCron === '1') requireSecret('CRON_SECRET');
-if (configured('CRON_SECRET') && Buffer.byteLength(configured('CRON_SECRET'), 'utf8') < 32) {
-  errors.push('CRON_SECRET must contain at least 32 bytes when configured');
+if (
+  disableInProcessCron !== '1'
+  && configured('CRON_SECRET')
+  && Buffer.byteLength(configured('CRON_SECRET'), 'utf8') < 32
+) {
+  console.warn('[production-env] Weak CRON_SECRET is disabled for external cron routes; in-process scheduler remains enabled.');
 }
 
 for (const origin of csv('NATIVE_APP_ORIGINS')) {
@@ -246,6 +256,14 @@ if (botToken) {
   if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(botToken)) {
     errors.push('BOT_TOKEN/TELEGRAM_BOT_TOKEN has an invalid Telegram bot token format');
   }
+}
+const telegramWebhookMode = raw('TELEGRAM_WEBHOOK_ENABLED') || '0';
+if (!['0', '1'].includes(telegramWebhookMode)) {
+  errors.push('TELEGRAM_WEBHOOK_ENABLED must be 0 or 1');
+}
+const telegramWebhookConfigured = telegramWebhookMode === '1' || !!configured('WEBHOOK_BASE_URL');
+if (telegramWebhookConfigured) {
+  if (!botToken) errors.push('BOT_TOKEN/TELEGRAM_BOT_TOKEN is required when Telegram webhook is enabled');
   const webhookSecret = requireSecret('WEBHOOK_SECRET_TOKEN');
   if (webhookSecret && !/^[A-Za-z0-9_-]{32,256}$/.test(webhookSecret)) {
     errors.push('WEBHOOK_SECRET_TOKEN must use 32-256 ASCII letters, digits, underscore, or hyphen');

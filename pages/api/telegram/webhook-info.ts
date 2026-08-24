@@ -1,5 +1,9 @@
 import crypto from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import {
+  getTelegramBotToken,
+  isTelegramWebhookEnabled,
+} from '../../../lib/telegramWebhookMode';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/webhook-info] ${msg}`, data || ''),
@@ -22,12 +26,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (!isTelegramWebhookEnabled()) {
+    return res.status(503).json({ error: 'TELEGRAM_WEBHOOK_DISABLED' });
+  }
+
   if (!verifySetupSecret(req)) {
     log.error('Request rejected: invalid or missing WEBHOOK_SETUP_SECRET');
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const botToken = process.env.BOT_TOKEN;
+  const botToken = getTelegramBotToken();
   if (!botToken) {
     return res.status(500).json({ error: 'BOT_TOKEN not configured' });
   }

@@ -6,6 +6,11 @@ import {
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
 import { requireTelegramPaymentUser } from '../../../lib/auth/appAuth';
 import { getManagedPremiumPlan } from '../../../lib/premiumPlanSettings';
+import {
+  getTelegramBotToken,
+  getTelegramWebhookSecret,
+  isTelegramWebhookEnabled,
+} from '../../../lib/telegramWebhookMode';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[API/telegram/create-invoice] ${msg}`, data || ''),
@@ -39,6 +44,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Invalid invoice type',
       code: 'INVALID_INVOICE_TYPE',
       message: `Unsupported invoice type: ${type}. Only Premium subscriptions are available.`,
+    });
+  }
+
+  const botToken = getTelegramBotToken();
+  const realPaymentsReady = !!botToken
+    && isTelegramWebhookEnabled()
+    && !!getTelegramWebhookSecret();
+  if (!realPaymentsReady && (process.env.NODE_ENV === 'production' || !!botToken)) {
+    return res.status(503).json({
+      error: 'Telegram payments unavailable',
+      code: 'TELEGRAM_PAYMENTS_UNAVAILABLE',
     });
   }
 
@@ -78,14 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     payload: product.payload,
   };
 
-  const BOT_TOKEN = process.env.BOT_TOKEN;
-  if (!BOT_TOKEN) {
-    if (process.env.NODE_ENV === 'production') {
-      return res.status(503).json({
-        error: 'Telegram payments unavailable',
-        code: 'TELEGRAM_PAYMENTS_UNAVAILABLE',
-      });
-    }
+  if (!botToken) {
     log.info('BOT_TOKEN not set, returning sim mode');
     return res.status(200).json({
       ...invoiceResponseBase,
@@ -102,7 +111,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Payload too long', code: 'PAYLOAD_TOO_LONG' });
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

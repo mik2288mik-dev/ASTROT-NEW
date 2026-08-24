@@ -1650,6 +1650,7 @@ const App: React.FC = () => {
         source = 'app',
         eventPayload?: Record<string, unknown>,
         planId?: PremiumPlanId,
+        options?: { bypassFirstValueGate?: boolean },
     ) => {
         if (!profile) return;
         if (planId) {
@@ -1672,7 +1673,11 @@ const App: React.FC = () => {
                 eventPayload: paywallEventPayload(context),
             });
         }
-        if (!hasActivePremium(profile) && !firstValueReachedRef.current) {
+        if (
+            !hasActivePremium(profile)
+            && !firstValueReachedRef.current
+            && !options?.bypassFirstValueGate
+        ) {
             setPaywallContext(null);
             setDashboardPeriod('day');
             setView('dashboard');
@@ -2052,7 +2057,9 @@ const App: React.FC = () => {
     }, [openBottomAvatar]);
     const openNavigationPremium = useCallback(() => {
         setNavigationSheet(null);
-        void requestPremium('settings');
+        void requestPremium('settings', undefined, undefined, {
+            bypassFirstValueGate: true,
+        });
     }, [requestPremium]);
     const openNavigationCharts = useCallback(() => {
         const returnView = viewRef.current === 'charts' ? 'dashboard' : viewRef.current;

@@ -47,7 +47,7 @@ RUN apk add --no-cache libc6-compat && \
 # Standalone bundle contains only files needed at runtime.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Migration runner is executed before the app starts in Railway.
+# Production validation and migrations run in Railway's pre-deploy container.
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
@@ -67,4 +67,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD node -e "const port=process.env.PORT||3000;require('node:http').get({host:'127.0.0.1',port,path:'/api/health'},(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-CMD ["sh", "scripts/railway-start.sh"]
+CMD ["node", "server.js"]

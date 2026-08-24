@@ -253,6 +253,10 @@ if (channel === 'rustore' && rustorePaymentsEnabled) {
     requireValue('RUSTORE_PRIVATE_KEY_BASE64', process.env.RUSTORE_PRIVATE_KEY_BASE64);
     requireValue('RUSTORE_NOTIFICATION_AES_KEY', process.env.RUSTORE_NOTIFICATION_AES_KEY);
     requireValue('CRON_SECRET', process.env.CRON_SECRET);
+    const cronSecret = String(process.env.CRON_SECRET || '').trim();
+    if (cronSecret && Buffer.byteLength(cronSecret, 'utf8') < 32) {
+      errors.push('CRON_SECRET must contain at least 32 bytes for a release');
+    }
     if (payMode !== 'production') {
       errors.push('RUSTORE_PAY_MODE must be production for a release');
     }

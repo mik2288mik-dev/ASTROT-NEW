@@ -17,24 +17,26 @@ describe('database migration deployment runner', () => {
     expect(source).not.toContain('process.exit(0);\n  }\n}');
   });
 
-  it('runs migrations before the Railway app server starts', () => {
-    const railway = JSON.parse(read('railway.json')) as { deploy?: { startCommand?: string } };
+  it('runs validation and migrations in Railway pre-deploy, separate from HTTP startup', () => {
+    const railway = JSON.parse(read('railway.json')) as {
+      deploy?: { preDeployCommand?: string[]; startCommand?: string; healthcheckPath?: string };
+    };
     const dockerfile = read('Dockerfile');
-    const startScript = read('scripts/railway-start.sh');
+    const preDeployScript = read('scripts/railway-predeploy.sh');
 
-    expect(railway.deploy?.startCommand).toBe('sh scripts/railway-start.sh');
-    expect(railway.deploy?.startCommand).not.toContain('&&');
-    expect(railway.deploy?.startCommand).not.toContain('exec node');
-    expect(dockerfile).toContain('CMD ["sh", "scripts/railway-start.sh"]');
+    expect(railway.deploy?.preDeployCommand).toEqual(['sh scripts/railway-predeploy.sh']);
+    expect(railway.deploy?.startCommand).toBe('node server.js');
+    expect(railway.deploy?.healthcheckPath).toBe('/api/health');
+    expect(dockerfile).toContain('CMD ["node", "server.js"]');
     expect(dockerfile).toContain('process.env.PORT||3000');
     expect(dockerfile).toContain('r.statusCode===200');
     expect(dockerfile).toContain('/app/scripts ./scripts');
     expect(dockerfile).toContain('/app/lib ./lib');
-    expect(startScript).toContain('npm run validate:production-env');
-    expect(startScript).toContain('npm run migrate');
-    expect(startScript).toContain('exec node server.js');
-    expect(startScript.indexOf('npm run validate:production-env'))
-      .toBeLessThan(startScript.indexOf('npm run migrate'));
+    expect(preDeployScript).toContain('npm run validate:production-env');
+    expect(preDeployScript).toContain('npm run migrate');
+    expect(preDeployScript).not.toContain('node server.js');
+    expect(preDeployScript.indexOf('npm run validate:production-env'))
+      .toBeLessThan(preDeployScript.indexOf('npm run migrate'));
   });
 
   it('does not run non-blocking migrations from app database connections', () => {

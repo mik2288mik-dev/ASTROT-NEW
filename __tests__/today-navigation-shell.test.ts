@@ -43,6 +43,11 @@ describe('Today minimal navigation shell', () => {
     expect(app).toContain("navigateTo('encyclopedia')");
     expect(navigation).toContain('Настройки');
     expect(navigation).toContain('Подписка');
+    expect(navigation).toContain('const openSubscription = hasActivePremium(profile) ? onOpenSettings : onOpenPremium;');
+    expect(navigation).toContain('onClick={() => runServiceAction(openSubscription)}');
+    expect(app).toContain("void requestPremium('settings', undefined, undefined, {");
+    expect(app).toContain('bypassFirstValueGate: true');
+    expect(app).toContain('&& !options?.bypassFirstValueGate');
     expect(navigation).toContain('Сохранённые карты');
     expect(app).toContain("setNavigationSheet('profile')");
   });

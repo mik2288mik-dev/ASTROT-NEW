@@ -31,6 +31,18 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page--result .compat-read-block');
     expect(styles).not.toMatch(/^\.fresh-page\s*\{/m);
     expect(studio).toContain('.compat-editorial-page .compat-editorial-tabs');
+    expect(studio).toMatch(
+      /\.fresh-page\.compat-editorial-page\s*\{[^}]*overflow-x:\s*clip;[^}]*padding-bottom:\s*48px;[^}]*background:\s*#fff\s*!important;/,
+    );
+    expect(studio).not.toContain(
+      '.lumia-app-shell:has(.compat-editorial-page) .today-bottom-navigation.lumia-bottom-tab-shell',
+    );
+    expect(studio).not.toMatch(
+      /\.compat-editorial-page--add \.compat-air-person\s*\{[^}]*border-inline-start:/,
+    );
+    expect(studio).not.toMatch(
+      /\.compat-editorial-page--add \.compat-air-person--second\s*\{[^}]*border-inline-start-color:/,
+    );
     expect(app).toContain("import '../styles/compatibilityEditorial.css'");
     expect(app).toContain("import '../styles/editorialStudio.css'");
   });

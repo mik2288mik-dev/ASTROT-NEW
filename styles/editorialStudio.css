@@ -1060,6 +1060,7 @@
   --compat-air-accent-start: var(--editorial-studio-accent);
   --compat-air-accent-end: var(--editorial-studio-accent);
   min-height: 100%;
+  overflow-x: clip;
   padding-bottom: 48px;
   background: #fff !important;
   color: var(--editorial-studio-ink);
@@ -1508,26 +1509,8 @@
 }
 
 /* Final mobile pass for the active compatibility flow. */
-.lumia-app-shell:has(.compat-editorial-page) .today-bottom-navigation.lumia-bottom-tab-shell {
-  display: none !important;
-}
-
-.fresh-page.compat-editorial-page {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
-}
-
 .compat-editorial-page--add .compat-entry-curve {
   height: 44px;
-}
-
-.compat-editorial-page--add .compat-air-person {
-  position: relative;
-  padding-inline-start: 13px;
-  border-inline-start: 2px solid rgba(191, 143, 99, 0.56);
-}
-
-.compat-editorial-page--add .compat-air-person--second {
-  border-inline-start-color: rgba(82, 133, 125, 0.58);
 }
 
 .compat-editorial-page--add .compat-air-person-heading {

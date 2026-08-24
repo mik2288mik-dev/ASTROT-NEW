@@ -39,6 +39,17 @@ export function middleware(request: NextRequest) {
     );
   }
 
+  if (request.nextUrl.pathname.startsWith('/api/cron/')) {
+    const configuredCronSecret = String(process.env.CRON_SECRET || '');
+    const cronSecretBytes = new TextEncoder().encode(configuredCronSecret.trim()).byteLength;
+    if (configuredCronSecret && cronSecretBytes < 32) {
+      return NextResponse.json(
+        { error: 'CRON_SECRET_NOT_READY' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+  }
+
   const origin = request.headers.get('origin');
   if (!origin) {
     const fetchSite = request.headers.get('sec-fetch-site');

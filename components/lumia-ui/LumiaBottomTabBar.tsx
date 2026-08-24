@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { UserProfile, ViewState } from '../../types';
+import { hasActivePremium } from '../../lib/accessMatrix';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import { CosmicSheet } from './CosmicSheet';
@@ -208,6 +209,7 @@ export function LumiaNavigationSheet({
   const serviceIsOpen = activeSheet === 'services';
   const sheetTitle = isEnglish ? 'Profile' : 'Профиль';
   const sheetSubtitle = profile.name?.trim() || (isEnglish ? 'Your details and charts' : 'Твои данные и карты');
+  const openSubscription = hasActivePremium(profile) ? onOpenSettings : onOpenPremium;
 
   useEffect(() => {
     closeRef.current = onClose;
@@ -303,7 +305,7 @@ export function LumiaNavigationSheet({
                 type="button"
                 role="menuitem"
                 className="today-hub-radial-action"
-                onClick={() => runServiceAction(onOpenSettings)}
+                onClick={() => runServiceAction(openSubscription)}
                 {...serviceMotion('calc(-40vw + 112px)', -67, 3)}
               >
                 <span className="today-hub-radial-icon"><Crown aria-hidden="true" /></span>

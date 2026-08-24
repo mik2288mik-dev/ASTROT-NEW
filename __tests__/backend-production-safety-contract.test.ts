@@ -52,10 +52,15 @@ describe('backend production safety contract', () => {
     expect(migration).not.toContain('UPDATE users SET');
   });
 
-  it('validates production env before migrations and server startup', () => {
-    const startup = read('scripts/railway-start.sh');
-    expect(startup.indexOf('npm run validate:production-env')).toBeLessThan(startup.indexOf('npm run migrate'));
-    expect(startup.indexOf('npm run migrate')).toBeLessThan(startup.indexOf('exec node server.js'));
+  it('validates production env before migrations without coupling either to server startup', () => {
+    const railway = JSON.parse(read('railway.json')) as {
+      deploy?: { preDeployCommand?: string[]; startCommand?: string };
+    };
+    const preDeploy = read('scripts/railway-predeploy.sh');
+    expect(preDeploy.indexOf('npm run validate:production-env')).toBeLessThan(preDeploy.indexOf('npm run migrate'));
+    expect(preDeploy).not.toContain('node server.js');
+    expect(railway.deploy?.preDeployCommand).toEqual(['sh scripts/railway-predeploy.sh']);
+    expect(railway.deploy?.startCommand).toBe('node server.js');
   });
 
   it('processes durable RuStore callbacks without requiring an external cron', () => {
@@ -77,6 +82,8 @@ describe('backend production safety contract', () => {
     const invoice = read('pages/api/telegram/create-invoice.ts');
     expect(invoice).toContain("process.env.NODE_ENV === 'production'");
     expect(invoice).toContain("code: 'TELEGRAM_PAYMENTS_UNAVAILABLE'");
+    expect(invoice).toContain('isTelegramWebhookEnabled()');
+    expect(invoice).toContain('getTelegramWebhookSecret()');
     expect(invoice.indexOf("code: 'TELEGRAM_PAYMENTS_UNAVAILABLE'"))
       .toBeLessThan(invoice.indexOf('simMode: true'));
     for (const source of [

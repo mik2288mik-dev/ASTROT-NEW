@@ -70,6 +70,16 @@ describe('store release validator', () => {
     expect(result.stderr).toContain('RUSTORE_PAY_MODE must be production for a release');
   });
 
+  it('keeps VK credentials mandatory for a final RuStore release', () => {
+    const env = validReleaseEnv();
+    delete env.VK_AUTH_CLIENT_ID;
+    delete env.VK_AUTH_CLIENT_SECRET;
+    const result = validate(env);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('VK_AUTH_CLIENT_ID is required');
+    expect(result.stderr).toContain('VK_AUTH_CLIENT_SECRET is required');
+  });
+
   it('rejects live-reload and development fallbacks in a store release', () => {
     const result = validate({
       ...validReleaseEnv(),
@@ -139,6 +149,12 @@ describe('store release validator', () => {
     const result = validate({ ...validReleaseEnv(), CRON_SECRET: '' });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('CRON_SECRET is required');
+  });
+
+  it('rejects a short callback worker secret for a final release', () => {
+    const result = validate({ ...validReleaseEnv(), CRON_SECRET: 'short-secret' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('CRON_SECRET must contain at least 32 bytes for a release');
   });
 
   it('requires a numeric RuStore Console application ID', () => {
