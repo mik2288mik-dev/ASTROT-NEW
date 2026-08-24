@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ChevronRight,
-  MoreHorizontal,
+  Menu,
   MoonStar,
   Orbit,
   Star,
@@ -85,6 +85,7 @@ export function LumiaBottomTabBar({
           onClick={() => runNavigationAction(onOpenToday)}
         >
           <Star aria-hidden="true" strokeWidth={1.25} />
+          <span className="today-bottom-nav-label" aria-hidden="true">Сегодня</span>
         </button>
         <button
           type="button"
@@ -95,6 +96,7 @@ export function LumiaBottomTabBar({
           onClick={() => runNavigationAction(onOpenZodiac)}
         >
           <MoonStar aria-hidden="true" strokeWidth={1.25} />
+          <span className="today-bottom-nav-label" aria-hidden="true">Зодиак</span>
         </button>
 
         <div className="today-bottom-nav-hub-wrap">
@@ -112,6 +114,7 @@ export function LumiaBottomTabBar({
               aria-hidden="true"
             />
           </button>
+          <span className="today-bottom-nav-label" aria-hidden="true">Карта</span>
         </div>
 
         <button
@@ -123,6 +126,7 @@ export function LumiaBottomTabBar({
           onClick={() => runNavigationAction(onOpenCompatibility)}
         >
           <Users aria-hidden="true" strokeWidth={1.25} />
+          <span className="today-bottom-nav-label" aria-hidden="true">Сравнить</span>
         </button>
 
         <button
@@ -133,7 +137,8 @@ export function LumiaBottomTabBar({
           aria-current={view === 'more' ? 'page' : undefined}
           onClick={() => runNavigationAction(onOpenMore)}
         >
-          <MoreHorizontal aria-hidden="true" strokeWidth={1.25} />
+          <Menu aria-hidden="true" strokeWidth={1.25} />
+          <span className="today-bottom-nav-label" aria-hidden="true">Меню</span>
         </button>
       </nav>
     </div>
