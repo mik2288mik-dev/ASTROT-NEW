@@ -2683,18 +2683,11 @@
   border-radius: 50%;
   background: var(--editorial-studio-accent-soft);
   color: #514943;
-  font-family: "Segoe UI Symbol", Georgia, "Times New Roman", serif;
-  font-size: 34px;
-  font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1;
 }
 
-.encyclopedia-article-symbol[data-compact='true'] {
-  font-family: inherit;
-  font-size: 18px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
+.encyclopedia-article-symbol .knowledge-article-icon {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .encyclopedia-eyebrow {

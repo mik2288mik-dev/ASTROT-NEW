@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
+import { KnowledgeArticleIcon } from '../../components/icons/KnowledgeArticleIcon';
 import {
   EditorialCurve,
   EditorialSettingsButton,
@@ -363,12 +364,8 @@ export function AstrologyEncyclopedia({
 
             <article className="encyclopedia-article" aria-labelledby={`knowledge-${activeTopic.id}`}>
               {articlePresentation ? (
-                <div
-                  className="encyclopedia-article-symbol"
-                  data-compact={articlePresentation.symbol.length > 1 ? 'true' : undefined}
-                  aria-hidden="true"
-                >
-                  {articlePresentation.symbol}
+                <div className="encyclopedia-article-symbol" aria-hidden="true">
+                  <KnowledgeArticleIcon topicId={activeTopic.id} category={activeTopic.category} />
                 </div>
               ) : null}
               <p className="encyclopedia-eyebrow">{activeTopic.categoryLabel}</p>

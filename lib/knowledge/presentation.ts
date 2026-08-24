@@ -1,64 +1,7 @@
 import type { KnowledgeCategoryId, KnowledgeLanguage, KnowledgeTopic } from './types';
 
 export type KnowledgeArticlePresentation = {
-  symbol: string;
   tag: string;
-};
-
-const TOPIC_SYMBOLS: Readonly<Record<string, string>> = {
-  'sign-aries': '♈︎',
-  'sign-taurus': '♉︎',
-  'sign-gemini': '♊︎',
-  'sign-cancer': '♋︎',
-  'sign-leo': '♌︎',
-  'sign-virgo': '♍︎',
-  'sign-libra': '♎︎',
-  'sign-scorpio': '♏︎',
-  'sign-sagittarius': '♐︎',
-  'sign-capricorn': '♑︎',
-  'sign-aquarius': '♒︎',
-  'sign-pisces': '♓︎',
-  'planet-sun': '☉',
-  'planet-moon': '☽',
-  'planet-mercury': '☿',
-  'planet-venus': '♀',
-  'planet-mars': '♂',
-  'planet-jupiter': '♃',
-  'planet-saturn': '♄',
-  'planet-uranus': '♅',
-  'planet-neptune': '♆',
-  'planet-pluto': '♇',
-  'planet-chiron': '⚷',
-  ascendant: 'ASC',
-  descendant: 'DSC',
-  midheaven: 'MC',
-  'imum-coeli': 'IC',
-  'aspect-conjunction': '☌',
-  'aspect-sextile': '⚹',
-  'aspect-square': '□',
-  'aspect-trine': '△',
-  'aspect-opposition': '☍',
-  'node-north': '☊',
-  'node-south': '☋',
-  'new-moon': '●',
-  'full-moon': '○',
-  'waxing-moon': '◐',
-  'waning-moon': '◑',
-};
-
-const CATEGORY_SYMBOLS: Readonly<Record<KnowledgeCategoryId, string>> = {
-  start: '○',
-  signs: '♈︎',
-  planets: '☉',
-  houses: '⌂',
-  angles: 'ASC',
-  aspects: '∠',
-  retrogrades: '℞',
-  'nodes-points': '☊',
-  synthesis: '⊕',
-  compatibility: '↔',
-  forecasts: '→',
-  'moon-cycles': '☾',
 };
 
 const CATEGORY_TAGS: Readonly<Record<KnowledgeCategoryId, Readonly<Record<KnowledgeLanguage, string>>>> = {
@@ -81,7 +24,6 @@ export function getKnowledgeArticlePresentation(
   language: KnowledgeLanguage,
 ): KnowledgeArticlePresentation {
   return {
-    symbol: TOPIC_SYMBOLS[topic.id] || CATEGORY_SYMBOLS[topic.category],
     tag: CATEGORY_TAGS[topic.category][language],
   };
 }

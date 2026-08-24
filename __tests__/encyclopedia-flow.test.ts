@@ -78,6 +78,7 @@ describe('knowledge encyclopedia flow', () => {
 
   it('shows category navigation first and restores the original encyclopedia article hierarchy', () => {
     const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
+    const articleIcon = read('components/icons/KnowledgeArticleIcon.tsx');
 
     expect(encyclopedia).toContain("type EncyclopediaScreen = typeof INITIAL_ENCYCLOPEDIA_SCREEN | 'category' | 'article'");
     expect(encyclopedia).toContain('className="encyclopedia-category-navigation"');
@@ -106,6 +107,11 @@ describe('knowledge encyclopedia flow', () => {
     expect(hierarchy.every((index) => index >= 0)).toBe(true);
     expect([...hierarchy].sort((a, b) => a - b)).toEqual(hierarchy);
     expect(article).toContain('activeTopic.sections.flatMap((section) => section.paragraphs)');
+    expect(article).toContain('<KnowledgeArticleIcon');
+    expect(article).not.toContain('articlePresentation.symbol');
+    expect(articleIcon).toContain('<ZodiacIcon');
+    expect(articleIcon).toContain('<PlanetIcon');
+    expect(articleIcon).toContain('<AstroTechnicalIcon');
     expect(article).not.toContain('<h2>{section.title}</h2>');
     expect(article).not.toContain('Sparkles');
   });

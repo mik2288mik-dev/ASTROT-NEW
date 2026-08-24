@@ -89,14 +89,13 @@ describe('first-release knowledge catalog', () => {
     expect(normalizeKnowledgeSearch('ЗВЁЗДЫ')).toBe('звезды');
   });
 
-  it('uses semantic text glyphs and one compact topic tag in article headers', () => {
+  it('keeps one compact topic tag in article headers', () => {
     const byId = new Map(ruTopics.map((topic) => [topic.id, topic]));
 
     expect(getKnowledgeArticlePresentation(byId.get('planet-venus')!, 'ru')).toEqual({
-      symbol: '♀',
       tag: 'Натальная карта',
     });
-    expect(getKnowledgeArticlePresentation(byId.get('ascendant')!, 'ru').symbol).toBe('ASC');
-    expect(getKnowledgeArticlePresentation(byId.get('house-7')!, 'ru').symbol).toBe('⌂');
+    expect(getKnowledgeArticlePresentation(byId.get('ascendant')!, 'ru').tag).toBe('Точное время');
+    expect(getKnowledgeArticlePresentation(byId.get('house-7')!, 'ru').tag).toBe('Время рождения');
   });
 });
