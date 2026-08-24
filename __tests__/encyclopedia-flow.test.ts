@@ -76,7 +76,7 @@ describe('knowledge encyclopedia flow', () => {
     expect(fs.existsSync(path.join(ROOT, 'lib/knowledge/personalKnowledge.ts'))).toBe(false);
   });
 
-  it('shows category navigation first and retains the readable article hierarchy', () => {
+  it('shows category navigation first and restores the original encyclopedia article hierarchy', () => {
     const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
 
     expect(encyclopedia).toContain("type EncyclopediaScreen = typeof INITIAL_ENCYCLOPEDIA_SCREEN | 'category' | 'article'");
@@ -86,23 +86,28 @@ describe('knowledge encyclopedia flow', () => {
     expect(encyclopedia).not.toContain('group.topics.map');
     expect(encyclopedia).toContain('activeCategory.topics.map((topic)');
 
-    const articleStart = encyclopedia.indexOf('<article className="encyclopedia-article"');
+    const articleStart = encyclopedia.indexOf('<header className="encyclopedia-article-intro"');
     const article = encyclopedia.slice(articleStart);
     const hierarchy = [
+      'encyclopedia-subtitle',
+      '<EditorialCurve className="encyclopedia-curve"',
+      '<article className="encyclopedia-article"',
       'encyclopedia-article-symbol',
       '<p className="encyclopedia-eyebrow"',
       '<h1 id={`knowledge-${activeTopic.id}`}',
       'encyclopedia-article-tags',
-      'encyclopedia-summary',
       'encyclopedia-copy',
+      'encyclopedia-copy-lead',
       'encyclopedia-simple',
       'Простыми словами',
-      'encyclopedia-return',
       'encyclopedia-related',
       'Читайте также',
     ].map((fragment) => article.indexOf(fragment));
     expect(hierarchy.every((index) => index >= 0)).toBe(true);
     expect([...hierarchy].sort((a, b) => a - b)).toEqual(hierarchy);
+    expect(article).toContain('activeTopic.sections.flatMap((section) => section.paragraphs)');
+    expect(article).not.toContain('<h2>{section.title}</h2>');
+    expect(article).not.toContain('Sparkles');
   });
 
   it('handles Android Back inside an article or category before leaving Knowledge', () => {

@@ -50,7 +50,7 @@ const CATEGORY_SYMBOLS: Readonly<Record<KnowledgeCategoryId, string>> = {
   start: '○',
   signs: '♈︎',
   planets: '☉',
-  houses: '12',
+  houses: '⌂',
   angles: 'ASC',
   aspects: '∠',
   retrogrades: '℞',
@@ -80,9 +80,8 @@ export function getKnowledgeArticlePresentation(
   topic: KnowledgeTopic,
   language: KnowledgeLanguage,
 ): KnowledgeArticlePresentation {
-  const houseNumber = /^house-(\d+)$/.exec(topic.id)?.[1];
   return {
-    symbol: TOPIC_SYMBOLS[topic.id] || houseNumber || CATEGORY_SYMBOLS[topic.category],
+    symbol: TOPIC_SYMBOLS[topic.id] || CATEGORY_SYMBOLS[topic.category],
     tag: CATEGORY_TAGS[topic.category][language],
   };
 }

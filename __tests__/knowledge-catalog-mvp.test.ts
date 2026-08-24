@@ -96,6 +96,6 @@ describe('first-release knowledge catalog', () => {
       tag: 'Натальная карта',
     });
     expect(getKnowledgeArticlePresentation(byId.get('ascendant')!, 'ru').symbol).toBe('ASC');
-    expect(getKnowledgeArticlePresentation(byId.get('house-7')!, 'ru').symbol).toBe('7');
+    expect(getKnowledgeArticlePresentation(byId.get('house-7')!, 'ru').symbol).toBe('⌂');
   });
 });

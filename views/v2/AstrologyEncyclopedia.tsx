@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
-import { EditorialProfileButton } from '../../components/editorial/EditorialScreenChrome';
+import {
+  EditorialCurve,
+  EditorialProfileButton,
+} from '../../components/editorial/EditorialScreenChrome';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import {
   buildKnowledgeInlineLinkCandidates,
@@ -216,8 +219,11 @@ export function AstrologyEncyclopedia({
         />
       ) : null}
 
-      <div ref={contentRef} className="encyclopedia-content">
-        {embedded && headerBack ? (
+      <div
+        ref={contentRef}
+        className={`encyclopedia-content${screen === 'article' ? ' encyclopedia-content--article' : ''}`}
+      >
+        {embedded && headerBack && screen !== 'article' ? (
           <button className="encyclopedia-return encyclopedia-return-top" type="button" onClick={headerBack}>
             <ChevronLeft aria-hidden="true" strokeWidth={1.5} />
             <span>{previousLabel || (ru ? 'Все материалы' : 'All articles')}</span>
@@ -335,56 +341,71 @@ export function AstrologyEncyclopedia({
             </div>
           </section>
         ) : (
-          <article className="encyclopedia-article" aria-labelledby={`knowledge-${activeTopic.id}`}>
-            {articlePresentation ? (
-              <div className="encyclopedia-article-symbol" aria-hidden="true">
-                {articlePresentation.symbol}
-              </div>
-            ) : null}
-            <p className="encyclopedia-eyebrow">{activeTopic.categoryLabel}</p>
-            <h1 id={`knowledge-${activeTopic.id}`} ref={articleHeadingRef} tabIndex={-1}>{activeTopic.title}</h1>
-            {articlePresentation ? (
-              <div className="encyclopedia-article-tags" aria-label={ru ? 'Темы материала' : 'Article topics'}>
-                <span>{articlePresentation.tag}</span>
-              </div>
-            ) : null}
-            <p className="encyclopedia-summary">{activeTopic.summary}</p>
+          <>
+            <header className="encyclopedia-article-intro">
+              {embedded && headerBack ? (
+                <button
+                  className="encyclopedia-article-back"
+                  type="button"
+                  onClick={headerBack}
+                  aria-label={ru
+                    ? `Назад: ${previousLabel || 'Все материалы'}`
+                    : `Back: ${previousLabel || 'All articles'}`}
+                >
+                  <ChevronLeft aria-hidden="true" strokeWidth={1.45} />
+                </button>
+              ) : null}
+              <p className="encyclopedia-subtitle">
+                {ru ? 'Энциклопедия астрологии' : 'Astrology encyclopedia'}
+              </p>
+              <EditorialCurve className="encyclopedia-curve" />
+            </header>
 
-            <div className="encyclopedia-copy">
-              {activeTopic.sections.map((section) => (
-                <section key={section.title}>
-                  <h2>{section.title}</h2>
-                  {section.paragraphs.map((paragraph) => (
-                    <p key={paragraph}>{renderLinkedParagraph(paragraph)}</p>
-                  ))}
-                </section>
-              ))}
-            </div>
-
-            <aside className="encyclopedia-simple" aria-labelledby="encyclopedia-simple-title">
-              <h2 id="encyclopedia-simple-title">{ru ? 'Простыми словами' : 'In plain words'}</h2>
-              <p>{activeTopic.shortAnswer}</p>
-            </aside>
-
-            <button className="encyclopedia-return" type="button" onClick={() => returnToCatalog(true)}>
-              <ChevronLeft aria-hidden="true" strokeWidth={1.5} />
-              <span>{ru ? 'Все разделы' : 'All sections'}</span>
-            </button>
-
-            {related.length ? (
-              <section className="encyclopedia-related" aria-labelledby="encyclopedia-related-title">
-                <h2 id="encyclopedia-related-title">{ru ? 'Читайте также' : 'Read next'}</h2>
-                <div>
-                  {related.map((topic) => (
-                    <button key={topic.id} type="button" onClick={() => openTopic(topic.id)}>
-                      <span>{topic.title}</span>
-                      <ChevronRight aria-hidden="true" strokeWidth={1.5} />
-                    </button>
-                  ))}
+            <article className="encyclopedia-article" aria-labelledby={`knowledge-${activeTopic.id}`}>
+              {articlePresentation ? (
+                <div
+                  className="encyclopedia-article-symbol"
+                  data-compact={articlePresentation.symbol.length > 1 ? 'true' : undefined}
+                  aria-hidden="true"
+                >
+                  {articlePresentation.symbol}
                 </div>
-              </section>
-            ) : null}
-          </article>
+              ) : null}
+              <p className="encyclopedia-eyebrow">{activeTopic.categoryLabel}</p>
+              <h1 id={`knowledge-${activeTopic.id}`} ref={articleHeadingRef} tabIndex={-1}>{activeTopic.title}</h1>
+              {articlePresentation ? (
+                <div className="encyclopedia-article-tags" aria-label={ru ? 'Темы материала' : 'Article topics'}>
+                  <span>{articlePresentation.tag}</span>
+                </div>
+              ) : null}
+
+              <div className="encyclopedia-copy">
+                <p className="encyclopedia-copy-lead">{renderLinkedParagraph(activeTopic.summary)}</p>
+                {activeTopic.sections.flatMap((section) => section.paragraphs).map((paragraph) => (
+                  <p key={paragraph}>{renderLinkedParagraph(paragraph)}</p>
+                ))}
+              </div>
+
+              <aside className="encyclopedia-simple" aria-labelledby="encyclopedia-simple-title">
+                <h2 id="encyclopedia-simple-title">{ru ? 'Простыми словами' : 'In plain words'}</h2>
+                <p>{activeTopic.shortAnswer}</p>
+              </aside>
+
+              {related.length ? (
+                <section className="encyclopedia-related" aria-labelledby="encyclopedia-related-title">
+                  <h2 id="encyclopedia-related-title">{ru ? 'Читайте также' : 'Read next'}</h2>
+                  <div>
+                    {related.map((topic) => (
+                      <button key={topic.id} type="button" onClick={() => openTopic(topic.id)}>
+                        <span>{topic.title}</span>
+                        <ChevronRight aria-hidden="true" strokeWidth={1.5} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </article>
+          </>
         )}
       </div>
     </div>
