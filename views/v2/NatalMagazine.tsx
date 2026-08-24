@@ -7,6 +7,7 @@ import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { NatalChartWheel } from '../../components/NatalReading/NatalChartWheel';
+import { MatrixRoom } from './MatrixRoom';
 import {
   EditorialCurve,
   EditorialProfileButton,
@@ -34,7 +35,6 @@ type NatalMagazineProps = {
   openQuestionRequest?: number;
   onQuestionRequestHandled?: () => void;
   onOpenProfile?: () => void;
-  onOpenMatrix?: () => void;
   onOpenEncyclopedia?: () => void;
   uiPreview?: {
     initialTab?: 'map' | 'reading';
@@ -64,7 +64,6 @@ export function NatalMagazine({
   openQuestionRequest,
   onQuestionRequestHandled,
   onOpenProfile,
-  onOpenMatrix,
   onOpenEncyclopedia,
   uiPreview,
 }: NatalMagazineProps) {
@@ -80,6 +79,7 @@ export function NatalMagazine({
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => (
     previewConfig?.openQuestion ? 'reading' : previewConfig?.initialTab || 'map'
   ));
+  const [matrixMounted, setMatrixMounted] = useState(false);
   const [questionOpenRequest, setQuestionOpenRequest] = useState(0);
   const handledExternalQuestionRequestRef = useRef(0);
   const tabs = useMemo(() => [
@@ -113,10 +113,7 @@ export function NatalMagazine({
   }, [chartLoadState, data, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);
 
   const selectTab = (tab: NatalScreenTab) => {
-    if (tab === 'matrix') {
-      onOpenMatrix?.();
-      return;
-    }
+    if (tab === 'matrix') setMatrixMounted(true);
     setActiveTab(tab);
   };
 
@@ -238,7 +235,9 @@ export function NatalMagazine({
           ) : null}
           <EditorialCurve className="natal-map-curve" />
         </section>
-      ) : (
+      ) : null}
+
+      {activeTab === 'reading' ? (
         <section className="natal-reading-stage" aria-label={language === 'ru' ? 'Разбор натальной карты' : 'Natal chart reading'}>
           <header className="natal-magazine-heading">
             <p>{subjectName} · {formatDisplayDate(subjectBirthDate, language)}</p>
@@ -280,7 +279,18 @@ export function NatalMagazine({
             } : undefined}
           />
         </section>
-      )}
+      ) : null}
+
+      {matrixMounted ? (
+        <div className="natal-matrix-stage" hidden={activeTab !== 'matrix'}>
+          <MatrixRoom
+            profile={profile}
+            onBack={() => setActiveTab('map')}
+            onOpenProfile={onOpenProfile}
+            embedded
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

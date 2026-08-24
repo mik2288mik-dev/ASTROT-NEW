@@ -12,13 +12,17 @@ import {
 
 type EncyclopediaScreen = typeof INITIAL_ENCYCLOPEDIA_SCREEN | 'article';
 
+type AstrologyEncyclopediaProps = {
+  profile: UserProfile;
+  onOpenProfile?: () => void;
+  embedded?: boolean;
+};
+
 export function AstrologyEncyclopedia({
   profile,
   onOpenProfile,
-}: {
-  profile: UserProfile;
-  onOpenProfile?: () => void;
-}) {
+  embedded = false,
+}: AstrologyEncyclopediaProps) {
   const ru = profile.language !== 'en';
   const topics = getEncyclopediaTopics(profile.language);
   const [screen, setScreen] = useState<EncyclopediaScreen>(INITIAL_ENCYCLOPEDIA_SCREEN);
@@ -50,11 +54,13 @@ export function AstrologyEncyclopedia({
 
   if (!activeTopic) {
     return (
-      <div className="fresh-page encyclopedia-editorial-page">
-        <AppTopBar
-          title={ru ? 'Хочу знать' : 'Learn'}
-          rightAction={<EditorialProfileButton label={ru ? 'Открыть профиль' : 'Open profile'} onClick={onOpenProfile} />}
-        />
+      <div className={`fresh-page encyclopedia-editorial-page${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
+        {!embedded ? (
+          <AppTopBar
+            title={ru ? 'Хочу знать' : 'Learn'}
+            rightAction={<EditorialProfileButton label={ru ? 'Открыть профиль' : 'Open profile'} onClick={onOpenProfile} />}
+          />
+        ) : null}
         <main className="encyclopedia-content encyclopedia-empty">
           <p>{ru ? 'Энциклопедия астрологии' : 'Astrology encyclopedia'}</p>
           <h1>{ru ? 'Материалов пока нет' : 'No articles yet'}</h1>
@@ -65,12 +71,14 @@ export function AstrologyEncyclopedia({
   }
 
   return (
-    <div className="fresh-page encyclopedia-editorial-page">
-      <AppTopBar
-        title={ru ? 'Хочу знать' : 'Learn'}
-        onBack={screen === 'article' ? returnToCatalog : undefined}
-        rightAction={<EditorialProfileButton label={ru ? 'Открыть профиль' : 'Open profile'} onClick={onOpenProfile} />}
-      />
+    <div className={`fresh-page encyclopedia-editorial-page${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
+      {!embedded ? (
+        <AppTopBar
+          title={ru ? 'Хочу знать' : 'Learn'}
+          onBack={screen === 'article' ? returnToCatalog : undefined}
+          rightAction={<EditorialProfileButton label={ru ? 'Открыть профиль' : 'Open profile'} onClick={onOpenProfile} />}
+        />
+      ) : null}
 
       <main ref={contentRef} className="encyclopedia-content">
         {screen === INITIAL_ENCYCLOPEDIA_SCREEN ? (

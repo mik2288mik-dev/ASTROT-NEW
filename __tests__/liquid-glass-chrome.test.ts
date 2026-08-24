@@ -14,8 +14,8 @@ describe('application chrome', () => {
     expect(tabs).not.toContain('today-bottom-nav-quick-links');
     expect(tabs).toContain('data-nav-id="compatibility"');
     expect(tabs).toContain('today-bottom-nav-hub');
-    expect(tabs).toContain('today-bottom-nav-services');
-    expect(tabs).toContain("export type LumiaNavigationSheetId = 'services' | 'profile'");
+    expect(tabs).toContain('today-bottom-nav-more');
+    expect(tabs).toContain("export type LumiaNavigationSheetId = 'profile'");
     expect(tabs).toContain('ZodiacWheelIcon');
     expect(tabs).toContain('HeartHandshake');
     expect(icons).toContain('export function ZodiacWheelIcon');

@@ -78,7 +78,7 @@ const IDENTITY_LABELS: Record<LinkedIdentity['provider'], string> = {
     telegram: 'Telegram',
 };
 
-interface SettingsProps {
+export interface SettingsProps {
     profile: UserProfile;
     onUpdate: (profile: UserProfile) => void;
     onRequestPremium?: () => void;
@@ -92,6 +92,7 @@ interface SettingsProps {
     onDeleteAccount?: () => Promise<void>;
     recoveryIdentityRequired?: boolean;
     onRecoveryIdentityReady?: () => void;
+    embedded?: boolean;
     uiPreview?: {
         notificationEnabled: boolean;
         quietStart: string;
@@ -162,6 +163,7 @@ export const Settings: React.FC<SettingsProps> = ({
     onDeleteAccount,
     recoveryIdentityRequired = false,
     onRecoveryIdentityReady,
+    embedded = false,
     uiPreview,
 }) => {
     const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
@@ -640,16 +642,18 @@ export const Settings: React.FC<SettingsProps> = ({
 
 
     return (
-        <div className="fresh-page settings-editorial-page">
-          <AppTopBar
-            title={profile.language === 'en' ? 'Settings' : 'Настройки'}
-            rightAction={(
-              <EditorialProfileButton
-                label={profile.language === 'en' ? 'Open profile' : 'Открыть профиль'}
-                onClick={onOpenProfile}
-              />
-            )}
-          />
+        <div className={`fresh-page settings-editorial-page${embedded ? ' !min-h-0 !pt-0 before:!hidden' : ''}`}>
+          {!embedded ? (
+            <AppTopBar
+              title={profile.language === 'en' ? 'Settings' : 'Настройки'}
+              rightAction={(
+                <EditorialProfileButton
+                  label={profile.language === 'en' ? 'Open profile' : 'Открыть профиль'}
+                  onClick={onOpenProfile}
+                />
+              )}
+            />
+          ) : null}
           <div className="settings-editorial-content">
             {previewNotice ? (
                 <p role="status" className="settings-editorial-section lumia-muted text-sm">

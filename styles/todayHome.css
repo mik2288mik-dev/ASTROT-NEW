@@ -92,7 +92,7 @@
 
 .today-bottom-nav-action,
 .today-bottom-nav-hub,
-.today-bottom-nav-services {
+.today-bottom-nav-more {
   appearance: none;
   border: 0;
   background: transparent;
@@ -101,7 +101,7 @@
 }
 
 .today-bottom-nav-action,
-.today-bottom-nav-services {
+.today-bottom-nav-more {
   position: relative;
   display: flex;
   width: 100%;
@@ -115,19 +115,19 @@
 }
 
 .today-bottom-nav-action svg,
-.today-bottom-nav-services svg {
+.today-bottom-nav-more svg {
   display: block;
   width: 1.58rem;
   height: 1.58rem;
 }
 
 .today-bottom-nav-action[aria-current='page'],
-.today-bottom-nav-services[aria-current='page'],
-.today-bottom-nav-services[aria-expanded='true'] {
+.today-bottom-nav-more[aria-current='page'] {
   color: #22211f;
 }
 
-.today-bottom-nav-action[aria-current='page']::after {
+.today-bottom-nav-action[aria-current='page']::after,
+.today-bottom-nav-more[aria-current='page']::after {
   position: absolute;
   bottom: 0.48rem;
   left: 50%;
@@ -182,88 +182,12 @@
     0 0 0 1px rgba(164, 126, 87, 0.5);
 }
 
-/* The services trigger reuses the former lightweight radial hub interaction. */
-.today-hub-dismiss-layer {
-  position: fixed;
-  z-index: 79;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  background: rgba(255, 255, 255, 0.5);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  cursor: default;
-}
-
-.today-hub-radial-menu {
-  position: fixed;
-  right: 10vw;
-  bottom: calc(var(--lumia-bottom-tab-safe-bottom) + (var(--today-bottom-nav-height) / 2));
-  z-index: 85;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.today-hub-radial-action {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  display: flex;
-  width: 4.8rem;
-  min-height: 4.6rem;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #24221f;
-  font-family: var(--forecast-editorial-font, 'Manrope', system-ui, sans-serif);
-  font-size: 0.66rem;
-  font-weight: 550;
-  line-height: 1.12;
-  text-align: center;
-  text-wrap: balance;
-  pointer-events: auto;
-  transform-origin: 50% 100%;
-}
-
-.today-hub-radial-icon {
-  display: inline-flex;
-  width: 2.85rem;
-  height: 2.85rem;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(36, 34, 31, 0.14);
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 7px 18px rgba(24, 22, 19, 0.12);
-}
-
-.today-hub-radial-icon svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  stroke-width: 1.3;
-}
-
-.today-hub-radial-action:focus-visible {
-  outline: 0;
-}
-
-.today-hub-radial-action:focus-visible .today-hub-radial-icon {
-  outline: 1px solid #24221f;
-  outline-offset: 3px;
-}
-
-.today-bottom-nav-services {
+.today-bottom-nav-more {
   justify-self: stretch;
 }
 
 .today-bottom-nav-action:active,
-.today-bottom-nav-services:active {
+.today-bottom-nav-more:active {
   transform: scale(0.96);
 }
 
@@ -272,12 +196,12 @@
 }
 
 .today-bottom-nav-action:focus-visible,
-.today-bottom-nav-services:focus-visible {
+.today-bottom-nav-more:focus-visible {
   outline: 0;
 }
 
 .today-bottom-nav-action:focus-visible::before,
-.today-bottom-nav-services:focus-visible::before {
+.today-bottom-nav-more:focus-visible::before {
   position: absolute;
   width: 2.75rem;
   height: 2.75rem;
@@ -1116,8 +1040,7 @@
   .today-period-tab,
   .today-bottom-nav-action,
   .today-bottom-nav-hub,
-  .today-bottom-nav-services,
-  .today-hub-radial-action,
+  .today-bottom-nav-more,
   .today-navigation-sheet-item {
     transition: none;
     transition-delay: 0ms;

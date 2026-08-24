@@ -54,7 +54,7 @@ describe('development-only UI Preview mode', () => {
       'compatibility-signs',
       'compatibility-result',
       'settings',
-      'menu',
+      'more',
       'paywall',
       'question',
     ].forEach((screen) => expect(fixtures).toContain(`'${screen}'`));
@@ -71,7 +71,8 @@ describe('development-only UI Preview mode', () => {
     expect(preview).toContain('<NatalMagazine');
     expect(preview).toContain('<LumiaBottomTabBar');
     expect(preview).toContain('<LumiaNavigationSheet');
-    expect(preview).not.toContain("if (scenario.screen !== 'menu') changeScenario");
+    expect(preview).toContain('<MoreHub');
+    expect(preview).not.toContain("'services'");
     expect(preview).not.toContain("from '../../services/");
     expect(preview).not.toContain('swisseph');
   });

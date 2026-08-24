@@ -11,6 +11,7 @@ import {
 } from '../lumia-ui/LumiaBottomTabBar';
 import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
+import { MoreHub, type MoreHubTab } from '../../views/v2/MoreHub';
 import { PersonalityReport } from '../../views/PersonalityReport';
 import { UnionRoom } from '../../views/v2/UnionRoom';
 import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
@@ -247,6 +248,46 @@ function SettingsScene({
   );
 }
 
+function MoreScene({
+  profile,
+  activeTab,
+  onTabChange,
+  onOpenPremium,
+  onNavigate,
+  onOpenProfile,
+}: {
+  profile: ReturnType<typeof createUiPreviewProfile>;
+  activeTab: MoreHubTab;
+  onTabChange: (tab: MoreHubTab) => void;
+  onOpenPremium: () => void;
+  onNavigate: (screen: UiPreviewScreen) => void;
+  onOpenProfile: () => void;
+}) {
+  const [localProfile, setLocalProfile] = useState(profile);
+
+  useEffect(() => {
+    setLocalProfile(profile);
+  }, [profile]);
+
+  return (
+    <MoreHub
+      profile={localProfile}
+      activeTab={activeTab}
+      onTabChange={onTabChange}
+      onOpenPremium={onOpenPremium}
+      onUpdate={setLocalProfile}
+      canPromotePremium={!localProfile.isPremium}
+      onRestorePurchase={async () => undefined}
+      onManageSubscription={() => undefined}
+      onOpenCharts={() => onNavigate('natal')}
+      onOpenProfile={onOpenProfile}
+      onLogout={async () => undefined}
+      onDeleteAccount={async () => undefined}
+      uiPreview={UI_PREVIEW_SETTINGS}
+    />
+  );
+}
+
 function OnboardingScene({
   birthTime,
   onBirthTime,
@@ -346,7 +387,8 @@ export default function UiPreviewApp() {
     parseUiPreviewScenario(typeof window === 'undefined' ? '' : window.location.search)
   ));
   const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
-  const [localNotice, setLocalNotice] = useState<string | null>(null);
+  const [moreTab, setMoreTab] = useState<MoreHubTab>('knowledge');
+  const [paywallReturnScreen, setPaywallReturnScreen] = useState<UiPreviewScreen>('today');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const profile = useMemo(
@@ -385,9 +427,13 @@ export default function UiPreviewApp() {
       window.history.replaceState(null, '', scenarioToSearch(next));
       return next;
     });
-    setLocalNotice(null);
   };
-  const navigate = (screen: UiPreviewScreen) => changeScenario({ screen, state: 'ready' });
+  const navigate = (screen: UiPreviewScreen) => {
+    if (screen === 'paywall') {
+      setPaywallReturnScreen(scenario.screen === 'more' ? 'more' : 'today');
+    }
+    changeScenario({ screen, state: 'ready' });
+  };
 
   useEffect(() => {
     if (!localHostnameAllowed()) return;
@@ -409,18 +455,11 @@ export default function UiPreviewApp() {
   }, []);
 
   useEffect(() => {
-    setNavigationSheet(scenario.screen === 'menu' && scenario.state === 'ready' ? 'services' : null);
-  }, [scenario.screen, scenario.state]);
-
-  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
     scrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
   }, [scenario.screen, scenario.state]);
 
   const openProfile = () => setNavigationSheet('profile');
-  const openServices = () => {
-    setNavigationSheet((current) => current === 'services' ? null : 'services');
-  };
 
   let scene: React.ReactNode;
   const usesRealNatalState = scenario.screen === 'natal'
@@ -448,7 +487,7 @@ export default function UiPreviewApp() {
       />
     );
   } else if (scenario.screen === 'paywall') {
-    scene = <PaywallScene profile={profile} onClose={() => navigate('today')} />;
+    scene = <PaywallScene profile={profile} onClose={() => navigate(paywallReturnScreen)} />;
   } else if (scenario.screen === 'encyclopedia') {
     scene = <AstrologyEncyclopedia profile={profile} onOpenProfile={openProfile} />;
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
@@ -500,7 +539,6 @@ export default function UiPreviewApp() {
         onOpenPersonalityReport={() => navigate('natal-reading')}
         canPromotePremium={scenario.access !== 'premium'}
         onOpenProfile={openProfile}
-        onOpenMatrix={() => setLocalNotice('Матрица откроется отдельным Preview-сценарием.')}
         onOpenEncyclopedia={() => navigate('encyclopedia')}
         uiPreview={{
           initialTab: scenario.screen === 'natal' ? 'map' : 'reading',
@@ -525,18 +563,22 @@ export default function UiPreviewApp() {
     );
   } else if (scenario.screen === 'settings') {
     scene = <SettingsScene profile={profile} onNavigate={navigate} onOpenProfile={openProfile} />;
-  } else {
+  } else if (scenario.screen === 'more') {
     scene = (
-      <div className="ui-preview-page">
-        <AppTopBar title="Сервис" rightAction={<ProfileAction onOpen={openProfile} />} />
-        <section className="ui-preview-menu-placeholder">
-          <Sparkles aria-hidden="true" />
-          <h1>Сервисное меню</h1>
-          <p>Меню открывается только правой кнопкой с тремя полосками.</p>
-          <button type="button" className="ui-preview-secondary-button" onClick={openServices}>Открыть меню</button>
-        </section>
-      </div>
+      <MoreScene
+        profile={profile}
+        activeTab={moreTab}
+        onTabChange={setMoreTab}
+        onOpenPremium={() => {
+          setMoreTab('premium');
+          navigate('paywall');
+        }}
+        onNavigate={navigate}
+        onOpenProfile={openProfile}
+      />
     );
+  } else {
+    scene = null;
   }
 
   const sheetOpen = navigationSheet !== null;
@@ -558,10 +600,9 @@ export default function UiPreviewApp() {
           <LumiaBottomTabBar
             profile={profile}
             view={view}
-            activeSheet={navigationSheet}
             onOpenToday={() => navigate('today')}
             onOpenZodiac={() => navigate('horoscope')}
-            onOpenServices={openServices}
+            onOpenMore={() => navigate('more')}
             onOpenCompatibility={() => navigate('compatibility-input')}
             onOpenNatal={() => navigate('natal')}
           />
@@ -570,20 +611,11 @@ export default function UiPreviewApp() {
             profile={profile}
             onClose={() => setNavigationSheet(null)}
             onOpenNatal={() => navigate('natal')}
-            onOpenSettings={() => navigate('settings')}
-            onOpenPremium={() => navigate('paywall')}
             onOpenCharts={() => navigate('natal')}
-            onOpenKnowledge={() => navigate('encyclopedia')}
           />
         </>
       ) : null}
 
-      {localNotice ? (
-        <div className="ui-preview-notice" role="status">
-          {localNotice}
-          <button type="button" onClick={() => setLocalNotice(null)} aria-label="Закрыть">×</button>
-        </div>
-      ) : null}
       <PreviewControls scenario={scenario} onChange={changeScenario} />
     </div>
   );

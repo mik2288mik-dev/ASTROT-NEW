@@ -1250,6 +1250,7 @@ export type ViewState =
   | 'personality'
   | 'horoscope'
   | 'synastry'
+  | 'more'
   | 'encyclopedia'
   | 'matrix'
   | 'settings'

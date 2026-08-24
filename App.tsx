@@ -99,6 +99,7 @@ import {
     type PaywallContext,
     type PaywallOutcome,
 } from './lib/paywallContext';
+import type { MoreHubTab } from './views/v2/MoreHub';
 
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
@@ -112,6 +113,7 @@ const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) =
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
+const MoreHub = dynamic(() => import('./views/v2/MoreHub').then((module) => module.MoreHub), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
     () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),
     { ssr: false },
@@ -353,6 +355,7 @@ const App: React.FC = () => {
     const [onboardingInitialStep, setOnboardingInitialStep] = useState<'stories' | 'birth'>('stories');
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
+    const [moreTab, setMoreTab] = useState<MoreHubTab>('knowledge');
     const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
     const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
@@ -2024,18 +2027,11 @@ const App: React.FC = () => {
         navigateTo('chart', { replace: true });
     }, [navigateTo]);
 
-    const openBottomAvatar = useCallback(() => {
-        navigateTo('settings', { replace: true });
-    }, [navigateTo]);
-
     const openSynastryFromHome = useCallback(() => {
         setSynastryPrefill(null);
         navigateTo('synastry');
     }, [navigateTo]);
 
-    const openNavigationServices = useCallback(() => {
-        setNavigationSheet((current) => current === 'services' ? null : 'services');
-    }, []);
     const openProfileSheet = useCallback(() => {
         setNavigationSheet('profile');
     }, []);
@@ -2047,25 +2043,36 @@ const App: React.FC = () => {
         setNavigationSheet(null);
         openBottomNatal();
     }, [openBottomNatal]);
-    const openNavigationKnowledge = useCallback(() => {
-        setNavigationSheet(null);
-        navigateTo('encyclopedia');
-    }, [navigateTo]);
-    const openNavigationSettings = useCallback(() => {
-        setNavigationSheet(null);
-        openBottomAvatar();
-    }, [openBottomAvatar]);
-    const openNavigationPremium = useCallback(() => {
-        setNavigationSheet(null);
-        void requestPremium('settings', undefined, undefined, {
-            bypassFirstValueGate: true,
-        });
-    }, [requestPremium]);
-    const openNavigationCharts = useCallback(() => {
+    const openProfileCharts = useCallback(() => {
         const returnView = viewRef.current === 'charts' ? 'dashboard' : viewRef.current;
         setNavigationSheet(null);
         openCharts(returnView);
     }, [openCharts]);
+    const openNavigationMore = useCallback(() => {
+        setNavigationSheet(null);
+        navigateTo('more');
+    }, [navigateTo]);
+    const openMorePremium = useCallback(() => {
+        setMoreTab('premium');
+        void requestPremium('settings', { returnView: 'more' }, undefined, {
+            bypassFirstValueGate: true,
+        });
+    }, [requestPremium]);
+    const managePremiumSubscription = useCallback(async () => {
+        const opened = await openRuStoreSubscriptionManagement();
+        if (!opened) {
+            setCheckoutNotice('Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.');
+        }
+    }, []);
+    const completePremiumRecoveryIdentity = useCallback(() => {
+        if (!pendingPremiumRecovery) return;
+        const pending = pendingPremiumRecovery;
+        setPendingPremiumRecovery(null);
+        setPaywallInitialPlanId(pending.planId);
+        setPaywallResumeNotice('Способ восстановления привязан. Выбранный тариф сохранён — можно продолжить покупку.');
+        setView(pending.context.returnView);
+        setPaywallContext(pending.context);
+    }, [pendingPremiumRecovery]);
 
     // Свайп назад от левого края (как в iOS) — на всех экранах, кроме корневых/модальных
     const canSwipeBack =
@@ -2327,7 +2334,6 @@ const App: React.FC = () => {
                             openQuestionRequest={natalQuestionRequest}
                             onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
                             onOpenProfile={openProfileSheet}
-                            onOpenMatrix={() => navigateTo('matrix')}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
                         <PromoBanner
@@ -2337,6 +2343,26 @@ const App: React.FC = () => {
                             placementKey="screen:natal:zodiac"
                             language={profile.language === 'en' ? 'en' : 'ru'}
                             onOpen={openBottomZodiac}
+                        />
+                    </div>
+                ) : view === 'more' ? (
+                    <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
+                        <MoreHub
+                            profile={profile}
+                            activeTab={moreTab}
+                            onTabChange={setMoreTab}
+                            onOpenPremium={openMorePremium}
+                            onUpdate={handleProfileUpdate}
+                            canPromotePremium={premiumPromotionAllowed}
+                            onRestorePurchase={() => restorePremiumPurchases()}
+                            onManageSubscription={managePremiumSubscription}
+                            onOpenAdmin={() => navigateTo('admin')}
+                            onOpenCharts={() => openCharts('more')}
+                            onOpenProfile={openProfileSheet}
+                            onLogout={handleLogout}
+                            onDeleteAccount={handleDeleteAccount}
+                            recoveryIdentityRequired={pendingPremiumRecovery !== null}
+                            onRecoveryIdentityReady={completePremiumRecoveryIdentity}
                         />
                     </div>
                 ) : view === 'encyclopedia' ? (
@@ -2354,27 +2380,14 @@ const App: React.FC = () => {
                             onRequestPremium={() => { void requestPremium('settings'); }}
                             canPromotePremium={premiumPromotionAllowed}
                             onRestorePurchase={() => restorePremiumPurchases()}
-                            onManageSubscription={async () => {
-                                const opened = await openRuStoreSubscriptionManagement();
-                                if (!opened) {
-                                    setCheckoutNotice('Не удалось открыть управление подпиской. Открой раздел подписок в RuStore.');
-                                }
-                            }}
+                            onManageSubscription={managePremiumSubscription}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
                             onOpenProfile={openProfileSheet}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
                             recoveryIdentityRequired={pendingPremiumRecovery !== null}
-                            onRecoveryIdentityReady={() => {
-                                if (!pendingPremiumRecovery) return;
-                                const pending = pendingPremiumRecovery;
-                                setPendingPremiumRecovery(null);
-                                setPaywallInitialPlanId(pending.planId);
-                                setPaywallResumeNotice('Способ восстановления привязан. Выбранный тариф сохранён — можно продолжить покупку.');
-                                setView(pending.context.returnView);
-                                setPaywallContext(pending.context);
-                            }}
+                            onRecoveryIdentityReady={completePremiumRecoveryIdentity}
                         />
                     </div>
                 ) : view === 'charts' ? (
@@ -2484,10 +2497,9 @@ const App: React.FC = () => {
                     <LumiaBottomTabBar
                         profile={profile}
                         view={view}
-                        activeSheet={navigationSheet}
                         onOpenToday={openBottomToday}
                         onOpenZodiac={openBottomZodiac}
-                        onOpenServices={openNavigationServices}
+                        onOpenMore={openNavigationMore}
                         onOpenCompatibility={openNavigationCompatibility}
                         onOpenNatal={openNavigationNatal}
                     />
@@ -2496,10 +2508,7 @@ const App: React.FC = () => {
                         profile={profile}
                         onClose={() => setNavigationSheet(null)}
                         onOpenNatal={openNavigationNatal}
-                        onOpenSettings={openNavigationSettings}
-                        onOpenPremium={openNavigationPremium}
-                        onOpenCharts={openNavigationCharts}
-                        onOpenKnowledge={openNavigationKnowledge}
+                        onOpenCharts={openProfileCharts}
                     />
                 </>
             ) : null}

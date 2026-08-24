@@ -43,6 +43,23 @@ describe('contextual paywall return contract', () => {
     });
   });
 
+  it('returns an explicit More offer to the Premium tab route on close', () => {
+    const moreContext = createPaywallContextFromRequest({
+      source: 'settings',
+      currentView: 'more',
+      payload: { returnView: 'more' },
+    });
+
+    expect(resolvePaywallOutcome(moreContext, 'close')).toMatchObject({
+      view: 'more',
+      shouldOpenFeature: false,
+    });
+    const app = read('App.tsx');
+    expect(app).toContain("setMoreTab('premium')");
+    expect(app).toContain("requestPremium('settings', { returnView: 'more' }, undefined, {");
+    expect(app).toContain('bypassFirstValueGate: true');
+  });
+
   it('disarms a locked Week/Month request until purchase success', () => {
     const app = read('App.tsx');
     const returnFlow = app.slice(

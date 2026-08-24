@@ -21,10 +21,11 @@ const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 type Props = {
   profile: UserProfile;
   onBack: () => void;
-  onOpenProfile: () => void;
+  onOpenProfile?: () => void;
+  embedded?: boolean;
 };
 
-export function MatrixRoom({ profile, onBack, onOpenProfile }: Props) {
+export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }: Props) {
   void onBack;
   const ru = profile.language !== 'en';
   const lang: 'ru' | 'en' = ru ? 'ru' : 'en';
@@ -66,16 +67,18 @@ export function MatrixRoom({ profile, onBack, onOpenProfile }: Props) {
   };
 
   return (
-    <div className="fresh-page matrix-editorial-page">
-      <AppTopBar
-        title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}
-        rightAction={(
-          <EditorialProfileButton
-            label={ru ? 'Открыть профиль' : 'Open profile'}
-            onClick={onOpenProfile}
-          />
-        )}
-      />
+    <div className={embedded ? 'matrix-editorial-page' : 'fresh-page matrix-editorial-page'}>
+      {!embedded ? (
+        <AppTopBar
+          title={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}
+          rightAction={(
+            <EditorialProfileButton
+              label={ru ? 'Открыть профиль' : 'Open profile'}
+              onClick={onOpenProfile}
+            />
+          )}
+        />
+      ) : null}
 
       <section className="product-screen-cover product-screen-cover--matrix" aria-label={ru ? MATRIX_TITLE.ru : MATRIX_TITLE.en}>
         <div className="product-screen-cover-copy">
@@ -194,7 +197,7 @@ export function MatrixRoom({ profile, onBack, onOpenProfile }: Props) {
         </div>
       )}
 
-      <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 28px)' }} />
+      {!embedded ? <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 28px)' }} /> : null}
     </div>
   );
 }

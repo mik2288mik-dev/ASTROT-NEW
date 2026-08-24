@@ -44,7 +44,7 @@ describe('personal forecast header and shared navigation', () => {
     expect(navigation).not.toContain('today-bottom-nav-quick-links');
     expect(navigation).toContain('data-nav-id="compatibility"');
     expect(navigation).toContain('today-bottom-nav-hub');
-    expect(navigation).toContain('today-bottom-nav-services');
+    expect(navigation).toContain('today-bottom-nav-more');
   });
 
   it('keeps the app canvas white and separates the bottom navigation with one hairline', () => {
