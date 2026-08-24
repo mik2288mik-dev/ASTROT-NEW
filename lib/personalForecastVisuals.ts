@@ -10,6 +10,7 @@ import type {
 import {
   PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION,
   type FixedForecastSectionKey,
+  type ForecastSection,
   type ForecastSectionKind,
   type ForecastTopicKey,
   type ForecastVisualCue,
@@ -146,6 +147,44 @@ const EDITORIAL_TOPIC_BY_THEME: Record<Theme, EditorialTopic> = {
   moon: 'moon',
   mercury: 'mercury',
 };
+
+export function selectTodayEndEditorialAsset(input: {
+  userId: string;
+  periodKey: string;
+  sections: readonly ForecastSection[];
+}): DiaryEligibleAsset | null {
+  const semanticSection = input.sections.find((section) => section.visualCue)
+    || input.sections.find((section) => (
+      section.sourceTopicKey && section.sourceTopicKey !== 'overview'
+    ))
+    || input.sections.find((section) => normalise(section.visualTag) !== 'none')
+    || input.sections[0];
+  if (!semanticSection) return null;
+
+  const request: ForecastVisualRequest = {
+    ...semanticSection,
+    userId: input.userId,
+    period: 'day',
+    periodKey: input.periodKey,
+    sectionId: semanticSection.id,
+    sectionIndex: 0,
+  };
+  const semanticKey = [
+    semanticSection.visualCue || 'no-cue',
+    semanticSection.sourceTopicKey || 'no-topic',
+    normalise(semanticSection.visualTag),
+    semanticSection.semanticFingerprint || semanticSection.id,
+  ].join('|');
+
+  return selectPersonalEditorialAsset({
+    period: 'day',
+    periodKey: `${input.periodKey}|today-end|${semanticKey}`,
+    userId: input.userId,
+    topics: themesFor(request).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
+    excludeSourceCategories: ['clips_pins', 'doodles', 'tape'],
+    forceVisible: true,
+  });
+}
 
 /**
  * Chooses a few decorative pauses for a continuous reading. The model supplies

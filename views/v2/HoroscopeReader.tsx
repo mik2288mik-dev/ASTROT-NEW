@@ -34,7 +34,7 @@ import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodia
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
 import {
   EditorialCurve,
-  EditorialSettingsButton,
+  EditorialChartsButton,
 } from '../../components/editorial/EditorialScreenChrome';
 
 type Period = 'today' | 'week' | 'month';
@@ -85,7 +85,7 @@ export type HoroscopeReaderProps = {
   onUpdateProfile?: (profile: UserProfile) => void;
   onOpenChart?: () => void;
   onOpenPersonalForecast?: () => void;
-  onOpenSettings?: () => void;
+  onOpenCharts?: () => void;
   uiPreview?: HoroscopeReaderUiPreview;
 };
 
@@ -93,7 +93,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   ({
     profile,
     chartData,
-    onOpenSettings,
+    onOpenCharts,
     uiPreview,
   }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
@@ -305,9 +305,9 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
       <AppTopBar
         title={language === 'ru' ? 'Гороскоп по знакам' : 'Sign horoscope'}
         rightAction={(
-          <EditorialSettingsButton
-            label={language === 'ru' ? 'Открыть настройки' : 'Open settings'}
-            onClick={onOpenSettings}
+          <EditorialChartsButton
+            label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
+            onClick={onOpenCharts}
           />
         )}
       />

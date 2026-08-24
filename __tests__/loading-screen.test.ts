@@ -51,4 +51,18 @@ describe('loading screen', () => {
       expect(fs.existsSync(path.join(ROOT, rel))).toBe(false);
     }
   });
+
+  it('keeps the percent splash in startup only and uses inline My Charts loading', () => {
+    const app = fs.readFileSync(path.join(ROOT, 'App.tsx'), 'utf8');
+    const charts = fs.readFileSync(path.join(ROOT, 'views/MyCharts.tsx'), 'utf8');
+    const services = fs.readFileSync(path.join(ROOT, 'views/v2/ServiceScreen.tsx'), 'utf8');
+
+    expect(app.match(/<Loading/g)).toHaveLength(1);
+    expect(app).not.toContain('loading: () => <Loading />');
+    expect(charts).not.toContain('components/ui/Loading');
+    expect(charts).toContain('<MyChartsInlineLoading');
+    expect(charts).toContain("'Загружаем карты…'");
+    expect(charts).not.toContain('progressPercent');
+    expect(services).not.toContain('<Loading');
+  });
 });

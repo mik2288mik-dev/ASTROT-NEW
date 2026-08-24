@@ -5,7 +5,9 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { UserProfile, NatalChartData, ViewState } from './types';
 import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
-import type { ServiceTab } from './views/v2/ServiceScreen';
+import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
+import { Settings } from './views/Settings';
+import { MyCharts } from './views/MyCharts';
 import {
     getProfile,
     saveProfile,
@@ -101,12 +103,10 @@ import {
 } from './lib/paywallContext';
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
-    loading: () => <Loading />,
 });
 const NatalMagazine = dynamic(() => import('./views/v2/NatalMagazine').then((module) => module.NatalMagazine), { ssr: false });
 const PersonalityReport = dynamic(() => import('./views/PersonalityReport').then((module) => module.PersonalityReport), { ssr: false });
 const HoroscopeReader = dynamic(() => import('./views/v2/HoroscopeReader').then((module) => module.HoroscopeReader), { ssr: false });
-const Settings = dynamic(() => import('./views/Settings').then((module) => module.Settings), { ssr: false });
 const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) => module.AdminApp), { ssr: false });
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
@@ -115,11 +115,6 @@ const AstrologyEncyclopedia = dynamic(
     () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),
     { ssr: false },
 );
-const ServiceScreen = dynamic(
-    () => import('./views/v2/ServiceScreen').then((module) => module.ServiceScreen),
-    { ssr: false, loading: () => <Loading /> },
-);
-const MyCharts = dynamic(() => import('./views/MyCharts').then((module) => module.MyCharts), { ssr: false });
 const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => module.AuthGate), { ssr: false });
 
 // Get owner ID from environment variables for security
@@ -2040,13 +2035,6 @@ const App: React.FC = () => {
         setNavigationSheet(null);
         navigateTo('services');
     }, [navigateTo]);
-    const openSettings = useCallback(() => {
-        navigateTo('settings');
-    }, [navigateTo]);
-    const openServiceCharts = useCallback(() => {
-        setServiceTab('charts');
-        navigateTo('services');
-    }, [navigateTo]);
     const openNavigationCompatibility = useCallback(() => {
         setNavigationSheet(null);
         openSynastryFromHome();
@@ -2190,7 +2178,7 @@ const App: React.FC = () => {
         onOpenHoroscope: openBottomZodiac,
         requestedPeriod: dashboardPeriod,
         onPeriodChange: setDashboardPeriod,
-        onOpenSettings: openSettings,
+        onOpenCharts: openProfileCharts,
         onRequestPremium: requestPremium,
         canPromotePremium: premiumPromotionAllowed,
         onPremiumAnalytics: (
@@ -2278,7 +2266,7 @@ const App: React.FC = () => {
                             chartId={primaryChartId ?? null}
                             requestPremium={requestPremium}
                             initialPrefill={synastryPrefill}
-                            onOpenCharts={openServiceCharts}
+                            onOpenCharts={openProfileCharts}
                             onCreateNatalChart={openBottomNatal}
                             onUpdateProfile={handleProfileUpdate}
                             premiumContinuation={premiumContinuation}
@@ -2314,7 +2302,7 @@ const App: React.FC = () => {
                                 navigateTo('chart');
                             }}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
-                            onOpenSettings={openSettings}
+                            onOpenCharts={openProfileCharts}
                         />
                     </div>
                 ) : view === 'personality' && chartData ? (
@@ -2376,7 +2364,7 @@ const App: React.FC = () => {
                             canPromotePremium={premiumPromotionAllowed}
                             openQuestionRequest={natalQuestionRequest}
                             onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
-                            onOpenCharts={openServiceCharts}
+                            onOpenCharts={openProfileCharts}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
                         <PromoBanner
@@ -2395,8 +2383,23 @@ const App: React.FC = () => {
                             activeTab={serviceTab}
                             onTabChange={setServiceTab}
                             onOpenStore={openServiceStore}
-                            onOpenSettings={openSettings}
-                            chartsContent={renderMyCharts('services', true)}
+                            onOpenCharts={openProfileCharts}
+                            settingsContent={(
+                                <Settings
+                                    embedded
+                                    profile={profile}
+                                    onUpdate={handleProfileUpdate}
+                                    onRequestPremium={openServiceStore}
+                                    onRestorePurchase={() => restorePremiumPurchases()}
+                                    onManageSubscription={managePremiumSubscription}
+                                    onOpenAdmin={() => navigateTo('admin')}
+                                    onOpenCharts={openProfileCharts}
+                                    onLogout={handleLogout}
+                                    onDeleteAccount={handleDeleteAccount}
+                                    recoveryIdentityRequired={pendingPremiumRecovery !== null}
+                                    onRecoveryIdentityReady={completePremiumRecoveryIdentity}
+                                />
+                            )}
                             onRestorePurchase={() => restorePremiumPurchases()}
                             onManageSubscription={managePremiumSubscription}
                         />
@@ -2405,7 +2408,7 @@ const App: React.FC = () => {
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <AstrologyEncyclopedia
                             profile={profile}
-                            onOpenSettings={openSettings}
+                            onOpenCharts={openProfileCharts}
                         />
                     </div>
                 ) : view === 'settings' ? (
@@ -2418,7 +2421,7 @@ const App: React.FC = () => {
                             onRestorePurchase={() => restorePremiumPurchases()}
                             onManageSubscription={managePremiumSubscription}
                             onOpenAdmin={() => navigateTo('admin')}
-                            onOpenCharts={openServiceCharts}
+                            onOpenCharts={openProfileCharts}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
                             recoveryIdentityRequired={pendingPremiumRecovery !== null}

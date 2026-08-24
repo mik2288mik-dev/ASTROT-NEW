@@ -24,6 +24,7 @@ describe('application chrome', () => {
   it('keeps the fixed header pure white and lets Today replace bottom glass with a hairline shell', () => {
     const styles = read('styles/liquidGlassChrome.css');
     const todayStyles = read('styles/todayHome.css');
+    const sharedShellStyles = read('styles/sharedShellFinal.css');
     const app = read('pages/_app.tsx');
     const topBar = read('components/lumia-ui/AppTopBar.tsx');
     const freshHeaders = read('components/fresh-ui/FreshHeaders.tsx');
@@ -60,6 +61,9 @@ describe('application chrome', () => {
     expect(dashboard).not.toContain('reserveSpace={false}');
     expect(todayStyles).toContain('.forecast-feed-page .app-top-bar');
     expect(todayStyles).toContain('background: #fff !important');
+    expect(sharedShellStyles).toContain('border-bottom: 0 !important');
+    expect(sharedShellStyles).not.toContain('border-bottom: 1px solid');
+    expect(sharedShellStyles).toContain('transform: translateY(-0.25rem)');
     expect(application).toContain("title={profile.language === 'en' ? 'My charts' : 'Мои карты'}");
   });
 
@@ -98,7 +102,7 @@ describe('application chrome', () => {
     expect(obsoleteHeaderStyles).not.toContain('.fresh-back-btn');
   });
 
-  it('uses Settings and My Charts actions only where they are useful', () => {
+  it('uses My Charts as the primary-screen action and keeps Settings in Menu', () => {
     const application = read('App.tsx');
     const dashboard = read('views/Dashboard.tsx');
     const horoscope = read('views/v2/HoroscopeReader.tsx');
@@ -110,11 +114,7 @@ describe('application chrome', () => {
     const personality = read('views/PersonalityReport.tsx');
     const settings = read('views/Settings.tsx');
 
-    [dashboard, horoscope, encyclopedia, services].forEach((screen) => {
-      expect(screen).toContain('EditorialSettingsButton');
-      expect(screen).toContain('Открыть настройки');
-    });
-    [natal, compatibility].forEach((screen) => {
+    [dashboard, horoscope, natal, compatibility, encyclopedia, services].forEach((screen) => {
       expect(screen).toContain('EditorialChartsButton');
       expect(screen).toContain('Открыть мои карты');
       expect(screen).toContain('onClick={onOpenCharts}');
@@ -133,9 +133,11 @@ describe('application chrome', () => {
     expect(application).toContain('<MatrixRoom');
     expect(application).toContain('onOpenProfile={openProfileSheet}');
     expect(application).toContain("title={profile.language === 'en' ? 'My charts'");
-    expect(application).toContain("setServiceTab('charts')");
-    expect(application).toContain('onOpenSettings={openSettings}');
-    expect(application).toContain('onOpenCharts={openServiceCharts}');
+    expect(services).toContain("{ id: 'settings', label: 'Настройки' }");
+    expect(services).toContain("title={ru ? 'Меню' : 'Menu'}");
+    expect(application).not.toContain("setServiceTab('charts')");
+    expect(application).not.toContain('onOpenSettings={openSettings}');
+    expect(application).toContain('onOpenCharts={openProfileCharts}');
   });
 
   it('replaces the draggable liquid lens with a thin static navigation line', () => {
@@ -163,6 +165,8 @@ describe('application chrome', () => {
     expect(globals).toContain('.lumia-main-scroll.lumia-bottom-tab-scroll');
     expect(globals).toContain('scroll-padding-bottom: var(--lumia-bottom-tab-clearance)');
     expect(todayStyles).toContain('min-height: 44px');
+    expect(globals).toContain('--tg-content-safe-area-inset-right: 0px');
+    expect(read('styles/liquidGlassChrome.css')).toContain('top: calc(var(--app-top-bar-content-safe-top) + 5px)');
     expect(app.match(/<LumiaBottomTabBar/g)).toHaveLength(1);
   });
 });

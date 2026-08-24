@@ -13,7 +13,8 @@ describe('personal forecast header and shared navigation', () => {
     expect(topBar).toContain('app-top-bar-title--personal-forecast');
     expect(topBar).toContain('app-top-bar-context--period');
     expect(dashboard).toContain("title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}");
-    expect(dashboard).toContain('className="app-top-bar-action today-profile-button"');
+    expect(dashboard).toContain('EditorialChartsButton');
+    expect(dashboard).toContain('Открыть мои карты');
     expect(dashboard).toContain('role="tablist"');
     expect(dashboard).toContain('activeDateValue');
   });

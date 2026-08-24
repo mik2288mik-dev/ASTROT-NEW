@@ -6,6 +6,7 @@ import {
   getPersonalPaperTemplateLibrary,
   resolveDiaryEditorialPauses,
   resolvePersonalForecastVisuals,
+  selectTodayEndEditorialAsset,
   type ForecastVisualFeedInput,
   type ForecastVisualSectionInput,
 } from '../lib/personalForecastVisuals';
@@ -45,6 +46,39 @@ function feed(periodKey = '2026-07-31'): ForecastVisualFeedInput {
 }
 
 describe('personal forecast editorial visual resolver', () => {
+  it('selects one deterministic semantic transparent asset for the end of Today', () => {
+    const todaySections = [{
+      ...feed('2026-08-25').overview,
+      status: 'ready' as const,
+      diagnosticCode: null,
+      title: 'Точный разговор',
+      text: 'Спокойная пауза поможет услышать ответ.',
+      contentBlocks: [],
+      semanticFactIds: [],
+      semanticFingerprint: 'today:communication',
+      importance: 1,
+      visualCue: 'friends' as const,
+      premiumTeaser: '',
+      lockedPreview: { lead: '', blurred: '', teaser: '' },
+      explanationAnchors: [],
+    }];
+    const input = { userId: 'today-end-user', periodKey: '2026-08-25', sections: todaySections };
+    const first = selectTodayEndEditorialAsset(input);
+    const second = selectTodayEndEditorialAsset(input);
+
+    expect(second).toEqual(first);
+    expect(first).toMatchObject({
+      collection: 'personal-editorial',
+      hasEmbeddedText: false,
+      productionSelectable: true,
+    });
+    expect(first?.path.startsWith('/assets/personal-editorial/')).toBe(true);
+    expect(first?.topics).toContain('friends');
+    expect(['mascot', 'object', 'animal', 'surreal', 'psychedelic', 'graphic'])
+      .toContain(first?.diaryFamily);
+    expect(['clips_pins', 'doodles', 'tape']).not.toContain(first?.sourceCategory);
+  });
+
   it('keeps one ordered request for every section in the continuous feed', () => {
     const requests = buildForecastVisualRequests({ userId, forecast: feed() });
     expect(requests.map((request) => request.sectionId)).toEqual([

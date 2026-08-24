@@ -7,7 +7,6 @@ import {
   type ChartListItem,
   type ChartsResponse,
 } from '../services/storageService';
-import { Loading } from '../components/ui/Loading';
 import { getText, getZodiacSign } from '../constants';
 import { formatDisplayDate } from '../lib/date-utils';
 import { PlanetIcon } from '../components/icons/PlanetIcon';
@@ -37,6 +36,32 @@ interface MyChartsProps {
   canPromotePremium?: boolean;
   uiPreview?: ChartsResponse;
   embedded?: boolean;
+}
+
+function MyChartsInlineLoading({
+  lang,
+  embedded,
+}: {
+  lang: UserProfile['language'];
+  embedded: boolean;
+}) {
+  const label = lang === 'en' ? 'Loading charts…' : 'Загружаем карты…';
+  return (
+    <div
+      className={`fresh-page charts-editorial-page${embedded ? ' charts-editorial-page--embedded' : ''}`}
+      aria-busy="true"
+    >
+      <div className="mx-auto max-w-2xl px-4 py-5">
+        <div role="status" aria-label={label} className="text-[14px] leading-6 text-mono-muted">
+          <p>{label}</p>
+          <div className="mt-4 space-y-3" aria-hidden="true">
+            <div className="h-20 animate-pulse rounded-mono-card bg-black/5" />
+            <div className="h-16 animate-pulse rounded-mono-card bg-black/5" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export const MyCharts: React.FC<MyChartsProps> = ({
@@ -426,12 +451,12 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   };
 
   if (loading) {
-    return <Loading message={getText(lang, 'charts.loading')} />;
+    return <MyChartsInlineLoading lang={lang} embedded={embedded} />;
   }
 
   if (!data && loadError) {
     return (
-      <main className="fresh-page charts-editorial-page">
+      <main className={`fresh-page charts-editorial-page${embedded ? ' charts-editorial-page--embedded' : ''}`}>
         <div className="mx-auto max-w-2xl px-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <div role="alert" className="fresh-card space-y-3 p-5">
             <p className="text-[14px] leading-relaxed text-red-700">{loadError}</p>

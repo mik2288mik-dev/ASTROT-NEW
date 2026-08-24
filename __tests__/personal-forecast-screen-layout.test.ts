@@ -65,9 +65,9 @@ describe('personal forecast screen layout', () => {
     const dashboard = read('views/Dashboard.tsx');
     const forecastStyles = read('styles/personalForecastFeed.css');
 
-    expect(dashboard).toContain("title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}");
-    expect(dashboard).toContain('className="app-top-bar-action today-profile-button"');
-    expect(dashboard).toContain('aria-haspopup="dialog"');
+    expect(dashboard).toContain("title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}");
+    expect(dashboard).toContain('EditorialChartsButton');
+    expect(dashboard).toContain('onClick={onOpenCharts}');
     expect(forecastStyles).toContain('.forecast-feed-page .home-top');
     expect(forecastStyles).toContain('padding: 0;');
   });
@@ -83,5 +83,21 @@ describe('personal forecast screen layout', () => {
     expect(sectionBlock).not.toContain('{section.sourceTopicKey}');
     expect(today).not.toContain('Вывод и совет');
     expect(dashboard).not.toContain('Вывод и совет');
+  });
+
+  it('ends Today with one decorative semantic personal cutout', () => {
+    const today = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
+    const visuals = read('lib/personalForecastVisuals.ts');
+    const styles = read('styles/todayHome.css');
+
+    expect(today).toContain('selectTodayEndEditorialAsset');
+    expect(today).toContain('className="today-minimal-end-visual"');
+    expect(today).toContain('alt=""');
+    expect(today.match(/className="today-minimal-end-visual"/g)).toHaveLength(1);
+    expect(visuals).toContain('selectPersonalEditorialAsset({');
+    expect(visuals).toContain('forceVisible: true');
+    expect(styles).toContain('width: clamp(5.75rem, 29vw, 8.125rem);');
+    expect(styles).toContain('background: transparent;');
+    expect(styles).toContain('box-shadow: none;');
   });
 });

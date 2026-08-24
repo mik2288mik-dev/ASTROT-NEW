@@ -163,9 +163,13 @@ function filterPersonalPool(input: {
   topics?: readonly EditorialTopic[];
   allowedTones?: readonly EditorialTone[];
   excludeIds?: readonly string[];
+  excludeSourceCategories?: readonly string[];
 }): readonly DiaryEligibleAsset[] {
   const excluded = new Set(input.excludeIds || []);
-  const base = AUTO_SELECTABLE_PERSONAL_ASSETS.filter((asset) => !excluded.has(asset.id));
+  const excludedSourceCategories = new Set(input.excludeSourceCategories || []);
+  const base = AUTO_SELECTABLE_PERSONAL_ASSETS.filter((asset) => (
+    !excluded.has(asset.id) && !excludedSourceCategories.has(asset.sourceCategory)
+  ));
   const topics = input.topics?.length
     ? base.filter((asset) => asset.topics.some((topic) => input.topics!.includes(topic)))
     : base;
@@ -182,6 +186,7 @@ export function selectPersonalEditorialAsset(input: {
   topics?: readonly EditorialTopic[];
   allowedTones?: readonly EditorialTone[];
   excludeIds?: readonly string[];
+  excludeSourceCategories?: readonly string[];
   slot?: number;
   forceVisible?: boolean;
 }): DiaryEligibleAsset | null {

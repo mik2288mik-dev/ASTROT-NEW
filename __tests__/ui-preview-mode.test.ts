@@ -75,8 +75,8 @@ describe('development-only UI Preview mode', () => {
     expect(preview).not.toContain('<MoreHub');
     expect(preview).toContain("scenario.screen === 'menu'");
     expect(preview).toContain('<ServiceScreen');
-    expect(preview).toContain("setServiceTab('charts')");
-    expect(preview).toContain('chartsContent={(');
+    expect(preview).not.toContain("setServiceTab('charts')");
+    expect(preview).toContain('settingsContent={(');
     expect(preview).toContain('<EditorialChartsButton label="Открыть мои карты"');
     expect(preview).toContain('scenario.screen === \'charts\' ? undefined');
     expect(preview).toContain('embedded');

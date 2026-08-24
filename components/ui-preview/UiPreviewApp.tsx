@@ -5,7 +5,6 @@ import { TodayEditorialFeed } from '../PersonalForecastFeed/TodayEditorialFeed';
 import {
   EditorialChartsButton,
   EditorialProfileButton,
-  EditorialSettingsButton,
   EditorialTabs,
 } from '../editorial/EditorialScreenChrome';
 import { AppTopBar } from '../lumia-ui/AppTopBar';
@@ -136,20 +135,16 @@ function ProfileAction({ onOpen }: { onOpen: () => void }) {
   return <EditorialProfileButton label="Открыть профиль" onClick={onOpen} />;
 }
 
-function SettingsAction({ onOpen }: { onOpen: () => void }) {
-  return <EditorialSettingsButton label="Открыть настройки" onClick={onOpen} />;
-}
-
 function DiaryScene({
   screen,
   premium,
   onNavigate,
-  onOpenSettings,
+  onOpenCharts,
 }: {
   screen: 'today' | 'week' | 'month';
   premium: boolean;
   onNavigate: (screen: UiPreviewScreen) => void;
-  onOpenSettings: () => void;
+  onOpenCharts: () => void;
 }) {
   const period = screen === 'today' ? 'day' : screen;
   const longSection = screen === 'week' ? UI_PREVIEW_WEEK_SECTION : UI_PREVIEW_MONTH_SECTION;
@@ -158,7 +153,7 @@ function DiaryScene({
     <div className="forecast-feed-page ui-preview-page">
       <AppTopBar
         title="Твой гороскоп"
-        rightAction={<SettingsAction onOpen={onOpenSettings} />}
+        rightAction={<EditorialChartsButton label="Открыть мои карты" onClick={onOpenCharts} />}
       />
       <EditorialTabs
         label="Период личного прогноза"
@@ -241,11 +236,13 @@ function SettingsScene({
   onNavigate,
   onBack,
   onOpenCharts,
+  embedded = false,
 }: {
   profile: ReturnType<typeof createUiPreviewProfile>;
   onNavigate: (screen: UiPreviewScreen) => void;
   onBack: () => void;
   onOpenCharts: () => void;
+  embedded?: boolean;
 }) {
   const [localProfile, setLocalProfile] = useState(profile);
 
@@ -255,6 +252,7 @@ function SettingsScene({
 
   return (
     <Settings
+      embedded={embedded}
       profile={localProfile}
       onBack={onBack}
       onUpdate={setLocalProfile}
@@ -371,7 +369,7 @@ export default function UiPreviewApp() {
   const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
   const [serviceTab, setServiceTab] = useState<ServiceTab>('knowledge');
   const [paywallReturnScreen, setPaywallReturnScreen] = useState<UiPreviewScreen>('today');
-  const [settingsReturnScreen, setSettingsReturnScreen] = useState<UiPreviewScreen>('today');
+  const [settingsReturnScreen] = useState<UiPreviewScreen>('today');
   const [chartsReturnScreen, setChartsReturnScreen] = useState<UiPreviewScreen>('menu');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -422,19 +420,10 @@ export default function UiPreviewApp() {
     }
     changeScenario({ screen, state: 'ready' });
   };
-  const openSettings = () => {
-    if (scenario.screen !== 'settings') setSettingsReturnScreen(scenario.screen);
-    navigate('settings');
-  };
   const openCharts = () => {
     if (scenario.screen !== 'charts') setChartsReturnScreen(scenario.screen);
     navigate('charts');
   };
-  const openServiceCharts = () => {
-    setServiceTab('charts');
-    navigate('menu');
-  };
-
   useEffect(() => {
     if (!localHostnameAllowed()) return;
     const handlePopState = () => setScenario(parseUiPreviewScenario(window.location.search));
@@ -469,9 +458,9 @@ export default function UiPreviewApp() {
     && (scenario.state === 'loading' || scenario.state === 'error');
   if (scenario.state !== 'ready' && !usesRealNatalState && !usesRealCompatibilityState) {
     const stateHeaderAction = scenario.screen === 'settings' ? (
-      <EditorialChartsButton label="Открыть мои карты" onClick={openServiceCharts} />
+      <EditorialChartsButton label="Открыть мои карты" onClick={openCharts} />
     ) : scenario.screen === 'charts' ? undefined : (
-      <SettingsAction onOpen={openSettings} />
+      <EditorialChartsButton label="Открыть мои карты" onClick={openCharts} />
     );
     scene = (
       <div className="ui-preview-page">
@@ -494,16 +483,16 @@ export default function UiPreviewApp() {
   } else if (scenario.screen === 'paywall') {
     scene = <PaywallScene profile={profile} onClose={() => navigate(paywallReturnScreen)} />;
   } else if (scenario.screen === 'encyclopedia') {
-    scene = <AstrologyEncyclopedia profile={profile} onOpenSettings={openSettings} />;
+    scene = <AstrologyEncyclopedia profile={profile} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
-    scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} onNavigate={navigate} onOpenSettings={openSettings} />;
+    scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} onNavigate={navigate} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'horoscope' || scenario.screen === 'zodiac-picker') {
     scene = (
       <HoroscopeReader
         key={scenario.screen}
         profile={profile}
         chartData={scenario.access === 'guest' ? null : chart}
-        onOpenSettings={openSettings}
+        onOpenCharts={openCharts}
         uiPreview={{
           ...UI_PREVIEW_HOROSCOPE,
           pickerOpen: scenario.screen === 'zodiac-picker',
@@ -543,7 +532,7 @@ export default function UiPreviewApp() {
         onCreateChart={() => navigate('onboarding')}
         onOpenPersonalityReport={() => navigate('natal-reading')}
         canPromotePremium={scenario.access !== 'premium'}
-        onOpenCharts={openServiceCharts}
+        onOpenCharts={openCharts}
         onOpenEncyclopedia={() => navigate('encyclopedia')}
         uiPreview={{
           initialTab: scenario.screen === 'natal' ? 'map' : 'reading',
@@ -562,7 +551,7 @@ export default function UiPreviewApp() {
         profile={profile}
         chart={chart}
         onNavigate={navigate}
-        onOpenCharts={openServiceCharts}
+        onOpenCharts={openCharts}
         state={scenario.state}
       />
     );
@@ -572,7 +561,7 @@ export default function UiPreviewApp() {
         profile={profile}
         onNavigate={navigate}
         onBack={() => navigate(settingsReturnScreen)}
-        onOpenCharts={openServiceCharts}
+        onOpenCharts={openCharts}
       />
     );
   } else if (scenario.screen === 'charts') {
@@ -600,20 +589,14 @@ export default function UiPreviewApp() {
         activeTab={serviceTab}
         onTabChange={setServiceTab}
         onOpenStore={() => navigate('paywall')}
-        onOpenSettings={openSettings}
-        chartsContent={(
-          <MyCharts
+        onOpenCharts={openCharts}
+        settingsContent={(
+          <SettingsScene
             profile={profile}
             embedded
-            canPromotePremium={scenario.access !== 'premium'}
-            onRequestPremium={() => navigate('paywall')}
-            uiPreview={{
-              charts: createUiPreviewCharts(profile, chart),
-              chartSlots: scenario.access === 'premium' ? 5 : 1,
-              canAddMore: false,
-              canAddSavedPeople: false,
-              isPremium: scenario.access === 'premium',
-            }}
+            onNavigate={navigate}
+            onBack={() => undefined}
+            onOpenCharts={openCharts}
           />
         )}
         onRestorePurchase={async () => undefined}

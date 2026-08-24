@@ -286,17 +286,19 @@
 .today-period-tabs {
   display: grid;
   box-sizing: border-box;
-  width: min(100%, 34rem);
+  width: min(100%, var(--app-period-rail-max-width));
+  min-height: var(--app-period-rail-height);
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0 auto;
-  padding: 0 clamp(1.15rem, 5vw, 2rem);
+  padding: 0 var(--app-period-rail-padding-x);
+  border-bottom: 0;
 }
 
 .today-period-tab {
   position: relative;
   display: inline-flex;
   min-width: 0;
-  min-height: 3.35rem;
+  min-height: var(--app-period-rail-height);
   align-items: center;
   justify-content: center;
   padding: 0.35rem 0.25rem 0.45rem;
@@ -304,7 +306,7 @@
   background: transparent;
   color: #77716a;
   font-family: var(--forecast-editorial-font);
-  font-size: 0.79rem;
+  font-size: var(--app-period-rail-font-size);
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1;
@@ -319,9 +321,9 @@
 
 .today-period-tab-underline {
   position: absolute;
-  right: 15%;
-  bottom: 0.16rem;
-  left: 15%;
+  right: 18%;
+  bottom: -1px;
+  left: 18%;
   height: 1px;
   background: currentColor;
 }
@@ -380,11 +382,17 @@
 }
 
 .today-minimal-hero {
+  --today-safe-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-content-safe-area-inset-top, 0px),
+    var(--tg-safe-area-inset-top, 0px),
+    18px
+  );
   position: relative;
   display: grid;
   box-sizing: border-box;
   width: 100%;
-  min-height: calc(100svh - var(--home-safe-top, 18px) - 6.5rem);
+  min-height: calc(100svh - var(--today-safe-top) - 6.5rem);
   align-items: center;
   overflow: hidden;
   padding: 1.25rem clamp(1.3rem, 6vw, 2.5rem) 1rem;
@@ -421,7 +429,7 @@
   justify-items: center;
   gap: clamp(0.8rem, 3.5vw, 1.15rem);
   margin: 0 auto;
-  transform: translateY(-1rem);
+  transform: translateY(calc(clamp(1.65rem, 5svh, 2.6rem) * -1));
 }
 
 .today-minimal-composition .today-calendar-clock {
@@ -761,8 +769,7 @@
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.66;
-  text-align: justify;
-  text-align-last: start;
+  text-align: left;
   text-wrap: pretty;
 }
 
@@ -1031,6 +1038,36 @@
 
 .today-minimal-closing .forecast-feed-story-fragment {
   margin-bottom: 0;
+}
+
+.today-minimal-closing-label {
+  margin: 0 0 0.72rem;
+  color: var(--today-muted);
+  font-family: var(--forecast-editorial-font);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  line-height: 1.35;
+}
+
+.today-minimal-end-visual {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  margin: clamp(2.5rem, 10vw, 3.8rem) 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.today-minimal-end-visual img {
+  display: block;
+  width: clamp(5.75rem, 29vw, 8.125rem);
+  height: auto;
+  object-fit: contain;
+  filter: none;
+  box-shadow: none;
 }
 
 @media (prefers-reduced-transparency: reduce) {

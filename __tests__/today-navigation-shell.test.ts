@@ -34,19 +34,19 @@ describe('Today minimal navigation shell', () => {
     const services = read('views/v2/ServiceScreen.tsx');
 
     expect(navigation).toContain("export type LumiaNavigationSheetId = 'profile'");
-    ['Хочу знать', 'Premium', 'Мои карты']
+    ['Хочу знать', 'Premium', 'Настройки']
       .forEach((label) => expect(services).toContain(label));
-    expect(services).toContain("export type ServiceTab = 'knowledge' | 'store' | 'charts'");
+    expect(services).toContain("export type ServiceTab = 'knowledge' | 'store' | 'settings'");
     expect(services).not.toContain("id: 'subscription'");
-    expect(services).not.toContain("id: 'settings'");
+    expect(services).not.toContain("id: 'charts'");
     expect(services).toContain('<EditorialTabs');
     expect(services).toContain('className="services-screen-tabs"');
-    expect(services).toContain('<EditorialSettingsButton');
-    expect(services).toContain("rightAction={activeTab !== 'charts'");
-    expect(services).toContain('{chartsContent}');
-    expect(app).toContain("setServiceTab('charts')");
-    expect(app).toContain("chartsContent={renderMyCharts('services', true)}");
-    expect(read('views/MyCharts.tsx')).toContain("embedded ? ' charts-editorial-page--embedded'");
+    expect(services).toContain("title={ru ? 'Меню' : 'Menu'}");
+    expect(services).toContain('<EditorialChartsButton');
+    expect(services).toContain('{settingsContent}');
+    expect(app).not.toContain("setServiceTab('charts')");
+    expect(app).toContain('settingsContent={(');
+    expect(app).toContain('onOpenCharts={openProfileCharts}');
     expect(app).toContain("navigateTo('services')");
     expect(app).toContain("view === 'services'");
     expect(app).toContain('<ServiceScreen');
@@ -108,5 +108,8 @@ describe('Today minimal navigation shell', () => {
     expect(clock).toContain('<time');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(styles).toContain('.today-bottom-navigation::before');
+    expect(styles).toContain('text-align: left');
+    expect(styles).not.toContain('text-align: justify');
+    expect(read('components/PersonalForecastFeed/TodayEditorialFeed.tsx')).toContain("'На сегодня'");
   });
 });

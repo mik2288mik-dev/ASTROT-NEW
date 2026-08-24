@@ -2301,6 +2301,7 @@
 /* Full-screen service destination opened by the hamburger button. */
 .fresh-page.services-screen-page {
   min-height: 100%;
+  padding-top: 0;
   padding-bottom: 48px;
   overflow-x: clip;
   background: var(--editorial-studio-paper) !important;
@@ -2309,6 +2310,35 @@
 
 .services-screen-tabs {
   --editorial-tab-count: 3;
+  width: min(100%, var(--app-period-rail-max-width));
+  min-height: var(--app-period-rail-height);
+  padding: 0 var(--app-period-rail-padding-x);
+}
+
+.services-screen-tabs .editorial-tab {
+  min-height: var(--app-period-rail-height);
+  padding: 0.35rem 0.25rem 0.45rem;
+  color: #77716a;
+  font-family: var(--forecast-editorial-font);
+  font-size: var(--app-period-rail-font-size);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.services-screen-tabs .editorial-tab.is-active {
+  color: var(--editorial-studio-ink);
+  font-weight: 600;
+}
+
+.services-screen-tabs .editorial-tab::after {
+  right: 18%;
+  bottom: -1px;
+  left: 18%;
+}
+
+.services-settings-content {
+  width: 100%;
 }
 
 .service-premium-content {

@@ -5,6 +5,7 @@ import {
     Bell,
     Cake,
     Check,
+    ChevronLeft,
     ChevronRight,
     Code2,
     Database,
@@ -172,6 +173,7 @@ export interface SettingsProps {
     onDeleteAccount?: () => Promise<void>;
     recoveryIdentityRequired?: boolean;
     onRecoveryIdentityReady?: () => void;
+    embedded?: boolean;
     uiPreview?: {
         notificationEnabled: boolean;
         quietStart: string;
@@ -244,6 +246,7 @@ export const Settings: React.FC<SettingsProps> = ({
     recoveryIdentityRequired = false,
     onRecoveryIdentityReady,
     uiPreview,
+    embedded = false,
 }) => {
     const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
@@ -1471,27 +1474,43 @@ export const Settings: React.FC<SettingsProps> = ({
     };
 
     return (
-        <div className="fresh-page settings-editorial-page">
-            <AppTopBar
-                title={settingsTitle[settingsScreen]}
-                onBack={settingsScreen === 'root'
-                    ? onBack
-                    : settingsDetailBusy
-                        ? undefined
-                        : returnToSettingsRoot}
-                rightAction={settingsScreen === 'root' && onOpenCharts ? (
-                    <EditorialChartsButton
-                        label={profile.language === 'en' ? 'Open my charts' : 'Открыть мои карты'}
-                        onClick={onOpenCharts}
-                    />
-                ) : undefined}
-            />
+        <div className={`fresh-page settings-editorial-page${embedded ? ' settings-editorial-page--embedded' : ''}`}>
+            {!embedded ? (
+                <AppTopBar
+                    title={settingsTitle[settingsScreen]}
+                    onBack={settingsScreen === 'root'
+                        ? onBack
+                        : settingsDetailBusy
+                            ? undefined
+                            : returnToSettingsRoot}
+                    rightAction={settingsScreen === 'root' && onOpenCharts ? (
+                        <EditorialChartsButton
+                            label={profile.language === 'en' ? 'Open my charts' : 'Открыть мои карты'}
+                            onClick={onOpenCharts}
+                        />
+                    ) : undefined}
+                />
+            ) : null}
             <div
                 ref={settingsContentRef}
                 className="settings-editorial-content"
                 tabIndex={-1}
                 aria-label={settingsTitle[settingsScreen]}
             >
+                {embedded && settingsScreen !== 'root' ? (
+                    <header className="settings-embedded-detail-header">
+                        <button
+                            type="button"
+                            className="settings-embedded-back"
+                            aria-label={profile.language === 'en' ? 'Back to settings' : 'Назад к настройкам'}
+                            disabled={settingsDetailBusy}
+                            onClick={returnToSettingsRoot}
+                        >
+                            <ChevronLeft aria-hidden size={18} strokeWidth={1.8} />
+                        </button>
+                        <h1>{settingsTitle[settingsScreen]}</h1>
+                    </header>
+                ) : null}
                 {previewNotice ? <p role="status" className="settings-preview-notice">{previewNotice}</p> : null}
                 {renderSettingsContent()}
             </div>

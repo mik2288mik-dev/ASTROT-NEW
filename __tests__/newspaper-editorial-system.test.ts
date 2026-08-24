@@ -119,7 +119,7 @@ describe('separated editorial asset system', () => {
     expect(horoscope).not.toContain('selectZodiacLegacyAsset');
     expect(horoscope).not.toContain('selectPersonalEditorialAsset');
     expect(horoscope).not.toContain('EditorialSticker');
-    expect(horoscope).toContain('EditorialSettingsButton');
+    expect(horoscope).toContain('EditorialChartsButton');
     expect(natal).not.toContain('selectNatalEditorialSticker');
     expect(compatibility).not.toContain('selectSynastryEditorialSticker');
     expect(compatibility).not.toContain('EditorialSticker');

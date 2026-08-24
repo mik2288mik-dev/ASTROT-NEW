@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import {
-  EditorialSettingsButton,
+  EditorialChartsButton,
   EditorialTabs,
   type EditorialTabItem,
 } from '../../components/editorial/EditorialScreenChrome';
@@ -9,13 +9,13 @@ import { describePremiumEntitlement } from '../../lib/subscriptionPresentation';
 import type { PremiumEntitlementSnapshot, UserProfile } from '../../types';
 import { AstrologyEncyclopedia } from './AstrologyEncyclopedia';
 
-export type ServiceTab = 'knowledge' | 'store' | 'charts';
+export type ServiceTab = 'knowledge' | 'store' | 'settings';
 
 export type ServiceScreenProps = {
   profile: UserProfile;
   onOpenStore: () => void;
-  onOpenSettings: () => void;
-  chartsContent: React.ReactNode;
+  onOpenCharts: () => void;
+  settingsContent: React.ReactNode;
   onRestorePurchase?: () => Promise<void>;
   onManageSubscription?: () => Promise<void> | void;
   initialTab?: ServiceTab;
@@ -26,26 +26,14 @@ export type ServiceScreenProps = {
 const SERVICE_TABS_RU: readonly EditorialTabItem<ServiceTab>[] = [
   { id: 'knowledge', label: 'Хочу знать' },
   { id: 'store', label: 'Premium' },
-  { id: 'charts', label: 'Мои карты' },
+  { id: 'settings', label: 'Настройки' },
 ];
 
 const SERVICE_TABS_EN: readonly EditorialTabItem<ServiceTab>[] = [
   { id: 'knowledge', label: 'Learn' },
   { id: 'store', label: 'Premium' },
-  { id: 'charts', label: 'My charts' },
+  { id: 'settings', label: 'Settings' },
 ];
-
-const SERVICE_TITLES_RU: Record<ServiceTab, string> = {
-  knowledge: 'Хочу знать',
-  store: 'Premium',
-  charts: 'Мои карты',
-};
-
-const SERVICE_TITLES_EN: Record<ServiceTab, string> = {
-  knowledge: 'Learn',
-  store: 'Premium',
-  charts: 'My charts',
-};
 
 function legacyGiftEntitlement(profile: UserProfile): PremiumEntitlementSnapshot | null {
   if (profile.premiumEntitlement || !profile.premiumUntil) return profile.premiumEntitlement || null;
@@ -154,8 +142,8 @@ export function ServiceScreen({
   activeTab: controlledTab,
   onTabChange,
   onOpenStore,
-  onOpenSettings,
-  chartsContent,
+  onOpenCharts,
+  settingsContent,
   onRestorePurchase,
   onManageSubscription,
   profile,
@@ -176,13 +164,13 @@ export function ServiceScreen({
   return (
     <div ref={rootRef} className="fresh-page services-screen-page">
       <AppTopBar
-        title={(ru ? SERVICE_TITLES_RU : SERVICE_TITLES_EN)[activeTab]}
-        rightAction={activeTab !== 'charts' ? (
-          <EditorialSettingsButton
-            label={ru ? 'Открыть настройки' : 'Open settings'}
-            onClick={onOpenSettings}
+        title={ru ? 'Меню' : 'Menu'}
+        rightAction={(
+          <EditorialChartsButton
+            label={ru ? 'Открыть мои карты' : 'Open my charts'}
+            onClick={onOpenCharts}
           />
-        ) : undefined}
+        )}
       />
       <EditorialTabs
         className="services-screen-tabs"
@@ -205,8 +193,8 @@ export function ServiceScreen({
           onManageSubscription={onManageSubscription}
         />
       ) : (
-        <div className="services-charts-content">
-          {chartsContent}
+        <div className="services-settings-content">
+          {settingsContent}
         </div>
       )}
     </div>

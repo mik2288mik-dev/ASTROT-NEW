@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
+import { selectTodayEndEditorialAsset } from '../../lib/personalForecastVisuals';
 import { resolveTodayPremiumTeaserInsertion } from '../../lib/todayPremiumTeaser';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { isRenderableTodaySection } from './editorialLayout';
@@ -112,7 +113,14 @@ function StoryFragment({
     />
   );
 
-  return closing ? <div className="today-minimal-closing">{fragment}</div> : fragment;
+  return closing ? (
+    <div className="today-minimal-closing">
+      <p className="today-minimal-closing-label">
+        {language === 'ru' ? 'На сегодня' : 'For today'}
+      </p>
+      {fragment}
+    </div>
+  ) : fragment;
 }
 
 export function TodayEditorialFeed({
@@ -146,6 +154,11 @@ export function TodayEditorialFeed({
     () => renderableSections.filter((section) => !lockedSectionIds.has(section.id)),
     [lockedSectionIds, renderableSections],
   );
+  const endVisual = useMemo(() => selectTodayEndEditorialAsset({
+    userId,
+    periodKey,
+    sections: renderableSections,
+  }), [periodKey, renderableSections, userId]);
   const punchlineSource = visibleSections.find((section) => section.kind === 'overview');
   const punchline = resolvePunchline(punchlineSource);
   const clockSignal = clockSignalForTone(tone);
@@ -251,6 +264,18 @@ export function TodayEditorialFeed({
             </React.Fragment>
           ))}
         </div>
+        {endVisual ? (
+          <figure className="today-minimal-end-visual" aria-hidden="true">
+            <img
+              src={endVisual.path}
+              width={endVisual.width}
+              height={endVisual.height}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        ) : null}
       </section>
     </article>
   );

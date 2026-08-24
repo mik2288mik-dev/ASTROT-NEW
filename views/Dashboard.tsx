@@ -32,7 +32,7 @@ import {
   TodayLineField,
 } from '../components/PersonalForecastFeed/TodayCalendarClock';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
-import { EditorialSettingsButton } from '../components/editorial/EditorialScreenChrome';
+import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 
 type DashboardProps = {
@@ -41,7 +41,7 @@ type DashboardProps = {
   onCreateNatalChart?: () => void;
   requestedPeriod?: PersonalForecastPeriod;
   onPeriodChange?: (period: PersonalForecastPeriod) => void;
-  onOpenSettings?: () => void;
+  onOpenCharts?: () => void;
   onRequestPremium?: (
     source?: string,
     eventPayload?: Record<string, unknown>,
@@ -121,7 +121,7 @@ export const Dashboard = memo<DashboardProps>(({
   onCreateNatalChart,
   requestedPeriod,
   onPeriodChange,
-  onOpenSettings,
+  onOpenCharts,
   onRequestPremium,
   onPremiumAnalytics,
   scrollRef,
@@ -398,9 +398,9 @@ export const Dashboard = memo<DashboardProps>(({
         <AppTopBar
           title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}
           rightAction={(
-            <EditorialSettingsButton
-              label={language === 'ru' ? 'Открыть настройки' : 'Open settings'}
-              onClick={onOpenSettings}
+            <EditorialChartsButton
+              label={language === 'ru' ? 'Открыть мои карты' : 'Open my charts'}
+              onClick={onOpenCharts}
             />
           )}
         />

@@ -31,6 +31,8 @@ describe('settings mobile information architecture', () => {
     expect(settings).not.toContain('EditorialProfileButton');
     expect(settings).toContain('EditorialChartsButton');
     expect(settings).toContain("settingsScreen === 'root' && onOpenCharts");
+    expect(settings).toContain('settings-editorial-page--embedded');
+    expect(settings).toContain('settings-embedded-detail-header');
     expect(settings).not.toContain('font-serif');
     expect(styles).not.toContain('linear-gradient');
     expect(styles).not.toContain('radial-gradient');
@@ -51,5 +53,6 @@ describe('settings mobile information architecture', () => {
     expect(settings).toContain('lastRootTargetRef.current');
     expect(settings).toContain('settingsContentRef.current?.focus');
     expect(settings).not.toContain('<main className="fresh-page settings-editorial-page"');
+    expect(settings).toContain("embedded && settingsScreen !== 'root'");
   });
 });
