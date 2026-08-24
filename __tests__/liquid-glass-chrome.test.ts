@@ -14,10 +14,10 @@ describe('application chrome', () => {
     expect(tabs).not.toContain('today-bottom-nav-quick-links');
     expect(tabs).toContain('data-nav-id="compatibility"');
     expect(tabs).toContain('today-bottom-nav-hub');
-    expect(tabs).toContain('today-bottom-nav-more');
+    expect(tabs).toContain('today-bottom-nav-services');
     expect(tabs).toContain("export type LumiaNavigationSheetId = 'profile'");
-    expect(tabs).toContain('ZodiacWheelIcon');
-    expect(tabs).toContain('HeartHandshake');
+    expect(tabs).toContain('<MoonStar aria-hidden="true"');
+    expect(tabs).toContain('<Users aria-hidden="true"');
     expect(icons).toContain('export function ZodiacWheelIcon');
   });
 
@@ -70,6 +70,8 @@ describe('application chrome', () => {
       'views/v2/UnionRoom.tsx',
       'views/v2/NatalMagazine.tsx',
       'views/v2/MatrixRoom.tsx',
+      'views/v2/AstrologyEncyclopedia.tsx',
+      'views/v2/ServiceScreen.tsx',
       'views/Settings.tsx',
     ];
     const obsoleteHeaderStyles = [
@@ -96,17 +98,22 @@ describe('application chrome', () => {
     expect(obsoleteHeaderStyles).not.toContain('.fresh-back-btn');
   });
 
-  it('keeps the profile action on the right side of every application header', () => {
+  it('keeps profile actions on content headers and a Back-only utility header in Settings', () => {
     const application = read('App.tsx');
     const matrix = read('views/v2/MatrixRoom.tsx');
     const personality = read('views/PersonalityReport.tsx');
     const settings = read('views/Settings.tsx');
 
-    [matrix, personality, settings].forEach((screen) => {
+    [matrix, personality].forEach((screen) => {
       expect(screen).toContain('EditorialProfileButton');
       expect(screen).toContain('rightAction={(');
       expect(screen).toContain('onClick={onOpenProfile}');
     });
+    expect(settings).toContain('<AppTopBar');
+    expect(settings).toContain("onBack={settingsScreen === 'root'");
+    expect(settings).toContain('settingsDetailBusy');
+    expect(settings).not.toContain('EditorialProfileButton');
+    expect(settings).not.toContain('rightAction={(');
     expect(application).toContain('<MatrixRoom');
     expect(application).toContain('onOpenProfile={openProfileSheet}');
     expect(application).toContain("title={profile.language === 'en' ? 'My charts'");

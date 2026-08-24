@@ -14,6 +14,7 @@ describe('UI Preview production settings and paywall adapters', () => {
     expect(preview).toContain('<Paywall');
     expect(preview).toContain('uiPreview={UI_PREVIEW_SETTINGS}');
     expect(preview).toContain('UI_PREVIEW_PAYWALL_PLANS');
+    expect(preview).toContain("scenario.screen === 'menu' || scenario.screen === 'settings'");
     expect(preview).not.toContain('ui-preview-settings-group');
     expect(preview).not.toContain('ui-preview-paywall-mark');
   });

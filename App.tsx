@@ -4,10 +4,8 @@ import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { UserProfile, NatalChartData, ViewState } from './types';
-import type {
-    NatalQuestionOpenRequest,
-    PreloadedNatalReport,
-} from './components/NatalReading/HumanReport';
+import type { PreloadedNatalReport } from './components/NatalReading/HumanReport';
+import type { ServiceTab } from './views/v2/ServiceScreen';
 import {
     getProfile,
     saveProfile,
@@ -51,7 +49,6 @@ import {
 import {
     NATAL_PERMANENT_CONTRACT_VERSION,
     buildPermanentNatalChartFingerprint,
-    getPermanentNatalReliability,
 } from './lib/natalReading/permanentReport';
 import { Loading } from './components/ui/Loading';
 import { getText } from './constants';
@@ -103,8 +100,6 @@ import {
     type PaywallContext,
     type PaywallOutcome,
 } from './lib/paywallContext';
-import type { MoreHubTab } from './views/v2/MoreHub';
-
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
     loading: () => <Loading />,
@@ -117,10 +112,13 @@ const AdminApp = dynamic(() => import('./views/admin2/AdminApp').then((module) =
 const Paywall = dynamic(() => import('./views/Paywall').then((module) => module.Paywall), { ssr: false });
 const UnionRoom = dynamic(() => import('./views/v2/UnionRoom').then((module) => module.UnionRoom), { ssr: false });
 const MatrixRoom = dynamic(() => import('./views/v2/MatrixRoom').then((module) => module.MatrixRoom), { ssr: false });
-const MoreHub = dynamic(() => import('./views/v2/MoreHub').then((module) => module.MoreHub), { ssr: false });
 const AstrologyEncyclopedia = dynamic(
     () => import('./views/v2/AstrologyEncyclopedia').then((module) => module.AstrologyEncyclopedia),
     { ssr: false },
+);
+const ServiceScreen = dynamic(
+    () => import('./views/v2/ServiceScreen').then((module) => module.ServiceScreen),
+    { ssr: false, loading: () => <Loading /> },
 );
 const MyCharts = dynamic(() => import('./views/MyCharts').then((module) => module.MyCharts), { ssr: false });
 const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => module.AuthGate), { ssr: false });
@@ -359,8 +357,8 @@ const App: React.FC = () => {
     const [onboardingInitialStep, setOnboardingInitialStep] = useState<'stories' | 'birth'>('stories');
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
-    const [moreTab, setMoreTab] = useState<MoreHubTab>('knowledge');
-    const [natalQuestionRequest, setNatalQuestionRequest] = useState<NatalQuestionOpenRequest | null>(null);
+    const [serviceTab, setServiceTab] = useState<ServiceTab>('knowledge');
+    const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
     const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
     const [pendingPremiumRecovery, setPendingPremiumRecovery] = useState<{
@@ -399,7 +397,6 @@ const App: React.FC = () => {
     const restoredRuStoreUserRef = useRef<string | null>(null);
     const firstValueReachedRef = useRef(false);
     const navigationHistoryRef = useRef<ViewState[]>([]);
-    const natalQuestionRequestIdRef = useRef(0);
 
     useEffect(() => {
         const reached = !!profile?.id
@@ -2019,29 +2016,6 @@ const App: React.FC = () => {
         navigateTo('personality');
     }, [chartData, navigateTo, openNatalSetupOnboarding]);
 
-    const openKnowledgeQuestion = useCallback((text: string) => {
-        const savedPersonActive = activeChartSubject?.subject_type === 'saved_person'
-            || activeChartSubject?.is_primary === false;
-        const ownChart = primaryChartDataRef.current || (!savedPersonActive ? chartData : null);
-        if (!ownChart) {
-            openNatalSetupOnboarding(viewRef.current, 'chart');
-            return;
-        }
-        natalQuestionRequestIdRef.current += 1;
-        setChartData(ownChart);
-        setActiveChartId(undefined);
-        setActiveChartSubject(null);
-        setNatalQuestionRequest({
-            requestId: natalQuestionRequestIdRef.current,
-            text,
-        });
-        navigateTo('chart');
-    }, [activeChartSubject, chartData, navigateTo, openNatalSetupOnboarding]);
-
-    const specifyBirthTimeFromKnowledge = useCallback(() => {
-        openNatalSetupOnboarding(viewRef.current, 'chart');
-    }, [openNatalSetupOnboarding]);
-
     const openBottomToday = useCallback(() => {
         setDashboardPeriod('day');
         navigateTo('dashboard', { replace: true });
@@ -2063,6 +2037,13 @@ const App: React.FC = () => {
     const openProfileSheet = useCallback(() => {
         setNavigationSheet('profile');
     }, []);
+    const openNavigationServices = useCallback(() => {
+        setNavigationSheet(null);
+        navigateTo('services');
+    }, [navigateTo]);
+    const openSettingsFromServices = useCallback(() => {
+        navigateTo('settings');
+    }, [navigateTo]);
     const openNavigationCompatibility = useCallback(() => {
         setNavigationSheet(null);
         openSynastryFromHome();
@@ -2076,13 +2057,8 @@ const App: React.FC = () => {
         setNavigationSheet(null);
         openCharts(returnView);
     }, [openCharts]);
-    const openNavigationMore = useCallback(() => {
-        setNavigationSheet(null);
-        navigateTo('more');
-    }, [navigateTo]);
-    const openMorePremium = useCallback(() => {
-        setMoreTab('premium');
-        void requestPremium('settings', { returnView: 'more' }, undefined, {
+    const openServiceStore = useCallback(() => {
+        void requestPremium('settings', undefined, undefined, {
             bypassFirstValueGate: true,
         });
     }, [requestPremium]);
@@ -2200,10 +2176,6 @@ const App: React.FC = () => {
         || activeChartSubject?.is_primary === false;
     const isPrimaryChartView = !isSavedPersonChartView;
     const effectiveChartId = activeChartId ?? primaryChartId ?? undefined;
-    const primaryKnowledgeChart = primaryChartDataRef.current || (isPrimaryChartView ? chartData : null);
-    const primaryKnowledgeReliability = primaryKnowledgeChart
-        ? getPermanentNatalReliability(primaryKnowledgeChart)
-        : null;
     const showsBottomNavigation = !paywallContext && shouldShowLumiaBottomNavigation(view);
 
     const premiumPromotionAllowed = firstValueReached && !hasActivePremium(profile);
@@ -2364,7 +2336,7 @@ const App: React.FC = () => {
                             onPremiumContinuationHandled={completePremiumContinuation}
                             canPromotePremium={premiumPromotionAllowed}
                             openQuestionRequest={natalQuestionRequest}
-                            onQuestionRequestHandled={() => setNatalQuestionRequest(null)}
+                            onQuestionRequestHandled={() => setNatalQuestionRequest(0)}
                             onOpenProfile={openProfileSheet}
                             onOpenEncyclopedia={() => navigateTo('encyclopedia')}
                         />
@@ -2377,28 +2349,17 @@ const App: React.FC = () => {
                             onOpen={openBottomZodiac}
                         />
                     </div>
-                ) : view === 'more' ? (
+                ) : view === 'services' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
-                        <MoreHub
+                        <ServiceScreen
                             profile={profile}
-                            activeTab={moreTab}
-                            onTabChange={setMoreTab}
-                            onOpenPremium={openMorePremium}
-                            onUpdate={handleProfileUpdate}
-                            canPromotePremium={premiumPromotionAllowed}
+                            activeTab={serviceTab}
+                            onTabChange={setServiceTab}
+                            onOpenStore={openServiceStore}
+                            onOpenSettings={openSettingsFromServices}
                             onRestorePurchase={() => restorePremiumPurchases()}
                             onManageSubscription={managePremiumSubscription}
-                            onOpenAdmin={() => navigateTo('admin')}
-                            onOpenCharts={() => openCharts('more')}
                             onOpenProfile={openProfileSheet}
-                            onLogout={handleLogout}
-                            onDeleteAccount={handleDeleteAccount}
-                            recoveryIdentityRequired={pendingPremiumRecovery !== null}
-                            onRecoveryIdentityReady={completePremiumRecoveryIdentity}
-                            primaryChartData={primaryKnowledgeChart}
-                            personalReliability={primaryKnowledgeReliability}
-                            onAskAboutSelf={openKnowledgeQuestion}
-                            onSpecifyBirthTime={specifyBirthTimeFromKnowledge}
                         />
                     </div>
                 ) : view === 'encyclopedia' ? (
@@ -2406,24 +2367,19 @@ const App: React.FC = () => {
                         <AstrologyEncyclopedia
                             profile={profile}
                             onOpenProfile={openProfileSheet}
-                            primaryChartData={primaryKnowledgeChart}
-                            personalReliability={primaryKnowledgeReliability}
-                            onAskAboutSelf={openKnowledgeQuestion}
-                            onSpecifyBirthTime={specifyBirthTimeFromKnowledge}
                         />
                     </div>
                 ) : view === 'settings' ? (
                     <div className="lumia-main-scroll lumia-bottom-tab-scroll scrollbar-hide" ref={appScrollRef}>
                         <Settings
                             profile={profile}
+                            onBack={() => { void handleBack(); }}
                             onUpdate={handleProfileUpdate}
-                            onRequestPremium={() => { void requestPremium('settings'); }}
-                            canPromotePremium={premiumPromotionAllowed}
+                            onRequestPremium={openServiceStore}
                             onRestorePurchase={() => restorePremiumPurchases()}
                             onManageSubscription={managePremiumSubscription}
                             onOpenAdmin={() => navigateTo('admin')}
                             onOpenCharts={() => openCharts('settings')}
-                            onOpenProfile={openProfileSheet}
                             onLogout={handleLogout}
                             onDeleteAccount={handleDeleteAccount}
                             recoveryIdentityRequired={pendingPremiumRecovery !== null}
@@ -2539,7 +2495,7 @@ const App: React.FC = () => {
                         view={view}
                         onOpenToday={openBottomToday}
                         onOpenZodiac={openBottomZodiac}
-                        onOpenMore={openNavigationMore}
+                        onOpenServices={openNavigationServices}
                         onOpenCompatibility={openNavigationCompatibility}
                         onOpenNatal={openNavigationNatal}
                     />

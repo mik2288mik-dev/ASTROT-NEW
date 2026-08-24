@@ -1,10 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, ChevronRight, Clock3, MapPin } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
-import type {
-  NatalQuestionOpenRequest,
-  PreloadedNatalReport,
-} from '../../components/NatalReading/HumanReport';
+import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
 import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
 import { formatDisplayDate } from '../../lib/date-utils';
 import { HumanReport } from '../../components/NatalReading/HumanReport';
@@ -35,14 +32,13 @@ type NatalMagazineProps = {
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
-  openQuestionRequest?: NatalQuestionOpenRequest | null;
+  openQuestionRequest?: number;
   onQuestionRequestHandled?: () => void;
   onOpenProfile?: () => void;
   onOpenEncyclopedia?: () => void;
   uiPreview?: {
     initialTab?: 'map' | 'reading';
     openQuestion?: boolean;
-    suggestedQuestion?: string;
     reportState?: 'ready' | 'loading' | 'error';
     premiumReport?: NatalPermanentPremiumReport | null;
   };
@@ -84,7 +80,7 @@ export function NatalMagazine({
     previewConfig?.openQuestion ? 'reading' : previewConfig?.initialTab || 'map'
   ));
   const [matrixMounted, setMatrixMounted] = useState(false);
-  const [questionOpenRequest, setQuestionOpenRequest] = useState<NatalQuestionOpenRequest | null>(null);
+  const [questionOpenRequest, setQuestionOpenRequest] = useState(0);
   const handledExternalQuestionRequestRef = useRef(0);
   const tabs = useMemo(() => [
     { id: 'map' as const, label: language === 'ru' ? 'Карта' : 'Chart' },
@@ -95,10 +91,7 @@ export function NatalMagazine({
   useEffect(() => {
     if (!previewConfig?.openQuestion) return;
     const timer = window.setTimeout(() => {
-      setQuestionOpenRequest({
-        requestId: 1,
-        ...(previewConfig.suggestedQuestion ? { text: previewConfig.suggestedQuestion } : {}),
-      });
+      setQuestionOpenRequest((value) => value + 1);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [previewConfig?.openQuestion]);
@@ -106,27 +99,18 @@ export function NatalMagazine({
   useEffect(() => {
     if (
       !openQuestionRequest
-      || handledExternalQuestionRequestRef.current === openQuestionRequest.requestId
+      || handledExternalQuestionRequestRef.current === openQuestionRequest
     ) return;
     if (!data && chartLoadState === 'idle' && !profile.isSetup) {
       onCreateChart?.();
       return;
     }
     if (!data) return;
-    handledExternalQuestionRequestRef.current = openQuestionRequest.requestId;
+    handledExternalQuestionRequestRef.current = openQuestionRequest;
     setActiveTab('reading');
-    setQuestionOpenRequest(openQuestionRequest);
-  }, [chartLoadState, data, onCreateChart, openQuestionRequest, profile.isSetup]);
-
-  const handleQuestionRequestHandled = useCallback(() => {
-    setQuestionOpenRequest(null);
-    if (
-      openQuestionRequest
-      && handledExternalQuestionRequestRef.current === openQuestionRequest.requestId
-    ) {
-      onQuestionRequestHandled?.();
-    }
-  }, [onQuestionRequestHandled, openQuestionRequest]);
+    setQuestionOpenRequest((value) => value + 1);
+    onQuestionRequestHandled?.();
+  }, [chartLoadState, data, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);
 
   const selectTab = (tab: NatalScreenTab) => {
     if (tab === 'matrix') setMatrixMounted(true);
@@ -286,7 +270,6 @@ export function NatalMagazine({
             preloadedReport={preloadedReport}
             hideIntro
             openQuestionRequest={questionOpenRequest}
-            onQuestionRequestHandled={handleQuestionRequestHandled}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
             canPromotePremium={canPromotePremium}

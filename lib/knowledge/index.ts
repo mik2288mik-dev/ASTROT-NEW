@@ -20,7 +20,8 @@ import type {
 
 export * from './types';
 export * from './search';
-export * from './personalKnowledge';
+export * from './inlineLinks';
+export * from './presentation';
 export { KNOWLEDGE_CATEGORIES } from './categories';
 
 export const INITIAL_ENCYCLOPEDIA_SCREEN = 'catalog' as const;
@@ -56,7 +57,6 @@ export function getKnowledgeTopics(languageValue: string | null | undefined): re
     aliases: source.aliases[language],
     keywords: source.keywords[language],
     relatedTopicIds: source.relatedTopicIds,
-    personalizationKind: source.personalizationKind,
     ...source.copy[language],
   }));
 }

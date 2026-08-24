@@ -26,11 +26,11 @@ export const ASPECT_TOPICS = [
           {
             title: 'Как читать аспект',
             paragraphs: [
-              'Планеты называют две связанные темы, тип аспекта описывает характер их связи, а орб показывает точность. Вывод делают вместе со знаками, домами и остальными аспектами, а не по одной линии карты.',
+              'Планеты показывают, какие две части карты связаны, тип аспекта — как именно, а орб — насколько точен угол. Вывод делают вместе со знаками, домами и остальными аспектами, а не по одной линии карты.',
             ],
           },
         ],
-        shortAnswer: 'Аспекты — это рассчитанные углы между планетами, которые описывают, как две темы карты взаимодействуют.',
+        shortAnswer: 'Аспекты — это рассчитанные углы между планетами. По ним смотрят, как значения двух планет связаны между собой.',
       },
       en: {
         title: 'Aspects',
@@ -53,7 +53,6 @@ export const ASPECT_TOPICS = [
       },
     },
     relatedTopicIds: ['aspect-orb', 'aspect-conjunction', 'aspect-square', 'aspect-applying-separating'],
-    personalizationKind: { type: 'aspects' },
   },
   {
     id: 'aspect-orb',
@@ -125,9 +124,9 @@ export const ASPECT_TOPICS = [
         summary: 'Соединение возникает, когда две планеты находятся рядом по долготе, около угла 0°.',
         sections: [
           {
-            title: 'Две темы рядом',
+            title: 'Две планеты рядом',
             paragraphs: [
-              'В трактовке функции двух планет работают тесно и их трудно рассматривать отдельно. Итог зависит от самих планет: соединение Венеры с Юпитером и соединение Марса с Сатурном описывают разные задачи.',
+              'В трактовке значения двух планет читают вместе, потому что их трудно отделить друг от друга. Итог зависит от самих планет: соединение Венеры с Юпитером и соединение Марса с Сатурном означает не одно и то же.',
             ],
           },
           {
@@ -160,7 +159,6 @@ export const ASPECT_TOPICS = [
       },
     },
     relatedTopicIds: ['aspects-overview', 'aspect-orb', 'aspect-opposition'],
-    personalizationKind: { type: 'aspects', aspectType: 'conjunction' },
   },
   {
     id: 'aspect-sextile',
@@ -214,7 +212,6 @@ export const ASPECT_TOPICS = [
       },
     },
     relatedTopicIds: ['aspect-trine', 'aspect-orb', 'aspects-overview'],
-    personalizationKind: { type: 'aspects', aspectType: 'sextile' },
   },
   {
     id: 'aspect-square',
@@ -268,7 +265,6 @@ export const ASPECT_TOPICS = [
       },
     },
     relatedTopicIds: ['aspect-opposition', 'aspect-trine', 'aspect-orb'],
-    personalizationKind: { type: 'aspects', aspectType: 'square' },
   },
   {
     id: 'aspect-trine',
@@ -284,7 +280,7 @@ export const ASPECT_TOPICS = [
     copy: {
       ru: {
         title: 'Трин',
-        summary: 'Трин — аспект около 120°, который связывают с естественным согласованием функций двух планет.',
+        summary: 'Трин — аспект около 120°. В астрологии он означает, что значения двух планет обычно легко сочетаются.',
         sections: [
           {
             title: 'То, что даётся привычно',
@@ -322,7 +318,6 @@ export const ASPECT_TOPICS = [
       },
     },
     relatedTopicIds: ['aspect-sextile', 'aspect-square', 'aspect-orb'],
-    personalizationKind: { type: 'aspects', aspectType: 'trine' },
   },
   {
     id: 'aspect-opposition',
@@ -376,7 +371,6 @@ export const ASPECT_TOPICS = [
       },
     },
     relatedTopicIds: ['aspect-conjunction', 'aspect-square', 'aspect-orb'],
-    personalizationKind: { type: 'aspects', aspectType: 'opposition' },
   },
   {
     id: 'aspect-applying-separating',

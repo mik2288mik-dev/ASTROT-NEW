@@ -53,7 +53,6 @@ export const NODE_TOPICS = [
       },
     },
     relatedTopicIds: ['node-north', 'node-south', 'aspects-overview'],
-    personalizationKind: { type: 'nodes' },
   },
   {
     id: 'node-north',
@@ -107,7 +106,6 @@ export const NODE_TOPICS = [
       },
     },
     relatedTopicIds: ['nodes-overview', 'node-south', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'northNode', questionKind: 'sign' },
   },
   {
     id: 'node-south',
@@ -161,6 +159,5 @@ export const NODE_TOPICS = [
       },
     },
     relatedTopicIds: ['nodes-overview', 'node-north', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'southNode', questionKind: 'sign' },
   },
 ] satisfies readonly KnowledgeTopicSource[];

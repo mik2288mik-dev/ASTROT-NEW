@@ -53,7 +53,6 @@ export const RETROGRADE_TOPICS = [
       },
     },
     relatedTopicIds: ['retrograde-natal', 'retrograde-transit', 'retrograde-station-direct'],
-    personalizationKind: { type: 'retrogrades' },
   },
   {
     id: 'retrograde-natal',
@@ -74,13 +73,13 @@ export const RETROGRADE_TOPICS = [
           {
             title: 'Как это читают',
             paragraphs: [
-              'В астрологии ретроградную планету часто связывают с более личным, пересматриваемым или не сразу заметным способом обращаться с её темами. Значение зависит от самой планеты, знака, дома и аспектов.',
+              'В астрологии ретроградность означает, что обычный способ действия планеты может быть менее заметен со стороны или чаще пересматриваться. Значение зависит от самой планеты, знака, дома и аспектов.',
             ],
           },
           {
             title: 'Не дефект карты',
             paragraphs: [
-              'Отметка R не означает, что функция планеты испорчена или недоступна. Это один из параметров чтения, а не оценка способностей и не предсказание обязательных трудностей.',
+              'Отметка R не означает, что планета «работает неправильно». Это одна деталь карты, а не оценка способностей и не предсказание обязательных трудностей.',
             ],
           },
         ],
@@ -107,7 +106,6 @@ export const RETROGRADE_TOPICS = [
       },
     },
     relatedTopicIds: ['retrograde-motion', 'retrograde-transit', 'planet-mercury'],
-    personalizationKind: { type: 'retrogrades' },
   },
   {
     id: 'retrograde-transit',

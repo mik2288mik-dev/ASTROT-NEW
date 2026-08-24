@@ -1,146 +1,681 @@
 /*
- * Settings — the same light editorial system as Forecast, Natal and Compatibility.
- * Functionality stays in views/Settings.tsx; this file only removes the stack-of-cards look.
+ * Settings is a compact utility surface. Content screens stay editorial;
+ * account controls use grouped mobile lists and local detail panels.
  */
 
 .fresh-page.settings-editorial-page {
-  --settings-bg: var(--app-canvas);
-  --settings-ink: #17191d;
-  --settings-muted: #6f747c;
-  --settings-line: rgba(23, 25, 29, 0.09);
+  --settings-bg: #f4f4f2;
+  --settings-surface: #fff;
+  --settings-ink: #191a1d;
+  --settings-muted: #74777e;
+  --settings-line: rgba(25, 26, 29, 0.09);
+  --settings-accent: #1478ff;
   min-height: 100%;
+  overflow-x: clip;
   background: var(--settings-bg);
   color: var(--settings-ink);
+  font-family: var(--font-sans, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
 }
 
 .settings-editorial-content {
-  width: min(calc(100% - 48px), 620px);
+  width: 100%;
+  max-width: 620px;
   margin: 0 auto;
-  padding: 3px 0 calc(env(safe-area-inset-bottom, 0px) + 116px);
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 108px);
 }
 
-.settings-editorial-profile {
-  margin: 0;
-  padding: 15px 2px 19px;
-  border-bottom: 1px solid var(--settings-line);
+.settings-editorial-content:focus {
+  outline: 0;
 }
 
-.settings-editorial-profile .serif {
-  color: var(--settings-ink);
-  font-family: inherit;
-  font-size: 22px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-}
-
-.settings-editorial-profile > div > div:first-child {
-  background: #eef3f8;
-  color: #2468b2;
-}
-
-.settings-editorial-premium {
-  margin: 15px 0 2px;
-  padding: 15px 16px;
+.settings-preview-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
   border: 1px solid rgba(20, 120, 255, 0.13);
-  border-radius: 17px;
-  background:
-    radial-gradient(circle at 92% 12%, rgba(143, 202, 255, 0.34), transparent 38%),
-    linear-gradient(135deg, rgba(235, 245, 255, 0.94), rgba(246, 242, 255, 0.92));
-  box-shadow: 0 7px 22px rgba(31, 63, 102, 0.045);
-  color: var(--settings-ink);
+  border-radius: 12px;
+  background: #eef5ff;
+  color: #456079;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.settings-editorial-premium [class*='text-white'] {
-  color: #536071;
+.settings-root {
+  display: grid;
+  gap: 15px;
+  width: 100%;
 }
 
-.settings-editorial-premium .text-\[17px\] {
-  color: var(--settings-ink);
+.settings-group {
+  min-width: 0;
 }
 
-.settings-editorial-premium > div > span {
-  color: #1478ff;
+.settings-group > h2 {
+  margin: 0 0 6px 4px;
+  color: var(--settings-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
 }
 
-.settings-editorial-section {
-  margin: 0;
-  padding: 23px 2px;
+.settings-list {
+  overflow: hidden;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-list-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 13px;
   border: 0;
-  border-bottom: 1px solid var(--settings-line);
-  border-radius: 0;
   background: transparent;
-  box-shadow: none;
+  color: var(--settings-ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.settings-editorial-section + .settings-editorial-section,
-.settings-editorial-section + .settings-editorial-row,
-.settings-editorial-row + .settings-editorial-section {
-  margin-top: 0;
+.settings-list-row + .settings-list-row {
+  border-top: 1px solid var(--settings-line);
 }
 
-.settings-editorial-section h2,
-.settings-editorial-section h3,
-.settings-editorial-row h3 {
+.settings-list-row:active {
+  background: rgba(25, 26, 29, 0.045);
+}
+
+.settings-list-row:focus-visible,
+.settings-selection-row:focus-visible,
+.settings-toggle-row button:focus-visible,
+.settings-account-actions button:focus-visible,
+.settings-developer-actions button:focus-visible,
+.settings-secondary-action:focus-visible,
+.settings-text-action:focus-visible {
+  outline: 2px solid var(--settings-accent);
+  outline-offset: -2px;
+}
+
+.settings-list-row-main,
+.settings-list-row-end {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.settings-list-row-main {
+  flex: 1 1 auto;
+  gap: 10px;
+}
+
+.settings-list-row-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: #6f737a;
+}
+
+.settings-list-row-icon svg,
+.settings-list-row-end > svg {
+  flex-shrink: 0;
+}
+
+.settings-list-row-label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15.5px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-list-row-end {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  gap: 7px;
+  color: #a0a3a9;
+}
+
+.settings-list-row-value {
+  max-width: min(42vw, 170px);
+  overflow: hidden;
+  color: var(--settings-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-list-row--danger,
+.settings-danger-action {
+  color: #b3262e;
+}
+
+.settings-detail-panel {
+  min-width: 0;
+  animation: settings-panel-in 200ms cubic-bezier(0.22, 0.75, 0.24, 1) both;
+}
+
+@keyframes settings-panel-in {
+  from {
+    opacity: 0.72;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.settings-detail-section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-detail-section--separated {
+  margin-top: 16px;
+}
+
+.settings-detail-section h2,
+.settings-subscription-status h2 {
+  margin: 0;
   color: var(--settings-ink);
   font-family: inherit;
-  font-weight: 740;
-  letter-spacing: -0.018em;
-}
-
-.settings-editorial-section h2 {
-  font-size: 20px;
-}
-
-.settings-editorial-section h3,
-.settings-editorial-row h3 {
   font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
-.settings-editorial-section .lumia-muted,
-.settings-editorial-row .lumia-muted {
-  color: var(--settings-muted);
-  line-height: 1.52;
+.settings-detail-heading {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 18px;
 }
 
-.settings-editorial-section .fresh-input {
-  border: 0;
-  border-bottom: 1px solid rgba(23, 25, 29, 0.14);
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.34);
-  box-shadow: none;
-}
-
-.settings-editorial-section .fresh-btn-ghost {
-  border-color: var(--settings-line);
-  background: rgba(255, 255, 255, 0.48);
-  box-shadow: none;
-}
-
-.settings-editorial-row {
-  display: block;
+.settings-detail-kicker {
   margin: 0;
-  padding: 18px 2px;
-  border: 0;
-  border-bottom: 1px solid var(--settings-line);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  color: var(--settings-muted);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
-.settings-editorial-section.border-red-200 {
+.settings-detail-name {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--settings-ink);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-detail-intro,
+.settings-helper-text,
+.settings-error-text,
+.settings-recovery-notice,
+.settings-subscription-status p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.settings-detail-intro {
+  color: var(--settings-ink);
+}
+
+.settings-helper-text,
+.settings-subscription-status p {
+  color: var(--settings-muted);
+}
+
+.settings-helper-text--spaced {
+  margin-top: 14px;
+  padding-inline: 3px;
+}
+
+.settings-error-text {
+  color: #b3262e;
+}
+
+.settings-recovery-notice {
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #edf5f1;
+  color: #315348;
+}
+
+.settings-form-field {
+  display: grid;
+  gap: 7px;
+}
+
+.settings-form-field label,
+.settings-time-grid label {
+  color: var(--settings-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.settings-editorial-page .fresh-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(25, 26, 29, 0.13);
+  border-radius: 11px;
+  background: var(--settings-surface);
+  box-shadow: none;
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.settings-editorial-page .fresh-input:read-only {
+  background: #f7f7f5;
+  color: #53565c;
+}
+
+.settings-secondary-action,
+.settings-text-action {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--settings-accent);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.settings-form-actions,
+.settings-detail-actions,
+.settings-auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-form-actions {
+  margin-top: 4px;
+}
+
+.settings-editorial-page .fresh-btn-primary,
+.settings-editorial-page .fresh-btn-ghost {
+  width: auto;
+  min-height: 38px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.settings-form-actions .fresh-btn-primary {
+  flex: 1 1 auto;
+}
+
+.settings-readonly-list {
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-readonly-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 14px;
+  min-height: 56px;
+  align-items: center;
+  padding: 9px 13px;
+}
+
+.settings-readonly-list > div + div {
+  border-top: 1px solid var(--settings-line);
+}
+
+.settings-readonly-list dt,
+.settings-readonly-list dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+
+.settings-readonly-list dt {
+  color: var(--settings-ink);
+  font-weight: 500;
+}
+
+.settings-readonly-list dd {
+  overflow-wrap: anywhere;
+  color: var(--settings-muted);
+  text-align: right;
+}
+
+.settings-selection-list {
+  overflow: hidden;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-detail-intro + .settings-selection-list {
   margin-top: 12px;
-  padding: 19px 16px;
-  border: 1px solid rgba(185, 28, 28, 0.13);
-  border-radius: 15px;
-  background: rgba(254, 242, 242, 0.56);
+}
+
+.settings-selection-row {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.settings-selection-row + .settings-selection-row {
+  border-top: 1px solid var(--settings-line);
+}
+
+.settings-selection-row[aria-pressed='true'] svg {
+  flex-shrink: 0;
+  color: var(--settings-accent);
+}
+
+.settings-toggle-row {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 14px;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-toggle-row label {
+  font-size: 15.5px;
+  font-weight: 500;
+}
+
+.settings-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex: 0 0 auto;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: #d7d8da;
+}
+
+.settings-switch > span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(25, 26, 29, 0.22);
+  transform: translateX(0);
+  transition: transform 180ms ease;
+}
+
+.settings-switch--on {
+  background: var(--settings-accent);
+}
+
+.settings-switch--on > span {
+  transform: translateX(18px);
+}
+
+.settings-time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin-top: 13px;
+}
+
+.settings-time-grid + .settings-helper-text {
+  margin-top: 9px;
+}
+
+.settings-identity-list {
+  overflow: hidden;
+  margin-top: 14px;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 14px;
+  background: var(--settings-surface);
+}
+
+.settings-identity-row {
+  display: flex;
+  min-height: 50px;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.settings-identity-row + .settings-identity-row {
+  border-top: 1px solid var(--settings-line);
+}
+
+.settings-identity-row span {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.settings-identity-row span:first-child {
+  flex: 0 0 auto;
+  color: var(--settings-ink);
+  font-weight: 500;
+}
+
+.settings-identity-row span:last-child {
+  overflow: hidden;
+  color: var(--settings-muted);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-text-action {
+  margin-top: 6px;
+}
+
+.settings-auth-actions {
+  margin-top: 14px;
+}
+
+.settings-auth-form {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.settings-password-field {
+  position: relative;
+}
+
+.settings-password-field .fresh-input {
+  padding-right: 48px;
+}
+
+.settings-password-field > button {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: inline-flex;
+  width: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--settings-muted);
+}
+
+.settings-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.settings-inline-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  color: #b3262e;
+  font-size: 14px;
+}
+
+.settings-inline-error p {
+  margin: 0;
+}
+
+.settings-inline-error button {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+}
+
+.settings-subscription-status {
+  padding: 16px;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-subscription-status > span {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: var(--settings-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-subscription-status p {
+  margin-top: 7px;
+}
+
+.settings-detail-actions {
+  margin-top: 12px;
+}
+
+.settings-detail-actions + .settings-helper-text,
+.settings-detail-actions + .settings-error-text {
+  margin-top: 10px;
+}
+
+.settings-account-actions,
+.settings-developer-actions {
+  overflow: hidden;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-account-actions button,
+.settings-developer-actions button {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.settings-account-actions button + button,
+.settings-developer-actions button + button {
+  border-top: 1px solid var(--settings-line);
+}
+
+.settings-account-actions .settings-danger-action {
+  color: #b3262e;
+}
+
+.settings-developer-actions {
+  margin-top: 14px;
+}
+
+.settings-developer-actions small {
+  color: var(--settings-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-list-row:hover,
+  .settings-selection-row:hover,
+  .settings-account-actions button:hover,
+  .settings-developer-actions button:hover {
+    background: rgba(25, 26, 29, 0.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-detail-panel {
+    animation: none;
+  }
+
+  .settings-switch > span {
+    transition: none;
+  }
 }
 
 @media (max-width: 380px) {
   .settings-editorial-content {
-    width: calc(100% - 28px);
+    padding-inline: 14px;
   }
 
-  .settings-editorial-premium {
-    padding-inline: 14px;
+  .settings-list-row {
+    padding-inline: 12px;
+  }
+
+  .settings-list-row-value {
+    max-width: 38vw;
   }
 }

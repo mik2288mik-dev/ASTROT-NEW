@@ -1,6 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    BadgeCheck,
+    Bell,
+    Cake,
+    Check,
+    ChevronRight,
+    Code2,
+    Database,
+    Eye,
+    EyeOff,
+    Files,
+    Languages,
+    LifeBuoy,
+    LogIn,
+    Scale,
+    UserRound,
+    VenusAndMars,
+} from 'lucide-react';
 import { UserProfile, Language, NotificationFrequency } from '../types';
 import { getText } from '../constants';
 import { saveProfile } from '../services/storageService';
@@ -8,9 +25,9 @@ import { updateUserNotificationSettings, getUserNotificationSettings, getTelegra
 import { hasActivePremium } from '../lib/accessMatrix';
 import { describePremiumEntitlement } from '../lib/subscriptionPresentation';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
-import { EditorialProfileButton } from '../components/editorial/EditorialScreenChrome';
 import { apiFetch } from '../services/apiClient';
 import { STORE_RELEASE_CONFIG as releaseConfig } from '../lib/storeReleaseConfig';
+import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import {
     authenticateWithProvider,
     getAccountAuthCapabilities,
@@ -78,6 +95,68 @@ const IDENTITY_LABELS: Record<LinkedIdentity['provider'], string> = {
     telegram: 'Telegram',
 };
 
+type SettingsScreen =
+    | 'root'
+    | 'profile'
+    | 'birth'
+    | 'gender'
+    | 'notifications'
+    | 'language'
+    | 'auth'
+    | 'subscription'
+    | 'legal'
+    | 'account'
+    | 'developer';
+
+type SettingsRowProps = {
+    label: string;
+    value?: string;
+    onClick: () => void;
+    target?: Exclude<SettingsScreen, 'root'>;
+    danger?: boolean;
+    icon?: React.ReactNode;
+};
+
+function SettingsRow({ label, value, onClick, target, danger = false, icon }: SettingsRowProps) {
+    return (
+        <button
+            type="button"
+            className={`settings-list-row${danger ? ' settings-list-row--danger' : ''}`}
+            data-settings-target={target}
+            onClick={onClick}
+        >
+            <span className="settings-list-row-main">
+                {icon ? <span className="settings-list-row-icon" aria-hidden>{icon}</span> : null}
+                <span className="settings-list-row-label">{label}</span>
+            </span>
+            <span className="settings-list-row-end">
+                {value ? <span className="settings-list-row-value">{value}</span> : null}
+                <ChevronRight aria-hidden size={16} strokeWidth={1.8} />
+            </span>
+        </button>
+    );
+}
+
+function formatSettingsBirthDate(value: string, language: Language): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+    if (!match) return value || '—';
+    return language === 'ru'
+        ? `${match[3]}.${match[2]}.${match[1]}`
+        : `${match[2]}/${match[3]}/${match[1]}`;
+}
+
+function identityCountLabel(count: number, language: Language): string {
+    if (language === 'en') return `${count} ${count === 1 ? 'method' : 'methods'}`;
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    const noun = mod10 === 1 && mod100 !== 11
+        ? 'способ'
+        : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+            ? 'способа'
+            : 'способов';
+    return `${count} ${noun}`;
+}
+
 export interface SettingsProps {
     profile: UserProfile;
     onUpdate: (profile: UserProfile) => void;
@@ -87,12 +166,11 @@ export interface SettingsProps {
     onManageSubscription?: () => Promise<void> | void;
     onOpenAdmin?: () => void;
     onOpenCharts?: () => void;
-    onOpenProfile: () => void;
+    onBack?: () => void;
     onLogout?: () => Promise<void>;
     onDeleteAccount?: () => Promise<void>;
     recoveryIdentityRequired?: boolean;
     onRecoveryIdentityReady?: () => void;
-    embedded?: boolean;
     uiPreview?: {
         notificationEnabled: boolean;
         quietStart: string;
@@ -158,12 +236,12 @@ export const Settings: React.FC<SettingsProps> = ({
     onRestorePurchase,
     onManageSubscription,
     onOpenAdmin,
-    onOpenProfile,
+    onOpenCharts,
+    onBack,
     onLogout,
     onDeleteAccount,
     recoveryIdentityRequired = false,
     onRecoveryIdentityReady,
-    embedded = false,
     uiPreview,
 }) => {
     const previewFixture = process.env.NODE_ENV === 'development' ? uiPreview : undefined;
@@ -204,6 +282,21 @@ export const Settings: React.FC<SettingsProps> = ({
     const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
+    const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>('root');
+    const settingsContentRef = useRef<HTMLDivElement | null>(null);
+    const lastRootTargetRef = useRef<Exclude<SettingsScreen, 'root'> | null>(null);
+    const settingsDetailBusy = savingProfile
+        || identityBusy
+        || restoreState === 'running'
+        || loggingOut
+        || deletingAccount;
+
+    useEffect(() => {
+        const frame = window.requestAnimationFrame(() => {
+            settingsContentRef.current?.focus({ preventScroll: true });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, []);
 
     const updateLinkedIdentitiesAfterAuth = async (fresh: UserProfile): Promise<void> => {
         onUpdate(fresh);
@@ -220,6 +313,7 @@ export const Settings: React.FC<SettingsProps> = ({
     useEffect(() => {
         if (!recoveryIdentityRequired) return;
         setAuthPurpose('link');
+        setSettingsScreen('auth');
         const frame = window.requestAnimationFrame(() => {
             document.getElementById('recovery-identity')?.scrollIntoView({ block: 'start' });
         });
@@ -444,10 +538,6 @@ export const Settings: React.FC<SettingsProps> = ({
         }
         setTimeout(() => { setDailyPush('idle'); setDailyPushInfo(''); }, 9000);
     };
-    const sectionClass = 'settings-editorial-section';
-    const rowCardClass =
-        'settings-editorial-row w-full text-left transition-transform active:scale-[0.99]';
-    const inlineActionClass = 'text-mono-muted text-[10px] uppercase tracking-wider hover:text-mono-ink transition-colors';
     const languageLabel = profile.language === 'ru'
         ? getText(profile.language, 'settings.language_ru')
         : getText(profile.language, 'settings.language_en');
@@ -523,9 +613,6 @@ export const Settings: React.FC<SettingsProps> = ({
         const fromTg = [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim();
         return fromTg || profile.name || '—';
     })();
-    const profilePhotoUrl = hasLinkedTelegram ? tgUser?.photo_url : undefined;
-
-
     const handleLanguageToggle = () => {
         const newLang: Language = profile.language === 'ru' ? 'en' : 'ru';
         const updated = { ...profile, language: newLang };
@@ -640,559 +727,767 @@ export const Settings: React.FC<SettingsProps> = ({
         }).finally(() => setDeletingAccount(false));
     };
 
+    const handleLogout = () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview выход из аккаунта отключён.');
+            return;
+        }
+        if (!onLogout || loggingOut || deletingAccount) return;
+        setLogoutError('');
+        setLoggingOut(true);
+        void onLogout().catch(() => {
+            setLogoutError(profile.language === 'en'
+                ? 'Sign out did not complete. This account is still active on the device.'
+                : 'Не удалось выйти. Аккаунт остаётся активным на этом устройстве.');
+        }).finally(() => setLoggingOut(false));
+    };
+
+    const returnToSettingsRoot = useCallback(() => {
+        if (settingsDetailBusy) return;
+        setSettingsScreen('root');
+        setEditing(false);
+        setTempName(profile.name);
+        setProfileSaveError('');
+        window.requestAnimationFrame(() => {
+            const target = lastRootTargetRef.current;
+            if (!target) return;
+            document.querySelector<HTMLButtonElement>(`[data-settings-target="${target}"]`)
+                ?.focus({ preventScroll: true });
+        });
+    }, [profile.name, settingsDetailBusy]);
+
+    useEffect(() => {
+        if (settingsScreen === 'root') return;
+        const handleNativeBack = (event: Event) => {
+            returnToSettingsRoot();
+            (event as CustomEvent<NativeBackEventDetail>).detail.handled = true;
+        };
+        window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+        return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+    }, [returnToSettingsRoot, settingsScreen]);
+
+    const openSettingsScreen = (screen: Exclude<SettingsScreen, 'root'>) => {
+        lastRootTargetRef.current = screen;
+        setPreviewNotice('');
+        setSettingsScreen(screen);
+        window.requestAnimationFrame(() => {
+            settingsContentRef.current?.focus({ preventScroll: true });
+        });
+    };
+
+    const settingsTitle: Record<SettingsScreen, string> = profile.language === 'en'
+        ? {
+            root: 'Settings',
+            profile: 'Profile',
+            birth: 'Birth details',
+            gender: 'Gender',
+            notifications: 'Notifications',
+            language: 'Language',
+            auth: 'Sign-in methods',
+            subscription: 'Subscription',
+            legal: 'Legal information',
+            account: 'Account and data',
+            developer: 'For developers',
+        }
+        : {
+            root: 'Настройки',
+            profile: 'Профиль',
+            birth: 'Данные рождения',
+            gender: 'Пол',
+            notifications: 'Уведомления',
+            language: 'Язык',
+            auth: 'Способы входа',
+            subscription: 'Подписка',
+            legal: 'Правовая информация',
+            account: 'Аккаунт и данные',
+            developer: 'Для разработчика',
+        };
+
+    const genderValue = profile.gender === 'male'
+        ? (profile.language === 'en' ? 'Male' : 'Мужской')
+        : profile.gender === 'female'
+            ? (profile.language === 'en' ? 'Female' : 'Женский')
+            : (profile.language === 'en' ? 'Not specified' : 'Не указан');
+
+
+    const renderSettingsContent = () => {
+        switch (settingsScreen) {
+            case 'profile':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.profile}>
+                        <div className="settings-detail-section">
+                            <div className="settings-detail-heading">
+                                <p className="settings-detail-kicker">
+                                    {profile.isGuest
+                                        ? (profile.language === 'en' ? 'Guest account' : 'Гостевой аккаунт')
+                                        : hasLinkedTelegram
+                                            ? (profile.language === 'en' ? 'Telegram linked' : 'Telegram подключён')
+                                            : (profile.language === 'en' ? 'Account' : 'Аккаунт')}
+                                </p>
+                                <p className="settings-detail-name">{profileDisplayName}</p>
+                            </div>
+                            <div className="settings-form-field">
+                                <label htmlFor="settings-profile-name">{getText(profile.language, 'settings.profile_name')}</label>
+                                <input
+                                    id="settings-profile-name"
+                                    name="profileName"
+                                    type="text"
+                                    value={tempName}
+                                    onChange={(event) => setTempName(event.target.value)}
+                                    readOnly={!editing}
+                                    aria-readonly={!editing}
+                                    className="fresh-input"
+                                />
+                            </div>
+                            {!editing ? (
+                                canEditProfile ? (
+                                    <button
+                                        type="button"
+                                        className="settings-secondary-action"
+                                        onClick={() => {
+                                            setTempName(profile.name);
+                                            setProfileSaveError('');
+                                            setEditing(true);
+                                        }}
+                                    >
+                                        {getText(profile.language, 'settings.edit')}
+                                    </button>
+                                ) : (
+                                    <p className="settings-helper-text">
+                                        {profile.language === 'en'
+                                            ? (activePremium ? 'Monthly edit limit reached.' : 'The Free profile edit was already used.')
+                                            : (activePremium ? 'Лимит изменений на этот месяц исчерпан.' : 'Изменение профиля в Free уже использовано.')}
+                                    </p>
+                                )
+                            ) : (
+                                <>
+                                    <p className="settings-helper-text">
+                                        {profile.language === 'en'
+                                            ? (activePremium ? 'Profile edits left this month: ' + profileEditsLeft : 'Free: you can change your profile once.')
+                                            : (activePremium ? 'Изменений в этом месяце осталось: ' + profileEditsLeft : 'В Free профиль можно изменить один раз.')}
+                                    </p>
+                                    {profileSaveError ? <p role="alert" className="settings-error-text">{profileSaveError}</p> : null}
+                                    <div className="settings-form-actions">
+                                        <button
+                                            type="button"
+                                            className="fresh-btn-primary"
+                                            disabled={savingProfile}
+                                            aria-busy={savingProfile}
+                                            onClick={() => { void handleSaveProfile(); }}
+                                        >
+                                            {savingProfile
+                                                ? (profile.language === 'en' ? 'Saving…' : 'Сохраняем…')
+                                                : getText(profile.language, 'settings.save')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="fresh-btn-ghost"
+                                            disabled={savingProfile}
+                                            onClick={() => {
+                                                setEditing(false);
+                                                setTempName(profile.name);
+                                                setProfileSaveError('');
+                                            }}
+                                        >
+                                            {getText(profile.language, 'settings.cancel')}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </section>
+                );
+
+            case 'birth':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.birth}>
+                        <dl className="settings-readonly-list">
+                            <div>
+                                <dt>{profile.language === 'en' ? 'Birth date' : 'Дата рождения'}</dt>
+                                <dd>{formatSettingsBirthDate(profile.birthDate, profile.language)}</dd>
+                            </div>
+                            <div>
+                                <dt>{profile.language === 'en' ? 'Birth time' : 'Время рождения'}</dt>
+                                <dd>{profile.birthTime || '—'}</dd>
+                            </div>
+                            <div>
+                                <dt>{profile.language === 'en' ? 'Birth place' : 'Место рождения'}</dt>
+                                <dd>{profile.birthPlace || '—'}</dd>
+                            </div>
+                        </dl>
+                        <p className="settings-helper-text settings-helper-text--spaced">
+                            {profile.language === 'en'
+                                ? 'Birth details are shown as saved in your primary profile.'
+                                : 'Здесь показаны данные, сохранённые в основном профиле.'}
+                        </p>
+                    </section>
+                );
+
+            case 'gender':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.gender}>
+                        <p className="settings-detail-intro">
+                            {profile.language === 'en'
+                                ? 'This only changes grammatical forms in generated text.'
+                                : 'Этот выбор нужен только для правильных форм слов в текстах.'}
+                        </p>
+                        <div className="settings-selection-list">
+                            {([
+                                ['male', 'Мужской', 'Male'],
+                                ['female', 'Женский', 'Female'],
+                                ['unspecified', 'Не указывать', 'Prefer not to say'],
+                            ] as const).map(([value, ru, en]) => {
+                                const selected = (profile.gender || 'unspecified') === value;
+                                return (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        className="settings-selection-row"
+                                        aria-pressed={selected}
+                                        onClick={() => handleGenderChange(value)}
+                                    >
+                                        <span>{profile.language === 'en' ? en : ru}</span>
+                                        {selected ? <Check aria-hidden size={16} strokeWidth={2} /> : null}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+                );
+
+            case 'notifications':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.notifications}>
+                        <div className="settings-toggle-row">
+                            <label htmlFor="settings-notifications-toggle">{profile.language === 'en' ? 'Notifications' : 'Уведомления'}</label>
+                            <button
+                                id="settings-notifications-toggle"
+                                type="button"
+                                role="switch"
+                                aria-checked={notifEnabled}
+                                className={'settings-switch' + (notifEnabled ? ' settings-switch--on' : '')}
+                                onClick={toggleNotif}
+                            >
+                                <span aria-hidden />
+                            </button>
+                        </div>
+                        {notifEnabled ? (
+                            <div className="settings-detail-section settings-detail-section--separated">
+                                <h2>{profile.language === 'en' ? 'Quiet hours' : 'Тихие часы'}</h2>
+                                <div className="settings-time-grid">
+                                    <label htmlFor="settings-quiet-start">{profile.language === 'en' ? 'From' : 'С'}</label>
+                                    <label htmlFor="settings-quiet-end">{profile.language === 'en' ? 'Until' : 'До'}</label>
+                                    <input
+                                        id="settings-quiet-start"
+                                        name="quietStart"
+                                        type="time"
+                                        value={quietStart}
+                                        onChange={(event) => changeQuiet('start', event.target.value)}
+                                        className="fresh-input"
+                                    />
+                                    <input
+                                        id="settings-quiet-end"
+                                        name="quietEnd"
+                                        type="time"
+                                        value={quietEnd}
+                                        onChange={(event) => changeQuiet('end', event.target.value)}
+                                        className="fresh-input"
+                                    />
+                                </div>
+                                <p className="settings-helper-text">
+                                    {profile.language === 'en'
+                                        ? 'We do not send notifications during this interval.'
+                                        : 'В этот промежуток уведомления не приходят.'}
+                                </p>
+                            </div>
+                        ) : null}
+                    </section>
+                );
+
+            case 'language':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.language}>
+                        <div className="settings-selection-list">
+                            {([
+                                ['ru', 'Русский'],
+                                ['en', 'English'],
+                            ] as const).map(([value, label]) => {
+                                const selected = profile.language === value;
+                                return (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        className="settings-selection-row"
+                                        aria-pressed={selected}
+                                        onClick={() => {
+                                            if (!selected) handleLanguageToggle();
+                                        }}
+                                    >
+                                        <span>{label}</span>
+                                        {selected ? <Check aria-hidden size={16} strokeWidth={2} /> : null}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+                );
+
+            case 'auth':
+                return (
+                    <section id="recovery-identity" className="settings-detail-panel" aria-label={settingsTitle.auth}>
+                        {recoveryIdentityRequired ? (
+                            <p className="settings-recovery-notice" role="status">
+                                {profile.language === 'en'
+                                    ? 'Link VK ID, Yandex or email to restore Premium on another device. Your selected subscription is saved.'
+                                    : 'Привяжи VK ID, Яндекс или email, чтобы Premium можно было восстановить на другом устройстве. Выбранный тариф сохранён.'}
+                            </p>
+                        ) : null}
+                        <p className="settings-detail-intro">
+                            {profile.language === 'en'
+                                ? 'Every linked method opens this same account with its chart, history, settings and Premium.'
+                                : 'Каждый способ входа открывает этот же аккаунт с картой, историей, настройками и Premium.'}
+                        </p>
+                        <p className="settings-helper-text">
+                            {profile.language === 'en'
+                                ? 'Two existing profiles are never merged automatically.'
+                                : 'Два существующих профиля автоматически не объединяются.'}
+                        </p>
+                        <button
+                            type="button"
+                            className="settings-text-action"
+                            onClick={() => setAuthPurpose((value) => value === 'link' ? 'login' : 'link')}
+                        >
+                            {authPurpose === 'link'
+                                ? (profile.language === 'en' ? 'Sign in to another account' : 'Войти в другой аккаунт')
+                                : (profile.language === 'en' ? 'Link a method to this account' : 'Привязать способ к этому аккаунту')}
+                        </button>
+                        {authPurpose === 'login' ? (
+                            <p className="settings-helper-text">
+                                {profile.language === 'en'
+                                    ? 'Signing in switches to the existing account; current data is not merged into it.'
+                                    : 'Вход переключит приложение на существующий аккаунт. Данные текущего профиля в него не переносятся.'}
+                            </p>
+                        ) : null}
+                        {identities.length ? (
+                            <div className="settings-identity-list" aria-label={profile.language === 'en' ? 'Linked methods' : 'Подключённые способы'}>
+                                {identities.map((identity) => (
+                                    <div className="settings-identity-row" key={identity.provider}>
+                                        <span>{IDENTITY_LABELS[identity.provider]}</span>
+                                        <span>{identity.provider === 'email' && identity.email ? identity.email : (profile.language === 'en' ? 'Linked' : 'Подключён')}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : null}
+                        {identityLoadFailed ? (
+                            <div className="settings-inline-error">
+                                <p>{profile.language === 'en' ? 'Could not load sign-in methods.' : 'Не удалось загрузить способы входа.'}</p>
+                                <button type="button" onClick={() => setIdentityReload((value) => value + 1)}>
+                                    {profile.language === 'en' ? 'Retry' : 'Повторить'}
+                                </button>
+                            </div>
+                        ) : null}
+                        <div className="settings-auth-actions">
+                            {!previewFixture && hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
+                                <button
+                                    type="button"
+                                    className="fresh-btn-ghost"
+                                    disabled={identityBusy || authPurpose === 'login'}
+                                    onClick={linkTelegram}
+                                >
+                                    Telegram
+                                </button>
+                            ) : null}
+                            {(['vk', 'yandex', 'google'] as const)
+                                .filter((provider) => authCapabilities?.[provider] === true)
+                                .filter((provider) => authPurpose === 'login' || !identities.some((identity) => identity.provider === provider))
+                                .map((provider) => (
+                                    <button
+                                        key={provider}
+                                        type="button"
+                                        className="fresh-btn-ghost"
+                                        disabled={identityBusy}
+                                        onClick={() => linkOAuth(provider)}
+                                    >
+                                        {provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс ID' : 'Google'}
+                                    </button>
+                                ))}
+                        </div>
+                        {(authPurpose === 'login'
+                            ? authCapabilities?.emailPassword
+                            : authCapabilities?.emailDelivery)
+                            && (authPurpose === 'login' || !identities.some((identity) => identity.provider === 'email')) ? (
+                            <div className="settings-auth-form">
+                                <input
+                                    className="fresh-input"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    value={emailValue}
+                                    onChange={(event) => setEmailValue(event.target.value)}
+                                    placeholder={profile.language === 'en' ? 'Email' : 'Email для входа'}
+                                    aria-label={profile.language === 'en' ? 'Email' : 'Email для входа'}
+                                />
+                                {!emailChallengeId ? (
+                                    <div className="settings-password-field">
+                                        <input
+                                            className="fresh-input"
+                                            name="password"
+                                            type={emailPasswordVisible ? 'text' : 'password'}
+                                            autoComplete={authPurpose === 'login' ? 'current-password' : 'new-password'}
+                                            value={emailPassword}
+                                            onChange={(event) => setEmailPassword(event.target.value)}
+                                            placeholder={authPurpose === 'login'
+                                                ? (profile.language === 'en' ? 'Password' : 'Пароль')
+                                                : (profile.language === 'en' ? 'At least 8 characters' : 'Не менее 8 символов')}
+                                            aria-label={profile.language === 'en' ? 'Password' : 'Пароль'}
+                                        />
+                                        <button
+                                            type="button"
+                                            aria-label={emailPasswordVisible
+                                                ? (profile.language === 'en' ? 'Hide password' : 'Скрыть пароль')
+                                                : (profile.language === 'en' ? 'Show password' : 'Показать пароль')}
+                                            aria-pressed={emailPasswordVisible}
+                                            disabled={identityBusy}
+                                            onClick={() => setEmailPasswordVisible((visible) => !visible)}
+                                        >
+                                            {emailPasswordVisible ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+                                        </button>
+                                    </div>
+                                ) : null}
+                                {authPurpose === 'link' && !emailChallengeId ? (
+                                    <div className="settings-password-field">
+                                        <input
+                                            className="fresh-input"
+                                            name="passwordConfirmation"
+                                            type={emailPasswordConfirmationVisible ? 'text' : 'password'}
+                                            autoComplete="new-password"
+                                            value={emailPasswordConfirmation}
+                                            onChange={(event) => setEmailPasswordConfirmation(event.target.value)}
+                                            placeholder={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
+                                            aria-label={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
+                                        />
+                                        <button
+                                            type="button"
+                                            aria-label={emailPasswordConfirmationVisible
+                                                ? (profile.language === 'en' ? 'Hide repeated password' : 'Скрыть повтор пароля')
+                                                : (profile.language === 'en' ? 'Show repeated password' : 'Показать повтор пароля')}
+                                            aria-pressed={emailPasswordConfirmationVisible}
+                                            disabled={identityBusy}
+                                            onClick={() => setEmailPasswordConfirmationVisible((visible) => !visible)}
+                                        >
+                                            {emailPasswordConfirmationVisible ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+                                        </button>
+                                    </div>
+                                ) : null}
+                                {emailChallengeId ? (
+                                    <div className="settings-code-row">
+                                        <input
+                                            className="fresh-input"
+                                            name="emailCode"
+                                            inputMode="numeric"
+                                            autoComplete="one-time-code"
+                                            value={emailCode}
+                                            onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            placeholder={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
+                                            aria-label={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
+                                        />
+                                        <button type="button" className="fresh-btn-ghost" disabled={identityBusy || emailCode.length !== 6} onClick={confirmEmailCode}>
+                                            {profile.language === 'en' ? 'Confirm' : 'Подтвердить'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="fresh-btn-ghost"
+                                        disabled={identityBusy || !emailValue.trim() || !emailPassword || (authPurpose === 'link' && (!meetsMinimumPasswordLength(emailPassword) || emailPassword !== emailPasswordConfirmation))}
+                                        onClick={requestEmailCode}
+                                    >
+                                        {authPurpose === 'login'
+                                            ? (profile.language === 'en' ? 'Sign in' : 'Войти')
+                                            : (profile.language === 'en' ? 'Send code' : 'Отправить код')}
+                                    </button>
+                                )}
+                                {emailChallengeId ? (
+                                    <button type="button" className="settings-text-action" disabled={identityBusy} onClick={requestEmailCode}>
+                                        {profile.language === 'en' ? 'Send a new code' : 'Отправить новый код'}
+                                    </button>
+                                ) : null}
+                            </div>
+                        ) : null}
+                        {identityNotice ? <p role="status" className="settings-helper-text">{identityNotice}</p> : null}
+                        {identityError ? <p role="alert" className="settings-error-text">{identityError}</p> : null}
+                    </section>
+                );
+
+            case 'subscription':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.subscription}>
+                        <div className="settings-subscription-status">
+                            <span>{activePremium ? 'Premium' : 'Free'}</span>
+                            <h2>{subscriptionPresentation.title}</h2>
+                            <p>{subscriptionPresentation.body}</p>
+                        </div>
+                        <div className="settings-detail-actions">
+                            {subscriptionPresentation.shouldPromote && canPromotePremium ? (
+                                <button type="button" className="fresh-btn-primary" onClick={() => onRequestPremium?.()}>
+                                    {profile.language === 'ru' ? 'Посмотреть Premium' : 'View Premium'}
+                                </button>
+                            ) : null}
+                            {subscriptionPresentation.canManageInStore && onManageSubscription ? (
+                                <button type="button" className="fresh-btn-ghost" onClick={manageSubscription}>
+                                    {profile.language === 'ru' ? 'Управлять в RuStore' : 'Manage in RuStore'}
+                                </button>
+                            ) : null}
+                            <button
+                                type="button"
+                                className="fresh-btn-ghost"
+                                disabled={!onRestorePurchase || restoreState === 'running'}
+                                aria-busy={restoreState === 'running'}
+                                onClick={restorePurchase}
+                            >
+                                {restoreState === 'running'
+                                    ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
+                                    : (profile.language === 'ru' ? 'Восстановить покупку' : 'Restore purchase')}
+                            </button>
+                        </div>
+                        {restoreState === 'success' ? (
+                            <p role="status" className="settings-helper-text">
+                                {profile.language === 'ru' ? 'Покупки проверены сервером.' : 'Purchases were checked by the server.'}
+                            </p>
+                        ) : restoreState === 'error' ? (
+                            <p role="alert" className="settings-error-text">
+                                {profile.language === 'ru' ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
+                            </p>
+                        ) : null}
+                    </section>
+                );
+
+            case 'legal':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.legal}>
+                        <div className="settings-list">
+                            <a className="settings-list-row" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
+                                <span className="settings-list-row-main">
+                                    <span className="settings-list-row-label">{profile.language === 'en' ? 'Privacy Policy' : 'Политика конфиденциальности'}</span>
+                                </span>
+                                <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
+                            </a>
+                            <a className="settings-list-row" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
+                                <span className="settings-list-row-main">
+                                    <span className="settings-list-row-label">{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</span>
+                                </span>
+                                <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
+                            </a>
+                        </div>
+                    </section>
+                );
+
+            case 'account':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.account}>
+                        <div className="settings-account-actions">
+                            <button type="button" disabled={loggingOut || deletingAccount} onClick={handleLogout}>
+                                {loggingOut
+                                    ? (profile.language === 'en' ? 'Signing out…' : 'Выходим…')
+                                    : (profile.language === 'en' ? 'Sign out' : 'Выйти')}
+                            </button>
+                            <button type="button" className="settings-danger-action" disabled={loggingOut || deletingAccount} onClick={handleDeleteAccount}>
+                                {deletingAccount
+                                    ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…')
+                                    : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}
+                            </button>
+                        </div>
+                        <p className="settings-helper-text settings-helper-text--spaced">
+                            {profile.language === 'en'
+                                ? 'Deleting an account permanently removes its related data. Active RuStore auto-renewal must be managed separately.'
+                                : 'Удаление аккаунта навсегда удаляет связанные с ним данные. Активным автопродлением RuStore нужно управлять отдельно.'}
+                        </p>
+                        {logoutError ? <p role="alert" className="settings-error-text">{logoutError}</p> : null}
+                        {deletionError ? <p role="alert" className="settings-error-text">{deletionError}</p> : null}
+                    </section>
+                );
+
+            case 'developer':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.developer}>
+                        {onOpenAdmin ? (
+                            <div className="settings-list">
+                                <SettingsRow
+                                    label={getText(profile.language, 'settings.admin')}
+                                    icon={<Code2 size={16} strokeWidth={1.8} />}
+                                    onClick={onOpenAdmin}
+                                />
+                            </div>
+                        ) : null}
+                        <div className="settings-developer-actions">
+                            <button type="button" onClick={sendSelfTest} disabled={selfTest === 'sending'}>
+                                <span>{profile.language === 'en' ? 'Send a test notification' : 'Прислать тест-уведомление'}</span>
+                                <small>
+                                    {selfTest === 'sending'
+                                        ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
+                                        : selfTest === 'ok'
+                                            ? (profile.language === 'en' ? 'Sent' : 'Отправлено')
+                                            : selfTest === 'err'
+                                                ? (selfTestInfo || (profile.language === 'en' ? 'Failed' : 'Не вышло'))
+                                                : (profile.language === 'en' ? 'Telegram end-to-end check' : 'Проверка доставки в Telegram')}
+                                </small>
+                            </button>
+                            <button type="button" onClick={sendDailyPush} disabled={dailyPush === 'sending'}>
+                                <span>{profile.language === 'en' ? 'Send my daily push now' : 'Прислать дневной пуш сейчас'}</span>
+                                <small>
+                                    {dailyPush === 'sending'
+                                        ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
+                                        : dailyPush === 'ok'
+                                            ? (dailyPushInfo || (profile.language === 'en' ? 'Sent' : 'Отправлено'))
+                                            : dailyPush === 'err'
+                                                ? (dailyPushInfo || (profile.language === 'en' ? 'Failed' : 'Не вышло'))
+                                                : (profile.language === 'en' ? 'Admin-only delivery check' : 'Проверка доставки для администратора')}
+                                </small>
+                            </button>
+                        </div>
+                    </section>
+                );
+
+            case 'root':
+            default:
+                return (
+                    <div className="settings-root">
+                        <section className="settings-group" aria-labelledby="settings-account-heading">
+                            <h2 id="settings-account-heading">{profile.language === 'en' ? 'Account' : 'Аккаунт'}</h2>
+                            <div className="settings-list">
+                                <SettingsRow
+                                    icon={<UserRound size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Profile' : 'Профиль'}
+                                    value={profileDisplayName}
+                                    target="profile"
+                                    onClick={() => openSettingsScreen('profile')}
+                                />
+                                <SettingsRow
+                                    icon={<Cake size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Birth details' : 'Данные рождения'}
+                                    value={formatSettingsBirthDate(profile.birthDate, profile.language)}
+                                    target="birth"
+                                    onClick={() => openSettingsScreen('birth')}
+                                />
+                                <SettingsRow
+                                    icon={<VenusAndMars size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Gender' : 'Пол'}
+                                    value={genderValue}
+                                    target="gender"
+                                    onClick={() => openSettingsScreen('gender')}
+                                />
+                                <SettingsRow
+                                    icon={<LogIn size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Sign-in methods' : 'Способы входа'}
+                                    value={identityLoadFailed ? (profile.language === 'en' ? 'Unavailable' : 'Не загружены') : identityCountLabel(identities.length, profile.language)}
+                                    target="auth"
+                                    onClick={() => openSettingsScreen('auth')}
+                                />
+                            </div>
+                        </section>
+
+                        <section className="settings-group" aria-labelledby="settings-app-heading">
+                            <h2 id="settings-app-heading">{profile.language === 'en' ? 'Application' : 'Приложение'}</h2>
+                            <div className="settings-list">
+                                <SettingsRow
+                                    icon={<Bell size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Notifications' : 'Уведомления'}
+                                    value={notifEnabled ? (profile.language === 'en' ? 'On' : 'Включены') : (profile.language === 'en' ? 'Off' : 'Выключены')}
+                                    target="notifications"
+                                    onClick={() => openSettingsScreen('notifications')}
+                                />
+                                <SettingsRow
+                                    icon={<Languages size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Language' : 'Язык'}
+                                    value={languageLabel}
+                                    target="language"
+                                    onClick={() => openSettingsScreen('language')}
+                                />
+                                {onOpenCharts ? (
+                                    <SettingsRow
+                                        icon={<Files size={16} strokeWidth={1.8} />}
+                                        label={profile.language === 'en' ? 'Saved charts' : 'Сохранённые карты'}
+                                        onClick={onOpenCharts}
+                                    />
+                                ) : null}
+                            </div>
+                        </section>
+
+                        <section className="settings-group" aria-labelledby="settings-premium-heading">
+                            <h2 id="settings-premium-heading">Premium</h2>
+                            <div className="settings-list">
+                                <SettingsRow
+                                    icon={<BadgeCheck size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Subscription' : 'Подписка'}
+                                    value={activePremium ? 'Premium' : 'Free'}
+                                    target="subscription"
+                                    onClick={() => openSettingsScreen('subscription')}
+                                />
+                            </div>
+                        </section>
+
+                        <section className="settings-group" aria-labelledby="settings-help-heading">
+                            <h2 id="settings-help-heading">{profile.language === 'en' ? 'Help' : 'Помощь'}</h2>
+                            <div className="settings-list">
+                                <a className="settings-list-row" href={'mailto:' + releaseConfig.supportEmail} onClick={blockPreviewLink}>
+                                    <span className="settings-list-row-main">
+                                        <span className="settings-list-row-icon" aria-hidden><LifeBuoy size={16} strokeWidth={1.8} /></span>
+                                        <span className="settings-list-row-label">{profile.language === 'en' ? 'Support' : 'Поддержка'}</span>
+                                    </span>
+                                    <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
+                                </a>
+                                <SettingsRow
+                                    icon={<Scale size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Legal information' : 'Правовая информация'}
+                                    target="legal"
+                                    onClick={() => openSettingsScreen('legal')}
+                                />
+                            </div>
+                        </section>
+
+                        <section className="settings-group settings-group--last" aria-labelledby="settings-data-heading">
+                            <h2 id="settings-data-heading">{profile.language === 'en' ? 'Account actions' : 'Действия с аккаунтом'}</h2>
+                            <div className="settings-list">
+                                {profile.isAdmin ? (
+                                    <SettingsRow
+                                        icon={<Code2 size={16} strokeWidth={1.8} />}
+                                        label={profile.language === 'en' ? 'For developers' : 'Для разработчика'}
+                                        target="developer"
+                                        onClick={() => openSettingsScreen('developer')}
+                                    />
+                                ) : null}
+                                <SettingsRow
+                                    icon={<Database size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Account and data' : 'Аккаунт и данные'}
+                                    target="account"
+                                    onClick={() => openSettingsScreen('account')}
+                                />
+                            </div>
+                        </section>
+                    </div>
+                );
+        }
+    };
 
     return (
-        <div className={`fresh-page settings-editorial-page${embedded ? ' !min-h-0 !pt-0 before:!hidden' : ''}`}>
-          {!embedded ? (
+        <div className="fresh-page settings-editorial-page">
             <AppTopBar
-              title={profile.language === 'en' ? 'Settings' : 'Настройки'}
-              rightAction={(
-                <EditorialProfileButton
-                  label={profile.language === 'en' ? 'Open profile' : 'Открыть профиль'}
-                  onClick={onOpenProfile}
-                />
-              )}
+                title={settingsTitle[settingsScreen]}
+                onBack={settingsScreen === 'root'
+                    ? onBack
+                    : settingsDetailBusy
+                        ? undefined
+                        : returnToSettingsRoot}
             />
-          ) : null}
-          <div className="settings-editorial-content">
-            {previewNotice ? (
-                <p role="status" className="settings-editorial-section lumia-muted text-sm">
-                    {previewNotice}
-                </p>
-            ) : null}
-            <section className="settings-editorial-profile">
-                <div className="flex items-center gap-4">
-                    {profilePhotoUrl ? (
-                        <img
-                            src={profilePhotoUrl}
-                            alt=""
-                            className="h-16 w-16 shrink-0 rounded-full object-cover border border-black/5"
-                        />
-                    ) : (
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-black/5 bg-white/60 text-xl font-serif text-text-muted">
-                            {profileDisplayName.charAt(0).toUpperCase() || '?'}
-                        </div>
-                    )}
-                    <div className="min-w-0">
-                        <p className="serif text-2xl font-medium text-text-main truncate">{profileDisplayName}</p>
-                        <p className="mt-0.5 text-xs text-text-muted/80">
-                            {profile.isGuest
-                                ? (profile.language === 'en' ? 'Guest account' : 'Гостевой аккаунт')
-                                : hasLinkedTelegram
-                                    ? (profile.language === 'en' ? 'Telegram linked' : 'Telegram подключён')
-                                    : (profile.language === 'en' ? 'Account' : 'Аккаунт')}
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <section className={`${sectionClass} settings-editorial-premium`}>
-                <p className="lumia-label tracking-[0.2em]">{getText(profile.language, 'settings.subscription')}</p>
-                <h2 className="mt-1.5 font-serif text-xl text-mono-ink sm:text-2xl">
-                    {subscriptionPresentation.title}
-                </h2>
-                <p className="lumia-muted mt-2 text-sm leading-relaxed">
-                    {subscriptionPresentation.body}
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                    {subscriptionPresentation.shouldPromote && canPromotePremium ? (
-                        <button
-                            type="button"
-                            onClick={() => onRequestPremium?.()}
-                            className="fresh-btn-primary"
-                            style={{ flex: 1, width: 'auto', margin: 0 }}
-                        >
-                            {profile.language === 'ru' ? 'Посмотреть Premium' : 'View Premium'}
-                        </button>
-                    ) : null}
-                    {subscriptionPresentation.canManageInStore && onManageSubscription ? (
-                        <button type="button" className="fresh-btn-ghost" onClick={manageSubscription}>
-                            {profile.language === 'ru' ? 'Управлять в RuStore' : 'Manage in RuStore'}
-                        </button>
-                    ) : null}
-                    <button
-                        type="button"
-                        className="fresh-btn-ghost"
-                        disabled={!onRestorePurchase || restoreState === 'running'}
-                        aria-busy={restoreState === 'running'}
-                        onClick={restorePurchase}
-                    >
-                        {restoreState === 'running'
-                            ? (profile.language === 'ru' ? 'Проверяем…' : 'Checking…')
-                            : (profile.language === 'ru' ? 'Восстановить покупку' : 'Restore purchase')}
-                    </button>
-                </div>
-                {restoreState === 'success' ? (
-                    <p role="status" className="lumia-muted mt-2 text-sm">
-                        {profile.language === 'ru' ? 'Покупки проверены сервером.' : 'Purchases were checked by the server.'}
-                    </p>
-                ) : restoreState === 'error' ? (
-                    <p role="alert" className="mt-2 text-sm text-red-700">
-                        {profile.language === 'ru' ? 'Не удалось восстановить покупку. Проверь RuStore и интернет.' : 'Could not restore the purchase. Check RuStore and your connection.'}
-                    </p>
-                ) : null}
-            </section>
-
-            <div className={`${sectionClass} flex items-center justify-between gap-3`}>
-                <div className="min-w-0 pr-2">
-                    <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.language')}</h3>
-                    <p className="lumia-muted mt-1 text-sm leading-snug">{getText(profile.language, 'settings.language_body')}</p>
-                    <p className="lumia-label mt-1.5 tracking-wider">{languageLabel}</p>
-                </div>
-                <button
-                    type="button"
-                    onClick={handleLanguageToggle}
-                    className="fresh-btn-ghost shrink-0"
-                >
-                    {getText(profile.language, 'settings.switch_lang')}
-                </button>
+            <div
+                ref={settingsContentRef}
+                className="settings-editorial-content"
+                tabIndex={-1}
+                aria-label={settingsTitle[settingsScreen]}
+            >
+                {previewNotice ? <p role="status" className="settings-preview-notice">{previewNotice}</p> : null}
+                {renderSettingsContent()}
             </div>
-
-            <div className={sectionClass}>
-                <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 pr-2">
-                        <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Notifications' : 'Уведомления'}</h3>
-                        <p className="lumia-muted mt-1 text-sm leading-snug">
-                            {profile.language === 'en' ? 'Forecast and update notifications.' : 'Уведомления о прогнозах и обновлениях.'}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        role="switch"
-                        aria-checked={notifEnabled}
-                        onClick={toggleNotif}
-                        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${notifEnabled ? 'bg-mono-accent' : 'bg-mono-ink/15'}`}
-                    >
-                        <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-[left] ${notifEnabled ? 'left-[22px]' : 'left-0.5'}`} />
-                    </button>
-                </div>
-                {notifEnabled && (
-                    <div className="mt-4">
-                        <p className="fresh-field-label">{profile.language === 'en' ? 'Quiet hours (do not disturb)' : 'Тихие часы (не беспокоить)'}</p>
-                        <div className="mt-2 flex items-center gap-3">
-                            <input type="time" value={quietStart} onChange={(e) => changeQuiet('start', e.target.value)} className="fresh-input" style={{ width: 'auto', minWidth: '6.5rem' }} />
-                            <span className="text-mono-muted">—</span>
-                            <input type="time" value={quietEnd} onChange={(e) => changeQuiet('end', e.target.value)} className="fresh-input" style={{ width: 'auto', minWidth: '6.5rem' }} />
-                        </div>
-                        <p className="lumia-muted mt-2 text-xs leading-snug">
-                            {profile.language === 'en'
-                                ? 'In this window we never send. Daily nudges: morning ~9:00, day ~13:00; win-backs by day.'
-                                : 'В эти часы ничего не присылаем. Обычно: утро ~9:00, день ~13:00; возвраты — по дням.'}
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            <div className={sectionClass}>
-                <div className="flex items-start justify-between gap-4">
-                    <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.profile')}</h3>
-                    {!editing && (
-                        canEditProfile ? (
-                            <button onClick={() => {
-                                setTempName(profile.name);
-                                setProfileSaveError('');
-                                setEditing(true);
-                            }} className={inlineActionClass}>
-                                {getText(profile.language, 'settings.edit')}
-                            </button>
-                        ) : (
-                            <span className="text-[10px] uppercase tracking-wider text-mono-muted">
-                                {profile.language === 'en'
-                                    ? (activePremium ? 'Limit 3/mo' : 'Edit used')
-                                    : (activePremium ? 'Лимит 3/мес' : 'Уже изменено')}
-                            </span>
-                        )
-                    )}
-                </div>
-
-                <div className="mt-4 space-y-4">
-                    <div>
-                        <label className="fresh-field-label">
-                            {getText(profile.language, 'settings.profile_name')}
-                        </label>
-                        <input 
-                            type="text" 
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            disabled={!editing}
-                            className="fresh-input"
-                        />
-                    </div>
-                    <div>
-                        <label className="fresh-field-label">
-                            {getText(profile.language, 'settings.profile_birth_place')}
-                        </label>
-                        <input 
-                            type="text" 
-                            value={profile.birthPlace}
-                            readOnly
-                            aria-readonly="true"
-                            className="fresh-input"
-                        />
-                    </div>
-                    <div>
-                         <label className="fresh-field-label">
-                             {getText(profile.language, 'settings.profile_date_time')}
-                         </label>
-                         <p className="text-sm font-serif text-mono-ink/75">
-                             {profile.birthDate} • {profile.birthTime}
-                         </p>
-                    </div>
-
-                    {editing && (
-                        <p className="text-xs leading-snug text-mono-muted">
-                            {profile.language === 'en'
-                                ? (activePremium ? `Profile edits left this month: ${profileEditsLeft}` : 'Free: you can change your profile once')
-                                : (activePremium ? `Смен профиля в этом месяце осталось: ${profileEditsLeft}` : 'Free: профиль можно изменить один раз')}
-                        </p>
-                    )}
-                    {editing && profileSaveError ? (
-                        <p role="alert" className="text-sm text-red-700">{profileSaveError}</p>
-                    ) : null}
-
-                    {editing && (
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                disabled={savingProfile}
-                                aria-busy={savingProfile}
-                                onClick={() => { void handleSaveProfile(); }}
-                                className="fresh-btn-primary"
-                                style={{ flex: 1, width: 'auto', margin: 0 }}
-                            >
-                                {savingProfile
-                                    ? (profile.language === 'en' ? 'Saving…' : 'Сохраняем…')
-                                    : getText(profile.language, 'settings.save')}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={savingProfile}
-                                onClick={() => {
-                                    setEditing(false);
-                                    setTempName(profile.name);
-                                    setProfileSaveError('');
-                                }}
-                                className="fresh-btn-ghost"
-                            >
-                                {getText(profile.language, 'settings.cancel')}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className={sectionClass}>
-                <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Gender' : 'Пол'}</h3>
-                <p className="lumia-muted mt-1 text-sm">
-                    {profile.language === 'en' ? 'So readings address you in the right grammatical gender.' : 'Чтобы тексты обращались к тебе в правильном роде.'}
-                </p>
-                <div className="mt-3 flex gap-2">
-                    {([['male', 'Мужской', 'Male'], ['female', 'Женский', 'Female'], ['unspecified', 'Не указывать', 'Prefer not']] as const).map(([val, ru, en]) => {
-                        const active = (profile.gender || 'unspecified') === val;
-                        return (
-                            <button
-                                key={val}
-                                type="button"
-                                onClick={() => handleGenderChange(val)}
-                                className={`min-h-[40px] flex-1 rounded-mono-pill border px-3 text-[13px] font-semibold transition-transform active:scale-[0.97] ${active ? 'border-mono-accent bg-mono-accent text-white' : 'border-mono-line bg-mono-white text-mono-muted'}`}
-                            >
-                                {profile.language === 'en' ? en : ru}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {profile.isAdmin && onOpenAdmin && (
-                <button onClick={onOpenAdmin} className={rowCardClass}>
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-serif text-lg text-mono-ink">
-                                {getText(profile.language, 'settings.admin')}
-                            </h3>
-                            <p className="lumia-muted mt-1 text-sm">{getText(profile.language, 'settings.admin_body')}</p>
-                        </div>
-                        <span className="text-mono-muted/70">→</span>
-                    </div>
-                </button>
-            )}
-
-            {profile.isAdmin && (
-                <button type="button" onClick={sendSelfTest} disabled={selfTest === 'sending'} className={rowCardClass}>
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-serif text-lg text-mono-ink">
-                                {profile.language === 'en' ? 'Send a test notification to me' : 'Прислать тест-уведомление себе'}
-                            </h3>
-                            <p className="lumia-muted mt-1 text-sm">
-                                {selfTest === 'sending'
-                                    ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
-                                    : selfTest === 'ok'
-                                        ? (profile.language === 'en' ? 'Sent — check your chat with the bot.' : 'Отправлено — проверь чат с ботом.')
-                                        : selfTest === 'err'
-                                            ? (selfTestInfo
-                                                ? (profile.language === 'en' ? `Failed — ${selfTestInfo}` : `Не вышло — ${selfTestInfo}`)
-                                                : (profile.language === 'en' ? 'Failed.' : 'Не вышло.'))
-                                            : (profile.language === 'en' ? 'Verifies Telegram delivery end-to-end (admin only).' : 'Проверяет доставку в Telegram end-to-end (только для админа).')}
-                            </p>
-                        </div>
-                        <span className="text-mono-muted/70">{selfTest === 'ok' ? '✓' : selfTest === 'err' ? '✕' : '→'}</span>
-                    </div>
-                </button>
-            )}
-
-            {profile.isAdmin && (
-                <button type="button" onClick={sendDailyPush} disabled={dailyPush === 'sending'} className={rowCardClass}>
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <h3 className="font-serif text-lg text-mono-ink">
-                                {profile.language === 'en' ? 'Send my daily push now' : 'Прислать дневной пуш себе сейчас'}
-                            </h3>
-                            <p className="lumia-muted mt-1 text-sm">
-                                {dailyPush === 'sending'
-                                    ? (profile.language === 'en' ? 'Sending…' : 'Отправляю…')
-                                    : dailyPush === 'ok'
-                                        ? (dailyPushInfo || (profile.language === 'en' ? 'Sent — check the bot chat.' : 'Отправлено — проверь чат с ботом.'))
-                                        : dailyPush === 'err'
-                                            ? (dailyPushInfo || (profile.language === 'en' ? 'Failed.' : 'Не вышло.'))
-                                            : (profile.language === 'en' ? 'Real reminder with an app button + tells why the schedule may be silent (admin).' : 'Реальное напоминание с кнопкой в приложение + покажет, почему расписание может молчать (админ).')}
-                            </p>
-                        </div>
-                        <span className="text-mono-muted/70">{dailyPush === 'ok' ? '✓' : dailyPush === 'err' ? '✕' : '→'}</span>
-                    </div>
-                </button>
-            )}
-
-            <section id="recovery-identity" className={sectionClass}>
-                <h3 className="font-serif text-lg text-mono-ink">
-                    {profile.language === 'en' ? 'Sign-in methods' : 'Способы входа'}
-                </h3>
-                {recoveryIdentityRequired ? (
-                    <p className="mt-2 rounded-2xl bg-[#eef5f1] px-4 py-3 text-sm leading-5 text-[#315348]" role="status">
-                        {profile.language === 'en'
-                            ? 'Link VK ID, Yandex or email to restore Premium on another device. Your selected subscription is saved.'
-                            : 'Привяжи VK ID, Яндекс или email, чтобы Premium можно было восстановить на другом устройстве. Выбранный тариф сохранён.'}
-                    </p>
-                ) : null}
-                <p className="lumia-muted mt-1 text-sm">
-                    {profile.language === 'en'
-                        ? 'Every linked method opens this same account with its chart, history, settings and Premium.'
-                        : 'Каждый привязанный способ открывает этот же аккаунт с картой, историей, настройками и Premium.'}
-                </p>
-                <p className="mt-1 text-xs text-mono-muted">
-                    {profile.language === 'en'
-                        ? 'Two existing profiles are never merged automatically. To switch accounts, choose sign in below.'
-                        : 'Два существующих профиля никогда не объединяются автоматически. Чтобы сменить аккаунт, выбери вход ниже.'}
-                </p>
-                <button
-                    type="button"
-                    className="mt-2 text-sm font-medium text-mono-accent"
-                    onClick={() => setAuthPurpose((value) => value === 'link' ? 'login' : 'link')}
-                >
-                    {authPurpose === 'link'
-                        ? (profile.language === 'en' ? 'Sign in to another account' : 'Войти в другой аккаунт')
-                        : (profile.language === 'en' ? 'Link a method to this account' : 'Привязать способ к этому аккаунту')}
-                </button>
-                {authPurpose === 'login' ? (
-                    <p className="mt-2 text-xs text-mono-muted">
-                        {profile.language === 'en'
-                            ? 'Signing in switches to the existing account; current data is not merged into it.'
-                            : 'Вход переключит приложение на существующий аккаунт. Данные текущего профиля в него не переносятся.'}
-                    </p>
-                ) : null}
-                {identities.length ? (
-                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-mono-ink">
-                        {identities.map((identity) => (
-                            <span key={identity.provider} className="rounded-full bg-black/5 px-3 py-1.5">
-                                {IDENTITY_LABELS[identity.provider]}{identity.provider === 'email' && identity.email ? `: ${identity.email}` : ''} · {profile.language === 'en' ? 'linked' : 'подключён'}
-                            </span>
-                        ))}
-                    </div>
-                ) : null}
-                {identityLoadFailed ? (
-                    <div className="mt-2 text-sm text-red-700">
-                        <p>{profile.language === 'en' ? 'Could not load sign-in methods.' : 'Не удалось загрузить способы входа.'}</p>
-                        <button type="button" className="mt-1 font-medium underline" onClick={() => setIdentityReload((value) => value + 1)}>
-                            {profile.language === 'en' ? 'Retry' : 'Повторить'}
-                        </button>
-                    </div>
-                ) : null}
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {!previewFixture && hasTelegramMiniAppContext() && !identities.some((identity) => identity.provider === 'telegram') ? (
-                        <button
-                            type="button"
-                            className="fresh-btn-ghost"
-                            disabled={identityBusy || authPurpose === 'login'}
-                            onClick={linkTelegram}
-                        >
-                            Telegram
-                        </button>
-                    ) : null}
-                    {(['vk', 'yandex', 'google'] as const)
-                      .filter((provider) => authCapabilities?.[provider] === true)
-                      .filter((provider) => authPurpose === 'login' || !identities.some((identity) => identity.provider === provider))
-                      .map((provider) => (
-                        <button
-                            key={provider}
-                            type="button"
-                            className="fresh-btn-ghost"
-                            disabled={identityBusy}
-                            onClick={() => linkOAuth(provider)}
-                        >
-                            {provider === 'vk' ? 'VK ID' : provider === 'yandex' ? 'Яндекс ID' : 'Google'}
-                        </button>
-                    ))}
-                </div>
-                {(authPurpose === 'login'
-                    ? authCapabilities?.emailPassword
-                    : authCapabilities?.emailDelivery)
-                  && (authPurpose === 'login' || !identities.some((identity) => identity.provider === 'email')) ? (
-                    <div className="mt-3 grid gap-2">
-                        <input
-                            className="fresh-input"
-                            type="email"
-                            autoComplete="email"
-                            value={emailValue}
-                            onChange={(event) => setEmailValue(event.target.value)}
-                            placeholder={profile.language === 'en' ? 'Email' : 'Email для входа'}
-                            aria-label={profile.language === 'en' ? 'Email' : 'Email для входа'}
-                        />
-                        {!emailChallengeId ? (
-                            <div className="relative">
-                                <input
-                                    className="fresh-input pr-12"
-                                    type={emailPasswordVisible ? 'text' : 'password'}
-                                    autoComplete={authPurpose === 'login' ? 'current-password' : 'new-password'}
-                                    value={emailPassword}
-                                    onChange={(event) => setEmailPassword(event.target.value)}
-                                    placeholder={authPurpose === 'login'
-                                        ? (profile.language === 'en' ? 'Password' : 'Пароль')
-                                        : (profile.language === 'en' ? 'At least 8 characters' : 'Не менее 8 символов')}
-                                    aria-label={profile.language === 'en' ? 'Password' : 'Пароль'}
-                                />
-                                <button
-                                    type="button"
-                                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-mono-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-mono-accent disabled:opacity-50"
-                                    aria-label={emailPasswordVisible
-                                        ? (profile.language === 'en' ? 'Hide password' : 'Скрыть пароль')
-                                        : (profile.language === 'en' ? 'Show password' : 'Показать пароль')}
-                                    aria-pressed={emailPasswordVisible}
-                                    disabled={identityBusy}
-                                    onClick={() => setEmailPasswordVisible((visible) => !visible)}
-                                >
-                                    {emailPasswordVisible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
-                                </button>
-                            </div>
-                        ) : null}
-                        {authPurpose === 'link' && !emailChallengeId ? (
-                            <div className="relative">
-                                <input
-                                    className="fresh-input pr-12"
-                                    type={emailPasswordConfirmationVisible ? 'text' : 'password'}
-                                    autoComplete="new-password"
-                                    value={emailPasswordConfirmation}
-                                    onChange={(event) => setEmailPasswordConfirmation(event.target.value)}
-                                    placeholder={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
-                                    aria-label={profile.language === 'en' ? 'Repeat password' : 'Повторите пароль'}
-                                />
-                                <button
-                                    type="button"
-                                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-mono-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-mono-accent disabled:opacity-50"
-                                    aria-label={emailPasswordConfirmationVisible
-                                        ? (profile.language === 'en' ? 'Hide repeated password' : 'Скрыть повтор пароля')
-                                        : (profile.language === 'en' ? 'Show repeated password' : 'Показать повтор пароля')}
-                                    aria-pressed={emailPasswordConfirmationVisible}
-                                    disabled={identityBusy}
-                                    onClick={() => setEmailPasswordConfirmationVisible((visible) => !visible)}
-                                >
-                                    {emailPasswordConfirmationVisible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
-                                </button>
-                            </div>
-                        ) : null}
-                        {emailChallengeId ? (
-                            <div className="flex gap-2">
-                                <input
-                                    className="fresh-input min-w-0 flex-1"
-                                    inputMode="numeric"
-                                    autoComplete="one-time-code"
-                                    value={emailCode}
-                                    onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    placeholder={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
-                                    aria-label={profile.language === 'en' ? '6-digit code' : 'Код из письма'}
-                                />
-                                <button type="button" className="fresh-btn-ghost" disabled={identityBusy || emailCode.length !== 6} onClick={confirmEmailCode}>
-                                    {profile.language === 'en' ? 'Confirm' : 'Подтвердить'}
-                                </button>
-                            </div>
-                        ) : (
-                            <button
-                                type="button"
-                                className="fresh-btn-ghost"
-                                disabled={identityBusy || !emailValue.trim() || !emailPassword || (authPurpose === 'link' && (!meetsMinimumPasswordLength(emailPassword) || emailPassword !== emailPasswordConfirmation))}
-                                onClick={requestEmailCode}
-                            >
-                                {authPurpose === 'login'
-                                    ? (profile.language === 'en' ? 'Sign in' : 'Войти')
-                                    : (profile.language === 'en' ? 'Send code' : 'Отправить код')}
-                            </button>
-                        )}
-                        {emailChallengeId ? (
-                            <button type="button" className="text-left text-sm font-medium text-mono-accent" disabled={identityBusy} onClick={requestEmailCode}>
-                                {profile.language === 'en' ? 'Send a new code' : 'Отправить новый код'}
-                            </button>
-                        ) : null}
-                    </div>
-                ) : null}
-                {identityNotice ? <p role="status" className="mt-2 text-sm text-mono-muted">{identityNotice}</p> : null}
-                {identityError ? <p role="alert" className="mt-2 text-sm text-red-700">{identityError}</p> : null}
-            </section>
-
-            <section className={sectionClass}>
-                <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Legal and support' : 'Правовая информация и поддержка'}</h3>
-                <div className="mt-3 grid gap-2 text-sm">
-                    <a className="fresh-btn-ghost text-left" href={releaseConfig.privacyUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>{profile.language === 'en' ? 'Privacy Policy' : 'Политика конфиденциальности'}</a>
-                    <a className="fresh-btn-ghost text-left" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</a>
-                    <a className="fresh-btn-ghost text-left" href={`mailto:${releaseConfig.supportEmail}`} onClick={blockPreviewLink}>{profile.language === 'en' ? 'Support' : 'Поддержка'}</a>
-                </div>
-            </section>
-
-            <section className={`${sectionClass} border border-red-200`}>
-                <h3 className="font-serif text-lg text-mono-ink">{profile.language === 'en' ? 'Account and data' : 'Аккаунт и данные'}</h3>
-                <p className="lumia-muted mt-1 text-sm">{profile.language === 'en' ? 'Sign out from this device or permanently delete your account and related data.' : 'Можно выйти с этого устройства или навсегда удалить аккаунт и связанные данные.'}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        className="fresh-btn-ghost"
-                        disabled={loggingOut || deletingAccount}
-                        onClick={() => {
-                            if (previewFixture) {
-                                setPreviewNotice('В Preview выход из аккаунта отключён.');
-                                return;
-                            }
-                            if (!onLogout) return;
-                            setLogoutError('');
-                            setLoggingOut(true);
-                            void onLogout().catch(() => {
-                                setLogoutError(profile.language === 'en'
-                                    ? 'Sign out did not complete. This account is still active on the device.'
-                                    : 'Не удалось выйти. Аккаунт остаётся активным на этом устройстве.');
-                            }).finally(() => setLoggingOut(false));
-                        }}
-                    >
-                        {loggingOut
-                            ? (profile.language === 'en' ? 'Signing out…' : 'Выходим…')
-                            : (profile.language === 'en' ? 'Sign out' : 'Выйти')}
-                    </button>
-                    <button type="button" disabled={loggingOut || deletingAccount} className="fresh-btn-ghost text-red-700" onClick={handleDeleteAccount}>
-                        {deletingAccount ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…') : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}
-                    </button>
-                </div>
-                {logoutError ? <p role="alert" className="mt-2 text-sm text-red-700">{logoutError}</p> : null}
-                {deletionError ? <p role="alert" className="mt-2 text-sm text-red-700">{deletionError}</p> : null}
-            </section>
-
-          </div>
         </div>
     );
 };

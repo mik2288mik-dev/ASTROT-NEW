@@ -92,7 +92,7 @@
 
 .today-bottom-nav-action,
 .today-bottom-nav-hub,
-.today-bottom-nav-more {
+.today-bottom-nav-services {
   appearance: none;
   border: 0;
   background: transparent;
@@ -101,7 +101,7 @@
 }
 
 .today-bottom-nav-action,
-.today-bottom-nav-more {
+.today-bottom-nav-services {
   position: relative;
   display: flex;
   width: 100%;
@@ -117,7 +117,7 @@
 }
 
 .today-bottom-nav-action svg,
-.today-bottom-nav-more svg {
+.today-bottom-nav-services svg {
   flex: 0 0 auto;
   display: block;
   width: 1.58rem;
@@ -138,7 +138,7 @@
 }
 
 .today-bottom-nav-action[aria-current='page'],
-.today-bottom-nav-more[aria-current='page'] {
+.today-bottom-nav-services[aria-current='page'] {
   color: #22211f;
 }
 
@@ -197,12 +197,12 @@
     0 0 0 1px rgba(164, 126, 87, 0.5);
 }
 
-.today-bottom-nav-more {
+.today-bottom-nav-services {
   justify-self: stretch;
 }
 
 .today-bottom-nav-action:active,
-.today-bottom-nav-more:active {
+.today-bottom-nav-services:active {
   transform: scale(0.96);
 }
 
@@ -211,12 +211,12 @@
 }
 
 .today-bottom-nav-action:focus-visible,
-.today-bottom-nav-more:focus-visible {
+.today-bottom-nav-services:focus-visible {
   outline: 0;
 }
 
 .today-bottom-nav-action:focus-visible::before,
-.today-bottom-nav-more:focus-visible::before {
+.today-bottom-nav-services:focus-visible::before {
   position: absolute;
   width: 2.75rem;
   height: 2.75rem;
@@ -1071,7 +1071,7 @@
   .today-period-tab,
   .today-bottom-nav-action,
   .today-bottom-nav-hub,
-  .today-bottom-nav-more,
+  .today-bottom-nav-services,
   .today-navigation-sheet-item {
     transition: none;
     transition-delay: 0ms;

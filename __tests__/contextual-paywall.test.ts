@@ -43,21 +43,19 @@ describe('contextual paywall return contract', () => {
     });
   });
 
-  it('returns an explicit More offer to the Premium tab route on close', () => {
-    const moreContext = createPaywallContextFromRequest({
-      source: 'settings',
-      currentView: 'more',
-      payload: { returnView: 'more' },
-    });
-
-    expect(resolvePaywallOutcome(moreContext, 'close')).toMatchObject({
-      view: 'more',
-      shouldOpenFeature: false,
-    });
+  it('lets the explicit service Store bypass the first-value gate', () => {
     const app = read('App.tsx');
-    expect(app).toContain("setMoreTab('premium')");
-    expect(app).toContain("requestPremium('settings', { returnView: 'more' }, undefined, {");
+    const services = read('views/v2/ServiceScreen.tsx');
+
+    expect(app).toContain("requestPremium('settings', undefined, undefined, {");
     expect(app).toContain('bypassFirstValueGate: true');
+    expect(app).toContain('&& !options?.bypassFirstValueGate');
+    expect(app).toContain('onRequestPremium={openServiceStore}');
+    const settingsRoute = app.slice(app.indexOf("view === 'settings'"), app.indexOf("view === 'charts'"));
+    expect(settingsRoute).not.toContain('canPromotePremium={premiumPromotionAllowed}');
+    expect(services).toContain("{ id: 'store', label: 'Магазин' }");
+    expect(services).toContain('onClick={onOpenStore}');
+    expect(app).not.toContain("returnView: 'more'");
   });
 
   it('disarms a locked Week/Month request until purchase success', () => {

@@ -2,6 +2,7 @@ import {
   KNOWLEDGE_CATEGORIES,
   KNOWLEDGE_TOPIC_SOURCES,
   getKnowledgeTopics,
+  getKnowledgeArticlePresentation,
   getRelatedKnowledgeTopics,
   groupKnowledgeTopicsByCategory,
   normalizeKnowledgeSearch,
@@ -20,6 +21,20 @@ describe('first-release knowledge catalog', () => {
 
     const groups = groupKnowledgeTopicsByCategory(ruTopics, 'ru');
     expect(groups.map((group) => group.categoryId)).toEqual(KNOWLEDGE_CATEGORIES.map((category) => category.id));
+    expect(groups.map((group) => group.label)).toEqual([
+      'С чего начать',
+      'Знаки зодиака',
+      'Планеты',
+      'Дома',
+      'Углы карты',
+      'Аспекты',
+      'Ретроградность',
+      'Узлы и расчётные точки',
+      'Как читать карту целиком',
+      'Отношения и совместимость',
+      'Прогнозы',
+      'Луна и циклы',
+    ]);
     expect(groups.every((group) => group.topics.length > 0)).toBe(true);
   });
 
@@ -48,6 +63,7 @@ describe('first-release knowledge catalog', () => {
       expect(topic.keywords.length).toBeGreaterThan(0);
       expect(new Set(topic.relatedTopicIds).size).toBe(topic.relatedTopicIds.length);
       expect(topic.relatedTopicIds).not.toContain(topic.id);
+      expect(topic).not.toHaveProperty('personalizationKind');
       topic.relatedTopicIds.forEach((relatedId) => expect(ids.has(relatedId)).toBe(true));
 
       const related = getRelatedKnowledgeTopics(ruTopics, topic);
@@ -55,7 +71,7 @@ describe('first-release knowledge catalog', () => {
     }
 
     const russianCopy = JSON.stringify(KNOWLEDGE_TOPIC_SOURCES.map((topic) => topic.copy.ru));
-    expect(russianCopy).not.toMatch(/проявля|энерги|ресурс|проработ|паттерн|внутренн(?:яя|ей|юю) опор|сценари|подсвеч|реализац(?:ия|ии) потенциал|глубинн(?:ая|ой|ую) трансформац/iu);
+    expect(russianCopy).not.toMatch(/проявля|энерги|ресурс|проработ|паттерн|внутренн(?:яя|ей|юю) опор|сценари|подсвеч|реализац(?:ия|ии) потенциал|глубинн(?:ая|ой|ую) трансформац|вселенн|судьба велит|кармическ(?:ий|ая|ое)/iu);
   });
 
   it('finds familiar words, abbreviations, aliases, and spelling variants locally', () => {
@@ -70,5 +86,16 @@ describe('first-release knowledge catalog', () => {
     ]));
     expect(idsFor('ретро')).toContain('retrograde-motion');
     expect(normalizeKnowledgeSearch('ЗВЁЗДЫ')).toBe('звезды');
+  });
+
+  it('uses semantic text glyphs and one compact topic tag in article headers', () => {
+    const byId = new Map(ruTopics.map((topic) => [topic.id, topic]));
+
+    expect(getKnowledgeArticlePresentation(byId.get('planet-venus')!, 'ru')).toEqual({
+      symbol: '♀',
+      tag: 'Натальная карта',
+    });
+    expect(getKnowledgeArticlePresentation(byId.get('ascendant')!, 'ru').symbol).toBe('ASC');
+    expect(getKnowledgeArticlePresentation(byId.get('house-7')!, 'ru').symbol).toBe('7');
   });
 });

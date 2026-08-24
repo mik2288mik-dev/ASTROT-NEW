@@ -106,7 +106,6 @@ export const ANGLE_TOPICS = [
       },
     },
     relatedTopicIds: ['angles-overview', 'descendant', 'same-sign-different-people'],
-    personalizationKind: { type: 'angle', key: 'ascendant' },
   },
   {
     id: 'descendant',
@@ -160,7 +159,6 @@ export const ANGLE_TOPICS = [
       },
     },
     relatedTopicIds: ['angles-overview', 'ascendant', 'compatibility-not-fate'],
-    personalizationKind: { type: 'angle', key: 'descendant' },
   },
   {
     id: 'midheaven',
@@ -187,7 +185,7 @@ export const ANGLE_TOPICS = [
           {
             title: 'Почему нужен точный час',
             paragraphs: [
-              'Градус и знак MC зависят от времени и места рождения. Ошибка во времени может изменить положение точки и её аспекты. При неизвестном времени выводы о MC следует исключить.',
+              'Градус и знак MC зависят от времени и места рождения. Ошибка во времени может изменить положение точки и её аспекты. Если время неизвестно, MC не используют при чтении карты.',
             ],
           },
         ],
@@ -214,7 +212,6 @@ export const ANGLE_TOPICS = [
       },
     },
     relatedTopicIds: ['angles-overview', 'imum-coeli', 'no-single-indicator'],
-    personalizationKind: { type: 'angle', key: 'mc' },
   },
   {
     id: 'imum-coeli',
@@ -268,6 +265,5 @@ export const ANGLE_TOPICS = [
       },
     },
     relatedTopicIds: ['angles-overview', 'midheaven', 'planet-in-house'],
-    personalizationKind: { type: 'angle', key: 'ic' },
   },
 ] satisfies readonly KnowledgeTopicSource[];

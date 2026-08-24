@@ -9,11 +9,10 @@ describe('personal forecast header and shared navigation', () => {
     const topBar = read('components/lumia-ui/AppTopBar.tsx');
     const dashboard = read('views/Dashboard.tsx');
 
-    expect(topBar).toContain("? 'Личный гороскоп'");
-    expect(topBar).toContain("? 'Personal horoscope'");
+    expect(topBar).toContain("title === 'Твой гороскоп' || title === 'Your Horoscope'");
     expect(topBar).toContain('app-top-bar-title--personal-forecast');
     expect(topBar).toContain('app-top-bar-context--period');
-    expect(dashboard).toContain("title={language === 'ru' ? 'Твой Гороскоп' : 'Your Horoscope'}");
+    expect(dashboard).toContain("title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}");
     expect(dashboard).toContain('className="app-top-bar-action today-profile-button"');
     expect(dashboard).toContain('role="tablist"');
     expect(dashboard).toContain('activeDateValue');
@@ -44,7 +43,7 @@ describe('personal forecast header and shared navigation', () => {
     expect(navigation).not.toContain('today-bottom-nav-quick-links');
     expect(navigation).toContain('data-nav-id="compatibility"');
     expect(navigation).toContain('today-bottom-nav-hub');
-    expect(navigation).toContain('today-bottom-nav-more');
+    expect(navigation).toContain('today-bottom-nav-services');
   });
 
   it('keeps the app canvas white and separates the bottom navigation with one hairline', () => {

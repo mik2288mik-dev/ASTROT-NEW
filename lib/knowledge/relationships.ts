@@ -212,7 +212,6 @@ export const RELATIONSHIP_TOPICS = [
       },
     },
     relatedTopicIds: ['venus-in-relationships', 'mercury-in-relationships', 'interchart-aspects'],
-    personalizationKind: { type: 'planet', key: 'moon', questionKind: 'relationships' },
   },
   {
     id: 'venus-in-relationships',
@@ -266,7 +265,6 @@ export const RELATIONSHIP_TOPICS = [
       },
     },
     relatedTopicIds: ['moon-in-relationships', 'mars-in-relationships', 'mercury-in-relationships'],
-    personalizationKind: { type: 'planet', key: 'venus', questionKind: 'relationships' },
   },
   {
     id: 'mars-in-relationships',
@@ -320,7 +318,6 @@ export const RELATIONSHIP_TOPICS = [
       },
     },
     relatedTopicIds: ['venus-in-relationships', 'mercury-in-relationships', 'interchart-aspects'],
-    personalizationKind: { type: 'planet', key: 'mars', questionKind: 'relationships' },
   },
   {
     id: 'mercury-in-relationships',
@@ -374,7 +371,6 @@ export const RELATIONSHIP_TOPICS = [
       },
     },
     relatedTopicIds: ['moon-in-relationships', 'mars-in-relationships', 'interchart-aspects'],
-    personalizationKind: { type: 'planet', key: 'mercury', questionKind: 'relationships' },
   },
   {
     id: 'interchart-aspects',
@@ -395,7 +391,7 @@ export const RELATIONSHIP_TOPICS = [
           {
             title: 'Что именно сравнивают',
             paragraphs: [
-              'Расчёт измеряет угловое расстояние между двумя планетами. Значение зависит от типа аспекта, орбиса и функций обеих планет. Например, связь Луны и Меркурия читается иначе, чем связь Марса и Венеры.',
+              'Расчёт измеряет угловое расстояние между двумя планетами. Значение зависит от типа аспекта, орбиса и самих планет. Например, связь Луны и Меркурия читается иначе, чем связь Марса и Венеры.',
             ],
           },
           {

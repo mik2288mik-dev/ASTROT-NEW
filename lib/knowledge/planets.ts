@@ -106,7 +106,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-moon', 'planet-saturn', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'sun', questionKind: 'sign' },
   },
   {
     id: 'planet-moon',
@@ -160,7 +159,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-sun', 'planet-venus', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'moon', questionKind: 'sign' },
   },
   {
     id: 'planet-mercury',
@@ -214,7 +212,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['retrograde-mercury', 'planet-moon', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'mercury', questionKind: 'sign' },
   },
   {
     id: 'planet-venus',
@@ -268,7 +265,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-mars', 'planet-moon', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'venus', questionKind: 'relationships' },
   },
   {
     id: 'planet-mars',
@@ -322,7 +318,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-venus', 'planet-saturn', 'aspect-square'],
-    personalizationKind: { type: 'planet', key: 'mars', questionKind: 'sign' },
   },
   {
     id: 'planet-jupiter',
@@ -376,7 +371,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-saturn', 'aspect-trine', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'jupiter', questionKind: 'sign' },
   },
   {
     id: 'planet-saturn',
@@ -430,7 +424,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-jupiter', 'planet-mars', 'aspect-square'],
-    personalizationKind: { type: 'planet', key: 'saturn', questionKind: 'sign' },
   },
   {
     id: 'planet-uranus',
@@ -484,7 +477,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-saturn', 'planet-neptune', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'uranus', questionKind: 'sign' },
   },
   {
     id: 'planet-neptune',
@@ -538,7 +530,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-uranus', 'planet-pluto', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'neptune', questionKind: 'sign' },
   },
   {
     id: 'planet-pluto',
@@ -592,7 +583,6 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planet-neptune', 'planet-saturn', 'aspects-overview'],
-    personalizationKind: { type: 'planet', key: 'pluto', questionKind: 'sign' },
   },
   {
     id: 'planet-chiron',
@@ -646,6 +636,5 @@ export const PLANET_TOPICS = [
       },
     },
     relatedTopicIds: ['planets-overview', 'aspects-overview', 'planet-saturn'],
-    personalizationKind: { type: 'planet', key: 'chiron', questionKind: 'default' },
   },
 ] satisfies readonly KnowledgeTopicSource[];

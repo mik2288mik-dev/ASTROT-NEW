@@ -35,7 +35,7 @@ export const UI_PREVIEW_SCREENS = [
   'compatibility-result',
   'encyclopedia',
   'settings',
-  'more',
+  'menu',
   'paywall',
   'question',
 ] as const;
@@ -77,7 +77,7 @@ export const UI_PREVIEW_SCREEN_LABELS: Record<UiPreviewScreen, string> = {
   'compatibility-result': 'Совместимость — результат',
   encyclopedia: 'Хочу знать',
   settings: 'Настройки',
-  more: 'Ещё',
+  menu: 'Меню',
   paywall: 'Paywall',
   question: 'Узнать о себе',
 };
@@ -138,7 +138,7 @@ export function previewViewForScreen(screen: UiPreviewScreen): ViewState {
   if (screen.startsWith('compatibility-')) return 'synastry';
   if (screen === 'encyclopedia') return 'encyclopedia';
   if (screen === 'settings') return 'settings';
-  if (screen === 'more') return 'more';
+  if (screen === 'menu') return 'services';
   if (screen === 'natal-reading') return 'personality';
   return 'chart';
 }

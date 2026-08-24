@@ -11,7 +11,7 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
   },
   {
     id: 'signs',
-    label: { ru: 'Знаки', en: 'Signs' },
+    label: { ru: 'Знаки зодиака', en: 'Zodiac signs' },
     description: {
       ru: 'Двенадцать знаков, четыре стихии и три способа начинать и продолжать дела.',
       en: 'Twelve signs, four elements, and three ways signs begin and continue things.',
@@ -67,7 +67,7 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
   },
   {
     id: 'synthesis',
-    label: { ru: 'Как читать всё вместе', en: 'Reading it together' },
+    label: { ru: 'Как читать карту целиком', en: 'Reading the whole chart' },
     description: {
       ru: 'Как соединить планету, знак, дом и аспекты без поспешных выводов.',
       en: 'How to combine a planet, sign, house, and aspects without rushing to a label.',

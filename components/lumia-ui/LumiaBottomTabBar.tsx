@@ -21,7 +21,7 @@ type LumiaBottomTabBarProps = {
   view: ViewState;
   onOpenToday: () => void;
   onOpenZodiac: () => void;
-  onOpenMore: () => void;
+  onOpenServices: () => void;
   onOpenCompatibility: () => void;
   onOpenNatal: () => void;
 };
@@ -39,7 +39,7 @@ export const LUMIA_BOTTOM_NAV_VIEWS: readonly ViewState[] = [
   'horoscope',
   'chart',
   'synastry',
-  'more',
+  'services',
   'encyclopedia',
   'matrix',
   'personality',
@@ -47,6 +47,7 @@ export const LUMIA_BOTTOM_NAV_VIEWS: readonly ViewState[] = [
   'charts',
 ];
 const NATAL_VIEWS: ViewState[] = ['chart', 'matrix', 'personality'];
+const SERVICE_VIEWS: ViewState[] = ['services', 'encyclopedia', 'settings', 'charts'];
 
 export function shouldShowLumiaBottomNavigation(view: ViewState): boolean {
   return LUMIA_BOTTOM_NAV_VIEWS.includes(view);
@@ -62,13 +63,14 @@ export function LumiaBottomTabBar({
   view,
   onOpenToday,
   onOpenZodiac,
-  onOpenMore,
+  onOpenServices,
   onOpenCompatibility,
   onOpenNatal,
 }: LumiaBottomTabBarProps) {
   if (!shouldShowLumiaBottomNavigation(view)) return null;
   const isEnglish = profile.language === 'en';
   const natalIsCurrent = NATAL_VIEWS.includes(view);
+  const servicesAreCurrent = SERVICE_VIEWS.includes(view);
 
   return (
     <div className="lumia-bottom-tab-shell today-bottom-navigation pointer-events-none">
@@ -130,12 +132,13 @@ export function LumiaBottomTabBar({
         </button>
 
         <button
+          id="today-services-trigger"
           type="button"
-          className="today-bottom-nav-more"
-          data-nav-id="more"
-          aria-label={isEnglish ? 'More' : 'Ещё'}
-          aria-current={view === 'more' ? 'page' : undefined}
-          onClick={() => runNavigationAction(onOpenMore)}
+          className="today-bottom-nav-services"
+          data-nav-id="services"
+          aria-label={isEnglish ? 'Services' : 'Сервисы'}
+          aria-current={servicesAreCurrent ? 'page' : undefined}
+          onClick={() => runNavigationAction(onOpenServices)}
         >
           <Menu aria-hidden="true" strokeWidth={1.25} />
           <span className="today-bottom-nav-label" aria-hidden="true">Меню</span>
@@ -194,16 +197,16 @@ export function LumiaNavigationSheet({
 
   return (
     <CosmicSheet
-        open={activeSheet === 'profile'}
-        title={sheetTitle}
-        subtitle={sheetSubtitle}
-        closeLabel={isEnglish ? 'Close menu' : 'Закрыть меню'}
-        className="today-navigation-sheet"
-        contentClassName="today-navigation-sheet-content"
-        onClose={onClose}
-      >
-        <div id="today-navigation-sheet">
-          {activeSheet === 'profile' ? (
+      open={activeSheet === 'profile'}
+      title={sheetTitle}
+      subtitle={sheetSubtitle}
+      closeLabel={isEnglish ? 'Close menu' : 'Закрыть меню'}
+      className="today-navigation-sheet"
+      contentClassName="today-navigation-sheet-content"
+      onClose={onClose}
+    >
+      <div id="today-navigation-sheet">
+        {activeSheet === 'profile' ? (
           <div className="today-navigation-profile">
             <div className="today-navigation-profile-mark" aria-hidden="true">
               <UserRound strokeWidth={1.25} />
@@ -238,8 +241,8 @@ export function LumiaNavigationSheet({
               />
             </div>
           </div>
-          ) : null}
-        </div>
+        ) : null}
+      </div>
     </CosmicSheet>
   );
 }

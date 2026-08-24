@@ -11,16 +11,13 @@ import {
 } from '../lumia-ui/LumiaBottomTabBar';
 import { HoroscopeReader } from '../../views/v2/HoroscopeReader';
 import { NatalMagazine } from '../../views/v2/NatalMagazine';
-import type { NatalQuestionOpenRequest } from '../NatalReading/HumanReport';
-import { MoreHub, type MoreHubTab } from '../../views/v2/MoreHub';
 import { PersonalityReport } from '../../views/PersonalityReport';
 import { UnionRoom } from '../../views/v2/UnionRoom';
 import { AstrologyEncyclopedia } from '../../views/v2/AstrologyEncyclopedia';
+import { ServiceScreen, type ServiceTab } from '../../views/v2/ServiceScreen';
 import { Settings } from '../../views/Settings';
 import { Paywall } from '../../views/Paywall';
 import type { PaywallContext } from '../../lib/paywallContext';
-import { getPermanentNatalReliability } from '../../lib/natalReading/permanentReport';
-import type { NatalChartData } from '../../types';
 import {
   UI_PREVIEW_ACCESS,
   UI_PREVIEW_BIRTH_TIMES,
@@ -233,11 +230,9 @@ function CompatibilityScene({
 function SettingsScene({
   profile,
   onNavigate,
-  onOpenProfile,
 }: {
   profile: ReturnType<typeof createUiPreviewProfile>;
   onNavigate: (screen: UiPreviewScreen) => void;
-  onOpenProfile: () => void;
 }) {
   const [localProfile, setLocalProfile] = useState(profile);
 
@@ -248,65 +243,15 @@ function SettingsScene({
   return (
     <Settings
       profile={localProfile}
+      onBack={() => onNavigate('menu')}
       onUpdate={setLocalProfile}
       onRequestPremium={() => onNavigate('paywall')}
       canPromotePremium
       onRestorePurchase={async () => undefined}
       onManageSubscription={() => undefined}
       onOpenCharts={() => onNavigate('natal')}
-      onOpenProfile={onOpenProfile}
       onLogout={async () => undefined}
       onDeleteAccount={async () => undefined}
-      uiPreview={UI_PREVIEW_SETTINGS}
-    />
-  );
-}
-
-function MoreScene({
-  profile,
-  chart,
-  activeTab,
-  onTabChange,
-  onOpenPremium,
-  onAskAboutSelf,
-  onSpecifyBirthTime,
-  onNavigate,
-  onOpenProfile,
-}: {
-  profile: ReturnType<typeof createUiPreviewProfile>;
-  chart: NatalChartData;
-  activeTab: MoreHubTab;
-  onTabChange: (tab: MoreHubTab) => void;
-  onOpenPremium: () => void;
-  onAskAboutSelf: (question: string) => void;
-  onSpecifyBirthTime: () => void;
-  onNavigate: (screen: UiPreviewScreen) => void;
-  onOpenProfile: () => void;
-}) {
-  const [localProfile, setLocalProfile] = useState(profile);
-
-  useEffect(() => {
-    setLocalProfile(profile);
-  }, [profile]);
-
-  return (
-    <MoreHub
-      profile={localProfile}
-      activeTab={activeTab}
-      onTabChange={onTabChange}
-      onOpenPremium={onOpenPremium}
-      onUpdate={setLocalProfile}
-      canPromotePremium={!localProfile.isPremium}
-      onRestorePurchase={async () => undefined}
-      onManageSubscription={() => undefined}
-      onOpenCharts={() => onNavigate('natal')}
-      onOpenProfile={onOpenProfile}
-      onLogout={async () => undefined}
-      onDeleteAccount={async () => undefined}
-      primaryChartData={chart}
-      personalReliability={getPermanentNatalReliability(chart)}
-      onAskAboutSelf={onAskAboutSelf}
-      onSpecifyBirthTime={onSpecifyBirthTime}
       uiPreview={UI_PREVIEW_SETTINGS}
     />
   );
@@ -411,10 +356,8 @@ export default function UiPreviewApp() {
     parseUiPreviewScenario(typeof window === 'undefined' ? '' : window.location.search)
   ));
   const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
-  const [moreTab, setMoreTab] = useState<MoreHubTab>('knowledge');
+  const [serviceTab, setServiceTab] = useState<ServiceTab>('knowledge');
   const [paywallReturnScreen, setPaywallReturnScreen] = useState<UiPreviewScreen>('today');
-  const [natalQuestionRequest, setNatalQuestionRequest] = useState<NatalQuestionOpenRequest | null>(null);
-  const natalQuestionRequestIdRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const profile = useMemo(
@@ -456,7 +399,11 @@ export default function UiPreviewApp() {
   };
   const navigate = (screen: UiPreviewScreen) => {
     if (screen === 'paywall') {
-      setPaywallReturnScreen(scenario.screen === 'more' ? 'more' : 'today');
+      setPaywallReturnScreen(
+        scenario.screen === 'menu' || scenario.screen === 'settings'
+          ? scenario.screen
+          : 'today',
+      );
     }
     changeScenario({ screen, state: 'ready' });
   };
@@ -515,20 +462,7 @@ export default function UiPreviewApp() {
   } else if (scenario.screen === 'paywall') {
     scene = <PaywallScene profile={profile} onClose={() => navigate(paywallReturnScreen)} />;
   } else if (scenario.screen === 'encyclopedia') {
-    scene = (
-      <AstrologyEncyclopedia
-        profile={profile}
-        onOpenProfile={openProfile}
-        primaryChartData={chart}
-        personalReliability={getPermanentNatalReliability(chart)}
-        onAskAboutSelf={(question) => {
-          natalQuestionRequestIdRef.current += 1;
-          setNatalQuestionRequest({ requestId: natalQuestionRequestIdRef.current, text: question });
-          navigate('natal');
-        }}
-        onSpecifyBirthTime={() => navigate('onboarding')}
-      />
-    );
+    scene = <AstrologyEncyclopedia profile={profile} onOpenProfile={openProfile} />;
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
     scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} onNavigate={navigate} onOpenProfile={openProfile} />;
   } else if (scenario.screen === 'horoscope' || scenario.screen === 'zodiac-picker') {
@@ -577,8 +511,6 @@ export default function UiPreviewApp() {
         onCreateChart={() => navigate('onboarding')}
         onOpenPersonalityReport={() => navigate('natal-reading')}
         canPromotePremium={scenario.access !== 'premium'}
-        openQuestionRequest={natalQuestionRequest}
-        onQuestionRequestHandled={() => setNatalQuestionRequest(null)}
         onOpenProfile={openProfile}
         onOpenEncyclopedia={() => navigate('encyclopedia')}
         uiPreview={{
@@ -603,25 +535,17 @@ export default function UiPreviewApp() {
       />
     );
   } else if (scenario.screen === 'settings') {
-    scene = <SettingsScene profile={profile} onNavigate={navigate} onOpenProfile={openProfile} />;
-  } else if (scenario.screen === 'more') {
+    scene = <SettingsScene profile={profile} onNavigate={navigate} />;
+  } else if (scenario.screen === 'menu') {
     scene = (
-      <MoreScene
+      <ServiceScreen
         profile={profile}
-        chart={chart}
-        activeTab={moreTab}
-        onTabChange={setMoreTab}
-        onOpenPremium={() => {
-          setMoreTab('premium');
-          navigate('paywall');
-        }}
-        onAskAboutSelf={(question) => {
-          natalQuestionRequestIdRef.current += 1;
-          setNatalQuestionRequest({ requestId: natalQuestionRequestIdRef.current, text: question });
-          navigate('natal');
-        }}
-        onSpecifyBirthTime={() => navigate('onboarding')}
-        onNavigate={navigate}
+        activeTab={serviceTab}
+        onTabChange={setServiceTab}
+        onOpenStore={() => navigate('paywall')}
+        onOpenSettings={() => navigate('settings')}
+        onRestorePurchase={async () => undefined}
+        onManageSubscription={() => undefined}
         onOpenProfile={openProfile}
       />
     );
@@ -650,7 +574,7 @@ export default function UiPreviewApp() {
             view={view}
             onOpenToday={() => navigate('today')}
             onOpenZodiac={() => navigate('horoscope')}
-            onOpenMore={() => navigate('more')}
+            onOpenServices={() => navigate('menu')}
             onOpenCompatibility={() => navigate('compatibility-input')}
             onOpenNatal={() => navigate('natal')}
           />

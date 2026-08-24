@@ -330,7 +330,6 @@ const INDIVIDUAL_HOUSE_TOPICS: readonly KnowledgeTopicSource[] = HOUSE_DEFINITIO
   keywords: definition.keywords,
   copy: definition.copy,
   relatedTopicIds: ['houses-overview', 'sign-vs-house', 'birth-time-and-houses'],
-  personalizationKind: { type: 'house', house: definition.house },
 }));
 
 export const HOUSE_TOPICS = [
@@ -350,7 +349,7 @@ export const HOUSE_TOPICS = [
         title: 'Что показывают дома',
         summary: 'Двенадцать домов делят карту на области жизни, рассчитанные для конкретного времени и места.',
         sections: [
-          { title: 'Дом отвечает на вопрос «где»', paragraphs: ['Планета описывает функцию, знак — способ действия, а дом — область жизни, где этот показатель особенно заметен в чтении карты.'] },
+          { title: 'Дом отвечает на вопрос «где»', paragraphs: ['Планета показывает, о чём идёт речь, знак — каким способом, а дом — в какой области жизни это особенно заметно при чтении карты.'] },
           { title: 'Дома зависят от исходных данных', paragraphs: ['Сетка домов строится по времени и месту рождения. При неизвестном времени её нельзя использовать как точную личную часть карты.'] },
         ],
         shortAnswer: 'Дома показывают области жизни и требуют надёжного времени рождения.',
