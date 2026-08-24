@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { ForecastSection } from '../../lib/personalForecastContract';
+import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
 import { resolveTodayPremiumTeaserInsertion } from '../../lib/todayPremiumTeaser';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { isRenderableTodaySection } from './editorialLayout';
-import { TodayCalendarClock, TodayLineField } from './TodayCalendarClock';
+import {
+  TodayCalendarClock,
+  TodayLineField,
+  type TodayClockSignal,
+} from './TodayCalendarClock';
 
 type TodayEditorialFeedProps = {
   sections: readonly ForecastSection[];
@@ -12,6 +16,7 @@ type TodayEditorialFeedProps = {
   periodKey: string;
   timezone: string;
   language: 'ru' | 'en';
+  tone: PersonalForecastAstrologerBrief['tone'];
   premium: boolean;
   onRequestPremium: () => void;
   onFirstValueViewed?: () => void;
@@ -75,21 +80,29 @@ function resolvePunchline(section?: ForecastSection): string {
   return section.title?.replace(/\s+/gu, ' ').trim() || '';
 }
 
+function clockSignalForTone(tone: PersonalForecastAstrologerBrief['tone']): TodayClockSignal {
+  if (tone === 'favorable') return 'green';
+  if (tone === 'demanding') return 'red';
+  return 'yellow';
+}
+
 function StoryFragment({
   section,
   language,
   locked,
   onRequestPremium,
+  closing,
 }: {
   section: ForecastSection;
   language: 'ru' | 'en';
   locked: boolean;
   onRequestPremium: () => void;
+  closing: boolean;
 }) {
   const untitledSection = section.title
     ? { ...section, title: '' }
     : section;
-  return (
+  const fragment = (
     <ForecastSectionBlock
       section={untitledSection}
       period="day"
@@ -98,6 +111,8 @@ function StoryFragment({
       onRequestPremium={onRequestPremium}
     />
   );
+
+  return closing ? <div className="today-minimal-closing">{fragment}</div> : fragment;
 }
 
 export function TodayEditorialFeed({
@@ -107,6 +122,7 @@ export function TodayEditorialFeed({
   periodKey,
   timezone,
   language,
+  tone,
   premium,
   onRequestPremium,
   onFirstValueViewed,
@@ -132,6 +148,7 @@ export function TodayEditorialFeed({
   );
   const punchlineSource = visibleSections.find((section) => section.kind === 'overview');
   const punchline = resolvePunchline(punchlineSource);
+  const clockSignal = clockSignalForTone(tone);
 
   useEffect(() => {
     setTeaserDismissed(false);
@@ -183,6 +200,7 @@ export function TodayEditorialFeed({
             periodKey={periodKey}
             timezone={timezone}
             language={language}
+            signal={clockSignal}
           />
           {punchline ? (
             <p id="today-punchline" className="today-minimal-punchline">
@@ -208,6 +226,7 @@ export function TodayEditorialFeed({
                 language={language}
                 locked={false}
                 onRequestPremium={onRequestPremium}
+                closing={section.contentBlocks.some((block) => block.role === 'insight')}
               />
               {!teaserDismissed && teaserInsertion?.afterSectionId === section.id ? (
                 <TodayPremiumTeaser

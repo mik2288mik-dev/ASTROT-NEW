@@ -10,7 +10,10 @@ type TodayCalendarClockProps = {
   periodKey: string;
   timezone: string;
   language: 'ru' | 'en';
+  signal?: TodayClockSignal;
 };
+
+export type TodayClockSignal = 'green' | 'yellow' | 'red';
 
 type ClockParts = {
   day: string;
@@ -86,13 +89,7 @@ function clockStyle(preset: TodayClockPreset): CSSProperties {
   } as CSSProperties;
 }
 
-function ElectronicReadout({
-  parts,
-  glow,
-}: {
-  parts: ClockParts;
-  glow: boolean;
-}) {
+function ElectronicReadout({ parts }: { parts: ClockParts }) {
   const readout = (
     <>
       <span className="today-calendar-clock-date">
@@ -105,7 +102,7 @@ function ElectronicReadout({
   );
 
   return (
-    <span className={`today-calendar-clock-readout${glow ? ' is-glowing' : ''}`}>
+    <span className="today-calendar-clock-readout">
       {readout}
     </span>
   );
@@ -128,6 +125,7 @@ export function TodayCalendarClock({
   periodKey,
   timezone,
   language,
+  signal,
 }: TodayCalendarClockProps) {
   const [now, setNow] = useState(() => new Date());
   const preset = useMemo(
@@ -161,8 +159,6 @@ export function TodayCalendarClock({
     };
   }, []);
 
-  const shouldGlow = preset.glow;
-
   return (
     <time
       className="today-calendar-clock"
@@ -170,7 +166,7 @@ export function TodayCalendarClock({
       aria-label={parts.semanticLabel}
       data-clock-family={preset.family}
       data-clock-preset={preset.id}
-      data-clock-glow={shouldGlow ? 'soft' : 'off'}
+      data-day-signal={signal}
       style={clockStyle(preset)}
       suppressHydrationWarning
     >
@@ -179,7 +175,7 @@ export function TodayCalendarClock({
           {preset.family === 'flip' ? (
             <FlipReadout parts={parts} />
           ) : (
-            <ElectronicReadout parts={parts} glow={shouldGlow} />
+            <ElectronicReadout parts={parts} />
           )}
         </span>
         <span className="today-calendar-clock-foot is-left" />

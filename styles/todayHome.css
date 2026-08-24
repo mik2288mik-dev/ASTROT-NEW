@@ -513,10 +513,26 @@
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 }
 
-.today-calendar-clock-readout.is-glowing .today-calendar-clock-date {
+.today-calendar-clock[data-day-signal='green'] {
+  --today-clock-signal: #74d6a2;
+}
+
+.today-calendar-clock[data-day-signal='yellow'] {
+  --today-clock-signal: #efbb5c;
+}
+
+.today-calendar-clock[data-day-signal='red'] {
+  --today-clock-signal: #df7770;
+}
+
+.today-calendar-clock[data-day-signal] .today-calendar-clock-date,
+.today-calendar-clock[data-day-signal] .today-calendar-clock-meta,
+.today-calendar-clock[data-day-signal] .today-calendar-clock-flap,
+.today-calendar-clock[data-day-signal] .today-calendar-clock-flip-meta {
+  color: color-mix(in srgb, var(--today-clock-digits) 42%, var(--today-clock-signal));
   text-shadow:
-    0 0 0.24rem color-mix(in srgb, var(--today-clock-digits) 60%, transparent),
-    0 0 0.84rem color-mix(in srgb, var(--today-clock-accent) 34%, transparent);
+    0 0 0.24rem color-mix(in srgb, var(--today-clock-signal) 68%, transparent),
+    0 0 0.9rem color-mix(in srgb, var(--today-clock-signal) 36%, transparent);
 }
 
 .today-calendar-clock-date {
@@ -978,6 +994,28 @@
     padding-left: 1rem;
   }
 
+}
+
+.today-minimal-closing {
+  position: relative;
+  margin-top: clamp(2.25rem, 9vw, 3.25rem);
+  padding-top: clamp(1.45rem, 6vw, 2rem);
+  border-top: 1px solid rgba(172, 133, 92, 0.22);
+}
+
+.today-minimal-closing::before {
+  position: absolute;
+  top: -0.17rem;
+  left: 0;
+  width: 0.29rem;
+  height: 0.29rem;
+  border-radius: 50%;
+  background: rgba(157, 111, 65, 0.68);
+  content: '';
+}
+
+.today-minimal-closing .forecast-feed-story-fragment {
+  margin-bottom: 0;
 }
 
 @media (prefers-reduced-transparency: reduce) {

@@ -53,6 +53,16 @@ const PERIOD_TABS = [
   { id: 'month', label: 'Месяц' },
 ] as const;
 
+const UI_PREVIEW_TODAY_WITH_CLOSING = UI_PREVIEW_TODAY_SECTIONS.map((section, index) => {
+  if (index !== UI_PREVIEW_TODAY_SECTIONS.length - 1) return section;
+  return {
+    ...section,
+    contentBlocks: section.contentBlocks.map((block, blockIndex) => (
+      blockIndex === 0 ? { ...block, role: 'insight' as const } : block
+    )),
+  };
+});
+
 function localHostnameAllowed(): boolean {
   if (typeof window === 'undefined') return false;
   return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
@@ -152,14 +162,15 @@ function DiaryScene({
       />
       {screen === 'today' ? (
         <TodayEditorialFeed
-          sections={UI_PREVIEW_TODAY_SECTIONS}
+          sections={UI_PREVIEW_TODAY_WITH_CLOSING}
           lockedSectionIds={premium
             ? new Set<string>()
-            : new Set(UI_PREVIEW_TODAY_SECTIONS.slice(2).map((section) => section.id))}
+            : new Set(UI_PREVIEW_TODAY_WITH_CLOSING.slice(2).map((section) => section.id))}
           userId="ui-preview-user"
           periodKey="2026-08-22"
           timezone="Europe/Moscow"
           language="ru"
+          tone="mixed"
           premium={premium}
           onRequestPremium={() => onNavigate('paywall')}
         />

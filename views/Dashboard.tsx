@@ -512,6 +512,7 @@ export const Dashboard = memo<DashboardProps>(({
           periodKey={forecast.periodKey}
           timezone={timezone}
           language={language}
+          tone={forecast.meta.astrologerBrief.tone}
           premium={premium || !canPromotePremium}
           onRequestPremium={requestPremium}
           onPremiumTeaserDismiss={() => {
