@@ -110,6 +110,8 @@ describe('Today minimal navigation shell', () => {
     expect(styles).toContain('.today-bottom-navigation::before');
     expect(styles).toContain('text-align: left');
     expect(styles).not.toContain('text-align: justify');
+    expect(styles).toContain('width: min(calc(100% - 2rem), 40rem) !important');
+    expect(styles).toContain('margin-inline: auto');
     expect(read('components/PersonalForecastFeed/TodayEditorialFeed.tsx')).toContain("'На сегодня'");
   });
 });

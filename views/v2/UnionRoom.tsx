@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { CalendarDays, Clock3, MapPin, UserRound } from 'lucide-react';
-import type { NatalChartData, SynastryResult, UserProfile } from '../../types';
+import {
+  CalendarDays,
+  ChevronDown,
+  Clock3,
+  Info,
+  MapPin,
+  UserRound,
+} from 'lucide-react';
+import type { BirthTimeQuality, NatalChartData, SynastryResult, UserProfile } from '../../types';
 import type { SignCompatibilityResult } from '../../lib/synastry/signCompatibility';
 import { getZodiacSign } from '../../constants';
 import { hasActivePremium } from '../../lib/accessMatrix';
@@ -20,7 +27,6 @@ import { loadCompatHistory, addCompatHistory, removeCompatHistory, clearCompatHi
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import type { CompatGender } from '../../lib/synastry/localSignText';
 import {
-  RELATIONSHIP_CONTEXT_OPTIONS,
   getRelationshipContextLabel,
   getRelationshipContextOption,
   normalizeRelationshipContext,
@@ -39,7 +45,6 @@ import {
 } from '../../lib/synastry/compatibilityInput';
 import type { PaywallContext } from '../../lib/paywallContext';
 import {
-  EditorialCurve,
   EditorialChartsButton,
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
@@ -91,6 +96,26 @@ type UnionRoomProps = {
 };
 
 type CompatibilityTab = 'birth' | 'sign';
+type CompatibilityFocus = 'love' | 'relationships' | 'friendship' | 'family' | 'work';
+
+const COMPATIBILITY_FOCUS_OPTIONS: readonly {
+  value: CompatibilityFocus;
+  context: RelationshipContext;
+  label: { ru: string; en: string };
+}[] = [
+  { value: 'love', context: 'romance', label: { ru: 'Любовь', en: 'Love' } },
+  { value: 'relationships', context: 'romance', label: { ru: 'Отношения', en: 'Relationship' } },
+  { value: 'friendship', context: 'friendship', label: { ru: 'Дружба', en: 'Friendship' } },
+  { value: 'family', context: 'family', label: { ru: 'Семья', en: 'Family' } },
+  { value: 'work', context: 'work', label: { ru: 'Работа / бизнес', en: 'Work / business' } },
+] as const;
+
+function compatibilityFocusForContext(context: RelationshipContext): CompatibilityFocus {
+  if (context === 'friendship') return 'friendship';
+  if (context === 'family') return 'family';
+  if (context === 'work') return 'work';
+  return 'love';
+}
 
 type Selected = {
   kind: 'sign' | 'person';
@@ -186,12 +211,6 @@ function PersonSourcePicker({
   );
 }
 
-function personSourceDescription(value: CompatibilityPersonSource, ru: boolean): string {
-  if (value === 'saved') return ru ? 'Сравнение по карте рождения' : 'Compare by birth chart';
-  if (value === 'sign') return ru ? 'Сравнение по знакам зодиака' : 'Compare by zodiac signs';
-  return ru ? 'Сравнение по дате рождения' : 'Compare by birth date';
-}
-
 function PersonBirthFields({
   prefix,
   ru,
@@ -200,13 +219,13 @@ function PersonBirthFields({
   time,
   place,
   gender,
-  unknownTime,
+  timePrecision,
   onNameChange,
   onDateChange,
   onTimeChange,
   onPlaceChange,
   onGenderChange,
-  onUnknownTimeChange,
+  onTimePrecisionChange,
 }: {
   prefix: string;
   ru: boolean;
@@ -215,22 +234,28 @@ function PersonBirthFields({
   time: string;
   place: string;
   gender: CompatGender;
-  unknownTime: boolean;
+  timePrecision: BirthTimeQuality;
   onNameChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
   onPlaceChange: (value: string) => void;
   onGenderChange: (value: CompatGender) => void;
-  onUnknownTimeChange: (value: boolean) => void;
+  onTimePrecisionChange: (value: BirthTimeQuality) => void;
 }) {
   const genderLabelId = `${prefix}-gender-label`;
+  const timePrecisionLabelId = `${prefix}-time-precision-label`;
+  const timePrecisionOptions: readonly { value: BirthTimeQuality; label: string }[] = [
+    { value: 'exact', label: ru ? 'Знаю' : 'Exact' },
+    { value: 'approximate', label: ru ? 'Примерно' : 'Approximate' },
+    { value: 'unknown', label: ru ? 'Не знаю' : 'Unknown' },
+  ];
   return (
     <div className="compat-air-fields">
       <label className="compat-air-field compat-air-field--name" htmlFor={`${prefix}-name`}>
-        <span className="compat-air-label sr-only">{ru ? 'Имя' : 'Name'}</span>
+        <span className="compat-air-label">{ru ? 'Имя' : 'Name'}</span>
         <span className="compat-air-control">
           <UserRound aria-hidden="true" size={20} strokeWidth={1.8} />
-          <input id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Имя' : 'Name'} autoComplete="name" />
+          <input name={`${prefix}-name`} id={`${prefix}-name`} className="compat-air-input" value={name} onChange={(event) => onNameChange(event.target.value)} placeholder={ru ? 'Имя человека' : 'Person name'} autoComplete="name" />
         </span>
       </label>
 
@@ -239,22 +264,22 @@ function PersonBirthFields({
           <span className="compat-air-label">{ru ? 'Дата рождения' : 'Birth date'}</span>
           <span className="compat-air-control">
             <CalendarDays aria-hidden="true" size={20} strokeWidth={1.8} />
-            <input id={`${prefix}-date`} className="compat-air-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
+            <input name={`${prefix}-date`} id={`${prefix}-date`} className="compat-air-input" type="date" value={date} onChange={(event) => onDateChange(event.target.value)} />
           </span>
         </label>
         <label className="compat-air-field" htmlFor={`${prefix}-time`}>
-          <span className="compat-air-label">{ru ? 'Время' : 'Time'}</span>
+          <span className="compat-air-label">{ru ? 'Время рождения' : 'Birth time'}</span>
           <span className="compat-air-control">
             <Clock3 aria-hidden="true" size={20} strokeWidth={1.8} />
             <input
               id={`${prefix}-time`}
+              name={`${prefix}-time`}
               className="compat-air-input"
               type="time"
               value={time}
-              disabled={unknownTime}
-              aria-describedby={`${prefix}-time-note`}
+              disabled={timePrecision === 'unknown'}
               onChange={(event) => {
-                onUnknownTimeChange(false);
+                if (timePrecision === 'unknown') onTimePrecisionChange('exact');
                 onTimeChange(event.target.value);
               }}
             />
@@ -262,37 +287,44 @@ function PersonBirthFields({
         </label>
       </div>
 
-      <div className="compat-air-time-row">
-        <button
-          type="button"
-          className={`compat-air-time-unknown${unknownTime ? ' is-active' : ''}`}
-          aria-pressed={unknownTime}
-          onClick={() => {
-            const next = !unknownTime;
-            onUnknownTimeChange(next);
-            if (next) onTimeChange('');
-          }}
-        >
-          {unknownTime ? (ru ? 'Время неизвестно' : 'Time unknown') : (ru ? 'Не знаю точное время' : "I don't know the exact time")}
-        </button>
-        <span id={`${prefix}-time-note`} className="compat-air-time-note">
-          {unknownTime
-            ? (ru ? 'Учтём данные без времени рождения.' : 'We will use the data without a birth time.')
-            : (ru ? 'Можно оставить пустым, если не знаешь.' : 'Leave blank if you do not know it.')}
+      <div className="compat-time-precision-row">
+        <span id={timePrecisionLabelId} className="compat-air-label">
+          {ru ? 'Точность времени' : 'Time accuracy'}
         </span>
+        <div className="compat-time-precision-options" role="radiogroup" aria-labelledby={timePrecisionLabelId}>
+          {timePrecisionOptions.map((option) => {
+            const active = timePrecision === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                className={`compat-time-precision-option${active ? ' is-active' : ''}`}
+                onClick={() => {
+                  lumiaSelectionHaptic();
+                  onTimePrecisionChange(option.value);
+                  if (option.value === 'unknown') onTimeChange('');
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <label className="compat-air-field compat-air-field--place" htmlFor={`${prefix}-place`}>
-        <span className="compat-air-label sr-only">{ru ? 'Город' : 'City'}</span>
+        <span className="compat-air-label">{ru ? 'Место рождения' : 'Birth place'}</span>
         <span className="compat-air-control">
           <MapPin aria-hidden="true" size={20} strokeWidth={1.8} />
-          <input id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город' : 'City'} autoComplete="address-level2" />
+          <input name={`${prefix}-place`} id={`${prefix}-place`} className="compat-air-input" value={place} onChange={(event) => onPlaceChange(event.target.value)} placeholder={ru ? 'Город, страна' : 'City, country'} autoComplete="address-level2" />
         </span>
       </label>
 
       <div className="compat-air-person-footer">
         <div className="compat-air-gender-field">
-          <span id={genderLabelId} className="compat-air-label sr-only">{ru ? 'Пол' : 'Gender'}</span>
+          <span id={genderLabelId} className="compat-air-label">{ru ? 'Пол' : 'Gender'}</span>
           <GenderToggle value={gender} onChange={onGenderChange} ru={ru} labelledBy={genderLabelId} />
         </div>
       </div>
@@ -329,6 +361,7 @@ function PersonSavedFields({
         <span className="compat-air-label">{ru ? 'Сохранённая карта' : 'Saved chart'}</span>
         <select
           id={`${prefix}-chart`}
+          name={`${prefix}-chart`}
           className="compat-air-input compat-air-select"
           value={value ?? ''}
           onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
@@ -407,7 +440,7 @@ function PersonSignFields({
         <span className="compat-air-label">{ru ? 'Знак зодиака' : 'Zodiac sign'}</span>
         <span className="compat-sign-select-wrap">
           <ZodiacSymbol sign={sign} size={28} />
-          <select id={`${prefix}-sign`} className="compat-air-input compat-air-select" value={sign} onChange={(event) => onSignChange(event.target.value)}>
+          <select name={`${prefix}-sign`} id={`${prefix}-sign`} className="compat-air-input compat-air-select" value={sign} onChange={(event) => onSignChange(event.target.value)}>
             {ZODIAC_KEYS.map((key) => <option key={key} value={key}>{getZodiacSign(lang, key)}</option>)}
           </select>
         </span>
@@ -524,13 +557,13 @@ function SignSwipePicker({
 }
 
 function RelationshipContextPicker({
-  value,
+  focus,
   onChange,
   ru,
   compact = false,
 }: {
-  value: RelationshipContext;
-  onChange: (value: RelationshipContext) => void;
+  focus: CompatibilityFocus;
+  onChange: (focus: CompatibilityFocus, context: RelationshipContext) => void;
   ru: boolean;
   compact?: boolean;
 }) {
@@ -543,8 +576,8 @@ function RelationshipContextPicker({
         </div>
       ) : null}
       <div className="compat-choice-tabs compat-context-options" role="radiogroup" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
-        {RELATIONSHIP_CONTEXT_OPTIONS.map((option) => {
-          const active = option.value === value;
+        {COMPATIBILITY_FOCUS_OPTIONS.map((option) => {
+          const active = option.value === focus;
           return (
             <button
               key={option.value}
@@ -554,11 +587,10 @@ function RelationshipContextPicker({
               className={`compat-choice-tab compat-context-option ${active ? 'is-active' : ''}`}
               onClick={() => {
                 lumiaSelectionHaptic();
-                onChange(option.value);
+                onChange(option.value, option.context);
               }}
             >
               <span>{ru ? option.label.ru : option.label.en}</span>
-              {!compact ? <small>{ru ? option.hint.ru : option.hint.en}</small> : null}
             </button>
           );
         })}
@@ -676,6 +708,7 @@ export function UnionRoom(props: UnionRoomProps) {
   const [youGender, setYouGender] = useState<CompatGender>(initialYouGender);
   const [themGender] = useState<CompatGender>(initialThemGender);
   const [relationshipContext, setRelationshipContext] = useState<RelationshipContext>('romance');
+  const [relationshipFocus, setRelationshipFocus] = useState<CompatibilityFocus>('love');
   const [selected, setSelected] = useState<Selected | null>(
     previewFixture?.screen === 'result'
       ? {
@@ -727,12 +760,12 @@ export function UnionRoom(props: UnionRoomProps) {
   const [sName, setSName] = useState(previewFixture?.subject.name || '');
   const [sDate, setSDate] = useState(previewFixture?.subject.date || '');
   const [sTime, setSTime] = useState(previewFixture?.subject.time || '');
-  const [sUnknownTime, setSUnknownTime] = useState(false);
+  const [sTimePrecision, setSTimePrecision] = useState<BirthTimeQuality>('exact');
   const [sPlace, setSPlace] = useState(previewFixture?.subject.place || '');
   const [fName, setFName] = useState(previewFixture?.partner.name || initialPrefill?.partnerName || '');
   const [fDate, setFDate] = useState(() => toDateInputValue(previewFixture?.partner.date || initialPrefill?.partnerDate || ''));
   const [fTime, setFTime] = useState(previewFixture?.partner.time || initialPrefill?.partnerTime || '');
-  const [fUnknownTime, setFUnknownTime] = useState(false);
+  const [fTimePrecision, setFTimePrecision] = useState<BirthTimeQuality>('exact');
   const [fPlace, setFPlace] = useState(previewFixture?.partner.place || initialPrefill?.partnerPlace || '');
   const [fGender, setFGender] = useState<CompatGender>(initialThemGender);
 
@@ -827,20 +860,28 @@ export function UnionRoom(props: UnionRoomProps) {
     source: subjectResolvedSource,
     chartId: firstChart?.id,
     date: subjectResolvedSource === 'saved' ? firstChart?.birth_date : subjectResolvedSource === 'birth' ? sDate : '',
-    time: subjectResolvedSource === 'saved' ? firstChart?.birth_time : subjectResolvedSource === 'birth' ? sTime : '',
+    time: subjectResolvedSource === 'saved'
+      ? firstChart?.birth_time
+      : subjectResolvedSource === 'birth' && sTimePrecision !== 'unknown'
+        ? sTime
+        : '',
     place: subjectResolvedSource === 'saved' ? firstChart?.birth_place : subjectResolvedSource === 'birth' ? sPlace : '',
     sign: subjectResolvedSource === 'sign' ? youSign : firstChart?.chart_data?.sun?.sign,
     chartBirthTimeQuality: (firstChart?.chart_data as any)?.birthTimeQuality,
-  }), [subjectResolvedSource, firstChart, sDate, sTime, sPlace, youSign]);
+  }), [subjectResolvedSource, firstChart, sDate, sTime, sTimePrecision, sPlace, youSign]);
   const partnerClassification = useMemo(() => classifyCompatibilityPerson({
     source: partnerResolvedSource,
     chartId: secondChart?.id,
     date: partnerResolvedSource === 'saved' ? secondChart?.birth_date : partnerResolvedSource === 'birth' ? fDate : '',
-    time: partnerResolvedSource === 'saved' ? secondChart?.birth_time : partnerResolvedSource === 'birth' ? fTime : '',
+    time: partnerResolvedSource === 'saved'
+      ? secondChart?.birth_time
+      : partnerResolvedSource === 'birth' && fTimePrecision !== 'unknown'
+        ? fTime
+        : '',
     place: partnerResolvedSource === 'saved' ? secondChart?.birth_place : partnerResolvedSource === 'birth' ? fPlace : '',
     sign: partnerResolvedSource === 'sign' ? pickSign : secondChart?.chart_data?.sun?.sign,
     chartBirthTimeQuality: (secondChart?.chart_data as any)?.birthTimeQuality,
-  }), [partnerResolvedSource, secondChart, fDate, fTime, fPlace, pickSign]);
+  }), [partnerResolvedSource, secondChart, fDate, fTime, fTimePrecision, fPlace, pickSign]);
   const draftCalculationLevel = useMemo(
     () => resolveCompatibilityPairLevel(subjectClassification, partnerClassification),
     [subjectClassification, partnerClassification],
@@ -924,6 +965,7 @@ export function UnionRoom(props: UnionRoomProps) {
     const tg: CompatGender = e.theirGender === 'male' ? 'male' : 'female';
     const context = normalizeRelationshipContext(e.relationshipContext);
     setRelationshipContext(context);
+    setRelationshipFocus(compatibilityFocusForContext(context));
     const base = {
       relationshipContext: context,
       youSign: e.yourSun || yourSun,
@@ -1043,7 +1085,11 @@ export function UnionRoom(props: UnionRoomProps) {
         ? getZodiacSign(lang, youSign)
         : sName.trim() || (ru ? 'Первый человек' : 'First person');
     const subjectDate = subjectResolvedSource === 'saved' ? firstChart?.birth_date || '' : subjectResolvedSource === 'birth' ? sDate : '';
-    const subjectTime = subjectResolvedSource === 'saved' ? firstChart?.birth_time || undefined : subjectResolvedSource === 'birth' ? sTime || undefined : undefined;
+    const subjectTime = subjectResolvedSource === 'saved'
+      ? firstChart?.birth_time || undefined
+      : subjectResolvedSource === 'birth' && sTimePrecision !== 'unknown'
+        ? sTime || undefined
+        : undefined;
     const subjectPlace = subjectResolvedSource === 'saved' ? firstChart?.birth_place || '' : subjectResolvedSource === 'birth' ? sPlace.trim() : '';
     const subjectResolvedSign = String(
       subjectResolvedSource === 'sign'
@@ -1057,7 +1103,11 @@ export function UnionRoom(props: UnionRoomProps) {
         ? getZodiacSign(lang, pickSign)
         : fName.trim() || (ru ? 'Второй человек' : 'Second person');
     const partnerDate = partnerResolvedSource === 'saved' ? secondChart?.birth_date || '' : partnerResolvedSource === 'birth' ? fDate : '';
-    const partnerTime = partnerResolvedSource === 'saved' ? secondChart?.birth_time || undefined : partnerResolvedSource === 'birth' ? fTime || undefined : undefined;
+    const partnerTime = partnerResolvedSource === 'saved'
+      ? secondChart?.birth_time || undefined
+      : partnerResolvedSource === 'birth' && fTimePrecision !== 'unknown'
+        ? fTime || undefined
+        : undefined;
     const partnerPlace = partnerResolvedSource === 'saved' ? secondChart?.birth_place || '' : partnerResolvedSource === 'birth' ? fPlace.trim() : '';
     const partnerResolvedSign = String(
       partnerResolvedSource === 'sign'
@@ -1250,7 +1300,6 @@ export function UnionRoom(props: UnionRoomProps) {
     return (
       <div className="fresh-page compat-editorial-page compat-editorial-page--add">
         {compatibilityHeader()}
-        <EditorialCurve className="compat-entry-curve" />
 
         {entryMode === 'birth' ? (
           <>
@@ -1261,11 +1310,65 @@ export function UnionRoom(props: UnionRoomProps) {
                 submitAdd();
               }}
             >
+              <details className="compat-entry-disclosure">
+                <summary>
+                  <span className="compat-entry-disclosure-icon" aria-hidden="true">
+                    <Info size={14} strokeWidth={1.8} />
+                  </span>
+                  <strong>{ru ? 'Что покажет сравнение' : 'What the comparison will show'}</strong>
+                  <ChevronDown aria-hidden="true" size={14} strokeWidth={1.8} />
+                </summary>
+                <div className="compat-entry-disclosure-body">
+                  <p className="compat-entry-disclosure-lead">
+                    {ru
+                      ? 'Это не вердикт «подходите вы или нет». Разбор покажет, как устроена ваша связь и на что лучше обратить внимание.'
+                      : 'This is not a verdict on whether you belong together. It shows how your connection works and what deserves attention.'}
+                  </p>
+                  <div className="compat-entry-disclosure-points">
+                    <div className="compat-entry-disclosure-point">
+                      <span aria-hidden="true" />
+                      <p>
+                        <strong>{ru ? 'Что вас сближает' : 'What brings you closer'}</strong>
+                        <small>{ru ? 'Где вам легко понимать и поддерживать друг друга.' : 'Where understanding and supporting each other feels natural.'}</small>
+                      </p>
+                    </div>
+                    <div className="compat-entry-disclosure-point">
+                      <span aria-hidden="true" />
+                      <p>
+                        <strong>{ru ? 'Где можно не совпасть' : 'Where you may differ'}</strong>
+                        <small>{ru ? 'Какие различия чаще вызывают напряжение или недопонимание.' : 'Which differences are more likely to create tension or misunderstanding.'}</small>
+                      </p>
+                    </div>
+                    <div className="compat-entry-disclosure-point">
+                      <span aria-hidden="true" />
+                      <p>
+                        <strong>{ru ? 'Как лучше договориться' : 'How to understand each other'}</strong>
+                        <small>{ru ? 'Что поможет слышать друг друга и не повторять один и тот же спор.' : 'What helps you hear each other and avoid repeating the same argument.'}</small>
+                      </p>
+                    </div>
+                  </div>
+                  <p className="compat-entry-disclosure-note">
+                    {ru ? 'Выбранная сфера задаёт контекст разбора.' : 'The selected area sets the context for the reading.'}
+                  </p>
+                </div>
+              </details>
+
+              <section className="compat-entry-context" aria-label={ru ? 'Тип отношений' : 'Relationship type'}>
+                <RelationshipContextPicker
+                  focus={relationshipFocus}
+                  onChange={(focus, context) => {
+                    setRelationshipFocus(focus);
+                    setRelationshipContext(context);
+                  }}
+                  ru={ru}
+                  compact
+                />
+              </section>
+
               <section className="compat-air-person compat-air-person--first" aria-labelledby="compat-first-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
                     <h3 id="compat-first-person-title">{ru ? 'Первый человек' : 'First person'}</h3>
-                    <p className="compat-air-source-description">{personSourceDescription(subjectSource, ru)}</p>
                   </div>
                   <PersonSourcePicker
                     value={subjectSource}
@@ -1296,7 +1399,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     time={sTime}
                     place={sPlace}
                     gender={youGender}
-                    unknownTime={sUnknownTime}
+                    timePrecision={sTimePrecision}
                     onNameChange={setSName}
                     onDateChange={(value) => {
                       setSDate(value);
@@ -1306,7 +1409,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     onTimeChange={setSTime}
                     onPlaceChange={setSPlace}
                     onGenderChange={setYouGender}
-                    onUnknownTimeChange={setSUnknownTime}
+                    onTimePrecisionChange={setSTimePrecision}
                   />
                 ) : subjectSource === 'saved' ? (
                   <PersonSavedFields
@@ -1333,13 +1436,12 @@ export function UnionRoom(props: UnionRoomProps) {
                 )}
               </section>
 
-              <div className="compat-person-divider" aria-hidden="true"><span>✦</span></div>
+              <div className="compat-person-divider" aria-hidden="true" />
 
               <section className="compat-air-person compat-air-person--second" aria-labelledby="compat-second-person-title">
                 <header className="compat-air-person-heading">
                   <div className="compat-air-person-title">
                     <h3 id="compat-second-person-title">{ru ? 'Второй человек' : 'Second person'}</h3>
-                    <p className="compat-air-source-description">{personSourceDescription(partnerSource, ru)}</p>
                   </div>
                   <PersonSourcePicker
                     value={partnerSource}
@@ -1356,7 +1458,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     time={fTime}
                     place={fPlace}
                     gender={fGender}
-                    unknownTime={fUnknownTime}
+                    timePrecision={fTimePrecision}
                     onNameChange={setFName}
                     onDateChange={(value) => {
                       setFDate(value);
@@ -1366,7 +1468,7 @@ export function UnionRoom(props: UnionRoomProps) {
                     onTimeChange={setFTime}
                     onPlaceChange={setFPlace}
                     onGenderChange={setFGender}
-                    onUnknownTimeChange={setFUnknownTime}
+                    onTimePrecisionChange={setFTimePrecision}
                   />
                 ) : partnerSource === 'saved' ? (
                   <PersonSavedFields
@@ -1391,24 +1493,6 @@ export function UnionRoom(props: UnionRoomProps) {
                     onGenderChange={setFGender}
                   />
                 )}
-              </section>
-
-              {subjectSource === 'birth' || partnerSource === 'birth' ? (
-                <p className="compat-air-precision-note">
-                  {ru
-                    ? 'Время и город — если знаешь: так карта получится точнее.'
-                    : 'Time and city, if you know them, make the chart more precise.'}
-                </p>
-              ) : null}
-
-              <section className="compat-entry-context" aria-labelledby="compat-context-title">
-                <h2 id="compat-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
-                <RelationshipContextPicker
-                  value={relationshipContext}
-                  onChange={setRelationshipContext}
-                  ru={ru}
-                  compact
-                />
               </section>
 
               {error ? <p className="compat-entry-error" role="alert">{error}</p> : null}
@@ -1488,8 +1572,11 @@ export function UnionRoom(props: UnionRoomProps) {
             <section className="compat-entry-context" aria-labelledby="compat-sign-context-title">
               <h2 id="compat-sign-context-title">{ru ? 'Тип отношений' : 'Relationship type'}</h2>
               <RelationshipContextPicker
-                value={relationshipContext}
-                onChange={setRelationshipContext}
+                focus={relationshipFocus}
+                onChange={(focus, context) => {
+                  setRelationshipFocus(focus);
+                  setRelationshipContext(context);
+                }}
                 ru={ru}
                 compact
               />

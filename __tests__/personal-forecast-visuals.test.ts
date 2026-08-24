@@ -71,12 +71,27 @@ describe('personal forecast editorial visual resolver', () => {
       collection: 'personal-editorial',
       hasEmbeddedText: false,
       productionSelectable: true,
+      source: 'editorial-v2',
+      print: 'transparent-webp',
     });
     expect(first?.path.startsWith('/assets/personal-editorial/')).toBe(true);
     expect(first?.topics).toContain('friends');
     expect(['mascot', 'object', 'animal', 'surreal', 'psychedelic', 'graphic'])
       .toContain(first?.diaryFamily);
-    expect(['clips_pins', 'doodles', 'tape']).not.toContain(first?.sourceCategory);
+    expect(['animals', 'graphic', 'mascots', 'objects', 'psychedelic', 'surreal'])
+      .toContain(first?.sourceCategory);
+
+    const samples = Array.from({ length: 600 }, (_, index) => selectTodayEndEditorialAsset({
+      ...input,
+      userId: `today-end-user-${index}`,
+    })).filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
+    const forbidden = /paper|newspaper|scrap|tape|torn|fixed_text|_beige_|_brown_|_rust_/iu;
+
+    expect(samples).toHaveLength(600);
+    expect(samples.every((asset) => asset.source === 'editorial-v2')).toBe(true);
+    expect(samples.every((asset) => asset.print === 'transparent-webp')).toBe(true);
+    expect(samples.every((asset) => !asset.hasEmbeddedText)).toBe(true);
+    expect(samples.every((asset) => !forbidden.test(asset.sourceId))).toBe(true);
   });
 
   it('keeps one ordered request for every section in the continuous feed', () => {

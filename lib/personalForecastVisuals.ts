@@ -148,6 +148,27 @@ const EDITORIAL_TOPIC_BY_THEME: Record<Theme, EditorialTopic> = {
   mercury: 'mercury',
 };
 
+const TODAY_END_COLOR_CUTOUT_CATEGORIES = [
+  'animals',
+  'graphic',
+  'mascots',
+  'objects',
+  'psychedelic',
+  'surreal',
+] as const;
+
+const TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS = [
+  'paper',
+  'newspaper',
+  'scrap',
+  'tape',
+  'torn',
+  'fixed_text',
+  '_beige_',
+  '_brown_',
+  '_rust_',
+] as const;
+
 export function selectTodayEndEditorialAsset(input: {
   userId: string;
   periodKey: string;
@@ -181,7 +202,9 @@ export function selectTodayEndEditorialAsset(input: {
     periodKey: `${input.periodKey}|today-end|${semanticKey}`,
     userId: input.userId,
     topics: themesFor(request).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
-    excludeSourceCategories: ['clips_pins', 'doodles', 'tape'],
+    allowedSources: ['editorial-v2'],
+    allowedSourceCategories: TODAY_END_COLOR_CUTOUT_CATEGORIES,
+    excludeSourceIdFragments: TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS,
     forceVisible: true,
   });
 }

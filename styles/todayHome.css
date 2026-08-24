@@ -663,8 +663,8 @@
 /* Reading area: continuous copy with only hairlines and editorial waypoints. */
 .today-minimal-reading {
   box-sizing: border-box;
-  width: min(calc(100% - 2.5rem), 38.75rem) !important;
-  margin: 0 auto;
+  width: min(calc(100% - 2rem), 40rem) !important;
+  margin-inline: auto;
   padding: clamp(1.35rem, 6vw, 2rem) 0 2rem;
   scroll-margin-top: calc(var(--home-safe-top, 18px) + 7.7rem);
 }
@@ -765,12 +765,13 @@
   border: 0;
   color: var(--today-copy);
   font-family: var(--forecast-editorial-font);
-  font-size: clamp(0.96rem, 4.15vw, 1.08rem);
+  font-size: clamp(1.04rem, 4.25vw, 1.1rem) !important;
   font-weight: 400;
   letter-spacing: -0.018em;
-  line-height: 1.66;
-  text-align: left;
-  text-wrap: pretty;
+  line-height: 1.66 !important;
+  text-align: left !important;
+  text-wrap: wrap !important;
+  overflow-wrap: break-word;
 }
 
 #__next .today-minimal-reading .forecast-feed-section-text.is-lead::before {

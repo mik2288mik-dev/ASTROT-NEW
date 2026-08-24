@@ -66,13 +66,28 @@ describe('compatibility editorial layout', () => {
     expect(addFlow.match(/<PersonBirthFields/g)).toHaveLength(2);
     expect(addFlow).toContain('sign={youSign}');
     expect(addFlow).toContain('sign={pickSign}');
-    expect(room).toContain('compat-air-time-unknown');
-    expect(room).toContain('onUnknownTimeChange');
-    expect(room).toContain('sUnknownTime');
-    expect(room).toContain('fUnknownTime');
+    expect(room).toContain('compat-time-precision-option');
+    expect(room).toContain('onTimePrecisionChange');
+    expect(room).toContain('sTimePrecision');
+    expect(room).toContain('fTimePrecision');
+    expect(room).toContain("value: 'exact', label: ru ? 'Знаю'");
+    expect(room).toContain("value: 'approximate', label: ru ? 'Примерно'");
+    expect(room).toContain("value: 'unknown', label: ru ? 'Не знаю'");
     expect(addFlow).not.toContain('Sparkles');
-    expect(addFlow).toContain("ru ? 'Тип отношений' : 'Relationship type'");
-    expect(addFlow).toContain('<div className="compat-person-divider" aria-hidden="true"><span>✦</span></div>');
+    expect(addFlow).not.toContain('✦');
+    expect(addFlow).not.toContain("ru ? 'Фокус сравнения' : 'Comparison focus'");
+    expect(addFlow).toContain('className="compat-entry-disclosure"');
+    expect(addFlow).toContain('Что покажет сравнение');
+    expect(addFlow).toContain('Это не вердикт «подходите вы или нет»');
+    expect(addFlow).toContain('Что вас сближает');
+    expect(addFlow).toContain('Где можно не совпасть');
+    expect(addFlow).toContain('Как лучше договориться');
+    expect(addFlow).not.toContain('<EditorialCurve');
+    for (const label of ['Любовь', 'Отношения', 'Дружба', 'Семья', 'Работа / бизнес']) {
+      expect(room).toContain(label);
+    }
+    expect(room).toContain("value: 'love', context: 'romance'");
+    expect(room).toContain("value: 'relationships', context: 'romance'");
 
     expect(styles).toContain('.compat-editorial-page--add .compat-entry-form');
     expect(styles).toContain('.compat-editorial-page--add .compat-person-source-option');
@@ -80,6 +95,18 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('font-size: 16px');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-control');
     expect(styles).toContain('.compat-editorial-page--add .compat-air-field:focus-within');
+    expect(styles).toContain('/* Compatibility input: white onboarding-style data entry, scoped away from results. */');
+    expect(styles).toMatch(
+      /\.compat-editorial-page--add \.compat-air-field\s*\{[^}]*border:\s*0;[^}]*border-bottom:\s*1px solid var\(--compat-input-line\);/,
+    );
+    expect(styles).toContain('.compat-editorial-page--add .compat-time-precision-options');
+    expect(styles).toContain('.compat-editorial-page--add .compat-context-options');
+    expect(styles).toMatch(
+      /\.compat-editorial-page--add \.compat-context-option,[\s\S]*?min-height:\s*2rem;[\s\S]*?border-radius:\s*0\s*!important;/,
+    );
+    expect(styles).toMatch(
+      /\.compat-editorial-page--add \.compat-context-option\.is-active\s*\{[^}]*background:\s*transparent\s*!important;/,
+    );
     expect(room).not.toContain('compat-zodiac-field');
     expect(styles).not.toContain('.compat-editorial-page--add .compat-entry-person');
   });

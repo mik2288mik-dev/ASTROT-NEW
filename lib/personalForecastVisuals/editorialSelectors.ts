@@ -10,6 +10,7 @@ import {
   type EditorialTone,
   type EditorialTopic,
   type PersonalEditorialAsset,
+  type PersonalEditorialSource,
 } from './editorialTypes';
 
 export const PERSONAL_VISUAL_MANIFEST_VERSION = 'personal-editorial-v1';
@@ -162,13 +163,24 @@ function isVisible(seed: string, visiblePercent: number): boolean {
 function filterPersonalPool(input: {
   topics?: readonly EditorialTopic[];
   allowedTones?: readonly EditorialTone[];
+  allowedSources?: readonly PersonalEditorialSource[];
+  allowedSourceCategories?: readonly string[];
   excludeIds?: readonly string[];
   excludeSourceCategories?: readonly string[];
+  excludeSourceIdFragments?: readonly string[];
 }): readonly DiaryEligibleAsset[] {
   const excluded = new Set(input.excludeIds || []);
+  const allowedSources = new Set(input.allowedSources || []);
+  const allowedSourceCategories = new Set(input.allowedSourceCategories || []);
   const excludedSourceCategories = new Set(input.excludeSourceCategories || []);
+  const excludedSourceIdFragments = (input.excludeSourceIdFragments || [])
+    .map((fragment) => fragment.toLowerCase());
   const base = AUTO_SELECTABLE_PERSONAL_ASSETS.filter((asset) => (
-    !excluded.has(asset.id) && !excludedSourceCategories.has(asset.sourceCategory)
+    !excluded.has(asset.id)
+    && (!allowedSources.size || allowedSources.has(asset.source))
+    && (!allowedSourceCategories.size || allowedSourceCategories.has(asset.sourceCategory))
+    && !excludedSourceCategories.has(asset.sourceCategory)
+    && !excludedSourceIdFragments.some((fragment) => asset.sourceId.toLowerCase().includes(fragment))
   ));
   const topics = input.topics?.length
     ? base.filter((asset) => asset.topics.some((topic) => input.topics!.includes(topic)))
@@ -185,8 +197,11 @@ export function selectPersonalEditorialAsset(input: {
   userId?: string | null;
   topics?: readonly EditorialTopic[];
   allowedTones?: readonly EditorialTone[];
+  allowedSources?: readonly PersonalEditorialSource[];
+  allowedSourceCategories?: readonly string[];
   excludeIds?: readonly string[];
   excludeSourceCategories?: readonly string[];
+  excludeSourceIdFragments?: readonly string[];
   slot?: number;
   forceVisible?: boolean;
 }): DiaryEligibleAsset | null {
