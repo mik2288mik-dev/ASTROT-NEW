@@ -54,7 +54,7 @@ describe('first-run onboarding completion flow', () => {
       expect(onboarding).toContain(field);
     }
 
-    expect(onboarding).toContain("useState<'male' | 'female' | 'unspecified'>('unspecified')");
+    expect(onboarding).toContain("useState<'male' | 'female' | 'unspecified'>(initialProfile?.gender || 'unspecified')");
     expect(onboarding).toContain('(window as any).Telegram?.WebApp');
     expect(onboarding).toContain('ensureTelegramFullscreen()');
     expect(onboarding).toContain('if (submittingRef.current) return;');

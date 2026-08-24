@@ -128,6 +128,43 @@ describe('account authentication runtime hardening', () => {
     expect(observed[0]).toMatchObject({ code: 'ACCOUNT_BLOCKED', status: 403 });
   });
 
+  it('aborts a fresh native guest bootstrap with the apiFetch timeout signal', async () => {
+    jest.useFakeTimers();
+    setAuthSessionMode('guest');
+    mockedNativeSessionStore.getSession.mockResolvedValue(null);
+    let bootstrapSignal: AbortSignal | null | undefined;
+    global.fetch = jest.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      bootstrapSignal = init?.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        const rejectAsAborted = () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        };
+        if (bootstrapSignal?.aborted) rejectAsAborted();
+        else bootstrapSignal?.addEventListener('abort', rejectAsAborted, { once: true });
+      });
+    }) as typeof fetch;
+
+    try {
+      const request = apiFetch('/api/users/me', {}, 1_000);
+      const outcome = request.then(
+        () => null,
+        (error) => error as Error,
+      );
+      await jest.advanceTimersByTimeAsync(0);
+      expect(bootstrapSignal).toBeDefined();
+
+      await jest.advanceTimersByTimeAsync(1_000);
+
+      await expect(outcome).resolves.toMatchObject({ name: 'AbortError' });
+      expect(bootstrapSignal?.aborted).toBe(true);
+    } finally {
+      jest.useRealTimers();
+      global.fetch = originalFetch;
+    }
+  });
+
   it('clears browser account data even when native credential cleanup fails', async () => {
     mockedNativeSessionStore.clearToken.mockRejectedValueOnce(new Error('keystore unavailable'));
 

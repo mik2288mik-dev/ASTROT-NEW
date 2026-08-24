@@ -21,11 +21,26 @@ type ErrorField = FieldKey | null;
 interface OnboardingProps {
   onComplete: (profile: UserProfile) => Promise<void>;
   initialStep?: OnboardingStart;
+  initialProfile?: UserProfile;
   onSkip: () => void;
   onSignIn: () => void;
 }
 
 const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
+const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
+  if (!profile) return 'exact';
+  if (profile?.birthTimeMode === 'unknown' || !profile?.birthTime) return 'unknown';
+  return profile?.birthTimeMode === 'approximate' ? 'approximate' : 'exact';
+};
+const initialUncertainty = (profile?: UserProfile): BirthTimeUncertaintyMinutes | null => {
+  const value = profile?.birthTimeUncertaintyMinutes;
+  return value === 15 || value === 30 || value === 60 ? value : null;
+};
+const initialCoordinates = (profile?: UserProfile) => (
+  typeof profile?.birthLatitude === 'number' && typeof profile?.birthLongitude === 'number'
+    ? { lat: profile.birthLatitude, lon: profile.birthLongitude, timezone: profile.birthTimezone || undefined }
+    : null
+);
 const OnboardingProgress = ({ current, count, labelled = true }: { current: number; count: number; labelled?: boolean }) => (
   <div className="meou-progress" aria-label={`${current} из ${count}`}>
     <div className="meou-progress-lines" aria-hidden="true">
@@ -40,18 +55,19 @@ const OnboardingProgress = ({ current, count, labelled = true }: { current: numb
 export const Onboarding: React.FC<OnboardingProps> = ({
   onComplete,
   initialStep = 'stories',
+  initialProfile,
   onSkip,
   onSignIn,
 }) => {
   const [screen, setScreen] = useState<OnboardingScreen>(initialStep === 'birth' ? 'birth' : 'day');
-  const [name, setName] = useState('');
-  const [gender] = useState<'male' | 'female' | 'unspecified'>('unspecified');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [timeMode, setTimeMode] = useState<Exclude<BirthTimeMode, 'range'>>('exact');
-  const [uncertainty, setUncertainty] = useState<BirthTimeUncertaintyMinutes | null>(null);
-  const [place, setPlace] = useState('');
-  const [placeCoords, setPlaceCoords] = useState<{ lat: number; lon: number; timezone?: string } | null>(null);
+  const [name, setName] = useState(initialProfile?.name || '');
+  const [gender] = useState<'male' | 'female' | 'unspecified'>(initialProfile?.gender || 'unspecified');
+  const [date, setDate] = useState(initialProfile?.birthDate || '');
+  const [time, setTime] = useState(initialProfile?.birthTime || '');
+  const [timeMode, setTimeMode] = useState<Exclude<BirthTimeMode, 'range'>>(() => initialTimeMode(initialProfile));
+  const [uncertainty, setUncertainty] = useState<BirthTimeUncertaintyMinutes | null>(() => initialUncertainty(initialProfile));
+  const [place, setPlace] = useState(initialProfile?.birthPlace || '');
+  const [placeCoords, setPlaceCoords] = useState<{ lat: number; lon: number; timezone?: string } | null>(() => initialCoordinates(initialProfile));
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<ErrorField>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +81,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 
   useEffect(() => {
     const tg = (window as any).Telegram?.WebApp;
-    if (tg?.initDataUnsafe?.user) setName(tg.initDataUnsafe.user.first_name || '');
+    if (tg?.initDataUnsafe?.user) {
+      setName((current) => current.trim() ? current : tg.initDataUnsafe.user.first_name || '');
+    }
     ensureTelegramFullscreen();
   }, []);
 

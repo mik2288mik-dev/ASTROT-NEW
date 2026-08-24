@@ -44,7 +44,24 @@ type RuStorePayBridge = {
 };
 
 const PURCHASE_RECONCILIATION_DELAY_MS = 1_000;
+const PURCHASE_RECONCILIATION_WINDOW_MS = 30_000;
+const PURCHASE_VALIDATION_TIMEOUT_MS = 10_000;
 const inFlightPayments = new Map<string, Promise<PaymentResult>>();
+
+const TERMINAL_BACKEND_VALIDATION_REASONS = new Set([
+  'RECOVERY_IDENTITY_REQUIRED',
+  'RUSTORE_PURCHASE_ID_REQUIRED',
+  'RUSTORE_PURCHASE_PRODUCT_MISMATCH',
+  'RUSTORE_PURCHASE_USER_MISMATCH',
+  'RUSTORE_PURCHASE_OWNED_BY_ANOTHER_USER',
+]);
+
+const SDK_TERMINAL_PURCHASE_FAILURE_REASONS = new Set([
+  'RUSTORE_PURCHASE_EXPIRED',
+  'RUSTORE_PURCHASE_REJECTED',
+  'RUSTORE_PURCHASE_TERMINATED',
+  'RUSTORE_PURCHASE_CLOSED',
+]);
 
 type PendingRuStorePurchase = Required<Pick<RuStorePurchase, 'productId' | 'purchaseId'>>
   & Pick<RuStorePurchase, 'orderId' | 'productType' | 'status'>;
@@ -52,6 +69,26 @@ type PendingRuStorePurchase = Required<Pick<RuStorePurchase, 'productId' | 'purc
 const delay = (milliseconds: number) => new Promise<void>((resolve) => {
   globalThis.setTimeout(resolve, milliseconds);
 });
+
+function withinTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  if (timeoutMs <= 0) return Promise.reject(new Error('RUSTORE_RECONCILIATION_DEADLINE'));
+  return new Promise<T>((resolve, reject) => {
+    const timer = globalThis.setTimeout(
+      () => reject(new Error('RUSTORE_RECONCILIATION_DEADLINE')),
+      timeoutMs,
+    );
+    promise.then(
+      (value) => {
+        globalThis.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        globalThis.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 const RuStorePay = registerPlugin<RuStorePayBridge>('RuStorePay');
 
@@ -108,7 +145,12 @@ async function reconcilePurchaseResult(
   purchase: RuStorePurchase,
 ): Promise<PaymentResult> {
   let current = purchase;
+  const deadline = Date.now() + PURCHASE_RECONCILIATION_WINDOW_MS;
   for (;;) {
+    const validationTimeLeft = deadline - Date.now();
+    if (validationTimeLeft <= 0) {
+      return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
+    }
     const terminal = terminalPurchaseResult(current);
     if (terminal === 'cancelled') return { status: 'cancelled' };
     if (terminal === 'failed') {
@@ -124,15 +166,34 @@ async function reconcilePurchaseResult(
     // A successful Pay SDK purchase result contains identifiers but no status.
     // Validate it immediately instead of waiting for getPurchases() to surface
     // ACTIVE; the Public API remains the only authority that can grant Premium.
-    const validated = await validateWithBackend(current);
+    let validated: BackendValidationResult;
+    try {
+      validated = await withinTimeout(
+        validateWithBackend(
+          current,
+          Math.min(PURCHASE_VALIDATION_TIMEOUT_MS, validationTimeLeft),
+        ),
+        validationTimeLeft,
+      );
+    } catch {
+      return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
+    }
     if (validated.status === 'completed' || validated.status === 'failed') return validated;
     if (validated.status === 'inactive' && String(current.status || '').toUpperCase() === 'PAUSED') {
       return { status: 'failed', reason: 'RUSTORE_SUBSCRIPTION_PAUSED' };
     }
 
-    await delay(PURCHASE_RECONCILIATION_DELAY_MS);
+    const delayTimeLeft = deadline - Date.now();
+    if (delayTimeLeft <= 0) {
+      return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
+    }
+    await delay(Math.min(PURCHASE_RECONCILIATION_DELAY_MS, delayTimeLeft));
+    const sdkTimeLeft = deadline - Date.now();
+    if (sdkTimeLeft <= 0) {
+      return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
+    }
     try {
-      const purchases = await nativeBridge.getPurchases();
+      const purchases = await withinTimeout(nativeBridge.getPurchases(), sdkTimeLeft);
       const next = purchases.purchases.find((candidate) => (
         candidate.purchaseId === purchase.purchaseId
         && candidate.productId === purchase.productId
@@ -140,7 +201,10 @@ async function reconcilePurchaseResult(
       ));
       if (next) current = { ...current, ...next };
     } catch {
-      // Keep the checkout locked while RuStore is temporarily unreachable.
+      if (Date.now() >= deadline) {
+        return { status: 'pending', reason: 'RUSTORE_PURCHASE_VALIDATION_PENDING' };
+      }
+      // Keep the checkout locked during the bounded reconciliation window.
     }
   }
 }
@@ -279,40 +343,42 @@ async function hasRecoveryIdentity(): Promise<boolean | null> {
   ));
 }
 
-async function validateWithBackend(purchase: RuStorePurchase): Promise<BackendValidationResult> {
+async function validateWithBackend(
+  purchase: RuStorePurchase,
+  timeoutMs = PURCHASE_VALIDATION_TIMEOUT_MS,
+): Promise<BackendValidationResult> {
   if (!purchase.purchaseId) {
     return { status: 'failed', reason: 'RUSTORE_PURCHASE_STATUS_UNKNOWN' };
   }
   try {
-    const response = await apiFetch('/api/payments/rustore/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'rustore',
-        productId: purchase.productId,
-        purchaseId: purchase.purchaseId,
-        orderId: purchase.orderId,
-      }),
-    });
+    const response = await apiFetch(
+      '/api/payments/rustore/validate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'rustore',
+          productId: purchase.productId,
+          purchaseId: purchase.purchaseId,
+          orderId: purchase.orderId,
+        }),
+      },
+      Math.max(1, timeoutMs),
+    );
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
       const reason = String(body?.error || 'RUSTORE_SERVER_VALIDATION_FAILED');
-      if ([
-        'RUSTORE_PURCHASE_USER_MISMATCH',
-        'RUSTORE_PURCHASE_OWNED_BY_ANOTHER_USER',
-        'RUSTORE_PRODUCT_NOT_ALLOWED',
-        'RECOVERY_IDENTITY_REQUIRED',
-      ].includes(reason) || (response.status >= 400 && response.status < 500)) {
+      if (TERMINAL_BACKEND_VALIDATION_REASONS.has(reason)) {
         return { status: 'failed', reason };
       }
-      return { status: 'pending', reason: 'RUSTORE_SERVER_VALIDATION_PENDING' };
+      return { status: 'pending', reason };
     }
     const entitlement = parseBackendEntitlement(body?.entitlement);
-    if (!entitlement) return { status: 'failed', reason: 'RUSTORE_ENTITLEMENT_SNAPSHOT_INVALID' };
+    if (!entitlement) return { status: 'pending', reason: 'RUSTORE_ENTITLEMENT_SNAPSHOT_INVALID' };
     if (body?.purchaseActive === true) {
       return entitlement.isPremium
         ? { status: 'completed', entitlement }
-        : { status: 'failed', reason: 'RUSTORE_PREMIUM_NOT_CONFIRMED' };
+        : { status: 'pending', reason: 'RUSTORE_PREMIUM_NOT_CONFIRMED' };
     }
     if (body?.purchaseActive === false && entitlement.isPremium === false) {
       return { status: 'inactive', entitlement };
@@ -372,7 +438,9 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
     }
     writePendingPurchase(canonicalUserId, purchase);
     const result = await reconcilePurchaseResult(nativeBridge, purchase);
-    if (!(result.status === 'failed' && result.reason === 'RECOVERY_IDENTITY_REQUIRED')) {
+    if (result.status === 'completed'
+      || result.status === 'cancelled'
+      || (result.status === 'failed' && SDK_TERMINAL_PURCHASE_FAILURE_REASONS.has(result.reason))) {
       clearPendingPurchase(canonicalUserId, productId);
     }
     return result;

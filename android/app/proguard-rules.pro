@@ -26,3 +26,8 @@
     public <init>(...);
     public *;
 }
+
+# MainActivity loads this flavor-only bridge and its entry point by name.
+-keep class ru.tvoygoroskop.app.rustore.RuStorePayBridge {
+    public static void proceedIntent(android.content.Intent);
+}

@@ -43,6 +43,7 @@ export const CityAutocomplete: React.FC<Props> = ({
   const [items, setItems] = useState<City[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const debounceRef = useRef<number | null>(null);
+  const requestIdRef = useRef(0);
   const justSelectedRef = useRef(false);
   const generatedId = useId().replace(/:/g, '');
   const inputId = id || `city-autocomplete-${generatedId}`;
@@ -50,35 +51,44 @@ export const CityAutocomplete: React.FC<Props> = ({
 
   useEffect(() => {
     if (justSelectedRef.current) { justSelectedRef.current = false; return; }
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
     const q = value.trim();
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     if (q.length < 2) {
       setItems([]);
       setOpen(false);
       setActiveIndex(-1);
-      return;
+      return () => controller.abort();
     }
     debounceRef.current = window.setTimeout(async () => {
       try {
         const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${language}&format=json`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: controller.signal });
         const data = await res.json();
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
         const results: City[] = Array.isArray(data?.results) ? data.results : [];
         setItems(results);
         setOpen(results.length > 0);
         setActiveIndex(results.length > 0 ? 0 : -1);
-      } catch {
+      } catch (requestError) {
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+        if ((requestError as { name?: string })?.name === 'AbortError') return;
         setItems([]);
         setOpen(false);
         setActiveIndex(-1);
       }
     }, 280);
-    return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      controller.abort();
+    };
   }, [value, language]);
 
   const label = (c: City) => [c.name, c.admin1, c.country].filter(Boolean).join(', ');
 
   const select = (c: City) => {
+    requestIdRef.current += 1;
     justSelectedRef.current = true;
     onChange(label(c), { lat: c.latitude, lon: c.longitude, timezone: c.timezone });
     setItems([]);
@@ -132,6 +142,7 @@ export const CityAutocomplete: React.FC<Props> = ({
         value={value}
         placeholder={placeholder}
         onChange={(e) => {
+          requestIdRef.current += 1;
           setActiveIndex(-1);
           onChange(e.target.value);
         }}

@@ -337,7 +337,7 @@ function loadStartupPersonalForecasts(
 const App: React.FC = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [chartData, setChartData] = useState<NatalChartData | null>(null);
-    const [_chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
+    const [chartLoadState, setChartLoadState] = useState<ChartLoadState>('idle');
     const [preloadedHumanReport, setPreloadedHumanReport] = useState<PreloadedNatalReport | null>(null);
     const [activeChartId, setActiveChartId] = useState<number | undefined>(undefined);
     const [activeChartSubject, setActiveChartSubject] = useState<ChartListItem | null>(null);
@@ -2129,13 +2129,20 @@ const App: React.FC = () => {
         );
     }
 
+    const hasPendingOnboardingDraft = !profile.isSetup && Boolean(
+        profile.birthDate?.trim()
+        || profile.birthTime?.trim()
+        || profile.birthPlace?.trim()
+    );
+
     if (view === 'onboarding') {
         return (
             <div className="relative isolate fixed inset-0 h-[100dvh] overflow-hidden">
                 <div className="relative z-10 h-full">
                     <Onboarding
                         onComplete={handleOnboardingComplete}
-                        initialStep={onboardingInitialStep}
+                        initialStep={hasPendingOnboardingDraft ? 'birth' : onboardingInitialStep}
+                        initialProfile={hasPendingOnboardingDraft ? profile : undefined}
                         onSkip={() => {
                             setDashboardPeriod('day');
                             setView('dashboard');
@@ -2298,6 +2305,8 @@ const App: React.FC = () => {
                         <NatalMagazine
                             data={chartData}
                             profile={profile}
+                            chartLoadState={chartLoadState}
+                            onRetryChart={() => { void loadPrimaryChartOnce(profile); }}
                             chartId={effectiveChartId}
                             chartSubject={activeChartSubject}
                             requestPremium={requestPremium}

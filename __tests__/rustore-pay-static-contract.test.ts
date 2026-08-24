@@ -12,6 +12,24 @@ describe('RuStore Pay integration contract', () => {
     expect(gradle).not.toContain('BillingClient');
   });
 
+  it('keeps the reflectively loaded payment-return bridge in minified releases', () => {
+    const activity = read('android/app/src/main/java/ru/tvoygoroskop/app/MainActivity.java');
+    const bridge = read(
+      'android/app/src/rustore/java/ru/tvoygoroskop/app/rustore/RuStorePayBridge.java',
+    );
+    const proguard = read('android/app/proguard-rules.pro');
+
+    expect(activity).toContain(
+      'Class.forName("ru.tvoygoroskop.app.rustore.RuStorePayBridge")',
+    );
+    expect(activity).toContain('getMethod("proceedIntent", Intent.class)');
+    expect(bridge).toContain('public static void proceedIntent(Intent intent)');
+    expect(proguard).toContain(
+      '-keep class ru.tvoygoroskop.app.rustore.RuStorePayBridge',
+    );
+    expect(proguard).toContain('public static void proceedIntent(android.content.Intent);');
+  });
+
   it('keeps validation and secrets on the server', () => {
     const server = read('lib/rustorePayments.ts');
     const native = read('android/app/src/rustore/java/ru/tvoygoroskop/app/rustore/RuStorePayPlugin.java');

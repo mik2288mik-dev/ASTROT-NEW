@@ -139,7 +139,7 @@ export async function persistNativeSessionResponse(payload: NativeSessionRespons
   await nativeSessionStore.setToken(token);
 }
 
-async function requestNativeSession(): Promise<NativeSessionResponse> {
+async function requestNativeSession(signal?: AbortSignal): Promise<NativeSessionResponse> {
   if (nativeSessionRequest) return nativeSessionRequest;
 
   nativeSessionRequest = (async () => {
@@ -148,6 +148,7 @@ async function requestNativeSession(): Promise<NativeSessionResponse> {
       credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionVersion: 2 }),
+      signal,
     });
     const payload = await response.json().catch(() => ({})) as NativeSessionResponse & {
       error?: string;
@@ -286,7 +287,7 @@ async function prepareSessionBeforeRequest(path: string): Promise<void> {
   }
 }
 
-export async function getAppAuthHeaders(): Promise<Record<string, string>> {
+export async function getAppAuthHeaders(signal?: AbortSignal): Promise<Record<string, string>> {
   if (isNativeAppRuntime()) {
     const mode = getAuthSessionMode();
     if (requiresExplicitAuthentication(mode)) return {};
@@ -294,7 +295,7 @@ export async function getAppAuthHeaders(): Promise<Record<string, string>> {
     if (storedSession) return { Authorization: `Bearer ${storedSession.accessToken}` };
 
     if (mode !== 'guest') return {};
-    const payload = await requestNativeSession();
+    const payload = await requestNativeSession(signal);
     const token = payload.accessToken || payload.token;
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
@@ -314,7 +315,7 @@ async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Pr
 
   try {
     const headers = new Headers(init.headers || {});
-    const authHeaders = await getAppAuthHeaders();
+    const authHeaders = await getAppAuthHeaders(controller.signal);
     Object.entries(authHeaders).forEach(([name, value]) => {
       if (!headers.has(name)) headers.set(name, value);
     });

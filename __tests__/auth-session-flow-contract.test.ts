@@ -73,7 +73,8 @@ describe('explicit authentication flow contracts', () => {
     );
     expect(incompleteProfileBranch).not.toContain("showStartupDashboard('dashboard')");
     expect(app).toContain("setOnboardingInitialStep('birth')");
-    expect(app).toContain('initialStep={onboardingInitialStep}');
+    expect(app).toContain("initialStep={hasPendingOnboardingDraft ? 'birth' : onboardingInitialStep}");
+    expect(app).toContain('initialProfile={hasPendingOnboardingDraft ? profile : undefined}');
     expect(onboarding).toMatch(/initialStep[^\n]*(?:stories|birth)/);
     expect(onboarding).not.toContain("useState<'stories'|'birth'>");
     expect(displayNameResolver).not.toMatch(/['"](?:guest|\u0413\u043e\u0441\u0442\u044c)['"]/i);

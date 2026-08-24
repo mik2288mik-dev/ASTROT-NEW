@@ -7,6 +7,21 @@ import {
   validateRuStorePurchase,
 } from '../../../../lib/rustorePayments';
 
+const TERMINAL_RUSTORE_VALIDATION_STATUSES = new Map<string, number>([
+  ['RUSTORE_PURCHASE_ID_REQUIRED', 422],
+  ['RUSTORE_PURCHASE_PRODUCT_MISMATCH', 422],
+  ['RUSTORE_PURCHASE_USER_MISMATCH', 409],
+  ['RUSTORE_PURCHASE_OWNED_BY_ANOTHER_USER', 409],
+]);
+
+export function rustoreValidationErrorStatus(error: unknown): number {
+  if (error instanceof RuStorePaymentError) {
+    return TERMINAL_RUSTORE_VALIDATION_STATUSES.get(error.code) || 503;
+  }
+  const status = Number((error as { status?: unknown } | null)?.status);
+  return Number.isInteger(status) && status >= 400 && status <= 599 ? status : 500;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   try {
@@ -30,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error: any) {
     const known = error instanceof RuStorePaymentError;
-    return res.status(known ? 422 : (error?.status || 500)).json({
+    return res.status(rustoreValidationErrorStatus(error)).json({
       error: known ? error.code : 'RUSTORE_VALIDATION_FAILED',
       message: known ? error.message : 'RuStore purchase validation failed',
     });

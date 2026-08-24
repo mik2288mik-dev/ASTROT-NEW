@@ -42,12 +42,12 @@ process.env.MOBILE_BUILD = '1';
 process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
 process.env.STORE_RELEASE = '1';
 
-function run(command, args, cwd = process.cwd()) {
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32', env: process.env });
+function run(command, args, cwd = process.cwd(), useShell = process.platform === 'win32') {
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: useShell, env: process.env });
   if (result.status !== 0) process.exit(result.status || 1);
 }
 
-run(process.execPath, ['scripts/validate-store-release.mjs', '--release']);
+run(process.execPath, ['scripts/validate-store-release.mjs', '--release'], process.cwd(), false);
 run('npm', ['run', 'build:mobile']);
 run('npx', ['cap', 'sync', 'android']);
 const [task, output] = tasks[target];

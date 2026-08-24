@@ -168,7 +168,8 @@ export const Settings: React.FC<SettingsProps> = ({
     const [tgUser, setTgUser] = useState<{ first_name?: string; last_name?: string; photo_url?: string } | null>(null);
     const [editing, setEditing] = useState(false);
     const [tempName, setTempName] = useState(profile.name);
-    const [tempPlace, setTempPlace] = useState(profile.birthPlace);
+    const [savingProfile, setSavingProfile] = useState(false);
+    const [profileSaveError, setProfileSaveError] = useState('');
     const [selfTest, setSelfTest] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
     const [selfTestInfo, setSelfTestInfo] = useState('');
     const [dailyPush, setDailyPush] = useState<'idle' | 'sending' | 'ok' | 'err'>('idle');
@@ -469,6 +470,8 @@ export const Settings: React.FC<SettingsProps> = ({
         profile.language,
         entitlementNow,
     );
+    const hasActiveRuStoreAutoRenewal = profile.premiumEntitlement?.source === 'rustore'
+        && profile.premiumEntitlement.autoRenew === true;
 
     const restorePurchase = () => {
         if (previewFixture) {
@@ -564,29 +567,75 @@ export const Settings: React.FC<SettingsProps> = ({
         });
     };
 
-    const handleSaveProfile = () => {
-        const nameChanged = (tempName || '') !== (profile.name || '');
-        const placeChanged = (tempPlace || '') !== (profile.birthPlace || '');
-        if ((!nameChanged && !placeChanged) || !canEditProfile) {
+    const handleSaveProfile = async () => {
+        if (savingProfile) return;
+        const normalizedName = (tempName || '').trim();
+        if (!normalizedName) {
+            setProfileSaveError(profile.language === 'en' ? 'Enter a name.' : 'Укажи имя.');
+            return;
+        }
+        const nameChanged = normalizedName !== (profile.name || '').trim();
+        if (!nameChanged || !canEditProfile) {
+            setTempName(profile.name);
+            setProfileSaveError('');
             setEditing(false);
             return;
         }
-        const updated = { ...profile, name: tempName, birthPlace: tempPlace };
-        onUpdate(updated);
+        const updated = { ...profile, name: normalizedName };
         if (previewFixture) {
+            onUpdate(updated);
             setEditsUsed((n) => n + 1);
+            setTempName(normalizedName);
+            setProfileSaveError('');
             setEditing(false);
             setPreviewNotice('Профиль изменён только в локальном Preview.');
             return;
         }
-        saveProfile(updated).then(() => {
+        setSavingProfile(true);
+        setProfileSaveError('');
+        try {
+            await saveProfile(updated);
+            onUpdate(updated);
+            recordProfileEdit(profile.id);
+            setEditsUsed((n) => n + 1);
+            setTempName(normalizedName);
+            setEditing(false);
             console.log('[Settings] Profile saved successfully');
-        }).catch(error => {
+        } catch (error) {
             console.error('[Settings] Failed to save profile:', error);
-        });
-        recordProfileEdit(profile.id);
-        setEditsUsed((n) => n + 1);
-        setEditing(false);
+            setProfileSaveError(profile.language === 'en'
+                ? 'The profile was not saved. Check your connection and try again.'
+                : 'Не удалось сохранить профиль. Проверь соединение и попробуй ещё раз.');
+        } finally {
+            setSavingProfile(false);
+        }
+    };
+
+    const handleDeleteAccount = () => {
+        if (previewFixture) {
+            setPreviewNotice('В Preview удаление аккаунта отключено.');
+            return;
+        }
+        if (!onDeleteAccount || deletingAccount) return;
+        if (hasActiveRuStoreAutoRenewal) {
+            const continueDeletion = window.confirm(profile.language === 'en'
+                ? 'Auto-renewal is active in RuStore. Deleting this account will not cancel it automatically. Select OK to continue deleting, or Cancel to manage the subscription in RuStore first.'
+                : 'В RuStore включено автопродление. Удаление аккаунта не отменит его автоматически. Нажми «ОК», чтобы продолжить удаление, или «Отмена», чтобы сначала открыть управление подпиской в RuStore.');
+            if (!continueDeletion) {
+                manageSubscription();
+                return;
+            }
+        }
+        if (!window.confirm(profile.language === 'en'
+            ? 'Delete your account and related data permanently?'
+            : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
+        setDeletionError('');
+        setDeletingAccount(true);
+        void onDeleteAccount().catch(() => {
+            setDeletionError(profile.language === 'en'
+                ? 'Account deletion did not complete. Your account is still active.'
+                : 'Не удалось удалить аккаунт. Он остаётся активным.');
+        }).finally(() => setDeletingAccount(false));
     };
 
 
@@ -736,7 +785,11 @@ export const Settings: React.FC<SettingsProps> = ({
                     <h3 className="font-serif text-lg text-mono-ink">{getText(profile.language, 'settings.profile')}</h3>
                     {!editing && (
                         canEditProfile ? (
-                            <button onClick={() => setEditing(true)} className={inlineActionClass}>
+                            <button onClick={() => {
+                                setTempName(profile.name);
+                                setProfileSaveError('');
+                                setEditing(true);
+                            }} className={inlineActionClass}>
                                 {getText(profile.language, 'settings.edit')}
                             </button>
                         ) : (
@@ -768,9 +821,9 @@ export const Settings: React.FC<SettingsProps> = ({
                         </label>
                         <input 
                             type="text" 
-                            value={tempPlace}
-                            onChange={(e) => setTempPlace(e.target.value)}
-                            disabled={!editing}
+                            value={profile.birthPlace}
+                            readOnly
+                            aria-readonly="true"
                             className="fresh-input"
                         />
                     </div>
@@ -790,23 +843,31 @@ export const Settings: React.FC<SettingsProps> = ({
                                 : (activePremium ? `Смен профиля в этом месяце осталось: ${profileEditsLeft}` : 'Free: профиль можно изменить один раз')}
                         </p>
                     )}
+                    {editing && profileSaveError ? (
+                        <p role="alert" className="text-sm text-red-700">{profileSaveError}</p>
+                    ) : null}
 
                     {editing && (
                         <div className="flex gap-2">
                             <button
                                 type="button"
-                                onClick={handleSaveProfile}
+                                disabled={savingProfile}
+                                aria-busy={savingProfile}
+                                onClick={() => { void handleSaveProfile(); }}
                                 className="fresh-btn-primary"
                                 style={{ flex: 1, width: 'auto', margin: 0 }}
                             >
-                                {getText(profile.language, 'settings.save')}
+                                {savingProfile
+                                    ? (profile.language === 'en' ? 'Saving…' : 'Сохраняем…')
+                                    : getText(profile.language, 'settings.save')}
                             </button>
                             <button
                                 type="button"
+                                disabled={savingProfile}
                                 onClick={() => {
                                     setEditing(false);
                                     setTempName(profile.name);
-                                    setTempPlace(profile.birthPlace);
+                                    setProfileSaveError('');
                                 }}
                                 className="fresh-btn-ghost"
                             >
@@ -1119,20 +1180,9 @@ export const Settings: React.FC<SettingsProps> = ({
                             ? (profile.language === 'en' ? 'Signing out…' : 'Выходим…')
                             : (profile.language === 'en' ? 'Sign out' : 'Выйти')}
                     </button>
-                    <button type="button" disabled={deletingAccount} className="fresh-btn-ghost text-red-700" onClick={() => {
-                        if (previewFixture) {
-                            setPreviewNotice('В Preview удаление аккаунта отключено.');
-                            return;
-                        }
-                        if (!window.confirm(profile.language === 'en' ? 'Delete your account and related data permanently?' : 'Удалить аккаунт и связанные данные без возможности восстановления?')) return;
-                        setDeletionError('');
-                        setDeletingAccount(true);
-                        void onDeleteAccount?.().catch(() => {
-                            setDeletionError(profile.language === 'en'
-                                ? 'Account deletion did not complete. Your account is still active.'
-                                : 'Не удалось удалить аккаунт. Он остаётся активным.');
-                        }).finally(() => setDeletingAccount(false));
-                    }}>{deletingAccount ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…') : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}</button>
+                    <button type="button" disabled={loggingOut || deletingAccount} className="fresh-btn-ghost text-red-700" onClick={handleDeleteAccount}>
+                        {deletingAccount ? (profile.language === 'en' ? 'Deleting…' : 'Удаляем…') : (profile.language === 'en' ? 'Delete account' : 'Удалить аккаунт')}
+                    </button>
                 </div>
                 {logoutError ? <p role="alert" className="mt-2 text-sm text-red-700">{logoutError}</p> : null}
                 {deletionError ? <p role="alert" className="mt-2 text-sm text-red-700">{deletionError}</p> : null}

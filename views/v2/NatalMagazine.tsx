@@ -19,6 +19,8 @@ import type { PaywallContext } from '../../lib/paywallContext';
 type NatalMagazineProps = {
   data: NatalChartData | null;
   profile: UserProfile;
+  chartLoadState?: 'idle' | 'loading' | 'ready' | 'error';
+  onRetryChart?: () => void;
   chartId?: number;
   chartSubject?: ChartListItem | null;
   requestPremium: (source?: string, payload?: Record<string, unknown>) => void | Promise<void>;
@@ -47,6 +49,8 @@ type NatalScreenTab = 'map' | 'reading' | 'matrix';
 export function NatalMagazine({
   data,
   profile,
+  chartLoadState = 'idle',
+  onRetryChart,
   chartId,
   chartSubject,
   requestPremium,
@@ -97,15 +101,16 @@ export function NatalMagazine({
       !openQuestionRequest
       || handledExternalQuestionRequestRef.current === openQuestionRequest
     ) return;
-    if (!data) {
+    if (!data && chartLoadState === 'idle' && !profile.isSetup) {
       onCreateChart?.();
       return;
     }
+    if (!data) return;
     handledExternalQuestionRequestRef.current = openQuestionRequest;
     setActiveTab('reading');
     setQuestionOpenRequest((value) => value + 1);
     onQuestionRequestHandled?.();
-  }, [data, onCreateChart, onQuestionRequestHandled, openQuestionRequest]);
+  }, [chartLoadState, data, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);
 
   const selectTab = (tab: NatalScreenTab) => {
     if (tab === 'matrix') {
@@ -139,21 +144,49 @@ export function NatalMagazine({
   );
 
   if (!data) {
+    const isLoadingChart = chartLoadState === 'loading'
+      || (profile.isSetup && chartLoadState === 'idle');
+    const isChartError = chartLoadState === 'error'
+      || (profile.isSetup && chartLoadState === 'ready');
     return (
       <div className="fresh-page natal-editorial-page natal-mvp-page">
         {header}
         <EditorialCurve className="natal-empty-curve" />
-        <section className="natal-empty-content">
+        <section
+          className="natal-empty-content"
+          aria-live="polite"
+          aria-busy={isLoadingChart || undefined}
+          role={isChartError ? 'alert' : undefined}
+        >
           <p className="natal-empty-kicker">{language === 'ru' ? 'Твоя карта рождения' : 'Your birth chart'}</p>
-          <h1>{language === 'ru' ? 'Соберём настоящий натальный круг' : 'Create your real natal wheel'}</h1>
-          <p>
-            {language === 'ru'
-              ? 'Для расчёта нужны дата, время и место рождения.'
-              : 'The calculation needs your birth date, time, and place.'}
-          </p>
-          <button type="button" className="fresh-btn-primary" onClick={onCreateChart}>
-            {language === 'ru' ? 'Ввести данные' : 'Enter birth details'}
-          </button>
+          {isLoadingChart ? (
+            <>
+              <h1>{language === 'ru' ? 'Загружаем натальную карту' : 'Loading your natal chart'}</h1>
+              <p>{language === 'ru' ? 'Сохранённые данные уже найдены.' : 'Your saved birth data is already available.'}</p>
+            </>
+          ) : isChartError ? (
+            <>
+              <h1>{language === 'ru' ? 'Карта пока не загрузилась' : 'Your chart has not loaded yet'}</h1>
+              <p>{language === 'ru' ? 'Проверь соединение и попробуй ещё раз.' : 'Check your connection and try again.'}</p>
+              {onRetryChart ? (
+                <button type="button" className="fresh-btn-primary" onClick={onRetryChart}>
+                  {language === 'ru' ? 'Повторить' : 'Retry'}
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <h1>{language === 'ru' ? 'Соберём настоящий натальный круг' : 'Create your real natal wheel'}</h1>
+              <p>
+                {language === 'ru'
+                  ? 'Для расчёта нужны дата, время и место рождения.'
+                  : 'The calculation needs your birth date, time, and place.'}
+              </p>
+              <button type="button" className="fresh-btn-primary" onClick={onCreateChart}>
+                {language === 'ru' ? 'Ввести данные' : 'Enter birth details'}
+              </button>
+            </>
+          )}
         </section>
       </div>
     );

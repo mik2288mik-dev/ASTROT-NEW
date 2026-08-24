@@ -28,6 +28,36 @@ describe('MEOU Android release controls', () => {
     expect(page).toContain('<meta name="application-name" content="MEOU" />');
   });
 
+  it('uses MEOU launcher resources for legacy and Android 12 launch screens', () => {
+    const styles = read('android/app/src/main/res/values/styles.xml');
+    const launchScreen = read('android/app/src/main/res/drawable/meou_launch_screen.xml');
+
+    expect(styles).toContain('<item name="android:background">@drawable/meou_launch_screen</item>');
+    expect(styles).toContain(
+      '<item name="windowSplashScreenBackground">@color/ic_launcher_background</item>',
+    );
+    expect(styles).toContain(
+      '<item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>',
+    );
+    expect(styles).toContain(
+      '<item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>',
+    );
+    expect(styles).not.toContain('@drawable/splash');
+    expect(launchScreen).toContain('<layer-list');
+    expect(launchScreen).toContain('android:drawable="@color/ic_launcher_background"');
+    expect(launchScreen).toContain('android:drawable="@mipmap/ic_launcher_foreground"');
+    expect(launchScreen).toContain('android:gravity="center"');
+  });
+
+  it('runs the release validator when the Windows Node path contains spaces', () => {
+    const releaseScript = read('scripts/android-release.mjs');
+
+    expect(releaseScript).toContain(
+      "run(process.execPath, ['scripts/validate-store-release.mjs', '--release'], process.cwd(), false)",
+    );
+    expect(releaseScript).toContain('shell: useShell');
+  });
+
   it('preserves the selected plan across the existing recovery-identity flow', () => {
     const app = read('App.tsx');
     const settings = read('views/Settings.tsx');
@@ -50,7 +80,8 @@ describe('MEOU Android release controls', () => {
     expect(settings).toContain('if (recoveryIdentityRequired) onRecoveryIdentityReady?.()');
     expect(settings).toContain('VK ID, Яндекс или email');
     expect(rustore.indexOf('await hasRecoveryIdentity()')).toBeLessThan(rustore.indexOf('await nativeBridge.purchase'));
-    expect(rustore).toContain("result.status === 'failed' && result.reason === 'RECOVERY_IDENTITY_REQUIRED'");
+    expect(rustore).toContain("'RECOVERY_IDENTITY_REQUIRED'");
+    expect(rustore).toContain('SDK_TERMINAL_PURCHASE_FAILURE_REASONS.has(result.reason)');
   });
 
   it('shows accessible password visibility controls and MEOU on user auth screens', () => {
