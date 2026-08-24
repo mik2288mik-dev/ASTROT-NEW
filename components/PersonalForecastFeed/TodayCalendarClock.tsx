@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
+import React, { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   resolveTodayClockPreset,
   resolveTodayLinePreset,
@@ -105,22 +104,10 @@ function ElectronicReadout({
     </>
   );
 
-  if (!glow) return <span className="today-calendar-clock-readout">{readout}</span>;
-
   return (
-    <motion.span
-      className="today-calendar-clock-readout is-glowing"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: [1, 0.9, 1, 0.96, 1] }}
-      transition={{
-        duration: 1.65,
-        delay: 1.1,
-        ease: [0.22, 1, 0.36, 1],
-        times: [0, 0.16, 0.38, 0.68, 1],
-      }}
-    >
+    <span className={`today-calendar-clock-readout${glow ? ' is-glowing' : ''}`}>
       {readout}
-    </motion.span>
+    </span>
   );
 }
 
@@ -143,9 +130,6 @@ export function TodayCalendarClock({
   language,
 }: TodayCalendarClockProps) {
   const [now, setNow] = useState(() => new Date());
-  const rootRef = useRef<HTMLTimeElement | null>(null);
-  const inView = useInView(rootRef, { amount: 0.4, once: true });
-  const reduceMotion = useReducedMotion();
   const preset = useMemo(
     () => resolveTodayClockPreset(userId, periodKey),
     [periodKey, userId],
@@ -177,11 +161,10 @@ export function TodayCalendarClock({
     };
   }, []);
 
-  const shouldGlow = preset.glow && inView && !reduceMotion;
+  const shouldGlow = preset.glow;
 
   return (
     <time
-      ref={rootRef}
       className="today-calendar-clock"
       dateTime={periodKey.slice(0, 10)}
       aria-label={parts.semanticLabel}

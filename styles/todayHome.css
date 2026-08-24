@@ -352,7 +352,7 @@
   color: var(--today-ink);
 }
 
-/* Today hero: a physical calendar-clock beside forecast copy, with no card around it. */
+/* Today hero: a centered calendar-clock above the forecast copy, with no card around it. */
 .forecast-feed-page .forecast-editorial-reading.today-minimal-feed {
   width: 100%;
   margin: 0;
@@ -369,8 +369,7 @@
   display: grid;
   box-sizing: border-box;
   width: 100%;
-  min-height: clamp(20rem, 52dvh, 27rem);
-  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: calc(100svh - var(--home-safe-top, 18px) - 6.5rem);
   align-items: center;
   overflow: hidden;
   padding: 1.25rem clamp(1.3rem, 6vw, 2.5rem) 1rem;
@@ -403,25 +402,29 @@
   position: relative;
   z-index: 1;
   display: grid;
-  width: min(100%, 29rem);
-  grid-template-columns: minmax(6.75rem, 8.4rem) minmax(8.5rem, 11.5rem);
-  align-items: center;
-  justify-content: center;
-  gap: clamp(1.25rem, 6vw, 2.5rem);
+  width: min(100%, 32rem);
+  justify-items: center;
+  gap: clamp(0.8rem, 3.5vw, 1.15rem);
   margin: 0 auto;
-  transform: translateY(0.75rem);
+  transform: translateY(-1rem);
+}
+
+.today-minimal-composition .today-calendar-clock {
+  width: clamp(7.75rem, 37vw, 9.5rem);
 }
 
 .today-minimal-punchline {
-  max-width: 11ch;
+  width: min(86vw, 27rem);
+  max-width: 100%;
   margin: 0;
   color: var(--today-ink);
   font-family: var(--forecast-editorial-font);
-  font-size: clamp(1.65rem, 7.7vw, 2.2rem);
+  font-size: clamp(1.22rem, 5.3vw, 1.55rem);
   font-weight: 400;
-  letter-spacing: -0.055em;
-  line-height: 1.16;
+  letter-spacing: -0.035em;
+  line-height: 1.22;
   overflow-wrap: anywhere;
+  text-align: center;
   text-wrap: balance;
 }
 
@@ -430,6 +433,7 @@
 }
 
 .today-minimal-loading .today-minimal-composition {
+  align-self: center;
   transform: none;
 }
 
@@ -509,10 +513,10 @@
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 }
 
-.today-calendar-clock-readout.is-glowing {
+.today-calendar-clock-readout.is-glowing .today-calendar-clock-date {
   text-shadow:
-    0 0 0.3rem color-mix(in srgb, var(--today-clock-digits) 52%, transparent),
-    0 0 0.72rem color-mix(in srgb, var(--today-clock-accent) 34%, transparent);
+    0 0 0.24rem color-mix(in srgb, var(--today-clock-digits) 60%, transparent),
+    0 0 0.84rem color-mix(in srgb, var(--today-clock-accent) 34%, transparent);
 }
 
 .today-calendar-clock-date {
@@ -974,32 +978,6 @@
     padding-left: 1rem;
   }
 
-  .today-minimal-composition {
-    grid-template-columns: minmax(5.9rem, 6.7rem) minmax(7.5rem, 9.4rem);
-    gap: 1rem;
-  }
-
-  .today-minimal-punchline {
-    font-size: 1.48rem;
-  }
-}
-
-@media (max-height: 43rem) {
-  .today-minimal-hero {
-    min-height: 20rem;
-    padding-top: 1rem;
-    padding-bottom: 0.85rem;
-  }
-}
-
-@media (min-width: 48rem) {
-  .today-minimal-composition {
-    grid-template-columns: 8.8rem 12rem;
-  }
-
-  .today-minimal-punchline {
-    font-size: 2.3rem;
-  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -1046,7 +1024,4 @@
     transition-delay: 0ms;
   }
 
-  .today-calendar-clock-readout.is-glowing {
-    text-shadow: none;
-  }
 }
