@@ -467,7 +467,10 @@ const App: React.FC = () => {
     }, []);
 
     const getFallbackAdminStatus = useCallback((userId?: string | number, storedIsAdmin?: boolean) => {
-        return OWNER_ID && userId ? String(userId) === String(OWNER_ID) : !!storedIsAdmin;
+        // The server profile is authoritative. A stale public owner ID must not
+        // downgrade an account that is already marked as an administrator.
+        if (storedIsAdmin) return true;
+        return !!(OWNER_ID && userId && String(userId) === String(OWNER_ID));
     }, []);
 
     const ADMIN_STATUS_TIMEOUT_MS = 4500;

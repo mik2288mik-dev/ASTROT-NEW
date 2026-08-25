@@ -90,7 +90,6 @@ export async function getAdminContext(req: NextApiRequest): Promise<AdminContext
   const telegramUser = getVerifiedTelegramUser(req);
   const telegramUserId = telegramUser.id;
   const ownerId = getConfiguredOwnerId();
-  const isOwner = !!ownerId && telegramUserId === String(ownerId);
 
   // Telegram is the authenticated principal, while account_identities owns the
   // stable internal users.id used by admin_users after account migrations.
@@ -101,21 +100,38 @@ export async function getAdminContext(req: NextApiRequest): Promise<AdminContext
     [telegramUserId],
   );
   const userId = String(identity.rows[0]?.user_id || telegramUserId);
+  const isOwner = !!ownerId
+    && (telegramUserId === String(ownerId) || userId === String(ownerId));
 
   if (isOwner) {
     return { userId, role: 'super_admin', isOwner: true, permissions: permissionsForRole('super_admin') };
   }
 
   const result = await getPool().query(
-    `SELECT role, status FROM admin_users WHERE user_id = $1`,
+    `SELECT a.role, a.status, u.is_admin
+       FROM users u
+       LEFT JOIN admin_users a ON a.user_id = u.id
+      WHERE u.id = $1
+      LIMIT 1`,
     [userId]
   );
   const row = result.rows[0];
-  if (!row || row.status !== 'active') {
-    throw new AdminAuthError(403, 'ADMIN_REQUIRED', 'Admin access is required');
+  if (row?.role) {
+    if (row.status !== 'active') {
+      throw new AdminAuthError(403, 'ADMIN_REQUIRED', 'Admin access is required');
+    }
+    const role = normalizeRole(row.role);
+    return { userId, role, isOwner: false, permissions: permissionsForRole(role) };
   }
-  const role = normalizeRole(row.role);
-  return { userId, role, isOwner: false, permissions: permissionsForRole(role) };
+
+  // Backward-compatible bridge for accounts created before admin_users.
+  // An explicit RBAC row always wins, so a revoked row cannot be bypassed by
+  // the legacy users.is_admin flag.
+  if (row?.is_admin === true) {
+    return { userId, role: 'admin', isOwner: false, permissions: permissionsForRole('admin') };
+  }
+
+  throw new AdminAuthError(403, 'ADMIN_REQUIRED', 'Admin access is required');
 }
 
 /** Гард: требует у вызывающего конкретное право. Возвращает контекст при успехе. */
