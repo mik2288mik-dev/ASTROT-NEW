@@ -16,7 +16,9 @@ import {
   type PersonalForecastPeriod,
 } from '../../../../lib/personalForecastContract';
 import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastGeneration';
+import { queuePersonalForecastPrewarm } from '../../../../lib/personalForecastPrewarm';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
+import { toDateInputValue } from '../../../../lib/date-utils';
 import { db } from '../../../../lib/db';
 
 export const config = { maxDuration: 180 };
@@ -71,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const stored = user as any;
   const profile = {
-    id: userId, name: user.name || '', birthDate: String(user.birth_date || ''), birthTime: user.birth_time || '',
+    id: userId, name: user.name || '', birthDate: toDateInputValue(user.birth_date) || String(user.birth_date || ''), birthTime: user.birth_time || '',
     birthTimeMode: stored.birth_time_mode || undefined, birthTimeUncertaintyMinutes: stored.birth_time_uncertainty_minutes ?? null,
     birthPlace: user.birth_place || '', birthTimezone: stored.birth_timezone || null,
     gender: stored.gender === 'male' || stored.gender === 'female' ? stored.gender : 'unspecified', language: user.language === 'en' ? 'en' as const : 'ru' as const,
@@ -100,6 +102,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const regenerationAfter = readRegenerationAfter(req);
   const entitlement = await getPremiumEntitlementState(userId);
   const cacheInput = { userId, profile, accessTier: entitlement.isPremium ? 'premium' as const : 'free' as const, period, periodKey };
+  if (!entitlement.isPremium && period !== 'day') {
+    return res.status(403).json({
+      error: 'Premium required',
+      code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
+    });
+  }
+  const queueRollingPrewarm = () => queuePersonalForecastPrewarm({
+    userId,
+    profile,
+    accessTier: cacheInput.accessTier,
+    reason: 'forecast_open',
+  });
 
   try {
     if (!regenerate) {
@@ -120,6 +134,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           !Number.isFinite(minimumGeneratedAt)
           || generatedAt > minimumGeneratedAt
         ) {
+          queueRollingPrewarm();
           return res.status(200).json(
             responsePayload(cached.forecast, entitlement.isPremium, 'cache'),
           );
@@ -135,26 +150,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return null;
         });
       if (stale) {
-        if (entitlement.isPremium || period === 'day') {
-          void ensurePersonalForecast(cacheInput).catch((error) => {
-            console.error(
-              '[personal-forecast] lazy refresh failed:',
-              error instanceof Error ? error.message : String(error),
-            );
-          });
-        }
+        void ensurePersonalForecast(cacheInput).catch((error) => {
+          console.error(
+            '[personal-forecast] lazy refresh failed:',
+            error instanceof Error ? error.message : String(error),
+          );
+        });
+        queueRollingPrewarm();
         return res.status(200).json(responsePayload(
           stale.forecast,
           entitlement.isPremium,
           'stale',
         ));
       }
-    }
-    if (!entitlement.isPremium && period !== 'day') {
-      return res.status(403).json({
-        error: 'Premium required',
-        code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
-      });
     }
     if (req.method === 'GET') return res.status(204).end();
 
@@ -175,6 +183,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ),
       });
     }
+    queueRollingPrewarm();
     return res.status(200).json(responsePayload(
       generated.value,
       entitlement.isPremium,

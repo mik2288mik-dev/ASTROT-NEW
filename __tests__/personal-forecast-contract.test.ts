@@ -232,6 +232,7 @@ describe('personal forecast direct-reading contract', () => {
     const shared = {
       userId: 'u1',
       birthProfileFingerprint,
+      generationTier: 'premium' as const,
       period: 'day' as const,
       periodKey: '2026-07-26',
       timezone: 'Europe/Moscow',
@@ -244,6 +245,8 @@ describe('personal forecast direct-reading contract', () => {
     expect(inputHash).toMatch(/^[a-z0-9]+$/);
     expect(buildPersonalForecastCacheKey({ ...shared, modelId: 'gpt-5.4' })).not.toBe(cacheKey);
     expect(buildPersonalForecastInputHash({ ...shared, language: 'ru' })).not.toBe(inputHash);
+    expect(buildPersonalForecastCacheKey({ ...shared, generationTier: 'free' })).not.toBe(cacheKey);
+    expect(buildPersonalForecastInputHash({ ...shared, generationTier: 'free' })).not.toBe(inputHash);
 
     for (const patch of [
       { name: 'Mira Two' },

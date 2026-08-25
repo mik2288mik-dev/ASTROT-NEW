@@ -4,6 +4,7 @@ import type {
   SignHoroscopeReadingV2,
 } from '../../types';
 import { ZODIAC_KEYS, type ZodiacKey } from '../zodiacKeys';
+import { logForecastDeliveryMetric } from '../forecastDeliveryMetrics';
 import {
   generateSignHoroscopeBatch,
   SignHoroscopeGenerationError,
@@ -87,6 +88,14 @@ export async function fillMissingSignHoroscopes(
 
   const digest = runtime.buildDigest(period, periodKey);
   const generated = await runtime.generate(digest, missingSigns, language);
+  logForecastDeliveryMetric({
+    domain: 'sign',
+    outcome: 'generated',
+    period,
+    periodKey,
+    language,
+    signBatchGenerationCount: 1,
+  });
   const failures: SignHoroscopeBatchFailure[] = [...generated.failures];
   const failedSigns = new Set(failures.map((failure) => failure.sign));
   const generatedBySign = new Map(

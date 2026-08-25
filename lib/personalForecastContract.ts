@@ -5,6 +5,14 @@ import {
 } from './appVoice';
 
 export type PersonalForecastPeriod = 'day' | 'week' | 'month';
+export type PersonalForecastGenerationTier = 'free' | 'premium';
+
+export function isPersonalForecastPeriodAllowedForTier(
+  tier: PersonalForecastGenerationTier,
+  period: PersonalForecastPeriod,
+): boolean {
+  return tier === 'premium' || period === 'day';
+}
 
 export type FixedForecastSectionKey =
   | 'love'
@@ -594,6 +602,7 @@ export function buildPersonalForecastBirthProfileFingerprint(
 export function buildPersonalForecastCacheKey(input: {
   userId: string;
   birthProfileFingerprint: string;
+  generationTier: PersonalForecastGenerationTier;
   period: PersonalForecastPeriod;
   periodKey: string;
   timezone: string;
@@ -602,6 +611,7 @@ export function buildPersonalForecastCacheKey(input: {
 }): string {
   const identity = [
     String(input.userId),
+    input.generationTier,
     input.period,
     input.periodKey,
     normalizeForecastTimezone(input.timezone),
@@ -620,6 +630,7 @@ export function buildPersonalForecastCacheKey(input: {
 export function buildPersonalForecastInputHash(input: {
   userId: string;
   birthProfileFingerprint: string;
+  generationTier: PersonalForecastGenerationTier;
   period: PersonalForecastPeriod;
   periodKey: string;
   timezone: string;
@@ -640,6 +651,7 @@ export function buildPersonalForecastInputHash(input: {
   const voiceVersion = versions.voiceVersion ?? PERSONAL_FORECAST_VOICE_VERSION;
   return stableHash(JSON.stringify({
     userId: input.userId,
+    generationTier: input.generationTier,
     birthProfileFingerprint: input.birthProfileFingerprint,
     period: input.period,
     periodKey: input.periodKey,

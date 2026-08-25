@@ -3,6 +3,7 @@ import { PERSONAL_FORECAST_VOICE_VERSION } from './appVoice';
 import { getUnifiedContentModel } from './appSettings';
 import { buildContentGenerationLockKey, withContentGenerationLock, type ContentGenerationLockResult } from './contentGenerationLock';
 import { db, getPool } from './db';
+import { logForecastDeliveryMetric } from './forecastDeliveryMetrics';
 import {
   PERSONAL_FORECAST_CALCULATION_VERSION,
   PERSONAL_FORECAST_CONTRACT_VERSION,
@@ -11,6 +12,7 @@ import {
   buildPersonalForecastCacheKey,
   buildPersonalForecastInputHash,
   getPersonalForecastPackageValidationError,
+  isPersonalForecastPeriodAllowedForTier,
   isPersonalForecastPackage,
   normalizeForecastTimezone,
   resolvePersonalForecastWindow,
@@ -26,7 +28,6 @@ import {
   type PersonalForecastRepeatFragment,
 } from './personalForecastGeneration';
 
-const CACHE_TIER = 'premium' as const;
 const HISTORY_LIMIT = 15;
 const CROSS_USER_PACKAGE_LIMIT = 64;
 const VARIANT_BY_PERIOD = { day: 'daily', week: 'weekly', month: 'monthly' } as const;
@@ -52,6 +53,7 @@ async function identity(input: PersonalForecastCacheContext) {
   const common = {
     userId: input.userId,
     birthProfileFingerprint: buildPersonalForecastBirthProfileFingerprint(input.profile),
+    generationTier: input.accessTier,
     period: input.period,
     periodKey: input.periodKey,
     timezone: window.timezone,
@@ -76,8 +78,12 @@ function valid(interpretation: ContentInterpretation<PersonalForecastPackage> | 
 
 export async function getCachedPersonalForecast(input: PersonalForecastCacheContext, options: { allowExpired?: boolean } = {}) {
   const resolved = await identity(input);
-  const raw = await db.content_interpretations.getByUser(input.userId, CACHE_TIER, 'forecast', resolved.contentVariant, resolved.cacheKey, options.allowExpired === true) as ContentInterpretation<PersonalForecastPackage> | null;
-  if (!valid(raw, resolved)) return null;
+  const raw = await db.content_interpretations.getByUser(input.userId, input.accessTier, 'forecast', resolved.contentVariant, resolved.cacheKey, options.allowExpired === true) as ContentInterpretation<PersonalForecastPackage> | null;
+  if (!valid(raw, resolved)) {
+    logForecastDeliveryMetric({ domain: 'personal', outcome: 'cache_miss', tier: input.accessTier, period: input.period, periodKey: input.periodKey });
+    return null;
+  }
+  logForecastDeliveryMetric({ domain: 'personal', outcome: 'cache_hit', tier: input.accessTier, period: input.period, periodKey: input.periodKey });
   return { forecast: raw!.content, model: resolved.model, cacheKey: resolved.cacheKey, inputHash: resolved.inputHash };
 }
 
@@ -110,7 +116,7 @@ export async function getRecentPersonalForecastHistory(input: PersonalForecastCa
     `SELECT content FROM content_interpretations
      WHERE user_id = $1 AND access_tier = $2 AND content_surface = 'forecast'
        AND content->'meta'->>'contractVersion' = $3
-     ORDER BY updated_at DESC LIMIT $4`, [input.userId, CACHE_TIER, PERSONAL_FORECAST_CONTRACT_VERSION, HISTORY_LIMIT + 1],
+     ORDER BY updated_at DESC LIMIT $4`, [input.userId, input.accessTier, PERSONAL_FORECAST_CONTRACT_VERSION, HISTORY_LIMIT + 1],
   );
   const seen = new Set<string>();
   return (result.rows as Array<{content: unknown}>).flatMap((row) => {
@@ -136,7 +142,7 @@ async function getCrossUserRepeatFragments(input: PersonalForecastCacheContext, 
        AND content->>'periodKey' = $4 AND prompt_version = $5 AND calculation_version = $6
        AND content->'meta'->>'contractVersion' = $7
      ORDER BY updated_at DESC LIMIT $8`,
-    [input.userId, CACHE_TIER, resolved.contentVariant, input.periodKey, PERSONAL_FORECAST_PROMPT_VERSION, PERSONAL_FORECAST_CALCULATION_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION, CROSS_USER_PACKAGE_LIMIT],
+    [input.userId, input.accessTier, resolved.contentVariant, input.periodKey, PERSONAL_FORECAST_PROMPT_VERSION, PERSONAL_FORECAST_CALCULATION_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION, CROSS_USER_PACKAGE_LIMIT],
   );
   return (result.rows as Array<{content: unknown}>).flatMap((row) => repeatFragments(row.content)).slice(0, PERSONAL_FORECAST_CROSS_USER_REPEAT_FRAGMENT_LIMIT);
 }
@@ -153,7 +159,7 @@ async function getCrossUserSemanticSignatures(
        AND content->>'periodKey' = $4 AND prompt_version = $5 AND calculation_version = $6
        AND content->'meta'->>'contractVersion' = $7
      ORDER BY updated_at DESC LIMIT $8`,
-    [input.userId, CACHE_TIER, resolved.contentVariant, input.periodKey, PERSONAL_FORECAST_PROMPT_VERSION, PERSONAL_FORECAST_CALCULATION_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION, CROSS_USER_PACKAGE_LIMIT],
+    [input.userId, input.accessTier, resolved.contentVariant, input.periodKey, PERSONAL_FORECAST_PROMPT_VERSION, PERSONAL_FORECAST_CALCULATION_VERSION, PERSONAL_FORECAST_CONTRACT_VERSION, CROSS_USER_PACKAGE_LIMIT],
   );
   return (result.rows as Array<{ content: unknown }>).flatMap((row) => {
     if (!isPersonalForecastPackage(row.content)) return [];
@@ -163,7 +169,7 @@ async function getCrossUserSemanticSignatures(
 
 async function save(input: PersonalForecastCacheContext, forecast: PersonalForecastPackage, resolved: Awaited<ReturnType<typeof identity>>) {
   await db.content_interpretations.upsertByUser(input.userId, {
-    accessTier: CACHE_TIER, contentSurface: 'forecast', contentVariant: resolved.contentVariant,
+    accessTier: input.accessTier, contentSurface: 'forecast', contentVariant: resolved.contentVariant,
     cacheKey: resolved.cacheKey, inputHash: resolved.inputHash, content: forecast, modelTier: 'premium',
     promptVersion: PERSONAL_FORECAST_PROMPT_VERSION, calculationVersion: PERSONAL_FORECAST_CALCULATION_VERSION,
     isPersistent: false, legacySource: null, validFrom: resolved.window.startsAt, validTo: resolved.window.validTo,
@@ -171,10 +177,20 @@ async function save(input: PersonalForecastCacheContext, forecast: PersonalForec
 }
 
 export async function ensurePersonalForecast(input: PersonalForecastCacheContext, options: { forceRegenerate?: boolean; minimumGeneratedAt?: string | null } = {}): Promise<ContentGenerationLockResult<PersonalForecastPackage>> {
+  if (!isPersonalForecastPeriodAllowedForTier(input.accessTier, input.period)) {
+    logForecastDeliveryMetric({ domain: 'personal', outcome: 'skipped_entitlement', tier: input.accessTier, period: input.period, periodKey: input.periodKey });
+    throw new Error('PERSONAL_FORECAST_PREMIUM_REQUIRED');
+  }
   const resolved = await identity(input);
+  let lockBusyLogged = false;
   return withContentGenerationLock({
-    lockKey: buildContentGenerationLockKey({ userId: input.userId, accessTier: CACHE_TIER, contentSurface: 'forecast', contentVariant: resolved.contentVariant, cacheKey: resolved.cacheKey, promptVersion: PERSONAL_FORECAST_PROMPT_VERSION }),
+    lockKey: buildContentGenerationLockKey({ userId: input.userId, accessTier: input.accessTier, contentSurface: 'forecast', contentVariant: resolved.contentVariant, cacheKey: resolved.cacheKey, promptVersion: PERSONAL_FORECAST_PROMPT_VERSION }),
     operation: `personal-forecast-${input.period}`, allowLocalLockFallback: true,
+    onLockBusy: () => {
+      if (lockBusyLogged) return;
+      lockBusyLogged = true;
+      logForecastDeliveryMetric({ domain: 'personal', outcome: 'generation_in_progress', tier: input.accessTier, period: input.period, periodKey: input.periodKey });
+    },
     readCached: async () => {
       if (options.forceRegenerate) return null;
       const cached = await getCachedPersonalForecast(input);
@@ -189,6 +205,7 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       const forecast = await generatePersonalForecastPackage({ profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window, recentForecasts, crossUserRepeatFragments, crossUserSemanticSignatures });
       if (!isPersonalForecastPackage(forecast)) throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`);
       await save(input, forecast, resolved).catch(() => undefined);
+      logForecastDeliveryMetric({ domain: 'personal', outcome: 'generated', tier: input.accessTier, period: input.period, periodKey: input.periodKey, generationCount: 1 });
       return forecast;
     },
   });

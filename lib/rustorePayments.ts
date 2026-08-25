@@ -5,6 +5,7 @@ import {
   getPremiumEntitlementState,
   publicPremiumEntitlementSnapshot,
 } from './contentArchitecture';
+import { queuePersonalForecastPrewarmForUser } from './personalForecastPrewarm';
 
 export type RuStoreValidationInput = {
   userId: string;
@@ -669,6 +670,13 @@ export async function validateRuStorePurchase(input: RuStoreValidationInput) {
   const entitlement = publicPremiumEntitlementSnapshot(
     await getPremiumEntitlementState(input.userId),
   );
+  if (entitlement.isPremium) {
+    queuePersonalForecastPrewarmForUser({
+      userId: input.userId,
+      accessTier: 'premium',
+      reason: 'premium_activated',
+    });
+  }
   return { ...result, purchaseActive: result.snapshot.isPremium, entitlement };
 }
 
@@ -702,6 +710,13 @@ export async function validateRuStorePurchaseFromProviderIdentity(input: {
   const entitlement = publicPremiumEntitlementSnapshot(
     await getPremiumEntitlementState(result.userId),
   );
+  if (entitlement.isPremium) {
+    queuePersonalForecastPrewarmForUser({
+      userId: result.userId,
+      accessTier: 'premium',
+      reason: 'premium_restored',
+    });
+  }
   return { ...result, purchaseActive: result.snapshot.isPremium, entitlement };
 }
 

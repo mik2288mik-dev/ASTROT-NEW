@@ -8,6 +8,7 @@
 
 import { getPool } from '../lib/db';
 import { PREMIUM_WEEK_DAYS } from '../lib/premiumPricing';
+import { queuePersonalForecastPrewarmForUser } from '../lib/personalForecastPrewarm';
 
 const log = {
   info: (msg: string, data?: any) => console.log(`[PremiumService] ${msg}`, data || ''),
@@ -150,6 +151,13 @@ export async function activatePremium(
   }
 
   log.info('Premium activated', { userId: id, premiumUntil: premiumUntil.toISOString(), starsAmount });
+  if (premiumUntil > new Date()) {
+    queuePersonalForecastPrewarmForUser({
+      userId: id,
+      accessTier: 'premium',
+      reason: 'premium_activated',
+    });
+  }
 
   return {
     activated: inserted,
