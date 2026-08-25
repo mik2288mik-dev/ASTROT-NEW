@@ -5,8 +5,8 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
     id: 'start',
     label: { ru: 'С чего начать', en: 'Start here' },
     description: {
-      ru: 'Как устроена натальная карта и какие данные нужны для расчёта.',
-      en: 'How a natal chart is built and which birth details the calculation needs.',
+      ru: 'Что такое астрология, зодиак, гороскоп и натальная карта.',
+      en: 'What astrology, the zodiac, a horoscope, and a natal chart are.',
     },
   },
   {
@@ -19,10 +19,10 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
   },
   {
     id: 'planets',
-    label: { ru: 'Планеты', en: 'Planets' },
+    label: { ru: 'Планеты и светила', en: 'Planets and luminaries' },
     description: {
-      ru: 'Что показывает каждая планета и чем её роль отличается от знака и дома.',
-      en: 'What each planet describes and how its role differs from a sign or house.',
+      ru: 'Что астрономически представляет каждый объект и как его используют в астрологии.',
+      en: 'What each object is astronomically and how astrology uses it.',
     },
   },
   {
@@ -51,7 +51,7 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
   },
   {
     id: 'retrogrades',
-    label: { ru: 'Ретроградность', en: 'Retrograde motion' },
+    label: { ru: 'Движение планет', en: 'Planetary motion' },
     description: {
       ru: 'Почему планета кажется движущейся назад и что именно отмечено в карте.',
       en: 'Why a planet can appear to move backwards and what a chart records.',
@@ -59,7 +59,7 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
   },
   {
     id: 'nodes-points',
-    label: { ru: 'Узлы и расчётные точки', en: 'Nodes and calculated points' },
+    label: { ru: 'Дополнительные точки и объекты', en: 'Additional points and objects' },
     description: {
       ru: 'Точки, которые получают расчётом, а не наблюдают как физические планеты.',
       en: 'Points found by calculation rather than observed as physical planets.',
@@ -67,15 +67,15 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
   },
   {
     id: 'synthesis',
-    label: { ru: 'Как читать карту целиком', en: 'Reading the whole chart' },
+    label: { ru: 'Структуры карты', en: 'Chart structures' },
     description: {
-      ru: 'Как соединить планету, знак, дом и аспекты без поспешных выводов.',
-      en: 'How to combine a planet, sign, house, and aspects without rushing to a label.',
+      ru: 'Стеллиумы, конфигурации, управители и достоинства планет.',
+      en: 'Stelliums, aspect patterns, rulers, and planetary dignities.',
     },
   },
   {
     id: 'compatibility',
-    label: { ru: 'Отношения и совместимость', en: 'Relationships and compatibility' },
+    label: { ru: 'Отношения', en: 'Relationships' },
     description: {
       ru: 'Чем сравнение знаков отличается от сравнения двух полных карт.',
       en: 'How sign matching differs from comparing two complete charts.',
@@ -83,18 +83,26 @@ export const KNOWLEDGE_CATEGORIES: readonly KnowledgeCategory[] = [
   },
   {
     id: 'forecasts',
-    label: { ru: 'Прогнозы', en: 'Forecasts' },
+    label: { ru: 'Прогностические методы', en: 'Predictive methods' },
     description: {
-      ru: 'Чем текущий период отличается от натальной карты и что такое транзит.',
-      en: 'How a current period differs from a natal chart and what a transit is.',
+      ru: 'Транзиты, прогрессии, дирекции, возвращения, соляр и лунар.',
+      en: 'Transits, progressions, directions, returns, solar returns, and lunar returns.',
     },
   },
   {
     id: 'moon-cycles',
-    label: { ru: 'Луна и циклы', en: 'The Moon and its cycles' },
+    label: { ru: 'Луна и лунный цикл', en: 'The Moon and its cycle' },
     description: {
-      ru: 'Натальная Луна, текущая Луна, фазы и обычное значение лунного календаря.',
-      en: 'The natal Moon, current Moon, phases, and what a lunar calendar usually means.',
+      ru: 'Почему меняются фазы Луны, чем полнолуние отличается от затмения.',
+      en: 'Why lunar phases change and how a full moon differs from an eclipse.',
+    },
+  },
+  {
+    id: 'branches-tools',
+    label: { ru: 'Другие понятия и методы', en: 'Other terms and methods' },
+    description: {
+      ru: 'Эфемериды, градусы, астрокартография и основные направления астрологии.',
+      en: 'Ephemerides, degrees, astrocartography, and the main branches of astrology.',
     },
   },
 ] as const;

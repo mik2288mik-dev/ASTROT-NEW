@@ -11,6 +11,7 @@ import { RELATIONSHIP_TOPICS } from './relationships';
 import { RETROGRADE_TOPICS } from './retrogrades';
 import { SIGN_TOPICS } from './signs';
 import { SYNTHESIS_TOPICS } from './synthesis';
+import { EXTENDED_TOPICS } from './extended';
 import type {
   KnowledgeCategoryId,
   KnowledgeLanguage,
@@ -21,7 +22,9 @@ import type {
 export * from './types';
 export * from './search';
 export * from './inlineLinks';
-export * from './presentation';
+export * from './navigation';
+export * from './sources';
+export * from './validation';
 export { KNOWLEDGE_CATEGORIES } from './categories';
 
 export const INITIAL_ENCYCLOPEDIA_SCREEN = 'catalog' as const;
@@ -39,6 +42,7 @@ export const KNOWLEDGE_TOPIC_SOURCES: readonly KnowledgeTopicSource[] = [
   ...RELATIONSHIP_TOPICS,
   ...FORECAST_TOPICS,
   ...MOON_CYCLE_TOPICS,
+  ...EXTENDED_TOPICS,
 ];
 
 export function knowledgeLanguage(language: string | null | undefined): KnowledgeLanguage {
@@ -57,6 +61,8 @@ export function getKnowledgeTopics(languageValue: string | null | undefined): re
     aliases: source.aliases[language],
     keywords: source.keywords[language],
     relatedTopicIds: source.relatedTopicIds,
+    diagram: source.diagram,
+    sourceIds: source.sourceIds || [],
     ...source.copy[language],
   }));
 }

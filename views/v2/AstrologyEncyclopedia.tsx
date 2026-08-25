@@ -1,35 +1,29 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
-import { KnowledgeArticleIcon } from '../../components/icons/KnowledgeArticleIcon';
-import {
-  EditorialCurve,
-  EditorialChartsButton,
-} from '../../components/editorial/EditorialScreenChrome';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import {
   buildKnowledgeInlineLinkCandidates,
-  getKnowledgeArticlePresentation,
+  getKnowledgeSources,
   getKnowledgeTopics,
   getRelatedKnowledgeTopics,
   groupKnowledgeTopicsByCategory,
-  INITIAL_ENCYCLOPEDIA_SCREEN,
+  INITIAL_KNOWLEDGE_NAVIGATION,
   knowledgeLanguage,
+  knowledgeNavigationReducer,
   normalizeKnowledgeSearch,
   searchKnowledgeTopics,
   splitKnowledgeTextWithLinks,
+  type KnowledgeArticleSection,
   type KnowledgeCategoryId,
 } from '../../lib/knowledge';
-
-type EncyclopediaScreen = typeof INITIAL_ENCYCLOPEDIA_SCREEN | 'category' | 'article';
-type EncyclopediaLocation =
-  | { screen: typeof INITIAL_ENCYCLOPEDIA_SCREEN }
-  | { screen: 'category'; categoryId: KnowledgeCategoryId }
-  | { screen: 'article'; categoryId: KnowledgeCategoryId; topicId: string };
+import { KnowledgeDiagram } from './KnowledgeDiagram';
+import styles from './AstrologyEncyclopedia.module.css';
 
 export type AstrologyEncyclopediaProps = {
   profile: UserProfile;
+  /** Kept for route compatibility; the library intentionally does not use personal chart data. */
   onOpenCharts?: () => void;
   embedded?: boolean;
 };
@@ -45,7 +39,6 @@ function russianMaterialCount(count: number): string {
 
 export function AstrologyEncyclopedia({
   profile,
-  onOpenCharts,
   embedded = false,
 }: AstrologyEncyclopediaProps) {
   const language = knowledgeLanguage(profile.language);
@@ -55,66 +48,81 @@ export function AstrologyEncyclopedia({
     () => groupKnowledgeTopicsByCategory(topics, language),
     [language, topics],
   );
-  const [screen, setScreen] = useState<EncyclopediaScreen>(INITIAL_ENCYCLOPEDIA_SCREEN);
-  const [activeCategoryId, setActiveCategoryId] = useState<KnowledgeCategoryId>('start');
-  const [activeTopicId, setActiveTopicId] = useState(topics[0]?.id || '');
-  const [navigationTrail, setNavigationTrail] = useState<EncyclopediaLocation[]>([]);
+  const [navigation, dispatch] = useReducer(
+    knowledgeNavigationReducer,
+    INITIAL_KNOWLEDGE_NAVIGATION,
+  );
   const [query, setQuery] = useState('');
   const contentRef = useRef<HTMLDivElement | null>(null);
   const catalogHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const categoryHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const articleHeadingRef = useRef<HTMLHeadingElement | null>(null);
-  const activeCategory = topicGroups.find((group) => group.categoryId === activeCategoryId)
-    || topicGroups[0];
-  const activeTopic = topics.find((topic) => topic.id === activeTopicId) || topics[0];
+  const current = navigation.current;
   const normalizedQuery = normalizeKnowledgeSearch(query);
-  const filteredTopics = useMemo(() => searchKnowledgeTopics(topics, query), [query, topics]);
+  const filteredTopics = useMemo(
+    () => searchKnowledgeTopics(topics, query),
+    [query, topics],
+  );
+  const activeCategory = current.screen === 'category'
+    ? topicGroups.find((group) => group.categoryId === current.categoryId)
+    : current.screen === 'article'
+      ? topicGroups.find((group) => group.categoryId === current.categoryId)
+      : undefined;
+  const activeTopic = current.screen === 'article'
+    ? topics.find((topic) => topic.id === current.topicId)
+    : undefined;
   const related = useMemo(
     () => activeTopic ? getRelatedKnowledgeTopics(topics, activeTopic) : [],
     [activeTopic, topics],
   );
   const inlineLinkCandidates = useMemo(
-    () => activeTopic
-      ? buildKnowledgeInlineLinkCandidates(topics, activeTopic.id)
-      : [],
+    () => activeTopic ? buildKnowledgeInlineLinkCandidates(topics, activeTopic.id) : [],
     [activeTopic, topics],
   );
-  const articlePresentation = useMemo(
-    () => activeTopic ? getKnowledgeArticlePresentation(activeTopic, language) : null,
+  const sources = useMemo(
+    () => activeTopic ? getKnowledgeSources(activeTopic.sourceIds, language) : [],
     [activeTopic, language],
   );
 
-  const focusContent = (target: React.RefObject<HTMLHeadingElement | null>) => {
-    window.requestAnimationFrame(() => {
-      const appScroll = contentRef.current?.closest<HTMLElement>('.lumia-main-scroll');
-      if (appScroll) appScroll.scrollTo({ top: 0, behavior: 'auto' });
-      window.scrollTo({ top: 0, behavior: 'auto' });
-      target.current?.focus({ preventScroll: true });
-    });
-  };
-
   const openCategory = (categoryId: KnowledgeCategoryId) => {
-    setNavigationTrail((trail) => [...trail, { screen: INITIAL_ENCYCLOPEDIA_SCREEN }]);
-    setActiveCategoryId(categoryId);
     setQuery('');
-    setScreen('category');
-    focusContent(categoryHeadingRef);
+    dispatch({ type: 'open-category', categoryId });
   };
 
   const openTopic = (topicId: string) => {
     const nextTopic = topics.find((topic) => topic.id === topicId);
-    if (!nextTopic) return;
-    const currentLocation: EncyclopediaLocation = screen === 'article'
-      ? { screen: 'article', categoryId: activeCategoryId, topicId: activeTopicId }
-      : screen === 'category'
-        ? { screen: 'category', categoryId: activeCategoryId }
-        : { screen: INITIAL_ENCYCLOPEDIA_SCREEN };
-    setNavigationTrail((trail) => [...trail, currentLocation]);
-    setActiveTopicId(topicId);
-    setActiveCategoryId(nextTopic.category);
-    setScreen('article');
-    focusContent(articleHeadingRef);
+    if (!nextTopic) return false;
+    dispatch({ type: 'open-article', categoryId: nextTopic.category, topicId });
+    return true;
   };
+
+  const navigateBack = () => dispatch({ type: 'back' });
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const appScroll = contentRef.current?.closest<HTMLElement>('.lumia-main-scroll');
+      if (appScroll) appScroll.scrollTo({ top: 0, behavior: 'auto' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      const heading = current.screen === 'article'
+        ? articleHeadingRef.current
+        : current.screen === 'category'
+          ? categoryHeadingRef.current
+          : catalogHeadingRef.current;
+      heading?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [current]);
+
+  useEffect(() => {
+    if (current.screen === 'catalog') return;
+    const handleNativeBack = (event: Event) => {
+      dispatch({ type: 'back' });
+      const detail = (event as CustomEvent<NativeBackEventDetail>).detail;
+      if (detail) detail.handled = true;
+    };
+    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
+  }, [current.screen]);
 
   const renderLinkedParagraph = (paragraph: string) => (
     splitKnowledgeTextWithLinks(paragraph, inlineLinkCandidates).map((segment, index) => (
@@ -123,15 +131,12 @@ export function AstrologyEncyclopedia({
       ) : (
         <a
           key={`link-${segment.topicId}-${index}`}
-          className="encyclopedia-inline-link"
+          className={styles.inlineLink}
           href={`#knowledge-${segment.topicId}`}
           onClick={(event) => {
             event.preventDefault();
             openTopic(segment.topicId);
           }}
-          aria-label={ru
-            ? `${segment.text}. Открыть материал`
-            : `${segment.text}. Open article`}
         >
           {segment.text}
         </a>
@@ -139,270 +144,258 @@ export function AstrologyEncyclopedia({
     ))
   );
 
-  const returnToCatalog = (clearSearch = false) => {
-    if (clearSearch) setQuery('');
-    setNavigationTrail([]);
-    setScreen(INITIAL_ENCYCLOPEDIA_SCREEN);
-    focusContent(catalogHeadingRef);
-  };
-
-  const navigateBack = () => {
-    const previous = navigationTrail[navigationTrail.length - 1];
-    if (!previous) {
-      returnToCatalog();
-      return;
-    }
-    setNavigationTrail((trail) => trail.slice(0, -1));
-    if (previous.screen === 'article') {
-      setActiveTopicId(previous.topicId);
-      setActiveCategoryId(previous.categoryId);
-      setScreen('article');
-      focusContent(articleHeadingRef);
-      return;
-    }
-    if (previous.screen === 'category') {
-      setActiveCategoryId(previous.categoryId);
-      setScreen('category');
-      focusContent(categoryHeadingRef);
-      return;
-    }
-    setScreen(INITIAL_ENCYCLOPEDIA_SCREEN);
-    focusContent(catalogHeadingRef);
-  };
-
-  const headerBack: (() => void) | undefined = screen === INITIAL_ENCYCLOPEDIA_SCREEN
-    ? undefined
-    : navigateBack;
-  const previousLocation = navigationTrail[navigationTrail.length - 1];
-  const previousLabel = previousLocation?.screen === 'article'
-    ? topics.find((topic) => topic.id === previousLocation.topicId)?.title
-    : previousLocation?.screen === 'category'
-      ? topicGroups.find((group) => group.categoryId === previousLocation.categoryId)?.label
-      : normalizedQuery
-        ? (ru ? 'Результаты поиска' : 'Search results')
-        : (ru ? 'Все материалы' : 'All articles');
-
-  useEffect(() => {
-    if (!headerBack) return;
-    const handleNativeBack = (event: Event) => {
-      headerBack();
-      (event as CustomEvent<NativeBackEventDetail>).detail.handled = true;
-    };
-    window.addEventListener(NATIVE_BACK_EVENT, handleNativeBack);
-    return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
-  }, [headerBack]);
-
-  if (!activeTopic || !activeCategory) {
+  const renderArticleSection = (section: KnowledgeArticleSection, index: number) => {
+    const sectionClassName = [
+      styles.articleSection,
+      section.kind === 'astrology' ? styles.sectionAstrology : '',
+      section.kind === 'confusion' ? styles.sectionConfusion : '',
+    ].filter(Boolean).join(' ');
     return (
-      <div className={`fresh-page encyclopedia-editorial-page${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
-        {!embedded ? (
-          <AppTopBar
-            title={ru ? 'Хочу знать' : 'Learn'}
-            rightAction={<EditorialChartsButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenCharts} />}
-          />
-        ) : null}
-        <div className="encyclopedia-content encyclopedia-empty">
-          <p>{ru ? 'Энциклопедия астрологии' : 'Astrology encyclopedia'}</p>
+      <section className={sectionClassName} key={`${section.title}-${index}`}>
+        <h2>{section.title}</h2>
+        {section.paragraphs.map((paragraph, paragraphIndex) => (
+          <p key={`${paragraphIndex}-${paragraph.slice(0, 24)}`}>
+            {renderLinkedParagraph(paragraph)}
+          </p>
+        ))}
+      </section>
+    );
+  };
+
+  const previous = navigation.history[navigation.history.length - 1];
+  const previousLabel = previous?.screen === 'article'
+    ? topics.find((topic) => topic.id === previous.topicId)?.title
+    : previous?.screen === 'category'
+      ? topicGroups.find((group) => group.categoryId === previous.categoryId)?.label
+      : ru ? 'Все разделы' : 'All sections';
+  const headerBack = current.screen === 'catalog' ? undefined : navigateBack;
+
+  if (!topics.length) {
+    return (
+      <div className={`fresh-page encyclopedia-editorial-page ${styles.page}`}>
+        {!embedded ? <AppTopBar title={ru ? 'Энциклопедия' : 'Encyclopedia'} /> : null}
+        <div className={`${styles.content} ${styles.empty}`}>
           <h1>{ru ? 'Материалов пока нет' : 'No articles yet'}</h1>
-          <span>{ru ? 'Вернитесь позже — здесь появятся понятные объяснения.' : 'Come back later for clear explanations.'}</span>
+          <p>{ru ? 'Здесь появятся понятные объяснения терминов.' : 'Clear explanations will appear here.'}</p>
         </div>
       </div>
     );
   }
 
+  const coreSections = activeTopic?.sections.filter((section) => section.depth !== 'deep') || [];
+  const deepSections = activeTopic?.sections.filter((section) => section.depth === 'deep') || [];
+
   return (
-    <div className={`fresh-page encyclopedia-editorial-page${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
+    <div className={`fresh-page encyclopedia-editorial-page ${styles.page}${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
       {!embedded ? (
         <AppTopBar
-          title={ru ? 'Хочу знать' : 'Learn'}
+          title={ru ? 'Энциклопедия' : 'Encyclopedia'}
           onBack={headerBack}
-          rightAction={<EditorialChartsButton label={ru ? 'Открыть мои карты' : 'Open my charts'} onClick={onOpenCharts} />}
         />
       ) : null}
 
-      <div
-        ref={contentRef}
-        className={`encyclopedia-content${screen === 'article' ? ' encyclopedia-content--article' : ''}`}
-      >
-        {embedded && headerBack && screen !== 'article' ? (
-          <button className="encyclopedia-return encyclopedia-return-top" type="button" onClick={headerBack}>
-            <ChevronLeft aria-hidden="true" strokeWidth={1.5} />
-            <span>{previousLabel || (ru ? 'Все материалы' : 'All articles')}</span>
+      <div ref={contentRef} className={styles.content}>
+        {embedded && headerBack ? (
+          <button className={styles.backButton} type="button" onClick={headerBack}>
+            <ChevronLeft aria-hidden="true" strokeWidth={1.7} />
+            <span>{previousLabel}</span>
           </button>
         ) : null}
-        {screen === INITIAL_ENCYCLOPEDIA_SCREEN ? (
+
+        {current.screen === 'catalog' ? (
           <>
-            <header className="encyclopedia-catalog-heading">
-              {!embedded ? <p>{ru ? 'Хочу знать' : 'Learn'}</p> : null}
-              <h1 ref={catalogHeadingRef} tabIndex={-1}>
-                {ru ? 'Энциклопедия астрологии' : 'Astrology encyclopedia'}
-              </h1>
-              <span>
+            <header className={styles.catalogHeader}>
+              <h1 ref={catalogHeadingRef} tabIndex={-1}>{ru ? 'Энциклопедия' : 'Encyclopedia'}</h1>
+              <p>
                 {ru
-                  ? 'Понятные объяснения о знаках, планетах, домах, аспектах и прогнозах.'
-                  : 'Clear explanations of signs, planets, houses, aspects, and forecasts.'}
-              </span>
+                  ? 'Астрология простыми словами. Что это, как работает и почему так называется.'
+                  : 'Astrology in plain language: what terms mean, how they work, and why they have those names.'}
+              </p>
             </header>
 
-            <div className="encyclopedia-search" role="search">
-              <label htmlFor="knowledge-search">{ru ? 'Найти материал' : 'Find an article'}</label>
-              <div>
-                <Search aria-hidden="true" strokeWidth={1.6} />
+            <div className={styles.search} role="search">
+              <label htmlFor="knowledge-search">{ru ? 'Что хотите понять?' : 'What do you want to understand?'}</label>
+              <div className={styles.searchControl}>
+                <Search aria-hidden="true" strokeWidth={1.7} />
                 <input
                   id="knowledge-search"
                   name="knowledge-search"
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={ru ? 'Например: асцендент, любовь, ретро' : 'For example: ascendant, love, retro'}
+                  placeholder={ru
+                    ? 'Асцендент, полнолуние, дома, ретроградный Меркурий…'
+                    : 'Ascendant, full moon, houses, Mercury retrograde…'}
                   autoComplete="off"
                 />
               </div>
             </div>
 
             {normalizedQuery ? (
-              <section
-                className="encyclopedia-search-results"
-                aria-labelledby="knowledge-search-results"
-                aria-live="polite"
-              >
-                <h2 id="knowledge-search-results">
-                  {ru ? `Найдено: ${filteredTopics.length}` : `Found: ${filteredTopics.length}`}
-                </h2>
+              <section className={styles.searchResults} aria-live="polite" aria-labelledby="knowledge-search-results">
+                <div className={styles.searchResultsHeader}>
+                  <h2 id="knowledge-search-results">
+                    {ru ? `Найдено: ${filteredTopics.length}` : `Found: ${filteredTopics.length}`}
+                  </h2>
+                  <button className={styles.clearButton} type="button" onClick={() => setQuery('')}>
+                    {ru ? 'Очистить поиск' : 'Clear search'}
+                  </button>
+                </div>
                 {filteredTopics.length ? (
-                  <div className="encyclopedia-topic-list">
+                  <ul className={styles.topicList} role="list">
                     {filteredTopics.map((topic) => (
-                      <button
-                        key={topic.id}
-                        type="button"
-                        onClick={() => openTopic(topic.id)}
-                      >
-                        <span>
-                          <strong>{topic.title}</strong>
-                          <small>{topic.categoryLabel} · {topic.summary}</small>
-                        </span>
-                        <ChevronRight aria-hidden="true" strokeWidth={1.5} />
-                      </button>
+                      <li key={topic.id}>
+                        <button className={styles.topicButton} type="button" onClick={() => openTopic(topic.id)}>
+                          <span className={styles.topicCopy}>
+                            <strong>{topic.title}</strong>
+                            <small>{topic.categoryLabel} · {topic.summary}</small>
+                          </span>
+                          <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+                        </button>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 ) : (
-                  <p className="encyclopedia-no-results">
-                    {ru
-                      ? `По запросу «${query.trim()}» ничего не найдено. Введите более короткое слово или другой термин.`
-                      : `No articles found for “${query.trim()}”. Try a shorter or different term.`}
-                  </p>
+                  <div className={styles.noResults}>
+                    <p>
+                      {ru
+                        ? `По запросу «${query.trim()}» ничего не найдено. Попробуйте более короткое слово или другое название.`
+                        : `No results for “${query.trim()}”. Try a shorter word or another name.`}
+                    </p>
+                  </div>
                 )}
               </section>
             ) : (
-              <nav
-                className="encyclopedia-category-navigation"
-                aria-label={ru ? 'Разделы энциклопедии' : 'Encyclopedia sections'}
-              >
-                {topicGroups.map((group) => (
-                  <button
-                    key={group.categoryId}
-                    type="button"
-                    onClick={() => openCategory(group.categoryId)}
-                    aria-label={ru
-                      ? `${group.label}: ${russianMaterialCount(group.topics.length)}`
-                      : `${group.label}: ${group.topics.length} articles`}
-                  >
-                    <span className="encyclopedia-category-navigation-copy">
-                      <strong>{group.label}</strong>
-                      <small>{group.description}</small>
-                    </span>
-                    <span className="encyclopedia-category-navigation-meta" aria-hidden="true">
-                      <small>{group.topics.length}</small>
-                      <ChevronRight strokeWidth={1.5} />
-                    </span>
-                  </button>
-                ))}
-              </nav>
+              <section aria-labelledby="knowledge-categories-title">
+                <h2 className={styles.sectionTitle} id="knowledge-categories-title">
+                  {ru ? 'Разделы' : 'Sections'}
+                </h2>
+                <ul className={styles.categoryList} role="list">
+                  {topicGroups.map((group) => (
+                    <li key={group.categoryId}>
+                      <button
+                        className={styles.categoryButton}
+                        type="button"
+                        onClick={() => openCategory(group.categoryId)}
+                        aria-label={ru
+                          ? `${group.label}: ${russianMaterialCount(group.topics.length)}`
+                          : `${group.label}: ${group.topics.length} articles`}
+                      >
+                        <span className={styles.categoryCopy}>
+                          <strong>{group.label}</strong>
+                          <small>{group.description}</small>
+                        </span>
+                        <span className={styles.categoryMeta} aria-hidden="true">
+                          <small>{group.topics.length}</small>
+                          <ChevronRight strokeWidth={1.6} />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
           </>
-        ) : screen === 'category' ? (
-          <section className="encyclopedia-category-view" aria-labelledby="encyclopedia-category-title">
-            <header className="encyclopedia-category-heading">
-              <p>{ru ? 'Раздел энциклопедии' : 'Encyclopedia section'}</p>
+        ) : current.screen === 'category' && activeCategory ? (
+          <section className={styles.categoryView} aria-labelledby="encyclopedia-category-title">
+            <header className={styles.categoryHeader}>
               <h1 id="encyclopedia-category-title" ref={categoryHeadingRef} tabIndex={-1}>
                 {activeCategory.label}
               </h1>
-              <span>{activeCategory.description}</span>
+              <p>{activeCategory.description}</p>
             </header>
-            <div className="encyclopedia-topic-list">
+            <ul className={styles.topicList} role="list">
               {activeCategory.topics.map((topic) => (
-                <button key={topic.id} type="button" onClick={() => openTopic(topic.id)}>
-                  <span>
-                    <strong>{topic.title}</strong>
-                    <small>{topic.summary}</small>
-                  </span>
-                  <ChevronRight aria-hidden="true" strokeWidth={1.5} />
-                </button>
+                <li key={topic.id}>
+                  <button className={styles.topicButton} type="button" onClick={() => openTopic(topic.id)}>
+                    <span className={styles.topicCopy}>
+                      <strong>{topic.title}</strong>
+                      <small>{topic.summary}</small>
+                    </span>
+                    <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
-        ) : (
-          <>
-            <header className="encyclopedia-article-intro">
-              {embedded && headerBack ? (
-                <button
-                  className="encyclopedia-article-back"
-                  type="button"
-                  onClick={headerBack}
-                  aria-label={ru
-                    ? `Назад: ${previousLabel || 'Все материалы'}`
-                    : `Back: ${previousLabel || 'All articles'}`}
-                >
-                  <ChevronLeft aria-hidden="true" strokeWidth={1.45} />
-                </button>
-              ) : null}
-              <p className="encyclopedia-subtitle">
-                {ru ? 'Энциклопедия астрологии' : 'Astrology encyclopedia'}
-              </p>
-              <EditorialCurve className="encyclopedia-curve" />
+        ) : activeTopic ? (
+          <article className={styles.article} aria-labelledby={`knowledge-${activeTopic.id}`}>
+            <header className={styles.articleHeader}>
+              <p className={styles.eyebrow}>{activeTopic.categoryLabel}</p>
+              <h1 id={`knowledge-${activeTopic.id}`} ref={articleHeadingRef} tabIndex={-1}>
+                {activeTopic.title}
+              </h1>
+              <p className={styles.lead}>{renderLinkedParagraph(activeTopic.summary)}</p>
             </header>
 
-            <article className="encyclopedia-article" aria-labelledby={`knowledge-${activeTopic.id}`}>
-              {articlePresentation ? (
-                <div className="encyclopedia-article-symbol" aria-hidden="true">
-                  <KnowledgeArticleIcon topicId={activeTopic.id} category={activeTopic.category} />
+            <aside className={styles.shortAnswer} aria-label={ru ? 'Короткий ответ' : 'Short answer'}>
+              <strong>{ru ? 'Если совсем коротко' : 'In one sentence'}</strong>
+              <p>{activeTopic.shortAnswer}</p>
+            </aside>
+
+            {activeTopic.diagram ? <KnowledgeDiagram diagram={activeTopic.diagram} language={language} /> : null}
+
+            <div className={styles.articleSections}>
+              {coreSections.map(renderArticleSection)}
+            </div>
+
+            {deepSections.length ? (
+              <details className={styles.deepDisclosure}>
+                <summary>{ru ? 'Разобраться глубже' : 'Go deeper'}</summary>
+                <div className={styles.deepSections}>
+                  {deepSections.map(renderArticleSection)}
                 </div>
-              ) : null}
-              <p className="encyclopedia-eyebrow">{activeTopic.categoryLabel}</p>
-              <h1 id={`knowledge-${activeTopic.id}`} ref={articleHeadingRef} tabIndex={-1}>{activeTopic.title}</h1>
-              {articlePresentation ? (
-                <div className="encyclopedia-article-tags" aria-label={ru ? 'Темы материала' : 'Article topics'}>
-                  <span>{articlePresentation.tag}</span>
-                </div>
-              ) : null}
+              </details>
+            ) : null}
 
-              <div className="encyclopedia-copy">
-                <p className="encyclopedia-copy-lead">{renderLinkedParagraph(activeTopic.summary)}</p>
-                {activeTopic.sections.flatMap((section) => section.paragraphs).map((paragraph) => (
-                  <p key={paragraph}>{renderLinkedParagraph(paragraph)}</p>
-                ))}
-              </div>
-
-              <aside className="encyclopedia-simple" aria-labelledby="encyclopedia-simple-title">
-                <h2 id="encyclopedia-simple-title">{ru ? 'Простыми словами' : 'In plain words'}</h2>
-                <p>{activeTopic.shortAnswer}</p>
-              </aside>
-
-              {related.length ? (
-                <section className="encyclopedia-related" aria-labelledby="encyclopedia-related-title">
-                  <h2 id="encyclopedia-related-title">{ru ? 'Читайте также' : 'Read next'}</h2>
-                  <div>
-                    {related.map((topic) => (
-                      <button key={topic.id} type="button" onClick={() => openTopic(topic.id)}>
+            {related.length ? (
+              <section className={styles.related} aria-labelledby="encyclopedia-related-title">
+                <h2 id="encyclopedia-related-title">{ru ? 'Связанные понятия' : 'Related concepts'}</h2>
+                <ul className={styles.relatedList} role="list">
+                  {related.map((topic) => (
+                    <li key={topic.id}>
+                      <button className={styles.relatedButton} type="button" onClick={() => openTopic(topic.id)}>
                         <span>{topic.title}</span>
-                        <ChevronRight aria-hidden="true" strokeWidth={1.5} />
+                        <ChevronRight aria-hidden="true" strokeWidth={1.6} />
                       </button>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-            </article>
-          </>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {sources.length ? (
+              <details className={styles.sources}>
+                <summary>{ru ? 'Источники и определения' : 'Sources and definitions'}</summary>
+                <ul className={styles.sourceList} role="list">
+                  {sources.map((source) => (
+                    <li key={source.id}>
+                      <a href={source.url} target="_blank" rel="noreferrer">
+                        <strong>{source.localizedTitle}</strong>
+                        <small>{source.publisher}</small>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+
+            <footer className={styles.articleFooter}>
+              <button className={styles.backButton} type="button" onClick={navigateBack}>
+                <ChevronLeft aria-hidden="true" strokeWidth={1.7} />
+                <span>{ru ? `Назад: ${previousLabel}` : `Back: ${previousLabel}`}</span>
+              </button>
+            </footer>
+          </article>
+        ) : (
+          <div className={styles.empty}>
+            <h1>{ru ? 'Материал не найден' : 'Article not found'}</h1>
+            <p>{ru ? 'Вернитесь к разделам и выберите другой материал.' : 'Return to the sections and choose another article.'}</p>
+            <button className={styles.backButton} type="button" onClick={() => dispatch({ type: 'catalog' })}>
+              <ChevronLeft aria-hidden="true" strokeWidth={1.7} />
+              <span>{ru ? 'К разделам' : 'All sections'}</span>
+            </button>
+          </div>
         )}
       </div>
     </div>

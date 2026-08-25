@@ -18,6 +18,8 @@ function searchableText(topic: KnowledgeTopic): string {
     topic.summary,
     ...topic.aliases,
     ...topic.keywords,
+    ...topic.sections.flatMap((section) => [section.title, ...section.paragraphs]),
+    topic.shortAnswer,
   ].join(' '));
 }
 

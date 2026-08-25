@@ -19,6 +19,7 @@ function topic(id: string, title: string, aliases: readonly string[]): Knowledge
     sections: [],
     shortAnswer: title,
     relatedTopicIds: [],
+    sourceIds: [],
   };
 }
 
@@ -62,8 +63,8 @@ describe('knowledge article inline links', () => {
     expect(source).toContain('splitKnowledgeTextWithLinks');
     expect(source).toContain('href={`#knowledge-${segment.topicId}`}');
     expect(source).toContain('openTopic(segment.topicId)');
-    expect(source).toContain('navigationTrail');
-    expect(source).toContain('className="encyclopedia-inline-link"');
+    expect(source).toContain('knowledgeNavigationReducer');
+    expect(source).toContain('className={styles.inlineLink}');
     expect(source).toContain('event.preventDefault()');
   });
 
