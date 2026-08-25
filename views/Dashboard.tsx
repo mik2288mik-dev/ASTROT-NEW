@@ -172,6 +172,17 @@ export const Dashboard = memo<DashboardProps>(({
     month: language === 'ru' ? 'Месяц' : 'Month',
   };
   const activePeriodTitle = periodLabels[activePeriod];
+  const personalForecastNote: Record<PersonalForecastPeriod, string> = language === 'ru'
+    ? {
+        day: 'Личный прогноз на сегодня — по твоим данным рождения.',
+        week: 'Личный прогноз на неделю — по твоим данным рождения.',
+        month: 'Личный прогноз на месяц — по твоим данным рождения.',
+      }
+    : {
+        day: 'Your personal forecast for today — based on your birth details.',
+        week: 'Your personal forecast for the week — based on your birth details.',
+        month: 'Your personal forecast for the month — based on your birth details.',
+      };
   const activeDateValue = activePeriod === 'day'
     ? activeDateLines[activeDateLines.length - 1]
     : activeDateLines.join(' ');
@@ -440,6 +451,10 @@ export const Dashboard = memo<DashboardProps>(({
           ))}
         </div>
       </nav>
+
+      <p className="today-period-personal-note">
+        {personalForecastNote[activePeriod]}
+      </p>
 
       {activePeriod !== 'day' ? (
       <div className="forecast-feed-reading-header">

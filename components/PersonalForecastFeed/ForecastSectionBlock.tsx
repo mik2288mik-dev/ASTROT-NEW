@@ -12,6 +12,7 @@ import {
   resolveLongForecastParagraphs,
   resolveVisibleForecastTitle,
 } from './editorialLayout';
+import { ForecastArc } from './ForecastArc';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
@@ -51,7 +52,13 @@ function renderContentBlocks(
           return (
             <React.Fragment key={`story-paragraph-${index + 1}`}>
               {index === 1 ? (
-                <div className="forecast-period-editorial-divider" aria-hidden="true" />
+                <ForecastArc
+                  className="forecast-period-editorial-arc is-divider"
+                  direction="down"
+                  dot="center"
+                  placement="divider"
+                  variant={period === 'week' ? 'week' : 'month'}
+                />
               ) : null}
               {sticker && index === visualParagraphIndex ? (
                 <div className="forecast-period-editorial-scene">
@@ -128,6 +135,15 @@ export function ForecastSectionBlock({
       ].filter(Boolean).join(' ')}
     >
       <div className="forecast-feed-section-content">
+        {!locked && period !== 'day' && isOverview ? (
+          <ForecastArc
+            className="forecast-period-editorial-arc is-opening"
+            direction="up"
+            dot="right"
+            placement="opening"
+            variant={period === 'week' ? 'week' : 'month'}
+          />
+        ) : null}
         {title ? (
           isOverview ? (
             <h1 className="forecast-feed-section-title forecast-feed-screen-headline">
@@ -171,6 +187,15 @@ export function ForecastSectionBlock({
             </button>
           </div>
         ) : renderContentBlocks(section, period, sticker)}
+        {!locked && period !== 'day' && isOverview ? (
+          <ForecastArc
+            className="forecast-period-editorial-arc is-closing"
+            direction="up"
+            dot="left"
+            placement="closing"
+            variant={period === 'week' ? 'week' : 'month'}
+          />
+        ) : null}
       </div>
       {!locked && period === 'day' && sticker ? (
         <div

@@ -159,6 +159,11 @@ function DiaryScene({
 }) {
   const period = screen === 'today' ? 'day' : screen;
   const longSection = screen === 'week' ? UI_PREVIEW_WEEK_SECTION : UI_PREVIEW_MONTH_SECTION;
+  const personalForecastNote = {
+    today: 'Личный прогноз на сегодня — по твоим данным рождения.',
+    week: 'Личный прогноз на неделю — по твоим данным рождения.',
+    month: 'Личный прогноз на месяц — по твоим данным рождения.',
+  }[screen];
 
   return (
     <div className="forecast-feed-page ui-preview-page">
@@ -173,6 +178,7 @@ function DiaryScene({
         onTabChange={onNavigate}
         className="ui-preview-period-tabs"
       />
+      <p className="today-period-personal-note">{personalForecastNote}</p>
       {screen === 'today' ? (
         <TodayEditorialFeed
           sections={UI_PREVIEW_TODAY_WITH_CLOSING}

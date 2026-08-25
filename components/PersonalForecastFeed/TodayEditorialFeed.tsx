@@ -9,6 +9,7 @@ import {
   TodayLineField,
   type TodayClockSignal,
 } from './TodayCalendarClock';
+import { ForecastArc } from './ForecastArc';
 
 type TodayEditorialFeedProps = {
   sections: readonly ForecastSection[];
@@ -115,6 +116,12 @@ function StoryFragment({
 
   return closing ? (
     <div className="today-minimal-closing">
+      <ForecastArc
+        className="today-minimal-closing-arc"
+        direction="down"
+        dot="left"
+        variant="today"
+      />
       <p className="today-minimal-closing-label">
         {language === 'ru' ? 'На сегодня' : 'For today'}
       </p>
@@ -230,6 +237,13 @@ export function TodayEditorialFeed({
         <h1 id="today-reading-title" className="sr-only">
           {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
         </h1>
+
+        <ForecastArc
+          className="today-minimal-reading-arc"
+          direction="up"
+          dot="right"
+          variant="today"
+        />
 
         <div className="today-minimal-reading-main">
           {visibleSections.map((section) => (
