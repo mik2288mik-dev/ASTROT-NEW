@@ -34,9 +34,10 @@ Do not deploy an indexable build until:
 
 ## Domain and DNS
 
-Canonical domain is `tvoi-goroskop.ru`; `www.tvoi-goroskop.ru` permanently
-redirects to the apex. Current live evidence is not ready: the apex still
-resolves to REG.RU hosting and timed out from the verification environment.
+Canonical domain is `www.tvoi-goroskop.ru`; `tvoi-goroskop.ru` permanently
+redirects to `www`. The apex redirect remains on REG.RU hosting because its DNS
+panel does not provide the Railway-compatible ALIAS/ANAME record required to
+attach the apex directly without guessing an unstable IP address.
 
 Railway generates the custom-domain DNS target only after the new service is
 created. Copy that exact target from Railway—never guess it. In the delegated
@@ -65,7 +66,7 @@ GET /.well-known/security.txt        200
 GET /unknown                         404
 GET /api/health                      404
 GET /auth/complete                   404
-Host: www.tvoi-goroskop.ru            308 to apex
+Host: tvoi-goroskop.ru                301/308 to www
 ```
 
 Also verify valid HTTPS, canonical/OG/JSON-LD, all footer links, no

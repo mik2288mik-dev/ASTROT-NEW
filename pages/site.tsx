@@ -9,9 +9,25 @@ import {
 import { PUBLIC_SITE_CONFIG, isRuStorePublished } from '../lib/publicSiteConfig';
 
 const pageDescription =
-  'MEOU — персональный гороскоп на сегодня, неделю и месяц, натальная карта, личностный разбор и совместимость по данным рождения.';
+  'MEOU: личные прогнозы на сегодня, неделю и месяц, натальная карта с расшифровкой, совместимость и бесплатный гороскоп для всех знаков зодиака.';
+
+const zodiacSigns = [
+  'Овен',
+  'Телец',
+  'Близнецы',
+  'Рак',
+  'Лев',
+  'Дева',
+  'Весы',
+  'Скорпион',
+  'Стрелец',
+  'Козерог',
+  'Водолей',
+  'Рыбы',
+] as const;
 
 function homeSchema() {
+  const organizationId = `${PUBLIC_SITE_CONFIG.baseUrl}/#organization`;
   const software: Record<string, unknown> = {
     '@type': 'SoftwareApplication',
     '@id': `${PUBLIC_SITE_CONFIG.baseUrl}/#application`,
@@ -21,21 +37,29 @@ function homeSchema() {
     operatingSystem: 'Android',
     inLanguage: 'ru-RU',
     description: pageDescription,
-    offers: {
+    publisher: { '@id': organizationId },
+  };
+
+  if (isRuStorePublished()) {
+    software.downloadUrl = PUBLIC_SITE_CONFIG.rustoreUrl;
+    software.offers = {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'RUB',
-      availability: isRuStorePublished()
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/PreOrder',
-    },
-  };
-
-  if (isRuStorePublished()) software.downloadUrl = PUBLIC_SITE_CONFIG.rustoreUrl;
+      availability: 'https://schema.org/InStock',
+    };
+  }
 
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': organizationId,
+        name: 'MEOU',
+        url: PUBLIC_SITE_CONFIG.baseUrl,
+        logo: `${PUBLIC_SITE_CONFIG.baseUrl}/assets/brand/personal-horoscope-mark.svg`,
+      },
       {
         '@type': 'WebSite',
         '@id': `${PUBLIC_SITE_CONFIG.baseUrl}/#website`,
@@ -43,6 +67,7 @@ function homeSchema() {
         url: PUBLIC_SITE_CONFIG.baseUrl,
         inLanguage: 'ru-RU',
         description: pageDescription,
+        publisher: { '@id': organizationId },
       },
       software,
     ],
@@ -53,7 +78,7 @@ export default function PublicLandingPage() {
   return (
     <PublicSiteShell>
       <PageHead
-        title="MEOU — персональный гороскоп и натальная карта"
+        title="MEOU: гороскоп, натальная карта и совместимость"
         description={pageDescription}
         path="/"
         jsonLd={homeSchema()}
@@ -62,15 +87,16 @@ export default function PublicLandingPage() {
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={styles.heroInner}>
             <div className={styles.heroCopy}>
-              <p className={styles.eyebrow}>MEOU · личный прогноз</p>
-              <h1 id="hero-title">Не общий гороскоп на весь знак.</h1>
+              <p className={styles.eyebrow}>Приложение MEOU для Android</p>
+              <h1 id="hero-title">Личные прогнозы, натальная карта и совместимость</h1>
               <p>
-                MEOU пишет персональные прогнозы на сегодня, неделю и месяц по сохранённой
-                натальной карте — коротко, по-человечески и без обещаний предсказать судьбу.
+                Смотрите личный прогноз на сегодня, неделю и месяц. Изучайте свою натальную карту,
+                проверяйте совместимость и читайте бесплатный гороскоп для любого знака зодиака.
+                Всё в одном месте и обычными словами.
               </p>
               <div className={styles.heroAction}>
                 <ReleaseAction />
-                <small>Android · первый релиз готовится для RuStore.</small>
+                <small>Первый релиз для Android уже готовится.</small>
               </div>
             </div>
             <div className={styles.heroVisual} aria-hidden="true">
@@ -97,36 +123,53 @@ export default function PublicLandingPage() {
         <section className={styles.sectionTint} id="possibilities" aria-labelledby="possibilities-title">
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeading}>
-              <p className={styles.eyebrow}>Что уже есть в продукте</p>
-              <h2 id="possibilities-title">Одна карта — несколько способов посмотреть на себя.</h2>
+              <p className={styles.eyebrow}>Всё в одном приложении</p>
+              <h2 id="possibilities-title">Откройте то, что важно именно сейчас</h2>
               <p>
-                Приложение не показывает выдуманные события и не заменяет специалиста. Оно
-                превращает данные карты в понятный персональный текст и сохраняет контекст между
-                чтениями.
+                Начните с прогноза на сегодня, загляните в свою карту или посмотрите совместимость
+                с близким человеком. Не нужно разбираться в сложных терминах.
               </p>
             </div>
             <dl className={styles.benefitGrid}>
               <div className={styles.benefit}>
-                <dt>Сегодня</dt>
-                <dd>Непрерывный персональный текст из нескольких коротких фрагментов.</dd>
+                <dt>Личный прогноз</dt>
+                <dd>Прогноз на сегодня, неделю и месяц с учётом ваших данных рождения.</dd>
               </div>
               <div className={styles.benefit}>
-                <dt>Неделя и месяц</dt>
-                <dd>По одной цельной истории на выбранный период, без календарной дробилки.</dd>
+                <dt>Гороскоп по знаку</dt>
+                <dd>Бесплатный прогноз на сегодня для всех двенадцати знаков зодиака.</dd>
               </div>
               <div className={styles.benefit}>
                 <dt>Натальная карта</dt>
-                <dd>Рассчитанная карта и личностный разбор, который можно перечитывать.</dd>
+                <dd>Карта рождения и понятный разбор характера, сильных сторон и привычных реакций.</dd>
               </div>
               <div className={styles.benefit}>
-                <dt>Совместимость</dt>
-                <dd>Сопоставление двух сохранённых карт по данным рождения.</dd>
+                <dt>Совместимость знаков зодиака</dt>
+                <dd>Быстрое сравнение по знакам и подробный разбор по двум натальным картам.</dd>
               </div>
             </dl>
           </div>
         </section>
 
-        <section className={styles.section} aria-labelledby="personal-title">
+        <section className={styles.section} id="signs" aria-labelledby="signs-title">
+          <div className={styles.sectionInner}>
+            <div className={styles.sectionHeading}>
+              <p className={styles.eyebrow}>Бесплатный гороскоп по знакам</p>
+              <h2 id="signs-title">Прогноз на сегодня для каждого знака зодиака</h2>
+              <p>
+                В MEOU можно выбрать свой знак и сразу посмотреть прогноз на день. Бесплатный
+                гороскоп на сегодня доступен для Овна, Тельца, Близнецов, Рака, Льва, Девы, Весов,
+                Скорпиона, Стрельца, Козерога, Водолея и Рыб.
+              </p>
+            </div>
+            <ul className={styles.zodiacList} aria-label="Все знаки зодиака">
+              {zodiacSigns.map((sign) => <li key={sign}>{sign}</li>)}
+            </ul>
+            <p className={styles.sectionNote}>Гороскоп на неделю и месяц доступен в Premium.</p>
+          </div>
+        </section>
+
+        <section className={styles.sectionTint} aria-labelledby="personal-title">
           <div className={styles.sectionInner}>
             <div className={styles.featureSplit}>
               <div className={styles.featureMedia}>
@@ -140,20 +183,20 @@ export default function PublicLandingPage() {
                 />
               </div>
               <div className={styles.featureCopy}>
-                <p className={styles.eyebrow}>Личная карта</p>
-                <h2 id="personal-title">Данные рождения превращаются в связный разбор.</h2>
+                <p className={styles.eyebrow}>Натальная карта</p>
+                <h2 id="personal-title">Узнайте себя глубже, чем по одному знаку</h2>
                 <p>
-                  MEOU рассчитывает натальную карту отдельно от ИИ-текста. Разбор опирается на
-                  сохранённые положения и связи в карте, а не на случайный набор общих фраз.
+                  Введите дату, время и место рождения. MEOU построит натальную карту с понятной
+                  расшифровкой: как вы думаете, общаетесь, реагируете и в чём ваши сильные стороны.
                 </p>
                 <dl className={styles.featureList}>
                   <div>
-                    <dt>Карта сохраняется</dt>
-                    <dd>Не нужно заново вводить дату, время и место для каждого чтения.</dd>
+                    <dt>Базовая натальная карта бесплатно</dt>
+                    <dd>Основные положения и первый личный разбор доступны без Premium.</dd>
                   </div>
                   <div>
-                    <dt>Прогноз не притворяется расчётом</dt>
-                    <dd>Периодный текст пишет ИИ; MEOU не приписывает ему несуществующие транзиты.</dd>
+                    <dt>Больше тем в Premium</dt>
+                    <dd>Откройте подробный разбор отношений, талантов и других важных сторон.</dd>
                   </div>
                 </dl>
               </div>
@@ -173,20 +216,19 @@ export default function PublicLandingPage() {
               </div>
               <div className={styles.featureCopy}>
                 <p className={styles.eyebrow}>Совместимость</p>
-                <h2>Не оценка отношений, а материал для разговора.</h2>
+                <h2>Посмотрите, как вы понимаете друг друга</h2>
                 <p>
-                  Можно сохранить карту другого человека и посмотреть, где вы легко понимаете друг
-                  друга, а где привычные реакции расходятся. Имя используется только как подпись;
-                  лишние сведения вводить не нужно.
+                  Выберите два знака для быстрого сравнения. Если нужны детали, добавьте данные
+                  рождения двух людей и откройте разбор по натальным картам.
                 </p>
                 <dl className={styles.featureList}>
                   <div>
-                    <dt>Две реальные карты</dt>
-                    <dd>Совместимость строится по данным рождения, а не только по знакам зодиака.</dd>
+                    <dt>По знакам бесплатно</dt>
+                    <dd>Узнайте, где вам легко договориться, а где реакции могут не совпадать.</dd>
                   </div>
                   <div>
-                    <dt>Ответственность за чужие данные</dt>
-                    <dd>Добавлять сведения другого человека можно только с законным основанием.</dd>
+                    <dt>По двум картам в Premium</dt>
+                    <dd>Подробное сравнение учитывает натальные карты обоих людей.</dd>
                   </div>
                 </dl>
               </div>
@@ -194,29 +236,29 @@ export default function PublicLandingPage() {
           </div>
         </section>
 
-        <section className={styles.sectionTint} id="principles" aria-labelledby="principles-title">
+        <section className={styles.section} id="free" aria-labelledby="free-title">
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeading}>
-              <p className={styles.eyebrow}>Без лишнего шума</p>
-              <h2 id="principles-title">Lifestyle-приложение, а не инструкция к жизни.</h2>
+              <p className={styles.eyebrow}>Можно начать бесплатно</p>
+              <h2 id="free-title">Сначала попробуйте главное</h2>
               <p>
-                Прогнозы MEOU относятся к персонализированному развлекательному и информационному
-                контенту. Решения о здоровье, деньгах, праве и безопасности требуют профильного
-                специалиста.
+                Без подписки можно открыть личный прогноз на сегодня, гороскоп по знаку, базовую
+                натальную карту и совместимость по знакам. Premium добавляет полные прогнозы и
+                подробные разборы.
               </p>
             </div>
             <dl className={styles.principles}>
               <div>
-                <dt>Без гарантий событий</dt>
-                <dd>Никаких обещаний стопроцентной точности или заранее известного будущего.</dd>
+                <dt>Личный прогноз на сегодня</dt>
+                <dd>Главная часть прогноза доступна бесплатно.</dd>
               </div>
               <div>
-                <dt>Без trackers на сайте</dt>
-                <dd>Публичный сайт не ставит рекламные пиксели и не собирает заявки через формы.</dd>
+                <dt>Гороскоп по знаку</dt>
+                <dd>Бесплатный прогноз на день для любого из двенадцати знаков.</dd>
               </div>
               <div>
-                <dt>Удаление из приложения</dt>
-                <dd>Аккаунт и связанные данные можно удалить в Настройках после подтверждения.</dd>
+                <dt>Карта и совместимость</dt>
+                <dd>Базовая натальная карта и сравнение по знакам тоже доступны бесплатно.</dd>
               </div>
             </dl>
           </div>
@@ -225,13 +267,13 @@ export default function PublicLandingPage() {
         <section className={styles.section} aria-labelledby="release-title">
           <div className={styles.sectionInner}>
             <div className={styles.closing}>
-              <p className={styles.eyebrow}>Первый релиз</p>
-              <h2 id="release-title">MEOU готовится к публикации в RuStore.</h2>
+              <p className={styles.eyebrow}>Скоро в RuStore</p>
+              <h2 id="release-title">MEOU готовится к первому релизу</h2>
               <p>
-                Ссылка появится здесь после публикации карточки. До этого сайт не показывает
-                поддельный бейдж и не ведёт на чужое приложение.
+                После публикации здесь появится официальная кнопка RuStore. Одно нажатие, и можно
+                будет скачать MEOU на Android.
               </p>
-              <Link href="/support">Открыть поддержку и документы</Link>
+              <Link href="/support">Поддержка и документы</Link>
             </div>
           </div>
         </section>

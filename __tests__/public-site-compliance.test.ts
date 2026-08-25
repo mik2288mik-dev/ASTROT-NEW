@@ -78,17 +78,21 @@ describe('MEOU public website release contract', () => {
     const sitemap = read('public/sitemap.xml');
 
     expect(landing).toContain("'@type': 'SoftwareApplication'");
+    expect(landing).toContain("'@type': 'Organization'");
     expect(landing).toContain("'@type': 'WebSite'");
     expect(shell).toContain('{includeCanonical ? <link rel="canonical" href={canonical} /> : null}');
     expect(shell).toContain('<meta property="og:url" content={canonical} />');
+    expect(shell).toContain('/assets/brand/meou-social-cover-v3.png');
     expect(publicConfig).toContain("const rustoreUrl = clean(process.env.NEXT_PUBLIC_RUSTORE_URL)");
+    expect(publicConfig).toContain("url.searchParams.set('utm_source', 'available_in_rustore')");
+    expect(publicConfig).toContain("url.searchParams.set('mt_sub1', ANDROID_PACKAGE_ID)");
     expect(publicConfig).not.toMatch(/rustore\.ru\/(?:catalog|app)\//);
-    expect(robots).toContain('Sitemap: https://tvoi-goroskop.ru/sitemap.xml');
-    LEGAL_ROUTES.forEach(([route]) => expect(sitemap).toContain(`<loc>https://tvoi-goroskop.ru/${route}</loc>`));
+    expect(robots).toContain('Sitemap: https://www.tvoi-goroskop.ru/sitemap.xml');
+    LEGAL_ROUTES.forEach(([route]) => expect(sitemap).toContain(`<loc>https://www.tvoi-goroskop.ru/${route}</loc>`));
     expect([landing, shell].join('\n')).not.toMatch(/googletagmanager|analytics\.js|mc\.yandex|metrika/i);
   });
 
-  it('keeps the app root out of search results while public build rewrites the root to the landing', () => {
+  it('keeps the app root out of search results while the public build rewrites root to the landing', () => {
     const appRoot = read('pages/index.tsx');
     const middleware = read('middleware.ts');
 

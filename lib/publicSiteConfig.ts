@@ -1,4 +1,5 @@
-const DEFAULT_PUBLIC_BASE_URL = 'https://tvoi-goroskop.ru';
+const DEFAULT_PUBLIC_BASE_URL = 'https://www.tvoi-goroskop.ru';
+const ANDROID_PACKAGE_ID = 'ru.tvoygoroskop.app';
 
 function clean(value: string | undefined): string {
   return String(value || '').trim();
@@ -161,7 +162,27 @@ export function isPublicLegalReady(): boolean {
 }
 
 export function isRuStorePublished(): boolean {
-  return isHttpsUrl(rustoreUrl);
+  if (!isHttpsUrl(rustoreUrl)) return false;
+
+  try {
+    const url = new URL(rustoreUrl);
+    return (url.hostname === 'rustore.ru' || url.hostname === 'www.rustore.ru')
+      && url.pathname === `/catalog/app/${ANDROID_PACKAGE_ID}`;
+  } catch {
+    return false;
+  }
+}
+
+export function getRuStoreDownloadUrl(): string {
+  if (!isRuStorePublished()) return '';
+
+  const url = new URL(rustoreUrl);
+  url.searchParams.set('utm_source', 'available_in_rustore');
+  url.searchParams.set('utm_medium', ANDROID_PACKAGE_ID);
+  url.searchParams.set('rsm', '1');
+  url.searchParams.set('mt_link_id', 'iios36');
+  url.searchParams.set('mt_sub1', ANDROID_PACKAGE_ID);
+  return url.toString();
 }
 
 export function formatPublicationDate(language: 'ru' | 'en' = 'ru'): string {

@@ -5,6 +5,7 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import {
   PUBLIC_SITE_CONFIG,
   formatPublicationDate,
+  getRuStoreDownloadUrl,
   isPublicLegalReady,
   isRuStorePublished,
   mailto,
@@ -51,13 +52,15 @@ export function PageHead({
       <meta property="og:url" content={canonical} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content={`${PUBLIC_SITE_CONFIG.baseUrl}/home/cards/today-hero.webp`} />
-      <meta property="og:image:width" content="1400" />
-      <meta property="og:image:height" content="788" />
+      <meta property="og:image" content={`${PUBLIC_SITE_CONFIG.baseUrl}/assets/brand/meou-social-cover-v3.png`} />
+      <meta property="og:image:width" content="1729" />
+      <meta property="og:image:height" content="910" />
+      <meta property="og:image:alt" content="MEOU: прогнозы, натальная карта, совместимость и многое другое" />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={`${PUBLIC_SITE_CONFIG.baseUrl}/home/cards/today-hero.webp`} />
+      <meta name="twitter:image" content={`${PUBLIC_SITE_CONFIG.baseUrl}/assets/brand/meou-social-cover-v3.png`} />
+      <meta name="twitter:image:alt" content="MEOU: прогнозы, натальная карта, совместимость и многое другое" />
       {jsonLd ? (
         <script
           type="application/ld+json"
@@ -71,14 +74,18 @@ export function PageHead({
 function Brand({ footer = false }: { footer?: boolean }) {
   return (
     <Link href="/" className={footer ? styles.footerBrand : styles.brand} aria-label="Главная MEOU">
-      <Image
-        src="/assets/brand/personal-horoscope-mark.svg"
-        alt=""
-        width={42}
-        height={32}
-        className={styles.brandMark}
-      />
-      <span>MEOU</span>
+      <span className={styles.brandWordmark} aria-hidden="true">
+        <span>M</span>
+        <span>E</span>
+        <Image
+          src="/assets/brand/personal-horoscope-mark.svg"
+          alt=""
+          width={48}
+          height={37}
+          className={styles.brandMark}
+        />
+        <span>U</span>
+      </span>
     </Link>
   );
 }
@@ -88,10 +95,11 @@ function DownloadAction({ compact = false }: { compact?: boolean }) {
     return (
       <a
         className={compact ? styles.headerCta : styles.primaryCta}
-        href={PUBLIC_SITE_CONFIG.rustoreUrl}
-        rel="noreferrer"
+        href={getRuStoreDownloadUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
       >
-        Скачать в RuStore
+        Скачайте из RuStore
       </a>
     );
   }
@@ -117,8 +125,9 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
         <div className={styles.headerInner}>
           <Brand />
           <nav className={styles.headerNav} aria-label="Основная навигация">
-            <Link href="/#possibilities">Возможности</Link>
-            <Link href="/#principles">Принципы</Link>
+            <Link href="/#possibilities">Что внутри</Link>
+            <Link href="/#signs">По знакам</Link>
+            <Link href="/#free">Бесплатно</Link>
             <Link href="/support">Поддержка</Link>
           </nav>
           <DownloadAction compact />
@@ -129,7 +138,7 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
         <div className={styles.footerInner}>
           <div className={styles.footerIntro}>
             <Brand footer />
-            <p>Персональные прогнозы и разбор натальной карты без обещаний предсказать судьбу.</p>
+            <p>Личные прогнозы, натальная карта, совместимость и бесплатный гороскоп по знакам.</p>
           </div>
           <nav className={styles.footerLinks} aria-label="Правовая информация">
             <Link href="/privacy">Конфиденциальность</Link>
@@ -140,7 +149,7 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
             <Link href="/requisites">Реквизиты</Link>
             {supportHref ? <a href={supportHref}>Написать в поддержку</a> : null}
           </nav>
-          <p className={styles.footerMeta}>© 2026 MEOU. Lifestyle / entertainment.</p>
+          <p className={styles.footerMeta}>© 2026 MEOU. Приложение о себе и отношениях.</p>
         </div>
       </footer>
     </div>

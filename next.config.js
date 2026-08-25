@@ -159,11 +159,6 @@ const nextConfig = {
           destination: '/support',
           permanent: true,
         },
-        ...(isPublicWebsiteBuild ? [{
-          source: '/site',
-          destination: '/',
-          permanent: true,
-        }] : []),
       ];
     },
     async headers() {

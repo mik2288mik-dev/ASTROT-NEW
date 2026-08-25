@@ -1,4 +1,4 @@
-Contact: https://tvoi-goroskop.ru/support
+Contact: https://www.tvoi-goroskop.ru/support
 Expires: 2027-08-23T00:00:00.000Z
-Canonical: https://tvoi-goroskop.ru/.well-known/security.txt
+Canonical: https://www.tvoi-goroskop.ru/.well-known/security.txt
 Preferred-Languages: ru, en

@@ -1,7 +1,7 @@
 {
   "name": "MEOU",
   "short_name": "MEOU",
-  "description": "Персональные прогнозы и натальная карта.",
+  "description": "Прогнозы, натальная карта, совместимость и многое другое.",
   "lang": "ru-RU",
   "start_url": "/",
   "display": "browser",
