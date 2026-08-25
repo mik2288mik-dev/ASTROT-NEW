@@ -27,6 +27,9 @@ export function middleware(request: NextRequest) {
     if (request.nextUrl.pathname === '/') {
       return NextResponse.rewrite(new URL('/site', request.url));
     }
+    if (request.nextUrl.pathname === '/api/site-support') {
+      return NextResponse.next();
+    }
     return NextResponse.json(
       { error: 'NOT_FOUND' },
       {

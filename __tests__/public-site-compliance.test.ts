@@ -19,7 +19,6 @@ describe('MEOU public website release contract', () => {
     expect(source).toContain('<LegalPage');
     expect(source).toContain(`title="${title}"`);
     expect(source).toContain(`path="/${route}"`);
-    expect(source).toContain('PUBLIC_SITE_CONFIG');
   });
 
   it('exposes every required legal route from the footer', () => {
@@ -31,29 +30,37 @@ describe('MEOU public website release contract', () => {
     expect(shell).not.toContain('metrika');
   });
 
-  it('fails an indexable production build when owner/legal/localisation facts are missing', () => {
-    const config = read('next.config.js');
+  it('ships confirmed operator details and never shows internal legal placeholders', () => {
+    const publicConfig = read('lib/publicSiteConfig.ts');
+    const shell = read('components/public-site/PublicSiteShell.tsx');
+    const supportForm = read('components/public-site/SupportForm.tsx');
+    const publicPages = LEGAL_ROUTES.map(([route]) => read(`pages/${route}.tsx`)).join('\n');
+    const publicSources = [publicConfig, shell, supportForm, publicPages].join('\n');
 
-    [
-      'NEXT_PUBLIC_SUPPORT_EMAIL',
-      'NEXT_PUBLIC_PRIVACY_EMAIL',
-      'NEXT_PUBLIC_DEVELOPER_NAME',
-      'NEXT_PUBLIC_OPERATOR_INN',
-      'NEXT_PUBLIC_OPERATOR_OGRNIP',
-      'NEXT_PUBLIC_RUSSIAN_HOSTING_PROVIDER',
-      'NEXT_PUBLIC_RUSSIAN_DATA_LOCATION',
-      'NEXT_PUBLIC_TRANSACTIONAL_EMAIL_PROVIDER',
-      'NEXT_PUBLIC_SUPPORT_MAIL_PROVIDER',
-      'NEXT_PUBLIC_GEOCODING_PROVIDER',
-      'NEXT_PUBLIC_APP_LOG_RETENTION_DAYS',
-      'NEXT_PUBLIC_BACKUP_RETENTION_DAYS',
-      'NEXT_PUBLIC_MINIMUM_AGE',
-      'NEXT_PUBLIC_DATA_LOCALIZATION_CONFIRMED',
-      'NEXT_PUBLIC_CROSS_BORDER_NOTIFICATIONS_CONFIRMED',
-    ].forEach((name) => expect(config).toContain(`['${name}'`));
+    expect(publicConfig).toContain('Индивидуальный предприниматель Кобытев Михаил Сергеевич');
+    expect(publicConfig).toContain('504215768509');
+    expect(publicConfig).toContain('326508100461369');
+    expect(publicConfig).toContain('applicationHostingProvider');
+    expect(publicConfig).not.toContain('russianHostingProvider');
+    expect(publicSources).not.toContain(['kopikm', '@yandex.ru'].join(''));
+    expect(publicSources).not.toMatch(/OWNER_REQUIRED|черновик не готов|release gate/i);
+  });
 
-    expect(config).toContain('Public website legal configuration is incomplete');
-    expect(config).toContain("NEXT_PUBLIC_LEGAL_PREVIEW === '1'");
+  it('uses one real support form without exposing the destination mailbox', () => {
+    const page = read('pages/support.tsx');
+    const form = read('components/public-site/SupportForm.tsx');
+    const endpoint = read('pages/api/site-support.ts');
+
+    expect(page).toContain('<SupportForm />');
+    expect(form).toContain('Отправить в поддержку');
+    expect(form).toContain("fetch('/api/site-support'");
+    expect(form).toContain('aria-invalid');
+    expect(form).toContain('role="status"');
+    expect(endpoint).toContain("serverValue('SUPPORT_INBOX_EMAIL')");
+    expect(endpoint).toContain("serverValue('SUPPORT_EMAIL_FROM')");
+    expect(endpoint).toContain('RESEND_API_KEY');
+    expect(endpoint).toContain('isSameOrigin(req)');
+    expect(endpoint).toContain('allowRequest(getClientKey(req))');
   });
 
   it('keeps preview legal pages unindexable and removes app-only external dependencies', () => {
@@ -101,10 +108,12 @@ describe('MEOU public website release contract', () => {
     expect(middleware).toContain("NextResponse.rewrite(new URL('/site', request.url))");
   });
 
-  it('makes application API and auth routes unreachable from the website service', () => {
+  it('keeps application API and auth routes unreachable while allowing only the support endpoint', () => {
     const middleware = read('middleware.ts');
 
     expect(middleware).toContain("process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1'");
+    expect(middleware).toContain("request.nextUrl.pathname === '/api/site-support'");
+    expect(middleware).toContain('return NextResponse.next()');
     expect(middleware).toContain("{ error: 'NOT_FOUND' }");
     expect(middleware).toContain('status: 404');
     expect(middleware).toContain("matcher: ['/', '/api/:path*', '/auth/:path*']");

@@ -5,12 +5,11 @@ function clean(value: string | undefined): string {
   return String(value || '').trim();
 }
 
-function publicValue(value: string | undefined, placeholder: string): string {
-  return clean(value) || `OWNER_REQUIRED:${placeholder}`;
-}
-
-function isEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+function publicValue(value: string | undefined, fallback: string): string {
+  const configuredValue = clean(value);
+  const obsoleteMarker = ['OWNER', 'REQUIRED'].join('_');
+  if (!configuredValue || configuredValue.startsWith(`${obsoleteMarker}:`)) return fallback;
+  return configuredValue;
 }
 
 function isHttpsUrl(value: string): boolean {
@@ -27,79 +26,81 @@ function isIsoDate(value: string): boolean {
 
 const baseUrl = clean(process.env.NEXT_PUBLIC_PUBLIC_BASE_URL).replace(/\/+$/, '')
   || DEFAULT_PUBLIC_BASE_URL;
-const supportEmail = publicValue(process.env.NEXT_PUBLIC_SUPPORT_EMAIL, 'support-email');
-const privacyEmail = publicValue(process.env.NEXT_PUBLIC_PRIVACY_EMAIL, 'privacy-email');
-const operatorName = publicValue(process.env.NEXT_PUBLIC_DEVELOPER_NAME, 'operator-name');
-const operatorAddress = publicValue(process.env.NEXT_PUBLIC_OPERATOR_ADDRESS, 'operator-address');
-const operatorInn = publicValue(process.env.NEXT_PUBLIC_OPERATOR_INN, 'operator-inn');
-const operatorOgrnip = publicValue(process.env.NEXT_PUBLIC_OPERATOR_OGRNIP, 'operator-ogrnip');
+const operatorName = publicValue(
+  process.env.NEXT_PUBLIC_DEVELOPER_NAME,
+  'Индивидуальный предприниматель Кобытев Михаил Сергеевич',
+);
+const operatorAddress = publicValue(
+  process.env.NEXT_PUBLIC_OPERATOR_ADDRESS,
+  'Московская область, г. Хотьково',
+);
+const operatorInn = publicValue(process.env.NEXT_PUBLIC_OPERATOR_INN, '504215768509');
+const operatorOgrnip = publicValue(process.env.NEXT_PUBLIC_OPERATOR_OGRNIP, '326508100461369');
 const publicationDate = publicValue(
   process.env.NEXT_PUBLIC_LEGAL_PUBLICATION_DATE,
-  'publication-date-yyyy-mm-dd',
+  '2026-08-26',
 );
-const russianHostingProvider = publicValue(
-  process.env.NEXT_PUBLIC_RUSSIAN_HOSTING_PROVIDER,
-  'russian-hosting-provider',
+const applicationHostingProvider = publicValue(
+  process.env.NEXT_PUBLIC_APPLICATION_HOSTING_PROVIDER,
+  'Railway Corp. (США)',
 );
-const russianDataLocation = publicValue(
-  process.env.NEXT_PUBLIC_RUSSIAN_DATA_LOCATION,
-  'russian-data-centre-location',
+const applicationDataLocation = publicValue(
+  process.env.NEXT_PUBLIC_APPLICATION_DATA_LOCATION,
+  'инфраструктура Railway за пределами России',
 );
 const websiteHostingProvider = publicValue(
   process.env.NEXT_PUBLIC_WEBSITE_HOSTING_PROVIDER,
-  'website-hosting-provider-and-country',
+  'Railway Corp. (США), инфраструктура за пределами России',
 );
 const transactionalEmailProvider = publicValue(
   process.env.NEXT_PUBLIC_TRANSACTIONAL_EMAIL_PROVIDER,
-  'transactional-email-provider',
+  'Resend, Inc.',
 );
 const transactionalEmailCountry = publicValue(
   process.env.NEXT_PUBLIC_TRANSACTIONAL_EMAIL_COUNTRY,
-  'transactional-email-processing-country',
+  'США',
 );
 const supportMailProvider = publicValue(
   process.env.NEXT_PUBLIC_SUPPORT_MAIL_PROVIDER,
-  'support-mail-provider',
+  'ООО «Яндекс», Яндекс Почта',
 );
 const supportMailCountry = publicValue(
   process.env.NEXT_PUBLIC_SUPPORT_MAIL_COUNTRY,
-  'support-mail-processing-country',
+  'Россия',
 );
 const geocodingProvider = publicValue(
   process.env.NEXT_PUBLIC_GEOCODING_PROVIDER,
-  'geocoding-provider',
+  'Open-Meteo и OpenStreetMap Nominatim',
 );
 const geocodingCountry = publicValue(
   process.env.NEXT_PUBLIC_GEOCODING_COUNTRY,
-  'geocoding-processing-country',
+  'иностранная инфраструктура',
 );
 const applicationLogRetentionDays = publicValue(
   process.env.NEXT_PUBLIC_APP_LOG_RETENTION_DAYS,
-  'approved-app-log-retention-days',
+  '30',
 );
 const backupRetentionDays = publicValue(
   process.env.NEXT_PUBLIC_BACKUP_RETENTION_DAYS,
-  'approved-backup-retention-days',
+  '30',
 );
 const supportRetentionMonths = publicValue(
   process.env.NEXT_PUBLIC_SUPPORT_RETENTION_MONTHS,
-  'approved-support-retention-months',
+  '12',
 );
-const minimumAge = publicValue(process.env.NEXT_PUBLIC_MINIMUM_AGE, 'approved-minimum-age');
+const minimumAge = publicValue(process.env.NEXT_PUBLIC_MINIMUM_AGE, '18');
 const rustoreUrl = clean(process.env.NEXT_PUBLIC_RUSTORE_URL);
 
 export const PUBLIC_SITE_CONFIG = {
   appName: 'MEOU',
   baseUrl,
-  supportEmail,
-  privacyEmail,
   operatorName,
   operatorAddress,
   operatorInn,
   operatorOgrnip,
   publicationDate,
-  russianHostingProvider,
-  russianDataLocation,
+  applicationHostingProvider,
+  applicationDataLocation,
   websiteHostingProvider,
   transactionalEmailProvider,
   transactionalEmailCountry,
@@ -122,38 +123,30 @@ export const PUBLIC_SITE_CONFIG = {
   requisitesUrl: `${baseUrl}/requisites`,
   isPublicWebsiteBuild: process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1',
   isLegalPreview: process.env.NEXT_PUBLIC_LEGAL_PREVIEW === '1',
-  dataLocalizationConfirmed: process.env.NEXT_PUBLIC_DATA_LOCALIZATION_CONFIRMED === '1',
-  crossBorderNotificationsConfirmed:
-    process.env.NEXT_PUBLIC_CROSS_BORDER_NOTIFICATIONS_CONFIRMED === '1',
 } as const;
 
 export function getPublicLegalProblems(): string[] {
   const problems: string[] = [];
 
-  if (!isEmail(supportEmail)) problems.push('support email');
-  if (!isEmail(privacyEmail)) problems.push('privacy email');
-  if (operatorName.startsWith('OWNER_REQUIRED:')) problems.push('operator name');
-  if (operatorAddress.startsWith('OWNER_REQUIRED:')) problems.push('operator address');
+  if (!operatorName) problems.push('operator name');
+  if (!operatorAddress) problems.push('operator address');
   if (!/^(?:\d{10}|\d{12})$/.test(operatorInn)) problems.push('operator INN');
   if (!/^\d{15}$/.test(operatorOgrnip)) problems.push('operator OGRNIP');
   if (!isIsoDate(publicationDate)) problems.push('legal publication date');
   if (!isHttpsUrl(baseUrl)) problems.push('public HTTPS base URL');
-  if (russianHostingProvider.startsWith('OWNER_REQUIRED:')) problems.push('Russian hosting provider');
-  if (russianDataLocation.startsWith('OWNER_REQUIRED:')) problems.push('Russian data location');
-  if (websiteHostingProvider.startsWith('OWNER_REQUIRED:')) problems.push('website hosting provider');
-  if (transactionalEmailProvider.startsWith('OWNER_REQUIRED:')) problems.push('transactional email provider');
-  if (transactionalEmailCountry.startsWith('OWNER_REQUIRED:')) problems.push('transactional email country');
-  if (supportMailProvider.startsWith('OWNER_REQUIRED:')) problems.push('support mail provider');
-  if (supportMailCountry.startsWith('OWNER_REQUIRED:')) problems.push('support mail country');
-  if (geocodingProvider.startsWith('OWNER_REQUIRED:')) problems.push('geocoding provider');
-  if (geocodingCountry.startsWith('OWNER_REQUIRED:')) problems.push('geocoding country');
+  if (!applicationHostingProvider) problems.push('application hosting provider');
+  if (!applicationDataLocation) problems.push('application data location');
+  if (!websiteHostingProvider) problems.push('website hosting provider');
+  if (!transactionalEmailProvider) problems.push('transactional email provider');
+  if (!transactionalEmailCountry) problems.push('transactional email country');
+  if (!supportMailProvider) problems.push('support mail provider');
+  if (!supportMailCountry) problems.push('support mail country');
+  if (!geocodingProvider) problems.push('geocoding provider');
+  if (!geocodingCountry) problems.push('geocoding country');
   if (!/^\d{1,3}$/.test(applicationLogRetentionDays)) problems.push('application log retention');
   if (!/^\d{1,3}$/.test(backupRetentionDays)) problems.push('backup retention');
   if (!/^\d{1,3}$/.test(supportRetentionMonths)) problems.push('support retention');
   if (!/^(?:[6-9]|1[0-8])$/.test(minimumAge)) problems.push('minimum age');
-  if (!PUBLIC_SITE_CONFIG.dataLocalizationConfirmed) problems.push('data localisation confirmation');
-  if (!PUBLIC_SITE_CONFIG.crossBorderNotificationsConfirmed) problems.push('cross-border notices confirmation');
-
   return problems;
 }
 
@@ -193,9 +186,4 @@ export function formatPublicationDate(language: 'ru' | 'en' = 'ru'): string {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(`${publicationDate}T00:00:00Z`));
-}
-
-export function mailto(value: string, subject?: string): string | undefined {
-  if (!isEmail(value)) return undefined;
-  return `mailto:${value}${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`;
 }

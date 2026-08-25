@@ -1,9 +1,7 @@
 import { LegalPage } from '../components/public-site/PublicSiteShell';
-import { PUBLIC_SITE_CONFIG, mailto } from '../lib/publicSiteConfig';
+import { PUBLIC_SITE_CONFIG } from '../lib/publicSiteConfig';
 
 export default function RequisitesPage() {
-  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'MEOU');
-
   return (
     <LegalPage
       title="Реквизиты и контакты"
@@ -24,11 +22,8 @@ export default function RequisitesPage() {
       <section>
         <h2>Контакты</h2>
         <dl>
-          <div>
-            <dt>Поддержка</dt>
-            <dd>{supportHref ? <a href={supportHref}>{PUBLIC_SITE_CONFIG.supportEmail}</a> : PUBLIC_SITE_CONFIG.supportEmail}</dd>
-          </div>
-          <div><dt>Персональные данные</dt><dd>{PUBLIC_SITE_CONFIG.privacyEmail}</dd></div>
+          <div><dt>Поддержка</dt><dd><a href="/support">Форма обратной связи</a></dd></div>
+          <div><dt>Персональные данные</dt><dd><a href="/support">Запрос через форму поддержки</a></dd></div>
           <div><dt>Сайт</dt><dd><a href={PUBLIC_SITE_CONFIG.baseUrl}>{PUBLIC_SITE_CONFIG.baseUrl}</a></dd></div>
         </dl>
       </section>

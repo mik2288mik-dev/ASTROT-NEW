@@ -8,7 +8,6 @@ import {
   getRuStoreDownloadUrl,
   isPublicLegalReady,
   isRuStorePublished,
-  mailto,
 } from '../../lib/publicSiteConfig';
 import styles from '../../styles/PublicSite.module.css';
 
@@ -116,8 +115,6 @@ function DownloadAction({ compact = false }: { compact?: boolean }) {
 }
 
 export function PublicSiteShell({ children }: PropsWithChildren) {
-  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'Поддержка MEOU');
-
   return (
     <div className={styles.siteRoot}>
       <a className={styles.skipLink} href="#main-content">К основному содержанию</a>
@@ -142,12 +139,11 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
           </div>
           <nav className={styles.footerLinks} aria-label="Правовая информация">
             <Link href="/privacy">Конфиденциальность</Link>
-            <Link href="/personal-data-consent">Согласие на обработку ПД</Link>
+            <Link href="/personal-data-consent">Согласие на обработку данных</Link>
             <Link href="/terms">Пользовательское соглашение</Link>
             <Link href="/delete-account">Удаление аккаунта</Link>
             <Link href="/support">Поддержка</Link>
             <Link href="/requisites">Реквизиты</Link>
-            {supportHref ? <a href={supportHref}>Написать в поддержку</a> : null}
           </nav>
           <p className={styles.footerMeta}>© 2026 MEOU. Приложение о себе и отношениях.</p>
         </div>
@@ -194,12 +190,6 @@ export function LegalPage({ title, description, path, lead, children }: LegalPag
           <span aria-hidden="true">/</span>
           <span aria-current="page">{title}</span>
         </nav>
-        {!legalReady ? (
-          <aside className={styles.legalDraftNotice} role="status">
-            <strong>Черновик не готов к публикации.</strong>
-            <span> Реальные реквизиты оператора и контакты ещё не заполнены; страница закрыта от индексации.</span>
-          </aside>
-        ) : null}
         <article className={styles.legalArticle}>
           <header className={styles.legalHeading}>
             <p className={styles.eyebrow}>MEOU · редакция от {formatPublicationDate()}</p>
