@@ -19,6 +19,7 @@ export const ADVANCED_EXTENDED_TOPICS = [
       { title: 'Часто путают', kind: 'confusion', paragraphs: ['Black Moon Lilith не равна астероиду Лилит и не равна гипотетической «тёмной Луне», встречающейся в старых текстах. Перед трактовкой нужно уточнить, какой именно объект или расчёт использует программа.'] },
     ],
     relatedTopicIds: ['nodes-overview', 'chart-point-object', 'planet-moon', 'ephemerides', 'degree-and-position'],
+    diagram: 'lilith-apogee',
     sourceIds: ['astro-lilith'],
   }),
   topic({

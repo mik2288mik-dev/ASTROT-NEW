@@ -139,4 +139,15 @@ describe('beginner astrology encyclopedia catalog', () => {
     expect(byId.get('full-moon')!.relatedTopicIds).toContain('lunar-eclipse');
     expect(byId.get('aspects-overview')!.diagram).toBe('aspects');
   });
+
+  it('attaches explanatory diagrams to concepts that need spatial geometry', () => {
+    expect(byId.get('ascendant')!.diagram).toBe('ascendant');
+    expect(byId.get('houses-overview')!.diagram).toBe('houses');
+    expect(byId.get('signs-overview')!.diagram).toBe('zodiac-wheel');
+    expect(byId.get('retrograde-motion')!.diagram).toBe('retrograde-motion');
+    expect(byId.get('nodes-overview')!.diagram).toBe('lunar-nodes');
+    expect(byId.get('black-moon-lilith')!.diagram).toBe('lilith-apogee');
+    expect(byId.get('solar-eclipse')!.diagram).toBe('eclipses');
+    expect(byId.get('lunar-eclipse')!.diagram).toBe('eclipses');
+  });
 });

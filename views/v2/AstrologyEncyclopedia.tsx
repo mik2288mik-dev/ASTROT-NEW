@@ -18,10 +18,12 @@ import {
   splitKnowledgeBlockWithLinks,
   type KnowledgeArticleSection,
   type KnowledgeCategoryId,
+  type KnowledgeDiagramId,
   type KnowledgeHubId,
   type KnowledgeInlineTextSegment,
 } from '../../lib/knowledge';
 import { KnowledgeDiagram } from './KnowledgeDiagram';
+import { hasKnowledgeArticleVisual, KnowledgeArticleVisual } from './KnowledgeArticleVisual';
 import {
   ENCYCLOPEDIA_HUBS,
   getEncyclopediaCategoryGroups,
@@ -37,6 +39,15 @@ export type AstrologyEncyclopediaProps = {
   /** Kept for route compatibility; the library intentionally does not use personal chart data. */
   onOpenCharts?: () => void;
   embedded?: boolean;
+};
+
+const CATEGORY_DIAGRAMS: Partial<Record<KnowledgeCategoryId, KnowledgeDiagramId>> = {
+  signs: 'zodiac-wheel',
+  houses: 'houses',
+  aspects: 'aspects',
+  retrogrades: 'retrograde-motion',
+  'nodes-points': 'lunar-nodes',
+  'moon-cycles': 'moon-phases',
 };
 
 export function AstrologyEncyclopedia({
@@ -86,6 +97,9 @@ export function AstrologyEncyclopedia({
   });
   const activeTopic = current.screen === 'article'
     ? topics.find((topic) => topic.id === current.topicId)
+    : undefined;
+  const activeDiagram = activeTopic
+    ? activeTopic.diagram || (!hasKnowledgeArticleVisual(activeTopic.id) ? CATEGORY_DIAGRAMS[activeTopic.category] : undefined)
     : undefined;
   const activeCategoryGroups = useMemo(
     () => activeCategory
@@ -597,7 +611,9 @@ export function AstrologyEncyclopedia({
               </nav>
             ) : null}
 
-            {activeTopic.diagram ? <KnowledgeDiagram diagram={activeTopic.diagram} language={language} /> : null}
+            {activeDiagram
+              ? <KnowledgeDiagram diagram={activeDiagram} language={language} />
+              : <KnowledgeArticleVisual topicId={activeTopic.id} category={activeTopic.category} language={language} />}
 
             <div className={styles.articleSections}>
               {coreSections.map(renderArticleSection)}

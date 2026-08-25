@@ -60,6 +60,7 @@ export const CYCLE_EXTENDED_TOPICS = [
       { title: 'Часто путают', kind: 'confusion', paragraphs: ['Солнечное затмение бывает только около новолуния, но большинство новолуний проходит без затмения.'] },
     ],
     relatedTopicIds: ['new-moon', 'lunar-eclipse', 'nodes-overview', 'lunar-cycle'],
+    diagram: 'eclipses',
     sourceIds: ['nasa-eclipses'],
   }),
   topic({
@@ -75,6 +76,7 @@ export const CYCLE_EXTENDED_TOPICS = [
       { title: 'Часто путают', kind: 'confusion', paragraphs: ['Обычное полнолуние не означает, что Луна входит в тень Земли. Освещённый полный диск и затмение — разные явления.'] },
     ],
     relatedTopicIds: ['full-moon', 'solar-eclipse', 'nodes-overview', 'aspect-opposition'],
+    diagram: 'eclipses',
     sourceIds: ['nasa-eclipses'],
   }),
   topic({
