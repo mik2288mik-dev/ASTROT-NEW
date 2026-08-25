@@ -306,9 +306,11 @@ function OnboardingScene({
 function PaywallScene({
   profile,
   onClose,
+  embedded = false,
 }: {
   profile: ReturnType<typeof createUiPreviewProfile>;
   onClose: () => void;
+  embedded?: boolean;
 }) {
   const context: PaywallContext = {
     placement: 'settings',
@@ -323,13 +325,15 @@ function PaywallScene({
 
   return (
     <Paywall
+      embedded={embedded}
       profile={profile}
       context={context}
       onPurchase={async () => undefined}
       onClose={onClose}
       onContinueFree={onClose}
       onRestore={async () => undefined}
-      uiPreview={{ plans: UI_PREVIEW_PAYWALL_PLANS }}
+      onManageSubscription={() => undefined}
+      uiPreview={embedded ? undefined : { plans: UI_PREVIEW_PAYWALL_PLANS }}
     />
   );
 }
@@ -588,8 +592,14 @@ export default function UiPreviewApp() {
         profile={profile}
         activeTab={serviceTab}
         onTabChange={setServiceTab}
-        onOpenStore={() => navigate('paywall')}
         onOpenCharts={openCharts}
+        premiumStoreContent={(
+          <PaywallScene
+            embedded
+            profile={profile}
+            onClose={() => undefined}
+          />
+        )}
         settingsContent={(
           <SettingsScene
             profile={profile}
@@ -599,8 +609,6 @@ export default function UiPreviewApp() {
             onOpenCharts={openCharts}
           />
         )}
-        onRestorePurchase={async () => undefined}
-        onManageSubscription={() => undefined}
       />
     );
   } else {

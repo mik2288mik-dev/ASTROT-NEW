@@ -80,6 +80,41 @@ describe('RuStore Pay client service', () => {
     });
   });
 
+  it('bounds a stalled native catalog request and rejects after the catalog timeout', async () => {
+    jest.useFakeTimers();
+    const nativeBridge = {
+      getProducts: jest.fn().mockReturnValue(new Promise(() => undefined)),
+    };
+    const { service } = loadService(nativeBridge);
+
+    try {
+      const catalog = service.loadRuStoreProducts();
+      const rejection = expect(catalog).rejects.toThrow('RUSTORE_CATALOG_TIMEOUT');
+      await jest.advanceTimersByTimeAsync(service.RUSTORE_CATALOG_TIMEOUT_MS - 1);
+      expect(nativeBridge.getProducts).toHaveBeenCalledTimes(1);
+      await jest.advanceTimersByTimeAsync(1);
+      await rejection;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('returns an empty catalog immediately when product ids are not configured', async () => {
+    process.env = {
+      ...originalEnv,
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH: '',
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER: '',
+      NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_YEAR: '',
+    };
+    const nativeBridge = {
+      getProducts: jest.fn(),
+    };
+    const { service } = loadService(nativeBridge);
+
+    await expect(service.loadRuStoreProducts()).resolves.toEqual({});
+    expect(nativeBridge.getProducts).not.toHaveBeenCalled();
+  });
+
   it('refuses checkout when the catalog product is not SUBSCRIPTION', async () => {
     const nativeBridge = {
       getAvailability: jest.fn().mockResolvedValue({ available: true }),

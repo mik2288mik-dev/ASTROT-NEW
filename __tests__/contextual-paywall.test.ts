@@ -43,19 +43,84 @@ describe('contextual paywall return contract', () => {
     });
   });
 
-  it('lets the explicit service Store bypass the first-value gate', () => {
+  it('renders Premium as the embedded store without a second Open store step', () => {
     const app = read('App.tsx');
     const services = read('views/v2/ServiceScreen.tsx');
 
-    expect(app).toContain("requestPremium('settings', undefined, undefined, {");
-    expect(app).toContain('bypassFirstValueGate: true');
-    expect(app).toContain('&& !options?.bypassFirstValueGate');
+    expect(services).toContain('{premiumStoreContent}');
+    expect(services).not.toContain('Открыть магазин');
+    expect(services).not.toContain('Open store');
+    expect(app).toContain('premiumStoreContent={(');
+    expect(app).toContain('<Paywall');
+    expect(app).toContain('embedded');
     expect(app).toContain('onRequestPremium={openServiceStore}');
-    const settingsRoute = app.slice(app.indexOf("view === 'settings'"), app.indexOf("view === 'charts'"));
-    expect(settingsRoute).not.toContain('canPromotePremium={premiumPromotionAllowed}');
     expect(services).toContain("{ id: 'store', label: 'Premium' }");
-    expect(services).toContain('onClick={onOpenStore}');
-    expect(app).not.toContain("returnView: 'more'");
+  });
+
+  it('opens the ordinary Premium tab without creating the fullscreen overlay', () => {
+    const app = read('App.tsx');
+    const openStore = app.slice(
+      app.indexOf('const openServiceStore'),
+      app.indexOf('const managePremiumSubscription'),
+    );
+
+    expect(openStore).toContain("setServiceTab('store')");
+    expect(openStore).toContain("navigateTo('services')");
+    expect(openStore).not.toContain('requestPremium(');
+    expect(openStore).not.toContain('setPaywallContext(');
+    expect(app).toContain('const showsBottomNavigation = !paywallContext');
+    expect(app).toContain('{paywallContext ? (');
+  });
+
+  it('keeps contextual Premium requests in the existing fullscreen overlay', () => {
+    const app = read('App.tsx');
+    const requestPremium = app.slice(
+      app.indexOf('const requestPremium = async'),
+      app.indexOf('// Navigation logic:'),
+    );
+
+    expect(requestPremium).toContain('setPaywallContext(context)');
+    expect(app).toContain('className="fixed inset-0 z-[150] h-[100dvh]');
+    expect(app).toContain('aria-modal="true"');
+    expect(app).toContain('onClose={() => returnFromPaywall(paywallContext, \'close\')}');
+  });
+
+  it('keeps all three plans visible and recoverable without invented prices', () => {
+    const paywall = read('views/Paywall.tsx');
+    const styles = read('styles/globals.css');
+
+    expect(paywall).toContain("premium_month: { ru: '1 месяц'");
+    expect(paywall).toContain("premium_quarter: { ru: '3 месяца'");
+    expect(paywall).toContain("premium_year: { ru: '1 год'");
+    expect(paywall).toContain("label: 'Короткий срок'");
+    expect(paywall).toContain("label: 'Реже продлевать'");
+    expect(paywall).toContain("label: 'На весь год'");
+    expect(paywall).toContain('Персональный прогноз, натальная карта и совместимость');
+    expect(paywall).toContain('Характер, сильные стороны, зоны роста, общение, решения, отношения и работа.');
+    expect(paywall).toContain('Сравнение двух натальных карт: в чём вы похожи, чем различаетесь');
+    expect(paywall).toContain("import { MeouLogo } from '../components/onboarding/MeouLogo';");
+    expect(paywall).toContain('<MeouLogo className="pw2-brand-logo" />');
+    expect(paywall).toContain('<dl className="pw2-plan-features">');
+    expect(paywall).not.toContain('planRailRef');
+    expect(paywall).toContain('className="pw2-benefits"');
+    expect(paywall).toContain('<p className="pw2-plan-description">{advantage.description}</p>');
+    expect(paywall).toContain('className="pw2-selection-summary" aria-live="polite"');
+    expect(paywall).toContain('{selectedOption.periodLabel} Premium');
+    expect(styles).toContain('.pw2--embedded .pw2-plans { grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(styles).toContain('.services-screen-page .services-screen-tabs .editorial-tab::after { display: none; }');
+    expect(styles).toContain('.service-premium-content .pw2-title { width: 100%; max-width: none;');
+    expect(styles).toContain('.pw2--embedded .pw2-benefits div { grid-template-columns: minmax(0, 1fr);');
+    expect(styles).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(styles).toContain('.pw2-plan { height: 100%; min-height: 410px; }');
+    expect(paywall).toContain('priceLabel: product.amountLabel');
+    expect(paywall).toContain("catalogState === 'not_configured'");
+    expect(paywall).toContain("catalogState === 'error'");
+    expect(paywall).toContain('Не удалось получить цены из RuStore.');
+    expect(paywall).toContain('setCatalogRetryToken((value) => value + 1)');
+    expect(paywall).toContain('Повторить');
+    expect(paywall).toContain('if (!rustorePaymentsEnabled)');
+    expect(paywall).not.toMatch(/priceLabel:\s*['"]\d[\d\s]*\s*₽/);
+    expect(paywall).not.toMatch(/эконом|скидк|выгодн|популярн/i);
   });
 
   it('disarms a locked Week/Month request until purchase success', () => {

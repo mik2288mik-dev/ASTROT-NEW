@@ -312,12 +312,37 @@ export function getRuStoreProductId(planId: PremiumPlanId): string | null {
   return productId && !productId.startsWith('RUSTORE_PRODUCT_') ? productId : null;
 }
 
-export async function loadRuStoreProducts(): Promise<Partial<Record<PremiumPlanId, RuStoreProduct>>> {
+export const RUSTORE_CATALOG_TIMEOUT_MS = 9_000;
+
+async function withBoundedTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorCode: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorCode)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+}
+
+export async function loadRuStoreProducts(options?: {
+  timeoutMs?: number;
+}): Promise<Partial<Record<PremiumPlanId, RuStoreProduct>>> {
   const nativeBridge = bridge();
   if (!nativeBridge) return {};
   const entries = configuredPlanEntries();
   if (!entries.length) return {};
-  const result = await nativeBridge.getProducts({ productIds: entries.map(([, productId]) => productId) });
+  const timeoutMs = options?.timeoutMs ?? RUSTORE_CATALOG_TIMEOUT_MS;
+  const result = await withBoundedTimeout(
+    nativeBridge.getProducts({ productIds: entries.map(([, productId]) => productId) }),
+    timeoutMs,
+    'RUSTORE_CATALOG_TIMEOUT',
+  );
   const byId = new Map(
     result.products
       .filter((product) => isSubscriptionProduct(product)

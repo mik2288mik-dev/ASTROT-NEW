@@ -2841,7 +2841,7 @@
 .service-premium-content {
   box-sizing: border-box;
   display: grid;
-  width: min(100%, 620px);
+  width: min(100%, 980px);
   gap: 34px;
   margin: 0 auto;
   padding: 28px 20px 112px;

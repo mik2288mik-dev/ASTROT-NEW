@@ -101,6 +101,7 @@ import {
     type PaywallContext,
     type PaywallOutcome,
 } from './lib/paywallContext';
+import type { PaywallPurchaseStatus } from './views/Paywall';
 const Onboarding = dynamic(() => import('./views/Onboarding').then((module) => module.Onboarding), {
     ssr: false,
 });
@@ -352,6 +353,10 @@ const App: React.FC = () => {
     const [dashboardPeriod, setDashboardPeriod] = useState<PersonalForecastPeriod>('day');
     const [navigationSheet, setNavigationSheet] = useState<LumiaNavigationSheetId | null>(null);
     const [serviceTab, setServiceTab] = useState<ServiceTab>('knowledge');
+    const [serviceStoreContext] = useState<PaywallContext>(() => createPaywallContextFromRequest({
+        source: 'settings',
+        currentView: 'services',
+    }));
     const [natalQuestionRequest, setNatalQuestionRequest] = useState(0);
     const [paywallContext, setPaywallContext] = useState<PaywallContext | null>(null);
     const [premiumContinuation, setPremiumContinuation] = useState<PaywallContext | null>(null);
@@ -1473,9 +1478,17 @@ const App: React.FC = () => {
         return fresh && hasActivePremium(fresh) ? fresh : null;
     };
 
-    const purchasePremiumPlan = async (planId: PremiumPlanId) => {
-        if (!profile || !paywallContext) return;
-        const context = paywallContext;
+    const purchasePremiumPlan = async (
+        planId: PremiumPlanId,
+        contextOverride?: PaywallContext,
+    ): Promise<PaywallPurchaseStatus> => {
+        const context = paywallContext || contextOverride;
+        if (!profile || !context) return 'unavailable';
+        const contextualOverlayOpen = paywallContext?.paywallInstanceId === context.paywallInstanceId;
+        const finishPurchase = (outcome: PaywallOutcome, notice: string) => {
+            if (contextualOverlayOpen) returnFromPaywall(context, outcome, notice);
+            else setCheckoutNotice(notice);
+        };
         void recordUserAppEvent({
             eventType: 'checkout_started',
             section: 'premium',
@@ -1507,11 +1520,11 @@ const App: React.FC = () => {
                     });
                 });
             }
-            return;
+            return 'recovery_required';
         }
         if (paymentResult.status === 'pending') {
             setCheckoutNotice('Оплата ещё обрабатывается в RuStore. Дождись результата или нажми «Восстановить покупку».');
-            return;
+            return 'pending';
         }
         if (paymentResult.status === 'cancelled') {
             void recordUserAppEvent({
@@ -1520,12 +1533,8 @@ const App: React.FC = () => {
                 source: context.placement,
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: 'CHECKOUT_CANCELLED' }),
             });
-            returnFromPaywall(
-                context,
-                'checkout_cancelled',
-                'Оплата не завершена. Деньги не списаны.',
-            );
-            return;
+            finishPurchase('checkout_cancelled', 'Оплата не завершена. Деньги не списаны.');
+            return 'cancelled';
         }
         if (paymentResult.status === 'unavailable') {
             void recordUserAppEvent({
@@ -1534,12 +1543,8 @@ const App: React.FC = () => {
                 source: context.placement,
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
             });
-            returnFromPaywall(
-                context,
-                'checkout_unavailable',
-                'Покупка сейчас недоступна. Уже действующий Premium продолжит работать.',
-            );
-            return;
+            finishPurchase('checkout_unavailable', 'Покупка сейчас недоступна. Уже действующий Premium продолжит работать.');
+            return 'unavailable';
         }
         if (paymentResult.status === 'failed') {
             void recordUserAppEvent({
@@ -1548,12 +1553,8 @@ const App: React.FC = () => {
                 source: context.placement,
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: paymentResult.reason }),
             });
-            returnFromPaywall(
-                context,
-                'checkout_failed',
-                'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.',
-            );
-            return;
+            finishPurchase('checkout_failed', 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.');
+            return 'failed';
         }
 
         const validatedProfile = await profileFromValidatedPayment(paymentResult);
@@ -1564,12 +1565,8 @@ const App: React.FC = () => {
                 source: context.placement,
                 eventPayload: paywallEventPayload(context, { planId, reasonCode: 'BACKEND_ENTITLEMENT_MISSING' }),
             });
-            returnFromPaywall(
-                context,
-                'checkout_failed',
-                'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.',
-            );
-            return;
+            finishPurchase('checkout_failed', 'Не удалось открыть оплату. Проверь RuStore и подключение к интернету.');
+            return 'failed';
         }
 
         setProfile(validatedProfile);
@@ -1586,11 +1583,8 @@ const App: React.FC = () => {
                 entitlementEndsAt: validatedProfile.premiumEntitlement?.endsAt || undefined,
             }),
         });
-        returnFromPaywall(
-            context,
-            'purchase_succeeded',
-            'Premium открыт. Возвращаем туда, где ты остановился.',
-        );
+        finishPurchase('purchase_succeeded', 'Premium открыт. Возвращаем туда, где ты остановился.');
+        return 'completed';
     };
 
     const restorePremiumPurchases = async (context?: PaywallContext): Promise<void> => {
@@ -2049,10 +2043,10 @@ const App: React.FC = () => {
         openCharts(returnView);
     }, [openCharts]);
     const openServiceStore = useCallback(() => {
-        void requestPremium('settings', undefined, undefined, {
-            bypassFirstValueGate: true,
-        });
-    }, [requestPremium]);
+        setServiceTab('store');
+        setNavigationSheet(null);
+        if (viewRef.current !== 'services') navigateTo('services');
+    }, [navigateTo]);
     const managePremiumSubscription = useCallback(async () => {
         const opened = await openRuStoreSubscriptionManagement();
         if (!opened) {
@@ -2382,8 +2376,29 @@ const App: React.FC = () => {
                             profile={profile}
                             activeTab={serviceTab}
                             onTabChange={setServiceTab}
-                            onOpenStore={openServiceStore}
                             onOpenCharts={openProfileCharts}
+                            premiumStoreContent={(
+                                <Paywall
+                                    embedded
+                                    profile={profile}
+                                    context={serviceStoreContext}
+                                    onPurchase={(planId) => purchasePremiumPlan(planId, serviceStoreContext)}
+                                    initialPlanId={paywallInitialPlanId}
+                                    onClose={() => undefined}
+                                    onContinueFree={() => undefined}
+                                    onRestore={() => restorePremiumPurchases()}
+                                    onManageSubscription={managePremiumSubscription}
+                                    onPlanSelected={(planId) => {
+                                        setPaywallInitialPlanId(planId);
+                                        void recordUserAppEvent({
+                                            eventType: 'plan_selected',
+                                            section: 'premium',
+                                            source: serviceStoreContext.placement,
+                                            eventPayload: paywallEventPayload(serviceStoreContext, { planId }),
+                                        });
+                                    }}
+                                />
+                            )}
                             settingsContent={(
                                 <Settings
                                     embedded
@@ -2400,8 +2415,6 @@ const App: React.FC = () => {
                                     onRecoveryIdentityReady={completePremiumRecoveryIdentity}
                                 />
                             )}
-                            onRestorePurchase={() => restorePremiumPurchases()}
-                            onManageSubscription={managePremiumSubscription}
                         />
                     </div>
                 ) : view === 'encyclopedia' ? (
