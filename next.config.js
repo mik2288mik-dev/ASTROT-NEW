@@ -150,8 +150,8 @@ const nextConfig = {
       return [
         {
           source: '/:path*',
-          has: [{ type: 'host', value: 'www.tvoi-goroskop.ru' }],
-          destination: 'https://tvoi-goroskop.ru/:path*',
+          has: [{ type: 'host', value: 'tvoi-goroskop.ru' }],
+          destination: 'https://www.tvoi-goroskop.ru/:path*',
           permanent: true,
         },
         {
