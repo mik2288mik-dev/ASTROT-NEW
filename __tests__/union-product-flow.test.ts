@@ -15,7 +15,7 @@ describe('Union product flow', () => {
     expect(policy.cacheScope).toBe('shared');
     // Базовая версия + отпечаток голоса (последний инвалидирует кэш при смене голоса).
     expect(policy.promptVersion).toBe(`sign_compatibility.v3+voice.${APP_VOICE_VERSION}`);
-    expect(read('lib/synastryExtended.ts')).toContain("SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v8'");
+    expect(read('lib/synastryExtended.ts')).toContain("SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v9'");
     expect(read('lib/synastry/compatibilityEngine.ts')).toContain("COMPATIBILITY_ENGINE_VERSION = 'compatibility-engine.v1'");
   });
 
@@ -51,5 +51,21 @@ describe('Union product flow', () => {
     const fullApi = read('pages/api/content/synastry/extended.ts');
     expect(fullApi).toContain("code: 'NEEDS_CHART'");
     expect(fullApi.indexOf("code: 'PREMIUM_REQUIRED'")).toBeLessThan(fullApi.indexOf('db.natal_charts.getById(requestedSubjectChartId)'));
+  });
+
+  it('stores Compatibility likes outside horoscope reactions', () => {
+    const union = read('views/v2/UnionRoom.tsx');
+    const contentApi = read('pages/api/content/reactions.ts');
+    const migrations = read('lib/migrations.ts');
+
+    expect(union).toContain('<ContentActivityBar');
+    expect(union).toContain('surface="compatibility"');
+    expect(union).not.toContain('date="2000-01-01"');
+    expect(union).not.toContain('sign={`${leftSun}_${theirSun}`}');
+    expect(contentApi).toContain('requireAppUser');
+    expect(contentApi).toContain('db.content_reactions');
+    expect(contentApi).not.toContain('db.horoscope_reactions');
+    expect(migrations).toContain("mvp_049_content_reactions");
+    expect(migrations).toContain('CREATE TABLE IF NOT EXISTS content_reactions');
   });
 });

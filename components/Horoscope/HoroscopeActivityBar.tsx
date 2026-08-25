@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Eye, Heart, Share2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { HoroscopeEngagementSummary, HoroscopeReactionSummary } from '../../types';
+import type {
+  ContentReactionSurface,
+  HoroscopeEngagementSummary,
+  HoroscopeReactionSummary,
+} from '../../types';
 import { lumiaSelectionHaptic } from '../../lib/haptics';
 import {
   getHoroscopeReactionSummary,
@@ -9,6 +13,11 @@ import {
   removeHoroscopeReaction,
   markHoroscopeView,
 } from '../../services/astrologyService';
+import {
+  getContentReactionSummary,
+  removeContentReaction,
+  setContentReaction,
+} from '../../services/contentReactionService';
 
 /**
  * Engagement bar under a sign horoscope: views · like (heart, toggle) · share.
@@ -18,18 +27,35 @@ import {
  * State resets on every forecast change so one sign's like never leaks.
  */
 
-type Props = {
+type SharedProps = {
   userId?: string;
+  language: 'ru' | 'en';
+  onShare: () => void;
+  showLabels?: boolean;
+  showCounts?: boolean;
+  className?: string;
+};
+
+type Props = SharedProps & {
   sign: string;
   date: string;
   /** Период гороскопа — лайк раздельный: сегодня/неделя/месяц у одного знака не делят один лайк. */
   period?: 'today' | 'week' | 'month';
-  language: 'ru' | 'en';
-  onShare: () => void;
   showViews?: boolean;
-  showLabels?: boolean;
-  showCounts?: boolean;
-  className?: string;
+};
+
+type ContentProps = SharedProps & {
+  surface: ContentReactionSurface;
+  contentKey: string;
+};
+
+type ActivityTarget =
+  | { kind: 'horoscope'; sign: string; date: string; period: 'today' | 'week' | 'month' }
+  | { kind: 'content'; surface: ContentReactionSurface; contentKey: string };
+
+type ActivityProps = SharedProps & {
+  target: ActivityTarget;
+  showViews: boolean;
 };
 
 function spotOn(summary: HoroscopeReactionSummary | null): number {
@@ -59,19 +85,23 @@ const Count: React.FC<{ value: number }> = ({ value }) => (
   </span>
 );
 
-export const HoroscopeActivityBar: React.FC<Props> = ({
+const ActivityBar: React.FC<ActivityProps> = ({
   userId,
-  sign,
-  date,
-  period = 'today',
+  target,
   language,
   onShare,
-  showViews = true,
+  showViews,
   showLabels = false,
   showCounts = true,
   className = '',
 }) => {
   const ru = language !== 'en';
+  const targetKind = target.kind;
+  const sign = target.kind === 'horoscope' ? target.sign : '';
+  const date = target.kind === 'horoscope' ? target.date : '';
+  const period = target.kind === 'horoscope' ? target.period : 'today';
+  const surface = target.kind === 'content' ? target.surface : 'compatibility';
+  const contentKey = target.kind === 'content' ? target.contentKey : '';
   const [likes, setLikes] = useState(0);
   const [liked, setLiked] = useState(false);
   const [views, setViews] = useState(0);
@@ -89,18 +119,28 @@ export const HoroscopeActivityBar: React.FC<Props> = ({
     if (!userId) return;
     let alive = true;
     if (showViews) {
-      void markHoroscopeView(userId, sign, date, period).then((e: HoroscopeEngagementSummary | null) => {
-        if (!alive || !e) return;
-        setViews(e.views);
+      if (targetKind === 'horoscope') {
+        void markHoroscopeView(userId, sign, date, period).then((e: HoroscopeEngagementSummary | null) => {
+          if (!alive || !e) return;
+          setViews(e.views);
+        });
+      }
+    }
+    if (targetKind === 'content') {
+      void getContentReactionSummary(userId, { surface, contentKey }).then((summary) => {
+        if (!alive || reactionRequestVersion.current !== requestVersion || !summary) return;
+        setLikes(summary.count);
+        setLiked(summary.reacted);
+      });
+    } else {
+      void getHoroscopeReactionSummary(userId, sign, date, language, period).then((summary) => {
+        if (!alive || reactionRequestVersion.current !== requestVersion || !summary) return;
+        setLikes(spotOn(summary));
+        setLiked(summary.userReaction === 'spot_on');
       });
     }
-    void getHoroscopeReactionSummary(userId, sign, date, language, period).then((s) => {
-      if (!alive || reactionRequestVersion.current !== requestVersion || !s) return;
-      setLikes(spotOn(s));
-      setLiked(s.userReaction === 'spot_on');
-    });
     return () => { alive = false; };
-  }, [userId, sign, date, period, language, showViews]);
+  }, [userId, targetKind, sign, date, period, surface, contentKey, language, showViews]);
 
   const onToggleLike = async () => {
     if (!userId || busy) return;
@@ -113,16 +153,20 @@ export const HoroscopeActivityBar: React.FC<Props> = ({
     setLiked(!wasLiked);
     setLikes((c) => Math.max(0, c + (wasLiked ? -1 : 1)));
     try {
-      if (wasLiked) {
-        const s = await removeHoroscopeReaction(userId, sign, date, language, period);
+      if (targetKind === 'content') {
+        const summary = wasLiked
+          ? await removeContentReaction(userId, { surface, contentKey })
+          : await setContentReaction(userId, { surface, contentKey });
         if (reactionRequestVersion.current !== requestVersion) return;
-        if (s) { setLikes(spotOn(s)); setLiked(s.userReaction === 'spot_on'); }
+        if (summary) { setLikes(summary.count); setLiked(summary.reacted); }
         else { setLiked(true); setLikes((c) => c + 1); } // снять не удалось — откат
       } else {
-        const s = await setHoroscopeReaction(userId, sign, date, 'spot_on', language, period);
+        const summary = wasLiked
+          ? await removeHoroscopeReaction(userId, sign, date, language, period)
+          : await setHoroscopeReaction(userId, sign, date, 'spot_on', language, period);
         if (reactionRequestVersion.current !== requestVersion) return;
-        setLikes(spotOn(s));
-        setLiked(s.userReaction === 'spot_on');
+        if (summary) { setLikes(spotOn(summary)); setLiked(summary.userReaction === 'spot_on'); }
+        else { setLiked(true); setLikes((c) => c + 1); }
       }
     } catch {
       if (reactionRequestVersion.current !== requestVersion) return;
@@ -172,3 +216,29 @@ export const HoroscopeActivityBar: React.FC<Props> = ({
     </div>
   );
 };
+
+export const HoroscopeActivityBar: React.FC<Props> = ({
+  sign,
+  date,
+  period = 'today',
+  showViews = true,
+  ...props
+}) => (
+  <ActivityBar
+    {...props}
+    target={{ kind: 'horoscope', sign, date, period }}
+    showViews={showViews}
+  />
+);
+
+export const ContentActivityBar: React.FC<ContentProps> = ({
+  surface,
+  contentKey,
+  ...props
+}) => (
+  <ActivityBar
+    {...props}
+    target={{ kind: 'content', surface, contentKey }}
+    showViews={false}
+  />
+);

@@ -763,6 +763,10 @@
   text-transform: uppercase;
 }
 
+.compat-editorial-page--result .compat-result-summary:not(.compat-result-summary--sign) > span {
+  text-align: center;
+}
+
 .compat-editorial-page--result .compat-result-summary .editorial-prose,
 .compat-editorial-page--result .compat-result-summary > p {
   margin: 0;
@@ -819,17 +823,20 @@
 }
 
 .compat-editorial-page--result .compat-result-ring-people i {
-  width: 13px;
-  height: 2px;
-  margin-top: 9px;
-  border-radius: 999px;
+  grid-row: 1 / span 3;
+  justify-self: center;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
   background: #276fd1;
+  box-shadow: 0 0 0 3px rgba(39, 111, 209, 0.1), 0 0 10px rgba(39, 111, 209, 0.32);
 }
 
 .compat-editorial-page--result .compat-result-ring-people .is-right i {
   grid-column: 2;
-  grid-row: 1 / span 2;
   background: #d65f69;
+  box-shadow: 0 0 0 3px rgba(214, 95, 105, 0.1), 0 0 10px rgba(214, 95, 105, 0.32);
 }
 
 .compat-editorial-page--result .compat-result-ring-people .is-right strong,
@@ -857,6 +864,12 @@
   color: var(--compat-editorial-muted);
   font-size: 10.5px;
   line-height: 1.35;
+}
+
+.compat-editorial-page--result .compat-result-ring-people .compat-result-person-zodiac {
+  margin-top: 1px;
+  font-weight: 620;
+  letter-spacing: 0.01em;
 }
 
 .compat-editorial-page--result .compat-result-orbit {
@@ -1029,6 +1042,7 @@
   font-size: 10px;
   font-weight: 740;
   letter-spacing: 0.09em;
+  text-align: center;
   text-transform: uppercase;
 }
 

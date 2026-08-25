@@ -4,6 +4,7 @@ import {
 } from '../lib/synastry/localSignText';
 import {
   getRelationshipContextLabel,
+  getRelationshipContextOption,
   normalizeRelationshipContext,
 } from '../lib/synastry/relationshipContext';
 
@@ -15,6 +16,12 @@ describe('relationship context', () => {
     expect(getRelationshipContextLabel('work', 'ru')).toBe('Работа');
     expect(getRelationshipContextLabel('family', 'ru')).toBe('Семья');
     expect(normalizeRelationshipContext('unknown')).toBe('romance');
+  });
+
+  it('keeps Love focused on attraction and separates an established relationship', () => {
+    expect(getRelationshipContextOption('romance').hint.ru).toBe('Симпатия, влечение, начало отношений');
+    expect(getRelationshipContextOption('romance').hint.ru).not.toContain('бывшие');
+    expect(getRelationshipContextOption('relationship').hint.ru).toBe('Существующая пара и совместная жизнь');
   });
 
   it('changes the practical reading instead of forcing romance into every pair', () => {

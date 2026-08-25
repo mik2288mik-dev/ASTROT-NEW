@@ -138,6 +138,7 @@ type DbContentVariant =
 type DbContentModelTier = 'base' | 'premium';
 type DbContentUnlockType = 'free' | 'premium';
 type DbHoroscopeReactionKey = 'spot_on' | 'funny' | 'gentle' | 'not_mine';
+type DbContentReactionKey = 'like';
 
 function normalizeJsonColumn<T = any>(value: any): T {
   if (value == null) return value;
@@ -3119,6 +3120,115 @@ export const db = {
         return this.getSummary(userId, sign, date);
       } catch (error: any) {
         log.error('[DB] Error unsetting horoscope reaction', { error: error.message, userId, zodiacSign, date });
+        throw error;
+      }
+    },
+  },
+
+  /** Generic reactions for non-horoscope content, keyed by an opaque content identity. */
+  content_reactions: {
+    _emptySummary(reacted = false) {
+      return { reacted, count: 0 };
+    },
+
+    async getSummary(
+      userId: string,
+      surface: string,
+      contentKey: string,
+      reactionKey: DbContentReactionKey = 'like',
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) return this._emptySummary();
+
+      try {
+        const dbPool = getPool();
+        const [countResult, ownResult] = await Promise.all([
+          dbPool.query(
+            `SELECT COUNT(*)::int AS count
+             FROM content_reactions
+             WHERE surface = $1 AND content_key = $2 AND reaction_key = $3`,
+            [surface, contentKey, reactionKey],
+          ),
+          dbPool.query(
+            `SELECT 1
+             FROM content_reactions
+             WHERE user_id = $1 AND surface = $2 AND content_key = $3 AND reaction_key = $4
+             LIMIT 1`,
+            [id, surface, contentKey, reactionKey],
+          ),
+        ]);
+        return {
+          reacted: (ownResult.rowCount ?? 0) > 0,
+          count: Number(countResult.rows[0]?.count ?? 0),
+        };
+      } catch (error: any) {
+        log.error('[DB] Error getting content reaction summary', {
+          error: error.message,
+          userId,
+          surface,
+          contentKey,
+          reactionKey,
+        });
+        throw error;
+      }
+    },
+
+    async set(
+      userId: string,
+      surface: string,
+      contentKey: string,
+      reactionKey: DbContentReactionKey = 'like',
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `INSERT INTO content_reactions (user_id, surface, content_key, reaction_key)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, surface, content_key, reaction_key)
+           DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
+          [id, surface, contentKey, reactionKey],
+        );
+        return this.getSummary(userId, surface, contentKey, reactionKey);
+      } catch (error: any) {
+        log.error('[DB] Error setting content reaction', {
+          error: error.message,
+          userId,
+          surface,
+          contentKey,
+          reactionKey,
+        });
+        throw error;
+      }
+    },
+
+    async unset(
+      userId: string,
+      surface: string,
+      contentKey: string,
+      reactionKey: DbContentReactionKey = 'like',
+    ) {
+      const id = toUserId(userId);
+      if (!DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+
+      try {
+        const dbPool = getPool();
+        await dbPool.query(
+          `DELETE FROM content_reactions
+           WHERE user_id = $1 AND surface = $2 AND content_key = $3 AND reaction_key = $4`,
+          [id, surface, contentKey, reactionKey],
+        );
+        return this.getSummary(userId, surface, contentKey, reactionKey);
+      } catch (error: any) {
+        log.error('[DB] Error unsetting content reaction', {
+          error: error.message,
+          userId,
+          surface,
+          contentKey,
+          reactionKey,
+        });
         throw error;
       }
     },

@@ -2,8 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import { buildSynastryPrompt } from '../lib/contentPromptBuilders';
 import { calculateCompatibility } from '../lib/synastry/compatibilityEngine';
-import { buildCompatibilityResult } from '../lib/synastry/compatibilityNarrative';
+import {
+  buildCompatibilityResult,
+  buildDeterministicCompatibilityNarrative,
+} from '../lib/synastry/compatibilityNarrative';
 import { getCompatibilityRingGeometry } from '../lib/synastry/compatibilityPresentation';
+import {
+  buildDeepCompatibilityReactionKey,
+  buildSignCompatibilityReactionKey,
+} from '../lib/synastry/compatibilityReaction';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -203,6 +210,109 @@ describe('calculated compatibility pipeline', () => {
     expect(love.sections?.map((section) => section.id)).not.toEqual(work.sections?.map((section) => section.id));
     expect(work.sections?.some((section) => section.id === 'under_pressure')).toBe(true);
     expect(work.sections?.some((section) => section.id === 'attraction')).toBe(false);
+  });
+
+  it('grounds fallback copy in evidence even when the dimension profile is unchanged', () => {
+    const dimensions = [
+      {
+        id: 'communication',
+        label: 'Общение',
+        score: 72,
+        confidence: 0.8,
+        supportiveEvidenceIds: ['support'],
+        challengingEvidenceIds: [],
+      },
+      {
+        id: 'conflict_ease',
+        label: 'Прохождение конфликтов',
+        score: 38,
+        confidence: 0.8,
+        supportiveEvidenceIds: [],
+        challengingEvidenceIds: ['challenge'],
+      },
+    ];
+    const calculated = (supportTechnical: Record<string, unknown>, challengeTechnical: Record<string, unknown>) => ({
+      engineVersion: 'compatibility-engine.v1',
+      overallScore: 61,
+      verdict: 'Живая, смешанная связь',
+      relationshipContext: 'relationship',
+      calculationLevel: 'full',
+      dimensions,
+      strongestDimensions: [dimensions[0]],
+      challengingDimensions: [dimensions[1]],
+      evidence: [
+        {
+          id: 'support',
+          type: 'aspect',
+          direction: 'mutual',
+          label: 'support',
+          weight: 0.8,
+          reliability: 'exact',
+          dimensionEffects: { communication: 0.7 },
+          technical: supportTechnical,
+        },
+        {
+          id: 'challenge',
+          type: 'aspect',
+          direction: 'mutual',
+          label: 'challenge',
+          weight: 0.7,
+          reliability: 'exact',
+          dimensionEffects: { conflict_ease: -0.6 },
+          technical: challengeTechnical,
+        },
+      ],
+      directionalPatterns: [],
+      sectionPlan: [{
+        id: 'dialogue',
+        title: 'Как вы разговариваете',
+        titleEn: 'How you talk',
+        dimensionIds: ['communication', 'conflict_ease'],
+        evidenceIds: ['support', 'challenge'],
+      }],
+      limitations: [],
+      aspects: [],
+    }) as any;
+
+    const first = buildDeterministicCompatibilityNarrative(
+      calculated(
+        { subjectKey: 'mercury', partnerKey: 'moon', aspect: 'trine', orb: 1.2 },
+        { subjectKey: 'mars', partnerKey: 'saturn', aspect: 'square', orb: 2.1 },
+      ),
+      { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' },
+    );
+    const second = buildDeterministicCompatibilityNarrative(
+      calculated(
+        { subjectKey: 'venus', partnerKey: 'jupiter', aspect: 'sextile', orb: 0.8 },
+        { subjectKey: 'sun', partnerKey: 'uranus', aspect: 'opposition', orb: 1.7 },
+      ),
+      { subjectName: 'Анна', partnerName: 'Максим', language: 'ru' },
+    );
+
+    expect(first.summary).toContain('«Меркурий» (Анна)');
+    expect(first.summary).toContain('«Марс» (Анна)');
+    expect(second.summary).toContain('«Венера» (Анна)');
+    expect(second.summary).toContain('«Солнце» (Анна)');
+    expect(first.summary).not.toBe(second.summary);
+    expect(first.sections[0].text).not.toBe(second.sections[0].text);
+  });
+
+  it('builds versioned compatibility reaction keys without names or birth data', () => {
+    const signKey = buildSignCompatibilityReactionKey({
+      subjectSign: 'aries',
+      partnerSign: 'libra',
+      subjectGender: 'female',
+      partnerGender: 'male',
+      relationshipContext: 'romance',
+      language: 'ru',
+    });
+    const deepKey = buildDeepCompatibilityReactionKey('a'.repeat(64));
+
+    expect(signKey).toBe('sign:v1:aries:female:libra:male:romance:ru');
+    expect(signKey).not.toContain('Анна');
+    expect(signKey).not.toContain('1990');
+    expect(deepKey).toBe(`deep:v1:${'a'.repeat(64)}`);
+    expect(buildDeepCompatibilityReactionKey('raw-name-and-date')).toBeNull();
   });
 
   it('maps score to ring distance monotonically at 0, 50 and 100', () => {

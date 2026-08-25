@@ -1956,6 +1956,7 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'notification_rotation_state',
     'notification_delivery_log',
     'horoscope_reactions',
+    'content_reactions',
     'daily_checkins',
     'personal_pattern_insights',
     'notification_scenarios',
@@ -3595,6 +3596,38 @@ async function mvp048AppSessionRefresh(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+async function mvp049ContentReactions(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_049_content_reactions';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS content_reactions (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      surface TEXT NOT NULL,
+      content_key TEXT NOT NULL,
+      reaction_key TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, surface, content_key, reaction_key),
+      CONSTRAINT content_reactions_surface_check
+        CHECK (surface IN ('compatibility')),
+      CONSTRAINT content_reactions_key_check
+        CHECK (reaction_key IN ('like'))
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_content_reactions_target
+      ON content_reactions(surface, content_key, reaction_key)
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3676,6 +3709,7 @@ export async function runMigrations(): Promise<void> {
     await mvp044EmailIdentityUniqueness(migrationDb);
     await mvp045AuthExpiryTimezone(migrationDb);
     await mvp048AppSessionRefresh(migrationDb);
+    await mvp049ContentReactions(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

@@ -1073,6 +1073,7 @@ export type SynastryExtendedApiOutcome = {
   result: SynastryResult;
   fromCache: boolean;
   calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign';
+  contentKey?: string;
 };
 
 /** Полный разбор синастрии: только Premium. */
@@ -1155,12 +1156,14 @@ export const calculateExtendedSynastry = async (
     result: SynastryResult;
     fromCache?: boolean;
     calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign';
+    contentKey?: string;
   };
 
   return {
     result: data.result,
     fromCache: !!data.fromCache,
     calculationLevel: data.calculationLevel,
+    contentKey: data.contentKey,
   };
 };
 

@@ -22,7 +22,7 @@ import { ZodiacSymbol } from '../../components/icons/ZodiacArt';
 import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { ZODIAC_KEYS } from '../../lib/zodiacKeys';
 import { shareToTelegram } from '../../lib/botLink';
-import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import { ContentActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
 import { MeouLogo } from '../../components/onboarding/MeouLogo';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, clearCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
@@ -48,6 +48,7 @@ import {
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
 import { getCompatibilityRingGeometry } from '../../lib/synastry/compatibilityPresentation';
+import { buildSignCompatibilityReactionKey } from '../../lib/synastry/compatibilityReaction';
 
 type CompatibilityPersonSource = 'birth' | 'saved' | 'sign';
 
@@ -804,6 +805,9 @@ export function UnionRoom(props: UnionRoomProps) {
       ? previewFixture.deepResult
       : null,
   );
+  const [deepReactionKey, setDeepReactionKey] = useState<string | null>(
+    previewFixture?.screen === 'result' && previewFixture.resultKind !== 'sign' ? 'deep:v1:preview' : null,
+  );
   const [deepLoading, setDeepLoading] = useState(previewResultState === 'loading');
   const autoDeepKeyRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(
@@ -841,6 +845,7 @@ export function UnionRoom(props: UnionRoomProps) {
     if (!premium) {
       setEntryMode('sign');
       setDeep(null);
+      setDeepReactionKey(null);
       setDeepLoading(false);
       autoDeepKeyRef.current = null;
     }
@@ -964,6 +969,7 @@ export function UnionRoom(props: UnionRoomProps) {
     setDeepLoading(false);
     setSignText(null);
     setDeep(null);
+    setDeepReactionKey(null);
     setError(null);
     setSelected(s);
     setScreen('result');
@@ -1203,6 +1209,7 @@ export function UnionRoom(props: UnionRoomProps) {
     if (previewFixture) {
       setError(null);
       setDeep(previewFixture.deepResult);
+      setDeepReactionKey('deep:v1:preview');
       setDeepLoading(false);
       return;
     }
@@ -1265,6 +1272,7 @@ export function UnionRoom(props: UnionRoomProps) {
       );
       if (autoDeepKeyRef.current === requestKey) {
         setDeep(out.result);
+        setDeepReactionKey(out.contentKey || null);
         const resolvedLevel = out.result.calculationLevel || out.calculationLevel;
         if (resolvedLevel) {
           setSelected((current) => current ? { ...current, calculationLevel: resolvedLevel } : current);
@@ -1713,6 +1721,17 @@ export function UnionRoom(props: UnionRoomProps) {
       ? Math.round(score.overall)
       : null;
   const resultVerdict = isPerson ? deep?.verdict : score?.verdict;
+  const signReactionKey = selected?.kind === 'sign'
+    ? buildSignCompatibilityReactionKey({
+        subjectSign: leftSun,
+        partnerSign: theirSun,
+        subjectGender: leftGender,
+        partnerGender: rightGender,
+        relationshipContext: selected.relationshipContext,
+        language: lang,
+      })
+    : null;
+  const resultReactionKey = isPerson ? deepReactionKey : signReactionKey;
   const ringGeometry = resultPercent == null ? null : getCompatibilityRingGeometry(resultPercent);
   const ringStyle = ringGeometry
     ? { '--compat-ring-offset': `${ringGeometry.centerOffset}px` } as React.CSSProperties
@@ -1741,7 +1760,7 @@ export function UnionRoom(props: UnionRoomProps) {
 
       <header className="compat-result-heading">
         <MeouLogo className="compat-result-brand" />
-        <span>{ru ? 'Разбор связи' : 'Relationship reading'}</span>
+        <span>{ru ? 'Сравниваем совместимость двух человек' : 'Comparing two people’s compatibility'}</span>
       </header>
 
       {resultPercent != null ? (
@@ -1754,11 +1773,13 @@ export function UnionRoom(props: UnionRoomProps) {
               <i aria-hidden="true" />
               <strong>{leftName}</strong>
               <small>{leftDetail}</small>
+              <small className="compat-result-person-zodiac">{getZodiacSign(lang, leftSun)}</small>
             </span>
             <span className="is-right">
               <i aria-hidden="true" />
               <strong>{rightName}</strong>
               <small>{rightDetail}</small>
+              <small className="compat-result-person-zodiac">{getZodiacSign(lang, theirSun)}</small>
             </span>
           </div>
           <div
@@ -1977,15 +1998,14 @@ export function UnionRoom(props: UnionRoomProps) {
         </button>
       ) : null}
 
-      {!isPerson || deep ? (
+      {(!isPerson || deep) && resultReactionKey ? (
         <div className="compat-result-actions">
-          <HoroscopeActivityBar
+          <ContentActivityBar
             userId={!previewEnabled && profile.id ? String(profile.id) : undefined}
-            sign={`${leftSun}_${theirSun}`}
-            date="2000-01-01"
+            surface="compatibility"
+            contentKey={resultReactionKey}
             language={lang}
             onShare={shareCompat}
-            showViews={false}
             showLabels
             showCounts={false}
             className="compat-result-activity"

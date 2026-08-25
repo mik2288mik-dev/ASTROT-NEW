@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { getContentPolicy } from './contentMatrix';
 import { COMPATIBILITY_ENGINE_VERSION } from './synastry/compatibilityEngine';
 
-export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v8';
+export const SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v9';
 
 export function buildSynastryExtendedCacheKey(
   userId: string,

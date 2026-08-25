@@ -37,6 +37,13 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page--result .compat-result-summary');
     expect(room).toContain('<MeouLogo className="compat-result-brand" />');
     expect(room).toContain('className="compat-result-ring-people"');
+    expect(room).toContain('className="compat-result-person-zodiac"');
+    expect(room).toContain('getZodiacSign(lang, leftSun)');
+    expect(room).toContain('getZodiacSign(lang, theirSun)');
+    expect(styles).toContain('.compat-result-person-zodiac');
+    expect(styles).toMatch(/\.compat-result-ring-people i\s*\{[^}]*border-radius:\s*50%;[^}]*box-shadow:/);
+    expect(styles).toContain('.compat-result-summary:not(.compat-result-summary--sign) > span');
+    expect(styles).toMatch(/\.compat-final-payoff > span\s*\{[^}]*text-align:\s*center;/);
     expect(resultHeading).toBeLessThan(resultScore);
     expect(resultScore).toBeLessThan(resultCalculation);
     expect(resultCalculation).toBeLessThan(resultSummary);
@@ -44,7 +51,8 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain('Большие кольца показывают общий индекс');
     expect(room).toContain('среднее с учётом важности всех сфер ниже');
     expect(room).toContain('className="compat-final-payoff"');
-    expect(room).toContain('showViews={false}');
+    expect(room).toContain('<ContentActivityBar');
+    expect(room).toContain('surface="compatibility"');
     expect(room).toContain('showCounts={false}');
     expect(styles).toContain('.compat-editorial-page--result .compat-result-activity');
     expect(styles).toContain('.compat-editorial-page--result .compat-result-ring-people');
@@ -179,18 +187,22 @@ describe('compatibility editorial layout', () => {
     expect(room).not.toContain('compat-result-sticker');
     expect(room).not.toContain('/assets/');
     expect(room).toContain("import { MeouLogo } from '../../components/onboarding/MeouLogo'");
+    expect(room).toContain('Сравниваем совместимость двух человек');
+    expect(room).not.toContain('Разбор связи');
   });
 
   it('keeps shared engagement defaults while removing result views and numeric clutter', () => {
     const room = read('views/v2/UnionRoom.tsx');
     const activity = read('components/Horoscope/HoroscopeActivityBar.tsx');
 
-    expect(room).toContain('showViews={false}');
+    expect(room).toContain('<ContentActivityBar');
+    expect(room).toContain('surface="compatibility"');
     expect(room).toContain('showCounts={false}');
     expect(room).toContain('showLabels');
     expect(activity).toContain('showViews = true');
     expect(activity).toContain('showCounts = true');
     expect(activity).toContain('{showViews ? (');
     expect(activity).toContain('if (showViews) {');
+    expect(activity).toContain('showViews={false}');
   });
 });

@@ -44,6 +44,7 @@ import {
   normalizeRelationshipContext,
   type RelationshipContext,
 } from '../../../../lib/synastry/relationshipContext';
+import { buildDeepCompatibilityReactionKey } from '../../../../lib/synastry/compatibilityReaction';
 import {
   assertChartReadable,
   ChartAccessPolicyError,
@@ -612,6 +613,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       fromCache: true,
       accessTier: 'premium',
       calculationLevel,
+      contentKey: buildDeepCompatibilityReactionKey(contentCacheKey),
     });
   }
 
@@ -863,6 +865,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     fromCache: false,
     accessTier,
     calculationLevel,
+    contentKey: buildDeepCompatibilityReactionKey(contentCacheKey),
   });
 }
 

@@ -1,5 +1,7 @@
 import type {
+  CompatibilityDimensionResult,
   CompatibilityDimensionKey,
+  CompatibilityEvidence,
   CompatibilityReadingSection,
   SynastryResult,
 } from '../../types';
@@ -123,6 +125,112 @@ function prefersStrength(score: number, supportive: number, challenging: number)
   return score >= 55 && supportive >= challenging;
 }
 
+const BODY_LABELS: Record<string, { ru: string; en: string }> = {
+  sun: { ru: 'Солнце', en: 'Sun' },
+  moon: { ru: 'Луна', en: 'Moon' },
+  mercury: { ru: 'Меркурий', en: 'Mercury' },
+  venus: { ru: 'Венера', en: 'Venus' },
+  mars: { ru: 'Марс', en: 'Mars' },
+  jupiter: { ru: 'Юпитер', en: 'Jupiter' },
+  saturn: { ru: 'Сатурн', en: 'Saturn' },
+  uranus: { ru: 'Уран', en: 'Uranus' },
+  neptune: { ru: 'Нептун', en: 'Neptune' },
+  pluto: { ru: 'Плутон', en: 'Pluto' },
+  ascendant: { ru: 'Асцендент', en: 'Ascendant' },
+  mc: { ru: 'MC', en: 'MC' },
+};
+
+const ASPECT_LABELS: Record<string, { ru: string; en: string }> = {
+  conjunction: { ru: 'соединение', en: 'conjunction' },
+  sextile: { ru: 'секстиль', en: 'sextile' },
+  square: { ru: 'квадрат', en: 'square' },
+  trine: { ru: 'трин', en: 'trine' },
+  opposition: { ru: 'оппозиция', en: 'opposition' },
+};
+
+function technicalLabel(
+  labels: Record<string, { ru: string; en: string }>,
+  key: string | undefined,
+  language: 'ru' | 'en',
+): string {
+  if (!key) return language === 'ru' ? 'показатель карты' : 'chart factor';
+  return labels[key]?.[language] || key;
+}
+
+function evidenceForDimension(
+  calculated: CalculatedCompatibility,
+  dimension: CompatibilityDimensionResult,
+  supportive: boolean,
+  sectionEvidenceIds: string[] = [],
+): CompatibilityEvidence | null {
+  const dimensionIds = supportive
+    ? dimension.supportiveEvidenceIds
+    : dimension.challengingEvidenceIds;
+  const scopedIds = sectionEvidenceIds.length
+    ? dimensionIds.filter((id) => sectionEvidenceIds.includes(id))
+    : dimensionIds;
+  const allowed = new Set(scopedIds.length ? scopedIds : dimensionIds);
+  const candidates = calculated.evidence
+    .filter((item) => allowed.has(item.id))
+    .sort((first, second) => {
+      const firstImpact = Math.abs(first.dimensionEffects[dimension.id] || 0) * first.weight;
+      const secondImpact = Math.abs(second.dimensionEffects[dimension.id] || 0) * second.weight;
+      return secondImpact - firstImpact || first.id.localeCompare(second.id);
+    });
+  return candidates[0] || null;
+}
+
+function evidenceNarrative(
+  calculated: CalculatedCompatibility,
+  evidence: CompatibilityEvidence | null,
+  dimension: CompatibilityDimensionResult,
+  supportive: boolean,
+  input: NarrativeInput,
+): string {
+  if (!evidence) return '';
+  const directional = calculated.directionalPatterns.find((pattern) => pattern.evidenceIds.includes(evidence.id));
+
+  const language = input.language;
+  const technical = evidence.technical || {};
+  const subjectBody = technicalLabel(BODY_LABELS, technical.subjectKey, language);
+  const partnerBody = technicalLabel(BODY_LABELS, technical.partnerKey, language);
+  const aspect = technicalLabel(ASPECT_LABELS, technical.aspect, language);
+  const orb = typeof technical.orb === 'number'
+    ? language === 'ru' ? ` с орбом ${technical.orb.toFixed(1)}°` : ` with a ${technical.orb.toFixed(1)}° orb`
+    : '';
+  const sourceName = evidence.direction === 'partner_to_subject' ? input.partnerName : input.subjectName;
+  const targetName = evidence.direction === 'partner_to_subject' ? input.subjectName : input.partnerName;
+  const direction = directional
+    ? language === 'ru'
+      ? `Направление влияния: ${directional.title}.`
+      : `Direction of influence: ${directional.title}.`
+    : '';
+  const impact = language === 'ru'
+    ? supportive
+      ? `Именно этот контакт добавляет опору в теме «${dimension.label}».`
+      : `Именно здесь расчёт отмечает напряжение в теме «${dimension.label}».`
+    : supportive
+      ? `This contact directly supports ${dimension.label.toLowerCase()}.`
+      : `This is where the calculation finds pressure around ${dimension.label.toLowerCase()}.`;
+
+  if (evidence.type === 'aspect') {
+    return language === 'ru'
+      ? `Расчёт показывает аспект «${aspect}» между показателями «${subjectBody}» (${input.subjectName}) и «${partnerBody}» (${input.partnerName})${orb}. ${direction} ${impact}`.replace(/\s{2,}/g, ' ')
+      : `Calculated aspect between ${subjectBody} (${input.subjectName}) and ${partnerBody} (${input.partnerName}): ${aspect}${orb}. ${direction} ${impact}`.replace(/\s{2,}/g, ' ');
+  }
+  if (evidence.type === 'angle') {
+    return language === 'ru'
+      ? `Расчёт показывает аспект «${aspect}» между показателем «${subjectBody}» (${sourceName}) и «${partnerBody}» второй карты (${targetName})${orb}. ${impact}`
+      : `Calculated aspect between ${subjectBody} (${sourceName}) and the other chart's ${partnerBody} (${targetName}): ${aspect}${orb}. ${impact}`;
+  }
+  if (evidence.type === 'house_overlay' && typeof technical.house === 'number') {
+    return language === 'ru'
+      ? `Показатель «${subjectBody}» (${sourceName}) попадает в ${technical.house}-й дом второй карты (${targetName}). ${impact}`
+      : `${subjectBody} (${sourceName}) falls in the other chart's house ${technical.house} (${targetName}). ${impact}`;
+  }
+  return `${evidence.label.replace(/[.!?]+$/, '')}. ${impact}`;
+}
+
 export function buildDeterministicCompatibilityNarrative(
   calculated: CalculatedCompatibility,
   input: NarrativeInput,
@@ -131,9 +239,17 @@ export function buildDeterministicCompatibilityNarrative(
   const challenging = calculated.challengingDimensions[0] || calculated.dimensions.at(-1) || calculated.dimensions[0];
   const strengthCopy = dimensionNarrative(strongest.id, input.language);
   const challengeCopy = dimensionNarrative(challenging.id, input.language);
+  const strengthEvidence = evidenceForDimension(calculated, strongest, true)
+    || evidenceForDimension(calculated, strongest, false);
+  const challengeEvidence = evidenceForDimension(calculated, challenging, false)
+    || evidenceForDimension(calculated, challenging, true);
+  const strengthFact = evidenceNarrative(calculated, strengthEvidence, strongest, true, input)
+    || strengthCopy.strength;
+  const challengeFact = evidenceNarrative(calculated, challengeEvidence, challenging, false, input)
+    || challengeCopy.risk;
   const summary = input.language === 'ru'
-    ? `${input.subjectName} и ${input.partnerName} быстро узнают главный ритм своей связи. ${strengthCopy.strength} Но ${challengeCopy.risk.charAt(0).toLowerCase()}${challengeCopy.risk.slice(1)} ${challengeCopy.action}`
-    : `${input.subjectName} and ${input.partnerName} have a recognisable rhythm together. ${strengthCopy.strength} ${challengeCopy.risk} ${challengeCopy.action}`;
+    ? `Для пары ${input.subjectName} и ${input.partnerName} расчёт выделяет два главных факта. ${strengthFact} ${challengeFact} ${challengeCopy.action}`
+    : `The calculation highlights two main facts for ${input.subjectName} and ${input.partnerName}. ${strengthFact} ${challengeFact} ${challengeCopy.action}`;
 
   const sections = calculated.sectionPlan.map((section, sectionIndex) => {
     const dimensions = section.dimensionIds
@@ -147,13 +263,27 @@ export function buildDeterministicCompatibilityNarrative(
       primary.supportiveEvidenceIds.length,
       primary.challengingEvidenceIds.length,
     );
-    const lead = primaryIsStrength ? primaryCopy.strength : primaryCopy.risk;
+    const primaryEvidence = evidenceForDimension(calculated, primary, primaryIsStrength, section.evidenceIds)
+      || evidenceForDimension(calculated, primary, !primaryIsStrength, section.evidenceIds);
+    const lead = evidenceNarrative(calculated, primaryEvidence, primary, primaryIsStrength, input)
+      || (primaryIsStrength ? primaryCopy.strength : primaryCopy.risk);
     const contrast = secondary
       ? (() => {
           const copy = dimensionNarrative(secondary.id, input.language);
-          return prefersStrength(secondary.score, secondary.supportiveEvidenceIds.length, secondary.challengingEvidenceIds.length)
-            ? copy.strength
-            : copy.risk;
+          const secondaryIsStrength = prefersStrength(
+            secondary.score,
+            secondary.supportiveEvidenceIds.length,
+            secondary.challengingEvidenceIds.length,
+          );
+          const secondaryEvidence = evidenceForDimension(
+            calculated,
+            secondary,
+            secondaryIsStrength,
+            section.evidenceIds,
+          );
+          if (secondaryEvidence?.id === primaryEvidence?.id) return '';
+          return evidenceNarrative(calculated, secondaryEvidence, secondary, secondaryIsStrength, input)
+            || (secondaryIsStrength ? copy.strength : copy.risk);
         })()
       : '';
     const action = primaryCopy.action;
@@ -165,8 +295,8 @@ export function buildDeterministicCompatibilityNarrative(
     summary,
     sections,
     closing: {
-      strength: strengthCopy.strength,
-      risk: challengeCopy.risk,
+      strength: strengthFact,
+      risk: challengeFact,
       action: challengeCopy.action,
     },
   };

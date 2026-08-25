@@ -13,7 +13,7 @@ export const RELATIONSHIP_CONTEXT_OPTIONS: readonly RelationshipContextOption[] 
   {
     value: 'romance',
     label: { ru: 'Любовь', en: 'Love' },
-    hint: { ru: 'Пара, симпатия, бывшие', en: 'Partners, crushes, exes' },
+    hint: { ru: 'Симпатия, влечение, начало отношений', en: 'Attraction, a crush, or a new relationship' },
     backendValue: 'любовь и романтические отношения',
   },
   {

@@ -506,6 +506,14 @@ export interface HoroscopeReactionSummary {
   total: number;
 }
 
+export type ContentReactionSurface = 'compatibility';
+export type ContentReactionKey = 'like';
+
+export interface ContentReactionSummary {
+  reacted: boolean;
+  count: number;
+}
+
 /** Aggregate engagement counters for a sign+date horoscope (across all users). */
 export interface HoroscopeEngagementSummary {
   views: number;
