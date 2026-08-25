@@ -18,7 +18,12 @@ import {
   getOrGenerateSignHoroscope,
   type SignHoroscopeRuntime,
 } from '../lib/horoscope/signOrchestrator';
-import { getSignPrewarmTargets } from '../lib/horoscope/signPrewarm';
+import {
+  SIGN_MONTH_PREWARM_WORK_LIMIT,
+  buildSignMonthPrewarmTargets,
+  getSignPrewarmTargets,
+  prewarmNextSignMonthIncrement,
+} from '../lib/horoscope/signPrewarm';
 
 const PLANETS = [
   'sun', 'moon', 'mercury', 'venus', 'mars',
@@ -271,6 +276,26 @@ describe('shared sign horoscope contract', () => {
       expect.objectContaining({ sign: 'Pisces', issues: ['single row failed'] }),
     ]);
     expect(runtime.store).toHaveBeenCalledTimes(2);
+    expect(runtime.generate).toHaveBeenCalledWith(digest, ['Aries', 'Pisces'], 'en');
+  });
+
+  it('does not generate a sign target that already has all twelve signs', async () => {
+    const digest = buildSignSkyBatchDigest('day', '2026-08-09', transitAt);
+    const cachedReadings = Object.fromEntries(
+      ZODIAC_KEYS.map((sign) => [sign, reading(sign, 'day', digest.periodKey)]),
+    );
+    const runtime: SignHoroscopeRuntime = {
+      readCached: jest.fn(),
+      readCachedBatch: jest.fn().mockResolvedValue(cachedReadings),
+      buildDigest: jest.fn(),
+      generate: jest.fn(),
+      store: jest.fn(),
+    };
+    const result = await fillMissingSignHoroscopes('day', digest.periodKey, 'en', runtime);
+    expect(result.cachedSigns).toEqual(ZODIAC_KEYS);
+    expect(result.generatedSigns).toEqual([]);
+    expect(runtime.generate).not.toHaveBeenCalled();
+    expect(runtime.store).not.toHaveBeenCalled();
   });
 
   it('prewarms current and upcoming Moscow periods', () => {
@@ -281,5 +306,61 @@ describe('shared sign horoscope contract', () => {
       expect.objectContaining({ period: 'week' }),
       { period: 'month', periodKey: '2026-06' },
     ]));
+  });
+
+  it('builds every calendar day, each unique ISO week, and one month target', () => {
+    const targets = buildSignMonthPrewarmTargets('2026-09');
+    const dayTargets = targets.filter((target) => target.period === 'day');
+    const weekTargets = targets.filter((target) => target.period === 'week');
+    const monthTargets = targets.filter((target) => target.period === 'month');
+    expect(dayTargets).toHaveLength(30);
+    expect(dayTargets[0].periodKey).toBe('2026-09-01');
+    expect(dayTargets[29].periodKey).toBe('2026-09-30');
+    expect(weekTargets.map((target) => target.periodKey)).toEqual([
+      '2026-W36', '2026-W37', '2026-W38', '2026-W39', '2026-W40',
+    ]);
+    expect(new Set(weekTargets.map((target) => target.periodKey)).size).toBe(weekTargets.length);
+    expect(monthTargets).toEqual([{ period: 'month', periodKey: '2026-09' }]);
+  });
+
+  it('uses at most one missing sign batch per incremental tick and resumes deterministically', async () => {
+    expect(SIGN_MONTH_PREWARM_WORK_LIMIT).toBe(1);
+    const completed = new Set<string>();
+    const prewarmTarget = jest.fn(async (target: { period: SignHoroscopePeriod; periodKey: string }) => {
+      const key = `${target.period}:${target.periodKey}`;
+      if (completed.has(key)) return 'cached' as const;
+      completed.add(key);
+      return 'generated' as const;
+    });
+    const first = await prewarmNextSignMonthIncrement({
+      now: new Date('2026-08-25T09:00:00.000Z'), prewarmTarget,
+    });
+    const second = await prewarmNextSignMonthIncrement({
+      now: new Date('2026-08-25T09:00:00.000Z'), prewarmTarget,
+    });
+    expect(first).toMatchObject({ workUsed: 1, generated: 1, scannedTargets: 1 });
+    expect(second).toMatchObject({ workUsed: 1, generated: 1, scannedTargets: 2, cached: 1 });
+    expect(prewarmTarget).toHaveBeenCalledTimes(3);
+  });
+
+  it('leaves a failed incremental target eligible for an idempotent retry', async () => {
+    let attempts = 0;
+    const prewarmTarget = jest.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('temporary provider failure');
+      return 'generated' as const;
+    });
+    const first = await prewarmNextSignMonthIncrement({
+      now: new Date('2026-08-25T09:00:00.000Z'), prewarmTarget,
+    });
+    const retry = await prewarmNextSignMonthIncrement({
+      now: new Date('2026-08-25T09:00:00.000Z'), prewarmTarget,
+    });
+    expect(first).toMatchObject({ workUsed: 1, failed: 1 });
+    expect(retry).toMatchObject({ workUsed: 1, generated: 1 });
+    expect(prewarmTarget).toHaveBeenNthCalledWith(1,
+      { period: 'day', periodKey: '2026-09-01' }, 'ru');
+    expect(prewarmTarget).toHaveBeenNthCalledWith(2,
+      { period: 'day', periodKey: '2026-09-01' }, 'ru');
   });
 });

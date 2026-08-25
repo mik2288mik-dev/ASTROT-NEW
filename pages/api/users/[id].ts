@@ -8,6 +8,11 @@ import { toDateInputValue } from '../../../lib/date-utils';
 import { normalizeBirthTimeInput } from '../../../lib/birthTime';
 import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
+import {
+  buildPersonalForecastPrewarmProfile,
+  prewarmPersonalForecastHorizon,
+  queuePersonalForecastPrewarm,
+} from '../../../lib/personalForecastPrewarm';
 
 const log={info:(message:string,data?:any)=>console.log(`[API/users/[id]] ${message}`,data||''),error:(message:string,error?:any)=>console.error(`[API/users/[id]] ERROR: ${message}`,error||''),warn:(message:string,error?:any)=>console.warn(`[API/users/[id]] WARN: ${message}`,error||'')};
 const NOTIFICATION_FREQUENCIES=new Set(['quiet','important','daily','twice_daily']);
@@ -46,6 +51,12 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
       let refCode=normalizeNullableString(user.ref_code)?.toUpperCase()||null;
       if(!refCode){try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}}
       const premiumEntitlement=await getPremiumEntitlementState(userId);
+      const prewarmProfile=buildPersonalForecastPrewarmProfile(userId,user,birthSettings);
+      if(prewarmProfile){
+        queuePersonalForecastPrewarm({
+          userId,profile:prewarmProfile,accessTier:premiumEntitlement.isPremium?'premium':'free',reason:'app_open',
+        });
+      }
       return res.status(200).json(publicUser({...user,...birthSettings},userId,premiumEntitlement,normalizeNotificationFrequency(user.notification_frequency),refCode));
     }
     if(req.method!=='POST'&&req.method!=='PUT')return res.status(405).json({error:'Method not allowed'});
@@ -71,6 +82,16 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     const birthSettings=await birthProfileRepository.get(userId);
     let refCode:string|null=null;try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}
     const premiumEntitlement=await getPremiumEntitlementState(userId);
+    const prewarmProfile=buildPersonalForecastPrewarmProfile(userId,{...refreshed,...saved},birthSettings);
+    if(prewarmProfile){
+      const accessTier=premiumEntitlement.isPremium?'premium' as const:'free' as const;
+      await prewarmPersonalForecastHorizon({
+        userId,profile:prewarmProfile,accessTier,reason:'birth_profile_completed',maxMissingGenerations:1,maxTargets:1,
+      });
+      queuePersonalForecastPrewarm({
+        userId,profile:prewarmProfile,accessTier,reason:'birth_profile_completed',
+      });
+    }
     return res.status(200).json(publicUser({...refreshed,...saved,...birthSettings},userId,premiumEntitlement,await getNotificationFrequency(userId),refCode));
   }catch(error:any){
     if(error instanceof AdminAuthError)return handleAdminError(res,error);
