@@ -59,6 +59,7 @@ describe('beginner astrology encyclopedia catalog', () => {
     const validation = validateKnowledgeCatalog(KNOWLEDGE_TOPIC_SOURCES);
     expect(validation).toEqual({
       duplicateIds: [],
+      brokenInlineLinks: [],
       brokenRelatedLinks: [],
       brokenSourceLinks: [],
     });
@@ -86,11 +87,17 @@ describe('beginner astrology encyclopedia catalog', () => {
       relatedTopicIds: ['missing-topic'],
       sourceIds: ['missing-source'],
     };
-    const validation = validateKnowledgeCatalog([base, { ...base }, broken]);
+    const validation = validateKnowledgeCatalog(
+      [base, { ...base }, broken],
+      [{ topicId: 'broken-test-topic', targetTopicIds: ['missing-inline-topic'] }],
+    );
 
     expect(validation.duplicateIds).toEqual([base.id]);
     expect(validation.brokenRelatedLinks).toContainEqual({
       topicId: 'broken-test-topic', relatedId: 'missing-topic',
+    });
+    expect(validation.brokenInlineLinks).toContainEqual({
+      topicId: 'broken-test-topic', targetTopicId: 'missing-inline-topic',
     });
     expect(validation.brokenSourceLinks).toContainEqual({
       topicId: 'broken-test-topic', sourceId: 'missing-source',

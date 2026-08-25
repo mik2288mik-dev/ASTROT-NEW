@@ -16,19 +16,37 @@ export type KnowledgeLocation =
 
 export type KnowledgeNavigationState = {
   current: KnowledgeLocation;
-  history: readonly KnowledgeLocation[];
+  history: readonly KnowledgeHistoryEntry[];
+  inlinePreview: KnowledgeInlinePreview | null;
+  restoreScrollTop: number | null;
+};
+
+export type KnowledgeInlinePreview = {
+  targetTopicId: string;
+  blockId: string;
+  triggerId: string;
+};
+
+export type KnowledgeHistoryEntry = {
+  location: KnowledgeLocation;
+  scrollTop: number;
+  inlinePreview: KnowledgeInlinePreview | null;
 };
 
 export type KnowledgeNavigationAction =
-  | { type: 'open-hub'; hubId: KnowledgeHubId }
-  | { type: 'open-category'; categoryId: KnowledgeCategoryId }
-  | { type: 'open-article'; categoryId: KnowledgeCategoryId; topicId: string }
+  | { type: 'open-hub'; hubId: KnowledgeHubId; scrollTop?: number }
+  | { type: 'open-category'; categoryId: KnowledgeCategoryId; scrollTop?: number }
+  | { type: 'open-article'; categoryId: KnowledgeCategoryId; topicId: string; scrollTop?: number }
+  | { type: 'show-inline-preview'; preview: KnowledgeInlinePreview }
+  | { type: 'close-inline-preview' }
   | { type: 'back' }
   | { type: 'catalog' };
 
 export const INITIAL_KNOWLEDGE_NAVIGATION: KnowledgeNavigationState = {
   current: { screen: 'catalog' },
   history: [],
+  inlinePreview: null,
+  restoreScrollTop: null,
 };
 
 export function knowledgeNavigationReducer(
@@ -36,10 +54,21 @@ export function knowledgeNavigationReducer(
   action: KnowledgeNavigationAction,
 ): KnowledgeNavigationState {
   if (action.type === 'catalog') return INITIAL_KNOWLEDGE_NAVIGATION;
+  if (action.type === 'show-inline-preview') {
+    return { ...state, inlinePreview: action.preview };
+  }
+  if (action.type === 'close-inline-preview') {
+    return { ...state, inlinePreview: null };
+  }
   if (action.type === 'back') {
     const previous = state.history[state.history.length - 1];
     return previous
-      ? { current: previous, history: state.history.slice(0, -1) }
+      ? {
+        current: previous.location,
+        history: state.history.slice(0, -1),
+        inlinePreview: previous.inlinePreview,
+        restoreScrollTop: previous.scrollTop,
+      }
       : INITIAL_KNOWLEDGE_NAVIGATION;
   }
   const current: KnowledgeLocation = action.type === 'open-hub'
@@ -47,5 +76,17 @@ export function knowledgeNavigationReducer(
     : action.type === 'open-category'
       ? { screen: 'category', categoryId: action.categoryId }
       : { screen: 'article', categoryId: action.categoryId, topicId: action.topicId };
-  return { current, history: [...state.history, state.current] };
+  const scrollTop = Number.isFinite(action.scrollTop) && (action.scrollTop || 0) > 0
+    ? action.scrollTop || 0
+    : 0;
+  return {
+    current,
+    history: [...state.history, {
+      location: state.current,
+      scrollTop,
+      inlinePreview: state.inlinePreview,
+    }],
+    inlinePreview: null,
+    restoreScrollTop: null,
+  };
 }

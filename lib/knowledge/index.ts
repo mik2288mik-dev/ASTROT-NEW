@@ -22,6 +22,7 @@ import type {
 export * from './types';
 export * from './search';
 export * from './inlineLinks';
+export * from './inlineLinkRegistry';
 export * from './navigation';
 export * from './sources';
 export * from './validation';

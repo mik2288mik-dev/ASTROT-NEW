@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../../lib/nativeBack';
 import {
   buildKnowledgeInlineLinkCandidates,
+  getKnowledgeInlineTargetIds,
   getKnowledgeSources,
   getKnowledgeTopics,
   getRelatedKnowledgeTopics,
@@ -14,17 +15,20 @@ import {
   knowledgeNavigationReducer,
   normalizeKnowledgeSearch,
   searchKnowledgeTopics,
-  splitKnowledgeTextWithLinks,
+  splitKnowledgeBlockWithLinks,
   type KnowledgeArticleSection,
   type KnowledgeCategoryId,
   type KnowledgeHubId,
+  type KnowledgeInlineTextSegment,
 } from '../../lib/knowledge';
 import { KnowledgeDiagram } from './KnowledgeDiagram';
 import {
   ENCYCLOPEDIA_HUBS,
+  getEncyclopediaCategoryGroups,
   getEncyclopediaHub,
   HUB_BRANCH_PREVIEW_TOPIC_IDS,
   POPULAR_KNOWLEDGE_TOPICS,
+  shouldShowKnowledgeContents,
 } from './encyclopediaPresentation';
 import styles from './AstrologyEncyclopedia.module.css';
 
@@ -83,32 +87,69 @@ export function AstrologyEncyclopedia({
   const activeTopic = current.screen === 'article'
     ? topics.find((topic) => topic.id === current.topicId)
     : undefined;
+  const activeCategoryGroups = useMemo(
+    () => activeCategory
+      ? getEncyclopediaCategoryGroups(activeCategory.categoryId, activeCategory.topics, language)
+      : [],
+    [activeCategory, language],
+  );
   const related = useMemo(
     () => activeTopic ? getRelatedKnowledgeTopics(topics, activeTopic) : [],
     [activeTopic, topics],
   );
   const inlineLinkCandidates = useMemo(
-    () => activeTopic ? buildKnowledgeInlineLinkCandidates(topics, activeTopic.id) : [],
+    () => activeTopic
+      ? buildKnowledgeInlineLinkCandidates(
+        topics,
+        activeTopic.id,
+        getKnowledgeInlineTargetIds(activeTopic),
+      )
+      : [],
     [activeTopic, topics],
   );
+  const linkedArticleContent = useMemo(() => activeTopic ? {
+    summary: splitKnowledgeBlockWithLinks(
+      [activeTopic.summary],
+      inlineLinkCandidates,
+      1,
+    )[0] || [{ kind: 'text' as const, text: activeTopic.summary }],
+    sections: activeTopic.sections.map((section) => (
+      splitKnowledgeBlockWithLinks(section.paragraphs, inlineLinkCandidates)
+    )),
+  } : null, [activeTopic, inlineLinkCandidates]);
+  const inlinePreviewTopic = navigation.inlinePreview
+    ? topics.find((topic) => topic.id === navigation.inlinePreview?.targetTopicId)
+    : undefined;
+  const restoredInlineTriggerId = navigation.restoreScrollTop !== null
+    ? navigation.inlinePreview?.triggerId
+    : undefined;
   const sources = useMemo(
     () => activeTopic ? getKnowledgeSources(activeTopic.sourceIds, language) : [],
     [activeTopic, language],
   );
+
+  const getCurrentScrollTop = () => {
+    const appScroll = contentRef.current?.closest<HTMLElement>('.lumia-main-scroll');
+    return Math.max(appScroll?.scrollTop || 0, window.scrollY);
+  };
 
   const openHub = (hubId: KnowledgeHubId) => {
     setQuery('');
     const hub = getEncyclopediaHub(hubId);
     const [onlyCategoryId] = hub?.categoryIds || [];
     if (hub?.categoryIds.length === 1 && onlyCategoryId) {
-      dispatch({ type: 'open-category', categoryId: onlyCategoryId });
+      dispatch({
+        type: 'open-category',
+        categoryId: onlyCategoryId,
+        scrollTop: getCurrentScrollTop(),
+      });
       return;
     }
-    dispatch({ type: 'open-hub', hubId });
+    dispatch({ type: 'open-hub', hubId, scrollTop: getCurrentScrollTop() });
   };
 
   const openCategory = (categoryId: KnowledgeCategoryId) => {
-    dispatch({ type: 'open-category', categoryId });
+    dispatch({ type: 'open-category', categoryId, scrollTop: getCurrentScrollTop() });
   };
 
   const getBranchPreview = (categoryId: KnowledgeCategoryId) => (
@@ -123,7 +164,12 @@ export function AstrologyEncyclopedia({
   const openTopic = (topicId: string) => {
     const nextTopic = topics.find((topic) => topic.id === topicId);
     if (!nextTopic) return false;
-    dispatch({ type: 'open-article', categoryId: nextTopic.category, topicId });
+    dispatch({
+      type: 'open-article',
+      categoryId: nextTopic.category,
+      topicId,
+      scrollTop: getCurrentScrollTop(),
+    });
     return true;
   };
 
@@ -132,8 +178,15 @@ export function AstrologyEncyclopedia({
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const appScroll = contentRef.current?.closest<HTMLElement>('.lumia-main-scroll');
-      if (appScroll) appScroll.scrollTo({ top: 0, behavior: 'auto' });
-      window.scrollTo({ top: 0, behavior: 'auto' });
+      const scrollTop = navigation.restoreScrollTop ?? 0;
+      if (appScroll) appScroll.scrollTo({ top: scrollTop, behavior: 'auto' });
+      window.scrollTo({ top: scrollTop, behavior: 'auto' });
+      if (navigation.restoreScrollTop !== null) {
+        if (restoredInlineTriggerId) {
+          document.getElementById(restoredInlineTriggerId)?.focus({ preventScroll: true });
+        }
+        return;
+      }
       const heading = current.screen === 'article'
         ? articleHeadingRef.current
         : current.screen === 'hub'
@@ -144,7 +197,7 @@ export function AstrologyEncyclopedia({
       heading?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [current]);
+  }, [current, navigation.restoreScrollTop, restoredInlineTriggerId]);
 
   useEffect(() => {
     if (current.screen === 'catalog') return;
@@ -157,51 +210,127 @@ export function AstrologyEncyclopedia({
     return () => window.removeEventListener(NATIVE_BACK_EVENT, handleNativeBack);
   }, [current.screen]);
 
-  const renderLinkedParagraph = (paragraph: string) => (
-    splitKnowledgeTextWithLinks(paragraph, inlineLinkCandidates).map((segment, index) => (
-      segment.kind === 'text' ? (
-        <React.Fragment key={`text-${index}`}>{segment.text}</React.Fragment>
-      ) : (
-        <a
+  const closeInlinePreview = () => {
+    const triggerId = navigation.inlinePreview?.triggerId;
+    dispatch({ type: 'close-inline-preview' });
+    if (triggerId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(triggerId)?.focus({ preventScroll: true });
+      });
+    }
+  };
+
+  const renderInlinePreview = (blockId: string) => {
+    if (!navigation.inlinePreview || navigation.inlinePreview.blockId !== blockId) return null;
+    if (!inlinePreviewTopic) return null;
+    const previewId = `knowledge-preview-${blockId}`;
+    const headingId = `${previewId}-title`;
+    return (
+      <aside className={styles.inlinePreview} id={previewId} aria-labelledby={headingId}>
+        <div className={styles.inlinePreviewHeader}>
+          <p>{inlinePreviewTopic.categoryLabel}</p>
+          <button
+            className={styles.inlinePreviewClose}
+            type="button"
+            aria-label={ru ? 'Закрыть определение' : 'Close definition'}
+            onClick={closeInlinePreview}
+          >
+            <X aria-hidden="true" strokeWidth={1.7} />
+          </button>
+        </div>
+        <h2 id={headingId}>{inlinePreviewTopic.title}</h2>
+        <p>{inlinePreviewTopic.shortAnswer}</p>
+        <button
+          className={styles.inlinePreviewAction}
+          type="button"
+          onClick={() => openTopic(inlinePreviewTopic.id)}
+        >
+          <span>{ru ? 'Открыть статью' : 'Open article'}</span>
+          <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+        </button>
+      </aside>
+    );
+  };
+
+  const renderLinkedSegments = (
+    segments: readonly KnowledgeInlineTextSegment[],
+    blockId: string,
+  ) => (
+    segments.map((segment, index) => {
+      if (segment.kind === 'text') {
+        return <React.Fragment key={`text-${index}`}>{segment.text}</React.Fragment>;
+      }
+      const isExpanded = navigation.inlinePreview?.blockId === blockId
+        && navigation.inlinePreview.targetTopicId === segment.topicId;
+      return (
+        <button
           key={`link-${segment.topicId}-${index}`}
+          id={`knowledge-link-${blockId}-${segment.topicId}-${index}`}
           className={styles.inlineLink}
-          href={`#knowledge-${segment.topicId}`}
-          onClick={(event) => {
-            event.preventDefault();
-            openTopic(segment.topicId);
+          type="button"
+          aria-expanded={isExpanded}
+          aria-controls={isExpanded ? `knowledge-preview-${blockId}` : undefined}
+          onClick={() => {
+            const triggerId = `knowledge-link-${blockId}-${segment.topicId}-${index}`;
+            if (
+              navigation.inlinePreview?.blockId === blockId
+              && navigation.inlinePreview.targetTopicId === segment.topicId
+            ) {
+              closeInlinePreview();
+              return;
+            }
+            dispatch({
+              type: 'show-inline-preview',
+              preview: { targetTopicId: segment.topicId, blockId, triggerId },
+            });
           }}
         >
           {segment.text}
-        </a>
-      )
-    ))
+        </button>
+      );
+    })
   );
 
-  const renderArticleSection = (section: KnowledgeArticleSection, index: number) => {
+  const renderArticleSection = ({
+    section,
+    index,
+  }: { section: KnowledgeArticleSection; index: number }) => {
     const sectionClassName = [
       styles.articleSection,
       section.kind === 'astrology' ? styles.sectionAstrology : '',
       section.kind === 'confusion' ? styles.sectionConfusion : '',
     ].filter(Boolean).join(' ');
     return (
-      <section className={sectionClassName} key={`${section.title}-${index}`}>
+      <section
+        className={sectionClassName}
+        id={`knowledge-section-${activeTopic?.id}-${index}`}
+        key={`${section.title}-${index}`}
+      >
         <h2>{section.title}</h2>
         {section.paragraphs.map((paragraph, paragraphIndex) => (
-          <p key={`${paragraphIndex}-${paragraph.slice(0, 24)}`}>
-            {renderLinkedParagraph(paragraph)}
-          </p>
+          <React.Fragment key={`${paragraphIndex}-${paragraph.slice(0, 24)}`}>
+            <p>
+              {renderLinkedSegments(
+                linkedArticleContent?.sections[index]?.[paragraphIndex]
+                  || [{ kind: 'text', text: paragraph }],
+                `${activeTopic?.id}-section-${index}-paragraph-${paragraphIndex}`,
+              )}
+            </p>
+            {renderInlinePreview(`${activeTopic?.id}-section-${index}-paragraph-${paragraphIndex}`)}
+          </React.Fragment>
         ))}
       </section>
     );
   };
 
   const previous = navigation.history[navigation.history.length - 1];
-  const previousLabel = previous?.screen === 'article'
-    ? topics.find((topic) => topic.id === previous.topicId)?.title
-    : previous?.screen === 'hub'
-      ? getEncyclopediaHub(previous.hubId)?.title[language]
-      : previous?.screen === 'category'
-        ? topicGroups.find((group) => group.categoryId === previous.categoryId)?.label
+  const previousLocation = previous?.location;
+  const previousLabel = previousLocation?.screen === 'article'
+    ? topics.find((topic) => topic.id === previousLocation.topicId)?.title
+    : previousLocation?.screen === 'hub'
+      ? getEncyclopediaHub(previousLocation.hubId)?.title[language]
+      : previousLocation?.screen === 'category'
+        ? topicGroups.find((group) => group.categoryId === previousLocation.categoryId)?.label
         : ru ? 'Все разделы' : 'All sections';
   const headerBack = current.screen === 'catalog' ? undefined : navigateBack;
 
@@ -217,8 +346,10 @@ export function AstrologyEncyclopedia({
     );
   }
 
-  const coreSections = activeTopic?.sections.filter((section) => section.depth !== 'deep') || [];
-  const deepSections = activeTopic?.sections.filter((section) => section.depth === 'deep') || [];
+  const indexedSections = activeTopic?.sections.map((section, index) => ({ section, index })) || [];
+  const coreSections = indexedSections.filter(({ section }) => section.depth !== 'deep');
+  const deepSections = indexedSections.filter(({ section }) => section.depth === 'deep');
+  const showArticleContents = activeTopic ? shouldShowKnowledgeContents(activeTopic) : false;
 
   return (
     <div className={`fresh-page encyclopedia-editorial-page ${styles.page}${embedded ? ' !min-h-0 !pt-0 !pb-0 before:!hidden' : ''}`}>
@@ -400,19 +531,26 @@ export function AstrologyEncyclopedia({
               </h1>
               <p>{activeCategory.description}</p>
             </header>
-            <ul className={styles.topicList} role="list">
-              {activeCategory.topics.map((topic) => (
-                <li key={topic.id}>
-                  <button className={styles.topicButton} type="button" onClick={() => openTopic(topic.id)}>
-                    <span className={styles.topicCopy}>
-                      <strong>{topic.title}</strong>
-                      <small>{topic.summary}</small>
-                    </span>
-                    <ChevronRight aria-hidden="true" strokeWidth={1.6} />
-                  </button>
-                </li>
+            <div className={styles.categoryGroups}>
+              {activeCategoryGroups.map((group) => (
+                <section className={styles.categoryGroup} key={group.id}>
+                  {group.title ? <h2>{group.title}</h2> : null}
+                  <ul className={styles.topicList} role="list">
+                    {group.topics.map((topic) => (
+                      <li key={topic.id}>
+                        <button className={styles.topicButton} type="button" onClick={() => openTopic(topic.id)}>
+                          <span className={styles.topicCopy}>
+                            <strong>{topic.title}</strong>
+                            <small>{topic.summary}</small>
+                          </span>
+                          <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           </section>
         ) : activeTopic ? (
           <article className={styles.article} aria-labelledby={`knowledge-${activeTopic.id}`}>
@@ -421,13 +559,43 @@ export function AstrologyEncyclopedia({
               <h1 id={`knowledge-${activeTopic.id}`} ref={articleHeadingRef} tabIndex={-1}>
                 {activeTopic.title}
               </h1>
-              <p className={styles.lead}>{renderLinkedParagraph(activeTopic.summary)}</p>
+              <p className={styles.lead}>
+                {renderLinkedSegments(
+                  linkedArticleContent?.summary || [{ kind: 'text', text: activeTopic.summary }],
+                  `${activeTopic.id}-summary`,
+                )}
+              </p>
+              {renderInlinePreview(`${activeTopic.id}-summary`)}
             </header>
 
             <aside className={styles.shortAnswer} aria-label={ru ? 'Короткий ответ' : 'Short answer'}>
               <strong>{ru ? 'Если совсем коротко' : 'In one sentence'}</strong>
               <p>{activeTopic.shortAnswer}</p>
             </aside>
+
+            {showArticleContents ? (
+              <nav className={styles.articleContents} aria-labelledby="knowledge-contents-title">
+                <h2 id="knowledge-contents-title">{ru ? 'В этой статье' : 'In this article'}</h2>
+                <ol role="list">
+                  {coreSections.map(({ section, index }) => {
+                    const sectionId = `knowledge-section-${activeTopic.id}-${index}`;
+                    return (
+                      <li key={sectionId}>
+                        <a
+                          href={`#${sectionId}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            document.getElementById(sectionId)?.scrollIntoView({ behavior: 'auto' });
+                          }}
+                        >
+                          {section.title}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </nav>
+            ) : null}
 
             {activeTopic.diagram ? <KnowledgeDiagram diagram={activeTopic.diagram} language={language} /> : null}
 

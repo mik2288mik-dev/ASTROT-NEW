@@ -7,14 +7,17 @@ import {
   INITIAL_ENCYCLOPEDIA_SCREEN,
 } from '../lib/knowledgeEncyclopedia';
 import {
+  getKnowledgeTopics,
   INITIAL_KNOWLEDGE_NAVIGATION,
   knowledgeNavigationReducer,
   searchKnowledgeTopics,
 } from '../lib/knowledge';
 import {
+  ENCYCLOPEDIA_CATEGORY_GROUPS,
   ENCYCLOPEDIA_HUBS,
   HUB_BRANCH_PREVIEW_TOPIC_IDS,
   POPULAR_KNOWLEDGE_TOPICS,
+  shouldShowKnowledgeContents,
 } from '../views/v2/encyclopediaPresentation';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -84,6 +87,20 @@ describe('knowledge encyclopedia flow', () => {
     });
   });
 
+  it('groups long topic pages without adding another navigation level', () => {
+    Object.entries(ENCYCLOPEDIA_CATEGORY_GROUPS).forEach(([categoryId, groups]) => {
+      const groupedIds = groups.flatMap((group) => group.topicIds);
+      const categoryIds = topics
+        .filter((topic) => topic.category === categoryId)
+        .map((topic) => topic.id);
+
+      expect(new Set(groupedIds).size).toBe(groupedIds.length);
+      expect(new Set(groupedIds)).toEqual(new Set(categoryIds));
+      expect(groups.length).toBeGreaterThanOrEqual(2);
+      expect(groups.length).toBeLessThanOrEqual(4);
+    });
+  });
+
   it('returns from an article through its category and human section to the catalog', () => {
     let state = knowledgeNavigationReducer(INITIAL_KNOWLEDGE_NAVIGATION, {
       type: 'open-hub', hubId: 'chart-structure',
@@ -99,26 +116,60 @@ describe('knowledge encyclopedia flow', () => {
     state = knowledgeNavigationReducer(state, { type: 'back' });
     expect(state.current).toEqual({ screen: 'hub', hubId: 'chart-structure' });
     state = knowledgeNavigationReducer(state, { type: 'back' });
-    expect(state).toEqual(INITIAL_KNOWLEDGE_NAVIGATION);
+    expect(state.current).toEqual({ screen: 'catalog' });
+    expect(state.history).toEqual([]);
+    expect(state.restoreScrollTop).toBe(0);
   });
 
-  it('opens an article, follows an internal link, and restores both steps with Back', () => {
+  it('restores article previews and scroll positions through A → B → C → B → A', () => {
     let state = knowledgeNavigationReducer(INITIAL_KNOWLEDGE_NAVIGATION, {
-      type: 'open-article', categoryId: 'moon-cycles', topicId: 'full-moon',
+      type: 'open-article', categoryId: 'moon-cycles', topicId: 'full-moon', scrollTop: 40,
     });
     state = knowledgeNavigationReducer(state, {
-      type: 'open-article', categoryId: 'moon-cycles', topicId: 'lunar-eclipse',
+      type: 'show-inline-preview',
+      preview: {
+        targetTopicId: 'lunar-eclipse',
+        blockId: 'full-moon-section-2-paragraph-0',
+        triggerId: 'full-moon-eclipse-link',
+      },
     });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-article',
+      categoryId: 'moon-cycles',
+      topicId: 'lunar-eclipse',
+      scrollTop: 780,
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'show-inline-preview',
+      preview: {
+        targetTopicId: 'solar-eclipse',
+        blockId: 'lunar-eclipse-section-1-paragraph-0',
+        triggerId: 'lunar-eclipse-solar-link',
+      },
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-article',
+      categoryId: 'moon-cycles',
+      topicId: 'solar-eclipse',
+      scrollTop: 460,
+    });
+    expect(state.current).toEqual({
+      screen: 'article', categoryId: 'moon-cycles', topicId: 'solar-eclipse',
+    });
+
+    state = knowledgeNavigationReducer(state, { type: 'back' });
     expect(state.current).toEqual({
       screen: 'article', categoryId: 'moon-cycles', topicId: 'lunar-eclipse',
     });
+    expect(state.restoreScrollTop).toBe(460);
+    expect(state.inlinePreview?.targetTopicId).toBe('solar-eclipse');
 
     state = knowledgeNavigationReducer(state, { type: 'back' });
     expect(state.current).toEqual({
       screen: 'article', categoryId: 'moon-cycles', topicId: 'full-moon',
     });
-    state = knowledgeNavigationReducer(state, { type: 'back' });
-    expect(state).toEqual(INITIAL_KNOWLEDGE_NAVIGATION);
+    expect(state.restoreScrollTop).toBe(780);
+    expect(state.inlinePreview?.targetTopicId).toBe('lunar-eclipse');
   });
 
   it('keeps standalone and embedded routes without connecting personal chart data', () => {
@@ -145,15 +196,23 @@ describe('knowledge encyclopedia flow', () => {
 
   it('keeps visible article layers, related concepts, sources, and native Android Back', () => {
     const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
+    const knowledgeTopics = getKnowledgeTopics('ru');
 
     expect(encyclopedia).toContain('Что хотите понять?');
-    expect(encyclopedia).toContain("activeTopic?.sections.filter((section) => section.depth !== 'deep')");
+    expect(encyclopedia).toContain("section.depth !== 'deep'");
     expect(encyclopedia).toContain('renderArticleSection');
+    expect(encyclopedia).toContain('В этой статье');
+    expect(shouldShowKnowledgeContents(
+      knowledgeTopics.find((topic) => topic.id === 'full-moon')!,
+    )).toBe(true);
+    expect(shouldShowKnowledgeContents(
+      knowledgeTopics.find((topic) => topic.id === 'stellium')!,
+    )).toBe(false);
     expect(encyclopedia).toContain('Разобраться глубже');
     expect(encyclopedia).toContain('Связанные понятия');
     expect(encyclopedia).toContain('Источники и определения');
     expect(encyclopedia).toContain('NATIVE_BACK_EVENT');
-    expect(encyclopedia).toContain("dispatch({ type: 'back' })");
+    expect(encyclopedia).toContain("const navigateBack = () => dispatch({ type: 'back' })");
     expect(encyclopedia).toContain('detail.handled = true');
   });
 
