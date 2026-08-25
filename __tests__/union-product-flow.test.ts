@@ -15,7 +15,8 @@ describe('Union product flow', () => {
     expect(policy.cacheScope).toBe('shared');
     // Базовая версия + отпечаток голоса (последний инвалидирует кэш при смене голоса).
     expect(policy.promptVersion).toBe(`sign_compatibility.v3+voice.${APP_VOICE_VERSION}`);
-    expect(read('lib/synastryExtended.ts')).toContain("SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v6'");
+    expect(read('lib/synastryExtended.ts')).toContain("SYNASTRY_CONTEXT_PROMPT_VERSION = 'synastry-context.v8'");
+    expect(read('lib/synastry/compatibilityEngine.ts')).toContain("COMPATIBILITY_ENGINE_VERSION = 'compatibility-engine.v1'");
   });
 
   it('uses an order-independent sign pair cache key with language and prompt version at persistence', () => {

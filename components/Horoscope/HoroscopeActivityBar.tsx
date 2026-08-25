@@ -26,6 +26,10 @@ type Props = {
   period?: 'today' | 'week' | 'month';
   language: 'ru' | 'en';
   onShare: () => void;
+  showViews?: boolean;
+  showLabels?: boolean;
+  showCounts?: boolean;
+  className?: string;
 };
 
 function spotOn(summary: HoroscopeReactionSummary | null): number {
@@ -55,7 +59,18 @@ const Count: React.FC<{ value: number }> = ({ value }) => (
   </span>
 );
 
-export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, period = 'today', language, onShare }) => {
+export const HoroscopeActivityBar: React.FC<Props> = ({
+  userId,
+  sign,
+  date,
+  period = 'today',
+  language,
+  onShare,
+  showViews = true,
+  showLabels = false,
+  showCounts = true,
+  className = '',
+}) => {
   const ru = language !== 'en';
   const [likes, setLikes] = useState(0);
   const [liked, setLiked] = useState(false);
@@ -73,17 +88,19 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, peri
     setBusy(false);
     if (!userId) return;
     let alive = true;
-    void markHoroscopeView(userId, sign, date, period).then((e: HoroscopeEngagementSummary | null) => {
-      if (!alive || !e) return;
-      setViews(e.views);
-    });
+    if (showViews) {
+      void markHoroscopeView(userId, sign, date, period).then((e: HoroscopeEngagementSummary | null) => {
+        if (!alive || !e) return;
+        setViews(e.views);
+      });
+    }
     void getHoroscopeReactionSummary(userId, sign, date, language, period).then((s) => {
       if (!alive || reactionRequestVersion.current !== requestVersion || !s) return;
       setLikes(spotOn(s));
       setLiked(s.userReaction === 'spot_on');
     });
     return () => { alive = false; };
-  }, [userId, sign, date, period, language]);
+  }, [userId, sign, date, period, language, showViews]);
 
   const onToggleLike = async () => {
     if (!userId || busy) return;
@@ -117,11 +134,13 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, peri
   };
 
   return (
-    <div className="horo-act">
-      <div className="horo-act-item horo-act-views" aria-label={ru ? 'Просмотры' : 'Views'}>
-        <Eye size={18} strokeWidth={2} />
-        <Count value={views} />
-      </div>
+    <div className={`horo-act${className ? ` ${className}` : ''}`}>
+      {showViews ? (
+        <div className="horo-act-item horo-act-views" aria-label={ru ? 'Просмотры' : 'Views'}>
+          <Eye size={18} strokeWidth={2} />
+          {showCounts ? <Count value={views} /> : null}
+        </div>
+      ) : null}
 
       <button
         type="button"
@@ -135,7 +154,8 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, peri
         <motion.span whileTap={{ scale: 0.8 }} style={{ display: 'inline-flex' }}>
           <Heart size={18} strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
         </motion.span>
-        <Count value={likes} />
+        {showLabels ? <span className="horo-act-label">{ru ? 'Нравится' : 'Like'}</span> : null}
+        {showCounts ? <Count value={likes} /> : null}
       </button>
 
       <button
@@ -147,6 +167,7 @@ export const HoroscopeActivityBar: React.FC<Props> = ({ userId, sign, date, peri
         <motion.span whileTap={{ scale: 0.85 }} style={{ display: 'inline-flex' }}>
           <Share2 size={18} strokeWidth={2} />
         </motion.span>
+        {showLabels ? <span className="horo-act-label">{ru ? 'Поделиться' : 'Share'}</span> : null}
       </button>
     </div>
   );

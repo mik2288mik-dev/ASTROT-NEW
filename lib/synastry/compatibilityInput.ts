@@ -13,6 +13,7 @@ export type CompatibilityPersonInput = {
   time?: string | null;
   place?: string | null;
   sign?: string | null;
+  birthTimeQuality?: string | null;
   chartBirthTimeQuality?: string | null;
 };
 
@@ -39,10 +40,21 @@ export function classifyCompatibilityPerson(input: CompatibilityPersonInput): Cl
   const hasPlace = Boolean(String(input.place || '').trim());
   const hasTime = Boolean(String(input.time || '').trim());
   const savedQuality = String(input.chartBirthTimeQuality || '').trim().toLowerCase();
+  const manualQuality = String(input.birthTimeQuality || '').trim().toLowerCase();
   const exactSaved = source === 'saved' && (savedQuality === 'exact' || (!savedQuality && hasTime && hasPlace));
-  const unknownSaved = source === 'saved' && (savedQuality === 'unknown' || (!savedQuality && hasPlace && !hasTime));
+  const unknownSaved = source === 'saved' && (
+    savedQuality === 'unknown'
+    || savedQuality === 'approximate'
+    || (!savedQuality && hasPlace && !hasTime)
+  );
+  const exactManual = source === 'birth'
+    && hasDate
+    && hasPlace
+    && hasTime
+    && manualQuality !== 'unknown'
+    && manualQuality !== 'approximate';
 
-  if (exactSaved || (source === 'birth' && hasDate && hasPlace && hasTime)) {
+  if (exactSaved || exactManual) {
     return { source, level: 'exact', sign };
   }
   if (unknownSaved || (source === 'birth' && hasDate && hasPlace)) {

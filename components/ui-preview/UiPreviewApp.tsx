@@ -27,6 +27,7 @@ import {
   UI_PREVIEW_ACCESS,
   UI_PREVIEW_BIRTH_TIMES,
   UI_PREVIEW_COMPATIBILITY,
+  UI_PREVIEW_COMPATIBILITY_STEADY,
   UI_PREVIEW_HOROSCOPE,
   UI_PREVIEW_MONTH_SECTION,
   UI_PREVIEW_PAYWALL_PLANS,
@@ -54,6 +55,16 @@ const PERIOD_TABS = [
   { id: 'week', label: 'Неделя' },
   { id: 'month', label: 'Месяц' },
 ] as const;
+
+const previewCompatibilityVerdict = (score: number) => score >= 85
+  ? 'Очень сильная связь'
+  : score >= 70
+    ? 'Сильная связь'
+    : score >= 55
+      ? 'Живая, смешанная связь'
+      : score >= 40
+        ? 'Требовательная связь'
+        : 'Сложная связь';
 
 const UI_PREVIEW_TODAY_WITH_CLOSING = UI_PREVIEW_TODAY_SECTIONS.map((section, index) => {
   if (index !== UI_PREVIEW_TODAY_SECTIONS.length - 1) return section;
@@ -211,11 +222,53 @@ function CompatibilityScene({
     : screen === 'compatibility-signs'
       ? 'signs'
       : 'result';
+  const previewScore = useMemo(() => {
+    if (typeof window === 'undefined') return UI_PREVIEW_COMPATIBILITY.deepResult.overallScore || 78;
+    const params = new URLSearchParams(window.location.search);
+    const fallbackScore = params.get('pair') === 'steady'
+      ? UI_PREVIEW_COMPATIBILITY_STEADY.deepResult.overallScore || 66
+      : UI_PREVIEW_COMPATIBILITY.deepResult.overallScore || 78;
+    const requestedValue = params.get('score');
+    const requested = requestedValue === null ? Number.NaN : Number(requestedValue);
+    return Number.isFinite(requested) && requested >= 0 && requested <= 100
+      ? Math.round(requested)
+      : fallbackScore;
+  }, [screen, state]);
+  const useLongNames = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('names') === 'long';
+  }, [screen, state]);
+  const useSteadyPair = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('pair') === 'steady';
+  }, [screen, state]);
+  const compatibilityFixture = useSteadyPair
+    ? UI_PREVIEW_COMPATIBILITY_STEADY
+    : UI_PREVIEW_COMPATIBILITY;
   const unionPreview = useMemo(() => ({
-    ...UI_PREVIEW_COMPATIBILITY,
+    ...compatibilityFixture,
+    subject: {
+      ...compatibilityFixture.subject,
+      name: useLongNames ? 'Александра-Мария Волконская' : compatibilityFixture.subject.name,
+    },
+    partner: {
+      ...compatibilityFixture.partner,
+      name: useLongNames ? 'Константин Вениаминович' : compatibilityFixture.partner.name,
+    },
+    deepResult: {
+      ...compatibilityFixture.deepResult,
+      overallScore: previewScore,
+      compatibilityScore: previewScore,
+      verdict: previewCompatibilityVerdict(previewScore),
+      calculationLevel: chart.birthTimeQuality === 'exact' ? 'full' as const : 'reduced' as const,
+      limitations: chart.birthTimeQuality === 'exact'
+        ? []
+        : ['Точное время рождения известно не для обоих: ненадёжные дома, Асцендент и MC не использовались.'],
+    },
     screen: previewScreen,
+    resultKind: profile.isPremium ? 'person' as const : 'sign' as const,
     ...(state === 'loading' || state === 'error' ? { resultState: state } : {}),
-  }), [previewScreen, state]);
+  }), [chart.birthTimeQuality, compatibilityFixture, previewScore, previewScreen, profile.isPremium, state, useLongNames]);
 
   return (
     <UnionRoom
@@ -225,7 +278,7 @@ function CompatibilityScene({
       chartId={null}
       requestPremium={() => onNavigate('paywall')}
       onOpenCharts={onOpenCharts}
-      canPromotePremium={profile.isPremium}
+      canPromotePremium
       uiPreview={unionPreview}
     />
   );

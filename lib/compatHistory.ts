@@ -5,6 +5,7 @@
  */
 import type { RelationshipContext } from './synastry/relationshipContext';
 import type { CompatibilityPairLevel, CompatibilityPersonSource } from './synastry/compatibilityInput';
+import type { BirthTimeQuality } from '../types';
 
 export type CompatHistoryEntry = {
   /** Стабильный ключ для дедупликации: sign:<sign> или person:<name>:<date> */
@@ -14,12 +15,14 @@ export type CompatHistoryEntry = {
   name?: string;
   date?: string;
   time?: string;
+  partnerBirthTimeQuality?: BirthTimeQuality;
   place?: string;
   chartId?: number;
   subjectChartId?: number;
   subjectName?: string;
   subjectDate?: string;
   subjectTime?: string;
+  subjectBirthTimeQuality?: BirthTimeQuality;
   subjectPlace?: string;
   subjectSource?: CompatibilityPersonSource;
   partnerSource?: CompatibilityPersonSource;

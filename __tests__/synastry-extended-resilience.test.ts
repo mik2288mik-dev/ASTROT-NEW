@@ -5,6 +5,7 @@ const mockGetById = jest.fn();
 const mockSynastryGet = jest.fn();
 const mockSynastrySet = jest.fn();
 const mockUpsertByChart = jest.fn();
+const mockCalculateNatalChart = jest.fn();
 
 jest.mock('../lib/rateLimit', () => ({
   RATE_LIMIT_CONFIGS: { AI_FREE: {} },
@@ -77,6 +78,10 @@ jest.mock('../lib/openaiResponses', () => ({
   createLunaStructuredResponse: (...args: unknown[]) => mockCreateLunaStructuredResponse(...args),
 }));
 
+jest.mock('../lib/swisseph-calculator', () => ({
+  calculateNatalChart: (...args: unknown[]) => mockCalculateNatalChart(...args),
+}));
+
 import handler from '../pages/api/content/synastry/extended';
 
 function chart(id?: number) {
@@ -131,6 +136,7 @@ describe('extended synastry delivery resilience', () => {
     mockSynastryGet.mockResolvedValue(null);
     mockSynastrySet.mockResolvedValue({ success: true });
     mockUpsertByChart.mockResolvedValue({ id: 9 });
+    mockCalculateNatalChart.mockResolvedValue(chart());
   });
 
   it('returns a data-grounded reading for two manually entered people when the model is unavailable', async () => {
@@ -164,6 +170,8 @@ describe('extended synastry delivery resilience', () => {
     });
     expect(result.payload.result.summary).toContain('Анна');
     expect(result.payload.result.summary).toContain('Максим');
+    expect(mockCalculateNatalChart).toHaveBeenCalledTimes(2);
+    expect(mockCalculateNatalChart).toHaveBeenCalledWith('Анна', '1992-03-14', '09:30', 'Москва', expect.objectContaining({ birthTimeMode: 'exact' }));
   });
 
   it('delivers a generated reading for two saved charts even when cache persistence fails', async () => {
@@ -172,13 +180,14 @@ describe('extended synastry delivery resilience', () => {
       .mockResolvedValueOnce(chart(2));
     mockCreateLunaStructuredResponse.mockResolvedValueOnce({
       content: JSON.stringify({
-        summary: 'Живой союз с понятной точкой роста.',
-        generalTheme: 'Общий ритм.',
-        attraction: 'Есть интерес.',
-        difficulties: 'Темп решений отличается.',
-        recommendations: ['Говорить прямо.', 'Не торопить ответ.', 'Сверять планы.'],
-        potential: 'Можно выстроить устойчивую связь.',
-        compatibilityScore: 74,
+        summary: 'Анна и Максим быстро находят общий ритм, когда решают один конкретный вопрос. Но под давлением один ускоряется, а второму нужна пауза; связь удерживает ясная договорённость о следующем шаге.',
+        sections: [{ id: 'between_you', text: 'Один быстрее задаёт направление, второй проверяет, не потерялись ли важные детали. Такой обмен помогает двигаться без суеты, пока решение не выдают за уже согласованное.' }],
+        closing: {
+          strength: 'Они соединяют инициативу одного и внимательность другого к важным деталям.',
+          risk: 'Разный темп решения превращает уточнение в торможение, а инициативу — в давление.',
+          action: 'Называть момент, когда обсуждение действительно стало общим решением.',
+        },
+        compatibilityScore: 1,
       }),
     });
     mockSynastrySet.mockRejectedValueOnce(new Error('cache table unavailable'));
@@ -191,7 +200,11 @@ describe('extended synastry delivery resilience', () => {
     });
 
     expect(result.status).toBe(200);
-    expect(result.payload.result.summary).toBe('Живой союз с понятной точкой роста.');
+    expect(result.payload.result.summary).toContain('Анна и Максим');
+    expect(result.payload.result.closing.action).toContain('общим решением');
+    expect(result.payload.result.schemaVersion).toBe('compatibility-v2');
+    expect(result.payload.result.overallScore).not.toBe(1);
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 
   it('builds a premium hybrid from a date-only person and a zodiac-sign person', async () => {
@@ -219,5 +232,50 @@ describe('extended synastry delivery resilience', () => {
         },
       },
     });
+  });
+
+  it('keeps manual unknown birth time reduced and passes unknown mode to Swiss calculation', async () => {
+    mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
+
+    const result = await post({
+      subjectSource: 'birth',
+      subjectName: 'Анна',
+      subjectDate: '1992-03-14',
+      subjectPlace: 'Москва',
+      subjectBirthTimeQuality: 'unknown',
+      partnerSource: 'birth',
+      partnerName: 'Максим',
+      partnerDate: '1990-08-22',
+      partnerTime: '18:15',
+      partnerPlace: 'Казань',
+      partnerBirthTimeQuality: 'exact',
+      relationshipContext: 'relationship',
+      relationshipType: 'существующие отношения в паре',
+      language: 'ru',
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.payload.calculationLevel).toBe('reduced');
+    expect(result.payload.result.calculationLevel).toBe('reduced');
+    expect(mockCalculateNatalChart).toHaveBeenCalledWith('Анна', '1992-03-14', '', 'Москва', expect.objectContaining({ birthTimeMode: 'unknown' }));
+    expect(result.payload.result.evidence.some((item: any) => item.type === 'house_overlay')).toBe(false);
+  });
+
+  it('still rejects comparing the same saved chart with itself', async () => {
+    mockGetById
+      .mockResolvedValueOnce(chart(1))
+      .mockResolvedValueOnce(chart(1));
+
+    const result = await post({
+      subjectChartId: 1,
+      partnerChartId: 1,
+      relationshipContext: 'friendship',
+      relationshipType: 'дружба',
+      language: 'ru',
+    });
+
+    expect(result.status).toBe(400);
+    expect(result.payload.code).toBe('CHART_PAIR_DUPLICATE');
+    expect(mockCalculateNatalChart).not.toHaveBeenCalled();
   });
 });

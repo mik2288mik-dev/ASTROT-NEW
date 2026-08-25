@@ -98,6 +98,11 @@ const CONTEXT_COPY = {
       difficulty: 'Химия не отменяет разницу характеров.',
       communication: 'Не проверяй чувства догадками: здесь лучше один прямой вопрос, чем десять внутренних версий.',
     },
+    relationship: {
+      attraction: 'В отношениях важна не только искра, но и то, насколько спокойно вы проживаете обычные дни.',
+      difficulty: 'Знакомые роли могут включаться раньше, чем вы успеваете назвать реальную причину напряжения.',
+      communication: 'Отделяйте текущую просьбу от накопленных претензий и договаривайтесь об одном вопросе за раз.',
+    },
     friendship: {
       attraction: 'В дружбе главное не эффектное знакомство, а можно ли рядом быть собой без постоянной игры.',
       difficulty: 'Даже сильная дружба портится, когда один считает близость очевидной, а второй ждёт конкретных действий.',
@@ -119,6 +124,11 @@ const CONTEXT_COPY = {
       attraction: 'In love, chemistry is only the start — the real question is whether it survives ordinary life.',
       difficulty: 'Chemistry does not erase differences in character.',
       communication: 'Do not test feelings with guesses: one direct question beats ten private theories.',
+    },
+    relationship: {
+      attraction: 'In a relationship, chemistry matters alongside how calmly you handle ordinary days together.',
+      difficulty: 'Familiar roles can take over before either person names the actual source of tension.',
+      communication: 'Separate the current request from old grievances and resolve one concrete issue at a time.',
     },
     friendship: {
       attraction: 'In friendship, the real test is whether you can be yourselves without constant performance.',

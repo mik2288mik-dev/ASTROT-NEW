@@ -10,6 +10,11 @@ describe('compatibility editorial layout', () => {
     const styles = read('styles/compatibilityEditorial.css');
     const studio = read('styles/editorialStudio.css');
     const app = read('pages/_app.tsx');
+    const resultHeading = room.indexOf('className="compat-result-heading"');
+    const resultScore = room.indexOf('className="compat-result-score"', resultHeading);
+    const resultCalculation = room.indexOf('compat-technical-data--near-score', resultScore);
+    const resultSummary = room.indexOf('className="compat-result-summary"', resultCalculation);
+    const resultMeta = room.indexOf('className="compat-result-meta"', resultSummary);
 
     expect(room.match(/compat-editorial-page compat-editorial-page--/g)).toHaveLength(2);
     expect(room).toContain('compat-editorial-page--add');
@@ -29,6 +34,25 @@ describe('compatibility editorial layout', () => {
     expect(styles).toContain('.compat-editorial-page .compat-context-picker');
     expect(styles).toContain('.compat-editorial-page--result .compat-person-snapshot');
     expect(styles).toContain('.compat-editorial-page--result .compat-read-block');
+    expect(styles).toContain('.compat-editorial-page--result .compat-result-summary');
+    expect(room).toContain('<MeouLogo className="compat-result-brand" />');
+    expect(room).toContain('className="compat-result-ring-people"');
+    expect(resultHeading).toBeLessThan(resultScore);
+    expect(resultScore).toBeLessThan(resultCalculation);
+    expect(resultCalculation).toBeLessThan(resultSummary);
+    expect(resultSummary).toBeLessThan(resultMeta);
+    expect(room).toContain('Большие кольца показывают общий индекс');
+    expect(room).toContain('среднее с учётом важности всех сфер ниже');
+    expect(room).toContain('className="compat-final-payoff"');
+    expect(room).toContain('showViews={false}');
+    expect(room).toContain('showCounts={false}');
+    expect(styles).toContain('.compat-editorial-page--result .compat-result-activity');
+    expect(styles).toContain('.compat-editorial-page--result .compat-result-ring-people');
+    expect(styles).toContain('.compat-technical-data--near-score + .compat-result-summary');
+    expect(styles).toContain('overflow-wrap: anywhere');
+    expect(styles).toContain('--compat-ring-offset');
+    expect(styles).toContain('@keyframes compat-ring-left-in');
+    expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(styles).not.toMatch(/^\.fresh-page\s*\{/m);
     expect(studio).toContain('.compat-editorial-page .compat-editorial-tabs');
     expect(studio).toMatch(
@@ -87,7 +111,7 @@ describe('compatibility editorial layout', () => {
       expect(room).toContain(label);
     }
     expect(room).toContain("value: 'love', context: 'romance'");
-    expect(room).toContain("value: 'relationships', context: 'romance'");
+    expect(room).toContain("value: 'relationships', context: 'relationship'");
 
     expect(styles).toContain('.compat-editorial-page--add .compat-entry-form');
     expect(styles).toContain('.compat-editorial-page--add .compat-person-source-option');
@@ -141,9 +165,11 @@ describe('compatibility editorial layout', () => {
     expect(room).toContain('compat-saved-quick-option');
     expect(service).toContain('subjectName: subject?.name');
     expect(extendedApi).toContain('const hasManualSubject');
-    expect(extendedApi).toContain('buildLunaPersonContext');
-    expect(extendedApi).not.toContain('calculateFlexibleNatalChart');
-    expect(extendedApi).not.toContain('computeSynastryAspects');
+    expect(extendedApi).toContain('buildWriterPersonContext');
+    expect(extendedApi).toContain("from '../../../../lib/swisseph-calculator'");
+    expect(extendedApi).toContain('calculateManualNatal');
+    expect(extendedApi).toContain('calculateCompatibility({');
+    expect(extendedApi).toContain('calculated.aspects.map');
   });
 
   it('keeps the compatibility reading image-free and isolated from Zodiac art', () => {
@@ -152,5 +178,19 @@ describe('compatibility editorial layout', () => {
     expect(room).not.toContain('zodiacLegacyVisuals');
     expect(room).not.toContain('compat-result-sticker');
     expect(room).not.toContain('/assets/');
+    expect(room).toContain("import { MeouLogo } from '../../components/onboarding/MeouLogo'");
+  });
+
+  it('keeps shared engagement defaults while removing result views and numeric clutter', () => {
+    const room = read('views/v2/UnionRoom.tsx');
+    const activity = read('components/Horoscope/HoroscopeActivityBar.tsx');
+
+    expect(room).toContain('showViews={false}');
+    expect(room).toContain('showCounts={false}');
+    expect(room).toContain('showLabels');
+    expect(activity).toContain('showViews = true');
+    expect(activity).toContain('showCounts = true');
+    expect(activity).toContain('{showViews ? (');
+    expect(activity).toContain('if (showViews) {');
   });
 });

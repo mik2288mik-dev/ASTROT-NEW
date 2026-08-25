@@ -435,6 +435,22 @@ export const UI_PREVIEW_HOROSCOPE: {
   },
 };
 
+const UI_PREVIEW_COMPATIBILITY_DIMENSIONS: NonNullable<SynastryResult['dimensions']> = [
+  { id: 'emotional_closeness', label: 'Эмоциональная близость', score: 84, confidence: 82, supportiveEvidenceIds: ['preview:moon-venus', 'preview:sun-moon'], challengingEvidenceIds: [] },
+  { id: 'attraction', label: 'Притяжение', score: 88, confidence: 79, supportiveEvidenceIds: ['preview:venus-mars'], challengingEvidenceIds: [] },
+  { id: 'communication', label: 'Общение', score: 64, confidence: 72, supportiveEvidenceIds: ['preview:sun-moon'], challengingEvidenceIds: ['preview:mercury-mars'] },
+  { id: 'conflict_ease', label: 'Проживание конфликтов', score: 48, confidence: 76, supportiveEvidenceIds: [], challengingEvidenceIds: ['preview:mercury-mars'] },
+  { id: 'trust_boundaries', label: 'Доверие и границы', score: 69, confidence: 61, supportiveEvidenceIds: ['preview:moon-venus'], challengingEvidenceIds: [] },
+  { id: 'stability', label: 'Устойчивость', score: 73, confidence: 66, supportiveEvidenceIds: ['preview:sun-moon'], challengingEvidenceIds: [] },
+];
+
+const UI_PREVIEW_COMPATIBILITY_EVIDENCE: NonNullable<SynastryResult['evidence']> = [
+  { id: 'preview:moon-venus', type: 'aspect', direction: 'mutual', label: 'Луна Алины — Венера Алексея: трин, орб 1,2°', weight: 0.82, reliability: 'exact', dimensionEffects: { emotional_closeness: 0.9, trust_boundaries: 0.4 } },
+  { id: 'preview:venus-mars', type: 'aspect', direction: 'mutual', label: 'Венера Алины — Марс Алексея: соединение, орб 2,1°', weight: 0.74, reliability: 'exact', dimensionEffects: { attraction: 0.95 } },
+  { id: 'preview:mercury-mars', type: 'aspect', direction: 'subject_to_partner', label: 'Меркурий Алины — Марс Алексея: квадрат, орб 1,8°', weight: 0.7, reliability: 'exact', dimensionEffects: { communication: -0.8, conflict_ease: -0.9 } },
+  { id: 'preview:sun-moon', type: 'aspect', direction: 'mutual', label: 'Солнце Алины — Луна Алексея: секстиль, орб 2,4°', weight: 0.68, reliability: 'exact', dimensionEffects: { emotional_closeness: 0.8, stability: 0.4, communication: 0.2 } },
+];
+
 export const UI_PREVIEW_COMPATIBILITY: {
   subject: { name: string; date: string; time: string; place: string; sign: string };
   partner: { name: string; date: string; time: string; place: string; sign: string };
@@ -464,7 +480,39 @@ export const UI_PREVIEW_COMPATIBILITY: {
     limitation: 'Это общий разбор только по двум знакам. Полные данные рождения могут изменить картину.',
   },
   deepResult: {
+    schemaVersion: 'compatibility-v2',
+    engineVersion: 'compatibility-engine.v1',
+    overallScore: 78,
     compatibilityScore: 78,
+    verdict: 'Сильная связь',
+    relationshipContext: 'romance',
+    calculationLevel: 'full',
+    dimensions: UI_PREVIEW_COMPATIBILITY_DIMENSIONS,
+    strongestDimensions: [UI_PREVIEW_COMPATIBILITY_DIMENSIONS[1], UI_PREVIEW_COMPATIBILITY_DIMENSIONS[0]],
+    challengingDimensions: [UI_PREVIEW_COMPATIBILITY_DIMENSIONS[3], UI_PREVIEW_COMPATIBILITY_DIMENSIONS[2]],
+    evidence: UI_PREVIEW_COMPATIBILITY_EVIDENCE,
+    directionalPatterns: [{
+      id: 'preview:direction',
+      direction: 'partner_to_subject',
+      title: 'Алексей → Алина',
+      fact: 'Инициатива Алексея ускоряет способ Алины объяснять решения; под давлением разница темпа может превращаться в трение.',
+      evidenceIds: ['preview:mercury-mars'],
+    }],
+    limitations: [],
+    sections: [
+      { id: 'between_you', title: 'Что между вами', text: 'Алина быстрее ловит смену настроения, Алексей отвечает на неё действием — поэтому контакт между ними возникает без долгой раскачки. Симпатия не остаётся фоном: один подаёт импульс, второй его подхватывает.\n\nСлабое место появляется позже, когда ту же скорость они переносят в сложный разговор.', evidenceIds: ['preview:moon-venus', 'preview:venus-mars'] },
+      { id: 'brings_closer', title: 'Что вас сближает', text: 'Их сближает не громкая романтика, а быстрый отклик на мелочи. Один замечает усталость, второй приносит чай или берёт на себя конкретное дело — поддержка сразу становится видимой.\n\nТакой обмен снимает необходимость постоянно доказывать близость словами.', evidenceIds: ['preview:moon-venus', 'preview:sun-moon'] },
+      { id: 'emotional_closeness', title: 'Эмоциональная близость', text: 'Алине проще первой назвать, что атмосфера изменилась. Алексею требуется чуть больше времени, чтобы понять причину и подобрать слова. Если паузу не принимать за холодность, уязвимый разговор не превращается в проверку чувств.', evidenceIds: ['preview:moon-venus', 'preview:sun-moon'] },
+      { id: 'attraction', title: 'Притяжение', text: 'Искра у этой пары прямая: инициатива одного редко повисает без ответа. Им легко перейти от намёка к действию, поэтому контакт быстро набирает интенсивность.\n\nВажно только не считать одинаковую скорость обязательным доказательством интереса.', evidenceIds: ['preview:venus-mars'] },
+      { id: 'communication', title: 'Как вы общаетесь', text: 'В спокойном разговоре они хорошо собирают общую картину: один замечает главное, второй добавляет детали. Под давлением ритм меняется — Алексей ускоряет решение, а Алина начинает защищать право договорить мысль. В этот момент спор уже идёт не о теме, а о способе разговаривать.', evidenceIds: ['preview:sun-moon', 'preview:mercury-mars'] },
+      { id: 'tension', title: 'Где начинается напряжение', text: 'Повторяющийся сбой выглядит просто: один хочет прояснить всё сейчас, второй просит паузу. Если время возвращения к разговору не названо, пауза воспринимается как уход, а настойчивость — как давление.\n\nПомогает договориться не о всём сразу, а о следующем шаге и конкретном времени продолжения.', evidenceIds: ['preview:mercury-mars'] },
+      { id: 'trust_boundaries', title: 'Доверие и границы', text: 'Доверие крепнет, когда забота остаётся предложением, а не попыткой решить за другого. Алине важно не угадывать молчание Алексея, Алексею — не оставлять паузу без рамки. Прямая просьба работает для этой пары лучше любой проверки на близость.', evidenceIds: ['preview:moon-venus'] },
+    ],
+    closing: {
+      strength: 'Они быстро замечают состояние друг друга и умеют превращать внимание в конкретный поступок.',
+      risk: 'В споре один требует ясности сразу, а второй берёт паузу — из-за этого тон становится важнее причины.',
+      action: 'Называть один вопрос и время возвращения к нему, прежде чем разговор уйдёт в догадки.',
+    },
     fullAnalysis: {
       generalTheme: 'Связь держится на внимании к состоянию друг друга и способности создавать спокойное пространство для разговора.',
       attraction: 'Вас сближает мягкость, которую не нужно доказывать. Один замечает перемену настроения раньше, чем она становится словами, второй умеет вернуть разговор к тому, что действительно важно.\n\nПритяжение особенно заметно там, где можно не играть роль и не ускорять близость ради внешнего эффекта.',
@@ -476,7 +524,70 @@ export const UI_PREVIEW_COMPATIBILITY: {
       ],
       potential: 'У этой пары хороший запас устойчивости. Связь становится крепче, когда внимание к чувствам соединяется с конкретными договорённостями и каждый отвечает за собственный выбор.',
     },
-    summary: 'Вы хорошо чувствуете друг друга, но надёжность появляется не из догадок, а из прямых договорённостей. Чем меньше вы решаете за другого, тем спокойнее и сильнее становится связь.',
+    summary: 'Алина и Алексей быстро ловят настроение друг друга, и симпатия у них редко остаётся без ответа. Но в напряжении они входят в разный ритм: Алексей хочет прояснить всё сразу, Алине сначала нужна пауза, чтобы собрать мысль. Их связь становится сильнее не от угадывания чувств, а от прямой договорённости — какой вопрос решают сейчас и когда вернутся к разговору.',
+  },
+};
+
+const UI_PREVIEW_COMPATIBILITY_STEADY_DIMENSIONS: NonNullable<SynastryResult['dimensions']> = [
+  { ...UI_PREVIEW_COMPATIBILITY_DIMENSIONS[0], score: 74 },
+  { ...UI_PREVIEW_COMPATIBILITY_DIMENSIONS[1], score: 56, supportiveEvidenceIds: [], challengingEvidenceIds: ['preview:venus-mars'] },
+  { ...UI_PREVIEW_COMPATIBILITY_DIMENSIONS[2], score: 86, supportiveEvidenceIds: ['preview:sun-moon'], challengingEvidenceIds: [] },
+  { ...UI_PREVIEW_COMPATIBILITY_DIMENSIONS[3], score: 67, supportiveEvidenceIds: ['preview:sun-moon'], challengingEvidenceIds: ['preview:mercury-mars'] },
+  { ...UI_PREVIEW_COMPATIBILITY_DIMENSIONS[4], score: 78 },
+  { ...UI_PREVIEW_COMPATIBILITY_DIMENSIONS[5], score: 89 },
+];
+
+export const UI_PREVIEW_COMPATIBILITY_STEADY: typeof UI_PREVIEW_COMPATIBILITY = {
+  ...UI_PREVIEW_COMPATIBILITY,
+  subject: {
+    name: 'Ирина',
+    date: '1986-09-04',
+    time: '08:10',
+    place: 'Самара, Россия',
+    sign: 'virgo',
+  },
+  partner: {
+    name: 'Олег',
+    date: '1984-01-16',
+    time: '17:45',
+    place: 'Пермь, Россия',
+    sign: 'capricorn',
+  },
+  deepResult: {
+    ...UI_PREVIEW_COMPATIBILITY.deepResult,
+    overallScore: 66,
+    compatibilityScore: 66,
+    verdict: 'Спокойная, устойчивая связь',
+    relationshipContext: 'relationship',
+    dimensions: UI_PREVIEW_COMPATIBILITY_STEADY_DIMENSIONS,
+    strongestDimensions: [UI_PREVIEW_COMPATIBILITY_STEADY_DIMENSIONS[5], UI_PREVIEW_COMPATIBILITY_STEADY_DIMENSIONS[2]],
+    challengingDimensions: [UI_PREVIEW_COMPATIBILITY_STEADY_DIMENSIONS[1], UI_PREVIEW_COMPATIBILITY_STEADY_DIMENSIONS[3]],
+    evidence: UI_PREVIEW_COMPATIBILITY_EVIDENCE.map((item) => ({
+      ...item,
+      label: item.label.replaceAll('Алины', 'Ирины').replaceAll('Алексея', 'Олега'),
+    })),
+    directionalPatterns: [{
+      id: 'preview:steady-direction',
+      direction: 'mutual',
+      title: 'Ирина ↔ Олег',
+      fact: 'Ирина проверяет детали до решения, Олег удерживает общий курс; под давлением эта разница может замедлять старт.',
+      evidenceIds: ['preview:sun-moon', 'preview:mercury-mars'],
+    }],
+    sections: [
+      { id: 'between_you', title: 'Что между вами', text: 'Ирина и Олег не разгоняют связь ради впечатления. Их контакт собирается из повторяемых вещей: сказанное выполняется, привычный ритм не приходится каждый раз отстаивать.\n\nИскры меньше, чем спокойной надёжности, — и для этой пары это не недостаток, а способ не тратить силы на постоянные проверки.', evidenceIds: ['preview:sun-moon'] },
+      { id: 'emotional_closeness', title: 'Эмоциональная близость', text: 'Они редко устраивают длинные разговоры о чувствах без повода. Поддержка появляется иначе: Олег удерживает договорённость, Ирина замечает, где нужна конкретная помощь. Уязвимость становится проще, когда просьба звучит прямо.', evidenceIds: ['preview:moon-venus'] },
+      { id: 'communication', title: 'Как вы общаетесь', text: 'Разговор у них предметный. Ирина проверяет детали и последствия, Олег быстрее отделяет главное от второстепенного. Вместе они принимают сильные решения, если заранее понимают: сейчас собирают варианты или уже выбирают.', evidenceIds: ['preview:sun-moon', 'preview:mercury-mars'] },
+      { id: 'conflicts', title: 'Как вы проживаете конфликты', text: 'Сбой начинается с упрямого молчания. Каждый уверен, что его позиция и так понятна, поэтому спор о мелочи превращается в соревнование выдержки. Вернуться к одному факту полезнее, чем ждать, кто первым уступит.', evidenceIds: ['preview:mercury-mars'] },
+      { id: 'everyday_life', title: 'Быт и привычки', text: 'Повседневность — сильная часть союза: дела не теряются, обещания не требуют напоминаний. Напряжение появляется, когда один меняет план на ходу, а второй узнаёт об этом постфактум.', evidenceIds: ['preview:sun-moon'] },
+      { id: 'personal_space', title: 'Личное пространство', text: 'Обоим легче сохранять близость без постоянного контакта. Но пауза должна иметь понятную рамку: отсутствие ответа без объяснения быстро превращает спокойную дистанцию в холодность.', evidenceIds: ['preview:moon-venus'] },
+      { id: 'stability', title: 'Что делает связь устойчивее', text: 'Эту пару держит предсказуемость в хорошем смысле: можно рассчитывать, что договорённость доживёт до действия. Чтобы надёжность не стала рутиной, им важно иногда менять привычный сценарий по взаимному решению, а не из внезапного недовольства.', evidenceIds: ['preview:sun-moon'] },
+    ],
+    closing: {
+      strength: 'Договорённости этой пары не заканчиваются на словах: оба умеют доводить обещанное до действия.',
+      risk: 'Молчаливое упрямство превращает небольшое несогласие в затяжное соревнование выдержки.',
+      action: 'Сначала назвать один факт, с которым не согласны, и только потом обсуждать общий вывод.',
+    },
+    summary: 'Ирина и Олег строят связь не на постоянном эмоциональном подъёме, а на спокойной надёжности: обещания у них обычно доходят до дела. Главный сбой начинается, когда оба замолкают и ждут, что другой сам поймёт причину. Им легче сохранить близость, если обсуждать один конкретный факт раньше, чем пауза превратится в соревнование упрямства.',
   },
 };
 

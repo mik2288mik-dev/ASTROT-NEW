@@ -223,7 +223,28 @@ export interface UserGeneratedContent {
 }
 
 export interface SynastryResult {
-  compatibilityScore?: number; // 0-100 (опционально для краткого режима)
+  /** Legacy alias for overallScore. New chart comparisons calculate it before the writer layer. */
+  compatibilityScore?: number;
+
+  /** Calculated compatibility contract. AI may write prose but cannot change these fields. */
+  schemaVersion?: 'compatibility-v2';
+  engineVersion?: string;
+  overallScore?: number;
+  verdict?: string;
+  relationshipContext?: 'romance' | 'relationship' | 'friendship' | 'family' | 'work';
+  calculationLevel?: 'full' | 'reduced' | 'date_only' | 'hybrid_sign' | 'sign_only';
+  dimensions?: CompatibilityDimensionResult[];
+  strongestDimensions?: CompatibilityDimensionResult[];
+  challengingDimensions?: CompatibilityDimensionResult[];
+  sections?: CompatibilityReadingSection[];
+  evidence?: CompatibilityEvidence[];
+  directionalPatterns?: CompatibilityDirectionalPattern[];
+  limitations?: string[];
+  closing?: {
+    strength: string;
+    risk: string;
+    action: string;
+  };
   
   // Краткий режим (бесплатный) - тизер
   briefOverview?: {
@@ -255,6 +276,65 @@ export interface SynastryResult {
   intellectualConnection?: string;
   challenge?: string;
   summary: string;
+}
+
+export type CompatibilityDimensionKey =
+  | 'emotional_closeness'
+  | 'attraction'
+  | 'communication'
+  | 'conflict_ease'
+  | 'trust_boundaries'
+  | 'stability'
+  | 'everyday_life'
+  | 'autonomy'
+  | 'authenticity'
+  | 'shared_interest'
+  | 'mutual_support'
+  | 'decision_making'
+  | 'role_balance'
+  | 'work_rhythm'
+  | 'responsibility'
+  | 'pressure_response';
+
+export interface CompatibilityDimensionResult {
+  id: CompatibilityDimensionKey;
+  label: string;
+  score: number;
+  confidence: number;
+  supportiveEvidenceIds: string[];
+  challengingEvidenceIds: string[];
+}
+
+export interface CompatibilityEvidence {
+  id: string;
+  type: 'aspect' | 'angle' | 'house_overlay' | 'sign';
+  direction: 'subject_to_partner' | 'partner_to_subject' | 'mutual';
+  label: string;
+  weight: number;
+  reliability: 'exact' | 'stable_in_range' | 'limited';
+  dimensionEffects: Partial<Record<CompatibilityDimensionKey, number>>;
+  technical?: {
+    subjectKey?: string;
+    partnerKey?: string;
+    aspect?: string;
+    orb?: number;
+    house?: number;
+  };
+}
+
+export interface CompatibilityDirectionalPattern {
+  id: string;
+  direction: 'subject_to_partner' | 'partner_to_subject' | 'mutual';
+  title: string;
+  fact: string;
+  evidenceIds: string[];
+}
+
+export interface CompatibilityReadingSection {
+  id: string;
+  title: string;
+  text: string;
+  evidenceIds: string[];
 }
 
 export interface DailyHoroscope {

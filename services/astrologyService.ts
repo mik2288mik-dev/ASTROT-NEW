@@ -1,6 +1,7 @@
 ﻿import { UserProfile, NatalChartData, SynastryResult, UserEvolution, ForecastDailyReading, NatalAnchorReading, NatalFullReading, NatalLivingReading, ContentAccessTier, PlanetInsight, HoroscopeReactionKey, HoroscopeReactionSummary, HoroscopeEngagementSummary } from "../types";
 import { getElementForSign } from "../lib/zodiac-utils";
 import type { SignHoroscopeReadingV2 } from '../types';
+import type { BirthTimeQuality } from '../types';
 import { coerceNatalAnchorReading, coerceNatalFullReading, coerceNatalLivingReading, getCurrentNatalPeriodKey, mapNatalAnchorToLegacyIntro } from "../lib/natalReadings";
 import { apiFetch, getApiBaseUrl } from "./apiClient";
 import { isValidUserId } from "../lib/userId";
@@ -1092,12 +1093,15 @@ export const calculateExtendedSynastry = async (
     source?: 'birth' | 'saved' | 'sign';
     sign?: string;
     gender?: 'male' | 'female';
+    birthTimeQuality?: BirthTimeQuality;
   },
   partner?: {
     source?: 'birth' | 'saved' | 'sign';
     sign?: string;
     gender?: 'male' | 'female';
+    birthTimeQuality?: BirthTimeQuality;
   },
+  relationshipContext?: RelationshipContext,
 ): Promise<SynastryExtendedApiOutcome> => {
   const url = `${API_BASE_URL}/api/content/synastry/extended`;
   log.info('[calculateExtendedSynastry] Starting', { partnerName, partnerDate });
@@ -1121,9 +1125,12 @@ export const calculateExtendedSynastry = async (
       subjectSource: subject?.source,
       subjectSign: subject?.sign,
       subjectGender: subject?.gender,
+      subjectBirthTimeQuality: subject?.birthTimeQuality,
       partnerSource: partner?.source,
       partnerSign: partner?.sign,
       partnerGender: partner?.gender,
+      partnerBirthTimeQuality: partner?.birthTimeQuality,
+      relationshipContext,
     }),
   });
 

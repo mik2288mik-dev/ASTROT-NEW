@@ -8,8 +8,9 @@ import {
 } from '../lib/synastry/relationshipContext';
 
 describe('relationship context', () => {
-  it('keeps romance, friendship, work and family as explicit stable values', () => {
+  it('keeps love and established relationship as different stable values', () => {
     expect(getRelationshipContextLabel('romance', 'ru')).toBe('Любовь');
+    expect(getRelationshipContextLabel('relationship', 'ru')).toBe('Отношения');
     expect(getRelationshipContextLabel('friendship', 'ru')).toBe('Дружба');
     expect(getRelationshipContextLabel('work', 'ru')).toBe('Работа');
     expect(getRelationshipContextLabel('family', 'ru')).toBe('Семья');
@@ -18,9 +19,11 @@ describe('relationship context', () => {
 
   it('changes the practical reading instead of forcing romance into every pair', () => {
     const romance = buildLocalSignCompatibility('aries', 'libra', 'ru', 'female', 'male', 'romance');
+    const relationship = buildLocalSignCompatibility('aries', 'libra', 'ru', 'female', 'male', 'relationship');
     const work = buildLocalSignCompatibility('aries', 'libra', 'ru', 'female', 'male', 'work');
 
     expect(romance?.attraction).toContain('В любви');
+    expect(relationship?.attraction).toContain('В отношениях');
     expect(work?.attraction).toContain('В работе');
     expect(work?.communication).toContain('роли и сроки');
     expect(work?.attraction).not.toContain('Его инициатива');

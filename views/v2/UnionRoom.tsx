@@ -23,6 +23,7 @@ import { ChevronRightIcon } from '../../components/icons/UiIcons';
 import { ZODIAC_KEYS } from '../../lib/zodiacKeys';
 import { shareToTelegram } from '../../lib/botLink';
 import { HoroscopeActivityBar } from '../../components/Horoscope/HoroscopeActivityBar';
+import { MeouLogo } from '../../components/onboarding/MeouLogo';
 import { loadCompatHistory, addCompatHistory, removeCompatHistory, clearCompatHistory, buildCompatHistoryId, type CompatHistoryEntry } from '../../lib/compatHistory';
 import { AppTopBar } from '../../components/lumia-ui/AppTopBar';
 import type { CompatGender } from '../../lib/synastry/localSignText';
@@ -35,11 +36,9 @@ import {
 import {
   EditorialProse,
   EditorialSectionHeading,
-  EditorialSummary,
 } from '../../components/EditorialReading';
 import {
   classifyCompatibilityPerson,
-  compatibilityPairLevelLabel,
   resolveCompatibilityPairLevel,
   type CompatibilityPairLevel,
 } from '../../lib/synastry/compatibilityInput';
@@ -48,6 +47,7 @@ import {
   EditorialChartsButton,
   EditorialTabs,
 } from '../../components/editorial/EditorialScreenChrome';
+import { getCompatibilityRingGeometry } from '../../lib/synastry/compatibilityPresentation';
 
 type CompatibilityPersonSource = 'birth' | 'saved' | 'sign';
 
@@ -76,6 +76,7 @@ type UnionRoomProps = {
   uiPreview?: {
     screen: 'input' | 'signs' | 'result';
     resultState?: 'loading' | 'error';
+    resultKind?: 'person' | 'sign';
     subject: {
       name: string;
       date: string;
@@ -104,13 +105,14 @@ const COMPATIBILITY_FOCUS_OPTIONS: readonly {
   label: { ru: string; en: string };
 }[] = [
   { value: 'love', context: 'romance', label: { ru: 'Любовь', en: 'Love' } },
-  { value: 'relationships', context: 'romance', label: { ru: 'Отношения', en: 'Relationship' } },
+  { value: 'relationships', context: 'relationship', label: { ru: 'Отношения', en: 'Relationship' } },
   { value: 'friendship', context: 'friendship', label: { ru: 'Дружба', en: 'Friendship' } },
   { value: 'family', context: 'family', label: { ru: 'Семья', en: 'Family' } },
   { value: 'work', context: 'work', label: { ru: 'Работа / бизнес', en: 'Work / business' } },
 ] as const;
 
 function compatibilityFocusForContext(context: RelationshipContext): CompatibilityFocus {
+  if (context === 'relationship') return 'relationships';
   if (context === 'friendship') return 'friendship';
   if (context === 'family') return 'family';
   if (context === 'work') return 'work';
@@ -127,6 +129,7 @@ type Selected = {
   subjectName?: string;
   subjectDate?: string;
   subjectTime?: string;
+  subjectBirthTimeQuality?: BirthTimeQuality;
   subjectPlace?: string;
   subjectSource?: CompatibilityPersonSource;
   subjectSign?: string;
@@ -134,6 +137,7 @@ type Selected = {
   name?: string;
   date?: string;
   time?: string;
+  partnerBirthTimeQuality?: BirthTimeQuality;
   place?: string;
   chartId?: number;
   partnerSource?: CompatibilityPersonSource;
@@ -621,6 +625,11 @@ function readingTitles(context: RelationshipContext, ru: boolean) {
 }
 
 function deepReadingTitles(context: RelationshipContext, ru: boolean) {
+  if (context === 'relationship') {
+    return ru
+      ? ['Что между вами', 'Эмоциональная близость', 'Как вы проживаете конфликты', 'Что делает связь устойчивее']
+      : ['What happens between you', 'Emotional closeness', 'How you handle conflict', 'What makes the bond steadier'];
+  }
   if (context === 'friendship') {
     return ru
       ? ['На чём держится дружба', 'Что вас объединяет', 'Где появляются трения', 'Как сохранить взаимность']
@@ -711,25 +720,39 @@ export function UnionRoom(props: UnionRoomProps) {
   const [relationshipFocus, setRelationshipFocus] = useState<CompatibilityFocus>('love');
   const [selected, setSelected] = useState<Selected | null>(
     previewFixture?.screen === 'result'
-      ? {
+      ? previewFixture.resultKind === 'sign'
+        ? {
+            kind: 'sign',
+            relationshipContext: previewFixture.deepResult.relationshipContext || 'romance',
+            youSign: previewFixture.subject.sign,
+            sign: previewFixture.partner.sign,
+            subjectSign: previewFixture.subject.sign,
+            partnerSign: previewFixture.partner.sign,
+            youGender: initialYouGender,
+            themGender: initialThemGender,
+            calculationLevel: 'sign_only',
+          }
+        : {
           kind: 'person',
-          relationshipContext: 'romance',
+          relationshipContext: previewFixture.deepResult.relationshipContext || 'romance',
           youSign: previewFixture.subject.sign,
           youGender: initialYouGender,
           themGender: initialThemGender,
           subjectName: previewFixture.subject.name,
           subjectDate: previewFixture.subject.date,
           subjectTime: previewFixture.subject.time,
+          subjectBirthTimeQuality: chartData?.birthTimeQuality || 'exact',
           subjectPlace: previewFixture.subject.place,
           subjectSource: 'birth',
           subjectSign: previewFixture.subject.sign,
           name: previewFixture.partner.name,
           date: previewFixture.partner.date,
           time: previewFixture.partner.time,
+          partnerBirthTimeQuality: chartData?.birthTimeQuality || 'exact',
           place: previewFixture.partner.place,
           partnerSource: 'birth',
           partnerSign: previewFixture.partner.sign,
-          calculationLevel: 'full',
+          calculationLevel: chartData?.birthTimeQuality === 'exact' ? 'full' : 'reduced',
         }
       : initialPrefill
       ? {
@@ -742,12 +765,16 @@ export function UnionRoom(props: UnionRoomProps) {
           subjectName: profile.name,
           subjectDate: profile.birthDate,
           subjectTime: profile.birthTime,
+          subjectBirthTimeQuality: profile.birthTimeMode === 'approximate'
+            ? 'approximate'
+            : profile.birthTime ? 'exact' : 'unknown',
           subjectPlace: profile.birthPlace,
           subjectSource: chartId ? 'saved' : 'birth',
           subjectSign: yourSun,
           name: initialPrefill.partnerName || '',
           date: toDateInputValue(initialPrefill.partnerDate || ''),
           time: initialPrefill.partnerTime,
+          partnerBirthTimeQuality: initialPrefill.partnerTime ? 'exact' : 'unknown',
           place: initialPrefill.partnerPlace,
           chartId: initialPrefill.partnerChartId,
           partnerSource: initialPrefill.partnerChartId ? 'saved' : 'birth',
@@ -773,7 +800,9 @@ export function UnionRoom(props: UnionRoomProps) {
     previewFixture?.screen === 'result' ? previewFixture.signCompatibility : null,
   );
   const [deep, setDeep] = useState<SynastryResult | null>(
-    previewFixture?.screen === 'result' && !previewResultState ? previewFixture.deepResult : null,
+    previewFixture?.screen === 'result' && previewFixture.resultKind !== 'sign' && premium && !previewResultState
+      ? previewFixture.deepResult
+      : null,
   );
   const [deepLoading, setDeepLoading] = useState(previewResultState === 'loading');
   const autoDeepKeyRef = useRef<string | null>(null);
@@ -868,6 +897,7 @@ export function UnionRoom(props: UnionRoomProps) {
     place: subjectResolvedSource === 'saved' ? firstChart?.birth_place : subjectResolvedSource === 'birth' ? sPlace : '',
     sign: subjectResolvedSource === 'sign' ? youSign : firstChart?.chart_data?.sun?.sign,
     chartBirthTimeQuality: (firstChart?.chart_data as any)?.birthTimeQuality,
+    birthTimeQuality: subjectResolvedSource === 'birth' ? sTimePrecision : undefined,
   }), [subjectResolvedSource, firstChart, sDate, sTime, sTimePrecision, sPlace, youSign]);
   const partnerClassification = useMemo(() => classifyCompatibilityPerson({
     source: partnerResolvedSource,
@@ -881,6 +911,7 @@ export function UnionRoom(props: UnionRoomProps) {
     place: partnerResolvedSource === 'saved' ? secondChart?.birth_place : partnerResolvedSource === 'birth' ? fPlace : '',
     sign: partnerResolvedSource === 'sign' ? pickSign : secondChart?.chart_data?.sun?.sign,
     chartBirthTimeQuality: (secondChart?.chart_data as any)?.birthTimeQuality,
+    birthTimeQuality: partnerResolvedSource === 'birth' ? fTimePrecision : undefined,
   }), [partnerResolvedSource, secondChart, fDate, fTime, fTimePrecision, fPlace, pickSign]);
   const draftCalculationLevel = useMemo(
     () => resolveCompatibilityPairLevel(subjectClassification, partnerClassification),
@@ -901,7 +932,7 @@ export function UnionRoom(props: UnionRoomProps) {
     if (screen !== 'result' || !selected) return;
     if (previewFixture) {
       setSignText(previewFixture.signCompatibility);
-      if (selected.kind === 'person' && !previewResultState) setDeep(previewFixture.deepResult);
+      if (selected.kind === 'person' && premium && !previewResultState) setDeep(previewFixture.deepResult);
       return;
     }
     let alive = true;
@@ -916,7 +947,7 @@ export function UnionRoom(props: UnionRoomProps) {
       .then((r) => { if (alive) setSignText(r); })
       .catch(() => { /* optional */ });
     return () => { alive = false; };
-  }, [screen, selected, leftSun, theirSun, lang, leftGender, rightGender, previewFixture]);
+  }, [screen, selected, leftSun, theirSun, lang, leftGender, rightGender, previewFixture, previewResultState, premium]);
 
   const sunOf = (s: Selected) => String(s.partnerSign || s.sign || sunSignFromDate(s.date) || 'libra').toLowerCase();
 
@@ -937,27 +968,40 @@ export function UnionRoom(props: UnionRoomProps) {
     setSelected(s);
     setScreen('result');
     scrollCompatibilityToTop();
-    const their = sunOf(s);
-    // Сохраняем в историю только разбор конкретного человека — по знакам не пишем (он и так везде).
-    if (s.kind === 'person' && !previewEnabled) {
-      const sc = getCompatScore(s.youSign, their, lang);
-      setHistory(addCompatHistory({
-        id: buildCompatHistoryId(s.kind, s.sign, s.name, s.date, s.relationshipContext, s.subjectChartId, s.chartId),
-        kind: s.kind, sign: s.sign, name: s.name, date: s.date, time: s.time, place: s.place, chartId: s.chartId,
-        subjectChartId: s.subjectChartId,
-        subjectName: s.subjectName,
-        subjectDate: s.subjectDate,
-        subjectTime: s.subjectTime,
-        subjectPlace: s.subjectPlace,
-        subjectSource: s.subjectSource,
-        partnerSource: s.partnerSource,
-        subjectSign: s.subjectSign,
-        partnerSign: s.partnerSign,
-        calculationLevel: s.calculationLevel,
-        yourSun: s.youSign, theirSun: their, yourGender: s.youGender, theirGender: s.themGender,
-        relationshipContext: s.relationshipContext, overall: sc.overall, ts: Date.now(),
-      }, profile.id));
-    }
+  };
+
+  const persistCalculatedHistory = (entry: Selected, overall: number) => {
+    if (entry.kind !== 'person' || previewEnabled) return;
+    const their = sunOf(entry);
+    setHistory(addCompatHistory({
+      id: buildCompatHistoryId(entry.kind, entry.sign, entry.name, entry.date, entry.relationshipContext, entry.subjectChartId, entry.chartId),
+      kind: entry.kind,
+      sign: entry.sign,
+      name: entry.name,
+      date: entry.date,
+      time: entry.time,
+      partnerBirthTimeQuality: entry.partnerBirthTimeQuality,
+      place: entry.place,
+      chartId: entry.chartId,
+      subjectChartId: entry.subjectChartId,
+      subjectName: entry.subjectName,
+      subjectDate: entry.subjectDate,
+      subjectTime: entry.subjectTime,
+      subjectBirthTimeQuality: entry.subjectBirthTimeQuality,
+      subjectPlace: entry.subjectPlace,
+      subjectSource: entry.subjectSource,
+      partnerSource: entry.partnerSource,
+      subjectSign: entry.subjectSign,
+      partnerSign: entry.partnerSign,
+      calculationLevel: entry.calculationLevel,
+      yourSun: entry.youSign,
+      theirSun: their,
+      yourGender: entry.youGender,
+      theirGender: entry.themGender,
+      relationshipContext: entry.relationshipContext,
+      overall,
+      ts: Date.now(),
+    }, profile.id));
   };
 
   const openFromHistory = (e: CompatHistoryEntry) => {
@@ -975,6 +1019,7 @@ export function UnionRoom(props: UnionRoomProps) {
       subjectName: e.subjectName,
       subjectDate: e.subjectDate,
       subjectTime: e.subjectTime,
+      subjectBirthTimeQuality: e.subjectBirthTimeQuality,
       subjectPlace: e.subjectPlace,
       subjectSource: e.subjectSource,
       subjectSign: e.subjectSign,
@@ -985,6 +1030,7 @@ export function UnionRoom(props: UnionRoomProps) {
       name: e.name,
       date: e.date,
       time: e.time,
+      partnerBirthTimeQuality: e.partnerBirthTimeQuality,
       place: e.place,
       chartId: e.chartId,
       partnerSource: e.partnerSource,
@@ -1021,12 +1067,12 @@ export function UnionRoom(props: UnionRoomProps) {
       : (selected.name || (ru ? 'Вторая карта' : 'Second chart'));
     const text = selected.kind === 'person'
       ? ru
-        ? `Совместимость ${first} + ${second}: ${deep?.summary || 'подробный разбор по вашим данным'}.\n\nПроверь совместимость в «Твой Гороскоп».`
-        : `Compatibility ${first} + ${second}: ${deep?.summary || 'a detailed reading based on your data'}.\n\nCheck compatibility in Your Horoscope.`
+        ? `Совместимость ${first} + ${second}: ${deep?.summary || 'подробный разбор по вашим данным'}.\n\nСравни свою пару в MEOU.`
+        : `Compatibility ${first} + ${second}: ${deep?.summary || 'a detailed reading based on your data'}.\n\nCompare your pair in MEOU.`
       : score
         ? ru
-          ? `Совместимость ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nПроверь совместимость в «Твой Гороскоп».`
-          : `Compatibility ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Strongest — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nCheck compatibility in Your Horoscope.`
+          ? `Совместимость ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в MEOU.`
+          : `Compatibility ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Strongest — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nCompare your pair in MEOU.`
         : '';
     if (!text) return;
     shareToTelegram(text);
@@ -1091,6 +1137,11 @@ export function UnionRoom(props: UnionRoomProps) {
         ? sTime || undefined
         : undefined;
     const subjectPlace = subjectResolvedSource === 'saved' ? firstChart?.birth_place || '' : subjectResolvedSource === 'birth' ? sPlace.trim() : '';
+    const subjectBirthTimeQuality: BirthTimeQuality = subjectResolvedSource === 'saved'
+      ? ((firstChart?.chart_data as any)?.birthTimeQuality || (subjectTime ? 'exact' : 'unknown'))
+      : subjectResolvedSource === 'birth'
+        ? sTimePrecision
+        : 'unknown';
     const subjectResolvedSign = String(
       subjectResolvedSource === 'sign'
         ? youSign
@@ -1109,6 +1160,11 @@ export function UnionRoom(props: UnionRoomProps) {
         ? fTime || undefined
         : undefined;
     const partnerPlace = partnerResolvedSource === 'saved' ? secondChart?.birth_place || '' : partnerResolvedSource === 'birth' ? fPlace.trim() : '';
+    const partnerBirthTimeQuality: BirthTimeQuality = partnerResolvedSource === 'saved'
+      ? ((secondChart?.chart_data as any)?.birthTimeQuality || (partnerTime ? 'exact' : 'unknown'))
+      : partnerResolvedSource === 'birth'
+        ? fTimePrecision
+        : 'unknown';
     const partnerResolvedSign = String(
       partnerResolvedSource === 'sign'
         ? pickSign
@@ -1123,12 +1179,14 @@ export function UnionRoom(props: UnionRoomProps) {
       subjectName,
       subjectDate,
       subjectTime,
+      subjectBirthTimeQuality,
       subjectPlace,
       subjectSource: subjectResolvedSource,
       subjectSign: subjectResolvedSign,
       name: partnerName,
       date: partnerDate,
       time: partnerTime,
+      partnerBirthTimeQuality,
       place: partnerPlace,
       chartId: partnerResolvedSource === 'saved' ? secondChart?.id : undefined,
       partnerSource: partnerResolvedSource,
@@ -1169,8 +1227,10 @@ export function UnionRoom(props: UnionRoomProps) {
     const requestKey = [
       selected.subjectSource,
       selected.subjectChartId || `${selected.subjectName || ''}:${selected.subjectDate || ''}:${selected.subjectSign || ''}`,
+      selected.subjectBirthTimeQuality,
       selected.partnerSource,
       selected.chartId || `${selected.name || ''}:${selected.date || ''}:${selected.partnerSign || ''}`,
+      selected.partnerBirthTimeQuality,
       selected.relationshipContext,
     ].join('|');
     setDeepLoading(true); setError(null);
@@ -1193,14 +1253,25 @@ export function UnionRoom(props: UnionRoomProps) {
           source: selected.subjectSource,
           sign: selected.subjectSign,
           gender: selected.youGender,
+          birthTimeQuality: selected.subjectBirthTimeQuality,
         },
         {
           source: selected.partnerSource,
           sign: selected.partnerSign,
           gender: selected.themGender,
+          birthTimeQuality: selected.partnerBirthTimeQuality,
         },
+        context.value,
       );
-      if (autoDeepKeyRef.current === requestKey) setDeep(out.result);
+      if (autoDeepKeyRef.current === requestKey) {
+        setDeep(out.result);
+        const resolvedLevel = out.result.calculationLevel || out.calculationLevel;
+        if (resolvedLevel) {
+          setSelected((current) => current ? { ...current, calculationLevel: resolvedLevel } : current);
+          }
+        const calculatedScore = out.result.overallScore ?? out.result.compatibilityScore;
+        if (typeof calculatedScore === 'number') persistCalculatedHistory(selected, Math.round(calculatedScore));
+      }
     } catch (e: any) {
       if (autoDeepKeyRef.current === requestKey) {
         setError(e?.message || (ru ? 'Не удалось собрать полный разбор.' : 'Could not build the full reading.'));
@@ -1235,8 +1306,10 @@ export function UnionRoom(props: UnionRoomProps) {
     const key = [
       selected.subjectSource,
       selected.subjectChartId || `${selected.subjectName || ''}:${selected.subjectDate || ''}:${selected.subjectSign || ''}`,
+      selected.subjectBirthTimeQuality,
       selected.partnerSource,
       selected.chartId || `${selected.name || ''}:${selected.date || ''}:${selected.partnerSign || ''}`,
+      selected.partnerBirthTimeQuality,
       selected.relationshipContext,
     ].join('|');
     if (autoDeepKeyRef.current === key) return;
@@ -1607,21 +1680,21 @@ export function UnionRoom(props: UnionRoomProps) {
   const resultTitles = readingTitles(resultContext, ru);
   const resultDeepTitles = deepReadingTitles(resultContext, ru);
   const leftName = selected?.kind === 'sign'
-    ? (ru ? 'Первый человек' : 'First person')
+    ? getZodiacSign(lang, leftSun)
     : (selected?.subjectName || profile.name || (ru ? 'Первая карта' : 'First chart'));
   const rightName = selected?.kind === 'sign'
-    ? (ru ? 'Второй человек' : 'Second person')
+    ? getZodiacSign(lang, theirSun)
     : theirName;
   const leftBirthDate = selected?.subjectDate || profile.birthDate;
   const leftDetail = selected?.kind === 'sign'
-    ? getZodiacSign(lang, leftSun)
+    ? (ru ? 'Первый знак' : 'First sign')
     : leftBirthDate
       ? `${genderWord(leftGender, ru)} — ${formatDisplayDate(leftBirthDate, lang)}`
       : `${genderWord(leftGender, ru)} · ${getZodiacSign(lang, leftSun)}`;
   const rightDetail = selected?.date
     ? `${selected.kind === 'sign' ? '' : `${genderWord(rightGender, ru)} — `}${formatDisplayDate(selected.date, lang)}`
     : selected?.kind === 'sign'
-      ? getZodiacSign(lang, theirSun)
+      ? (ru ? 'Второй знак' : 'Second sign')
       : `${genderWord(rightGender, ru)} · ${getZodiacSign(lang, theirSun)}`;
   const signReadingBlocks = selected?.kind === 'sign' && signText
     ? [
@@ -1631,40 +1704,153 @@ export function UnionRoom(props: UnionRoomProps) {
       ].filter((block) => block.text.trim().length > 0)
     : [];
   const resultPercent = selected?.kind === 'person'
-    ? typeof deep?.compatibilityScore === 'number'
-      ? Math.round(deep.compatibilityScore)
+    ? typeof deep?.overallScore === 'number'
+      ? Math.round(deep.overallScore)
+      : typeof deep?.compatibilityScore === 'number'
+        ? Math.round(deep.compatibilityScore)
       : null
     : typeof score?.overall === 'number'
       ? Math.round(score.overall)
       : null;
+  const resultVerdict = isPerson ? deep?.verdict : score?.verdict;
+  const ringGeometry = resultPercent == null ? null : getCompatibilityRingGeometry(resultPercent);
+  const ringStyle = ringGeometry
+    ? { '--compat-ring-offset': `${ringGeometry.centerOffset}px` } as React.CSSProperties
+    : undefined;
+  const deepSections = deep?.sections?.length
+    ? deep.sections
+    : deep
+      ? [
+          { id: 'connection', title: resultDeepTitles[1], text: deep.fullAnalysis?.attraction || '', evidenceIds: [] },
+          { id: 'difficulties', title: resultDeepTitles[2], text: deep.fullAnalysis?.difficulties || '', evidenceIds: [] },
+          { id: 'potential', title: resultDeepTitles[3], text: deep.fullAnalysis?.potential || '', evidenceIds: [] },
+        ].filter((section) => section.text.trim())
+      : [];
+  const readingIntroTitle = deep?.calculationLevel === 'full'
+    ? (ru ? 'Подробный разбор по двум натальным картам' : 'Detailed reading from two natal charts')
+    : deep
+      ? (ru ? 'Разбор без полного времени рождения' : 'Reading without complete birth times')
+      : '';
+  const isWaitingForResult = isPerson
+    ? Boolean(deepLoading && !deep && !error)
+    : Boolean(!signText && !error);
 
   return (
-    <div className="fresh-page compat-editorial-page compat-editorial-page--result" aria-busy={!signText && !error}>
+    <div className="fresh-page compat-editorial-page compat-editorial-page--result" aria-busy={isWaitingForResult}>
       {compatibilityHeader(true)}
 
       <header className="compat-result-heading">
-        <div className="compat-result-people">
-          <span><strong>{leftName}</strong><small>{leftDetail}</small></span>
-          <span><strong>{rightName}</strong><small>{rightDetail}</small></span>
-        </div>
+        <MeouLogo className="compat-result-brand" />
+        <span>{ru ? 'Разбор связи' : 'Relationship reading'}</span>
       </header>
 
-      <div className="compat-result-orbit" role="img" aria-label={resultPercent == null
-        ? (ru ? 'Визуальная схема пары' : 'Pair diagram')
-        : (ru ? `Совместимость ${resultPercent} процентов` : `${resultPercent} percent compatibility`)}>
-        <span className="compat-result-orbit-circle is-left" aria-hidden="true" />
-        <span className="compat-result-orbit-circle is-right" aria-hidden="true" />
-        <span className="compat-result-orbit-center">
-          <strong>{resultPercent == null ? '✦' : `${resultPercent}%`}</strong>
-          <small>{ru ? 'ваша связь' : 'your connection'}</small>
-        </span>
-      </div>
+      {resultPercent != null ? (
+        <section
+          key={`${resultContext}:${resultPercent}`}
+          className="compat-result-score"
+        >
+          <div className="compat-result-ring-people" aria-label={ru ? 'Участники сравнения' : 'Compared people'}>
+            <span className="is-left">
+              <i aria-hidden="true" />
+              <strong>{leftName}</strong>
+              <small>{leftDetail}</small>
+            </span>
+            <span className="is-right">
+              <i aria-hidden="true" />
+              <strong>{rightName}</strong>
+              <small>{rightDetail}</small>
+            </span>
+          </div>
+          <div
+            className="compat-result-orbit"
+            style={ringStyle}
+            role="img"
+            aria-label={ru ? `${leftName} и ${rightName}: индекс совместимости ${resultPercent} из 100` : `${leftName} and ${rightName}: compatibility index ${resultPercent} out of 100`}
+          >
+            <span className="compat-result-orbit-circle is-left" aria-hidden="true" />
+            <span className="compat-result-orbit-circle is-right" aria-hidden="true" />
+            <span className="compat-result-orbit-center">
+              <strong>{resultPercent}%</strong>
+              <small>{ru ? 'индекс связи' : 'connection index'}</small>
+            </span>
+          </div>
+          {resultVerdict ? <p>{resultVerdict}</p> : null}
+        </section>
+      ) : null}
 
-      <div className="compat-result-context">
-        {ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong>
-      </div>
+      {isPerson && deep?.evidence?.length ? (
+        <details className="compat-technical-data compat-technical-data--deep compat-technical-data--near-score">
+          <summary>
+            <span className="compat-calculation-heading">
+              <strong>{ru ? 'Почему так?' : 'Why this result?'}</strong>
+              <small>
+                {ru
+                  ? 'Большие кольца показывают общий индекс — среднее с учётом важности всех сфер ниже. Чем выше процент, тем ближе кольца.'
+                  : 'The large rings show the overall index — an average weighted by the importance of every area below. A higher score brings the rings closer.'}
+              </small>
+            </span>
+          </summary>
+          <div className="compat-calculation-details">
+            <div className="compat-score-list" aria-label={ru ? 'Оценки по темам' : 'Dimension scores'}>
+              {(deep.dimensions || []).map((dimension) => (
+                <div key={dimension.id}>
+                  <span>{dimension.label}</span>
+                  <strong>{dimension.score}%</strong>
+                </div>
+              ))}
+            </div>
+            <ul className="compat-evidence-list">
+              {deep.evidence.slice(0, 8).map((item) => <li key={item.id}>{item.label}</li>)}
+            </ul>
+          </div>
+        </details>
+      ) : null}
 
-      <div className="compat-result-actions">
+      {!isPerson && score ? (
+        <details className="compat-technical-data compat-technical-data--near-score">
+          <summary>
+            <span className="compat-calculation-heading">
+              <strong>{ru ? 'Почему так?' : 'Why this result?'}</strong>
+              <small>
+                {ru
+                  ? 'Большие кольца показывают общий индекс — среднее по всем сферам ниже. Чем выше процент, тем ближе кольца.'
+                  : 'The large rings show the overall index — the average across every area below. A higher score brings the rings closer.'}
+              </small>
+            </span>
+          </summary>
+          <div className="compat-score-list" aria-label={ru ? 'Оценки по сферам' : 'Scores by area'}>
+            {dimsOrder.map((key) => (
+              <div key={key} className={key === score.strongest ? 'is-strongest' : ''}>
+                <span>{DIMENSION_LABELS[key][lang]}</span>
+                <strong>{score.dims[key]}%</strong>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      {resultPercent == null ? (
+        <div className="compat-result-waiting-pair">
+          <strong>{leftName} + {rightName}</strong>
+          <span>{leftDetail} · {rightDetail}</span>
+        </div>
+      ) : null}
+
+      {isPerson && deep ? (
+        <section className="compat-result-summary">
+          <span>{ru ? 'Общий вывод' : 'Overview'}</span>
+          <EditorialProse text={deep.summary} />
+        </section>
+      ) : !isPerson && score ? (
+        <section className="compat-result-summary compat-result-summary--sign">
+          <span>{ru ? 'Общий результат' : 'Overall result'}</span>
+          <h2>{score.verdict}</h2>
+          <p><strong>{ru ? 'Сильнее всего:' : 'Strongest:'}</strong> {strongestLabel}</p>
+        </section>
+      ) : null}
+
+      <div className="compat-result-meta">
+        <span>{ru ? 'Смотрим' : 'Context'} · <strong>{resultContextLabel}</strong></span>
         <button
           type="button"
           className="compat-result-change"
@@ -1682,17 +1868,44 @@ export function UnionRoom(props: UnionRoomProps) {
         </button>
       </div>
 
-      {isPerson && selected?.calculationLevel ? (
-        <div className="compat-accuracy-line compat-accuracy-line--result">
-          <span>{ru ? 'Уровень разбора' : 'Reading level'}</span>
-          <strong>{compatibilityPairLevelLabel(selected.calculationLevel, lang)}</strong>
+      {isPerson && deep?.dimensions?.length ? (
+        <section className="compat-dimension-highlights" aria-label={ru ? 'Главные темы расчёта' : 'Main calculated themes'}>
+          <div>
+            <span>{ru ? 'Сильнее всего' : 'Strongest'}</span>
+            <strong>{(deep.strongestDimensions || []).map((dimension) => dimension.label).join(' · ') || '—'}</strong>
+          </div>
+          <div>
+            <span>{ru ? 'Требует внимания' : 'Needs attention'}</span>
+            <strong>{(deep.challengingDimensions || []).map((dimension) => dimension.label).join(' · ') || '—'}</strong>
+          </div>
+        </section>
+      ) : null}
+
+      {isPerson && deep ? (
+        <div className="compat-reading-intro">
+          <strong>{readingIntroTitle}</strong>
+          {deep?.limitations?.[0] ? <span>{deep.limitations[0]}</span> : null}
         </div>
       ) : null}
 
-      {!isPerson && score ? (
-        <section className="compat-main-conclusion">
-          <h2>{score.verdict}</h2>
-          <p><strong>{ru ? 'Сильнее всего:' : 'Strongest:'}</strong> {strongestLabel}</p>
+      {isWaitingForResult ? (
+        <section className="compat-result-status" role="status" aria-live="polite">
+          <span className="compat-result-status-mark" aria-hidden="true" />
+          <div>
+            <strong>{isPerson ? (ru ? 'Сопоставляем две карты' : 'Comparing two charts') : (ru ? 'Сравниваем знаки' : 'Comparing signs')}</strong>
+            <p>{isPerson ? (ru ? 'Готовим подробный разбор…' : 'Preparing the detailed reading…') : (ru ? 'Готовим результат…' : 'Preparing the result…')}</p>
+          </div>
+        </section>
+      ) : null}
+
+      {error ? (
+        <section className="compat-result-error" role="alert">
+          <p>{error}</p>
+          {isPerson && premium ? (
+            <button type="button" onClick={() => void runDeep()}>
+              {ru ? 'Повторить расчёт' : 'Try again'}
+            </button>
+          ) : null}
         </section>
       ) : null}
 
@@ -1702,27 +1915,35 @@ export function UnionRoom(props: UnionRoomProps) {
             <CompatBlock key={`${block.title}-${index}`} title={block.title} index={index} reduce={reduce}>{block.text}</CompatBlock>
           ))}
         </div>
-      ) : (!isPerson || (premium && !deep)) ? (
-        <section className="compat-result-status" role="status" aria-live="polite">
-          <span className="compat-result-status-mark" aria-hidden="true" />
-          <p>
-          {isPerson
-            ? (deepLoading ? (ru ? 'Сопоставляем данные…' : 'Comparing the data…') : (ru ? 'Готовим подробный разбор…' : 'Preparing the detailed reading…'))
-            : (ru ? 'Готовим разбор…' : 'Preparing…')}
-          </p>
-        </section>
       ) : null}
 
       {premium && deep ? (
-        <div className="compat-read" style={{ marginTop: 18 }}>
-          <CompatBlock title={resultDeepTitles[1]} index={0} reduce={reduce}>{deep.fullAnalysis?.attraction}</CompatBlock>
-          <CompatBlock title={resultDeepTitles[2]} index={1} reduce={reduce}>{deep.fullAnalysis?.difficulties}</CompatBlock>
-          <CompatBlock title={resultDeepTitles[3]} index={2} reduce={reduce}>{deep.fullAnalysis?.potential}</CompatBlock>
-          <EditorialSummary label={ru ? 'Итог' : 'Bottom line'} title={resultDeepTitles[0]} className="compat-final-summary">
-            <EditorialProse text={deep.summary} />
-          </EditorialSummary>
+        <div className="compat-read compat-read--deep">
+          {deepSections.map((section, index) => (
+            <CompatBlock key={section.id} title={section.title} index={index} reduce={reduce}>{section.text}</CompatBlock>
+          ))}
+          {deep.closing ? (
+            <section className="compat-final-payoff" aria-labelledby="compat-final-payoff-title">
+              <span>{ru ? 'Финальный вывод' : 'Final reading'}</span>
+              <h2 id="compat-final-payoff-title">{ru ? 'Главное о вашей связи' : 'What matters most about your bond'}</h2>
+              <dl>
+                <div>
+                  <dt>{ru ? 'Сила' : 'Strength'}</dt>
+                  <dd>{deep.closing.strength}</dd>
+                </div>
+                <div>
+                  <dt>{ru ? 'Слабое место' : 'Weak point'}</dt>
+                  <dd>{deep.closing.risk}</dd>
+                </div>
+                <div>
+                  <dt>{ru ? 'Что помогает' : 'What helps'}</dt>
+                  <dd>{deep.closing.action}</dd>
+                </div>
+              </dl>
+            </section>
+          ) : null}
         </div>
-      ) : isPerson && (premium || canPromotePremium) ? (
+      ) : isPerson && !deepLoading && !error && (premium || canPromotePremium) ? (
         <button type="button" className="horo-premium" style={{ marginTop: 16 }} disabled={deepLoading} onClick={() => void runDeep()}>
           <div className="horo-premium-text">
             <div className="horo-premium-kicker">{ru ? 'Подробная совместимость' : 'Detailed compatibility'}</div>
@@ -1756,42 +1977,18 @@ export function UnionRoom(props: UnionRoomProps) {
         </button>
       ) : null}
 
-      {!isPerson && score ? (
-        <details className="compat-technical-data">
-          <summary>
-            <span>{ru ? 'Расчёт совместимости' : 'Compatibility calculation'}</span>
-            <strong>{score.overall}%</strong>
-          </summary>
-          <div className="compat-score-list" aria-label={ru ? 'Оценки по сферам' : 'Scores by area'}>
-            {dimsOrder.map((key) => (
-              <div key={key} className={key === score.strongest ? 'is-strongest' : ''}>
-                <span>{DIMENSION_LABELS[key][lang]}</span>
-                <strong>{score.dims[key]}%</strong>
-              </div>
-            ))}
-          </div>
-        </details>
-      ) : null}
-
-      {error ? (
-        <section className="compat-result-error" role="alert">
-          <p>{error}</p>
-          {isPerson && premium ? (
-            <button type="button" onClick={() => void runDeep()}>
-              {ru ? 'Повторить расчёт' : 'Try again'}
-            </button>
-          ) : null}
-        </section>
-      ) : null}
-
       {!isPerson || deep ? (
-        <div className="union-pad" style={{ marginTop: 6 }}>
+        <div className="compat-result-actions">
           <HoroscopeActivityBar
             userId={!previewEnabled && profile.id ? String(profile.id) : undefined}
             sign={`${leftSun}_${theirSun}`}
             date="2000-01-01"
             language={lang}
             onShare={shareCompat}
+            showViews={false}
+            showLabels
+            showCounts={false}
+            className="compat-result-activity"
           />
         </div>
       ) : null}

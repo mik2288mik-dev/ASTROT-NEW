@@ -1,6 +1,6 @@
 import type { Language } from '../../types';
 
-export type RelationshipContext = 'romance' | 'friendship' | 'work' | 'family';
+export type RelationshipContext = 'romance' | 'relationship' | 'friendship' | 'work' | 'family';
 
 export type RelationshipContextOption = {
   value: RelationshipContext;
@@ -15,6 +15,12 @@ export const RELATIONSHIP_CONTEXT_OPTIONS: readonly RelationshipContextOption[] 
     label: { ru: 'Любовь', en: 'Love' },
     hint: { ru: 'Пара, симпатия, бывшие', en: 'Partners, crushes, exes' },
     backendValue: 'любовь и романтические отношения',
+  },
+  {
+    value: 'relationship',
+    label: { ru: 'Отношения', en: 'Relationship' },
+    hint: { ru: 'Существующая пара и совместная жизнь', en: 'An established couple and shared life' },
+    backendValue: 'существующие отношения в паре',
   },
   {
     value: 'friendship',

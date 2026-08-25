@@ -12,6 +12,7 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 describe('mixed compatibility input', () => {
   it('classifies exact, unknown-time, date-only and sign-only people honestly', () => {
     expect(classifyCompatibilityPerson({ source: 'birth', date: '1992-08-12', time: '08:40', place: 'Москва' }).level).toBe('exact');
+    expect(classifyCompatibilityPerson({ source: 'birth', date: '1992-08-12', time: '08:40', place: 'Москва', birthTimeQuality: 'approximate' }).level).toBe('unknown_time');
     expect(classifyCompatibilityPerson({ source: 'birth', date: '1992-08-12', place: 'Москва' }).level).toBe('unknown_time');
     expect(classifyCompatibilityPerson({ source: 'birth', date: '1992-08-12' }).level).toBe('date_only');
     expect(classifyCompatibilityPerson({ source: 'sign', sign: 'libra' }).level).toBe('sign');
@@ -59,10 +60,12 @@ describe('mixed compatibility input', () => {
     expect(room).toContain("subjectResolvedSource === 'sign' && partnerResolvedSource === 'sign'");
     expect(room).toContain("calculationLevel: 'sign_only'");
     expect(room).toContain('getSignCompatibility(');
-    expect(room).toContain('compat-accuracy-line');
+    expect(room).toContain('compat-reading-intro');
     expect(service).toContain('subjectSource');
     expect(service).toContain('partnerSource');
     expect(service).toContain('subjectSign');
     expect(service).toContain('partnerSign');
+    expect(service).toContain('subjectBirthTimeQuality');
+    expect(service).toContain('partnerBirthTimeQuality');
   });
 });

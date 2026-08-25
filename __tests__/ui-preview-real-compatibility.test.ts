@@ -10,7 +10,7 @@ describe('UI Preview compatibility adapter', () => {
 
     expect(preview).toContain("import { UnionRoom } from '../../views/v2/UnionRoom'");
     expect(preview).toContain('<UnionRoom');
-    expect(preview).toContain('...UI_PREVIEW_COMPATIBILITY');
+    expect(preview).toContain('...compatibilityFixture');
     expect(preview).not.toContain('ui-preview-compatibility-result');
     expect(preview).not.toContain('ui-preview-sign-compatibility');
   });
@@ -22,13 +22,19 @@ describe('UI Preview compatibility adapter', () => {
 
     expect(room).toContain('uiPreview?: {');
     expect(room).toContain('if (previewEnabled) return;');
-    expect(room).toContain("if (s.kind === 'person' && !previewEnabled)");
+    expect(room).toContain("if (entry.kind !== 'person' || previewEnabled) return;");
     expect(room).toContain('if (!selected || previewEnabled) return;');
     expect(room).toContain('userId={!previewEnabled && profile.id');
     expect(room).toContain('compat-result-status');
     expect(room).toContain('compat-result-error');
     expect(preview).toContain('{ resultState: state }');
     expect(fixtures).toContain('UI_PREVIEW_COMPATIBILITY');
+    expect(fixtures).toContain("schemaVersion: 'compatibility-v2'");
+    expect(fixtures).toContain("engineVersion: 'compatibility-engine.v1'");
     expect(fixtures).toContain("calculationVersion: 'ui-preview-fixture.v1'");
+    expect(fixtures).toContain('closing: {');
+    expect(fixtures).toContain('один хочет прояснить всё сейчас, второй просит паузу');
+    expect(fixtures).toContain('UI_PREVIEW_COMPATIBILITY_STEADY');
+    expect(preview).toContain("get('pair') === 'steady'");
   });
 });

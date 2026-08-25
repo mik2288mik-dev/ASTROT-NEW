@@ -7,9 +7,6 @@ import { toPublicAppProfile } from '../../../../lib/auth/profile';
 import { getOpenAIModelForContent } from '../../../../lib/appSettings';
 import { db } from '../../../../lib/db';
 import {
-  FullSynastryAIResponse,
-} from '../../../../lib/prompts';
-import {
   formatValidationErrors,
   validateBirthPlace,
   validateDate,
@@ -33,6 +30,20 @@ import {
   type CompatibilityPersonSource,
 } from '../../../../lib/synastry/compatibilityInput';
 import { normalizeZodiacKey } from '../../../../lib/zodiacKeys';
+import { calculateNatalChart } from '../../../../lib/swisseph-calculator';
+import {
+  calculateCompatibility,
+  COMPATIBILITY_ENGINE_VERSION,
+} from '../../../../lib/synastry/compatibilityEngine';
+import {
+  buildCompatibilityResult,
+  buildDeterministicCompatibilityNarrative,
+  type CompatibilityWriterResponse,
+} from '../../../../lib/synastry/compatibilityNarrative';
+import {
+  normalizeRelationshipContext,
+  type RelationshipContext,
+} from '../../../../lib/synastry/relationshipContext';
 import {
   assertChartReadable,
   ChartAccessPolicyError,
@@ -50,22 +61,30 @@ const SYNASTRY_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
   properties: {
     summary: { type: 'string' },
-    generalTheme: { type: 'string' },
-    attraction: { type: 'string' },
-    difficulties: { type: 'string' },
-    recommendations: { type: 'array', items: { type: 'string' } },
-    potential: { type: 'string' },
-    compatibilityScore: { type: 'number' },
+    sections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          text: { type: 'string' },
+        },
+        required: ['id', 'text'],
+        additionalProperties: false,
+      },
+    },
+    closing: {
+      type: 'object',
+      properties: {
+        strength: { type: 'string' },
+        risk: { type: 'string' },
+        action: { type: 'string' },
+      },
+      required: ['strength', 'risk', 'action'],
+      additionalProperties: false,
+    },
   },
-  required: [
-    'summary',
-    'generalTheme',
-    'attraction',
-    'difficulties',
-    'recommendations',
-    'potential',
-    'compatibilityScore',
-  ],
+  required: ['summary', 'sections', 'closing'],
   additionalProperties: false,
 };
 
@@ -78,6 +97,7 @@ type FlexiblePersonInput = {
   time: string;
   place: string;
   sign: string;
+  birthTimeQuality: 'exact' | 'approximate' | 'unknown';
 };
 
 function validateFlexiblePerson(input: FlexiblePersonInput, fieldPrefix: 'subject' | 'partner'): ValidationError[] {
@@ -107,108 +127,16 @@ function validateFlexiblePerson(input: FlexiblePersonInput, fieldPrefix: 'subjec
   return errors;
 }
 
-const LUNA_NATAL_KEYS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rising'] as const;
-
-function readNatalSign(value: unknown): string | null {
-  if (!value || typeof value !== 'object') return null;
-  const sign = (value as { sign?: unknown }).sign;
-  return typeof sign === 'string' && sign.trim() ? sign.trim() : null;
-}
-
-function savedNatalSnapshot(chart: SynastryChartData | null): Record<string, string> | null {
-  if (!chart) return null;
-  const source = chart as unknown as Record<string, unknown> & {
-    positions?: Record<string, unknown>;
-    angles?: Record<string, unknown>;
-  };
-  const snapshot: Record<string, string> = {};
-  for (const key of LUNA_NATAL_KEYS) {
-    const angleKey = key === 'rising' ? 'ascendant' : key;
-    const sign = readNatalSign(source[key])
-      || readNatalSign(source.positions?.[key])
-      || readNatalSign(source.angles?.[angleKey]);
-    if (sign) snapshot[key] = sign;
-  }
-  return Object.keys(snapshot).length ? snapshot : null;
-}
-
-function buildLunaPersonContext(
+function buildWriterPersonContext(
   input: FlexiblePersonInput,
   gender: 'male' | 'female',
-  savedChart: SynastryChartData | null,
 ) {
-  const natalSnapshot = input.source === 'saved' ? savedNatalSnapshot(savedChart) : null;
   return {
     source: input.source,
     name: input.name,
     gender,
-    birthDate: input.date || null,
-    birthTime: input.time || null,
-    birthPlace: input.place || null,
-    zodiacSign: normalizeZodiacKey(input.sign || natalSnapshot?.sun) || null,
-    savedNatalSnapshot: natalSnapshot,
-  };
-}
-
-function mapFullToSynastryResult(raw: FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }): SynastryResult {
-  const score =
-    typeof raw.compatibilityScore === 'number' && Number.isFinite(raw.compatibilityScore)
-      ? Math.min(100, Math.max(0, Math.round(raw.compatibilityScore)))
-      : undefined;
-  return {
-    summary: String(raw.summary || '').trim() || '—',
-    compatibilityScore: score,
-    fullAnalysis: {
-      generalTheme: String(raw.generalTheme || '').trim(),
-      attraction: String(raw.attraction || '').trim(),
-      difficulties: String(raw.difficulties || '').trim(),
-      recommendations: Array.isArray(raw.recommendations)
-        ? raw.recommendations.map((item) => String(item || '').trim()).filter(Boolean)
-        : [],
-      potential: String(raw.potential || '').trim(),
-    },
-  };
-}
-
-function buildSynastryFallback(
-  langRu: boolean,
-  firstName: string,
-  partnerName: string,
-  relationship: string,
-  calculationLevel: CompatibilityPairLevel = 'full',
-): FullSynastryAIResponse & { summary: string; compatibilityScore: number } {
-  const normalized = relationship.toLowerCase();
-  const isWork = normalized.includes('работ') || normalized.includes('делов');
-  const isFriendship = normalized.includes('друж');
-  const isFamily = normalized.includes('сем');
-  const relationRu = isWork ? 'рабочего союза' : isFriendship ? 'дружбы' : isFamily ? 'семейной связи' : 'отношений';
-  const relationEn = isWork ? 'work partnership' : isFriendship ? 'friendship' : isFamily ? 'family bond' : 'relationship';
-  const limitedData = calculationLevel === 'hybrid_sign' || calculationLevel === 'date_only';
-
-  return {
-    summary: langRu
-      ? `${firstName} и ${partnerName}: эту связь лучше всего раскрывают не догадки, а то, как вы слышите друг друга и принимаете совместные решения.`
-      : `${firstName} and ${partnerName}: this bond is revealed less by assumptions and more by how you hear each other and make decisions together.`,
-    generalTheme: langRu
-      ? limitedData
-        ? `Это базовый разбор ${relationRu}: он показывает общий рисунок связи, но не подменяет полное сравнение двух карт.`
-        : `Главная тема ${relationRu} — совместить живой отклик с понятными правилами общения.`
-      : limitedData
-        ? `This is a basic ${relationEn} reading: it shows the broad pattern without pretending to be a full two-chart comparison.`
-        : `The main theme of this ${relationEn} is combining a lively response with clear communication rules.`,
-    attraction: langRu
-      ? (isWork ? 'Вместе вы замечаете разные стороны одной задачи и можете быстрее находить рабочий вариант.' : isFriendship ? 'Контакт держится на живом отклике и ощущении, что рядом не нужно играть роль.' : isFamily ? 'Связь поддерживают знание привычек друг друга и способность замечать реальную помощь.' : 'Притяжение усиливает ощущение, что рядом привычные вещи открываются по-новому.')
-      : (isWork ? 'Together you notice different sides of one task and can reach a workable option faster.' : isFriendship ? 'The connection is supported by a lively response and less need to perform.' : isFamily ? 'The bond is supported by knowing each other’s patterns and recognizing practical care.' : 'Attraction grows when familiar things feel fresh around each other.'),
-    difficulties: langRu
-      ? 'Сложности начинаются, когда лёгкость контакта принимают за полное совпадение и перестают проговаривать детали.'
-      : 'Friction starts when an easy connection is mistaken for total agreement and details remain unspoken.',
-    recommendations: langRu
-      ? ['Сначала уточни, что человек имел в виду.', 'Говори о конкретной ситуации, а не о характере.', 'Договоритесь, когда вернуться к сложному разговору.']
-      : ['Clarify what the other person meant.', 'Discuss the situation, not their character.', 'Agree when to return to a hard conversation.'],
-    potential: langRu
-      ? 'Потенциал связи раскрывается там, где договорённость можно проверить действием, а различия не приходится замалчивать.'
-      : 'The bond’s potential grows where agreements are confirmed by action and differences do not need to be hidden.',
-    compatibilityScore: 68,
+    zodiacSign: normalizeZodiacKey(input.sign) || null,
+    birthTimeQuality: input.birthTimeQuality,
   };
 }
 
@@ -227,7 +155,9 @@ async function loadCachedSynastry(
     );
     if (cached) {
       const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
-      if (parsed?.fullAnalysis) return parsed as SynastryResult;
+      if (parsed?.schemaVersion === 'compatibility-v2' && parsed?.engineVersion === COMPATIBILITY_ENGINE_VERSION) {
+        return parsed as SynastryResult;
+      }
     }
   }
 
@@ -241,10 +171,37 @@ async function loadCachedSynastry(
   });
   if (layer.interpretation?.content && typeof layer.interpretation.content === 'object') {
     const payload = layer.interpretation.content as SynastryResult;
-    if (payload.fullAnalysis) return payload;
+    if (payload.schemaVersion === 'compatibility-v2' && payload.engineVersion === COMPATIBILITY_ENGINE_VERSION) {
+      return payload;
+    }
   }
 
   return null;
+}
+
+function normalizeBirthTimeQuality(value: unknown, time: string): 'exact' | 'approximate' | 'unknown' {
+  if (value === 'approximate' && time) return 'approximate';
+  if (value === 'unknown' || !time) return 'unknown';
+  return 'exact';
+}
+
+function resolveRelationshipContext(value: unknown, legacyLabel: string): RelationshipContext {
+  if (value != null) return normalizeRelationshipContext(value);
+  const normalized = legacyLabel.toLowerCase();
+  if (normalized.includes('друж') || normalized.includes('friend')) return 'friendship';
+  if (normalized.includes('работ') || normalized.includes('делов') || normalized.includes('work') || normalized.includes('business')) return 'work';
+  if (normalized.includes('сем') || normalized.includes('family')) return 'family';
+  if (normalized.includes('существующ') || normalized === 'отношения' || normalized.includes('established')) return 'relationship';
+  return 'romance';
+}
+
+async function calculateManualNatal(input: FlexiblePersonInput): Promise<SynastryChartData | null> {
+  if (input.source !== 'birth' || !input.date || !input.place) return null;
+  const birthTimeMode = input.birthTimeQuality;
+  return calculateNatalChart(input.name, input.date, input.time, input.place, {
+    birthTimeMode,
+    birthTimeUncertaintyMinutes: birthTimeMode === 'approximate' ? 60 : undefined,
+  });
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -285,6 +242,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     partnerSign,
     subjectGender,
     partnerGender,
+    subjectBirthTimeQuality,
+    partnerBirthTimeQuality,
+    relationshipContext: requestedRelationshipContext,
   } = req.body || {};
 
   const hasSubjectChartId = subjectChartId !== undefined
@@ -342,6 +302,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const currentLanguage = userLang === 'en' ? 'en' : 'ru';
   const langRu = currentLanguage === 'ru';
   const rel = String(relationshipType || 'романтика').trim();
+  const relationshipContext = resolveRelationshipContext(requestedRelationshipContext, rel);
   const entitlementState = await getPremiumEntitlementState(userId);
   const isPremium = entitlementState.isPremium;
 
@@ -495,6 +456,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     time: subjectProfile.birthPlace ? (subjectProfile.birthTime || '') : '',
     place: subjectProfile.birthPlace || '',
     sign: String(subjectSign || userChartData?.sun?.sign || '').trim(),
+    birthTimeQuality: normalizedSubjectSource === 'saved'
+      ? normalizeBirthTimeQuality((userChartData as any)?.birthTimeQuality, subjectProfile.birthTime || '')
+      : normalizeBirthTimeQuality(subjectBirthTimeQuality, resolvedManualSubjectTime),
   };
   const partnerInput: FlexiblePersonInput = {
     source: normalizedPartnerSource,
@@ -503,6 +467,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     time: resolvedPartnerPlace ? resolvedPartnerTime : '',
     place: resolvedPartnerPlace,
     sign: String(partnerSign || partnerChartData?.sun?.sign || '').trim(),
+    birthTimeQuality: normalizedPartnerSource === 'saved'
+      ? normalizeBirthTimeQuality((partnerChartData as any)?.birthTimeQuality, resolvedPartnerTime)
+      : normalizeBirthTimeQuality(partnerBirthTimeQuality, resolvedPartnerTime),
   };
   const validationErrors = [
     ...validateFlexiblePerson(subjectInput, 'subject'),
@@ -518,15 +485,49 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
+  try {
+    if (normalizedSubjectSource === 'birth' && subjectInput.place) {
+      userChartData = await calculateManualNatal(subjectInput);
+      subjectInput.sign = String(userChartData?.sun?.sign || subjectInput.sign || '').trim();
+      subjectInput.birthTimeQuality = normalizeBirthTimeQuality(
+        (userChartData as NatalChartDataV2 | null)?.birthTimeQuality,
+        subjectInput.time,
+      );
+    }
+    if (normalizedPartnerSource === 'birth' && partnerInput.place) {
+      partnerChartData = await calculateManualNatal(partnerInput);
+      partnerInput.sign = String(partnerChartData?.sun?.sign || partnerInput.sign || '').trim();
+      partnerInput.birthTimeQuality = normalizeBirthTimeQuality(
+        (partnerChartData as NatalChartDataV2 | null)?.birthTimeQuality,
+        partnerInput.time,
+      );
+    }
+  } catch (error: any) {
+    warnContentApi(
+      { scope: SCOPE, userId, chartId: primaryChartRecord?.id ?? null, surface: 'synastry', variant: 'full' },
+      'calculation_failed',
+      { errorCode: 'SYNASTRY_CALCULATION_FAILED', metadata: { message: String(error?.message || 'unknown') } },
+    );
+    return res.status(422).json({
+      error: 'Synastry calculation failed',
+      code: 'SYNASTRY_CALCULATION_FAILED',
+      message: langRu
+        ? 'Не удалось рассчитать одну из карт. Проверь дату, время и место и повтори.'
+        : 'One of the charts could not be calculated. Check the date, time and place and try again.',
+    });
+  }
+
   const subjectClassification = classifyCompatibilityPerson({
     ...subjectInput,
     chartId: primaryChartId,
     chartBirthTimeQuality: (userChartData as NatalChartDataV2 | null)?.birthTimeQuality,
+    birthTimeQuality: subjectInput.birthTimeQuality,
   });
   const partnerClassification = classifyCompatibilityPerson({
     ...partnerInput,
     chartId: partnerChartRecord?.id ?? null,
     chartBirthTimeQuality: (partnerChartData as NatalChartDataV2 | null)?.birthTimeQuality,
+    birthTimeQuality: partnerInput.birthTimeQuality,
   });
   const calculationLevel = resolveCompatibilityPairLevel(subjectClassification, partnerClassification);
 
@@ -560,6 +561,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       normalizedSubjectGender,
       normalizedPartnerGender,
       calculationLevel,
+      relationshipContext,
+      subjectInput.birthTimeQuality,
+      partnerInput.birthTimeQuality,
+      primaryChartRecord?.input_hash || primaryChartRecord?.calculation_version || '',
+      partnerChartRecord?.input_hash || partnerChartRecord?.calculation_version || '',
     ].join(':'),
   );
 
@@ -612,24 +618,43 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const resolvedSubjectSign = normalizeZodiacKey(subjectInput.sign || userChartData?.sun?.sign);
   const resolvedPartnerSign = normalizeZodiacKey(partnerInput.sign || partnerChartData?.sun?.sign);
   const people = {
-    subject: buildLunaPersonContext(subjectInput, normalizedSubjectGender, userChartData),
-    partner: buildLunaPersonContext(partnerInput, normalizedPartnerGender, partnerChartData),
+    subject: buildWriterPersonContext(subjectInput, normalizedSubjectGender),
+    partner: buildWriterPersonContext(partnerInput, normalizedPartnerGender),
   };
+  const calculated = calculateCompatibility({
+    subjectChart: userChartData,
+    partnerChart: partnerChartData,
+    calculationLevel,
+    relationshipContext,
+    subjectName: subjectProfile.name,
+    partnerName: resolvedPartnerName,
+    subjectSign: resolvedSubjectSign,
+    partnerSign: resolvedPartnerSign,
+    language: currentLanguage,
+  });
+  const writerEvidenceIds = new Set([
+    ...calculated.sectionPlan.flatMap((section) => section.evidenceIds),
+    ...calculated.directionalPatterns.flatMap((pattern) => pattern.evidenceIds),
+  ]);
+  const writerEvidence = calculated.evidence
+    .filter((item) => writerEvidenceIds.has(item.id))
+    .sort((first, second) => second.weight - first.weight)
+    .slice(0, 36);
 
   const accessTier = 'premium' as const;
   let resultPayload: SynastryResult;
   let modelTier: ContentModelTier = 'premium';
   let provider: 'openai' | 'deterministic' = 'deterministic';
-  let modelId = 'deterministic-synastry-fallback-v1';
+  let modelId = 'deterministic-compatibility-writer-fallback-v2';
   let usedFallback = false;
   let persistenceSucceeded = true;
-  const fallbackPayload = () => mapFullToSynastryResult(buildSynastryFallback(
-    langRu,
-    subjectProfile.name,
-    resolvedPartnerName,
-    rel,
-    calculationLevel,
-  ));
+  const narrativeInput = {
+    subjectName: subjectProfile.name,
+    partnerName: resolvedPartnerName,
+    language: currentLanguage,
+  } as const;
+  const fallbackWriter = buildDeterministicCompatibilityNarrative(calculated, narrativeInput);
+  const fallbackPayload = () => buildCompatibilityResult(calculated, fallbackWriter, narrativeInput);
 
   logContentApi(
     {
@@ -662,8 +687,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             subject: people.subject,
             partner: people.partner,
           },
-          relationship: rel,
+          relationship: {
+            context: relationshipContext,
+            label: rel,
+          },
           calculationLevel,
+          calculated: {
+            engineVersion: calculated.engineVersion,
+            overallScore: calculated.overallScore,
+            verdict: calculated.verdict,
+            dimensions: calculated.dimensions,
+            strongestDimensions: calculated.strongestDimensions,
+            challengingDimensions: calculated.challengingDimensions,
+            evidence: writerEvidence,
+            directionalPatterns: calculated.directionalPatterns,
+            limitations: calculated.limitations,
+            sectionPlan: calculated.sectionPlan,
+          },
           dataAvailability: {
             subject: {
               source: normalizedSubjectSource,
@@ -683,21 +723,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const response = await createLunaStructuredResponse({
         instructions: prompt.system,
         input: prompt.user,
-        maxOutputTokens: 2500,
-        schemaName: 'extended_synastry',
+        maxOutputTokens: 3200,
+        schemaName: 'calculated_compatibility_writer',
         schema: SYNASTRY_RESPONSE_SCHEMA,
       });
-      const parsed = parseModelJson<FullSynastryAIResponse & { summary?: string; compatibilityScore?: number }>(
+      const parsed = parseModelJson<CompatibilityWriterResponse>(
         response.content,
-        buildSynastryFallback(
-          langRu,
-          subjectProfile.name,
-          resolvedPartnerName,
-          rel,
-          calculationLevel,
-        )
+        fallbackWriter,
       );
-      resultPayload = mapFullToSynastryResult(parsed);
+      resultPayload = buildCompatibilityResult(calculated, parsed, narrativeInput);
       provider = 'openai';
       modelId = modelAssignment.model;
     }
@@ -766,7 +800,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           inputHash: contentCacheKey,
           language: currentLanguage,
           relationshipType: rel,
-          aspects: [],
+          aspects: calculated.aspects.map((aspect) => ({
+            from: aspect.aKey,
+            to: aspect.bKey,
+            type: aspect.aspectKey,
+            orb: aspect.orb,
+            strength: aspect.strength,
+            reliability: aspect.reliability,
+          })),
           content: resultPayload,
           provider,
           modelId,
