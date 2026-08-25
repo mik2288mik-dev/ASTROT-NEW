@@ -593,88 +593,513 @@
 .diagram {
   max-width: 620px;
   margin: 34px 0 0;
-  padding: 16px;
+  overflow: hidden;
   border: 1px solid var(--knowledge-line);
-  border-radius: 16px;
+  border-radius: 20px;
   background: #fff;
+}
+
+.diagramIntro {
+  display: grid;
+  gap: 5px;
+  padding: 20px 20px 10px;
+}
+
+.diagramIntro strong {
+  color: var(--knowledge-ink);
+  font-size: 1.125rem;
+  font-weight: 680;
+  line-height: 1.25;
+}
+
+.diagramIntro span {
+  max-width: 52ch;
+  color: #555;
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
 .diagram svg {
   display: block;
   width: 100%;
   height: auto;
-  color: var(--knowledge-muted);
+  padding: 4px 12px 0;
+  color: #434343;
+}
+
+.diagramArtwork {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 10px 12px 12px;
+  object-fit: cover;
 }
 
 .diagram text {
-  fill: var(--knowledge-muted);
+  fill: #4b4b4b;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .diagram figcaption {
-  margin-top: 8px;
-  color: var(--knowledge-muted);
+  display: grid;
+  gap: 4px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid #ededed;
+  color: #555;
   font-size: 0.8125rem;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
-.diagramLine,
-.diagramAccent,
+.diagram figcaption strong {
+  color: #303030;
+  font-weight: 610;
+}
+
+.diagram figcaption span {
+  color: #777;
+}
+
 .diagramArrow,
-.diagramRay {
+.diagramRay,
+.diagramHorizon,
+.diagramEcliptic,
+.diagramOutline,
+.diagramCallout,
+.diagramOrbit,
+.diagramForward,
+.diagramSight,
+.diagramLoop,
+.diagramLoopArrow,
+.diagramMoonOrbit,
+.diagramOrbitArrow,
+.diagramTiltedOrbit,
+.diagramNodeArrowNorth,
+.diagramNodeArrowSouth,
+.diagramLilithOrbit,
+.diagramLilithCross,
+.diagramAngleArc {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.diagramLine {
-  stroke: #898989;
-  stroke-width: 1.5;
+.diagramSky {
+  fill: #dff1ff;
 }
 
-.diagramAccent {
-  stroke: var(--knowledge-accent);
-  stroke-width: 2.2;
+.diagramGround {
+  fill: #daf0df;
 }
 
 .diagramArrow {
-  stroke: var(--knowledge-accent);
-  stroke-width: 1.8;
+  stroke: #ff695e;
+  stroke-width: 3;
 }
 
 .diagramRay {
-  stroke: #9d9d9d;
-  stroke-width: 1.2;
-  opacity: 0.65;
+  stroke: #efad28;
+  stroke-width: 2;
 }
 
-.diagramPoint {
-  fill: var(--knowledge-accent);
+.diagramHorizon {
+  stroke: #697988;
+  stroke-width: 3;
 }
 
-.diagramPaper {
-  fill: #fff;
-  stroke: var(--knowledge-line);
+.diagramEcliptic {
+  stroke: #7961c9;
+  stroke-width: 5;
 }
 
 .diagramSun {
-  fill: #bcbcbc;
+  fill: #ffd45f;
+  stroke: #eba629;
+  stroke-width: 2;
 }
 
 .diagramEarth {
-  fill: #666;
+  fill: #68b9ea;
+  stroke: #277eae;
+  stroke-width: 2;
 }
 
 .diagramMoon {
-  fill: #d8d8d8;
-  stroke: #898989;
-  stroke-width: 1;
+  fill: #e6e0f4;
+  stroke: #8172a7;
+  stroke-width: 2;
 }
 
 .diagramStrongText {
   fill: var(--knowledge-ink) !important;
-  font-weight: 650;
+  font-weight: 700;
+}
+
+.diagramAscPoint {
+  fill: #ff695e;
+  stroke: #fff;
+  stroke-width: 4;
+}
+
+.diagramObserver {
+  fill: #354355;
+  stroke: #354355;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.diagramSteps rect,
+.diagramMiniCard,
+.diagramLegendCard rect {
+  fill: #f4f4f4;
+  stroke: #e2e2e2;
+  stroke-width: 1;
+}
+
+.diagramOutline {
+  stroke: #58616c;
+  stroke-width: 2;
+}
+
+.diagramCenter {
+  fill: #fff;
+  stroke: #d8d8d8;
+  stroke-width: 2;
+}
+
+.diagramCallout {
+  stroke: #ff695e;
+  stroke-width: 2;
+}
+
+.diagramCalloutPoint {
+  fill: #ff695e;
+}
+
+.diagramPanelWarm {
+  fill: #fff5d9;
+}
+
+.diagramPanelSky {
+  fill: #eaf1ff;
+}
+
+.diagramOrbit {
+  stroke: #d8b74a;
+  stroke-width: 2;
+  stroke-dasharray: 5 6;
+}
+
+.diagramPlanet {
+  fill: #9a78db;
+  stroke: #674b9d;
+  stroke-width: 2;
+}
+
+.diagramForward {
+  stroke: #36a57d;
+  stroke-width: 3;
+}
+
+.diagramSight {
+  stroke: #6c7b8d;
+  stroke-width: 2;
+  stroke-dasharray: 4 5;
+}
+
+.diagramStar {
+  fill: #7794ce;
+}
+
+.diagramLoop,
+.diagramLoopArrow {
+  stroke: #ff695e;
+  stroke-width: 4;
+}
+
+.diagramLightBeam {
+  fill: #fff2ae;
+  opacity: 0.65;
+}
+
+.diagramMoonOrbit {
+  fill: none;
+  stroke: #a499c1;
+  stroke-width: 2;
+  stroke-dasharray: 5 6;
+}
+
+.diagramOrbitArrow {
+  stroke: #7961c9;
+  stroke-width: 3;
+}
+
+.diagramPlane {
+  fill: #cfe6ff;
+  stroke: #85b4e3;
+  stroke-width: 2;
+}
+
+.diagramTiltedOrbit {
+  stroke: #8a68cf;
+  stroke-width: 6;
+}
+
+.diagramNorthNode,
+.diagramSouthNode {
+  stroke: #fff;
+  stroke-width: 4;
+}
+
+.diagramNorthNode {
+  fill: #38a980;
+}
+
+.diagramSouthNode {
+  fill: #ff7868;
+}
+
+.diagramNodeArrowNorth {
+  stroke: #26906b;
+  stroke-width: 3;
+}
+
+.diagramNodeArrowSouth {
+  stroke: #e85e52;
+  stroke-width: 3;
+}
+
+.diagramShadow {
+  fill: #455064;
+  opacity: 0.32;
+}
+
+.diagramEclipsedMoon {
+  fill: #d16b52;
+  stroke: #9b3e30;
+  stroke-width: 2;
+}
+
+.diagramLilithOrbit {
+  stroke: #8d72ca;
+  stroke-width: 4;
+}
+
+.diagramLilithPoint {
+  fill: #fff;
+  stroke: #ff695e;
+  stroke-width: 4;
+}
+
+.diagramLilithCross {
+  stroke: #ff695e;
+  stroke-width: 3;
+}
+
+.diagramWarningCard rect {
+  fill: #fff0ed;
+  stroke: #ffc0b9;
+  stroke-width: 1.5;
+}
+
+.diagramWarningCard circle {
+  fill: #fff;
+  stroke: #ff695e;
+  stroke-width: 2;
+}
+
+.diagramWarningCard path {
+  fill: none;
+  stroke: #ff695e;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.diagramAngleArc {
+  stroke: #ff695e;
+  stroke-width: 4;
+}
+
+.articleVisual {
+  position: relative;
+  display: grid;
+  max-width: 620px;
+  min-height: 260px;
+  margin: 34px 0 0;
+  overflow: hidden;
+  border: 1px solid var(--knowledge-line);
+  border-radius: 20px;
+  background: #f2f2f2;
+  isolation: isolate;
+}
+
+.articleVisual figcaption {
+  position: relative;
+  z-index: 2;
+  align-self: end;
+  padding: 13px 18px 15px;
+  border-top: 1px solid rgb(0 0 0 / 8%);
+  background: rgb(255 255 255 / 82%);
+  color: #4a4a4a;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.articleVisual_fire {
+  background: #ffe1d3;
+}
+
+.articleVisual_earth {
+  background: #dcebdc;
+}
+
+.articleVisual_air {
+  background: #dfeaff;
+}
+
+.articleVisual_water {
+  background: #dcebf1;
+}
+
+.signVisualCopy {
+  position: absolute;
+  z-index: 2;
+  top: 24px;
+  left: 22px;
+  display: grid;
+  max-width: 42%;
+  gap: 4px;
+}
+
+.signVisualCopy span,
+.objectPhotoLabel span {
+  color: #4d4d4d;
+  font-size: 0.6875rem;
+  font-weight: 720;
+  letter-spacing: 0.08em;
+}
+
+.signVisualCopy strong,
+.objectPhotoLabel strong {
+  color: #1f1f1f;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.signVisualCopy small,
+.objectPhotoLabel small {
+  color: #464646;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.signVisualImage {
+  position: relative;
+  z-index: 1;
+  justify-self: end;
+  width: min(76%, 390px);
+  height: 290px;
+  margin: -2px -10px -3px 0;
+  object-fit: contain;
+  object-position: right bottom;
+  filter: contrast(1.04);
+}
+
+.objectPhotoVisual {
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  background: #071022;
+}
+
+.objectPhotoVisual > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.objectPhotoLabel {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px 17px;
+  border-top: 1px solid #e7e7e7;
+  background: #fff;
+}
+
+.objectPhotoLabel strong {
+  font-size: 1.375rem;
+}
+
+.overviewVisual {
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: #f7f4eb;
+}
+
+.overviewVisual img {
+  display: block;
+  width: 100%;
+  max-height: 460px;
+  object-fit: cover;
+}
+
+.overviewVisualLabel {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px 18px;
+  border-top: 1px solid rgb(0 0 0 / 8%);
+  background: #fff;
+}
+
+.overviewVisualLabel strong {
+  color: #222;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.overviewVisualLabel span {
+  color: #555;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .diagramIntro {
+    padding: 18px 16px 8px;
+  }
+
+  .diagram svg {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .diagram figcaption {
+    padding: 13px 16px 16px;
+  }
+
+  .articleVisual {
+    min-height: 240px;
+  }
+
+  .signVisualCopy {
+    top: 20px;
+    left: 16px;
+  }
+
+  .signVisualCopy strong,
+  .objectPhotoLabel strong {
+    font-size: 1.25rem;
+  }
+
+  .signVisualImage {
+    width: 77%;
+    height: 260px;
+    margin-right: -18px;
+  }
+
+  .objectPhotoLabel {
+    padding: 14px 16px 15px;
+  }
 }
 
 .articleSections {

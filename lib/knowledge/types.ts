@@ -28,10 +28,13 @@ export type KnowledgeArticleSectionKind =
 export type KnowledgeDiagramId =
   | 'ascendant'
   | 'aspects'
+  | 'eclipses'
   | 'houses'
+  | 'lilith-apogee'
   | 'lunar-nodes'
   | 'moon-phases'
-  | 'retrograde-motion';
+  | 'retrograde-motion'
+  | 'zodiac-wheel';
 
 export type KnowledgeArticleSection = {
   title: string;

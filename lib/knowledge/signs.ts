@@ -365,6 +365,7 @@ export const SIGN_TOPICS = [
       },
     },
     relatedTopicIds: ['sign-elements', 'sign-modalities', 'planet-in-sign'],
+    diagram: 'zodiac-wheel',
   },
   ...INDIVIDUAL_SIGN_TOPICS,
   {
