@@ -113,7 +113,7 @@ export function getPersonalForecastSystemPrompt(
     ? `Ты пишешь личный прогноз на ${period === 'day' ? 'сегодня' : period === 'week' ? 'неделю' : 'месяц'} для одного человека.
 
 - Видимый ответ состоит ровно из трёх отдельных частей: headline, forecast, closing. Общая длина — ${limits}.
-- headline — 2–5 слов: короткий, колкий, дерзкий вход простыми разговорными словами. Иногда уместна одна нормальная шутка. Не сочиняй нарочито красивые или странные метафоры и рекламные слоганы.
+- headline — 2–5 слов: понятная сама по себе точная формулировка главного поворота из astrologer_brief. Тон выбирай по содержанию: можно прямо, колко, жёстко, уверенно или с одной нормальной шуткой. Острота не обязательна; ясность обязательна. Жёсткость допустима без фатализма, угроз, унижения и гарантированного плохого исхода. Не сочиняй абстрактные сравнения, странные метафоры и рекламные слоганы ради эффекта.
 - Нейтральные пересказы вроде «Тебя заметят» или «Дома станет лучше» не являются headline. Заголовок должен иметь такой же живой характер, как утверждённые примеры, но не копировать их.
 - forecast — один цельный человеческий прогноз: что вероятно будет происходить в выбранный период. Пиши бодро, прямо, точно, без воды. Наставление допустимо внутри абзаца только когда естественно продолжает прогноз; не превращай текст в набор команд.
 - closing — 3–12 слов: отдельная сильная, тёплая, колкая или смешная точка. Не повторяй headline и не пересказывай forecast.
@@ -128,7 +128,7 @@ export function getPersonalForecastSystemPrompt(
     : `Write one personal ${period} forecast for one reader.
 
 - The visible response has exactly three separate parts: headline, forecast, closing. Total length is ${limits}.
-- headline is a direct, sharp 2–5-word conversational hook. One fitting joke is welcome. Avoid forced literary metaphors and advertising slogans.
+- headline is a self-contained, precise 2–5-word statement of the main turn in astrologer_brief. Match the content: it may be direct, biting, hard-edged, confident, or use one fitting joke. Edge is optional; clarity is mandatory. Keep hard-edged lines free of fatalism, threats, humiliation, and guaranteed bad outcomes. Avoid abstract comparisons, forced literary metaphors, and advertising slogans.
 - forecast is one cohesive human prediction of what is likely to happen in the selected period. Be lively, direct, and concise. A brief instruction may appear only when it naturally follows from the forecast; never turn the paragraph into a task list.
 - closing is a distinct 3–12-word strong, warm, sharp, or funny final line. Do not repeat the headline or retell the forecast.
 - astrologer_brief is the only content source. Translate its meaning into ordinary language without copying internal wording literally or selecting a new topic. Examples teach voice and form only.
@@ -943,6 +943,10 @@ export type PersonalForecastValidationOptions = {
 };
 
 const VISIBLE_CLOSING_LABEL_PATTERN = /^(?:что\s+(?:делать|не\s+делать)|совет|пожелание|мотивация|what\s+(?:to\s+do|not\s+to\s+do)|advice|wish|motivation)\s*[:—-]/iu;
+const ABSTRACT_HEADLINE_COMPARISON_PATTERNS = [
+  /(?:^|[^\p{L}])(?:шире|глубже|ближе|дальше|больше|меньше|ярче|темнее|тише|громче|выше|ниже)\s*,?\s+чем\s+(?:кажется|думается|ты\s+думаешь|можно\s+подумать)(?:[.!?]|$)/iu,
+  /\b(?:bigger|wider|deeper|closer|farther|more|less)\s+than\s+(?:(?:it|you)\s+)?(?:seems?|think)\b/iu,
+] as const;
 
 function closingDuplicatesBody(body: string, closing: string): boolean {
   const normalizedBody = normalizePersonalForecastText(body);
@@ -980,6 +984,9 @@ export function validateFreeGeneratedForecastFeed(
     || /^(?:дома|дому|день|неделя|месяц)\s+(?:станет|будет)\s+(?:лучше|легче|проще|ярче|спокойнее|удобнее)(?:\s|[.!?]|$)/iu.test(headlineText)
   )) {
     errors.push('headline is a neutral reaction summary');
+  }
+  if (headlineText && matchesAny(headlineText, ABSTRACT_HEADLINE_COMPARISON_PATTERNS)) {
+    errors.push('headline is an abstract comparison without context');
   }
   if (!forecastText) errors.push('forecast requires text');
   if (forecastText) {

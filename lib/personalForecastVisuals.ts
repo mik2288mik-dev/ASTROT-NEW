@@ -149,12 +149,8 @@ const EDITORIAL_TOPIC_BY_THEME: Record<Theme, EditorialTopic> = {
 };
 
 const TODAY_END_COLOR_CUTOUT_CATEGORIES = [
-  'animals',
   'graphic',
-  'mascots',
   'objects',
-  'psychedelic',
-  'surreal',
 ] as const;
 
 const TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS = [
@@ -167,6 +163,9 @@ const TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS = [
   '_beige_',
   '_brown_',
   '_rust_',
+  'headphone',
+  'boombox',
+  'cassette',
 ] as const;
 
 export function selectTodayEndEditorialAsset(input: {
@@ -178,8 +177,10 @@ export function selectTodayEndEditorialAsset(input: {
     || input.sections.find((section) => (
       section.sourceTopicKey && section.sourceTopicKey !== 'overview'
     ))
-    || input.sections.find((section) => normalise(section.visualTag) !== 'none')
-    || input.sections[0];
+    || input.sections.find((section) => {
+      const visualTag = normalise(section.visualTag);
+      return visualTag !== 'none' && visualTag !== 'overview';
+    });
   if (!semanticSection) return null;
 
   const request: ForecastVisualRequest = {
@@ -205,7 +206,8 @@ export function selectTodayEndEditorialAsset(input: {
     allowedSources: ['editorial-v2'],
     allowedSourceCategories: TODAY_END_COLOR_CUTOUT_CATEGORIES,
     excludeSourceIdFragments: TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS,
-    forceVisible: true,
+    requireTopicMatch: true,
+    forceVisible: false,
   });
 }
 

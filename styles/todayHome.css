@@ -407,7 +407,11 @@
   display: grid;
   box-sizing: border-box;
   width: 100%;
-  min-height: calc(100svh - var(--today-safe-top) - 16rem);
+  min-height: clamp(
+    18.5rem,
+    calc(100svh - var(--today-safe-top) - 19.5rem),
+    26rem
+  );
   align-items: center;
   overflow: hidden;
   padding: 1.25rem clamp(1.3rem, 6vw, 2.5rem) 1rem;
@@ -464,6 +468,38 @@
   overflow-wrap: anywhere;
   text-align: center;
   text-wrap: balance;
+}
+
+.today-minimal-forecast-bridge {
+  position: absolute;
+  right: 0;
+  bottom: clamp(0.75rem, 3vw, 1.25rem);
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: clamp(7.75rem, 34vw, 9.75rem);
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.today-minimal-forecast-bridge svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.today-minimal-forecast-bridge path {
+  fill: none;
+  stroke: rgba(172, 133, 92, 0.3);
+  stroke-linecap: round;
+  stroke-width: 0.82;
+  vector-effect: non-scaling-stroke;
+}
+
+.today-minimal-forecast-bridge circle {
+  fill: rgba(157, 111, 65, 0.72);
 }
 
 .today-minimal-loading {
@@ -680,7 +716,7 @@
   box-sizing: border-box;
   width: min(calc(100% - 2rem), 40rem) !important;
   margin-inline: auto;
-  padding: clamp(1.35rem, 6vw, 2rem) 0 2rem;
+  padding: clamp(0.75rem, 3.5vw, 1.1rem) 0 2rem;
   scroll-margin-top: calc(var(--home-safe-top, 18px) + 7.7rem);
 }
 
@@ -817,9 +853,15 @@
   padding-left: 0;
 }
 
-.today-minimal-reading-arc {
-  width: calc(100% + 2rem);
-  margin: 0 -1rem clamp(1.25rem, 5vw, 1.75rem);
+.today-minimal-opening-phrase {
+  color: var(--today-ink);
+  font-weight: 600;
+}
+
+#__next
+  .today-minimal-reading
+  .forecast-feed-section-text.is-opening-paragraph {
+  text-indent: clamp(1.35rem, 6vw, 1.8rem);
 }
 
 .today-minimal-reading-block::before {
@@ -1173,12 +1215,12 @@
 }
 
 .today-minimal-closing-label {
-  margin: 0 0 0.72rem;
-  color: var(--today-muted);
+  margin: 0 0 0.78rem;
+  color: var(--today-ink);
   font-family: var(--forecast-editorial-font);
-  font-size: 0.74rem;
-  font-weight: 500;
-  letter-spacing: 0.015em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.35;
 }
 

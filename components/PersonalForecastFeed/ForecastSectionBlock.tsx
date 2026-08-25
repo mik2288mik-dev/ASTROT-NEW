@@ -19,14 +19,27 @@ type ForecastSectionBlockProps = {
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
+  emphasizeOpening?: boolean;
   sticker?: DiaryEditorialPause['asset'] | null;
   onRequestPremium: () => void;
 };
+
+function splitOpeningPhrase(text: string): { lead: string; rest: string } {
+  const words = [...text.matchAll(/\S+/gu)];
+  const lastLeadWord = words[Math.min(2, words.length - 1)];
+  if (!lastLeadWord) return { lead: text, rest: '' };
+  const end = (lastLeadWord.index ?? 0) + lastLeadWord[0].length;
+  return {
+    lead: text.slice(0, end),
+    rest: text.slice(end),
+  };
+}
 
 function renderContentBlocks(
   section: ForecastSection,
   period: PersonalForecastPeriod,
   sticker?: DiaryEditorialPause['asset'] | null,
+  emphasizeOpening = false,
 ) {
   if (period !== 'day') {
     const paragraphs = resolveLongForecastParagraphs(
@@ -79,17 +92,28 @@ function renderContentBlocks(
 
   return (
     <div className="forecast-feed-section-copy">
-      {section.contentBlocks.map((block) => (
-        <p
-          key={block.id}
-          className={[
-            'forecast-feed-section-text',
-            block.role === 'lead' ? 'is-lead' : 'is-body',
-          ].filter(Boolean).join(' ')}
-        >
-          {block.text}
-        </p>
-      ))}
+      {section.contentBlocks.map((block, index) => {
+        const opening = emphasizeOpening && index === 0
+          ? splitOpeningPhrase(block.text)
+          : null;
+        return (
+          <p
+            key={block.id}
+            className={[
+              'forecast-feed-section-text',
+              block.role === 'lead' ? 'is-lead' : 'is-body',
+              opening ? 'is-opening-paragraph' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {opening ? (
+              <>
+                <strong className="today-minimal-opening-phrase">{opening.lead}</strong>
+                {opening.rest}
+              </>
+            ) : block.text}
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -99,6 +123,7 @@ export function ForecastSectionBlock({
   period,
   language,
   locked,
+  emphasizeOpening = false,
   sticker,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
@@ -186,7 +211,7 @@ export function ForecastSectionBlock({
               {language === 'ru' ? 'Показать продолжение' : 'Show the rest'}
             </button>
           </div>
-        ) : renderContentBlocks(section, period, sticker)}
+        ) : renderContentBlocks(section, period, sticker, emphasizeOpening)}
         {!locked && period !== 'day' && isOverview ? (
           <ForecastArc
             className="forecast-period-editorial-arc is-closing"

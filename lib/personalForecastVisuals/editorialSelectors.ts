@@ -168,6 +168,7 @@ function filterPersonalPool(input: {
   excludeIds?: readonly string[];
   excludeSourceCategories?: readonly string[];
   excludeSourceIdFragments?: readonly string[];
+  requireTopicMatch?: boolean;
 }): readonly DiaryEligibleAsset[] {
   const excluded = new Set(input.excludeIds || []);
   const allowedSources = new Set(input.allowedSources || []);
@@ -185,6 +186,7 @@ function filterPersonalPool(input: {
   const topics = input.topics?.length
     ? base.filter((asset) => asset.topics.some((topic) => input.topics!.includes(topic)))
     : base;
+  if (input.requireTopicMatch && input.topics?.length && !topics.length) return [];
   const tones = input.allowedTones?.length
     ? topics.filter((asset) => input.allowedTones!.includes(asset.tone))
     : topics;
@@ -202,6 +204,7 @@ export function selectPersonalEditorialAsset(input: {
   excludeIds?: readonly string[];
   excludeSourceCategories?: readonly string[];
   excludeSourceIdFragments?: readonly string[];
+  requireTopicMatch?: boolean;
   slot?: number;
   forceVisible?: boolean;
 }): DiaryEligibleAsset | null {

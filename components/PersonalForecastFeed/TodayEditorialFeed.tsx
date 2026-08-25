@@ -93,12 +93,14 @@ function StoryFragment({
   language,
   locked,
   onRequestPremium,
+  opening,
   closing,
 }: {
   section: ForecastSection;
   language: 'ru' | 'en';
   locked: boolean;
   onRequestPremium: () => void;
+  opening: boolean;
   closing: boolean;
 }) {
   const untitledSection = section.title
@@ -110,6 +112,7 @@ function StoryFragment({
       period="day"
       language={language}
       locked={locked}
+      emphasizeOpening={opening}
       onRequestPremium={onRequestPremium}
     />
   );
@@ -123,11 +126,22 @@ function StoryFragment({
         variant="today"
       />
       <p className="today-minimal-closing-label">
-        {language === 'ru' ? 'На сегодня' : 'For today'}
+        {language === 'ru' ? 'Главное на сегодня' : "Today's key point"}
       </p>
       {fragment}
     </div>
   ) : fragment;
+}
+
+function TodayForecastBridge() {
+  return (
+    <div className="today-minimal-forecast-bridge" aria-hidden="true">
+      <svg viewBox="0 0 390 156" preserveAspectRatio="none" focusable="false">
+        <path d="M218-24C326-14 365 54 316 96C279 128 226 127 184 110C145 94 116 103 82 142" />
+        <circle cx="184" cy="110" r="2.2" />
+      </svg>
+    </div>
+  );
 }
 
 export function TodayEditorialFeed({
@@ -228,6 +242,7 @@ export function TodayEditorialFeed({
             </p>
           ) : null}
         </div>
+        <TodayForecastBridge />
       </section>
 
       <section
@@ -238,21 +253,15 @@ export function TodayEditorialFeed({
           {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
         </h1>
 
-        <ForecastArc
-          className="today-minimal-reading-arc"
-          direction="up"
-          dot="right"
-          variant="today"
-        />
-
         <div className="today-minimal-reading-main">
-          {visibleSections.map((section) => (
+          {visibleSections.map((section, sectionIndex) => (
             <React.Fragment key={`day:${periodKey}:${section.id}`}>
               <StoryFragment
                 section={section}
                 language={language}
                 locked={false}
                 onRequestPremium={onRequestPremium}
+                opening={sectionIndex === 0}
                 closing={section.contentBlocks.some((block) => block.role === 'insight')}
               />
               {!teaserDismissed && teaserInsertion?.afterSectionId === section.id ? (
