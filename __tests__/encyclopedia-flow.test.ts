@@ -6,132 +6,224 @@ import {
   groupTopicsByCategory,
   INITIAL_ENCYCLOPEDIA_SCREEN,
 } from '../lib/knowledgeEncyclopedia';
+import {
+  getKnowledgeTopics,
+  INITIAL_KNOWLEDGE_NAVIGATION,
+  knowledgeNavigationReducer,
+  searchKnowledgeTopics,
+} from '../lib/knowledge';
+import {
+  ENCYCLOPEDIA_CATEGORY_GROUPS,
+  ENCYCLOPEDIA_HUBS,
+  HUB_BRANCH_PREVIEW_TOPIC_IDS,
+  POPULAR_KNOWLEDGE_TOPICS,
+  shouldShowKnowledgeContents,
+} from '../views/v2/encyclopediaPresentation';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 describe('knowledge encyclopedia flow', () => {
-  it('keeps the complete catalog and the requested beginner categories', () => {
-    const ruTopics = getEncyclopediaTopics('ru');
-    const enTopics = getEncyclopediaTopics('en');
-    const categories = groupTopicsByCategory(ruTopics);
+  const topics = getEncyclopediaTopics('ru');
 
+  it('opens with a beginner map of the subject instead of an alphabetic dump', () => {
     expect(INITIAL_ENCYCLOPEDIA_SCREEN).toBe('catalog');
-    expect(ruTopics.map((topic) => topic.id)).toEqual(enTopics.map((topic) => topic.id));
-    expect(ruTopics).toHaveLength(100);
-    expect(categories.map(([category]) => category)).toEqual([
+    expect(groupTopicsByCategory(topics).map(([category]) => category)).toEqual([
       'С чего начать',
       'Знаки зодиака',
-      'Планеты',
+      'Планеты и светила',
       'Дома',
       'Углы карты',
       'Аспекты',
-      'Ретроградность',
-      'Узлы и расчётные точки',
-      'Как читать карту целиком',
-      'Отношения и совместимость',
-      'Прогнозы',
-      'Луна и циклы',
+      'Движение планет',
+      'Дополнительные точки и объекты',
+      'Структуры карты',
+      'Отношения',
+      'Прогностические методы',
+      'Луна и лунный цикл',
+      'Другие понятия и методы',
     ]);
-    expect(categories.map(([, articles]) => articles.length)).toEqual([8, 17, 12, 15, 5, 8, 5, 3, 6, 9, 4, 8]);
   });
 
-  it('keeps standalone «Хочу знать» and reuses it inside the service screen', () => {
+  it('keeps the thirteen data categories behind six human entry points', () => {
+    const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
+    const categoryIds = ENCYCLOPEDIA_HUBS.flatMap((hub) => hub.categoryIds);
+
+    expect(ENCYCLOPEDIA_HUBS).toHaveLength(6);
+    expect(new Set(categoryIds).size).toBe(13);
+    expect(categoryIds).toEqual([
+      'start',
+      'planets', 'signs',
+      'houses', 'angles', 'aspects', 'synthesis',
+      'moon-cycles',
+      'retrogrades', 'forecasts',
+      'nodes-points', 'compatibility', 'branches-tools',
+    ]);
+    expect(POPULAR_KNOWLEDGE_TOPICS.map((topic) => topic.topicId)).toEqual([
+      'ascendant',
+      'retrograde-mercury',
+      'full-moon',
+      'houses-overview',
+      'black-moon-lilith',
+    ]);
+    expect(ENCYCLOPEDIA_HUBS.find((hub) => hub.id === 'other-concepts')?.featuredTopicIds)
+      .toEqual(['planet-chiron']);
+    expect(encyclopedia).toContain('Часто ищут');
+    expect(encyclopedia).toContain('Разобраться по теме');
+    expect(encyclopedia).toContain("hub?.categoryIds.length === 1");
+    expect(encyclopedia).toContain('Выберите подраздел');
+    expect(encyclopedia).not.toContain('russianMaterialCount');
+    expect(encyclopedia).not.toContain('categoryMeta');
+  });
+
+  it('uses valid representative articles for every navigation branch', () => {
+    const topicById = new Map(topics.map((topic) => [topic.id, topic]));
+
+    Object.entries(HUB_BRANCH_PREVIEW_TOPIC_IDS).forEach(([categoryId, topicIds]) => {
+      expect(topicIds).toHaveLength(3);
+      topicIds.forEach((topicId) => {
+        expect(topicById.get(topicId)?.category).toBe(categoryId);
+      });
+    });
+  });
+
+  it('groups long topic pages without adding another navigation level', () => {
+    Object.entries(ENCYCLOPEDIA_CATEGORY_GROUPS).forEach(([categoryId, groups]) => {
+      const groupedIds = groups.flatMap((group) => group.topicIds);
+      const categoryIds = topics
+        .filter((topic) => topic.category === categoryId)
+        .map((topic) => topic.id);
+
+      expect(new Set(groupedIds).size).toBe(groupedIds.length);
+      expect(new Set(groupedIds)).toEqual(new Set(categoryIds));
+      expect(groups.length).toBeGreaterThanOrEqual(2);
+      expect(groups.length).toBeLessThanOrEqual(4);
+    });
+  });
+
+  it('returns from an article through its category and human section to the catalog', () => {
+    let state = knowledgeNavigationReducer(INITIAL_KNOWLEDGE_NAVIGATION, {
+      type: 'open-hub', hubId: 'chart-structure',
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-category', categoryId: 'houses',
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-article', categoryId: 'houses', topicId: 'houses-overview',
+    });
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state.current).toEqual({ screen: 'category', categoryId: 'houses' });
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state.current).toEqual({ screen: 'hub', hubId: 'chart-structure' });
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state.current).toEqual({ screen: 'catalog' });
+    expect(state.history).toEqual([]);
+    expect(state.restoreScrollTop).toBe(0);
+  });
+
+  it('restores article previews and scroll positions through A → B → C → B → A', () => {
+    let state = knowledgeNavigationReducer(INITIAL_KNOWLEDGE_NAVIGATION, {
+      type: 'open-article', categoryId: 'moon-cycles', topicId: 'full-moon', scrollTop: 40,
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'show-inline-preview',
+      preview: {
+        targetTopicId: 'lunar-eclipse',
+        blockId: 'full-moon-section-2-paragraph-0',
+        triggerId: 'full-moon-eclipse-link',
+      },
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-article',
+      categoryId: 'moon-cycles',
+      topicId: 'lunar-eclipse',
+      scrollTop: 780,
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'show-inline-preview',
+      preview: {
+        targetTopicId: 'solar-eclipse',
+        blockId: 'lunar-eclipse-section-1-paragraph-0',
+        triggerId: 'lunar-eclipse-solar-link',
+      },
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-article',
+      categoryId: 'moon-cycles',
+      topicId: 'solar-eclipse',
+      scrollTop: 460,
+    });
+    expect(state.current).toEqual({
+      screen: 'article', categoryId: 'moon-cycles', topicId: 'solar-eclipse',
+    });
+
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state.current).toEqual({
+      screen: 'article', categoryId: 'moon-cycles', topicId: 'lunar-eclipse',
+    });
+    expect(state.restoreScrollTop).toBe(460);
+    expect(state.inlinePreview?.targetTopicId).toBe('solar-eclipse');
+
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state.current).toEqual({
+      screen: 'article', categoryId: 'moon-cycles', topicId: 'full-moon',
+    });
+    expect(state.restoreScrollTop).toBe(780);
+    expect(state.inlinePreview?.targetTopicId).toBe('lunar-eclipse');
+  });
+
+  it('keeps standalone and embedded routes without connecting personal chart data', () => {
     const app = read('App.tsx');
     const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
     const services = read('views/v2/ServiceScreen.tsx');
 
     expect(app).toContain("view === 'encyclopedia'");
-    expect(app).toContain("view === 'services'");
     expect(app).toContain('<AstrologyEncyclopedia');
-    expect(app).not.toContain('<MoreHub');
-    expect(encyclopedia).toContain("title={ru ? 'Хочу знать' : 'Learn'}");
-    expect(encyclopedia).toContain('<AppTopBar');
-    expect(encyclopedia).not.toContain('<EditorialTabs');
     expect(services).toContain('<AstrologyEncyclopedia');
     expect(services).toContain('embedded');
-    expect(services).toContain('<EditorialTabs');
-    expect(services).not.toContain('MoreHub');
-  });
-
-  it('keeps natal calculations and personal actions outside the encyclopedia', () => {
-    const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
-    const app = read('App.tsx');
-    const knowledgeIndex = read('lib/knowledge/index.ts');
-
+    expect(encyclopedia).toContain("title={ru ? 'Энциклопедия' : 'Encyclopedia'}");
+    expect(encyclopedia).toContain('AstrologyEncyclopedia.module.css');
+    expect(encyclopedia).not.toContain('EditorialChartsButton');
     [
       'primaryChartData',
       'personalReliability',
       'resolvePersonalKnowledge',
       'PersonalKnowledgeAccordion',
-      'onAskAboutSelf',
-      'onSpecifyBirthTime',
       'Что это значит в моей карте?',
-      'Указать время рождения',
       'Спросить о себе',
     ].forEach((fragment) => expect(encyclopedia).not.toContain(fragment));
-    expect(app).not.toContain('primaryKnowledgeChart');
-    expect(app).not.toContain('openKnowledgeQuestion');
-    expect(knowledgeIndex).not.toContain('personalKnowledge');
-    expect(fs.existsSync(path.join(ROOT, 'lib/knowledge/personalKnowledge.ts'))).toBe(false);
   });
 
-  it('shows category navigation first and restores the original encyclopedia article hierarchy', () => {
+  it('keeps visible article layers, related concepts, sources, and native Android Back', () => {
     const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
-    const articleIcon = read('components/icons/KnowledgeArticleIcon.tsx');
+    const knowledgeTopics = getKnowledgeTopics('ru');
 
-    expect(encyclopedia).toContain("type EncyclopediaScreen = typeof INITIAL_ENCYCLOPEDIA_SCREEN | 'category' | 'article'");
-    expect(encyclopedia).toContain('className="encyclopedia-category-navigation"');
-    expect(encyclopedia).toContain('aria-live="polite"');
-    expect(encyclopedia).toContain('topicGroups.map((group)');
-    expect(encyclopedia).not.toContain('group.topics.map');
-    expect(encyclopedia).toContain('activeCategory.topics.map((topic)');
-
-    const articleStart = encyclopedia.indexOf('<header className="encyclopedia-article-intro"');
-    const article = encyclopedia.slice(articleStart);
-    const hierarchy = [
-      'encyclopedia-subtitle',
-      '<EditorialCurve className="encyclopedia-curve"',
-      '<article className="encyclopedia-article"',
-      'encyclopedia-article-symbol',
-      '<p className="encyclopedia-eyebrow"',
-      '<h1 id={`knowledge-${activeTopic.id}`}',
-      'encyclopedia-article-tags',
-      'encyclopedia-copy',
-      'encyclopedia-copy-lead',
-      'encyclopedia-simple',
-      'Простыми словами',
-      'encyclopedia-related',
-      'Читайте также',
-    ].map((fragment) => article.indexOf(fragment));
-    expect(hierarchy.every((index) => index >= 0)).toBe(true);
-    expect([...hierarchy].sort((a, b) => a - b)).toEqual(hierarchy);
-    expect(article).toContain('activeTopic.sections.flatMap((section) => section.paragraphs)');
-    expect(article).toContain('<KnowledgeArticleIcon');
-    expect(article).not.toContain('articlePresentation.symbol');
-    expect(articleIcon).toContain('<ZodiacIcon');
-    expect(articleIcon).toContain('<PlanetIcon');
-    expect(articleIcon).toContain('<AstroTechnicalIcon');
-    expect(article).not.toContain('<h2>{section.title}</h2>');
-    expect(article).not.toContain('Sparkles');
-  });
-
-  it('handles Android Back inside an article or category before leaving Knowledge', () => {
-    const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
-
+    expect(encyclopedia).toContain('Что хотите понять?');
+    expect(encyclopedia).toContain("section.depth !== 'deep'");
+    expect(encyclopedia).toContain('renderArticleSection');
+    expect(encyclopedia).toContain('В этой статье');
+    expect(shouldShowKnowledgeContents(
+      knowledgeTopics.find((topic) => topic.id === 'full-moon')!,
+    )).toBe(true);
+    expect(shouldShowKnowledgeContents(
+      knowledgeTopics.find((topic) => topic.id === 'stellium')!,
+    )).toBe(false);
+    expect(encyclopedia).toContain('Разобраться глубже');
+    expect(encyclopedia).toContain('Связанные понятия');
+    expect(encyclopedia).toContain('Источники и определения');
     expect(encyclopedia).toContain('NATIVE_BACK_EVENT');
-    expect(encyclopedia).toContain('if (!headerBack) return');
-    expect(encyclopedia).toContain('headerBack();');
+    expect(encyclopedia).toContain("const navigateBack = () => dispatch({ type: 'back' })");
     expect(encyclopedia).toContain('detail.handled = true');
-    expect(encyclopedia).toContain('navigationTrail[navigationTrail.length - 1]');
-    expect(encyclopedia).toContain("previous.screen === 'article'");
   });
 
-  it('keeps explicit related links and never links an article to itself', () => {
-    const topics = getEncyclopediaTopics('ru');
-    const related = getRelatedTopics(topics, 'planet-mercury');
+  it('returns a useful empty result and a safe result for an absent internal destination', () => {
+    expect(searchKnowledgeTopics(topics, 'совершенно неизвестный термин')).toEqual([]);
+    expect(getRelatedTopics(topics, 'missing-article')).toEqual([]);
+  });
 
-    expect(related).toHaveLength(3);
-    expect(related.some((topic) => topic.id === 'planet-mercury')).toBe(false);
+  it('links Full Moon to Lunar Eclipse and never links an article to itself', () => {
+    const related = getRelatedTopics(topics, 'full-moon');
+    expect(related.map((topic) => topic.id)).toContain('lunar-eclipse');
+    expect(related.map((topic) => topic.id)).not.toContain('full-moon');
   });
 });

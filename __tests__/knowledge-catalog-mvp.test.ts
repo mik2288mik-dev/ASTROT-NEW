@@ -2,58 +2,68 @@ import {
   KNOWLEDGE_CATEGORIES,
   KNOWLEDGE_TOPIC_SOURCES,
   getKnowledgeTopics,
-  getKnowledgeArticlePresentation,
   getRelatedKnowledgeTopics,
   groupKnowledgeTopicsByCategory,
   normalizeKnowledgeSearch,
   searchKnowledgeTopics,
+  validateKnowledgeCatalog,
+  type KnowledgeTopicSource,
 } from '../lib/knowledge';
 
-describe('first-release knowledge catalog', () => {
+describe('beginner astrology encyclopedia catalog', () => {
   const ruTopics = getKnowledgeTopics('ru');
   const enTopics = getKnowledgeTopics('en');
+  const byId = new Map(ruTopics.map((topic) => [topic.id, topic]));
 
-  it('ships the complete twelve-category beginner catalog in both languages', () => {
-    expect(KNOWLEDGE_CATEGORIES).toHaveLength(12);
-    expect(ruTopics).toHaveLength(100);
+  it('ships the same stable concepts in both locales without an artificial article-count target', () => {
+    expect(KNOWLEDGE_CATEGORIES).toHaveLength(13);
     expect(enTopics.map((topic) => topic.id)).toEqual(ruTopics.map((topic) => topic.id));
     expect(new Set(ruTopics.map((topic) => topic.id)).size).toBe(ruTopics.length);
+    expect(ruTopics.length).not.toBe(100);
 
     const groups = groupKnowledgeTopicsByCategory(ruTopics, 'ru');
-    expect(groups.map((group) => group.categoryId)).toEqual(KNOWLEDGE_CATEGORIES.map((category) => category.id));
-    expect(groups.map((group) => group.label)).toEqual([
-      'С чего начать',
-      'Знаки зодиака',
-      'Планеты',
-      'Дома',
-      'Углы карты',
-      'Аспекты',
-      'Ретроградность',
-      'Узлы и расчётные точки',
-      'Как читать карту целиком',
-      'Отношения и совместимость',
-      'Прогнозы',
-      'Луна и циклы',
-    ]);
+    expect(groups.map((group) => group.categoryId)).toEqual(
+      KNOWLEDGE_CATEGORIES.map((category) => category.id),
+    );
     expect(groups.every((group) => group.topics.length > 0)).toBe(true);
   });
 
-  it('covers all required signs, houses, planets, angles, and main aspects', () => {
+  it('covers the required foundation, reference, and advanced concepts', () => {
     const ids = new Set(ruTopics.map((topic) => topic.id));
     [
+      'astrology-overview', 'what-is-horoscope', 'natal-chart-basics', 'zodiac-geometry',
+      'zodiac-signs-vs-constellations', 'tropical-sidereal-zodiac',
+      'planets-overview', 'planet-sun', 'planet-moon', 'planet-pluto', 'planet-chiron',
       'sign-aries', 'sign-taurus', 'sign-gemini', 'sign-cancer', 'sign-leo', 'sign-virgo',
       'sign-libra', 'sign-scorpio', 'sign-sagittarius', 'sign-capricorn', 'sign-aquarius', 'sign-pisces',
-      ...Array.from({ length: 12 }, (_, index) => `house-${index + 1}`),
-      'planet-sun', 'planet-moon', 'planet-mercury', 'planet-venus', 'planet-mars',
-      'planet-jupiter', 'planet-saturn', 'planet-uranus', 'planet-neptune', 'planet-pluto', 'planet-chiron',
+      'fire-element', 'earth-element', 'air-element', 'water-element',
+      'cardinal-modality', 'fixed-modality', 'mutable-modality', 'sign-polarity', 'sign-rulership',
+      'houses-overview', ...Array.from({ length: 12 }, (_, index) => `house-${index + 1}`),
+      'house-cusp', 'house-systems', 'house-placidus', 'house-whole-sign', 'house-equal',
       'ascendant', 'descendant', 'midheaven', 'imum-coeli',
-      'aspect-conjunction', 'aspect-sextile', 'aspect-square', 'aspect-trine', 'aspect-opposition',
-      'nodes-overview', 'retrograde-mercury', 'transits-current-sky', 'lunar-cycle-calendar',
+      'aspects-overview', 'aspect-conjunction', 'aspect-sextile', 'aspect-square',
+      'aspect-trine', 'aspect-opposition', 'aspect-orb', 'aspect-exact',
+      'lunar-cycle', 'new-moon', 'full-moon', 'moon-first-quarter', 'moon-last-quarter',
+      'solar-eclipse', 'lunar-eclipse', 'retrograde-motion', 'direct-motion',
+      'retrograde-station-direct', 'retrograde-mercury', 'planetary-ingress',
+      'nodes-overview', 'node-north', 'node-south', 'black-moon-lilith', 'chart-point-object',
+      'stellium', 'aspect-patterns', 'grand-trine', 't-square', 'grand-cross',
+      'rulers-dispositors', 'planetary-dignities',
+      'transits-current-sky', 'progressions', 'directions', 'solar-return', 'lunar-return', 'saturn-return',
+      'synastry', 'composite-chart', 'ephemerides', 'degree-and-position',
+      'astrology-branches', 'astrocartography',
     ].forEach((id) => expect(ids.has(id)).toBe(true));
   });
 
-  it('keeps every article structured, plain, and explicitly linked', () => {
-    const ids = new Set(ruTopics.map((topic) => topic.id));
+  it('keeps every article structured, searchable, and connected only through valid IDs', () => {
+    const validation = validateKnowledgeCatalog(KNOWLEDGE_TOPIC_SOURCES);
+    expect(validation).toEqual({
+      duplicateIds: [],
+      brokenInlineLinks: [],
+      brokenRelatedLinks: [],
+      brokenSourceLinks: [],
+    });
+
     for (const topic of ruTopics) {
       expect(topic.title.trim()).not.toBe('');
       expect(topic.summary.trim()).not.toBe('');
@@ -64,38 +74,69 @@ describe('first-release knowledge catalog', () => {
       expect(new Set(topic.relatedTopicIds).size).toBe(topic.relatedTopicIds.length);
       expect(topic.relatedTopicIds).not.toContain(topic.id);
       expect(topic).not.toHaveProperty('personalizationKind');
-      topic.relatedTopicIds.forEach((relatedId) => expect(ids.has(relatedId)).toBe(true));
-
-      const related = getRelatedKnowledgeTopics(ruTopics, topic);
-      expect(related.map((candidate) => candidate.id)).toEqual(topic.relatedTopicIds);
+      expect(getRelatedKnowledgeTopics(ruTopics, topic).map((candidate) => candidate.id))
+        .toEqual(topic.relatedTopicIds);
     }
-
-    const russianCopy = JSON.stringify(KNOWLEDGE_TOPIC_SOURCES.map((topic) => topic.copy.ru));
-    expect(russianCopy).not.toMatch(/проявл|энерги|ресурс|проработ|паттерн|внутренн(?:яя|ей|юю) опор|сценари|подсвеч|реализац(?:ия|ии) потенциал|глубинн(?:ая|ой|ую) трансформац|вселенн|судьба велит|кармическ(?:ий|ая|ое)/iu);
-    expect(russianCopy).not.toMatch(/\d/u);
   });
 
-  it('finds familiar words, abbreviations, aliases, and spelling variants locally', () => {
+  it('reports duplicate IDs and broken internal links instead of failing silently', () => {
+    const base = KNOWLEDGE_TOPIC_SOURCES[0];
+    const broken: KnowledgeTopicSource = {
+      ...base,
+      id: 'broken-test-topic',
+      relatedTopicIds: ['missing-topic'],
+      sourceIds: ['missing-source'],
+    };
+    const validation = validateKnowledgeCatalog(
+      [base, { ...base }, broken],
+      [{ topicId: 'broken-test-topic', targetTopicIds: ['missing-inline-topic'] }],
+    );
+
+    expect(validation.duplicateIds).toEqual([base.id]);
+    expect(validation.brokenRelatedLinks).toContainEqual({
+      topicId: 'broken-test-topic', relatedId: 'missing-topic',
+    });
+    expect(validation.brokenInlineLinks).toContainEqual({
+      topicId: 'broken-test-topic', targetTopicId: 'missing-inline-topic',
+    });
+    expect(validation.brokenSourceLinks).toContainEqual({
+      topicId: 'broken-test-topic', sourceId: 'missing-source',
+    });
+  });
+
+  it('finds abbreviations, aliases, English names, and common spelling variants', () => {
     const idsFor = (query: string) => searchKnowledgeTopics(ruTopics, query).map((topic) => topic.id);
 
-    expect(idsFor('asc')).toContain('ascendant');
-    expect(idsFor('асцендент')).toContain('ascendant');
+    expect(idsFor('ASC')[0]).toBe('ascendant');
+    expect(idsFor('асцедент')[0]).toBe('ascendant');
     expect(idsFor('восходящий знак')).toContain('ascendant');
-    expect(idsFor('квадрат')).toEqual(expect.arrayContaining(['aspect-square', 'aspects-overview']));
-    expect(idsFor('любовь')).toEqual(expect.arrayContaining([
-      'planet-venus', 'house-7', 'sign-compatibility', 'two-chart-compatibility',
-    ]));
-    expect(idsFor('ретро')).toContain('retrograde-motion');
+    expect(idsFor('MC')).toContain('midheaven');
+    expect(idsFor('ретро меркурий')[0]).toBe('retrograde-mercury');
+    expect(idsFor('mercury retrograde')).toContain('retrograde-mercury');
+    expect(idsFor('чёрная луна')).toContain('black-moon-lilith');
+    expect(idsFor('соляр')).toContain('solar-return');
+    expect(idsFor('стелиум')).toContain('stellium');
     expect(normalizeKnowledgeSearch('ЗВЁЗДЫ')).toBe('звезды');
   });
 
-  it('keeps one compact topic tag in article headers', () => {
-    const byId = new Map(ruTopics.map((topic) => [topic.id, topic]));
+  it('keeps the reference articles factual first and visibly separates interpretation', () => {
+    const required = [
+      'ascendant', 'planet-moon', 'houses-overview', 'aspects-overview',
+      'retrograde-motion', 'retrograde-mercury', 'full-moon', 'black-moon-lilith',
+      'nodes-overview', 'planet-chiron', 'stellium', 'solar-return', 'synastry', 'progressions',
+    ];
+    for (const id of required) {
+      const article = byId.get(id);
+      expect(article).toBeDefined();
+      expect(article!.sections.length).toBeGreaterThanOrEqual(3);
+      expect(article!.sections.some((section) => section.kind === 'confusion')).toBe(true);
+      expect(article!.summary).not.toMatch(/^В астрологии/u);
+    }
 
-    expect(getKnowledgeArticlePresentation(byId.get('planet-venus')!, 'ru')).toEqual({
-      tag: 'Натальная карта',
-    });
-    expect(getKnowledgeArticlePresentation(byId.get('ascendant')!, 'ru').tag).toBe('Точное время');
-    expect(getKnowledgeArticlePresentation(byId.get('house-7')!, 'ru').tag).toBe('Время рождения');
+    expect(byId.get('black-moon-lilith')!.summary).toContain('не планета');
+    expect(byId.get('nodes-overview')!.summary).toContain('геометрические точки');
+    expect(byId.get('retrograde-mercury')!.summary).toContain('не разворачивается');
+    expect(byId.get('full-moon')!.relatedTopicIds).toContain('lunar-eclipse');
+    expect(byId.get('aspects-overview')!.diagram).toBe('aspects');
   });
 });

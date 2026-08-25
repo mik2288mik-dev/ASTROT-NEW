@@ -1,6 +1,7 @@
 import type { KnowledgeTopic } from './types';
 
 export const MAX_KNOWLEDGE_INLINE_LINKS = 3;
+export const MAX_KNOWLEDGE_INLINE_LINKS_PER_BLOCK = 2;
 
 export type KnowledgeInlineLinkCandidate = {
   topicId: string;
@@ -37,10 +38,13 @@ function hasWordBoundaries(text: string, start: number, term: string): boolean {
 export function buildKnowledgeInlineLinkCandidates(
   topics: readonly KnowledgeTopic[],
   activeTopicId: string,
+  targetTopicIds: readonly string[],
 ): KnowledgeInlineLinkCandidate[] {
   const destinationsByTerm = new Map<string, { term: string; topicIds: Set<string> }>();
+  const allowedTopicIds = new Set(targetTopicIds);
 
   for (const topic of topics) {
+    if (!allowedTopicIds.has(topic.id)) continue;
     for (const rawTerm of [topic.title, ...topic.aliases]) {
       const term = rawTerm.trim();
       const normalizedTerm = normalizeInlineTerm(term);
@@ -69,6 +73,37 @@ export function buildKnowledgeInlineLinkCandidates(
       right.normalizedTerm.length - left.normalizedTerm.length
       || left.normalizedTerm.localeCompare(right.normalizedTerm)
     ));
+}
+
+/**
+ * Links the first relevant occurrences across one semantic block and keeps the
+ * whole block under a small shared link budget.
+ */
+export function splitKnowledgeBlockWithLinks(
+  paragraphs: readonly string[],
+  candidates: readonly KnowledgeInlineLinkCandidate[],
+  maxLinks = MAX_KNOWLEDGE_INLINE_LINKS_PER_BLOCK,
+): KnowledgeInlineTextSegment[][] {
+  const linkedTopicIds = new Set<string>();
+  let remainingLinks = Math.max(0, Math.floor(maxLinks));
+
+  return paragraphs.map((paragraph) => {
+    if (remainingLinks === 0) return [{ kind: 'text', text: paragraph }];
+    const availableCandidates = candidates.filter(
+      (candidate) => !linkedTopicIds.has(candidate.topicId),
+    );
+    const segments = splitKnowledgeTextWithLinks(
+      paragraph,
+      availableCandidates,
+      remainingLinks,
+    );
+    for (const segment of segments) {
+      if (segment.kind !== 'link') continue;
+      linkedTopicIds.add(segment.topicId);
+      remainingLinks -= 1;
+    }
+    return segments;
+  });
 }
 
 function findCandidateIndex(
