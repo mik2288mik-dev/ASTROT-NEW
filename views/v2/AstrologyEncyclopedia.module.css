@@ -14,17 +14,33 @@
   box-sizing: border-box;
   width: min(100%, 720px);
   margin: 0 auto;
-  padding: 28px max(20px, env(safe-area-inset-right, 0px)) max(64px, calc(env(safe-area-inset-bottom, 0px) + 40px)) max(20px, env(safe-area-inset-left, 0px));
+  padding: 18px max(20px, env(safe-area-inset-right, 0px)) max(64px, calc(env(safe-area-inset-bottom, 0px) + 40px)) max(20px, env(safe-area-inset-left, 0px));
 }
 
-.catalogHeader,
-.categoryHeader {
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.catalogHeader {
+  display: grid;
+}
+
+.categoryHeader,
+.hubHeader {
   display: grid;
   gap: 12px;
 }
 
-.catalogHeader h1,
 .categoryHeader h1,
+.hubHeader h1,
 .articleHeader h1,
 .empty h1 {
   max-width: 18ch;
@@ -37,14 +53,15 @@
   text-wrap: pretty;
 }
 
-.catalogHeader h1:focus,
 .categoryHeader h1:focus,
+.hubHeader h1:focus,
 .articleHeader h1:focus {
   outline: 0;
 }
 
 .catalogHeader p,
 .categoryHeader p,
+.hubHeader p,
 .empty p {
   max-width: 46rem;
   margin: 0;
@@ -54,10 +71,16 @@
   text-wrap: pretty;
 }
 
+.catalogHeader p {
+  color: var(--knowledge-muted);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
 .search {
   display: grid;
   gap: 10px;
-  margin-top: 30px;
+  margin-top: 18px;
 }
 
 .search label {
@@ -110,14 +133,13 @@
 }
 
 .sectionTitle {
-  margin: 38px 0 12px;
+  margin: 24px 0 10px;
   color: var(--knowledge-ink);
   font-size: 1.125rem;
   font-weight: 620;
   letter-spacing: -0.02em;
 }
 
-.categoryList,
 .topicList,
 .relatedList {
   margin: 0;
@@ -126,11 +148,6 @@
   list-style: none;
 }
 
-.categoryList {
-  margin-top: 12px;
-}
-
-.categoryButton,
 .topicButton,
 .relatedButton {
   display: flex;
@@ -150,18 +167,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.categoryButton {
-  min-height: 84px;
-}
-
-.categoryCopy,
 .topicCopy {
   display: grid;
   min-width: 0;
   gap: 5px;
 }
 
-.categoryCopy strong,
 .topicCopy strong {
   font-size: 1.0625rem;
   font-weight: 610;
@@ -169,7 +180,6 @@
   line-height: 1.35;
 }
 
-.categoryCopy small,
 .topicCopy small {
   color: var(--knowledge-muted);
   font-size: 0.875rem;
@@ -177,23 +187,6 @@
   text-wrap: pretty;
 }
 
-.categoryMeta {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-  padding-top: 1px;
-  color: var(--knowledge-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.categoryMeta small {
-  min-width: 1.5rem;
-  font-size: 0.8125rem;
-  text-align: right;
-}
-
-.categoryMeta svg,
 .topicButton > svg,
 .relatedButton > svg {
   width: 18px;
@@ -201,6 +194,151 @@
   flex: 0 0 18px;
   margin-top: 2px;
   color: var(--knowledge-muted);
+}
+
+.popular {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.popular h2 {
+  margin: 0;
+  color: var(--knowledge-ink);
+  font-size: 0.875rem;
+  font-weight: 620;
+  line-height: 1.4;
+}
+
+.popularList,
+.hubGrid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.popularList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.popularButton {
+  position: relative;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--knowledge-soft);
+  color: var(--knowledge-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.popularButton::before {
+  position: absolute;
+  inset: -4px 0;
+  content: '';
+}
+
+.hubGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hubCard {
+  --hub-tone: #f7f4f0;
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: 128px;
+  align-content: start;
+  gap: 8px;
+  padding: 14px;
+  padding-inline-end: 34px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--hub-tone);
+  color: var(--knowledge-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hubCard[data-hub='planets-signs'],
+.hubCard[data-hub='motion-forecasting'] {
+  --hub-tone: #f4f2ed;
+}
+
+.hubCard[data-hub='chart-structure'],
+.hubCard[data-hub='other-concepts'] {
+  --hub-tone: #f5f3f1;
+}
+
+.hubCard strong {
+  font-size: 0.9375rem;
+  font-weight: 620;
+  letter-spacing: -0.018em;
+  line-height: 1.28;
+  text-wrap: balance;
+}
+
+.hubCard small {
+  color: var(--knowledge-muted);
+  font-size: 0.75rem;
+  line-height: 1.42;
+  text-wrap: pretty;
+}
+
+.hubCard svg {
+  position: absolute;
+  top: 14px;
+  inset-inline-end: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--knowledge-muted);
+}
+
+.hubView,
+.hubTopicGroups,
+.hubTopicGroup {
+  display: grid;
+}
+
+.hubView {
+  gap: 30px;
+}
+
+.hubTopicGroups {
+  gap: 36px;
+}
+
+.hubTopicGroup {
+  gap: 10px;
+}
+
+.hubTopicGroup h2 {
+  margin: 0;
+  color: var(--knowledge-ink);
+  font-size: 1.125rem;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .popularButton:hover {
+    background: #eee9e3;
+  }
+
+  .hubCard:hover {
+    background: color-mix(in srgb, var(--hub-tone) 94%, var(--knowledge-ink));
+  }
 }
 
 .categoryView {
@@ -583,7 +721,8 @@
   gap: 12px;
 }
 
-.categoryButton:focus-visible,
+.popularButton:focus-visible,
+.hubCard:focus-visible,
 .topicButton:focus-visible,
 .relatedButton:focus-visible,
 .backButton:focus-visible,
@@ -596,7 +735,8 @@
   outline-offset: 3px;
 }
 
-.categoryButton:active,
+.popularButton:active,
+.hubCard:active,
 .topicButton:active,
 .relatedButton:active,
 .backButton:active,
@@ -606,24 +746,22 @@
 
 @media (min-width: 640px) {
   .content {
-    padding-top: 42px;
+    padding-top: 28px;
     padding-right: 32px;
     padding-left: 32px;
   }
 
   .catalogHeader p,
+  .hubHeader p,
   .categoryHeader p {
     font-size: 1rem;
   }
 
-  .categoryList {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 30px;
-    border-top: 0;
+  .hubGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .categoryList li:nth-child(-n + 2) .categoryButton {
-    border-top: 1px solid var(--knowledge-line);
+  .hubCard {
+    min-height: 136px;
   }
 }

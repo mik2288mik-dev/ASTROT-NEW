@@ -11,6 +11,10 @@ import {
   knowledgeNavigationReducer,
   searchKnowledgeTopics,
 } from '../lib/knowledge';
+import {
+  ENCYCLOPEDIA_HUBS,
+  POPULAR_KNOWLEDGE_TOPICS,
+} from '../views/v2/encyclopediaPresentation';
 
 const ROOT = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -35,6 +39,46 @@ describe('knowledge encyclopedia flow', () => {
       'Луна и лунный цикл',
       'Другие понятия и методы',
     ]);
+  });
+
+  it('keeps the thirteen data categories behind six human entry points', () => {
+    const encyclopedia = read('views/v2/AstrologyEncyclopedia.tsx');
+    const categoryIds = ENCYCLOPEDIA_HUBS.flatMap((hub) => hub.categoryIds);
+
+    expect(ENCYCLOPEDIA_HUBS).toHaveLength(6);
+    expect(new Set(categoryIds).size).toBe(13);
+    expect(categoryIds).toEqual([
+      'start',
+      'planets', 'signs',
+      'houses', 'angles', 'aspects', 'synthesis',
+      'moon-cycles',
+      'retrogrades', 'forecasts',
+      'nodes-points', 'compatibility', 'branches-tools',
+    ]);
+    expect(POPULAR_KNOWLEDGE_TOPICS.map((topic) => topic.topicId)).toEqual([
+      'ascendant',
+      'retrograde-mercury',
+      'full-moon',
+      'houses-overview',
+      'black-moon-lilith',
+    ]);
+    expect(encyclopedia).toContain('Часто ищут');
+    expect(encyclopedia).toContain('Разобраться по теме');
+    expect(encyclopedia).not.toContain('russianMaterialCount');
+    expect(encyclopedia).not.toContain('categoryMeta');
+  });
+
+  it('returns from an article to its human section and then to the catalog', () => {
+    let state = knowledgeNavigationReducer(INITIAL_KNOWLEDGE_NAVIGATION, {
+      type: 'open-hub', hubId: 'moon-sky',
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-article', categoryId: 'moon-cycles', topicId: 'full-moon',
+    });
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state.current).toEqual({ screen: 'hub', hubId: 'moon-sky' });
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state).toEqual(INITIAL_KNOWLEDGE_NAVIGATION);
   });
 
   it('opens an article, follows an internal link, and restores both steps with Back', () => {

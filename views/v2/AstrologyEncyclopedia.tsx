@@ -16,9 +16,14 @@ import {
   searchKnowledgeTopics,
   splitKnowledgeTextWithLinks,
   type KnowledgeArticleSection,
-  type KnowledgeCategoryId,
+  type KnowledgeHubId,
 } from '../../lib/knowledge';
 import { KnowledgeDiagram } from './KnowledgeDiagram';
+import {
+  ENCYCLOPEDIA_HUBS,
+  getEncyclopediaHub,
+  POPULAR_KNOWLEDGE_TOPICS,
+} from './encyclopediaPresentation';
 import styles from './AstrologyEncyclopedia.module.css';
 
 export type AstrologyEncyclopediaProps = {
@@ -27,15 +32,6 @@ export type AstrologyEncyclopediaProps = {
   onOpenCharts?: () => void;
   embedded?: boolean;
 };
-
-function russianMaterialCount(count: number): string {
-  const lastTwo = count % 100;
-  const last = count % 10;
-  if (lastTwo >= 11 && lastTwo <= 14) return `${count} материалов`;
-  if (last === 1) return `${count} материал`;
-  if (last >= 2 && last <= 4) return `${count} материала`;
-  return `${count} материалов`;
-}
 
 export function AstrologyEncyclopedia({
   profile,
@@ -55,6 +51,7 @@ export function AstrologyEncyclopedia({
   const [query, setQuery] = useState('');
   const contentRef = useRef<HTMLDivElement | null>(null);
   const catalogHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const hubHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const categoryHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const articleHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const current = navigation.current;
@@ -68,6 +65,14 @@ export function AstrologyEncyclopedia({
     : current.screen === 'article'
       ? topicGroups.find((group) => group.categoryId === current.categoryId)
       : undefined;
+  const activeHub = current.screen === 'hub' ? getEncyclopediaHub(current.hubId) : undefined;
+  const activeHubGroups = activeHub
+    ? topicGroups.filter((group) => activeHub.categoryIds.includes(group.categoryId))
+    : [];
+  const popularTopics = POPULAR_KNOWLEDGE_TOPICS.flatMap((popular) => {
+    const topic = topics.find((candidate) => candidate.id === popular.topicId);
+    return topic ? [{ topic, label: popular.label[language] }] : [];
+  });
   const activeTopic = current.screen === 'article'
     ? topics.find((topic) => topic.id === current.topicId)
     : undefined;
@@ -84,9 +89,9 @@ export function AstrologyEncyclopedia({
     [activeTopic, language],
   );
 
-  const openCategory = (categoryId: KnowledgeCategoryId) => {
+  const openHub = (hubId: KnowledgeHubId) => {
     setQuery('');
-    dispatch({ type: 'open-category', categoryId });
+    dispatch({ type: 'open-hub', hubId });
   };
 
   const openTopic = (topicId: string) => {
@@ -105,9 +110,11 @@ export function AstrologyEncyclopedia({
       window.scrollTo({ top: 0, behavior: 'auto' });
       const heading = current.screen === 'article'
         ? articleHeadingRef.current
-        : current.screen === 'category'
-          ? categoryHeadingRef.current
-          : catalogHeadingRef.current;
+        : current.screen === 'hub'
+          ? hubHeadingRef.current
+          : current.screen === 'category'
+            ? categoryHeadingRef.current
+            : catalogHeadingRef.current;
       heading?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
@@ -165,9 +172,11 @@ export function AstrologyEncyclopedia({
   const previous = navigation.history[navigation.history.length - 1];
   const previousLabel = previous?.screen === 'article'
     ? topics.find((topic) => topic.id === previous.topicId)?.title
-    : previous?.screen === 'category'
-      ? topicGroups.find((group) => group.categoryId === previous.categoryId)?.label
-      : ru ? 'Все разделы' : 'All sections';
+    : previous?.screen === 'hub'
+      ? getEncyclopediaHub(previous.hubId)?.title[language]
+      : previous?.screen === 'category'
+        ? topicGroups.find((group) => group.categoryId === previous.categoryId)?.label
+        : ru ? 'Все разделы' : 'All sections';
   const headerBack = current.screen === 'catalog' ? undefined : navigateBack;
 
   if (!topics.length) {
@@ -205,11 +214,13 @@ export function AstrologyEncyclopedia({
         {current.screen === 'catalog' ? (
           <>
             <header className={styles.catalogHeader}>
-              <h1 ref={catalogHeadingRef} tabIndex={-1}>{ru ? 'Энциклопедия' : 'Encyclopedia'}</h1>
+              <h1 className={styles.visuallyHidden} ref={catalogHeadingRef} tabIndex={-1}>
+                {ru ? 'Энциклопедия' : 'Encyclopedia'}
+              </h1>
               <p>
                 {ru
-                  ? 'Астрология простыми словами. Что это, как работает и почему так называется.'
-                  : 'Astrology in plain language: what terms mean, how they work, and why they have those names.'}
+                  ? 'Астрология простыми словами.'
+                  : 'Astrology in plain language.'}
               </p>
             </header>
 
@@ -266,36 +277,81 @@ export function AstrologyEncyclopedia({
                 )}
               </section>
             ) : (
-              <section aria-labelledby="knowledge-categories-title">
-                <h2 className={styles.sectionTitle} id="knowledge-categories-title">
-                  {ru ? 'Разделы' : 'Sections'}
-                </h2>
-                <ul className={styles.categoryList} role="list">
-                  {topicGroups.map((group) => (
-                    <li key={group.categoryId}>
-                      <button
-                        className={styles.categoryButton}
-                        type="button"
-                        onClick={() => openCategory(group.categoryId)}
-                        aria-label={ru
-                          ? `${group.label}: ${russianMaterialCount(group.topics.length)}`
-                          : `${group.label}: ${group.topics.length} articles`}
-                      >
-                        <span className={styles.categoryCopy}>
-                          <strong>{group.label}</strong>
-                          <small>{group.description}</small>
-                        </span>
-                        <span className={styles.categoryMeta} aria-hidden="true">
-                          <small>{group.topics.length}</small>
-                          <ChevronRight strokeWidth={1.6} />
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <>
+                <section className={styles.popular} aria-labelledby="knowledge-popular-title">
+                  <h2 id="knowledge-popular-title">{ru ? 'Часто ищут' : 'Popular topics'}</h2>
+                  <ul className={styles.popularList} role="list">
+                    {popularTopics.map(({ topic, label }) => (
+                      <li key={topic.id}>
+                        <button
+                          className={styles.popularButton}
+                          type="button"
+                          onClick={() => openTopic(topic.id)}
+                        >
+                          {label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section aria-labelledby="knowledge-directions-title">
+                  <h2 className={styles.sectionTitle} id="knowledge-directions-title">
+                    {ru ? 'Разобраться по теме' : 'Browse by topic'}
+                  </h2>
+                  <ul className={styles.hubGrid} role="list">
+                    {ENCYCLOPEDIA_HUBS.map((hub) => (
+                      <li key={hub.id}>
+                        <button
+                          className={styles.hubCard}
+                          data-hub={hub.id}
+                          type="button"
+                          onClick={() => openHub(hub.id)}
+                        >
+                          <strong>{hub.title[language]}</strong>
+                          <small>{hub.preview[language]}</small>
+                          <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </>
             )}
           </>
+        ) : current.screen === 'hub' && activeHub ? (
+          <section className={styles.hubView} aria-labelledby="encyclopedia-hub-title">
+            <header className={styles.hubHeader}>
+              <h1 id="encyclopedia-hub-title" ref={hubHeadingRef} tabIndex={-1}>
+                {activeHub.title[language]}
+              </h1>
+              <p>{activeHub.preview[language]}</p>
+            </header>
+            <div className={styles.hubTopicGroups}>
+              {activeHubGroups.map((group) => (
+                <section className={styles.hubTopicGroup} key={group.categoryId}>
+                  <h2>{group.label}</h2>
+                  <ul className={styles.topicList} role="list">
+                    {group.topics.map((topic) => (
+                      <li key={topic.id}>
+                        <button
+                          className={styles.topicButton}
+                          type="button"
+                          onClick={() => openTopic(topic.id)}
+                        >
+                          <span className={styles.topicCopy}>
+                            <strong>{topic.title}</strong>
+                            <small>{topic.summary}</small>
+                          </span>
+                          <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          </section>
         ) : current.screen === 'category' && activeCategory ? (
           <section className={styles.categoryView} aria-labelledby="encyclopedia-category-title">
             <header className={styles.categoryHeader}>

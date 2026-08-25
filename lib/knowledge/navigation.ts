@@ -1,7 +1,16 @@
 import type { KnowledgeCategoryId } from './types';
 
+export type KnowledgeHubId =
+  | 'foundations'
+  | 'planets-signs'
+  | 'chart-structure'
+  | 'moon-sky'
+  | 'motion-forecasting'
+  | 'other-concepts';
+
 export type KnowledgeLocation =
   | { screen: 'catalog' }
+  | { screen: 'hub'; hubId: KnowledgeHubId }
   | { screen: 'category'; categoryId: KnowledgeCategoryId }
   | { screen: 'article'; categoryId: KnowledgeCategoryId; topicId: string };
 
@@ -11,6 +20,7 @@ export type KnowledgeNavigationState = {
 };
 
 export type KnowledgeNavigationAction =
+  | { type: 'open-hub'; hubId: KnowledgeHubId }
   | { type: 'open-category'; categoryId: KnowledgeCategoryId }
   | { type: 'open-article'; categoryId: KnowledgeCategoryId; topicId: string }
   | { type: 'back' }
@@ -32,8 +42,10 @@ export function knowledgeNavigationReducer(
       ? { current: previous, history: state.history.slice(0, -1) }
       : INITIAL_KNOWLEDGE_NAVIGATION;
   }
-  const current: KnowledgeLocation = action.type === 'open-category'
-    ? { screen: 'category', categoryId: action.categoryId }
-    : { screen: 'article', categoryId: action.categoryId, topicId: action.topicId };
+  const current: KnowledgeLocation = action.type === 'open-hub'
+    ? { screen: 'hub', hubId: action.hubId }
+    : action.type === 'open-category'
+      ? { screen: 'category', categoryId: action.categoryId }
+      : { screen: 'article', categoryId: action.categoryId, topicId: action.topicId };
   return { current, history: [...state.history, state.current] };
 }
