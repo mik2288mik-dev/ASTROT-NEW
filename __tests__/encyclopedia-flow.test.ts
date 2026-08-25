@@ -13,6 +13,7 @@ import {
 } from '../lib/knowledge';
 import {
   ENCYCLOPEDIA_HUBS,
+  HUB_BRANCH_PREVIEW_TOPIC_IDS,
   POPULAR_KNOWLEDGE_TOPICS,
 } from '../views/v2/encyclopediaPresentation';
 
@@ -62,21 +63,41 @@ describe('knowledge encyclopedia flow', () => {
       'houses-overview',
       'black-moon-lilith',
     ]);
+    expect(ENCYCLOPEDIA_HUBS.find((hub) => hub.id === 'other-concepts')?.featuredTopicIds)
+      .toEqual(['planet-chiron']);
     expect(encyclopedia).toContain('Часто ищут');
     expect(encyclopedia).toContain('Разобраться по теме');
+    expect(encyclopedia).toContain("hub?.categoryIds.length === 1");
+    expect(encyclopedia).toContain('Выберите подраздел');
     expect(encyclopedia).not.toContain('russianMaterialCount');
     expect(encyclopedia).not.toContain('categoryMeta');
   });
 
-  it('returns from an article to its human section and then to the catalog', () => {
+  it('uses valid representative articles for every navigation branch', () => {
+    const topicById = new Map(topics.map((topic) => [topic.id, topic]));
+
+    Object.entries(HUB_BRANCH_PREVIEW_TOPIC_IDS).forEach(([categoryId, topicIds]) => {
+      expect(topicIds).toHaveLength(3);
+      topicIds.forEach((topicId) => {
+        expect(topicById.get(topicId)?.category).toBe(categoryId);
+      });
+    });
+  });
+
+  it('returns from an article through its category and human section to the catalog', () => {
     let state = knowledgeNavigationReducer(INITIAL_KNOWLEDGE_NAVIGATION, {
-      type: 'open-hub', hubId: 'moon-sky',
+      type: 'open-hub', hubId: 'chart-structure',
     });
     state = knowledgeNavigationReducer(state, {
-      type: 'open-article', categoryId: 'moon-cycles', topicId: 'full-moon',
+      type: 'open-category', categoryId: 'houses',
+    });
+    state = knowledgeNavigationReducer(state, {
+      type: 'open-article', categoryId: 'houses', topicId: 'houses-overview',
     });
     state = knowledgeNavigationReducer(state, { type: 'back' });
-    expect(state.current).toEqual({ screen: 'hub', hubId: 'moon-sky' });
+    expect(state.current).toEqual({ screen: 'category', categoryId: 'houses' });
+    state = knowledgeNavigationReducer(state, { type: 'back' });
+    expect(state.current).toEqual({ screen: 'hub', hubId: 'chart-structure' });
     state = knowledgeNavigationReducer(state, { type: 'back' });
     expect(state).toEqual(INITIAL_KNOWLEDGE_NAVIGATION);
   });

@@ -16,12 +16,14 @@ import {
   searchKnowledgeTopics,
   splitKnowledgeTextWithLinks,
   type KnowledgeArticleSection,
+  type KnowledgeCategoryId,
   type KnowledgeHubId,
 } from '../../lib/knowledge';
 import { KnowledgeDiagram } from './KnowledgeDiagram';
 import {
   ENCYCLOPEDIA_HUBS,
   getEncyclopediaHub,
+  HUB_BRANCH_PREVIEW_TOPIC_IDS,
   POPULAR_KNOWLEDGE_TOPICS,
 } from './encyclopediaPresentation';
 import styles from './AstrologyEncyclopedia.module.css';
@@ -69,6 +71,11 @@ export function AstrologyEncyclopedia({
   const activeHubGroups = activeHub
     ? topicGroups.filter((group) => activeHub.categoryIds.includes(group.categoryId))
     : [];
+  const activeHubFeaturedTopics = activeHub?.featuredTopicIds
+    ?.flatMap((topicId) => {
+      const topic = topics.find((candidate) => candidate.id === topicId);
+      return topic ? [topic] : [];
+    }) || [];
   const popularTopics = POPULAR_KNOWLEDGE_TOPICS.flatMap((popular) => {
     const topic = topics.find((candidate) => candidate.id === popular.topicId);
     return topic ? [{ topic, label: popular.label[language] }] : [];
@@ -91,8 +98,27 @@ export function AstrologyEncyclopedia({
 
   const openHub = (hubId: KnowledgeHubId) => {
     setQuery('');
+    const hub = getEncyclopediaHub(hubId);
+    const [onlyCategoryId] = hub?.categoryIds || [];
+    if (hub?.categoryIds.length === 1 && onlyCategoryId) {
+      dispatch({ type: 'open-category', categoryId: onlyCategoryId });
+      return;
+    }
     dispatch({ type: 'open-hub', hubId });
   };
+
+  const openCategory = (categoryId: KnowledgeCategoryId) => {
+    dispatch({ type: 'open-category', categoryId });
+  };
+
+  const getBranchPreview = (categoryId: KnowledgeCategoryId) => (
+    HUB_BRANCH_PREVIEW_TOPIC_IDS[categoryId]
+      .flatMap((topicId) => {
+        const topic = topics.find((candidate) => candidate.id === topicId);
+        return topic ? [topic.title] : [];
+      })
+      .join(' · ')
+  );
 
   const openTopic = (topicId: string) => {
     const nextTopic = topics.find((topic) => topic.id === topicId);
@@ -327,30 +353,44 @@ export function AstrologyEncyclopedia({
               </h1>
               <p>{activeHub.preview[language]}</p>
             </header>
-            <div className={styles.hubTopicGroups}>
-              {activeHubGroups.map((group) => (
-                <section className={styles.hubTopicGroup} key={group.categoryId}>
-                  <h2>{group.label}</h2>
-                  <ul className={styles.topicList} role="list">
-                    {group.topics.map((topic) => (
-                      <li key={topic.id}>
-                        <button
-                          className={styles.topicButton}
-                          type="button"
-                          onClick={() => openTopic(topic.id)}
-                        >
-                          <span className={styles.topicCopy}>
-                            <strong>{topic.title}</strong>
-                            <small>{topic.summary}</small>
-                          </span>
-                          <ChevronRight aria-hidden="true" strokeWidth={1.6} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
+            <section className={styles.hubBranches} aria-labelledby="encyclopedia-hub-branches-title">
+              <h2 className={styles.hubBranchHeading} id="encyclopedia-hub-branches-title">
+                {ru ? 'Выберите подраздел' : 'Choose a section'}
+              </h2>
+              <ul className={styles.hubBranchList} role="list">
+                {activeHubGroups.map((group) => (
+                  <li key={group.categoryId}>
+                    <button
+                      className={styles.hubBranchButton}
+                      type="button"
+                      onClick={() => openCategory(group.categoryId)}
+                    >
+                      <span className={styles.hubBranchCopy}>
+                        <strong>{group.label}</strong>
+                        <small>{group.description}</small>
+                        <span className={styles.hubBranchExamples}>{getBranchPreview(group.categoryId)}</span>
+                      </span>
+                      <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+                    </button>
+                  </li>
+                ))}
+                {activeHubFeaturedTopics.map((topic) => (
+                  <li key={topic.id}>
+                    <button
+                      className={styles.hubBranchButton}
+                      type="button"
+                      onClick={() => openTopic(topic.id)}
+                    >
+                      <span className={styles.hubBranchCopy}>
+                        <strong>{topic.title}</strong>
+                        <small>{topic.summary}</small>
+                      </span>
+                      <ChevronRight aria-hidden="true" strokeWidth={1.6} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </section>
         ) : current.screen === 'category' && activeCategory ? (
           <section className={styles.categoryView} aria-labelledby="encyclopedia-category-title">

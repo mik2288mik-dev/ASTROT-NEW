@@ -1,9 +1,9 @@
 .page {
-  --knowledge-ink: var(--editorial-studio-ink, #211f1d);
-  --knowledge-muted: var(--editorial-studio-muted, #6d6863);
+  --knowledge-ink: #202020;
+  --knowledge-muted: #666;
   --knowledge-line: color-mix(in srgb, var(--knowledge-ink) 12%, transparent);
-  --knowledge-soft: #f7f4f0;
-  --knowledge-accent: #8d5e43;
+  --knowledge-soft: #f1f1f1;
+  --knowledge-accent: #383838;
   min-height: 100%;
   overflow-x: clip;
   background: #fff !important;
@@ -65,7 +65,7 @@
 .empty p {
   max-width: 46rem;
   margin: 0;
-  color: #544f4a;
+  color: #525252;
   font-size: 1.0625rem;
   line-height: 1.65;
   text-wrap: pretty;
@@ -100,7 +100,7 @@
   border: 1px solid var(--knowledge-line);
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 6px 18px rgb(46 35 27 / 6%);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 6%);
 }
 
 .searchControl:focus-within {
@@ -128,7 +128,7 @@
 }
 
 .searchControl input::placeholder {
-  color: #8b8580;
+  color: #757575;
   opacity: 1;
 }
 
@@ -252,7 +252,7 @@
 }
 
 .hubCard {
-  --hub-tone: #f7f4f0;
+  --hub-tone: #f2f2f2;
   position: relative;
   display: grid;
   width: 100%;
@@ -273,12 +273,12 @@
 
 .hubCard[data-hub='planets-signs'],
 .hubCard[data-hub='motion-forecasting'] {
-  --hub-tone: #f4f2ed;
+  --hub-tone: #ededed;
 }
 
 .hubCard[data-hub='chart-structure'],
 .hubCard[data-hub='other-concepts'] {
-  --hub-tone: #f5f3f1;
+  --hub-tone: #f5f5f5;
 }
 
 .hubCard strong {
@@ -306,8 +306,7 @@
 }
 
 .hubView,
-.hubTopicGroups,
-.hubTopicGroup {
+.hubBranches {
   display: grid;
 }
 
@@ -315,15 +314,11 @@
   gap: 30px;
 }
 
-.hubTopicGroups {
-  gap: 36px;
+.hubBranches {
+  gap: 12px;
 }
 
-.hubTopicGroup {
-  gap: 10px;
-}
-
-.hubTopicGroup h2 {
+.hubBranchHeading {
   margin: 0;
   color: var(--knowledge-ink);
   font-size: 1.125rem;
@@ -331,13 +326,78 @@
   letter-spacing: -0.02em;
 }
 
+.hubBranchList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hubBranchButton {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 124px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--knowledge-soft);
+  color: var(--knowledge-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hubBranchCopy {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.hubBranchCopy strong {
+  font-size: 1rem;
+  font-weight: 620;
+  letter-spacing: -0.018em;
+  line-height: 1.35;
+}
+
+.hubBranchCopy small {
+  color: var(--knowledge-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.hubBranchExamples {
+  color: #4f4f4f;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.hubBranchButton > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: var(--knowledge-muted);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .popularButton:hover {
-    background: #eee9e3;
+    background: #e7e7e7;
   }
 
   .hubCard:hover {
     background: color-mix(in srgb, var(--hub-tone) 94%, var(--knowledge-ink));
+  }
+
+  .hubBranchButton:hover {
+    background: #e8e8e8;
   }
 }
 
@@ -415,7 +475,7 @@
 
 .noResults p {
   margin: 0;
-  color: #544f4a;
+  color: #525252;
   font-size: 1rem;
   line-height: 1.6;
 }
@@ -447,7 +507,7 @@
 .lead {
   max-width: 60ch;
   margin: 12px 0 0;
-  color: #34312e;
+  color: #303030;
   font-size: 1.1875rem;
   line-height: 1.7;
   text-wrap: pretty;
@@ -470,7 +530,7 @@
 
 .shortAnswer p {
   margin: 0;
-  color: #423e3a;
+  color: #424242;
   font-size: 1rem;
   line-height: 1.65;
 }
@@ -514,7 +574,7 @@
 }
 
 .diagramLine {
-  stroke: #8e8984;
+  stroke: #898989;
   stroke-width: 1.5;
 }
 
@@ -529,7 +589,7 @@
 }
 
 .diagramRay {
-  stroke: #d2a85c;
+  stroke: #9d9d9d;
   stroke-width: 1.2;
   opacity: 0.65;
 }
@@ -544,16 +604,16 @@
 }
 
 .diagramSun {
-  fill: #e8bd67;
+  fill: #bcbcbc;
 }
 
 .diagramEarth {
-  fill: #6d8290;
+  fill: #666;
 }
 
 .diagramMoon {
-  fill: #d7d3cf;
-  stroke: #8e8984;
+  fill: #d8d8d8;
+  stroke: #898989;
   stroke-width: 1;
 }
 
@@ -589,7 +649,7 @@
 
 .articleSection p {
   margin: 0;
-  color: #45413d;
+  color: #454545;
   font-size: 1rem;
   line-height: 1.78;
   overflow-wrap: break-word;
@@ -605,17 +665,17 @@
 }
 
 .sectionAstrology {
-  background: #f7f4f0;
+  background: var(--knowledge-soft);
 }
 
 .sectionConfusion {
-  background: #f8f7f5;
-  box-shadow: inset 3px 0 0 #b7896d;
+  background: #f6f6f6;
+  box-shadow: inset 3px 0 0 #707070;
 }
 
 .inlineLink {
   color: inherit;
-  text-decoration-color: #b7896d;
+  text-decoration-color: #707070;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
@@ -723,6 +783,7 @@
 
 .popularButton:focus-visible,
 .hubCard:focus-visible,
+.hubBranchButton:focus-visible,
 .topicButton:focus-visible,
 .relatedButton:focus-visible,
 .backButton:focus-visible,
@@ -737,6 +798,7 @@
 
 .popularButton:active,
 .hubCard:active,
+.hubBranchButton:active,
 .topicButton:active,
 .relatedButton:active,
 .backButton:active,
@@ -763,5 +825,9 @@
 
   .hubCard {
     min-height: 136px;
+  }
+
+  .hubBranchList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
