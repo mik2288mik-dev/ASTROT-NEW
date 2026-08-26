@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
-import { selectTodayEndEditorialAsset } from '../../lib/personalForecastVisuals';
+import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
 import { resolveTodayPremiumTeaserInsertion } from '../../lib/todayPremiumTeaser';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
+import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
 import { isRenderableTodaySection } from './editorialLayout';
 import {
   TodayCalendarClock,
@@ -143,6 +144,12 @@ function StoryFragment({
         {language === 'ru' ? 'Совет дня' : 'Advice for today'}
       </p>
       {fragment}
+      <ForecastArc
+        className="today-minimal-closing-arc is-after-advice"
+        direction="up"
+        dot="right"
+        variant="today"
+      />
     </div>
   ) : fragment;
 }
@@ -189,8 +196,9 @@ export function TodayEditorialFeed({
     () => renderableSections.filter((section) => !lockedSectionIds.has(section.id)),
     [lockedSectionIds, renderableSections],
   );
-  const endVisual = useMemo(() => selectTodayEndEditorialAsset({
+  const endVisual = useMemo(() => selectForecastEndEditorialAsset({
     userId,
+    period: 'day',
     periodKey,
     sections: renderableSections,
   }), [periodKey, renderableSections, userId]);
@@ -308,16 +316,10 @@ export function TodayEditorialFeed({
           ))}
         </div>
         {endVisual ? (
-          <figure className="today-minimal-end-visual" aria-hidden="true">
-            <img
-              src={endVisual.path}
-              width={endVisual.width}
-              height={endVisual.height}
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
-          </figure>
+          <ForecastEndEditorialVisual
+            asset={endVisual}
+            className="today-minimal-end-visual"
+          />
         ) : null}
       </section>
     </article>

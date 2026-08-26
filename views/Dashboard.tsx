@@ -34,6 +34,7 @@ import {
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { lumiaSelectionHaptic } from '../lib/haptics';
+import { selectForecastEndEditorialAsset } from '../lib/personalForecastVisuals';
 
 type DashboardProps = {
   profile: UserProfile;
@@ -337,6 +338,24 @@ export const Dashboard = memo<DashboardProps>(({
     () => new Set(result?.lockedSectionIds || []),
     [result?.lockedSectionIds],
   );
+  const periodEndVisual = useMemo(() => {
+    if (!forecast || activePeriod === 'day') return null;
+    return selectForecastEndEditorialAsset({
+      userId: String(profile.id || 'guest'),
+      period: activePeriod,
+      periodKey: forecast.periodKey,
+      sections: storySections,
+    });
+  }, [activePeriod, forecast, profile.id, storySections]);
+  const periodAdviceSectionId = useMemo(() => {
+    for (let index = storySections.length - 1; index >= 0; index -= 1) {
+      const section = storySections[index];
+      if (section.contentBlocks.some((block) => block.role === 'action')) {
+        return section.id;
+      }
+    }
+    return null;
+  }, [storySections]);
 
   useEffect(() => {
     if (!forecast || activePeriod !== 'day') return;
@@ -544,6 +563,7 @@ export const Dashboard = memo<DashboardProps>(({
               language={language}
               locked={lockedSectionIds.has(section.id)}
               onRequestPremium={requestPremium}
+              endVisualAsset={section.id === periodAdviceSectionId ? periodEndVisual : null}
             />
           ))}
         </article>

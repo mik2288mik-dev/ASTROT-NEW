@@ -3,24 +3,21 @@ import type {
   ForecastSection,
   PersonalForecastPeriod,
 } from '../../lib/personalForecastContract';
-import {
-  clampDiaryVisualSize,
-  type DiaryEditorialPause,
-} from '../../lib/personalForecastVisuals';
-import { EditorialForecastVisual } from './EditorialForecastVisual';
+import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
 import {
   resolveLongForecastParagraphs,
   resolveVisibleForecastTitle,
 } from './editorialLayout';
 import { ForecastArc } from './ForecastArc';
+import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
 
 type ForecastSectionBlockProps = {
   section: ForecastSection;
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
-  sticker?: DiaryEditorialPause['asset'] | null;
   onRequestPremium: () => void;
+  endVisualAsset?: DiaryEditorialPause['asset'] | null;
 };
 
 function adviceLabel(
@@ -44,7 +41,6 @@ function adviceLabel(
 function renderContentBlocks(
   section: ForecastSection,
   period: PersonalForecastPeriod,
-  sticker?: DiaryEditorialPause['asset'] | null,
 ) {
   if (period !== 'day') {
     const punchlineBlock = section.kind === 'overview'
@@ -56,19 +52,27 @@ function renderContentBlocks(
     const paragraphs = resolveLongForecastParagraphs(
       bodyBlocks.map((block) => block.text),
     );
-    const visualParagraphIndex = Math.min(1, paragraphs.length - 1);
-
     return (
       <div className="forecast-feed-section-copy forecast-period-editorial-copy">
         {punchlineBlock ? (
-          <p className="forecast-feed-section-text is-lead forecast-period-editorial-punchline">
-            {punchlineBlock.text}
-          </p>
+          <>
+            <p className="forecast-feed-section-text is-lead forecast-period-editorial-punchline">
+              {punchlineBlock.text}
+            </p>
+            <ForecastArc
+              className="forecast-period-punchline-thread"
+              direction="down"
+              dot="center"
+              placement="divider"
+              variant={period === 'week' ? 'week' : 'month'}
+            />
+          </>
         ) : null}
         {paragraphs.map((text, index) => {
           const openingParagraph = index === 0 && section.kind === 'overview';
-          const paragraph = (
+          return (
             <p
+              key={`story-paragraph-${index + 1}`}
               className={[
                 'forecast-feed-section-text',
                 'is-body',
@@ -79,30 +83,6 @@ function renderContentBlocks(
             >
               {text}
             </p>
-          );
-
-          return (
-            <React.Fragment key={`story-paragraph-${index + 1}`}>
-              {index === 1 ? (
-                <ForecastArc
-                  className="forecast-period-editorial-arc is-divider"
-                  direction="down"
-                  dot="center"
-                  placement="divider"
-                  variant={period === 'week' ? 'week' : 'month'}
-                />
-              ) : null}
-              {sticker && index === visualParagraphIndex ? (
-                <div className="forecast-period-editorial-scene">
-                  {paragraph}
-                  <EditorialForecastVisual
-                    asset={sticker}
-                    size={clampDiaryVisualSize('medium', sticker.displayWeight)}
-                    priority
-                  />
-                </div>
-              ) : paragraph}
-            </React.Fragment>
           );
         })}
       </div>
@@ -131,8 +111,8 @@ export function ForecastSectionBlock({
   period,
   language,
   locked,
-  sticker,
   onRequestPremium,
+  endVisualAsset,
 }: ForecastSectionBlockProps) {
   const isOverview = section.kind === 'overview';
   const sectionTitle = resolveVisibleForecastTitle({
@@ -150,6 +130,9 @@ export function ForecastSectionBlock({
   const isBrief = !isOverview && copyLength > 0 && copyLength <= 180;
   const isAdvice = !isOverview
     && section.contentBlocks.some((block) => block.role === 'action');
+  const showsEndVisual = Boolean(
+    endVisualAsset && isAdvice && period !== 'day' && !locked,
+  );
 
   if (section.status !== 'ready') return null;
   if (!locked && !hasReadableCopy) return null;
@@ -165,6 +148,7 @@ export function ForecastSectionBlock({
         isOverview ? 'is-overview' : '',
         isBrief ? 'is-brief' : '',
         isAdvice ? 'is-advice' : '',
+        showsEndVisual ? 'has-end-visual' : '',
         title ? 'has-title' : 'is-untitled',
         locked ? 'is-locked' : '',
       ].filter(Boolean).join(' ')}
@@ -172,8 +156,8 @@ export function ForecastSectionBlock({
       <div className="forecast-feed-section-content">
         {!locked && period !== 'day' && isOverview ? (
           <ForecastArc
-            className="forecast-period-editorial-arc is-opening"
-            direction="up"
+            className="forecast-period-title-thread"
+            direction="down"
             dot="right"
             placement="opening"
             variant={period === 'week' ? 'week' : 'month'}
@@ -226,28 +210,14 @@ export function ForecastSectionBlock({
               {language === 'ru' ? 'Показать продолжение' : 'Show the rest'}
             </button>
           </div>
-        ) : renderContentBlocks(section, period, sticker)}
-        {!locked && period !== 'day' && isOverview ? (
-          <ForecastArc
-            className="forecast-period-editorial-arc is-closing"
-            direction="up"
-            dot="left"
-            placement="closing"
-            variant={period === 'week' ? 'week' : 'month'}
+        ) : renderContentBlocks(section, period)}
+        {showsEndVisual && endVisualAsset ? (
+          <ForecastEndEditorialVisual
+            asset={endVisualAsset}
+            className="forecast-period-end-visual"
           />
         ) : null}
       </div>
-      {!locked && period === 'day' && sticker ? (
-        <div
-          className={`forecast-feed-editorial-pause is-${sticker.collection}`}
-          aria-hidden="true"
-        >
-          <EditorialForecastVisual
-            asset={sticker}
-            size={clampDiaryVisualSize('medium', sticker.displayWeight)}
-          />
-        </div>
-      ) : null}
     </section>
   );
 }

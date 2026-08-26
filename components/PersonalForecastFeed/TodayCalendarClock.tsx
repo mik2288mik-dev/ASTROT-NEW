@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
+  resolveTodayClockLayout,
   resolveTodayClockPreset,
   resolveTodayLinePreset,
+  type TodayClockLayout,
   type TodayClockPreset,
 } from '../../lib/todayVisualPresets';
 
@@ -17,10 +19,23 @@ export type TodayClockSignal = 'green' | 'yellow' | 'red';
 
 type ClockParts = {
   day: string;
-  month: string;
-  weekday: string;
+  monthShort: string;
+  monthLong: string;
+  weekdayShort: string;
+  weekdayLong: string;
+  dateLong: string;
   time: string;
   semanticLabel: string;
+};
+
+type ClockDisplayKind = 'time' | 'date' | 'day' | 'month' | 'weekday';
+
+type ClockDisplay = {
+  primary: string;
+  primaryKind: ClockDisplayKind;
+  secondary: string;
+  secondaryKind: ClockDisplayKind;
+  meta: string;
 };
 
 function dateFromPeriodKey(periodKey: string): Date {
@@ -45,14 +60,27 @@ function buildClockParts(
     day: '2-digit',
     timeZone: 'UTC',
   }).format(displayDate);
-  const month = cleanShortLabel(new Intl.DateTimeFormat(locale, {
+  const monthShort = cleanShortLabel(new Intl.DateTimeFormat(locale, {
     month: 'short',
     timeZone: 'UTC',
   }).format(displayDate));
-  const weekday = cleanShortLabel(new Intl.DateTimeFormat(locale, {
+  const monthLong = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(displayDate);
+  const weekdayShort = cleanShortLabel(new Intl.DateTimeFormat(locale, {
     weekday: 'short',
     timeZone: 'UTC',
   }).format(displayDate));
+  const weekdayLong = new Intl.DateTimeFormat(locale, {
+    weekday: 'long',
+    timeZone: 'UTC',
+  }).format(displayDate);
+  const dateLong = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(displayDate);
   const time = new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
     minute: '2-digit',
@@ -68,13 +96,57 @@ function buildClockParts(
 
   return {
     day,
-    month,
-    weekday,
+    monthShort,
+    monthLong,
+    weekdayShort,
+    weekdayLong,
+    dateLong,
     time,
     semanticLabel: language === 'ru'
       ? `${semanticDate}, ${time}`
       : `${semanticDate}, ${time}`,
   };
+}
+
+function clockDisplay(parts: ClockParts, layout: TodayClockLayout): ClockDisplay {
+  if (layout === 'time-first') {
+    return {
+      primary: parts.time,
+      primaryKind: 'time',
+      secondary: parts.dateLong,
+      secondaryKind: 'date',
+      meta: parts.weekdayShort,
+    };
+  }
+  if (layout === 'date-first') {
+    return {
+      primary: parts.dateLong,
+      primaryKind: 'date',
+      secondary: parts.time,
+      secondaryKind: 'time',
+      meta: parts.weekdayLong,
+    };
+  }
+  if (layout === 'calendar-split') {
+    return {
+      primary: parts.day,
+      primaryKind: 'day',
+      secondary: parts.monthLong,
+      secondaryKind: 'month',
+      meta: `${parts.weekdayShort} · ${parts.time}`,
+    };
+  }
+  return {
+    primary: parts.weekdayLong,
+    primaryKind: 'weekday',
+    secondary: parts.time,
+    secondaryKind: 'time',
+    meta: `${parts.day} ${parts.monthShort}`,
+  };
+}
+
+function longValueClass(value: string): string {
+  return value.length >= 10 ? 'is-long' : '';
 }
 
 function clockStyle(preset: TodayClockPreset): CSSProperties {
@@ -89,33 +161,62 @@ function clockStyle(preset: TodayClockPreset): CSSProperties {
   } as CSSProperties;
 }
 
-function ElectronicReadout({ parts }: { parts: ClockParts }) {
-  const readout = (
-    <>
-      <span className="today-calendar-clock-date">
-        {parts.day} {parts.month}
-      </span>
-      <span className="today-calendar-clock-meta">
-        {parts.weekday} / {parts.time}
-      </span>
-    </>
-  );
-
+function ElectronicReadout({
+  parts,
+  layout,
+}: {
+  parts: ClockParts;
+  layout: TodayClockLayout;
+}) {
+  const display = clockDisplay(parts, layout);
   return (
-    <span className="today-calendar-clock-readout">
-      {readout}
+    <span className={`today-calendar-clock-readout is-${layout}`}>
+      <span className={[
+        'today-calendar-clock-primary',
+        `is-${display.primaryKind}`,
+        longValueClass(display.primary),
+      ].filter(Boolean).join(' ')}>
+        {display.primary}
+      </span>
+      <span className={[
+        'today-calendar-clock-secondary',
+        `is-${display.secondaryKind}`,
+        longValueClass(display.secondary),
+      ].filter(Boolean).join(' ')}>
+        {display.secondary}
+      </span>
+      <span className="today-calendar-clock-meta">{display.meta}</span>
     </span>
   );
 }
 
-function FlipReadout({ parts }: { parts: ClockParts }) {
+function FlipReadout({
+  parts,
+  layout,
+}: {
+  parts: ClockParts;
+  layout: TodayClockLayout;
+}) {
+  const display = clockDisplay(parts, layout);
   return (
-    <span className="today-calendar-clock-flip-grid">
-      <span className="today-calendar-clock-flap is-day">{parts.day}</span>
-      <span className="today-calendar-clock-flap is-month">{parts.month}</span>
-      <span className="today-calendar-clock-flip-meta">
-        {parts.weekday} · {parts.time}
+    <span className={`today-calendar-clock-flip-grid is-${layout}`}>
+      <span className={[
+        'today-calendar-clock-flap',
+        'is-primary',
+        `is-${display.primaryKind}`,
+        longValueClass(display.primary),
+      ].filter(Boolean).join(' ')}>
+        {display.primary}
       </span>
+      <span className={[
+        'today-calendar-clock-flap',
+        'is-secondary',
+        `is-${display.secondaryKind}`,
+        longValueClass(display.secondary),
+      ].filter(Boolean).join(' ')}>
+        {display.secondary}
+      </span>
+      <span className="today-calendar-clock-flip-meta">{display.meta}</span>
     </span>
   );
 }
@@ -130,6 +231,10 @@ export function TodayCalendarClock({
   const [now, setNow] = useState(() => new Date());
   const preset = useMemo(
     () => resolveTodayClockPreset(userId, periodKey),
+    [periodKey, userId],
+  );
+  const layout = useMemo(
+    () => resolveTodayClockLayout(userId, periodKey),
     [periodKey, userId],
   );
   const parts = useMemo(
@@ -165,6 +270,7 @@ export function TodayCalendarClock({
       dateTime={periodKey.slice(0, 10)}
       aria-label={parts.semanticLabel}
       data-clock-family={preset.family}
+      data-clock-layout={layout}
       data-clock-preset={preset.id}
       data-day-signal={signal}
       style={clockStyle(preset)}
@@ -173,9 +279,9 @@ export function TodayCalendarClock({
       <span className="today-calendar-clock-hardware" aria-hidden="true">
         <span className="today-calendar-clock-face">
           {preset.family === 'flip' ? (
-            <FlipReadout parts={parts} />
+            <FlipReadout parts={parts} layout={layout} />
           ) : (
-            <ElectronicReadout parts={parts} />
+            <ElectronicReadout parts={parts} layout={layout} />
           )}
         </span>
         <span className="today-calendar-clock-foot is-left" />

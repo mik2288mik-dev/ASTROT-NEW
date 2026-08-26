@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, LoaderCircle, LockKeyhole, MoonStar, Sparkles, WifiOff } from 'lucide-react';
 import { ForecastSectionBlock } from '../PersonalForecastFeed/ForecastSectionBlock';
 import { TodayEditorialFeed } from '../PersonalForecastFeed/TodayEditorialFeed';
+import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
 import {
   EditorialChartsButton,
   EditorialProfileButton,
@@ -149,6 +150,18 @@ function DiaryScene({
 }) {
   const period = screen === 'today' ? 'day' : screen;
   const longSections = screen === 'week' ? UI_PREVIEW_WEEK_SECTIONS : UI_PREVIEW_MONTH_SECTIONS;
+  const periodEndVisual = screen === 'today'
+    ? null
+    : selectForecastEndEditorialAsset({
+        userId: 'ui-preview-user',
+        period,
+        periodKey: screen === 'week' ? '2026-W34' : '2026-08',
+        sections: longSections,
+      });
+  const periodAdviceSectionId = [...longSections]
+    .reverse()
+    .find((section) => section.contentBlocks.some((block) => block.role === 'action'))
+    ?.id || null;
   const personalForecastNote = {
     today: 'Личный прогноз на сегодня — по твоим данным рождения.',
     week: 'Личный прогноз на неделю — по твоим данным рождения.',
@@ -184,7 +197,11 @@ function DiaryScene({
           onRequestPremium={() => onNavigate('paywall')}
         />
       ) : (
-        <article className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed ui-preview-long-forecast">
+        <article
+          className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed ui-preview-long-forecast"
+          data-forecast-period={period}
+          lang="ru"
+        >
           {longSections.map((section, index) => (
             !premium && index > 0 ? null : (
               <ForecastSectionBlock
@@ -194,6 +211,7 @@ function DiaryScene({
                 language="ru"
                 locked={!premium}
                 onRequestPremium={() => onNavigate('paywall')}
+                endVisualAsset={section.id === periodAdviceSectionId ? periodEndVisual : null}
               />
             )
           ))}

@@ -148,12 +148,30 @@ const EDITORIAL_TOPIC_BY_THEME: Record<Theme, EditorialTopic> = {
   mercury: 'mercury',
 };
 
-const TODAY_END_COLOR_CUTOUT_CATEGORIES = [
+const FORECAST_END_COLOR_CUTOUT_CATEGORIES = [
   'graphic',
   'objects',
 ] as const;
 
-const TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS = [
+const FORECAST_END_STICKER_IDS_BY_THEME: Record<Theme, readonly string[]> = {
+  general: ['editorial-v2:graphic_comic_exclamation_01'],
+  love: ['editorial-v2:graphic_speech_pink_heart_01'],
+  mood: [
+    'editorial-v2:graphic_daisy_white_01',
+    'editorial-v2:graphic_mushroom_red_spotted_01',
+  ],
+  work_money: ['editorial-v2:graphic_battery_green_full_01'],
+  home_family: ['editorial-v2:object_plant_monstera_pot_01'],
+  friends: ['editorial-v2:graphic_speech_pink_heart_01'],
+  opportunities: ['editorial-v2:graphic_clover_green_01'],
+  decisions: ['editorial-v2:graphic_comic_exclamation_01'],
+  communication: ['editorial-v2:graphic_speech_outline_black_01'],
+  questions: ['editorial-v2:graphic_speech_outline_black_01'],
+  moon: ['editorial-v2:graphic_mushroom_red_spotted_01'],
+  mercury: ['editorial-v2:graphic_speech_outline_black_01'],
+};
+
+const FORECAST_END_FORBIDDEN_SOURCE_ID_FRAGMENTS = [
   'paper',
   'newspaper',
   'scrap',
@@ -166,10 +184,18 @@ const TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS = [
   'headphone',
   'boombox',
   'cassette',
+  '_set_',
 ] as const;
 
-export function selectTodayEndEditorialAsset(input: {
+function forecastEndStickerIds(request: ForecastVisualRequest): readonly string[] {
+  return [...new Set(
+    themesFor(request).flatMap((theme) => FORECAST_END_STICKER_IDS_BY_THEME[theme]),
+  )];
+}
+
+export function selectForecastEndEditorialAsset(input: {
   userId: string;
+  period: PersonalForecastPeriod;
   periodKey: string;
   sections: readonly ForecastSection[];
 }): DiaryEligibleAsset | null {
@@ -186,7 +212,7 @@ export function selectTodayEndEditorialAsset(input: {
   const request: ForecastVisualRequest = {
     ...semanticSection,
     userId: input.userId,
-    period: 'day',
+    period: input.period,
     periodKey: input.periodKey,
     sectionId: semanticSection.id,
     sectionIndex: 0,
@@ -197,17 +223,44 @@ export function selectTodayEndEditorialAsset(input: {
     normalise(semanticSection.visualTag),
     semanticSection.semanticFingerprint || semanticSection.id,
   ].join('|');
+  const semanticStickerIds = forecastEndStickerIds(request);
+
+  const endVisual = selectPersonalEditorialAsset({
+    period: input.period,
+    periodKey: `${input.periodKey}|${input.period}-end|${semanticKey}`,
+    userId: input.userId,
+    topics: ['general'],
+    allowedSources: ['editorial-v2'],
+    allowedSourceCategories: FORECAST_END_COLOR_CUTOUT_CATEGORIES,
+    allowedIds: semanticStickerIds,
+    excludeSourceIdFragments: FORECAST_END_FORBIDDEN_SOURCE_ID_FRAGMENTS,
+    requireTopicMatch: true,
+    forceVisible: input.period !== 'day',
+  });
+  if (endVisual || input.period === 'day') return endVisual;
 
   return selectPersonalEditorialAsset({
-    period: 'day',
-    periodKey: `${input.periodKey}|today-end|${semanticKey}`,
+    period: input.period,
+    periodKey: `${input.periodKey}|${input.period}-end|general|${semanticKey}`,
     userId: input.userId,
-    topics: themesFor(request).map((theme) => EDITORIAL_TOPIC_BY_THEME[theme]),
+    topics: ['general'],
     allowedSources: ['editorial-v2'],
-    allowedSourceCategories: TODAY_END_COLOR_CUTOUT_CATEGORIES,
-    excludeSourceIdFragments: TODAY_END_FORBIDDEN_SOURCE_ID_FRAGMENTS,
+    allowedSourceCategories: FORECAST_END_COLOR_CUTOUT_CATEGORIES,
+    allowedIds: FORECAST_END_STICKER_IDS_BY_THEME.general,
+    excludeSourceIdFragments: FORECAST_END_FORBIDDEN_SOURCE_ID_FRAGMENTS,
     requireTopicMatch: true,
-    forceVisible: false,
+    forceVisible: true,
+  });
+}
+
+export function selectTodayEndEditorialAsset(input: {
+  userId: string;
+  periodKey: string;
+  sections: readonly ForecastSection[];
+}): DiaryEligibleAsset | null {
+  return selectForecastEndEditorialAsset({
+    ...input,
+    period: 'day',
   });
 }
 

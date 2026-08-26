@@ -2340,51 +2340,6 @@
     linear-gradient(var(--forecast-editorial-rule), var(--forecast-editorial-rule)) center / 100% 1px no-repeat;
 }
 
-.forecast-period-editorial-scene {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(1.1rem, 5vw, 2rem);
-}
-
-.forecast-period-editorial-scene .forecast-editorial-visual {
-  width: min(44%, 11rem);
-  justify-self: end;
-}
-
-@container period-editorial-feed (min-width: 22rem) {
-  .forecast-period-editorial-scene {
-    grid-template-columns: minmax(12rem, 1fr) minmax(6.5rem, 31%);
-  }
-
-  .forecast-period-editorial-scene .forecast-feed-section-text {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .forecast-period-editorial-scene .forecast-editorial-visual {
-    grid-column: 2;
-    grid-row: 1;
-    width: 100%;
-  }
-}
-
-@container period-editorial-feed (max-width: 21.99rem) {
-  .forecast-period-editorial-scene {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .forecast-period-editorial-scene > * {
-    grid-column: 1;
-    grid-row: auto;
-  }
-
-  .forecast-period-editorial-scene .forecast-editorial-visual {
-    width: min(46%, 8.25rem);
-    transform: none;
-  }
-}
-
 /* The forecast menu and fixed title bar share one safe-area rail. */
 .lumia-app-shell.telegram-diary-menu-offset
   .lumia-side-drawer-menu-button.is-telegram {

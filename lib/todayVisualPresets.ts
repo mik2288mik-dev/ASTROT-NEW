@@ -2,6 +2,19 @@ import { stableHash } from './personalForecastContract';
 
 export type TodayClockFamily = 'digital' | 'retro-digital' | 'flip';
 
+export type TodayClockLayout =
+  | 'weekday-first'
+  | 'time-first'
+  | 'date-first'
+  | 'calendar-split';
+
+export const TODAY_CLOCK_LAYOUTS: readonly TodayClockLayout[] = [
+  'weekday-first',
+  'time-first',
+  'date-first',
+  'calendar-split',
+] as const;
+
 export type TodayClockPreset = Readonly<{
   id: string;
   family: TodayClockFamily;
@@ -292,6 +305,17 @@ export function resolveTodayClockPreset(
     TODAY_CLOCK_PRESETS.length,
   );
   return TODAY_CLOCK_PRESETS[index];
+}
+
+export function resolveTodayClockLayout(
+  userId: string,
+  periodKey: string,
+): TodayClockLayout {
+  const index = positiveModulo(
+    stableHash(`today-clock-layout:${userId}`) + dayOrdinal(periodKey),
+    TODAY_CLOCK_LAYOUTS.length,
+  );
+  return TODAY_CLOCK_LAYOUTS[index];
 }
 
 export function resolveTodayLinePreset(

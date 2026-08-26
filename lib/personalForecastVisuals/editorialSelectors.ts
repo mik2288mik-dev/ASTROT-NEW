@@ -165,12 +165,14 @@ function filterPersonalPool(input: {
   allowedTones?: readonly EditorialTone[];
   allowedSources?: readonly PersonalEditorialSource[];
   allowedSourceCategories?: readonly string[];
+  allowedIds?: readonly string[];
   excludeIds?: readonly string[];
   excludeSourceCategories?: readonly string[];
   excludeSourceIdFragments?: readonly string[];
   requireTopicMatch?: boolean;
 }): readonly DiaryEligibleAsset[] {
   const excluded = new Set(input.excludeIds || []);
+  const allowedIds = new Set(input.allowedIds || []);
   const allowedSources = new Set(input.allowedSources || []);
   const allowedSourceCategories = new Set(input.allowedSourceCategories || []);
   const excludedSourceCategories = new Set(input.excludeSourceCategories || []);
@@ -178,6 +180,7 @@ function filterPersonalPool(input: {
     .map((fragment) => fragment.toLowerCase());
   const base = AUTO_SELECTABLE_PERSONAL_ASSETS.filter((asset) => (
     !excluded.has(asset.id)
+    && (!allowedIds.size || allowedIds.has(asset.id))
     && (!allowedSources.size || allowedSources.has(asset.source))
     && (!allowedSourceCategories.size || allowedSourceCategories.has(asset.sourceCategory))
     && !excludedSourceCategories.has(asset.sourceCategory)
@@ -201,6 +204,7 @@ export function selectPersonalEditorialAsset(input: {
   allowedTones?: readonly EditorialTone[];
   allowedSources?: readonly PersonalEditorialSource[];
   allowedSourceCategories?: readonly string[];
+  allowedIds?: readonly string[];
   excludeIds?: readonly string[];
   excludeSourceCategories?: readonly string[];
   excludeSourceIdFragments?: readonly string[];

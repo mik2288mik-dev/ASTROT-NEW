@@ -338,7 +338,7 @@
   width: min(calc(100% - 2rem), 32rem);
   margin: 0.2rem auto 0;
   padding: 0 clamp(0.5rem, 3vw, 1rem);
-  color: var(--today-muted);
+  color: rgba(41, 39, 36, 0.28);
   font-family: var(--forecast-editorial-font);
   font-size: clamp(0.74rem, 3.1vw, 0.82rem);
   font-weight: 400;
@@ -454,11 +454,12 @@
 }
 
 .today-minimal-composition .today-calendar-clock {
-  width: clamp(7.75rem, 37vw, 9.5rem);
+  width: clamp(9rem, 41vw, 10.25rem);
+  margin-block: clamp(0.3rem, 1.4vw, 0.45rem) clamp(0.12rem, 0.8vw, 0.25rem);
 }
 
 .today-minimal-punchline {
-  width: min(86vw, 27rem);
+  width: min(87vw, 27.25rem);
   max-width: 100%;
   margin: 0;
   color: var(--today-ink);
@@ -535,6 +536,7 @@
   position: relative;
   display: block;
   width: 100%;
+  --today-clock-readout: var(--today-clock-digits);
   color: var(--today-clock-digits);
   font-variant-numeric: tabular-nums;
   transform: rotate(var(--today-clock-tilt));
@@ -546,7 +548,7 @@
   display: block;
   box-sizing: border-box;
   width: 100%;
-  padding: 0.62rem 0.58rem 0.72rem;
+  padding: 0.48rem 0.45rem 0.56rem;
   border: 1px solid var(--today-clock-edge);
   border-radius: var(--today-clock-radius);
   background: var(--today-clock-case);
@@ -560,11 +562,11 @@
   position: relative;
   display: flex;
   box-sizing: border-box;
-  min-height: 4.95rem;
+  min-height: 5.35rem;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 0.72rem 0.55rem;
+  padding: 0.5rem 0.44rem;
   border: 1px solid color-mix(in srgb, var(--today-clock-edge) 82%, #000 18%);
   border-radius: max(0.3rem, calc(var(--today-clock-radius) - 0.46rem));
   background: var(--today-clock-face);
@@ -576,12 +578,47 @@
 .today-calendar-clock-readout {
   display: grid;
   width: 100%;
-  gap: 0.62rem;
-  color: var(--today-clock-digits);
+  grid-template-areas:
+    'primary secondary'
+    'meta meta';
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  align-items: center;
+  gap: 0.34rem 0.36rem;
+  color: var(--today-clock-readout);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   letter-spacing: -0.055em;
   line-height: 1;
   text-align: center;
+}
+
+.today-calendar-clock-readout.is-weekday-first,
+.today-calendar-clock-flip-grid.is-weekday-first {
+  grid-template-areas:
+    'primary primary'
+    'secondary meta';
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.today-calendar-clock-readout.is-time-first,
+.today-calendar-clock-flip-grid.is-time-first {
+  grid-template-areas:
+    'primary primary'
+    'secondary secondary'
+    'meta meta';
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.today-calendar-clock-readout.is-calendar-split,
+.today-calendar-clock-flip-grid.is-calendar-split {
+  grid-template-columns: minmax(0, 0.58fr) minmax(0, 1.42fr);
+}
+
+.today-calendar-clock-readout.is-date-first,
+.today-calendar-clock-flip-grid.is-date-first {
+  grid-template-areas:
+    'primary primary'
+    'secondary meta';
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 #__next .today-calendar-clock-readout,
@@ -591,42 +628,118 @@
 
 .today-calendar-clock[data-day-signal='green'] {
   --today-clock-signal: #74d6a2;
+  --today-clock-readout: color-mix(in srgb, var(--today-clock-digits) 30%, var(--today-clock-signal));
 }
 
 .today-calendar-clock[data-day-signal='yellow'] {
   --today-clock-signal: #efbb5c;
+  --today-clock-readout: color-mix(in srgb, var(--today-clock-digits) 30%, var(--today-clock-signal));
 }
 
 .today-calendar-clock[data-day-signal='red'] {
   --today-clock-signal: #df7770;
+  --today-clock-readout: color-mix(in srgb, var(--today-clock-digits) 30%, var(--today-clock-signal));
 }
 
-.today-calendar-clock[data-day-signal] .today-calendar-clock-date,
+.today-calendar-clock[data-day-signal] .today-calendar-clock-primary,
+.today-calendar-clock[data-day-signal] .today-calendar-clock-secondary,
 .today-calendar-clock[data-day-signal] .today-calendar-clock-meta,
 .today-calendar-clock[data-day-signal] .today-calendar-clock-flap,
 .today-calendar-clock[data-day-signal] .today-calendar-clock-flip-meta {
-  color: color-mix(in srgb, var(--today-clock-digits) 42%, var(--today-clock-signal));
+  color: var(--today-clock-readout);
   text-shadow:
     0 0 0.24rem color-mix(in srgb, var(--today-clock-signal) 68%, transparent),
     0 0 0.9rem color-mix(in srgb, var(--today-clock-signal) 36%, transparent);
 }
 
-.today-calendar-clock-date {
-  font-size: clamp(0.87rem, 4vw, 1.08rem);
+.today-calendar-clock-primary,
+.today-calendar-clock-secondary,
+.today-calendar-clock-meta {
+  min-width: 0;
+  color: var(--today-clock-readout);
+}
+
+.today-calendar-clock-primary {
+  grid-area: primary;
+  font-size: clamp(1.24rem, 5.6vw, 1.62rem);
+  font-weight: 600;
+  letter-spacing: -0.07em;
+  line-height: 1;
+  overflow-wrap: break-word;
+  text-align: start;
+}
+
+.today-calendar-clock-primary.is-time {
+  font-size: clamp(1.52rem, 6.8vw, 1.92rem);
+}
+
+.today-calendar-clock-primary.is-day {
+  font-size: clamp(1.72rem, 7.4vw, 2.08rem);
+}
+
+.today-calendar-clock-primary.is-date {
+  font-size: clamp(1rem, 4.55vw, 1.22rem);
+  line-height: 1.06;
+}
+
+.today-calendar-clock-primary.is-weekday {
+  font-size: clamp(1.05rem, 4.5vw, 1.32rem);
+  letter-spacing: -0.075em;
+  text-align: center;
   white-space: nowrap;
+}
+
+.today-calendar-clock-primary.is-long {
+  font-size: clamp(0.72rem, 2.85vw, 0.82rem);
+  letter-spacing: -0.09em;
+}
+
+.today-calendar-clock-secondary {
+  grid-area: secondary;
+  font-size: clamp(0.94rem, 4.15vw, 1.12rem);
+  letter-spacing: -0.07em;
+  line-height: 1.08;
+  text-align: end;
+}
+
+.today-calendar-clock-secondary.is-time {
+  font-size: clamp(1.12rem, 4.9vw, 1.38rem);
+  white-space: nowrap;
+}
+
+.today-calendar-clock-secondary.is-date {
+  font-size: clamp(0.98rem, 4.2vw, 1.15rem);
+}
+
+.today-calendar-clock-secondary.is-month {
+  font-size: clamp(1.02rem, 4.4vw, 1.2rem);
+}
+
+.today-calendar-clock-secondary.is-long {
+  font-size: clamp(0.84rem, 3.5vw, 0.98rem);
+  overflow-wrap: normal;
+}
+
+.today-calendar-clock-secondary.is-date.is-long {
+  font-size: clamp(0.94rem, 3.9vw, 1.08rem);
 }
 
 .today-calendar-clock-meta {
-  font-size: clamp(0.67rem, 3.1vw, 0.82rem);
+  grid-area: meta;
+  font-size: clamp(0.9rem, 4vw, 1.08rem);
   letter-spacing: -0.065em;
+  text-align: center;
   white-space: nowrap;
 }
 
-#__next .today-calendar-clock[data-clock-family='retro-digital'] .today-calendar-clock-readout,
-#__next .today-calendar-clock[data-clock-family='retro-digital'] .today-calendar-clock-readout > span {
-  gap: 0.48rem;
+#__next .today-calendar-clock[data-clock-family='retro-digital'] .today-calendar-clock-readout {
+  gap: 0.32rem 0.36rem;
   font-family: 'Courier New', Courier, monospace;
   letter-spacing: 0.01em;
+}
+
+#__next .today-calendar-clock[data-clock-family='retro-digital'] .today-calendar-clock-readout > span {
+  font-family: 'Courier New', Courier, monospace;
 }
 
 .today-calendar-clock[data-clock-family='retro-digital'] .today-calendar-clock-face::after {
@@ -646,9 +759,12 @@
 .today-calendar-clock-flip-grid {
   display: grid;
   width: 100%;
-  grid-template-columns: 0.72fr 1.28fr;
+  grid-template-areas:
+    'primary secondary'
+    'meta meta';
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
   gap: 0.26rem;
-  color: var(--today-clock-digits);
+  color: var(--today-clock-readout);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 }
 
@@ -670,9 +786,34 @@
   border-radius: 0.24rem;
   background: color-mix(in srgb, var(--today-clock-face) 88%, #fff 12%);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  font-size: clamp(0.75rem, 3.7vw, 0.98rem);
+  color: var(--today-clock-readout);
+  font-size: clamp(0.84rem, 3.8vw, 1.02rem);
   line-height: 1;
   white-space: nowrap;
+}
+
+.today-calendar-clock-flap.is-primary {
+  grid-area: primary;
+}
+
+.today-calendar-clock-flap.is-secondary {
+  grid-area: secondary;
+}
+
+.today-calendar-clock-flap.is-day,
+.today-calendar-clock-flap.is-time {
+  font-size: clamp(1.12rem, 4.9vw, 1.35rem);
+}
+
+.today-calendar-clock-flap.is-weekday,
+.today-calendar-clock-flap.is-date {
+  font-size: clamp(0.86rem, 3.7vw, 1rem);
+  letter-spacing: -0.07em;
+}
+
+.today-calendar-clock-flap.is-long {
+  font-size: clamp(0.72rem, 3.05vw, 0.86rem);
+  letter-spacing: -0.08em;
 }
 
 .today-calendar-clock-flap::after {
@@ -686,10 +827,10 @@
 }
 
 .today-calendar-clock-flip-meta {
-  grid-column: 1 / -1;
+  grid-area: meta;
   margin-top: 0.25rem;
-  color: color-mix(in srgb, var(--today-clock-digits) 86%, transparent);
-  font-size: clamp(0.58rem, 2.7vw, 0.7rem);
+  color: var(--today-clock-readout);
+  font-size: clamp(0.82rem, 3.55vw, 0.96rem);
   letter-spacing: -0.04em;
   text-align: center;
   white-space: nowrap;
@@ -725,7 +866,7 @@
 .forecast-feed-page .forecast-period-editorial-feed {
   position: relative;
   box-sizing: border-box;
-  width: min(calc(100% - 1.5rem), 40rem) !important;
+  width: min(calc(100% - 2rem), 40rem) !important;
   margin-inline: auto !important;
   padding-right: 0 !important;
   padding-left: 0 !important;
@@ -763,29 +904,6 @@
   fill: rgba(157, 111, 65, 0.72);
 }
 
-.forecast-editorial-arc.variant-week {
-  height: clamp(3rem, 13vw, 3.65rem);
-}
-
-.forecast-editorial-arc.variant-month {
-  height: clamp(3.25rem, 14vw, 3.95rem);
-}
-
-.forecast-period-editorial-arc.is-opening {
-  margin-top: 0;
-  margin-bottom: clamp(1.1rem, 4.5vw, 1.5rem);
-}
-
-.forecast-period-editorial-arc.is-divider {
-  margin-top: clamp(1.25rem, 5.5vw, 1.75rem);
-  margin-bottom: clamp(0.7rem, 3vw, 1rem);
-}
-
-.forecast-period-editorial-arc.is-closing {
-  margin-top: clamp(2rem, 8vw, 2.8rem);
-  margin-bottom: 0;
-}
-
 #__next
   .forecast-feed-page
   .forecast-period-editorial-feed
@@ -793,7 +911,7 @@
   .forecast-feed-screen-headline {
   width: 100%;
   max-width: 100% !important;
-  margin: 0 auto clamp(1.45rem, 6vw, 2rem) !important;
+  margin: 0 auto clamp(1rem, 4vw, 1.3rem) !important;
   color: var(--today-ink);
   font-family: var(--forecast-editorial-font) !important;
   font-size: clamp(1.4rem, 5.8vw, 1.7rem) !important;
@@ -809,13 +927,7 @@
   .forecast-period-editorial-feed
   .forecast-feed-story-fragment.is-overview
   .forecast-feed-screen-headline::after {
-  display: block;
-  width: 0.3rem;
-  height: 0.3rem;
-  margin: clamp(0.85rem, 3.5vw, 1.1rem) auto 0;
-  border-radius: 50%;
-  background: rgba(157, 111, 65, 0.72);
-  content: '';
+  display: none;
 }
 
 #__next
@@ -833,13 +945,27 @@
   font-weight: 400 !important;
   letter-spacing: -0.018em !important;
   line-height: 1.66 !important;
-  text-align: justify !important;
+  text-align: start !important;
   text-align-last: start;
+  -webkit-hyphens: auto;
   hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 .forecast-feed-page .ui-preview-long-forecast {
-  padding-top: clamp(1.35rem, 5vw, 1.8rem);
+  padding-top: clamp(1rem, 4vw, 1.35rem);
+}
+
+.forecast-period-title-thread {
+  width: calc(100% + 2rem);
+  height: clamp(2rem, 8vw, 2.45rem);
+  margin: -0.25rem -1rem clamp(0.55rem, 2.5vw, 0.8rem);
+}
+
+.forecast-period-punchline-thread {
+  width: calc(100% + 2rem);
+  height: clamp(1.8rem, 7vw, 2.2rem);
+  margin: clamp(0.25rem, 1.4vw, 0.4rem) -1rem clamp(0.55rem, 2.5vw, 0.8rem);
 }
 
 .today-minimal-reading-main {
@@ -860,16 +986,27 @@
 }
 
 .forecast-period-editorial-punchline {
-  max-width: 34rem !important;
-  margin: 0 auto clamp(1.35rem, 5.5vw, 1.8rem) !important;
+  width: min(87vw, 27.25rem) !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
   color: var(--today-ink) !important;
   font-family: var(--forecast-editorial-font) !important;
-  font-size: clamp(1.12rem, 4.7vw, 1.3rem) !important;
-  font-weight: 600 !important;
-  letter-spacing: -0.03em !important;
-  line-height: 1.38 !important;
+  font-size: clamp(1.22rem, 5.3vw, 1.55rem) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1.22 !important;
   text-align: center !important;
   text-wrap: balance;
+}
+
+#__next .forecast-period-editorial-feed .forecast-period-editorial-copy {
+  gap: 0;
+}
+
+#__next
+  .forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-advice {
+  margin-top: clamp(1.8rem, 7vw, 2.4rem);
 }
 
 .forecast-period-advice-label {
@@ -917,6 +1054,11 @@
   box-shadow: none;
 }
 
+#__next .today-minimal-reading-main > .forecast-feed-story-fragment,
+#__next .today-minimal-reading-main > .forecast-feed-story-fragment.is-overview {
+  margin-bottom: 0;
+}
+
 #__next .today-minimal-reading .forecast-feed-story-fragment::before,
 #__next .today-minimal-reading .forecast-feed-story-fragment::after {
   display: none;
@@ -949,7 +1091,7 @@
 #__next .today-minimal-reading .forecast-feed-section-copy {
   display: grid;
   max-width: 100%;
-  gap: 0.82rem;
+  gap: 0;
   margin: 0;
 }
 
@@ -977,9 +1119,47 @@
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.66 !important;
-  text-align: left !important;
+  text-align: start !important;
+  text-align-last: start;
   text-wrap: wrap !important;
+  -webkit-hyphens: auto;
+  hyphens: auto;
   overflow-wrap: break-word;
+}
+
+.today-minimal-feed:lang(ru)
+  .today-minimal-reading-main
+  > .forecast-feed-story-fragment:not(.is-overview)
+  .forecast-feed-section-text,
+.forecast-period-editorial-feed:lang(ru)
+  .forecast-feed-section-text.is-story-continuation {
+  text-indent: 1.2em;
+}
+
+.today-minimal-feed:lang(en) .forecast-feed-section-text,
+.forecast-period-editorial-feed:lang(en) .forecast-feed-section-text {
+  text-indent: 0;
+}
+
+.today-minimal-feed:lang(en)
+  .today-minimal-reading-main
+  > .forecast-feed-story-fragment:not(.is-overview),
+.forecast-period-editorial-feed:lang(en)
+  .forecast-feed-section-text.is-story-continuation {
+  margin-top: 0.65rem;
+}
+
+@media (min-width: 30rem) {
+  .today-minimal-feed:lang(ru)
+    .today-minimal-reading
+    .forecast-feed-section-text,
+  .forecast-period-editorial-feed:lang(ru)
+    .forecast-feed-section-text.is-story-opening,
+  .forecast-period-editorial-feed:lang(ru)
+    .forecast-feed-section-text.is-story-continuation {
+    text-align: justify !important;
+    text-align-last: start;
+  }
 }
 
 #__next .today-minimal-reading .forecast-feed-section-text.is-lead::before {
@@ -1229,7 +1409,7 @@
 .today-minimal-closing {
   position: relative;
   width: 100%;
-  margin-top: clamp(2.25rem, 9vw, 3.25rem);
+  margin-top: 1rem;
   padding-top: 0;
   border-top: 0;
 }
@@ -1240,7 +1420,13 @@
 
 .today-minimal-closing-arc {
   width: calc(100% + 2rem);
-  margin: 0 -1rem clamp(0.9rem, 4vw, 1.25rem);
+  height: 2rem;
+  margin: 0 -1rem 0.4rem;
+}
+
+.today-minimal-closing-arc.is-after-advice {
+  height: clamp(2.4rem, 10vw, 3rem);
+  margin: clamp(0.75rem, 3vw, 1rem) -1rem 0;
 }
 
 .today-minimal-closing .forecast-feed-story-fragment {
@@ -1267,12 +1453,13 @@
   font-weight: 600 !important;
   letter-spacing: -0.026em;
   line-height: 1.58 !important;
-  text-align: justify !important;
-  text-align-last: start;
+  text-align: center !important;
+  text-wrap: balance !important;
   text-indent: 0;
 }
 
-.today-minimal-end-visual {
+.today-minimal-end-visual,
+.forecast-period-end-visual {
   display: flex;
   width: 100%;
   align-items: center;
@@ -1283,13 +1470,137 @@
   background: transparent;
 }
 
-.today-minimal-end-visual img {
+.today-minimal-end-visual img,
+.forecast-period-end-visual img {
   display: block;
   width: clamp(5.75rem, 29vw, 8.125rem);
   height: auto;
   object-fit: contain;
   filter: none;
   box-shadow: none;
+}
+
+.forecast-period-end-visual {
+  box-sizing: border-box;
+  width: min(100%, 36rem);
+  min-height: clamp(7.5rem, 34vw, 10rem);
+  margin: clamp(1.55rem, 6vw, 2.25rem) auto 0;
+  margin-bottom: clamp(0.8rem, 3vw, 1.2rem);
+}
+
+.forecast-period-end-visual img {
+  width: clamp(6.75rem, 32vw, 9rem);
+  filter: drop-shadow(0 0.42rem 0.48rem rgba(45, 42, 38, 0.16));
+  transform-origin: center;
+}
+
+[data-forecast-period='week'] .forecast-period-end-visual {
+  justify-content: flex-end;
+  padding-inline-end: clamp(1.25rem, 8vw, 3.25rem);
+}
+
+[data-forecast-period='week'] .forecast-period-end-visual img {
+  transform: translateY(-0.18rem) rotate(7deg);
+}
+
+[data-forecast-period='month'] .forecast-period-end-visual {
+  justify-content: flex-start;
+  padding-inline-start: clamp(1.25rem, 8vw, 3.25rem);
+}
+
+[data-forecast-period='month'] .forecast-period-end-visual img {
+  transform: translateY(-0.18rem) rotate(-8deg);
+}
+
+.forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-feed-section-content {
+  display: grid;
+  align-items: center;
+  column-gap: clamp(0.35rem, 2vw, 0.75rem);
+  row-gap: 0.34rem;
+}
+
+[data-forecast-period='week']
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-feed-section-content {
+  grid-template-areas:
+    'label sticker'
+    'copy sticker';
+  grid-template-columns: minmax(0, 1fr) clamp(6.25rem, 26vw, 8.5rem);
+}
+
+[data-forecast-period='month']
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-feed-section-content {
+  grid-template-areas:
+    'sticker label'
+    'sticker copy';
+  grid-template-columns: clamp(6.25rem, 26vw, 8.5rem) minmax(0, 1fr);
+}
+
+.forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-period-advice-label {
+  grid-area: label;
+  margin: 0;
+  text-align: start;
+}
+
+.forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-period-editorial-copy {
+  grid-area: copy;
+}
+
+#__next
+  .forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-feed-section-text {
+  text-align: start !important;
+  text-wrap: pretty;
+}
+
+.forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-period-end-visual {
+  grid-area: sticker;
+  width: 100%;
+  min-height: 0;
+  justify-content: center;
+  align-self: center;
+  margin: 0;
+  padding: 0;
+}
+
+.forecast-period-editorial-feed
+  .forecast-feed-story-fragment.is-advice.has-end-visual
+  .forecast-period-end-visual img {
+  width: clamp(5.9rem, 24vw, 8rem);
+}
+
+@container period-editorial-feed (max-width: 17rem) {
+  [data-forecast-period]
+    .forecast-feed-story-fragment.is-advice.has-end-visual
+    .forecast-feed-section-content {
+    grid-template-areas:
+      'label'
+      'copy'
+      'sticker';
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-forecast-period='week']
+    .forecast-feed-story-fragment.is-advice.has-end-visual
+    .forecast-period-end-visual {
+    justify-content: flex-end;
+  }
+
+  [data-forecast-period='month']
+    .forecast-feed-story-fragment.is-advice.has-end-visual
+    .forecast-period-end-visual {
+    justify-content: flex-start;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -1307,6 +1618,10 @@
 }
 
 @media (prefers-contrast: more) {
+  .today-period-personal-note {
+    color: var(--today-muted);
+  }
+
   .today-bottom-navigation::before {
     background: rgba(45, 42, 38, 0.58);
   }
