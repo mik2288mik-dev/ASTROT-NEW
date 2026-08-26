@@ -142,9 +142,11 @@ for (const name of ['YANDEX_AUTH_CLIENT_ID', 'YANDEX_AUTH_CLIENT_SECRET']) {
 }
 const vkClientId = configured('VK_AUTH_CLIENT_ID');
 const vkClientSecret = configured('VK_AUTH_CLIENT_SECRET');
-if (vkClientId || vkClientSecret) {
-  if (!vkClientId) errors.push('VK_AUTH_CLIENT_ID is required when VK authentication is configured');
-  if (!vkClientSecret) errors.push('VK_AUTH_CLIENT_SECRET is required when VK authentication is configured');
+// RuStore Android uses VK ID + PKCE and only needs VK_AUTH_CLIENT_ID on the
+// backend. VK_AUTH_CLIENT_SECRET belongs to the separate browser OAuth flow,
+// which remains fail-closed in /api/auth/capabilities when the secret is absent.
+if (vkClientSecret && !vkClientId) {
+  errors.push('VK_AUTH_CLIENT_ID is required when VK browser authentication is configured');
 }
 
 const appSessionSecret = requireSecret('APP_SESSION_SECRET');
