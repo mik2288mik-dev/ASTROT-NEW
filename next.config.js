@@ -10,39 +10,10 @@ if (isMobileBuild && !process.env.NEXT_PUBLIC_API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL is required when MOBILE_BUILD=1');
 }
 
-if (isPublicWebsiteBuild && !isLegalPreview) {
-  const requiredPublicValues = [
-    ['NEXT_PUBLIC_SUPPORT_EMAIL', /^[^\s@]+@[^\s@]+\.[^\s@]+$/],
-    ['NEXT_PUBLIC_PRIVACY_EMAIL', /^[^\s@]+@[^\s@]+\.[^\s@]+$/],
-    ['NEXT_PUBLIC_DEVELOPER_NAME', /\S+/],
-    ['NEXT_PUBLIC_OPERATOR_ADDRESS', /\S+/],
-    ['NEXT_PUBLIC_OPERATOR_INN', /^(?:\d{10}|\d{12})$/],
-    ['NEXT_PUBLIC_OPERATOR_OGRNIP', /^\d{15}$/],
-    ['NEXT_PUBLIC_LEGAL_PUBLICATION_DATE', /^\d{4}-\d{2}-\d{2}$/],
-    ['NEXT_PUBLIC_PUBLIC_BASE_URL', /^https:\/\//],
-    ['NEXT_PUBLIC_RUSSIAN_HOSTING_PROVIDER', /\S+/],
-    ['NEXT_PUBLIC_RUSSIAN_DATA_LOCATION', /\S+/],
-    ['NEXT_PUBLIC_WEBSITE_HOSTING_PROVIDER', /\S+/],
-    ['NEXT_PUBLIC_TRANSACTIONAL_EMAIL_PROVIDER', /\S+/],
-    ['NEXT_PUBLIC_TRANSACTIONAL_EMAIL_COUNTRY', /\S+/],
-    ['NEXT_PUBLIC_SUPPORT_MAIL_PROVIDER', /\S+/],
-    ['NEXT_PUBLIC_SUPPORT_MAIL_COUNTRY', /\S+/],
-    ['NEXT_PUBLIC_GEOCODING_PROVIDER', /\S+/],
-    ['NEXT_PUBLIC_GEOCODING_COUNTRY', /\S+/],
-    ['NEXT_PUBLIC_APP_LOG_RETENTION_DAYS', /^\d{1,3}$/],
-    ['NEXT_PUBLIC_BACKUP_RETENTION_DAYS', /^\d{1,3}$/],
-    ['NEXT_PUBLIC_SUPPORT_RETENTION_MONTHS', /^\d{1,3}$/],
-    ['NEXT_PUBLIC_MINIMUM_AGE', /^(?:[6-9]|1[0-8])$/],
-    ['NEXT_PUBLIC_DATA_LOCALIZATION_CONFIRMED', /^1$/],
-    ['NEXT_PUBLIC_CROSS_BORDER_NOTIFICATIONS_CONFIRMED', /^1$/],
-  ];
-  const invalid = requiredPublicValues
-    .filter(([name, pattern]) => !pattern.test(String(process.env[name] || '').trim()))
-    .map(([name]) => name);
-  if (invalid.length > 0) {
-    throw new Error(`Public website legal configuration is incomplete: ${invalid.join(', ')}`);
-  }
-}
+// Keep the marketing/SEO site deployable even while operator/legal fields are
+// being completed. Legal pages already perform their own readiness check and
+// become draft/noindex when required public facts are missing, so incomplete
+// legal configuration must not take the whole public site offline.
 
 const publicScriptSource = process.env.NODE_ENV === 'development'
   ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
