@@ -250,14 +250,7 @@ export function NatalMagazine({
               {activeTab === 'questions' ? (
                 language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'
               ) : (
-                <>
-                  <span className="natal-reading-title-prefix">
-                    {language === 'ru' ? 'Разбор твоей' : 'Your'}
-                  </span>
-                  <span className="natal-reading-title-focus">
-                    {language === 'ru' ? 'натальной карты' : 'birth chart reading'}
-                  </span>
-                </>
+                language === 'ru' ? 'Натальная карта' : 'Natal chart'
               )}
             </h1>
             {activeTab === 'questions' ? (

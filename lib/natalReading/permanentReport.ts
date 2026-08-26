@@ -1115,8 +1115,6 @@ const VISIBLE_ZODIAC_SIGN = /(?:(?:^|[^\p{L}])(?:овен|овна|овну|ов
 const VISIBLE_WORDED_HOUSE = /(?:(?:перв|втор|трет|четв[её]рт|пят|шест|седьм|восьм|девят|десят|одиннадцат|двенадцат)[а-яё]*\s+дом[а-яё]*|\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\s+house\b)/iu;
 const NATAL_FORBIDDEN_COPY = /(?:зв[её]зд[а-яё]*\s+говор[а-яё]*|вселенн[а-яё]*\s+приглаша[а-яё]*|уникальн[а-яё]*\s+энерги[а-яё]*|важно\s+прислуша[а-яё]*\s+к\s+себе|облада[а-яё]*\s+глубок[а-яё]*\s+внутренн[а-яё]*\s+мир[а-яё]*|\b(?:the stars say|the universe invites|your unique energy|listen to yourself|deep inner world)\b)/iu;
 const NATAL_DIAGNOSIS_OR_GUARANTEE = /(?:диагноз\w*|диагностир\w*|расстройств\w*|травм\w*|гарантир\w*|обязательно\s+(?:случ\w*|произойд\w*|стан\w*|добь\w*)|\b(?:diagnos\w*|disorder\w*|trauma\w*|guaranteed?|definitely will)\b)/iu;
-const NATAL_ABSTRACT_META_COPY = /(?:(?:^|[^\p{L}])(?:опор[а-яё]*|ресурс[а-яё]*|паттерн[а-яё]*|потенциал[а-яё]*|противореч[а-яё]*|проявля[а-яё]*|раскрыва[а-яё]*|считыва[а-яё]*)(?=$|[^\p{L}])|внутренн[а-яё]*\s+(?:рисунок|напряжени[а-яё]*)|\b(?:inner resource|support point|behavio(?:u)?ral pattern|inner contradiction|manifests?|unfolds?)\b)/iu;
-
 export function hasNatalPersonalityCopyViolation(value: string): boolean {
   return hasAppVoiceViolation(value)
     || NATAL_FORBIDDEN_COPY.test(value)
@@ -1127,11 +1125,6 @@ export function hasNatalPersonalityCopyViolation(value: string): boolean {
     || VISIBLE_ASTRO_OBJECT.test(value)
     || VISIBLE_ZODIAC_SIGN.test(value)
     || VISIBLE_WORDED_HOUSE.test(value);
-}
-
-export function hasNatalPermanentReportCopyViolation(value: string): boolean {
-  return hasNatalPersonalityCopyViolation(value)
-    || NATAL_ABSTRACT_META_COPY.test(value);
 }
 
 function hasReadableNarrativeShape(value: string): boolean {
@@ -1219,7 +1212,7 @@ function parseStatement(
   allowed: Set<string>,
 ): NatalReadingStatement | null {
   const value = text(raw?.text);
-  if (!value || hasNatalPermanentReportCopyViolation(value)) return null;
+  if (!value || hasNatalPersonalityCopyViolation(value)) return null;
   const evidenceIds = normalizedEvidenceIds(raw?.evidence_ids, allowed);
   return evidenceIds ? { text: value, evidenceIds } : null;
 }
@@ -1296,8 +1289,8 @@ function parseNatalSections(
       || !content
       || (legacyTitle.length > 0 && (legacyTitle.length < 3 || legacyTitle.length > 90))
       || !hasReadableNarrativeShape(content)
-      || (legacyTitle.length > 0 && hasNatalPermanentReportCopyViolation(legacyTitle))
-      || hasNatalPermanentReportCopyViolation(content)
+      || (legacyTitle.length > 0 && hasNatalPersonalityCopyViolation(legacyTitle))
+      || hasNatalPersonalityCopyViolation(content)
       || (legacyTitle.length > 0 && containsChangingTimeReference(legacyTitle))
       || containsChangingTimeReference(content)
       || (legacyTitle.length > 0 && !isNatalReliabilityTextAllowed(legacyTitle, built))

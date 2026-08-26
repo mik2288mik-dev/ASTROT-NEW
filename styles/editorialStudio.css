@@ -756,27 +756,7 @@
 
 .fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading .natal-reading-page-title {
   max-width: none;
-}
-
-.fresh-page.natal-mvp-page .natal-reading-title-prefix,
-.fresh-page.natal-mvp-page .natal-reading-title-focus {
-  display: block;
-}
-
-.fresh-page.natal-mvp-page .natal-reading-title-prefix {
-  font-size: clamp(22px, 6.2vw, 28px);
-  font-weight: 520;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-}
-
-.fresh-page.natal-mvp-page .natal-reading-title-focus {
-  margin-top: 2px;
-  font-size: clamp(38px, 10.5vw, 50px);
-  font-weight: 560;
-  letter-spacing: -0.06em;
-  line-height: 0.98;
-  text-wrap: balance;
+  color: var(--lumia-brand-primary);
 }
 
 .fresh-page.natal-mvp-page .natal-question-composer-copy p,
