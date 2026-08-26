@@ -124,7 +124,7 @@ function clockDisplay(parts: ClockParts, layout: TodayClockLayout): ClockDisplay
       primaryKind: 'date',
       secondary: parts.time,
       secondaryKind: 'time',
-      meta: parts.weekdayLong,
+      meta: parts.weekdayShort,
     };
   }
   if (layout === 'calendar-split') {

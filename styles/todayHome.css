@@ -348,6 +348,14 @@
   text-wrap: balance;
 }
 
+.forecast-personal-attribution {
+  width: min(100%, 34rem);
+  margin: clamp(0.45rem, 2vw, 0.7rem) auto 0;
+  padding: 0 clamp(0.4rem, 2.5vw, 0.8rem);
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+}
+
 #today-period-panel {
   min-width: 0;
 }
@@ -603,9 +611,8 @@
 .today-calendar-clock-flip-grid.is-time-first {
   grid-template-areas:
     'primary primary'
-    'secondary secondary'
-    'meta meta';
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    'secondary meta';
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.45fr);
 }
 
 .today-calendar-clock-readout.is-calendar-split,
@@ -666,7 +673,7 @@
   letter-spacing: -0.07em;
   line-height: 1;
   overflow-wrap: break-word;
-  text-align: start;
+  text-align: center;
 }
 
 .today-calendar-clock-primary.is-time {
@@ -694,12 +701,18 @@
   letter-spacing: -0.09em;
 }
 
+.today-calendar-clock-primary.is-date.is-long,
+.today-calendar-clock-primary.is-weekday.is-long {
+  font-size: clamp(0.9rem, 3.8vw, 1.08rem);
+  letter-spacing: -0.075em;
+}
+
 .today-calendar-clock-secondary {
   grid-area: secondary;
   font-size: clamp(0.94rem, 4.15vw, 1.12rem);
   letter-spacing: -0.07em;
   line-height: 1.08;
-  text-align: end;
+  text-align: center;
 }
 
 .today-calendar-clock-secondary.is-time {
@@ -1412,6 +1425,8 @@
   margin-top: 1rem;
   padding-top: 0;
   border-top: 0;
+  container-name: today-closing;
+  container-type: inline-size;
 }
 
 .today-minimal-closing::before {
@@ -1433,6 +1448,25 @@
   margin-bottom: 0;
 }
 
+.today-minimal-closing-content {
+  width: 100%;
+}
+
+.today-minimal-closing.has-end-visual .today-minimal-closing-content {
+  display: grid;
+  grid-template-areas:
+    'label sticker'
+    'copy sticker';
+  grid-template-columns: minmax(0, 1fr) clamp(5.9rem, 24vw, 8rem);
+  align-items: center;
+  column-gap: clamp(0.45rem, 2.4vw, 0.8rem);
+  row-gap: 0.35rem;
+}
+
+.today-minimal-closing.has-end-visual .forecast-feed-story-fragment {
+  grid-area: copy;
+}
+
 .today-minimal-closing-label {
   margin: 0 0 0.78rem;
   color: var(--today-ink);
@@ -1442,6 +1476,12 @@
   letter-spacing: -0.01em;
   line-height: 1.35;
   text-align: center;
+}
+
+.today-minimal-closing.has-end-visual .today-minimal-closing-label {
+  grid-area: label;
+  margin: 0;
+  text-align: start;
 }
 
 #__next .today-minimal-closing .forecast-feed-section-text,
@@ -1458,7 +1498,36 @@
   text-indent: 0;
 }
 
-.today-minimal-end-visual,
+#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text,
+#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text.is-lead {
+  text-align: start !important;
+  text-wrap: pretty !important;
+}
+
+.today-minimal-closing-visual {
+  display: flex;
+  grid-area: sticker;
+  width: 100%;
+  min-height: 0;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.today-minimal-closing-visual img {
+  display: block;
+  width: clamp(5.6rem, 22vw, 7.5rem);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0.36rem 0.42rem rgba(45, 42, 38, 0.14));
+  transform: rotate(6deg);
+  transform-origin: center;
+}
+
 .forecast-period-end-visual {
   display: flex;
   width: 100%;
@@ -1470,7 +1539,6 @@
   background: transparent;
 }
 
-.today-minimal-end-visual img,
 .forecast-period-end-visual img {
   display: block;
   width: clamp(5.75rem, 29vw, 8.125rem);
@@ -1478,6 +1546,26 @@
   object-fit: contain;
   filter: none;
   box-shadow: none;
+}
+
+@container today-closing (max-width: 17rem) {
+  .today-minimal-closing.has-end-visual .today-minimal-closing-content {
+    grid-template-areas:
+      'label'
+      'copy'
+      'sticker';
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .today-minimal-closing.has-end-visual .today-minimal-closing-label,
+  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text,
+  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text.is-lead {
+    text-align: center !important;
+  }
+
+  .today-minimal-closing-visual {
+    justify-content: flex-end;
+  }
 }
 
 .forecast-period-end-visual {

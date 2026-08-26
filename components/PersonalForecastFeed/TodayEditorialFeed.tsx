@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
 import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
+import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
 import { resolveTodayPremiumTeaserInsertion } from '../../lib/todayPremiumTeaser';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
@@ -21,6 +22,7 @@ type TodayEditorialFeedProps = {
   language: 'ru' | 'en';
   tone: PersonalForecastAstrologerBrief['tone'];
   premium: boolean;
+  personalAttribution?: string | null;
   onRequestPremium: () => void;
   onFirstValueViewed?: () => void;
   onPremiumTeaserImpression?: () => void;
@@ -103,12 +105,16 @@ function StoryFragment({
   locked,
   onRequestPremium,
   closing,
+  endVisual,
+  personalAttribution,
 }: {
   section: ForecastSection;
   language: 'ru' | 'en';
   locked: boolean;
   onRequestPremium: () => void;
   closing: boolean;
+  endVisual?: DiaryEditorialPause['asset'] | null;
+  personalAttribution?: string | null;
 }) {
   const punchlineIndex = section.kind === 'overview'
     ? section.contentBlocks.findIndex((block) => block.role === 'lead')
@@ -133,23 +139,39 @@ function StoryFragment({
   );
 
   return closing ? (
-    <div className="today-minimal-closing">
+    <div className={[
+      'today-minimal-closing',
+      endVisual ? 'has-end-visual' : '',
+    ].filter(Boolean).join(' ')}>
       <ForecastArc
         className="today-minimal-closing-arc"
         direction="down"
         dot="left"
         variant="today"
       />
-      <p className="today-minimal-closing-label">
-        {language === 'ru' ? 'Совет дня' : 'Advice for today'}
-      </p>
-      {fragment}
+      <div className="today-minimal-closing-content">
+        <p className="today-minimal-closing-label">
+          {language === 'ru' ? 'Совет дня' : 'Advice for today'}
+        </p>
+        {fragment}
+        {endVisual ? (
+          <ForecastEndEditorialVisual
+            asset={endVisual}
+            className="today-minimal-closing-visual"
+          />
+        ) : null}
+      </div>
       <ForecastArc
         className="today-minimal-closing-arc is-after-advice"
         direction="up"
         dot="right"
         variant="today"
       />
+      {personalAttribution ? (
+        <p className="today-period-personal-note forecast-personal-attribution">
+          {personalAttribution}
+        </p>
+      ) : null}
     </div>
   ) : fragment;
 }
@@ -174,6 +196,7 @@ export function TodayEditorialFeed({
   language,
   tone,
   premium,
+  personalAttribution,
   onRequestPremium,
   onFirstValueViewed,
   onPremiumTeaserImpression,
@@ -195,6 +218,13 @@ export function TodayEditorialFeed({
   const visibleSections = useMemo(
     () => renderableSections.filter((section) => !lockedSectionIds.has(section.id)),
     [lockedSectionIds, renderableSections],
+  );
+  const closingSectionId = useMemo(
+    () => [...visibleSections]
+      .reverse()
+      .find((section) => section.contentBlocks.some((block) => block.role === 'action'))
+      ?.id || null,
+    [visibleSections],
   );
   const endVisual = useMemo(() => selectForecastEndEditorialAsset({
     userId,
@@ -291,6 +321,10 @@ export function TodayEditorialFeed({
                 locked={false}
                 onRequestPremium={onRequestPremium}
                 closing={section.contentBlocks.some((block) => block.role === 'action')}
+                endVisual={section.id === closingSectionId ? endVisual : null}
+                personalAttribution={section.id === closingSectionId
+                  ? personalAttribution
+                  : null}
               />
               {!teaserDismissed && teaserInsertion?.afterSectionId === section.id ? (
                 <TodayPremiumTeaser
@@ -315,12 +349,6 @@ export function TodayEditorialFeed({
             </React.Fragment>
           ))}
         </div>
-        {endVisual ? (
-          <ForecastEndEditorialVisual
-            asset={endVisual}
-            className="today-minimal-end-visual"
-          />
-        ) : null}
       </section>
     </article>
   );

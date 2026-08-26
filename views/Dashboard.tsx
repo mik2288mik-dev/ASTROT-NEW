@@ -35,6 +35,7 @@ import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { lumiaSelectionHaptic } from '../lib/haptics';
 import { selectForecastEndEditorialAsset } from '../lib/personalForecastVisuals';
+import { formatPersonalForecastAttribution } from '../lib/personalForecastPresentation';
 
 type DashboardProps = {
   profile: UserProfile;
@@ -187,6 +188,17 @@ export const Dashboard = memo<DashboardProps>(({
   const activeDateValue = activePeriod === 'day'
     ? activeDateLines[activeDateLines.length - 1]
     : activeDateLines.join(' ');
+  const personalForecastAttribution = useMemo(
+    () => formatPersonalForecastAttribution({
+      profile: {
+        name: profile.name,
+        birthDate: profile.birthDate,
+      },
+      window: activeWindow,
+      language,
+    }),
+    [activeWindow, language, profile.birthDate, profile.name],
+  );
 
   const productContextKey = [
     String(profile.id || 'guest'),
@@ -540,6 +552,7 @@ export const Dashboard = memo<DashboardProps>(({
           language={language}
           tone={forecast.meta.astrologerBrief.tone}
           premium={premium || !canPromotePremium}
+          personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
           onPremiumTeaserDismiss={() => {
             onPremiumAnalytics?.('premium_promo_dismissed', {
@@ -566,6 +579,13 @@ export const Dashboard = memo<DashboardProps>(({
               endVisualAsset={section.id === periodAdviceSectionId ? periodEndVisual : null}
             />
           ))}
+          {periodAdviceSectionId
+            && !lockedSectionIds.has(periodAdviceSectionId)
+            && personalForecastAttribution ? (
+              <p className="today-period-personal-note forecast-personal-attribution">
+                {personalForecastAttribution}
+              </p>
+            ) : null}
         </article>
       ) : state.phase === 'error' ? (
         <section className="forecast-feed-status is-error" aria-live="polite">

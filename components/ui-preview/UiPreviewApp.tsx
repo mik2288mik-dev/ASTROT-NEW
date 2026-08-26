@@ -3,6 +3,8 @@ import { CircleAlert, LoaderCircle, LockKeyhole, MoonStar, Sparkles, WifiOff } f
 import { ForecastSectionBlock } from '../PersonalForecastFeed/ForecastSectionBlock';
 import { TodayEditorialFeed } from '../PersonalForecastFeed/TodayEditorialFeed';
 import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
+import { formatPersonalForecastAttribution } from '../../lib/personalForecastPresentation';
+import { resolvePersonalForecastWindow } from '../../lib/personalForecastContract';
 import {
   EditorialChartsButton,
   EditorialProfileButton,
@@ -140,22 +142,34 @@ function ProfileAction({ onOpen }: { onOpen: () => void }) {
 function DiaryScene({
   screen,
   premium,
+  profile,
   onNavigate,
   onOpenCharts,
 }: {
   screen: 'today' | 'week' | 'month';
   premium: boolean;
+  profile: ReturnType<typeof createUiPreviewProfile>;
   onNavigate: (screen: UiPreviewScreen) => void;
   onOpenCharts: () => void;
 }) {
   const period = screen === 'today' ? 'day' : screen;
+  const periodKey = screen === 'today'
+    ? '2026-08-26'
+    : screen === 'week'
+      ? '2026-W35'
+      : '2026-08';
+  const personalForecastAttribution = formatPersonalForecastAttribution({
+    profile,
+    window: resolvePersonalForecastWindow(period, periodKey, profile.birthTimezone),
+    language: 'ru',
+  });
   const longSections = screen === 'week' ? UI_PREVIEW_WEEK_SECTIONS : UI_PREVIEW_MONTH_SECTIONS;
   const periodEndVisual = screen === 'today'
     ? null
     : selectForecastEndEditorialAsset({
         userId: 'ui-preview-user',
         period,
-        periodKey: screen === 'week' ? '2026-W34' : '2026-08',
+        periodKey,
         sections: longSections,
       });
   const periodAdviceSectionId = [...longSections]
@@ -188,12 +202,13 @@ function DiaryScene({
           lockedSectionIds={premium
             ? new Set<string>()
             : new Set(UI_PREVIEW_TODAY_SECTIONS.slice(2, -1).map((section) => section.id))}
-          userId="ui-preview-user"
-          periodKey="2026-08-22"
+          userId="ui-preview-user-114"
+          periodKey={periodKey}
           timezone="Europe/Moscow"
           language="ru"
-          tone="mixed"
+          tone="favorable"
           premium={premium}
+          personalAttribution={personalForecastAttribution}
           onRequestPremium={() => onNavigate('paywall')}
         />
       ) : (
@@ -215,6 +230,11 @@ function DiaryScene({
               />
             )
           ))}
+          {premium && periodAdviceSectionId && personalForecastAttribution ? (
+            <p className="today-period-personal-note forecast-personal-attribution">
+              {personalForecastAttribution}
+            </p>
+          ) : null}
         </article>
       )}
     </div>
@@ -561,7 +581,7 @@ export default function UiPreviewApp() {
   } else if (scenario.screen === 'encyclopedia') {
     scene = <AstrologyEncyclopedia profile={profile} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'today' || scenario.screen === 'week' || scenario.screen === 'month') {
-    scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} onNavigate={navigate} onOpenCharts={openCharts} />;
+    scene = <DiaryScene screen={scenario.screen} premium={scenario.access === 'premium'} profile={profile} onNavigate={navigate} onOpenCharts={openCharts} />;
   } else if (scenario.screen === 'horoscope' || scenario.screen === 'zodiac-picker') {
     scene = (
       <HoroscopeReader
