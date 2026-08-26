@@ -1,0 +1,95 @@
+# syntax=docker/dockerfile:1.7
+
+FROM eclipse-temurin:21-jdk-jammy AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    ANDROID_HOME=/opt/android-sdk \
+    ANDROID_SDK_ROOT=/opt/android-sdk \
+    PATH=/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$PATH
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl unzip git gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/android-sdk/cmdline-tools \
+    && curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/android-tools.zip \
+    && unzip -q /tmp/android-tools.zip -d /tmp/android-tools \
+    && mkdir -p /opt/android-sdk/cmdline-tools/latest \
+    && mv /tmp/android-tools/cmdline-tools/* /opt/android-sdk/cmdline-tools/latest/ \
+    && rm -rf /tmp/android-tools /tmp/android-tools.zip \
+    && yes | sdkmanager --licenses >/dev/null || true
+
+RUN sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY . .
+
+ARG NEXT_PUBLIC_API_URL
+ARG YANDEX_AUTH_CLIENT_ID
+ARG VK_AUTH_CLIENT_ID
+ARG VK_ID_ANDROID_CLIENT_SECRET
+ARG AUTH_TEST_KEYSTORE_BASE64
+ARG AUTH_TEST_KEYSTORE_PASSWORD
+ARG AUTH_TEST_KEY_ALIAS
+ARG AUTH_TEST_KEY_PASSWORD
+
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    YANDEX_AUTH_CLIENT_ID=${YANDEX_AUTH_CLIENT_ID} \
+    VK_AUTH_CLIENT_ID=${VK_AUTH_CLIENT_ID} \
+    VK_ID_ANDROID_CLIENT_SECRET=${VK_ID_ANDROID_CLIENT_SECRET} \
+    NEXT_PUBLIC_DISTRIBUTION_CHANNEL=development \
+    NEXT_PUBLIC_MOBILE_BUILD=1 \
+    MOBILE_BUILD=1 \
+    STORE_RELEASE=0 \
+    APP_VERSION_CODE=1 \
+    APP_VERSION_NAME=1.0.0-auth-test
+
+RUN test -n "$NEXT_PUBLIC_API_URL" \
+    && test -n "$YANDEX_AUTH_CLIENT_ID" \
+    && test -n "$VK_AUTH_CLIENT_ID" \
+    && test -n "$VK_ID_ANDROID_CLIENT_SECRET" \
+    && test -n "$AUTH_TEST_KEYSTORE_BASE64" \
+    && test -n "$AUTH_TEST_KEYSTORE_PASSWORD" \
+    && test -n "$AUTH_TEST_KEY_ALIAS" \
+    && test -n "$AUTH_TEST_KEY_PASSWORD"
+
+RUN printf '%s' "$AUTH_TEST_KEYSTORE_BASE64" | base64 -d > /tmp/nebo-auth-test.jks \
+    && keytool -list -keystore /tmp/nebo-auth-test.jks -storepass "$AUTH_TEST_KEYSTORE_PASSWORD" -alias "$AUTH_TEST_KEY_ALIAS" >/dev/null
+
+RUN npm run build:mobile \
+    && npx cap sync android
+
+ENV RELEASE_STORE_FILE=/tmp/nebo-auth-test.jks
+
+RUN cd android \
+    && chmod +x gradlew \
+    && RELEASE_STORE_PASSWORD="$AUTH_TEST_KEYSTORE_PASSWORD" \
+       RELEASE_KEY_ALIAS="$AUTH_TEST_KEY_ALIAS" \
+       RELEASE_KEY_PASSWORD="$AUTH_TEST_KEY_PASSWORD" \
+       ./gradlew --no-daemon assembleDevelopmentRelease
+
+RUN cp android/app/build/outputs/apk/development/release/app-development-release.apk /app/nebo-auth-test.apk \
+    && { \
+      echo "TEMPORARY STABLE TEST SIGNING CERTIFICATE"; \
+      keytool -list -v -keystore /tmp/nebo-auth-test.jks -storepass "$AUTH_TEST_KEYSTORE_PASSWORD" -alias "$AUTH_TEST_KEY_ALIAS" | grep -E "SHA1:|SHA256:"; \
+      echo; \
+      echo "APK SHA-256:"; \
+      sha256sum /app/nebo-auth-test.apk; \
+      echo; \
+      echo "Package: ru.tvoygoroskop.app"; \
+      echo "Build channel: development"; \
+    } > /app/fingerprints.txt
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production PORT=8080
+COPY --from=builder /app/nebo-auth-test.apk ./nebo-auth-test.apk
+COPY --from=builder /app/fingerprints.txt ./fingerprints.txt
+COPY --from=builder /app/scripts/auth-apk-server.cjs ./scripts/auth-apk-server.cjs
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget -qO- http://127.0.0.1:${PORT}/health >/dev/null || exit 1
+CMD ["node", "scripts/auth-apk-server.cjs"]
