@@ -19,7 +19,7 @@ const SLOT_LABEL_RU: Record<string, string> = {
   daily_lumi: 'Возврат',
   upsell: 'Premium',
   promo: 'Промо',
-  custom: 'Твой Гороскоп',
+  custom: 'NEBO',
 };
 
 const SLOT_LABEL_EN: Record<string, string> = {
@@ -29,7 +29,7 @@ const SLOT_LABEL_EN: Record<string, string> = {
   daily_lumi: 'Возврат',
   upsell: 'Premium',
   promo: 'Promo',
-  custom: 'Твой Гороскоп',
+  custom: 'NEBO',
 };
 
 function slotLabel(slot: string, lang: string): string {

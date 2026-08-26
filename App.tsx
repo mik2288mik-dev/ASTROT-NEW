@@ -736,7 +736,7 @@ const App: React.FC = () => {
             console.error('[App] Startup exceeded safety budget - unlocking loading UI');
             startupVisible = true;
             safetyCleared = true;
-            setStartupError('«Твой Гороскоп» не успел подготовить данные. Попробуй ещё раз.');
+            setStartupError('Не удалось подготовить данные NEBO. Попробуй ещё раз.');
             setLoadingProgress(100);
             setLoadingMessage(undefined);
             setLoading(false);
@@ -2101,7 +2101,7 @@ const App: React.FC = () => {
         return (
             <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
                 <div className="max-w-sm text-center">
-                    <p className="lumia-brand-wordmark mb-6">Твой Гороскоп</p>
+                    <p className="lumia-brand-wordmark mb-6">NEBO</p>
                     <h1 className="mb-3 font-serif text-[2rem] leading-none">Не удалось открыть профиль</h1>
                     <p className="mb-6 text-[15px] leading-relaxed text-[#4f4b45]">{startupError}</p>
                     <button

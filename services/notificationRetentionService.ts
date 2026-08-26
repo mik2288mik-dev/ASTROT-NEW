@@ -535,7 +535,7 @@ const FALLBACK_COPY: Record<RetentionNotificationType, { title: string; body: st
   inactive_2d: {
     title: 'Глянь, что на сегодня',
     body: 'Загляни на минуту — что сегодня лучше сделать, а где не давить. Без длинного текста.',
-    button: 'Открыть «Твой Гороскоп»',
+    button: 'Открыть NEBO',
   },
   inactive_7d: {
     title: 'Загляни, давно тебя не было',

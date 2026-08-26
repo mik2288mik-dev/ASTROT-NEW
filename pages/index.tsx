@@ -37,8 +37,8 @@ export default function Home() {
 
   return <>
     <Head>
-      <title>MEOU</title>
-      <meta name="application-name" content="MEOU" />
+      <title>NEBO</title>
+      <meta name="application-name" content="NEBO" />
       <meta name="robots" content="noindex,nofollow" />
     </Head>
     <App />

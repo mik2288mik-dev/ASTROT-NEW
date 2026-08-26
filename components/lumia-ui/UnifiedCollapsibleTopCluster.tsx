@@ -35,7 +35,7 @@ export function UnifiedCollapsibleTopCluster({
 }: UnifiedCollapsibleTopClusterProps) {
   const language: HomeLanguage = profile.language === 'en' ? 'en' : 'ru';
   const copy = getHomeCopy(language);
-  const brandName = language === 'en' ? 'Your Horoscope' : 'Твой Гороскоп';
+  const brandName = 'NEBO';
   const { rawProgress, visualProgress } = useCollapsibleHeaderProgress({
     scrollRef,
     collapseDistance: COLLAPSE_DISTANCE,

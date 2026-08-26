@@ -396,8 +396,8 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
                   onShare={previewFixture
                     ? () => undefined
                     : () => shareToTelegram(language === 'ru'
-                      ? `Гороскоп для знака ${displayedSignLabel} в «Твой гороскоп»`
-                      : `${displayedSignLabel} horoscope in Your Horoscope`)}
+                      ? `Гороскоп для знака ${displayedSignLabel} в NEBO`
+                      : `${displayedSignLabel} horoscope in NEBO`)}
                 />
               </>
             ) : null}

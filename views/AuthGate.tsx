@@ -300,7 +300,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       <div className="flex min-h-full w-full items-center justify-center px-5 py-8">
         <section className="w-full max-w-sm rounded-[28px] border border-[#e8e5df] bg-white px-5 py-7 shadow-[0_18px_54px_rgba(44,48,45,0.08)] sm:px-7">
           <p className="mb-5 text-center text-[12px] font-semibold uppercase tracking-[0.18em] text-[#6b7280]">
-            MEOU
+            NEBO
           </p>
           <h1 className="text-center text-[30px] font-semibold leading-tight tracking-[-0.025em]">{title}</h1>
           {(message || deleted) && isRegister ? (

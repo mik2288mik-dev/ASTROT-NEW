@@ -20,7 +20,7 @@ export function AppTopBar({
   rightAction,
   reserveSpace = true,
 }: AppTopBarProps) {
-  const isPersonalForecastHeader = title === 'Твой гороскоп' || title === 'Your Horoscope';
+  const isPersonalForecastHeader = title === 'NEBO';
 
   return (
     <>

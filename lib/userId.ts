@@ -27,8 +27,8 @@ export function invalidUserIdPayload(language: 'ru' | 'en' = 'ru') {
     code: 'INVALID_USER_ID',
     message:
       language === 'en'
-        ? 'Open «Your Horoscope» through Telegram or start a web guest session.'
-        : 'Открой «Твой Гороскоп» через Telegram или начни гостевую web-сессию.',
+        ? 'Open NEBO through Telegram or start a web guest session.'
+        : 'Открой NEBO через Telegram или начни гостевую web-сессию.',
   };
 }
 

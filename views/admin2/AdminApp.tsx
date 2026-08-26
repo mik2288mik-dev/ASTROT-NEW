@@ -155,7 +155,7 @@ function AdminAccessScreen({
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12">
               <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor"><path d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4Zm0 3.2 6 2.7V11c0 4-2.5 7.6-6 8.8C8.5 18.6 6 15 6 11V6.9l6-2.7Zm-1 10.6 6-6-1.4-1.4L11 12l-2.1-2.1-1.4 1.4 3.5 3.5Z" /></svg>
             </div>
-            <h1 className="mt-6 text-3xl font-bold leading-tight">Админ-доступ «Твой Гороскоп»</h1>
+            <h1 className="mt-6 text-3xl font-bold leading-tight">Админ-доступ NEBO</h1>
             <p className="mt-3 text-sm leading-6 text-white/70">В Telegram Mini App вход происходит автоматически. В локальном браузере нужен включенный browser-dev доступ.</p>
             <div className="mt-8 space-y-3 text-sm">
               <div className="rounded-2xl bg-white/10 p-4">
@@ -1661,7 +1661,7 @@ export const AdminApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#8C57FF] text-white">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M12 2c3 2 5 5 5 9a5 5 0 0 1-10 0c0-4 2-7 5-9Zm0 7a2 2 0 1 0 2 2 2 2 0 0 0-2-2ZM6 20l2-3m10 3-2-3" /></svg>
         </span>
-        <div><p className="text-base font-bold text-[#312D4B]">Твой Гороскоп</p><p className="-mt-0.5 text-[11px] text-slate-400">Admin</p></div>
+        <div><p className="text-base font-bold text-[#312D4B]">NEBO</p><p className="-mt-0.5 text-[11px] text-slate-400">Admin</p></div>
       </div>
       <p className="px-6 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">Управление</p>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3">

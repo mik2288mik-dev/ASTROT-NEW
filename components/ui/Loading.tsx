@@ -6,7 +6,7 @@ interface LoadingProps {
   progress?: number;
 }
 
-const LOADING_LABEL = 'Твой Гороскоп';
+const LOADING_LABEL = 'NEBO гороскоп и натальная карта';
 
 /** Молочно-белый экран загрузки: название приложения + тонкая полоска прогресса. */
 export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) => {
@@ -41,14 +41,21 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
     >
       <div
         style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '5px',
           fontFamily: 'var(--fresh-font, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
-          fontSize: '27px',
-          fontWeight: 800,
-          letterSpacing: '-0.01em',
           color: '#241f36',
+          textAlign: 'center',
         }}
       >
-        {LOADING_LABEL}
+        <span style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1 }}>
+          NEBO
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.25 }}>
+          гороскоп и натальная карта
+        </span>
       </div>
 
       <div className="mt-5 h-0.5 w-full max-w-[190px] overflow-hidden rounded-full bg-[#241f36]/12">

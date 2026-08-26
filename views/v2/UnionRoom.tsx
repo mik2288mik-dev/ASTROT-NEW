@@ -1073,12 +1073,12 @@ export function UnionRoom(props: UnionRoomProps) {
       : (selected.name || (ru ? 'Вторая карта' : 'Second chart'));
     const text = selected.kind === 'person'
       ? ru
-        ? `Совместимость ${first} + ${second}: ${deep?.summary || 'подробный разбор по вашим данным'}.\n\nСравни свою пару в MEOU.`
-        : `Compatibility ${first} + ${second}: ${deep?.summary || 'a detailed reading based on your data'}.\n\nCompare your pair in MEOU.`
+        ? `Совместимость ${first} + ${second}: ${deep?.summary || 'подробный разбор по вашим данным'}.\n\nСравни свою пару в NEBO.`
+        : `Compatibility ${first} + ${second}: ${deep?.summary || 'a detailed reading based on your data'}.\n\nCompare your pair in NEBO.`
       : score
         ? ru
-          ? `Совместимость ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в MEOU.`
-          : `Compatibility ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Strongest — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nCompare your pair in MEOU.`
+          ? `Совместимость ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Сильнее всего — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nСравни свою пару в NEBO.`
+          : `Compatibility ${first} + ${second}: ${score.overall}/100 — ${score.verdict}. Strongest — ${DIMENSION_LABELS[score.strongest][lang]}.\n\nCompare your pair in NEBO.`
         : '';
     if (!text) return;
     shareToTelegram(text);

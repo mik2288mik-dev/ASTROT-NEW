@@ -878,7 +878,7 @@ export const NatalStoryDeck = memo<NatalStoryDeckProps>(
     const handleShare = useCallback(async (card: NatalStoryCard) => {
       hapticImpact();
       const payload = {
-        title: `Твой Гороскоп: ${card.title}`,
+        title: `NEBO: ${card.title}`,
         text: `${card.title}\n\n${card.summaryShort}`,
         url: buildShareUrl(card.id),
       };

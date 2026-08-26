@@ -6,7 +6,7 @@ const ROOT = path.join(__dirname, '..');
 describe('loading screen', () => {
   it('renders a pure-white splash with the app name, no image', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
-    expect(source).toContain('Твой Гороскоп');
+    expect(source).toContain('NEBO гороскоп и натальная карта');
     expect(source).toContain("var(--app-canvas, #FFFFFF)");
     expect(source).not.toContain('#FBFAF6');
     expect(source).toContain('min-h-[100dvh]');

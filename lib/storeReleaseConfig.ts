@@ -3,7 +3,7 @@ const publicBaseUrl = String(process.env.NEXT_PUBLIC_PUBLIC_BASE_URL || '').repl
 const fallback = (path: string) => publicBaseUrl ? `${publicBaseUrl}${path}` : path;
 
 export const STORE_RELEASE_CONFIG = {
-  appName: process.env.NEXT_PUBLIC_APP_NAME || 'MEOU',
+  appName: process.env.NEXT_PUBLIC_APP_NAME || 'NEBO',
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || '[УКАЖИТЕ_EMAIL_ПОДДЕРЖКИ]',
   developerName: process.env.NEXT_PUBLIC_DEVELOPER_NAME || '[УКАЖИТЕ_ВЛАДЕЛЬЦА_ИЛИ_КОМПАНИЮ]',
   publicationDate: process.env.NEXT_PUBLIC_LEGAL_PUBLICATION_DATE || '[УКАЖИТЕ_ДАТУ_ПУБЛИКАЦИИ]',

@@ -1,7 +1,7 @@
 import { Language } from './types';
 import { PREMIUM_WEEK_STARS } from './lib/premiumPricing';
 
-export const APP_NAME = 'Твой Гороскоп';
+export const APP_NAME = 'NEBO';
 
 const PREMIUM_WEEK_CTA_RU = `Открыть 1 неделю • ${PREMIUM_WEEK_STARS} Stars`;
 const PREMIUM_PAYWALL_CTA_RU = `Открыть Premium • ${PREMIUM_WEEK_STARS} Stars`;
@@ -10,7 +10,7 @@ const PREMIUM_PAYWALL_CTA_EN = `Unlock Premium • ${PREMIUM_WEEK_STARS} Stars`;
 
 export const TRANSLATIONS = {
   ru: {
-    loading: 'Загружаем Твой Гороскоп',
+    loading: 'Загружаем NEBO',
     nav: {
       home: 'Главная',
       chart: 'Натальная карта',
@@ -406,7 +406,7 @@ export const TRANSLATIONS = {
     },
   },
   en: {
-    loading: 'Loading Your Horoscope',
+    loading: 'Loading NEBO',
     nav: {
       home: 'Home',
       chart: 'Natal Chart',

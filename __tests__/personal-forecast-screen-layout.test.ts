@@ -65,7 +65,7 @@ describe('personal forecast screen layout', () => {
     const dashboard = read('views/Dashboard.tsx');
     const forecastStyles = read('styles/personalForecastFeed.css');
 
-    expect(dashboard).toContain("title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}");
+    expect(dashboard).toContain('title="NEBO"');
     expect(dashboard).toContain('EditorialChartsButton');
     expect(dashboard).toContain('onClick={onOpenCharts}');
     expect(forecastStyles).toContain('.forecast-feed-page .home-top');

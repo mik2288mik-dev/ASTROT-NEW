@@ -4,8 +4,8 @@ import path from 'path';
 const root = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
 
-describe('MEOU Android release controls', () => {
-  it('resolves every Android system label to MEOU without changing the application id', () => {
+describe('NEBO Android release controls', () => {
+  it('resolves every Android system label to NEBO without changing the application id', () => {
     const capacitor = read('capacitor.config.ts');
     const manifest = read('android/app/src/main/AndroidManifest.xml');
     const strings = read('android/app/src/main/res/values/strings.xml');
@@ -15,17 +15,17 @@ describe('MEOU Android release controls', () => {
     const page = read('pages/index.tsx');
 
     expect(capacitor).toContain("appId: 'ru.tvoygoroskop.app'");
-    expect(capacitor).toContain("appName: 'MEOU'");
+    expect(capacitor).toContain("appName: 'NEBO'");
     expect(manifest).toContain('android:label="@string/app_name"');
     expect(manifest).toContain('android:label="@string/title_activity_main"');
     for (const source of [strings, stringsEn]) {
-      expect(source).toContain('<string name="app_name">MEOU</string>');
-      expect(source).toContain('<string name="title_activity_main">MEOU</string>');
+      expect(source).toContain('<string name="app_name">NEBO</string>');
+      expect(source).toContain('<string name="title_activity_main">NEBO</string>');
       expect(source).toContain('<string name="package_name">ru.tvoygoroskop.app</string>');
     }
-    expect(env).toContain('NEXT_PUBLIC_APP_NAME=MEOU');
-    expect(releaseConfig).toContain("process.env.NEXT_PUBLIC_APP_NAME || 'MEOU'");
-    expect(page).toContain('<meta name="application-name" content="MEOU" />');
+    expect(env).toContain('NEXT_PUBLIC_APP_NAME=NEBO');
+    expect(releaseConfig).toContain("process.env.NEXT_PUBLIC_APP_NAME || 'NEBO'");
+    expect(page).toContain('<meta name="application-name" content="NEBO" />');
   });
 
   it('uses MEOU launcher resources for legacy and Android 12 launch screens', () => {
@@ -84,7 +84,7 @@ describe('MEOU Android release controls', () => {
     expect(rustore).toContain('SDK_TERMINAL_PURCHASE_FAILURE_REASONS.has(result.reason)');
   });
 
-  it('shows accessible password visibility controls and MEOU on user auth screens', () => {
+  it('shows accessible password visibility controls and NEBO on user auth screens', () => {
     const gate = read('views/AuthGate.tsx');
     const settings = read('views/Settings.tsx');
     const complete = read('pages/auth/complete.tsx');
@@ -98,8 +98,8 @@ describe('MEOU Android release controls', () => {
     expect(settings).toContain("type={emailPasswordConfirmationVisible ? 'text' : 'password'}");
     expect(settings).toContain('aria-pressed={emailPasswordVisible}');
     expect(settings).toContain('aria-pressed={emailPasswordConfirmationVisible}');
-    expect(gate).toContain('MEOU');
-    expect(complete).toContain('Вход в MEOU');
+    expect(gate).toContain('NEBO');
+    expect(complete).toContain('Вход в NEBO');
     expect(`${gate}\n${complete}`).not.toMatch(/Твой Гороскоп|Твой гороскоп/);
   });
 });

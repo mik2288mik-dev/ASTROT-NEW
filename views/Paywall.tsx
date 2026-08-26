@@ -309,7 +309,7 @@ export const Paywall: React.FC<PaywallProps> = ({
             <p>Premium</p>
           </div>
         ) : (
-          <p className="pw2-kicker">MEOU Premium</p>
+          <p className="pw2-kicker">NEBO Premium</p>
         )}
         <h1 className="pw2-title">
           {embedded

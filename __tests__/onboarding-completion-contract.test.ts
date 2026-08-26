@@ -36,7 +36,9 @@ describe('first-run onboarding completion flow', () => {
     expect(onboarding).not.toContain('nextStory');
     expect(onboarding).not.toContain("setStep('birth')");
     expect(onboarding).not.toContain('className="onb-notify"');
-    expect(logo).toContain('/assets/brand/personal-horoscope-mark.svg');
+    expect(logo).toContain('NEBO');
+    expect(logo).not.toContain('/assets/brand/personal-horoscope-mark.svg');
+    expect(logo).not.toContain('<svg');
     expect(artwork).toContain('export const NatalWheelArtwork');
 
     for (const field of [

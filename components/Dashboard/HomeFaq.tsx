@@ -43,8 +43,8 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     q: { ru: 'Это не медицина и не диагноз?', en: 'Is this not medicine or a diagnosis?' },
     a: {
-      ru: 'Нет. «Твой Гороскоп» — для самопонимания и интереса к себе. Это не медицинские, психологические, юридические или финансовые рекомендации и не замена консультации специалиста. Все решения всегда остаются за тобой.',
-      en: 'No. Your Horoscope is for self-understanding and curiosity. It is not medical, psychological, legal or financial advice, and not a substitute for a professional. All decisions always remain yours.',
+      ru: 'Нет. NEBO — для самопонимания и интереса к себе. Это не медицинские, психологические, юридические или финансовые рекомендации и не замена консультации специалиста. Все решения всегда остаются за тобой.',
+      en: 'No. NEBO is for self-understanding and curiosity. It is not medical, psychological, legal or financial advice, and not a substitute for a professional. All decisions always remain yours.',
     },
   },
   {
@@ -140,8 +140,8 @@ export const HomeFaq: React.FC<{ language: 'ru' | 'en' }> = ({ language }) => {
 
       <p style={{ margin: '12px 4px 0', fontSize: 11.5, lineHeight: 1.55, color: 'var(--fresh-muted)' }}>
         {language === 'ru'
-          ? '«Твой Гороскоп» создан для самопонимания и интереса к себе — это не медицинские, юридические или финансовые рекомендации.'
-          : 'Your Horoscope is made for self-reflection and curiosity — not medical, legal or financial advice.'}
+          ? 'NEBO создано для самопонимания и интереса к себе — это не медицинские, юридические или финансовые рекомендации.'
+          : 'NEBO is made for self-reflection and curiosity — not medical, legal or financial advice.'}
       </p>
     </section>
   );

@@ -513,6 +513,16 @@ body.ui-preview-document-scroll {
   padding: max(3rem, env(safe-area-inset-top, 0px)) max(1.5rem, 8vw) 3rem;
 }
 
+.ui-preview-wordmark {
+  margin: 0 0 1.3rem;
+  color: #191816;
+  font-family: var(--lumia-brand-wordmark-font);
+  font-size: 2rem;
+  font-weight: var(--lumia-brand-wordmark-weight);
+  letter-spacing: var(--lumia-brand-wordmark-letter-spacing);
+  line-height: 1;
+}
+
 .ui-preview-brand-mark,
 .ui-preview-paywall-mark {
   display: flex;

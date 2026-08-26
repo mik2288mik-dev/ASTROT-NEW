@@ -9,9 +9,9 @@ interface PremiumPreviewProps {
 
 const COPY = {
   ru: {
-    title: 'MEOU Premium',
+    title: 'NEBO Premium',
     tagline: 'Полный доступ к личным разделам.',
-    subtitle: 'Подписка открывает то, что уже есть в MEOU: личные прогнозы, карту и совместимость по данным рождения.',
+    subtitle: 'Подписка открывает то, что уже есть в NEBO: личные прогнозы, карту и совместимость по данным рождения.',
     close: 'Закрыть',
     features: [
       {
@@ -33,9 +33,9 @@ const COPY = {
     ],
   },
   en: {
-    title: 'MEOU Premium',
+    title: 'NEBO Premium',
     tagline: 'Full access to personal sections.',
-    subtitle: 'A subscription opens what already exists in MEOU: personal forecasts, chart readings, and birth-data compatibility.',
+    subtitle: 'A subscription opens what already exists in NEBO: personal forecasts, chart readings, and birth-data compatibility.',
     close: 'Close',
     features: [
       {

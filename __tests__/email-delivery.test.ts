@@ -48,7 +48,7 @@ describe('email authentication delivery', () => {
     expect(JSON.parse(request.body)).toEqual({
       from: 'Твой Гороскоп <noreply@auth.tvoi-goroskop.ru>',
       to: ['person@example.test'],
-      subject: 'Код регистрации в «Твой Гороскоп»',
+      subject: 'Код регистрации в NEBO',
       text: 'Ваш код: 123456\n\nОн действует 10 минут. Если вы не запрашивали код, просто проигнорируйте это письмо.',
     });
   });

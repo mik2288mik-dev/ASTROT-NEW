@@ -107,7 +107,7 @@ export function renderNatalStoryShareSvg(card: ProfileCard, format: NatalStorySh
       ${chips}
       <rect x="84" y="${height - 222}" width="${width - 168}" height="104" rx="52" fill="${accent.a}" />
       <text x="${width / 2}" y="${height - 158}" text-anchor="middle" font-size="34" font-weight="800" fill="#ffffff">Открыть общий разбор</text>
-      <text x="${width / 2}" y="${height - 68}" text-anchor="middle" font-size="24" font-weight="600" fill="#77717d">Твой Гороскоп · карта</text>
+      <text x="${width / 2}" y="${height - 68}" text-anchor="middle" font-size="24" font-weight="600" fill="#77717d">NEBO · карта</text>
     </svg>
   `;
 

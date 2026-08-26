@@ -61,8 +61,8 @@ export function MatrixRoom({ profile, onBack, onOpenProfile, embedded = false }:
   const share = () => {
     if (!result || !selfArcana) return;
     const text = ru
-      ? `Моя матрица судьбы: суть — «${selfArcana.keyword}». Рассчитай свою бесплатно по дате рождения в «Твой Гороскоп».`
-      : `My Destiny Matrix: core — "${selfArcana.keywordEn}". Get yours free by birth date in Your Horoscope.`;
+      ? `Моя матрица судьбы: суть — «${selfArcana.keyword}». Рассчитай свою бесплатно по дате рождения в NEBO.`
+      : `My Destiny Matrix: core — "${selfArcana.keywordEn}". Get yours free by birth date in NEBO.`;
     shareToTelegram(text);
   };
 

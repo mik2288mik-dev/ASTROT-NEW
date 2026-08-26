@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CircleAlert, LoaderCircle, LockKeyhole, MoonStar, Sparkles, WifiOff } from 'lucide-react';
+import { CircleAlert, LoaderCircle, LockKeyhole, MoonStar, WifiOff } from 'lucide-react';
 import { ForecastSectionBlock } from '../PersonalForecastFeed/ForecastSectionBlock';
 import { TodayEditorialFeed } from '../PersonalForecastFeed/TodayEditorialFeed';
 import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
@@ -185,7 +185,7 @@ function DiaryScene({
   return (
     <div className={`forecast-feed-page ui-preview-page is-${period}`}>
       <AppTopBar
-        title="Твой гороскоп"
+        title="NEBO"
         rightAction={<EditorialChartsButton label="Открыть мои карты" onClick={onOpenCharts} />}
       />
       <EditorialTabs
@@ -371,8 +371,7 @@ function OnboardingScene({
 }) {
   return (
     <div className="ui-preview-onboarding">
-      <div className="ui-preview-brand-mark"><Sparkles aria-hidden="true" /></div>
-      <p className="ui-preview-kicker">ASTROT</p>
+      <p className="ui-preview-wordmark">NEBO</p>
       <h1>Начнём с тебя</h1>
       <p>Эти данные нужны только для персонального опыта. В Preview они никуда не отправляются.</p>
       <label>Имя<input defaultValue="Алина" /></label>

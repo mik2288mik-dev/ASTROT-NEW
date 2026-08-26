@@ -25,7 +25,7 @@ export function LumiaAppHeader({
 }: LumiaAppHeaderProps) {
   const language: HomeLanguage = profile.language === 'en' ? 'en' : 'ru';
   const copy = getHomeCopy(language);
-  const brandName = language === 'en' ? 'Your Horoscope' : 'Твой Гороскоп';
+  const brandName = 'NEBO';
   const { rawProgress, visualProgress } = useCollapsibleHeaderProgress({
     scrollRef: scrollContainerRef,
     collapseDistance: COLLAPSE_DISTANCE,

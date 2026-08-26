@@ -78,8 +78,8 @@ export async function sendEmailAuthCode(input: {
             from: config.from,
             to: [input.email],
             subject: input.purpose === 'register'
-              ? 'Код регистрации в «Твой Гороскоп»'
-              : 'Код восстановления доступа к «Твой Гороскоп»',
+              ? 'Код регистрации в NEBO'
+              : 'Код восстановления доступа к NEBO',
             text: `Ваш код: ${input.code}\n\nОн действует 10 минут. Если вы не запрашивали код, просто проигнорируйте это письмо.`,
           }),
           redirect: 'error',

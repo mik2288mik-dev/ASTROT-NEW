@@ -9,10 +9,10 @@ describe('personal forecast header and shared navigation', () => {
     const topBar = read('components/lumia-ui/AppTopBar.tsx');
     const dashboard = read('views/Dashboard.tsx');
 
-    expect(topBar).toContain("title === 'Твой гороскоп' || title === 'Your Horoscope'");
+    expect(topBar).toContain("title === 'NEBO'");
     expect(topBar).toContain('app-top-bar-title--personal-forecast');
     expect(topBar).toContain('app-top-bar-context--period');
-    expect(dashboard).toContain("title={language === 'ru' ? 'Твой гороскоп' : 'Your Horoscope'}");
+    expect(dashboard).toContain('title="NEBO"');
     expect(dashboard).toContain('EditorialChartsButton');
     expect(dashboard).toContain('Открыть мои карты');
     expect(dashboard).toContain('role="tablist"');

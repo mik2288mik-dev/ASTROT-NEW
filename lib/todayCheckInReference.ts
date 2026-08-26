@@ -44,24 +44,24 @@ const RU_FOCUS: Record<DailyCheckInFocus, TodayCheckInExpectedValue> = {
   low: {
     value: 'low',
     label: 'ниже обычного',
-    hint: 'Твой Гороскоп ожидал, что фокус может быть ниже обычного: лучше коротко и без рывка.',
+    hint: 'NEBO ожидало, что фокус может быть ниже обычного: лучше коротко и без рывка.',
   },
   normal: {
     value: 'normal',
     label: 'ровный',
-    hint: 'Твой Гороскоп ожидал ровный фокус: можно закрывать одно понятное дело без гонки.',
+    hint: 'NEBO ожидало ровный фокус: можно закрывать одно понятное дело без гонки.',
   },
   high: {
     value: 'high',
     label: 'выше обычного',
-    hint: 'Твой Гороскоп ожидал хороший фокус: подходило одно важное дело или точное решение.',
+    hint: 'NEBO ожидало хороший фокус: подходило одно важное дело или точное решение.',
   },
 };
 
 const EN_FOCUS: Record<DailyCheckInFocus, TodayCheckInExpectedValue> = {
-  low: { value: 'low', label: 'lower than usual', hint: 'Your Horoscope expected softer focus: short and calm worked better.' },
-  normal: { value: 'normal', label: 'steady', hint: 'Your Horoscope expected steady focus: one clear task, no rush.' },
-  high: { value: 'high', label: 'higher than usual', hint: 'Your Horoscope expected good focus: one important thing could move.' },
+  low: { value: 'low', label: 'lower than usual', hint: 'NEBO expected softer focus: short and calm worked better.' },
+  normal: { value: 'normal', label: 'steady', hint: 'NEBO expected steady focus: one clear task, no rush.' },
+  high: { value: 'high', label: 'higher than usual', hint: 'NEBO expected good focus: one important thing could move.' },
 };
 
 const RU_MOOD: Record<DailyCheckInMood, TodayCheckInExpectedValue> = {
@@ -92,18 +92,18 @@ const RU_PEOPLE: Record<DailyCheckInPeople, TodayCheckInExpectedValue> = {
   social: {
     value: 'social',
     label: 'общение',
-    hint: 'Твой Гороскоп ожидал, что контакт с людьми может быть полезным, если без лишнего давления.',
+    hint: 'NEBO ожидало, что контакт с людьми может быть полезным, если без лишнего давления.',
   },
   quiet: {
     value: 'quiet',
     label: 'тишина',
-    hint: 'Твой Гороскоп ожидал, что лучше зайдет тишина: меньше лишних контактов, больше своего пространства.',
+    hint: 'NEBO ожидало, что лучше зайдет тишина: меньше лишних контактов, больше своего пространства.',
   },
 };
 
 const EN_PEOPLE: Record<DailyCheckInPeople, TodayCheckInExpectedValue> = {
-  social: { value: 'social', label: 'contact', hint: 'Your Horoscope expected contact to help if it stayed low-pressure.' },
-  quiet: { value: 'quiet', label: 'quiet', hint: 'Your Horoscope expected quiet to work better: fewer extra contacts, more space.' },
+  social: { value: 'social', label: 'contact', hint: 'NEBO expected contact to help if it stayed low-pressure.' },
+  quiet: { value: 'quiet', label: 'quiet', hint: 'NEBO expected quiet to work better: fewer extra contacts, more space.' },
 };
 
 const FORECAST_FIT: Record<Language, TodayCheckInExpectedValue> = {

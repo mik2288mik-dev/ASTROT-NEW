@@ -204,7 +204,7 @@ export const Synastry: React.FC<Props> = ({ profile, chartData, chartId, request
 
       {hasResults ? (
         <MonoShareBar label={ru ? 'Поделиться' : 'Share'} withTabClearance onShare={() => {
-          shareToTelegram(ru ? 'Проверь совместимость в «Твой Гороскоп»' : 'Check compatibility in Your Horoscope');
+          shareToTelegram(ru ? 'Проверь совместимость в NEBO' : 'Check compatibility in NEBO');
         }} />
       ) : null}
     </div>

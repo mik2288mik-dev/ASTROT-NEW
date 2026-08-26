@@ -13,9 +13,9 @@ function paymentCopy(plan: PaymentPlanView) {
   const periodRu = plan.days >= 365 ? 'год' : plan.days >= 90 ? '3 месяца' : plan.days >= 30 ? 'месяц' : `${plan.days} дней`;
   const periodEn = plan.days >= 365 ? '1 year' : plan.days >= 90 ? '3 months' : plan.days >= 30 ? '1 month' : `${plan.days} days`;
   return {
-    titleRu: `Твой Гороскоп Premium · ${periodRu}`,
+    titleRu: `NEBO Premium · ${periodRu}`,
     descRu: `Полный доступ на ${periodRu} за ${plan.stars} Stars`,
-    titleEn: `Your Horoscope Premium · ${periodEn}`,
+    titleEn: `NEBO Premium · ${periodEn}`,
     descEn: `Full access for ${periodEn} for ${plan.stars} Stars`,
   };
 }

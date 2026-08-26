@@ -701,10 +701,7 @@
 .compat-editorial-page--result .compat-result-brand {
   width: 108px;
   color: var(--compat-editorial-ink);
-}
-
-.compat-editorial-page--result .compat-result-brand svg {
-  overflow: visible;
+  font-size: 1.75rem;
 }
 
 .compat-editorial-page--result .compat-result-heading > span {
