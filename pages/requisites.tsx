@@ -2,14 +2,14 @@ import { LegalPage } from '../components/public-site/PublicSiteShell';
 import { PUBLIC_SITE_CONFIG, mailto } from '../lib/publicSiteConfig';
 
 export default function RequisitesPage() {
-  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'MEOU');
+  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'NEBO');
 
   return (
     <LegalPage
       title="Реквизиты и контакты"
-      description="Реквизиты оператора MEOU, адрес и контакты поддержки и запросов по персональным данным."
+      description="Реквизиты оператора NEBO, адрес и контакты поддержки и запросов по персональным данным."
       path="/requisites"
-      lead={<p>Публичные реквизиты лица, которое предоставляет MEOU пользователям в России.</p>}
+      lead={<p>Публичные реквизиты лица, которое предоставляет NEBO пользователям в России.</p>}
     >
       <section>
         <h2>Оператор и правообладатель</h2>

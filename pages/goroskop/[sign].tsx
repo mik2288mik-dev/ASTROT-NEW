@@ -36,7 +36,7 @@ export default function SignHoroscopePage({
   const faq = [
     {
       question: `Это гороскоп для ${sign.genitive} на сегодня?`,
-      answer: `На этой странице собраны постоянные темы знака ${sign.name}. Ежедневный гороскоп для ${sign.genitive} читается внутри MEOU.`,
+      answer: `На этой странице собраны постоянные темы знака ${sign.name}. Ежедневный гороскоп для ${sign.genitive} читается внутри NEBO.`,
     },
     {
       question: `Что значит знак ${sign.name} в натальной карте?`,
@@ -52,7 +52,7 @@ export default function SignHoroscopePage({
     <PublicSeoPage
       path={path}
       title={`Гороскоп для ${sign.genitive}: знак и личный прогноз`}
-      description={`${sign.name}: как читать общий гороскоп, что описывает знак и чем он отличается от личного прогноза MEOU по натальной карте.`}
+      description={`${sign.name}: как читать общий гороскоп, что описывает знак и чем он отличается от личного прогноза NEBO по натальной карте.`}
       eyebrow={`Гороскоп · ${sign.name}`}
       heading={`Гороскоп для ${sign.genitive}: знак и личный прогноз`}
       lead={<p>{sign.summary}</p>}

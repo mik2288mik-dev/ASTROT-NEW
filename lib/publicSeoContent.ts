@@ -6,10 +6,9 @@ import {
 } from './synastry/localSignText';
 import type { SignCompatibilityResult } from './synastry/signCompatibility';
 import type { ZodiacKey } from './zodiacKeys';
-import { PUBLIC_SITE_CONFIG } from './publicSiteConfig';
 
 export const PUBLIC_SEO_ORIGIN = 'https://www.tvoi-goroskop.ru';
-export const PUBLIC_SEO_BRAND = PUBLIC_SITE_CONFIG.appName;
+export const PUBLIC_SEO_BRAND = 'NEBO';
 
 export type PublicSeoSection = {
   title: string;

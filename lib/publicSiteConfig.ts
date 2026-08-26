@@ -26,7 +26,7 @@ function isIsoDate(value: string): boolean {
 
 const baseUrl = clean(process.env.NEXT_PUBLIC_PUBLIC_BASE_URL).replace(/\/+$/, '')
   || DEFAULT_PUBLIC_BASE_URL;
-const appName = clean(process.env.NEXT_PUBLIC_APP_NAME) || 'MEOU';
+const appName = clean(process.env.NEXT_PUBLIC_APP_NAME) || 'NEBO';
 const supportEmail = publicValue(process.env.NEXT_PUBLIC_SUPPORT_EMAIL, 'support-email');
 const privacyEmail = publicValue(process.env.NEXT_PUBLIC_PRIVACY_EMAIL, 'privacy-email');
 const operatorName = publicValue(process.env.NEXT_PUBLIC_DEVELOPER_NAME, 'operator-name');

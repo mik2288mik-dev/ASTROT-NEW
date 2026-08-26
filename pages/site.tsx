@@ -8,13 +8,15 @@ import {
 } from '../components/public-site/PublicSiteShell';
 import { PUBLIC_SITE_CONFIG, isRuStorePublished } from '../lib/publicSiteConfig';
 
-const pageDescription = `${PUBLIC_SITE_CONFIG.appName}: персональный гороскоп на сегодня, неделю и месяц по сохранённой натальной карте. В приложении также есть натальная карта, совместимость и гороскопы по знакам.`;
+const PUBLIC_BRAND = 'NEBO';
+const PUBLIC_SEO_NAME = 'NEBO гороскоп натальная карта';
+const pageDescription = `${PUBLIC_SEO_NAME} — личный прогноз на сегодня, неделю и месяц по данным рождения, совместимость и гороскопы по знакам.`;
 
 function homeSchema() {
   const software: Record<string, unknown> = {
     '@type': 'SoftwareApplication',
     '@id': `${PUBLIC_SITE_CONFIG.baseUrl}/#application`,
-    name: PUBLIC_SITE_CONFIG.appName,
+    name: PUBLIC_BRAND,
     url: PUBLIC_SITE_CONFIG.baseUrl,
     applicationCategory: 'LifestyleApplication',
     operatingSystem: 'Android',
@@ -38,7 +40,7 @@ function homeSchema() {
       {
         '@type': 'WebSite',
         '@id': `${PUBLIC_SITE_CONFIG.baseUrl}/#website`,
-        name: PUBLIC_SITE_CONFIG.appName,
+        name: PUBLIC_BRAND,
         url: PUBLIC_SITE_CONFIG.baseUrl,
         inLanguage: 'ru-RU',
         description: pageDescription,
@@ -83,7 +85,7 @@ export default function PublicLandingPage() {
   return (
     <PublicSiteShell>
       <PageHead
-        title={`${PUBLIC_SITE_CONFIG.appName}: личный гороскоп, натальная карта и совместимость`}
+        title={`${PUBLIC_BRAND}: гороскоп, натальная карта и совместимость`}
         description={pageDescription}
         path="/"
         jsonLd={homeSchema()}
@@ -91,7 +93,7 @@ export default function PublicLandingPage() {
       <main id="main-content" className={styles.homeMain}>
         <section className={styles.hero} aria-labelledby="hero-title">
           <div className={styles.heroInner}>
-            <p className={styles.heroEyebrow}>{PUBLIC_SITE_CONFIG.appName} · личный прогноз</p>
+            <p className={styles.heroEyebrow}>{PUBLIC_BRAND} · личный прогноз</p>
             <h1
               id="hero-title"
               className={styles.heroTitle}
@@ -207,7 +209,7 @@ export default function PublicLandingPage() {
                 <div>
                   <dt>Решения остаются твоими</dt>
                   <dd>
-                    Здоровье, деньги, право и безопасность требуют профильного специалиста. MEOU
+                    Здоровье, деньги, право и безопасность требуют профильного специалиста. NEBO
                     оставляет решения в этих темах тебе.
                   </dd>
                 </div>
@@ -235,7 +237,7 @@ export default function PublicLandingPage() {
               <div>
                 <p className={styles.eyebrow}>Первый релиз</p>
                 <h2 id="release-title">
-                  {PUBLIC_SITE_CONFIG.appName} готовится к публикации в RuStore.
+                  {PUBLIC_BRAND} готовится к публикации в RuStore.
                 </h2>
               </div>
               <div className={styles.closingCopy}>

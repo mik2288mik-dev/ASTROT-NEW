@@ -2,13 +2,13 @@ import { LegalPage } from '../components/public-site/PublicSiteShell';
 import { PUBLIC_SITE_CONFIG, mailto } from '../lib/publicSiteConfig';
 
 export default function SupportPage() {
-  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'Поддержка MEOU');
-  const privacyHref = mailto(PUBLIC_SITE_CONFIG.privacyEmail, 'Персональные данные в MEOU');
+  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'Поддержка NEBO');
+  const privacyHref = mailto(PUBLIC_SITE_CONFIG.privacyEmail, 'Персональные данные в NEBO');
 
   return (
     <LegalPage
-      title="Поддержка MEOU"
-      description="Контакты поддержки MEOU, запросы по аккаунту, оплате, персональным данным и удалению."
+      title="Поддержка NEBO"
+      description="Контакты поддержки NEBO, запросы по аккаунту, оплате, персональным данным и удалению."
       path="/support"
       lead={<p>Письмо в поддержку откроется в вашем почтовом приложении. Ответ придёт на тот же адрес.</p>}
     >
@@ -18,7 +18,7 @@ export default function SupportPage() {
           {supportHref ? <a href={supportHref}>{PUBLIC_SITE_CONFIG.supportEmail}</a> : PUBLIC_SITE_CONFIG.supportEmail}
         </p>
         <p>
-          Укажите версию MEOU, модель устройства, версию Android и коротко опишите действие перед
+          Укажите версию NEBO, модель устройства, версию Android и коротко опишите действие перед
           ошибкой. Не отправляйте пароль, одноразовый код, закрытый ключ, паспорт или
           банковские реквизиты.
         </p>
@@ -30,7 +30,7 @@ export default function SupportPage() {
           Запрос на доступ, исправление, отзыв согласия или удаление: {privacyHref ? (
             <a href={privacyHref}>{PUBLIC_SITE_CONFIG.privacyEmail}</a>
           ) : PUBLIC_SITE_CONFIG.privacyEmail}.
-          Для удаления аккаунта сначала используйте путь MEOU → Настройки → Удалить аккаунт.
+          Для удаления аккаунта сначала используйте путь NEBO → Настройки → Удалить аккаунт.
         </p>
       </section>
 
@@ -39,7 +39,7 @@ export default function SupportPage() {
         <p>
           Если Premium будет включён, приложите идентификатор покупки RuStore и название подписки.
           Данные банковской карты присылать не нужно. Оплата, отмена автопродления и возврат проходят
-          по правилам RuStore; MEOU видит только статус покупки.
+          по правилам RuStore; NEBO видит только статус покупки.
         </p>
       </section>
 

@@ -2,19 +2,19 @@ import { LegalPage } from '../components/public-site/PublicSiteShell';
 import { PUBLIC_SITE_CONFIG, mailto } from '../lib/publicSiteConfig';
 
 export default function DeleteAccountPage() {
-  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'Не могу удалить аккаунт MEOU');
+  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'Не могу удалить аккаунт NEBO');
 
   return (
     <LegalPage
       title="Удаление аккаунта и данных"
-      description="Как удалить аккаунт MEOU, какие данные удаляются, что обезличивается и какие записи остаются у RuStore."
+      description="Как удалить аккаунт NEBO, какие данные удаляются, что обезличивается и какие записи остаются у RuStore."
       path="/delete-account"
       lead={<p>Удалить аккаунт проще всего в самом приложении.</p>}
     >
       <section>
         <h2>Как удалить аккаунт</h2>
         <ol>
-          <li>Войдите в тот аккаунт MEOU, который хотите удалить.</li>
+          <li>Войдите в тот аккаунт NEBO, который хотите удалить.</li>
           <li>Откройте «Настройки».</li>
           <li>Выберите «Удалить аккаунт».</li>
           <li>Прочитайте предупреждение и подтвердите необратимое удаление.</li>
@@ -34,7 +34,7 @@ export default function DeleteAccountPage() {
           <li>персональные прогнозы, история, вопросы и ответы ИИ;</li>
           <li>настройки уведомлений и связанные очереди;</li>
           <li>активные сеансы и привязки устройств;</li>
-          <li>связь покупки и Premium с удаляемым аккаунтом в базе MEOU.</li>
+          <li>связь покупки и Premium с удаляемым аккаунтом в базе NEBO.</li>
         </ul>
       </section>
 
@@ -54,7 +54,7 @@ export default function DeleteAccountPage() {
           <li>обязательные финансовые записи — в сроки бухгалтерского и налогового законодательства;</li>
           <li>
             покупки и платёжные события в системах RuStore / RuStore Pay — по правилам RuStore;
-            MEOU не может удалить запись из систем другого оператора.
+            NEBO не может удалить запись из систем другого оператора.
           </li>
         </ul>
         <p>Временно сохранённые данные не используются для персонализации и удаляются по окончании срока.</p>

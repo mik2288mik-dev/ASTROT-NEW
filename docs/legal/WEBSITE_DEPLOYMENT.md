@@ -1,4 +1,4 @@
-# MEOU public website deployment
+# NEBO public website deployment
 
 Target: a **separate Railway service** in the existing project, built from
 `Dockerfile.website` and `railway.website.json`. It must not inherit API/DB/
@@ -52,7 +52,7 @@ DNS panel:
 ## Production verification
 
 ```text
-GET /                                 200, MEOU landing
+GET /                                 200, NEBO landing
 GET /privacy                         200, indexable, real operator facts
 GET /terms                           200
 GET /personal-data-consent           200

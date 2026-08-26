@@ -2,12 +2,12 @@ import { LegalPage } from '../components/public-site/PublicSiteShell';
 import { PUBLIC_SITE_CONFIG, mailto } from '../lib/publicSiteConfig';
 
 export default function PersonalDataConsentPage() {
-  const privacyHref = mailto(PUBLIC_SITE_CONFIG.privacyEmail, 'Отзыв согласия MEOU');
+  const privacyHref = mailto(PUBLIC_SITE_CONFIG.privacyEmail, 'Отзыв согласия NEBO');
 
   return (
     <LegalPage
       title="Согласие на обработку персональных данных"
-      description="Отдельное согласие пользователя MEOU на обработку персональных данных, его срок, способы подтверждения и отзыва."
+      description="Отдельное согласие пользователя NEBO на обработку персональных данных, его срок, способы подтверждения и отзыва."
       path="/personal-data-consent"
       lead={(
         <p>
@@ -29,7 +29,7 @@ export default function PersonalDataConsentPage() {
         <h2>2. Что подтверждает пользователь</h2>
         <p>
           Я свободно, своей волей и в своём интересе даю оператору согласие на обработку данных,
-          которые я сообщаю или создаю при использовании MEOU:
+          которые я сообщаю или создаю при использовании NEBO:
         </p>
         <ul>
           <li>имя или псевдоним, email, язык и настройки аккаунта;</li>

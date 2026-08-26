@@ -16,6 +16,7 @@ const CANONICAL_BASE_URL = 'https://www.tvoi-goroskop.ru';
 export const PUBLIC_SITE_SEO = {
   baseUrl: CANONICAL_BASE_URL,
   siteName: PUBLIC_SITE_CONFIG.appName,
+  applicationName: 'NEBO гороскоп натальная карта',
   language: 'ru-RU',
   openGraphLocale: 'ru_RU',
   organizationId: `${CANONICAL_BASE_URL}/#organization`,
@@ -167,7 +168,7 @@ function createHomeJsonLd(
         ...application,
         '@type': 'SoftwareApplication',
         '@id': PUBLIC_SITE_SEO.applicationId,
-        name: PUBLIC_SITE_SEO.siteName,
+        name: PUBLIC_SITE_SEO.applicationName,
         url: PUBLIC_SITE_SEO.baseUrl,
         applicationCategory: application?.applicationCategory || 'LifestyleApplication',
         operatingSystem: application?.operatingSystem || 'Android',
