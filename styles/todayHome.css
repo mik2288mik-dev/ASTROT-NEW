@@ -833,6 +833,9 @@
   font-weight: 400 !important;
   letter-spacing: -0.018em !important;
   line-height: 1.66 !important;
+  text-align: justify !important;
+  text-align-last: start;
+  hyphens: auto;
 }
 
 .forecast-feed-page .ui-preview-long-forecast {
@@ -1233,7 +1236,7 @@
   line-height: 1.58 !important;
   text-align: justify !important;
   text-align-last: start;
-  text-indent: clamp(1.35rem, 6vw, 1.8rem);
+  text-indent: 0;
 }
 
 .today-minimal-end-visual {
