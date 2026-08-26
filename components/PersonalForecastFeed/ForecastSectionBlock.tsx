@@ -50,12 +50,14 @@ function renderContentBlocks(
     return (
       <div className="forecast-feed-section-copy forecast-period-editorial-copy">
         {paragraphs.map((text, index) => {
+          const openingParagraph = index === 0 && section.kind === 'overview';
           const paragraph = (
             <p
               className={[
                 'forecast-feed-section-text',
                 index === 0 ? 'is-lead is-story-opening' : 'is-body is-story-continuation',
-              ].join(' ')}
+                openingParagraph ? 'is-opening-paragraph' : '',
+              ].filter(Boolean).join(' ')}
               data-story-paragraph={index + 1}
             >
               {text}

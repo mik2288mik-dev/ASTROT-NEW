@@ -151,10 +151,10 @@ body.ui-preview-document-scroll {
 
 .ui-preview-long-forecast {
   box-sizing: border-box;
-  width: min(100%, 38rem);
+  width: min(calc(100% - 1.5rem), 40rem);
   margin: 0 auto;
   padding-block: clamp(2.3rem, 9vw, 4rem) 4rem;
-  padding-inline: 1.25rem !important;
+  padding-inline: 0 !important;
 }
 
 .ui-preview-sign-trigger {

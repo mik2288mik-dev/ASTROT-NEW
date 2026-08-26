@@ -566,11 +566,11 @@ export const Dashboard = memo<DashboardProps>(({
           <h1 className="sr-only">
             {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
           </h1>
-          <TodayLineField
-            userId={String(profile.id || 'guest')}
-            periodKey={periodKeys.day}
-          />
           <div className="today-minimal-composition">
+            <TodayLineField
+              userId={String(profile.id || 'guest')}
+              periodKey={periodKeys.day}
+            />
             <TodayCalendarClock
               userId={String(profile.id || 'guest')}
               periodKey={periodKeys.day}

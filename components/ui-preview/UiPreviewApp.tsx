@@ -166,7 +166,7 @@ function DiaryScene({
   }[screen];
 
   return (
-    <div className="forecast-feed-page ui-preview-page">
+    <div className={`forecast-feed-page ui-preview-page is-${period}`}>
       <AppTopBar
         title="Твой гороскоп"
         rightAction={<EditorialChartsButton label="Открыть мои карты" onClick={onOpenCharts} />}

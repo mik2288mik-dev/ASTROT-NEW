@@ -227,8 +227,8 @@ export function TodayEditorialFeed({
           ? (language === 'ru' ? 'Личный прогноз на сегодня' : 'Personal forecast for today')
           : undefined}
       >
-        <TodayLineField userId={userId} periodKey={periodKey} />
         <div className="today-minimal-composition">
+          <TodayLineField userId={userId} periodKey={periodKey} />
           <TodayCalendarClock
             userId={userId}
             periodKey={periodKey}

@@ -408,9 +408,9 @@
   box-sizing: border-box;
   width: 100%;
   min-height: clamp(
-    18.5rem,
-    calc(100svh - var(--today-safe-top) - 19.5rem),
-    26rem
+    16.25rem,
+    calc(100svh - var(--today-safe-top) - 21.75rem),
+    23.25rem
   );
   align-items: center;
   overflow: hidden;
@@ -419,14 +419,16 @@
 
 .today-line-field {
   position: absolute;
-  inset: 0;
+  top: clamp(-4rem, -15vw, -3.55rem);
+  left: 50%;
   z-index: 0;
   display: block;
-  width: 100%;
-  height: 100%;
+  width: min(88vw, 24rem);
+  height: clamp(2.85rem, 12vw, 3.35rem);
   overflow: visible;
   fill: none;
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .today-line-field path {
@@ -448,7 +450,7 @@
   justify-items: center;
   gap: clamp(0.8rem, 3.5vw, 1.15rem);
   margin: 0 auto;
-  transform: translateY(-2.4rem);
+  transform: translateY(-1.65rem);
 }
 
 .today-minimal-composition .today-calendar-clock {
@@ -722,18 +724,11 @@
 
 .forecast-feed-page .forecast-period-editorial-feed {
   position: relative;
-  padding-right: max(
-    1.25rem,
-    env(safe-area-inset-right, 0px),
-    var(--tg-content-safe-area-inset-right, 0px),
-    var(--tg-safe-area-inset-right, 0px)
-  ) !important;
-  padding-left: max(
-    1.25rem,
-    env(safe-area-inset-left, 0px),
-    var(--tg-content-safe-area-inset-left, 0px),
-    var(--tg-safe-area-inset-left, 0px)
-  ) !important;
+  box-sizing: border-box;
+  width: min(calc(100% - 1.5rem), 40rem) !important;
+  margin-inline: auto !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
 }
 
 .forecast-editorial-arc {
@@ -800,10 +795,11 @@
   max-width: 100% !important;
   margin: 0 auto clamp(1.45rem, 6vw, 2rem) !important;
   color: var(--today-ink);
-  font-size: clamp(1.55rem, 6.6vw, 1.9rem) !important;
+  font-family: var(--forecast-editorial-font) !important;
+  font-size: clamp(1.4rem, 5.8vw, 1.7rem) !important;
   font-weight: 600 !important;
   letter-spacing: -0.04em !important;
-  line-height: 1.12 !important;
+  line-height: 1.16 !important;
   text-align: center;
   text-wrap: balance;
 }
@@ -825,23 +821,17 @@
 #__next
   .forecast-feed-page
   .forecast-period-editorial-feed
-  .forecast-feed-section-text.is-story-opening {
-  max-width: 100% !important;
-  color: var(--today-copy);
-  font-size: clamp(1.06rem, 4.45vw, 1.16rem) !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.017em !important;
-  line-height: 1.62 !important;
-}
-
+  .forecast-feed-section-text.is-story-opening,
 #__next
   .forecast-feed-page
   .forecast-period-editorial-feed
   .forecast-feed-section-text.is-story-continuation {
   max-width: 100% !important;
   color: var(--today-copy);
-  font-size: clamp(1.02rem, 4.2vw, 1.1rem) !important;
-  letter-spacing: -0.014em !important;
+  font-family: var(--forecast-editorial-font) !important;
+  font-size: clamp(1rem, 4.05vw, 1.06rem) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.018em !important;
   line-height: 1.66 !important;
 }
 
@@ -860,6 +850,12 @@
 
 #__next
   .today-minimal-reading
+  .forecast-feed-section-text.is-opening-paragraph {
+  text-indent: clamp(1.35rem, 6vw, 1.8rem);
+}
+
+#__next
+  .forecast-period-editorial-feed
   .forecast-feed-section-text.is-opening-paragraph {
   text-indent: clamp(1.35rem, 6vw, 1.8rem);
 }
@@ -941,7 +937,7 @@
   border: 0;
   color: var(--today-copy);
   font-family: var(--forecast-editorial-font);
-  font-size: clamp(1.04rem, 4.25vw, 1.1rem) !important;
+  font-size: clamp(1rem, 4.05vw, 1.06rem) !important;
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.66 !important;
@@ -1196,6 +1192,7 @@
 
 .today-minimal-closing {
   position: relative;
+  width: 100%;
   margin-top: clamp(2.25rem, 9vw, 3.25rem);
   padding-top: 0;
   border-top: 0;
@@ -1222,14 +1219,21 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.35;
+  text-align: center;
 }
 
 #__next .today-minimal-closing .forecast-feed-section-text,
 #__next .today-minimal-closing .forecast-feed-section-text.is-lead {
+  width: 100%;
+  max-width: none !important;
   color: var(--today-ink);
   font-size: clamp(1.1rem, 4.6vw, 1.2rem) !important;
+  font-weight: 600 !important;
   letter-spacing: -0.026em;
   line-height: 1.58 !important;
+  text-align: justify !important;
+  text-align-last: start;
+  text-indent: clamp(1.35rem, 6vw, 1.8rem);
 }
 
 .today-minimal-end-visual {

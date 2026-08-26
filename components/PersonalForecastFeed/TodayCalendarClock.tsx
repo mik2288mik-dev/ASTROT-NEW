@@ -197,8 +197,8 @@ export function TodayLineField({
   return (
     <svg
       className="today-line-field"
-      viewBox="0 0 390 700"
-      preserveAspectRatio="xMidYMid slice"
+      viewBox="0 0 390 58"
+      preserveAspectRatio="none"
       aria-hidden="true"
       focusable="false"
       data-line-preset={preset.id}
