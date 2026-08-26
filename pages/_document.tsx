@@ -22,11 +22,25 @@ const PUBLIC_ROUTES = new Set([
   '/terms',
 ]);
 
+const PUBLIC_ROUTE_PREFIXES = [
+  '/goroskop',
+  '/lichnyy-goroskop',
+  '/natalnaya-karta',
+  '/sovmestimost',
+];
+
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.has(pathname)
+    || PUBLIC_ROUTE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+}
+
 export default class MeouDocument extends Document<MeouDocumentProps> {
   static async getInitialProps(ctx: DocumentContext): Promise<MeouDocumentProps> {
     const initialProps = await Document.getInitialProps(ctx);
     const publicWebsiteBuild = process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
-    const publicDocument = publicWebsiteBuild || PUBLIC_ROUTES.has(ctx.pathname);
+    const publicDocument = publicWebsiteBuild || isPublicRoute(ctx.pathname);
     return { ...initialProps, publicDocument };
   }
 

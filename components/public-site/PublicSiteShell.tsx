@@ -10,14 +10,28 @@ import {
   mailto,
 } from '../../lib/publicSiteConfig';
 import styles from '../../styles/PublicSite.module.css';
+import {
+  PUBLIC_SITE_SEO,
+  createBreadcrumbJsonLd,
+  preparePublicPageJsonLd,
+  publicAssetUrl,
+  publicCanonicalUrl,
+  serializePublicJsonLd,
+  type PublicSiteJsonLdInput,
+  type PublicSiteSocialImage,
+} from './publicSiteSeo';
 
-type PageHeadProps = {
+export type PageHeadProps = {
   title: string;
   description: string;
   path: string;
   canonical?: boolean;
+  indexIntent?: 'index' | 'noindex';
   noindex?: boolean;
-  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
+  follow?: boolean;
+  openGraphType?: 'website' | 'article' | 'profile';
+  socialImage?: PublicSiteSocialImage;
+  jsonLd?: PublicSiteJsonLdInput;
 };
 
 export function PageHead({
@@ -25,52 +39,84 @@ export function PageHead({
   description,
   path,
   canonical: includeCanonical = true,
+  indexIntent = 'index',
   noindex = false,
+  follow,
+  openGraphType = 'website',
+  socialImage = PUBLIC_SITE_SEO.defaultSocialImage,
   jsonLd,
 }: PageHeadProps) {
-  const canonical = `${PUBLIC_SITE_CONFIG.baseUrl}${path === '/' ? '' : path}`;
-  const shouldNoindex = noindex || PUBLIC_SITE_CONFIG.isLegalPreview;
+  const canonical = publicCanonicalUrl(path);
+  const shouldNoindex = indexIntent === 'noindex' || noindex || PUBLIC_SITE_CONFIG.isLegalPreview;
+  const shouldFollow = follow ?? !shouldNoindex;
+  const robots = `${shouldNoindex ? 'noindex' : 'index'},${shouldFollow ? 'follow' : 'nofollow'}`;
+  const socialImageUrl = publicAssetUrl(socialImage.path);
+  const jsonLdBlocks = preparePublicPageJsonLd({ path, description, jsonLd });
 
   return (
     <Head>
       <title>{title}</title>
-      <meta name="description" content={description} />
-      <meta name="robots" content={shouldNoindex ? 'noindex,nofollow' : 'index,follow'} />
-      {includeCanonical ? <link rel="canonical" href={canonical} /> : null}
-      <link rel="icon" type="image/svg+xml" href="/assets/brand/personal-horoscope-mark.svg" />
-      <link rel="manifest" href="/site.webmanifest" />
+      <meta key="description" name="description" content={description} />
+      <meta key="robots" name="robots" content={robots} />
+      {includeCanonical ? <link key="canonical" rel="canonical" href={canonical} /> : null}
+      <link
+        key="favicon"
+        rel="icon"
+        type="image/svg+xml"
+        sizes="any"
+        href={PUBLIC_SITE_SEO.logoPath}
+      />
+      <link key="manifest" rel="manifest" href={PUBLIC_SITE_SEO.manifestPath} />
       {PUBLIC_SITE_CONFIG.yandexWebmasterVerification ? (
-        <meta name="yandex-verification" content={PUBLIC_SITE_CONFIG.yandexWebmasterVerification} />
-      ) : null}
-      {PUBLIC_SITE_CONFIG.googleSiteVerification ? (
-        <meta name="google-site-verification" content={PUBLIC_SITE_CONFIG.googleSiteVerification} />
-      ) : null}
-      <meta property="og:type" content="website" />
-      <meta property="og:locale" content="ru_RU" />
-      <meta property="og:site_name" content="MEOU" />
-      <meta property="og:url" content={canonical} />
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={`${PUBLIC_SITE_CONFIG.baseUrl}/home/cards/today-hero.webp`} />
-      <meta property="og:image:width" content="1400" />
-      <meta property="og:image:height" content="788" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={`${PUBLIC_SITE_CONFIG.baseUrl}/home/cards/today-hero.webp`} />
-      {jsonLd ? (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        <meta
+          key="yandex-verification"
+          name="yandex-verification"
+          content={PUBLIC_SITE_CONFIG.yandexWebmasterVerification}
         />
       ) : null}
+      {PUBLIC_SITE_CONFIG.googleSiteVerification ? (
+        <meta
+          key="google-site-verification"
+          name="google-site-verification"
+          content={PUBLIC_SITE_CONFIG.googleSiteVerification}
+        />
+      ) : null}
+      <meta key="og:type" property="og:type" content={openGraphType} />
+      <meta key="og:locale" property="og:locale" content={PUBLIC_SITE_SEO.openGraphLocale} />
+      <meta key="og:site_name" property="og:site_name" content={PUBLIC_SITE_SEO.siteName} />
+      {includeCanonical ? <meta key="og:url" property="og:url" content={canonical} /> : null}
+      <meta key="og:title" property="og:title" content={title} />
+      <meta key="og:description" property="og:description" content={description} />
+      <meta key="og:image" property="og:image" content={socialImageUrl} />
+      <meta key="og:image:width" property="og:image:width" content={String(socialImage.width)} />
+      <meta key="og:image:height" property="og:image:height" content={String(socialImage.height)} />
+      <meta key="og:image:alt" property="og:image:alt" content={socialImage.alt} />
+      {socialImage.type ? (
+        <meta key="og:image:type" property="og:image:type" content={socialImage.type} />
+      ) : null}
+      <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
+      <meta key="twitter:title" name="twitter:title" content={title} />
+      <meta key="twitter:description" name="twitter:description" content={description} />
+      <meta key="twitter:image" name="twitter:image" content={socialImageUrl} />
+      <meta key="twitter:image:alt" name="twitter:image:alt" content={socialImage.alt} />
+      {jsonLdBlocks.map((block, index) => (
+        <script
+          key={`json-ld-${index}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializePublicJsonLd(block) }}
+        />
+      ))}
     </Head>
   );
 }
 
 function Brand({ footer = false }: { footer?: boolean }) {
   return (
-    <Link href="/" className={footer ? styles.footerBrand : styles.brand} aria-label="Главная MEOU">
+    <Link
+      href="/"
+      className={footer ? styles.footerBrand : styles.brand}
+      aria-label={`Главная ${PUBLIC_SITE_SEO.siteName}`}
+    >
       <Image
         src="/assets/brand/personal-horoscope-mark.svg"
         alt=""
@@ -78,7 +124,7 @@ function Brand({ footer = false }: { footer?: boolean }) {
         height={32}
         className={styles.brandMark}
       />
-      <span>MEOU</span>
+      <span>{PUBLIC_SITE_SEO.siteName}</span>
     </Link>
   );
 }
@@ -108,7 +154,10 @@ function DownloadAction({ compact = false }: { compact?: boolean }) {
 }
 
 export function PublicSiteShell({ children }: PropsWithChildren) {
-  const supportHref = mailto(PUBLIC_SITE_CONFIG.supportEmail, 'Поддержка MEOU');
+  const supportHref = mailto(
+    PUBLIC_SITE_CONFIG.supportEmail,
+    `Поддержка ${PUBLIC_SITE_SEO.siteName}`,
+  );
 
   return (
     <div className={styles.siteRoot}>
@@ -117,10 +166,20 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
         <div className={styles.headerInner}>
           <Brand />
           <nav className={styles.headerNav} aria-label="Основная навигация">
-            <Link href="/#possibilities">Возможности</Link>
-            <Link href="/#principles">Принципы</Link>
-            <Link href="/support">Поддержка</Link>
+            {PUBLIC_SITE_SEO.navigation.map((item) => (
+              <Link key={item.href} href={item.href}>{item.label}</Link>
+            ))}
           </nav>
+          <details className={styles.mobileNav}>
+            <summary className={styles.mobileNavSummary}>Меню</summary>
+            <nav className={styles.mobileNavPanel} aria-label="Мобильная навигация">
+              {PUBLIC_SITE_SEO.navigation.map((item) => (
+                <Link key={item.href} href={item.href} className={styles.mobileNavLink}>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </details>
           <DownloadAction compact />
         </div>
       </header>
@@ -129,7 +188,7 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
         <div className={styles.footerInner}>
           <div className={styles.footerIntro}>
             <Brand footer />
-            <p>Персональные прогнозы и разбор натальной карты без обещаний предсказать судьбу.</p>
+            <p>Личные прогнозы, натальная карта и совместимость в одном приложении.</p>
           </div>
           <nav className={styles.footerLinks} aria-label="Правовая информация">
             <Link href="/privacy">Конфиденциальность</Link>
@@ -140,7 +199,9 @@ export function PublicSiteShell({ children }: PropsWithChildren) {
             <Link href="/requisites">Реквизиты</Link>
             {supportHref ? <a href={supportHref}>Написать в поддержку</a> : null}
           </nav>
-          <p className={styles.footerMeta}>© 2026 MEOU. Lifestyle / entertainment.</p>
+          <p className={styles.footerMeta}>
+            © 2026 {PUBLIC_SITE_SEO.siteName}. Приложение для Android.
+          </p>
         </div>
       </footer>
     </div>
@@ -160,28 +221,27 @@ type LegalPageProps = PropsWithChildren<{
 
 export function LegalPage({ title, description, path, lead, children }: LegalPageProps) {
   const legalReady = isPublicLegalReady();
-  const canonical = `${PUBLIC_SITE_CONFIG.baseUrl}${path}`;
-  const breadcrumbs = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'MEOU', item: PUBLIC_SITE_CONFIG.baseUrl },
-      { '@type': 'ListItem', position: 2, name: title, item: canonical },
-    ],
-  };
+  const breadcrumbs = createBreadcrumbJsonLd([
+    { name: PUBLIC_SITE_SEO.siteName, path: '/' },
+    { name: title, path },
+  ]);
 
   return (
     <PublicSiteShell>
       <PageHead
-        title={title.endsWith('MEOU') ? title : `${title} — MEOU`}
+        title={
+          title.endsWith(PUBLIC_SITE_SEO.siteName)
+            ? title
+            : `${title} — ${PUBLIC_SITE_SEO.siteName}`
+        }
         description={description}
         path={path}
-        noindex={!legalReady}
+        indexIntent={legalReady ? 'index' : 'noindex'}
         jsonLd={breadcrumbs}
       />
       <main id="main-content" className={styles.legalMain}>
         <nav className={styles.breadcrumbs} aria-label="Хлебные крошки">
-          <Link href="/">MEOU</Link>
+          <Link href="/">{PUBLIC_SITE_SEO.siteName}</Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page">{title}</span>
         </nav>
@@ -193,7 +253,9 @@ export function LegalPage({ title, description, path, lead, children }: LegalPag
         ) : null}
         <article className={styles.legalArticle}>
           <header className={styles.legalHeading}>
-            <p className={styles.eyebrow}>MEOU · редакция от {formatPublicationDate()}</p>
+            <p className={styles.eyebrow}>
+              {PUBLIC_SITE_SEO.siteName} · редакция от {formatPublicationDate()}
+            </p>
             <h1>{title}</h1>
             <div className={styles.legalLead}>{lead}</div>
           </header>
@@ -204,4 +266,6 @@ export function LegalPage({ title, description, path, lead, children }: LegalPag
   );
 }
 
+export { PUBLIC_SITE_SEO, createBreadcrumbJsonLd } from './publicSiteSeo';
+export type { PublicSiteJsonLd, PublicSiteJsonLdInput, PublicSiteSocialImage } from './publicSiteSeo';
 export { styles as publicSiteStyles };

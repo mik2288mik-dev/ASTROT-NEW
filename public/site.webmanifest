@@ -1,9 +1,11 @@
 {
   "name": "MEOU",
   "short_name": "MEOU",
-  "description": "Персональные прогнозы и натальная карта.",
+  "description": "Личные прогнозы, гороскопы по знакам, натальная карта и совместимость.",
   "lang": "ru-RU",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "browser",
   "background_color": "#fbfaf8",
   "theme_color": "#fbfaf8",

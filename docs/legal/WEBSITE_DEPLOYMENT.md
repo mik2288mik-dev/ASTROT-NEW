@@ -27,16 +27,16 @@ Do not deploy an indexable build until:
 3. Select `Dockerfile.website` (the committed Railway config already points to
    it). Healthcheck is `/`; port is supplied by Railway.
 4. Set `MEOU_PUBLIC_SITE=1`, `NEXT_PUBLIC_MEOU_PUBLIC_SITE=1`,
-   `NEXT_PUBLIC_LEGAL_PREVIEW=0` and every required public variable from
-   `.env.example`. Do not attach `DATABASE_URL`, auth secrets, API keys or
-   payment keys.
+   `NEXT_PUBLIC_LEGAL_PREVIEW=0`, `NEXT_PUBLIC_APP_NAME` and every
+   required public variable from `.env.example`. Do not attach `DATABASE_URL`,
+   auth secrets, API keys or payment keys.
 5. Deploy and verify root/legal/SEO/security/404/API-isolation checks below.
 
 ## Domain and DNS
 
-Canonical domain is `tvoi-goroskop.ru`; `www.tvoi-goroskop.ru` permanently
-redirects to the apex. Current live evidence is not ready: the apex still
-resolves to REG.RU hosting and timed out from the verification environment.
+Canonical domain is `www.tvoi-goroskop.ru`; `tvoi-goroskop.ru` permanently
+redirects to `www`. Canonical links, Open Graph, JSON-LD, robots and sitemap
+must use the same `www` origin.
 
 Railway generates the custom-domain DNS target only after the new service is
 created. Copy that exact target from Railway—never guess it. In the delegated
@@ -65,7 +65,7 @@ GET /.well-known/security.txt        200
 GET /unknown                         404
 GET /api/health                      404
 GET /auth/complete                   404
-Host: www.tvoi-goroskop.ru            308 to apex
+Host: tvoi-goroskop.ru                308 to www
 ```
 
 Also verify valid HTTPS, canonical/OG/JSON-LD, all footer links, no

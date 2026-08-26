@@ -159,11 +159,6 @@ const nextConfig = {
           destination: '/support',
           permanent: true,
         },
-        ...(isPublicWebsiteBuild ? [{
-          source: '/site',
-          destination: '/',
-          permanent: true,
-        }] : []),
       ];
     },
     async headers() {
@@ -180,10 +175,16 @@ const nextConfig = {
       const publicRoutes = [
         '/404',
         '/delete-account',
+        '/goroskop',
+        '/goroskop/:path*',
+        '/lichnyy-goroskop',
+        '/natalnaya-karta',
         '/personal-data-consent',
         '/privacy',
         '/requisites',
         '/site',
+        '/sovmestimost',
+        '/sovmestimost/:path*',
         '/support',
         '/terms',
       ];

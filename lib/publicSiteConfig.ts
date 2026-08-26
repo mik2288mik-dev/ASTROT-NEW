@@ -1,4 +1,4 @@
-const DEFAULT_PUBLIC_BASE_URL = 'https://tvoi-goroskop.ru';
+const DEFAULT_PUBLIC_BASE_URL = 'https://www.tvoi-goroskop.ru';
 
 function clean(value: string | undefined): string {
   return String(value || '').trim();
@@ -26,6 +26,7 @@ function isIsoDate(value: string): boolean {
 
 const baseUrl = clean(process.env.NEXT_PUBLIC_PUBLIC_BASE_URL).replace(/\/+$/, '')
   || DEFAULT_PUBLIC_BASE_URL;
+const appName = clean(process.env.NEXT_PUBLIC_APP_NAME) || 'MEOU';
 const supportEmail = publicValue(process.env.NEXT_PUBLIC_SUPPORT_EMAIL, 'support-email');
 const privacyEmail = publicValue(process.env.NEXT_PUBLIC_PRIVACY_EMAIL, 'privacy-email');
 const operatorName = publicValue(process.env.NEXT_PUBLIC_DEVELOPER_NAME, 'operator-name');
@@ -88,7 +89,7 @@ const minimumAge = publicValue(process.env.NEXT_PUBLIC_MINIMUM_AGE, 'approved-mi
 const rustoreUrl = clean(process.env.NEXT_PUBLIC_RUSTORE_URL);
 
 export const PUBLIC_SITE_CONFIG = {
-  appName: 'MEOU',
+  appName,
   baseUrl,
   supportEmail,
   privacyEmail,

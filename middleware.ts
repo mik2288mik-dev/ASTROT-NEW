@@ -25,7 +25,17 @@ function addCorsHeaders(response: NextResponse, origin: string): NextResponse {
 export function middleware(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1') {
     if (request.nextUrl.pathname === '/') {
-      return NextResponse.rewrite(new URL('/site', request.url));
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set('x-meou-public-root-rewrite', '1');
+      return NextResponse.rewrite(new URL('/site', request.url), {
+        request: { headers: requestHeaders },
+      });
+    }
+    if (request.nextUrl.pathname === '/site') {
+      if (request.headers.get('x-meou-public-root-rewrite') === '1') {
+        return NextResponse.next();
+      }
+      return NextResponse.redirect(new URL('/', request.url), 308);
     }
     return NextResponse.json(
       { error: 'NOT_FOUND' },
@@ -95,5 +105,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/api/:path*', '/auth/:path*'],
+  matcher: ['/', '/site', '/api/:path*', '/auth/:path*'],
 };

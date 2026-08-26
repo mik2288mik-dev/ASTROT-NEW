@@ -4,4 +4,4 @@ Disallow: /api/
 Disallow: /admin
 Disallow: /auth/
 
-Sitemap: https://tvoi-goroskop.ru/sitemap.xml
+Sitemap: https://www.tvoi-goroskop.ru/sitemap.xml
