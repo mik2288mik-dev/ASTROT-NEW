@@ -19,43 +19,60 @@ type ForecastSectionBlockProps = {
   period: PersonalForecastPeriod;
   language: 'ru' | 'en';
   locked: boolean;
-  emphasizeOpening?: boolean;
   sticker?: DiaryEditorialPause['asset'] | null;
   onRequestPremium: () => void;
 };
 
-function splitOpeningPhrase(text: string): { lead: string; rest: string } {
-  const words = [...text.matchAll(/\S+/gu)];
-  const lastLeadWord = words[Math.min(2, words.length - 1)];
-  if (!lastLeadWord) return { lead: text, rest: '' };
-  const end = (lastLeadWord.index ?? 0) + lastLeadWord[0].length;
-  return {
-    lead: text.slice(0, end),
-    rest: text.slice(end),
-  };
+function adviceLabel(
+  period: PersonalForecastPeriod,
+  language: 'ru' | 'en',
+): string {
+  if (language === 'en') {
+    return period === 'week'
+      ? 'Advice for the week'
+      : period === 'month'
+        ? 'Advice for the month'
+        : 'Advice for today';
+  }
+  return period === 'week'
+    ? 'Совет на неделю'
+    : period === 'month'
+      ? 'Совет на месяц'
+      : 'Совет дня';
 }
 
 function renderContentBlocks(
   section: ForecastSection,
   period: PersonalForecastPeriod,
   sticker?: DiaryEditorialPause['asset'] | null,
-  emphasizeOpening = false,
 ) {
   if (period !== 'day') {
+    const punchlineBlock = section.kind === 'overview'
+      ? section.contentBlocks.find((block) => block.role === 'lead')
+      : undefined;
+    const bodyBlocks = punchlineBlock
+      ? section.contentBlocks.filter((block) => block.id !== punchlineBlock.id)
+      : section.contentBlocks;
     const paragraphs = resolveLongForecastParagraphs(
-      section.contentBlocks.map((block) => block.text),
+      bodyBlocks.map((block) => block.text),
     );
     const visualParagraphIndex = Math.min(1, paragraphs.length - 1);
 
     return (
       <div className="forecast-feed-section-copy forecast-period-editorial-copy">
+        {punchlineBlock ? (
+          <p className="forecast-feed-section-text is-lead forecast-period-editorial-punchline">
+            {punchlineBlock.text}
+          </p>
+        ) : null}
         {paragraphs.map((text, index) => {
           const openingParagraph = index === 0 && section.kind === 'overview';
           const paragraph = (
             <p
               className={[
                 'forecast-feed-section-text',
-                index === 0 ? 'is-lead is-story-opening' : 'is-body is-story-continuation',
+                'is-body',
+                index === 0 ? 'is-story-opening' : 'is-story-continuation',
                 openingParagraph ? 'is-opening-paragraph' : '',
               ].filter(Boolean).join(' ')}
               data-story-paragraph={index + 1}
@@ -94,28 +111,17 @@ function renderContentBlocks(
 
   return (
     <div className="forecast-feed-section-copy">
-      {section.contentBlocks.map((block, index) => {
-        const opening = emphasizeOpening && index === 0
-          ? splitOpeningPhrase(block.text)
-          : null;
-        return (
-          <p
-            key={block.id}
-            className={[
-              'forecast-feed-section-text',
-              block.role === 'lead' ? 'is-lead' : 'is-body',
-              opening ? 'is-opening-paragraph' : '',
-            ].filter(Boolean).join(' ')}
-          >
-            {opening ? (
-              <>
-                <strong className="today-minimal-opening-phrase">{opening.lead}</strong>
-                {opening.rest}
-              </>
-            ) : block.text}
-          </p>
-        );
-      })}
+      {section.contentBlocks.map((block) => (
+        <p
+          key={block.id}
+          className={[
+            'forecast-feed-section-text',
+            block.role === 'lead' ? 'is-lead' : 'is-body',
+          ].join(' ')}
+        >
+          {block.text}
+        </p>
+      ))}
     </div>
   );
 }
@@ -125,7 +131,6 @@ export function ForecastSectionBlock({
   period,
   language,
   locked,
-  emphasizeOpening = false,
   sticker,
   onRequestPremium,
 }: ForecastSectionBlockProps) {
@@ -143,6 +148,8 @@ export function ForecastSectionBlock({
     0,
   );
   const isBrief = !isOverview && copyLength > 0 && copyLength <= 180;
+  const isAdvice = !isOverview
+    && section.contentBlocks.some((block) => block.role === 'action');
 
   if (section.status !== 'ready') return null;
   if (!locked && !hasReadableCopy) return null;
@@ -157,6 +164,7 @@ export function ForecastSectionBlock({
         'forecast-feed-story-fragment',
         isOverview ? 'is-overview' : '',
         isBrief ? 'is-brief' : '',
+        isAdvice ? 'is-advice' : '',
         title ? 'has-title' : 'is-untitled',
         locked ? 'is-locked' : '',
       ].filter(Boolean).join(' ')}
@@ -181,6 +189,11 @@ export function ForecastSectionBlock({
               <span>{title}</span>
             </h2>
           )
+        ) : null}
+        {!locked && period !== 'day' && isAdvice ? (
+          <p className="forecast-period-advice-label">
+            {adviceLabel(period, language)}
+          </p>
         ) : null}
         {locked ? (
           <div className="forecast-feed-locked">
@@ -213,7 +226,7 @@ export function ForecastSectionBlock({
               {language === 'ru' ? 'Показать продолжение' : 'Show the rest'}
             </button>
           </div>
-        ) : renderContentBlocks(section, period, sticker, emphasizeOpening)}
+        ) : renderContentBlocks(section, period, sticker)}
         {!locked && period !== 'day' && isOverview ? (
           <ForecastArc
             className="forecast-period-editorial-arc is-closing"

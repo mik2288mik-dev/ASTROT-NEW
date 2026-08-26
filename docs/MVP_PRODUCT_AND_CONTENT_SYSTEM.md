@@ -12,14 +12,13 @@
 ## Personal forecast
 
 - The reader lives in `views/Dashboard.tsx`; one Today/Week/Month tablist sits directly below its header. There is no separate forecast page, question block, feedback prompt, “hit/miss” control, chat, game, or time-of-day forecast.
-- Every period opens with one visible common hook of 2–5 words. Today continues it as a continuous feed of 4–6 sequential untitled fragments, no more than 150 visible words in total. The first fragment is `overview`; the following fragments are ordered `sections`. The final fragment closes with practical value without a visible advice rubric. Love/Work/Mood and other categories are never visible.
-- Week and Month each receive one cohesive personal story for their exact range. They are not multi-card feeds and have no Monday-to-Sunday, week-part, or month-part breakdown.
-- None of the three periods uses a fixed set of life themes, preselected behavioural patterns, separate advice blocks, or generic newspaper-horoscope categories. Internal post-hoc service keys are allowed only for diversity validation and are never rendered.
+- Every period uses the same visible order: a generated title, a separate sharp punchline, the forecast body, and a separate conclusion/advice. Today materializes as a continuous feed of 4–6 sequential text fragments: `overview` stores the first/main fragment and ordered `sections` store the rest. Love/Work/Mood and other fixed categories are never visible.
+- Week and Month each receive one cohesive personal story for their exact range followed by separate concrete advice. Week is longer than Today, and Month is longer than Week. They are not multi-card feeds and have no Monday-to-Sunday, week-part, or month-part breakdown.
+- None of the three periods uses fixed life themes, preselected behavioural patterns, generic newspaper-horoscope categories, or visible astrological terminology. The saved natal context personalizes the story without becoming a technical explanation in the UI.
 - Swiss Ephemeris calculates the saved natal chart. That chart supplies private context for the model; it does not produce a separate transit/evidence payload for the forecast period.
 - OpenAI Luna receives the selected period plus available birth details, saved natal context, and up to 15 recent fragments for the same user and chart across `day`, `week`, and `month` via the Responses API. It writes the forecast itself; recent excerpts are negative anti-repeat context, not factual biography or fallback copy.
-- Strict JSON Schema and server validation control the fragment count, required typed closing, 150-word limit, language, forecast-specific voice, safety, unsupported claims, and repetition. The request uses `store: false`; rejected draft text remains inside server validation and is not sent back to Luna. The writer has at most two attempts.
-- Each Today fragment carries hidden `presentationStyle`: the first and final fragments are `prose`, with at most one 6–18-word `pull_quote` and one 4–12-word `paper_note`. The schema validates these values, but the current Today renderer does not branch on them and displays every fragment as continuous prose. Week and Month omit the metadata.
-- `lib/appVoice.ts` is the runtime voice source. Its v3 personal-forecast layer may be sharper and occasionally ironic without changing the global app voice. Ten period-local runtime examples guide form — four Today and three each for Week and Month — while anti-copy validation prevents template reuse.
+- Strict JSON Schema requires exactly `title`, `punchline`, `forecast`, and `closing`. Server validation controls period-specific length, sentence and fragment counts, language, forecast-specific voice, unsupported claims, visible astrology, and repetition. The request uses `store: false`; rejected draft text remains inside server validation and is not sent back to Luna. The writer has at most two attempts.
+- `lib/appVoice.ts` owns the runtime voice identity. The only personal-forecast reference corpus is `lib/personalForecastExamples.ts`: 21 Today, 15 Week, and 20 Month examples. The developer instruction receives every reference for the selected period, while anti-copy validation prevents template reuse.
 
 ## Access and cache
 
@@ -45,7 +44,7 @@
 - The former five-layout planner, 309 assets under `/assets/personal-editorial/`, and 19 paper templates under `/assets/personal-paper-templates/` remain library-only and inactive. The current Today path does not mount its image or paper renderers.
 - Zodiac is the only product that can use retained legacy newspaper imagery. Its separate source contains 48 explicitly allowlisted assets under `/assets/zodiac-legacy-special/`: 24 psychedelic images and 24 approved funny-animal images. The personal manifests and selectors never import this pool, and the Zodiac selector cannot see any other retired newspaper asset.
 - Clock and line selection is deterministic for the user and date, and no visual state is stored in the database. Luna never chooses either preset, an asset, coordinates, colour, or composition.
-- Body prose remains primary and never sits on an image or in an additional card. Fragment titles and presentation metadata stay hidden in the active Today UI.
+- Body prose remains primary and never sits on an image or in an additional card. The generated title, separate punchline, forecast body, and conclusion/advice remain distinct in the active UI.
 
 ## Android accounts
 

@@ -73,7 +73,14 @@ describe('Today editorial layout system', () => {
     expect(feed).toContain('<TodayCalendarClock');
     expect(feed).toContain('<TodayLineField');
     expect(feed).toContain('data-today-layout="calendar-editorial"');
-    expect(feed).toContain("? { ...section, title: '' }");
+    expect(feed).toContain('const title = resolveTitle(overview)');
+    expect(feed).toContain('const punchline = resolvePunchline(overview)');
+    expect(feed).toContain('className="today-minimal-story-title"');
+    expect(feed).toContain('className="today-minimal-punchline"');
+    expect(feed).toContain("block.role === 'lead'");
+    expect(feed).toContain("language === 'ru' ? 'Совет дня'");
+    expect(feed).not.toContain('emphasizeOpening');
+    expect(feed).not.toContain('today-minimal-opening-phrase');
     expect(feed).not.toContain('EditorialForecastVisual');
     expect(feed).not.toContain('EditorialSticker');
     expect(feed).not.toContain('Вывод и совет');
@@ -113,7 +120,7 @@ describe('Today editorial layout system', () => {
     expect(clampDiaryVisualSize('hero', 'hero')).toBe('hero');
   });
 
-  it('hides internal Today titles without hiding the real headline or long-period titles', () => {
+  it('hides internal Today titles without hiding the generated period title', () => {
     expect(resolveVisibleForecastTitle({
       period: 'day',
       kind: 'dynamic',

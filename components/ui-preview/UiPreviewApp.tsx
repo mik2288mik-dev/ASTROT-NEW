@@ -29,14 +29,14 @@ import {
   UI_PREVIEW_COMPATIBILITY,
   UI_PREVIEW_COMPATIBILITY_STEADY,
   UI_PREVIEW_HOROSCOPE,
-  UI_PREVIEW_MONTH_SECTION,
+  UI_PREVIEW_MONTH_SECTIONS,
   UI_PREVIEW_PAYWALL_PLANS,
   UI_PREVIEW_SCREEN_LABELS,
   UI_PREVIEW_SCREENS,
   UI_PREVIEW_STATES,
   UI_PREVIEW_SETTINGS,
   UI_PREVIEW_TODAY_SECTIONS,
-  UI_PREVIEW_WEEK_SECTION,
+  UI_PREVIEW_WEEK_SECTIONS,
   createUiPreviewChart,
   createUiPreviewCharts,
   createUiPreviewNatalReport,
@@ -65,16 +65,6 @@ const previewCompatibilityVerdict = (score: number) => score >= 85
       : score >= 40
         ? 'Требовательная связь'
         : 'Сложная связь';
-
-const UI_PREVIEW_TODAY_WITH_CLOSING = UI_PREVIEW_TODAY_SECTIONS.map((section, index) => {
-  if (index !== UI_PREVIEW_TODAY_SECTIONS.length - 1) return section;
-  return {
-    ...section,
-    contentBlocks: section.contentBlocks.map((block, blockIndex) => (
-      blockIndex === 0 ? { ...block, role: 'insight' as const } : block
-    )),
-  };
-});
 
 function localHostnameAllowed(): boolean {
   if (typeof window === 'undefined') return false;
@@ -158,7 +148,7 @@ function DiaryScene({
   onOpenCharts: () => void;
 }) {
   const period = screen === 'today' ? 'day' : screen;
-  const longSection = screen === 'week' ? UI_PREVIEW_WEEK_SECTION : UI_PREVIEW_MONTH_SECTION;
+  const longSections = screen === 'week' ? UI_PREVIEW_WEEK_SECTIONS : UI_PREVIEW_MONTH_SECTIONS;
   const personalForecastNote = {
     today: 'Личный прогноз на сегодня — по твоим данным рождения.',
     week: 'Личный прогноз на неделю — по твоим данным рождения.',
@@ -181,10 +171,10 @@ function DiaryScene({
       <p className="today-period-personal-note">{personalForecastNote}</p>
       {screen === 'today' ? (
         <TodayEditorialFeed
-          sections={UI_PREVIEW_TODAY_WITH_CLOSING}
+          sections={UI_PREVIEW_TODAY_SECTIONS}
           lockedSectionIds={premium
             ? new Set<string>()
-            : new Set(UI_PREVIEW_TODAY_WITH_CLOSING.slice(2).map((section) => section.id))}
+            : new Set(UI_PREVIEW_TODAY_SECTIONS.slice(2, -1).map((section) => section.id))}
           userId="ui-preview-user"
           periodKey="2026-08-22"
           timezone="Europe/Moscow"
@@ -195,13 +185,18 @@ function DiaryScene({
         />
       ) : (
         <article className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed ui-preview-long-forecast">
-          <ForecastSectionBlock
-            section={longSection}
-            period={period}
-            language="ru"
-            locked={!premium}
-            onRequestPremium={() => onNavigate('paywall')}
-          />
+          {longSections.map((section, index) => (
+            !premium && index > 0 ? null : (
+              <ForecastSectionBlock
+                key={`${period}:${section.id}`}
+                section={section}
+                period={period}
+                language="ru"
+                locked={!premium}
+                onRequestPremium={() => onNavigate('paywall')}
+              />
+            )
+          ))}
         </article>
       )}
     </div>

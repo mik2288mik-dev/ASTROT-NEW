@@ -33,7 +33,9 @@ function forecastForPeriod(period: PersonalForecastPeriod): PersonalForecastPack
         ? '2026-07'
         : '2026';
   const window = resolvePersonalForecastWindow(period, key, base.timezone);
-  const sections = base.sections;
+  const sections = period === 'day'
+    ? base.sections
+    : [base.sections.at(-1)!];
   return {
     ...base,
     period,
@@ -68,11 +70,27 @@ function replaceSectionText(section: ForecastSection, text: string): void {
 }
 
 describe('personal forecast direct-reading contract', () => {
-  test('enforces one forecast paragraph and one separate closing for every period', () => {
+  test('keeps title, punchline, forecast body, and closing separate for every period', () => {
     const base = personalForecastFixture();
     expect(isPersonalForecastPackage(base)).toBe(true);
-    expect(base.sections).toHaveLength(1);
+    expect(base.overview.title).toBe('A precise turn');
+    expect(base.overview.contentBlocks.map((block) => block.role)).toEqual([
+      'lead',
+      'detail',
+    ]);
+    expect(base.meta.semanticSignature).toMatchObject({
+      title: 'A precise turn',
+      punchline: expect.any(String),
+      forecast: expect.any(String),
+      closing: expect.any(String),
+    });
+    expect(base.meta.semanticSignature).not.toHaveProperty('headline');
+    expect(base.sections).toHaveLength(3);
     expect(base.sections.every((section) => section.kind === 'dynamic')).toBe(true);
+    expect(base.sections.slice(0, -1).every(
+      (section) => section.contentBlocks.map((block) => block.role).join(',') === 'detail',
+    )).toBe(true);
+    expect(base.sections.at(-1)?.contentBlocks.map((block) => block.role)).toEqual(['action']);
     expect(base.sections.some((section) => section.fixedKey)).toBe(false);
 
     expect(getPersonalForecastPackageValidationError({
@@ -87,7 +105,11 @@ describe('personal forecast direct-reading contract', () => {
 
     const extraToday = {
       ...base,
-      sections: [...base.sections, structuredClone(base.sections[0])],
+      sections: [
+        ...base.sections,
+        structuredClone(base.sections[0]),
+        structuredClone(base.sections[1]),
+      ],
       visual: {
         sectionAssetIds: {
           ...base.visual.sectionAssetIds,
@@ -189,9 +211,9 @@ describe('personal forecast direct-reading contract', () => {
   test('rejects stale calculation, semantic, contract, prompt, and voice versions', () => {
     const base = personalForecastFixture();
     expect(PERSONAL_FORECAST_CALCULATION_VERSION).toMatch(/^personal-forecast-luna-raw-profile-brief-v\d+$/);
-    expect(PERSONAL_FORECAST_CACHE_VERSION).toMatch(/^personal-forecast-cache-v\d+-approved-three-part$/);
-    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toMatch(/^personal-forecast-feed-v\d+-approved-three-part$/);
-    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('approved-three-part');
+    expect(PERSONAL_FORECAST_CACHE_VERSION).toMatch(/^personal-forecast-cache-v\d+-reference-four-part$/);
+    expect(PERSONAL_FORECAST_CONTRACT_VERSION).toMatch(/^personal-forecast-feed-v\d+-reference-four-part$/);
+    expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain('reference-four-part');
     expect(PERSONAL_FORECAST_PROMPT_VERSION).toContain(
       `forecast-voice.${PERSONAL_FORECAST_VOICE_VERSION}`,
     );
@@ -277,7 +299,7 @@ describe('personal forecast direct-reading contract', () => {
   });
 
 
-  test('accepts the one closing section in Today Free selection', () => {
+  test('accepts one forecast continuation and the closing in Today Free selection', () => {
     const base = personalForecastFixture();
     expect(isPersonalForecastPackage(base)).toBe(true);
 
@@ -307,9 +329,11 @@ describe('personal forecast direct-reading contract', () => {
     const base = personalForecastFixture();
     const sliced = slicePersonalForecastForAccess(base, false);
     expect(sliced.periodLocked).toBe(false);
-    expect(sliced.lockedSectionIds).toEqual([]);
+    expect(sliced.lockedSectionIds).toEqual(['semantic:continuation']);
     expect(sliced.forecast.overview.text).not.toBe('');
     expect(sliced.forecast.sections[0].text).not.toBe('');
+    expect(sliced.forecast.sections[1].text).toBe('');
+    expect(sliced.forecast.sections.at(-1)?.text).not.toBe('');
     expect(isPersonalForecastPackage(sliced.forecast, {
       redactedSectionIds: sliced.lockedSectionIds,
     })).toBe(true);

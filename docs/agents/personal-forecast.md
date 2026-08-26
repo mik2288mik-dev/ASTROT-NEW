@@ -6,11 +6,12 @@
 `month`. The current UI, navigation, Free/Premium composition, and visual
 selection stay outside generation.
 
-The visible reading has exactly three parts:
+The visible reading has exactly four parts:
 
-1. `headline` — a 2–5-word sharp opening;
-2. `forecast` — one cohesive personal forecast paragraph;
-3. `closing` — a separate 3–12-word final line.
+1. `title` — a 1–5-word name for the day, week, or month;
+2. `punchline` — one short, sharp sentence shown separately;
+3. `forecast` — one cohesive personal forecast;
+4. `closing` — a separate practical conclusion or piece of advice.
 
 There are no visible technical labels, categories, advice cards, `takeaway`,
 `do`, or `dont` fields.
@@ -40,16 +41,18 @@ and is never sent to Luna.
 
 ## Voice
 
-Write in simple, lively Russian: direct, upbeat, bold, occasionally sharp or
-funny, never rude. The forecast is short and concrete, without visible
-astrology, esotericism, psychology, coaching, office prose, literary ornament,
-invented biography, or guaranteed events. A positive forecast may remain fully
-positive.
+Write in the direct Russian of the approved reference corpus: a compact title,
+a biting one-line entrance, a concrete forecast, and an imperative conclusion.
+The forecast can be blunt or ironic, but it must still use only the accepted
+private brief and must not invent astrology, biography, diagnoses, or guaranteed
+events. A positive forecast may remain fully positive. Runtime reference inputs
+contain no synthetic reader name or date window; the live input supplies the
+actual grammatical gender only for Russian agreement.
 
 `lib/personalForecastExamples.ts` is the only approved runtime corpus. It holds
-exactly 10 complete examples: 4 Today, 3 Week, and 3 Month. Only three examples
-for the selected period enter a request. They teach voice and form; the hidden
-brief supplies the new personal content.
+the complete user-supplied reference set for Today, Week, and Month. Every
+example for the selected period enters the static developer instructions. The
+examples teach voice and form; the hidden brief supplies the new personal plot.
 
 ## Safety and changes
 
@@ -57,6 +60,6 @@ brief supplies the new personal content.
 - Provider budget retry is limited to one retry for max-token incomplete
   responses; writer validation is limited to two drafts.
 - Prompt, voice, contract, cache, and local-storage versions must invalidate old
-  six-field and fragment-based packages.
+  three-part, six-field, and fragment-based packages.
 - Do not change Zodiac, natal readings, compatibility, questions, payments,
   authentication, UI, or visual composition while editing this product.

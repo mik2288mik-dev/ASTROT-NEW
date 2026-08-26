@@ -98,8 +98,23 @@ function reading(value: unknown): PersonalForecastRecentReading | null {
   if (!isPersonalForecastPackage(value)) return null;
   const all = [value.overview, ...value.sections];
   const fragments = [
-    { kind: 'headline' as const, text: value.overview.title || '', semanticFingerprint: null },
-    ...all.filter((section) => section.text.trim()).map((section) => ({ kind: 'fragment' as const, text: section.text, semanticFingerprint: section.semanticFingerprint || null })),
+    { kind: 'title' as const, text: value.overview.title || '', semanticFingerprint: null },
+    ...all.flatMap((section) => {
+      if (section.contentBlocks.length) {
+        return section.contentBlocks.map((block) => ({
+          kind: section.kind === 'overview' && block.role === 'lead'
+            ? 'punchline' as const
+            : block.role === 'action'
+              ? 'closing' as const
+              : 'forecast' as const,
+          text: block.text,
+          semanticFingerprint: section.semanticFingerprint || null,
+        }));
+      }
+      return section.text.trim()
+        ? [{ kind: 'forecast' as const, text: section.text, semanticFingerprint: section.semanticFingerprint || null }]
+        : [];
+    }),
   ].filter((item) => item.text.trim());
   return fragments.length ? {
     period: value.period,

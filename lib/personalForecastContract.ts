@@ -171,7 +171,8 @@ export type PersonalForecastAstrologerBrief = {
 export type PersonalForecastSemanticSignature = {
   coreForecast: string;
   secondaryForecast: string | null;
-  headline: string;
+  title: string;
+  punchline: string;
   forecast: string;
   closing: string;
 };
@@ -249,12 +250,12 @@ export const DYNAMIC_FORECAST_TOPIC_KEYS = [
 ] as const satisfies readonly DynamicForecastTopicKey[];
 
 export const PERSONAL_FORECAST_PROMPT_VERSION = withPersonalForecastVoiceVersion(
-  'personal-forecast-feed.v41-clear-sharp-headline',
+  'personal-forecast-feed.v42-reference-four-part',
 );
-export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v13-approved-three-part';
+export const PERSONAL_FORECAST_CACHE_VERSION = 'personal-forecast-cache-v14-reference-four-part';
 /** Input/cache identity, not an astrological calculation version. */
-export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v6';
-export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v24-approved-three-part';
+export const PERSONAL_FORECAST_CALCULATION_VERSION = 'personal-forecast-luna-raw-profile-brief-v7';
+export const PERSONAL_FORECAST_CONTRACT_VERSION = 'personal-forecast-feed-v25-reference-four-part';
 export const PERSONAL_FORECAST_VISUAL_MANIFEST_VERSION = 'forecast-feed-visual-v8-diary-universe';
 
 export const FORECAST_FIXED_TITLES: Record<
@@ -997,7 +998,8 @@ function personalForecastSemanticSignatureValid(
   const signature = value as PersonalForecastSemanticSignature;
   return typeof signature.coreForecast === 'string' && Boolean(signature.coreForecast)
     && (signature.secondaryForecast === null || typeof signature.secondaryForecast === 'string')
-    && typeof signature.headline === 'string' && Boolean(signature.headline)
+    && typeof signature.title === 'string' && Boolean(signature.title)
+    && typeof signature.punchline === 'string' && Boolean(signature.punchline)
     && typeof signature.forecast === 'string' && Boolean(signature.forecast)
     && typeof signature.closing === 'string' && Boolean(signature.closing);
 }
@@ -1067,9 +1069,10 @@ export function getPersonalForecastPackageValidationError(
   ) {
     return 'PACKAGE_COLLECTIONS_INVALID';
   }
-  if (
-    forecast.sections.length !== 1
-  ) {
+  const expectedSectionCount = forecast.period === 'day'
+    ? forecast.sections.length >= 3 && forecast.sections.length <= 4
+    : forecast.sections.length === 1;
+  if (!expectedSectionCount) {
     return 'PACKAGE_PERIOD_STRUCTURE_INVALID';
   }
 
@@ -1239,14 +1242,23 @@ export function selectTodayFreeSections(input: {
 } {
   const candidates = freeCandidates(input.sections);
   const strongest = candidates[0]?.id || null;
+  const closing = candidates.find((section) => (
+    section.contentBlocks.some((block) => block.role === 'action')
+  ));
   const previous = new Set(input.previousSectionIds || []);
   const fresh = candidates
     .slice(1, 6)
+    .filter((section) => section.id !== closing?.id)
     .filter((section) => !previous.has(section.id));
-  const pool = fresh.length ? fresh : candidates.slice(1, 6);
-  const rotated = pool.length
-    ? pool[stableHash(`${input.userId}|${input.periodKey}|free-rotation-v4`) % pool.length].id
-    : null;
+  const fallbackPool = candidates
+    .slice(1, 6)
+    .filter((section) => section.id !== closing?.id);
+  const pool = fresh.length ? fresh : fallbackPool;
+  const rotated = closing && closing.id !== strongest
+    ? closing.id
+    : pool.length
+      ? pool[stableHash(`${input.userId}|${input.periodKey}|free-rotation-v5`) % pool.length].id
+      : null;
   return {
     strongestSectionId: strongest,
     rotatedSectionId: rotated,
@@ -1325,7 +1337,8 @@ export function createUnavailablePersonalForecast(
       semanticSignature: {
         coreForecast: 'unavailable',
         secondaryForecast: null,
-        headline: 'unavailable',
+        title: 'unavailable',
+        punchline: 'unavailable',
         forecast: 'unavailable',
         closing: 'unavailable',
       },

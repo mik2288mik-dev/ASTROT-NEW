@@ -4,7 +4,7 @@
  */
 
 export const APP_VOICE_VERSION = '10';
-export const PERSONAL_FORECAST_VOICE_VERSION = '7';
+export const PERSONAL_FORECAST_VOICE_VERSION = '9';
 
 const APP_SYSTEM_VOICE_RU = `## ГОЛОС ПРИЛОЖЕНИЯ «ТВОЙ ГОРОСКОП»
 
@@ -71,17 +71,11 @@ export function getAppSystemVoice(language: 'ru' | 'en' = 'ru'): string {
 }
 
 const PERSONAL_FORECAST_VOICE_VIOLATION_PATTERNS: readonly RegExp[] = [
-  /не\s+пряч\p{L}*[^.!?]{0,60}(?:идеальн\p{L}*|совершенств\p{L}*)/iu,
-  /(?:черновик\p{L}*[^.!?]{0,40}попал\p{L}*\s+в\s+яблочк\p{L}*|маршрут\p{L}*[^.!?]{0,40}крюк\p{L}*|втор(?:ая|ую)\s+жизн\p{L}*|дистанц\p{L}*[^.!?]{0,40}сда[её]т\p{L}*|вариант\p{L}*[^.!?]{0,25}вариант\p{L}*)/iu,
-  /(?:дом\p{L}*\s+выдох\p{L}*|дому\s+станет\s+легче|домашн\p{L}*\s+революц\p{L}*|жилищ\p{L}*[^.!?]{0,100}освобожд\p{L}*\s+мест\p{L}*|освобод\p{L}*[^.!?]{0,60}(?:мест\p{L}*|участ\p{L}*)[^.!?]{0,60}дом\p{L}*)/iu,
-  /(?:^|[^\p{L}])(?:ресурс\p{L}*|проявленност\p{L}*|поток\p{L}*|осознанност\p{L}*|заземл\p{L}*|экологичн\p{L}*|гештальт\p{L}*|внутренн\p{L}*\s+реб[её]н\p{L}*)(?!\p{L})/iu,
   /(?:^|[^\p{L}])(?:космос\p{L}*|аур\p{L}*|судьб\p{L}*|знак\p{L}*\s+свыше)(?!\p{L})/iu,
   /(?:^|[^\p{L}])зв[её]зд\p{L}*\s+(?:обещают|говорят|подсказывают|советуют|предсказывают)(?!\p{L})/iu,
   /(?:твоя|ваша)\s+карт[аы]\s+(?:показывает|говорит|подсказывает)|по\s+(?:твоей|вашей)\s+карт[еы]/iu,
-  /твоя\s+сил[аы][^\p{L}\p{N}]{1,6}в\s+спокойн\p{L}*\s+присутстви\p{L}*|внутренн\p{L}*\s+(?:ясност|облегчени|состояни)\p{L}*|(?:опор\p{L}*\s+внутри|внутренн\p{L}*\s+опор\p{L}*)|пространств\p{L}*\s+для\s+(?:себя|своих\s+чувств|чувств)|разобра\p{L}*\s+в\s+себе/iu,
-  /\b(?:the\s+stars\s+(?:promise|say|suggest|predict)|step\s+into\s+your\s+power|trust\s+the\s+flow|listen\s+to\s+yourself|allow\s+yourself|be\s+present|inner\s+child|close\s+the\s+gestalt|your\s+chart\s+(?:shows|says|suggests)|according\s+to\s+your\s+chart)\b/iu,
-  /\b(?:your\s+strength\s+is\s+in\s+calm\s+presence|inner\s+clarity|inner\s+support|make\s+space\s+for\s+(?:yourself|your\s+feelings))\b/iu,
-  /\b(?:aura|fate|sign\s+from\s+above)\b/iu,
+  /это\s+читается\s+через|может\s+проявляться|здесь\s+описывается|тема\s+связана\s+с|что\s+из\s+этого\s+активно\s+сейчас/iu,
+  /\b(?:aura|fate|sign\s+from\s+above|the\s+stars\s+(?:promise|say|suggest|predict)|your\s+chart\s+(?:shows|says|suggests)|according\s+to\s+your\s+chart|this\s+may\s+manifest|the\s+theme\s+is\s+connected\s+to)\b/iu,
 ];
 
 export function hasAppVoiceMysticism(text: string): boolean {
@@ -97,7 +91,7 @@ export function hasAppVoiceViolation(text: string): boolean {
 }
 
 export function hasPersonalForecastVoiceViolation(text: string): boolean {
-  return hasAppVoiceViolation(text)
+  return hasAppVoiceMysticism(text)
     || PERSONAL_FORECAST_VOICE_VIOLATION_PATTERNS.some((pattern) => pattern.test(text));
 }
 

@@ -33,22 +33,40 @@ describe('personal forecast anti-repeat guard', () => {
     expect(errors.join(' ')).toContain('repeated opening');
   });
 
-  test('rejects a repeated short headline from recent history', () => {
+  test('rejects a repeated short title from recent history', () => {
     const errors = findPersonalForecastRepeatViolations([
-      fragment('Точность без лишнего шума', { kind: 'headline' }),
+      fragment('Точность без лишнего шума', { kind: 'title' }),
     ], [
-      fragment('Точность — без лишнего шума', { kind: 'headline' }),
+      fragment('Точность — без лишнего шума', { kind: 'title' }),
     ]);
-    expect(errors.join(' ')).toContain('repeated headline');
+    expect(errors.join(' ')).toContain('repeated title');
   });
 
-  test('rejects a close paraphrase of a 2–5-word headline', () => {
+  test('rejects a close paraphrase of the separate punchline', () => {
     const errors = findPersonalForecastRepeatViolations([
-      fragment('Сегодня можно наглеть', { kind: 'headline' }),
+      fragment('Сегодня можно наглеть и спокойно назвать свою цену.', { kind: 'punchline' }),
     ], [
-      fragment('Сегодня пора наглеть', { kind: 'headline' }),
+      fragment('Сегодня пора наглеть и спокойно назвать свою цену.', { kind: 'punchline' }),
     ]);
-    expect(errors.join(' ')).toContain('repeated headline');
+    expect(errors.join(' ')).toContain('repeated punchline');
+  });
+
+  test('rejects a repeated separate closing', () => {
+    const errors = findPersonalForecastRepeatViolations([
+      fragment('Сначала проверь детали, затем отвечай без лишних объяснений.', { kind: 'closing' }),
+    ], [
+      fragment('Сначала проверь детали, а потом отвечай без лишних объяснений.', { kind: 'closing' }),
+    ]);
+    expect(errors.join(' ')).toContain('repeated closing');
+  });
+
+  test('maps a legacy headline history fragment to the canonical punchline kind', () => {
+    const errors = findPersonalForecastRepeatViolations([
+      fragment('Хватит спорить с очевидным: решение уже просится наружу.', { kind: 'punchline' }),
+    ], [
+      fragment('Хватит спорить с очевидным: решение уже просится наружу.', { kind: 'headline' }),
+    ]);
+    expect(errors.join(' ')).toContain('repeated punchline');
   });
 
   test('rejects near-identical wording against recent generated copy', () => {

@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { renderPersonalForecastReferenceExamples } from '../lib/personalForecastExamples';
+import {
+  PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU,
+  renderPersonalForecastReferenceExamples,
+} from '../lib/personalForecastExamples';
 const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), 'utf8');
 
 describe('personal forecast raw-profile runtime', () => {
@@ -19,11 +22,20 @@ describe('personal forecast raw-profile runtime', () => {
     expect(generation).toContain('store: false');
     expect(generation).toContain('callStructuredWithBudgetRetry');
     for (const period of ['day', 'week', 'month'] as const) {
+      const periodExamples = PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU
+        .filter((example) => example.period === period);
       const rendered = renderPersonalForecastReferenceExamples('ru', period);
-      expect(rendered.match(/<forecast_example_input>/g)).toHaveLength(3);
-      expect(rendered.match(/<forecast_example_output>/g)).toHaveLength(3);
-      expect(rendered).toContain('"astrologer_brief"');
-      expect(rendered).not.toContain('"personal_profile"');
+      expect(periodExamples.length).toBeGreaterThan(0);
+      expect(rendered.match(/<forecast_example_input>/g)).toHaveLength(periodExamples.length);
+      expect(rendered.match(/<forecast_example_output>/g)).toHaveLength(periodExamples.length);
+      expect(rendered).toContain('"reference_scope": "voice_and_structure_only"');
+      expect(rendered).toContain('"grammatical_gender": "male"');
+      for (const forbidden of [
+        '"name"', '"current_date"', '"period_start"', '"period_end"',
+        '"timezone"', '"astrologer_brief"', '"personal_profile"',
+      ]) {
+        expect(rendered).not.toContain(forbidden);
+      }
     }
   });
 });

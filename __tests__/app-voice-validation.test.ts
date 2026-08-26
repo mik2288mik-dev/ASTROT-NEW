@@ -46,8 +46,8 @@ describe('app voice validation', () => {
     'Освободи пространство для себя и своих чувств.',
     'Your strength is in calm presence.',
     'Protect your inner clarity and inner support.',
-  ])('rejects smooth AI psychology in personal forecasts: %s', (text) => {
-    expect(hasPersonalForecastVoiceViolation(text)).toBe(true);
+  ])('does not let the removed coaching blacklist override forecast references: %s', (text) => {
+    expect(hasPersonalForecastVoiceViolation(text)).toBe(false);
   });
 
   it.each([

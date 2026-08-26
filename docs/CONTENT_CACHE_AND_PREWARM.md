@@ -3,10 +3,11 @@
 ## Canonical unit
 
 A cached personal forecast is one complete AI-written package for one person
-and one current period: `day`, `week`, or `month`. Today persists its first
-fragment as `overview` and the remaining ordered fragments as `sections`;
-Week and Month persist one cohesive `overview`. It does not cache prompts,
-questions, concrete visual assets, or a visual layout plan.
+and one current period: `day`, `week`, or `month`. Today persists its first/main
+fragment as `overview` and the remaining ordered fragments as `sections`.
+Week and Month persist one cohesive body in `overview` and the separate advice
+in `sections`. The cache does not store prompts, questions, concrete visual
+assets, or a visual layout plan.
 
 The server cache identity includes the authenticated user, owned chart ID, the
 full saved-natal fingerprint, and a hash of the sanitized `name`, `birthDate`,
@@ -30,16 +31,14 @@ The personal Responses request explicitly uses `store: false`. A rejected draft
 stays inside the server validator; a repair attempt receives only generic
 validation errors, never the rejected text.
 
-OpenAI Luna returns only forecast copy and hidden service metadata in a strict
-schema: one visible common opening hook of 2–5 words plus 4–6 Today fragments,
-or the same hook plus one cohesive Week/Month fragment, and one required typed
-`closing` whose text is appended to the final fragment without a visible
-rubric. Fragment titles stay hidden. Today presentation metadata may mark
-ordinary prose, one pull quote, and one short paper note, but the current Today
-renderer displays every fragment as continuous prose. The model does not choose
-images, layouts, colours, coordinates, promotions, navigation, access tier, or
-database keys. It does not calculate a separate period chart or return
-public-facing evidence.
+OpenAI Luna returns exactly four required strings in a strict schema: generated
+`title`, separate sharp `punchline`, continuous `forecast`, and separate
+concrete `closing` advice. The server materializes Today as 4–6 sequential text
+fragments. Week keeps one longer body, and Month keeps one still longer body;
+both end with the separate advice section. The visible copy contains no
+astrological terminology. The model does not choose images, layouts, colours,
+coordinates, promotions, navigation, access tier, or database keys. It does
+not calculate a separate period chart or return public-facing evidence.
 
 The active `calendar-editorial` Today visual is app-owned and deterministic.
 `lib/todayVisualPresets.ts` selects one of 15 clock presets and one of 12 line
@@ -49,9 +48,9 @@ forecast package or database. The older five-layout asset planner and its
 personal image and paper catalogs remain library-only and are not mounted by
 the active Today renderer.
 
-Server validation enforces the JSON shape, word cap, period wording, application
-voice, closing contract, reference-example anti-copy rules, and prohibited
-astrology/guarantee language before persistence.
+Server validation enforces the JSON shape, period-specific length and sentence
+limits, application voice, closing contract, reference-example anti-copy rules,
+and prohibited astrology/guarantee language before persistence.
 
 ## Read and generation flow
 

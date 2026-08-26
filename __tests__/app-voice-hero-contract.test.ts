@@ -26,8 +26,8 @@ describe('app and personal forecast voice contracts', () => {
 
     expect(forecastVoice).not.toContain(appVoice);
     expect(forecastVoice).not.toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
-    expect(forecastVoice).toContain('короткий, колкий, дерзкий вход');
-    expect(forecastVoice).toContain('headline, forecast, closing');
+    expect(forecastVoice).toContain('колкий, дерзкий и точный вход');
+    expect(forecastVoice).toContain('title, punchline, forecast, closing');
     expect(forecastVoice).toContain('обязательную проблему перед хорошей новостью');
   });
 
@@ -50,9 +50,9 @@ describe('app and personal forecast voice contracts', () => {
     expect(appVoice).toContain('Не придумывай события, биографию, мотивы');
     expect(forecastVoice).toContain('психолог, коуч');
     expect(hasAppVoiceViolation('Вселенная подсказывает тебе правильный путь.')).toBe(true);
-    expect(hasPersonalForecastVoiceViolation('Твоя сила — в спокойном присутствии.')).toBe(true);
-    expect(hasPersonalForecastVoiceViolation('Черновик попал в яблочко.')).toBe(true);
-    expect(hasPersonalForecastVoiceViolation('Дому станет легче.')).toBe(true);
-    expect(hasPersonalForecastVoiceViolation('Не прячь пробу до совершенства.')).toBe(true);
+    expect(hasPersonalForecastVoiceViolation('Твоя карта показывает готовое решение.')).toBe(true);
+    expect(hasPersonalForecastVoiceViolation('Это читается через внутренний рисунок.')).toBe(true);
+    expect(hasPersonalForecastVoiceViolation('Твоя сила — в спокойном присутствии.')).toBe(false);
+    expect(hasPersonalForecastVoiceViolation('Рабочая стратегия требует жёстких границ.')).toBe(false);
   });
 });

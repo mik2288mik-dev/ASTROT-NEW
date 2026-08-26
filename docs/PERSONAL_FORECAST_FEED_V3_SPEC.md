@@ -5,32 +5,38 @@
 
 ## Visible output
 
-Luna returns strict JSON with exactly three user-facing strings:
+Luna returns strict JSON with exactly four user-facing strings:
 
 ```ts
 type PersonalForecastWriterOutput = {
-  headline: string;
+  title: string;
+  punchline: string;
   forecast: string;
   closing: string;
 };
 ```
 
-- `headline`: 2–5 words; a short, direct, bold hook.
-- `forecast`: one cohesive forecast paragraph in ordinary human language.
-- `closing`: 3–12 words; a separate strong, warm, sharp, or funny final line.
+- `title`: 1–5 words; the name of the selected day, week, or month.
+- `punchline`: one short, biting sentence separate from the forecast body.
+- `forecast`: one cohesive forecast in ordinary human language.
+- `closing`: a short, concrete conclusion or piece of advice.
 
-All three periods use this shape. The server maps `forecast` to `overview` and
-`closing` to one untitled section so the current UI keeps the three visible
-parts separate. There are no `takeaway`, `do`, `dont`, fragment keys, semantic
-keys, evidence IDs, or visible technical labels in provider output.
+All three periods use this shape. For Today, the server maps the title,
+punchline, and first forecast paragraph to `overview`, keeps the remaining
+forecast paragraphs in ordered untitled sections, and puts `closing` in the
+final action section. Week and Month keep the whole forecast body in `overview`
+and the closing in one final action section. The UI can therefore place the
+punchline by the Today clock while keeping the title, body, and advice distinct.
+There are no `takeaway`, `do`, `dont`, semantic keys, evidence IDs, or visible
+technical labels in provider output.
 
 Visible total length:
 
 | Period | Words |
 |---|---:|
-| Today | 35–90 |
-| Week | 50–115 |
-| Month | 50–130 |
+| Today | 65–115 |
+| Week | 85–130 |
+| Month | 100–150 |
 
 ## Two-stage generation
 
@@ -85,15 +91,17 @@ prompt.
 
 ## Voice and examples
 
-The one developer prompt asks for simple, lively, direct Russian with character:
-bold and upbeat, sometimes sharp or funny, never rude. User-visible copy has no
-astrological terms, esotericism, psychology, coaching, office prose, literary
-ornament, invented biography, diagnoses, or guaranteed events. A good period
-does not need an artificial warning.
+The developer prompt treats the complete user-supplied corpus as the only voice
+reference: compact title, biting punchline, direct forecast, imperative advice.
+The hidden brief remains the only source of the new personal plot. User-visible
+copy has no astrology, invented biography, diagnoses, or guaranteed events.
 
-`lib/personalForecastExamples.ts` is the only approved runtime corpus and is
-locked by a full-output SHA-256 test. It contains 4 Today, 3 Week, and 3 Month
-examples. Exactly three examples for the selected period are sent to Luna.
+`lib/personalForecastExamples.ts` is the only approved runtime corpus: 21 Today,
+15 Week, and 20 Month examples. The old ten-example corpus is removed. Every
+reference for the selected period is sent as a voice-and-structure-only
+input/output pair in the static developer instructions. Reference inputs contain
+no synthetic name, date, range, timezone, or copied personal brief. The live
+writer input supplies the real grammatical gender separately for agreement.
 
 ## Validation, versions, and delivery
 
@@ -105,6 +113,6 @@ examples. Exactly three examples for the selected period are sent to Luna.
   and similarity to approved, own-history, and cross-user copy.
 - The server calculates all fingerprints and semantic signatures.
 - Prompt, voice, calculation/input, contract, cache, and client local-storage
-  versions reject prior six-field or fragment-based packages.
+  versions reject prior three-part, six-field, or fragment-based packages.
 - Local-first rendering, current UI, visual selection, and Free/Premium access
   behaviour remain unchanged.

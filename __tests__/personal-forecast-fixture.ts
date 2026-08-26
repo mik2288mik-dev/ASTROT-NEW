@@ -105,25 +105,50 @@ export function personalForecastFixture(): PersonalForecastPackage {
     timezone: 'Europe/Moscow',
     overview: sectionFixture({
       id: 'overview',
+      title: 'A precise turn',
       importance: 100,
       fingerprint: 'overview:fixture',
       factId: 'fact:overview',
       overview: true,
-      blocks: [{
-        role: 'lead',
-        atomId: 'communication_and_decisions_are_temporarily_active',
-        text: 'Conversations and decisions require extra precision right now.',
-      }],
+      blocks: [
+        {
+          role: 'lead',
+          atomId: 'communication_and_decisions_are_temporarily_active',
+          text: 'Stop inflating the doubt; the useful answer can handle a direct conversation.',
+        },
+        {
+          role: 'detail',
+          atomId: 'forecast_body',
+          text: 'A familiar task reveals the detail that needs a precise answer. A short pause keeps the conversation clear and leaves room for your own decision.',
+        },
+      ],
     }),
     sections: [
       sectionFixture({
         id: 'semantic:communication',
-        title: 'Closing',
         importance: 92,
         fingerprint: 'semantic:communication',
         factId: 'fact:communication',
         blocks: [
-          { role: 'insight', atomId: 'closing', text: 'The day can handle one honest no.' },
+          { role: 'detail', atomId: 'forecast_continuation_one', text: 'The useful request stays clear when you drop the extra justification. One direct sentence is enough to show where you stand.' },
+        ],
+      }),
+      sectionFixture({
+        id: 'semantic:continuation',
+        importance: 91,
+        fingerprint: 'semantic:continuation',
+        factId: 'fact:communication',
+        blocks: [
+          { role: 'detail', atomId: 'forecast_continuation_two', text: 'That precision leaves the next decision in your hands.' },
+        ],
+      }),
+      sectionFixture({
+        id: 'semantic:closing',
+        importance: 90,
+        fingerprint: 'semantic:closing',
+        factId: 'fact:communication',
+        blocks: [
+          { role: 'action', atomId: 'closing', text: 'Check the details, then answer without extra explanations.' },
         ],
       }),
     ],
@@ -155,20 +180,21 @@ export function personalForecastFixture(): PersonalForecastPackage {
       semanticSignature: {
         coreForecast: 'практичный результат',
         secondaryForecast: 'доведение начатого',
-        headline: 'fixture headline',
+        title: 'A precise turn',
+        punchline: 'Stop inflating the doubt; the useful answer can handle a direct conversation.',
         forecast: 'fixture forecast',
-        closing: 'fixture closing',
+        closing: 'Check the details, then answer without extra explanations.',
       },
       freeSelection: {
         strongestSectionId: 'semantic:communication',
-        rotatedSectionId: null,
-        sectionIds: ['semantic:communication'],
+        rotatedSectionId: 'semantic:closing',
+        sectionIds: ['semantic:communication', 'semantic:closing'],
       },
     },
   };
 }
 
-/** Question-product fixture retained separately from the canonical three-part forecast package. */
+/** Question-product fixture retained separately from the canonical four-part forecast package. */
 export function personalForecastQuestionFixture(): PersonalForecastPackage {
   const forecast = personalForecastFixture();
   const sections = [

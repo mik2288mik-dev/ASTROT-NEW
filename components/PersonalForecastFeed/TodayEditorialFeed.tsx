@@ -77,9 +77,17 @@ function TodayPremiumTeaser({
   );
 }
 
-function resolvePunchline(section?: ForecastSection): string {
+function resolveTitle(section?: ForecastSection): string {
   if (!section || section.kind !== 'overview') return '';
   return section.title?.replace(/\s+/gu, ' ').trim() || '';
+}
+
+function resolvePunchline(section?: ForecastSection): string {
+  if (!section || section.kind !== 'overview') return '';
+  return section.contentBlocks
+    .find((block) => block.role === 'lead')
+    ?.text.replace(/\s+/gu, ' ')
+    .trim() || '';
 }
 
 function clockSignalForTone(tone: PersonalForecastAstrologerBrief['tone']): TodayClockSignal {
@@ -93,26 +101,32 @@ function StoryFragment({
   language,
   locked,
   onRequestPremium,
-  opening,
   closing,
 }: {
   section: ForecastSection;
   language: 'ru' | 'en';
   locked: boolean;
   onRequestPremium: () => void;
-  opening: boolean;
   closing: boolean;
 }) {
-  const untitledSection = section.title
-    ? { ...section, title: '' }
-    : section;
+  const punchlineIndex = section.kind === 'overview'
+    ? section.contentBlocks.findIndex((block) => block.role === 'lead')
+    : -1;
+  const contentBlocks = punchlineIndex >= 0
+    ? section.contentBlocks.filter((_, index) => index !== punchlineIndex)
+    : section.contentBlocks;
+  const untitledSection = {
+    ...section,
+    title: '',
+    text: contentBlocks.map((block) => block.text.trim()).join('\n\n'),
+    contentBlocks,
+  };
   const fragment = (
     <ForecastSectionBlock
       section={untitledSection}
       period="day"
       language={language}
       locked={locked}
-      emphasizeOpening={opening}
       onRequestPremium={onRequestPremium}
     />
   );
@@ -126,7 +140,7 @@ function StoryFragment({
         variant="today"
       />
       <p className="today-minimal-closing-label">
-        {language === 'ru' ? 'Главное на сегодня' : "Today's key point"}
+        {language === 'ru' ? 'Совет дня' : 'Advice for today'}
       </p>
       {fragment}
     </div>
@@ -180,8 +194,9 @@ export function TodayEditorialFeed({
     periodKey,
     sections: renderableSections,
   }), [periodKey, renderableSections, userId]);
-  const punchlineSource = visibleSections.find((section) => section.kind === 'overview');
-  const punchline = resolvePunchline(punchlineSource);
+  const overview = visibleSections.find((section) => section.kind === 'overview');
+  const title = resolveTitle(overview);
+  const punchline = resolvePunchline(overview);
   const clockSignal = clockSignalForTone(tone);
 
   useEffect(() => {
@@ -222,13 +237,23 @@ export function TodayEditorialFeed({
     >
       <section
         className="today-minimal-hero"
-        aria-labelledby={punchline ? 'today-punchline' : undefined}
-        aria-label={!punchline
+        aria-labelledby={title ? 'today-reading-title' : punchline ? 'today-punchline' : undefined}
+        aria-describedby={title && punchline ? 'today-punchline' : undefined}
+        aria-label={!title && !punchline
           ? (language === 'ru' ? 'Личный прогноз на сегодня' : 'Personal forecast for today')
           : undefined}
       >
         <div className="today-minimal-composition">
           <TodayLineField userId={userId} periodKey={periodKey} />
+          {title ? (
+            <h1 id="today-reading-title" className="today-minimal-story-title">
+              {title}
+            </h1>
+          ) : (
+            <h1 id="today-reading-title" className="sr-only">
+              {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
+            </h1>
+          )}
           <TodayCalendarClock
             userId={userId}
             periodKey={periodKey}
@@ -249,20 +274,15 @@ export function TodayEditorialFeed({
         className="today-minimal-reading"
         aria-labelledby="today-reading-title"
       >
-        <h1 id="today-reading-title" className="sr-only">
-          {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
-        </h1>
-
         <div className="today-minimal-reading-main">
-          {visibleSections.map((section, sectionIndex) => (
+          {visibleSections.map((section) => (
             <React.Fragment key={`day:${periodKey}:${section.id}`}>
               <StoryFragment
                 section={section}
                 language={language}
                 locked={false}
                 onRequestPremium={onRequestPremium}
-                opening={sectionIndex === 0}
-                closing={section.contentBlocks.some((block) => block.role === 'insight')}
+                closing={section.contentBlocks.some((block) => block.role === 'action')}
               />
               {!teaserDismissed && teaserInsertion?.afterSectionId === section.id ? (
                 <TodayPremiumTeaser

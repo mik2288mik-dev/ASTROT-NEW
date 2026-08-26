@@ -72,7 +72,7 @@ describe('personal forecast screen layout', () => {
     expect(forecastStyles).toContain('padding: 0;');
   });
 
-  it('does not expose internal categories or the generated closing as UI labels', () => {
+  it('renders the four-part forecast without exposing internal categories', () => {
     const dashboard = read('views/Dashboard.tsx');
     const today = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
     const sectionBlock = read('components/PersonalForecastFeed/ForecastSectionBlock.tsx');
@@ -81,6 +81,15 @@ describe('personal forecast screen layout', () => {
     expect(sectionBlock).toContain('resolveVisibleForecastTitle');
     expect(sectionBlock).not.toContain('{section.kind}');
     expect(sectionBlock).not.toContain('{section.sourceTopicKey}');
+    expect(today).toContain('className="today-minimal-story-title"');
+    expect(today).toContain('className="today-minimal-punchline"');
+    expect(today).toContain("language === 'ru' ? 'Совет дня'");
+    expect(sectionBlock).toContain('forecast-period-editorial-punchline');
+    expect(sectionBlock).toContain("'Совет на неделю'");
+    expect(sectionBlock).toContain("'Совет на месяц'");
+    expect(sectionBlock).toContain("isAdvice ? 'is-advice' : ''");
+    expect(sectionBlock).not.toContain('emphasizeOpening');
+    expect(sectionBlock).not.toContain('splitOpeningPhrase');
     expect(today).not.toContain('Вывод и совет');
     expect(dashboard).not.toContain('Вывод и совет');
   });
