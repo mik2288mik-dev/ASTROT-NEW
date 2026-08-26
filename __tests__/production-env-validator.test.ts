@@ -59,14 +59,17 @@ describe('production environment validator', () => {
     expect(result.stdout).toContain('Production environment contract is valid');
   });
 
-  it('boots without VK credentials but rejects a partial VK configuration', () => {
-    const withoutVk = validate(validProductionEnv());
-    expect(withoutVk.status).toBe(0);
+  it('allows native-only VK and rejects a browser secret without its client id', () => {
+    const nativeOnly = validate({ ...validProductionEnv(), VK_AUTH_CLIENT_ID: 'vk-client-id' });
+    expect(nativeOnly.status).toBe(0);
 
-    const partialVk = validate({ ...validProductionEnv(), VK_AUTH_CLIENT_ID: 'vk-client-id' });
-    expect(partialVk.status).toBe(1);
-    expect(partialVk.stderr).toContain(
-      'VK_AUTH_CLIENT_SECRET is required when VK authentication is configured',
+    const browserSecretWithoutClient = validate({
+      ...validProductionEnv(),
+      VK_AUTH_CLIENT_SECRET: 'vk-browser-secret',
+    });
+    expect(browserSecretWithoutClient.status).toBe(1);
+    expect(browserSecretWithoutClient.stderr).toContain(
+      'VK_AUTH_CLIENT_ID is required when VK browser authentication is configured',
     );
   });
 
