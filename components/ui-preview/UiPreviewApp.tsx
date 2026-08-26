@@ -631,7 +631,11 @@ export default function UiPreviewApp() {
         onOpenCharts={openCharts}
         onOpenEncyclopedia={() => navigate('encyclopedia')}
         uiPreview={{
-          initialTab: scenario.screen === 'natal' ? 'map' : 'reading',
+          initialTab: scenario.screen === 'natal'
+            ? 'map'
+            : scenario.screen === 'question'
+              ? 'questions'
+              : 'reading',
           openQuestion: scenario.screen === 'question',
           reportState: scenario.state === 'loading' || scenario.state === 'error'
             ? scenario.state

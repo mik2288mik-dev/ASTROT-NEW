@@ -10,6 +10,7 @@ import type {
 } from '../lib/natalChartV2Types';
 import {
   buildNatalModelContext,
+  buildNatalReaderChapterPlan,
   buildNatalReportScopeKey,
   buildPermanentNatalCacheKey,
   buildPermanentFreeFallback,
@@ -382,14 +383,18 @@ describe('permanent natal V2 contract', () => {
     });
     expect(free?.schemaVersion).toBe('natal-permanent-free-v3');
     expect(free?.freeSections.map((section) => section.key)).toEqual([
-      'base_portrait', 'thinking', 'communication', 'emotional_world',
+      'base_portrait', 'thinking', 'communication',
     ]);
     const premium = materializePermanentPremiumReport({
       raw: premiumPayloadForPlan(exact),
       built: exact,
     });
     expect(premium?.sections).toHaveLength(
-      exact.context.reportPlan.filter((item) => item.access === 'premium').length,
+      buildNatalReaderChapterPlan(exact.context.reportPlan, 'premium', 'en').length,
+    );
+    expect(premium?.sections.map((section) => section.title)).toEqual(
+      buildNatalReaderChapterPlan(exact.context.reportPlan, 'premium', 'en')
+        .map((chapter) => chapter.title),
     );
     expect(premium?.strategies).toHaveLength(0);
 
@@ -446,10 +451,11 @@ describe('permanent natal V2 contract', () => {
     const premiumApi = readFileSync(join(
       process.cwd(), 'lib', 'natalReading', 'permanentApi.ts',
     ), 'utf8');
-    expect(freeApi).toContain('buildPermanentNatalCacheKey(NATAL_PERMANENT_FREE_CACHE_KEY, language)');
-    expect(freeApi).toContain('cacheKey,');
+    expect(freeApi).toContain('generatePermanentFreeWithLock({ userId, ctx })');
+    expect(premiumApi).toContain('buildPermanentNatalCacheKey(NATAL_PERMANENT_FREE_CACHE_KEY, language)');
     expect(premiumApi).toContain('buildPermanentNatalCacheKey(NATAL_PERMANENT_PREMIUM_CACHE_KEY, language)');
     expect(premiumApi).toContain('cacheKey: cacheOptions.cacheKey');
+    expect(premiumApi).toContain('readerAnchor,');
   });
 
   test('Premium task prompt has no changing-period inputs or prewritten interpretations', () => {
@@ -458,12 +464,22 @@ describe('permanent natal V2 contract', () => {
       summary: 'This legacy prewritten interpretation must not be sent.',
       keywords: { love: 'legacy', career: 'legacy', karma: 'legacy' },
     });
-    const prompt = buildPermanentNatalPremiumPrompt('en', built).toLocaleLowerCase();
+    const anchor = materializePermanentFreeReport({
+      raw: freePayload([...built.evidenceIds], true),
+      profile,
+      built,
+    });
+    expect(anchor).not.toBeNull();
+    const prompt = buildPermanentNatalPremiumPrompt('en', built, anchor!).toLocaleLowerCase();
     expect(prompt).toContain('no current transits, calendar dates, future events, or timing');
+    expect(prompt).toContain('reader anchor');
+    expect(prompt).toContain(anchor!.hook.text.toLocaleLowerCase());
     expect(prompt).not.toMatch(/\b(?:30|90)\s*(?:day|days|дн(?:я|ей))\b/u);
     expect(prompt).not.toContain('legacy prewritten interpretation');
     expect(prompt).not.toContain('"summary"');
     expect(prompt).not.toContain('"keywords"');
+    expect(prompt).not.toMatch(/"title"\s*:/u);
+    expect(prompt).toContain('"chapter_title"');
   });
 
   test('rejects dated or relative-time material before a permanent Premium report can be cached', () => {

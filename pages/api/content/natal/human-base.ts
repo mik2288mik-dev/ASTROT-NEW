@@ -1,21 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import type { NatalInterpretationReport } from '../../../../types';
 import {
   ensureValidContext,
-  getCachedReading,
-  saveReading,
 } from '../../../../lib/natalReading/apiHelper';
 import {
-  buildPermanentNatalCacheKey,
-  buildPermanentNatalInputHash,
-  NATAL_PERMANENT_FREE_CACHE_KEY,
-  NATAL_PERMANENT_FREE_PROMPT_VERSION,
-} from '../../../../lib/natalReading/permanentReport';
-import { generatePermanentNatalFreeReport } from '../../../../lib/natalReading/permanentGeneration';
+  generatePermanentFreeWithLock,
+  getCachedPermanentFreeReport,
+} from '../../../../lib/natalReading/permanentApi';
 import {
-  buildContentGenerationLockKey,
   generationInProgressPayload,
-  withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
 
 export const config = { maxDuration: 90 };
@@ -33,25 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!ready) return;
   const { userId, ctx } = ready;
 
-  const inputHash = buildPermanentNatalInputHash({
-    profile: ctx.profile,
-    chartData: ctx.chartData!,
-    tier: 'free',
-    promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
-  });
   const language = ctx.profile.language === 'en' ? 'en' : 'ru';
-  const cacheKey = buildPermanentNatalCacheKey(NATAL_PERMANENT_FREE_CACHE_KEY, language);
-
-  const cacheOpts = {
-    accessTier: 'free' as const,
-    contentVariant: 'anchor' as const,
-    cacheKey,
-    inputHash,
-    promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
-    isPersistent: true,
-  };
-
-  const cached = await getCachedReading<NatalInterpretationReport>(ctx, cacheOpts);
+  const cached = await getCachedPermanentFreeReport(ctx);
 
   if (req.method === 'GET') {
     if (!cached) {
@@ -65,26 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const lockResult = await withContentGenerationLock({
-      lockKey: buildContentGenerationLockKey({
-        userId,
-        chartId: ctx.chartId,
-        accessTier: 'free',
-        contentSurface: 'natal',
-        contentVariant: 'anchor',
-        cacheKey,
-        promptVersion: NATAL_PERMANENT_FREE_PROMPT_VERSION,
-      }),
-      operation: 'natal-human-base-generation',
-      readCached: async () => {
-        const again = await getCachedReading<NatalInterpretationReport>(ctx, cacheOpts);
-        return again ? { value: again, source: 'natal_permanent_free_v2' } : null;
-      },
-      generate: async () => {
-        const report = await generatePermanentNatalFreeReport(ctx.profile, ctx.chartData!);
-        return saveReading(ctx, cacheOpts, report);
-      },
-    });
+    const lockResult = await generatePermanentFreeWithLock({ userId, ctx });
 
     if (lockResult.status === 'in_progress') {
       return res.status(202).json(generationInProgressPayload(lockResult.retryAfterMs));

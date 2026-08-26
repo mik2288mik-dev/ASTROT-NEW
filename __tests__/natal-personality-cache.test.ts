@@ -15,7 +15,7 @@ import type { NatalPermanentFreeReport } from '../lib/natalReading/permanentRepo
 
 const report = {
   schemaVersion: 'natal-permanent-free-v3',
-  contractVersion: 'natal-permanent-report-v7',
+  contractVersion: 'natal-permanent-report-v8',
   tier: 'free',
   evidenceIds: ['natal.position.sun'],
   hook: { text: 'Ты быстро видишь, где разговор теряет смысл.', evidenceIds: ['natal.position.sun'] },
@@ -48,7 +48,7 @@ describe('natal personality report client cache', () => {
       .mockResolvedValueOnce(response(200, { interpretation: { content: report } }));
     const identity = {
       chartFingerprint: 'calculated-chart-fingerprint',
-      reportVersion: 'natal-permanent-report-v7',
+      reportVersion: 'natal-permanent-report-v8',
     };
 
     const first = await ensureHumanBaseReport('user-1', 42, 'ru', identity);
@@ -68,10 +68,10 @@ describe('natal personality report client cache', () => {
       .mockResolvedValueOnce(response(200, { interpretation: { content: report } }));
 
     await ensureHumanBaseReport('user-1', 42, 'ru', {
-      chartFingerprint: 'chart-a', reportVersion: 'natal-permanent-report-v7',
+      chartFingerprint: 'chart-a', reportVersion: 'natal-permanent-report-v8',
     });
     await ensureHumanBaseReport('user-1', 42, 'ru', {
-      chartFingerprint: 'chart-b', reportVersion: 'natal-permanent-report-v7',
+      chartFingerprint: 'chart-b', reportVersion: 'natal-permanent-report-v8',
     });
 
     expect(mockApiFetch.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(2);

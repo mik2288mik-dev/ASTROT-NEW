@@ -453,6 +453,7 @@
   --natal-mvp-ink: #242321;
   --natal-mvp-muted: #74716c;
   --natal-mvp-line: rgba(36, 35, 33, 0.12);
+  --natal-tab-content-gap: 16px;
   box-sizing: border-box;
   min-height: 100%;
   overflow-x: clip;
@@ -468,12 +469,12 @@
 }
 
 .fresh-page.natal-mvp-page .natal-editorial-tabs {
-  --editorial-tab-count: 3;
-  min-height: 52px;
+  --editorial-tab-count: 4;
+  min-height: 58px;
 }
 
 .fresh-page.natal-mvp-page .editorial-tab {
-  min-height: 52px !important;
+  min-height: 58px !important;
   padding: 8px 7px;
   color: var(--natal-mvp-muted) !important;
   font-size: clamp(12px, 3.55vw, 13px);
@@ -490,7 +491,6 @@
 .fresh-page.natal-mvp-page .editorial-tab:focus-visible,
 .fresh-page.natal-mvp-page .natal-chart-download:focus-visible,
 .fresh-page.natal-mvp-page .editorial-context-link:focus-visible,
-.fresh-page.natal-mvp-page .natal-personality-entry:focus-visible,
 .fresh-page.natal-mvp-page .natal-report-retry:focus-visible,
 .fresh-page.natal-mvp-page .natal-premium-button:focus-visible,
 .fresh-page.natal-mvp-page .natal-question-button:focus-visible {
@@ -508,7 +508,7 @@
 }
 
 .fresh-page.natal-mvp-page .natal-map-heading {
-  padding: 24px 22px 0;
+  padding: var(--natal-tab-content-gap) 22px 0;
 }
 
 .fresh-page.natal-mvp-page .natal-map-heading p,
@@ -651,7 +651,7 @@
 }
 
 .fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading {
-  margin-top: 28px;
+  margin-top: var(--natal-tab-content-gap);
   padding: 0 22px;
 }
 
@@ -677,52 +677,25 @@
   margin-top: -5px;
 }
 
-.fresh-page.natal-mvp-page .natal-personality-entry {
-  display: flex;
-  box-sizing: border-box;
-  width: calc(100% - 40px);
-  min-height: 74px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin: 0 auto 4px;
-  padding: 15px 0;
-  border: 0;
-  border-top: 1px solid var(--natal-mvp-line);
-  border-bottom: 1px solid var(--natal-mvp-line);
-  border-radius: 0;
-  background: transparent;
-  color: var(--natal-mvp-ink);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-.fresh-page.natal-mvp-page .natal-personality-entry-copy {
-  display: grid;
-  min-width: 0;
-  gap: 5px;
-}
-
-.fresh-page.natal-mvp-page .natal-personality-entry-copy strong {
-  font-size: 16px;
-  font-weight: 620;
-  line-height: 1.25;
-}
-
-.fresh-page.natal-mvp-page .natal-personality-entry-copy > span {
+.fresh-page.natal-mvp-page .natal-question-stage .natal-question-intro {
   max-width: 42ch;
+  margin-top: 16px;
   color: var(--natal-mvp-muted);
-  font-size: 13px;
-  line-height: 1.48;
+  font-size: 15px;
+  font-weight: 430;
+  line-height: 1.58;
   text-wrap: pretty;
 }
 
-.fresh-page.natal-mvp-page .natal-personality-entry > svg {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 auto;
-  color: var(--natal-mvp-muted);
+.fresh-page.natal-mvp-page .natal-question-curve {
+  height: 46px;
+  margin-top: 2px;
+}
+
+.fresh-page.natal-mvp-page .natal-matrix-stage .product-screen-cover--matrix {
+  min-height: 0;
+  align-items: flex-start;
+  padding-top: var(--natal-tab-content-gap);
 }
 
 .fresh-page.natal-mvp-page .natal-editorial-report {
@@ -738,6 +711,299 @@
   width: 100%;
   max-width: none;
   padding: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-question-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 0 22px 36px;
+  background: #fff;
+}
+
+.fresh-page.natal-mvp-page .natal-question-page-inner {
+  width: 100%;
+}
+
+.fresh-page.natal-mvp-page .natal-question-composer,
+.fresh-page.natal-mvp-page .natal-question-locked {
+  padding: 12px 0 32px;
+  border-bottom: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-question-composer form {
+  display: grid;
+  gap: 18px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-composer-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-composer label,
+.fresh-page.natal-mvp-page .natal-question-locked h2 {
+  max-width: 25ch;
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading .natal-reading-page-title {
+  max-width: none;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-title-prefix,
+.fresh-page.natal-mvp-page .natal-reading-title-focus {
+  display: block;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-title-prefix {
+  font-size: clamp(22px, 6.2vw, 28px);
+  font-weight: 520;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.fresh-page.natal-mvp-page .natal-reading-title-focus {
+  margin-top: 2px;
+  font-size: clamp(38px, 10.5vw, 50px);
+  font-weight: 560;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.fresh-page.natal-mvp-page .natal-question-composer-copy p,
+.fresh-page.natal-mvp-page .natal-question-locked > p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 14px;
+  line-height: 1.58;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-question-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 124px;
+  resize: vertical;
+  padding: 14px 15px;
+  border: 1px solid rgba(36, 35, 33, 0.22);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--natal-mvp-ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.55;
+  outline: none;
+}
+
+.fresh-page.natal-mvp-page .natal-question-input::placeholder {
+  color: rgba(36, 35, 33, 0.45);
+}
+
+.fresh-page.natal-mvp-page .natal-question-input:disabled {
+  background: rgba(36, 35, 33, 0.035);
+  color: var(--natal-mvp-muted);
+  cursor: not-allowed;
+}
+
+.fresh-page.natal-mvp-page .natal-question-input:focus-visible {
+  outline: 2px solid var(--natal-mvp-ink);
+  outline-offset: -2px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-status {
+  min-width: 0;
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+}
+
+.fresh-page.natal-mvp-page .natal-question-submit,
+.fresh-page.natal-mvp-page .natal-question-premium-button {
+  display: inline-flex;
+  min-height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px 11px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--natal-mvp-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 620;
+  cursor: pointer;
+  transition: transform 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fresh-page.natal-mvp-page .natal-question-submit svg,
+.fresh-page.natal-mvp-page .natal-question-premium-button svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  opacity: 0.82;
+}
+
+.fresh-page.natal-mvp-page .natal-question-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.fresh-page.natal-mvp-page .natal-question-submit:not(:disabled):active,
+.fresh-page.natal-mvp-page .natal-question-premium-button:active {
+  transform: scale(0.96);
+}
+
+.fresh-page.natal-mvp-page .natal-question-submit:focus-visible,
+.fresh-page.natal-mvp-page .natal-question-premium-button:focus-visible,
+.fresh-page.natal-mvp-page .natal-question-state--error button:focus-visible {
+  outline: 2px solid var(--natal-mvp-ink);
+  outline-offset: 3px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-error {
+  margin: -4px 0 0;
+  color: #9a302d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fresh-page.natal-mvp-page .natal-question-history {
+  padding: 32px 0 0;
+}
+
+.fresh-page.natal-mvp-page .natal-question-history > h2 {
+  margin: 0 0 18px;
+  color: var(--natal-mvp-ink);
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+}
+
+.fresh-page.natal-mvp-page .natal-question-state {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 15px;
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-question-state--error {
+  display: grid;
+  gap: 14px;
+  color: #9a302d;
+}
+
+.fresh-page.natal-mvp-page .natal-question-state--error p {
+  margin: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-question-state--error button {
+  width: fit-content;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--natal-mvp-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 620;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.fresh-page.natal-mvp-page .natal-question-pairs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-question-pair {
+  padding: 30px 0;
+  border-top: 1px solid var(--natal-mvp-line);
+}
+
+.fresh-page.natal-mvp-page .natal-question-pair:last-child {
+  padding-bottom: 0;
+}
+
+.fresh-page.natal-mvp-page .natal-question-pair article {
+  display: grid;
+  gap: 9px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-pair-label {
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 12px;
+  font-weight: 620;
+  letter-spacing: 0.035em;
+  line-height: 1.35;
+}
+
+.fresh-page.natal-mvp-page .natal-question-pair h3 {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 20px;
+  font-weight: 620;
+  letter-spacing: -0.025em;
+  line-height: 1.32;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-question-answer {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-answer-text {
+  max-width: 65ch;
+}
+
+.fresh-page.natal-mvp-page .natal-question-answer-paragraph {
+  margin: 0;
+  color: var(--natal-mvp-ink);
+  font-size: 16px;
+  font-weight: 430;
+  line-height: 1.68;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.fresh-page.natal-mvp-page .natal-question-locked {
+  display: grid;
+  gap: 12px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-locked .natal-question-premium-button {
+  width: fit-content;
+  margin-top: 6px;
 }
 
 .fresh-page.natal-mvp-page .natal-reliability-note {
@@ -913,15 +1179,33 @@
 
 .fresh-page.natal-mvp-page .natal-question-button {
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
   border: 1px solid rgba(36, 35, 33, 0.24);
   background: #fff;
   color: var(--natal-mvp-ink);
 }
 
+.fresh-page.natal-mvp-page .natal-question-action {
+  display: grid;
+  gap: 12px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-action p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 14px;
+  line-height: 1.58;
+  text-wrap: pretty;
+}
+
 .fresh-page.natal-mvp-page .natal-premium-button:active,
 .fresh-page.natal-mvp-page .natal-question-button:active,
-.fresh-page.natal-mvp-page .natal-report-retry:active,
-.fresh-page.natal-mvp-page .natal-personality-entry:active {
+.fresh-page.natal-mvp-page .natal-report-retry:active {
   transform: scale(0.96);
 }
 
@@ -1007,13 +1291,14 @@
 
   .fresh-page.natal-mvp-page .editorial-tab {
     padding-inline: 4px;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .fresh-page.natal-mvp-page .natal-map-heading,
   .fresh-page.natal-mvp-page .natal-reading-stage .natal-magazine-heading,
   .fresh-page.natal-mvp-page .natal-empty-content,
-  .fresh-page.natal-mvp-page .natal-editorial-report {
+  .fresh-page.natal-mvp-page .natal-editorial-report,
+  .fresh-page.natal-mvp-page .natal-question-page {
     padding-right: 18px;
     padding-left: 18px;
   }
@@ -1023,13 +1308,18 @@
   }
 
   .fresh-page.natal-mvp-page .natal-map-meta,
-  .fresh-page.natal-mvp-page .editorial-context-link,
-  .fresh-page.natal-mvp-page .natal-personality-entry {
+  .fresh-page.natal-mvp-page .editorial-context-link {
     width: calc(100% - 36px);
   }
 
-  .fresh-page.natal-mvp-page .natal-personality-entry-copy > span {
-    font-size: 12.5px;
+  .fresh-page.natal-mvp-page .natal-question-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .fresh-page.natal-mvp-page .natal-question-submit {
+    width: 100%;
   }
 }
 
@@ -1042,8 +1332,9 @@
 @media (prefers-reduced-motion: reduce) {
   .fresh-page.natal-mvp-page .natal-premium-button,
   .fresh-page.natal-mvp-page .natal-question-button,
-  .fresh-page.natal-mvp-page .natal-report-retry,
-  .fresh-page.natal-mvp-page .natal-personality-entry {
+  .fresh-page.natal-mvp-page .natal-question-submit,
+  .fresh-page.natal-mvp-page .natal-question-premium-button,
+  .fresh-page.natal-mvp-page .natal-report-retry {
     transition: none;
   }
 
@@ -2600,76 +2891,10 @@
   background: #fff;
 }
 
-.natal-question-sheet .cosmic-sheet-content {
-  color: var(--editorial-studio-ink);
-}
-
 .lz-sheet-panel--editorial .cosmic-sheet-close:focus-visible,
 .lz-sheet-panel--editorial .cosmic-sheet-content :is(button, a, input, textarea, select):focus-visible {
   outline: 2px solid var(--editorial-studio-ink);
   outline-offset: 3px;
-}
-
-.natal-question-sheet-content > div {
-  display: grid;
-  gap: 12px;
-}
-
-.natal-question-sheet-content > div > div {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--editorial-studio-line);
-  color: var(--editorial-studio-ink);
-}
-
-.natal-question-sheet-form {
-  display: grid;
-  gap: 10px;
-}
-
-.natal-question-sheet .natal-question-input {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 76px;
-  resize: none;
-  padding: 13px 14px;
-  border: 1px solid rgba(37, 34, 31, 0.18);
-  border-radius: 16px;
-  background: #fff;
-  color: var(--editorial-studio-ink);
-  font: inherit;
-  font-size: 16px;
-  line-height: 1.45;
-  outline: none;
-}
-
-.natal-question-sheet .natal-question-input::placeholder {
-  color: rgba(37, 34, 31, 0.46);
-}
-
-.natal-question-sheet .natal-question-input:focus-visible {
-  outline: 2px solid var(--editorial-studio-ink);
-  outline-offset: -2px;
-}
-
-.natal-question-sheet .natal-question-submit {
-  display: inline-flex;
-  width: 100%;
-  min-height: 48px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 11px 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--editorial-studio-ink);
-  color: #fff;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 620;
-}
-
-.natal-question-sheet .natal-question-submit:disabled {
-  opacity: 0.48;
 }
 
 .lz-sign-grid-editorial {

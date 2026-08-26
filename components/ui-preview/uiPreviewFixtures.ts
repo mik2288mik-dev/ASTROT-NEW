@@ -4,6 +4,7 @@ import {
   NATAL_PERMANENT_CONTRACT_VERSION,
   buildNatalModelContext,
   buildPermanentNatalChartFingerprint,
+  getNatalNarrativeEvidenceIds,
   type NatalPermanentFreeReport,
   type NatalPermanentPremiumReport,
 } from '../../lib/natalReading/permanentReport';
@@ -252,7 +253,7 @@ export function createUiPreviewNatalReport(
   chart: NatalChartData,
 ): PreloadedNatalReport {
   const built = buildNatalModelContext(profile, chart);
-  const availableEvidenceIds = built.context.evidence.map((fact) => fact.id);
+  const availableEvidenceIds = [...getNatalNarrativeEvidenceIds(built)];
   if (!availableEvidenceIds.length) {
     throw new Error('UI Preview natal fixture requires chart evidence.');
   }
@@ -260,31 +261,38 @@ export function createUiPreviewNatalReport(
   const freeSections: NatalPermanentFreeReport['freeSections'] = [
     {
       key: 'base_portrait',
-      title: 'Твоя внутренняя опора',
+      title: 'Что у тебя внутри',
       access: 'free',
-      content: 'Ты быстро замечаешь перемену в атмосфере, но окончательный вывод предпочитаешь проверять фактами. Поэтому твоя точность особенно заметна после короткой паузы, когда первое впечатление уже отделено от реального положения дел.',
+      content: 'Первая реакция приходит быстро, но ты не всегда показываешь её сразу. Сначала проверяешь, что именно произошло: человек действительно нарушил договорённость или разговор просто вышел неясным. Поэтому пауза с твоей стороны чаще означает проверку фактов, а не равнодушие.',
       evidenceIds: [evidenceAt(1)],
     },
+    ...(built.context.reportPlan.some((item) => item.key === 'first_impression') ? [{
+      key: 'how_others_see_you',
+      title: 'Как ты ведёшь себя с новыми людьми',
+      access: 'free',
+      content: 'При знакомстве ты сначала слушаешь, как человек говорит, и смотришь, совпадают ли слова с действиями. Не спешишь обещать близость или сотрудничество, пока не поймёшь, можно ли верить договорённостям. Когда поведение становится понятным, ты общаешься заметно свободнее.',
+      evidenceIds: [evidenceAt(2)],
+    } as NatalPermanentFreeReport['freeSections'][number]] : []),
     {
       key: 'thinking',
       title: 'Как ты принимаешь решения',
       access: 'free',
-      content: 'Тебе легче думать, когда у разговора есть ясная цель. Ты умеешь удерживать несколько нюансов одновременно, но лучше всего раскрываешься там, где можно назвать критерии выбора и спокойно довести мысль до конца.',
-      evidenceIds: [evidenceAt(2)],
-    },
-    {
-      key: 'emotional_world',
-      title: 'Что происходит внутри',
-      access: 'free',
-      content: 'Сильные переживания не всегда сразу становятся словами. Сначала ты присматриваешься к собственной реакции, а затем ищешь формулировку, которая не преувеличивает происходящее и всё же остаётся честной.',
+      content: 'Перед важным выбором ты сравниваешь не только варианты, но и последствия: сколько времени, денег и обязательств потребует каждый. Если критерии ясны, решение принимаешь быстро и редко к нему возвращаешься. Сложнее, когда условия меняются на ходу или кто-то требует ответа раньше, чем назвал все детали.',
       evidenceIds: [evidenceAt(3)],
     },
     {
-      key: 'strengths',
-      title: 'Твоя сильная сторона',
+      key: 'communication',
+      title: 'Как ты общаешься',
       access: 'free',
-      content: 'Ты умеешь возвращать сложному разговору ясность без лишнего нажима. Эта способность особенно полезна, когда другим хочется торопиться: ты замечаешь недостающую деталь и помогаешь превратить общее ощущение в конкретное решение.',
+      content: 'В разговоре тебе проще сразу назвать предмет: что случилось, что не устраивает и о чём нужно договориться. Ты быстро замечаешь несостыковку и можешь сказать о ней жёстче, чем собирался. Лучше всего общение идёт с людьми, которые отвечают прямо и не заставляют угадывать смысл.',
       evidenceIds: [evidenceAt(4)],
+    },
+    {
+      key: 'strengths',
+      title: 'Где у тебя получается лучше всего',
+      access: 'free',
+      content: 'Тебе хорошо даются задачи, где нужно проверить условия, заметить ошибку и довести дело до понятного результата. Ты не теряешь нить, когда деталей много, если есть срок и ясно, кто за что отвечает. Это особенно полезно в переговорах, планировании и работе, где цена невнимательности высока.',
+      evidenceIds: [evidenceAt(5)],
     },
   ];
   const reportEvidenceIds = Array.from(new Set([
@@ -297,7 +305,7 @@ export function createUiPreviewNatalReport(
     tier: 'free',
     evidenceIds: reportEvidenceIds,
     hook: {
-      text: 'Ты замечаешь нюансы раньше, чем успеваешь объяснить их словами, а ясность возвращаешь через один конкретный шаг.',
+      text: 'По натальной карте у тебя заметна одна сквозная черта: ты рано видишь, когда слова, сроки или условия не сходятся, и принимаешь решение после проверки деталей.',
       evidenceIds: [evidenceAt(0)],
     },
     userName: profile.name || 'Алина',
@@ -312,9 +320,9 @@ export function createUiPreviewNatalReport(
     premiumSections: [],
     shortCard: {
       title: freeSections[0].title,
-      keywords: ['точность', 'наблюдательность', 'ясность'],
+      keywords: ['детали', 'решения', 'договорённости'],
       text: freeSections[0].content,
-      advice: 'Дай себе короткую паузу перед важным ответом.',
+      advice: 'Точный ответ у тебя получается после проверки фактов и условий.',
       evidenceIds: freeSections[0].evidenceIds,
     },
   };
@@ -330,37 +338,30 @@ export function createUiPreviewNatalPremiumReport(
   profile: UserProfile,
   chart: NatalChartData,
 ): NatalPermanentPremiumReport {
-  const evidenceIds = buildNatalModelContext(profile, chart).context.evidence.map((fact) => fact.id);
+  const built = buildNatalModelContext(profile, chart);
+  const evidenceIds = [...getNatalNarrativeEvidenceIds(built)];
   const evidenceAt = (index: number) => evidenceIds[index % evidenceIds.length] || 'natal.quality.birth-time';
   const statement = (text: string, index: number) => ({ text, evidenceIds: [evidenceAt(index)] });
   const sections: NatalPermanentPremiumReport['sections'] = [
     {
       id: 'relationships',
-      title: 'Близость и доверие',
+      title: 'Отношения и семья',
       paragraphs: [
-        statement('Тебе важно, чтобы близость не отменяла ясность. Ты лучше раскрываешься рядом с человеком, который не торопит тебя с выводами и умеет говорить прямо без давления.', 1),
-        statement('Когда доверие уже есть, ты замечаешь тонкие перемены в разговоре и можешь вовремя вернуть ему спокойный, предметный ритм.', 2),
-      ],
-    },
-    {
-      id: 'conflict',
-      title: 'Как ты проходишь через конфликт',
-      paragraphs: [
-        statement('В напряжённой ситуации тебе полезно сначала отделить сам факт от первой реакции. После этой паузы ты точнее видишь, что действительно требует ответа, а что можно оставить без продолжения.', 3),
+        statement('В паре тебе важны не громкие слова, а повторяющиеся поступки и соблюдённые договорённости. В семье ты готов многое взять на себя, если просьба названа прямо, но раздражаешься, когда решение уже приняли за тебя. Если близкий несколько раз обещает одно и делает другое, ты можешь общаться как обычно, хотя доверия уже стало меньше.', 1),
       ],
     },
     {
       id: 'work',
-      title: 'Работа и собственный темп',
+      title: 'Работа и своё дело',
       paragraphs: [
-        statement('Ты сильнее там, где можно держать в поле зрения несколько деталей, но всё равно прийти к одному понятному решению. Слишком шумная среда расходует внимание быстрее, чем сложная задача.', 4),
+        statement('В работе ты предпочитаешь задачу с ясным итогом, сроком и зоной ответственности. Требование результата принимаешь спокойно, но подробный контроль каждого шага со стороны начальника быстро раздражает. В своём деле тот же подход помогает держать качество, пока клиент или деловой партнёр заранее называет условия и не меняет их после договорённости.', 2),
       ],
     },
     {
-      id: 'contradictions',
-      title: 'Внутренние противоречия',
+      id: 'challenges',
+      title: 'Когда всё идёт не по плану',
       paragraphs: [
-        statement('Иногда желание разобраться во всём до конца спорит с потребностью сохранить силы. Для тебя особенно ценен момент, когда уже достаточно фактов, чтобы выбрать направление и не продолжать проверку по инерции.', 5),
+        statement('Тебя сильнее всего сбивают не сами трудности, а неясные условия: срок называют приблизительно, договорённость меняют без предупреждения, а ответ ждут сразу. В такой ситуации ты начинаешь перепроверять больше деталей и можешь взять на себя чужую часть работы, чтобы вернуть порядок. Чем раньше названы правила и ответственность, тем меньше времени уходит на лишние проверки.', 3),
       ],
     },
   ];
@@ -370,11 +371,11 @@ export function createUiPreviewNatalPremiumReport(
     tier: 'premium',
     headline: 'Полный портрет карты',
     headlineEvidenceIds: [evidenceAt(0)],
-    lead: statement('Продолжение раскрывает устойчивые способы строить близость, работать и проходить через напряжение.', 0),
+    lead: statement('В близости и работе ты так же сверяешь слова с поступками, сроками и договорённостями.', 0),
     sections,
     strategies: [],
     pitfalls: [],
-    conclusion: statement('Твоя опора — ясность, которой не нужно становиться жёсткостью.', 6),
+    conclusion: statement('Ты действуешь точнее, когда условия названы прямо и слова можно проверить поступками.', 4),
     evidenceIds: Array.from(new Set(sections.flatMap((section) => (
       section.paragraphs.flatMap((paragraph) => paragraph.evidenceIds)
     )))),

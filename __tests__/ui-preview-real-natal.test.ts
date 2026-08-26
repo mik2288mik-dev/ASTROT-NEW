@@ -25,7 +25,7 @@ describe('real natal UI Preview surface', () => {
     expect(isNatalPermanentFreeReport(preloaded.report)).toBe(true);
     expect(preloaded.chartFingerprint).toBe(buildPermanentNatalChartFingerprint(profile, chart));
     expect(preloaded.reportVersion).toBe(NATAL_PERMANENT_CONTRACT_VERSION);
-    expect(preloaded.report.freeSections).toHaveLength(4);
+    expect(preloaded.report.freeSections).toHaveLength(5);
   });
 
   it('builds a complete Premium continuation and a selectable chart subject', () => {
@@ -34,7 +34,7 @@ describe('real natal UI Preview surface', () => {
     const premium = createUiPreviewNatalPremiumReport(profile, chart);
     const charts = createUiPreviewCharts(profile, chart);
 
-    expect(premium.sections).toHaveLength(4);
+    expect(premium.sections).toHaveLength(3);
     expect(charts).toHaveLength(1);
     expect(charts[0]?.subject_type).toBe('self');
   });
@@ -49,7 +49,8 @@ describe('real natal UI Preview surface', () => {
     expect(preview).toContain('<PersonalityReport');
     expect(preview).toContain("const natalProfile = useMemo(() => ({ ...profile, id: '' })");
     expect(preview).toContain('preloadedReport={natalReport}');
-    expect(preview).toContain("initialTab: scenario.screen === 'natal' ? 'map' : 'reading'");
+    expect(preview).toContain("scenario.screen === 'question'");
+    expect(preview).toContain("? 'questions'");
     expect(preview).toContain('reportState: scenario.state');
     expect(preview).toContain("premiumReport: scenario.access === 'premium' ? natalPremiumReport : null");
     expect(preview).toContain("openQuestion: scenario.screen === 'question'");

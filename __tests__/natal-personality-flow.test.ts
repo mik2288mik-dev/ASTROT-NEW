@@ -37,8 +37,10 @@ describe('natal personality product flow', () => {
     const report = read('components/NatalReading/HumanReport.tsx');
 
     expect(report).toContain('<details className="natal-evidence-disclosure">');
-    expect(report).toContain('Почему так?');
+    expect(report).not.toContain('Почему так?');
+    expect(report).toContain('Как это связано с картой');
     expect(report).toContain('<details className="natal-technical-details');
+    expect(report).toContain('Как это видно в карте');
     expect(report).not.toContain('<details open');
   });
 
@@ -53,6 +55,6 @@ describe('natal personality product flow', () => {
 
     expect(report).toContain('function questionMessageEvidenceIds');
     expect(report).toContain("message.role === 'assistant'");
-    expect(report).toContain('evidenceIds={questionMessageEvidenceIds(message)}');
+    expect(report).toContain('evidenceIds={questionMessageEvidenceIds(answer)}');
   });
 });

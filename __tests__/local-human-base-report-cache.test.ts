@@ -16,7 +16,7 @@ const profile: UserProfile = {
 };
 const report = {
   schemaVersion: 'natal-permanent-free-v3',
-  contractVersion: 'natal-permanent-report-v7',
+  contractVersion: 'natal-permanent-report-v8',
   tier: 'free',
   evidenceIds: ['natal.position.sun'],
   hook: {

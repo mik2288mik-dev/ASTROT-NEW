@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ChevronDown, Crown, MessageCircle, Send } from 'lucide-react';
+import { ChevronDown, Crown, Send } from 'lucide-react';
 import type {
   InterpretationSection,
   NatalChartData,
@@ -59,8 +59,8 @@ type Props = {
   premiumContinuation?: PaywallContext | null;
   onPremiumContinuationHandled?: (paywallInstanceId: string) => void;
   canPromotePremium?: boolean;
-  openQuestionRequest?: number;
-  onQuestionRequestHandled?: () => void;
+  onOpenQuestions?: () => void;
+  surface?: 'reading' | 'questions';
   uiPreview?: {
     state?: 'ready' | 'loading' | 'error';
     premiumReport?: NatalPermanentPremiumReport | null;
@@ -122,6 +122,23 @@ function formatError(error: unknown): string {
   if (value?.code === 'PREMIUM_REQUIRED') return 'Этот раздел доступен в Premium.';
   if (value?.code === 'NATAL_QUESTION_DAILY_LIMIT') return 'Лимит вопросов на сегодня исчерпан.';
   return value?.message || 'Не удалось загрузить разбор.';
+}
+
+function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
+  const value = error as HumanReadingError;
+  if (value?.code === 'PREMIUM_REQUIRED') {
+    return language === 'ru'
+      ? 'Вопросы по карте доступны в Premium.'
+      : 'Questions about the chart are available with Premium.';
+  }
+  if (value?.code === 'NATAL_QUESTION_DAILY_LIMIT') {
+    return language === 'ru'
+      ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
+      : 'You have used today\'s questions. You can return tomorrow.';
+  }
+  return value?.message || (language === 'ru'
+    ? 'Не удалось загрузить ответы. Проверь соединение и попробуй ещё раз.'
+    : 'Unable to load the answers. Check your connection and try again.');
 }
 
 type NatalEvidenceMap = ReadonlyMap<string, NatalEvidenceFact>;
@@ -249,7 +266,8 @@ const NatalEvidenceDetails: React.FC<{
   evidenceIds: string[] | undefined;
   evidenceById: NatalEvidenceMap;
   language: 'ru' | 'en';
-}> = ({ evidenceIds, evidenceById, language }) => {
+  summary?: string;
+}> = ({ evidenceIds, evidenceById, language, summary }) => {
   const labels = [...new Set((evidenceIds || [])
     .map((id) => evidenceById.get(id))
     .filter((fact): fact is NatalEvidenceFact => fact != null)
@@ -259,7 +277,9 @@ const NatalEvidenceDetails: React.FC<{
 
   return (
     <details className="natal-evidence-disclosure">
-      <summary>{language === 'ru' ? 'Почему так?' : 'Why this?'}</summary>
+      <summary>
+        {summary || (language === 'ru' ? 'Как это связано с картой' : 'How this connects to the chart')}
+      </summary>
       <ul
         className="natal-inline-evidence"
         aria-label={language === 'ru' ? 'Астрологические основания' : 'Astrological evidence'}
@@ -277,12 +297,30 @@ function questionMessageEvidenceIds(message: NatalQuestionStoredMessage): string
     : [];
 }
 
+type NatalQuestionPair = {
+  question: NatalQuestionStoredMessage;
+  answer: NatalQuestionStoredMessage | null;
+};
+
+function buildNatalQuestionPairs(messages: readonly NatalQuestionStoredMessage[]): NatalQuestionPair[] {
+  const answersByQuestionId = new Map<string, NatalQuestionStoredMessage>();
+  for (const message of messages) {
+    if (message.role !== 'assistant') continue;
+    const questionId = String(message.payload?.questionMessageId || '').trim();
+    if (questionId) answersByQuestionId.set(questionId, message);
+  }
+  return messages
+    .filter((message) => message.role === 'user')
+    .map((question) => ({
+      question,
+      answer: answersByQuestionId.get(String(question.id)) || null,
+    }));
+}
+
 const SectionText: React.FC<{
   section: InterpretationSection;
   index?: number;
-  evidenceById: NatalEvidenceMap;
-  language: 'ru' | 'en';
-}> = ({ section, index = 0, evidenceById, language }) => {
+}> = ({ section, index = 0 }) => {
   const reduce = useReducedMotion();
   const Comp = reduce ? 'section' : motion.section;
   return (
@@ -307,11 +345,6 @@ const SectionText: React.FC<{
         text={section.content}
         className="natal-sec-body max-w-none"
         paragraphClassName="natal-sec-p"
-      />
-      <NatalEvidenceDetails
-        evidenceIds={section.evidenceIds}
-        evidenceById={evidenceById}
-        language={language}
       />
     </Comp>
   );
@@ -467,9 +500,14 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
   return (
     <details className="natal-technical-details border-t border-[#eeeeee] py-6">
       <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-medium text-[#3a3a3a]">
-        <span>{language === 'ru' ? 'Технический атлас карты' : 'Technical chart atlas'}</span>
+        <span>{language === 'ru' ? 'Как это видно в карте' : 'How this appears in the chart'}</span>
         <ChevronDown size={16} strokeWidth={1.7} />
       </summary>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-[#777]">
+        {language === 'ru'
+          ? 'Здесь собраны все рассчитанные положения и связи карты.'
+          : 'This section contains all calculated placements and connections in the chart.'}
+      </p>
       <ul className="mt-4 divide-y divide-[#f3f3f3]">
         {planets.map((item) => (
           <li key={item!.label} className="flex items-center gap-3 py-3 text-[13px] text-[#3a3a3a]">
@@ -526,13 +564,9 @@ export const TechnicalDetails: React.FC<{ chartData: NatalChartData; language: '
 const StatementText: React.FC<{
   statement: NatalReadingStatement;
   className?: string;
-  evidenceById: NatalEvidenceMap;
-  language: 'ru' | 'en';
 }> = ({
   statement,
   className = '',
-  evidenceById,
-  language,
 }) => (
   <div className="natal-statement">
     <FormattedAiText
@@ -540,23 +574,13 @@ const StatementText: React.FC<{
       className={`max-w-none ${className}`}
       paragraphClassName="natal-sec-p"
     />
-    <NatalEvidenceDetails
-      evidenceIds={statement.evidenceIds}
-      evidenceById={evidenceById}
-      language={language}
-    />
   </div>
 );
 
 const PremiumReport: React.FC<{
   report: NatalPermanentPremiumReport;
-  evidenceById: NatalEvidenceMap;
-  language: 'ru' | 'en';
-}> = ({ report, evidenceById, language }) => (
+}> = ({ report }) => (
   <section className="natal-permanent-premium" data-natal-contract={report.contractVersion}>
-    <p className="natal-premium-kicker">
-      {language === 'ru' ? 'Продолжение Premium' : 'Premium continuation'}
-    </p>
     {report.sections.map((section) => (
       <section key={section.id} className="natal-sec editorial-reading-section" data-premium-section={section.id}>
         {section.title ? <h2 className="natal-sec-title">{section.title}</h2> : null}
@@ -565,8 +589,6 @@ const PremiumReport: React.FC<{
             <StatementText
               key={`${section.id}-${index}`}
               statement={paragraph}
-              evidenceById={evidenceById}
-              language={language}
             />
           ))}
         </div>
@@ -629,8 +651,8 @@ export const HumanReport: React.FC<Props> = ({
   premiumContinuation,
   onPremiumContinuationHandled,
   canPromotePremium = true,
-  openQuestionRequest = 0,
-  onQuestionRequestHandled,
+  onOpenQuestions,
+  surface = 'reading',
   uiPreview,
 }) => {
   const userId = profile.id ? String(profile.id) : '';
@@ -654,10 +676,13 @@ export const HumanReport: React.FC<Props> = ({
       : undefined;
   const previewState = previewConfig?.state || 'ready';
   const previewPremiumReport = previewConfig?.premiumReport || null;
+  const builtNatalContext = useMemo(
+    () => buildNatalModelContext(profile, chartData),
+    [chartData, profile],
+  );
   const evidenceById = useMemo<NatalEvidenceMap>(() => {
-    const built = buildNatalModelContext(profile, chartData);
-    return new Map(built.context.evidence.map((fact) => [fact.id, fact]));
-  }, [chartData, profile]);
+    return new Map(builtNatalContext.context.evidence.map((fact) => [fact.id, fact]));
+  }, [builtNatalContext]);
   const cachedBase = userId ? getHumanBaseReportCached(userId, chartId, language, cacheIdentity) : null;
   const initialBase = previewConfig && previewState !== 'ready'
     ? null
@@ -675,22 +700,27 @@ export const HumanReport: React.FC<Props> = ({
   );
   const [premiumLoading, setPremiumLoading] = useState(false);
   const [premiumError, setPremiumError] = useState<string | null>(null);
-  const [questionOpen, setQuestionOpen] = useState(false);
   const [questionSnapshot, setQuestionSnapshot] = useState<NatalQuestionSnapshot | null>(null);
   const [questionText, setQuestionText] = useState('');
   const [questionLoading, setQuestionLoading] = useState(false);
+  const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionError, setQuestionError] = useState<string | null>(null);
+  const [questionRetryToken, setQuestionRetryToken] = useState(0);
   const [baseRetryToken, setBaseRetryToken] = useState(0);
   const [premiumRetryToken, setPremiumRetryToken] = useState(0);
   const reportIdentity = `${userId}:${chartId ?? 'primary'}:${language}:${cacheIdentity.chartFingerprint}:${cacheIdentity.reportVersion}`;
   const baseIdentityRef = useRef(reportIdentity);
   const premiumIdentityRef = useRef(reportIdentity);
-  const handledQuestionRequestRef = useRef(0);
 
   const isPremium = hasActivePremium(profile);
   const reliability = getPermanentNatalReliability(chartData);
   const freeSections = report?.freeSections || [];
+  const questionPairs = useMemo(
+    () => buildNatalQuestionPairs(questionSnapshot?.messages || []),
+    [questionSnapshot?.messages],
+  );
   useEffect(() => {
+    if (surface !== 'reading') return;
     if (previewConfig) {
       setReport(previewState === 'ready' ? matchingPreloadedReport : null);
       setLoading(previewState === 'loading');
@@ -732,17 +762,19 @@ export const HumanReport: React.FC<Props> = ({
     previewConfig,
     previewState,
     reportIdentity,
+    surface,
     userId,
   ]);
 
   useEffect(() => {
+    if (surface !== 'reading') return;
     if (previewConfig) {
       setPremiumReport(isPremium ? previewPremiumReport : null);
       setPremiumLoading(false);
       setPremiumError(null);
       return;
     }
-    if (!isPremium || !userId) {
+    if (!isPremium || !userId || !report) {
       setPremiumReport(null);
       setPremiumLoading(false);
       return;
@@ -774,53 +806,67 @@ export const HumanReport: React.FC<Props> = ({
     premiumRetryToken,
     previewConfig,
     previewPremiumReport,
+    report,
     reportIdentity,
+    surface,
     userId,
   ]);
 
   useEffect(() => {
-    setQuestionOpen(false);
     setQuestionSnapshot(null);
     setQuestionText('');
     setQuestionError(null);
   }, [reportIdentity]);
 
-  const openQuestions = useCallback(() => {
-    if (!isPremium) {
-      void requestPremium('natal_questions', {
-        placement: 'natal_questions',
-        featureKey: 'natal_questions',
-        triggerType: 'locked_feature',
-        returnView: 'chart',
-        returnScrollAnchor: 'natal-question-action',
-        returnAction: 'open_natal_questions',
-      });
+  useEffect(() => {
+    if (surface !== 'questions') return;
+    if (previewConfig) {
+      setQuestionSnapshot(null);
+      setQuestionLoading(previewState === 'loading');
+      setQuestionError(previewState === 'error'
+        ? (language === 'ru'
+            ? 'Не удалось загрузить ответы. Проверь соединение и попробуй ещё раз.'
+            : 'Unable to load the answers. Check your connection and try again.')
+        : null);
       return;
     }
-    setQuestionOpen(true);
-    setQuestionError(null);
-    if (!userId) return;
+    if (!isPremium || !userId) {
+      setQuestionLoading(false);
+      return;
+    }
+    let cancelled = false;
     setQuestionLoading(true);
+    setQuestionError(null);
     void loadNatalQuestionSnapshot(userId, chartId)
-      .then(setQuestionSnapshot)
-      .catch((loadError) => setQuestionError(formatError(loadError)))
-      .finally(() => setQuestionLoading(false));
-  }, [chartId, isPremium, requestPremium, userId]);
-
-  useEffect(() => {
-    if (!openQuestionRequest || handledQuestionRequestRef.current === openQuestionRequest) return;
-    handledQuestionRequestRef.current = openQuestionRequest;
-    openQuestions();
-    onQuestionRequestHandled?.();
-  }, [onQuestionRequestHandled, openQuestionRequest, openQuestions]);
+      .then((next) => {
+        if (!cancelled) setQuestionSnapshot(next);
+      })
+      .catch((loadError) => {
+        if (!cancelled) setQuestionError(formatQuestionError(loadError, language));
+      })
+      .finally(() => {
+        if (!cancelled) setQuestionLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [
+    chartId,
+    isPremium,
+    language,
+    previewConfig,
+    previewState,
+    questionRetryToken,
+    reportIdentity,
+    surface,
+    userId,
+  ]);
 
   useEffect(() => {
     if (!isPremium || !premiumContinuation || premiumContinuation.returnView !== 'chart') return;
     if (
       premiumContinuation.featureKey === 'natal_questions'
       && premiumContinuation.returnAction === 'open_natal_questions'
+      && surface === 'questions'
     ) {
-      openQuestions();
       onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
       return;
     }
@@ -828,6 +874,7 @@ export const HumanReport: React.FC<Props> = ({
       (premiumContinuation.featureKey === 'natal_deep'
         || premiumContinuation.featureKey === 'personality_deep')
       && premiumReport
+      && surface === 'reading'
     ) {
       document.getElementById('natal-deep-premium')?.scrollIntoView({ block: 'center' });
       onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
@@ -835,55 +882,208 @@ export const HumanReport: React.FC<Props> = ({
   }, [
     isPremium,
     onPremiumContinuationHandled,
-    openQuestions,
     premiumContinuation,
     premiumReport,
+    surface,
   ]);
 
   const submitQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
     const value = questionText.trim();
-    if (!userId || !value || questionLoading) return;
-    setQuestionLoading(true);
+    if (!userId || !value || questionLoading || questionSubmitting) return;
+    setQuestionSubmitting(true);
     setQuestionError(null);
     try {
       const next = await askNatalQuestion(userId, value, chartId);
       setQuestionSnapshot(next);
       setQuestionText('');
     } catch (submitError) {
-      setQuestionError(formatError(submitError));
+      setQuestionError(formatQuestionError(submitError, language));
     } finally {
-      setQuestionLoading(false);
+      setQuestionSubmitting(false);
     }
   };
 
-  const questionFooter = (
-    <form onSubmit={submitQuestion} className="natal-question-sheet-form">
-      <label htmlFor="natal-question-input" className="sr-only">
-        {language === 'ru' ? 'Узнать о себе' : 'Learn about yourself'}
-      </label>
-      <textarea
-        id="natal-question-input"
-        name="natal-question"
-        value={questionText}
-        onChange={(event) => setQuestionText(event.target.value)}
-        maxLength={300}
-        rows={2}
-        placeholder={language === 'ru' ? 'Спроси о себе по натальной карте' : 'Ask about yourself through your birth chart'}
-        className="natal-question-input"
-      />
-      <button
-        type="submit"
-        disabled={questionLoading || !questionText.trim() || (questionSnapshot?.usage.remaining ?? 1) <= 0}
-        className="natal-question-submit"
+  if (surface === 'questions') {
+    const remainingQuestions = questionSnapshot?.usage.remaining ?? null;
+    const questionLimitReached = remainingQuestions === 0;
+    const questionInputDisabled = questionLoading
+      || questionSubmitting
+      || questionLimitReached
+      || !userId;
+    const questionStatus = questionSubmitting
+      ? (language === 'ru' ? 'Готовим ответ…' : 'Preparing your answer…')
+      : questionLoading
+        ? (questionSnapshot
+            ? (language === 'ru' ? 'Обновляем ответы…' : 'Refreshing your answers…')
+            : (language === 'ru' ? 'Загружаем ответы…' : 'Loading your answers…'))
+      : questionLimitReached
+        ? (language === 'ru'
+            ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
+            : 'You have used today\'s questions. You can return tomorrow.')
+        : remainingQuestions != null
+          ? (language === 'ru'
+              ? `Осталось сегодня: ${remainingQuestions}`
+              : `Remaining today: ${remainingQuestions}`)
+          : !userId && previewConfig
+            ? (language === 'ru'
+                ? 'В локальном превью отправка отключена.'
+                : 'Sending is disabled in the local preview.')
+          : (language === 'ru'
+              ? 'Ответ появится здесь и сохранится в истории.'
+              : 'Your answer will appear here and stay in the history.');
+
+    return (
+      <article
+        id="natal-question-page"
+        className="natal-question-page"
+        aria-labelledby="natal-question-page-title"
       >
-        <Send aria-hidden="true" size={16} strokeWidth={2} />
-        {questionLoading
-          ? (language === 'ru' ? 'Отвечаем…' : 'Answering…')
-          : (language === 'ru' ? 'Задать вопрос' : 'Ask')}
-      </button>
-    </form>
-  );
+        <div className="natal-question-page-inner">
+          {!isPremium ? (
+            <section className="natal-question-locked" aria-labelledby="natal-question-locked-title">
+              <h2 id="natal-question-locked-title">
+                {language === 'ru'
+                  ? 'Вопросы по карте доступны в Premium'
+                  : 'Questions about your chart are available with Premium'}
+              </h2>
+              <p>
+                {language === 'ru'
+                  ? 'Здесь можно задать конкретный вопрос о себе и получить ответ по уже рассчитанной карте.'
+                  : 'Ask a specific question about yourself and get an answer based on the chart already calculated.'}
+              </p>
+              <button
+                type="button"
+                className="natal-question-premium-button"
+                onClick={() => void requestPremium('natal_questions', {
+                  placement: 'natal_questions',
+                  featureKey: 'natal_questions',
+                  triggerType: 'locked_feature',
+                  returnView: 'chart',
+                  returnScrollAnchor: 'natal-question-page',
+                  returnAction: 'open_natal_questions',
+                })}
+              >
+                <Crown aria-hidden="true" size={16} strokeWidth={2} />
+                {language === 'ru' ? 'Открыть Premium' : 'Open Premium'}
+              </button>
+            </section>
+          ) : (
+            <>
+              <section className="natal-question-composer" aria-labelledby="natal-question-composer-title">
+                <form
+                  onSubmit={submitQuestion}
+                  aria-busy={(questionLoading || questionSubmitting) || undefined}
+                >
+                  <div className="natal-question-composer-copy">
+                    <label id="natal-question-composer-title" htmlFor="natal-question-input">
+                      {language === 'ru' ? 'Что хочешь понять?' : 'What do you want to understand?'}
+                    </label>
+                    <p id="natal-question-input-help">
+                      {language === 'ru'
+                        ? 'Опиши ситуацию своими словами. Чем конкретнее вопрос, тем полезнее будет ответ.'
+                        : 'Describe the situation in your own words. A specific question leads to a more useful answer.'}
+                    </p>
+                  </div>
+                  <textarea
+                    id="natal-question-input"
+                    name="natal-question"
+                    value={questionText}
+                    onChange={(event) => setQuestionText(event.target.value)}
+                    maxLength={300}
+                    rows={4}
+                    placeholder={language === 'ru'
+                      ? 'Например: почему мне трудно просить о помощи?'
+                      : 'For example: why is it hard for me to ask for help?'}
+                    className="natal-question-input"
+                    aria-describedby="natal-question-input-help natal-question-status"
+                    disabled={questionInputDisabled}
+                  />
+                  <div className="natal-question-form-actions">
+                    <p id="natal-question-status" className="natal-question-status" aria-live="polite">
+                      {questionStatus}
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={questionInputDisabled || !questionText.trim()}
+                      className="natal-question-submit"
+                    >
+                      <Send aria-hidden="true" size={16} strokeWidth={2} />
+                      {language === 'ru' ? 'Задать вопрос' : 'Ask a question'}
+                    </button>
+                  </div>
+                  {questionError && questionSnapshot ? (
+                    <p className="natal-question-error" role="alert">{questionError}</p>
+                  ) : null}
+                </form>
+              </section>
+
+              <section className="natal-question-history" aria-labelledby="natal-question-history-title">
+                <h2 id="natal-question-history-title">
+                  {language === 'ru' ? 'Твои вопросы' : 'Your questions'}
+                </h2>
+                {questionLoading && !questionSnapshot ? (
+                  <p className="natal-question-state" role="status">
+                    {language === 'ru' ? 'Загружаем прошлые ответы…' : 'Loading previous answers…'}
+                  </p>
+                ) : questionError && !questionSnapshot ? (
+                  <div className="natal-question-state natal-question-state--error" role="alert">
+                    <p>{questionError}</p>
+                    <button type="button" onClick={() => setQuestionRetryToken((value) => value + 1)}>
+                      {language === 'ru' ? 'Попробовать ещё раз' : 'Try again'}
+                    </button>
+                  </div>
+                ) : questionPairs.length ? (
+                  <ol className="natal-question-pairs" role="list">
+                    {questionPairs.map(({ question, answer }) => (
+                      <li key={question.id} className="natal-question-pair">
+                        <article>
+                          <p className="natal-question-pair-label">
+                            {language === 'ru' ? 'Вопрос' : 'Question'}
+                          </p>
+                          <h3>{question.text}</h3>
+                          {answer ? (
+                            <div className="natal-question-answer">
+                              <p className="natal-question-pair-label">
+                                {language === 'ru' ? 'Ответ' : 'Answer'}
+                              </p>
+                              <FormattedAiText
+                                text={answer.text}
+                                className="natal-question-answer-text"
+                                paragraphClassName="natal-question-answer-paragraph"
+                              />
+                            <NatalEvidenceDetails
+                              evidenceIds={questionMessageEvidenceIds(answer)}
+                              evidenceById={evidenceById}
+                              language={language}
+                              summary={language === 'ru'
+                                ? 'Как это связано с картой'
+                                : 'How this connects to the chart'}
+                            />
+                            </div>
+                          ) : (
+                            <p className="natal-question-state" role="status">
+                              {language === 'ru' ? 'Готовим ответ…' : 'Preparing the answer…'}
+                            </p>
+                          )}
+                        </article>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="natal-question-state">
+                    {language === 'ru'
+                      ? 'Здесь появятся твои вопросы и ответы. Можно спросить о привычной реакции, решении, работе, отношениях или сильной стороне.'
+                      : 'Your questions and answers will appear here. Ask about a recurring response, a decision, work, relationships, or a strength.'}
+                  </p>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className="natal-editorial-report relative bg-white pb-16 pt-1">
@@ -938,19 +1138,12 @@ export const HumanReport: React.FC<Props> = ({
                   className="natal-reading-hook-text"
                   paragraphClassName="natal-reading-hook-paragraph"
                 />
-                <NatalEvidenceDetails
-                  evidenceIds={report.hook.evidenceIds}
-                  evidenceById={evidenceById}
-                  language={language}
-                />
               </header>
               {freeSections.map((item, index) => (
                 <SectionText
                   key={item.key}
                   section={item}
                   index={index}
-                  evidenceById={evidenceById}
-                  language={language}
                 />
               ))}
             </>
@@ -966,8 +1159,6 @@ export const HumanReport: React.FC<Props> = ({
                 <div id="natal-deep-premium">
                   <PremiumReport
                     report={premiumReport}
-                    evidenceById={evidenceById}
-                    language={language}
                   />
                 </div>
               ) : premiumError ? (
@@ -989,8 +1180,8 @@ export const HumanReport: React.FC<Props> = ({
                 </h2>
                 <p>
                   {language === 'ru'
-                    ? 'Больше глубины там, где карта даёт надёжную опору: отношения, конфликты, работа, доверие и внутренние противоречия.'
-                    : 'More depth where the chart provides reliable support: relationships, conflict, work, trust, and inner contradictions.'}
+                    ? 'В полном разборе добавятся главы об отношениях и семье, работе и своём деле, а также о ситуациях, когда всё идёт не по плану.'
+                    : 'The full reading adds chapters about relationships and family, work and your own business, and situations when things do not go to plan.'}
                 </p>
                 <button
                   type="button"
@@ -1010,18 +1201,26 @@ export const HumanReport: React.FC<Props> = ({
               </section>
             ) : null}
 
-            <TechnicalDetails chartData={chartData} language={language} />
+            {onOpenQuestions ? (
+              <section className="natal-question-action">
+                <button
+                  type="button"
+                  className="natal-question-button"
+                  onClick={onOpenQuestions}
+                  aria-describedby="natal-question-action-description"
+                >
+                  <Send aria-hidden="true" size={16} strokeWidth={2} />
+                  {language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'}
+                </button>
+                <p id="natal-question-action-description">
+                  {language === 'ru'
+                    ? 'Можно спросить о любой важной теме — отношениях, семье, работе или деньгах. Например: «Что по моей карте помогает мне прийти к достатку?»'
+                    : 'Ask about any important area — relationships, family, work, or money. For example: “What in my chart helps me build financial security?”'}
+                </p>
+              </section>
+            ) : null}
 
-            <section id="natal-question-action" className="natal-question-action">
-              <button
-                type="button"
-                onClick={openQuestions}
-                className="natal-question-button"
-              >
-                <MessageCircle aria-hidden="true" size={17} strokeWidth={2} />
-                {language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'}
-              </button>
-            </section>
+            <TechnicalDetails chartData={chartData} language={language} />
 
             <section className="natal-disclaimer">
               <p>
@@ -1034,53 +1233,6 @@ export const HumanReport: React.FC<Props> = ({
         ) : null}
 
       </div>
-
-      <CosmicSheet
-        open={questionOpen}
-        title={language === 'ru' ? 'Узнать о себе' : 'Learn about yourself'}
-        subtitle={language === 'ru' ? 'Ответ по этой натальной карте' : 'An answer from this birth chart'}
-        closeLabel={language === 'ru' ? 'Закрыть' : 'Close'}
-        onClose={() => setQuestionOpen(false)}
-        className="lz-sheet-panel--editorial natal-question-sheet"
-        footer={questionFooter}
-        contentClassName="lz-sheet-scroll--editorial natal-question-sheet-content"
-      >
-        {questionSnapshot?.messages.length ? (
-          <div className="space-y-3" aria-live="polite">
-            {questionSnapshot.messages.map((message) => (
-              <div
-                key={message.id}
-                className={message.role === 'user'
-                  ? 'ml-8 rounded-[18px] bg-white/12 px-4 py-3 text-[14px] leading-relaxed text-white'
-                  : 'mr-4 rounded-[18px] bg-black/28 px-4 py-3 text-[14px] leading-relaxed text-white/88'}
-              >
-                <p>{message.text}</p>
-                {message.role === 'assistant' ? (
-                  <NatalEvidenceDetails
-                    evidenceIds={questionMessageEvidenceIds(message)}
-                    evidenceById={evidenceById}
-                    language={language}
-                  />
-                ) : null}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[14px] leading-relaxed text-white/74">
-            {language === 'ru'
-              ? 'Спроси о привычной реакции, отношениях, решениях, работе или сильной стороне. Ответ опирается только на расчёт этой карты.'
-              : 'Ask about a recurring response, relationships, decisions, work, or a strength. The answer uses only this chart calculation.'}
-          </p>
-        )}
-        {questionSnapshot ? (
-          <p className="text-[12px] text-white/52">
-            {language === 'ru'
-              ? `Осталось вопросов сегодня: ${questionSnapshot.usage.remaining}`
-              : `Questions left today: ${questionSnapshot.usage.remaining}`}
-          </p>
-        ) : null}
-        {questionError ? <p className="text-[13px] leading-relaxed text-[#ffb4b4]">{questionError}</p> : null}
-      </CosmicSheet>
     </article>
   );
 };

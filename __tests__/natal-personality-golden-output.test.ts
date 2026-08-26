@@ -9,6 +9,7 @@ import type {
 } from '../lib/natalChartV2Types';
 import {
   buildNatalModelContext,
+  buildNatalReaderChapterPlan,
   materializePermanentFreeReport,
   materializePermanentPremiumReport,
   type BuiltNatalModelContext,
@@ -467,12 +468,14 @@ function expectUsefulCompleteFreeReport(
   report: NatalPermanentFreeReport,
   built: BuiltNatalModelContext,
 ) {
-  const freePlan = built.context.reportPlan.filter((item) => item.access === 'free');
-  expect(report.freeSections).toHaveLength(freePlan.length);
-  for (const item of freePlan) {
-    const sample = NATAL_PERSONALITY_GOLDEN_SECTION_COPY[item.key];
-    const materialized = report.freeSections.find((section) => section.title === sample.title);
-    expect(materialized?.content).toBe(sample.content);
+  const chapters = buildNatalReaderChapterPlan(built.context.reportPlan, 'free', 'ru');
+  expect(report.freeSections).toHaveLength(chapters.length);
+  for (const chapter of chapters) {
+    const expectedContent = chapter.domainKeys
+      .map((key) => NATAL_PERSONALITY_GOLDEN_SECTION_COPY[key].content)
+      .join('\n\n');
+    const materialized = report.freeSections.find((section) => section.title === chapter.title);
+    expect(materialized?.content).toBe(expectedContent);
     expect(materialized?.content.length).toBeGreaterThan(150);
   }
   expect(report.freeSections.map((section) => section.content).join('\n').length)
@@ -496,11 +499,16 @@ function expectSupportedPremiumDepth(
       .filter((item) => item.access === 'premium')
       .map((item) => item.key),
   );
-  const materialized = new Set(report.sections.map((section) => section.id));
   for (const domain of DEEP_PREMIUM_DOMAINS) {
     expect(supported.has(domain)).toBe(true);
-    expect(materialized.has(domain)).toBe(true);
   }
+  const chapters = buildNatalReaderChapterPlan(built.context.reportPlan, 'premium', 'ru');
+  expect(report.sections.map((section) => section.id)).toEqual(
+    chapters.map((chapter) => chapter.key),
+  );
+  expect(report.sections.map((section) => section.title)).toEqual(
+    chapters.map((chapter) => chapter.title),
+  );
 }
 
 describe('natal personality golden outputs', () => {
@@ -559,14 +567,12 @@ describe('natal personality golden outputs', () => {
     });
 
     expect(free?.freeSections.map((section) => section.title)).toEqual(
-      built.context.reportPlan
-        .filter((item) => item.access === 'free')
-        .map((item) => NATAL_PERSONALITY_GOLDEN_SECTION_COPY[item.key].title),
+      buildNatalReaderChapterPlan(built.context.reportPlan, 'free', 'ru')
+        .map((chapter) => chapter.title),
     );
     expect(premium?.sections.map((section) => section.id)).toEqual(
-      built.context.reportPlan
-        .filter((item) => item.access === 'premium')
-        .map((item) => item.key),
+      buildNatalReaderChapterPlan(built.context.reportPlan, 'premium', 'ru')
+        .map((chapter) => chapter.key),
     );
   });
 

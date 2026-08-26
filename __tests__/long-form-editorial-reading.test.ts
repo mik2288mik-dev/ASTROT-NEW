@@ -38,13 +38,12 @@ describe('long-form v2 editorial reading structure', () => {
     expect(source.indexOf('natal-reading-hook')).toBeLessThan(source.indexOf('freeSections.map'));
     expect(source).not.toContain('number={index + 1}');
     expect(source).toContain('report.hook.text');
-    expect(source).toContain('report.hook.evidenceIds');
     expect(source).toContain('section.title');
     expect(source).toContain('section.content');
-    expect(source).toContain('section.evidenceIds');
     expect(source).toContain('report.sections.map');
     expect(source).toContain('section.paragraphs.map');
     expect(source).toContain('<NatalEvidenceDetails');
+    expect(source).toContain('Как это видно в карте');
     expect(source).toContain('<PremiumReport');
     expect(source).toContain('natal-technical-details');
   });

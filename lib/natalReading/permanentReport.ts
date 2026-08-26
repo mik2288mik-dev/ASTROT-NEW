@@ -19,18 +19,18 @@ import {
   withAppVoiceVersion,
 } from '../appVoice';
 
-export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v7';
+export const NATAL_PERMANENT_CONTRACT_VERSION = 'natal-permanent-report-v8';
 export const NATAL_PERMANENT_FREE_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v6`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.free.v7`,
 );
 export const NATAL_PERMANENT_PREMIUM_PROMPT_VERSION = withAppVoiceVersion(
-  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v6`,
+  `${NATAL_PERMANENT_CONTRACT_VERSION}.premium.v7`,
 );
 export const NATAL_PERMANENT_FREE_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.free.v7',
+  'natal.permanent.free.v8',
 );
 export const NATAL_PERMANENT_PREMIUM_CACHE_KEY = withAppVoiceCacheKey(
-  'natal.permanent.premium.v7',
+  'natal.permanent.premium.v8',
 );
 
 export type NatalReadingLanguage = 'ru' | 'en';
@@ -98,6 +98,126 @@ export type NatalPersonalityDomain =
   | 'central_contradictions'
   | 'misunderstood';
 
+export type NatalReaderChapterKey =
+  | 'inner_world'
+  | 'new_people'
+  | 'decisions'
+  | 'communication'
+  | 'strengths'
+  | 'relationships'
+  | 'work'
+  | 'challenges';
+
+export type NatalReaderChapterPlanItem = {
+  key: NatalReaderChapterKey;
+  title: string;
+  focus: string;
+  domainKeys: NatalPersonalityDomain[];
+};
+
+export type NatalReaderChapterDefinition = {
+  key: NatalReaderChapterKey;
+  title: Record<NatalReadingLanguage, string>;
+  focus: Record<NatalReadingLanguage, string>;
+  domainKeys: readonly NatalPersonalityDomain[];
+};
+
+export const NATAL_READER_CHAPTERS: readonly NatalReaderChapterDefinition[] = [
+  {
+    key: 'inner_world',
+    title: { ru: 'Что у тебя внутри', en: 'What is going on inside you' },
+    focus: {
+      ru: 'Свяжи характер и чувства: что человек переживает глубже, чем показывает, и как это влияет на обычные реакции.',
+      en: 'Connect character and feelings: what runs deeper than the person shows and how it affects everyday reactions.',
+    },
+    domainKeys: ['base_portrait', 'emotional_world'],
+  },
+  {
+    key: 'new_people',
+    title: { ru: 'Как ты ведёшь себя с новыми людьми', en: 'How you act around new people' },
+    focus: {
+      ru: 'Опиши первый контакт: что человек замечает, когда начинает доверять и почему со стороны его могут понять не сразу.',
+      en: 'Describe first contact: what the person notices, when trust begins, and why others may not understand them at once.',
+    },
+    domainKeys: ['first_impression'],
+  },
+  {
+    key: 'decisions',
+    title: { ru: 'Как ты принимаешь решения', en: 'How you make decisions' },
+    focus: {
+      ru: 'Покажи, как человек выбирает между вариантами, что помогает ему решить и из-за чего выбор может затянуться.',
+      en: 'Show how the person chooses between options, what helps them decide, and what can delay a choice.',
+    },
+    domainKeys: ['thinking'],
+  },
+  {
+    key: 'communication',
+    title: { ru: 'Как ты общаешься', en: 'How you communicate' },
+    focus: {
+      ru: 'Разбери разговоры, переписку и спор: как человек объясняет свою позицию, слушает и отвечает под давлением.',
+      en: 'Cover conversations, messages, and disagreement: how the person explains a position, listens, and answers under pressure.',
+    },
+    domainKeys: ['communication'],
+  },
+  {
+    key: 'strengths',
+    title: { ru: 'Где у тебя получается лучше всего', en: 'Where you do your best' },
+    focus: {
+      ru: 'Назови задачи и ситуации, где сильные качества человека дают заметный результат, без похвалы ради похвалы.',
+      en: 'Name the tasks and situations where the person\'s strengths produce a visible result, without empty praise.',
+    },
+    domainKeys: ['strengths'],
+  },
+  {
+    key: 'relationships',
+    title: { ru: 'Отношения и семья', en: 'Relationships and family' },
+    focus: {
+      ru: 'Свяжи сближение, доверие, семейные просьбы, общий быт и договорённости. Покажи, что человек делает для близких и чего ждёт в ответ. Не выдумывай детство, отношения с родителями или семейные события.',
+      en: 'Connect closeness, trust, family requests, shared routines, and agreements. Show what the person does for close people and expects in return. Do not invent childhood, parental relationships, or family events.',
+    },
+    domainKeys: ['close_relationship', 'relationships_deep', 'control_freedom_trust'],
+  },
+  {
+    key: 'work',
+    title: { ru: 'Работа и своё дело', en: 'Work and your own business' },
+    focus: {
+      ru: 'Опиши рабочий темп, отношение к начальнику, клиентам, ответственности, срокам и самостоятельным решениям. Покажи, как тот же стиль выглядит в своём деле или работе с деловым партнёром. Не делай выводов о конкретной профессии, доходе или успехе бизнеса.',
+      en: 'Describe work pace and the approach to managers, clients, responsibility, deadlines, and independent decisions. Show how the same style looks in a business or with a business partner. Do not infer a specific profession, income, or business success.',
+    },
+    domainKeys: ['work_ambition'],
+  },
+  {
+    key: 'challenges',
+    title: { ru: 'Когда всё идёт не по плану', en: 'When things do not go to plan' },
+    focus: {
+      ru: 'Разбери конкретную ситуацию: договорённость внезапно меняется, на человека давят, его понимают не так или начинается спор. Покажи первую реакцию и что он обычно делает дальше.',
+      en: 'Cover a concrete situation: an agreement suddenly changes, the person is pressured or misunderstood, or a disagreement begins. Show the first response and what they usually do next.',
+    },
+    domainKeys: ['conflict', 'central_contradictions', 'misunderstood'],
+  },
+];
+
+export function buildNatalReaderChapterPlan(
+  reportPlan: readonly NatalReportPlanItem[],
+  access: 'free' | 'premium',
+  language: NatalReadingLanguage,
+): NatalReaderChapterPlanItem[] {
+  const requested = new Set(
+    reportPlan.filter((item) => item.access === access).map((item) => item.key),
+  );
+  return NATAL_READER_CHAPTERS.flatMap((chapter) => {
+    const domainKeys = chapter.domainKeys.filter((key) => requested.has(key));
+    return domainKeys.length > 0
+      ? [{
+          key: chapter.key,
+          title: chapter.title[language],
+          focus: chapter.focus[language],
+          domainKeys,
+        }]
+      : [];
+  });
+}
+
 export type NatalReportPlanItem = {
   key: NatalPersonalityDomain;
   access: 'free' | 'premium';
@@ -142,6 +262,7 @@ export type NatalModelContext = {
 
 export type BuiltNatalModelContext = {
   context: NatalModelContext;
+  language: NatalReadingLanguage;
   evidenceIds: Set<string>;
   birthTimeQuality: NatalBirthTimeQuality;
   anglesIncluded: boolean;
@@ -515,9 +636,9 @@ function buildReportPlan(input: {
     ...emotionalCore, ...firstAspectBundle('moon', 'venus'),
   ), emotionalCore);
   const strengthBundle = aspectBundle(harmoniousAspects[0]);
-  if (strengthBundle.length >= 3) {
-    add('strengths', 'free', strengthBundle, strengthBundle, 3);
-  }
+  const strengthCore = ids(placement('sun'), placement('mars'), placement('jupiter'));
+  const strengthRequired = strengthBundle.length >= 3 ? strengthBundle : strengthCore;
+  add('strengths', 'free', ids(...strengthCore, ...strengthBundle), strengthRequired, 3);
 
   add('close_relationship', 'premium', ids(
     ...emotionalCore, ...firstAspectBundle('moon', 'venus'),
@@ -820,6 +941,7 @@ export function buildNatalModelContext(
 
   return {
     context,
+    language: profile.language === 'en' ? 'en' : 'ru',
     evidenceIds: usedEvidenceIds,
     birthTimeQuality: reliability.quality,
     anglesIncluded,
@@ -901,11 +1023,28 @@ function stableContextForHash(context: NatalModelContext): unknown {
   };
 }
 
+export function buildPermanentNatalReaderAnchor(report: NatalPermanentFreeReport) {
+  return {
+    contractVersion: report.contractVersion,
+    hook: {
+      text: report.hook.text,
+      evidenceIds: report.hook.evidenceIds,
+    },
+    chapters: report.freeSections.map((section) => ({
+      key: section.key,
+      title: section.title,
+      content: section.content,
+      evidenceIds: section.evidenceIds || [],
+    })),
+  };
+}
+
 export function buildPermanentNatalInputHash(input: {
   profile: UserProfile;
   chartData: NatalChartData | NatalChartDataV2;
   tier: 'free' | 'premium';
   promptVersion: string;
+  readerAnchor?: NatalPermanentFreeReport | null;
 }): string {
   const built = buildNatalModelContext(input.profile, input.chartData);
   return createHash('sha256').update(JSON.stringify({
@@ -917,6 +1056,9 @@ export function buildPermanentNatalInputHash(input: {
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
     promptVersion: input.promptVersion,
     voiceVersion: APP_VOICE_VERSION,
+    ...(input.readerAnchor
+      ? { readerAnchor: buildPermanentNatalReaderAnchor(input.readerAnchor) }
+      : {}),
   })).digest('hex');
 }
 
@@ -973,6 +1115,7 @@ const VISIBLE_ZODIAC_SIGN = /(?:(?:^|[^\p{L}])(?:овен|овна|овну|ов
 const VISIBLE_WORDED_HOUSE = /(?:(?:перв|втор|трет|четв[её]рт|пят|шест|седьм|восьм|девят|десят|одиннадцат|двенадцат)[а-яё]*\s+дом[а-яё]*|\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\s+house\b)/iu;
 const NATAL_FORBIDDEN_COPY = /(?:зв[её]зд[а-яё]*\s+говор[а-яё]*|вселенн[а-яё]*\s+приглаша[а-яё]*|уникальн[а-яё]*\s+энерги[а-яё]*|важно\s+прислуша[а-яё]*\s+к\s+себе|облада[а-яё]*\s+глубок[а-яё]*\s+внутренн[а-яё]*\s+мир[а-яё]*|\b(?:the stars say|the universe invites|your unique energy|listen to yourself|deep inner world)\b)/iu;
 const NATAL_DIAGNOSIS_OR_GUARANTEE = /(?:диагноз\w*|диагностир\w*|расстройств\w*|травм\w*|гарантир\w*|обязательно\s+(?:случ\w*|произойд\w*|стан\w*|добь\w*)|\b(?:diagnos\w*|disorder\w*|trauma\w*|guaranteed?|definitely will)\b)/iu;
+const NATAL_ABSTRACT_META_COPY = /(?:(?:^|[^\p{L}])(?:опор[а-яё]*|ресурс[а-яё]*|паттерн[а-яё]*|потенциал[а-яё]*|противореч[а-яё]*|проявля[а-яё]*|раскрыва[а-яё]*|считыва[а-яё]*)(?=$|[^\p{L}])|внутренн[а-яё]*\s+(?:рисунок|напряжени[а-яё]*)|\b(?:inner resource|support point|behavio(?:u)?ral pattern|inner contradiction|manifests?|unfolds?)\b)/iu;
 
 export function hasNatalPersonalityCopyViolation(value: string): boolean {
   return hasAppVoiceViolation(value)
@@ -984,6 +1127,11 @@ export function hasNatalPersonalityCopyViolation(value: string): boolean {
     || VISIBLE_ASTRO_OBJECT.test(value)
     || VISIBLE_ZODIAC_SIGN.test(value)
     || VISIBLE_WORDED_HOUSE.test(value);
+}
+
+export function hasNatalPermanentReportCopyViolation(value: string): boolean {
+  return hasNatalPersonalityCopyViolation(value)
+    || NATAL_ABSTRACT_META_COPY.test(value);
 }
 
 function hasReadableNarrativeShape(value: string): boolean {
@@ -1071,7 +1219,7 @@ function parseStatement(
   allowed: Set<string>,
 ): NatalReadingStatement | null {
   const value = text(raw?.text);
-  if (!value || hasNatalPersonalityCopyViolation(value)) return null;
+  if (!value || hasNatalPermanentReportCopyViolation(value)) return null;
   const evidenceIds = normalizedEvidenceIds(raw?.evidence_ids, allowed);
   return evidenceIds ? { text: value, evidenceIds } : null;
 }
@@ -1097,8 +1245,8 @@ function section(
 }
 
 // Legacy consumers require a closed InterpretationSection key union. These are
-// compatibility slots only: model-written titles and content define the actual
-// meaning, and no slot is exposed to the model as a requested topic.
+// compatibility slots only; reader-facing chapter keys and titles are assigned
+// by the server and are never owned by model output.
 const FREE_SECTION_SLOT_KEYS: readonly InterpretationSection['key'][] = [
   'base_portrait',
   'thinking',
@@ -1114,18 +1262,8 @@ const FREE_SECTION_SLOT_KEYS: readonly InterpretationSection['key'][] = [
   'potential_purpose',
 ];
 
-const FREE_DOMAIN_SECTION_KEYS: Partial<Record<NatalPersonalityDomain, InterpretationSection['key']>> = {
-  base_portrait: 'base_portrait',
-  first_impression: 'how_others_see_you',
-  thinking: 'thinking',
-  communication: 'communication',
-  emotional_world: 'emotional_world',
-  strengths: 'strengths',
-};
-
 type ParsedNatalSection = {
   key: string;
-  title: string;
   free: boolean;
   statement: NatalReadingStatement;
 };
@@ -1146,7 +1284,7 @@ function parseNatalSections(
   const seenKeys = new Set<string>();
   for (const rawSection of rawSections) {
     const key = text(rawSection?.section_key);
-    const title = text(rawSection?.title);
+    const legacyTitle = text(rawSection?.title);
     const content = text(rawSection?.content);
     const planned = built.reportPlanByKey.get(key as NatalPersonalityDomain);
     if (
@@ -1155,16 +1293,14 @@ function parseNatalSections(
       || rawSection?.free !== options.expectedFree
       || !planned
       || planned.access !== (options.expectedFree ? 'free' : 'premium')
-      || !title
       || !content
-      || title.length < 3
-      || title.length > 90
+      || (legacyTitle.length > 0 && (legacyTitle.length < 3 || legacyTitle.length > 90))
       || !hasReadableNarrativeShape(content)
-      || hasNatalPersonalityCopyViolation(title)
-      || hasNatalPersonalityCopyViolation(content)
-      || containsChangingTimeReference(title)
+      || (legacyTitle.length > 0 && hasNatalPermanentReportCopyViolation(legacyTitle))
+      || hasNatalPermanentReportCopyViolation(content)
+      || (legacyTitle.length > 0 && containsChangingTimeReference(legacyTitle))
       || containsChangingTimeReference(content)
-      || !isNatalReliabilityTextAllowed(title, built)
+      || (legacyTitle.length > 0 && !isNatalReliabilityTextAllowed(legacyTitle, built))
       || !isNatalReliabilityTextAllowed(content, built)
     ) return null;
     const statement = parseStatement(
@@ -1175,7 +1311,7 @@ function parseNatalSections(
     if (statement.evidenceIds.some((id) => !planned.evidenceIds.includes(id))) return null;
     if (planned.requiredEvidenceIds.some((id) => !statement.evidenceIds.includes(id))) return null;
     seenKeys.add(key);
-    parsed.push({ key, title, free: options.expectedFree, statement });
+    parsed.push({ key, free: options.expectedFree, statement });
   }
   return parsed;
 }
@@ -1192,6 +1328,42 @@ function completeSectionsInPlanOrder(
   ) return null;
   return requestedKeys.map((key) => parsed.find((item) => item.key === key)!);
 }
+
+type GroupedNatalChapter = {
+  key: NatalReaderChapterKey;
+  title: string;
+  statements: NatalReadingStatement[];
+};
+
+function groupSectionsByReaderChapter(
+  parsed: ParsedNatalSection[],
+  built: BuiltNatalModelContext,
+  access: 'free' | 'premium',
+): GroupedNatalChapter[] {
+  const parsedByDomain = new Map(
+    parsed.map((item) => [item.key as NatalPersonalityDomain, item]),
+  );
+  return buildNatalReaderChapterPlan(
+    built.context.reportPlan,
+    access,
+    built.language,
+  ).flatMap((chapter) => {
+    const statements = chapter.domainKeys
+      .map((key) => parsedByDomain.get(key)?.statement)
+      .filter((statement): statement is NatalReadingStatement => statement != null);
+    return statements.length > 0
+      ? [{ key: chapter.key, title: chapter.title, statements }]
+      : [];
+  });
+}
+
+const FREE_CHAPTER_SECTION_KEYS: Partial<Record<NatalReaderChapterKey, InterpretationSection['key']>> = {
+  inner_world: 'base_portrait',
+  new_people: 'how_others_see_you',
+  decisions: 'thinking',
+  communication: 'communication',
+  strengths: 'strengths',
+};
 
 export function materializePermanentFreeReport(input: {
   raw: RawNatalFreePayload;
@@ -1225,15 +1397,17 @@ export function materializePermanentFreeReport(input: {
   const ordered = completeSectionsInPlanOrder(parsed, requestedKeys, input.requireComplete);
   if (!ordered?.length) return null;
   const language: NatalReadingLanguage = profile.language === 'en' ? 'en' : 'ru';
-  const freeSections = ordered.map((item, index) => section(
-    FREE_DOMAIN_SECTION_KEYS[item.key as NatalPersonalityDomain]
+  const chapters = groupSectionsByReaderChapter(ordered, built, 'free');
+  if (!chapters.length) return null;
+  const freeSections = chapters.map((chapter, index) => section(
+    FREE_CHAPTER_SECTION_KEYS[chapter.key]
       || FREE_SECTION_SLOT_KEYS[index]
       || 'summary',
-    item.title,
-    [item.statement],
+    chapter.title,
+    chapter.statements,
   ));
   const evidenceIds = uniqueStrings(ordered.flatMap((item) => item.statement.evidenceIds));
-  const first = ordered[0];
+  const first = freeSections[0];
   return {
     schemaVersion: 'natal-permanent-free-v3',
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
@@ -1255,9 +1429,9 @@ export function materializePermanentFreeReport(input: {
     shortCard: {
       title: first.title,
       keywords: [],
-      text: first.statement.text,
+      text: first.content,
       advice: '',
-      evidenceIds: first.statement.evidenceIds,
+      evidenceIds: first.evidenceIds || [],
     },
   };
 }
@@ -1307,24 +1481,28 @@ export function materializePermanentPremiumReport(input: {
     .map((item) => item.key);
   const ordered = completeSectionsInPlanOrder(parsed, requestedKeys, input.requireComplete);
   if (!ordered?.length) return null;
-  const first = ordered[0];
-  const last = ordered[ordered.length - 1];
-  const sections: NatalPermanentPremiumSection[] = ordered.map((item) => ({
-    id: item.key,
-    title: item.title,
-    paragraphs: [item.statement],
+  const chapters = groupSectionsByReaderChapter(ordered, input.built, 'premium');
+  if (!chapters.length) return null;
+  const sections: NatalPermanentPremiumSection[] = chapters.map((chapter) => ({
+    id: chapter.key,
+    title: chapter.title,
+    paragraphs: chapter.statements,
   }));
+  const first = sections[0];
+  const firstStatement = first.paragraphs[0];
+  const last = sections[sections.length - 1];
+  const lastStatement = last.paragraphs[last.paragraphs.length - 1];
   return {
     schemaVersion: 'natal-permanent-premium-v2',
     contractVersion: NATAL_PERMANENT_CONTRACT_VERSION,
     tier: 'premium',
     headline: first.title,
-    headlineEvidenceIds: first.statement.evidenceIds,
-    lead: first.statement,
+    headlineEvidenceIds: firstStatement.evidenceIds,
+    lead: firstStatement,
     sections,
     strategies: [],
     pitfalls: [],
-    conclusion: last.statement,
+    conclusion: lastStatement,
     evidenceIds: uniqueStrings(ordered.flatMap((item) => item.statement.evidenceIds)),
   };
 }

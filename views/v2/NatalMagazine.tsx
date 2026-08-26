@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronRight, Clock3, MapPin } from 'lucide-react';
+import { CalendarDays, Clock3, MapPin } from 'lucide-react';
 import type { NatalChartData, UserProfile } from '../../types';
 import type { PreloadedNatalReport } from '../../components/NatalReading/HumanReport';
 import type { NatalPermanentPremiumReport } from '../../lib/natalReading/permanentReport';
@@ -37,14 +37,14 @@ type NatalMagazineProps = {
   onOpenCharts?: () => void;
   onOpenEncyclopedia?: () => void;
   uiPreview?: {
-    initialTab?: 'map' | 'reading';
+    initialTab?: 'map' | 'reading' | 'questions';
     openQuestion?: boolean;
     reportState?: 'ready' | 'loading' | 'error';
     premiumReport?: NatalPermanentPremiumReport | null;
   };
 };
 
-type NatalScreenTab = 'map' | 'reading' | 'matrix';
+type NatalScreenTab = 'map' | 'reading' | 'questions' | 'matrix';
 
 export function NatalMagazine({
   data,
@@ -57,7 +57,6 @@ export function NatalMagazine({
   onUpdateProfile,
   preloadedReport,
   onCreateChart,
-  onOpenPersonalityReport,
   premiumContinuation,
   onPremiumContinuationHandled,
   canPromotePremium,
@@ -77,24 +76,16 @@ export function NatalMagazine({
       ? uiPreview
       : undefined;
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => (
-    previewConfig?.openQuestion ? 'reading' : previewConfig?.initialTab || 'map'
+    previewConfig?.openQuestion ? 'questions' : previewConfig?.initialTab || 'map'
   ));
   const [matrixMounted, setMatrixMounted] = useState(false);
-  const [questionOpenRequest, setQuestionOpenRequest] = useState(0);
   const handledExternalQuestionRequestRef = useRef(0);
   const tabs = useMemo(() => [
     { id: 'map' as const, label: language === 'ru' ? 'Карта' : 'Chart' },
     { id: 'reading' as const, label: language === 'ru' ? 'Разбор' : 'Reading' },
+    { id: 'questions' as const, label: language === 'ru' ? 'Спросить о себе' : 'Ask about yourself' },
     { id: 'matrix' as const, label: language === 'ru' ? 'Матрица судьбы' : 'Matrix' },
   ], [language]);
-
-  useEffect(() => {
-    if (!previewConfig?.openQuestion) return;
-    const timer = window.setTimeout(() => {
-      setQuestionOpenRequest((value) => value + 1);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [previewConfig?.openQuestion]);
 
   useEffect(() => {
     if (
@@ -107,10 +98,18 @@ export function NatalMagazine({
     }
     if (!data) return;
     handledExternalQuestionRequestRef.current = openQuestionRequest;
-    setActiveTab('reading');
-    setQuestionOpenRequest((value) => value + 1);
+    setActiveTab('questions');
     onQuestionRequestHandled?.();
   }, [chartLoadState, data, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);
+
+  useEffect(() => {
+    if (
+      premiumContinuation?.returnView !== 'chart'
+      || premiumContinuation.featureKey !== 'natal_questions'
+      || premiumContinuation.returnAction !== 'open_natal_questions'
+    ) return;
+    setActiveTab('questions');
+  }, [premiumContinuation]);
 
   const selectTab = (tab: NatalScreenTab) => {
     if (tab === 'matrix') setMatrixMounted(true);
@@ -237,28 +236,39 @@ export function NatalMagazine({
         </section>
       ) : null}
 
-      {activeTab === 'reading' ? (
-        <section className="natal-reading-stage" aria-label={language === 'ru' ? 'Разбор натальной карты' : 'Natal chart reading'}>
+      {activeTab === 'reading' || activeTab === 'questions' ? (
+        <section
+          className={`natal-reading-stage${activeTab === 'questions' ? ' natal-question-stage' : ''}`}
+          aria-labelledby={activeTab === 'questions' ? 'natal-question-page-title' : 'natal-reading-page-title'}
+        >
           <header className="natal-magazine-heading">
             <p>{subjectName} · {formatDisplayDate(subjectBirthDate, language)}</p>
-            <h1>{language === 'ru' ? 'Кто вы на самом деле?' : 'Who are you, really?'}</h1>
-          </header>
-          <EditorialCurve className="natal-reading-curve" />
-          <button
-            type="button"
-            className="natal-personality-entry"
-            onClick={onOpenPersonalityReport}
-          >
-            <span className="natal-personality-entry-copy">
-              <strong>{language === 'ru' ? 'Выбрать карту для разбора' : 'Choose a chart to read'}</strong>
-              <span>
+            <h1
+              id={activeTab === 'questions' ? 'natal-question-page-title' : 'natal-reading-page-title'}
+              className={activeTab === 'reading' ? 'natal-reading-page-title' : undefined}
+            >
+              {activeTab === 'questions' ? (
+                language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'
+              ) : (
+                <>
+                  <span className="natal-reading-title-prefix">
+                    {language === 'ru' ? 'Разбор твоей' : 'Your'}
+                  </span>
+                  <span className="natal-reading-title-focus">
+                    {language === 'ru' ? 'натальной карты' : 'birth chart reading'}
+                  </span>
+                </>
+              )}
+            </h1>
+            {activeTab === 'questions' ? (
+              <p className="natal-question-intro">
                 {language === 'ru'
-                  ? 'Откроется разбор для вас или сохранённого человека.'
-                  : 'Open a reading for you or a saved person.'}
-              </span>
-            </span>
-            <ChevronRight aria-hidden="true" strokeWidth={1.5} />
-          </button>
+                  ? 'Задай один конкретный вопрос. Ответ будет опираться только на уже рассчитанную карту.'
+                  : 'Ask one specific question. The answer will use only the chart already calculated.'}
+              </p>
+            ) : null}
+          </header>
+          <EditorialCurve className={`natal-reading-curve${activeTab === 'questions' ? ' natal-question-curve' : ''}`} />
           <HumanReport
             key={reportSubjectKey}
             profile={profile}
@@ -269,10 +279,16 @@ export function NatalMagazine({
             onUpdateProfile={onUpdateProfile}
             preloadedReport={preloadedReport}
             hideIntro
-            openQuestionRequest={questionOpenRequest}
+            surface={activeTab === 'questions' ? 'questions' : 'reading'}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
             canPromotePremium={canPromotePremium}
+            onOpenQuestions={() => {
+              selectTab('questions');
+              requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+              });
+            }}
             uiPreview={previewConfig ? {
               state: previewConfig.reportState || 'ready',
               premiumReport: previewConfig.premiumReport,

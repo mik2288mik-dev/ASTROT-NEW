@@ -488,6 +488,8 @@ describe('natal personality report evidence grounding', () => {
     'Твоя уникальная энергия сразу меняет атмосферу.',
     'Тебе важно прислушаться к себе, прежде чем решать.',
     'Ты обладаешь глубоким внутренним миром.',
+    'Твоя главная опора проявляется в умении находить внутренний ресурс.',
+    'Этот паттерн раскрывает твой потенциал через внутреннее противоречие.',
   ])('rejects prohibited mystical or coaching copy: %s', (content) => {
     const built = permanentReport.buildNatalModelContext(profile, natalChart('exact'));
 
