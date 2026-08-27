@@ -35,4 +35,4 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-# Export trigger: fixed Android startup + guest-session build.
+# Export trigger: Android startup is fully local (no parser-blocking Telegram/font dependency).
