@@ -12,51 +12,36 @@ jobs:
   export-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect public API DNS and TLS routing
-        shell: bash
-        run: |
-          set +e
-          echo '=== DNS ==='
-          dig +noall +answer api.tvoi-goroskop.ru A
-          dig +noall +answer api.tvoi-goroskop.ru CNAME
-          dig +noall +answer _railway-verify.api.tvoi-goroskop.ru TXT
-          dig +noall +answer tvoi-goroskop.ru NS
-          echo '=== VERIFIED TLS ==='
-          curl -fsv --connect-timeout 10 --max-time 20 \
-            "https://api.tvoi-goroskop.ru/api/health" \
-            -o api-health.txt 2>api-health-curl.txt
-          verified_rc=$?
-          cat api-health-curl.txt || true
-          cat api-health.txt || true
-          echo "verified_curl_exit=$verified_rc"
-          echo '=== ROUTING WITH TLS VERIFY DISABLED ==='
-          curl -ksS -D - --connect-timeout 10 --max-time 20 \
-            "https://api.tvoi-goroskop.ru/api/health" \
-            -o api-health-insecure.txt
-          insecure_rc=$?
-          cat api-health-insecure.txt || true
-          echo "insecure_curl_exit=$insecure_rc"
-          exit "$verified_rc"
-
       - name: Download current signed APK from Railway
         shell: bash
         run: |
           set -euo pipefail
           curl -fL --retry 6 --retry-delay 2 --retry-all-errors \
             "https://nebo-auth-test-apk-production.up.railway.app/nebo-auth-test.apk" \
-            -o NEBO-current.apk
-          test -s NEBO-current.apk
-          unzip -tq NEBO-current.apk >/dev/null
-          sha256sum NEBO-current.apk | tee SHA256SUMS.txt
-          ls -lh NEBO-current.apk
+            -o NEBO-native-http-fix.apk
+          test -s NEBO-native-http-fix.apk
+          unzip -tq NEBO-native-http-fix.apk >/dev/null
+          rm -rf apk-check && mkdir apk-check
+          unzip -q NEBO-native-http-fix.apk -d apk-check
+          grep -R -a -q 'astrot-production.up.railway.app' apk-check
+          if grep -R -a -q 'api.tvoi-goroskop.ru' apk-check; then
+            echo 'Broken custom API domain is still embedded in APK' >&2
+            exit 1
+          fi
+          test -f apk-check/assets/capacitor.config.json
+          cat apk-check/assets/capacitor.config.json | tee CAPACITOR-CONFIG.txt
+          grep -q '"CapacitorHttp"' CAPACITOR-CONFIG.txt
+          grep -q '"enabled":true' CAPACITOR-CONFIG.txt
+          sha256sum NEBO-native-http-fix.apk | tee SHA256SUMS.txt
+          ls -lh NEBO-native-http-fix.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NEBO-current-probe
+          name: NEBO-native-http-fix
           path: |
-            NEBO-current.apk
+            NEBO-native-http-fix.apk
             SHA256SUMS.txt
-            api-health*.txt
+            CAPACITOR-CONFIG.txt
           if-no-files-found: error
           retention-days: 1
