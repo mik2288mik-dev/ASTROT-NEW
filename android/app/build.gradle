@@ -59,9 +59,7 @@ android {
         buildConfigField 'boolean', 'VK_ID_CONFIGURED', vkIdConfigured ? 'true' : 'false'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
     signingConfigs {
@@ -108,6 +106,11 @@ android {
         googlePlay.java.srcDir 'src/googleAuth/java'
     }
     buildTypes {
+        debug {
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
+        }
         release {
             if (releaseSigningReady) {
                 signingConfig signingConfigs.release
