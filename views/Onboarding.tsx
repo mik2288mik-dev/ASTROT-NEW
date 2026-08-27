@@ -27,6 +27,7 @@ interface OnboardingProps {
 }
 
 const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
+const welcomeScreenCount = introScreens.length + 1;
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
   if (profile?.birthTimeMode === 'unknown' || !profile?.birthTime) return 'unknown';
@@ -208,8 +209,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({
       <div className="meou-onboarding-shell">
         <header className="meou-onboarding-header">
           <MeouLogo />
-          {isIntro ? <OnboardingProgress current={screen === 'day' ? 1 : 2} count={3} labelled={false} /> : null}
-          {screen === 'choice' ? <OnboardingProgress current={3} count={3} labelled={false} /> : null}
+          {isIntro ? <OnboardingProgress current={introIndex} count={welcomeScreenCount} labelled={false} /> : null}
+          {screen === 'choice' ? <OnboardingProgress current={welcomeScreenCount} count={welcomeScreenCount} labelled={false} /> : null}
           {screen === 'birth' ? <OnboardingProgress current={1} count={2} /> : null}
           {screen === 'calculating' ? <OnboardingProgress current={2} count={2} /> : null}
         </header>
