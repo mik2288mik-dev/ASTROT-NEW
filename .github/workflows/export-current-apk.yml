@@ -15,12 +15,15 @@ jobs:
       - name: Verify public API DNS TLS and health
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           curl -fsv --connect-timeout 10 --max-time 20 \
             "https://api.tvoi-goroskop.ru/api/health" \
             -o api-health.txt 2>api-health-curl.txt
-          cat api-health.txt
-          grep -q . api-health.txt
+          rc=$?
+          echo "curl_exit=$rc"
+          cat api-health-curl.txt || true
+          cat api-health.txt || true
+          exit "$rc"
 
       - name: Download current signed APK from Railway
         shell: bash
