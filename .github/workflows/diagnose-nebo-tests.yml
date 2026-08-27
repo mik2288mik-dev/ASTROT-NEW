@@ -1,0 +1,52 @@
+name: Diagnose NEBO tests
+
+on:
+  push:
+    branches:
+      - ops/diagnose-nebo-tests-20260827
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: astrot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrot_test
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Apply migrations
+        run: npm run db:migrate
+      - name: Capture test output
+        shell: bash
+        run: |
+          set +e
+          npm test -- --runInBand > test-output.txt 2>&1
+          code=$?
+          echo "$code" > test-exit-code.txt
+          tail -n 250 test-output.txt
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nebo-test-diagnostics
+          path: |
+            test-output.txt
+            test-exit-code.txt
+          if-no-files-found: error
