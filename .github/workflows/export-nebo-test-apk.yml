@@ -34,3 +34,5 @@ jobs:
             NEBO-auth-test.apk.sha256
           if-no-files-found: error
           retention-days: 7
+
+# Export trigger: fixed Android startup + guest-session build.
