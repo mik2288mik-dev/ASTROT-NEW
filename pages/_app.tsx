@@ -23,6 +23,11 @@ import '../styles/todayHome.css';
 import '../styles/uiPreview.css';
 import '../styles/sharedShellFinal.css';
 import { DoodleDefs } from '../components/doodle/DoodleDefs';
+import { installRuntimeDiagnostics } from '../lib/runtimeDiagnostics';
+
+if (typeof window !== 'undefined') {
+  installRuntimeDiagnostics();
+}
 
 export default function App({ Component, pageProps }: AppProps) {
   // Database migrations are handled during build process (npm run migrate)
