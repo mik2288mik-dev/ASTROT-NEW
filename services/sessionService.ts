@@ -1,4 +1,4 @@
-import { apiFetch, isNativeAppRuntime } from './apiClient';
+import { apiFetch, apiUrl, isNativeAppRuntime, persistNativeSessionResponse } from './apiClient';
 import {
   getActiveTelegramInitData,
   getRawTelegramInitData,
@@ -7,6 +7,7 @@ import { sanitizeUserAppEvent } from '../lib/premiumAnalytics';
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
+const NATIVE_GUEST_TIMEOUT_MS = 15_000;
 
 /** Poll until Telegram WebApp exposes signed initData (required for API auth). */
 export async function waitForTelegramInitData(options?: {
@@ -203,11 +204,35 @@ export async function updateUserNotificationSettings(payload: {
   }
 }
 
+async function createNativeGuestSession(): Promise<any | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), NATIVE_GUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(apiUrl('/api/auth/native-guest'), {
+      method: 'POST',
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionVersion: 2 }),
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.profile) {
+      throw new Error(payload?.message || payload?.error || `Guest session failed: ${response.status}`);
+    }
+    await persistNativeSessionResponse(payload);
+    return payload.profile;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 /** Explicitly create or reuse a guest session, including inside Telegram. */
 export async function ensureWebGuestSession(): Promise<any | null> {
   if (typeof window === 'undefined') return null;
+  if (isNativeAppRuntime()) return createNativeGuestSession();
+
   const response = await apiFetch(
-    isNativeAppRuntime() ? '/api/auth/native-guest' : '/api/auth/guest',
+    '/api/auth/guest',
     {
       method: 'POST',
       credentials: 'include',
