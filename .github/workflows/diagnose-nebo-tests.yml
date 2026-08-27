@@ -12,18 +12,19 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: astrot_test
+          POSTGRES_USER: horoscope
+          POSTGRES_PASSWORD: horoscope
+          POSTGRES_DB: horoscope_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
+          --health-cmd "pg_isready -U horoscope -d horoscope_test"
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 12
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrot_test
+      DATABASE_URL: postgresql://horoscope:horoscope@127.0.0.1:5432/horoscope_test
+      APP_SESSION_SECRET: ci-session-secret-not-for-production
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +34,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Apply migrations
-        run: npm run db:migrate
+        run: npm run migrate
       - name: Capture test output
         shell: bash
         run: |
@@ -41,7 +42,7 @@ jobs:
           npm test -- --runInBand > test-output.txt 2>&1
           code=$?
           echo "$code" > test-exit-code.txt
-          tail -n 250 test-output.txt
+          tail -n 300 test-output.txt
           exit 0
       - uses: actions/upload-artifact@v4
         with:
