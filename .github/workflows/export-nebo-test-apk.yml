@@ -1,0 +1,36 @@
+name: Export NEBO test APK
+
+on:
+  push:
+    branches:
+      - ops/export-nebo-apk-20260827
+    paths:
+      - .github/workflows/export-nebo-test-apk.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK from Railway
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-delay 3 \
+            'https://nebo-auth-test-apk-production.up.railway.app/nebo-auth-test.apk' \
+            --output NEBO-auth-test.apk
+          test -s NEBO-auth-test.apk
+          unzip -t NEBO-auth-test.apk >/dev/null
+          sha256sum NEBO-auth-test.apk | tee NEBO-auth-test.apk.sha256
+          ls -lh NEBO-auth-test.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEBO-auth-test-apk
+          path: |
+            NEBO-auth-test.apk
+            NEBO-auth-test.apk.sha256
+          if-no-files-found: error
+          retention-days: 7
