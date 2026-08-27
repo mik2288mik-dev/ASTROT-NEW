@@ -12,24 +12,36 @@ jobs:
   export-apk:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify public API DNS TLS and health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsv --connect-timeout 10 --max-time 20 \
+            "https://api.tvoi-goroskop.ru/api/health" \
+            -o api-health.txt 2>api-health-curl.txt
+          cat api-health.txt
+          grep -q . api-health.txt
+
       - name: Download current signed APK from Railway
         shell: bash
         run: |
           set -euo pipefail
           curl -fL --retry 6 --retry-delay 2 --retry-all-errors \
             "https://nebo-auth-test-apk-production.up.railway.app/nebo-auth-test.apk" \
-            -o NEBO-fixed-api-domain.apk
-          test -s NEBO-fixed-api-domain.apk
-          unzip -tq NEBO-fixed-api-domain.apk >/dev/null
-          sha256sum NEBO-fixed-api-domain.apk | tee SHA256SUMS.txt
-          ls -lh NEBO-fixed-api-domain.apk
+            -o NEBO-current.apk
+          test -s NEBO-current.apk
+          unzip -tq NEBO-current.apk >/dev/null
+          sha256sum NEBO-current.apk | tee SHA256SUMS.txt
+          ls -lh NEBO-current.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NEBO-fixed-api-domain
+          name: NEBO-current-probe
           path: |
-            NEBO-fixed-api-domain.apk
+            NEBO-current.apk
             SHA256SUMS.txt
+            api-health.txt
+            api-health-curl.txt
           if-no-files-found: error
           retention-days: 1
