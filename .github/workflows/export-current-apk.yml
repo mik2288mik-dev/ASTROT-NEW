@@ -12,18 +12,31 @@ jobs:
   export-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify public API DNS TLS and health
+      - name: Inspect public API DNS and TLS routing
         shell: bash
         run: |
           set +e
+          echo '=== DNS ==='
+          dig +noall +answer api.tvoi-goroskop.ru A
+          dig +noall +answer api.tvoi-goroskop.ru CNAME
+          dig +noall +answer _railway-verify.api.tvoi-goroskop.ru TXT
+          dig +noall +answer tvoi-goroskop.ru NS
+          echo '=== VERIFIED TLS ==='
           curl -fsv --connect-timeout 10 --max-time 20 \
             "https://api.tvoi-goroskop.ru/api/health" \
             -o api-health.txt 2>api-health-curl.txt
-          rc=$?
-          echo "curl_exit=$rc"
+          verified_rc=$?
           cat api-health-curl.txt || true
           cat api-health.txt || true
-          exit "$rc"
+          echo "verified_curl_exit=$verified_rc"
+          echo '=== ROUTING WITH TLS VERIFY DISABLED ==='
+          curl -ksS -D - --connect-timeout 10 --max-time 20 \
+            "https://api.tvoi-goroskop.ru/api/health" \
+            -o api-health-insecure.txt
+          insecure_rc=$?
+          cat api-health-insecure.txt || true
+          echo "insecure_curl_exit=$insecure_rc"
+          exit "$verified_rc"
 
       - name: Download current signed APK from Railway
         shell: bash
@@ -44,7 +57,6 @@ jobs:
           path: |
             NEBO-current.apk
             SHA256SUMS.txt
-            api-health.txt
-            api-health-curl.txt
+            api-health*.txt
           if-no-files-found: error
           retention-days: 1
