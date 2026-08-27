@@ -10,7 +10,6 @@ import { invalidUserIdPayload, isValidUserId } from '../../../lib/userId';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
 import {
   buildPersonalForecastPrewarmProfile,
-  prewarmPersonalForecastHorizon,
   queuePersonalForecastPrewarm,
 } from '../../../lib/personalForecastPrewarm';
 
@@ -83,13 +82,10 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     let refCode:string|null=null;try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}
     const premiumEntitlement=await getPremiumEntitlementState(userId);
     const prewarmProfile=buildPersonalForecastPrewarmProfile(userId,{...refreshed,...saved},birthSettings);
-    if(prewarmProfile){
+    if(prewarmProfile&&data.isSetup===true){
       const accessTier=premiumEntitlement.isPremium?'premium' as const:'free' as const;
-      await prewarmPersonalForecastHorizon({
-        userId,profile:prewarmProfile,accessTier,reason:'birth_profile_completed',maxMissingGenerations:1,maxTargets:1,
-      });
       queuePersonalForecastPrewarm({
-        userId,profile:prewarmProfile,accessTier,reason:'birth_profile_completed',
+        userId,profile:prewarmProfile,accessTier,reason:'birth_profile_completed',maxMissingGenerations:1,
       });
     }
     return res.status(200).json(publicUser({...refreshed,...saved,...birthSettings},userId,premiumEntitlement,await getNotificationFrequency(userId),refCode));
