@@ -70,9 +70,9 @@ RUN cd android \
     && RELEASE_STORE_PASSWORD="$AUTH_TEST_KEYSTORE_PASSWORD" \
        RELEASE_KEY_ALIAS="$AUTH_TEST_KEY_ALIAS" \
        RELEASE_KEY_PASSWORD="$AUTH_TEST_KEY_PASSWORD" \
-       ./gradlew --no-daemon assembleDevelopmentRelease
+       ./gradlew --no-daemon assembleDevelopmentDebug
 
-RUN cp android/app/build/outputs/apk/development/release/app-development-release.apk /app/nebo-auth-test.apk \
+RUN cp android/app/build/outputs/apk/development/debug/app-development-debug.apk /app/nebo-auth-test.apk \
     && { \
       echo "TEMPORARY STABLE TEST SIGNING CERTIFICATE"; \
       keytool -list -v -keystore /tmp/nebo-auth-test.jks -storepass "$AUTH_TEST_KEYSTORE_PASSWORD" -alias "$AUTH_TEST_KEY_ALIAS" | grep -E "SHA1:|SHA256:"; \
@@ -81,7 +81,7 @@ RUN cp android/app/build/outputs/apk/development/release/app-development-release
       sha256sum /app/nebo-auth-test.apk; \
       echo; \
       echo "Package: ru.tvoygoroskop.app"; \
-      echo "Build channel: development"; \
+      echo "Build channel: development-debug (stable auth signing)"; \
     } > /app/fingerprints.txt
 
 FROM node:22-alpine AS runner
