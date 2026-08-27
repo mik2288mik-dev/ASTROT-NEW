@@ -6,8 +6,8 @@ import { spawnSync } from 'node:child_process';
 import { parseEnv } from 'node:util';
 
 const SHARED_ANDROID_AUTH_ENV_NAMES = [
-  'YANDEX_AUTH_CLIENT_ID',
-  'VK_AUTH_CLIENT_ID',
+  'YANDEX_ANDROID_CLIENT_ID',
+  'VK_ANDROID_CLIENT_ID',
   'VK_ID_ANDROID_CLIENT_SECRET',
 ];
 

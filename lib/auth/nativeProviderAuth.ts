@@ -81,8 +81,8 @@ function requiredClientId(provider: NativeAuthProvider): string {
   const value = provider === 'google'
     ? configuredValue('GOOGLE_AUTH_WEB_CLIENT_ID') || configuredValue('GOOGLE_AUTH_CLIENT_ID')
     : provider === 'yandex'
-      ? configuredValue('YANDEX_AUTH_CLIENT_ID')
-      : configuredValue('VK_AUTH_CLIENT_ID');
+      ? configuredValue('YANDEX_ANDROID_CLIENT_ID')
+      : configuredValue('VK_ANDROID_CLIENT_ID');
   if (!value) {
     throw new AdminAuthError(
       503,
@@ -155,8 +155,8 @@ export function getNativeProviderAuthCapabilities(): {
   const email = getEmailPasswordAuthCapabilities();
   return {
     google: !!(configuredValue('GOOGLE_AUTH_WEB_CLIENT_ID') || configuredValue('GOOGLE_AUTH_CLIENT_ID')),
-    yandex: !!configuredValue('YANDEX_AUTH_CLIENT_ID'),
-    vk: !!configuredValue('VK_AUTH_CLIENT_ID'),
+    yandex: !!configuredValue('YANDEX_ANDROID_CLIENT_ID'),
+    vk: !!configuredValue('VK_ANDROID_CLIENT_ID'),
     email: email.delivery,
   };
 }

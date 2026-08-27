@@ -22,6 +22,7 @@ import {
 import {
     APP_SESSION_INVALIDATED_EVENT,
     clearAppSessionAndLocalData,
+    hasNativeAppSession,
     isNativeAppRuntime,
     type AppSessionInvalidatedDetail,
 } from './services/apiClient';
@@ -120,7 +121,8 @@ const AuthGate = dynamic(() => import('./views/AuthGate').then((module) => modul
 
 // Get owner ID from environment variables for security
 const OWNER_ID = process.env.NEXT_PUBLIC_OWNER_ID || '';
-const STARTUP_SAFETY_TIMEOUT_MS = 45_000;
+const STARTUP_SAFETY_TIMEOUT_MS = 12_000;
+const STARTUP_PROFILE_FETCH_TIMEOUT_MS = 8_000;
 
 function firstValueStorageKey(userId: string | number): string {
     return `lumia.firstValue.today.${String(userId)}`;
@@ -881,6 +883,26 @@ const App: React.FC = () => {
                 return;
             }
 
+            if (
+                isNativeAppRuntime()
+                && sessionMode === 'automatic'
+                && !(await hasNativeAppSession())
+            ) {
+                if (cancelled) return;
+                startupVisible = true;
+                clearSafety();
+                setProfile(null);
+                resetPrimaryChartState();
+                setAuthSessionMode('signed_out');
+                setAuthSessionModeState('signed_out');
+                setAuthGateMessage(null);
+                setStartupError(null);
+                setLoadingProgress(100);
+                setLoadingMessage(undefined);
+                setLoading(false);
+                return;
+            }
+
             try {
                 setStartupError(null);
                 const tg = (window as any).Telegram?.WebApp;
@@ -898,7 +920,10 @@ const App: React.FC = () => {
                     storedProfile = await loginWithTelegram();
                 } else {
                     try {
-                        storedProfile = await getProfile();
+                        storedProfile = await getProfile({
+                            maxAttempts: 1,
+                            timeoutMs: STARTUP_PROFILE_FETCH_TIMEOUT_MS,
+                        });
                     } catch (profileError) {
                         if (!isProfileAuthenticationError(profileError)) throw profileError;
 

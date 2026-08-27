@@ -67,8 +67,10 @@ describe('native provider credential authentication', () => {
     jest.clearAllMocks();
     process.env.GOOGLE_AUTH_CLIENT_ID = 'google-web-client.apps.googleusercontent.com';
     process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'google_play';
-    process.env.YANDEX_AUTH_CLIENT_ID = 'yandex-client';
-    process.env.VK_AUTH_CLIENT_ID = '12345678';
+    process.env.YANDEX_AUTH_CLIENT_ID = 'yandex-browser-client';
+    process.env.VK_AUTH_CLIENT_ID = '87654321';
+    process.env.YANDEX_ANDROID_CLIENT_ID = 'yandex-android-client';
+    process.env.VK_ANDROID_CLIENT_ID = '12345678';
     process.env.EMAIL_OTP_DELIVERY_URL = 'https://mailer.example.test/auth-code';
     process.env.EMAIL_OTP_DELIVERY_SECRET = 'test-mailer-secret';
     delete process.env.RESEND_API_KEY;
@@ -129,6 +131,17 @@ describe('native provider credential authentication', () => {
       yandex: true,
       vk: true,
     });
+  });
+
+  it('does not substitute browser OAuth IDs for the Android SDK configuration', () => {
+    delete process.env.YANDEX_ANDROID_CLIENT_ID;
+    delete process.env.VK_ANDROID_CLIENT_ID;
+    process.env.PUBLIC_APP_ORIGIN = 'https://app.example.test';
+    process.env.YANDEX_AUTH_CLIENT_SECRET = 'yandex-server-secret';
+    process.env.VK_AUTH_CLIENT_SECRET = 'vk-server-secret';
+
+    expect(getNativeProviderAuthCapabilities()).toMatchObject({ yandex: false, vk: false });
+    expect(getServerAccountAuthCapabilities('browser')).toMatchObject({ yandex: true, vk: true });
   });
 
   it('keeps password login available without mail delivery and fails closed on short production secrets', () => {
@@ -311,7 +324,7 @@ describe('native provider credential authentication', () => {
     global.fetch = jest.fn(async () => ({
       ok: true,
       json: async () => ({
-        client_id: 'yandex-client',
+        client_id: 'yandex-android-client',
         psuid: 'yandex-psuid-1',
         id: 'legacy-id',
         default_email: 'person@yandex.test',

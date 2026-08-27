@@ -69,6 +69,11 @@ const CHART_GET_TIMEOUT_MS = 25_000;
 const PROFILE_FETCH_ATTEMPTS = 3;
 const PROFILE_FETCH_RETRY_DELAYS_MS = [0, 700, 1600];
 
+export type ProfileLoadOptions = {
+  maxAttempts?: number;
+  timeoutMs?: number;
+};
+
 // Next.js API base URL - используем локальные API routes
 // Diagnostics are opt-in and never enabled in a production/store bundle.
 // Profile saves include sensitive natal data, so they must not reach device logs.
@@ -170,24 +175,36 @@ export const saveProfile = async (profile: UserProfile): Promise<void> => {
  * Get profile from Railway Database
  * WARNING: This is the ONLY persistence layer. No local storage fallback.
  */
-export const getProfile = async (): Promise<UserProfile | null> => {
+export const getProfile = async ({
+  maxAttempts = PROFILE_FETCH_ATTEMPTS,
+  timeoutMs = PROFILE_FETCH_TIMEOUT_MS,
+}: ProfileLoadOptions = {}): Promise<UserProfile | null> => {
   const url = '/api/users/me';
+  const attempts = Math.max(1, Math.floor(maxAttempts));
+  const requestTimeoutMs = Math.max(1, Math.floor(timeoutMs));
 
-  for (let attempt = 0; attempt < PROFILE_FETCH_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const delay = PROFILE_FETCH_RETRY_DELAYS_MS[attempt] ?? 0;
     if (delay > 0) {
       await new Promise((r) => setTimeout(r, delay));
     }
 
     try {
-      log.info(`[getProfile] GET attempt ${attempt + 1}/${PROFILE_FETCH_ATTEMPTS}: ${url}`);
+      log.info(`[getProfile] GET attempt ${attempt + 1}/${attempts}: ${url}`);
 
       const startTime = Date.now();
-      const response = await apiFetch(
-        url,
-        { method: 'GET', credentials: 'include' },
-        PROFILE_FETCH_TIMEOUT_MS
-      );
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+      let response: Response;
+      try {
+        response = await apiFetch(
+          url,
+          { method: 'GET', credentials: 'include', signal: controller.signal },
+          requestTimeoutMs,
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
       const duration = Date.now() - startTime;
 
       log.info(`[getProfile] Response received in ${duration}ms`, {

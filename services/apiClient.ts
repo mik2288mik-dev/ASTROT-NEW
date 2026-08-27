@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, CapacitorHttp, type HttpResponse } from '@capacitor/core';
 import { nativeSessionStore, type NativeSessionBundle, type StoredNativeSession } from './nativeSessionStore';
 import { assertNativeNetworkAvailable } from './nativeNetwork';
 import {
@@ -7,6 +7,8 @@ import {
 } from './authSessionIntent';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const NATIVE_SESSION_READ_TIMEOUT_MS = 2_000;
+const NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS = 8_000;
 const SESSION_REFRESH_PATH = '/api/auth/session/refresh';
 const REFRESHABLE_ACCESS_CODES = new Set(['APP_SESSION_EXPIRED', 'APP_AUTH_REQUIRED']);
 const TERMINAL_SESSION_CODES = new Set([
@@ -91,6 +93,126 @@ export function apiUrl(path: string): string {
   return `${getApiBaseUrl()}${normalizedPath}`;
 }
 
+function usesAndroidNativeHttp(): boolean {
+  // The mobile bundle is compiled specifically for Capacitor. Rely on the
+  // platform bridge rather than a second native-platform flag, which can lag
+  // during WebView startup on some Android devices.
+  return isNativeAppRuntime() && Capacitor.getPlatform() === 'android';
+}
+
+function requestWasAborted(): Error {
+  const error = new Error('The request was aborted.');
+  error.name = 'AbortError';
+  return error;
+}
+
+function isAbortError(error: unknown): boolean {
+  return (error as { name?: unknown } | null)?.name === 'AbortError';
+}
+
+function headersAsNativeObject(headersInit: HeadersInit | undefined): Record<string, string> {
+  return Object.fromEntries(new Headers(headersInit || {}).entries());
+}
+
+function responseHeader(headers: Record<string, string>, name: string): string {
+  const target = name.toLowerCase();
+  return Object.entries(headers).find(([key]) => key.toLowerCase() === target)?.[1] || '';
+}
+
+function decodeNativeBase64(value: string): Uint8Array | string {
+  try {
+    const source = atob(value.replace(/\s/g, ''));
+    const bytes = new Uint8Array(source.length);
+    for (let index = 0; index < source.length; index += 1) bytes[index] = source.charCodeAt(index);
+    return bytes;
+  } catch {
+    return value;
+  }
+}
+
+function nativeHttpResponse(raw: HttpResponse): Response {
+  const headers = raw.headers || {};
+  const contentType = responseHeader(headers, 'content-type').toLowerCase();
+  const data = raw.data;
+  const body: BodyInit | null = data == null
+    ? null
+    : contentType.includes('json')
+      ? (typeof data === 'string' ? data : JSON.stringify(data))
+      : typeof data === 'string'
+        ? decodeNativeBase64(data)
+        : JSON.stringify(data);
+  return new Response(body, { status: raw.status, headers });
+}
+
+function canUseNativeHttpBody(body: RequestInit['body']): body is string | null | undefined {
+  return body == null || typeof body === 'string';
+}
+
+function raceNativeRequest<T>(request: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return request;
+  if (signal.aborted) {
+    void request.catch(() => undefined);
+    return Promise.reject(requestWasAborted());
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      cleanup();
+      reject(requestWasAborted());
+    };
+    const complete = (callback: (value: T) => void) => (value: T) => {
+      cleanup();
+      callback(value);
+    };
+    const fail = (error: unknown) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => signal.removeEventListener('abort', abort);
+    signal.addEventListener('abort', abort, { once: true });
+    request.then(complete(resolve), fail);
+  });
+}
+
+/**
+ * Android's explicit Capacitor HTTP bridge bypasses WebView transport/CORS
+ * failures without installing the unsafe global fetch/XHR interception.
+ */
+async function apiTransportFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  if (!usesAndroidNativeHttp() || !canUseNativeHttpBody(init.body)) {
+    return fetch(url, init);
+  }
+  if (init.signal?.aborted) throw requestWasAborted();
+
+  const nativeTimeout = Math.max(1, Math.floor(timeoutMs));
+  try {
+    const raw = await raceNativeRequest(
+      CapacitorHttp.request({
+        url,
+        method: init.method || 'GET',
+        headers: headersAsNativeObject(init.headers),
+        ...(init.body == null ? {} : { data: init.body }),
+        connectTimeout: Math.min(nativeTimeout, NATIVE_HTTP_MAX_CONNECT_TIMEOUT_MS),
+        readTimeout: nativeTimeout,
+        // API responses are JSON or binary. The native bridge still parses
+        // JSON by its content type and returns base64 for binary response data.
+        responseType: 'arraybuffer',
+      }),
+      init.signal || undefined,
+    );
+    return nativeHttpResponse(raw);
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    const networkError = new TypeError('Failed to fetch');
+    (networkError as TypeError & { cause?: unknown }).cause = error;
+    throw networkError;
+  }
+}
+
 function asNativeSessionBundle(payload: NativeSessionResponse): NativeSessionBundle | null {
   const accessToken = payload.accessToken || payload.token;
   if (
@@ -122,6 +244,29 @@ async function readNativeSession(): Promise<StoredNativeSession | null> {
   return token ? { version: 1, accessToken: token } : null;
 }
 
+/**
+ * A fresh native install has no app session yet. Resolve that state locally so
+ * startup can render the sign-in gate instead of waiting for an unauthenticated
+ * profile request to cross the network.
+ */
+export async function hasNativeAppSession(
+  timeoutMs = NATIVE_SESSION_READ_TIMEOUT_MS,
+): Promise<boolean> {
+  if (!isNativeAppRuntime()) return false;
+
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      readNativeSession().then((session) => session !== null).catch(() => false),
+      new Promise<boolean>((resolve) => {
+        timeout = setTimeout(() => resolve(false), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
+
 export async function persistNativeSessionResponse(payload: NativeSessionResponse): Promise<void> {
   const bundle = asNativeSessionBundle(payload);
   nativeSessionMutation += 1;
@@ -143,7 +288,7 @@ async function requestNativeSession(signal?: AbortSignal): Promise<NativeSession
   if (nativeSessionRequest) return nativeSessionRequest;
 
   nativeSessionRequest = (async () => {
-    const response = await fetch(apiUrl('/api/auth/native-guest'), {
+    const response = await apiTransportFetch(apiUrl('/api/auth/native-guest'), {
       method: 'POST',
       credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
@@ -176,15 +321,29 @@ function refreshResponseError(status: number, code: string): Error & { status: n
 async function fetchRefresh(init: RequestInit): Promise<Response> {
   await assertNativeNetworkAvailable();
   const controller = new AbortController();
+  const externalSignal = init.signal;
+  const abortFromExternal = () => controller.abort(externalSignal?.reason);
+  if (externalSignal) {
+    if (externalSignal.aborted) abortFromExternal();
+    else externalSignal.addEventListener('abort', abortFromExternal, { once: true });
+  }
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
   try {
-    return await fetch(apiUrl(SESSION_REFRESH_PATH), { ...init, signal: controller.signal });
+    return await apiTransportFetch(
+      apiUrl(SESSION_REFRESH_PATH),
+      { ...init, signal: controller.signal },
+      DEFAULT_TIMEOUT_MS,
+    );
   } finally {
     clearTimeout(timeout);
+    externalSignal?.removeEventListener('abort', abortFromExternal);
   }
 }
 
-async function refreshNativeSession(session: StoredNativeSession): Promise<NativeSessionBundle | null> {
+async function refreshNativeSession(
+  session: StoredNativeSession,
+  signal?: AbortSignal,
+): Promise<NativeSessionBundle | null> {
   if (nativeRefreshRequest) return nativeRefreshRequest;
   const startingMutation = nativeSessionMutation;
   nativeRefreshRequest = (async () => {
@@ -195,6 +354,7 @@ async function refreshNativeSession(session: StoredNativeSession): Promise<Nativ
       method: 'POST',
       credentials: 'omit',
       headers: { Authorization: authorization },
+      signal,
     });
     if ((response.status === 404 || response.status === 405) && session.version === 1) return null;
     const code = await responseSessionCode(response);
@@ -215,10 +375,10 @@ async function refreshNativeSession(session: StoredNativeSession): Promise<Nativ
   return nativeRefreshRequest;
 }
 
-async function refreshWebSession(retryConcurrent = true): Promise<boolean> {
+async function refreshWebSession(retryConcurrent = true, signal?: AbortSignal): Promise<boolean> {
   if (webRefreshRequest) return webRefreshRequest;
   webRefreshRequest = (async () => {
-    const response = await fetchRefresh({ method: 'POST', credentials: 'include' });
+    const response = await fetchRefresh({ method: 'POST', credentials: 'include', signal });
     const code = await responseSessionCode(response);
     if (response.ok) {
       const payload = await response.clone().json().catch(() => ({})) as { accessExpiresAt?: unknown };
@@ -229,7 +389,7 @@ async function refreshWebSession(retryConcurrent = true): Promise<boolean> {
     }
     if (response.status === 409 && code === 'APP_SESSION_REFRESH_CONCURRENT' && retryConcurrent) {
       await new Promise((resolve) => setTimeout(resolve, 75));
-      const retry = await fetchRefresh({ method: 'POST', credentials: 'include' });
+      const retry = await fetchRefresh({ method: 'POST', credentials: 'include', signal });
       if (retry.ok) {
         const payload = await retry.clone().json().catch(() => ({})) as { accessExpiresAt?: unknown };
         webAccessExpiresAt = Number.isSafeInteger(payload.accessExpiresAt)
@@ -247,13 +407,13 @@ async function refreshWebSession(retryConcurrent = true): Promise<boolean> {
   return webRefreshRequest;
 }
 
-async function prepareSessionBeforeRequest(path: string): Promise<void> {
+async function prepareSessionBeforeRequest(path: string, signal?: AbortSignal): Promise<void> {
   if (path === SESSION_REFRESH_PATH) return;
   if (!isNativeAppRuntime()) {
     if (typeof window === 'undefined') return;
     if (path === '/api/users/session/logout') {
       try {
-        await refreshWebSession();
+        await refreshWebSession(true, signal);
       } catch (error: any) {
         if (error?.status !== 401 && error?.status !== 403) throw error;
       }
@@ -263,7 +423,7 @@ async function prepareSessionBeforeRequest(path: string): Promise<void> {
       && webAccessExpiresAt <= Math.floor(Date.now() / 1000) + 90;
     if (!webBootstrapAttempted || webAccessExpiresAt === 0 || accessNearExpiry) {
       webBootstrapAttempted = true;
-      await refreshWebSession().catch(() => false);
+      await refreshWebSession(true, signal).catch(() => false);
     }
     return;
   }
@@ -277,7 +437,7 @@ async function prepareSessionBeforeRequest(path: string): Promise<void> {
   if (!needsRefresh) return;
   const refreshMutation = nativeSessionMutation;
   try {
-    await refreshNativeSession(session);
+    await refreshNativeSession(session, signal);
   } catch (error: any) {
     if (error?.code && TERMINAL_SESSION_CODES.has(error.code)) {
       await invalidateSession({ code: error.code, status: error.status || 401 }, refreshMutation);
@@ -319,12 +479,12 @@ async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Pr
     Object.entries(authHeaders).forEach(([name, value]) => {
       if (!headers.has(name)) headers.set(name, value);
     });
-    return await fetch(apiUrl(path), {
+    return await apiTransportFetch(apiUrl(path), {
       ...init,
       credentials: isNativeAppRuntime() ? 'omit' : (init.credentials || 'include'),
       headers,
       signal: controller.signal,
-    });
+    }, timeoutMs);
   } finally {
     clearTimeout(timer);
     externalSignal?.removeEventListener('abort', abortFromExternal);
@@ -347,12 +507,12 @@ async function invalidateSession(
   dispatchSessionInvalidation(detail);
 }
 
-async function tryRefreshAfterAccessFailure(code: string): Promise<boolean> {
+async function tryRefreshAfterAccessFailure(code: string, signal?: AbortSignal): Promise<boolean> {
   if (!REFRESHABLE_ACCESS_CODES.has(code)) return false;
-  if (!isNativeAppRuntime()) return refreshWebSession();
+  if (!isNativeAppRuntime()) return refreshWebSession(true, signal);
   const session = await readNativeSession();
   if (!session) return false;
-  return !!(await refreshNativeSession(session));
+  return !!(await refreshNativeSession(session, signal));
 }
 
 export async function apiFetch(
@@ -361,14 +521,15 @@ export async function apiFetch(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<Response> {
   const callerSuppliedAuthorization = new Headers(init.headers || {}).has('Authorization');
-  if (!callerSuppliedAuthorization) await prepareSessionBeforeRequest(path);
+  const requestSignal = init.signal || undefined;
+  if (!callerSuppliedAuthorization) await prepareSessionBeforeRequest(path, requestSignal);
   const requestNativeMutation = nativeSessionMutation;
   const response = await fetchOnce(path, init, timeoutMs);
   const code = await responseSessionCode(response);
 
   if (!callerSuppliedAuthorization && code && REFRESHABLE_ACCESS_CODES.has(code)) {
     try {
-      if (await tryRefreshAfterAccessFailure(code)) {
+      if (await tryRefreshAfterAccessFailure(code, requestSignal)) {
         const retryNativeMutation = nativeSessionMutation;
         const retried = await fetchOnce(path, init, timeoutMs);
         const retryInvalidation = await sessionInvalidationFromResponse(retried);

@@ -22,7 +22,11 @@ describe('account identity and session contract', () => {
     expect(env).toContain('AUTH_EMAIL_FROM=');
     expect(releaseValidation).toContain('RESEND_API_KEY and AUTH_EMAIL_FROM');
     expect(releaseValidation).toContain('EMAIL_OTP_DELIVERY_SECRET');
+    expect(env).toContain('YANDEX_ANDROID_CLIENT_ID=');
+    expect(env).toContain('VK_ANDROID_CLIENT_ID=');
     expect(releaseValidation).toContain("'VK_ID_ANDROID_CLIENT_SECRET'");
+    expect(releaseValidation).toContain("'YANDEX_ANDROID_CLIENT_ID'");
+    expect(releaseValidation).toContain("'VK_ANDROID_CLIENT_ID'");
     expect(releaseValidation).toContain("'EMAIL_OTP_HASH_SECRET'");
     expect(releaseValidation).toContain("'AUTH_RATE_LIMIT_SECRET'");
     expect(releaseValidation).toContain('must contain at least 32 bytes');

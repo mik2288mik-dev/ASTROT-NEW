@@ -62,6 +62,9 @@ type NativeProviderStart = {
 };
 
 let providerRequest: Promise<UserProfile> | null = null;
+const AUTH_CAPABILITIES_TIMEOUT_MS = 8_000;
+const NATIVE_PROVIDER_START_TIMEOUT_MS = 10_000;
+const NATIVE_PROVIDER_COMPLETE_TIMEOUT_MS = 20_000;
 
 function usesNativeAndroidProviderAuth(): boolean {
   return isNativeAppRuntime() && Capacitor.getPlatform() === 'android';
@@ -97,13 +100,14 @@ async function postAuthJson<T extends Record<string, unknown>>(
   path: string,
   body: Record<string, unknown>,
   fallback: string,
+  timeoutMs?: number,
 ): Promise<T> {
   const response = await apiFetch(path, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, timeoutMs);
   if (!response.ok) throw await authError(response, fallback);
   return response.json() as Promise<T>;
 }
@@ -182,7 +186,11 @@ export async function getLinkedIdentities(): Promise<{
 export async function getAccountAuthCapabilities(): Promise<AccountAuthCapabilities> {
   const runtime = usesNativeAndroidProviderAuth() ? 'native' : 'browser';
   const channel = resolveDistributionChannel();
-  const response = await apiFetch(`/api/auth/capabilities?runtime=${runtime}&channel=${channel}`);
+  const response = await apiFetch(
+    `/api/auth/capabilities?runtime=${runtime}&channel=${channel}`,
+    {},
+    AUTH_CAPABILITIES_TIMEOUT_MS,
+  );
   if (!response.ok) {
     throw await authError(response, 'AUTH_CAPABILITIES_UNAVAILABLE');
   }
@@ -236,12 +244,14 @@ export async function authenticateWithProvider(
       `/api/auth/provider/${provider}/start`,
       { purpose },
       'PROVIDER_AUTH_START_FAILED',
+      NATIVE_PROVIDER_START_TIMEOUT_MS,
     );
     const credential = await nativeIdentityAuth.signIn(providerLaunchOptions(start));
     const payload = await postAuthJson<AccountSessionPayload>(
       `/api/auth/provider/${provider}/complete`,
       { challengeId: start.challengeId, ...credential, native: true, sessionVersion: 2 },
       'PROVIDER_AUTH_COMPLETE_FAILED',
+      NATIVE_PROVIDER_COMPLETE_TIMEOUT_MS,
     );
     return acceptAccountSession(payload, 'PROVIDER_AUTH_COMPLETE_FAILED');
   })().finally(() => {

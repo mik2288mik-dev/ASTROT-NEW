@@ -16,10 +16,10 @@ def authValue = { String name -> (project.findProperty(name) ?: System.getenv(na
 def buildConfigString = { String value -> '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"' }
 def googleAuthClientId = authValue('GOOGLE_AUTH_CLIENT_ID')
 def googleAuthHandlerClass = 'ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler'
-def yandexAuthClientId = authValue('YANDEX_AUTH_CLIENT_ID')
-def vkAuthClientId = authValue('VK_AUTH_CLIENT_ID')
+def yandexAndroidClientId = authValue('YANDEX_ANDROID_CLIENT_ID')
+def vkAndroidClientId = authValue('VK_ANDROID_CLIENT_ID')
 def vkIdAndroidClientSecret = authValue('VK_ID_ANDROID_CLIENT_SECRET')
-def vkIdConfigured = !vkAuthClientId.isEmpty() && !vkIdAndroidClientSecret.isEmpty()
+def vkIdConfigured = !vkAndroidClientId.isEmpty() && !vkIdAndroidClientSecret.isEmpty()
 def rustoreConsoleAppId = project.findProperty('RUSTORE_CONSOLE_APP_ID') ?: System.getenv('RUSTORE_CONSOLE_APP_ID') ?: 'RUSTORE_CONSOLE_APP_ID_REQUIRED'
 def rustoreScheme = project.findProperty('RUSTORE_PAY_SCHEME') ?: System.getenv('RUSTORE_PAY_SCHEME') ?: "${appPackageId}.rustore"
 def rustorePaymentsEnabledValue = (System.getenv('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED') ?: project.findProperty('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED') ?: '0').toString()
@@ -44,18 +44,18 @@ android {
         manifestPlaceholders = [
             rustoreConsoleAppId: rustoreConsoleAppId,
             rustorePayScheme: rustoreScheme,
-            YANDEX_CLIENT_ID: yandexAuthClientId ?: '0',
-            VKIDClientID: vkAuthClientId ?: '0',
+            YANDEX_CLIENT_ID: yandexAndroidClientId ?: '0',
+            VKIDClientID: vkAndroidClientId ?: '0',
             VKIDClientSecret: vkIdAndroidClientSecret ?: 'VK_ID_ANDROID_CLIENT_SECRET_REQUIRED',
             VKIDRedirectHost: 'vk.ru',
-            VKIDRedirectScheme: vkAuthClientId ? "vk${vkAuthClientId}" : 'vk0',
+            VKIDRedirectScheme: vkAndroidClientId ? "vk${vkAndroidClientId}" : 'vk0',
         ]
         buildConfigField 'boolean', 'RUSTORE_PAYMENTS_ENABLED', rustorePaymentsEnabled ? 'true' : 'false'
         buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', '""'
         buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'false'
         buildConfigField 'String', 'OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS', buildConfigString('')
-        buildConfigField 'String', 'YANDEX_AUTH_CLIENT_ID', buildConfigString(yandexAuthClientId)
-        buildConfigField 'String', 'VK_ID_CLIENT_ID', buildConfigString(vkAuthClientId)
+        buildConfigField 'String', 'YANDEX_ANDROID_CLIENT_ID', buildConfigString(yandexAndroidClientId)
+        buildConfigField 'String', 'VK_ANDROID_CLIENT_ID', buildConfigString(vkAndroidClientId)
         buildConfigField 'boolean', 'VK_ID_CONFIGURED', vkIdConfigured ? 'true' : 'false'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

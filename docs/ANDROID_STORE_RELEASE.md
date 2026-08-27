@@ -23,9 +23,7 @@
 $env:NEXT_PUBLIC_API_URL = 'https://api.example.ru'
 $env:NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'development'
 $env:NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED = '0'
-npm run build:mobile
-npx cap sync android
-cd android; .\gradlew.bat assembleDevelopmentDebug
+npm run android:debug
 
 # With all owner values, signing and legal configuration set:
 npm run android:rustore:apk
@@ -44,8 +42,8 @@ In RuStore Console: create the app with the final signed package, enable monetiz
 Android account entry is native-first:
 
 - Google uses Credential Manager and returns an ID token for server-side verification. Configure the Web OAuth client ID used as `serverClientId`, plus Android package `ru.tvoygoroskop.app` and the real debug/release signing fingerprints.
-- Yandex uses LoginSDK 3.1.3 and returns an access token for server-side user-info verification. Configure the same client ID in the provider console, server environment, and APK build.
-- VK uses VK ID SDK 2.7.2. Its OAuth 2.1 authorization-code flow uses PKCE, state, `device_id`, and `vk<VK_AUTH_CLIENT_ID>://vk.ru/blank.html`; configure that redirect and the Android SDK client secret.
+- Yandex uses LoginSDK 3.1.3 and returns an access token for server-side user-info verification. Configure its Android application ID as `YANDEX_ANDROID_CLIENT_ID` in the provider console, Railway and the APK build; keep browser OAuth in `YANDEX_AUTH_CLIENT_ID` plus its secret.
+- VK uses VK ID SDK 2.7.2. Its OAuth 2.1 authorization-code flow uses PKCE, state, `device_id`, and `vk<VK_ANDROID_CLIENT_ID>://vk.ru/blank.html`; configure that redirect, `VK_ANDROID_CLIENT_ID`, and the Android SDK client secret separately from browser `VK_AUTH_CLIENT_ID` plus its secret.
 - Email uses password registration/login and one-time codes only for confirmation and reset. Configure the server-side delivery adapter and independent production HMAC/rate-limit secrets.
 - On Railway keep `AUTH_TRUST_PROXY=0` until the trusted edge is confirmed to overwrite `X-Forwarded-For`; only then enable it so per-client auth limits use the real forwarded address without accepting spoofed values.
 

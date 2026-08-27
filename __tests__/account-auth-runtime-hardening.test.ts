@@ -13,8 +13,27 @@ jest.mock('../services/nativeNetwork', () => ({
   assertNativeNetworkAvailable: jest.fn(async () => undefined),
 }));
 
+const mockCapacitorHttpRequest = jest.fn();
+jest.mock('@capacitor/core', () => {
+  const actual = jest.requireActual('@capacitor/core');
+  return {
+    ...actual,
+    CapacitorHttp: {
+      ...actual.CapacitorHttp,
+      request: mockCapacitorHttpRequest,
+    },
+  };
+});
+
 import { nativeSessionStore } from '../services/nativeSessionStore';
-import { apiFetch, clearAppSessionAndLocalData, getAppAuthHeaders } from '../services/apiClient';
+import { Capacitor } from '@capacitor/core';
+import {
+  apiFetch,
+  clearAppSessionAndLocalData,
+  getAppAuthHeaders,
+  hasNativeAppSession,
+} from '../services/apiClient';
+import { getProfile } from '../services/storageService';
 import { setAuthSessionMode } from '../services/authSessionIntent';
 import { getAccountAuthCapabilities } from '../pages/api/auth/capabilities';
 
@@ -26,6 +45,8 @@ const ENV_KEYS = [
   'GOOGLE_AUTH_CLIENT_ID',
   'YANDEX_AUTH_CLIENT_ID',
   'VK_AUTH_CLIENT_ID',
+  'YANDEX_ANDROID_CLIENT_ID',
+  'VK_ANDROID_CLIENT_ID',
 ] as const;
 const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
 const originalWindow = (global as any).window;
@@ -186,11 +207,127 @@ describe('account authentication runtime hardening', () => {
     },
   );
 
+  it('treats an unreadable native keystore as no session so startup can show sign-in', async () => {
+    mockedNativeSessionStore.getSession.mockRejectedValueOnce(new Error('keystore unavailable'));
+
+    await expect(hasNativeAppSession()).resolves.toBe(false);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('uses bounded explicit Android HTTP when the mobile build starts before Capacitor marks itself native', async () => {
+    const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+    const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    mockCapacitorHttpRequest.mockResolvedValue({
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      data: { yandex: true, vk: true },
+      url: 'https://api.example.test/api/auth/capabilities?runtime=native',
+    });
+    global.fetch = jest.fn() as typeof fetch;
+
+    try {
+      const response = await apiFetch(
+        '/api/auth/capabilities?runtime=native',
+        { headers: { Authorization: 'Bearer test-token' } },
+        8_000,
+      );
+
+      expect(response.headers.get('content-type')).toContain('application/json');
+      await expect(response.json()).resolves.toEqual({ yandex: true, vk: true });
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockCapacitorHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+        url: 'https://api.example.test/api/auth/capabilities?runtime=native',
+        method: 'GET',
+        headers: { authorization: 'Bearer test-token' },
+        connectTimeout: 8_000,
+        readTimeout: 8_000,
+        responseType: 'arraybuffer',
+      }));
+    } finally {
+      platform.mockRestore();
+      nativePlatform.mockRestore();
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('ends the Android HTTP call at the apiFetch timeout even when the native bridge is pending', async () => {
+    jest.useFakeTimers();
+    const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+    const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    mockCapacitorHttpRequest.mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    try {
+      const outcome = apiFetch(
+        '/api/auth/capabilities?runtime=native',
+        { headers: { Authorization: 'Bearer test-token' } },
+        1_000,
+      ).then(
+        () => null,
+        (error) => error as Error,
+      );
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockCapacitorHttpRequest).toHaveBeenCalledWith(expect.objectContaining({
+        connectTimeout: 1_000,
+        readTimeout: 1_000,
+      }));
+
+      await jest.advanceTimersByTimeAsync(1_000);
+      await expect(outcome).resolves.toMatchObject({ name: 'AbortError' });
+    } finally {
+      jest.useRealTimers();
+      platform.mockRestore();
+      nativePlatform.mockRestore();
+    }
+  });
+
+  it('aborts a bounded profile load instead of keeping startup pending', async () => {
+    jest.useFakeTimers();
+    let requestSignal: AbortSignal | null | undefined;
+    global.fetch = jest.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      requestSignal = init?.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        const rejectAsAborted = () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        };
+        if (requestSignal?.aborted) rejectAsAborted();
+        else requestSignal?.addEventListener('abort', rejectAsAborted, { once: true });
+      });
+    }) as typeof fetch;
+
+    try {
+      const profile = getProfile({ maxAttempts: 1, timeoutMs: 1_000 });
+      const profileOutcome = expect(profile).rejects.toMatchObject({
+        name: 'ProfileLoadError',
+        status: 503,
+        code: 'PROFILE_LOAD_FAILED',
+      });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(requestSignal).toBeDefined();
+
+      await jest.advanceTimersByTimeAsync(1_000);
+
+      await profileOutcome;
+      expect(requestSignal?.aborted).toBe(true);
+    } finally {
+      jest.useRealTimers();
+      global.fetch = originalFetch;
+    }
+  });
+
   it('masks Google for RuStore while preserving the future Google Play provider', () => {
     process.env.GOOGLE_AUTH_WEB_CLIENT_ID = '';
     process.env.GOOGLE_AUTH_CLIENT_ID = 'google-client';
-    process.env.YANDEX_AUTH_CLIENT_ID = 'yandex-client';
-    process.env.VK_AUTH_CLIENT_ID = 'vk-client';
+    process.env.YANDEX_AUTH_CLIENT_ID = 'yandex-browser-client';
+    process.env.VK_AUTH_CLIENT_ID = 'vk-browser-client';
+    process.env.YANDEX_ANDROID_CLIENT_ID = 'yandex-android-client';
+    process.env.VK_ANDROID_CLIENT_ID = 'vk-android-client';
     const distributionAwareCapabilities = getAccountAuthCapabilities as unknown as (
       runtime: 'native' | 'browser',
       channel: 'rustore' | 'google_play',

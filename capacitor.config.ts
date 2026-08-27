@@ -23,11 +23,11 @@ const config: CapacitorConfig = {
     ...(liveReloadUrl ? { url: liveReloadUrl } : {}),
   },
   plugins: {
-    // Android WebView 149/150 can stall HTTPS fetches before they reach the
-    // server. CapacitorHttp keeps the web API surface but executes requests
-    // through the native Android HTTP stack instead of WebView networking.
+    // Global CapacitorHttp replaces WebView fetch/XHR and can leave requests
+    // unbounded on some Android network stacks. The API already supports the
+    // HTTPS WebView origin, so retain standards-compliant WebView fetch.
     CapacitorHttp: {
-      enabled: true,
+      enabled: false,
     },
     SystemBars: {
       insetsHandling: 'css',

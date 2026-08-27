@@ -16,7 +16,7 @@ describe('startup profile bootstrap', () => {
 
   it('does not block startup on admin status or primary chart ID when local chart exists', () => {
     const app = read('App.tsx');
-    const profileLoaded = app.indexOf('storedProfile = await getProfile()');
+    const profileLoaded = app.indexOf('storedProfile = await getProfile({');
     const localChart = app.indexOf('const localEntry = readLocalNatalChartCache(updatedProfile)', profileLoaded);
     const dashboard = app.indexOf("showStartupDashboard('dashboard')", localChart);
 
@@ -53,6 +53,19 @@ describe('startup profile bootstrap', () => {
     expect(app).toContain('onClick={retryStartup}');
     expect(app).toContain('setStartupRetryNonce((value) => value + 1)');
     expect(app).not.toContain('window.location.reload()');
+  });
+
+  it('does not make a fresh native launch wait for an unauthenticated profile request', () => {
+    const app = read('App.tsx');
+    const nativeSessionCheck = app.indexOf('await hasNativeAppSession()');
+    const profileFetch = app.indexOf('storedProfile = await getProfile({', nativeSessionCheck);
+
+    expect(app).toContain('STARTUP_PROFILE_FETCH_TIMEOUT_MS = 8_000');
+    expect(nativeSessionCheck).toBeGreaterThan(-1);
+    expect(profileFetch).toBeGreaterThan(nativeSessionCheck);
+    expect(app.slice(nativeSessionCheck, profileFetch)).toContain("setAuthSessionMode('signed_out')");
+    expect(app.slice(profileFetch, profileFetch + 250)).toContain('maxAttempts: 1');
+    expect(app.slice(profileFetch, profileFetch + 250)).toContain('timeoutMs: STARTUP_PROFILE_FETCH_TIMEOUT_MS');
   });
 
   it('raises a typed auth failure from getProfile instead of returning a fake profile', () => {

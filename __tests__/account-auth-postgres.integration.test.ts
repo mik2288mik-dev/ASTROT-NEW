@@ -75,7 +75,9 @@ describePostgres('canonical account identity and session PostgreSQL integration'
     process.env.EMAIL_OTP_HASH_SECRET = 'account-auth-postgres-email-code-secret-32-bytes';
     process.env.EMAIL_OTP_DELIVERY_URL = 'https://mailer.example.test/auth-code';
     process.env.EMAIL_OTP_DELIVERY_SECRET = 'account-auth-postgres-mailer-secret';
-    process.env.VK_AUTH_CLIENT_ID = 'account-auth-postgres-vk-client';
+    process.env.VK_AUTH_CLIENT_ID = 'account-auth-postgres-vk-browser-client';
+    process.env.VK_ANDROID_CLIENT_ID = 'account-auth-postgres-vk-client';
+    process.env.YANDEX_ANDROID_CLIENT_ID = 'account-auth-postgres-yandex-client';
     process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'rustore';
 
     const db = await import('../lib/db');

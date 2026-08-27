@@ -143,6 +143,9 @@ if (release) {
 const appBuild = read('android/app/build.gradle');
 const capacitor = read('capacitor.config.ts');
 const strings = read('android/app/src/main/res/values/strings.xml');
+if (/\bCapacitorHttp\s*:\s*\{[^}]*\benabled\s*:\s*true\b/s.test(capacitor)) {
+  errors.push('CapacitorHttp.enabled must remain false: global native fetch can hang Android startup requests');
+}
 const packageVariable = (appBuild.match(/def\s+appPackageId\s*=\s*["']([^"']+)["']/) || [])[1] || '';
 const applicationId = (appBuild.match(/applicationId\s+["']([^"']+)["']/) || [])[1]
   || (appBuild.includes('applicationId appPackageId') ? packageVariable : '');
@@ -183,9 +186,11 @@ if (release) {
   const authProviderNames = [
     'PUBLIC_APP_ORIGIN',
     'VK_AUTH_CLIENT_ID',
+    'VK_ANDROID_CLIENT_ID',
     'VK_ID_ANDROID_CLIENT_SECRET',
     'VK_AUTH_CLIENT_SECRET',
     'YANDEX_AUTH_CLIENT_ID',
+    'YANDEX_ANDROID_CLIENT_ID',
     'YANDEX_AUTH_CLIENT_SECRET',
     'EMAIL_OTP_HASH_SECRET',
     'AUTH_RATE_LIMIT_SECRET',

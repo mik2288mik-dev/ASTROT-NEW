@@ -34,11 +34,15 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(appGradle).toContain('com.yandex.android:authsdk:3.1.3');
     expect(appGradle).toContain('com.vk.id:vkid:2.7.2');
     expect(appGradle).toContain("authValue('GOOGLE_AUTH_CLIENT_ID')");
-    expect(appGradle).toContain("authValue('YANDEX_AUTH_CLIENT_ID')");
-    expect(appGradle).toContain("authValue('VK_AUTH_CLIENT_ID')");
+    expect(appGradle).toContain("authValue('YANDEX_ANDROID_CLIENT_ID')");
+    expect(appGradle).toContain("authValue('VK_ANDROID_CLIENT_ID')");
     expect(appGradle).toContain("authValue('VK_ID_ANDROID_CLIENT_SECRET')");
-    expect(appGradle).toContain('YANDEX_CLIENT_ID: yandexAuthClientId');
+    expect(appGradle).toContain('YANDEX_CLIENT_ID: yandexAndroidClientId');
     expect(appGradle).toContain('VKIDClientSecret: vkIdAndroidClientSecret');
+    expect(appGradle).toContain("buildConfigField 'String', 'YANDEX_ANDROID_CLIENT_ID'");
+    expect(appGradle).toContain("buildConfigField 'String', 'VK_ANDROID_CLIENT_ID'");
+    expect(nativeProviders).toContain("configuredValue('YANDEX_ANDROID_CLIENT_ID')");
+    expect(nativeProviders).toContain("configuredValue('VK_ANDROID_CLIENT_ID')");
     expect(rustoreGooglePolicy).toContain("buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'false'");
     expect(googlePlayPolicy).toContain("buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'true'");
     expect(nativeProviders).toContain("['google', 'yandex', 'vk']");
@@ -111,6 +115,7 @@ describe('Android NativeIdentityAuth bridge contract', () => {
 
   it('does not load or require Google credentials for a RuStore release', () => {
     const releaseHelper = read('scripts/android-release.mjs');
+    const debugHelper = read('scripts/android-debug.mjs');
     const targetStart = releaseHelper.indexOf('const target = process.argv[2]');
     const channelStart = releaseHelper.indexOf('const channel =', targetStart);
     const channelAwareLoad = releaseHelper.indexOf('loadAndroidAuthEnv(channel)', channelStart);
@@ -119,6 +124,9 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(channelStart).toBeGreaterThan(targetStart);
     expect(channelAwareLoad).toBeGreaterThan(channelStart);
     expect(releaseHelper).toContain("channel === 'google_play'");
+    expect(debugHelper).toContain('Refusing to create an APK with broken native sign-in');
+    expect(debugHelper).toContain("'YANDEX_ANDROID_CLIENT_ID'");
+    expect(debugHelper).toContain("'VK_ANDROID_CLIENT_ID'");
 
     const baseEnv: NodeJS.ProcessEnv = {
       ...process.env,
@@ -139,9 +147,11 @@ describe('Android NativeIdentityAuth bridge contract', () => {
       RELEASE_KEY_PASSWORD: 'release-key-password',
       PUBLIC_APP_ORIGIN: 'https://example.test',
       VK_AUTH_CLIENT_ID: 'vk-client',
+      VK_ANDROID_CLIENT_ID: 'vk-android-client',
       VK_ID_ANDROID_CLIENT_SECRET: 'vk-android-secret',
       VK_AUTH_CLIENT_SECRET: 'vk-server-secret',
       YANDEX_AUTH_CLIENT_ID: 'yandex-client',
+      YANDEX_ANDROID_CLIENT_ID: 'yandex-android-client',
       YANDEX_AUTH_CLIENT_SECRET: 'yandex-server-secret',
       EMAIL_OTP_DELIVERY_URL: 'https://mailer.example.test/send',
       EMAIL_OTP_DELIVERY_SECRET: 'mailer-secret',

@@ -9,7 +9,7 @@
     "dev": "next dev",
     "dev:android": "next dev --hostname 0.0.0.0",
     "build": "next build",
-    "build:mobile": "cross-env MOBILE_BUILD=1 NEXT_PUBLIC_MOBILE_BUILD=1 next build",
+    "build:mobile": "node scripts/build-mobile.mjs",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "test": "jest",

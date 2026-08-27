@@ -63,7 +63,7 @@ describe('MEOU public website release contract', () => {
 
     expect(shell).toContain("'noindex,nofollow'");
     expect(shell).toContain('PUBLIC_SITE_CONFIG.isLegalPreview');
-    expect(document).toContain('const loadTelegramAppDependencies = !publicDocument && !isUiPreviewBuild');
+    expect(document).toContain('const loadTelegramAppDependencies = !publicDocument && !isUiPreviewBuild && !isMobileBuild');
     expect(config).toContain("{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }");
     expect(config).toContain("process.env.NODE_ENV === 'development'");
     expect(config).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval'");

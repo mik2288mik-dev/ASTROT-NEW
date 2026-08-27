@@ -35,9 +35,11 @@ function releaseEnvironment(channel: 'rustore' | 'google_play'): NodeJS.ProcessE
     RELEASE_KEY_PASSWORD: 'test-key-password',
     PUBLIC_APP_ORIGIN: 'https://example.test',
     VK_AUTH_CLIENT_ID: '12345678',
+    VK_ANDROID_CLIENT_ID: '87654321',
     VK_ID_ANDROID_CLIENT_SECRET: 'vk-android-client-secret',
     VK_AUTH_CLIENT_SECRET: 'vk-server-client-secret',
     YANDEX_AUTH_CLIENT_ID: 'yandex-client-id',
+    YANDEX_ANDROID_CLIENT_ID: 'yandex-android-client-id',
     YANDEX_AUTH_CLIENT_SECRET: 'yandex-client-secret',
     EMAIL_OTP_DELIVERY_URL: 'https://mailer.example.test/auth-code',
     EMAIL_OTP_DELIVERY_SECRET: 'email-delivery-secret',
@@ -92,7 +94,7 @@ describe('RuStore account-auth release contract', () => {
   it('reports VK unavailable while the runtime credentials are absent', () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'rustore';
-    delete process.env.VK_AUTH_CLIENT_ID;
+    delete process.env.VK_ANDROID_CLIENT_ID;
     delete process.env.VK_AUTH_CLIENT_SECRET;
 
     expect(getAccountAuthCapabilities('native')).toMatchObject({ vk: false });

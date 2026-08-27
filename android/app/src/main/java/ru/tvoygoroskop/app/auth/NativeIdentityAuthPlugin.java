@@ -144,7 +144,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
      * https://yandex.ru/dev/id/doc/ru/mobileauthsdk/android/3.1.3/sdk-android-use
      */
     private void startYandexSignIn(PluginCall call) {
-        String configuredClientId = BuildConfig.YANDEX_AUTH_CLIENT_ID.trim();
+        String configuredClientId = BuildConfig.YANDEX_ANDROID_CLIENT_ID.trim();
         String requestedClientId = option(call, "clientId");
         if (!matchesConfiguredClient(configuredClientId, requestedClientId)) {
             rejectSignIn(call, AUTH_CONFIGURATION);
@@ -195,7 +195,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
      * https://github.com/VKCOM/vkid-android-sdk/blob/2.7.2/sdk/core/vkid/src/main/java/com/vk/id/auth/VKIDAuthParams.kt
      */
     private void startVkSignIn(PluginCall call) {
-        String configuredClientId = BuildConfig.VK_ID_CLIENT_ID.trim();
+        String configuredClientId = BuildConfig.VK_ANDROID_CLIENT_ID.trim();
         String requestedClientId = option(call, "clientId");
         String state = option(call, "state");
         String codeChallenge = option(call, "codeChallenge");

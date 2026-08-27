@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const releasePrivateKey = generateKeyPairSync('rsa', { modulusLength: 2048 })
@@ -26,9 +27,11 @@ const validReleaseEnv = (): NodeJS.ProcessEnv => ({
   RELEASE_KEY_PASSWORD: 'release-key-password',
   PUBLIC_APP_ORIGIN: 'https://example.ru',
   VK_AUTH_CLIENT_ID: 'vk-client',
+  VK_ANDROID_CLIENT_ID: 'vk-android-client',
   VK_ID_ANDROID_CLIENT_SECRET: 'vk-android-secret',
   VK_AUTH_CLIENT_SECRET: 'vk-server-secret',
   YANDEX_AUTH_CLIENT_ID: 'yandex-client',
+  YANDEX_ANDROID_CLIENT_ID: 'yandex-android-client',
   YANDEX_AUTH_CLIENT_SECRET: 'yandex-secret',
   GOOGLE_AUTH_CLIENT_ID: 'google-client',
   GOOGLE_AUTH_CLIENT_SECRET: 'google-secret',
@@ -93,6 +96,25 @@ describe('store release validator', () => {
     expect(result.stderr).toContain('CAPACITOR_LIVE_URL must not be configured');
     expect(result.stderr).toContain('ALLOW_TEST_PREMIUM_SIMULATION must be disabled');
     expect(result.stderr).toContain('NEXT_PUBLIC_UI_PREVIEW must be disabled');
+  });
+
+  it('rejects a release when Android provider IDs are missing', () => {
+    const env = validReleaseEnv();
+    delete env.YANDEX_ANDROID_CLIENT_ID;
+    delete env.VK_ANDROID_CLIENT_ID;
+    const result = validate(env);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('YANDEX_ANDROID_CLIENT_ID is required');
+    expect(result.stderr).toContain('VK_ANDROID_CLIENT_ID is required');
+  });
+
+  it('keeps the global Capacitor HTTP interception disabled', () => {
+    const capacitor = fs.readFileSync(path.join(process.cwd(), 'capacitor.config.ts'), 'utf8');
+    expect(capacitor).toMatch(/CapacitorHttp\s*:\s*\{\s*[\s\S]*?enabled:\s*false/);
+
+    const validator = fs.readFileSync(path.join(process.cwd(), 'scripts', 'validate-store-release.mjs'), 'utf8');
+    expect(validator).toContain('CapacitorHttp.enabled must remain false');
   });
 
   it('rejects loopback or path-based native API URLs for a release build', () => {
