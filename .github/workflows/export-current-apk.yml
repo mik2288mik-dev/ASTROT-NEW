@@ -12,7 +12,7 @@ jobs:
   export-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Download current signed APK from Railway
+      - name: Download and verify current signed APK
         shell: bash
         run: |
           set -euo pipefail
@@ -31,7 +31,7 @@ jobs:
           test -f apk-check/assets/capacitor.config.json
           cat apk-check/assets/capacitor.config.json | tee CAPACITOR-CONFIG.txt
           grep -q '"CapacitorHttp"' CAPACITOR-CONFIG.txt
-          grep -q '"enabled":true' CAPACITOR-CONFIG.txt
+          grep -Eq '"enabled"[[:space:]]*:[[:space:]]*true' CAPACITOR-CONFIG.txt
           sha256sum NEBO-native-http-fix.apk | tee SHA256SUMS.txt
           ls -lh NEBO-native-http-fix.apk
 
