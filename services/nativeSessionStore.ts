@@ -3,6 +3,7 @@ import { Preferences } from '@capacitor/preferences';
 import { nativeIdentityAuth } from './nativeIdentityAuthBridge';
 
 const NATIVE_SESSION_TOKEN_KEY = 'lumia_native_session_token';
+const NATIVE_SESSION_READ_TIMEOUT_MS = 2_000;
 
 export type NativeSessionBundle = {
   version: 2;
@@ -61,15 +62,51 @@ function parseStoredSession(value: string | null): StoredNativeSession | null {
   }
 }
 
+async function withinNativeReadBudget<T>(promise: Promise<T>, fallback: T, operation: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`[NativeSessionStore] ${operation} timed out after ${NATIVE_SESSION_READ_TIMEOUT_MS}ms; continuing without blocking startup`);
+      resolve(fallback);
+    }, NATIVE_SESSION_READ_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([
+      promise.catch((error) => {
+        console.warn(`[NativeSessionStore] ${operation} failed; continuing without blocking startup`, error);
+        return fallback;
+      }),
+      timeout,
+    ]);
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
 async function readRawSession(): Promise<string | null> {
   if (shouldUseNativeKeystore()) {
-    const result = await nativeIdentityAuth.getSessionToken();
+    const result = await withinNativeReadBudget(
+      nativeIdentityAuth.getSessionToken(),
+      { token: null as string | null },
+      'secure-session read',
+    );
     if (result.token) return result.token;
-    // One-time upgrade path from the former plain Preferences store.
-    const legacy = await Preferences.get({ key: NATIVE_SESSION_TOKEN_KEY });
+
+    // One-time upgrade path from the former plain Preferences store. Some OEM
+    // bridges can stall a plugin call during cold start, so this compatibility
+    // read is advisory and must never hold the app on its loading screen.
+    const legacy = await withinNativeReadBudget(
+      Preferences.get({ key: NATIVE_SESSION_TOKEN_KEY }),
+      { value: null as string | null },
+      'legacy Preferences read',
+    );
     if (!legacy.value) return null;
-    await nativeIdentityAuth.setSessionToken({ token: legacy.value });
-    await Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY });
+
+    // Return the usable legacy value immediately. Migration is best-effort and
+    // deliberately detached from startup so a keystore write cannot block UI.
+    void nativeIdentityAuth.setSessionToken({ token: legacy.value })
+      .then(() => Preferences.remove({ key: NATIVE_SESSION_TOKEN_KEY }))
+      .catch((error) => console.warn('[NativeSessionStore] Legacy secure-session migration failed', error));
     return legacy.value;
   }
   return storage()?.getItem(NATIVE_SESSION_TOKEN_KEY) || null;
