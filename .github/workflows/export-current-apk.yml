@@ -18,18 +18,18 @@ jobs:
           set -euo pipefail
           curl -fL --retry 6 --retry-delay 2 --retry-all-errors \
             "https://nebo-auth-test-apk-production.up.railway.app/nebo-auth-test.apk" \
-            -o NEBO-latest-main-test.apk
-          test -s NEBO-latest-main-test.apk
-          unzip -tq NEBO-latest-main-test.apk >/dev/null
-          sha256sum NEBO-latest-main-test.apk | tee SHA256SUMS.txt
-          ls -lh NEBO-latest-main-test.apk
+            -o NEBO-fixed-api-domain.apk
+          test -s NEBO-fixed-api-domain.apk
+          unzip -tq NEBO-fixed-api-domain.apk >/dev/null
+          sha256sum NEBO-fixed-api-domain.apk | tee SHA256SUMS.txt
+          ls -lh NEBO-fixed-api-domain.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NEBO-latest-main-test
+          name: NEBO-fixed-api-domain
           path: |
-            NEBO-latest-main-test.apk
+            NEBO-fixed-api-domain.apk
             SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 1
