@@ -26,25 +26,25 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onStart() {
+    public void onStart() {
         super.onStart();
         NativeDiagnosticsPlugin.mark(this, "activity_onStart");
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         NativeDiagnosticsPlugin.mark(this, "activity_onResume");
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         NativeDiagnosticsPlugin.mark(this, "activity_onPause");
         super.onPause();
     }
 
     @Override
-    protected void onStop() {
+    public void onStop() {
         NativeDiagnosticsPlugin.mark(this, "activity_onStop");
         super.onStop();
     }
