@@ -48,7 +48,15 @@ export default class MeouDocument extends Document<MeouDocumentProps> {
     const { publicDocument } = this.props;
     const isUiPreviewBuild = process.env.NODE_ENV === 'development'
       && process.env.NEXT_PUBLIC_UI_PREVIEW === '1';
-    const loadTelegramAppDependencies = !publicDocument && !isUiPreviewBuild;
+    const isNativeMobileBuild = process.env.NEXT_PUBLIC_MOBILE_BUILD === '1'
+      || process.env.MOBILE_BUILD === '1';
+    // Native Android must be able to render its local loading shell before any
+    // external network is reachable. A parser-blocking Telegram script in <head>
+    // can otherwise leave a device on a completely white screen before React or
+    // the API client ever starts.
+    const loadTelegramAppDependencies = !publicDocument
+      && !isUiPreviewBuild
+      && !isNativeMobileBuild;
 
     return (
       <Html lang="ru" className="antialiased">
