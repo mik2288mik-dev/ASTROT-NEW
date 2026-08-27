@@ -7,23 +7,53 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 
 import ru.tvoygoroskop.app.auth.NativeIdentityAuthPlugin;
+import ru.tvoygoroskop.app.diagnostics.NativeDiagnosticsPlugin;
 
 /** Android entry point for the public RuStore application identity. */
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        NativeDiagnosticsPlugin.installCrashHandler(this);
+        NativeDiagnosticsPlugin.mark(this, "activity_onCreate_before_capacitor savedState=" + (savedInstanceState != null));
+        registerPlugin(NativeDiagnosticsPlugin.class);
         registerPlugin(NativeIdentityAuthPlugin.class);
         if (isRuStorePaymentsEnabled()) {
             registerRuStorePlugin();
         }
         super.onCreate(savedInstanceState);
+        NativeDiagnosticsPlugin.mark(this, "activity_onCreate_after_capacitor");
         if (isRuStorePaymentsEnabled() && savedInstanceState == null) proceedRuStoreIntent(getIntent());
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        NativeDiagnosticsPlugin.mark(this, "activity_onStart");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        NativeDiagnosticsPlugin.mark(this, "activity_onResume");
+    }
+
+    @Override
+    protected void onPause() {
+        NativeDiagnosticsPlugin.mark(this, "activity_onPause");
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        NativeDiagnosticsPlugin.mark(this, "activity_onStop");
+        super.onStop();
     }
 
     @Override
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        NativeDiagnosticsPlugin.mark(this, "activity_onNewIntent");
         if (isRuStorePaymentsEnabled()) proceedRuStoreIntent(intent);
     }
 
