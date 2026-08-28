@@ -189,14 +189,18 @@ describe('RuStore account-auth release contract', () => {
 
   it('does not render unavailable providers as disabled AuthGate buttons', () => {
     const authGate = read('views/AuthGate.tsx');
+    const availableProviders = authGate.slice(
+      authGate.indexOf('const availableProviders ='),
+      authGate.indexOf('const telegramReady'),
+    );
     const providerList = authGate.slice(
-      authGate.indexOf('{PROVIDERS'),
-      authGate.indexOf('</button>', authGate.indexOf('{PROVIDERS')),
+      authGate.indexOf('{availableProviders.map'),
+      authGate.indexOf('{telegramReady'),
     );
 
-    expect(providerList).toContain('.filter(');
-    expect(providerList).toContain('capabilities?.[provider.id] === true');
-    expect(providerList.indexOf('.filter(')).toBeLessThan(providerList.indexOf('.map('));
+    expect(availableProviders).toContain('PROVIDERS.filter');
+    expect(availableProviders).toContain('capabilities?.[provider.id] === true');
+    expect(providerList).toContain('availableProviders.map');
   });
 
   it('keeps Google native code and dependencies out of the RuStore variant', () => {

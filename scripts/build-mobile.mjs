@@ -70,4 +70,22 @@ const result = spawnSync(process.execPath, [nextBin, 'build'], {
 });
 
 if (result.error) fail(result.error.message);
-process.exit(result.status ?? 1);
+if (result.status !== 0) process.exit(result.status ?? 1);
+
+const outputDirectory = path.resolve('out');
+if (!fs.existsSync(outputDirectory)) fail('Next did not produce the static mobile output directory.');
+
+// This is deliberately public and contains no credential: it lets Gradle
+// reject stale Capacitor assets that were built for another distribution.
+const buildMarker = {
+  format: 1,
+  mobileBuild: true,
+  channel,
+  apiOrigin: new URL(apiUrl).origin,
+};
+fs.writeFileSync(
+  path.join(outputDirectory, 'nebo-mobile-build.json'),
+  `${JSON.stringify(buildMarker)}\n`,
+  'utf8',
+);
+console.log(`[build:mobile] Wrote provenance marker for ${channel}.`);

@@ -1,6 +1,7 @@
-import { Capacitor, CapacitorHttp, type HttpResponse } from '@capacitor/core';
+import { CapacitorHttp, type HttpResponse } from '@capacitor/core';
 import { nativeSessionStore, type NativeSessionBundle, type StoredNativeSession } from './nativeSessionStore';
 import { assertNativeNetworkAvailable } from './nativeNetwork';
+import { isNativeAndroidRuntime, isNativeAppRuntime as hasNativeAppRuntime } from './nativeRuntime';
 import {
   getAuthSessionMode,
   requiresExplicitAuthentication,
@@ -67,7 +68,7 @@ function dispatchSessionInvalidation(detail: AppSessionInvalidatedDetail): void 
 }
 
 export function isNativeAppRuntime(): boolean {
-  return process.env.NEXT_PUBLIC_MOBILE_BUILD === '1' || Capacitor.isNativePlatform();
+  return hasNativeAppRuntime();
 }
 
 function configuredApiBaseUrl(): string {
@@ -97,7 +98,7 @@ function usesAndroidNativeHttp(): boolean {
   // The mobile bundle is compiled specifically for Capacitor. Rely on the
   // platform bridge rather than a second native-platform flag, which can lag
   // during WebView startup on some Android devices.
-  return isNativeAppRuntime() && Capacitor.getPlatform() === 'android';
+  return isNativeAndroidRuntime();
 }
 
 function requestWasAborted(): Error {
@@ -288,7 +289,7 @@ async function requestNativeSession(signal?: AbortSignal): Promise<NativeSession
   if (nativeSessionRequest) return nativeSessionRequest;
 
   nativeSessionRequest = (async () => {
-    const response = await apiTransportFetch(apiUrl('/api/auth/native-guest'), {
+    const response = await apiFetchUnauthenticated('/api/auth/native-guest', {
       method: 'POST',
       credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
@@ -462,7 +463,12 @@ export async function getAppAuthHeaders(signal?: AbortSignal): Promise<Record<st
   return {};
 }
 
-async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+async function fetchOnce(
+  path: string,
+  init: RequestInit,
+  timeoutMs: number,
+  includeSessionAuth = true,
+): Promise<Response> {
   await assertNativeNetworkAvailable();
   const controller = new AbortController();
   const externalSignal = init.signal;
@@ -475,10 +481,12 @@ async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Pr
 
   try {
     const headers = new Headers(init.headers || {});
-    const authHeaders = await getAppAuthHeaders(controller.signal);
-    Object.entries(authHeaders).forEach(([name, value]) => {
-      if (!headers.has(name)) headers.set(name, value);
-    });
+    if (includeSessionAuth) {
+      const authHeaders = await getAppAuthHeaders(controller.signal);
+      Object.entries(authHeaders).forEach(([name, value]) => {
+        if (!headers.has(name)) headers.set(name, value);
+      });
+    }
     return await apiTransportFetch(apiUrl(path), {
       ...init,
       credentials: isNativeAppRuntime() ? 'omit' : (init.credentials || 'include'),
@@ -489,6 +497,19 @@ async function fetchOnce(path: string, init: RequestInit, timeoutMs: number): Pr
     clearTimeout(timer);
     externalSignal?.removeEventListener('abort', abortFromExternal);
   }
+}
+
+/**
+ * Sends a deliberate unauthenticated request through the same bounded Android
+ * transport as the rest of the app. This must be used for creating a native
+ * guest session so `apiFetch` does not bootstrap that same session twice.
+ */
+export async function apiFetchUnauthenticated(
+  path: string,
+  init: RequestInit = {},
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  return fetchOnce(path, init, timeoutMs, false);
 }
 
 async function invalidateSession(

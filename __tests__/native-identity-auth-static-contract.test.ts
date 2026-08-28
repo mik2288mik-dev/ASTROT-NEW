@@ -193,6 +193,21 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(googlePlayReady.status).toBe(0);
   });
 
+  it('rejects stale Capacitor assets before Gradle assembles a flavor', () => {
+    const mobileBuild = read('scripts/build-mobile.mjs');
+    const nextConfig = read('next.config.js');
+    const appGradle = read('android/app/build.gradle');
+
+    expect(mobileBuild).toContain("'nebo-mobile-build.json'");
+    expect(mobileBuild).toContain('apiOrigin: new URL(apiUrl).origin');
+    expect(nextConfig).toContain('mobileDistributionChannels');
+    expect(nextConfig).toContain('NEXT_PUBLIC_DISTRIBUTION_CHANNEL must be');
+    expect(appGradle).toContain('verifyMobileBuildMarker');
+    expect(appGradle).toContain("String.valueOf(marker.apiOrigin ?: '')");
+    expect(appGradle).toContain("marker.channel != expectedChannel");
+    expect(appGradle).toContain('Mobile web assets do not match');
+  });
+
   it('stores the native session token with a non-exportable AES-GCM key', () => {
     const plugin = read(
       'android/app/src/main/java/ru/tvoygoroskop/app/auth/NativeIdentityAuthPlugin.java',

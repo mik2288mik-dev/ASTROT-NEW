@@ -33,6 +33,7 @@ import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack
 import {
     authenticateWithProvider,
     getAccountAuthCapabilities,
+    getLocalAccountAuthCapabilities,
     getLinkedIdentities,
     linkCurrentTelegramIdentity,
     loginWithEmailPassword,
@@ -282,7 +283,10 @@ export const Settings: React.FC<SettingsProps> = ({
     const [emailPasswordConfirmationVisible, setEmailPasswordConfirmationVisible] = useState(false);
     const [identityBusy, setIdentityBusy] = useState(false);
     const [authPurpose, setAuthPurpose] = useState<'link' | 'login'>('link');
-    const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(previewFixture?.authCapabilities || null);
+    const [authCapabilities, setAuthCapabilities] = useState<AccountAuthCapabilities | null>(
+        () => previewFixture?.authCapabilities || getLocalAccountAuthCapabilities(),
+    );
+    const [authCapabilitiesLoadFailed, setAuthCapabilitiesLoadFailed] = useState(false);
     const [restoreState, setRestoreState] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
@@ -360,11 +364,28 @@ export const Settings: React.FC<SettingsProps> = ({
     useEffect(() => {
         if (previewFixture) return;
         let alive = true;
-        void Promise.all([getLinkedIdentities(), getAccountAuthCapabilities()])
-            .then(([result, capabilities]) => {
+        const localCapabilities = getLocalAccountAuthCapabilities();
+
+        if (localCapabilities) {
+            setAuthCapabilities(localCapabilities);
+            setAuthCapabilitiesLoadFailed(false);
+        } else {
+            void getAccountAuthCapabilities()
+                .then((capabilities) => {
+                    if (!alive) return;
+                    setAuthCapabilities(capabilities);
+                    setAuthCapabilitiesLoadFailed(false);
+                })
+                .catch(() => {
+                    if (!alive) return;
+                    setAuthCapabilitiesLoadFailed(true);
+                });
+        }
+
+        void getLinkedIdentities()
+            .then((result) => {
                 if (!alive) return;
                 setIdentities(result.identities);
-                setAuthCapabilities(capabilities);
                 setIdentityLoadFailed(false);
             })
             .catch(() => {
@@ -1082,7 +1103,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 ))}
                             </div>
                         ) : null}
-                        {identityLoadFailed ? (
+                        {identityLoadFailed || authCapabilitiesLoadFailed ? (
                             <div className="settings-inline-error">
                                 <p>{profile.language === 'en' ? 'Could not load sign-in methods.' : 'Не удалось загрузить способы входа.'}</p>
                                 <button type="button" onClick={() => setIdentityReload((value) => value + 1)}>

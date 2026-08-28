@@ -1,11 +1,10 @@
-import { Capacitor } from '@capacitor/core';
 import {
   nativeIdentityAuth,
   type NativeIdentityProvider as Provider,
-  type NativeProviderCredential,
   type NativeProviderLaunch,
 } from './nativeIdentityAuthBridge';
-import { apiFetch, isNativeAppRuntime, persistNativeSessionResponse } from './apiClient';
+import { apiFetch, persistNativeSessionResponse } from './apiClient';
+import { isNativeAndroidRuntime, isNativeAppRuntime } from './nativeRuntime';
 import {
   getRawTelegramInitData,
   setAuthSessionMode,
@@ -67,7 +66,39 @@ const NATIVE_PROVIDER_START_TIMEOUT_MS = 10_000;
 const NATIVE_PROVIDER_COMPLETE_TIMEOUT_MS = 20_000;
 
 function usesNativeAndroidProviderAuth(): boolean {
-  return isNativeAppRuntime() && Capacitor.getPlatform() === 'android';
+  return isNativeAndroidRuntime();
+}
+
+function isGoogleAvailableInCurrentChannel(): boolean {
+  try {
+    return canUseAccountAuthProvider('google', resolveDistributionChannel());
+  } catch {
+    // Yandex and VK are compiled into the Android build and do not need the
+    // channel to render. Google remains hidden until a valid channel exists.
+    return false;
+  }
+}
+
+function canUseProviderInCurrentChannel(provider: Provider): boolean {
+  return provider !== 'google' || isGoogleAvailableInCurrentChannel();
+}
+
+/**
+ * Android Yandex/VK SDKs and their client IDs are compiled into the APK. Their
+ * availability is therefore local build configuration, not a network
+ * discovery problem. The server still validates both the challenge and the
+ * resulting provider credential when the user taps a button.
+ */
+export function getLocalAccountAuthCapabilities(): AccountAuthCapabilities | null {
+  if (!usesNativeAndroidProviderAuth()) return null;
+  return {
+    vk: true,
+    yandex: true,
+    google: isGoogleAvailableInCurrentChannel(),
+    email: false,
+    emailPassword: false,
+    emailDelivery: false,
+  };
 }
 
 async function authError(response: Response, fallback: string): Promise<Error> {
@@ -184,6 +215,9 @@ export async function getLinkedIdentities(): Promise<{
 }
 
 export async function getAccountAuthCapabilities(): Promise<AccountAuthCapabilities> {
+  const localCapabilities = getLocalAccountAuthCapabilities();
+  if (localCapabilities) return localCapabilities;
+
   const runtime = usesNativeAndroidProviderAuth() ? 'native' : 'browser';
   const channel = resolveDistributionChannel();
   const response = await apiFetch(
@@ -228,7 +262,7 @@ export async function authenticateWithProvider(
   provider: Provider,
   purpose: AuthPurpose = 'login',
 ): Promise<UserProfile | null> {
-  if (!canUseAccountAuthProvider(provider, resolveDistributionChannel())) {
+  if (!canUseProviderInCurrentChannel(provider)) {
     const error = new Error('AUTH_PROVIDER_NOT_AVAILABLE_IN_CHANNEL');
     (error as Error & { code?: string }).code = 'AUTH_PROVIDER_NOT_AVAILABLE_IN_CHANNEL';
     throw error;

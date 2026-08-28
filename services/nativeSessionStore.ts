@@ -1,6 +1,6 @@
-import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { nativeIdentityAuth } from './nativeIdentityAuthBridge';
+import { isNativeAppRuntime } from './nativeRuntime';
 
 const NATIVE_SESSION_TOKEN_KEY = 'lumia_native_session_token';
 const NATIVE_SESSION_READ_TIMEOUT_MS = 2_000;
@@ -37,7 +37,7 @@ function storage(): Storage | null {
 }
 
 function shouldUseNativeKeystore(): boolean {
-  return typeof window !== 'undefined' && Capacitor.isNativePlatform();
+  return typeof window !== 'undefined' && isNativeAppRuntime();
 }
 
 function parseStoredSession(value: string | null): StoredNativeSession | null {

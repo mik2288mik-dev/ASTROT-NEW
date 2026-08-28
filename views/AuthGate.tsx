@@ -7,6 +7,7 @@ import {
   authenticateWithProvider,
   completePasswordReset,
   getAccountAuthCapabilities,
+  getLocalAccountAuthCapabilities,
   loginWithTelegram,
   loginWithEmailPassword,
   registerEmailPassword,
@@ -91,11 +92,23 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const [passwordConfirmationVisible, setPasswordConfirmationVisible] = useState(false);
   const [code, setCode] = useState('');
   const [challengeId, setChallengeId] = useState('');
-  const [capabilities, setCapabilities] = useState<AccountAuthCapabilities | null>(null);
+  const initialLocalCapabilities = getLocalAccountAuthCapabilities();
+  const usesLocalCapabilities = initialLocalCapabilities !== null;
+  const [capabilities, setCapabilities] = useState<AccountAuthCapabilities | null>(
+    () => initialLocalCapabilities,
+  );
   const [capabilitiesLoadFailed, setCapabilitiesLoadFailed] = useState(false);
   const [capabilitiesReload, setCapabilitiesReload] = useState(0);
 
   useEffect(() => {
+    if (usesLocalCapabilities) {
+      // Native Yandex/VK availability comes from the APK, so never send a
+      // capability request merely to decide whether to render these buttons.
+      setCapabilities(() => getLocalAccountAuthCapabilities());
+      setCapabilitiesLoadFailed(false);
+      return;
+    }
+
     let alive = true;
     const loadCapabilities = async () => {
       try {
@@ -105,7 +118,6 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         setCapabilitiesLoadFailed(false);
       } catch {
         if (!alive) return;
-        setCapabilities(null);
         setCapabilitiesLoadFailed(true);
       }
     };
@@ -116,7 +128,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       alive = false;
       window.removeEventListener('online', retryOnReconnect);
     };
-  }, [capabilitiesReload]);
+  }, [capabilitiesReload, usesLocalCapabilities]);
 
   useEffect(() => {
     const onNativeBack = (event: Event) => {
@@ -327,7 +339,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
           {(isRegister || isLogin) ? (
             <div className={isRegister ? 'mt-3 grid gap-2.5' : 'mt-7 grid gap-2.5'}>
-              {PROVIDERS.filter((provider) => capabilities?.[provider.id] === true).map((provider) => (
+              {availableProviders.map((provider) => (
                 <button
                   key={provider.id}
                   type="button"
@@ -508,7 +520,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
           {!emailDeliveryReady && capabilities ? (
             <p className="mt-4 text-center text-[12px] leading-4 text-[#8a7159]">Отправка писем будет доступна после настройки почтового сервиса.</p>
           ) : null}
-          {capabilitiesLoadFailed ? (
+          {!usesLocalCapabilities && capabilitiesLoadFailed ? (
             <div className="mt-4 text-center text-[12px] leading-4 text-[#8a7159]">
               <p>Не удалось загрузить способы входа.</p>
               <button
@@ -523,7 +535,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               </button>
             </div>
           ) : null}
-          {!capabilities && !capabilitiesLoadFailed ? (
+          {!usesLocalCapabilities && !capabilities && !capabilitiesLoadFailed ? (
             <p className="mt-4 text-center text-[12px] leading-4 text-[#687079]">Загружаем доступные способы входа…</p>
           ) : null}
           {notice ? <p role="status" className="mt-4 rounded-2xl bg-[#eef5f1] px-4 py-3 text-[14px] leading-5 text-[#315348]">{notice}</p> : null}

@@ -3,11 +3,16 @@ const isPublicWebsiteBuild = process.env.MEOU_PUBLIC_SITE === '1'
   || process.env.NEXT_PUBLIC_MEOU_PUBLIC_SITE === '1';
 const isLegalPreview = process.env.NEXT_PUBLIC_LEGAL_PREVIEW === '1';
 const distributionChannel = process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL;
+const mobileDistributionChannels = new Set(['telegram', 'rustore', 'google_play', 'development']);
 const excludesTelegramStars = isMobileBuild
   && (distributionChannel === 'google_play' || distributionChannel === 'rustore');
 
 if (isMobileBuild && !process.env.NEXT_PUBLIC_API_URL) {
   throw new Error('NEXT_PUBLIC_API_URL is required when MOBILE_BUILD=1');
+}
+
+if (isMobileBuild && !mobileDistributionChannels.has(distributionChannel)) {
+  throw new Error('NEXT_PUBLIC_DISTRIBUTION_CHANNEL must be telegram, rustore, google_play, or development when MOBILE_BUILD=1');
 }
 
 // Keep the marketing/SEO site deployable even while operator/legal fields are

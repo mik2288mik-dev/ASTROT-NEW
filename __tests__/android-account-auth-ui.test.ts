@@ -95,10 +95,31 @@ describe('Android account authentication UI', () => {
     expect(capabilityFailure).toBeGreaterThan(guestAction);
   });
 
+  test('keeps compiled Android providers and guest transport independent from discovery', () => {
+    const gate = read('views/AuthGate.tsx');
+    const settings = read('views/Settings.tsx');
+    const service = read('services/accountAuthService.ts');
+    const api = read('services/apiClient.ts');
+    const session = read('services/sessionService.ts');
+
+    expect(service).toContain('export function getLocalAccountAuthCapabilities');
+    expect(service).toContain('if (localCapabilities) return localCapabilities;');
+    expect(gate).toContain('const initialLocalCapabilities = getLocalAccountAuthCapabilities()');
+    expect(gate).toContain('if (usesLocalCapabilities)');
+    expect(gate).toContain('availableProviders.map');
+    expect(settings).not.toContain('Promise.all([getLinkedIdentities(), getAccountAuthCapabilities()])');
+    expect(api).toContain('export async function apiFetchUnauthenticated');
+    expect(session).toContain('apiFetchUnauthenticated(');
+    expect(session).not.toContain("fetch(apiUrl('/api/auth/native-guest')");
+  });
+
   test('detects the native runtime from Capacitor even when the build flag is unavailable', () => {
     const api = read('services/apiClient.ts');
+    const runtime = read('services/nativeRuntime.ts');
 
-    expect(api).toContain("process.env.NEXT_PUBLIC_MOBILE_BUILD === '1' || Capacitor.isNativePlatform()");
+    expect(api).toContain("import { isNativeAndroidRuntime, isNativeAppRuntime as hasNativeAppRuntime } from './nativeRuntime'");
+    expect(api).toContain('return hasNativeAppRuntime();');
+    expect(runtime).toContain("process.env.NEXT_PUBLIC_MOBILE_BUILD === '1' || Capacitor.isNativePlatform()");
   });
 
   test('keeps Android Back inside multi-step authentication before root exit', () => {

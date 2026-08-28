@@ -1,4 +1,9 @@
-import { apiFetch, apiUrl, isNativeAppRuntime, persistNativeSessionResponse } from './apiClient';
+import {
+  apiFetch,
+  apiFetchUnauthenticated,
+  isNativeAppRuntime,
+  persistNativeSessionResponse,
+} from './apiClient';
 import {
   getActiveTelegramInitData,
   getRawTelegramInitData,
@@ -205,25 +210,22 @@ export async function updateUserNotificationSettings(payload: {
 }
 
 async function createNativeGuestSession(): Promise<any | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), NATIVE_GUEST_TIMEOUT_MS);
-  try {
-    const response = await fetch(apiUrl('/api/auth/native-guest'), {
+  const response = await apiFetchUnauthenticated(
+    '/api/auth/native-guest',
+    {
       method: 'POST',
       credentials: 'omit',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionVersion: 2 }),
-      signal: controller.signal,
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || !payload?.profile) {
-      throw new Error(payload?.message || payload?.error || `Guest session failed: ${response.status}`);
-    }
-    await persistNativeSessionResponse(payload);
-    return payload.profile;
-  } finally {
-    clearTimeout(timeout);
+    },
+    NATIVE_GUEST_TIMEOUT_MS,
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload?.profile) {
+    throw new Error(payload?.message || payload?.error || `Guest session failed: ${response.status}`);
   }
+  await persistNativeSessionResponse(payload);
+  return payload.profile;
 }
 
 /** Explicitly create or reuse a guest session, including inside Telegram. */

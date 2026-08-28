@@ -118,6 +118,43 @@ android {
     }
 }
 
+def mobileBuildMarkerFile = file('src/main/assets/public/nebo-mobile-build.json')
+def verifyMobileBuildMarker = { String expectedChannel ->
+    if (!mobileBuildMarkerFile.exists()) {
+        throw new GradleException("Mobile web assets are missing their provenance marker. Run the matching android build command before assembling ${expectedChannel}.")
+    }
+    def marker = new groovy.json.JsonSlurper().parse(mobileBuildMarkerFile)
+    def apiOrigin = String.valueOf(marker.apiOrigin ?: '')
+    if (
+        marker.format != 1
+        || marker.mobileBuild != true
+        || marker.channel != expectedChannel
+        || !apiOrigin.startsWith('https://')
+    ) {
+        throw new GradleException("Mobile web assets do not match the ${expectedChannel} Android flavor. Rebuild and sync the matching mobile bundle before assembling.")
+    }
+}
+
+def expectedChannelForPreBuild = { String taskName ->
+    def normalized = taskName.toLowerCase()
+    if (!normalized.startsWith('pre') || !normalized.endsWith('build')) return null
+    if (normalized.contains('development')) return 'development'
+    if (normalized.contains('rustore')) return 'rustore'
+    if (normalized.contains('googleplay')) return 'google_play'
+    return null
+}
+
+// Android Studio and direct Gradle invocations otherwise can package whatever
+// Capacitor copied last, including an older channel-less web bundle.
+tasks.configureEach { task ->
+    def expectedChannel = expectedChannelForPreBuild(task.name)
+    if (expectedChannel != null) {
+        task.doFirst {
+            verifyMobileBuildMarker(expectedChannel)
+        }
+    }
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
