@@ -990,6 +990,7 @@ function containsChronologicalTimeSegment(value: string): boolean {
 }
 
 export type PersonalForecastGenerationDiagnosticCode =
+  | 'PERSONAL_FORECAST_CACHE_WRITE_FAILED'
   | 'PERSONAL_FORECAST_EVIDENCE_EMPTY'
   | 'PERSONAL_FORECAST_WRITER_VALIDATION_FAILED'
   | 'PERSONAL_FORECAST_WRITER_OUTPUT_LIMIT'
@@ -1003,6 +1004,9 @@ export function getPersonalForecastGenerationDiagnosticCode(
   error: unknown,
 ): PersonalForecastGenerationDiagnosticCode {
   const message = error instanceof Error ? error.message : String(error);
+  if (message.startsWith('PERSONAL_FORECAST_CACHE_WRITE_FAILED')) {
+    return 'PERSONAL_FORECAST_CACHE_WRITE_FAILED';
+  }
   if (message.startsWith('PERSONAL_FORECAST_EVIDENCE_EMPTY')) {
     return 'PERSONAL_FORECAST_EVIDENCE_EMPTY';
   }
@@ -1721,7 +1725,7 @@ export async function generatePersonalForecastPackage(input: {
   };
 
   const primary = materializePackage(generated, null);
-  trace.emit('final_package_saved', { final_status: 'ready', final_signature: primary.meta.semanticSignature });
+  trace.emit('final_package_validated', { final_status: 'ready', final_signature: primary.meta.semanticSignature });
   if (isPersonalForecastPackage(primary)) return primary;
   const primaryValidationError = getPersonalForecastPackageValidationError(primary)
     || 'PACKAGE_UNKNOWN_INVALID';

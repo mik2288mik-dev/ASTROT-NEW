@@ -16,7 +16,7 @@ describe('personal forecast cache miss generation', () => {
     jest.restoreAllMocks();
   });
 
-  it('turns GET 204 into POST generation and polling to a ready package', async () => {
+  it.each([404, 204])('turns GET %i cache miss into POST generation and polling to a ready package', async (status) => {
     const forecast = personalForecastFixture();
     const payload = {
       forecast,
@@ -26,7 +26,13 @@ describe('personal forecast cache miss generation', () => {
       source: 'generated',
     };
     mockedFetch
-      .mockResolvedValueOnce({ status: 204, ok: true })
+      .mockResolvedValueOnce({
+        status,
+        ok: status === 204,
+        json: async () => status === 404
+          ? { code: 'PERSONAL_FORECAST_NOT_READY' }
+          : {},
+      })
       .mockResolvedValueOnce({ status: 202, ok: true, json: async () => ({ retryAfterMs: 0 }) })
       .mockResolvedValueOnce({ status: 200, ok: true, json: async () => payload });
     jest.spyOn(global, 'setTimeout').mockImplementation(((callback: TimerHandler) => {

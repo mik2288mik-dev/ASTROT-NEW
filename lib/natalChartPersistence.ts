@@ -132,7 +132,6 @@ export async function repairCanonicalChartForUser(userId:string) {
   const birthPlace = normalizeBirthPlaceInput(chart?.birth_place || user?.birth_place);
   if (!birthDate || !birthPlace) {
     console.warn('[natal/chart-repair] skipped: birth profile is incomplete', {
-      userId,
       missingFields: [!birthDate && 'birthDate', !birthPlace && 'birthPlace'].filter(Boolean),
       hasPrimaryChart: !!chart,
     });

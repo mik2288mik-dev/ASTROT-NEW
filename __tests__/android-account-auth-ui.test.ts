@@ -16,6 +16,7 @@ describe('Android account authentication UI', () => {
     expect(gate).toContain('Продолжить без аккаунта');
     expect(gate).toContain('Продолжить с Яндексом');
     expect(gate).toContain('Продолжить с VK ID');
+    expect(gate).not.toContain('Продолжить с Google');
     expect(gate).toContain('Повторите пароль');
     expect(gate).toContain('Уже есть аккаунт?');
     expect(gate).toContain('Забыли пароль?');
@@ -26,7 +27,7 @@ describe('Android account authentication UI', () => {
     expect(service).toContain('resolveDistributionChannel');
     expect(service).toContain('channel=${channel}');
     expect(capabilities).toContain('canUseAccountAuthProvider');
-    expect(distribution).toContain("channel === 'google_play' || channel === 'development'");
+    expect(distribution).toContain("return channel === 'google_play'");
     expect(distribution).toContain("if (provider !== 'google') return true");
   });
 
@@ -105,11 +106,14 @@ describe('Android account authentication UI', () => {
     const session = read('services/sessionService.ts');
 
     expect(service).toContain('export function getLocalAccountAuthCapabilities');
-    expect(service).toContain('if (localCapabilities) return localCapabilities;');
+    expect(service).not.toContain('if (localCapabilities) return localCapabilities;');
+    expect(service).toContain('localCapabilities ? localCapabilities.vk : payload?.vk === true');
+    expect(service).toContain('localCapabilities ? localCapabilities.yandex : payload?.yandex === true');
     expect(gate).toContain('const initialLocalCapabilities = getLocalAccountAuthCapabilities()');
-    expect(gate).toContain('if (usesLocalCapabilities)');
+    expect(gate).not.toContain('if (usesLocalCapabilities)');
     expect(gate).toContain('availableProviders.map');
     expect(settings).not.toContain('Promise.all([getLinkedIdentities(), getAccountAuthCapabilities()])');
+    expect(settings).toContain('void getAccountAuthCapabilities()');
     expect(api).toContain('export async function apiFetchUnauthenticated');
     expect(session).toContain('apiFetchUnauthenticated(');
     expect(session).not.toContain("fetch(apiUrl('/api/auth/native-guest')");

@@ -81,6 +81,35 @@ describe("local natal chart cache", () => {
     ).toBeNull();
   });
 
+  it("separates exact, approximate and unknown time identities", () => {
+    const exact = { ...profile, birthTimeMode: 'exact' as const };
+    const approximate = {
+      ...profile,
+      birthTimeMode: 'approximate' as const,
+      birthTimeUncertaintyMinutes: 30 as const,
+    };
+    const unknown = { ...profile, birthTimeMode: 'unknown' as const, birthTime: '' };
+    writeLocalNatalChart(exact, chart);
+
+    expect(buildNatalChartCacheKey(exact)).not.toBe(buildNatalChartCacheKey(approximate));
+    expect(buildNatalChartCacheKey(exact)).not.toBe(buildNatalChartCacheKey(unknown));
+    expect(readLocalNatalChart(approximate)).toBeNull();
+    expect(readLocalNatalChart(unknown)).toBeNull();
+  });
+
+  it("invalidates the cache when canonical location context changes", () => {
+    const located = {
+      ...profile,
+      birthTimezone: 'Europe/Moscow',
+      birthLatitude: 55.7558,
+      birthLongitude: 37.6173,
+    };
+    writeLocalNatalChart(located, chart);
+
+    expect(readLocalNatalChart({ ...located, birthTimezone: 'Europe/London' })).toBeNull();
+    expect(readLocalNatalChart({ ...located, birthLatitude: 51.5074 })).toBeNull();
+  });
+
   it("does not use another user cache", () => {
     writeLocalNatalChart(profile, chart);
 
@@ -93,10 +122,11 @@ describe("local natal chart cache", () => {
     const raw = window.localStorage.getItem(buildNatalChartCacheKey(profile));
     expect(raw).toBeTruthy();
     expect(JSON.parse(raw as string)).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       userId: "user-1",
       birthDate: "1990-01-02",
       birthTime: "03:04",
+      birthTimeMode: "exact",
       birthPlace: "Moscow",
       chartData: chart,
     });

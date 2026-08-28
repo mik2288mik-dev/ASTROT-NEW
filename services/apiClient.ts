@@ -1,5 +1,11 @@
 import { CapacitorHttp, type HttpResponse } from '@capacitor/core';
 import { diagnosticLog } from '../lib/runtimeDiagnostics';
+import {
+  diagnosticErrorCode,
+  formatDiagnosticFields,
+  NEBO_TRACE_HEADER,
+  normalizeDiagnosticTraceId,
+} from '../lib/diagnosticTrace';
 import { nativeSessionStore, type NativeSessionBundle, type StoredNativeSession } from './nativeSessionStore';
 import { assertNativeNetworkAvailable } from './nativeNetwork';
 import { isNativeAndroidRuntime, isNativeAppRuntime as hasNativeAppRuntime } from './nativeRuntime';
@@ -136,7 +142,12 @@ function nativeHttpResponse(raw: HttpResponse): Response {
   const headers = raw.headers || {};
   const contentType = responseHeader(headers, 'content-type').toLowerCase();
   const data = raw.data;
-  const body: BodyInit | null = data == null
+  // Capacitor returns an empty string for bodyless responses on Android.
+  // The Fetch Response constructor rejects any body for these status codes,
+  // including an empty string or empty Uint8Array.
+  const body: BodyInit | null = [204, 205, 304].includes(raw.status)
+    ? null
+    : data == null
     ? null
     : contentType.includes('json')
       ? (typeof data === 'string' ? data : JSON.stringify(data))
@@ -158,10 +169,18 @@ function nativeDiagnosticPath(url: string): string {
   }
 }
 
-function nativeDiagnosticErrorCode(error: unknown): string {
-  const value = error as { code?: unknown; name?: unknown } | null;
-  const code = typeof value?.code === 'string' ? value.code : value?.name;
-  return typeof code === 'string' && code.trim() ? code.trim().slice(0, 160) : 'unknown';
+function nativeResponseErrorCode(raw: HttpResponse): string | undefined {
+  if (raw.status < 400) return undefined;
+  let payload = raw.data;
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload); } catch { return `HTTP_${raw.status}`; }
+  }
+  if (!payload || typeof payload !== 'object') return `HTTP_${raw.status}`;
+  const value = (payload as { code?: unknown; error?: unknown }).code
+    || (payload as { error?: unknown }).error;
+  return typeof value === 'string'
+    ? diagnosticErrorCode({ code: value }, `HTTP_${raw.status}`)
+    : `HTTP_${raw.status}`;
 }
 
 function raceNativeRequest<T>(request: Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -205,9 +224,16 @@ async function apiTransportFetch(
   if (init.signal?.aborted) throw requestWasAborted();
 
   const nativeTimeout = Math.max(1, Math.floor(timeoutMs));
-  const method = init.method || 'GET';
+  const method = (init.method || 'GET').toUpperCase();
   const path = nativeDiagnosticPath(url);
-  diagnosticLog('INFO', 'native_http_start', `${method} ${path}`);
+  const traceId = normalizeDiagnosticTraceId(new Headers(init.headers || {}).get(NEBO_TRACE_HEADER)) || undefined;
+  const startedAt = Date.now();
+  diagnosticLog('INFO', 'native_http_start', `${method} ${path} ${formatDiagnosticFields({
+    traceId,
+    side: 'client',
+    stage: 'request',
+    status: 'start',
+  })}`);
   try {
     const raw = await raceNativeRequest(
       CapacitorHttp.request({
@@ -223,11 +249,27 @@ async function apiTransportFetch(
       }),
       init.signal || undefined,
     );
-    diagnosticLog(raw.status >= 400 ? 'WARN' : 'INFO', 'native_http_end', `${method} ${path} status=${raw.status}`);
+    diagnosticLog(raw.status >= 400 ? 'WARN' : 'INFO', 'native_http_end', `${method} ${path} ${formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'response',
+      status: raw.status >= 400 ? 'error' : 'ok',
+      durationMs: Date.now() - startedAt,
+      httpStatus: raw.status,
+      errorCode: nativeResponseErrorCode(raw),
+    })}`);
     return nativeHttpResponse(raw);
   } catch (error) {
-    if (isAbortError(error)) throw error;
-    diagnosticLog('ERROR', 'native_http_failed', `${method} ${path} cause=${nativeDiagnosticErrorCode(error)}`);
+    const aborted = isAbortError(error);
+    diagnosticLog(aborted ? 'WARN' : 'ERROR', 'native_http_failed', `${method} ${path} ${formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'transport',
+      status: aborted ? 'timeout' : 'error',
+      durationMs: Date.now() - startedAt,
+      errorCode: diagnosticErrorCode(error, aborted ? 'REQUEST_ABORTED' : 'NATIVE_HTTP_FAILED'),
+    })}`);
+    if (aborted) throw error;
     const networkError = new TypeError('Failed to fetch');
     (networkError as TypeError & { cause?: unknown }).cause = error;
     throw networkError;

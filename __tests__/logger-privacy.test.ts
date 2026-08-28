@@ -26,6 +26,15 @@ describe('logger privacy', () => {
         personalizationContext: { user: { birthDate: '1989-03-06' } },
         partnerData: { partnerBirthDate: '1990-01-01', partnerName: 'Alex' },
         history: [{ role: 'user', text: 'secret' }],
+        email: 'person@example.com',
+        password: 'password-secret',
+        accessToken: 'access-secret',
+        refreshToken: 'refresh-secret',
+        challengeId: 'challenge-secret',
+        state: 'state-secret',
+        nonce: 'nonce-secret',
+        codeChallenge: 'pkce-secret',
+        deviceId: 'device-secret',
       },
     });
 
@@ -34,6 +43,9 @@ describe('logger privacy', () => {
     expect(JSON.stringify(sanitized.metadata)).not.toContain('relationship tomorrow');
     expect(JSON.stringify(sanitized.metadata)).not.toContain('stars suggest');
     expect(JSON.stringify(sanitized.metadata)).not.toContain('Alex');
+    for (const secret of ['person@example.com', 'password-secret', 'access-secret', 'refresh-secret', 'challenge-secret', 'state-secret', 'nonce-secret', 'pkce-secret', 'device-secret']) {
+      expect(JSON.stringify(sanitized.metadata)).not.toContain(secret);
+    }
     expect(sanitized.metadata?.question).toBe('[redacted]');
     expect(sanitized.metadata?.answer).toBe('[redacted]');
     expect(sanitized.metadata?.birthDate).toBe('[redacted]');

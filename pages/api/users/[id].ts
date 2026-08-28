@@ -11,6 +11,7 @@ import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '..
 import {
   buildPersonalForecastPrewarmProfile,
   queuePersonalForecastPrewarm,
+  queuePersonalForecastPrewarmForUser,
 } from '../../../lib/personalForecastPrewarm';
 
 const log={info:(message:string,data?:any)=>console.log(`[API/users/[id]] ${message}`,data||''),error:(message:string,error?:any)=>console.error(`[API/users/[id]] ERROR: ${message}`,error||''),warn:(message:string,error?:any)=>console.warn(`[API/users/[id]] WARN: ${message}`,error||'')};
@@ -27,7 +28,7 @@ function publicUser(user:any,userId:string,premiumEntitlement:Awaited<ReturnType
   return {
     id:user.id,name:user.name,birthDate:toDateInputValue(user.birth_date)||user.birth_date,birthTime:user.birth_time||'',birthTimeMode:user.birth_time_mode||undefined,
     birthTimeUncertaintyMinutes:user.birth_time_uncertainty_minutes??null,birthTimeRangeStart:user.birth_time_range_start||null,birthTimeRangeEnd:user.birth_time_range_end||null,
-    birthPlace:user.birth_place,isSetup:user.is_setup,language:user.language,theme:user.theme,isPremium:entitlement.isPremium,premiumEntitlement:entitlement,
+    birthPlace:user.birth_place,birthTimezone:user.birth_timezone||null,birthLatitude:user.latitude??null,birthLongitude:user.longitude??null,isSetup:user.is_setup,language:user.language,theme:user.theme,isPremium:entitlement.isPremium,premiumEntitlement:entitlement,
     premiumUntil:entitlement.endsAt,trialStartedAt:user.trial_started_at?new Date(user.trial_started_at).toISOString():null,
     selectedZodiacSign:user.selected_zodiac_sign||null,gender:user.gender||null,createdAt:user.created_at?new Date(user.created_at).toISOString():null,
     updatedAt:user.updated_at?new Date(user.updated_at).toISOString():null,isAdmin:resolveIsAdmin(userId,user.is_admin),evolution:null,
@@ -50,12 +51,9 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
       let refCode=normalizeNullableString(user.ref_code)?.toUpperCase()||null;
       if(!refCode){try{refCode=await db.users.ensureReferralCode(userId);}catch(error:any){log.warn('ensureReferralCode failed',error?.message);}}
       const premiumEntitlement=await getPremiumEntitlementState(userId);
-      const prewarmProfile=buildPersonalForecastPrewarmProfile(userId,user,birthSettings);
-      if(prewarmProfile){
-        queuePersonalForecastPrewarm({
-          userId,profile:prewarmProfile,accessTier:premiumEntitlement.isPremium?'premium':'free',reason:'app_open',
-        });
-      }
+      queuePersonalForecastPrewarmForUser({
+        userId,accessTier:premiumEntitlement.isPremium?'premium':'free',reason:'app_open',
+      });
       return res.status(200).json(publicUser({...user,...birthSettings},userId,premiumEntitlement,normalizeNotificationFrequency(user.notification_frequency),refCode));
     }
     if(req.method!=='POST'&&req.method!=='PUT')return res.status(405).json({error:'Method not allowed'});

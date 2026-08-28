@@ -326,12 +326,13 @@ describe('mobile API and native auth', () => {
 
     const middleware = read('middleware.ts');
     const cors = read('lib/apiCors.ts');
-    expect(middleware).toContain("matcher: '/api/:path*'");
+    expect(middleware).toContain("'/api/:path*'");
     expect(middleware).toContain("request.method === 'OPTIONS'");
     expect(middleware).toContain("fetchSite === 'cross-site'");
     expect(middleware).toContain("'CROSS_SITE_REQUEST_DENIED'");
     expect(cors).toContain("headers.get('x-forwarded-host')");
     expect(cors).toContain("headers.get('x-forwarded-proto')");
+    expect(cors).toContain('X-Nebo-Trace-Id');
     expect(middleware).toContain("'Vary'");
     expect(middleware).not.toContain("Access-Control-Allow-Origin', '*");
     expect(middleware).not.toContain('Access-Control-Allow-Credentials');

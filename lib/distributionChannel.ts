@@ -49,8 +49,8 @@ export function isStoreChannel(channel = resolveDistributionChannel()): boolean 
 export type AccountAuthProvider = 'vk' | 'yandex' | 'google';
 
 /**
- * Google sign-in is intentionally isolated to the future Google Play branch
- * (and development builds). RuStore keeps the database provider type for
+ * Google sign-in is intentionally isolated to the Google Play build. RuStore,
+ * Telegram, and local development APKs keep the database provider type for
  * account portability, but must not advertise or start Google authentication.
  */
 export function canUseAccountAuthProvider(
@@ -58,5 +58,5 @@ export function canUseAccountAuthProvider(
   channel = resolveDistributionChannel(),
 ): boolean {
   if (provider !== 'google') return true;
-  return channel === 'google_play' || channel === 'development';
+  return channel === 'google_play';
 }

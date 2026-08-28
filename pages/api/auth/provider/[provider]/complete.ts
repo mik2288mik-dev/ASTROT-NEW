@@ -15,6 +15,7 @@ import {
   type NativeAuthProvider,
 } from '../../../../../lib/auth/nativeProviderAuth';
 import { toPublicAppProfile } from '../../../../../lib/auth/profile';
+import { startServerOperationalDiagnostic } from '../../../../../lib/serverOperationalDiagnostics';
 
 function providerFromRequest(req: NextApiRequest): NativeAuthProvider {
   const value = Array.isArray(req.query.provider) ? req.query.provider[0] : req.query.provider;
@@ -35,9 +36,14 @@ function hasExplicitAppSession(req: NextApiRequest): boolean {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  const diagnostic = startServerOperationalDiagnostic(req, res, 'auth_provider');
+  if (req.method !== 'POST') {
+    diagnostic.log('server_complete', 'error', { httpStatus: 405, errorCode: 'METHOD_NOT_ALLOWED' });
+    return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  }
   try {
     const provider = providerFromRequest(req);
+    diagnostic.log('server_complete', 'start', { provider, operation: 'login_or_link' });
     await consumeAuthRateLimit({
       scope: 'native_provider_complete_client',
       key: getAuthClientKey(req),
@@ -70,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sessionVersion: req.body?.sessionVersion === 2 ? 2 : 1,
     });
     const user = await db.users.get(result.userId);
+    diagnostic.log('finished', 'ok', { provider, operation: 'login_or_link', httpStatus: 200 });
     return res.status(200).json({
       ...appSessionResponse(session, true),
       profile: toPublicAppProfile(user, {
@@ -80,6 +87,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
     });
   } catch (error) {
-    return handleAdminError(res, sanitizeNativeProviderAuthError(error));
+    const safeError = sanitizeNativeProviderAuthError(error);
+    diagnostic.error('server_complete', error, 'PROVIDER_AUTH_COMPLETE_FAILED');
+    return handleAdminError(res, safeError);
   }
 }

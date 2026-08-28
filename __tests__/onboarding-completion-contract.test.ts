@@ -81,8 +81,11 @@ describe('first-run onboarding completion flow', () => {
     expect(app).toContain('isSetup: false');
     expect(app).toContain('const generatedChart = await getOrCalculateChart(pendingProfile)');
     expect(app).toContain('const fullProfile = { ...pendingProfile, isSetup: true }');
-    expect(app).toContain('await saveProfile(fullProfile)');
-    expect(app).toContain('setProfile(fullProfile)');
+    expect(app).toContain('const canonicalFullProfile: UserProfile = {');
+    expect(app).toContain('birthTimezone: canonicalBirth?.timezone || generatedChart.timezone');
+    expect(app).toContain('await saveProfile(canonicalFullProfile)');
+    expect(app).toContain('setProfile(canonicalFullProfile)');
+    expect(app).toContain('loadStartupPersonalForecasts(canonicalFullProfile)');
     expect(app).toContain('onboardingCompletionRef.current = false');
     expect(app).not.toContain("window.alert?.('Не удалось подтвердить гостевую сессию");
 

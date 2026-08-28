@@ -1,6 +1,6 @@
 import type { NatalChartData, UserProfile } from "../types";
 
-const NATAL_CHART_CACHE_SCHEMA_VERSION = 1;
+const NATAL_CHART_CACHE_SCHEMA_VERSION = 2;
 const NATAL_CHART_CACHE_PREFIX = `your-horoscope:natal-chart:v${NATAL_CHART_CACHE_SCHEMA_VERSION}`;
 
 type NatalChartCacheEntry = {
@@ -8,18 +8,47 @@ type NatalChartCacheEntry = {
   userId: string;
   birthDate: string;
   birthTime: string;
+  birthTimeMode: string;
+  birthTimeUncertaintyMinutes: string;
+  birthTimeRangeStart: string;
+  birthTimeRangeEnd: string;
   birthPlace: string;
+  birthTimezone: string;
+  birthLatitude: string;
+  birthLongitude: string;
   chartData: NatalChartData;
   chartId?: number;
   updatedAt: string;
 };
 
+function coordinate(value: unknown): string {
+  const number = Number(value);
+  return value !== null && value !== undefined && String(value).trim() !== '' && Number.isFinite(number)
+    ? number.toFixed(6)
+    : '';
+}
+
 function profileIdentity(profile: UserProfile) {
+  const rawMode = String(profile.birthTimeMode || '').trim();
+  const birthTimeMode = ['exact', 'approximate', 'range', 'unknown'].includes(rawMode)
+    ? rawMode
+    : (String(profile.birthTime || '').trim() ? 'exact' : 'unknown');
   return {
     userId: String(profile.id || ""),
     birthDate: String(profile.birthDate || ""),
-    birthTime: String(profile.birthTime || ""),
-    birthPlace: String(profile.birthPlace || ""),
+    birthTime: birthTimeMode === 'unknown' || birthTimeMode === 'range'
+      ? ''
+      : String(profile.birthTime || '').trim(),
+    birthTimeMode,
+    birthTimeUncertaintyMinutes: birthTimeMode === 'approximate'
+      ? String(profile.birthTimeUncertaintyMinutes ?? '')
+      : '',
+    birthTimeRangeStart: birthTimeMode === 'range' ? String(profile.birthTimeRangeStart || '').trim() : '',
+    birthTimeRangeEnd: birthTimeMode === 'range' ? String(profile.birthTimeRangeEnd || '').trim() : '',
+    birthPlace: String(profile.birthPlace || "").trim(),
+    birthTimezone: String(profile.birthTimezone || '').trim(),
+    birthLatitude: coordinate(profile.birthLatitude),
+    birthLongitude: coordinate(profile.birthLongitude),
   };
 }
 
@@ -45,7 +74,14 @@ export function buildNatalChartCacheKey(profile: UserProfile): string {
     identity.userId,
     identity.birthDate,
     identity.birthTime,
+    identity.birthTimeMode,
+    identity.birthTimeUncertaintyMinutes,
+    identity.birthTimeRangeStart,
+    identity.birthTimeRangeEnd,
     identity.birthPlace,
+    identity.birthTimezone,
+    identity.birthLatitude,
+    identity.birthLongitude,
   ].join(":");
 }
 
@@ -62,7 +98,14 @@ export function isLocalNatalChartValid(
     entry.userId === identity.userId &&
     entry.birthDate === identity.birthDate &&
     entry.birthTime === identity.birthTime &&
+    entry.birthTimeMode === identity.birthTimeMode &&
+    entry.birthTimeUncertaintyMinutes === identity.birthTimeUncertaintyMinutes &&
+    entry.birthTimeRangeStart === identity.birthTimeRangeStart &&
+    entry.birthTimeRangeEnd === identity.birthTimeRangeEnd &&
     entry.birthPlace === identity.birthPlace &&
+    entry.birthTimezone === identity.birthTimezone &&
+    entry.birthLatitude === identity.birthLatitude &&
+    entry.birthLongitude === identity.birthLongitude &&
     isChartData(entry.chartData)
   );
 }

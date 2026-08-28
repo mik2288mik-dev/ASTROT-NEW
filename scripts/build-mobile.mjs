@@ -76,13 +76,32 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 const outputDirectory = path.resolve('out');
 if (!fs.existsSync(outputDirectory)) fail('Next did not produce the static mobile output directory.');
 
+const sourceRevision = spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {
+  cwd: process.cwd(),
+  encoding: 'utf8',
+  shell: false,
+});
+if (sourceRevision.error || sourceRevision.status !== 0) {
+  fail('Could not resolve the source commit for the mobile build marker.');
+}
+const sourceCommit = String(sourceRevision.stdout || '').trim().toLowerCase();
+if (!/^[0-9a-f]{40}$/.test(sourceCommit)) fail('The resolved source commit is invalid.');
+
+const versionCode = String(process.env.APP_VERSION_CODE || '1').trim();
+const versionName = String(process.env.APP_VERSION_NAME || '1.0.0').trim();
+if (!/^[1-9]\d*$/.test(versionCode)) fail('APP_VERSION_CODE must be a positive integer.');
+if (!versionName) fail('APP_VERSION_NAME must not be empty.');
+
 // This is deliberately public and contains no credential: it lets Gradle
 // reject stale Capacitor assets that were built for another distribution.
 const buildMarker = {
-  format: 1,
+  format: 2,
   mobileBuild: true,
   channel,
   apiOrigin: new URL(apiUrl).origin,
+  sourceCommit,
+  versionCode,
+  versionName,
 };
 fs.writeFileSync(
   path.join(outputDirectory, 'nebo-mobile-build.json'),

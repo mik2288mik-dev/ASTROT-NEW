@@ -31,12 +31,16 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(appGradle).toContain('androidx.credentials:credentials:1.6.0');
     expect(appGradle).toContain('androidx.credentials:credentials-play-services-auth:1.6.0');
     expect(appGradle).toContain('com.google.android.libraries.identity.googleid:googleid:1.2.0');
-    expect(appGradle).toContain('com.yandex.android:authsdk:3.1.3');
+    expect(appGradle).toContain('com.yandex.android:authsdk:3.2.1');
     expect(appGradle).toContain('com.vk.id:vkid:2.7.2');
     expect(appGradle).toContain("authValue('GOOGLE_AUTH_CLIENT_ID')");
     expect(appGradle).toContain("authValue('YANDEX_ANDROID_CLIENT_ID')");
     expect(appGradle).toContain("authValue('VK_ANDROID_CLIENT_ID')");
     expect(appGradle).toContain("authValue('VK_ID_ANDROID_CLIENT_SECRET')");
+    expect(appGradle).toContain('Development APK auth configuration is incomplete');
+    expect(appGradle).toContain("missingProviderValues += 'YANDEX_ANDROID_CLIENT_ID'");
+    expect(appGradle).toContain("missingProviderValues += 'VK_ANDROID_CLIENT_ID'");
+    expect(appGradle).toContain("missingProviderValues += 'VK_ID_ANDROID_CLIENT_SECRET'");
     expect(appGradle).toContain('YANDEX_CLIENT_ID: yandexAndroidClientId');
     expect(appGradle).toContain('VKIDClientSecret: vkIdAndroidClientSecret');
     expect(appGradle).toContain("buildConfigField 'String', 'YANDEX_ANDROID_CLIENT_ID'");
@@ -71,7 +75,12 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(googleHandler).toContain('GoogleIdTokenCredential.createFrom');
     expect(googleHandler).toContain('callback.onSuccess(googleCredential.getIdToken())');
     expect(plugin).toContain('YandexAuthSdk.create');
+    expect(plugin).toContain('LoginType.CHROME_TAB');
+    expect(plugin).toContain('new YandexAuthLoginOptions(');
     expect(plugin).toContain('YandexAuthResult.Cancelled');
+    expect(plugin).toContain('"yandex_" + errorKind');
+    expect(plugin).toContain('YandexAuthException.SECURITY_ERROR');
+    expect(plugin).toContain('YandexAuthException.JWT_AUTHORIZATION_ERROR');
     expect(plugin).toContain('payload.put("accessToken", accessToken)');
     expect(plugin).toContain('builder.setState(state)');
     expect(plugin).toContain('builder.setCodeChallenge(codeChallenge)');
@@ -80,14 +89,21 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(plugin).toContain('AUTH_CANCELLED');
     expect(plugin).toContain('AUTH_NETWORK');
     expect(plugin).toContain('AUTH_TIMEOUT');
+    expect(plugin).toContain('runtimeErrorKind');
+    expect(plugin).toContain('sdk_security_exception');
     expect(plugin).toContain('AUTH_CONFIGURATION');
     expect(plugin).toContain('AUTH_FAILED');
     expect(plugin).toContain('compareAndSet(false, true)');
     expect(plugin).toContain('activeSignInCall != call');
     expect(plugin).not.toContain('isNetworkAvailable');
     expect(plugin).not.toContain('ConnectivityManager');
-    expect(plugin).toContain('identity_auth_launch provider=');
-    expect(plugin).toContain('identity_auth_rejected code=');
+    expect(plugin).toContain('String event = "auth_provider"');
+    expect(plugin).toContain('+ " traceId=" + activeSignInTraceId');
+    expect(plugin).toContain('+ " stage=" + stage');
+    expect(plugin).toContain('+ " durationMs=" + durationMs');
+    expect(plugin).toContain('"vk_network"');
+    expect(plugin).toContain('"vk_failed_api_call"');
+    expect(plugin).not.toContain('identity_auth_rejected code=');
     expect(plugin).toContain('SIGN_IN_TIMEOUT_MS = 180_000L');
     expect(plugin).toContain('scheduleSignInTimeout(call);');
     expect(plugin).toContain('Runnable timeout = () -> rejectSignIn(call, AUTH_TIMEOUT);');
@@ -99,6 +115,8 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     const googleCase = plugin.slice(googleCaseStart, yandexCaseStart);
     expect(googleCaseStart).toBeGreaterThan(-1);
     expect(googleCase).toContain('BuildConfig.GOOGLE_AUTH_ENABLED');
+    expect(googleCase).toContain('"google_play".equals(BuildConfig.DISTRIBUTION_CHANNEL)');
+    expect(googleCase).not.toContain('"development".equals(BuildConfig.DISTRIBUTION_CHANNEL)');
     expect(googleCase).toContain('rejectSignIn(call, AUTH_CONFIGURATION)');
     expect(proguard).toContain('-keep class ru.tvoygoroskop.app.auth.GoogleIdentityAuthHandler');
     expect(proguard).toContain('public <init>(...);');
@@ -115,7 +133,9 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     );
 
     expect(fs.existsSync(commonDelegatePath)).toBe(false);
-    expect(appGradle).toContain("development.java.srcDir 'src/googleAuth/java'");
+    expect(appGradle).not.toContain('developmentImplementation');
+    expect(appGradle).toContain("googlePlayImplementation 'androidx.credentials:credentials:1.6.0'");
+    expect(appGradle).not.toContain("development.java.srcDir 'src/googleAuth/java'");
     expect(appGradle).toContain("googlePlay.java.srcDir 'src/googleAuth/java'");
     expect(appGradle).not.toContain("rustore.java.srcDir 'src/googleAuth/java'");
     expect(plugin).not.toContain('com.google.android.libraries.identity');
@@ -209,11 +229,18 @@ describe('Android NativeIdentityAuth bridge contract', () => {
 
     expect(mobileBuild).toContain("'nebo-mobile-build.json'");
     expect(mobileBuild).toContain('apiOrigin: new URL(apiUrl).origin');
+    expect(mobileBuild).toContain('format: 2');
+    expect(mobileBuild).toContain('sourceCommit,');
+    expect(mobileBuild).toContain('versionCode,');
+    expect(mobileBuild).toContain('versionName,');
     expect(nextConfig).toContain('mobileDistributionChannels');
     expect(nextConfig).toContain('NEXT_PUBLIC_DISTRIBUTION_CHANNEL must be');
     expect(appGradle).toContain('verifyMobileBuildMarker');
     expect(appGradle).toContain("String.valueOf(marker.apiOrigin ?: '')");
     expect(appGradle).toContain("marker.channel != expectedChannel");
+    expect(appGradle).toContain('markerSourceCommit != currentSourceCommit.get()');
+    expect(appGradle).toContain('markerVersionCode != appVersionCodeValue.toString()');
+    expect(appGradle).toContain('markerVersionName != appVersionNameValue.toString()');
     expect(appGradle).toContain('Mobile web assets do not match');
   });
 

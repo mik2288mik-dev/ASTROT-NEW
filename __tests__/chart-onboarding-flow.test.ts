@@ -22,7 +22,18 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).toContain("setDashboardPeriod('day')");
     expect(app).toContain('setView(targetView)');
     expect(app).toContain('isSetup: true');
-    expect(app).toContain('await saveProfile(fullProfile)');
+    expect(app).toContain('await saveProfile(canonicalFullProfile)');
+    expect(app).toContain('buildNatalChartCacheKey(canonicalFullProfile)');
+  });
+
+  it('coalesces the full chart read/calculate flow and never returns a stale lock-loser chart', () => {
+    const service = read('services/chartService.ts');
+    const route = read('pages/api/charts/index.ts');
+    expect(service.indexOf('calculationInFlight.set(requestKey,request)'))
+      .toBeLessThan(service.indexOf('return request;'));
+    expect(service).toContain('const requestKey=buildNatalChartCacheKey(profile)');
+    expect(route).toContain('chartMatchesPrimaryRequest(completed,common,coordinates)');
+    expect(route).toContain("code:'CHART_CALCULATION_IN_PROGRESS'");
   });
 
   it('lets a signed web guest complete onboarding without trusting newProfile identity or granting trial', () => {
@@ -34,7 +45,7 @@ describe('chart onboarding and lazy sections', () => {
     expect(app).not.toContain('id: String(newProfile.id)');
     expect(app).toContain('isPremium: isGuestOnboarding');
     expect(app).toContain('trialStartedAt: isGuestOnboarding ? null');
-    expect(app).toContain('await saveProfile(fullProfile)');
+    expect(app).toContain('await saveProfile(canonicalFullProfile)');
     expect(app).toContain('await getOrCalculateChart(pendingProfile)');
   });
 

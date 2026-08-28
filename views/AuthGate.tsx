@@ -26,10 +26,9 @@ type AuthGateProps = {
 };
 
 type AuthScreen = 'register' | 'verify' | 'login' | 'forgot' | 'reset';
-type Provider = 'google' | 'yandex' | 'vk';
+type Provider = 'yandex' | 'vk';
 
 const PROVIDERS: Array<{ id: Provider; label: string }> = [
-  { id: 'google', label: 'Продолжить с Google' },
   { id: 'yandex', label: 'Продолжить с Яндексом' },
   { id: 'vk', label: 'Продолжить с VK ID' },
 ];
@@ -97,31 +96,28 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const [code, setCode] = useState('');
   const [challengeId, setChallengeId] = useState('');
   const initialLocalCapabilities = getLocalAccountAuthCapabilities();
-  const usesLocalCapabilities = initialLocalCapabilities !== null;
   const [capabilities, setCapabilities] = useState<AccountAuthCapabilities | null>(
     () => initialLocalCapabilities,
   );
+  const [capabilitiesLoaded, setCapabilitiesLoaded] = useState(false);
   const [capabilitiesLoadFailed, setCapabilitiesLoadFailed] = useState(false);
   const [capabilitiesReload, setCapabilitiesReload] = useState(0);
 
   useEffect(() => {
-    if (usesLocalCapabilities) {
-      // Native Yandex/VK availability comes from the APK, so never send a
-      // capability request merely to decide whether to render these buttons.
-      setCapabilities(() => getLocalAccountAuthCapabilities());
-      setCapabilitiesLoadFailed(false);
-      return;
-    }
-
     let alive = true;
     const loadCapabilities = async () => {
       try {
         const value = await getAccountAuthCapabilities();
         if (!alive) return;
         setCapabilities(value);
+        setCapabilitiesLoaded(true);
         setCapabilitiesLoadFailed(false);
       } catch {
         if (!alive) return;
+        // Keep locally compiled Yandex/VK visible. Only the remote email
+        // capability is unknown when discovery fails.
+        setCapabilities((current) => current || getLocalAccountAuthCapabilities());
+        setCapabilitiesLoaded(true);
         setCapabilitiesLoadFailed(true);
       }
     };
@@ -132,7 +128,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       alive = false;
       window.removeEventListener('online', retryOnReconnect);
     };
-  }, [capabilitiesReload, usesLocalCapabilities]);
+  }, [capabilitiesReload]);
 
   useEffect(() => {
     const onNativeBack = (event: Event) => {
@@ -521,16 +517,17 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             </button>
           )}
 
-          {!emailDeliveryReady && capabilities ? (
+          {capabilitiesLoaded && !capabilitiesLoadFailed && !emailDeliveryReady && capabilities ? (
             <p className="mt-4 text-center text-[12px] leading-4 text-[#8a7159]">Отправка писем будет доступна после настройки почтового сервиса.</p>
           ) : null}
-          {!usesLocalCapabilities && capabilitiesLoadFailed ? (
+          {capabilitiesLoadFailed ? (
             <div className="mt-4 text-center text-[12px] leading-4 text-[#8a7159]">
-              <p>Не удалось загрузить способы входа.</p>
+              <p>Не удалось проверить вход по почте. Гостевой вход, Яндекс и VK ID остаются доступны.</p>
               <button
                 type="button"
                 className="mt-2 font-semibold text-[#395a50]"
                 onClick={() => {
+                  setCapabilitiesLoaded(false);
                   setCapabilitiesLoadFailed(false);
                   setCapabilitiesReload((value) => value + 1);
                 }}
@@ -539,8 +536,8 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               </button>
             </div>
           ) : null}
-          {!usesLocalCapabilities && !capabilities && !capabilitiesLoadFailed ? (
-            <p className="mt-4 text-center text-[12px] leading-4 text-[#687079]">Загружаем доступные способы входа…</p>
+          {!capabilitiesLoaded && !capabilitiesLoadFailed ? (
+            <p className="mt-4 text-center text-[12px] leading-4 text-[#687079]">Проверяем вход по почте…</p>
           ) : null}
           {notice ? <p role="status" className="mt-4 rounded-2xl bg-[#eef5f1] px-4 py-3 text-[14px] leading-5 text-[#315348]">{notice}</p> : null}
           {error ? <p role="alert" className="mt-4 rounded-2xl bg-[#fff3f2] px-4 py-3 text-[14px] leading-5 text-[#b42318]">{error}</p> : null}

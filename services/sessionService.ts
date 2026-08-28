@@ -9,6 +9,17 @@ import {
   getRawTelegramInitData,
 } from './authSessionIntent';
 import { sanitizeUserAppEvent } from '../lib/premiumAnalytics';
+import {
+  createDiagnosticTraceId,
+  diagnosticErrorCode,
+  diagnosticHttpStatus,
+  diagnosticTraceHeaders,
+  formatDiagnosticFields,
+} from '../lib/diagnosticTrace';
+import {
+  diagnosticLog,
+  showRuntimeDiagnosticsForFailure,
+} from '../lib/runtimeDiagnostics';
 
 const INIT_DATA_HEADER = 'x-telegram-init-data';
 const SESSION_STORAGE_KEY = 'lumia_app_session_id';
@@ -209,40 +220,121 @@ export async function updateUserNotificationSettings(payload: {
   }
 }
 
-async function createNativeGuestSession(): Promise<any | null> {
-  const response = await apiFetchUnauthenticated(
-    '/api/auth/native-guest',
-    {
-      method: 'POST',
-      credentials: 'omit',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionVersion: 2 }),
-    },
-    NATIVE_GUEST_TIMEOUT_MS,
-  );
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !payload?.profile) {
-    throw new Error(payload?.message || payload?.error || `Guest session failed: ${response.status}`);
+function guestSessionError(payload: any, status: number): Error & { code: string; status: number } {
+  const error = new Error(payload?.message || payload?.error || `Guest session failed: ${status}`) as Error & {
+    code: string;
+    status: number;
+  };
+  error.code = String(payload?.code || payload?.error || 'GUEST_SESSION_FAILED');
+  error.status = status;
+  return error;
+}
+
+async function createNativeGuestSession(traceId: string): Promise<any | null> {
+  const startedAt = Date.now();
+  diagnosticLog('INFO', 'auth_guest', formatDiagnosticFields({
+    traceId, side: 'client', stage: 'session_request', status: 'start', runtime: 'native',
+  }));
+  try {
+    const response = await apiFetchUnauthenticated(
+      '/api/auth/native-guest',
+      {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+          ...diagnosticTraceHeaders(traceId),
+        },
+        body: JSON.stringify({ sessionVersion: 2 }),
+      },
+      NATIVE_GUEST_TIMEOUT_MS,
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.profile) throw guestSessionError(payload, response.status);
+    diagnosticLog('INFO', 'auth_guest', formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'session_persist',
+      status: 'start',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      runtime: 'native',
+    }));
+    await persistNativeSessionResponse(payload);
+    diagnosticLog('INFO', 'auth_guest', formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'finished',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      runtime: 'native',
+    }));
+    return payload.profile;
+  } catch (error) {
+    diagnosticLog('ERROR', 'auth_guest', formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'GUEST_SESSION_FAILED'),
+      runtime: 'native',
+    }));
+    showRuntimeDiagnosticsForFailure('guest authentication failed', error, {
+      includeClientErrors: true,
+    });
+    throw error;
   }
-  await persistNativeSessionResponse(payload);
-  return payload.profile;
 }
 
 /** Explicitly create or reuse a guest session, including inside Telegram. */
 export async function ensureWebGuestSession(): Promise<any | null> {
   if (typeof window === 'undefined') return null;
-  if (isNativeAppRuntime()) return createNativeGuestSession();
+  const traceId = createDiagnosticTraceId('auth-guest');
+  if (isNativeAppRuntime()) return createNativeGuestSession(traceId);
 
-  const response = await apiFetch(
-    '/api/auth/guest',
-    {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionVersion: 2 }),
-    },
-  );
-  if (!response.ok) throw new Error(`Guest session failed: ${response.status}`);
-  const payload = await response.json();
-  return payload?.profile || null;
+  const startedAt = Date.now();
+  diagnosticLog('INFO', 'auth_guest', formatDiagnosticFields({
+    traceId, side: 'client', stage: 'session_request', status: 'start', runtime: 'browser',
+  }));
+  try {
+    const response = await apiFetch(
+      '/api/auth/guest',
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...diagnosticTraceHeaders(traceId),
+        },
+        body: JSON.stringify({ sessionVersion: 2 }),
+      },
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.profile) throw guestSessionError(payload, response.status);
+    diagnosticLog('INFO', 'auth_guest', formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'finished',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      runtime: 'browser',
+    }));
+    return payload.profile;
+  } catch (error) {
+    diagnosticLog('ERROR', 'auth_guest', formatDiagnosticFields({
+      traceId,
+      side: 'client',
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'GUEST_SESSION_FAILED'),
+      runtime: 'browser',
+    }));
+    throw error;
+  }
 }

@@ -23,12 +23,10 @@ const config: CapacitorConfig = {
     ...(liveReloadUrl ? { url: liveReloadUrl } : {}),
   },
   plugins: {
-    // Use the Android HTTP stack for browser-style fetch/XHR as well. Some OEM
-    // WebViews report a false offline state or fail cross-origin HTTPS before
-    // the request leaves the handset; the app's API client still adds bounded
-    // timeouts for its own calls.
+    // API requests use the bounded explicit Android transport in apiClient.
+    // Global interception can also affect local assets and empty 204 responses.
     CapacitorHttp: {
-      enabled: true,
+      enabled: false,
     },
     SystemBars: {
       insetsHandling: 'css',

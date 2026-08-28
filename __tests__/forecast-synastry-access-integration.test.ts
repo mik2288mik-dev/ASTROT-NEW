@@ -68,38 +68,39 @@ describe('forecast and synastry access integration', () => {
     });
 
     expect(mockApiFetch).toHaveBeenCalledTimes(2);
-    for (const [url, options] of mockApiFetch.mock.calls) {
-      expect(url).toBe('/api/charts');
+    for (const [index, [url, options, timeout]] of mockApiFetch.mock.calls.entries()) {
+      expect(url).toBe('/api/charts?repairPrimary=0');
       expect(String(url)).not.toContain('1001');
       expect(options).toMatchObject({
         method: 'GET',
         credentials: 'include',
       });
+      expect(timeout).toBe(index === 0 ? 8_000 : 10_000);
     }
   });
 
-  it('authenticates personal forecasts and validates the selected owned chart on the server', () => {
+  it('authenticates personal forecasts and derives the canonical profile from the session', () => {
     const route = read('pages/api/content/forecast/personal.ts');
-    expect(route).toContain('ensureValidContext(req, res, {');
-    expect(route).toContain('allowGuest: true');
-    expect(route).toContain('requireSelfChart: true');
-    expect(route).toContain('const { userId, ctx } = ready;');
-    expect(route).toContain('ctx.chartData');
+    expect(route).toContain('requireAppUser(req, { allowGuest: true })');
+    expect(route).toContain('const userId = String(auth.userId)');
+    expect(route).not.toContain('claimedUserId');
     expect(route).toContain('getPremiumEntitlementState(userId)');
+    expect(route).toContain('db.users.get(userId, { hydratePrimaryChart: false })');
+    expect(route).toContain('birthProfileRepository.get(userId)');
+    expect(route).toContain('buildPersonalForecastPrewarmProfile(userId, user, birthSettings)');
 
     const service = read('services/personalForecastService.ts');
     const buildUrlStart = service.indexOf('function buildUrl');
     const parseErrorStart = service.indexOf('async function parseError', buildUrlStart);
     const buildUrl = service.slice(buildUrlStart, parseErrorStart);
     expect(buildUrl).not.toContain('userId:');
-    expect(buildUrl).toContain('chartId');
-    expect(buildUrl).toContain("params.set('chartId', String(input.chartId))");
+    expect(buildUrl).not.toContain('chartId');
 
     const generationStart = service.indexOf('function generationRequest');
     const generationEnd = service.indexOf('async function generate', generationStart);
     const request = service.slice(generationStart, generationEnd);
     expect(request).not.toContain('userId');
-    expect(request).toContain('chartId: input.chartId');
+    expect(request).not.toContain('chartId');
     expect(request).not.toContain('chartData');
   });
 

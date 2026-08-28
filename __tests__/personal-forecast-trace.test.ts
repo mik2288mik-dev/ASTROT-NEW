@@ -1,4 +1,5 @@
 import { createPersonalForecastTrace } from '../lib/personalForecastTrace';
+import { getPersonalForecastGenerationDiagnosticCode } from '../lib/personalForecastGeneration';
 
 describe('personal forecast trace privacy', () => {
   const originalMode = process.env.PERSONAL_FORECAST_TRACE;
@@ -33,5 +34,29 @@ describe('personal forecast trace privacy', () => {
     expect(serialized).toContain('cache_version');
     expect(serialized).toContain('provider_budget');
     expect(info).toHaveBeenCalled();
+  });
+
+  it('downgrades full output tracing to metadata in production', () => {
+    process.env.PERSONAL_FORECAST_TRACE = 'full_eval';
+    jest.replaceProperty(process.env, 'NODE_ENV', 'production');
+    const trace = createPersonalForecastTrace({
+      userId: 'user-secret', profileFingerprint: 'profile-secret', period: 'day',
+      periodKey: '2026-08-28', model: 'gpt-5.6-luna', versions: {},
+    });
+    trace.emit('writer_completed', {
+      brief_output: 'private brief',
+      writer_output: 'private forecast',
+      provider_budget: 1200,
+    });
+
+    expect(trace.mode).toBe('metadata');
+    expect(JSON.stringify(trace.events)).not.toContain('private forecast');
+    expect(JSON.stringify(trace.events)).not.toContain('private brief');
+  });
+
+  it('reports a durable cache-write failure separately from writer failures', () => {
+    expect(getPersonalForecastGenerationDiagnosticCode(
+      new Error('PERSONAL_FORECAST_CACHE_WRITE_FAILED'),
+    )).toBe('PERSONAL_FORECAST_CACHE_WRITE_FAILED');
   });
 });

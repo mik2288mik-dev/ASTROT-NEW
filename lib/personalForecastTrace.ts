@@ -5,6 +5,7 @@ export type PersonalForecastTrace = ReturnType<typeof createPersonalForecastTrac
 
 function mode(): PersonalForecastTraceMode {
   const value = process.env.PERSONAL_FORECAST_TRACE;
+  if (process.env.NODE_ENV === 'production' && value === 'full_eval') return 'metadata';
   return value === 'metadata' || value === 'full_eval' ? value : 'off';
 }
 
@@ -12,6 +13,7 @@ const PRIVATE_TRACE_KEYS = new Set([
   'api_key', 'authorization', 'session', 'session_token', 'raw_session',
   'name', 'birth_date', 'birth_time', 'birth_place', 'birth_timezone',
   'personal_profile', 'raw_profile', 'profile', 'prompt', 'instructions', 'input',
+  'brief_output', 'writer_output', 'model_output', 'raw_output', 'content',
 ]);
 
 function safeTraceDetails(value: unknown): unknown {

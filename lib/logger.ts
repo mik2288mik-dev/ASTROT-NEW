@@ -8,6 +8,7 @@ export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 export type LogEvent = {
   scope?: string;
   event?: string;
+  traceId?: string;
   userId?: string;
   chartId?: number | null;
   surface?: string;
@@ -43,6 +44,30 @@ const SENSITIVE_KEYS = new Set([
   'chartdata',
   'content',
   'history',
+  'authorization',
+  'accesstoken',
+  'refreshtoken',
+  'idtoken',
+  'token',
+  'secret',
+  'clientsecret',
+  'password',
+  'passwordconfirmation',
+  'email',
+  'otp',
+  'verificationcode',
+  'code',
+  'authorizationcode',
+  'challengeid',
+  'state',
+  'nonce',
+  'codechallenge',
+  'codeverifier',
+  'deviceid',
+  'initdata',
+  'timezone',
+  'latitude',
+  'longitude',
 ]);
 
 const ALLOWED_FLAG_KEYS = new Set([
@@ -74,7 +99,6 @@ const ALLOWED_FLAG_KEYS = new Set([
   'lumispent',
   'reusedrecent',
   'error',
-  'code',
   'sunsign',
   'moonsign',
   'moonphase',

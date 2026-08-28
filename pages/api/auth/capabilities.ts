@@ -9,6 +9,7 @@ import {
   resolveDistributionChannel,
   type DistributionChannel,
 } from '../../../lib/distributionChannel';
+import { startServerOperationalDiagnostic } from '../../../lib/serverOperationalDiagnostics';
 
 type AccountAuthRuntime = 'native' | 'browser';
 
@@ -64,17 +65,28 @@ export function getAccountAuthCapabilities(
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'GET') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   const runtime: AccountAuthRuntime = req.query.runtime === 'native' ? 'native' : 'browser';
+  const diagnostic = startServerOperationalDiagnostic(req, res, 'auth_capabilities', { runtime });
+  if (req.method !== 'GET') {
+    diagnostic.log('request', 'error', { httpStatus: 405, errorCode: 'METHOD_NOT_ALLOWED' });
+    return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  }
   try {
     // Client channel is display context only; the deployment configuration is
     // the server-side authorization boundary.
     const channel = resolveDistributionChannel();
-    return res.status(200).json(getAccountAuthCapabilities(runtime, channel));
+    const capabilities = getAccountAuthCapabilities(runtime, channel);
+    diagnostic.log('capability_check', 'ok', { httpStatus: 200, channel });
+    return res.status(200).json(capabilities);
   } catch (error) {
     if (error instanceof DistributionChannelError) {
+      diagnostic.error('capability_check', error, 'DISTRIBUTION_CHANNEL_INVALID', {
+        httpStatus: 400,
+        errorCode: 'DISTRIBUTION_CHANNEL_INVALID',
+      });
       return res.status(400).json({ error: 'DISTRIBUTION_CHANNEL_INVALID' });
     }
+    diagnostic.error('capability_check', error, 'AUTH_CAPABILITIES_FAILED', { httpStatus: 500 });
     throw error;
   }
 }

@@ -253,6 +253,30 @@ describe('account authentication runtime hardening', () => {
     }
   });
 
+  it('represents an empty native HTTP 204 without constructing an invalid body', async () => {
+    const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+    const platform = jest.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    mockCapacitorHttpRequest.mockResolvedValue({
+      status: 204,
+      headers: {},
+      data: '',
+      url: 'https://api.example.test/api/content/forecast/personal',
+    });
+    global.fetch = jest.fn() as typeof fetch;
+
+    try {
+      const response = await apiFetch('/api/content/forecast/personal', {}, 8_000);
+
+      expect(response.status).toBe(204);
+      await expect(response.text()).resolves.toBe('');
+      expect(global.fetch).not.toHaveBeenCalled();
+    } finally {
+      platform.mockRestore();
+      nativePlatform.mockRestore();
+      global.fetch = originalFetch;
+    }
+  });
+
   it('ends the Android HTTP call at the apiFetch timeout even when the native bridge is pending', async () => {
     jest.useFakeTimers();
     const nativePlatform = jest.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
@@ -330,7 +354,7 @@ describe('account authentication runtime hardening', () => {
     process.env.VK_ANDROID_CLIENT_ID = 'vk-android-client';
     const distributionAwareCapabilities = getAccountAuthCapabilities as unknown as (
       runtime: 'native' | 'browser',
-      channel: 'rustore' | 'google_play',
+      channel: 'rustore' | 'google_play' | 'development' | 'telegram',
     ) => ReturnType<typeof getAccountAuthCapabilities>;
 
     expect(distributionAwareCapabilities('native', 'rustore')).toMatchObject({
@@ -343,5 +367,12 @@ describe('account authentication runtime hardening', () => {
       yandex: true,
       vk: true,
     });
+    for (const channel of ['development', 'telegram'] as const) {
+      expect(distributionAwareCapabilities('native', channel)).toMatchObject({
+        google: false,
+        yandex: true,
+        vk: true,
+      });
+    }
   });
 });

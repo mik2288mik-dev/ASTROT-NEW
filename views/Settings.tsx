@@ -369,18 +369,21 @@ export const Settings: React.FC<SettingsProps> = ({
         if (localCapabilities) {
             setAuthCapabilities(localCapabilities);
             setAuthCapabilitiesLoadFailed(false);
-        } else {
-            void getAccountAuthCapabilities()
-                .then((capabilities) => {
-                    if (!alive) return;
-                    setAuthCapabilities(capabilities);
-                    setAuthCapabilitiesLoadFailed(false);
-                })
-                .catch(() => {
-                    if (!alive) return;
-                    setAuthCapabilitiesLoadFailed(true);
-                });
         }
+        // Native Yandex/VK come from the APK, while email readiness comes from
+        // the server. Always merge the remote result so email linking is not
+        // hidden on Android; keep the compiled providers if discovery fails.
+        void getAccountAuthCapabilities()
+            .then((capabilities) => {
+                if (!alive) return;
+                setAuthCapabilities(capabilities);
+                setAuthCapabilitiesLoadFailed(false);
+            })
+            .catch(() => {
+                if (!alive) return;
+                setAuthCapabilities((current) => current || localCapabilities);
+                setAuthCapabilitiesLoadFailed(true);
+            });
 
         void getLinkedIdentities()
             .then((result) => {

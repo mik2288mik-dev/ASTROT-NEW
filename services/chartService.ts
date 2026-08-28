@@ -1,13 +1,45 @@
 import { NatalChartData, UserProfile } from '../types';
 import { isCanonicalNatalChartDataComplete } from '../lib/natalChartCanonical';
 import { assertValidUserId } from '../lib/userId';
-import { writeLocalNatalChart } from '../lib/localNatalChartCache';
+import { buildNatalChartCacheKey, writeLocalNatalChart } from '../lib/localNatalChartCache';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
+import {
+  createDiagnosticTraceId,
+  diagnosticErrorCode,
+  diagnosticHttpStatus,
+  diagnosticTraceHeaders,
+  formatDiagnosticFields,
+} from '../lib/diagnosticTrace';
+import {
+  diagnosticLog,
+  showRuntimeDiagnosticsForFailure,
+} from '../lib/runtimeDiagnostics';
 
 const CHART_FETCH_TIMEOUT_MS=90_000;
 const calculationInFlight=new Map<string,Promise<NatalChartData>>();
 const log={info:(message:string,data?:any)=>console.log(`[ChartService] ${message}`,data||''),warn:(message:string,data?:any)=>console.warn(`[ChartService] ${message}`,data||''),error:(message:string,error?:any)=>console.error(`[ChartService] ERROR: ${message}`,error||'')};
+
+function chartDiagnostic(
+  level:'INFO'|'WARN'|'ERROR',
+  traceId:string,
+  fields:Omit<Parameters<typeof formatDiagnosticFields>[0],'traceId'|'side'>,
+) {
+  diagnosticLog(level,'natal_chart',formatDiagnosticFields({traceId,side:'client',...fields}));
+}
+
+function chartError(code:string,message:string,status?:number):Error&{code:string;status?:number} {
+  const error=new Error(message) as Error&{code:string;status?:number};
+  error.code=code;
+  if (status!==undefined) error.status=status;
+  return error;
+}
+
+function diagnosticBirthTimeMode(profile:UserProfile):'exact'|'approximate'|'unknown' {
+  return profile.birthTimeMode==='approximate'||profile.birthTimeMode==='unknown'
+    ? profile.birthTimeMode
+    :'exact';
+}
 
 function selectSelfChart(payload:any):any|null {
   const charts=Array.isArray(payload?.charts)?payload.charts:[];
@@ -38,54 +70,105 @@ function assertChart(value:any):NatalChartData {
 
 export async function getPrimaryChartId(userId:string):Promise<number|null> {
   assertValidUserId(userId);
+  const traceId=createDiagnosticTraceId('chart-primary-id'); const startedAt=Date.now();
+  chartDiagnostic('INFO',traceId,{stage:'fast_read',status:'start'});
   try {
-    const response=await apiFetch('/api/charts',{method:'GET',credentials:'include',headers:{...getTelegramInitDataHeaders()}},8_000);
-    if (!response.ok) return null;
+    const response=await apiFetch('/api/charts?repairPrimary=0',{method:'GET',credentials:'include',headers:{...getTelegramInitDataHeaders(),...diagnosticTraceHeaders(traceId)}},8_000);
+    if (!response.ok) {
+      chartDiagnostic('WARN',traceId,{stage:'fast_read',status:'error',durationMs:Date.now()-startedAt,httpStatus:response.status,errorCode:`HTTP_${response.status}`});
+      return null;
+    }
     const id=selectSelfChart(await response.json())?.id;
+    chartDiagnostic('INFO',traceId,{stage:'fast_read',status:id?'cache_hit':'cache_miss',durationMs:Date.now()-startedAt,httpStatus:response.status,source:id?'cache':'none'});
     return typeof id==='number'&&Number.isFinite(id)?id:null;
-  } catch (error:any) { log.warn('[getPrimaryChartId] Failed',{error:error?.message||error}); return null; }
+  } catch (error:any) {
+    chartDiagnostic('ERROR',traceId,{stage:'fast_read',status:'error',durationMs:Date.now()-startedAt,httpStatus:diagnosticHttpStatus(error),errorCode:diagnosticErrorCode(error,'CHART_PRIMARY_ID_FAILED')});
+    log.warn('[getPrimaryChartId] Failed',{code:diagnosticErrorCode(error,'CHART_PRIMARY_ID_FAILED')});
+    return null;
+  }
 }
 
-export async function getChartFromDB(userId:string):Promise<NatalChartData|null> {
+export async function getChartFromDB(userId:string,traceId=createDiagnosticTraceId('chart-read')):Promise<NatalChartData|null> {
   assertValidUserId(userId);
+  const startedAt=Date.now();
+  chartDiagnostic('INFO',traceId,{stage:'fast_read',status:'start'});
   let response:Response;
-  try { response=await apiFetch('/api/charts',{method:'GET',credentials:'include',headers:{...getTelegramInitDataHeaders()}},CHART_FETCH_TIMEOUT_MS); }
-  catch { throw new Error('Не удалось загрузить сохранённую карту из базы.'); }
-  if (!response.ok) throw new Error(`Не удалось загрузить карту из базы: ${response.status}`);
+  try { response=await apiFetch('/api/charts?repairPrimary=0',{method:'GET',credentials:'include',headers:{...getTelegramInitDataHeaders(),...diagnosticTraceHeaders(traceId)}},10_000); }
+  catch (error) {
+    chartDiagnostic('ERROR',traceId,{stage:'fast_read',status:'error',durationMs:Date.now()-startedAt,errorCode:diagnosticErrorCode(error,'CHART_READ_NETWORK_FAILED')});
+    throw chartError('CHART_READ_NETWORK_FAILED','Не удалось загрузить сохранённую карту из базы.');
+  }
+  if (!response.ok) {
+    chartDiagnostic('ERROR',traceId,{stage:'fast_read',status:'error',durationMs:Date.now()-startedAt,httpStatus:response.status,errorCode:`HTTP_${response.status}`});
+    throw chartError('CHART_READ_FAILED',`Не удалось загрузить карту из базы: ${response.status}`,response.status);
+  }
   const self=selectSelfChart(await response.json());
-  if (!self) return null;
-  return assertChart(self.chart_data||self.chartData);
+  if (!self) {
+    chartDiagnostic('INFO',traceId,{stage:'fast_read',status:'cache_miss',durationMs:Date.now()-startedAt,httpStatus:response.status,source:'none'});
+    return null;
+  }
+  const chart=assertChart(self.chart_data||self.chartData);
+  chartDiagnostic('INFO',traceId,{stage:'fast_read',status:'cache_hit',durationMs:Date.now()-startedAt,httpStatus:response.status,source:'cache'});
+  return chart;
 }
 
-async function calculateChart(profile:UserProfile,forceRecalculate=false):Promise<NatalChartData> {
+async function calculateChart(profile:UserProfile,forceRecalculate=false,traceId=createDiagnosticTraceId('chart-calculate')):Promise<NatalChartData> {
   assertValidUserId(profile.id);
+  const startedAt=Date.now();
+  chartDiagnostic('INFO',traceId,{stage:'calculation_request',status:'start',birthTimeMode:diagnosticBirthTimeMode(profile),hasCoordinates:Number.isFinite(profile.birthLatitude)&&Number.isFinite(profile.birthLongitude)});
   let response:Response;
   try {
-    response=await apiFetch('/api/charts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json',...getTelegramInitDataHeaders()},body:JSON.stringify(chartRequest(profile,forceRecalculate))},CHART_FETCH_TIMEOUT_MS);
-  } catch { throw new Error('Ошибка сети. Проверь интернет и попробуй снова.'); }
+    response=await apiFetch('/api/charts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json',...getTelegramInitDataHeaders(),...diagnosticTraceHeaders(traceId)},body:JSON.stringify(chartRequest(profile,forceRecalculate))},CHART_FETCH_TIMEOUT_MS);
+  } catch (error) {
+    chartDiagnostic('ERROR',traceId,{stage:'calculation_request',status:'error',durationMs:Date.now()-startedAt,errorCode:diagnosticErrorCode(error,'CHART_CALCULATION_NETWORK_FAILED'),birthTimeMode:diagnosticBirthTimeMode(profile)});
+    throw chartError('CHART_CALCULATION_NETWORK_FAILED','Ошибка сети. Проверь интернет и попробуй снова.');
+  }
   if (!response.ok) {
     const error=await response.json().catch(()=>({}));
-    throw new Error(error.message||error.error||`Ошибка сервера: ${response.status}`);
+    const code=String(error.code||error.error||`HTTP_${response.status}`);
+    chartDiagnostic('ERROR',traceId,{stage:'calculation_result',status:'error',durationMs:Date.now()-startedAt,httpStatus:response.status,errorCode:code,birthTimeMode:diagnosticBirthTimeMode(profile)});
+    throw chartError(code,error.message||error.error||`Ошибка сервера: ${response.status}`,response.status);
   }
   const payload=await response.json();
-  return assertChart(payload?.chart_data||payload?.chartData||payload);
+  const chart=assertChart(payload?.chart_data||payload?.chartData||payload);
+  chartDiagnostic('INFO',traceId,{stage:'calculation_result',status:'ok',durationMs:Date.now()-startedAt,httpStatus:response.status,source:'calculated',birthTimeMode:diagnosticBirthTimeMode(profile)});
+  return chart;
 }
 
 export async function getOrCalculateChart(profile:UserProfile):Promise<NatalChartData> {
   const userId=assertValidUserId(profile.id);
-  const active=calculationInFlight.get(userId); if (active) return active;
-  const stored=await getChartFromDB(userId);
-  if (stored) { writeLocalNatalChart(profile,stored); return stored; }
-  const promise=Promise.race([
-    calculateChart(profile),
-    new Promise<NatalChartData>((_,reject)=>setTimeout(()=>reject(new Error('Превышено время ожидания расчёта карты.')),120_000)),
-  ]).finally(()=>calculationInFlight.delete(userId));
-  calculationInFlight.set(userId,promise);
-  const chart=await promise; writeLocalNatalChart(profile,chart); return chart;
+  const requestKey=buildNatalChartCacheKey(profile);
+  const active=calculationInFlight.get(requestKey); if (active) return active;
+  const traceId=createDiagnosticTraceId('chart-load'); const startedAt=Date.now();
+  chartDiagnostic('INFO',traceId,{stage:'load',status:'start',birthTimeMode:diagnosticBirthTimeMode(profile)});
+  const request=(async()=>{
+    try {
+      const stored=await getChartFromDB(userId,traceId);
+      if (stored) {
+        writeLocalNatalChart(profile,stored);
+        chartDiagnostic('INFO',traceId,{stage:'finished',status:'ok',durationMs:Date.now()-startedAt,source:'cache',birthTimeMode:diagnosticBirthTimeMode(profile)});
+        return stored;
+      }
+      const chart=await Promise.race([
+        calculateChart(profile,false,traceId),
+        new Promise<NatalChartData>((_,reject)=>setTimeout(()=>reject(chartError('CHART_CALCULATION_TIMEOUT','Превышено время ожидания расчёта карты.')),120_000)),
+      ]);
+      writeLocalNatalChart(profile,chart);
+      chartDiagnostic('INFO',traceId,{stage:'finished',status:'ok',durationMs:Date.now()-startedAt,source:'calculated',birthTimeMode:diagnosticBirthTimeMode(profile)});
+      return chart;
+    } catch (error) {
+      chartDiagnostic('ERROR',traceId,{stage:'finished',status:diagnosticErrorCode(error)==='CHART_CALCULATION_TIMEOUT'?'timeout':'error',durationMs:Date.now()-startedAt,httpStatus:diagnosticHttpStatus(error),errorCode:diagnosticErrorCode(error,'NATAL_CHART_FAILED'),birthTimeMode:diagnosticBirthTimeMode(profile)});
+      showRuntimeDiagnosticsForFailure('natal chart failed',error);
+      throw error;
+    }
+  })().finally(()=>calculationInFlight.delete(requestKey));
+  calculationInFlight.set(requestKey,request);
+  return request;
 }
 
 export async function forceRecalculateChart(profile:UserProfile):Promise<NatalChartData> {
-  const chart=await calculateChart(profile,true); writeLocalNatalChart(profile,chart); return chart;
+  const traceId=createDiagnosticTraceId('chart-force');
+  const chart=await calculateChart(profile,true,traceId); writeLocalNatalChart(profile,chart); return chart;
 }
 
 export function birthDataChanged(oldProfile:UserProfile|null,newProfile:UserProfile):boolean {
@@ -96,5 +179,8 @@ export function birthDataChanged(oldProfile:UserProfile|null,newProfile:UserProf
     ||oldProfile.birthTimeUncertaintyMinutes!==newProfile.birthTimeUncertaintyMinutes
     ||oldProfile.birthTimeRangeStart!==newProfile.birthTimeRangeStart
     ||oldProfile.birthTimeRangeEnd!==newProfile.birthTimeRangeEnd
-    ||oldProfile.birthPlace!==newProfile.birthPlace;
+    ||oldProfile.birthPlace!==newProfile.birthPlace
+    ||oldProfile.birthTimezone!==newProfile.birthTimezone
+    ||oldProfile.birthLatitude!==newProfile.birthLatitude
+    ||oldProfile.birthLongitude!==newProfile.birthLongitude;
 }

@@ -1,5 +1,6 @@
 import {
   DistributionChannelError,
+  canUseAccountAuthProvider,
   canUseRuStorePay,
   canUseTelegramStars,
   resolveDistributionChannel,
@@ -21,6 +22,15 @@ describe('distribution channel isolation', () => {
     expect(canUseRuStorePay('rustore', '0')).toBe(false);
     expect(canUseRuStorePay('telegram', '1')).toBe(false);
     expect(canUseRuStorePay('google_play', '1')).toBe(false);
+  });
+
+  it('isolates Google authentication to Google Play while keeping Yandex and VK portable', () => {
+    expect(canUseAccountAuthProvider('google', 'google_play')).toBe(true);
+    for (const channel of ['development', 'rustore', 'telegram'] as const) {
+      expect(canUseAccountAuthProvider('google', channel)).toBe(false);
+      expect(canUseAccountAuthProvider('yandex', channel)).toBe(true);
+      expect(canUseAccountAuthProvider('vk', channel)).toBe(true);
+    }
   });
 
   it('rejects an unknown channel instead of falling back to Telegram', () => {

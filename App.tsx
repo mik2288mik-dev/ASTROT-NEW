@@ -27,7 +27,7 @@ import {
     type AppSessionInvalidatedDetail,
 } from './services/apiClient';
 import { getChartFromDB, getOrCalculateChart, getPrimaryChartId } from './services/chartService';
-import { clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
+import { buildNatalChartCacheKey, clearLocalNatalChart, readLocalNatalChartCache, writeLocalNatalChart } from './lib/localNatalChartCache';
 import {
     clearLocalHumanBaseReport,
     readLocalHumanBaseReportWithFallback,
@@ -172,15 +172,6 @@ type TelegramWebAppUser = {
     last_name?: string;
     username?: string;
 };
-
-function getPrimaryChartLoadKey(profile: UserProfile): string {
-    return [
-        profile.id || '',
-        profile.birthDate || '',
-        profile.birthTime || '',
-        profile.birthPlace || '',
-    ].join('|');
-}
 
 function getTelegramDisplayName(tgUser?: TelegramWebAppUser | null): string {
     const fullName = [tgUser?.first_name, tgUser?.last_name]
@@ -528,7 +519,7 @@ const App: React.FC = () => {
 
 
     const loadPrimaryChartOnce = useCallback(async (targetProfile: UserProfile): Promise<NatalChartData | null> => {
-        const key = getPrimaryChartLoadKey(targetProfile);
+        const key = buildNatalChartCacheKey(targetProfile);
         const current = primaryChartSessionRef.current;
 
         if (current.key === key && hasReadableNatalChart(current.data)) {
@@ -811,7 +802,7 @@ const App: React.FC = () => {
                         .then((freshChart) => {
                             if (!hasReadableNatalChart(freshChart)) return;
                             chart = freshChart;
-                            const key = getPrimaryChartLoadKey(targetProfile);
+                            const key = buildNatalChartCacheKey(targetProfile);
                             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
                             primaryChartDataRef.current = freshChart;
                             writeLocalNatalChart(targetProfile, freshChart, chartId ?? undefined);
@@ -1009,7 +1000,7 @@ const App: React.FC = () => {
                 const localEntry = readLocalNatalChartCache(updatedProfile);
                 logStartupMetric('startup_local_chart_hit', !!localEntry);
                 if (localEntry) {
-                    const key = getPrimaryChartLoadKey(updatedProfile);
+                    const key = buildNatalChartCacheKey(updatedProfile);
                     primaryChartSessionRef.current = { key, data: localEntry.chartData, promise: null };
                     primaryChartDataRef.current = localEntry.chartData;
                     setChartData(localEntry.chartData);
@@ -1161,16 +1152,38 @@ const App: React.FC = () => {
             if (!generatedChart || !generatedChart.sun || !generatedChart.moon || (!birthTimeUnknown && !generatedChart.rising)) {
                 throw new Error('Не удалось получить данные карты. Попробуйте ещё раз.');
             }
+
+            const canonicalBirth = generatedChart.birth;
+            const canonicalLatitude = canonicalBirth?.latitude ?? generatedChart.latitude;
+            const canonicalLongitude = canonicalBirth?.longitude ?? generatedChart.longitude;
+            const canonicalFullProfile: UserProfile = {
+                ...fullProfile,
+                birthTime: canonicalBirth?.time?.localTime ?? fullProfile.birthTime,
+                birthTimeMode: canonicalBirth?.time?.mode ?? fullProfile.birthTimeMode,
+                birthTimeUncertaintyMinutes: canonicalBirth?.time?.uncertaintyMinutes
+                    ?? fullProfile.birthTimeUncertaintyMinutes
+                    ?? null,
+                birthTimeRangeStart: canonicalBirth?.time?.rangeStart
+                    ?? fullProfile.birthTimeRangeStart
+                    ?? null,
+                birthTimeRangeEnd: canonicalBirth?.time?.rangeEnd
+                    ?? fullProfile.birthTimeRangeEnd
+                    ?? null,
+                birthPlace: canonicalBirth?.place || fullProfile.birthPlace,
+                birthTimezone: canonicalBirth?.timezone || generatedChart.timezone || fullProfile.birthTimezone || null,
+                birthLatitude: Number.isFinite(canonicalLatitude) ? canonicalLatitude : fullProfile.birthLatitude,
+                birthLongitude: Number.isFinite(canonicalLongitude) ? canonicalLongitude : fullProfile.birthLongitude,
+            };
             
             console.log('[App] Chart calculated');
 
             // Завершение фиксируется только после готовой карты. Повтор после сбоя
             // безопасен: профиль обновляется по тому же ID, а chartService читает
             // уже созданную primary chart вместо параллельного расчёта.
-            await saveProfile(fullProfile);
-            setProfile(fullProfile);
+            await saveProfile(canonicalFullProfile);
+            setProfile(canonicalFullProfile);
             if (!isGuestOnboarding) {
-                void resolveAuthoritativeAdminStatus(safeUserId, fullProfile.isAdmin)
+                void resolveAuthoritativeAdminStatus(safeUserId, canonicalFullProfile.isAdmin)
                     .then((authoritativeIsAdmin) => {
                         setProfile((current) => current && String(current.id) === safeUserId
                             ? { ...current, isAdmin: authoritativeIsAdmin }
@@ -1178,27 +1191,27 @@ const App: React.FC = () => {
                     });
             }
 
-            const primaryKey = getPrimaryChartLoadKey(fullProfile);
+            const primaryKey = buildNatalChartCacheKey(canonicalFullProfile);
             primaryChartSessionRef.current = { key: primaryKey, data: generatedChart, promise: null };
             primaryChartDataRef.current = generatedChart;
-            clearHumanReadingSessionCache(fullProfile.id);
-            clearLocalHumanBaseReport(fullProfile);
+            clearHumanReadingSessionCache(canonicalFullProfile.id);
+            clearLocalHumanBaseReport(canonicalFullProfile);
             setChartLoadState('ready');
             setChartData(generatedChart);
-            writeLocalNatalChart(fullProfile, generatedChart);
+            writeLocalNatalChart(canonicalFullProfile, generatedChart);
             setLoadingMessage(
-                fullProfile.language === 'en'
+                canonicalFullProfile.language === 'en'
                     ? 'Preparing your horoscope'
                     : 'Готовим твой гороскоп',
             );
             setLoadingProgress(82);
-            loadStartupPersonalForecasts(fullProfile);
-            void getPrimaryChartId(String(fullProfile.id))
+            loadStartupPersonalForecasts(canonicalFullProfile);
+            void getPrimaryChartId(String(canonicalFullProfile.id))
                 .then((primaryChartId) => {
                     if (primaryChartId != null) {
-                        clearLocalHumanBaseReport(fullProfile, primaryChartId);
+                        clearLocalHumanBaseReport(canonicalFullProfile, primaryChartId);
                         setPrimaryChartId(primaryChartId);
-                        writeLocalNatalChart(fullProfile, generatedChart, primaryChartId);
+                        writeLocalNatalChart(canonicalFullProfile, generatedChart, primaryChartId);
                     }
                     return undefined;
                 })
@@ -1261,7 +1274,7 @@ const App: React.FC = () => {
             setStartupRetryNonce((value) => value + 1);
             return;
         }
-        if (profile && getPrimaryChartLoadKey(profile) !== getPrimaryChartLoadKey(updatedProfile)) {
+        if (profile && buildNatalChartCacheKey(profile) !== buildNatalChartCacheKey(updatedProfile)) {
             clearLocalHumanBaseReport(profile);
         }
         setProfile(updatedProfile);
@@ -1847,7 +1860,7 @@ const App: React.FC = () => {
                 getChartFromDB(String(profile.id)),
                 getPrimaryChartId(String(profile.id)),
             ]);
-            const key = getPrimaryChartLoadKey(profile);
+            const key = buildNatalChartCacheKey(profile);
             primaryChartSessionRef.current = { key, data: freshChart, promise: null };
             primaryChartDataRef.current = freshChart;
             clearHumanReadingSessionCache(String(profile.id));

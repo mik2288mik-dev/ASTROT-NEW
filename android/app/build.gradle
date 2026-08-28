@@ -27,9 +27,24 @@ def rustorePaymentsEnabled = ['1', 'true', 'yes', 'on'].contains(rustorePayments
 def appVersionCodeValue = System.getenv('APP_VERSION_CODE') ?: project.findProperty('APP_VERSION_CODE') ?: '1'
 def appVersionNameValue = System.getenv('APP_VERSION_NAME') ?: project.findProperty('APP_VERSION_NAME') ?: '1.0.0'
 def releaseTaskRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') && !it.toLowerCase().contains('lint') }
+def developmentPackageTaskRequested = gradle.startParameter.taskNames.any {
+    def taskName = it.toLowerCase()
+    taskName.contains('development') && (
+        taskName.contains('assemble') || taskName.contains('bundle') || taskName.contains('install') || taskName.contains('package')
+    )
+}
 
 if (releaseTaskRequested && !releaseSigningReady) {
     throw new GradleException('Release signing is required. Set RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS and RELEASE_KEY_PASSWORD.')
+}
+if (developmentPackageTaskRequested) {
+    def missingProviderValues = []
+    if (!yandexAndroidClientId || yandexAndroidClientId == '0') missingProviderValues += 'YANDEX_ANDROID_CLIENT_ID'
+    if (!vkAndroidClientId || vkAndroidClientId == '0') missingProviderValues += 'VK_ANDROID_CLIENT_ID'
+    if (!vkIdAndroidClientSecret || vkIdAndroidClientSecret == 'VK_ID_ANDROID_CLIENT_SECRET_REQUIRED') missingProviderValues += 'VK_ID_ANDROID_CLIENT_SECRET'
+    if (!missingProviderValues.isEmpty()) {
+        throw new GradleException("Development APK auth configuration is incomplete: ${missingProviderValues.join(', ')}")
+    }
 }
 
 android {
@@ -79,9 +94,6 @@ android {
         development {
             dimension 'distribution'
             buildConfigField 'String', 'DISTRIBUTION_CHANNEL', '"development"'
-            buildConfigField 'String', 'GOOGLE_AUTH_SERVER_CLIENT_ID', buildConfigString(googleAuthClientId)
-            buildConfigField 'boolean', 'GOOGLE_AUTH_ENABLED', 'true'
-            buildConfigField 'String', 'OPTIONAL_IDENTITY_AUTH_HANDLER_CLASS', buildConfigString(googleAuthHandlerClass)
         }
         telegram {
             dimension 'distribution'
@@ -103,10 +115,7 @@ android {
     buildFeatures {
         buildConfig true
     }
-    sourceSets {
-        development.java.srcDir 'src/googleAuth/java'
-        googlePlay.java.srcDir 'src/googleAuth/java'
-    }
+    sourceSets { googlePlay.java.srcDir 'src/googleAuth/java' }
     buildTypes {
         release {
             if (releaseSigningReady) {
@@ -119,17 +128,27 @@ android {
 }
 
 def mobileBuildMarkerFile = file('src/main/assets/public/nebo-mobile-build.json')
+def currentSourceCommit = providers.exec {
+    workingDir rootProject.file('..')
+    commandLine 'git', 'rev-parse', '--verify', 'HEAD'
+}.standardOutput.asText.map { it.trim().toLowerCase() }
 def verifyMobileBuildMarker = { String expectedChannel ->
     if (!mobileBuildMarkerFile.exists()) {
         throw new GradleException("Mobile web assets are missing their provenance marker. Run the matching android build command before assembling ${expectedChannel}.")
     }
     def marker = new groovy.json.JsonSlurper().parse(mobileBuildMarkerFile)
     def apiOrigin = String.valueOf(marker.apiOrigin ?: '')
+    def markerSourceCommit = String.valueOf(marker.sourceCommit ?: '').toLowerCase()
+    def markerVersionCode = String.valueOf(marker.versionCode ?: '')
+    def markerVersionName = String.valueOf(marker.versionName ?: '')
     if (
-        marker.format != 1
+        marker.format != 2
         || marker.mobileBuild != true
         || marker.channel != expectedChannel
         || !apiOrigin.startsWith('https://')
+        || markerSourceCommit != currentSourceCommit.get()
+        || markerVersionCode != appVersionCodeValue.toString()
+        || markerVersionName != appVersionNameValue.toString()
     ) {
         throw new GradleException("Mobile web assets do not match the ${expectedChannel} Android flavor. Rebuild and sync the matching mobile bundle before assembling.")
     }
@@ -139,6 +158,7 @@ def expectedChannelForPreBuild = { String taskName ->
     def normalized = taskName.toLowerCase()
     if (!normalized.startsWith('pre') || !normalized.endsWith('build')) return null
     if (normalized.contains('development')) return 'development'
+    if (normalized.contains('telegram')) return 'telegram'
     if (normalized.contains('rustore')) return 'rustore'
     if (normalized.contains('googleplay')) return 'google_play'
     return null
@@ -166,13 +186,10 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
-    developmentImplementation 'androidx.credentials:credentials:1.6.0'
-    developmentImplementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
-    developmentImplementation 'com.google.android.libraries.identity.googleid:googleid:1.2.0'
     googlePlayImplementation 'androidx.credentials:credentials:1.6.0'
     googlePlayImplementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
     googlePlayImplementation 'com.google.android.libraries.identity.googleid:googleid:1.2.0'
-    implementation 'com.yandex.android:authsdk:3.1.3'
+    implementation 'com.yandex.android:authsdk:3.2.1'
     implementation 'com.vk.id:vkid:2.7.2'
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"

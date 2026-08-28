@@ -14,6 +14,19 @@ import {
   canUseAccountAuthProvider,
   resolveDistributionChannel,
 } from '../lib/distributionChannel';
+import {
+  createDiagnosticTraceId,
+  diagnosticErrorCode,
+  diagnosticHttpStatus,
+  diagnosticTraceHeaders,
+  formatDiagnosticFields,
+  type DiagnosticEventName,
+  type DiagnosticFields,
+} from '../lib/diagnosticTrace';
+import {
+  diagnosticLog,
+  showRuntimeDiagnosticsForFailure,
+} from '../lib/runtimeDiagnostics';
 
 export type LinkableProvider = 'vk' | 'yandex' | 'google' | 'email' | 'telegram';
 export type AccountAuthCapabilities = {
@@ -64,6 +77,22 @@ let providerRequest: Promise<UserProfile> | null = null;
 const AUTH_CAPABILITIES_TIMEOUT_MS = 8_000;
 const NATIVE_PROVIDER_START_TIMEOUT_MS = 10_000;
 const NATIVE_PROVIDER_COMPLETE_TIMEOUT_MS = 20_000;
+
+type AuthRequestDiagnostic = {
+  event: Extract<DiagnosticEventName, 'auth_provider' | 'auth_email'>;
+  traceId: string;
+  stage: string;
+  provider?: Provider;
+  operation?: string;
+};
+
+function logAuthDiagnostic(
+  level: 'INFO' | 'WARN' | 'ERROR',
+  event: DiagnosticEventName,
+  fields: DiagnosticFields,
+): void {
+  diagnosticLog(level, event, formatDiagnosticFields({ side: 'client', ...fields }));
+}
 
 function usesNativeAndroidProviderAuth(): boolean {
   return isNativeAndroidRuntime();
@@ -117,11 +146,41 @@ async function authError(response: Response, fallback: string): Promise<Error> {
 async function acceptAccountSession(
   payload: AccountSessionPayload,
   fallback: string,
+  diagnostic?: AuthRequestDiagnostic,
 ): Promise<UserProfile> {
   if (!payload.profile) throw new Error(fallback);
   if (isNativeAppRuntime()) {
     if (!(payload.token || payload.accessToken)) throw new Error('NATIVE_SESSION_TOKEN_MISSING');
-    await persistNativeSessionResponse(payload);
+    const startedAt = Date.now();
+    logAuthDiagnostic('INFO', diagnostic?.event || 'auth_provider', {
+      traceId: diagnostic?.traceId,
+      stage: 'session_persist',
+      status: 'start',
+      provider: diagnostic?.provider,
+      operation: diagnostic?.operation,
+    });
+    try {
+      await persistNativeSessionResponse(payload);
+      logAuthDiagnostic('INFO', diagnostic?.event || 'auth_provider', {
+        traceId: diagnostic?.traceId,
+        stage: 'session_persist',
+        status: 'ok',
+        durationMs: Date.now() - startedAt,
+        provider: diagnostic?.provider,
+        operation: diagnostic?.operation,
+      });
+    } catch (error) {
+      logAuthDiagnostic('ERROR', diagnostic?.event || 'auth_provider', {
+        traceId: diagnostic?.traceId,
+        stage: 'session_persist',
+        status: 'error',
+        durationMs: Date.now() - startedAt,
+        errorCode: diagnosticErrorCode(error, 'NATIVE_SESSION_PERSIST_FAILED'),
+        provider: diagnostic?.provider,
+        operation: diagnostic?.operation,
+      });
+      throw error;
+    }
   }
   setAuthSessionMode('account');
   return payload.profile;
@@ -132,26 +191,99 @@ async function postAuthJson<T extends Record<string, unknown>>(
   body: Record<string, unknown>,
   fallback: string,
   timeoutMs?: number,
+  diagnostic?: AuthRequestDiagnostic,
 ): Promise<T> {
-  const response = await apiFetch(path, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }, timeoutMs);
-  if (!response.ok) throw await authError(response, fallback);
-  return response.json() as Promise<T>;
+  const startedAt = Date.now();
+  if (diagnostic) {
+    logAuthDiagnostic('INFO', diagnostic.event, {
+      traceId: diagnostic.traceId,
+      stage: diagnostic.stage,
+      status: 'start',
+      provider: diagnostic.provider,
+      operation: diagnostic.operation,
+    });
+  }
+  let response: Response;
+  try {
+    response = await apiFetch(path, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(diagnostic ? diagnosticTraceHeaders(diagnostic.traceId) : {}),
+      },
+      body: JSON.stringify(body),
+    }, timeoutMs);
+  } catch (error) {
+    if (diagnostic) {
+      logAuthDiagnostic('ERROR', diagnostic.event, {
+        traceId: diagnostic.traceId,
+        stage: diagnostic.stage,
+        status: 'error',
+        durationMs: Date.now() - startedAt,
+        errorCode: diagnosticErrorCode(error, fallback),
+        httpStatus: diagnosticHttpStatus(error),
+        provider: diagnostic.provider,
+        operation: diagnostic.operation,
+      });
+    }
+    throw error;
+  }
+  if (!response.ok) {
+    const error = await authError(response, fallback);
+    if (diagnostic) {
+      logAuthDiagnostic('ERROR', diagnostic.event, {
+        traceId: diagnostic.traceId,
+        stage: diagnostic.stage,
+        status: 'error',
+        durationMs: Date.now() - startedAt,
+        httpStatus: response.status,
+        errorCode: diagnosticErrorCode(error, fallback),
+        provider: diagnostic.provider,
+        operation: diagnostic.operation,
+      });
+    }
+    throw error;
+  }
+  if (diagnostic) {
+    logAuthDiagnostic('INFO', diagnostic.event, {
+      traceId: diagnostic.traceId,
+      stage: diagnostic.stage,
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      provider: diagnostic.provider,
+      operation: diagnostic.operation,
+    });
+  }
+  try {
+    return await response.json() as T;
+  } catch (error) {
+    if (diagnostic) {
+      logAuthDiagnostic('ERROR', diagnostic.event, {
+        traceId: diagnostic.traceId,
+        stage: 'response_parse',
+        status: 'error',
+        durationMs: Date.now() - startedAt,
+        httpStatus: response.status,
+        errorCode: 'AUTH_RESPONSE_INVALID',
+        provider: diagnostic.provider,
+        operation: diagnostic.operation,
+      });
+    }
+    throw error;
+  }
 }
 
-function providerLaunchOptions(start: NativeProviderStart): NativeProviderLaunch {
+function providerLaunchOptions(start: NativeProviderStart, traceId: string): NativeProviderLaunch {
   const clientId = start.provider === 'google'
     ? start.config.webClientId
     : start.config.clientId;
   if (!clientId) throw new Error('AUTH_PROVIDER_NOT_CONFIGURED');
   return {
-    challengeId: start.challengeId,
     provider: start.provider,
     clientId,
+    traceId,
     nonce: start.config.nonce,
     state: start.config.state,
     codeChallenge: start.config.codeChallenge,
@@ -215,30 +347,63 @@ export async function getLinkedIdentities(): Promise<{
 }
 
 export async function getAccountAuthCapabilities(): Promise<AccountAuthCapabilities> {
+  const traceId = createDiagnosticTraceId('auth-capabilities');
+  const startedAt = Date.now();
   const localCapabilities = getLocalAccountAuthCapabilities();
-  if (localCapabilities) return localCapabilities;
-
   const runtime = usesNativeAndroidProviderAuth() ? 'native' : 'browser';
-  const channel = resolveDistributionChannel();
-  const response = await apiFetch(
-    `/api/auth/capabilities?runtime=${runtime}&channel=${channel}`,
-    {},
-    AUTH_CAPABILITIES_TIMEOUT_MS,
-  );
-  if (!response.ok) {
-    throw await authError(response, 'AUTH_CAPABILITIES_UNAVAILABLE');
+  let channel: ReturnType<typeof resolveDistributionChannel> | undefined;
+  logAuthDiagnostic('INFO', 'auth_capabilities', {
+    traceId,
+    stage: 'capability_check',
+    status: 'start',
+    runtime,
+  });
+  try {
+    channel = resolveDistributionChannel();
+    const response = await apiFetch(
+      `/api/auth/capabilities?runtime=${runtime}&channel=${channel}`,
+      { headers: diagnosticTraceHeaders(traceId) },
+      AUTH_CAPABILITIES_TIMEOUT_MS,
+    );
+    if (!response.ok) throw await authError(response, 'AUTH_CAPABILITIES_UNAVAILABLE');
+    const payload = await response.json().catch(() => ({}));
+    const emailDelivery = payload?.emailDelivery === true || payload?.email === true;
+    const emailPassword = payload?.emailPassword === true;
+    const capabilities = {
+      // Native provider buttons describe SDKs compiled into this APK. They must
+      // remain visible even when discovery is stale; provider/start is the
+      // authoritative server-side readiness check after the user taps one.
+      vk: localCapabilities ? localCapabilities.vk : payload?.vk === true,
+      yandex: localCapabilities ? localCapabilities.yandex : payload?.yandex === true,
+      google: canUseAccountAuthProvider('google', channel)
+        && (localCapabilities ? localCapabilities.google && payload?.google === true : payload?.google === true),
+      email: emailDelivery,
+      emailPassword,
+      emailDelivery,
+    };
+    logAuthDiagnostic('INFO', 'auth_capabilities', {
+      traceId,
+      stage: 'capability_check',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      runtime,
+      channel,
+    });
+    return capabilities;
+  } catch (error) {
+    logAuthDiagnostic('ERROR', 'auth_capabilities', {
+      traceId,
+      stage: 'capability_check',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'AUTH_CAPABILITIES_UNAVAILABLE'),
+      runtime,
+      channel,
+    });
+    throw error;
   }
-  const payload = await response.json().catch(() => ({}));
-  const emailDelivery = payload?.emailDelivery === true || payload?.email === true;
-  const emailPassword = payload?.emailPassword === true;
-  return {
-    vk: payload?.vk === true,
-    yandex: payload?.yandex === true,
-    google: canUseAccountAuthProvider('google', channel) && payload?.google === true,
-    email: emailDelivery,
-    emailPassword,
-    emailDelivery,
-  };
 }
 export async function beginExternalAuth(
   provider: Provider,
@@ -273,22 +438,90 @@ export async function authenticateWithProvider(
   }
   if (providerRequest) return providerRequest;
 
+  const traceId = createDiagnosticTraceId(`auth-${provider}`);
+  const startedAt = Date.now();
+  const diagnostic: AuthRequestDiagnostic = {
+    event: 'auth_provider',
+    traceId,
+    stage: 'challenge_request',
+    provider,
+    operation: purpose,
+  };
+  logAuthDiagnostic('INFO', 'auth_provider', {
+    traceId,
+    stage: 'flow',
+    status: 'start',
+    provider,
+    operation: purpose,
+  });
   providerRequest = (async () => {
     const start = await postAuthJson<NativeProviderStart>(
       `/api/auth/provider/${provider}/start`,
       { purpose },
       'PROVIDER_AUTH_START_FAILED',
       NATIVE_PROVIDER_START_TIMEOUT_MS,
+      diagnostic,
     );
-    const credential = await nativeIdentityAuth.signIn(providerLaunchOptions(start));
+    logAuthDiagnostic('INFO', 'auth_provider', {
+      traceId,
+      stage: 'challenge_received',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      provider,
+      operation: purpose,
+    });
+    logAuthDiagnostic('INFO', 'auth_provider', {
+      traceId,
+      stage: 'sdk_launch',
+      status: 'start',
+      provider,
+      operation: purpose,
+    });
+    const credential = await nativeIdentityAuth.signIn(providerLaunchOptions(start, traceId));
+    logAuthDiagnostic('INFO', 'auth_provider', {
+      traceId,
+      stage: 'credential_received',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      provider,
+      operation: purpose,
+    });
     const payload = await postAuthJson<AccountSessionPayload>(
       `/api/auth/provider/${provider}/complete`,
       { challengeId: start.challengeId, ...credential, native: true, sessionVersion: 2 },
       'PROVIDER_AUTH_COMPLETE_FAILED',
       NATIVE_PROVIDER_COMPLETE_TIMEOUT_MS,
+      { ...diagnostic, stage: 'server_complete' },
     );
-    return acceptAccountSession(payload, 'PROVIDER_AUTH_COMPLETE_FAILED');
-  })().finally(() => {
+    const profile = await acceptAccountSession(payload, 'PROVIDER_AUTH_COMPLETE_FAILED', diagnostic);
+    logAuthDiagnostic('INFO', 'auth_provider', {
+      traceId,
+      stage: 'finished',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      provider,
+      operation: purpose,
+    });
+    return profile;
+  })().catch((error) => {
+    const code = diagnosticErrorCode(error, 'PROVIDER_AUTH_FAILED');
+    logAuthDiagnostic(code === 'AUTH_CANCELLED' ? 'WARN' : 'ERROR', 'auth_provider', {
+      traceId,
+      stage: 'finished',
+      status: code === 'AUTH_CANCELLED'
+        ? 'cancelled'
+        : (code === 'AUTH_TIMEOUT' ? 'timeout' : 'error'),
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: code,
+      provider,
+      operation: purpose,
+    });
+    showRuntimeDiagnosticsForFailure('provider authentication failed', error, {
+      includeClientErrors: true,
+    });
+    throw error;
+  }).finally(() => {
     providerRequest = null;
   });
 
@@ -306,45 +539,145 @@ export async function registerEmailPassword(input: {
   passwordConfirmation: string;
   purpose?: AuthPurpose;
 }): Promise<{ challengeId: string }> {
-  return postAuthJson<{ challengeId: string }>(
-    '/api/auth/password/register',
-    {
-      email: input.email,
-      password: input.password,
-      passwordConfirmation: input.passwordConfirmation,
-      purpose: input.purpose || 'login',
-    },
-    'EMAIL_REGISTRATION_FAILED',
-  );
+  const traceId = createDiagnosticTraceId('auth-email-register');
+  const startedAt = Date.now();
+  const diagnostic: AuthRequestDiagnostic = {
+    event: 'auth_email', traceId, stage: 'server_request', operation: 'register',
+  };
+  try {
+    const result = await postAuthJson<{ challengeId: string }>(
+      '/api/auth/password/register',
+      {
+        email: input.email,
+        password: input.password,
+        passwordConfirmation: input.passwordConfirmation,
+        purpose: input.purpose || 'login',
+      },
+      'EMAIL_REGISTRATION_FAILED',
+      undefined,
+      diagnostic,
+    );
+    logAuthDiagnostic('INFO', 'auth_email', {
+      traceId, stage: 'finished', status: 'ok', durationMs: Date.now() - startedAt, operation: 'register',
+    });
+    return result;
+  } catch (error) {
+    logAuthDiagnostic('ERROR', 'auth_email', {
+      traceId,
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'EMAIL_REGISTRATION_FAILED'),
+      operation: 'register',
+    });
+    showRuntimeDiagnosticsForFailure('email registration failed', error);
+    throw error;
+  }
 }
 
 export async function verifyEmailPasswordRegistration(
   challengeId: string,
   code: string,
 ): Promise<UserProfile> {
-  const payload = await postAuthJson<AccountSessionPayload>(
-    '/api/auth/password/register-verify',
-    { challengeId, code, native: isNativeAppRuntime(), sessionVersion: 2 },
-    'EMAIL_VERIFICATION_FAILED',
-  );
-  return acceptAccountSession(payload, 'EMAIL_VERIFICATION_FAILED');
+  const traceId = createDiagnosticTraceId('auth-email-verify');
+  const startedAt = Date.now();
+  const diagnostic: AuthRequestDiagnostic = {
+    event: 'auth_email', traceId, stage: 'server_request', operation: 'verify',
+  };
+  try {
+    const payload = await postAuthJson<AccountSessionPayload>(
+      '/api/auth/password/register-verify',
+      { challengeId, code, native: isNativeAppRuntime(), sessionVersion: 2 },
+      'EMAIL_VERIFICATION_FAILED',
+      undefined,
+      diagnostic,
+    );
+    const profile = await acceptAccountSession(payload, 'EMAIL_VERIFICATION_FAILED', diagnostic);
+    logAuthDiagnostic('INFO', 'auth_email', {
+      traceId, stage: 'finished', status: 'ok', durationMs: Date.now() - startedAt, operation: 'verify',
+    });
+    return profile;
+  } catch (error) {
+    logAuthDiagnostic('ERROR', 'auth_email', {
+      traceId,
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'EMAIL_VERIFICATION_FAILED'),
+      operation: 'verify',
+    });
+    showRuntimeDiagnosticsForFailure('email verification failed', error);
+    throw error;
+  }
 }
 
 export async function loginWithEmailPassword(email: string, password: string): Promise<UserProfile> {
-  const payload = await postAuthJson<AccountSessionPayload>(
-    '/api/auth/password/login',
-    { email, password, native: isNativeAppRuntime(), sessionVersion: 2 },
-    'EMAIL_PASSWORD_LOGIN_FAILED',
-  );
-  return acceptAccountSession(payload, 'EMAIL_PASSWORD_LOGIN_FAILED');
+  const traceId = createDiagnosticTraceId('auth-email-login');
+  const startedAt = Date.now();
+  const diagnostic: AuthRequestDiagnostic = {
+    event: 'auth_email', traceId, stage: 'server_request', operation: 'login',
+  };
+  try {
+    const payload = await postAuthJson<AccountSessionPayload>(
+      '/api/auth/password/login',
+      { email, password, native: isNativeAppRuntime(), sessionVersion: 2 },
+      'EMAIL_PASSWORD_LOGIN_FAILED',
+      undefined,
+      diagnostic,
+    );
+    const profile = await acceptAccountSession(payload, 'EMAIL_PASSWORD_LOGIN_FAILED', diagnostic);
+    logAuthDiagnostic('INFO', 'auth_email', {
+      traceId, stage: 'finished', status: 'ok', durationMs: Date.now() - startedAt, operation: 'login',
+    });
+    return profile;
+  } catch (error) {
+    logAuthDiagnostic('ERROR', 'auth_email', {
+      traceId,
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'EMAIL_PASSWORD_LOGIN_FAILED'),
+      operation: 'login',
+    });
+    showRuntimeDiagnosticsForFailure('email authentication failed', error);
+    throw error;
+  }
 }
 
 export async function requestPasswordReset(email: string): Promise<{ challengeId: string }> {
-  return postAuthJson<{ challengeId: string }>(
-    '/api/auth/password/reset-request',
-    { email },
-    'PASSWORD_RESET_REQUEST_FAILED',
-  );
+  const traceId = createDiagnosticTraceId('auth-email-reset-request');
+  const startedAt = Date.now();
+  const diagnostic: AuthRequestDiagnostic = {
+    event: 'auth_email', traceId, stage: 'server_request', operation: 'reset_request',
+  };
+  try {
+    const result = await postAuthJson<{ challengeId: string }>(
+      '/api/auth/password/reset-request',
+      { email },
+      'PASSWORD_RESET_REQUEST_FAILED',
+      undefined,
+      diagnostic,
+    );
+    logAuthDiagnostic('INFO', 'auth_email', {
+      traceId, stage: 'finished', status: 'ok', durationMs: Date.now() - startedAt, operation: 'reset_request',
+    });
+    return result;
+  } catch (error) {
+    logAuthDiagnostic('ERROR', 'auth_email', {
+      traceId,
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'PASSWORD_RESET_REQUEST_FAILED'),
+      operation: 'reset_request',
+    });
+    showRuntimeDiagnosticsForFailure('password reset request failed', error);
+    throw error;
+  }
 }
 
 export async function completePasswordReset(input: {
@@ -353,10 +686,35 @@ export async function completePasswordReset(input: {
   password: string;
   passwordConfirmation: string;
 }): Promise<UserProfile> {
-  const payload = await postAuthJson<AccountSessionPayload>(
-    '/api/auth/password/reset-complete',
-    { ...input, native: isNativeAppRuntime(), sessionVersion: 2 },
-    'PASSWORD_RESET_FAILED',
-  );
-  return acceptAccountSession(payload, 'PASSWORD_RESET_FAILED');
+  const traceId = createDiagnosticTraceId('auth-email-reset-complete');
+  const startedAt = Date.now();
+  const diagnostic: AuthRequestDiagnostic = {
+    event: 'auth_email', traceId, stage: 'server_request', operation: 'reset_complete',
+  };
+  try {
+    const payload = await postAuthJson<AccountSessionPayload>(
+      '/api/auth/password/reset-complete',
+      { ...input, native: isNativeAppRuntime(), sessionVersion: 2 },
+      'PASSWORD_RESET_FAILED',
+      undefined,
+      diagnostic,
+    );
+    const profile = await acceptAccountSession(payload, 'PASSWORD_RESET_FAILED', diagnostic);
+    logAuthDiagnostic('INFO', 'auth_email', {
+      traceId, stage: 'finished', status: 'ok', durationMs: Date.now() - startedAt, operation: 'reset_complete',
+    });
+    return profile;
+  } catch (error) {
+    logAuthDiagnostic('ERROR', 'auth_email', {
+      traceId,
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'PASSWORD_RESET_FAILED'),
+      operation: 'reset_complete',
+    });
+    showRuntimeDiagnosticsForFailure('password reset failed', error);
+    throw error;
+  }
 }

@@ -3,12 +3,15 @@ import {
   type PersonalForecastCacheContext,
 } from '../lib/personalForecastCache';
 import {
+  buildPersonalForecastPrewarmProfile,
   buildPersonalForecastPrewarmTargets,
   prewarmPersonalForecastHorizon,
   resetPersonalForecastPrewarmForTests,
   type PersonalForecastPrewarmRuntime,
 } from '../lib/personalForecastPrewarm';
 import {
+  buildPersonalForecastBirthProfileFingerprint,
+  getPersonalForecastRawProfile,
   isPersonalForecastPeriodAllowedForTier,
   type PersonalForecastRawProfile,
 } from '../lib/personalForecastContract';
@@ -49,6 +52,55 @@ describe('personal forecast rolling prewarm', () => {
   });
 
   afterEach(() => jest.restoreAllMocks());
+
+  it('uses canonical approximate birth-time settings and timezone for cache identity', () => {
+    const canonical = buildPersonalForecastPrewarmProfile('user-1', {
+      name: 'Mira', birth_date: '1990-01-01', birth_time: '12:00', birth_place: 'Moscow',
+      birth_time_mode: 'exact', birth_timezone: 'Europe/Moscow', gender: 'female', language: 'ru',
+    }, {
+      birth_time_mode: 'approximate', birth_time_uncertainty_minutes: 30,
+    });
+
+    expect(canonical).not.toBeNull();
+    expect(getPersonalForecastRawProfile(canonical!)).toMatchObject({
+      birth_time: '12:00',
+      birth_time_mode: 'approximate',
+      birth_time_uncertainty_minutes: 30,
+      birth_timezone: 'Europe/Moscow',
+    });
+    expect(buildPersonalForecastBirthProfileFingerprint(canonical!)).toBe(
+      buildPersonalForecastBirthProfileFingerprint({
+        ...profile,
+        birthTimeMode: 'approximate',
+        birthTimeUncertaintyMinutes: 30,
+      }),
+    );
+  });
+
+  it('normalizes unknown birth time consistently even when a stale time remains', () => {
+    const canonical = buildPersonalForecastPrewarmProfile('user-1', {
+      name: 'Mira', birth_date: '1990-01-01', birth_time: '12:00', birth_place: 'Moscow',
+      birth_timezone: 'Europe/Moscow', gender: 'female', language: 'ru',
+    }, {
+      birth_time_mode: 'unknown', birth_time_uncertainty_minutes: 30,
+    });
+
+    expect(canonical).not.toBeNull();
+    expect(getPersonalForecastRawProfile(canonical!)).toMatchObject({
+      birth_time: null,
+      birth_time_mode: 'unknown',
+      birth_time_uncertainty_minutes: null,
+      birth_timezone: 'Europe/Moscow',
+    });
+    expect(buildPersonalForecastBirthProfileFingerprint(canonical!)).toBe(
+      buildPersonalForecastBirthProfileFingerprint({
+        ...profile,
+        birthTime: '',
+        birthTimeMode: 'unknown',
+        birthTimeUncertaintyMinutes: null,
+      }),
+    );
+  });
 
   it('builds exactly five Free day targets and never includes Week or Month', () => {
     const targets = buildPersonalForecastPrewarmTargets({

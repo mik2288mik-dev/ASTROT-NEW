@@ -18,6 +18,17 @@ import {
 } from '../lib/personalForecastContract';
 import { getTelegramInitDataHeaders } from './sessionService';
 import { apiFetch } from './apiClient';
+import {
+  createDiagnosticTraceId,
+  diagnosticErrorCode,
+  diagnosticHttpStatus,
+  diagnosticTraceHeaders,
+  formatDiagnosticFields,
+} from '../lib/diagnosticTrace';
+import {
+  diagnosticLog,
+  showRuntimeDiagnosticsForFailure,
+} from '../lib/runtimeDiagnostics';
 
 type LoadOptions = {
   cacheOnly?: boolean;
@@ -46,6 +57,18 @@ type PersonalForecastPeriodResultState = {
 const LOCAL_CACHE_PREFIX = 'tvoi-goroskop:personal-forecast-feed-v17-reference-four-part';
 const memoryCache = new Map<string, PersonalForecastClientResult>();
 const inFlight = new Map<string, Promise<PersonalForecastClientResult>>();
+
+function logForecastDiagnostic(
+  level: 'INFO' | 'WARN' | 'ERROR',
+  traceId: string,
+  fields: Omit<Parameters<typeof formatDiagnosticFields>[0], 'traceId' | 'side'>,
+): void {
+  diagnosticLog(level, 'personal_forecast', formatDiagnosticFields({
+    traceId,
+    side: 'client',
+    ...fields,
+  }));
+}
 
 function userId(profile: UserProfile): string {
   return String(profile.id || '').trim();
@@ -271,17 +294,59 @@ async function fetchCached(input: {
   profile: UserProfile;
   period: PersonalForecastPeriod;
   periodKey: string;
+  traceId: string;
+  attempt?: number;
 }): Promise<PersonalForecastClientResult | null> {
-  const response = await apiFetch(buildUrl(input), {
-    method: 'GET',
-    headers: getTelegramInitDataHeaders(),
+  const startedAt = Date.now();
+  logForecastDiagnostic('INFO', input.traceId, {
+    stage: 'cache_request', status: 'start', period: input.period, attempt: input.attempt,
   });
-  // The API uses 204 for an empty, valid cache and older deployments used
-  // 404. Both mean the caller must begin generation.
-  if (response.status === 404 || response.status === 204) return null;
-  if (!response.ok) throw await parseError(response);
-  const payload = await response.json().catch(() => null);
-  return parseAccessPayload(payload, 'cache', input);
+  try {
+    const response = await apiFetch(buildUrl(input), {
+      method: 'GET',
+      headers: {
+        ...getTelegramInitDataHeaders(),
+        ...diagnosticTraceHeaders(input.traceId),
+      },
+    });
+    // The API uses 204 for an empty, valid cache and older deployments used
+    // 404. Both mean the caller must begin generation.
+    if (response.status === 404 || response.status === 204) {
+      logForecastDiagnostic('INFO', input.traceId, {
+        stage: 'cache_result',
+        status: 'cache_miss',
+        durationMs: Date.now() - startedAt,
+        httpStatus: response.status,
+        period: input.period,
+        attempt: input.attempt,
+      });
+      return null;
+    }
+    if (!response.ok) throw await parseError(response);
+    const payload = await response.json().catch(() => null);
+    const result = parseAccessPayload(payload, 'cache', input);
+    logForecastDiagnostic('INFO', input.traceId, {
+      stage: 'cache_result',
+      status: 'cache_hit',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      period: input.period,
+      source: result.source,
+      attempt: input.attempt,
+    });
+    return result;
+  } catch (error) {
+    logForecastDiagnostic('ERROR', input.traceId, {
+      stage: 'cache_result',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'PERSONAL_FORECAST_CACHE_FAILED'),
+      period: input.period,
+      attempt: input.attempt,
+    });
+    throw error;
+  }
 }
 
 async function generate(input: {
@@ -289,12 +354,18 @@ async function generate(input: {
   period: PersonalForecastPeriod;
   periodKey: string;
   maxInProgressRetries: number;
+  traceId: string;
 }): Promise<PersonalForecastClientResult> {
+  const startedAt = Date.now();
+  logForecastDiagnostic('INFO', input.traceId, {
+    stage: 'generation_request', status: 'start', period: input.period,
+  });
   const response = await apiFetch('/api/content/forecast/personal', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...getTelegramInitDataHeaders(),
+      ...diagnosticTraceHeaders(input.traceId),
     },
     body: JSON.stringify({
       period: input.period,
@@ -304,7 +375,16 @@ async function generate(input: {
   if (response.status !== 202) {
     if (!response.ok) throw await parseError(response);
     const payload = await response.json().catch(() => null);
-    return parseAccessPayload(payload, undefined, input);
+    const result = parseAccessPayload(payload, undefined, input);
+    logForecastDiagnostic('INFO', input.traceId, {
+      stage: 'generation_result',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      period: input.period,
+      source: result.source,
+    });
+    return result;
   }
 
   const payload = await response.json().catch(() => ({}));
@@ -312,9 +392,16 @@ async function generate(input: {
     3_000,
     Math.max(500, Number(payload?.retryAfterMs) || 1500),
   );
+  logForecastDiagnostic('INFO', input.traceId, {
+    stage: 'generation_result',
+    status: 'in_progress',
+    durationMs: Date.now() - startedAt,
+    httpStatus: response.status,
+    period: input.period,
+  });
   for (let attempt = 0; attempt < input.maxInProgressRetries; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
-    const cached = await fetchCached(input);
+    const cached = await fetchCached({ ...input, attempt: attempt + 1 });
     if (cached) return cached;
   }
   const error = new Error('Personal forecast generation is still in progress') as PersonalForecastClientError;
@@ -341,25 +428,51 @@ export async function loadPersonalForecast(input: {
   periodKey?: string;
   options?: LoadOptions;
 }): Promise<PersonalForecastClientResult> {
+  const traceId = createDiagnosticTraceId(`forecast-${input.period}`);
+  const startedAt = Date.now();
   const timezone = normalizeForecastTimezone(input.profile.birthTimezone);
   const periodKey = input.periodKey
     || getPersonalForecastPeriodKey(input.period, new Date(), timezone);
   const resolved = { ...input, periodKey };
   const key = contextKey(resolved);
   const local = input.options?.force ? null : readStored(key);
+  logForecastDiagnostic('INFO', traceId, {
+    stage: 'load', status: 'start', period: input.period,
+  });
+  if (local) {
+    logForecastDiagnostic('INFO', traceId, {
+      stage: 'local_cache',
+      status: 'cache_hit',
+      durationMs: Date.now() - startedAt,
+      period: input.period,
+      source: 'local',
+    });
+  }
   if (input.options?.cacheOnly && local) return local;
   const inFlightKey = `${key}:${input.options?.cacheOnly ? 'cache' : 'ensure'}`;
   const current = inFlight.get(inFlightKey);
-  if (current) return current;
+  if (current) {
+    logForecastDiagnostic('INFO', traceId, {
+      stage: 'in_flight', status: 'in_progress', period: input.period,
+    });
+    return current;
+  }
 
   const request = (async () => {
-    const serverCached = await fetchCached(resolved).catch((error: PersonalForecastClientError) => {
+    const serverCached = await fetchCached({ ...resolved, traceId }).catch((error: PersonalForecastClientError) => {
       const retryableCacheFailure = Number(error.status) >= 500;
       if (input.options?.cacheOnly || !retryableCacheFailure) throw error;
       return null;
     });
     if (serverCached) {
       writeStored(key, serverCached);
+      logForecastDiagnostic('INFO', traceId, {
+        stage: 'finished',
+        status: 'ok',
+        durationMs: Date.now() - startedAt,
+        period: input.period,
+        source: serverCached.source,
+      });
       return serverCached;
     }
     if (input.options?.cacheOnly) {
@@ -370,14 +483,33 @@ export async function loadPersonalForecast(input: {
     }
     const generated = await generate({
       ...resolved,
+      traceId,
       maxInProgressRetries: Math.min(
         60,
         Math.max(0, input.options?.maxInProgressRetries ?? 60),
       ),
     });
     writeStored(key, generated);
+    logForecastDiagnostic('INFO', traceId, {
+      stage: 'finished',
+      status: 'ok',
+      durationMs: Date.now() - startedAt,
+      period: input.period,
+      source: generated.source,
+    });
     return generated;
-  })().finally(() => {
+  })().catch((error) => {
+    logForecastDiagnostic('ERROR', traceId, {
+      stage: 'finished',
+      status: 'error',
+      durationMs: Date.now() - startedAt,
+      httpStatus: diagnosticHttpStatus(error),
+      errorCode: diagnosticErrorCode(error, 'PERSONAL_FORECAST_FAILED'),
+      period: input.period,
+    });
+    showRuntimeDiagnosticsForFailure('personal forecast failed', error);
+    throw error;
+  }).finally(() => {
     if (inFlight.get(inFlightKey) === request) inFlight.delete(inFlightKey);
   });
   inFlight.set(inFlightKey, request);

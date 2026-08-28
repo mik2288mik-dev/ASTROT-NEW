@@ -662,16 +662,32 @@ export const db = {
              (
                SELECT MAX(pe.ends_at) FROM premium_entitlements pe
                WHERE pe.user_id = u.id AND pe.status = 'active' AND pe.ends_at > NOW()
-             ) AS entitlement_premium_until
+             ) AS entitlement_premium_until,
+             (
+               SELECT json_build_object(
+                 'timezone', nc.timezone,
+                 'latitude', nc.latitude,
+                 'longitude', nc.longitude,
+                 'sun_sign', nc.sun_sign,
+                 'moon_sign', nc.moon_sign,
+                 'ascendant_sign', nc.ascendant_sign
+               )
+               FROM natal_charts nc
+               WHERE nc.user_id = u.id
+                 AND nc.subject_type = 'self'
+                 AND nc.archived_at IS NULL
+               ORDER BY nc.is_primary DESC NULLS LAST, nc.id ASC
+               LIMIT 1
+             ) AS primary_chart_summary
            FROM users u WHERE u.id = $1`,
           [id]
         );
         if (result.rows.length === 0) return null;
         const u = result.rows[0];
-        let primaryChart: any = null;
+        let primaryChart: any = normalizeJsonColumn(u.primary_chart_summary) || null;
         if (options?.hydratePrimaryChart !== false) {
           try {
-            primaryChart = await db.natal_charts.getPrimary(id);
+            primaryChart = await db.natal_charts.getPrimary(id) || primaryChart;
           } catch (chartError: any) {
             log.warn('[DB] Failed to hydrate user with primary chart summary', {
               userId: id,
@@ -689,7 +705,12 @@ export const db = {
           name: u.name,
           birth_date: u.birth_date,
           birth_time: u.birth_time,
+          birth_time_mode: u.birth_time_mode ?? null,
+          birth_time_uncertainty_minutes: u.birth_time_uncertainty_minutes ?? null,
+          birth_time_range_start: u.birth_time_range_start ?? null,
+          birth_time_range_end: u.birth_time_range_end ?? null,
           birth_place: u.birth_place,
+          birth_timezone: primaryChart?.timezone ?? u.birth_timezone ?? null,
           latitude: primaryChart?.latitude ?? u.latitude,
           longitude: primaryChart?.longitude ?? u.longitude,
           sun_sign: primaryChart?.sun_sign ?? u.sun_sign,

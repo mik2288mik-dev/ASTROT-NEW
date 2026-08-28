@@ -219,7 +219,19 @@ export async function ensurePersonalForecast(input: PersonalForecastCacheContext
       ]);
       const forecast = await generatePersonalForecastPackage({ profile: input.profile as UserProfile, model: resolved.model, period: input.period, window: resolved.window, recentForecasts, crossUserRepeatFragments, crossUserSemanticSignatures });
       if (!isPersonalForecastPackage(forecast)) throw new Error(`PERSONAL_FORECAST_PACKAGE_INVALID:${getPersonalForecastPackageValidationError(forecast) || 'UNKNOWN'}`);
-      await save(input, forecast, resolved).catch(() => undefined);
+      // A generated package is not ready until it is durably stored. Swallowing
+      // this error reports a false success and leaves every later GET at 204.
+      try {
+        await save(input, forecast, resolved);
+      } catch (cause) {
+        const error = new Error('PERSONAL_FORECAST_CACHE_WRITE_FAILED') as Error & {
+          code?: string;
+          cause?: unknown;
+        };
+        error.code = 'PERSONAL_FORECAST_CACHE_WRITE_FAILED';
+        error.cause = cause;
+        throw error;
+      }
       logForecastDeliveryMetric({ domain: 'personal', outcome: 'generated', tier: input.accessTier, period: input.period, periodKey: input.periodKey, generationCount: 1 });
       return forecast;
     },

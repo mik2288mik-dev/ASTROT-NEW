@@ -16,10 +16,16 @@ import {
   type PersonalForecastPeriod,
 } from '../../../../lib/personalForecastContract';
 import { getPersonalForecastGenerationDiagnosticCode } from '../../../../lib/personalForecastGeneration';
-import { queuePersonalForecastPrewarm } from '../../../../lib/personalForecastPrewarm';
+import {
+  buildPersonalForecastPrewarmProfile,
+  queuePersonalForecastPrewarm,
+} from '../../../../lib/personalForecastPrewarm';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
-import { toDateInputValue } from '../../../../lib/date-utils';
+import { birthProfileRepository } from '../../../../lib/birthProfileRepository';
 import { db } from '../../../../lib/db';
+import { diagnosticErrorCode } from '../../../../lib/diagnosticTrace';
+import { startServerOperationalDiagnostic } from '../../../../lib/serverOperationalDiagnostics';
+import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 
 export const config = { maxDuration: 180 };
 
@@ -62,24 +68,26 @@ function responsePayload(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const diagnostic = startServerOperationalDiagnostic(req, res, 'personal_forecast');
   if (req.method !== 'GET' && req.method !== 'POST') {
+    diagnostic.log('request', 'error', { httpStatus: 405, errorCode: 'METHOD_NOT_ALLOWED' });
     return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' });
   }
+  try {
   const auth = await requireAppUser(req, { allowGuest: true });
   const userId = String(auth.userId);
-  const user = await db.users.get(userId);
-  if (!user || !String(user.name || '').trim() || !String(user.birth_date || '').trim()) {
+  const [user, birthSettings] = await Promise.all([
+    db.users.get(userId, { hydratePrimaryChart: false }),
+    birthProfileRepository.get(userId),
+  ]);
+  const profile = buildPersonalForecastPrewarmProfile(userId, user, birthSettings);
+  if (!profile) {
+    diagnostic.log('profile', 'error', { httpStatus: 409, errorCode: 'PERSONAL_FORECAST_PROFILE_REQUIRED' });
     return res.status(409).json({ error: 'Birth profile required', code: 'PERSONAL_FORECAST_PROFILE_REQUIRED' });
   }
-  const stored = user as any;
-  const profile = {
-    id: userId, name: user.name || '', birthDate: toDateInputValue(user.birth_date) || String(user.birth_date || ''), birthTime: user.birth_time || '',
-    birthTimeMode: stored.birth_time_mode || undefined, birthTimeUncertaintyMinutes: stored.birth_time_uncertainty_minutes ?? null,
-    birthPlace: user.birth_place || '', birthTimezone: stored.birth_timezone || null,
-    gender: stored.gender === 'male' || stored.gender === 'female' ? stored.gender : 'unspecified', language: user.language === 'en' ? 'en' as const : 'ru' as const,
-  };
   const period = readPeriod(req);
   if (!period) {
+    diagnostic.log('validation', 'error', { httpStatus: 400, errorCode: 'PERSONAL_FORECAST_PERIOD_INVALID' });
     return res.status(400).json({
       error: 'Bad request',
       code: 'PERSONAL_FORECAST_PERIOD_INVALID',
@@ -93,6 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     requestedPeriodKey
     && !isCurrentPersonalForecastPeriodKey(period, periodKey, timezone)
   ) {
+    diagnostic.log('validation', 'error', { period, httpStatus: 400, errorCode: 'PERSONAL_FORECAST_PERIOD_KEY_INVALID' });
     return res.status(400).json({
       error: 'Only the current personal forecast period can be requested',
       code: 'PERSONAL_FORECAST_PERIOD_KEY_INVALID',
@@ -103,6 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const entitlement = await getPremiumEntitlementState(userId);
   const cacheInput = { userId, profile, accessTier: entitlement.isPremium ? 'premium' as const : 'free' as const, period, periodKey };
   if (!entitlement.isPremium && period !== 'day') {
+    diagnostic.log('access', 'error', { period, httpStatus: 403, errorCode: 'PERSONAL_FORECAST_PREMIUM_REQUIRED' });
     return res.status(403).json({
       error: 'Premium required',
       code: 'PERSONAL_FORECAST_PREMIUM_REQUIRED',
@@ -119,10 +129,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!regenerate) {
       const cached = await getCachedPersonalForecast(cacheInput).catch((error) => {
         if (req.method === 'GET') throw error;
-        console.error(
-          '[personal-forecast] initial cache read failed; generating directly:',
-          error instanceof Error ? error.message : String(error),
-        );
+        diagnostic.error('cache_read', error, 'PERSONAL_FORECAST_CACHE_READ_FAILED', { period });
         return null;
       });
       if (cached) {
@@ -135,6 +142,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           || generatedAt > minimumGeneratedAt
         ) {
           queueRollingPrewarm();
+          diagnostic.log('cache_read', 'cache_hit', { period, source: 'cache', httpStatus: 200 });
           return res.status(200).json(
             responsePayload(cached.forecast, entitlement.isPremium, 'cache'),
           );
@@ -143,20 +151,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const stale = regenerationAfter
         ? null
         : await getCompatibleStalePersonalForecast(cacheInput).catch((error) => {
-          console.error(
-            '[personal-forecast] compatible stale read failed:',
-            error instanceof Error ? error.message : String(error),
-          );
+          diagnostic.error('stale_read', error, 'PERSONAL_FORECAST_STALE_READ_FAILED', { period });
           return null;
         });
       if (stale) {
         void ensurePersonalForecast(cacheInput).catch((error) => {
-          console.error(
-            '[personal-forecast] lazy refresh failed:',
-            error instanceof Error ? error.message : String(error),
-          );
+          diagnostic.error('lazy_refresh', error, 'PERSONAL_FORECAST_LAZY_REFRESH_FAILED', { period });
         });
         queueRollingPrewarm();
+        diagnostic.log('stale_read', 'cache_hit', { period, source: 'stale', httpStatus: 200 });
         return res.status(200).json(responsePayload(
           stale.forecast,
           entitlement.isPremium,
@@ -164,13 +167,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ));
       }
     }
-    if (req.method === 'GET') return res.status(204).end();
+    if (req.method === 'GET') {
+      // A JSON cache-miss response remains consumable by older Android APKs
+      // whose native Response adapter cannot represent an empty HTTP 204.
+      diagnostic.log('cache_read', 'cache_miss', { period, source: 'cache', httpStatus: 404 });
+      return res.status(404).json({
+        error: 'Personal forecast not ready',
+        code: 'PERSONAL_FORECAST_NOT_READY',
+      });
+    }
 
     const generated = await ensurePersonalForecast(cacheInput, {
       forceRegenerate: regenerate,
       minimumGeneratedAt: regenerationAfter,
     });
     if (generated.status === 'in_progress') {
+      diagnostic.log('generation', 'in_progress', { period, httpStatus: 202 });
       return res.status(202).json({
         ...generationInProgressPayload(generated.retryAfterMs),
         forecast: createUnavailablePersonalForecast(
@@ -184,24 +196,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     queueRollingPrewarm();
+    diagnostic.log('generation', 'ok', {
+      period,
+      source: generated.fromCache ? 'cache' : 'generated',
+      httpStatus: 200,
+    });
     return res.status(200).json(responsePayload(
       generated.value,
       entitlement.isPremium,
       generated.fromCache ? 'cache' : 'generated',
     ));
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
     const diagnosticCode = getPersonalForecastGenerationDiagnosticCode(error);
-    console.error('[personal-forecast] request failed', {
-      userId,
+    diagnostic.error('generation', error, diagnosticCode, {
       period,
-      periodKey,
-      regenerate,
-      regenerationAfter,
-      diagnosticCode,
-      name: error instanceof Error ? error.name : 'UnknownError',
-      message,
-      stack: error instanceof Error ? error.stack : undefined,
+      errorCode: diagnosticCode,
+      httpStatus: 503,
     });
     return res.status(503).json({
       error: 'Personal forecast unavailable',
@@ -214,6 +224,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'unavailable',
         diagnosticCode,
       ),
+    });
+  }
+  } catch (error) {
+    if (error instanceof AdminAuthError) {
+      diagnostic.error('request', error, error.code, {
+        httpStatus: error.status,
+        errorCode: error.code,
+      });
+      return handleAdminError(res, error);
+    }
+    diagnostic.error('request', error, diagnosticErrorCode(error, 'PERSONAL_FORECAST_REQUEST_FAILED'), {
+      httpStatus: 503,
+    });
+    return res.status(503).json({
+      error: 'Personal forecast unavailable',
+      code: diagnosticErrorCode(error, 'PERSONAL_FORECAST_REQUEST_FAILED'),
     });
   }
 }

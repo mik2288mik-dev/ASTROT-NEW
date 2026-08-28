@@ -3,9 +3,9 @@ import { registerPlugin } from '@capacitor/core';
 export type NativeIdentityProvider = 'vk' | 'yandex' | 'google';
 
 export type NativeProviderLaunch = {
-  challengeId: string;
   provider: NativeIdentityProvider;
   clientId: string;
+  traceId: string;
   nonce?: string;
   state?: string;
   codeChallenge?: string;

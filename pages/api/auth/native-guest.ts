@@ -7,6 +7,7 @@ import {
 import { toPublicAppProfile } from '../../../lib/auth/profile';
 import { db } from '../../../lib/db';
 import { AdminAuthError, handleAdminError } from '../../../lib/adminAuth';
+import { startServerOperationalDiagnostic } from '../../../lib/serverOperationalDiagnostics';
 
 function bearerToken(req: NextApiRequest): string {
   const value = req.headers.authorization;
@@ -15,7 +16,11 @@ function bearerToken(req: NextApiRequest): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const diagnostic = startServerOperationalDiagnostic(req, res, 'auth_guest', { runtime: 'native' });
+  if (req.method !== 'POST') {
+    diagnostic.log('request', 'error', { httpStatus: 405, errorCode: 'METHOD_NOT_ALLOWED' });
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
     const existingToken = bearerToken(req);
@@ -34,11 +39,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const user = await db.users.get(auth.userId);
+    diagnostic.log('finished', 'ok', { httpStatus: 200, source: existingToken ? 'existing' : 'created' });
     return res.status(200).json({
       ...sessionResponse,
       profile: toPublicAppProfile(user, auth),
     });
   } catch (error) {
+    diagnostic.error('finished', error, 'GUEST_SESSION_FAILED');
     return handleAdminError(res, error);
   }
 }

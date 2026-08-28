@@ -135,7 +135,8 @@ describe('content cache architecture', () => {
       const source = readApiSource('pages/api/content/forecast/personal.ts');
       assertNoGenerationBefore(source, 'ensurePersonalForecast');
       expect(source).toContain('getCachedPersonalForecast');
-      expect(source).toContain("if (req.method === 'GET') return res.status(204).end();");
+      expect(source).toContain("code: 'PERSONAL_FORECAST_NOT_READY'");
+      expect(source).toContain('return res.status(404).json');
       expect(source).toContain('slicePersonalForecastForAccess');
       expect(source).toContain('lockedSectionIds');
       expect(source).toContain('periodLocked');

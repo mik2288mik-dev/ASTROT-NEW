@@ -1,5 +1,10 @@
 import { registerPlugin } from '@capacitor/core';
 import { isNativeAppRuntime } from '../services/nativeRuntime';
+import {
+  diagnosticErrorCode,
+  diagnosticHttpStatus,
+  formatDiagnosticFields,
+} from './diagnosticTrace';
 
 type DiagnosticLevel = 'INFO' | 'WARN' | 'ERROR';
 type NativeDiagnosticsResult = {
@@ -10,7 +15,7 @@ type NativeDiagnosticsResult = {
 };
 type NativeDiagnosticsPlugin = {
   getLogs(): Promise<NativeDiagnosticsResult>;
-  mark(options: { event: string }): Promise<void>;
+  mark(options: { event: string; level?: DiagnosticLevel }): Promise<void>;
   clearLogs(): Promise<void>;
 };
 
@@ -19,6 +24,8 @@ const STORAGE_KEY = 'nebo.runtime.diagnostics.v1';
 const MAX_ENTRIES = 200;
 const MAX_DETAIL_CHARS = 1200;
 const STARTUP_STALL_MS = 10_000;
+const SENSITIVE_DIAGNOSTIC_KEY = /^(?:authorization|access[_-]?token|refresh[_-]?token|id[_-]?token|token|secret|client[_-]?secret|password(?:confirmation)?|email|otp|verification[_-]?code|authorization[_-]?code|challenge[_-]?id|state|nonce|code[_-]?challenge|code[_-]?verifier|device[_-]?id|init[_-]?data|cookie|session[_-]?id|code)$/i;
+const SENSITIVE_DIAGNOSTIC_NAME = SENSITIVE_DIAGNOSTIC_KEY.source.replace(/^\^|\$$/g, '');
 
 let installed = false;
 let overlay: HTMLDivElement | null = null;
@@ -37,17 +44,79 @@ function isNative(): boolean {
   return typeof window !== 'undefined' && isNativeAppRuntime();
 }
 
-function redact(value: unknown): string {
-  let text: string;
-  try {
-    text = typeof value === 'string' ? value : JSON.stringify(value);
-  } catch {
-    text = String(value);
+function redactStructuredDiagnosticValue(
+  value: unknown,
+  seen = new WeakSet<object>(),
+  depth = 0,
+): unknown {
+  if (depth > 8) return '[TRUNCATED]';
+  if (Array.isArray(value)) {
+    if (seen.has(value)) return '[CIRCULAR]';
+    seen.add(value);
+    return value.map((item) => redactStructuredDiagnosticValue(item, seen, depth + 1));
   }
-  return text
-    .replace(/(authorization|token|secret|password|code|initData|access_token|refresh_token)=([^&\s]+)/gi, '$1=[REDACTED]')
+  if (!value || typeof value !== 'object') return value;
+  if (seen.has(value)) return '[CIRCULAR]';
+  seen.add(value);
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+    key,
+    SENSITIVE_DIAGNOSTIC_KEY.test(key)
+      ? '[REDACTED]'
+      : redactStructuredDiagnosticValue(item, seen, depth + 1),
+  ]));
+}
+
+function diagnosticText(value: unknown): string {
+  if (typeof value !== 'string') {
+    try {
+      const serialized = JSON.stringify(redactStructuredDiagnosticValue(value));
+      return typeof serialized === 'string' ? serialized : String(value);
+    } catch {
+      return String(value);
+    }
+  }
+  const trimmed = value.trim();
+  if ((trimmed.startsWith('{') && trimmed.endsWith('}'))
+    || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+    try {
+      return JSON.stringify(redactStructuredDiagnosticValue(JSON.parse(trimmed)));
+    } catch {
+      // Continue with defensive free-text redaction.
+    }
+  }
+  return value;
+}
+
+export function redactRuntimeDiagnosticValue(value: unknown): string {
+  const quotedField = new RegExp(
+    `(^|[^A-Za-z0-9_])(${SENSITIVE_DIAGNOSTIC_NAME})(\\s*[:=]\\s*)(["'])(?:\\\\.|(?!\\4)[^\\r\\n])*\\4`,
+    'gi',
+  );
+  const unquotedField = new RegExp(
+    `(^|[^A-Za-z0-9_])(${SENSITIVE_DIAGNOSTIC_NAME})(\\s*[:=]\\s*)([^&;,\\s}\\]]+)`,
+    'gi',
+  );
+  return diagnosticText(value)
     .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi, 'Bearer [REDACTED]')
+    .replace(/Basic\s+[A-Za-z0-9+/=]+/gi, 'Basic [REDACTED]')
+    .replace(quotedField, '$1$2$3$4[REDACTED]$4')
+    .replace(unquotedField, '$1$2$3[REDACTED]')
+    .replace(
+      /([?&](?:authorization|access[_-]?token|refresh[_-]?token|id[_-]?token|token|secret|password|email|otp|code|state|nonce|challenge[_-]?id|device[_-]?id|init[_-]?data)=)[^&\s]+/gi,
+      '$1[REDACTED]',
+    )
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL_REDACTED]')
     .slice(0, MAX_DETAIL_CHARS);
+}
+
+function safeDiagnosticUrl(value: string): string {
+  try {
+    const base = typeof window !== 'undefined' ? window.location.origin : 'https://localhost';
+    const parsed = new URL(value, base);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return String(value).split(/[?#]/, 1)[0].slice(0, 512);
+  }
 }
 
 function readEntries(): Entry[] {
@@ -75,18 +144,23 @@ export function diagnosticLog(level: DiagnosticLevel, event: string, detail?: un
     ts: new Date().toISOString(),
     level,
     event,
-    ...(detail === undefined ? {} : { detail: redact(detail) }),
+    ...(detail === undefined ? {} : { detail: redactRuntimeDiagnosticValue(detail) }),
   };
   persist(entry);
   if (isNative()) {
-    void NativeDiagnostics.mark({ event: `${level} ${event}${entry.detail ? ` ${entry.detail}` : ''}` })
+    void NativeDiagnostics.mark({
+      level,
+      event: `${event}${entry.detail ? ` ${entry.detail}` : ''}`,
+    })
       .catch(() => undefined);
   }
 }
 
 function errorDetail(error: unknown): string {
-  if (error instanceof Error) return `${error.name}: ${error.message}\n${error.stack || ''}`;
-  return redact(error);
+  if (error instanceof Error) {
+    return redactRuntimeDiagnosticValue(`${error.name}: ${error.message}\n${error.stack || ''}`);
+  }
+  return redactRuntimeDiagnosticValue(error);
 }
 
 async function collectText(): Promise<string> {
@@ -109,7 +183,7 @@ async function collectText(): Promise<string> {
   return [
     '=== NEBO DIAGNOSTICS ===',
     `time=${new Date().toISOString()}`,
-    `url=${typeof window !== 'undefined' ? window.location.href.replace(/([?&](?:token|code|initData)=[^&]+)/gi, '$1=[REDACTED]') : ''}`,
+    `url=${typeof window !== 'undefined' ? safeDiagnosticUrl(window.location.href) : ''}`,
     `device=${device}`,
     `userAgent=${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`,
     '',
@@ -183,6 +257,60 @@ async function renderOverlay(reason: string): Promise<void> {
   document.body.appendChild(overlay);
 }
 
+function shouldAutoOpenHandledFailure(error: unknown, includeClientErrors: boolean): boolean {
+  if (!isNative() || process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL !== 'development') return false;
+  const code = diagnosticErrorCode(error);
+  if (code === 'AUTH_CANCELLED' || code === 'AbortError' || code === 'REQUEST_ABORTED') return false;
+  const status = diagnosticHttpStatus(error);
+  return includeClientErrors || status === undefined || status >= 500;
+}
+
+export function showRuntimeDiagnosticsForFailure(
+  reason: string,
+  error: unknown,
+  options: { includeClientErrors?: boolean } = {},
+): void {
+  if (!shouldAutoOpenHandledFailure(error, options.includeClientErrors === true)) return;
+  window.setTimeout(() => void renderOverlay(reason), 50);
+}
+
+async function logBuildIdentity(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const response = await window.fetch('/nebo-mobile-build.json', { cache: 'no-store' });
+    if (!response.ok) {
+      diagnosticLog('ERROR', 'build_identity', formatDiagnosticFields({
+        side: 'client',
+        stage: 'marker_read',
+        status: 'error',
+        httpStatus: response.status,
+        errorCode: 'BUILD_MARKER_UNAVAILABLE',
+      }));
+      return;
+    }
+    const marker = await response.json() as Record<string, unknown>;
+    let apiOriginHost = '';
+    try { apiOriginHost = new URL(String(marker.apiOrigin || '')).host; } catch { /* invalid marker */ }
+    diagnosticLog('INFO', 'build_identity', formatDiagnosticFields({
+      side: 'client',
+      stage: 'installed_apk',
+      status: 'ok',
+      channel: String(marker.channel || ''),
+      versionName: String(marker.versionName || ''),
+      versionCode: String(marker.versionCode || ''),
+      sourceCommit: String(marker.sourceCommit || '').slice(0, 12),
+      apiOriginHost,
+    }));
+  } catch (error) {
+    diagnosticLog('ERROR', 'build_identity', formatDiagnosticFields({
+      side: 'client',
+      stage: 'marker_read',
+      status: 'error',
+      errorCode: diagnosticErrorCode(error, 'BUILD_MARKER_READ_FAILED'),
+    }));
+  }
+}
+
 function installFetchTracing(): void {
   if (typeof window === 'undefined' || originalFetch) return;
   originalFetch = window.fetch.bind(window);
@@ -190,7 +318,7 @@ function installFetchTracing(): void {
     const started = Date.now();
     const method = String(init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
     const rawUrl = input instanceof Request ? input.url : String(input);
-    const safeUrl = rawUrl.replace(/([?&](?:token|code|initData|access_token|refresh_token)=)[^&]+/gi, '$1[REDACTED]');
+    const safeUrl = safeDiagnosticUrl(rawUrl);
     diagnosticLog('INFO', 'fetch_start', `${method} ${safeUrl}`);
     try {
       const response = await originalFetch!(input, init);
@@ -208,11 +336,11 @@ function installConsoleTracing(): void {
   originalConsoleError = console.error.bind(console);
   originalConsoleWarn = console.warn.bind(console);
   console.error = (...args: unknown[]) => {
-    diagnosticLog('ERROR', 'console_error', args.map(redact).join(' '));
+    diagnosticLog('ERROR', 'console_error', args.map(redactRuntimeDiagnosticValue).join(' '));
     originalConsoleError!(...args);
   };
   console.warn = (...args: unknown[]) => {
-    diagnosticLog('WARN', 'console_warn', args.map(redact).join(' '));
+    diagnosticLog('WARN', 'console_warn', args.map(redactRuntimeDiagnosticValue).join(' '));
     originalConsoleWarn!(...args);
   };
 }
@@ -249,6 +377,7 @@ export function installRuntimeDiagnostics(): void {
   installConsoleTracing();
   installFetchTracing();
   installStartupStallDetector();
+  void logBuildIdentity();
 
   (window as typeof window & { __NEBO_DIAGNOSTICS__?: unknown }).__NEBO_DIAGNOSTICS__ = {
     show: () => renderOverlay('manual'),

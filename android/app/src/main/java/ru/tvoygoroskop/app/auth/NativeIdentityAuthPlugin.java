@@ -23,10 +23,12 @@ import com.yandex.authsdk.YandexAuthLoginOptions;
 import com.yandex.authsdk.YandexAuthOptions;
 import com.yandex.authsdk.YandexAuthResult;
 import com.yandex.authsdk.YandexAuthSdk;
+import com.yandex.authsdk.internal.strategy.LoginType;
 
 import java.io.IOException;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import ru.tvoygoroskop.app.BuildConfig;
 import ru.tvoygoroskop.app.diagnostics.NativeDiagnosticsPlugin;
@@ -46,6 +48,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
     // The provider UI may legitimately remain open while a person completes
     // credentials or a challenge. This only recovers a lost Activity callback.
     private static final long SIGN_IN_TIMEOUT_MS = 180_000L;
+    private static final Pattern TRACE_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{8,64}$");
 
     private final AtomicBoolean signInInFlight = new AtomicBoolean(false);
     private final Object vkInitializationLock = new Object();
@@ -53,6 +56,10 @@ public class NativeIdentityAuthPlugin extends Plugin {
 
     private volatile PluginCall activeSignInCall;
     private volatile Runnable activeSignInTimeout;
+    private volatile String activeSignInProvider = "unknown";
+    private volatile String activeSignInTraceId = "missing";
+    private volatile String activeSignInStage = "sdk_validate";
+    private volatile long activeSignInStartedAt;
     private volatile OptionalIdentityAuthDelegate googleAuthDelegate;
     private volatile boolean vkInitialized;
     private YandexAuthSdk yandexAuthSdk;
@@ -70,17 +77,20 @@ public class NativeIdentityAuthPlugin extends Plugin {
             return;
         }
         activeSignInCall = call;
+        activeSignInStartedAt = System.currentTimeMillis();
         scheduleSignInTimeout(call);
 
         String provider = option(call, "provider").toLowerCase(Locale.ROOT);
-        NativeDiagnosticsPlugin.mark(getContext(), "identity_auth_launch provider=" + provider);
+        activeSignInProvider = provider;
+        activeSignInTraceId = traceId(call);
+        activeSignInStage = "sdk_validate";
+        markAuth("sdk_validate", "start", null, "INFO");
         getActivity().runOnUiThread(() -> {
             try {
                 switch (provider) {
                     case "google":
                         if (!BuildConfig.GOOGLE_AUTH_ENABLED
-                            || !("google_play".equals(BuildConfig.DISTRIBUTION_CHANNEL)
-                                || "development".equals(BuildConfig.DISTRIBUTION_CHANNEL))) {
+                            || !"google_play".equals(BuildConfig.DISTRIBUTION_CHANNEL)) {
                             rejectSignIn(call, AUTH_CONFIGURATION);
                         } else {
                             startGoogleSignIn(call);
@@ -96,6 +106,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
                         rejectSignIn(call, AUTH_CONFIGURATION);
                 }
             } catch (RuntimeException error) {
+                markAuth(activeSignInStage, "error", runtimeErrorKind(error), "ERROR");
                 rejectSignIn(call, AUTH_CONFIGURATION);
             }
         });
@@ -115,6 +126,8 @@ public class NativeIdentityAuthPlugin extends Plugin {
             rejectSignIn(call, AUTH_CONFIGURATION);
             return;
         }
+        activeSignInStage = "sdk_launch";
+        markAuth("sdk_launch", "start", null, "INFO");
         delegate.start(
             getContext(),
             getActivity(),
@@ -140,7 +153,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
 
     /**
      * Yandex LoginSDK Activity Result flow documented at:
-     * https://yandex.ru/dev/id/doc/ru/mobileauthsdk/android/3.1.3/sdk-android-use
+     * https://yandex.ru/dev/id/doc/ru/mobileauthsdk/android/3.2.1/sdk-android-use
      */
     private void startYandexSignIn(PluginCall call) {
         String configuredClientId = BuildConfig.YANDEX_ANDROID_CLIENT_ID.trim();
@@ -150,10 +163,16 @@ public class NativeIdentityAuthPlugin extends Plugin {
             return;
         }
 
+        activeSignInStage = "sdk_launch";
+        markAuth("sdk_launch", "start", null, "INFO");
         YandexAuthSdk sdk = getYandexAuthSdk();
+        YandexAuthLoginOptions loginOptions = new YandexAuthLoginOptions(
+            LoginType.CHROME_TAB,
+            configuredClientId
+        );
         startActivityForResult(
             call,
-            sdk.getContract().createIntent(getContext(), new YandexAuthLoginOptions()),
+            sdk.getContract().createIntent(getContext(), loginOptions),
             "handleYandexResult"
         );
     }
@@ -180,11 +199,14 @@ public class NativeIdentityAuthPlugin extends Plugin {
                 rejectSignIn(call, AUTH_CANCELLED);
             } else if (result instanceof YandexAuthResult.Failure) {
                 YandexAuthException error = ((YandexAuthResult.Failure) result).getException();
-                rejectSignIn(call, isYandexNetworkError(error) ? AUTH_NETWORK : AUTH_FAILED);
+                String errorKind = yandexErrorKind(error);
+                markAuth("sdk_result", "error", "yandex_" + errorKind, "ERROR");
+                rejectSignIn(call, "connection".equals(errorKind) ? AUTH_NETWORK : AUTH_FAILED);
             } else {
                 rejectSignIn(call, AUTH_FAILED);
             }
         } catch (RuntimeException error) {
+            markAuth("sdk_result", "error", runtimeErrorKind(error), "ERROR");
             rejectSignIn(call, AUTH_FAILED);
         }
     }
@@ -217,6 +239,8 @@ public class NativeIdentityAuthPlugin extends Plugin {
             return;
         }
 
+        activeSignInStage = "sdk_launch";
+        markAuth("sdk_launch", "start", null, "INFO");
         ensureVkInitialized();
         VKIDAuthParams.Builder builder = new VKIDAuthParams.Builder();
         builder.setState(state);
@@ -251,10 +275,16 @@ public class NativeIdentityAuthPlugin extends Plugin {
                 @Override
                 public void onFail(VKIDAuthFail error) {
                     if (error instanceof VKIDAuthFail.Canceled) {
+                        markAuth("sdk_result", "cancelled", "vk_cancelled", "WARN");
                         rejectSignIn(call, AUTH_CANCELLED);
                     } else if (isVkNetworkError(error)) {
+                        markAuth("sdk_result", "error", "vk_network", "ERROR");
                         rejectSignIn(call, AUTH_NETWORK);
                     } else {
+                        String kind = error instanceof VKIDAuthFail.FailedApiCall
+                            ? "vk_failed_api_call"
+                            : "vk_unexpected_result";
+                        markAuth("sdk_result", "error", kind, "ERROR");
                         rejectSignIn(call, AUTH_FAILED);
                     }
                 }
@@ -348,6 +378,8 @@ public class NativeIdentityAuthPlugin extends Plugin {
         PluginCall call = activeSignInCall;
         if (call != null && signInInFlight.compareAndSet(true, false)) {
             activeSignInCall = null;
+            markAuth(activeSignInStage, "cancelled", AUTH_CANCELLED, "WARN");
+            clearActiveSignInDiagnostic();
             call.reject(AUTH_CANCELLED, AUTH_CANCELLED);
         }
         super.handleOnDestroy();
@@ -387,12 +419,18 @@ public class NativeIdentityAuthPlugin extends Plugin {
         return !isBlank(configuredClientId) && configuredClientId.equals(requestedClientId);
     }
 
-    private boolean isYandexNetworkError(YandexAuthException error) {
-        if (error == null || error.getErrors() == null) return false;
-        for (String value : error.getErrors()) {
-            if (YandexAuthException.CONNECTION_ERROR.equals(value)) return true;
+    private String yandexErrorKind(YandexAuthException error) {
+        if (error == null) return "unknown";
+        String[] codes = error.getErrors();
+        if (codes != null) {
+            for (String code : codes) {
+                if (YandexAuthException.CONNECTION_ERROR.equals(code)) return "connection";
+                if (YandexAuthException.SECURITY_ERROR.equals(code)) return "security";
+                if (YandexAuthException.JWT_AUTHORIZATION_ERROR.equals(code)) return "jwt_authorization";
+                if (YandexAuthException.UNKNOWN_ERROR.equals(code)) return "unknown";
+            }
         }
-        return hasNetworkCause(error);
+        return hasNetworkCause(error) ? "connection" : "unrecognized";
     }
 
     private boolean isVkNetworkError(VKIDAuthFail error) {
@@ -409,6 +447,14 @@ public class NativeIdentityAuthPlugin extends Plugin {
         return false;
     }
 
+    private String runtimeErrorKind(RuntimeException error) {
+        if (hasNetworkCause(error)) return "sdk_network_exception";
+        if (error instanceof SecurityException) return "sdk_security_exception";
+        if (error instanceof IllegalStateException) return "sdk_illegal_state";
+        if (error instanceof IllegalArgumentException) return "sdk_illegal_argument";
+        return "sdk_runtime_exception";
+    }
+
     private String option(PluginCall call, String name) {
         String value = call.getString(name);
         if (isBlank(value)) {
@@ -416,6 +462,25 @@ public class NativeIdentityAuthPlugin extends Plugin {
             if (configuration != null) value = configuration.optString(name, "");
         }
         return value == null ? "" : value.trim();
+    }
+
+    private String traceId(PluginCall call) {
+        String value = option(call, "traceId");
+        return TRACE_ID_PATTERN.matcher(value).matches() ? value : "missing";
+    }
+
+    private void markAuth(String stage, String status, String errorCode, String level) {
+        long startedAt = activeSignInStartedAt;
+        long durationMs = startedAt > 0 ? Math.max(0, System.currentTimeMillis() - startedAt) : 0;
+        String event = "auth_provider"
+            + " traceId=" + activeSignInTraceId
+            + " side=native"
+            + " stage=" + stage
+            + " status=" + status
+            + " durationMs=" + durationMs
+            + " provider=" + activeSignInProvider
+            + (isBlank(errorCode) ? "" : " errorCode=" + errorCode);
+        NativeDiagnosticsPlugin.mark(getContext(), level, event);
     }
 
     private boolean isBlank(String value) {
@@ -440,7 +505,8 @@ public class NativeIdentityAuthPlugin extends Plugin {
         if (activeSignInCall != call || !signInInFlight.compareAndSet(true, false)) return;
         activeSignInCall = null;
         cancelSignInTimeout();
-        NativeDiagnosticsPlugin.mark(getContext(), "identity_auth_credential_received");
+        markAuth("credential_received", "ok", null, "INFO");
+        clearActiveSignInDiagnostic();
         call.resolve(result);
     }
 
@@ -448,8 +514,19 @@ public class NativeIdentityAuthPlugin extends Plugin {
         if (activeSignInCall != call || !signInInFlight.compareAndSet(true, false)) return;
         activeSignInCall = null;
         cancelSignInTimeout();
-        NativeDiagnosticsPlugin.mark(getContext(), "identity_auth_rejected code=" + code);
+        String status = AUTH_CANCELLED.equals(code)
+            ? "cancelled"
+            : (AUTH_TIMEOUT.equals(code) ? "timeout" : "error");
+        markAuth(activeSignInStage, status, code, AUTH_CANCELLED.equals(code) ? "WARN" : "ERROR");
+        clearActiveSignInDiagnostic();
         reject(call, code);
+    }
+
+    private void clearActiveSignInDiagnostic() {
+        activeSignInProvider = "unknown";
+        activeSignInTraceId = "missing";
+        activeSignInStage = "sdk_validate";
+        activeSignInStartedAt = 0;
     }
 
     private void reject(PluginCall call, String code) {

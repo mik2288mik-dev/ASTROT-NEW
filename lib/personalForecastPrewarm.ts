@@ -217,7 +217,7 @@ export function buildPersonalForecastPrewarmProfile(
   userId: string,
   user: any,
   birthSettings: any,
-): PersonalForecastRawProfile | null {
+): (PersonalForecastRawProfile & { language: 'ru' | 'en' }) | null {
   const name = String(user?.name || '').trim();
   const birthDate = toDateInputValue(user?.birth_date) || String(user?.birth_date || '').trim();
   if (!name || !birthDate) return null;
@@ -261,6 +261,9 @@ export function queuePersonalForecastPrewarmForUser(input: {
 }): void {
   void (async () => {
     const [user, birthSettings] = await Promise.all([
+      // db.users.get includes the lightweight primary-chart summary even on
+      // its fast path, so timezone identity stays canonical without loading
+      // the full chart payload.
       db.users.get(input.userId, { hydratePrimaryChart: false }),
       birthProfileRepository.get(input.userId),
     ]);
