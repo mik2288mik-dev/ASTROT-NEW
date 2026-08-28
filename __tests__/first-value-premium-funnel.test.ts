@@ -38,20 +38,16 @@ describe('first value before Premium', () => {
     expect(completion).not.toContain('триал уже активен');
   });
 
-  it('uses one inline Today offer only after readable Free personal forecast content', () => {
+  it('keeps inline Premium controls out of the Today reading', () => {
     const dashboard = read('views/Dashboard.tsx');
     const reading = read('components/PersonalForecastFeed/TodayEditorialFeed.tsx');
 
     expect(dashboard).toContain("onPremiumAnalytics?.('first_value_viewed'");
-    expect(dashboard).toContain("onPremiumAnalytics?.('premium_promo_impression'");
-    expect(dashboard).toContain("onPremiumAnalytics?.('premium_promo_clicked'");
     expect(dashboard).toContain('lockedSectionIds={lockedSectionIds}');
-    expect(reading).toContain('resolveTodayPremiumTeaserInsertion');
     expect(reading).toContain('renderableSections.filter((section) => !lockedSectionIds.has(section.id))');
-    expect(reading).toContain('data-premium-inline-teaser="today"');
-    expect(reading).toContain('Главное на сегодня уже открыто. В Premium — продолжение Today, личные неделя и месяц.');
-    expect(reading).toContain('Показать весь Today');
-    expect(reading).toContain('onRequestPremium();');
+    expect(reading).not.toContain('data-premium-inline-teaser="today"');
+    expect(reading).not.toContain('Показать весь Today');
+    expect(reading).not.toContain('Не сейчас');
   });
 
   it('suppresses Premium promotion globally for an active Premium profile', () => {

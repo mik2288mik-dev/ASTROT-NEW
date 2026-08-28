@@ -207,7 +207,6 @@ function DiaryScene({
           timezone="Europe/Moscow"
           language="ru"
           tone="favorable"
-          premium={premium}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={() => onNavigate('paywall')}
         />

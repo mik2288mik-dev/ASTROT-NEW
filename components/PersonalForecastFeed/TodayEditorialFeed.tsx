@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import type { ForecastSection, PersonalForecastAstrologerBrief } from '../../lib/personalForecastContract';
 import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
 import type { DiaryEditorialPause } from '../../lib/personalForecastVisuals';
-import { resolveTodayPremiumTeaserInsertion } from '../../lib/todayPremiumTeaser';
 import { ForecastSectionBlock } from './ForecastSectionBlock';
 import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
 import { isRenderableTodaySection } from './editorialLayout';
@@ -21,64 +20,9 @@ type TodayEditorialFeedProps = {
   timezone: string;
   language: 'ru' | 'en';
   tone: PersonalForecastAstrologerBrief['tone'];
-  premium: boolean;
   personalAttribution?: string | null;
   onRequestPremium: () => void;
-  onFirstValueViewed?: () => void;
-  onPremiumTeaserImpression?: () => void;
-  onPremiumTeaserClick?: () => void;
-  onPremiumTeaserDismiss?: () => void;
 };
-
-function TodayPremiumTeaser({
-  language,
-  onRequestPremium,
-  onPremiumTeaserClick,
-  onPremiumTeaserDismiss,
-  teaserRef,
-}: Pick<
-  TodayEditorialFeedProps,
-  | 'language'
-  | 'onRequestPremium'
-  | 'onPremiumTeaserClick'
-  | 'onPremiumTeaserDismiss'
-> & { teaserRef: React.RefObject<HTMLElement | null> }) {
-  return (
-    <section
-      id="today-premium-teaser"
-      ref={teaserRef}
-      className="forecast-feed-section forecast-feed-story-fragment is-locked"
-      data-premium-inline-teaser="today"
-      aria-label={language === 'ru' ? 'Продолжение Today в Premium' : 'Continue Today with Premium'}
-    >
-      <div className="forecast-feed-section-content forecast-feed-locked">
-        <p className="forecast-feed-locked-lead">
-          {language === 'ru'
-            ? 'Главное на сегодня уже открыто. В Premium — продолжение Today, личные неделя и месяц.'
-            : 'The essentials for today are already open. Premium adds the rest of Today plus your personal week and month.'}
-        </p>
-        <button
-          type="button"
-          className="forecast-feed-premium-cta"
-          onClick={() => {
-            onPremiumTeaserClick?.();
-            onRequestPremium();
-          }}
-        >
-          {language === 'ru' ? 'Показать весь Today' : 'Show all of Today'}
-        </button>
-        <button
-          type="button"
-          className="forecast-feed-locked-teaser"
-          onClick={onPremiumTeaserDismiss}
-          aria-label={language === 'ru' ? 'Скрыть предложение Premium' : 'Dismiss Premium offer'}
-        >
-          {language === 'ru' ? 'Не сейчас' : 'Not now'}
-        </button>
-      </div>
-    </section>
-  );
-}
 
 function resolveTitle(section?: ForecastSection): string {
   if (!section || section.kind !== 'overview') return '';
@@ -195,26 +139,13 @@ export function TodayEditorialFeed({
   timezone,
   language,
   tone,
-  premium,
   personalAttribution,
   onRequestPremium,
-  onFirstValueViewed,
-  onPremiumTeaserImpression,
-  onPremiumTeaserClick,
-  onPremiumTeaserDismiss,
 }: TodayEditorialFeedProps) {
-  const [teaserDismissed, setTeaserDismissed] = useState(false);
-  const impressionKeyRef = useRef<string | null>(null);
-  const teaserRef = useRef<HTMLElement | null>(null);
   const renderableSections = useMemo(
     () => sections.filter((section) => isRenderableTodaySection(section, lockedSectionIds)),
     [lockedSectionIds, sections],
   );
-  const teaserInsertion = useMemo(() => resolveTodayPremiumTeaserInsertion({
-    premium,
-    sectionIds: renderableSections.map((section) => section.id),
-    lockedSectionIds,
-  }), [lockedSectionIds, premium, renderableSections]);
   const visibleSections = useMemo(
     () => renderableSections.filter((section) => !lockedSectionIds.has(section.id)),
     [lockedSectionIds, renderableSections],
@@ -236,36 +167,6 @@ export function TodayEditorialFeed({
   const title = resolveTitle(overview);
   const punchline = resolvePunchline(overview);
   const clockSignal = clockSignalForTone(tone);
-
-  useEffect(() => {
-    setTeaserDismissed(false);
-    impressionKeyRef.current = null;
-  }, [periodKey, userId]);
-
-  useEffect(() => {
-    if (!teaserInsertion || teaserDismissed) return;
-    const impressionKey = `${userId}:${periodKey}:${teaserInsertion.afterSectionId}`;
-    if (impressionKeyRef.current === impressionKey) return;
-    const teaser = teaserRef.current;
-    if (!teaser || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.35)) return;
-      if (impressionKeyRef.current === impressionKey) return;
-      impressionKeyRef.current = impressionKey;
-      onFirstValueViewed?.();
-      onPremiumTeaserImpression?.();
-      observer.disconnect();
-    }, { threshold: [0.35] });
-    observer.observe(teaser);
-    return () => observer.disconnect();
-  }, [
-    onFirstValueViewed,
-    onPremiumTeaserImpression,
-    periodKey,
-    teaserDismissed,
-    teaserInsertion,
-    userId,
-  ]);
 
   return (
     <article
@@ -314,39 +215,18 @@ export function TodayEditorialFeed({
       >
         <div className="today-minimal-reading-main">
           {visibleSections.map((section) => (
-            <React.Fragment key={`day:${periodKey}:${section.id}`}>
-              <StoryFragment
-                section={section}
-                language={language}
-                locked={false}
-                onRequestPremium={onRequestPremium}
-                closing={section.contentBlocks.some((block) => block.role === 'action')}
-                endVisual={section.id === closingSectionId ? endVisual : null}
-                personalAttribution={section.id === closingSectionId
-                  ? personalAttribution
-                  : null}
-              />
-              {!teaserDismissed && teaserInsertion?.afterSectionId === section.id ? (
-                <TodayPremiumTeaser
-                  language={language}
-                  teaserRef={teaserRef}
-                  onRequestPremium={onRequestPremium}
-                  onPremiumTeaserClick={() => {
-                    const impressionKey = `${userId}:${periodKey}:${teaserInsertion.afterSectionId}`;
-                    if (impressionKeyRef.current !== impressionKey) {
-                      impressionKeyRef.current = impressionKey;
-                      onFirstValueViewed?.();
-                      onPremiumTeaserImpression?.();
-                    }
-                    onPremiumTeaserClick?.();
-                  }}
-                  onPremiumTeaserDismiss={() => {
-                    setTeaserDismissed(true);
-                    onPremiumTeaserDismiss?.();
-                  }}
-                />
-              ) : null}
-            </React.Fragment>
+            <StoryFragment
+              key={`day:${periodKey}:${section.id}`}
+              section={section}
+              language={language}
+              locked={false}
+              onRequestPremium={onRequestPremium}
+              closing={section.contentBlocks.some((block) => block.role === 'action')}
+              endVisual={section.id === closingSectionId ? endVisual : null}
+              personalAttribution={section.id === closingSectionId
+                ? personalAttribution
+                : null}
+            />
           ))}
         </div>
       </section>

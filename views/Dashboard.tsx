@@ -383,17 +383,13 @@ export const Dashboard = memo<DashboardProps>(({
   }, [activePeriod, forecast, onPremiumAnalytics, profile.id]);
 
   useEffect(() => {
-    if (!forecast || !lockedSectionIds.size || !canPromotePremium) return;
+    if (!forecast || activePeriod === 'day' || !lockedSectionIds.size || !canPromotePremium) return;
     const key = `${String(profile.id || 'guest')}:${forecast.periodKey}:promo`;
     if (promoSeenRef.current.has(key)) return;
     promoSeenRef.current.add(key);
     onPremiumAnalytics?.('premium_promo_impression', {
-      placement: activePeriod === 'day' ? 'today' : activePeriod,
-      featureKey: activePeriod === 'day'
-        ? 'personal_daily_full'
-        : activePeriod === 'week'
-          ? 'personal_weekly'
-          : 'personal_monthly',
+      placement: activePeriod,
+      featureKey: activePeriod === 'week' ? 'personal_weekly' : 'personal_monthly',
       periodKey: forecast.periodKey,
     });
   }, [activePeriod, canPromotePremium, forecast, lockedSectionIds.size, onPremiumAnalytics, profile.id]);
@@ -551,16 +547,8 @@ export const Dashboard = memo<DashboardProps>(({
           timezone={timezone}
           language={language}
           tone={forecast.meta.astrologerBrief.tone}
-          premium={premium || !canPromotePremium}
           personalAttribution={personalForecastAttribution}
           onRequestPremium={requestPremium}
-          onPremiumTeaserDismiss={() => {
-            onPremiumAnalytics?.('premium_promo_dismissed', {
-              placement: 'today',
-              featureKey: 'personal_daily_full',
-              periodKey: forecast.periodKey,
-            });
-          }}
         />
       ) : forecast ? (
         <article
