@@ -437,19 +437,19 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               </p>
               <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-left">
                 <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15] text-[#174a7e]">Все знаки зодиака</strong>
+                  <strong className="block text-[14px] leading-[1.15]">Все знаки зодиака</strong>
                   <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">Сегодня, неделя и месяц</span>
                 </div>
                 <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15] text-[#174a7e]">Полная натальная карта</strong>
+                  <strong className="block text-[14px] leading-[1.15]">Полная натальная карта</strong>
                   <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">Планеты, дома, аспекты и разбор</span>
                 </div>
                 <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15] text-[#174a7e]">Совместимость</strong>
+                  <strong className="block text-[14px] leading-[1.15]">Совместимость</strong>
                   <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">По знакам зодиака и двум картам</span>
                 </div>
                 <div className="min-w-0">
-                  <strong className="block text-[14px] leading-[1.15] text-[#174a7e]">ИИ-астролог</strong>
+                  <strong className="block text-[14px] leading-[1.15]">ИИ-астролог</strong>
                   <span className="mt-0.5 block text-[13px] leading-4 text-[#62676f]">Вопросы по своей карте</span>
                 </div>
                 <div className="col-span-2 min-w-0">

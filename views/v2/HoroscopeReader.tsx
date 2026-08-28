@@ -31,7 +31,9 @@ import {
 import { FreshTabs } from '../../components/fresh-ui';
 import { ZodiacIllustration, zodiacIllustrationUrl } from '../../components/icons/ZodiacArt';
 import { normalizeZodiacKey, ZODIAC_KEYS, type ZodiacKey } from '../../lib/zodiacKeys';
+import { canAccessFeature } from '../../lib/accessMatrix';
 import { LzSignPickerSheet } from '../../components/lumia-ui/v2/LzSignPickerSheet';
+import { PersonalForecastPremiumGate } from '../../components/PersonalForecastFeed/PersonalForecastPremiumGate';
 import {
   EditorialCurve,
   EditorialChartsButton,
@@ -86,6 +88,7 @@ export type HoroscopeReaderProps = {
   onOpenChart?: () => void;
   onOpenPersonalForecast?: () => void;
   onOpenCharts?: () => void;
+  onRequestPremium?: (period: Exclude<Period, 'today'>) => void;
   uiPreview?: HoroscopeReaderUiPreview;
 };
 
@@ -94,6 +97,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
     profile,
     chartData,
     onOpenCharts,
+    onRequestPremium,
     uiPreview,
   }) => {
   const language = profile.language === 'en' ? 'en' : 'ru';
@@ -160,6 +164,10 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   const monthKey = useMemo(() => getMoscowMonthKey(), [today]);
   const sign = ZODIAC_KEYS[signIndex] as ZodiacKey;
   const periodKey = period === 'week' ? weekKey : period === 'month' ? monthKey : today;
+  const lockedPremiumPeriod: Exclude<Period, 'today'> | null = period !== 'today'
+    && !canAccessFeature('weekly_sign_horoscope', profile, chartData).allowed
+    ? period
+    : null;
   const readingKey = `${sign.toLowerCase()}|${period}|${periodKey}|${language}`;
   const localReading = useMemo(
     () => previewFixture
@@ -182,7 +190,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
       : null;
 
   useEffect(() => {
-    if (previewFixture) return;
+    if (previewFixture || lockedPremiumPeriod) return;
     let active = true;
     const hydrate = (prefetched: Record<string, SignHoroscopeReadingV2>) => {
       if (!active) return;
@@ -226,7 +234,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
     };
     void load();
     return () => { active = false; };
-  }, [language, loadRevision, period, periodKey, previewFixture, readingKey, sign]);
+  }, [language, loadRevision, lockedPremiumPeriod, period, periodKey, previewFixture, readingKey, sign]);
 
   const scrollForecastToTop = useCallback(() => {
     const target = readingAnchorRef.current;
@@ -289,7 +297,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
   const displayedPeriodDate = formatHoroscopePeriodDate(displayedPeriod, displayedPeriodKey, language);
   const displayedEngagementDate = getHoroscopeEngagementDateKey(displayedPeriod, displayedPeriodKey);
   const hasReadingFailure = hasReadingResult && reading === null && !displayedReading;
-  const readingSettledForScroll = hasReadingFailure || Boolean(displayedReading);
+  const readingSettledForScroll = Boolean(lockedPremiumPeriod) || hasReadingFailure || Boolean(displayedReading);
 
   useEffect(() => {
     if (pendingReadingScrollRef.current !== sign || !readingSettledForScroll) return;
@@ -344,7 +352,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
         <article
           key={displayed?.key || `pending:${readingKey}`}
           className="horo-uni horo-reader-article"
-          aria-busy={!hasReadingFailure && !displayedReading}
+          aria-busy={!lockedPremiumPeriod && !hasReadingFailure && !displayedReading}
         >
           <button
             type="button"
@@ -362,7 +370,7 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
             />
           </button>
 
-          {displayedReading ? (
+          {displayedReading && !lockedPremiumPeriod ? (
             <header className="horo-uni-hero">
               <p className="horo-reader-period-date">{displayedPeriodDate}</p>
               <h2 className="fresh-sticky horo-reader-headline">
@@ -372,7 +380,14 @@ export const HoroscopeReader = memo<HoroscopeReaderProps>(
           ) : null}
 
           <div className="horo-uni-body horo-reader-reading">
-            {hasReadingFailure ? (
+            {lockedPremiumPeriod ? (
+              <PersonalForecastPremiumGate
+                period={lockedPremiumPeriod}
+                language={language}
+                onRequestPremium={() => onRequestPremium?.(lockedPremiumPeriod)}
+                canPromotePremium={Boolean(onRequestPremium)}
+              />
+            ) : hasReadingFailure ? (
               <div className="horo-lock" role="alert">
                 <div className="horo-lock-title">
                   {language === 'ru' ? 'Разбор пока недоступен' : 'The reading is unavailable'}

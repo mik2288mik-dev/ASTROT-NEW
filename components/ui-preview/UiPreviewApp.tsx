@@ -593,6 +593,7 @@ export default function UiPreviewApp() {
         profile={profile}
         chartData={scenario.access === 'guest' ? null : chart}
         onOpenCharts={openCharts}
+        onRequestPremium={() => navigate('paywall')}
         uiPreview={{
           ...UI_PREVIEW_HOROSCOPE,
           pickerOpen: scenario.screen === 'zodiac-picker',

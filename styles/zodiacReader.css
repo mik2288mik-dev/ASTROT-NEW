@@ -312,6 +312,59 @@
   line-height: 1.45;
 }
 
+.horo-reader-page .forecast-premium-gate {
+  box-sizing: border-box;
+  min-height: 0;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 2px 0 28px;
+  background: #fff;
+}
+
+.horo-reader-page .forecast-premium-gate h1 {
+  max-width: 19rem;
+  color: var(--horo-reader-ink);
+  font-size: clamp(1.9rem, 8vw, 2.3rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.horo-reader-page .forecast-premium-gate p {
+  max-width: 21rem;
+  margin-top: 0.9rem;
+  color: var(--horo-reader-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.horo-reader-page .forecast-premium-gate .forecast-premium-gate-logo {
+  width: min(10rem, 45vw);
+  aspect-ratio: 4 / 3;
+  margin-top: 0.25rem;
+  background: #fff;
+}
+
+.horo-reader-page .forecast-premium-gate .forecast-premium-gate-cta {
+  width: min(100%, 20rem);
+  min-height: 3.25rem;
+  margin-top: 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #181818;
+  border-radius: 0.3rem;
+  background: #181818;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.horo-reader-page .forecast-premium-gate .forecast-premium-gate-cta:focus-visible {
+  outline: 2px solid #181818;
+  outline-offset: 3px;
+}
+
 @media (max-width: 360px) {
   .horo-reader-page .horo-reader-heading,
   .horo-reader-page .horo-reader-controls,

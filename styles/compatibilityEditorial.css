@@ -719,7 +719,7 @@
   text-align: center;
   text-transform: none;
   white-space: nowrap;
-  transform: translateX(-50%);
+  transform: translate(-50%, 6px);
 }
 
 .compat-editorial-page--result .compat-result-meta {

@@ -5452,15 +5452,8 @@ a,
 }
 
 .pw2-intro { margin-top: 24px; }
-.pw2-brand { position: relative; display: grid; width: 100%; justify-items: center; gap: 0; margin-bottom: -6px; }
-.pw2-brand .pw2-brand-logo { width: min(100%, 11.5rem); color: var(--pw-ink); font-size: 2.5rem; }
-.pw2-brand > p { position: absolute; top: 64%; left: 50%; z-index: 1; margin: 0; color: #111; font-size: 12px; font-weight: 700; letter-spacing: 0.18em; line-height: 1; pointer-events: none; transform: translateX(-50%); }
 .pw2-kicker { margin: 0 0 8px; color: var(--pw-muted); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; }
 .pw2-title { max-width: 18ch; margin: 0; color: var(--pw-ink); font-size: clamp(28px, 8vw, 38px); font-weight: 800; letter-spacing: -0.045em; line-height: 1.02; text-wrap: balance; }
-.pw2--embedded .pw2-intro { position: relative; isolation: isolate; padding-top: 16px; }
-.pw2--embedded .pw2-brand { position: absolute; top: 54%; left: 50%; z-index: 0; width: 100%; margin: 0; opacity: 0.14; pointer-events: none; transform: translate(-50%, -50%); }
-.pw2--embedded .pw2-brand .pw2-brand-logo { width: min(14rem, 64vw); }
-.pw2--embedded .pw2-title { position: relative; z-index: 1; }
 .pw2-sub { max-width: 38ch; margin-top: 12px; color: var(--pw-muted); font-size: 16px; line-height: 1.5; text-wrap: pretty; }
 .pw2-purchase { margin-top: 22px; }
 .pw2-section-title { margin: 0; color: var(--pw-ink); font-size: 18px; font-weight: 700; letter-spacing: -0.015em; }
@@ -5482,10 +5475,13 @@ a,
 .pw2-plan-features dd { margin: 0; color: var(--pw-muted); font-size: 14px; line-height: 1.4; }
 .pw2-plan-selected { display: flex; min-height: 44px; margin-top: auto; align-items: center; justify-content: center; border: 1px solid var(--pw-ink); border-radius: 12px; color: var(--pw-ink); font-size: 14px; font-weight: 700; line-height: 1; }
 .pw2-plan.is-sel .pw2-plan-selected { background: var(--pw-ink); color: #fff; }
-.pw2-selection-summary { display: grid; gap: 4px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--pw-rule); }
-.pw2-selection-summary .pw2-selection-kicker { margin: 0; color: var(--pw-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
-.pw2-selection-summary h3 { margin: 0; color: var(--pw-ink); font-size: 19px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
-.pw2-selection-summary > p:last-child { margin: 0; color: var(--pw-muted); font-size: 13px; line-height: 1.4; }
+.pw2-selection-summary { display: grid; grid-template-columns: minmax(0, 1fr) clamp(9rem, 40vw, 10rem); grid-template-areas: "kicker logo" "title logo" "copy logo"; gap: 4px 12px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--pw-rule); }
+.pw2-selection-summary .pw2-selection-brand { position: relative; display: grid; grid-area: logo; width: clamp(5.75rem, 25vw, 7.5rem); aspect-ratio: 4 / 3; align-self: center; justify-self: center; justify-items: center; transform: translateX(-0.75rem); }
+.pw2-selection-summary .pw2-selection-logo { width: 100%; aspect-ratio: 4 / 3; }
+.pw2-selection-summary .pw2-selection-brand-label { position: absolute; top: 70%; left: 50%; color: #bd8758; font-size: 11px; font-weight: 700; letter-spacing: 0.18em; line-height: 1; transform: translateX(-50%); }
+.pw2-selection-summary .pw2-selection-kicker { grid-area: kicker; margin: 0; color: var(--pw-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+.pw2-selection-summary h3 { grid-area: title; margin: 0; color: var(--pw-ink); font-size: 19px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.pw2-selection-summary > p:last-child { grid-area: copy; margin: 0; color: var(--pw-muted); font-size: 13px; line-height: 1.4; }
 .pw2-benefits { display: grid; gap: 9px; margin: 10px 0 0; }
 .pw2-benefits div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
 .pw2-benefits dt { color: var(--pw-ink); font-size: 12px; font-weight: 700; line-height: 1.35; }

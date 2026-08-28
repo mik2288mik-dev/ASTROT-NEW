@@ -431,6 +431,7 @@
 
 .forecast-feed-page .forecast-premium-gate .forecast-premium-gate-logo {
   width: min(10.75rem, 47vw);
+  aspect-ratio: 4 / 3;
   margin-top: 0.35rem;
   background: #fff;
 }

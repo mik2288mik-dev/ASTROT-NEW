@@ -2339,6 +2339,14 @@ const App: React.FC = () => {
                             }}
                             onOpenPersonalForecast={() => navigateTo('dashboard')}
                             onOpenCharts={openProfileCharts}
+                            onRequestPremium={(lockedPeriod) => {
+                                void requestPremium('horoscope', {
+                                    placement: lockedPeriod,
+                                    featureKey: 'weekly_sign_horoscope',
+                                    triggerType: 'locked_feature',
+                                    returnView: 'horoscope',
+                                });
+                            }}
                         />
                     </div>
                 ) : view === 'personality' && chartData ? (

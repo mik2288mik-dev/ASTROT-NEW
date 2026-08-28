@@ -14,24 +14,24 @@ const COPY = {
     week: {
       title: 'Хочешь узнать, какой будет неделя?',
       body: 'В Premium ты увидишь весь прогноз на неделю: что может порадовать и какие моменты потребуют больше внимания.',
-      cta: 'Узнать прогноз на неделю',
+      cta: 'Перейти в магазин',
     },
     month: {
       title: 'Хочешь узнать, каким будет месяц?',
       body: 'В Premium ты увидишь весь прогноз на месяц: что может сложиться удачно и какие моменты лучше не пропустить.',
-      cta: 'Узнать прогноз на месяц',
+      cta: 'Перейти в магазин',
     },
   },
   en: {
     week: {
       title: 'Want a look at your week?',
       body: 'With Premium, you will see the full forecast for the week: what may go well and which moments deserve more attention.',
-      cta: 'See the weekly forecast',
+      cta: 'Open Premium store',
     },
     month: {
       title: 'Want a look at your month?',
       body: 'With Premium, you will see the full forecast for the month: what may go well and which moments are worth noticing.',
-      cta: 'See the monthly forecast',
+      cta: 'Open Premium store',
     },
   },
 } as const;

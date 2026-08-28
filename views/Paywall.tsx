@@ -11,7 +11,7 @@ import {
 } from '../services/rustorePayService';
 import { STORE_RELEASE_CONFIG } from '../lib/storeReleaseConfig';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
-import { MeouLogo } from '../components/onboarding/MeouLogo';
+import { NeboLogo } from '../components/brand/NeboLogo';
 
 export type PaywallPurchaseStatus =
   | 'completed'
@@ -303,14 +303,9 @@ export const Paywall: React.FC<PaywallProps> = ({
       {!embedded ? <AppTopBar title="Premium" onBack={onClose} /> : null}
 
       <div className="pw2-intro">
-        {embedded ? (
-          <div className="pw2-brand">
-            <MeouLogo className="pw2-brand-logo" fullCloud />
-            <p>Premium</p>
-          </div>
-        ) : (
+        {!embedded ? (
           <p className="pw2-kicker">NEBO Premium</p>
-        )}
+        ) : null}
         <h1 className="pw2-title">
           {embedded
             ? (ru ? 'Персональный прогноз, натальная карта и совместимость' : 'Personal forecast, birth chart, and compatibility')
@@ -400,6 +395,15 @@ export const Paywall: React.FC<PaywallProps> = ({
             {embedded ? (
               <>
                 <div className="pw2-selection-summary" aria-live="polite">
+                  <div className="pw2-selection-brand" aria-hidden="true">
+                    <NeboLogo
+                      decorative
+                      fullCloud
+                      size="standard"
+                      className="pw2-selection-logo"
+                    />
+                    <span className="pw2-selection-brand-label">Premium</span>
+                  </div>
                   <p className="pw2-selection-kicker">{ru ? 'Твой выбор' : 'Your choice'}</p>
                   <h3>{selectedOption.periodLabel} Premium</h3>
                   <p>
