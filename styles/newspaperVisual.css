@@ -1107,7 +1107,7 @@
   color: #fff !important;
 }
 
-.auth-editorial-page button:not(.bg-\[\#168de2\]),
+.auth-editorial-page button:not(.bg-\[\#168de2\]):not(.auth-primary-button):not(.auth-provider-button):not(.auth-password-toggle):not(.auth-back-button),
 .pw2 .pw2-plan,
 .pw2 .pw2-free {
   border-color: var(--news-rule) !important;
@@ -1119,6 +1119,110 @@
   border-color: var(--news-action) !important;
   background: var(--news-action) !important;
   color: #fff !important;
+}
+
+.auth-editorial-page .auth-primary-button {
+  border: 1px solid #181818 !important;
+  background: #181818 !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  transition-property: transform, opacity, background-color;
+  transition-duration: 140ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.auth-editorial-page .auth-provider-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-style: solid !important;
+  border-width: 1px !important;
+  box-shadow: none !important;
+  transition-property: transform, opacity, background-color, border-color;
+  transition-duration: 140ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.auth-editorial-page .auth-provider-button--yandex {
+  border-color: #dfe1e5 !important;
+  background: #fff !important;
+  color: #171717 !important;
+}
+
+.auth-editorial-page .auth-provider-button--vk {
+  border-color: #0077ff !important;
+  background: #0077ff !important;
+  color: #fff !important;
+}
+
+.auth-editorial-page .auth-provider-button--telegram {
+  border-color: #229ed9 !important;
+  background: #229ed9 !important;
+  color: #fff !important;
+}
+
+.auth-editorial-page .auth-provider-button--email {
+  border-color: #2f6b57 !important;
+  background: #2f6b57 !important;
+  color: #fff !important;
+}
+
+.auth-provider-mark {
+  display: inline-flex;
+  width: 1.45rem;
+  height: 1.45rem;
+  flex: 0 0 1.45rem;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.auth-provider-mark--yandex {
+  color: #fc3f1d;
+  font-size: 1.25rem;
+}
+
+.auth-provider-mark--vk {
+  color: #fff;
+}
+
+.auth-provider-mark--vk svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: currentColor;
+}
+
+.auth-provider-mark--telegram {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.76rem;
+}
+
+.auth-editorial-page .auth-back-button {
+  border: 0 !important;
+  background: transparent !important;
+  color: #202124 !important;
+  transition-property: transform, opacity;
+  transition-duration: 140ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.auth-editorial-page .auth-back-button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.auth-editorial-page .auth-password-toggle {
+  border: 0 !important;
+  background: transparent !important;
+  color: #202124 !important;
+}
+
+.auth-editorial-page :is(.auth-primary-button, .auth-provider-button):not(:disabled):active {
+  transform: scale(0.96);
 }
 
 .pw2 .pw2-plan.is-sel,

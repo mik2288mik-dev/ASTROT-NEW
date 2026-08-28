@@ -214,7 +214,7 @@ function DiaryScene({
         />
       ) : !premium ? (
         <PersonalForecastPremiumGate
-          period={period}
+          period={screen}
           language="ru"
           onRequestPremium={() => onNavigate('paywall')}
         />
