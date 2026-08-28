@@ -255,6 +255,20 @@
   letter-spacing: -0.035em;
 }
 
+.forecast-feed-page .app-top-bar-title--personal-forecast {
+  position: relative;
+  height: 2.5rem;
+  overflow: visible;
+}
+
+.forecast-feed-page .app-top-bar-cloud-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4.8rem;
+  transform: translate(-50%, -61%);
+}
+
 .forecast-feed-page .today-profile-button.app-top-bar-action {
   border: 0;
   border-radius: 0;
@@ -388,6 +402,68 @@
   font-weight: 500;
 }
 
+.forecast-feed-page .forecast-premium-gate {
+  box-sizing: border-box;
+  min-height: 0;
+  gap: 0;
+  padding: 1.8rem 1.5rem 5.5rem;
+  background: #fff;
+}
+
+.forecast-feed-page .forecast-premium-gate h1 {
+  max-width: 19rem;
+  color: #1f1f1f;
+  font-size: clamp(2rem, 8.4vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.forecast-feed-page .forecast-premium-gate p {
+  max-width: 21rem;
+  margin-top: 0.9rem;
+  color: #696969;
+  font-size: 1rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.forecast-feed-page .forecast-premium-gate .forecast-premium-gate-logo {
+  width: min(10.75rem, 47vw);
+  margin-top: 0.35rem;
+  background: #fff;
+}
+
+.forecast-feed-page .forecast-premium-gate .forecast-premium-gate-cta {
+  width: min(100%, 20rem);
+  min-height: 3.25rem;
+  margin-top: 0.35rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #181818;
+  border-radius: 0.3rem;
+  background: #181818;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.forecast-feed-page .forecast-premium-gate .forecast-premium-gate-cta:focus-visible {
+  outline: 2px solid #181818;
+  outline-offset: 3px;
+}
+
+@media (max-width: 380px) {
+  .forecast-feed-page .forecast-premium-gate {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .forecast-feed-page .forecast-premium-gate h1 {
+    font-size: 1.95rem;
+  }
+}
+
 .forecast-feed-page .forecast-feed-loading-indicator {
   color: var(--today-ink);
 }
@@ -415,14 +491,10 @@
   display: grid;
   box-sizing: border-box;
   width: 100%;
-  min-height: clamp(
-    16.25rem,
-    calc(100svh - var(--today-safe-top) - 21.75rem),
-    23.25rem
-  );
-  align-items: center;
+  min-height: 0;
+  align-items: start;
   overflow: hidden;
-  padding: 1.25rem clamp(1.3rem, 6vw, 2.5rem) 1rem;
+  padding: 1.15rem clamp(1.3rem, 6vw, 2.5rem) 1.25rem;
 }
 
 .today-line-field {
@@ -458,7 +530,7 @@
   justify-items: center;
   gap: clamp(0.8rem, 3.5vw, 1.15rem);
   margin: 0 auto;
-  transform: translateY(-1.65rem);
+  transform: none;
 }
 
 .today-minimal-composition .today-calendar-clock {
@@ -514,6 +586,12 @@
 }
 
 .today-minimal-loading {
+  min-height: clamp(
+    16.25rem,
+    calc(100svh - var(--today-safe-top) - 21.75rem),
+    23.25rem
+  );
+  align-items: center;
   grid-template-rows: minmax(0, 1fr);
 }
 
@@ -1141,8 +1219,7 @@
 }
 
 .today-minimal-feed:lang(ru)
-  .today-minimal-reading-main
-  > .forecast-feed-story-fragment:not(.is-overview)
+  .today-minimal-reading
   .forecast-feed-section-text,
 .forecast-period-editorial-feed:lang(ru)
   .forecast-feed-section-text.is-story-continuation {
@@ -1495,7 +1572,6 @@
   line-height: 1.58 !important;
   text-align: center !important;
   text-wrap: balance !important;
-  text-indent: 0;
 }
 
 #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text,

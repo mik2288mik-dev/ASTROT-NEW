@@ -5452,11 +5452,15 @@ a,
 }
 
 .pw2-intro { margin-top: 24px; }
-.pw2-brand { display: grid; width: 100%; justify-items: center; gap: 7px; margin-bottom: 18px; }
+.pw2-brand { position: relative; display: grid; width: 100%; justify-items: center; gap: 0; margin-bottom: -6px; }
 .pw2-brand .pw2-brand-logo { width: min(100%, 11.5rem); color: var(--pw-ink); font-size: 2.5rem; }
-.pw2-brand > p { margin: 0; color: var(--pw-ink); font-size: 12px; font-weight: 700; letter-spacing: 0.18em; line-height: 1; }
+.pw2-brand > p { position: absolute; top: 64%; left: 50%; z-index: 1; margin: 0; color: #111; font-size: 12px; font-weight: 700; letter-spacing: 0.18em; line-height: 1; pointer-events: none; transform: translateX(-50%); }
 .pw2-kicker { margin: 0 0 8px; color: var(--pw-muted); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; }
 .pw2-title { max-width: 18ch; margin: 0; color: var(--pw-ink); font-size: clamp(28px, 8vw, 38px); font-weight: 800; letter-spacing: -0.045em; line-height: 1.02; text-wrap: balance; }
+.pw2--embedded .pw2-intro { position: relative; isolation: isolate; padding-top: 16px; }
+.pw2--embedded .pw2-brand { position: absolute; top: 54%; left: 50%; z-index: 0; width: 100%; margin: 0; opacity: 0.14; pointer-events: none; transform: translate(-50%, -50%); }
+.pw2--embedded .pw2-brand .pw2-brand-logo { width: min(14rem, 64vw); }
+.pw2--embedded .pw2-title { position: relative; z-index: 1; }
 .pw2-sub { max-width: 38ch; margin-top: 12px; color: var(--pw-muted); font-size: 16px; line-height: 1.5; text-wrap: pretty; }
 .pw2-purchase { margin-top: 22px; }
 .pw2-section-title { margin: 0; color: var(--pw-ink); font-size: 18px; font-weight: 700; letter-spacing: -0.015em; }
@@ -5505,7 +5509,7 @@ a,
 .pw2-foot a { color: inherit; text-underline-offset: 3px; }
 
 /* Premium is embedded directly below the service tabs: avoid nested page padding. */
-.services-screen-page .service-premium-content { padding: 12px 0 112px; }
+.services-screen-page .service-premium-content { padding: 0 0 112px; }
 .services-screen-page .service-premium-content .pw2-intro { margin-top: 0; }
 .services-screen-page .service-premium-content .pw2-title { width: 100%; max-width: none; font-size: clamp(25px, 7vw, 32px); line-height: 1.05; text-align: center; }
 .services-screen-page .service-premium-content .pw2-sub { width: auto; max-width: none; margin-top: 10px; font-size: 14px; line-height: 1.45; }
@@ -9293,6 +9297,10 @@ body,
   gap: 1.15rem;
 }
 
+.meou-onboarding-header .meou-onboarding-logo {
+  width: min(8.5rem, 38vw);
+}
+
 .meou-progress {
   min-height: 0.3rem;
   gap: 1.1rem;
@@ -9306,6 +9314,11 @@ body,
   height: 0.14rem;
   border-radius: 999px;
   background: #e8e7e5;
+}
+
+.meou-onboarding-shell,
+.meou-story {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .meou-progress-copy {

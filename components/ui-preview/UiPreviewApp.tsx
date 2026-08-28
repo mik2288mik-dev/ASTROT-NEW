@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, LoaderCircle, LockKeyhole, MoonStar, WifiOff } from 'lucide-react';
 import { ForecastSectionBlock } from '../PersonalForecastFeed/ForecastSectionBlock';
+import { PersonalForecastPremiumGate } from '../PersonalForecastFeed/PersonalForecastPremiumGate';
 import { TodayEditorialFeed } from '../PersonalForecastFeed/TodayEditorialFeed';
 import { selectForecastEndEditorialAsset } from '../../lib/personalForecastVisuals';
 import { formatPersonalForecastAttribution } from '../../lib/personalForecastPresentation';
@@ -211,26 +212,30 @@ function DiaryScene({
           personalAttribution={personalForecastAttribution}
           onRequestPremium={() => onNavigate('paywall')}
         />
+      ) : !premium ? (
+        <PersonalForecastPremiumGate
+          period={period}
+          language="ru"
+          onRequestPremium={() => onNavigate('paywall')}
+        />
       ) : (
         <article
           className="forecast-feed-story forecast-editorial-reading forecast-period-editorial-feed ui-preview-long-forecast"
           data-forecast-period={period}
           lang="ru"
         >
-          {longSections.map((section, index) => (
-            !premium && index > 0 ? null : (
-              <ForecastSectionBlock
-                key={`${period}:${section.id}`}
-                section={section}
-                period={period}
-                language="ru"
-                locked={!premium}
-                onRequestPremium={() => onNavigate('paywall')}
-                endVisualAsset={section.id === periodAdviceSectionId ? periodEndVisual : null}
-              />
-            )
+          {longSections.map((section) => (
+            <ForecastSectionBlock
+              key={`${period}:${section.id}`}
+              section={section}
+              period={period}
+              language="ru"
+              locked={false}
+              onRequestPremium={() => onNavigate('paywall')}
+              endVisualAsset={section.id === periodAdviceSectionId ? periodEndVisual : null}
+            />
           ))}
-          {premium && periodAdviceSectionId && personalForecastAttribution ? (
+          {periodAdviceSectionId && personalForecastAttribution ? (
             <p className="today-period-personal-note forecast-personal-attribution">
               {personalForecastAttribution}
             </p>

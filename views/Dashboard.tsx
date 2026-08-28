@@ -26,11 +26,9 @@ import {
   type PersonalForecastClientResult,
 } from '../services/personalForecastService';
 import { ForecastSectionBlock } from '../components/PersonalForecastFeed/ForecastSectionBlock';
+import { PersonalForecastPremiumGate } from '../components/PersonalForecastFeed/PersonalForecastPremiumGate';
 import { TodayEditorialFeed } from '../components/PersonalForecastFeed/TodayEditorialFeed';
-import {
-  TodayCalendarClock,
-  TodayLineField,
-} from '../components/PersonalForecastFeed/TodayCalendarClock';
+import { TodayCalendarClock } from '../components/PersonalForecastFeed/TodayCalendarClock';
 import { AppTopBar } from '../components/lumia-ui/AppTopBar';
 import { EditorialChartsButton } from '../components/editorial/EditorialScreenChrome';
 import { lumiaSelectionHaptic } from '../lib/haptics';
@@ -521,23 +519,12 @@ export const Dashboard = memo<DashboardProps>(({
           </button>
         </section>
       ) : !premium && activePeriod !== 'day' ? (
-        <section className="forecast-feed-status is-locked" aria-live="polite">
-          <h1>
-            {language === 'ru'
-              ? `${activePeriod === 'week' ? 'Неделя' : 'Месяц'} — в Premium`
-              : `${activePeriod === 'week' ? 'Week' : 'Month'} is in Premium`}
-          </h1>
-          <p>
-            {language === 'ru'
-              ? 'Этот личный гороскоп доступен в Premium.'
-              : 'This personal horoscope is available with Premium.'}
-          </p>
-          {canPromotePremium ? (
-            <button type="button" onClick={requestPremium}>
-              {language === 'ru' ? 'Посмотреть Premium' : 'View Premium'}
-            </button>
-          ) : null}
-        </section>
+        <PersonalForecastPremiumGate
+          period={activePeriod}
+          language={language}
+          onRequestPremium={requestPremium}
+          canPromotePremium={canPromotePremium}
+        />
       ) : forecast && activePeriod === 'day' ? (
         <TodayEditorialFeed
           sections={storySections}
@@ -595,10 +582,6 @@ export const Dashboard = memo<DashboardProps>(({
             {language === 'ru' ? 'Личный прогноз на сегодня' : 'Your personal forecast for today'}
           </h1>
           <div className="today-minimal-composition">
-            <TodayLineField
-              userId={String(profile.id || 'guest')}
-              periodKey={periodKeys.day}
-            />
             <TodayCalendarClock
               userId={String(profile.id || 'guest')}
               periodKey={periodKeys.day}

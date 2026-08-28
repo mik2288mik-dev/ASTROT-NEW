@@ -305,7 +305,7 @@ export const Paywall: React.FC<PaywallProps> = ({
       <div className="pw2-intro">
         {embedded ? (
           <div className="pw2-brand">
-            <MeouLogo className="pw2-brand-logo" />
+            <MeouLogo className="pw2-brand-logo" fullCloud />
             <p>Premium</p>
           </div>
         ) : (

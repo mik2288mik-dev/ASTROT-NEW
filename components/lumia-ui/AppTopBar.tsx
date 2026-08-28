@@ -44,7 +44,14 @@ export function AppTopBar({
             isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : ''
           }`}
         >
-          {isPersonalForecastHeader ? <NeboLogo size="header" priority /> : title}
+          {isPersonalForecastHeader ? (
+            <NeboLogo
+              className="app-top-bar-cloud-logo"
+              fullCloud
+              size="header"
+              priority
+            />
+          ) : title}
         </span>
 
         <div className="app-top-bar-side app-top-bar-side--end">

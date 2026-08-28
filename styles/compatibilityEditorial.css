@@ -691,25 +691,35 @@
 
 /* Compatibility result v2: calculated, editorial reading surface. */
 .compat-editorial-page--result .compat-result-heading {
+  position: relative;
   display: grid;
   width: min(calc(100% - 40px), 36rem);
   justify-items: center;
-  gap: 7px;
-  margin: 22px auto 0 !important;
+  gap: 0;
+  margin: -10px auto -6px !important;
 }
 
 .compat-editorial-page--result .compat-result-brand {
-  width: 108px;
+  width: min(9.75rem, 46vw);
   color: var(--compat-editorial-ink);
   font-size: 1.75rem;
 }
 
-.compat-editorial-page--result .compat-result-heading > span {
+.compat-editorial-page--result .compat-result-brand-caption {
+  position: absolute;
+  top: 64%;
+  left: 50%;
+  z-index: 1;
+  width: min(18rem, calc(100vw - 40px));
   color: var(--compat-editorial-muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: none;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .compat-editorial-page--result .compat-result-meta {
@@ -789,7 +799,7 @@
 .compat-editorial-page--result .compat-result-score {
   width: min(calc(100% - 40px), 36rem);
   margin: 0 auto;
-  padding: 20px 0 10px;
+  padding: 8px 0 10px;
   text-align: center;
 }
 
@@ -802,7 +812,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 34px;
   width: min(100%, 25rem);
-  margin: 0 auto 9px;
+  margin: 0 auto;
 }
 
 .compat-editorial-page--result .compat-result-ring-people > span {
@@ -874,7 +884,7 @@
   position: relative;
   width: 250px;
   height: 158px;
-  margin: 0 auto;
+  margin: -40px auto 0;
 }
 
 .compat-editorial-page--result .compat-result-orbit-circle {
@@ -884,7 +894,7 @@
   right: auto;
   width: 140px;
   height: 140px;
-  border: 1.5px solid rgba(26, 31, 38, 0.22);
+  border: 2px solid rgba(26, 31, 38, 0.28);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.16);
   will-change: transform;
@@ -893,9 +903,9 @@
 .compat-editorial-page--result .compat-result-orbit-circle.is-left {
   left: 50%;
   right: auto;
-  border-color: rgba(39, 111, 209, 0.78);
-  background: radial-gradient(circle at 63% 50%, rgba(39, 111, 209, 0.055), rgba(39, 111, 209, 0) 68%);
-  box-shadow: 0 0 24px rgba(39, 111, 209, 0.09), inset 0 0 18px rgba(39, 111, 209, 0.035);
+  border-color: rgba(39, 111, 209, 0.92);
+  background: radial-gradient(circle at 63% 50%, rgba(39, 111, 209, 0.07), rgba(39, 111, 209, 0) 68%);
+  box-shadow: 0 0 24px rgba(39, 111, 209, 0.13), inset 0 0 18px rgba(39, 111, 209, 0.05);
   transform: translate(-50%, -50%) translateX(calc(0px - var(--compat-ring-offset)));
   animation: compat-ring-left-in 360ms cubic-bezier(0.25, 1, 0.5, 1) both;
 }
@@ -903,9 +913,9 @@
 .compat-editorial-page--result .compat-result-orbit-circle.is-right {
   left: 50%;
   right: auto;
-  border-color: rgba(214, 95, 105, 0.72);
-  background: radial-gradient(circle at 37% 50%, rgba(214, 95, 105, 0.055), rgba(214, 95, 105, 0) 68%);
-  box-shadow: 0 0 24px rgba(214, 95, 105, 0.085), inset 0 0 18px rgba(214, 95, 105, 0.03);
+  border-color: rgba(214, 95, 105, 0.9);
+  background: radial-gradient(circle at 37% 50%, rgba(214, 95, 105, 0.07), rgba(214, 95, 105, 0) 68%);
+  box-shadow: 0 0 24px rgba(214, 95, 105, 0.12), inset 0 0 18px rgba(214, 95, 105, 0.045);
   transform: translate(-50%, -50%) translateX(var(--compat-ring-offset));
   animation: compat-ring-right-in 360ms cubic-bezier(0.25, 1, 0.5, 1) both;
 }

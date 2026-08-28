@@ -7,10 +7,8 @@ import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
 import { isRenderableTodaySection } from './editorialLayout';
 import {
   TodayCalendarClock,
-  TodayLineField,
   type TodayClockSignal,
 } from './TodayCalendarClock';
-import { ForecastArc } from './ForecastArc';
 
 type TodayEditorialFeedProps = {
   sections: readonly ForecastSection[];
@@ -87,12 +85,6 @@ function StoryFragment({
       'today-minimal-closing',
       endVisual ? 'has-end-visual' : '',
     ].filter(Boolean).join(' ')}>
-      <ForecastArc
-        className="today-minimal-closing-arc"
-        direction="down"
-        dot="left"
-        variant="today"
-      />
       <div className="today-minimal-closing-content">
         <p className="today-minimal-closing-label">
           {language === 'ru' ? 'Совет дня' : 'Advice for today'}
@@ -105,12 +97,6 @@ function StoryFragment({
           />
         ) : null}
       </div>
-      <ForecastArc
-        className="today-minimal-closing-arc is-after-advice"
-        direction="up"
-        dot="right"
-        variant="today"
-      />
       {personalAttribution ? (
         <p className="today-period-personal-note forecast-personal-attribution">
           {personalAttribution}
@@ -118,17 +104,6 @@ function StoryFragment({
       ) : null}
     </div>
   ) : fragment;
-}
-
-function TodayForecastBridge() {
-  return (
-    <div className="today-minimal-forecast-bridge" aria-hidden="true">
-      <svg viewBox="0 0 390 156" preserveAspectRatio="none" focusable="false">
-        <path d="M218-24C326-14 365 54 316 96C279 128 226 127 184 110C145 94 116 103 82 142" />
-        <circle cx="184" cy="110" r="2.2" />
-      </svg>
-    </div>
-  );
 }
 
 export function TodayEditorialFeed({
@@ -183,7 +158,6 @@ export function TodayEditorialFeed({
           : undefined}
       >
         <div className="today-minimal-composition">
-          <TodayLineField userId={userId} periodKey={periodKey} />
           {title ? (
             <h1 id="today-reading-title" className="today-minimal-story-title">
               {title}
@@ -206,7 +180,6 @@ export function TodayEditorialFeed({
             </p>
           ) : null}
         </div>
-        <TodayForecastBridge />
       </section>
 
       <section

@@ -8,6 +8,7 @@ type NeboLogoSize = 'compact' | 'header' | 'standard' | 'large' | 'loading';
 type NeboLogoProps = {
   className?: string;
   decorative?: boolean;
+  fullCloud?: boolean;
   priority?: boolean;
   size?: NeboLogoSize;
 };
@@ -23,12 +24,13 @@ const sizeClass: Record<NeboLogoSize, string> = {
 export function NeboLogo({
   className = '',
   decorative = false,
+  fullCloud = false,
   priority = false,
   size = 'standard',
 }: NeboLogoProps) {
   return (
     <span
-      className={`${styles.logo} ${sizeClass[size]}${className ? ` ${className}` : ''}`}
+      className={`${styles.logo} ${sizeClass[size]}${fullCloud ? ` ${styles.fullCloud}` : ''}${className ? ` ${className}` : ''}`}
       aria-hidden={decorative || undefined}
     >
       <img

@@ -2,10 +2,10 @@
   position: relative;
   display: inline-block;
   width: 9rem;
-  aspect-ratio: 3.2 / 1;
+  aspect-ratio: 1.55 / 1;
   flex: none;
-  overflow: hidden;
-  background: #fff;
+  overflow: visible;
+  background: transparent;
   line-height: 0;
   isolation: isolate;
   vertical-align: middle;
@@ -13,39 +13,41 @@
 
 .image {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  display: block;
   width: 100%;
   max-width: none;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 52%;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
   pointer-events: none;
+  transform: translate(-50%, -50%);
   user-select: none;
 }
 
 .compact {
   width: 5rem;
-  aspect-ratio: 3.25 / 1;
 }
 
 .header {
   width: 6rem;
-  aspect-ratio: 3.2 / 1;
 }
 
 .standard {
   width: 9rem;
-  aspect-ratio: 3.2 / 1;
 }
 
 .large {
   width: clamp(15rem, 70vw, 19rem);
-  aspect-ratio: 2.45 / 1;
 }
 
 .loading {
   width: min(12rem, 58vw);
-  aspect-ratio: 2.75 / 1;
+}
+
+.fullCloud {
+  overflow: visible;
 }
 
 @media (max-width: 360px) {

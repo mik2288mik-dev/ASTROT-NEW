@@ -1759,8 +1759,10 @@ export function UnionRoom(props: UnionRoomProps) {
       {compatibilityHeader(true)}
 
       <header className="compat-result-heading">
-        <MeouLogo className="compat-result-brand" />
-        <span>{ru ? 'Сравниваем совместимость двух человек' : 'Comparing two people’s compatibility'}</span>
+        <MeouLogo className="compat-result-brand" fullCloud />
+        <span className="compat-result-brand-caption">
+          {ru ? 'Сравниваем совместимость двух человек' : 'Comparing two people’s compatibility'}
+        </span>
       </header>
 
       {resultPercent != null ? (

@@ -27,7 +27,8 @@ interface OnboardingProps {
 }
 
 const introScreens: OnboardingScreen[] = ['day', 'self', 'people'];
-const welcomeScreenCount = introScreens.length + 1;
+const welcomeScreens: OnboardingScreen[] = [...introScreens, 'choice'];
+const welcomeScreenCount = welcomeScreens.length;
 const initialTimeMode = (profile?: UserProfile): Exclude<BirthTimeMode, 'range'> => {
   if (!profile) return 'exact';
   if (profile?.birthTimeMode === 'unknown' || !profile?.birthTime) return 'unknown';
@@ -46,7 +47,7 @@ const OnboardingProgress = ({ current, count, labelled = true }: { current: numb
   <div className="meou-progress" aria-label={`${current} из ${count}`}>
     <div className="meou-progress-lines" aria-hidden="true">
       {Array.from({ length: count }).map((_, index) => (
-        <span key={index} className={index + 1 === current ? 'is-active' : ''} />
+        <span key={index} className={index < current ? 'is-active' : ''} />
       ))}
     </div>
     {labelled ? <span className="meou-progress-copy">{current} из {count}</span> : null}
@@ -74,6 +75,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const touchStartX = useRef<number | null>(null);
+  const suppressTapUntilRef = useRef(0);
   const pageRef = useRef<HTMLElement | null>(null);
   const nameRef = useRef<HTMLInputElement | null>(null);
   const dateRef = useRef<HTMLInputElement | null>(null);
@@ -119,10 +121,31 @@ export const Onboarding: React.FC<OnboardingProps> = ({
     refs[field].current?.focus();
   };
 
-  const advanceStory = () => {
-    const currentIndex = introScreens.indexOf(screen);
+  const moveWelcome = (direction: -1 | 1) => {
+    const currentIndex = welcomeScreens.indexOf(screen);
     if (currentIndex < 0) return;
-    setScreen(currentIndex === introScreens.length - 1 ? 'choice' : introScreens[currentIndex + 1]);
+    const nextScreen = welcomeScreens[currentIndex + direction];
+    if (nextScreen) setScreen(nextScreen);
+  };
+
+  const advanceStory = () => moveWelcome(1);
+  const retreatStory = () => moveWelcome(-1);
+
+  const handleWelcomeTap = (
+    event: React.MouseEvent<HTMLElement>,
+    allowForward = true,
+  ) => {
+    if (Date.now() < suppressTapUntilRef.current) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('button, a, input, select, textarea, label, [contenteditable="true"]')) return;
+    if (event.detail === 0) {
+      if (allowForward) advanceStory();
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const tappedLeftHalf = event.clientX < bounds.left + bounds.width / 2;
+    if (tappedLeftHalf) retreatStory();
+    else if (allowForward) advanceStory();
   };
 
   const chooseTimeMode = (mode: Exclude<BirthTimeMode, 'range'>) => {
@@ -203,14 +226,22 @@ export const Onboarding: React.FC<OnboardingProps> = ({
 
   const introIndex = introScreens.indexOf(screen) + 1;
   const isIntro = introIndex > 0;
+  const welcomeIndex = welcomeScreens.indexOf(screen) + 1;
+  const isWelcome = welcomeIndex > 0;
 
   return (
     <main ref={pageRef} className="meou-onboarding fresh-page lumia-main-scroll antialiased">
-      <div className="meou-onboarding-shell">
+      <div
+        className="meou-onboarding-shell"
+        onClick={isIntro
+          ? (event) => handleWelcomeTap(event)
+          : screen === 'choice'
+            ? (event) => handleWelcomeTap(event, false)
+            : undefined}
+      >
         <header className="meou-onboarding-header">
-          <MeouLogo />
-          {isIntro ? <OnboardingProgress current={introIndex} count={welcomeScreenCount} labelled={false} /> : null}
-          {screen === 'choice' ? <OnboardingProgress current={welcomeScreenCount} count={welcomeScreenCount} labelled={false} /> : null}
+          <MeouLogo className="meou-onboarding-logo" fullCloud />
+          {isWelcome ? <OnboardingProgress current={welcomeIndex} count={welcomeScreenCount} labelled={false} /> : null}
           {screen === 'birth' ? <OnboardingProgress current={1} count={2} /> : null}
           {screen === 'calculating' ? <OnboardingProgress current={2} count={2} /> : null}
         </header>
@@ -220,10 +251,12 @@ export const Onboarding: React.FC<OnboardingProps> = ({
             className={`meou-story meou-story--${screen}`}
             role="button"
             tabIndex={0}
-            aria-label="Продолжить"
-            onClick={advanceStory}
+            aria-label="Тап слева — назад, справа — вперёд"
             onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
+              if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                retreatStory();
+              } else if (event.key === 'ArrowRight' || event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 advanceStory();
               }
@@ -233,7 +266,12 @@ export const Onboarding: React.FC<OnboardingProps> = ({
               const start = touchStartX.current;
               const end = event.changedTouches[0]?.clientX;
               touchStartX.current = null;
-              if (start != null && end != null && start - end > 36) advanceStory();
+              if (start == null || end == null) return;
+              const delta = start - end;
+              if (Math.abs(delta) <= 36) return;
+              suppressTapUntilRef.current = Date.now() + 450;
+              if (delta > 0) advanceStory();
+              else retreatStory();
             }}
           >
             <div className="meou-story-copy">
@@ -269,7 +307,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({
         {screen === 'choice' ? (
           <section className="meou-choice">
             <ChoiceOrbitArtwork />
-            <MeouLogo large />
             <h1>Как начнём?</h1>
             <div className="meou-choice-actions">
               <button type="button" className="meou-button meou-button--primary" onClick={() => setScreen('birth')}>

@@ -8,7 +8,6 @@ import {
   resolveLongForecastParagraphs,
   resolveVisibleForecastTitle,
 } from './editorialLayout';
-import { ForecastArc } from './ForecastArc';
 import { ForecastEndEditorialVisual } from './ForecastEndEditorialVisual';
 
 type ForecastSectionBlockProps = {
@@ -55,18 +54,9 @@ function renderContentBlocks(
     return (
       <div className="forecast-feed-section-copy forecast-period-editorial-copy">
         {punchlineBlock ? (
-          <>
-            <p className="forecast-feed-section-text is-lead forecast-period-editorial-punchline">
-              {punchlineBlock.text}
-            </p>
-            <ForecastArc
-              className="forecast-period-punchline-thread"
-              direction="down"
-              dot="center"
-              placement="divider"
-              variant={period === 'week' ? 'week' : 'month'}
-            />
-          </>
+          <p className="forecast-feed-section-text is-lead forecast-period-editorial-punchline">
+            {punchlineBlock.text}
+          </p>
         ) : null}
         {paragraphs.map((text, index) => {
           const openingParagraph = index === 0 && section.kind === 'overview';
@@ -154,15 +144,6 @@ export function ForecastSectionBlock({
       ].filter(Boolean).join(' ')}
     >
       <div className="forecast-feed-section-content">
-        {!locked && period !== 'day' && isOverview ? (
-          <ForecastArc
-            className="forecast-period-title-thread"
-            direction="down"
-            dot="right"
-            placement="opening"
-            variant={period === 'week' ? 'week' : 'month'}
-          />
-        ) : null}
         {title ? (
           isOverview ? (
             <h1 className="forecast-feed-section-title forecast-feed-screen-headline">
