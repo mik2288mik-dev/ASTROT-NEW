@@ -11,5 +11,10 @@ export function isNativeAppRuntime(): boolean {
 }
 
 export function isNativeAndroidRuntime(): boolean {
-  return isNativeAppRuntime() && Capacitor.getPlatform() === 'android';
+  // The APK is Android-only. Keep this build marker independent from the
+  // Capacitor bridge because some OEM WebViews briefly report `web` before the
+  // bridge finishes attaching; that must not downgrade auth HTTP to WebView
+  // fetch or hide the compiled provider buttons.
+  return process.env.NEXT_PUBLIC_ANDROID_BUILD === '1'
+    || (isNativeAppRuntime() && Capacitor.getPlatform() === 'android');
 }

@@ -61,6 +61,7 @@ validateApiUrl(apiUrl);
 
 process.env.MOBILE_BUILD = '1';
 process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
+process.env.NEXT_PUBLIC_ANDROID_BUILD = '1';
 
 const nextBin = path.resolve('node_modules', 'next', 'dist', 'bin', 'next');
 const result = spawnSync(process.execPath, [nextBin, 'build'], {

@@ -1,4 +1,5 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { registerPlugin } from '@capacitor/core';
+import { isNativeAppRuntime } from '../services/nativeRuntime';
 
 type DiagnosticLevel = 'INFO' | 'WARN' | 'ERROR';
 type NativeDiagnosticsResult = {
@@ -33,7 +34,7 @@ type Entry = {
 };
 
 function isNative(): boolean {
-  return typeof window !== 'undefined' && Capacitor.isNativePlatform();
+  return typeof window !== 'undefined' && isNativeAppRuntime();
 }
 
 function redact(value: unknown): string {

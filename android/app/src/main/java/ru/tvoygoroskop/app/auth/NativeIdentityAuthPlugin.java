@@ -1,9 +1,7 @@
 package ru.tvoygoroskop.app.auth;
 
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.activity.result.ActivityResult;
 import androidx.lifecycle.LifecycleOwner;
@@ -31,6 +29,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ru.tvoygoroskop.app.BuildConfig;
+import ru.tvoygoroskop.app.diagnostics.NativeDiagnosticsPlugin;
 
 /**
  * Android-first identity proof bridge. Provider credentials are returned to the
@@ -43,11 +42,17 @@ public class NativeIdentityAuthPlugin extends Plugin {
     private static final String AUTH_NETWORK = "AUTH_NETWORK";
     private static final String AUTH_CONFIGURATION = "AUTH_CONFIGURATION";
     private static final String AUTH_FAILED = "AUTH_FAILED";
+    private static final String AUTH_TIMEOUT = "AUTH_TIMEOUT";
+    // The provider UI may legitimately remain open while a person completes
+    // credentials or a challenge. This only recovers a lost Activity callback.
+    private static final long SIGN_IN_TIMEOUT_MS = 180_000L;
 
     private final AtomicBoolean signInInFlight = new AtomicBoolean(false);
     private final Object vkInitializationLock = new Object();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private volatile PluginCall activeSignInCall;
+    private volatile Runnable activeSignInTimeout;
     private volatile OptionalIdentityAuthDelegate googleAuthDelegate;
     private volatile boolean vkInitialized;
     private YandexAuthSdk yandexAuthSdk;
@@ -65,13 +70,10 @@ public class NativeIdentityAuthPlugin extends Plugin {
             return;
         }
         activeSignInCall = call;
-
-        if (!isNetworkAvailable()) {
-            rejectSignIn(call, AUTH_NETWORK);
-            return;
-        }
+        scheduleSignInTimeout(call);
 
         String provider = option(call, "provider").toLowerCase(Locale.ROOT);
+        NativeDiagnosticsPlugin.mark(getContext(), "identity_auth_launch provider=" + provider);
         getActivity().runOnUiThread(() -> {
             try {
                 switch (provider) {
@@ -130,10 +132,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
 
                 @Override
                 public void onError(String code) {
-                    getActivity().runOnUiThread(() -> rejectSignIn(
-                        call,
-                        !isNetworkAvailable() ? AUTH_NETWORK : code
-                    ));
+                    getActivity().runOnUiThread(() -> rejectSignIn(call, code));
                 }
             }
         );
@@ -253,7 +252,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
                 public void onFail(VKIDAuthFail error) {
                     if (error instanceof VKIDAuthFail.Canceled) {
                         rejectSignIn(call, AUTH_CANCELLED);
-                    } else if (isVkNetworkError(error) || !isNetworkAvailable()) {
+                    } else if (isVkNetworkError(error)) {
                         rejectSignIn(call, AUTH_NETWORK);
                     } else {
                         rejectSignIn(call, AUTH_FAILED);
@@ -345,6 +344,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
     protected void handleOnDestroy() {
         OptionalIdentityAuthDelegate delegate = googleAuthDelegate;
         if (delegate != null) delegate.cancel();
+        cancelSignInTimeout();
         PluginCall call = activeSignInCall;
         if (call != null && signInInFlight.compareAndSet(true, false)) {
             activeSignInCall = null;
@@ -387,15 +387,6 @@ public class NativeIdentityAuthPlugin extends Plugin {
         return !isBlank(configuredClientId) && configuredClientId.equals(requestedClientId);
     }
 
-    private boolean isNetworkAvailable() {
-        ConnectivityManager manager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (manager == null) return false;
-        Network network = manager.getActiveNetwork();
-        if (network == null) return false;
-        NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
-        return capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
-    }
-
     private boolean isYandexNetworkError(YandexAuthException error) {
         if (error == null || error.getErrors() == null) return false;
         for (String value : error.getErrors()) {
@@ -431,15 +422,33 @@ public class NativeIdentityAuthPlugin extends Plugin {
         return value == null || value.trim().isEmpty();
     }
 
+    private void scheduleSignInTimeout(PluginCall call) {
+        cancelSignInTimeout();
+        Runnable timeout = () -> rejectSignIn(call, AUTH_TIMEOUT);
+        activeSignInTimeout = timeout;
+        mainHandler.postDelayed(timeout, SIGN_IN_TIMEOUT_MS);
+    }
+
+    private void cancelSignInTimeout() {
+        Runnable timeout = activeSignInTimeout;
+        if (timeout == null) return;
+        mainHandler.removeCallbacks(timeout);
+        activeSignInTimeout = null;
+    }
+
     private void resolveSignIn(PluginCall call, JSObject result) {
         if (activeSignInCall != call || !signInInFlight.compareAndSet(true, false)) return;
         activeSignInCall = null;
+        cancelSignInTimeout();
+        NativeDiagnosticsPlugin.mark(getContext(), "identity_auth_credential_received");
         call.resolve(result);
     }
 
     private void rejectSignIn(PluginCall call, String code) {
         if (activeSignInCall != call || !signInInFlight.compareAndSet(true, false)) return;
         activeSignInCall = null;
+        cancelSignInTimeout();
+        NativeDiagnosticsPlugin.mark(getContext(), "identity_auth_rejected code=" + code);
         reject(call, code);
     }
 

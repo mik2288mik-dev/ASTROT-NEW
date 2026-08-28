@@ -59,6 +59,8 @@ describe('Android account authentication UI', () => {
     expect(gate).toContain('loginWithTelegram');
     expect(gate).toContain('hasTelegramMiniAppContext()');
     expect(gate).toContain('Войти через Telegram');
+    expect(gate).toContain("code.includes('AUTH_TIMEOUT')");
+    expect(gate).toContain('Вход занял слишком много времени. Проверь сеть и попробуй ещё раз.');
   });
 
   test('fresh native automatic mode does not silently create a guest account', () => {
@@ -120,6 +122,7 @@ describe('Android account authentication UI', () => {
     expect(api).toContain("import { isNativeAndroidRuntime, isNativeAppRuntime as hasNativeAppRuntime } from './nativeRuntime'");
     expect(api).toContain('return hasNativeAppRuntime();');
     expect(runtime).toContain("process.env.NEXT_PUBLIC_MOBILE_BUILD === '1' || Capacitor.isNativePlatform()");
+    expect(runtime).toContain("process.env.NEXT_PUBLIC_ANDROID_BUILD === '1'");
   });
 
   test('keeps Android Back inside multi-step authentication before root exit', () => {

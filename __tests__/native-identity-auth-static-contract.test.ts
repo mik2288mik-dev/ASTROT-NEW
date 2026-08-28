@@ -79,10 +79,19 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(plugin).toContain('result.put("deviceId", deviceId)');
     expect(plugin).toContain('AUTH_CANCELLED');
     expect(plugin).toContain('AUTH_NETWORK');
+    expect(plugin).toContain('AUTH_TIMEOUT');
     expect(plugin).toContain('AUTH_CONFIGURATION');
     expect(plugin).toContain('AUTH_FAILED');
     expect(plugin).toContain('compareAndSet(false, true)');
     expect(plugin).toContain('activeSignInCall != call');
+    expect(plugin).not.toContain('isNetworkAvailable');
+    expect(plugin).not.toContain('ConnectivityManager');
+    expect(plugin).toContain('identity_auth_launch provider=');
+    expect(plugin).toContain('identity_auth_rejected code=');
+    expect(plugin).toContain('SIGN_IN_TIMEOUT_MS = 180_000L');
+    expect(plugin).toContain('scheduleSignInTimeout(call);');
+    expect(plugin).toContain('Runnable timeout = () -> rejectSignIn(call, AUTH_TIMEOUT);');
+    expect(plugin).toContain('cancelSignInTimeout();');
     expect(plugin).not.toMatch(/\bLog\.(?:d|e|i|v|w)\s*\(/);
 
     const googleCaseStart = plugin.indexOf('case "google":');

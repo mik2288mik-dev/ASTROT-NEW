@@ -1,4 +1,5 @@
 import { CapacitorHttp, type HttpResponse } from '@capacitor/core';
+import { diagnosticLog } from '../lib/runtimeDiagnostics';
 import { nativeSessionStore, type NativeSessionBundle, type StoredNativeSession } from './nativeSessionStore';
 import { assertNativeNetworkAvailable } from './nativeNetwork';
 import { isNativeAndroidRuntime, isNativeAppRuntime as hasNativeAppRuntime } from './nativeRuntime';
@@ -149,6 +150,20 @@ function canUseNativeHttpBody(body: RequestInit['body']): body is string | null 
   return body == null || typeof body === 'string';
 }
 
+function nativeDiagnosticPath(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return 'unknown';
+  }
+}
+
+function nativeDiagnosticErrorCode(error: unknown): string {
+  const value = error as { code?: unknown; name?: unknown } | null;
+  const code = typeof value?.code === 'string' ? value.code : value?.name;
+  return typeof code === 'string' && code.trim() ? code.trim().slice(0, 160) : 'unknown';
+}
+
 function raceNativeRequest<T>(request: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) return request;
   if (signal.aborted) {
@@ -190,6 +205,9 @@ async function apiTransportFetch(
   if (init.signal?.aborted) throw requestWasAborted();
 
   const nativeTimeout = Math.max(1, Math.floor(timeoutMs));
+  const method = init.method || 'GET';
+  const path = nativeDiagnosticPath(url);
+  diagnosticLog('INFO', 'native_http_start', `${method} ${path}`);
   try {
     const raw = await raceNativeRequest(
       CapacitorHttp.request({
@@ -205,9 +223,11 @@ async function apiTransportFetch(
       }),
       init.signal || undefined,
     );
+    diagnosticLog(raw.status >= 400 ? 'WARN' : 'INFO', 'native_http_end', `${method} ${path} status=${raw.status}`);
     return nativeHttpResponse(raw);
   } catch (error) {
     if (isAbortError(error)) throw error;
+    diagnosticLog('ERROR', 'native_http_failed', `${method} ${path} cause=${nativeDiagnosticErrorCode(error)}`);
     const networkError = new TypeError('Failed to fetch');
     (networkError as TypeError & { cause?: unknown }).cause = error;
     throw networkError;

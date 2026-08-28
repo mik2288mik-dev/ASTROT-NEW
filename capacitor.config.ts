@@ -23,11 +23,12 @@ const config: CapacitorConfig = {
     ...(liveReloadUrl ? { url: liveReloadUrl } : {}),
   },
   plugins: {
-    // Global CapacitorHttp replaces WebView fetch/XHR and can leave requests
-    // unbounded on some Android network stacks. The API already supports the
-    // HTTPS WebView origin, so retain standards-compliant WebView fetch.
+    // Use the Android HTTP stack for browser-style fetch/XHR as well. Some OEM
+    // WebViews report a false offline state or fail cross-origin HTTPS before
+    // the request leaves the handset; the app's API client still adds bounded
+    // timeouts for its own calls.
     CapacitorHttp: {
-      enabled: false,
+      enabled: true,
     },
     SystemBars: {
       insetsHandling: 'css',

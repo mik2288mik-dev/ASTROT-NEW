@@ -41,6 +41,9 @@ function authErrorCode(error: unknown): string {
 function readableAuthError(error: unknown): string {
   const code = authErrorCode(error);
   if (code.includes('AUTH_CANCELLED')) return '';
+  if (code.includes('AUTH_TIMEOUT')) {
+    return 'Вход занял слишком много времени. Проверь сеть и попробуй ещё раз.';
+  }
   if (code.includes('NETWORK') || code.includes('OFFLINE') || code.includes('Failed to fetch')) {
     return 'Нет соединения с интернетом. Проверь сеть и попробуй ещё раз.';
   }

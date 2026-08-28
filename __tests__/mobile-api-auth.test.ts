@@ -356,6 +356,7 @@ describe('mobile API and native auth', () => {
     expect(mobileBuild).toContain('NEXT_PUBLIC_DISTRIBUTION_CHANNEL');
     expect(mobileBuild).toContain('NEXT_PUBLIC_API_URL');
     expect(mobileBuild).toContain("process.env.NEXT_PUBLIC_MOBILE_BUILD = '1'");
+    expect(mobileBuild).toContain("process.env.NEXT_PUBLIC_ANDROID_BUILD = '1'");
     const androidDebug = read('scripts/android-debug.mjs');
     expect(androidDebug).toContain("run('npm', ['run', 'build:mobile'])");
     expect(androidDebug).toContain("run('npx', ['cap', 'sync', 'android'])");
