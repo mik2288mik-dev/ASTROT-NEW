@@ -1,7 +1,11 @@
 import type { NatalChartData, UserProfile } from '../../types';
 import type { NatalChartDataV2 } from '../natalChartV2Types';
-import { llmJson } from '../anthropic';
 import { APP_VOICE_VERSION, getAppSystemVoice, withAppVoiceVersion } from '../appVoice';
+import {
+  createLunaStructuredResponse,
+  OPENAI_LUNA_MODEL,
+  type StrictJsonSchema,
+} from '../openaiResponses';
 import {
   moderatePersonalForecastCustomQuestion,
   normalizePersonalForecastQuestionInput,
@@ -23,8 +27,22 @@ import type {
   NatalQuestionUsage,
 } from './natalQuestionStore';
 
-export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion('natal-question.v2');
-export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v2';
+const MAX_ANSWER_ATTEMPTS = 2;
+
+export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion(
+  'natal-question.v3.responses-strict-schema-repair',
+);
+export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v3';
+
+const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
+  type: 'object',
+  properties: {
+    answer: { type: 'string' },
+    evidence_ids: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['answer', 'evidence_ids'],
+  additionalProperties: false,
+};
 
 export type NatalQuestionModeration = {
   status: 'approved' | 'rejected';
@@ -36,7 +54,37 @@ export type NatalQuestionAnswer = {
   text: string;
   evidenceIds: string[];
   model?: string;
+  generationAttempts?: 1 | 2;
 };
+
+export type NatalQuestionValidationCode =
+  | 'ANSWER_TOO_SHORT'
+  | 'ANSWER_TOO_LONG'
+  | 'SENTENCE_COUNT_INVALID'
+  | 'EVIDENCE_REQUIRED'
+  | 'EVIDENCE_UNKNOWN'
+  | 'COPY_VIOLATION'
+  | 'DIAGNOSTIC_CLAIM'
+  | 'PROFESSIONAL_IMPERATIVE'
+  | 'GUARANTEED_OUTCOME'
+  | 'KARMIC_CLAIM'
+  | 'STRONG_GUARANTEE'
+  | 'HIGH_STAKES_PRESCRIPTION'
+  | 'UNSUPPORTED_FUTURE_TIMING'
+  | 'UNSUPPORTED_FUTURE_EVENT'
+  | 'RELIABILITY_VIOLATION';
+
+export class NatalQuestionValidationError extends Error {
+  readonly code = 'NATAL_QUESTION_VALIDATION_FAILED';
+
+  constructor(
+    readonly validationCodes: readonly NatalQuestionValidationCode[],
+    readonly attempts: number,
+  ) {
+    super('NATAL_QUESTION_VALIDATION_FAILED');
+    this.name = 'NatalQuestionValidationError';
+  }
+}
 
 export type NatalQuestionSnapshot = {
   chartId: number;
@@ -62,6 +110,11 @@ type RawNatalQuestionAnswer = {
   answer?: unknown;
   evidence_ids?: unknown;
 };
+
+type NatalQuestionAnswerRequester = (input: {
+  language: NatalReadingLanguage;
+  prompt: string;
+}) => Promise<RawNatalQuestionAnswer>;
 
 function text(value: unknown): string {
   return String(value ?? '').trim();
@@ -176,6 +229,7 @@ export function buildNatalQuestionPromptContext(input: {
 export function buildNatalQuestionPrompt(
   language: NatalReadingLanguage,
   context: NatalQuestionPromptContext,
+  repairErrors: readonly NatalQuestionValidationCode[] = [],
 ): string {
   const languageRule = language === 'ru'
     ? 'Answer in Russian and address the reader as «ты».'
@@ -191,11 +245,17 @@ Rules:
 - Use previous messages only for conversational continuity. They are not calculation evidence.
 - Every astrological claim must be supported by one or more evidence_ids that exist in chart.evidence.
 - Never recalculate or invent placements, houses, aspects, biography, trauma, diagnoses, relationship history, guaranteed events, financial outcomes, karmic facts, or professional prescriptions.
-- This context is a permanent birth-chart portrait. If the user asks when something will happen or requests a dated forecast, say that the natal chart alone cannot supply a date and direct them to the forecast surface. Do not fabricate a calendar answer.
+- This context is a permanent birth-chart portrait. If the user asks when something will happen, whether today/tomorrow is favorable, or requests a dated forecast, say that the natal chart alone cannot supply a date. Do not fabricate or endorse a calendar answer.
+- For a Russian timing question, a safe natural boundary is: «По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату». For English: “The natal chart cannot determine whether today is the best day or name a suitable date.” Then answer only what the permanent chart supports about the reader's recurring way of making this kind of choice.
 - Do not change or rewrite the permanent report.
 
 QUESTION CONTEXT:
-${JSON.stringify(context, null, 2)}`;
+${JSON.stringify(context, null, 2)}${repairErrors.length ? `
+
+REPAIR REQUIRED:
+- The previous candidate was rejected by server validation: ${JSON.stringify(repairErrors)}.
+- Write a completely new candidate. Correct every listed issue while keeping the same chart evidence and question.
+- Return only the required JSON object.` : ''}`;
 }
 
 function sentenceCount(value: string): number {
@@ -212,18 +272,23 @@ const PROFESSIONAL_IMPERATIVE_RU = /(?:(?:прекрати|начни|измен
 const GUARANTEED_OUTCOME_EN = /(?:\b(?:guaranteed?|definitely|certainly)\s+(?:will\s+)?(?:happen|occur|return|profit|win|earn|get rich)\b|\b(?:risk[- ]free|guaranteed returns?)\b)/iu;
 const GUARANTEED_OUTCOME_RU = /(?:(?:гарантирован\w*|обязательно)\s+(?:случ\w*|произойд\w*|доход\w*|прибыл\w*|выигра\w*|разбогате\w*)|точно\s+произойд[её]т|безрисков\w*)/iu;
 const INVENTED_KARMIC_FACT = /(?:\b(?:in (?:a|your) past life|your karma proves|destined by karma)\b|(?:в прошлой жизни|твоя карма доказывает|кармой предопределено))/iu;
-const FUTURE_TIMING_EN = /(?:\b(?:today|tomorrow|tonight|next (?:week|month|year)|this (?:week|month|year)|(?:on|by|before) (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b|\b(?:in|within)\s+\d+\s+(?:days?|weeks?|months?|years?)\b|\b20\d{2}\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b|\b(?:will|shall)\s+(?:happen|occur|arrive|begin|meet|receive)\b)/iu;
-const FUTURE_TIMING_RU = /(?:сегодня|завтра|на следующ(?:ей|ую)\s+(?:недел\w*|месяц\w*)|в этом\s+(?:месяц\w*|году)|(?:в|до)\s+(?:понедельник\w*|вторник\w*|сред\w*|четверг\w*|пятниц\w*|суббот\w*|воскресень\w*)|через\s+\d+\s+(?:дн\w*|недел\w*|месяц\w*|лет|год\w*)|в\s+течение\s+\d+\s+(?:дн\w*|недел\w*|месяц\w*)|\b20\d{2}\b|январ\w*|феврал\w*|март\w*|апрел\w*|ма[йяе]|июн\w*|июл\w*|август\w*|сентябр\w*|октябр\w*|ноябр\w*|декабр\w*|случится|произойд[её]т|встретишь|получишь)/iu;
-const TIMING_REFUSAL_EN = /(?:natal|birth) chart[^.!?\n]{0,100}(?:cannot|can't|does not|doesn't|is unable to)[^.!?\n]{0,80}(?:date|when|timing|forecast)/iu;
-const TIMING_REFUSAL_RU = /натальн\w+\s+карт\w*[^.!?\n]{0,100}(?:не\s+(?:да[её]т|может|показывает|определяет))[^.!?\n]{0,80}(?:дат\w*|когда|тайминг\w*|прогноз\w*)/iu;
+const FUTURE_TIMING_EN = /(?:\b(?:today|tomorrow|tonight|next (?:week|month|year)|this (?:week|month|year)|(?:on|by|before) (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b|\b(?:in|within)\s+\d+\s+(?:days?|weeks?|months?|years?)\b|\b20\d{2}\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b|\b(?:will|shall)\s+(?:happen|occur|arrive|begin)\b)/iu;
+const FUTURE_TIMING_RU = /(?:(?<!\p{L})(?:сегодня|завтра)(?!\p{L})|на\s+следующ(?:ей|ую)\s+(?:недел[\p{L}-]*|месяц[\p{L}-]*)|в\s+этом\s+(?:месяц[\p{L}-]*|году)|(?:в|до)\s+(?:понедельник[\p{L}-]*|вторник[\p{L}-]*|сред[\p{L}-]*|четверг[\p{L}-]*|пятниц[\p{L}-]*|суббот[\p{L}-]*|воскресень[\p{L}-]*)|через\s+\d+\s+(?:дн[\p{L}-]*|недел[\p{L}-]*|месяц[\p{L}-]*|лет|год[\p{L}-]*)|в\s+течение\s+\d+\s+(?:дн[\p{L}-]*|недел[\p{L}-]*|месяц[\p{L}-]*)|\b20\d{2}\b|(?<!\p{L})(?:январ[\p{L}-]*|феврал[\p{L}-]*|март[\p{L}-]*|апрел[\p{L}-]*|май|мая|мае|июн[\p{L}-]*|июл[\p{L}-]*|август[\p{L}-]*|сентябр[\p{L}-]*|октябр[\p{L}-]*|ноябр[\p{L}-]*|декабр[\p{L}-]*|случится|произойд[её]т|наступит)(?!\p{L}))/iu;
+const TIMING_REFUSAL_EN = /(?:natal|birth) chart[^.!?\n]{0,140}(?:(?:cannot|can't|does not|doesn't|is unable to|is not able to)\s+(?:determine|tell|say|show|predict|provide|identify|confirm|choose)?|(?:is not|isn't)\s+(?:a\s+)?(?:calendar|forecast))[^.!?\n]{0,140}(?:today|tomorrow|date|when|timing|forecast|whether|best\s+(?:day|time)|right\s+(?:day|time))/iu;
+const TIMING_REFUSAL_RU = /натальн[\p{L}-]*\s+карт[\p{L}-]*[^.!?\n]{0,140}(?:(?:не\s+(?:может|способна|позволяет)\s+(?:определить|подсказать|сказать|показать|предсказать|назвать|выбрать|подтвердить)?)|(?:не\s+(?:определяет|подсказывает|говорит|показывает|предсказывает|называет|выбирает|подтверждает|да[её]т))|(?:нельзя\s+(?:определить|подсказать|сказать|показать|предсказать|назвать|выбрать|подтвердить)))[^.!?\n]{0,140}(?:сегодня|завтра|дат[\p{L}-]*|когда|тайминг[\p{L}-]*|прогноз[\p{L}-]*|лучш[\p{L}-]*\s+(?:день|врем[\p{L}-]*)|подходящ[\p{L}-]*\s+(?:день|врем[\p{L}-]*)|стоит\s+ли|получится\s+ли|случится\s+ли|произойд[её]т\s+ли)/iu;
 const STRONG_GUARANTEE_EN = /(?:\b(?:you\s+)?(?:will|are going to)\s+(?:definitely|certainly)\b|\bthe chart (?:proves|guarantees)\b)/iu;
 const STRONG_GUARANTEE_RU = /(?:(?:ты\s+)?обязательно\s+(?:получишь|встретишь|станешь|сможешь|добь[её]шься|разбогатеешь|выйдешь|женишься)|карт\w*\s+(?:доказывает|гарантирует))/iu;
+const SPECIFIC_FUTURE_EVENT_EN = /\b(?:will|shall)\s+(?:meet\s+(?:(?:a|an|the|your)\s+)?(?:new\s+)?(?:partner|spouse|husband|wife|lover|love|person)|receive\s+(?:money|payment|an?\s+(?:offer|promotion|award|inheritance|diagnosis)|the\s+(?:offer|promotion|award|inheritance|diagnosis)))\b/iu;
+const SPECIFIC_FUTURE_EVENT_RU = /(?:(?<!\p{L})(?:ты\s+)?встретишь\s+(?:нов[\p{L}-]*\s+)?(?:партн[её]р[\p{L}-]*|любов[\p{L}-]*|мужчин[\p{L}-]*|женщин[\p{L}-]*|человек[\p{L}-]*)(?!\p{L})|(?<!\p{L})(?:ты\s+)?получишь\s+(?:деньг[\p{L}-]*|выплат[\p{L}-]*|предложен[\p{L}-]*|повышен[\p{L}-]*|наград[\p{L}-]*|наследств[\p{L}-]*|диагноз[\p{L}-]*)(?!\p{L}))/iu;
 const PRESCRIPTIVE_HIGH_STAKES_EN = /\b(?:quit your job|file a lawsuit|ignore (?:a|your) doctor|avoid medical care)\b/iu;
 const PRESCRIPTIVE_HIGH_STAKES_RU = /(?:увольняйся\s+с\s+работы|подавай\s+в\s+суд|не\s+слушай\s+врач\w*|откажись\s+от\s+лечен\w*)/iu;
 
 function hasUnsupportedFutureTiming(value: string): boolean {
   return value
-    .split(/(?<=[.!?…])\s+/u)
+    .split(/(?:(?<=[.!?…])\s+|\n+)/u)
+    .flatMap((sentence) => sentence.split(
+      /(?:,\s*(?:but|however|yet|and|но|однако|зато|а|и)\s+|[;:—–]\s*|\s+-\s+)/iu,
+    ))
     .map((part) => part.trim())
     .filter(Boolean)
     .some((sentence) => {
@@ -238,6 +303,21 @@ export function validateNatalQuestionAnswer(
   allowedEvidenceIds: Set<string>,
   reliability?: BuiltNatalModelContext,
 ): NatalQuestionAnswer | null {
+  if (getNatalQuestionAnswerValidationErrors(raw, allowedEvidenceIds, reliability).length > 0) {
+    return null;
+  }
+  const answer = text(raw?.answer);
+  const ids = Array.isArray(raw?.evidence_ids)
+    ? [...new Set(raw.evidence_ids.map(text).filter(Boolean))]
+    : [];
+  return { text: answer, evidenceIds: ids };
+}
+
+export function getNatalQuestionAnswerValidationErrors(
+  raw: RawNatalQuestionAnswer,
+  allowedEvidenceIds: Set<string>,
+  reliability?: BuiltNatalModelContext,
+): NatalQuestionValidationCode[] {
   const answer = text(raw?.answer);
   const narrativeEvidenceIds = reliability
     ? getNatalNarrativeEvidenceIds(reliability)
@@ -245,30 +325,61 @@ export function validateNatalQuestionAnswer(
   const ids = Array.isArray(raw?.evidence_ids)
     ? [...new Set(raw.evidence_ids.map(text).filter(Boolean))]
     : [];
+  const errors = new Set<NatalQuestionValidationCode>();
   const sentences = sentenceCount(answer);
-  if (
-    answer.length < 40
-    || answer.length > 1600
-    || sentences < 3
-    || sentences > 5
-    || ids.length === 0
-    || ids.some((id) => !allowedEvidenceIds.has(id) || !narrativeEvidenceIds.has(id))
-    || hasNatalPersonalityCopyViolation(answer)
-    || DIAGNOSTIC_ANSWER_EN.test(answer)
-    || DIAGNOSTIC_ANSWER_RU.test(answer)
-    || PROFESSIONAL_IMPERATIVE_EN.test(answer)
-    || PROFESSIONAL_IMPERATIVE_RU.test(answer)
-    || GUARANTEED_OUTCOME_EN.test(answer)
-    || GUARANTEED_OUTCOME_RU.test(answer)
-    || INVENTED_KARMIC_FACT.test(answer)
-    || STRONG_GUARANTEE_EN.test(answer)
-    || STRONG_GUARANTEE_RU.test(answer)
-    || PRESCRIPTIVE_HIGH_STAKES_EN.test(answer)
-    || PRESCRIPTIVE_HIGH_STAKES_RU.test(answer)
-    || hasUnsupportedFutureTiming(answer)
-    || (reliability != null && !isNatalReliabilityTextAllowed(answer, reliability))
-  ) return null;
-  return { text: answer, evidenceIds: ids };
+
+  if (answer.length < 40) errors.add('ANSWER_TOO_SHORT');
+  if (answer.length > 1600) errors.add('ANSWER_TOO_LONG');
+  if (sentences < 3 || sentences > 5) errors.add('SENTENCE_COUNT_INVALID');
+  if (ids.length === 0) errors.add('EVIDENCE_REQUIRED');
+  if (ids.some((id) => !allowedEvidenceIds.has(id) || !narrativeEvidenceIds.has(id))) {
+    errors.add('EVIDENCE_UNKNOWN');
+  }
+  if (hasNatalPersonalityCopyViolation(answer)) errors.add('COPY_VIOLATION');
+  if (DIAGNOSTIC_ANSWER_EN.test(answer) || DIAGNOSTIC_ANSWER_RU.test(answer)) {
+    errors.add('DIAGNOSTIC_CLAIM');
+  }
+  if (PROFESSIONAL_IMPERATIVE_EN.test(answer) || PROFESSIONAL_IMPERATIVE_RU.test(answer)) {
+    errors.add('PROFESSIONAL_IMPERATIVE');
+  }
+  if (GUARANTEED_OUTCOME_EN.test(answer) || GUARANTEED_OUTCOME_RU.test(answer)) {
+    errors.add('GUARANTEED_OUTCOME');
+  }
+  if (INVENTED_KARMIC_FACT.test(answer)) errors.add('KARMIC_CLAIM');
+  if (STRONG_GUARANTEE_EN.test(answer) || STRONG_GUARANTEE_RU.test(answer)) {
+    errors.add('STRONG_GUARANTEE');
+  }
+  if (PRESCRIPTIVE_HIGH_STAKES_EN.test(answer) || PRESCRIPTIVE_HIGH_STAKES_RU.test(answer)) {
+    errors.add('HIGH_STAKES_PRESCRIPTION');
+  }
+  if (hasUnsupportedFutureTiming(answer)) errors.add('UNSUPPORTED_FUTURE_TIMING');
+  if (SPECIFIC_FUTURE_EVENT_EN.test(answer) || SPECIFIC_FUTURE_EVENT_RU.test(answer)) {
+    errors.add('UNSUPPORTED_FUTURE_EVENT');
+  }
+  if (reliability != null && !isNatalReliabilityTextAllowed(answer, reliability)) {
+    errors.add('RELIABILITY_VIOLATION');
+  }
+  return [...errors];
+}
+
+async function requestStructuredNatalQuestionAnswer(input: {
+  language: NatalReadingLanguage;
+  prompt: string;
+}): Promise<RawNatalQuestionAnswer> {
+  const response = await createLunaStructuredResponse({
+    instructions: getAppSystemVoice(input.language),
+    input: input.prompt,
+    maxOutputTokens: 900,
+    schemaName: 'natal_question_answer',
+    schema: NATAL_QUESTION_RESPONSE_SCHEMA,
+  });
+  try {
+    return JSON.parse(response.content) as RawNatalQuestionAnswer;
+  } catch {
+    const error = new Error('NATAL_QUESTION_INVALID_JSON') as Error & { code?: string };
+    error.code = 'NATAL_QUESTION_INVALID_JSON';
+    throw error;
+  }
 }
 
 export async function generateNatalQuestionAnswer(input: {
@@ -278,27 +389,33 @@ export async function generateNatalQuestionAnswer(input: {
   permanentReport: NatalPermanentPremiumReport;
   history: readonly NatalQuestionStoredMessage[];
   question: string;
+  requestAnswer?: NatalQuestionAnswerRequester;
 }): Promise<NatalQuestionAnswer> {
   const language: NatalReadingLanguage = input.profile.language === 'en' ? 'en' : 'ru';
   const { built, context } = buildNatalQuestionPromptContext(input);
-  const raw = await llmJson<RawNatalQuestionAnswer>({
-    system: getAppSystemVoice(language),
-    user: buildNatalQuestionPrompt(language, context),
-    model: {
-      accessTier: 'premium',
-      contentSurface: 'natal',
-      contentVariant: 'full',
-    },
-    maxTokens: 900,
-    temperature: 0.25,
-  });
-  const answer = validateNatalQuestionAnswer(
-    raw,
-    getNatalNarrativeEvidenceIds(built),
-    built,
-  );
-  if (!answer) throw new Error('NATAL_QUESTION_VALIDATION_FAILED');
-  return answer;
+  const allowedEvidenceIds = getNatalNarrativeEvidenceIds(built);
+  const requestAnswer = input.requestAnswer || requestStructuredNatalQuestionAnswer;
+  let validationCodes: NatalQuestionValidationCode[] = [];
+
+  for (let attempt = 1; attempt <= MAX_ANSWER_ATTEMPTS; attempt += 1) {
+    const raw = await requestAnswer({
+      language,
+      prompt: buildNatalQuestionPrompt(language, context, validationCodes),
+    });
+    validationCodes = getNatalQuestionAnswerValidationErrors(
+      raw,
+      allowedEvidenceIds,
+      built,
+    );
+    if (validationCodes.length === 0) {
+      return {
+        ...validateNatalQuestionAnswer(raw, allowedEvidenceIds, built)!,
+        model: OPENAI_LUNA_MODEL,
+        generationAttempts: attempt as 1 | 2,
+      };
+    }
+  }
+  throw new NatalQuestionValidationError(validationCodes, MAX_ANSWER_ATTEMPTS);
 }
 
 export const NATAL_QUESTION_IDENTITY = {

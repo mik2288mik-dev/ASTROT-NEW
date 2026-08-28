@@ -57,4 +57,17 @@ describe('natal personality product flow', () => {
     expect(report).toContain("message.role === 'assistant'");
     expect(report).toContain('evidenceIds={questionMessageEvidenceIds(answer)}');
   });
+
+  it('keeps natal-question failures localized and recoverable', () => {
+    const report = read('components/NatalReading/HumanReport.tsx');
+
+    expect(report).toContain("value?.code === 'NATAL_QUESTION_GENERATION_FAILED'");
+    expect(report).toContain('Не удалось подготовить ответ по карте. Попробуй отправить вопрос ещё раз.');
+    expect(report).not.toContain("return value?.message || (language === 'ru'");
+    expect(report).toContain('setQuestionError(formatQuestionError(submitError, language))');
+    expect(report).not.toContain('void loadNatalQuestionSnapshot(userId, chartId)\n        .then(setQuestionSnapshot)');
+    expect(report).toContain('setUnansweredQuestionText(pendingText)');
+    expect(report).toContain('Предыдущий вопрос остался без ответа. Отправь его ещё раз — лимит не спишется.');
+    expect(report).toContain('Boolean(unansweredQuestionText && !canRetryUnanswered)');
+  });
 });

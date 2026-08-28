@@ -26,6 +26,8 @@ import { buildPermanentNatalPremiumPrompt } from '../lib/natalReading/permanentG
 import {
   buildNatalQuestionPrompt,
   buildNatalQuestionPromptContext,
+  generateNatalQuestionAnswer,
+  getNatalQuestionAnswerValidationErrors,
   validateNatalQuestionAnswer,
 } from '../lib/natalReading/natalQuestion';
 import type { NatalQuestionStoredMessage } from '../lib/natalReading/natalQuestionStore';
@@ -629,6 +631,98 @@ describe('permanent natal V2 contract', () => {
     expect(validateNatalQuestionAnswer(raw(
       'The natal chart cannot tell you whether this happens next week or provide a date. It can only describe the recurring response behind the question. Use that pattern as context, not as a calendar promise.',
     ), exact.evidenceIds, exact)).not.toBeNull();
+  });
+
+  test('accepts a natural Russian timing boundary but rejects a fabricated answer for today', () => {
+    const exact = buildNatalModelContext(profile, chart('exact'));
+    const id = 'natal.position.sun';
+    const valid = {
+      answer: 'По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату. Зато она помогает увидеть, как ты обычно принимаешь важные решения и где можешь поспешить. Проверь готовность продукта по фактам и выбери момент по результатам теста, а не по обещанию календаря.',
+      evidence_ids: [id],
+    };
+    const fabricated = {
+      answer: 'Сегодня лучший день для этого решения. Тебе стоит действовать без дополнительной проверки. Результат будет зависеть только от твоей решимости.',
+      evidence_ids: [id],
+    };
+    const benignFutureWording = {
+      answer: 'Сначала отдели основной замысел от желания поскорее закончить. Так ты получишь больше ясности и сможешь проверить слабые места решения. После проверки тебе будет проще выбрать следующий шаг без лишней спешки.',
+      evidence_ids: [id],
+    };
+    const refusalThenPrediction = {
+      answer: 'По натальной карте нельзя определить, лучший ли сегодня день, но завтра всё получится. Тебе полезно проверять важные решения на практике. Выбирай следующий шаг по результатам такой проверки.',
+      evidence_ids: [id],
+    };
+    const punctuationBypass = {
+      answer: 'По натальной карте нельзя определить, лучший ли сегодня день — но завтра всё получится. Тебе полезно проверять важные решения на практике. Выбирай следующий шаг по результатам такой проверки.',
+      evidence_ids: [id],
+    };
+    const inventedMeeting = {
+      answer: 'Ты встретишь нового партнёра. Это изменит привычный способ принимать решения. После встречи тебе станет проще говорить прямо.',
+      evidence_ids: [id],
+    };
+
+    expect(validateNatalQuestionAnswer(valid, exact.evidenceIds, exact)).not.toBeNull();
+    expect(validateNatalQuestionAnswer(
+      benignFutureWording,
+      exact.evidenceIds,
+      exact,
+    )).not.toBeNull();
+    expect(validateNatalQuestionAnswer(fabricated, exact.evidenceIds, exact)).toBeNull();
+    expect(validateNatalQuestionAnswer(
+      refusalThenPrediction,
+      exact.evidenceIds,
+      exact,
+    )).toBeNull();
+    expect(validateNatalQuestionAnswer(
+      punctuationBypass,
+      exact.evidenceIds,
+      exact,
+    )).toBeNull();
+    expect(validateNatalQuestionAnswer(inventedMeeting, exact.evidenceIds, exact)).toBeNull();
+    expect(getNatalQuestionAnswerValidationErrors(
+      fabricated,
+      exact.evidenceIds,
+      exact,
+    )).toContain('UNSUPPORTED_FUTURE_TIMING');
+  });
+
+  test('repairs one semantically invalid natal answer with the same selected-chart context', async () => {
+    const exactChart = chart('exact');
+    const built = buildNatalModelContext(profile, exactChart);
+    const permanentReport = materializePermanentPremiumReport({
+      raw: premiumPayloadForPlan(built),
+      built,
+    })!;
+    const prompts: string[] = [];
+    const candidates = [
+      {
+        answer: 'Сегодня лучший день для этого решения. Перед важным шагом тебе полезно проверить факты. Спокойный темп помогает не пропустить слабое место.',
+        evidence_ids: ['natal.position.sun'],
+      },
+      {
+        answer: 'По натальной карте нельзя определить, лучший ли сегодня день, или назвать подходящую дату. Она может подсказать, что при важном решении тебе полезно сначала проверить основную идею на практике. Сверь готовность продукта с результатами тестов и принимай решение по этим данным.',
+        evidence_ids: ['natal.position.sun'],
+      },
+    ];
+
+    const answer = await generateNatalQuestionAnswer({
+      chartId: 101,
+      profile: { ...profile, language: 'ru' },
+      chartData: exactChart,
+      permanentReport,
+      history: [],
+      question: 'Сегодня лучший день для публикации приложения?',
+      requestAnswer: async ({ prompt }) => {
+        prompts.push(prompt);
+        return candidates[prompts.length - 1];
+      },
+    });
+
+    expect(answer.generationAttempts).toBe(2);
+    expect(answer.text).toBe(candidates[1].answer);
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain('UNSUPPORTED_FUTURE_TIMING');
+    expect(prompts[1]).toContain('chartId');
   });
 
   test('permanent natal endpoints reject methods outside GET and POST before context lookup', () => {

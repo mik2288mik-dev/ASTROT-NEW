@@ -10,7 +10,8 @@ export type DiagnosticEventName =
   | 'auth_provider'
   | 'auth_email'
   | 'personal_forecast'
-  | 'natal_chart';
+  | 'natal_chart'
+  | 'natal_question';
 
 export type DiagnosticStatus =
   | 'start'

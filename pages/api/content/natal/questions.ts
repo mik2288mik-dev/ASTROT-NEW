@@ -18,6 +18,7 @@ import {
   generateNatalQuestionAnswer,
   moderateNatalQuestion,
   NATAL_QUESTION_IDENTITY,
+  NatalQuestionValidationError,
 } from '../../../../lib/natalReading/natalQuestion';
 import {
   appendNatalQuestionMessage,
@@ -34,6 +35,8 @@ import {
   generationInProgressPayload,
   withContentGenerationLock,
 } from '../../../../lib/contentGenerationLock';
+import { diagnosticErrorCode } from '../../../../lib/diagnosticTrace';
+import { startServerOperationalDiagnostic } from '../../../../lib/serverOperationalDiagnostics';
 
 export const config = { maxDuration: 90 };
 
@@ -74,17 +77,29 @@ async function snapshot(input: {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const diagnostic = startServerOperationalDiagnostic(req, res, 'natal_question');
   if (req.method !== 'GET' && req.method !== 'POST') {
+    diagnostic.log('request', 'error', { httpStatus: 405, errorCode: 'METHOD_NOT_ALLOWED' });
     return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' });
   }
+  try {
   const ready = await ensureValidContext(req, res, {
     requireCanonicalSnapshot: true,
     repairCanonicalSnapshot: false,
   });
-  if (!ready) return;
+  if (!ready) {
+    diagnostic.log('context', 'error', {
+      httpStatus: res.statusCode,
+      errorCode: 'NATAL_QUESTION_CONTEXT_REJECTED',
+    });
+    return;
+  }
   const { userId, ctx } = ready;
+  const language = ctx.profile.language === 'en' ? 'en' : 'ru';
+  diagnostic.log('context', 'ok', { source: 'owned_selected_chart' });
   const entitlement = await getPremiumEntitlementState(userId);
   if (!entitlement.isPremium) {
+    diagnostic.log('access', 'error', { httpStatus: 403, errorCode: 'PREMIUM_REQUIRED' });
     return res.status(403).json({
       error: 'Premium required',
       code: 'PREMIUM_REQUIRED',
@@ -92,6 +107,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
   if (ctx.chartId == null) {
+    diagnostic.log('context', 'error', {
+      httpStatus: 409,
+      errorCode: 'NATAL_QUESTION_CHART_REQUIRED',
+    });
     return res.status(409).json({
       error: 'Saved natal chart required',
       code: 'NATAL_QUESTION_CHART_REQUIRED',
@@ -114,7 +133,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const usageDate = getPersonalForecastPeriodKey('day', new Date(), quotaTimezone);
 
   if (req.method === 'GET') {
-    return res.status(200).json(await snapshot({ userId, chartId, usageDate, timezone: quotaTimezone }));
+    const current = await snapshot({ userId, chartId, usageDate, timezone: quotaTimezone });
+    diagnostic.log('snapshot', 'ok', { httpStatus: 200, source: 'selected_chart_thread' });
+    return res.status(200).json(current);
   }
 
   const question = normalizePersonalForecastQuestionInput(req.body?.question);
@@ -128,12 +149,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!retryingUnanswered) {
     const moderation = moderateNatalQuestion({
       question,
-      language: ctx.profile.language === 'en' ? 'en' : 'ru',
+      language,
       existingQuestions: history
         .filter((message) => message.role === 'user')
         .map((message) => message.text),
     });
     if (moderation.status !== 'approved') {
+      diagnostic.log('moderation', 'error', {
+        httpStatus: 400,
+        errorCode: `NATAL_QUESTION_REJECTED.${moderation.reason}`,
+      });
       return res.status(400).json({
         error: 'Question rejected',
         code: 'NATAL_QUESTION_REJECTED',
@@ -158,7 +183,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .digest('hex')
       .slice(0, 24);
     const answerResult = await withContentGenerationLock({
-      lockKey: `natal-question:${userId}:${chartId}:${questionHash}`,
+      lockKey: `natal-question:${questionHash}`,
       operation: 'natal-question-generation',
       readCached: async () => {
         const existing = await findNatalQuestionAnswer({
@@ -169,6 +194,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return existing ? { value: existing, source: 'natal_question_thread' } : null;
       },
       generate: async () => {
+        diagnostic.log('generation', 'start', { source: 'selected_chart_context' });
         const permanentReport = await readPermanentReport(userId, ctx);
         const currentHistory = await listNatalQuestionMessages({ userId, chartId, pairLimit: 8 });
         const answer = await generateNatalQuestionAnswer({
@@ -191,13 +217,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             contractVersion: NATAL_QUESTION_IDENTITY.contractVersion,
             promptVersion: NATAL_QUESTION_IDENTITY.promptVersion,
             voiceVersion: NATAL_QUESTION_IDENTITY.voiceVersion,
+            generationAttempts: answer.generationAttempts || 1,
           },
         });
       },
+      onLockAcquired: () => diagnostic.log('generation_lock', 'ok'),
+      onLockBusy: () => diagnostic.log('generation_lock', 'in_progress'),
     });
     if (answerResult.status === 'in_progress') {
+      diagnostic.log('generation', 'in_progress', { httpStatus: 202 });
       return res.status(202).json(generationInProgressPayload(answerResult.retryAfterMs));
     }
+    diagnostic.log('generation', 'ok', {
+      httpStatus: 200,
+      source: answerResult.fromCache ? answerResult.source || 'thread_cache' : 'generated',
+      attempt: Number(answerResult.value.payload?.generationAttempts) || undefined,
+    });
     return res.status(200).json(await snapshot({
       userId,
       chartId,
@@ -206,19 +241,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }));
   } catch (error) {
     if (error instanceof NatalQuestionLimitError) {
+      diagnostic.log('quota', 'error', {
+        httpStatus: 429,
+        errorCode: error.code,
+      });
       return res.status(429).json({
         error: 'Daily question limit reached',
         code: error.code,
         usage: error.usage,
       });
     }
-    console.error(
-      '[natal/questions] request failed:',
-      error instanceof Error ? error.message : error,
-    );
+    const validationCode = error instanceof NatalQuestionValidationError
+      ? error.validationCodes[0]
+      : null;
+    const generationCode = validationCode
+      ? `NATAL_QUESTION_VALIDATION_FAILED.${validationCode}`
+      : diagnosticErrorCode(error, 'NATAL_QUESTION_GENERATION_FAILED');
+    diagnostic.error('generation', error, generationCode, {
+      httpStatus: 503,
+      errorCode: generationCode,
+      attempt: error instanceof NatalQuestionValidationError ? error.attempts : undefined,
+    });
     return res.status(503).json({
       error: 'Question answer unavailable',
+      message: language === 'ru'
+        ? 'Не удалось подготовить ответ по карте. Попробуй отправить вопрос ещё раз.'
+        : 'Unable to prepare an answer from the chart. Please submit the question again.',
       code: 'NATAL_QUESTION_GENERATION_FAILED',
+    });
+  }
+  } catch (error) {
+    const requestCode = diagnosticErrorCode(error, 'NATAL_QUESTION_REQUEST_FAILED');
+    diagnostic.error('request', error, requestCode, {
+      httpStatus: 503,
+      errorCode: requestCode,
+    });
+    return res.status(503).json({
+      error: 'Question request unavailable',
+      code: 'NATAL_QUESTION_REQUEST_FAILED',
     });
   }
 }

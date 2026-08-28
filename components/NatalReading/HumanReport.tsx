@@ -39,6 +39,7 @@ import { FormattedAiText } from '../ui/FormattedAiText';
 import { MONO_EASE } from '../mono-ui/motion';
 import { CosmicSheet } from '../lumia-ui/CosmicSheet';
 import type { PaywallContext } from '../../lib/paywallContext';
+import { normalizePersonalForecastQuestionInput } from '../../lib/personalForecastQuestionModeration';
 
 export type PreloadedNatalReport = {
   report: NatalPermanentFreeReport;
@@ -136,9 +137,29 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
       ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
       : 'You have used today\'s questions. You can return tomorrow.';
   }
-  return value?.message || (language === 'ru'
+  if (value?.code === 'NATAL_QUESTION_CHART_REQUIRED') {
+    return language === 'ru'
+      ? 'Сначала сохрани натальную карту, затем задай вопрос.'
+      : 'Save the natal chart before asking a question.';
+  }
+  if (value?.code === 'NATAL_QUESTION_REJECTED') {
+    return language === 'ru'
+      ? 'Сформулируй один конкретный вопрос о себе и попробуй ещё раз.'
+      : 'Ask one specific question about yourself and try again.';
+  }
+  if (
+    value?.code === 'NATAL_QUESTION_GENERATION_FAILED'
+    || value?.code === 'NATAL_QUESTION_VALIDATION_FAILED'
+    || value?.code === 'NATAL_QUESTION_REQUEST_FAILED'
+    || value?.code === 'CONTENT_GENERATION_TIMEOUT'
+  ) {
+    return language === 'ru'
+      ? 'Не удалось подготовить ответ по карте. Попробуй отправить вопрос ещё раз.'
+      : 'Unable to prepare an answer from the chart. Please submit the question again.';
+  }
+  return language === 'ru'
     ? 'Не удалось загрузить ответы. Проверь соединение и попробуй ещё раз.'
-    : 'Unable to load the answers. Check your connection and try again.');
+    : 'Unable to load the answers. Check your connection and try again.';
 }
 
 type NatalEvidenceMap = ReadonlyMap<string, NatalEvidenceFact>;
@@ -705,6 +726,7 @@ export const HumanReport: React.FC<Props> = ({
   const [questionLoading, setQuestionLoading] = useState(false);
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionError, setQuestionError] = useState<string | null>(null);
+  const [unansweredQuestionText, setUnansweredQuestionText] = useState<string | null>(null);
   const [questionRetryToken, setQuestionRetryToken] = useState(0);
   const [baseRetryToken, setBaseRetryToken] = useState(0);
   const [premiumRetryToken, setPremiumRetryToken] = useState(0);
@@ -816,6 +838,7 @@ export const HumanReport: React.FC<Props> = ({
     setQuestionSnapshot(null);
     setQuestionText('');
     setQuestionError(null);
+    setUnansweredQuestionText(null);
   }, [reportIdentity]);
 
   useEffect(() => {
@@ -839,7 +862,14 @@ export const HumanReport: React.FC<Props> = ({
     setQuestionError(null);
     void loadNatalQuestionSnapshot(userId, chartId)
       .then((next) => {
-        if (!cancelled) setQuestionSnapshot(next);
+        if (cancelled) return;
+        setQuestionSnapshot(next);
+        const latest = buildNatalQuestionPairs(next.messages).at(-1);
+        const pendingText = latest && !latest.answer ? latest.question.text : null;
+        setUnansweredQuestionText(pendingText);
+        if (pendingText) {
+          setQuestionText((current) => current.trim() ? current : pendingText);
+        }
       })
       .catch((loadError) => {
         if (!cancelled) setQuestionError(formatQuestionError(loadError, language));
@@ -890,14 +920,22 @@ export const HumanReport: React.FC<Props> = ({
   const submitQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
     const value = questionText.trim();
-    if (!userId || !value || questionLoading || questionSubmitting) return;
+    const retryMatches = !unansweredQuestionText || (
+      normalizePersonalForecastQuestionInput(value).toLocaleLowerCase()
+      === normalizePersonalForecastQuestionInput(unansweredQuestionText).toLocaleLowerCase()
+    );
+    if (!userId || !value || !retryMatches || questionLoading || questionSubmitting) return;
     setQuestionSubmitting(true);
     setQuestionError(null);
     try {
       const next = await askNatalQuestion(userId, value, chartId);
       setQuestionSnapshot(next);
       setQuestionText('');
+      setUnansweredQuestionText(null);
     } catch (submitError) {
+      if ((submitError as HumanReadingError)?.code === 'NATAL_QUESTION_GENERATION_FAILED') {
+        setUnansweredQuestionText(value);
+      }
       setQuestionError(formatQuestionError(submitError, language));
     } finally {
       setQuestionSubmitting(false);
@@ -906,7 +944,17 @@ export const HumanReport: React.FC<Props> = ({
 
   if (surface === 'questions') {
     const remainingQuestions = questionSnapshot?.usage.remaining ?? null;
-    const questionLimitReached = remainingQuestions === 0;
+    const normalizedQuestionText = normalizePersonalForecastQuestionInput(questionText)
+      .toLocaleLowerCase();
+    const normalizedUnansweredQuestion = normalizePersonalForecastQuestionInput(
+      unansweredQuestionText,
+    ).toLocaleLowerCase();
+    const canRetryUnanswered = Boolean(
+      unansweredQuestionText
+      && normalizedQuestionText
+      && normalizedQuestionText === normalizedUnansweredQuestion,
+    );
+    const questionLimitReached = remainingQuestions === 0 && !unansweredQuestionText;
     const questionInputDisabled = questionLoading
       || questionSubmitting
       || questionLimitReached
@@ -917,6 +965,14 @@ export const HumanReport: React.FC<Props> = ({
         ? (questionSnapshot
             ? (language === 'ru' ? 'Обновляем ответы…' : 'Refreshing your answers…')
             : (language === 'ru' ? 'Загружаем ответы…' : 'Loading your answers…'))
+      : unansweredQuestionText
+        ? (canRetryUnanswered
+            ? (language === 'ru'
+                ? 'Предыдущий вопрос остался без ответа. Отправь его ещё раз — лимит не спишется.'
+                : 'The previous question has no answer. Submit it again without using another question.')
+            : (language === 'ru'
+                ? 'Сейчас можно повторить только вопрос, который остался без ответа.'
+                : 'For now, you can only retry the unanswered question.'))
       : questionLimitReached
         ? (language === 'ru'
             ? 'На сегодня вопросы закончились. Можно вернуться завтра.'
@@ -1005,11 +1061,15 @@ export const HumanReport: React.FC<Props> = ({
                     </p>
                     <button
                       type="submit"
-                      disabled={questionInputDisabled || !questionText.trim()}
+                      disabled={questionInputDisabled
+                        || !questionText.trim()
+                        || Boolean(unansweredQuestionText && !canRetryUnanswered)}
                       className="natal-question-submit"
                     >
                       <Send aria-hidden="true" size={16} strokeWidth={2} />
-                      {language === 'ru' ? 'Задать вопрос' : 'Ask a question'}
+                      {canRetryUnanswered
+                        ? (language === 'ru' ? 'Повторить вопрос' : 'Retry question')
+                        : (language === 'ru' ? 'Задать вопрос' : 'Ask a question')}
                     </button>
                   </div>
                   {questionError && questionSnapshot ? (
@@ -1063,7 +1123,9 @@ export const HumanReport: React.FC<Props> = ({
                             </div>
                           ) : (
                             <p className="natal-question-state" role="status">
-                              {language === 'ru' ? 'Готовим ответ…' : 'Preparing the answer…'}
+                              {language === 'ru'
+                                ? 'Ответ не завершён. Повтори вопрос выше.'
+                                : 'The answer was not completed. Retry the question above.'}
                             </p>
                           )}
                         </article>
