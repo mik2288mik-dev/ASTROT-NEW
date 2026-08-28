@@ -37,6 +37,7 @@ import { resolveStartParamRoute } from './lib/notificationDeepLink';
 import { Dashboard } from './views/Dashboard';
 import { PromoBanner } from './components/PromoBanner';
 import { AppTopBar } from './components/lumia-ui/AppTopBar';
+import { NeboLogo } from './components/brand/NeboLogo';
 import {
     LumiaBottomTabBar,
     LumiaNavigationSheet,
@@ -2126,7 +2127,7 @@ const App: React.FC = () => {
         return (
             <div className="fixed inset-0 flex h-[100dvh] items-center justify-center bg-white px-6 text-[#1f1f1f]">
                 <div className="max-w-sm text-center">
-                    <p className="lumia-brand-wordmark mb-6">NEBO</p>
+                    <NeboLogo className="mb-6" size="large" priority />
                     <h1 className="mb-3 font-serif text-[2rem] leading-none">Не удалось открыть профиль</h1>
                     <p className="mb-6 text-[15px] leading-relaxed text-[#4f4b45]">{startupError}</p>
                     <button

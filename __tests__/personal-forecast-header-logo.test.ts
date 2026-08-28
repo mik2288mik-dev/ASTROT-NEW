@@ -8,8 +8,13 @@ describe('personal forecast header and shared navigation', () => {
   it('uses the personal forecast title while keeping the selected period dynamic', () => {
     const topBar = read('components/lumia-ui/AppTopBar.tsx');
     const dashboard = read('views/Dashboard.tsx');
+    const logo = read('components/brand/NeboLogo.tsx');
+    const loading = read('components/ui/Loading.tsx');
+    const auth = read('views/AuthGate.tsx');
+    const preview = read('components/ui-preview/UiPreviewApp.tsx');
 
     expect(topBar).toContain("title === 'NEBO'");
+    expect(topBar).toContain('<NeboLogo size="header" priority />');
     expect(topBar).toContain('app-top-bar-title--personal-forecast');
     expect(topBar).toContain('app-top-bar-context--period');
     expect(dashboard).toContain('title="NEBO"');
@@ -17,6 +22,11 @@ describe('personal forecast header and shared navigation', () => {
     expect(dashboard).toContain('Открыть мои карты');
     expect(dashboard).toContain('role="tablist"');
     expect(dashboard).toContain('activeDateValue');
+    expect(logo).toContain("/assets/brand/nebo-cloud-logo.png");
+    expect(fs.existsSync(path.join(ROOT, 'public/assets/brand/nebo-cloud-logo.png'))).toBe(true);
+    expect(loading).toContain('<NeboLogo decorative size="loading" priority />');
+    expect(auth).toContain('<NeboLogo decorative priority />');
+    expect(preview).toContain('<NeboLogo className="ui-preview-wordmark" priority />');
   });
 
   it('uses the mark traced from the supplied production icon without the rounded tile', () => {

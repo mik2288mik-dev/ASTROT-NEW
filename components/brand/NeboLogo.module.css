@@ -1,0 +1,63 @@
+.logo {
+  position: relative;
+  display: inline-block;
+  width: 9rem;
+  aspect-ratio: 3.2 / 1;
+  flex: none;
+  overflow: hidden;
+  background: #fff;
+  line-height: 0;
+  isolation: isolate;
+  vertical-align: middle;
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 52%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.compact {
+  width: 5rem;
+  aspect-ratio: 3.25 / 1;
+}
+
+.header {
+  width: 6rem;
+  aspect-ratio: 3.2 / 1;
+}
+
+.standard {
+  width: 9rem;
+  aspect-ratio: 3.2 / 1;
+}
+
+.large {
+  width: clamp(15rem, 70vw, 19rem);
+  aspect-ratio: 2.45 / 1;
+}
+
+.loading {
+  width: min(12rem, 58vw);
+  aspect-ratio: 2.75 / 1;
+}
+
+@media (max-width: 360px) {
+  .header {
+    width: 5.55rem;
+  }
+
+  .standard {
+    width: 8.4rem;
+  }
+
+  .large {
+    width: min(16.5rem, 76vw);
+  }
+}

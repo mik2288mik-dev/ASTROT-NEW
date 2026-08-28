@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { NeboLogo } from '../components/brand/NeboLogo';
 import type { UserProfile } from '../types';
 import { NATIVE_BACK_EVENT, type NativeBackEventDetail } from '../lib/nativeBack';
 import { meetsMinimumPasswordLength } from '../lib/auth/passwordPolicy';
@@ -314,9 +315,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     <main className="auth-editorial-page fixed inset-0 h-[100dvh] overflow-y-auto bg-[#fbfaf7] text-[#111827]">
       <div className="flex min-h-full w-full items-center justify-center px-5 py-8">
         <section className="w-full max-w-sm rounded-[28px] border border-[#e8e5df] bg-white px-5 py-7 shadow-[0_18px_54px_rgba(44,48,45,0.08)] sm:px-7">
-          <p className="mb-5 text-center text-[12px] font-semibold uppercase tracking-[0.18em] text-[#6b7280]">
-            NEBO
-          </p>
+          <div className="mb-5 text-center" role="img" aria-label="NEBO">
+            <NeboLogo decorative priority />
+          </div>
           <h1 className="text-center text-[30px] font-semibold leading-tight tracking-[-0.025em]">{title}</h1>
           {(message || deleted) && isRegister ? (
             <p className="mx-auto mt-3 text-center text-[14px] leading-5 text-[#687079]">

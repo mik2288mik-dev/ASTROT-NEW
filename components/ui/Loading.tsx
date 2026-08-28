@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { NeboLogo } from '../brand/NeboLogo';
 
 interface LoadingProps {
   message?: string;
@@ -50,9 +51,7 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
           textAlign: 'center',
         }}
       >
-        <span style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1 }}>
-          NEBO
-        </span>
+        <NeboLogo decorative size="loading" priority />
         <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.25 }}>
           гороскоп натальная карта
         </span>

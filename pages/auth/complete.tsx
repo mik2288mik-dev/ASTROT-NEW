@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { NeboLogo } from '../../components/brand/NeboLogo';
 
 export default function AuthCompletePage() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function AuthCompletePage() {
       : error || 'Завершаем безопасный вход…';
   return (
     <main style={{ maxWidth: 520, margin: '64px auto', padding: 24, fontFamily: 'system-ui' }}>
+      <NeboLogo decorative priority />
       <h1>Вход в NEBO</h1>
       <p>{message}</p>
       {(cancelled || failed || error) ? <a href="/">Вернуться в приложение</a> : null}

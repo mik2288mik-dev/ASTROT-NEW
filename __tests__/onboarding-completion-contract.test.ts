@@ -7,7 +7,8 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 describe('first-run onboarding completion flow', () => {
   it('keeps the accepted welcome flow and reaches personal Today before any Premium surface', () => {
     const onboarding = read('views/Onboarding.tsx');
-    const logo = read('components/onboarding/MeouLogo.tsx');
+    const logo = read('components/brand/NeboLogo.tsx');
+    const logoBridge = read('components/onboarding/MeouLogo.tsx');
     const artwork = read('components/onboarding/OnboardingArtwork.tsx');
     const app = read('App.tsx');
     const dashboard = read('views/Dashboard.tsx');
@@ -36,7 +37,9 @@ describe('first-run onboarding completion flow', () => {
     expect(onboarding).not.toContain('nextStory');
     expect(onboarding).not.toContain("setStep('birth')");
     expect(onboarding).not.toContain('className="onb-notify"');
-    expect(logo).toContain('NEBO');
+    expect(logo).toContain("/assets/brand/nebo-cloud-logo.png");
+    expect(logo).toContain("alt={decorative ? '' : 'NEBO'}");
+    expect(logoBridge).toContain('<NeboLogo');
     expect(logo).not.toContain('/assets/brand/personal-horoscope-mark.svg');
     expect(logo).not.toContain('<svg');
     expect(artwork).toContain('export const NatalWheelArtwork');

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
+import { NeboLogo } from '../brand/NeboLogo';
 
 type AppTopBarProps = {
   title: string;
@@ -43,7 +44,7 @@ export function AppTopBar({
             isPersonalForecastHeader ? ' app-top-bar-title--personal-forecast' : ''
           }`}
         >
-          {title}
+          {isPersonalForecastHeader ? <NeboLogo size="header" priority /> : title}
         </span>
 
         <div className="app-top-bar-side app-top-bar-side--end">

@@ -11,6 +11,7 @@ import {
   EditorialTabs,
 } from '../editorial/EditorialScreenChrome';
 import { AppTopBar } from '../lumia-ui/AppTopBar';
+import { NeboLogo } from '../brand/NeboLogo';
 import {
   LumiaBottomTabBar,
   LumiaNavigationSheet,
@@ -370,7 +371,7 @@ function OnboardingScene({
 }) {
   return (
     <div className="ui-preview-onboarding">
-      <p className="ui-preview-wordmark">NEBO</p>
+      <NeboLogo className="ui-preview-wordmark" priority />
       <h1>Начнём с тебя</h1>
       <p>Эти данные нужны только для персонального опыта. В Preview они никуда не отправляются.</p>
       <label>Имя<input defaultValue="Алина" /></label>
