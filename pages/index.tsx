@@ -39,6 +39,8 @@ export default function Home() {
     <Head>
       <title>NEBO</title>
       <meta name="application-name" content="NEBO" />
+      <link rel="icon" type="image/png" sizes="512x512" href="/assets/brand/nebo-app-icon-512.png" />
+      <link rel="manifest" href="/site.webmanifest" />
       <meta name="robots" content="noindex,nofollow" />
     </Head>
     <App />

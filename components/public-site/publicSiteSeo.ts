@@ -22,7 +22,7 @@ export const PUBLIC_SITE_SEO = {
   organizationId: `${CANONICAL_BASE_URL}/#organization`,
   websiteId: `${CANONICAL_BASE_URL}/#website`,
   applicationId: `${CANONICAL_BASE_URL}/#application`,
-  logoPath: '/assets/brand/personal-horoscope-mark.svg',
+  logoPath: '/assets/brand/nebo-app-icon-512.png',
   manifestPath: '/site.webmanifest',
   navigation: [
     { href: '/lichnyy-goroskop', label: 'Личный гороскоп' },

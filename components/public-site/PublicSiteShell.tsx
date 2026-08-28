@@ -62,8 +62,8 @@ export function PageHead({
       <link
         key="favicon"
         rel="icon"
-        type="image/svg+xml"
-        sizes="any"
+        type="image/png"
+        sizes="512x512"
         href={PUBLIC_SITE_SEO.logoPath}
       />
       <link key="manifest" rel="manifest" href={PUBLIC_SITE_SEO.manifestPath} />
