@@ -6,7 +6,7 @@ interface LoadingProps {
   progress?: number;
 }
 
-const LOADING_LABEL = 'NEBO гороскоп и натальная карта';
+const LOADING_LABEL = 'NEBO гороскоп натальная карта';
 
 /** Молочно-белый экран загрузки: название приложения + тонкая полоска прогресса. */
 export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) => {
@@ -54,7 +54,7 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
           NEBO
         </span>
         <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.25 }}>
-          гороскоп и натальная карта
+          гороскоп натальная карта
         </span>
       </div>
 

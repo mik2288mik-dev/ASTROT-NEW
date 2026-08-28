@@ -7,7 +7,7 @@ const liveReloadUrl = isLiveReload
 
 const config: CapacitorConfig = {
   appId: 'ru.tvoygoroskop.app',
-  appName: 'NEBO',
+  appName: 'NEBO гороскоп натальная карта',
   webDir: 'out',
   loggingBehavior: process.env.STORE_RELEASE === '1' || process.env.NODE_ENV === 'production' ? 'none' : 'debug',
   backgroundColor: '#ffffff',

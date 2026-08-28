@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
 
 describe('NEBO Android release controls', () => {
-  it('resolves every Android system label to NEBO without changing the application id', () => {
+  it('resolves every Android system label to the public app name without changing the application id', () => {
     const capacitor = read('capacitor.config.ts');
     const manifest = read('android/app/src/main/AndroidManifest.xml');
     const strings = read('android/app/src/main/res/values/strings.xml');
@@ -15,17 +15,17 @@ describe('NEBO Android release controls', () => {
     const page = read('pages/index.tsx');
 
     expect(capacitor).toContain("appId: 'ru.tvoygoroskop.app'");
-    expect(capacitor).toContain("appName: 'NEBO'");
+    expect(capacitor).toContain("appName: 'NEBO гороскоп натальная карта'");
     expect(manifest).toContain('android:label="@string/app_name"');
     expect(manifest).toContain('android:label="@string/title_activity_main"');
     for (const source of [strings, stringsEn]) {
-      expect(source).toContain('<string name="app_name">NEBO</string>');
-      expect(source).toContain('<string name="title_activity_main">NEBO</string>');
+      expect(source).toContain('<string name="app_name">NEBO гороскоп натальная карта</string>');
+      expect(source).toContain('<string name="title_activity_main">NEBO гороскоп натальная карта</string>');
       expect(source).toContain('<string name="package_name">ru.tvoygoroskop.app</string>');
     }
     expect(env).toContain('NEXT_PUBLIC_APP_NAME=NEBO');
     expect(releaseConfig).toContain("process.env.NEXT_PUBLIC_APP_NAME || 'NEBO'");
-    expect(page).toContain('<meta name="application-name" content="NEBO" />');
+    expect(page).toContain('<meta name="application-name" content="NEBO гороскоп натальная карта" />');
   });
 
   it('uses MEOU launcher resources for legacy and Android 12 launch screens', () => {

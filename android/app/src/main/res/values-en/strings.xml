@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NEBO</string>
-    <string name="title_activity_main">NEBO</string>
+    <string name="app_name">NEBO гороскоп натальная карта</string>
+    <string name="title_activity_main">NEBO гороскоп натальная карта</string>
     <string name="package_name">ru.tvoygoroskop.app</string>
     <string name="custom_url_scheme">ru.tvoygoroskop.app</string>
 </resources>

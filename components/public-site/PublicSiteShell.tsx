@@ -56,6 +56,11 @@ export function PageHead({
   return (
     <Head>
       <title>{title}</title>
+      <meta
+        key="application-name"
+        name="application-name"
+        content={PUBLIC_SITE_SEO.applicationName}
+      />
       <meta key="description" name="description" content={description} />
       <meta key="robots" name="robots" content={robots} />
       {includeCanonical ? <link key="canonical" rel="canonical" href={canonical} /> : null}

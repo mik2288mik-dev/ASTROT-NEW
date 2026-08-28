@@ -5,8 +5,8 @@ export default function NotFoundPage() {
   return (
     <PublicSiteShell>
       <PageHead
-        title="Страница не найдена — MEOU"
-        description="Такой страницы на сайте MEOU нет."
+        title="Страница не найдена — NEBO"
+        description="Такой страницы на сайте NEBO нет."
         path="/404"
         canonical={false}
         noindex
@@ -19,7 +19,7 @@ export default function NotFoundPage() {
             <div className={styles.legalLead}>
               <p>Возможно, ссылка устарела или в адресе есть опечатка.</p>
             </div>
-            <Link href="/">Вернуться на главную MEOU</Link>
+            <Link href="/">Вернуться на главную NEBO</Link>
           </header>
         </article>
       </main>

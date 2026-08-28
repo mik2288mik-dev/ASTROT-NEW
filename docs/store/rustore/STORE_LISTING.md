@@ -2,7 +2,7 @@
 
 > Legal/data declarations are superseded by
 > [`RUSTORE_LEGAL_RELEASE_CHECKLIST.md`](../../../RUSTORE_LEGAL_RELEASE_CHECKLIST.md).
-> The approved public identity for this RuStore release is `MEOU`. Keep the
+> The approved public identity for this RuStore release is `NEBO гороскоп натальная карта`. Keep the
 > Android system label and Console listing identical before submission.
 
 All product, payment and legal values are `OWNER_REQUIRED`; this file does not
@@ -12,9 +12,9 @@ invent them.
 
 | Field | Draft |
 |---|---|
-| Name | `MEOU` |
+| Name | `NEBO гороскоп натальная карта` |
 | Short description | `Личные ИИ-прогнозы по контексту натальной карты.` |
-| Full description | `MEOU создаёт личный ИИ-рассказ на сегодня, неделю и месяц по выбранному периоду и контексту сохранённой натальной карты. В приложении есть персональные прогнозы, разбор натальной карты, совместимость и вопросы по карте. Прогнозы дают повод посмотреть на ситуацию по-новому и не являются медицинской, психологической или финансовой рекомендацией. В настройках доступны поддержка, политика конфиденциальности, пользовательское соглашение, выход и удаление аккаунта.` |
+| Full description | `NEBO создаёт личный ИИ-рассказ на сегодня, неделю и месяц по выбранному периоду и контексту сохранённой натальной карты. В приложении есть персональные прогнозы, разбор натальной карты, совместимость и вопросы по карте. Прогнозы дают повод посмотреть на ситуацию по-новому и не являются медицинской, психологической или финансовой рекомендацией. В настройках доступны поддержка, политика конфиденциальности, пользовательское соглашение, выход и удаление аккаунта.` |
 | Search tags | `гороскоп`, `натальная карта`, `астрология`, `совместимость`, `прогноз` — confirm availability in the current Console UI. |
 | Category / age rating | `OWNER_REQUIRED`: choose only after reviewing the current RuStore category and rating questionnaire. |
 | Release notes | `Первая Android-версия: прогнозы, натальная карта, совместимость и управление аккаунтом.` |
