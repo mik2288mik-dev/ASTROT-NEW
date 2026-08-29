@@ -58,6 +58,54 @@ function runNavigationAction(action: () => void) {
   action();
 }
 
+function NatalChartMark() {
+  return (
+    <svg
+      className="today-bottom-nav-hub-chart"
+      viewBox="0 0 48 48"
+      fill="none"
+      aria-hidden="true"
+    >
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="24" cy="24" r="18.5" strokeWidth="0.78" opacity="0.88" />
+        <circle cx="24" cy="24" r="13.35" strokeWidth="0.62" opacity="0.72" />
+        <circle cx="24" cy="24" r="6.8" strokeWidth="0.55" opacity="0.46" />
+        <g strokeWidth="0.62" opacity="0.7">
+          <line x1="24" y1="5.5" x2="24" y2="10.65" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(30 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(60 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(90 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(120 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(150 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(180 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(210 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(240 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(270 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(300 24 24)" />
+          <line x1="24" y1="5.5" x2="24" y2="10.65" transform="rotate(330 24 24)" />
+        </g>
+        <g strokeWidth="0.66" opacity="0.72">
+          <path d="M12.1 24 35.4 20.1" strokeDasharray="1.3 1.25" />
+          <path d="M14.2 24.7 30.4 33.2" />
+          <path d="M17.1 14.5 28.4 34.2" />
+        </g>
+        <g strokeWidth="0.64" opacity="0.82">
+          <circle cx="32" cy="14.8" r="2.05" />
+          <circle cx="34.2" cy="23.4" r="1.55" />
+          <circle cx="21.8" cy="33.7" r="1.75" />
+          <circle cx="15.4" cy="29.5" r="1.3" />
+        </g>
+        <g fill="currentColor" stroke="none" opacity="0.72">
+          <circle cx="32" cy="14.8" r="0.45" />
+          <circle cx="34.2" cy="23.4" r="0.38" />
+          <circle cx="21.8" cy="33.7" r="0.4" />
+          <circle cx="15.4" cy="29.5" r="0.35" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
 export function LumiaBottomTabBar({
   profile,
   view,
@@ -98,7 +146,7 @@ export function LumiaBottomTabBar({
           onClick={() => runNavigationAction(onOpenZodiac)}
         >
           <MoonStar aria-hidden="true" strokeWidth={1.25} />
-          <span className="today-bottom-nav-label" aria-hidden="true">Знаки</span>
+          <span className="today-bottom-nav-label" aria-hidden="true">Зодиак</span>
         </button>
 
         <div className="today-bottom-nav-hub-wrap">
@@ -109,14 +157,9 @@ export function LumiaBottomTabBar({
             aria-current={natalIsCurrent ? 'page' : undefined}
             onClick={() => runNavigationAction(onOpenNatal)}
           >
-            <img
-              className="today-bottom-nav-hub-logo"
-              src="/assets/brand/personal-horoscope-mark.svg"
-              alt=""
-              aria-hidden="true"
-            />
+            <NatalChartMark />
           </button>
-          <span className="today-bottom-nav-label" aria-hidden="true">Карта</span>
+          <span className="today-bottom-nav-label" aria-hidden="true">Натальная карта</span>
         </div>
 
         <button
