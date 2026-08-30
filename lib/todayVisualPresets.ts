@@ -28,6 +28,19 @@ export type TodayClockPreset = Readonly<{
   tiltDeg: number;
 }>;
 
+export type TodayBroadcastPreset = Readonly<{
+  id: string;
+  imageSrc: string;
+  labelRu: string;
+  labelEn: string;
+}>;
+
+export type TodayBroadcastDay = readonly [
+  TodayBroadcastPreset,
+  TodayBroadcastPreset,
+  TodayBroadcastPreset,
+];
+
 export type TodayLineDot = Readonly<{
   cx: number;
   cy: number;
@@ -223,6 +236,139 @@ export const TODAY_CLOCK_PRESETS: readonly TodayClockPreset[] = [
   },
 ] as const;
 
+export const TODAY_BROADCASTS_PER_DAY = 3 as const;
+
+export const TODAY_BROADCAST_PRESETS = [
+  {
+    id: 'sunlit-curtains',
+    imageSrc: '/assets/today-broadcasts/v1/set-01-01-sunlit-curtains.webp',
+    labelRu: 'Утренний свет',
+    labelEn: 'Morning light',
+  },
+  {
+    id: 'roadtrip-dog',
+    imageSrc: '/assets/today-broadcasts/v1/set-01-02-roadtrip-dog.webp',
+    labelRu: 'Дорога с ветром',
+    labelEn: 'Road with the wind',
+  },
+  {
+    id: 'lakeside-cyclists',
+    imageSrc: '/assets/today-broadcasts/v1/set-01-03-lakeside-cyclists.webp',
+    labelRu: 'К озеру',
+    labelEn: 'To the lake',
+  },
+  {
+    id: 'cafe-morning',
+    imageSrc: '/assets/today-broadcasts/v1/set-02-01-cafe-morning.webp',
+    labelRu: 'Кофе и солнце',
+    labelEn: 'Coffee and sunshine',
+  },
+  {
+    id: 'city-flowers',
+    imageSrc: '/assets/today-broadcasts/v1/set-02-02-city-flowers.webp',
+    labelRu: 'Цветы по пути',
+    labelEn: 'Flowers on the way',
+  },
+  {
+    id: 'sunlit-cat',
+    imageSrc: '/assets/today-broadcasts/v1/set-02-03-sunlit-cat.webp',
+    labelRu: 'Тихий час',
+    labelEn: 'Quiet hour',
+  },
+  {
+    id: 'coastal-picnic',
+    imageSrc: '/assets/today-broadcasts/v1/set-03-01-coastal-picnic.webp',
+    labelRu: 'Пикник у моря',
+    labelEn: 'Picnic by the sea',
+  },
+  {
+    id: 'rainy-smile',
+    imageSrc: '/assets/today-broadcasts/v1/set-03-02-rainy-smile.webp',
+    labelRu: 'Дождь — не повод',
+    labelEn: 'Rain is no reason',
+  },
+  {
+    id: 'laundromat-friends',
+    imageSrc: '/assets/today-broadcasts/v1/set-03-03-laundromat-friends.webp',
+    labelRu: 'Свои люди',
+    labelEn: 'Our people',
+  },
+  {
+    id: 'pottery-hands',
+    imageSrc: '/assets/today-broadcasts/v1/set-04-01-pottery-hands.webp',
+    labelRu: 'Глина в руках',
+    labelEn: 'Clay in hand',
+  },
+  {
+    id: 'market-citrus',
+    imageSrc: '/assets/today-broadcasts/v1/set-04-02-market-citrus.webp',
+    labelRu: 'Рынок в цвете',
+    labelEn: 'Market in colour',
+  },
+  {
+    id: 'mural-skater',
+    imageSrc: '/assets/today-broadcasts/v1/set-04-03-mural-skater.webp',
+    labelRu: 'На колёсах',
+    labelEn: 'On wheels',
+  },
+  {
+    id: 'garden-reading',
+    imageSrc: '/assets/today-broadcasts/v1/set-05-01-garden-reading.webp',
+    labelRu: 'Книга в саду',
+    labelEn: 'A book in the garden',
+  },
+  {
+    id: 'lake-paddleboard',
+    imageSrc: '/assets/today-broadcasts/v1/set-05-02-lake-paddleboard.webp',
+    labelRu: 'Гладь воды',
+    labelEn: 'Still water',
+  },
+  {
+    id: 'cooking-together',
+    imageSrc: '/assets/today-broadcasts/v1/set-05-03-cooking-together.webp',
+    labelRu: 'Готовим вместе',
+    labelEn: 'Cooking together',
+  },
+  {
+    id: 'coastal-convertible',
+    imageSrc: '/assets/today-broadcasts/v1/set-06-01-coastal-convertible.webp',
+    labelRu: 'Дорога к морю',
+    labelEn: 'Road to the sea',
+  },
+  {
+    id: 'kitchen-dance',
+    imageSrc: '/assets/today-broadcasts/v1/set-06-02-kitchen-dance.webp',
+    labelRu: 'Танцы на кухне',
+    labelEn: 'Dancing in the kitchen',
+  },
+  {
+    id: 'sunflower-field',
+    imageSrc: '/assets/today-broadcasts/v1/set-06-03-sunflower-field.webp',
+    labelRu: 'Поле солнца',
+    labelEn: 'Field of sunshine',
+  },
+  {
+    id: 'evening-cafe-walk',
+    imageSrc: '/assets/today-broadcasts/v1/set-07-01-evening-cafe-walk.webp',
+    labelRu: 'Вечерний город',
+    labelEn: 'Evening city',
+  },
+  {
+    id: 'rooftop-dinner',
+    imageSrc: '/assets/today-broadcasts/v1/set-07-02-rooftop-dinner.webp',
+    labelRu: 'Ужин на крыше',
+    labelEn: 'Dinner on the roof',
+  },
+  {
+    id: 'rainy-train-window',
+    imageSrc: '/assets/today-broadcasts/v1/set-07-03-rainy-train-window.webp',
+    labelRu: 'Дождь за стеклом',
+    labelEn: 'Rain on the glass',
+  },
+] as const satisfies readonly TodayBroadcastPreset[];
+
+export type TodayBroadcastId = (typeof TODAY_BROADCAST_PRESETS)[number]['id'];
+
 export const TODAY_LINE_PRESETS: readonly TodayLinePreset[] = [
   {
     id: 'wide-rising-arc',
@@ -294,6 +440,25 @@ function dayOrdinal(periodKey: string): number {
 }
 function positiveModulo(value: number, divisor: number): number {
   return ((value % divisor) + divisor) % divisor;
+}
+
+export function resolveTodayBroadcasts(periodKey: string): TodayBroadcastDay {
+  const rotationDays = TODAY_BROADCAST_PRESETS.length / TODAY_BROADCASTS_PER_DAY;
+  const dayIndex = positiveModulo(dayOrdinal(periodKey), rotationDays);
+  const start = dayIndex * TODAY_BROADCASTS_PER_DAY;
+
+  return [
+    TODAY_BROADCAST_PRESETS[start],
+    TODAY_BROADCAST_PRESETS[start + 1],
+    TODAY_BROADCAST_PRESETS[start + 2],
+  ];
+}
+
+export function nextTodayBroadcastIndex(currentIndex: number): number {
+  return positiveModulo(
+    Math.trunc(currentIndex) + 1,
+    TODAY_BROADCASTS_PER_DAY,
+  );
 }
 
 export function resolveTodayClockPreset(

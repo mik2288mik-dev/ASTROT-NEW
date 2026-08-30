@@ -553,8 +553,9 @@
   transform: none;
 }
 
-.today-minimal-composition .today-calendar-clock {
-  width: clamp(9rem, 41vw, 10.25rem);
+.today-minimal-composition .today-calendar-clock-shell {
+  display: block;
+  width: min(calc(100% - 2rem), 19rem);
   margin-block: clamp(0.3rem, 1.4vw, 0.45rem) clamp(0.12rem, 0.8vw, 0.25rem);
 }
 
@@ -642,11 +643,44 @@
   position: relative;
   display: block;
   width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  -webkit-appearance: none;
+  appearance: none;
   --today-clock-readout: var(--today-clock-digits);
+  background: transparent;
   color: var(--today-clock-digits);
+  cursor: pointer;
+  font: inherit;
   font-variant-numeric: tabular-nums;
+  text-align: inherit;
+  touch-action: manipulation;
   transform: rotate(var(--today-clock-tilt));
   transform-origin: 50% 70%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.today-calendar-clock:focus-visible {
+  outline: 2px solid var(--today-ink);
+  outline-offset: 4px;
+}
+
+.today-calendar-clock-time {
+  display: block;
+  width: 100%;
+}
+
+.today-calendar-clock-caption {
+  display: block;
+  margin-top: 0.38rem;
+  color: var(--today-muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .today-calendar-clock-hardware {
@@ -666,11 +700,12 @@
 
 .today-calendar-clock-face {
   position: relative;
-  display: flex;
+  display: grid;
   box-sizing: border-box;
-  min-height: 5.35rem;
+  min-height: 7.4rem;
+  grid-template-columns: minmax(0, 1fr) minmax(7.2rem, 0.95fr);
   align-items: center;
-  justify-content: center;
+  gap: 0.38rem;
   overflow: hidden;
   padding: 0.5rem 0.44rem;
   border: 1px solid color-mix(in srgb, var(--today-clock-edge) 82%, #000 18%);
@@ -679,6 +714,81 @@
   box-shadow:
     inset 0 0 0.8rem rgba(0, 0, 0, 0.14),
     0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.today-calendar-clock-broadcast-pane {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 6.25rem;
+  align-self: stretch;
+  overflow: hidden;
+  border-radius: max(0.22rem, calc(var(--today-clock-radius) - 0.7rem));
+  background: color-mix(in srgb, var(--today-clock-face) 84%, var(--today-clock-accent) 16%);
+  isolation: isolate;
+}
+
+.today-calendar-clock-broadcast-scene {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.985);
+  transform-origin: center;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.today-calendar-clock-broadcast-scene.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.today-calendar-clock-broadcast-scene img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline-offset: -1px;
+  user-select: none;
+}
+
+.today-calendar-clock-channel-indicator {
+  position: absolute;
+  right: 0.38rem;
+  bottom: 0.34rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.2rem;
+  pointer-events: none;
+}
+
+.today-calendar-clock-channel-indicator > span {
+  display: block;
+  width: 0.25rem;
+  height: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--today-clock-digits) 48%, transparent);
+  border-radius: 50%;
+  opacity: 0.58;
+  transform: scale(0.82);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.today-calendar-clock-channel-indicator > span.is-active {
+  background: color-mix(in srgb, var(--today-clock-digits) 76%, var(--today-clock-accent) 24%);
+  opacity: 1;
+  transform: scale(1);
+}
+
+.today-calendar-clock-readout-pane {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 6.25rem;
+  align-items: center;
+  justify-content: center;
 }
 
 .today-calendar-clock-readout {
@@ -853,9 +963,10 @@
   font-family: 'Courier New', Courier, monospace;
 }
 
-.today-calendar-clock[data-clock-family='retro-digital'] .today-calendar-clock-face::after {
+.today-calendar-clock[data-clock-family='retro-digital'] .today-calendar-clock-broadcast-pane::after {
   position: absolute;
   inset: 0;
+  z-index: 3;
   background: repeating-linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.025) 0,
@@ -1514,6 +1625,17 @@
     padding-left: 1rem;
   }
 
+  .today-calendar-clock-face {
+    min-height: 7.1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(6.85rem, 0.95fr);
+    gap: 0.3rem;
+  }
+
+  .today-calendar-clock-broadcast-pane,
+  .today-calendar-clock-readout-pane {
+    min-height: 6rem;
+  }
+
 }
 
 .today-minimal-closing {
@@ -1830,7 +1952,9 @@
   .today-bottom-nav-action,
   .today-bottom-nav-hub,
   .today-bottom-nav-services,
-  .today-navigation-sheet-item {
+  .today-navigation-sheet-item,
+  .today-calendar-clock-broadcast-scene,
+  .today-calendar-clock-channel-indicator > span {
     transition: none;
     transition-delay: 0ms;
   }

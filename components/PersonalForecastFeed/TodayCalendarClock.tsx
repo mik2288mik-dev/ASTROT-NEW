@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
+  nextTodayBroadcastIndex,
+  resolveTodayBroadcasts,
   resolveTodayClockLayout,
   resolveTodayClockPreset,
   resolveTodayLinePreset,
+  type TodayBroadcastPreset,
   type TodayClockLayout,
   type TodayClockPreset,
 } from '../../lib/todayVisualPresets';
@@ -36,6 +39,12 @@ type ClockDisplay = {
   secondary: string;
   secondaryKind: ClockDisplayKind;
   meta: string;
+};
+
+type BroadcastState = {
+  scope: string;
+  index: number;
+  interacted: boolean;
 };
 
 function dateFromPeriodKey(periodKey: string): Date {
@@ -221,6 +230,35 @@ function FlipReadout({
   );
 }
 
+function TodayBroadcastScene({
+  broadcast,
+  active,
+}: {
+  broadcast: TodayBroadcastPreset;
+  active: boolean;
+}) {
+  const className = [
+    'today-calendar-clock-broadcast-scene',
+    active ? 'is-active' : '',
+  ].filter(Boolean).join(' ');
+
+  return (
+    <span
+      className={className}
+      data-broadcast-scene={broadcast.id}
+      aria-hidden="true"
+    >
+      <img
+        src={broadcast.imageSrc}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        decoding="async"
+      />
+    </span>
+  );
+}
+
 export function TodayCalendarClock({
   userId,
   periodKey,
@@ -229,6 +267,16 @@ export function TodayCalendarClock({
   signal,
 }: TodayCalendarClockProps) {
   const [now, setNow] = useState(() => new Date());
+  const todayBroadcasts = useMemo(
+    () => resolveTodayBroadcasts(periodKey),
+    [periodKey],
+  );
+  const broadcastScope = todayBroadcasts.map((broadcast) => broadcast.id).join('|');
+  const [broadcastState, setBroadcastState] = useState<BroadcastState>(() => ({
+    scope: broadcastScope,
+    index: 0,
+    interacted: false,
+  }));
   const preset = useMemo(
     () => resolveTodayClockPreset(userId, periodKey),
     [periodKey, userId],
@@ -241,6 +289,36 @@ export function TodayCalendarClock({
     () => buildClockParts(now, periodKey, timezone, language),
     [language, now, periodKey, timezone],
   );
+  const broadcastStateIsCurrent = broadcastState.scope === broadcastScope;
+  const broadcastIndex = broadcastStateIsCurrent
+    ? broadcastState.index
+    : 0;
+  const broadcastInteracted = broadcastStateIsCurrent && broadcastState.interacted;
+  const activeBroadcast = todayBroadcasts[broadcastIndex] ?? todayBroadcasts[0];
+  const activeBroadcastLabel = language === 'ru'
+    ? activeBroadcast.labelRu
+    : activeBroadcast.labelEn;
+  const broadcastActionLabel = language === 'ru'
+    ? `Переключить эфир. Сейчас «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}. Дата и время: ${parts.semanticLabel}.`
+    : `Change broadcast. Current broadcast is “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}. Date and time: ${parts.semanticLabel}.`;
+  const broadcastStatus = broadcastInteracted
+    ? (language === 'ru'
+        ? `Эфир переключён: «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}.`
+        : `Broadcast changed to “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}.`)
+    : '';
+
+  const advanceBroadcast = () => {
+    setBroadcastState((current) => {
+      const currentIndex = current.scope === broadcastScope
+        ? current.index
+        : 0;
+      return {
+        scope: broadcastScope,
+        index: nextTodayBroadcastIndex(currentIndex),
+        interacted: true,
+      };
+    });
+  };
 
   useEffect(() => {
     let timer: number | null = null;
@@ -265,29 +343,68 @@ export function TodayCalendarClock({
   }, []);
 
   return (
-    <time
-      className="today-calendar-clock"
-      dateTime={periodKey.slice(0, 10)}
-      aria-label={parts.semanticLabel}
-      data-clock-family={preset.family}
-      data-clock-layout={layout}
-      data-clock-preset={preset.id}
-      data-day-signal={signal}
-      style={clockStyle(preset)}
-      suppressHydrationWarning
-    >
-      <span className="today-calendar-clock-hardware" aria-hidden="true">
-        <span className="today-calendar-clock-face">
-          {preset.family === 'flip' ? (
-            <FlipReadout parts={parts} layout={layout} />
-          ) : (
-            <ElectronicReadout parts={parts} layout={layout} />
-          )}
-        </span>
-        <span className="today-calendar-clock-foot is-left" />
-        <span className="today-calendar-clock-foot is-right" />
+    <span className="today-calendar-clock-shell">
+      <button
+        type="button"
+        className="today-calendar-clock"
+        aria-label={broadcastActionLabel}
+        data-clock-family={preset.family}
+        data-clock-layout={layout}
+        data-clock-preset={preset.id}
+        data-day-signal={signal}
+        data-broadcast-id={activeBroadcast.id}
+        data-broadcast-index={broadcastIndex + 1}
+        style={clockStyle(preset)}
+        onClick={advanceBroadcast}
+        suppressHydrationWarning
+      >
+        <time
+          className="today-calendar-clock-time"
+          dateTime={periodKey.slice(0, 10)}
+          aria-label={parts.semanticLabel}
+          suppressHydrationWarning
+        >
+          <span className="today-calendar-clock-hardware" aria-hidden="true">
+            <span className="today-calendar-clock-face">
+              <span className="today-calendar-clock-broadcast-pane">
+                {todayBroadcasts.map((broadcast, index) => (
+                  <TodayBroadcastScene
+                    key={broadcast.id}
+                    broadcast={broadcast}
+                    active={index === broadcastIndex}
+                  />
+                ))}
+                <span className="today-calendar-clock-channel-indicator" aria-hidden="true">
+                  {todayBroadcasts.map((broadcast, index) => (
+                    <span
+                      key={`${broadcast.id}-indicator`}
+                      className={index === broadcastIndex ? 'is-active' : undefined}
+                    />
+                  ))}
+                </span>
+              </span>
+              <span className="today-calendar-clock-readout-pane">
+                {preset.family === 'flip' ? (
+                  <FlipReadout parts={parts} layout={layout} />
+                ) : (
+                  <ElectronicReadout parts={parts} layout={layout} />
+                )}
+              </span>
+            </span>
+            <span className="today-calendar-clock-foot is-left" />
+            <span className="today-calendar-clock-foot is-right" />
+          </span>
+        </time>
+      </button>
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {broadcastStatus}
       </span>
-    </time>
+      <span className="today-calendar-clock-caption" aria-hidden="true">
+        {language === 'ru'
+          ? `${activeBroadcastLabel} · нажми, чтобы сменить`
+          : `${activeBroadcastLabel} · tap to change`}
+      </span>
+    </span>
   );
 }
 
