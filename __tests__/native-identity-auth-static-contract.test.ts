@@ -75,7 +75,8 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(googleHandler).toContain('GoogleIdTokenCredential.createFrom');
     expect(googleHandler).toContain('callback.onSuccess(googleCredential.getIdToken())');
     expect(plugin).toContain('YandexAuthSdk.create');
-    expect(plugin).toContain('LoginType.CHROME_TAB');
+    expect(plugin).toContain('LoginType.NATIVE');
+    expect(plugin).not.toContain('LoginType.CHROME_TAB');
     expect(plugin).toContain('new YandexAuthLoginOptions(');
     expect(plugin).toContain('YandexAuthResult.Cancelled');
     expect(plugin).toContain('"yandex_" + errorKind');
