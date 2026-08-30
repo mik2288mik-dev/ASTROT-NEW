@@ -31,8 +31,13 @@ describe('NEBO Android release controls', () => {
   it('uses MEOU launcher resources for legacy and Android 12 launch screens', () => {
     const styles = read('android/app/src/main/res/values/styles.xml');
     const launchScreen = read('android/app/src/main/res/drawable/meou_launch_screen.xml');
+    const appTheme = styles.match(/<style name="AppTheme\.NoActionBar"[\s\S]*?<\/style>/)?.[0] || '';
+    const launchTheme = styles.match(/<style name="AppTheme\.NoActionBarLaunch"[\s\S]*?<\/style>/)?.[0] || '';
 
-    expect(styles).toContain('<item name="android:background">@drawable/meou_launch_screen</item>');
+    expect(appTheme).toContain('<item name="android:background">@null</item>');
+    expect(appTheme).toContain('<item name="android:windowBackground">#FFFFFF</item>');
+    expect(appTheme).not.toContain('@drawable/meou_launch_screen');
+    expect(launchTheme).toContain('<item name="android:background">@drawable/meou_launch_screen</item>');
     expect(styles).toContain(
       '<item name="windowSplashScreenBackground">@color/ic_launcher_background</item>',
     );

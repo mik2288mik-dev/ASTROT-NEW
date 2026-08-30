@@ -230,7 +230,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   const isWelcome = welcomeIndex > 0;
 
   return (
-    <main ref={pageRef} className="meou-onboarding fresh-page lumia-main-scroll antialiased">
+    <main
+      ref={pageRef}
+      className="meou-onboarding fresh-page lumia-main-scroll antialiased"
+      data-onboarding-phase={isWelcome ? 'welcome' : 'setup'}
+    >
       <div
         className="meou-onboarding-shell"
         onClick={isIntro
