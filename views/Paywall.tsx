@@ -271,13 +271,13 @@ export const Paywall: React.FC<PaywallProps> = ({
         ? [
             { title: 'Персональный прогноз', description: 'Полный Today, личная неделя и месяц — с учётом данных твоей натальной карты.' },
             { title: 'Натальная карта', description: 'Характер, сильные стороны, зоны роста, общение, решения, отношения и работа.' },
-            { title: 'Другие люди', description: 'До 5 сохранённых карт. Для каждого человека — отдельный разбор и вопросы по его карте.' },
+            { title: 'Другие люди', description: 'До 5 сохранённых карт. Для каждого человека — отдельный разбор.' },
             { title: 'Совместимость', description: 'Сравнение двух натальных карт: в чём вы похожи, чем различаетесь, где возникают трения и как вам легче общаться.' },
           ]
         : [
             { title: 'Personal forecast', description: 'Full Today, your personal week and month, informed by your saved birth chart data.' },
             { title: 'Birth chart', description: 'Character, strengths, growth areas, communication, decisions, relationships, and work.' },
-            { title: 'Other people', description: 'Up to 5 saved charts. Each person has their own reading and chart questions.' },
+            { title: 'Other people', description: 'Up to 5 saved charts. Each person has their own individual reading.' },
             { title: 'Compatibility', description: 'Compare two birth charts: similarities, differences, friction points, and communication.' },
           ])
     : (ru
@@ -315,8 +315,8 @@ export const Paywall: React.FC<PaywallProps> = ({
       <p className="pw2-sub">
         {embedded
           ? (ru
-              ? 'Полный прогноз на сегодня, неделю и месяц с учётом данных твоей натальной карты. Подробные разборы тебя и других людей, сравнение двух карт и вопросы по каждой карте.'
-              : 'A full daily, weekly, and monthly forecast informed by your birth chart data. Detailed readings for you and other people, two-chart compatibility, and questions about each chart.')
+              ? 'Полный прогноз на сегодня, неделю и месяц с учётом данных твоей натальной карты. Подробные разборы тебя и других людей и сравнение двух карт.'
+              : 'A full daily, weekly, and monthly forecast informed by your birth chart data. Detailed readings for you and other people, plus two-chart compatibility.')
           : CONTEXT_COPY[context.placement][language]}
       </p>
 
