@@ -21,6 +21,7 @@ import {
   NatalQuestionValidationError,
 } from '../../../../lib/natalReading/natalQuestion';
 import {
+  answeredNatalQuestionTexts,
   appendNatalQuestionMessage,
   ensureNatalQuestionThread,
   findNatalQuestionAnswer,
@@ -116,6 +117,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       code: 'NATAL_QUESTION_CHART_REQUIRED',
     });
   }
+  if (ctx.chartSubjectType !== 'self') {
+    diagnostic.log('context', 'error', {
+      httpStatus: 409,
+      errorCode: 'NATAL_QUESTION_SELF_CHART_REQUIRED',
+    });
+    return res.status(409).json({
+      error: 'Own natal chart required',
+      code: 'NATAL_QUESTION_SELF_CHART_REQUIRED',
+      message: language === 'ru'
+        ? '«Спросить о себе» работает только с твоей основной натальной картой.'
+        : 'Ask about yourself works only with your own primary natal chart.',
+    });
+  }
 
   const chartId = ctx.chartId;
   const primaryContext = await resolveReadingContext(
@@ -141,30 +155,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const question = normalizePersonalForecastQuestionInput(req.body?.question);
   const normalizedQuestion = normalizePersonalForecastQuestionSearch(question);
   const history = await listNatalQuestionMessages({ userId, chartId, pairLimit: 8 });
-  const last = history.at(-1);
-  const retryingUnanswered = last?.role === 'user'
-    && normalizePersonalForecastQuestionInput(last.text).toLocaleLowerCase()
-      === question.toLocaleLowerCase();
-
-  if (!retryingUnanswered) {
-    const moderation = moderateNatalQuestion({
-      question,
-      language,
-      existingQuestions: history
-        .filter((message) => message.role === 'user')
-        .map((message) => message.text),
+  const moderation = moderateNatalQuestion({
+    question,
+    language,
+    existingQuestions: answeredNatalQuestionTexts(history),
+  });
+  if (moderation.status !== 'approved') {
+    diagnostic.log('moderation', 'error', {
+      httpStatus: 400,
+      errorCode: `NATAL_QUESTION_REJECTED.${moderation.reason}`,
     });
-    if (moderation.status !== 'approved') {
-      diagnostic.log('moderation', 'error', {
-        httpStatus: 400,
-        errorCode: `NATAL_QUESTION_REJECTED.${moderation.reason}`,
-      });
-      return res.status(400).json({
-        error: 'Question rejected',
-        code: 'NATAL_QUESTION_REJECTED',
-        moderation,
-      });
-    }
+    return res.status(400).json({
+      error: 'Question rejected',
+      message: language === 'ru'
+        ? 'Здесь можно задать только конкретный вопрос о себе, который можно разобрать по сохранённой натальной карте.'
+        : 'Only a specific question about you that can be interpreted from your saved natal chart can be answered here.',
+      code: 'NATAL_QUESTION_REJECTED',
+      moderation,
+    });
   }
 
   try {

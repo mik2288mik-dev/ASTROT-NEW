@@ -1,5 +1,13 @@
 # Repository working rules
 
+## Local commands
+
+- Run commands from the repository root. Install the locked dependencies with `npm ci` when setup is required.
+- Start the application with `npm run dev`.
+- Start the local synthetic UI Preview with `npm exec -- cross-env NEXT_PUBLIC_UI_PREVIEW=1 npm run dev`, then open a localhost URL with `?uiPreview=1`.
+- Run a focused Jest file with `npm test -- --runInBand <path-to-test>`.
+- Run the repository checks only when the concrete task calls for them: `npm run lint` and `npm run build`.
+
 ## Local-only execution
 
 - All tasks are performed in the current local checkout.
@@ -9,20 +17,24 @@
 
 ## Product navigation architecture
 
-- The bottom navigation is not part of the target architecture.
-- Primary navigation lives in the left slide-out panel. Its only items are:
-  1. Дневник
-  2. Гороскоп по знакам
-  3. Совместимость
-  4. Карта
-- The bottom of the panel contains a profile block linking to Settings.
-- Сегодня, Неделя и Месяц — это периоды одного личного прогноза в «Дневнике», а не отдельные первичные разделы.
-- Период выбирается только внутри шторки/меню «Дневника». Не добавлять на главный экран tabs, pills или иной переключатель периодов.
+- Primary navigation is the persistent bottom bar shown in the current product UI. Its items and labels are:
+  1. Сегодня
+  2. Зодиак
+  3. Натальная карта
+  4. Сравнить
+  5. Меню
+- Do not replace the bottom navigation with a left slide-out panel, drawer, navigation sheet, hamburger trigger, or planet-style navigation mark.
+- `Меню` opens the existing full menu screen; it is not a trigger for a drawer.
+- Сегодня, Неделя и Месяц remain the existing period tabs at the top of the personal forecast and `Зодиак` screens. Do not move them into another navigation surface or rewrite their product behavior without direct instruction.
+- The product brand mark is the cloud-style `NEBO` wordmark used in the current application screenshots. Do not substitute a planet icon or an unrelated navigation symbol for it.
+- Inside `Натальная карта`, preserve the four existing tabs and their order: `Карта`, `Разбор`, `Спросить о себе`, `Матрица судьбы`.
 
-## Astrologer questions
+## Спросить о себе
 
-- «Задать вопрос астрологу» is an in-product action, not a primary tab.
-- Open the question flow in a bottom sheet.
+- `Спросить о себе` remains the existing tab inside `Натальная карта`; do not move it to a bottom sheet, drawer, or separate primary screen.
+- Accept only questions that can be answered from the user's saved natal chart. Reject unrelated general requests such as recipes or household instructions before generation.
+- Premium users can submit up to 5 accepted questions per day. Rejected off-topic questions do not consume the limit.
+- Keep the selectable starter questions above the free-form input.
 - Do not turn the application into a chat-interface clone.
 - Do not add a separate full-screen chat without the user's direct instruction.
 
@@ -37,14 +49,20 @@
 - Newspaper-psychedelic imagery is used rarely.
 - A forecast usually has no more than one strong image.
 - Some screens should remain image-free.
-- Never place an image behind text, over text, or inside an additional UI frame.
+- In forecasts, do not place an image behind or over the reading text. Existing editorial cards and the interactive old-TV clock are allowed foreground components.
 - Straight, torn, round, oval, and free paper-like shapes are allowed.
+
+## Today clock and broadcast
+
+- Keep the wide old-TV visual with the current date and time on Today.
+- Tapping the TV cycles the existing still broadcasts: `Тихий горизонт`, `Дождь за стеклом`, `Ночной сигнал`.
+- The TV is forecast content, not navigation or a brand mark. Add GIF or video only on direct instruction.
 
 ## Voice and calculation rules
 
 - The application is an ally: it supports the user without blindly agreeing.
 - A heading or notification may sometimes be sharp, ironic, or playful.
-- The main forecast remains serious, concrete, and short.
+- The main forecast remains serious and concrete. Preserve the current Today, Week, and Month structure and volume unless the user directly requests a forecast rewrite.
 - Do not use artificial youth slang.
 - Do not make anxiety, conflict, or problems the default subject.
 - Positive possibilities, calm, confidence, and support must be considered alongside risks.

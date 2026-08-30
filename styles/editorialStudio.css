@@ -769,6 +769,50 @@
   text-wrap: pretty;
 }
 
+.fresh-page.natal-mvp-page .natal-question-suggestions {
+  display: grid;
+  gap: 9px;
+}
+
+.fresh-page.natal-mvp-page .natal-question-suggestions > p {
+  margin: 0;
+  color: var(--natal-mvp-muted);
+  font-size: 12px;
+  font-weight: 620;
+  letter-spacing: 0.035em;
+  line-height: 1.35;
+}
+
+.fresh-page.natal-mvp-page .natal-question-suggestions ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-page.natal-mvp-page .natal-question-suggestions button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--natal-mvp-line);
+  border-radius: 12px;
+  background: rgba(36, 35, 33, 0.025);
+  color: var(--natal-mvp-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 520;
+  line-height: 1.42;
+  text-align: start;
+  text-wrap: pretty;
+  cursor: pointer;
+}
+
+.fresh-page.natal-mvp-page .natal-question-suggestions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
 .fresh-page.natal-mvp-page .natal-question-input {
   box-sizing: border-box;
   width: 100%;
@@ -1312,6 +1356,7 @@
 @media (prefers-reduced-motion: reduce) {
   .fresh-page.natal-mvp-page .natal-premium-button,
   .fresh-page.natal-mvp-page .natal-question-button,
+  .fresh-page.natal-mvp-page .natal-question-suggestions button,
   .fresh-page.natal-mvp-page .natal-question-submit,
   .fresh-page.natal-mvp-page .natal-question-premium-button,
   .fresh-page.natal-mvp-page .natal-report-retry {
