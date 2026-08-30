@@ -52,9 +52,8 @@ describe('NEBO Android release controls', () => {
   it('runs the release validator when the Windows Node path contains spaces', () => {
     const releaseScript = read('scripts/android-release.mjs');
 
-    expect(releaseScript).toContain(
-      "run(process.execPath, ['scripts/validate-store-release.mjs', '--release'], process.cwd(), false)",
-    );
+    expect(releaseScript).toContain("'--mobile-artifact', `--profile=${task.profile}`");
+    expect(releaseScript).toContain("['scripts/validate-store-release.mjs'");
     expect(releaseScript).toContain('shell: useShell');
   });
 

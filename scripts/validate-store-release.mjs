@@ -9,6 +9,10 @@ const channel = String(process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL || 'developm
 const allowedChannels = new Set(['telegram', 'rustore', 'google_play', 'development']);
 const errors = [];
 const release = process.argv.includes('--release');
+const mobileArtifact = process.argv.includes('--mobile-artifact');
+const storeArtifact = release || mobileArtifact;
+const profileArg = process.argv.find((argument) => argument.startsWith('--profile='));
+const mobileProfile = profileArg ? profileArg.slice('--profile='.length).trim() : '';
 const rustorePaymentsEnabled = ['1', 'true', 'yes', 'on'].includes(
   String(process.env.NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED || '').trim().toLowerCase(),
 );
@@ -123,7 +127,17 @@ function validatePublicApiOrigin(value) {
 if (!allowedChannels.has(channel)) errors.push('NEXT_PUBLIC_DISTRIBUTION_CHANNEL must be telegram, rustore, google_play, or development');
 
 const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || '').trim();
-if (release) {
+if (mobileArtifact && !['alpha', 'release'].includes(mobileProfile)) {
+  errors.push('--mobile-artifact requires --profile=alpha or --profile=release');
+}
+if (profileArg && !mobileArtifact) {
+  errors.push('--profile may only be used with --mobile-artifact');
+}
+if (mobileArtifact && channel !== 'rustore') {
+  errors.push('RuStore mobile artifact profiles require NEXT_PUBLIC_DISTRIBUTION_CHANNEL=rustore');
+}
+
+if (storeArtifact) {
   requireValue('NEXT_PUBLIC_API_URL', apiUrl);
   if (apiUrl) validatePublicApiOrigin(apiUrl);
   for (const name of [
@@ -157,16 +171,22 @@ const scheme = (strings.match(/<string name="custom_url_scheme">([^<]+)<\/string
 if (!applicationId || new Set([applicationId, namespace, capacitorId, resourceId, scheme]).size !== 1) {
   errors.push('package/application ID differs between Gradle, Capacitor, strings.xml, or URL scheme');
 }
-if (release && /yourhoroscope\.app|example|placeholder/i.test(applicationId)) {
+if (storeArtifact && /yourhoroscope\.app|example|placeholder/i.test(applicationId)) {
   errors.push('A final non-temporary application ID is required before the first store upload');
 }
 
 const versionCode = String(process.env.APP_VERSION_CODE || '').trim();
 const versionName = String(process.env.APP_VERSION_NAME || '').trim();
-if (release && (!/^\d+$/.test(versionCode) || Number(versionCode) < 1)) errors.push('APP_VERSION_CODE must be a positive integer');
-if (release && !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(versionName)) errors.push('APP_VERSION_NAME must be a semantic version such as 1.0.0');
+if (storeArtifact && (!/^\d+$/.test(versionCode) || Number(versionCode) < 1)) errors.push('APP_VERSION_CODE must be a positive integer');
+if (storeArtifact && !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(versionName)) errors.push('APP_VERSION_NAME must be a semantic version such as 1.0.0');
+if (mobileArtifact && mobileProfile === 'alpha' && !/^\d+\.\d+\.\d+-rc\.\d+$/.test(versionName)) {
+  errors.push('An alpha mobile artifact requires APP_VERSION_NAME such as 1.0.0-rc.1');
+}
+if (mobileArtifact && mobileProfile === 'release' && !/^\d+\.\d+\.\d+$/.test(versionName)) {
+  errors.push('A public mobile artifact requires a stable APP_VERSION_NAME such as 1.0.0');
+}
 
-if (release) {
+if (storeArtifact) {
   for (const name of [
     'NEXT_PUBLIC_DEVELOPER_NAME',
     'NEXT_PUBLIC_SUPPORT_EMAIL',
@@ -183,14 +203,17 @@ if (release) {
   for (const name of ['RELEASE_STORE_FILE', 'RELEASE_STORE_PASSWORD', 'RELEASE_KEY_ALIAS', 'RELEASE_KEY_PASSWORD']) {
     requireValue(name, process.env[name]);
   }
+  for (const name of ['VK_ANDROID_CLIENT_ID', 'VK_ID_ANDROID_CLIENT_SECRET', 'YANDEX_ANDROID_CLIENT_ID']) {
+    requireValue(name, process.env[name]);
+  }
+}
+
+if (release) {
   const authProviderNames = [
     'PUBLIC_APP_ORIGIN',
     'VK_AUTH_CLIENT_ID',
-    'VK_ANDROID_CLIENT_ID',
-    'VK_ID_ANDROID_CLIENT_SECRET',
     'VK_AUTH_CLIENT_SECRET',
     'YANDEX_AUTH_CLIENT_ID',
-    'YANDEX_ANDROID_CLIENT_ID',
     'YANDEX_AUTH_CLIENT_SECRET',
     'EMAIL_OTP_HASH_SECRET',
     'AUTH_RATE_LIMIT_SECRET',
@@ -253,19 +276,7 @@ if (channel === 'rustore' && rustorePaymentsEnabled) {
   if (!['sandbox', 'production'].includes(payMode)) {
     errors.push('RUSTORE_PAY_MODE must be sandbox or production');
   }
-  if (release) {
-    requireValue('RUSTORE_KEY_ID', process.env.RUSTORE_KEY_ID);
-    requireValue('RUSTORE_PRIVATE_KEY_BASE64', process.env.RUSTORE_PRIVATE_KEY_BASE64);
-    requireValue('RUSTORE_NOTIFICATION_AES_KEY', process.env.RUSTORE_NOTIFICATION_AES_KEY);
-    requireValue('CRON_SECRET', process.env.CRON_SECRET);
-    const cronSecret = String(process.env.CRON_SECRET || '').trim();
-    if (cronSecret && Buffer.byteLength(cronSecret, 'utf8') < 32) {
-      errors.push('CRON_SECRET must contain at least 32 bytes for a release');
-    }
-    if (payMode !== 'production') {
-      errors.push('RUSTORE_PAY_MODE must be production for a release');
-    }
-
+  if (release || mobileArtifact) {
     const clientProductIds = [
       process.env.NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_MONTH,
       process.env.NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_QUARTER,
@@ -282,6 +293,25 @@ if (channel === 'rustore' && rustorePaymentsEnabled) {
     if (!exactProductMatch) {
       errors.push('RUSTORE_ALLOWED_PRODUCT_IDS must exactly match the three NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_* IDs');
     }
+  }
+  if (mobileArtifact && mobileProfile === 'alpha' && payMode !== 'sandbox') {
+    errors.push('RUSTORE_PAY_MODE must be sandbox for an alpha mobile artifact');
+  }
+  if (mobileArtifact && mobileProfile === 'release' && payMode !== 'production') {
+    errors.push('RUSTORE_PAY_MODE must be production for a public mobile artifact');
+  }
+  if (release) {
+    requireValue('RUSTORE_KEY_ID', process.env.RUSTORE_KEY_ID);
+    requireValue('RUSTORE_PRIVATE_KEY_BASE64', process.env.RUSTORE_PRIVATE_KEY_BASE64);
+    requireValue('RUSTORE_NOTIFICATION_AES_KEY', process.env.RUSTORE_NOTIFICATION_AES_KEY);
+    requireValue('CRON_SECRET', process.env.CRON_SECRET);
+    const cronSecret = String(process.env.CRON_SECRET || '').trim();
+    if (cronSecret && Buffer.byteLength(cronSecret, 'utf8') < 32) {
+      errors.push('CRON_SECRET must contain at least 32 bytes for a release');
+    }
+    if (payMode !== 'production') {
+      errors.push('RUSTORE_PAY_MODE must be production for a release');
+    }
 
     const callbackKey = String(process.env.RUSTORE_NOTIFICATION_AES_KEY || '').trim();
     if (callbackKey && !callbackKey.includes('_REQUIRED') && !isBase64Aes256Key(callbackKey)) {
@@ -294,7 +324,7 @@ if (channel === 'rustore' && rustorePaymentsEnabled) {
   }
 }
 
-if (release && channel === 'rustore' && !rustorePaymentsEnabled) {
+if (storeArtifact && channel === 'rustore' && !rustorePaymentsEnabled) {
   errors.push('NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED must be enabled for a RuStore release with subscriptions');
 }
 
@@ -308,4 +338,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Store release configuration is valid for ${channel}${release ? ' release' : ''}.`);
+const validationLabel = mobileArtifact ? ` ${mobileProfile} mobile artifact` : release ? ' release' : '';
+console.log(`Store release configuration is valid for ${channel}${validationLabel}.`);
