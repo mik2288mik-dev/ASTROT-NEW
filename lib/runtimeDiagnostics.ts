@@ -24,6 +24,7 @@ const STORAGE_KEY = 'nebo.runtime.diagnostics.v1';
 const MAX_ENTRIES = 200;
 const MAX_DETAIL_CHARS = 1200;
 const STARTUP_STALL_MS = 10_000;
+const STARTUP_LOADING_SELECTOR = '[data-nebo-startup-loading="true"]';
 const SENSITIVE_DIAGNOSTIC_KEY = /^(?:authorization|access[_-]?token|refresh[_-]?token|id[_-]?token|token|secret|client[_-]?secret|password(?:confirmation)?|email|otp|verification[_-]?code|authorization[_-]?code|challenge[_-]?id|state|nonce|code[_-]?challenge|code[_-]?verifier|device[_-]?id|init[_-]?data|cookie|session[_-]?id|code)$/i;
 const SENSITIVE_DIAGNOSTIC_NAME = SENSITIVE_DIAGNOSTIC_KEY.source.replace(/^\^|\$$/g, '');
 
@@ -257,8 +258,12 @@ async function renderOverlay(reason: string): Promise<void> {
   document.body.appendChild(overlay);
 }
 
+function canAutoOpenRuntimeDiagnostics(): boolean {
+  return isNative() && process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL === 'development';
+}
+
 function shouldAutoOpenHandledFailure(error: unknown, includeClientErrors: boolean): boolean {
-  if (!isNative() || process.env.NEXT_PUBLIC_DISTRIBUTION_CHANNEL !== 'development') return false;
+  if (!canAutoOpenRuntimeDiagnostics()) return false;
   const code = diagnosticErrorCode(error);
   if (code === 'AUTH_CANCELLED' || code === 'AbortError' || code === 'REQUEST_ABORTED') return false;
   const status = diagnosticHttpStatus(error);
@@ -346,13 +351,40 @@ function installConsoleTracing(): void {
 }
 
 function installStartupStallDetector(): void {
-  window.setTimeout(() => {
-    if (!isNative()) return;
-    const loading = document.querySelector('[role="status"]');
-    if (!loading) return;
-    diagnosticLog('ERROR', 'startup_stall', `loading screen still visible after ${STARTUP_STALL_MS}ms`);
-    void renderOverlay('startup stalled');
-  }, STARTUP_STALL_MS);
+  let trackedLoading: Element | null = null;
+  let stallTimer: number | null = null;
+
+  const clearStallTimer = () => {
+    if (stallTimer === null) return;
+    window.clearTimeout(stallTimer);
+    stallTimer = null;
+  };
+  const sync = () => {
+    const nextLoading = document.visibilityState === 'visible'
+      ? document.querySelector(STARTUP_LOADING_SELECTOR)
+      : null;
+    if (nextLoading === trackedLoading) return;
+
+    trackedLoading = nextLoading;
+    clearStallTimer();
+    if (!trackedLoading) return;
+
+    const watchedLoading = trackedLoading;
+    stallTimer = window.setTimeout(() => {
+      stallTimer = null;
+      if (!isNative() || document.visibilityState !== 'visible') return;
+      if (document.querySelector(STARTUP_LOADING_SELECTOR) !== watchedLoading) return;
+
+      diagnosticLog('ERROR', 'startup_stall', `loading screen still visible after ${STARTUP_STALL_MS}ms`);
+      if (canAutoOpenRuntimeDiagnostics()) {
+        void renderOverlay('startup stalled');
+      }
+    }, STARTUP_STALL_MS);
+  };
+
+  new MutationObserver(sync).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener('visibilitychange', sync);
+  sync();
 }
 
 export function installRuntimeDiagnostics(): void {
@@ -362,12 +394,12 @@ export function installRuntimeDiagnostics(): void {
 
   window.addEventListener('error', (event) => {
     diagnosticLog('ERROR', 'window_error', `${event.message} ${event.filename || ''}:${event.lineno || 0}:${event.colno || 0} ${errorDetail(event.error)}`);
-    if (isNative()) void renderOverlay('JavaScript error');
+    if (canAutoOpenRuntimeDiagnostics()) void renderOverlay('JavaScript error');
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     diagnosticLog('ERROR', 'unhandled_rejection', errorDetail(event.reason));
-    if (isNative()) void renderOverlay('unhandled promise rejection');
+    if (canAutoOpenRuntimeDiagnostics()) void renderOverlay('unhandled promise rejection');
   });
 
   document.addEventListener('DOMContentLoaded', () => diagnosticLog('INFO', 'dom_content_loaded'));

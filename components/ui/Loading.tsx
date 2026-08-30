@@ -36,6 +36,7 @@ export const Loading: React.FC<LoadingProps> = ({ progress: externalProgress }) 
     <div
       className="fixed inset-0 z-50 flex h-[100dvh] min-h-[100dvh] w-screen flex-col items-center justify-center overflow-hidden"
       style={{ backgroundColor: 'var(--app-canvas, #FFFFFF)' }}
+      data-nebo-startup-loading="true"
       role="status"
       aria-live="polite"
       aria-label={LOADING_LABEL}
