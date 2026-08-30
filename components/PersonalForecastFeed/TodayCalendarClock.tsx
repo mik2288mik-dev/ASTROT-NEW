@@ -299,12 +299,12 @@ export function TodayCalendarClock({
     ? activeBroadcast.labelRu
     : activeBroadcast.labelEn;
   const broadcastActionLabel = language === 'ru'
-    ? `Переключить эфир. Сейчас «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}. Дата и время: ${parts.semanticLabel}.`
-    : `Change broadcast. Current broadcast is “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}. Date and time: ${parts.semanticLabel}.`;
+    ? `Сменить общий совет дня. Сейчас «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}. Дата и время: ${parts.semanticLabel}.`
+    : `Change today's suggestion. Current suggestion is “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}. Date and time: ${parts.semanticLabel}.`;
   const broadcastStatus = broadcastInteracted
     ? (language === 'ru'
-        ? `Эфир переключён: «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}.`
-        : `Broadcast changed to “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}.`)
+        ? `Общий совет дня сменён: «${activeBroadcastLabel}», ${broadcastIndex + 1} из ${todayBroadcasts.length}.`
+        : `Today's suggestion changed to “${activeBroadcastLabel},” ${broadcastIndex + 1} of ${todayBroadcasts.length}.`)
     : '';
 
   const advanceBroadcast = () => {
@@ -401,8 +401,8 @@ export function TodayCalendarClock({
       </span>
       <span className="today-calendar-clock-caption" aria-hidden="true">
         {language === 'ru'
-          ? `${activeBroadcastLabel} · нажми, чтобы сменить`
-          : `${activeBroadcastLabel} · tap to change`}
+          ? `Общий совет дня: ${activeBroadcastLabel} · нажми, чтобы сменить`
+          : `Today's suggestion: ${activeBroadcastLabel} · tap to change`}
       </span>
     </span>
   );
