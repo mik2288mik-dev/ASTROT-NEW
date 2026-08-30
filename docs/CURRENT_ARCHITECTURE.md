@@ -1,47 +1,77 @@
-# Current architecture
+# Current NEBO architecture
 
-## Runtime
+This reference describes active NEBO paths.
 
-- `App.tsx` restores the authenticated profile and a saved natal chart without making generation a startup gate.
-- `Dashboard` is the only personal-reading surface. Today, Week, and Month are internal periods selected by one controlled three-tab switcher directly below the Today header; they are not primary navigation destinations.
-- The client is local-first: it keeps a usable cached reading visible while a server refresh runs in the background.
+## Runtime and navigation
 
-## Personal forecasts
+- `App.tsx` restores the app session, profile, saved charts, and current screen.
+- `LumiaBottomTabBar` renders the production navigation in this order:
+  `Сегодня`, `Зодиак`, `Натальная карта`, `Сравнить`, `Меню`.
+- Today, Week, and Month are period tabs inside the personal forecast.
+- `Меню` opens the full menu screen.
+- The active natal flow is `App.tsx` to `views/v2/NatalMagazine.tsx` and its
+  `Карта`, `Разбор`, `Спросить о себе`, and `Матрица судьбы` tabs.
 
-- `lib/swisseph-calculator.ts` remains the deterministic source for the saved natal chart. It is not called to calculate forecast-period transits or evidence.
-- `lib/personalForecastGeneration.ts` builds one private prompt input from the selected date/range, available birth details, saved natal positions/aspects, and bounded anti-repeat history, then asks OpenAI Luna to author the reading. It does not inject a preselected generic psychological topic.
-- Luna uses the Responses API with `store: false` and strict JSON Schema through `lib/openaiResponses.ts`. The schema permits exactly four required strings: `title`, `punchline`, `forecast`, and `closing`. Rejected draft text stays server-side and is never serialized into the repair prompt.
-- The server renders the four fields in order: generated title, separate sharp punchline, forecast body, and separate conclusion/advice. Today materializes as 4–6 ordered text fragments: the first/main fragment lives in `overview`, and the remainder live in ordered `sections`. Week and Month keep one cohesive body followed by the advice section; Week is longer than Today, and Month is longer than Week.
-- Anti-repeat validation derives compact signatures from the generated title, punchline, forecast, and closing, then compares them with bounded history and the reference corpus. The references control voice and form only; they do not supply a personal plot.
-- The model is the author of the personal forecast, not a renderer of precomputed themes or a calculator of period events. The server validates format, length, language, forecast voice, safety, unsupported claims, repetition, and visible astrology before persisting the result. Writer attempts remain capped at two.
-- `lib/personalForecastCache.ts` caches one materialized package by authenticated user, owned chart ID, full saved-natal fingerprint, hash of sanitized profile fields, period, timezone-aware period key, language, model, calculation, contract, prompt, and voice identity. Before generation, it reads up to 15 recent fragments for the same user and chart across `day`, `week`, and `month`; this is negative prompt context only and is never served as the requested forecast. Compatible stale output must have the current prompt identity.
-- `lib/appVoice.ts` owns the shared runtime voice and the separate personal-forecast voice identity. `lib/personalForecastExamples.ts` contains the complete reference corpus — 21 Today, 15 Week, and 20 Month examples — and supplies every reference for the selected period. Forecast-specific bite does not change the global app voice.
-- `/api/content/forecast/personal`, its cache, and the client service exchange `PersonalForecastPackage` end to end. Legacy `aiPersonalHoroscope*` fields remain inactive compatibility state rather than an alternate forecast source.
-- The client reads local state, checks the server cache with `GET`, then starts generation with `POST`. A `202` is polled with the same `POST` and `regenerate: false`. Startup prewarm remains non-blocking: Free requests only `day`, while Premium sequentially requests `day`, `week`, and `month`.
+## Personal forecast generation
 
-## Product separation
+The active generation chain is:
 
-- `Зодиак` remains a separate sign-based product and keeps its DeepSeek compatibility route.
-- Swiss Ephemeris remains required for natal-chart calculation and its permanent interpretations.
-- “Вопрос астрологу” belongs to the natal reading and opens from that product; it is not a block inside the personal forecast.
+```text
+raw birth profile + selected period
+-> hidden astrologer brief
+-> personal forecast writer
+-> strict validation and anti-repeat
+-> PersonalForecastPackage
+-> current UI
+```
 
-## Visual and navigation boundaries
+The brief receives raw birth fields and the exact period. The writer receives
+the accepted brief, reader name and language, period, and bounded history. It
+does not receive the calculated natal chart, Swiss Ephemeris output, positions,
+houses, aspects, transits, or text from another user.
 
-- One `LumiaBottomTabBar` is the production primary-navigation shell on the main screens; the old drawer is not mounted. Its left zone opens the personal and sign horoscopes, its centre opens compatibility, natal chart, astrologer question, and the encyclopedia, and its right zone opens Settings, Store, and Premium. The top profile action opens profile data and saved charts. Forecast periods remain internal to the Diary through its controlled tabs.
-- The active Today surface is the deterministic `calendar-editorial` composition in `TodayEditorialFeed`: `TodayLineField` selects one of 12 line presets and `TodayCalendarClock` selects one of 15 clock presets from `userId + periodKey`. The generated title, clock-adjacent punchline, forecast fragments, and conclusion/advice render as distinct parts of one reading.
-- `lib/personalForecastVisuals/diaryVisualEngine.ts`, its five layouts, the 309-image personal catalog, and 19 paper templates remain library-only. The active Today renderer does not mount that planner, `EditorialForecastVisual`, or `EditorialPaperNote`.
-- `lib/personalForecastVisuals/personal.manifest.json`, `paper-templates.manifest.json`, and `editorialSelectors.ts` are the personal source of truth. They do not import the legacy Zodiac pool. Zodiac uses its own typed allowlist, `zodiac-legacy-special.manifest.json`, and `lib/zodiacLegacyVisuals/index.ts`; that pool contains only 24 psychedelic and 24 approved funny-animal assets under `/assets/zodiac-legacy-special/`.
-- Body prose remains outside imagery and additional cards. Luna never chooses the clock, line preset, asset, coordinates, colour, or layout.
+The strict writer output contains `title`, `punchline`, `forecast`, and
+`closing`. The server materializes the result as `PersonalForecastPackage` end to end.
+Today renders the forecast body as 4-6 ordered fragments; Week and
+Month remain one cohesive story each.
 
-## Android accounts
+## Cache and delivery
 
-- Android is the primary product platform. Email registration/password login, email-code confirmation and reset, Google Credential Manager, Yandex LoginSDK 3.1.3, and VK ID SDK 2.7.2 are implemented in the native shell with server-side credential verification.
-- Auth capabilities are runtime-aware: Android uses native provider readiness, browser OAuth also requires its server secrets and HTTPS origin, and password login remains independently available when email-code delivery is not configured.
-- `account_identities` maps verified email, Google, Yandex, VK, and Telegram identities to one canonical `users.id`. An email match alone never merges users, and an identity already owned by another user cannot be captured. Natal chart, forecast history, Premium, and saved data remain attached to the canonical user.
-- Native sessions are restored from Android Keystore-backed storage and are revocable server-side. Login/link flows guard cancel, Back, repeated taps, cold start, and concurrent callbacks.
-- Migration `mvp_043_password_authentication` adds password credentials and email-code state. Provider console credentials, email delivery, Railway secrets, production migration execution, release signing fingerprints, and live device verification remain manual deployment work.
+- `lib/personalForecastCache.ts` owns the server cache.
+- The cache does not use a `saved-natal fingerprint`; it uses
+  `birthProfileFingerprint`, the hash of sanitized profile fields, with the
+  user ID, access tier, period, timezone-aware period key, language, model, and
+  calculation, contract, prompt, voice, and cache versions.
+- The old phrase `15 recent fragments for the same user and chart` is
+  inaccurate: history is bounded to the same user and access tier, with no
+  chart-ID filter.
+- The client checks the server cache with `GET`, then starts generation with `POST`.
+- A `202` response is polled with `POST` and `regenerate: false`.
+- The client keeps compatible local content visible while refreshing.
 
-## Persistence boundary
+## Product engines
 
-- Existing migrations and stored data are append-only history; do not delete database tables as a code-cleanup step.
-- Legacy forecast-question server routes remain isolated until their shared natal-question utilities are explicitly migrated. They are not part of the rendered forecast UI.
+- Swiss Ephemeris calculates and stores natal charts. It does not calculate
+  period transits for the personal forecast.
+- Zodiac uses the separate sign-based generation and cache path.
+- Natal questions accept only questions answerable from the saved natal chart.
+- Compatibility keeps sign compatibility separate from two-chart synastry.
+- RuStore Pay grants Premium only after server validation of an allowed product.
+
+## Android and backend
+
+- Capacitor owns the Android shell.
+- Package ID is `ru.tvoygoroskop.app`.
+- The RuStore flavor includes RuStore Pay; other flavors do not.
+- Email, VK ID, Yandex ID, Google, and Telegram identities can map to one
+  canonical `users.id`; enabled sign-in buttons depend on the build channel.
+- Railway currently runs the API, PostgreSQL, scheduled jobs, and public site.
+- `/api/health` reports process health. `/api/readiness` checks PostgreSQL and
+  Swiss Ephemeris.
+
+## Data boundaries
+
+- Server routes authenticate the current app user and verify chart ownership.
+- Secrets stay server-side and never use `NEXT_PUBLIC_*`.
+- Account deletion revokes sessions and removes account-owned product data.
+- Applied migrations remain append-only history.

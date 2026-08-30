@@ -1,42 +1,59 @@
-# Your Horoscope
+# NEBO
 
-Next.js, React, TypeScript, Jest, PostgreSQL, Telegram Mini App, and Telegram Stars Premium billing.
+NEBO is an Android-first astrology application built with Next.js, React,
+TypeScript, Capacitor, PostgreSQL, and Jest.
 
-## MVP
+- Public name: `NEBO гороскоп натальная карта`
+- Android package: `ru.tvoygoroskop.app`
+- Production API: `https://api.tvoi-goroskop.ru`
+- Android distribution: RuStore
 
-- Home screen with one personal AI-written story for today; week and month are selected from the diary drawer.
-- Sign horoscopes.
-- Natal chart.
-- Free sign compatibility.
-- Premium chart-based relationship reading.
-- Matrix of Destiny.
-- Premium calendar/archive.
-- Settings, profile, onboarding, subscription, support, admin, and notifications.
+The package ID and `tvoi-goroskop.ru` domains are stable technical identifiers
+used by the current release. The only customer-facing brand is NEBO.
 
-## Main Commands
+## Quick start
 
-```bash
-npm install
-npx tsc --noEmit
-npm test -- --runInBand
-npm run build
-npm run lint
+```powershell
+npm ci
+npm run dev
 ```
 
-## Core Routes
+Open the local UI Preview when you need deterministic product states:
 
-- `/api/charts/*` - natal chart calculation, primary repair, saved charts.
-- `/api/content/*` - horoscopes, personal day/week/month stories, natal readings, synastry, matrix-related content.
-- `/api/subscriptions/*` and `/api/telegram/*` - Premium through Telegram Stars.
-- `/api/admin/v2/*` - operational admin.
-- `/api/support/*` - support flows.
+```powershell
+npm exec -- cross-env NEXT_PUBLIC_UI_PREVIEW=1 npm run dev
+```
 
-## Current Product Documentation
+Run focused checks before broad checks:
 
-See `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`.
+```powershell
+npm test -- --runInBand <path-to-test>
+npx tsc --noEmit
+npm run lint
+npm run build
+```
 
-## Visual card system
+## Current product
 
-- [Visual system, composition, rotation, expanded covers, and seasonal rules](docs/design/card-background-system/README.md)
-- [Guide for generating new illustrated card assets](docs/design/card-background-system/ASSET_GENERATION_GUIDE.md)
-- [Production asset manifest](docs/design/card-background-system/card-background-manifest.json)
+- Personal forecasts for Today, Week, and Month.
+- Zodiac forecasts for all 12 signs.
+- Natal chart, permanent reading, and questions about the saved chart.
+- Compatibility by sign and by two saved birth profiles.
+- Matrix of Destiny and astrology encyclopedia.
+- Free access without mandatory registration.
+- Premium subscriptions through RuStore Pay.
+- Account linking, recovery, support, and account deletion.
+
+The persistent bottom navigation is: `Сегодня`, `Зодиак`, `Натальная карта`,
+`Сравнить`, `Меню`.
+
+## Canonical documentation
+
+- [Architecture](docs/CURRENT_ARCHITECTURE.md)
+- [Product boundaries](docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md)
+- [Generated-content voice](docs/APP_VOICE.md)
+- [Personal forecast runtime](docs/agents/personal-forecast.md)
+- [Android and RuStore release](docs/ANDROID_STORE_RELEASE.md)
+- [Current RuStore status](RUSTORE_LEGAL_RELEASE_CHECKLIST.md)
+- [Legal surfaces](docs/legal/README.md)
+- [Store listing](docs/store/rustore/STORE_LISTING.md)

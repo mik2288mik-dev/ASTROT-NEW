@@ -1,92 +1,88 @@
-# MEOU RuStore legal release checklist
+# NEBO: текущий статус RuStore
 
-Prepared from repository/API/Android inspection on 23 August 2026. Re-run the
-checks against the final signed APK: RuStore requires disclosure of data
-collected/transferred by the app, SDKs and backend—not merely Manifest
-permissions.
+Актуально на 30 августа 2026 года. Это единственный документ со статусом
+версии в кабинете; подготовительные и исторические чек-листы удалены.
 
-## Identity and public links
+## Карточка приложения
 
-- [x] Final public name selected as **MEOU** and aligned in the website metadata,
-  Capacitor config, Android string locales and RuStore listing draft. Re-check
-  the label in the final signed artifact and Console before submission.
-- [ ] Package verified as `ru.tvoygoroskop.app`; signing key/certificate checked.
-- [ ] Website: `https://tvoi-goroskop.ru/` returns 200 with valid TLS.
-- [ ] Privacy: `/privacy`; Terms: `/terms`; deletion: `/delete-account`;
-  separate consent: `/personal-data-consent`; support: `/support`.
-- [ ] Real IP/operator, support and privacy contacts visible; no
-  `OWNER_REQUIRED`/placeholder text; published document versions archived.
+| Поле | Текущее значение |
+|---|---|
+| Название | `NEBO гороскоп натальная карта` |
+| Package ID | `ru.tvoygoroskop.app` |
+| Версия | `1.0.0 (2)` |
+| Категория | Образ жизни |
+| Возраст | 12+ |
+| Распространение | Бесплатно, с покупками внутри |
+| Публикация после одобрения | Ручная, 100% аудитории |
+| Статус | Ожидает ручной модерации |
 
-## Final APK permissions and SDKs
+Текущую версию не отзывать, не заменять и не публиковать без новой команды
+владельца.
 
-- Manifest currently declares only:
-  - `android.permission.INTERNET`
-  - `android.permission.ACCESS_NETWORK_STATE`
-- Native dependencies found: Capacitor network/app/preferences, Yandex Login SDK,
-  VK ID SDK and RuStore Pay SDK/config. No analytics, advertising, location
-  permission or crash-reporting SDK was found in the inspected source.
-- [ ] Run `npm run android:validate:release` and inspect the **merged release
-  manifest** plus a real device/proxy network trace; transitive SDK manifests
-  can add declarations.
+## Загруженная сборка
 
-## Data categories to declare from actual flows
+- Файл: `C:\Users\user\Downloads\NEBO-RuStore-1.0.0\upload-final\NEBO-rustore-release-1.0.0-vc2.apk`.
+- Размер: 61 326 710 байт.
+- SHA-256: `7AA6501B86442A37CFC25DC28C9B4E267FF196BD0AEF56D97A6314C47FD1A6B2`.
+- Подпись: APK Signature Scheme v2, RSA 4096.
+- SHA-256 сертификата:
+  `55037E5A70DAFEC00B9A2324423A97626BD0F678D3CCF5D48F25ED01DC596F0B`.
+- minSdk 24, target/compile SDK 36; cleartext traffic и Android backup
+  отключены.
+- Production API: `https://api.tvoi-goroskop.ru`.
 
-| RuStore category | MEOU data/use | Collected | Shared/transferred |
-|---|---|---:|---:|
-| Personal info — name | Profile, chart and personalised generation | Yes | Yes, currently OpenAI |
-| Personal info — email | Email registration/login/recovery | Yes | Yes, Resend and selected auth flow |
-| Personal info — user ID | Account/session/provider IDs | Yes | Yes, auth/RuStore as required; must not be sent to AI |
-| Other personal info / date of birth | Birth date/time/place, coordinates/time zone, other-person compatibility data | Yes | Yes, current AI/geocoding flows |
-| User content / other messages | AI question, support text, generated-history context | Yes | Yes, OpenAI; mail provider for email support |
-| App activity / interactions | Forecast/history/content use and server events | Yes | Potentially hosting/logging; no advertising analytics found |
-| Diagnostics | Error message/endpoint and technical metadata | Yes | Current hosting/logging provider |
-| Device or other identifiers | Session/provider/SDK identifier; IP/UA in network logs | Yes | Hosting and selected auth/store SDKs |
-| Purchases | RuStore purchase/product/subscription ID and state | Only when Premium enabled | RuStore and MEOU backend |
-| Precise/approximate device location | No Android location permission or GPS use found | No | No; birthplace coordinates are user-provided profile data, not device location |
-| Contacts/photos/files/health/financial-card data | Not required/found | No | No |
+## Загруженные материалы
 
-Mark purposes consistently: app functionality/personalisation, account
-management/security, developer communications and purchases only where active.
-Do not declare advertising or analytics unless the final build adds them.
+- Иконка NEBO загружена из канонического 512 px export.
+- Загружены восемь вертикальных скриншотов 1080 × 1920:
+  `01_today-personal.png`, `02_natal-chart.png`,
+  `03_compatibility.png`, `04_natal-reading.png`,
+  `05_week-personal.png`, `06_destiny-matrix.png`,
+  `07_zodiac-horoscope.png`, `08_encyclopedia.jpg`.
+- Тексты карточки сохранены в `docs/store/rustore/STORE_LISTING.md`.
 
-## Consent, deletion and security
+## Монетизация
 
-- [ ] Separate PD consent is explicit, unchecked, versioned and stored; Terms
-  acceptance is a different action.
-- [ ] Policy is readable before consent and from the app/site without login.
-- [ ] Account deletion works in-app and at the public URL; authenticated delete
-  smoke confirms profile/charts/history/questions/sessions/purchases disappear.
-- [ ] Support text, logs and backup rotation follow the published retention
-  schedule; restored backups cannot resurrect a deleted account.
-- [ ] HTTPS only; no secrets in APK/client; release logging disabled; API domain
-  certificate valid; primary DB/API/logs/backups evidenced in Russia.
-- [ ] Article 22 operator and Article 12 cross-border submissions/receipts are
-  archived before release.
+| Подписка | Цена | Статус |
+|---|---:|---|
+| 1 месяц | 399 ₽ | Опубликована |
+| 3 месяца | 899 ₽ | Опубликована |
+| 1 год | 2 999 ₽ | Опубликована |
 
-## Premium/subscriptions
+- Пробного периода нет.
+- Налог для товаров указан как «Без НДС».
+- Диапазон дохода указан как «До 20 млн ₽».
+- Боевые callback-уведомления включены, тестовый callback принят.
+- Console App ID: `2063750823`.
+- Product ID: `premium_month`, `premium_quarter`, `premium_year`.
+- Callback:
+  `https://api.tvoi-goroskop.ru/api/payments/rustore/notifications`.
+- Premium выдаётся только после серверной проверки покупки RuStore.
 
-- The target first RuStore release includes Premium. Keep
-  `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=0` until RuStore Console products,
-  production environment and the sandbox purchase/cancel/restore/callback flow
-  are configured and verified.
-- Before submission, enable Premium in the signed release build, declare
-  purchases and describe the actual price/period/trial, auto-renewal,
-  cancellation and restore exactly as RuStore implements them. Server-validate
-  purchase ownership and callbacks; never claim MEOU stores card data.
+Реальная покупка, восстановление и выдача Premium на физическом устройстве
+остаются отдельной проверкой; тестовый callback их не доказывает.
 
-## Age, content and listing consistency
+## Legal-состояние
 
-- [ ] Owner completes the current RuStore age questionnaire from actual AI/user
-  content; chosen age matches Terms/onboarding.
-- [ ] Listing describes only released features: personal Today/Week/Month
-  forecast, natal chart/personality reading and compatibility. Questions and
-  Premium appear only if enabled in the signed build.
-- [ ] Lifestyle/entertainment wording and no medical, psychological, financial,
-  guaranteed-event or “100% accuracy” claims.
-- [ ] Final screenshots, app title, feature names, support email and legal URLs
-  match the website and installed build.
+Версия `2` уже отправлена с legal-страницами, в которых остаются черновое
+предупреждение и незаполненные значения. Отдельного consent-checkbox до
+отправки данных профиля в этой сборке нет.
 
-Official references:
-[requirements](https://www.rustore.ru/help/developers/publishing-and-verifying-apps/requirement-apps),
-[permission declaration](https://www.rustore.ru/help/developers/publishing-and-verifying-apps/app-publication/new-version-app/declare-app-permissions),
-[data categories](https://www.rustore.ru/help/developers/publishing-and-verifying-apps/app-publication/new-version-app/declare-app-permissions/data-categories).
+Исправления готовятся локально для версии с кодом `3`:
+
+- завершить политику, соглашение, согласие, реквизиты, поддержку и удаление;
+- добавить отдельное, заранее не отмеченное согласие на обработку персональных
+  данных;
+- сохранять версию, время, источник, язык и отзыв согласия;
+- синхронизировать web- и packaged legal-страницы;
+- повторно проверить декларацию данных и итоговый APK.
+
+## Что происходит дальше
+
+1. Пока статус «На модерации», никаких действий в кабинете не выполнять.
+2. Если версия одобрена, она всё ещё не выйдет автоматически: для ручного
+   запуска нужна отдельная команда владельца.
+3. Если версия отклонена, сохранить точную причину, внести исправление в
+   локальную версию `3` и только затем отправить новую сборку.
+4. Если версия `2` опубликована, legal- и consent-правки выпускаются обычным
+   следующим обновлением, без отзыва принятой версии.

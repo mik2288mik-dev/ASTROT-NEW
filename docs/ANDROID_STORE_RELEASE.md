@@ -1,52 +1,90 @@
-# Android store release
+# Android и RuStore: релиз NEBO
 
-## Current technical baseline
+Этот документ описывает только действующую Android-сборку и следующий
+релизный шаг. Исторические названия и планы других магазинов сюда не входят.
 
-- Public store and Android system name: `MEOU`.
-- Final Android package/application ID: `ru.tvoygoroskop.app`.
-- Capacitor 8.4.2; Android minSdk 24, compileSdk/targetSdk 36; AGP 8.13.0 and Gradle 8.14.3.
-- Flavors: `development`, `telegram`, `rustore`, `googlePlay`. Only `rustore` compiles RuStore Pay SDK 11.1.0 (`ru.rustore.sdk:bom:2026.08.01` / `pay`); Google Play and Telegram do not include it. This is the current Kotlin/Java version documented by RuStore on 23 August 2026.
-- `telegram` alone can invoke Telegram Stars. `google_play` has no checkout action until Google Play Billing is a separate project.
-- `rustore` uses a Capacitor native bridge, return deep link, server validation, and encrypted callback endpoint. The callback durably enqueues work and returns before Public API validation; `/api/cron/rustore-payment-events` or the common cron tick processes retries. Do not use the deprecated RuStore BillingClient. A subscription release requires `NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=1` and passes the release validator only in production mode.
-- A guest may use all Free functions. When a guest selects a subscription, the app keeps the paywall context and selected plan, opens the existing account-link flow, and returns to that plan after VK ID, Yandex ID or confirmed email/password recovery is linked. The same recovery path handles a backend `RECOVERY_IDENTITY_REQUIRED` response. The stable `users.id` is passed as `AppUserId`; Telegram alone does not satisfy Android recovery.
-- Release build has minification, `allowBackup=false`, cleartext disabled and requires signing. Debug remains available as `assembleDevelopmentDebug`.
+## Идентичность
 
-## Owner values required before first upload
+| Поле | Значение |
+|---|---|
+| Публичное имя | `NEBO гороскоп натальная карта` |
+| Package ID | `ru.tvoygoroskop.app` |
+| Минимальный Android | Android 7.0, API 24 |
+| Target / compile SDK | API 36 |
+| Production API | `https://api.tvoi-goroskop.ru` |
+| Магазин | RuStore |
 
-1. Permanent keystore: create once with `keytool -genkeypair -v -keystore your-horoscope-release.jks -alias your-horoscope -keyalg RSA -keysize 4096 -validity 10000`; store it plus passwords in a password manager and encrypted offline backup. The same signing identity is required for every future update.
-2. Copy `signing.properties.example` to ignored `android/signing.properties`, or use CI environment variables. Never commit either a keystore or passwords.
-3. Set a stable HTTPS `NEXT_PUBLIC_API_URL`; the APK/AAB must not use a provider-specific temporary host.
+Источники этих значений: `capacitor.config.ts`, `android/app/build.gradle` и
+release-переменные окружения.
 
-## Commands
+Package ID и домены с `tvoi-goroskop.ru` остаются техническими идентификаторами
+текущего релиза. Публичный бренд приложения — только NEBO.
+
+## Версия на модерации
+
+Версия `1.0.0 (2)` отправлена на ручную модерацию RuStore. После одобрения
+публикация остаётся ручной для 100% аудитории.
+
+- APK: `C:\Users\user\Downloads\NEBO-RuStore-1.0.0\upload-final\NEBO-rustore-release-1.0.0-vc2.apk`
+- Размер: 61 326 710 байт.
+- SHA-256: `7AA6501B86442A37CFC25DC28C9B4E267FF196BD0AEF56D97A6314C47FD1A6B2`.
+- Подпись: APK Signature Scheme v2, RSA 4096.
+- SHA-256 сертификата:
+  `55037E5A70DAFEC00B9A2324423A97626BD0F678D3CCF5D48F25ED01DC596F0B`.
+- Итоговые разрешения: `INTERNET`, `ACCESS_NETWORK_STATE`,
+  `RECEIVE_BOOT_COMPLETED` и внутреннее
+  `ru.tvoygoroskop.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`.
+- В manifest запрещены cleartext traffic и Android backup.
+- Версию нельзя отзывать, заменять или публиковать без новой команды владельца.
+
+## Настройки магазина
+
+- Подписки опубликованы: 1 месяц — 399 ₽, 3 месяца — 899 ₽, 1 год — 2 999 ₽.
+- Product ID: `premium_month`, `premium_quarter`, `premium_year`.
+- RuStore Console App ID: `2063750823`.
+- Пробного периода нет.
+- Для товаров указано «Без НДС»; диапазон дохода — до 20 млн ₽.
+- RuStore Pay проверяет покупку на сервере до выдачи Premium.
+- Боевые callback-уведомления включены; тестовый callback принят.
+- Callback:
+  `https://api.tvoi-goroskop.ru/api/payments/rustore/notifications`.
+- Иконка и восемь скриншотов загружены. Их источники записаны в
+  `docs/store/common`.
+
+Тестовый callback подтверждает доставку и разбор уведомления, но не заменяет
+проверку реальной покупки, восстановления и выдачи Premium на устройстве.
+
+## Локальная сборка
+
+Release-секреты подписи, RuStore и OAuth передаются только через локальное или
+серверное окружение и не записываются в Git.
+
+RuStore-успех на клиенте сам по себе не выдаёт Premium: callback
+расшифровывается AES-256-GCM, сохраняется в очереди и сверяется с Public API.
+Покупка привязывается к стабильному `AppUserId`. Постоянный signing key нельзя
+менять между обновлениями.
 
 ```powershell
-$env:NEXT_PUBLIC_API_URL = 'https://api.example.ru'
-$env:NEXT_PUBLIC_DISTRIBUTION_CHANNEL = 'development'
-$env:NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED = '0'
-npm run android:debug
-
-# With all owner values, signing and legal configuration set:
+$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
+npm run android:validate:release
 npm run android:rustore:apk
-npm run android:rustore:aab
-npm run android:google-play:aab
+npm run android:rustore:inspect
 ```
 
-The release script validates channel, package consistency, versions, legal URLs, signing and RuStore fields; builds the web export, syncs Capacitor, emits an artifact path and SHA-256, and never uploads it.
+Для следующей сборки `APP_VERSION_CODE` должен быть больше `2`. `APP_VERSION_NAME`
+задаётся только после решения о составе обновления. Мобильный API URL обязан
+быть абсолютным HTTPS URL.
 
-## RuStore owner setup
+## Следующая версия
 
-In RuStore Console: create the app with the final signed package, enable monetization, and create exactly three `SUBSCRIPTION` products for month, three months, and year. Do not configure a trial for the first release. Copy their product IDs from **Monetization** into `NEXT_PUBLIC_RUSTORE_PRODUCT_PREMIUM_*` and the exact server allowlist `RUSTORE_ALLOWED_PRODUCT_IDS`. Copy the application ID from the Console URL into `RUSTORE_CONSOLE_APP_ID`; store the Public API key ID in `RUSTORE_KEY_ID` and its PKCS#8 RSA private key as base64 in server-only `RUSTORE_PRIVATE_KEY_BASE64`. The server exchanges that key pair for short-lived JWE tokens and does not use a static Public API token. Configure the callback URL `https://<public-domain>/api/payments/rustore/notifications`. Save the AES-256 callback key only in `RUSTORE_NOTIFICATION_AES_KEY` server secret. Add test VK IDs in the Console before sandbox testing.
+Локально готовится версия с кодом `3`:
 
-## Account provider owner setup
+- убрать черновые пометки и незаполненные значения из legal-страниц;
+- добавить отдельное, заранее не отмеченное согласие на обработку персональных
+  данных до отправки данных профиля;
+- сохранить версию согласия, время, источник, язык и отзыв;
+- проверить итоговые разрешения, API URL, подпись, покупки и восстановление на
+  физическом Android-устройстве.
 
-Android account entry is native-first:
-
-- Google uses Credential Manager and returns an ID token for server-side verification. Configure the Web OAuth client ID used as `serverClientId`, plus Android package `ru.tvoygoroskop.app` and the real debug/release signing fingerprints.
-- Yandex uses LoginSDK 3.1.3 and returns an access token for server-side user-info verification. Configure its Android application ID as `YANDEX_ANDROID_CLIENT_ID` in the provider console, Railway and the APK build; keep browser OAuth in `YANDEX_AUTH_CLIENT_ID` plus its secret.
-- VK uses VK ID SDK 2.7.2. Its OAuth 2.1 authorization-code flow uses PKCE, state, `device_id`, and `vk<VK_ANDROID_CLIENT_ID>://vk.ru/blank.html`; configure that redirect, `VK_ANDROID_CLIENT_ID`, and the Android SDK client secret separately from browser `VK_AUTH_CLIENT_ID` plus its secret.
-- Email uses password registration/login and one-time codes only for confirmation and reset. Configure the server-side delivery adapter and independent production HMAC/rate-limit secrets.
-- On Railway keep `AUTH_TRUST_PROXY=0` until the trusted edge is confirmed to overwrite `X-Forwarded-For`; only then enable it so per-client auth limits use the real forwarded address without accepting spoofed values.
-
-Put all server and build values in the non-public variables listed in `.env.example`; do not expose them through `NEXT_PUBLIC_*` or React code. Apply `mvp_043_password_authentication` through the normal production migration procedure. Live provider login/linking still requires a signed APK and physical-device verification.
-
-The callback payload is AES-256-GCM decrypted server-side. Premium is never granted by an APK response; it is granted after server validation of a permitted subscription and linked to one user/purchase ID only.
+Загрузка этой сборки в RuStore — отдельное действие после результата модерации
+версии `2` или новой прямой команды владельца.

@@ -1,22 +1,58 @@
-# Admin Panel Spec
+# Админ-панель NEBO
 
-The admin panel is an operational subsystem for the MVP.
+Краткий контракт действующей админ-панели. Runtime-код остаётся источником
+истины для маршрутов, событий и прав.
 
-## Scope
+## 1. Область
 
-- User lookup and support-safe account inspection.
-- Premium entitlement visibility.
-- Notification templates, schedules, delivery logs, and assets.
-- Content/model health visibility.
-- Basic analytics for onboarding, chart creation, Premium, and notification delivery.
+Админ-панель обслуживает пользователей, натальные карты, контент, AI-настройки,
+подписки, аналитику, уведомления, поддержку, роли и аудит. Она не определяет
+пользовательскую навигацию NEBO и не хранит release-секреты в клиенте.
 
-## Rules
+## 2. Аутентификация
 
-- Admin tools support the live MVP; they do not define consumer roadmap.
-- Admin copy and templates must follow `docs/MVP_PRODUCT_AND_CONTENT_SYSTEM.md`.
-- Removed product surfaces must not appear as segments, templates, deep links, or scenarios.
-- Any destructive admin action must be explicit, logged, and scoped to the selected user or environment.
+`lib/adminAuth.ts` проверяет подписанные Telegram initData для административного
+контура. `lib/admin/rbac.ts` связывает этот субъект с внутренним `users.id`
+через `account_identities`. Только активная запись `admin_users` или настроенный
+owner получает доступ.
 
-## Event Taxonomy
+## 3. Чтение данных
 
-Use stable product events for startup, onboarding, chart creation, horoscope opens, compatibility flows, Premium lifecycle, notifications, support, and account deletion.
+Каждый endpoint проверяет административный контекст до чтения. Персональные
+данные открываются только с `user.pii.view`. Ответы не должны возвращать
+секреты провайдеров, signing material или полные платёжные credentials.
+
+## 4. Изменения и аудит
+
+Каждый мутирующий endpoint вызывает
+`requireAdminPermission(req, '<permission>')` и записывает действие через
+`lib/admin/audit.ts`. Массовые операции требуют явного фильтра и не должны
+молчаливо охватывать всю базу.
+
+## 5. Поддержка и биллинг
+
+Поддержка работает через `support_tickets` и `support_messages`. Возвраты,
+выдача Premium и изменение paywall доступны только ролям с соответствующим
+правом и фиксируются в аудите. Истиной по RuStore-подписке остаётся серверная
+валидация провайдера.
+
+## 6. Event taxonomy
+
+Канонические имена, исторические алиасы и русские подписи находятся в
+`lib/admin/eventTaxonomy.ts`. События пишутся в `user_app_events`. Новое имя
+добавляется в `CANONICAL_EVENTS`; переименование существующего события делается
+через `EVENT_ALIASES`, чтобы не ломать историю.
+
+Основные группы: запуск и онбординг, данные рождения, натальная карта,
+гороскоп, совместимость, paywall и подписка, уведомления, удаление аккаунта.
+Payload должен содержать только данные, нужные для аналитики.
+
+## 7. RBAC
+
+`lib/admin/rbac.ts` — единственный источник матрицы ролей и прав. Действующие
+роли: `super_admin`, `admin`, `content_manager`, `support`, `analyst`,
+`finance`, `marketing` и `read_only`.
+
+`super_admin` получает все права. Остальные роли получают только перечисленные
+в `ROLE_PERMISSIONS` разрешения. Новый endpoint нельзя выпускать без
+конкретного permission guard и проверки отказа для роли без этого права.

@@ -1,19 +1,33 @@
-# Screenshot shot list — BLOCKED_BY_FINAL_VISUALS
+# Скриншоты NEBO для RuStore
 
-Create each item as one real application screenshot, never a phone collage.
-Create separate RU and EN files after the final visual approval and confirm
-current pixel/format requirements in each store console before export.
+Статус: этот набор загружен вместе с версией `1.0.0 (2)`. Каноническая
+локальная копия находится в
+`C:\Users\user\Downloads\NEBO-RuStore-1.0.0\screenshots-final-upload`.
 
-| File | Screen / allowed overlay | Status |
-|---|---|---|
-| `01-forecast-feed-{locale}.png` | Real main forecast feed; brief factual overlay only. | `BLOCKED_BY_FINAL_VISUALS` |
-| `02-period-navigation-{locale}.png` | Diary drawer with Today, Week, and Month selection; no thematic navigation. | `BLOCKED_BY_FINAL_VISUALS` |
-| `03-natal-chart-{locale}.png` | Natal chart and an existing explanation. | `BLOCKED_BY_FINAL_VISUALS` |
-| `04-compatibility-{locale}.png` | Existing compatibility flow with demo people. | `BLOCKED_BY_FINAL_VISUALS` |
-| `05-settings-account-{locale}.png` | Settings path to support, policies and account deletion. | `BLOCKED_BY_FINAL_VISUALS` |
+## Формат
 
-Use demo names, fictitious birth data and non-production questions. Do not show
-admin controls, IDs, messages, support tickets, secrets, payment flows, an
-unfinished billing button or real user data. Do not add promises such as Tarot,
-native push or shop payments unless the corresponding submitted flavor really
-contains them.
+- восемь вертикальных файлов 1080 × 1920;
+- каждый файл меньше 3 МБ;
+- интерфейс показывает вымышленные пользовательские данные;
+- маркетинговый текст не обещает точных событий или профессиональных советов;
+- порядок ниже совпадает с порядком в RuStore.
+
+## Загруженный порядок
+
+| № | Файл | Заголовок | Показанная функция |
+|---:|---|---|---|
+| 1 | `01_today-personal.png` | Не гадаем. Рассчитываем. | Личный прогноз на сегодня |
+| 2 | `02_natal-chart.png` | Точный расчёт карты. Без упрощений. | Натальная карта |
+| 3 | `03_compatibility.png` | Что между вами на самом деле? | Совместимость |
+| 4 | `04_natal-reading.png` | Не только знак. Вся твоя карта. | Разбор натальной карты |
+| 5 | `05_week-personal.png` | Смотри дальше одного дня. | Личный прогноз на неделю |
+| 6 | `06_destiny-matrix.png` | Сильные стороны. Точки роста. | Матрица судьбы |
+| 7 | `07_zodiac-horoscope.png` | 12 знаков. Каждый день. | Гороскоп по знакам |
+| 8 | `08_encyclopedia.jpg` | Разберись, что всё это значит. | Энциклопедия |
+
+Контрольный лист:
+`C:\Users\user\Downloads\NEBO-RuStore-1.0.0\review-contact-sheet-final.jpg`.
+
+Для будущей версии скриншоты меняются только если соответствующий интерфейс
+действительно вошёл в APK. Перед загрузкой повторно проверить размеры, вес,
+порядок, отсутствие реальных данных и автоматическое кадрирование кабинета.

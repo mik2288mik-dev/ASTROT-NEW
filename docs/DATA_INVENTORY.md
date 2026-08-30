@@ -1,37 +1,31 @@
-# Data inventory (superseded draft)
+# NEBO data inventory
 
-> Superseded on 23 August 2026 by the production-verified
-> [`docs/legal/DATA_FLOW_MAP.md`](./legal/DATA_FLOW_MAP.md) and
-> [`docs/legal/PROCESSORS_AND_TRANSFERS.md`](./legal/PROCESSORS_AND_TRANSFERS.md).
-> Do not use the older `OWNER_REQUIRED` provider assumptions below for release
-> declarations.
+This file is the evidence index for store data declarations and public legal
+text. Re-check live provider settings, retention periods, processing regions,
+and the finished Android artifact before each submission.
 
-This is an engineering inventory, not legal advice. `Confirmed` means observed in
-code/schema; `OWNER_REQUIRED` means the production vendor or retention rule is
-not available in the repository.
+## Current data flows
 
-| Data | Source / required | Purpose / storage | Transfer | Deletion / status |
-|---|---|---|---|---|
-| Name; Telegram/native/OAuth identifier; verified email | profile/authentication; required only for recovery | identity and access; `users`, `account_identities` | Telegram, VK ID, Yandex ID, Google, configured email adapter | deleted with account; direct ID; Confirmed |
-| Birth date, time, place, coordinates | user profile; required for personalised calculation | natal calculation; `users`, `natal_charts` | calculation/generation path must be reviewed before production | deleted with account; personalised; Confirmed storage, transfer PARTIAL |
-| Natal chart, forecasts and cache | derived from profile; required for the feature | personalised content; chart/content/cache tables | OpenAI Luna via Responses API; Zodiac is separate DeepSeek content | deleted with account; personalised; PARTIAL |
-| Questions and AI answers | user input; optional | answer generation/history; `personal_forecast_questions` | OpenAI Luna Structured Outputs for approved generation | deleted with account; direct content; Confirmed |
-| Premium state and payment identifiers | payment provider; required for paid access | entitlement/fraud prevention; entitlement, Stars and store tables | Telegram Stars or RuStore by configured channel | deleted under current policy; direct payment ID; Confirmed |
-| Notification preference and delivery state | profile/app use; optional | notification operation; notification tables | Telegram delivery where enabled | deleted with account; Confirmed |
-| Device/session token, IP, user-agent | HTTP/native session; required for security | authentication, abuse control and diagnostics | hosting/logging vendor is `OWNER_REQUIRED` | session revoked/deleted; logs retention `OWNER_REQUIRED` |
-| Support request | user input; optional | support workflow; support tables | support vendor `OWNER_REQUIRED` | identifier anonymised; message retention `OWNER_REQUIRED` |
+| Data | Purpose and storage | External processing | Account deletion |
+|---|---|---|---|
+| Name, verified email, and provider identity IDs | Authentication, account linking, and recovery in PostgreSQL | Enabled VK ID, Yandex ID, Google, Telegram, or email flows | Sessions are revoked and direct account identifiers are removed |
+| Birth date, time, place, coordinates, timezone, and gender when supplied | Natal calculation and personalisation in the profile and chart records | The personal-forecast brief receives the required birth profile through OpenAI; Swiss Ephemeris runs as the deterministic calculation engine | Profile, charts, generated content, and caches are removed |
+| Natal chart, forecasts, compatibility results, and saved profiles | Product features and compatible content caches in PostgreSQL | OpenAI handles personal forecast generation; Zodiac remains a separate provider path | Account-owned results and caches are removed |
+| Accepted natal questions and generated answers | Premium question history in PostgreSQL | OpenAI receives only questions answerable from the saved chart and the required chart context | Question history is removed |
+| RuStore purchase IDs, product IDs, callback events, and entitlement state | Server-side purchase validation and Premium access | RuStore Pay, Public API, and encrypted callbacks | Entitlement and account-owned purchase records are removed; retained event rows lose direct purchase identifiers |
+| Session token, IP address, user agent, diagnostics, and security events | Authentication, abuse prevention, reliability, and incident analysis | Railway hosts the API, public site, PostgreSQL, jobs, and runtime logs | Sessions are revoked; policy text must state the verified log and backup retention |
+| Notification preferences and delivery state | User-controlled reminders and delivery operations | Only the enabled delivery channel | Account-owned preferences and queued deliveries are removed |
+| Support message and supplied contact details | Answering a support request | Operator support channel | Direct user identifiers are anonymised according to the published retention rule |
 
-## External services to verify before production
+## Release checks
 
-- Confirmed in code: Telegram, OpenAI generation path, PostgreSQL, Swiss
-  Ephemeris, RuStore Pay/API only for the RuStore channel.
-- `OWNER_REQUIRED`: production host, CDN, error tracking, analytics, email,
-  geocoding/timezone, object storage and the countries/regions where each one
-  processes data. Do not claim transfer outside Russia either way until these
-  deployed services are confirmed.
-- RuStore Public API token and callback key are server-only. The Android bundle
-  receives product IDs but not payment secrets.
-
-Privacy Policy and store forms must be completed from this document only after
-owner/legal review fixes the operator, retention periods, processors and public
-URLs.
+- Public Privacy Policy, consent, account deletion, support, and requisites pages
+  must describe the same active flows.
+- Consent to personal-data processing remains separate, explicit, and unchecked
+  before profile data is first sent.
+- Secrets, callback keys, provider tokens, and signing material stay server-side
+  and never use `NEXT_PUBLIC_*`.
+- Re-check merged SDK traffic in the release APK. VK ID and RuStore dependencies
+  include analytics components, so do not claim that analytics code is absent.
+- Do not declare a provider, retention period, or processing region from source
+  code alone; confirm the live Railway and provider configuration.

@@ -36,8 +36,9 @@ does not receive the raw birth profile.
 
 The personal forecast runtime receives no calculated natal chart, Swiss
 Ephemeris output, chart ID/data, planet positions, houses, angles, aspects, or
-transits. Cross-user copy is used only by the local server similarity validator
-and is never sent to Luna.
+transits. The hidden-brief provider may receive compact cross-user semantic
+signatures for repetition control, but the writer never receives them. Full
+cross-user forecast text remains inside the server similarity validator.
 
 ## Voice
 

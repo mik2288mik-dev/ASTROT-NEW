@@ -1,28 +1,70 @@
-# MEOU: release compliance dossier
+# Legal-поверхности NEBO
 
-Status date: **23 August 2026**. This directory is the canonical engineering
-record for the first RuStore release. It replaces assumptions in older draft
-inventories where production providers were marked `OWNER_REQUIRED`.
+Этот документ фиксирует текущее состояние legal-страниц и объём следующего
+обновления. Он не заменяет проверку окончательного текста юристом.
 
-The dossier is based on repository/schema inspection, live DNS and production
-endpoint checks, and the official sources listed in
-[`SOURCES_2026-08-23.md`](./SOURCES_2026-08-23.md). It is a compliance
-engineering record, not a substitute for the operator's legal approval.
+## Публичные страницы
 
-- [`DATA_FLOW_MAP.md`](./DATA_FLOW_MAP.md) — what MEOU receives, sends, stores,
-  logs and deletes.
-- [`PROCESSORS_AND_TRANSFERS.md`](./PROCESSORS_AND_TRANSFERS.md) — providers,
-  countries, minimisation and cross-border status.
-- [`RAILWAY_VERDICT.md`](./RAILWAY_VERDICT.md) — website/API/database/logs
-  decision.
-- [`RKN_OPERATOR_NOTIFICATION_DRAFT.md`](./RKN_OPERATOR_NOTIFICATION_DRAFT.md)
-  — operator-notification worksheet.
-- [`RKN_CROSS_BORDER_DRAFT.md`](./RKN_CROSS_BORDER_DRAFT.md) — separate
-  cross-border worksheet.
-- [`COMPLIANCE_IMPLEMENTATION_TASKS.md`](./COMPLIANCE_IMPLEMENTATION_TASKS.md)
-  — exact tasks for parallel auth/backend/Android worktrees.
-- [`WEBSITE_DEPLOYMENT.md`](./WEBSITE_DEPLOYMENT.md) — fail-closed Railway
-  service, domain cutover and production proof.
+- `https://www.tvoi-goroskop.ru/privacy` — политика обработки персональных данных;
+- `https://www.tvoi-goroskop.ru/terms` — пользовательское соглашение;
+- `https://www.tvoi-goroskop.ru/personal-data-consent` — текст согласия;
+- `https://www.tvoi-goroskop.ru/delete-account` — удаление аккаунта и данных;
+- `https://www.tvoi-goroskop.ru/support` — поддержка;
+- `https://www.tvoi-goroskop.ru/requisites` — реквизиты оператора.
 
-`OWNER_REQUIRED` means a real fact or owner action is absent. It must not be
-replaced with invented data.
+Исходники находятся в одноимённых файлах `pages/*.tsx`, а общие значения — в
+`lib/publicSiteConfig.ts`.
+
+## Состояние версии 2
+
+Версия `1.0.0 (2)` уже находится на модерации RuStore и остаётся там. В её
+веб- и packaged legal-страницах есть черновое предупреждение и незаполненные
+значения. До отправки данных рождения нет отдельного явного согласия,
+разделённого с пользовательским соглашением.
+
+Эти недостатки не исправляются отзывом текущей версии. Исправление готовится
+локально для следующей сборки.
+
+## Требования к версии 3
+
+1. Заменить все черновые значения реальными реквизитами, контактами, сроками
+   хранения и фактически настроенными провайдерами.
+2. Описать текущую обработку в Railway, OpenAI, VK ID, Yandex ID, RuStore и
+   других реально включённых сервисах без обещаний или вымышленных деталей.
+3. До первой отправки данных профиля показать отдельный, заранее не отмеченный
+   checkbox согласия на обработку персональных данных.
+4. Не объединять согласие с принятием пользовательского соглашения и не
+   считать продолжение использования молчаливым согласием.
+5. Сохранять пользователя, версию текста, время, источник, язык и состояние
+   отзыва согласия.
+6. После отзыва прекратить необязательную обработку и оставить пользователю
+   понятный путь удаления аккаунта.
+7. Ясно указать, что прогнозы и интерпретации информационные и не заменяют
+   медицинскую, психологическую, юридическую или финансовую консультацию.
+
+В это обновление входят только корректные тексты и consent-flow; смена
+хостинга не является частью задачи.
+
+## Удаление аккаунта
+
+`DELETE /api/users/account` выполняет одну идемпотентную PostgreSQL-транзакцию:
+отзывает сессии, отменяет очереди уведомлений и удаляет профиль, натальные
+карты, прогнозы и кэши, вопросы, настройки, app events, entitlement и связанные
+purchase-записи. Прямые user identifiers в support- и audit-записях
+обезличиваются; RuStore event rows теряют purchase ID.
+
+Выход из аккаунта не равен удалению: logout отзывает текущую сессию, но
+сохраняет серверный аккаунт. Legal-текст обязан отдельно назвать сроки
+хранения обезличенных обращений, журналов и резервных копий на основании
+реальной production-конфигурации.
+
+## Проверка перед релизом
+
+- На каждой странице нет черновых сообщений и технических заглушек.
+- Все ссылки открываются по HTTPS и показывают NEBO.
+- Текст совпадает с реальными network flows и production-настройками.
+- Consent-flow проверен для нового пользователя, отказа, повторного входа и
+  отзыва.
+- Та же версия legal-страниц попала в итоговый APK.
+- Изменения описаны в декларации данных и комментарии модератору, если это
+  требуется формой RuStore.
