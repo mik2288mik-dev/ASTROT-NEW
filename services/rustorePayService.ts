@@ -313,6 +313,7 @@ export function getRuStoreProductId(planId: PremiumPlanId): string | null {
 }
 
 export const RUSTORE_CATALOG_TIMEOUT_MS = 9_000;
+export const RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS = 10_000;
 
 async function withBoundedTimeout<T>(
   promise: Promise<T>,
@@ -425,16 +426,28 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
   }
 
   try {
-    const recoveryIdentity = await hasRecoveryIdentity();
+    const recoveryIdentity = await withBoundedTimeout(
+      hasRecoveryIdentity(),
+      RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS,
+      'RUSTORE_IDENTITY_CHECK_TIMEOUT',
+    );
     if (recoveryIdentity === false) {
       return { status: 'unavailable', reason: 'RECOVERY_IDENTITY_REQUIRED' };
     }
     if (recoveryIdentity === null) {
       return { status: 'unavailable', reason: 'RECOVERY_IDENTITY_CHECK_FAILED' };
     }
-    const availability = await nativeBridge.getAvailability();
+    const availability = await withBoundedTimeout(
+      nativeBridge.getAvailability(),
+      RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS,
+      'RUSTORE_AVAILABILITY_TIMEOUT',
+    );
     if (!availability.available) return { status: 'unavailable', reason: availability.reason || 'RUSTORE_NOT_AVAILABLE' };
-    const products = await nativeBridge.getProducts({ productIds: [productId] });
+    const products = await withBoundedTimeout(
+      nativeBridge.getProducts({ productIds: [productId] }),
+      RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS,
+      'RUSTORE_PRODUCT_LOOKUP_TIMEOUT',
+    );
     const product = products.products.find((candidate) => candidate.productId === productId);
     if (!product) {
       return { status: 'unavailable', reason: 'RUSTORE_PRODUCT_NOT_PUBLISHED' };

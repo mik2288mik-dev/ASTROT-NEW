@@ -115,6 +115,32 @@ describe('RuStore Pay client service', () => {
     expect(nativeBridge.getProducts).not.toHaveBeenCalled();
   });
 
+  it('bounds a stalled checkout availability check instead of leaving the CTA busy forever', async () => {
+    jest.useFakeTimers();
+    const nativeBridge = {
+      getAvailability: jest.fn().mockReturnValue(new Promise(() => undefined)),
+      getProducts: jest.fn(),
+      purchase: jest.fn(),
+    };
+    const { apiFetch, service } = loadService(nativeBridge);
+    apiFetch.mockResolvedValueOnce(response({ identities: [{ provider: 'email' }] }));
+
+    try {
+      const checkout = service.requestRuStorePayment({ id: 42 } as never, 'premium_month');
+      await jest.advanceTimersByTimeAsync(service.RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS - 1);
+      expect(nativeBridge.getAvailability).toHaveBeenCalledTimes(1);
+      expect(nativeBridge.getProducts).not.toHaveBeenCalled();
+      await jest.advanceTimersByTimeAsync(1);
+      await expect(checkout).resolves.toEqual({
+        status: 'failed',
+        reason: 'RUSTORE_AVAILABILITY_TIMEOUT',
+      });
+      expect(nativeBridge.purchase).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('refuses checkout when the catalog product is not SUBSCRIPTION', async () => {
     const nativeBridge = {
       getAvailability: jest.fn().mockResolvedValue({ available: true }),

@@ -59,6 +59,17 @@ describe('first value before Premium', () => {
     expect(app).not.toContain('canPromotePremium: firstValueReached');
   });
 
+  it('does not render a dead Premium CTA in Zodiac before the first value', () => {
+    const app = read('App.tsx');
+    const horoscope = app.slice(
+      app.indexOf('<HoroscopeReader'),
+      app.indexOf('/>', app.indexOf('<HoroscopeReader')),
+    );
+
+    expect(horoscope).toContain('onRequestPremium={premiumPromotionAllowed ?');
+    expect(horoscope).toContain(': undefined}');
+  });
+
   it('removes every active 14-day and trial promise from the first-value surfaces', () => {
     const source = [
       read('views/Onboarding.tsx'),

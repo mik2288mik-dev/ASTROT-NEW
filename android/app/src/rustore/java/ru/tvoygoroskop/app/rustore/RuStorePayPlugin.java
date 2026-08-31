@@ -13,7 +13,6 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import java.util.ArrayList;
 import java.util.List;
 
-import ru.rustore.sdk.core.util.RuStoreUtils;
 import ru.rustore.sdk.pay.RuStorePayClient;
 import ru.rustore.sdk.pay.model.AppUserId;
 import ru.rustore.sdk.pay.model.GracePeriod;
@@ -76,13 +75,6 @@ public class RuStorePayPlugin extends Plugin {
 
     @PluginMethod
     public void getAvailability(PluginCall call) {
-        if (!RuStoreUtils.INSTANCE.isRuStoreInstalled(getContext())) {
-            JSObject result = new JSObject();
-            result.put("available", false);
-            result.put("reason", "RUSTORE_NOT_INSTALLED");
-            call.resolve(result);
-            return;
-        }
         client().getPurchaseInteractor().getPurchaseAvailability()
             .addOnSuccessListener(result -> {
                 JSObject payload = new JSObject();
