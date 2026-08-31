@@ -42,13 +42,13 @@ describe('personal forecast anti-repeat guard', () => {
     expect(errors.join(' ')).toContain('repeated title');
   });
 
-  test('rejects a close paraphrase of the separate punchline', () => {
+  test('rejects a close paraphrase of the cohesive forecast body', () => {
     const errors = findPersonalForecastRepeatViolations([
-      fragment('Сегодня можно наглеть и спокойно назвать свою цену.', { kind: 'punchline' }),
+      fragment('Сегодня нужный разговор быстро прояснит цену и следующий шаг.', { kind: 'forecast' }),
     ], [
-      fragment('Сегодня пора наглеть и спокойно назвать свою цену.', { kind: 'punchline' }),
+      fragment('Сегодня нужный разговор быстро прояснит цену и следующий шаг.', { kind: 'forecast' }),
     ]);
-    expect(errors.join(' ')).toContain('repeated punchline');
+    expect(errors.join(' ')).toContain('near-duplicate forecast text');
   });
 
   test('rejects a repeated separate closing', () => {
@@ -58,15 +58,6 @@ describe('personal forecast anti-repeat guard', () => {
       fragment('Сначала проверь детали, а потом отвечай без лишних объяснений.', { kind: 'closing' }),
     ]);
     expect(errors.join(' ')).toContain('repeated closing');
-  });
-
-  test('maps a legacy headline history fragment to the canonical punchline kind', () => {
-    const errors = findPersonalForecastRepeatViolations([
-      fragment('Хватит спорить с очевидным: решение уже просится наружу.', { kind: 'punchline' }),
-    ], [
-      fragment('Хватит спорить с очевидным: решение уже просится наружу.', { kind: 'headline' }),
-    ]);
-    expect(errors.join(' ')).toContain('repeated punchline');
   });
 
   test('rejects near-identical wording against recent generated copy', () => {

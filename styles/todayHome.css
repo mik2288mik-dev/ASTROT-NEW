@@ -559,21 +559,6 @@
   margin-block: clamp(0.3rem, 1.4vw, 0.45rem) clamp(0.12rem, 0.8vw, 0.25rem);
 }
 
-.today-minimal-punchline {
-  width: min(87vw, 27.25rem);
-  max-width: 100%;
-  margin: 0;
-  color: var(--today-ink);
-  font-family: var(--forecast-editorial-font);
-  font-size: clamp(1.22rem, 5.3vw, 1.55rem);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 1.22;
-  overflow-wrap: anywhere;
-  text-align: center;
-  text-wrap: balance;
-}
-
 .today-minimal-forecast-bridge {
   position: absolute;
   right: 0;
@@ -1184,12 +1169,6 @@
   margin: -0.25rem -1rem clamp(0.55rem, 2.5vw, 0.8rem);
 }
 
-.forecast-period-punchline-thread {
-  width: calc(100% + 2rem);
-  height: clamp(1.8rem, 7vw, 2.2rem);
-  margin: clamp(0.25rem, 1.4vw, 0.4rem) -1rem clamp(0.55rem, 2.5vw, 0.8rem);
-}
-
 .today-minimal-reading-main {
   padding-left: 0;
 }
@@ -1204,20 +1183,6 @@
   letter-spacing: -0.04em;
   line-height: 1.16;
   text-align: center;
-  text-wrap: balance;
-}
-
-.forecast-period-editorial-punchline {
-  width: min(87vw, 27.25rem) !important;
-  max-width: 100% !important;
-  margin: 0 auto !important;
-  color: var(--today-ink) !important;
-  font-family: var(--forecast-editorial-font) !important;
-  font-size: clamp(1.22rem, 5.3vw, 1.55rem) !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.035em !important;
-  line-height: 1.22 !important;
-  text-align: center !important;
   text-wrap: balance;
 }
 
@@ -1318,15 +1283,10 @@
 }
 
 #__next .today-minimal-reading .forecast-feed-section-text,
-#__next .today-minimal-reading .forecast-feed-section-text.is-lead,
 #__next
   .today-minimal-reading
   .forecast-feed-story-fragment.is-overview
   .forecast-feed-section-text,
-#__next
-  .today-minimal-reading
-  .forecast-feed-story-fragment.is-overview
-  .forecast-feed-section-text.is-lead,
 #__next
   .today-minimal-reading
   .forecast-feed-story-fragment.is-brief
@@ -1381,10 +1341,6 @@
     text-align: justify !important;
     text-align-last: start;
   }
-}
-
-#__next .today-minimal-reading .forecast-feed-section-text.is-lead::before {
-  display: none;
 }
 
 .today-minimal-reading-block {
@@ -1703,8 +1659,7 @@
   text-align: start;
 }
 
-#__next .today-minimal-closing .forecast-feed-section-text,
-#__next .today-minimal-closing .forecast-feed-section-text.is-lead {
+#__next .today-minimal-closing .forecast-feed-section-text {
   width: 100%;
   max-width: none !important;
   color: var(--today-ink);
@@ -1716,8 +1671,7 @@
   text-wrap: balance !important;
 }
 
-#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text,
-#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text.is-lead {
+#__next .today-minimal-closing.has-end-visual .forecast-feed-section-text {
   text-align: start !important;
   text-wrap: pretty !important;
 }
@@ -1776,8 +1730,7 @@
   }
 
   .today-minimal-closing.has-end-visual .today-minimal-closing-label,
-  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text,
-  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text.is-lead {
+  #__next .today-minimal-closing.has-end-visual .forecast-feed-section-text {
     text-align: center !important;
   }
 

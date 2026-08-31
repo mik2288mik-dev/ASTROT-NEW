@@ -27,14 +27,6 @@ function resolveTitle(section?: ForecastSection): string {
   return section.title?.replace(/\s+/gu, ' ').trim() || '';
 }
 
-function resolvePunchline(section?: ForecastSection): string {
-  if (!section || section.kind !== 'overview') return '';
-  return section.contentBlocks
-    .find((block) => block.role === 'lead')
-    ?.text.replace(/\s+/gu, ' ')
-    .trim() || '';
-}
-
 function clockSignalForTone(tone: PersonalForecastAstrologerBrief['tone']): TodayClockSignal {
   if (tone === 'favorable') return 'green';
   if (tone === 'demanding') return 'red';
@@ -58,17 +50,9 @@ function StoryFragment({
   endVisual?: DiaryEditorialPause['asset'] | null;
   personalAttribution?: string | null;
 }) {
-  const punchlineIndex = section.kind === 'overview'
-    ? section.contentBlocks.findIndex((block) => block.role === 'lead')
-    : -1;
-  const contentBlocks = punchlineIndex >= 0
-    ? section.contentBlocks.filter((_, index) => index !== punchlineIndex)
-    : section.contentBlocks;
   const untitledSection = {
     ...section,
     title: '',
-    text: contentBlocks.map((block) => block.text.trim()).join('\n\n'),
-    contentBlocks,
   };
   const fragment = (
     <ForecastSectionBlock
@@ -87,7 +71,7 @@ function StoryFragment({
     ].filter(Boolean).join(' ')}>
       <div className="today-minimal-closing-content">
         <p className="today-minimal-closing-label">
-          {language === 'ru' ? 'Совет дня' : 'Advice for today'}
+          {language === 'ru' ? 'Итог дня' : 'Today takeaway'}
         </p>
         {fragment}
         {endVisual ? (
@@ -140,7 +124,6 @@ export function TodayEditorialFeed({
   }), [periodKey, renderableSections, userId]);
   const overview = visibleSections.find((section) => section.kind === 'overview');
   const title = resolveTitle(overview);
-  const punchline = resolvePunchline(overview);
   const clockSignal = clockSignalForTone(tone);
 
   return (
@@ -151,11 +134,7 @@ export function TodayEditorialFeed({
     >
       <section
         className="today-minimal-hero"
-        aria-labelledby={title ? 'today-reading-title' : punchline ? 'today-punchline' : undefined}
-        aria-describedby={title && punchline ? 'today-punchline' : undefined}
-        aria-label={!title && !punchline
-          ? (language === 'ru' ? 'Личный прогноз на сегодня' : 'Personal forecast for today')
-          : undefined}
+        aria-labelledby="today-reading-title"
       >
         <div className="today-minimal-composition">
           {title ? (
@@ -174,11 +153,6 @@ export function TodayEditorialFeed({
             language={language}
             signal={clockSignal}
           />
-          {punchline ? (
-            <p id="today-punchline" className="today-minimal-punchline">
-              {punchline}
-            </p>
-          ) : null}
         </div>
       </section>
 

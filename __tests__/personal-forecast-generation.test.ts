@@ -1,5 +1,6 @@
 import {
   PERSONAL_FORECAST_RESPONSE_SCHEMA,
+  PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS,
   buildPersonalForecastFeedPrompt,
   callAstrologerBriefWithValidationRetry,
   getPersonalForecastSystemPrompt,
@@ -7,53 +8,69 @@ import {
   validateAstrologerBrief,
   validateFreeGeneratedForecastFeed,
 } from '../lib/personalForecastGeneration';
-import { resolvePersonalForecastWindow, type PersonalForecastAstrologerBrief } from '../lib/personalForecastContract';
+import {
+  resolvePersonalForecastWindow,
+  type PersonalForecastAstrologerBrief,
+} from '../lib/personalForecastContract';
 import { PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU } from '../lib/personalForecastExamples';
 import { getAppSystemVoice } from '../lib/appVoice';
 
 const validBrief: PersonalForecastAstrologerBrief = {
   tone: 'favorable',
-  coreForecast: 'Прямой разговор помогает закрепить полезную договорённость без лишней суеты',
-  secondaryForecast: 'Знакомая рабочая задача открывает возможность выбрать более удобный порядок',
-  distinctiveDetail: 'Неожиданно короткий ответ оказывается убедительнее длинных объяснений',
-  opportunity: 'Появляется возможность спокойно заявить о готовом решении',
-  friction: null,
-  likelyResult: 'Ясная позиция укрепляет договорённость и оставляет пространство для продолжения',
+  situation: 'продавец наконец называет точную цену',
+  turn: 'короткий разговор быстро меняет решение',
+  outcome: 'цену можно сравнить без долгих догадок',
+  observableDetail: 'одна точная сумма заменяет долгие объяснения',
   briefSignature: 'server-signature',
 };
 
 const validGeneratedDay = {
-  title: 'Точный поворот',
-  punchline: 'Хватит раздувать сомнения: нужный ответ уже выдерживает прямой разговор.',
+  title: 'Ну наконец ответили',
   forecast: [
-    'Сегодня знакомая задача покажет деталь, которую раньше было удобно не замечать.',
-    'Она не создаст катастрофу, но потребует ясного ответа без длинных оправданий.',
-    'Твоя спокойная позиция поможет отделить полезную просьбу от чужой суеты.',
-    'Если сохранишь точность, разговор не расползётся по мелочам и оставит тебе место для собственного решения.',
-    'Небольшая пауза перед ответом сделает твои слова заметно убедительнее и снимет лишнее напряжение.',
+    'Сегодня может прийти ответ, который давно задерживал одну покупку.',
+    'В сообщении назовут точную цену и срок без новых вопросов.',
+    'В итоге можно будет решить, брать вещь или спокойно искать дальше.',
   ].join(' '),
-  closing: 'Сначала проверь детали, затем отвечай без лишних объяснений.',
+  closing: 'Сравни цену и сразу дай ответ.',
 };
 
 describe('personal forecast brief and writer contract', () => {
-  it('keeps exactly the four canonical visible writer fields', () => {
+  it('keeps exactly the three canonical visible writer fields', () => {
     expect(PERSONAL_FORECAST_RESPONSE_SCHEMA).toEqual(expect.objectContaining({
       type: 'object',
       additionalProperties: false,
-      required: ['title', 'punchline', 'forecast', 'closing'],
+      required: ['title', 'forecast', 'closing'],
     }));
     expect(Object.keys(PERSONAL_FORECAST_RESPONSE_SCHEMA.properties)).toEqual([
-      'title', 'punchline', 'forecast', 'closing',
+      'title', 'forecast', 'closing',
     ]);
   });
 
   it('uses period-specific writer budgets and doubles only for provider retry', () => {
+    expect(PERSONAL_FORECAST_MAX_WRITER_ATTEMPTS).toBe(2);
     expect(getPersonalForecastWriterMaxOutputTokens('day')).toBe(1200);
     expect(getPersonalForecastWriterMaxOutputTokens('week')).toBe(1600);
     expect(getPersonalForecastWriterMaxOutputTokens('month')).toBe(2000);
     expect(getPersonalForecastWriterMaxOutputTokens('day', true)).toBe(2400);
     expect(getPersonalForecastWriterMaxOutputTokens('week', true)).toBe(3200);
     expect(getPersonalForecastWriterMaxOutputTokens('month', true)).toBe(4000);
+  });
+
+  it('makes rejected prose simpler on every writer retry', () => {
+    const prompt = buildPersonalForecastFeedPrompt({
+      language: 'ru',
+      period: 'day',
+      window: resolvePersonalForecastWindow('day', '2026-08-22', 'Europe/Moscow'),
+      reader: { name: 'Тест', grammaticalGender: 'female' },
+      astrologerBrief: validBrief,
+      repairErrors: ['REPORT_WRITTEN_EVENT'],
+      repairAttempt: 5,
+    });
+
+    expect(prompt).toContain('ПОПЫТКА ПЕРЕПИСАТЬ №5');
+    expect(prompt).toContain('короткое голосовое другу');
+    expect(prompt).toContain('8–16 слов');
+    expect(prompt).toContain('REPORT_WRITTEN_EVENT');
   });
 
   it('writer input contains only reader, period, brief, and anti-repeat data', () => {
@@ -70,52 +87,77 @@ describe('personal forecast brief and writer contract', () => {
       reader: { name: 'Тест', language: 'ru', grammatical_gender: 'female' },
       astrologer_brief: {
         tone: validBrief.tone,
-        core_forecast: validBrief.coreForecast,
-        secondary_forecast: validBrief.secondaryForecast,
-        distinctive_detail: validBrief.distinctiveDetail,
-        opportunity: validBrief.opportunity,
-        friction: validBrief.friction,
-        likely_result: validBrief.likelyResult,
+        situation: validBrief.situation,
+        turn: validBrief.turn,
+        outcome: validBrief.outcome,
+        observable_detail: validBrief.observableDetail,
       },
       anti_repeat_context: { recent_forecasts: [] },
     });
-    for (const key of ['birth_date', 'birth_time', 'birth_place', 'birth_timezone', 'personal_profile', 'brief_signature']) {
+    for (const key of [
+      'birth_date', 'birth_time', 'birth_place', 'birth_timezone',
+      'personal_profile', 'brief_signature',
+    ]) {
       expect(prompt).not.toContain(key);
     }
   });
 
-  it('keeps truth and privacy guards without rejecting ordinary work or inner-state themes', () => {
+  it('rejects invented facts, commands, and coaching abstractions in the hidden brief', () => {
     expect(validateAstrologerBrief(validBrief)).toEqual([]);
     expect(validateAstrologerBrief({
       ...validBrief,
-      coreForecast: 'Выбери одну главную задачу сегодня',
-      secondaryForecast: 'Выбери одну главную задачу сегодня',
-      distinctiveDetail: 'Планета усиливает контроль и личные границы',
-      likelyResult: 'Сегодня всё сложится наилучшим образом',
+      situation: 'Выбери одну главную задачу сегодня',
+      turn: 'Выбери одну главную задачу сегодня',
+      observableDetail: 'Планета усиливает контроль и личные границы',
+      outcome: 'Сегодня всё сложится наилучшим образом',
     })).toEqual(expect.arrayContaining([
       'BRIEF_IMPERATIVE',
       'BRIEF_REPEATED_FIELD',
-      'BRIEF_CORE_SECONDARY_OVERLAP',
       'BRIEF_ASTROLOGY',
       'BRIEF_UNIVERSAL_PHRASE',
     ]));
 
     expect(validateAstrologerBrief({
       ...validBrief,
-      coreForecast: 'Рабочая стратегия становится яснее после проверки спорных деталей',
-      secondaryForecast: 'Личные границы помогают выбрать точную позицию в сложном разговоре',
-      distinctiveDetail: 'Внутреннее состояние остается собранным среди противоречивых требований',
-      opportunity: 'Офисная задача открывает место для более смелого решения',
-      friction: 'Управленческий вопрос потребует ясной позиции без дипломатического шума',
-      likelyResult: 'Профессиональный результат становится заметнее благодаря уверенной аргументации',
-    })).toEqual([]);
+      situation: 'Рабочая стратегия определяет порядок дальнейших действий',
+      turn: 'Личные границы меняют внутреннее состояние',
+      outcome: 'Новый ресурс укрепляет личный результат',
+      observableDetail: 'Осознанность возвращает человеку внутреннюю опору',
+    })).toEqual(expect.arrayContaining([
+      'BRIEF_COACHING_OR_ABSTRACT_VOICE',
+    ]));
 
     expect(validateAstrologerBrief({
       ...validBrief,
-      coreForecast: 'Слишком коротко',
-      distinctiveDetail: 'Начальник становится главным источником давления вокруг сложного решения',
-      friction: 'К вечеру решение потребует ясного ответа без лишних объяснений',
-      likelyResult: 'Тебе станет проще назвать точную цену полезного решения',
+      situation: 'Рабочий процесс получает новый формат участия',
+      turn: 'Обсуждение переходит в общую папку материалов',
+      outcome: 'Результат заметно продолжится после короткой проверки',
+      observableDetail: 'Старое дело получает модный апгрейд',
+    })).toEqual(expect.arrayContaining([
+      'BRIEF_REPORT_OR_MACHINE_LANGUAGE',
+    ]));
+
+    expect(validateAstrologerBrief({
+      ...validBrief,
+      situation: 'При подготовке к поездке меняется маршрут',
+    })).not.toContain('BRIEF_REPORT_OR_MACHINE_LANGUAGE');
+
+    expect(validateAstrologerBrief({
+      ...validBrief,
+      situation: 'Несколько её работ выберут для общего показа',
+    })).toContain('BRIEF_INVENTED_BIOGRAPHY');
+
+    expect(validateAstrologerBrief({
+      ...validBrief,
+      situation: 'Запланированное дело перенесут на другой день',
+    })).toContain('BRIEF_VAGUE_EVENT');
+
+    expect(validateAstrologerBrief({
+      ...validBrief,
+      situation: 'Начальник становится главным источником давления вокруг решения',
+      turn: 'К вечеру решение потребует ясного ответа',
+      outcome: 'Тебе станет проще назвать точную цену',
+      observableDetail: 'Слишком коротко',
     })).toEqual(expect.arrayContaining([
       'BRIEF_FIELD_WORD_LIMIT',
       'BRIEF_INVENTED_BIOGRAPHY',
@@ -124,7 +166,7 @@ describe('personal forecast brief and writer contract', () => {
     ]));
   });
 
-  it('retries editorial brief validation once with codes only and never passes the rejected draft', async () => {
+  it('retries editorial brief validation with codes only and never passes the rejected draft', async () => {
     const request = jest.fn()
       .mockRejectedValueOnce(new Error('BRIEF_VALIDATION_FAILED:BRIEF_IMPERATIVE|BRIEF_REPEATED_FIELD'))
       .mockResolvedValueOnce(validBrief);
@@ -139,12 +181,57 @@ describe('personal forecast brief and writer contract', () => {
     expect(failed).toHaveBeenCalledTimes(2);
   });
 
-  it('rejects malformed punchlines and retained visible safety violations', () => {
+  it('rejects visible astrology, coaching, and instructions inside the forecast body', () => {
+    const legacyFourPartPayload = {
+      ...validGeneratedDay,
+      punchline: 'Лишняя четвёртая часть.',
+    } as unknown as Parameters<typeof validateFreeGeneratedForecastFeed>[0];
+    expect(validateFreeGeneratedForecastFeed(
+      legacyFourPartPayload,
+      new Set(),
+      'day',
+      { language: 'ru' },
+    ).errors).toContain(
+      'payload contains unexpected fields: punchline',
+    );
+
     expect(validateFreeGeneratedForecastFeed({
       ...validGeneratedDay,
-      punchline: 'Почему ты снова тянешь с очевидным решением?',
+      title: 'Нашлась недостающая деталь',
     }, new Set(), 'day', { language: 'ru' }).errors).toContain(
-      'punchline must be one complete statement',
+      'title is a generic report label',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      title: 'Старое вынесут первым',
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'title uses a strained image instead of an ordinary spoken line',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      title: 'Ну и ладно, далеко',
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'title uses a strained image instead of an ordinary spoken line',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      title: 'Ну и хорошо',
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'title is a generic report label',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня может решиться вопрос о цене или дороге.',
+        'Потом собеседник назовёт точную сумму и новый адрес.',
+        'После разговора вы решите, какой ответ дать.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'forecast opens with multiple alternatives instead of one clear plot',
     );
 
     expect(validateFreeGeneratedForecastFeed({
@@ -156,23 +243,201 @@ describe('personal forecast brief and writer contract', () => {
 
     expect(validateFreeGeneratedForecastFeed({
       ...validGeneratedDay,
-      forecast: validGeneratedDay.forecast.replace(
-        'Сегодня знакомая задача покажет',
-        'Луна усиливает эмоции, а знакомая задача покажет',
-      ),
-    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
-      'visible forecast copy contains a forbidden astrology term',
+      forecast: [
+        'Сегодня встречу могут перенести на другой день.',
+        'Тебе предложат созвониться и сразу назовут новое время.',
+        'После разговора вы решите, нужна ли встреча вообще.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).not.toContain(
+      'visible forecast copy contains an unsupported event guarantee',
     );
 
     expect(validateFreeGeneratedForecastFeed({
       ...validGeneratedDay,
-      punchline: 'Не прячься в тени: место под солнцем само себя не займёт.',
-    }, new Set(), 'day', { language: 'ru' }).errors).not.toContain(
-      'visible forecast copy contains a forbidden astrology term',
+      forecast: [
+        'Сегодня встречу могут перенести на другой день.',
+        'Тебе точно предложат созвониться и сразу назовут новое время.',
+        'После разговора вы решите, нужна ли встреча вообще.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'visible forecast copy contains an unsupported event guarantee',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: validGeneratedDay.forecast.replace(
+        'Сегодня может прийти ответ',
+        'Сегодня прислушайся к себе: может прийти ответ',
+      ),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'visible forecast copy contains a banned forecast voice phrase',
+    );
+
+    const instructionErrors = validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: validGeneratedDay.forecast.replace(
+        'Сегодня может прийти ответ, который давно задерживал одну покупку',
+        'Сегодня проверь сообщения: нужный ответ может наконец прийти',
+      ),
+    }, new Set(), 'day', { language: 'ru' }).errors;
+    expect(instructionErrors.some((error) => /instruction|advice|command/iu.test(error))).toBe(true);
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня твоей идеей могут заинтересоваться новые люди.',
+        'Несколько твоих работ выберут для общего показа.',
+        'После этого появятся новые заказы, и ждать ответа больше не придётся.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'visible forecast copy contains an invented biography claim',
     );
   });
 
-  it('accepts a production-shaped four-part payload and materializes its UI roles', () => {
+  it('rejects a forecast without a real outcome and report-like prose', () => {
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня может прийти ответ, который давно задерживал одну покупку.',
+        'В сообщении назовут точную цену и срок без новых вопросов.',
+        'Последняя фраза просто повторяет знакомую мысль без нового ответа.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'forecast does not explain what the situation leads to; rewrite the final sentence with a plain result',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: validGeneratedDay.forecast.replace(
+        'В сообщении назовут точную цену',
+        'В едином рабочем документе назовут точную цену',
+      ),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'forecast contains a hard-banned report phrase',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: validGeneratedDay.forecast.replace(
+        'В сообщении назовут точную цену и срок без новых вопросов.',
+        'В рамках этого дела рабочий процесс даст точную цену и срок без новых вопросов.',
+      ),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'forecast contains too much report-like language',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня старое дело может снова поднять давний вопрос о прошлом плане.',
+        'Этот вопрос вернёт дело к одному пункту, а другой пункт останется частью прежнего плана.',
+        'В итоге дело сдвинется, но остальная часть плана всё ещё останется без ответа.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'forecast relies on vague placeholder nouns',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      closing: 'Запишите ответ перед отправкой.',
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'visible forecast copy contains polite Вы or a plural imperative; address the reader as ты',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      title: 'Ну что, договорились?',
+      forecast: [
+        'Сегодня может прийти ответ, который давно задерживал одну покупку.',
+        'В сообщении назовут точную цену и срок без новых вопросов.',
+        'После разговора вы решите, брать вещь или спокойно искать дальше.',
+      ].join(' '),
+      closing: 'Сверь календарь с новым днём.',
+    }, new Set(), 'day', { language: 'ru' }).errors).not.toContain(
+      'visible forecast copy contains polite Вы or a plural imperative; address the reader as ты',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      title: 'Ну что, договорились?',
+      forecast: [
+        'Сегодня может прийти ответ, который давно задерживал одну покупку.',
+        'В сообщении назовут точную цену и срок без новых вопросов.',
+        'После разговора вы решите, брать вещь или спокойно искать дальше.',
+      ].join(' '),
+      closing: 'Сверь календарь с новым днём.',
+    }, new Set(), 'day', { language: 'ru' }).errors).toEqual([]);
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня встречу могут перенести на другой день.',
+        'После звонка вы выберете время, удобное для вас обоих.',
+        'Новая дата останется в календаре, и ждать больше не придётся.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).not.toContain(
+      'visible forecast copy contains polite Вы or a plural imperative; address the reader as ты',
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня может прийти ответ, который давно задерживал одну покупку.',
+        'В сообщении назовут точную цену и срок без новых вопросов.',
+        'После разговора Вы договоритесь о цене, и искать дальше не придётся.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' }).errors).toContain(
+      'visible forecast copy contains polite Вы or a plural imperative; address the reader as ты',
+    );
+  });
+
+  it.each([
+    [
+      'Сегодня запланированная встреча может не состояться в назначенное время.',
+      'REPORT_FORMAL_EVENT',
+    ],
+    [
+      'В календаре появится новая дата вместо прежней.',
+      'REPORT_FORMAL_EVENT',
+    ],
+    [
+      'На экране маршрута может обнаружиться другой пункт пересадки.',
+      'REPORT_IMPERSONAL_DISCOVERY',
+    ],
+    [
+      'Расходы этой недели будут закрыты.',
+      'REPORT_FORMAL_EVENT',
+    ],
+  ])('rejects a provider phrase that is correct on paper but not spoken Russian: %s', (badPhrase, code) => {
+    const result = validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня встречу могут перенести, и это пока только один из вариантов.',
+        badPhrase,
+        'В итоге планы поменяются, и ждать старого времени больше не придётся.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' });
+
+    expect(result.errors).toContain(
+      'visible forecast copy contains a banned forecast voice phrase',
+    );
+    expect(result.errors.join('\n')).toContain(code);
+  });
+
+  it('rejects a sentence that is too long to sound like ordinary speech', () => {
+    const result = validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      forecast: [
+        'Сегодня может прийти ответ, который ты ждал так долго, что уже успел забыть, зачем вообще задавал этот простой вопрос ещё тогда в прошлый раз.',
+        'В сообщении назовут точную цену и срок без новых вопросов.',
+        'В итоге можно будет решить, брать вещь или спокойно искать дальше.',
+      ].join(' '),
+    }, new Set(), 'day', { language: 'ru' });
+
+    expect(result.errors).toContain('forecast sentence has 24 words; maximum is 16');
+  });
+
+  it('accepts a production-shaped three-part payload and materializes one story plus one closing', () => {
     const result = validateFreeGeneratedForecastFeed(
       validGeneratedDay,
       new Set(),
@@ -181,23 +446,25 @@ describe('personal forecast brief and writer contract', () => {
     );
 
     expect(result.errors).toEqual([]);
-    expect(result.sections).toHaveLength(4);
+    expect(result.sections).toHaveLength(2);
     expect(result.sections[0].title).toBe(validGeneratedDay.title);
-    expect(result.sections[0].blocks.map((block) => block.role)).toEqual([
-      'lead',
-      'detail',
+    expect(result.sections[0].blocks).toEqual([
+      expect.objectContaining({ role: 'detail', text: validGeneratedDay.forecast }),
     ]);
-    expect(result.sections[0].blocks[0].text).toBe(validGeneratedDay.punchline);
-    expect(result.sections.slice(1, -1).map((section) => section.blocks[0].role)).toEqual([
-      'detail',
-      'detail',
-    ]);
-    expect(result.sections.at(-1)?.blocks).toEqual([
+    expect(result.sections[1].blocks).toEqual([
       expect.objectContaining({ role: 'action', text: validGeneratedDay.closing }),
     ]);
+    expect(result.sections.flatMap((section) => section.blocks)).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ role: 'lead' })]),
+    );
+
+    expect(validateFreeGeneratedForecastFeed({
+      ...validGeneratedDay,
+      closing: 'Лучше сразу сравнить цену и ответить.',
+    }, new Set(), 'day', { language: 'ru' }).errors).toEqual([]);
   });
 
-  it('keeps the full period corpus aligned with the writer input and four-part output', () => {
+  it('keeps a compact period corpus aligned with the three-part contract and production validator', () => {
     const counts = Object.fromEntries(
       (['day', 'week', 'month'] as const).map((period) => [
         period,
@@ -205,10 +472,8 @@ describe('personal forecast brief and writer contract', () => {
           .filter((example) => example.period === period).length,
       ]),
     );
-    expect(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU).toHaveLength(56);
-    expect(counts).toEqual({ day: 21, week: 15, month: 20 });
-    expect(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.id))
-      .toContain('day-rezhim-zhertvy');
+    expect(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU).toHaveLength(9);
+    expect(counts).toEqual({ day: 3, week: 3, month: 3 });
     expect(new Set(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.map((example) => example.id)).size)
       .toBe(PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU.length);
     for (const example of PERSONAL_FORECAST_REFERENCE_EXAMPLES_RU) {
@@ -217,30 +482,40 @@ describe('personal forecast brief and writer contract', () => {
       ]);
       expect(example.input.reader).toEqual({ language: 'ru', grammatical_gender: 'male' });
       expect(Object.keys(example.output)).toEqual([
-        'title', 'punchline', 'forecast', 'closing',
+        'title', 'forecast', 'closing',
       ]);
       expect(JSON.stringify(example.input)).not.toMatch(/forecast_basis|primary_signal|hash_catalog|personal_profile/);
       expect(JSON.stringify(example.input)).not.toMatch(/name|current_date|period_start|period_end|timezone|astrologer_brief/);
       expect(example.output).not.toHaveProperty('headline');
+      expect(example.output).not.toHaveProperty('punchline');
+      expect(validateFreeGeneratedForecastFeed(
+        example.output,
+        new Set(),
+        example.period,
+        { language: 'ru' },
+      ).errors).toEqual([]);
     }
   });
 
-  it('uses only the forecast-specific voice layer', () => {
+  it('uses only the forecast-specific voice layer and the requested period lengths', () => {
     const writerPrompt = getPersonalForecastSystemPrompt('ru', 'day');
     const weekPrompt = getPersonalForecastSystemPrompt('ru', 'week');
     const monthPrompt = getPersonalForecastSystemPrompt('ru', 'month');
     expect(writerPrompt).not.toContain(getAppSystemVoice('ru'));
     expect(writerPrompt).not.toContain('ГОЛОС ЛИЧНОГО ПРОГНОЗА');
     expect(writerPrompt).toContain('astrologer_brief');
-    expect(writerPrompt).toContain('title, punchline, forecast, closing');
-    expect(writerPrompt).toContain('5–20 слов');
-    expect(writerPrompt).toContain('65–115 слов');
-    expect(writerPrompt).toContain('5–7 предложений');
-    expect(weekPrompt).toContain('85–130 слов');
-    expect(weekPrompt).toContain('5–7 предложений');
-    expect(monthPrompt).toContain('100–150 слов');
-    expect(monthPrompt).toContain('5–8 предложений');
+    expect(writerPrompt).toContain('title, forecast, closing');
+    expect(writerPrompt).toContain('30–65 слов');
+    expect(writerPrompt).toContain('3–4 предложений');
+    expect(writerPrompt).toContain('не больше 16 слов');
+    expect(writerPrompt).toContain('встречу могут перенести');
+    expect(weekPrompt).toContain('42–85 слов');
+    expect(weekPrompt).toContain('4–5 предложений');
+    expect(monthPrompt).toContain('55–105 слов');
+    expect(monthPrompt).toContain('5–6 предложений');
+    expect(writerPrompt).toContain('3–12 слов');
     expect(writerPrompt).toContain('reader.grammatical_gender');
+    expect(writerPrompt).not.toContain('punchline');
     expect(writerPrompt).not.toMatch(/takeaway|\bdo\b|\bdont\b/);
     expect(writerPrompt).not.toContain('forecast_basis');
   });
