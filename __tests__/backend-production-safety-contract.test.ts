@@ -29,9 +29,9 @@ describe('backend production safety contract', () => {
     const calls = [...runner.matchAll(/await ((?:migrationReset|lumia\w+|mvp\w+))\(migrationDb\)/g)]
       .map((match) => match[1]);
 
-    expect(names).toHaveLength(50);
+    expect(names).toHaveLength(52);
     expect(new Set(names).size).toBe(names.length);
-    expect(calls).toHaveLength(50);
+    expect(calls).toHaveLength(52);
     expect(new Set(calls).size).toBe(calls.length);
     expect(calls.slice(calls.indexOf('mvp040AccountIdentitySessions'), calls.indexOf('mvp044PremiumEntitlementLifecycle')))
       .toEqual([
@@ -43,6 +43,8 @@ describe('backend production safety contract', () => {
         'mvp045AuthExpiryTimezone',
         'mvp048AppSessionRefresh',
         'mvp049ContentReactions',
+        'mvp050LegalAcknowledgements',
+        'mvp051SupportDeliveryOutbox',
       ]);
   });
 
@@ -68,6 +70,12 @@ describe('backend production safety contract', () => {
     const scheduler = read('lib/notificationScheduler.ts');
     expect(scheduler).toContain("import { processPendingRuStoreEvents } from './rustorePayments'");
     expect(scheduler).toContain('await processPendingRuStoreEvents(20)');
+  });
+
+  it('processes durable support delivery without requiring an external cron', () => {
+    const scheduler = read('lib/notificationScheduler.ts');
+    expect(scheduler).toContain("import { processSupportDeliveryOutbox } from './supportOutbox'");
+    expect(scheduler).toContain('await processSupportDeliveryOutbox(20)');
   });
 
   it('never authorizes server owner access from a public env value in production', () => {

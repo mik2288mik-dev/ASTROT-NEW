@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   createDiagnosticTraceId,
   diagnosticErrorCode,
@@ -80,5 +82,32 @@ describe('runtime diagnostics privacy and correlation', () => {
       provider: 'yandex',
     })).toContain('durationMs=124');
     expect(diagnosticErrorCode({ code: 'AUTH_TIMEOUT' })).toBe('AUTH_TIMEOUT');
+  });
+
+  it('times only the dedicated startup loader while it stays visible', () => {
+    const runtimeSource = fs.readFileSync(path.join(__dirname, '..', 'lib', 'runtimeDiagnostics.ts'), 'utf8');
+    const loadingSource = fs.readFileSync(path.join(__dirname, '..', 'components', 'ui', 'Loading.tsx'), 'utf8');
+    const detectorStart = runtimeSource.indexOf('function installStartupStallDetector');
+    const detectorEnd = runtimeSource.indexOf('export function installRuntimeDiagnostics', detectorStart);
+    const detector = runtimeSource.slice(detectorStart, detectorEnd);
+
+    expect(loadingSource).toContain('data-nebo-startup-loading="true"');
+    expect(detector).toContain('STARTUP_LOADING_SELECTOR');
+    expect(detector).toContain('new MutationObserver(sync)');
+    expect(detector).toContain("document.visibilityState === 'visible'");
+    expect(detector).not.toContain("document.querySelector('[role=\"status\"]')");
+    expect(detector).toContain("if (canAutoOpenRuntimeDiagnostics()) {");
+  });
+
+  it('never auto-opens raw diagnostics in store builds', () => {
+    const runtimeSource = fs.readFileSync(path.join(__dirname, '..', 'lib', 'runtimeDiagnostics.ts'), 'utf8');
+
+    expect(runtimeSource).toMatch(
+      /function canAutoOpenRuntimeDiagnostics\(\)[\s\S]*NEXT_PUBLIC_DISTRIBUTION_CHANNEL === 'development'/,
+    );
+    expect(runtimeSource).toContain("if (canAutoOpenRuntimeDiagnostics()) void renderOverlay('JavaScript error')");
+    expect(runtimeSource).toContain("if (canAutoOpenRuntimeDiagnostics()) void renderOverlay('unhandled promise rejection')");
+    expect(runtimeSource).not.toMatch(/if \(isNative\(\)\) void renderOverlay/);
+    expect(runtimeSource).toContain("show: () => renderOverlay('manual')");
   });
 });

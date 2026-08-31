@@ -201,7 +201,7 @@ async function calculateManualNatal(input: FlexiblePersonInput): Promise<Synastr
   const birthTimeMode = input.birthTimeQuality;
   return calculateNatalChart(input.name, input.date, input.time, input.place, {
     birthTimeMode,
-    birthTimeUncertaintyMinutes: birthTimeMode === 'approximate' ? 60 : undefined,
+    birthTimeUncertaintyMinutes: birthTimeMode === 'approximate' ? 30 : undefined,
   });
 }
 

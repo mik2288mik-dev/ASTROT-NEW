@@ -18,8 +18,8 @@ describe('first-run onboarding completion flow', () => {
     );
 
     for (const preserved of [
-      'className="meou-onboarding fresh-page lumia-main-scroll antialiased"',
-      '<MeouLogo />',
+      'className="meou-onboarding antialiased"',
+      '<MeouLogo className="meou-onboarding-logo" fullCloud />',
       '<DayClockArtwork />',
       '<NatalWheelArtwork />',
       '<PeopleArtwork />',
@@ -31,7 +31,8 @@ describe('first-run onboarding completion flow', () => {
       expect(onboarding).toContain(preserved);
     }
     expect(onboarding).toContain("const introScreens: OnboardingScreen[] = ['day', 'self', 'people']");
-    expect(onboarding).toContain("setScreen(currentIndex === introScreens.length - 1 ? 'choice'");
+    expect(onboarding).toContain("const welcomeScreens: OnboardingScreen[] = [...introScreens, 'choice']");
+    expect(onboarding).toContain('const nextScreen = welcomeScreens[currentIndex + direction]');
     expect(onboarding).toContain("initialStep === 'birth' ? 'birth' : 'day'");
     expect(onboarding).not.toContain('const STORIES: Story[]');
     expect(onboarding).not.toContain('nextStory');

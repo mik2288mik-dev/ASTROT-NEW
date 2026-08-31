@@ -145,7 +145,9 @@
 .settings-account-actions button:focus-visible,
 .settings-developer-actions button:focus-visible,
 .settings-secondary-action:focus-visible,
-.settings-text-action:focus-visible {
+.settings-text-action:focus-visible,
+.settings-feedback-categories input:focus-visible + span,
+.settings-feedback-textarea:focus-visible {
   outline: 2px solid var(--settings-accent);
   outline-offset: -2px;
 }
@@ -317,6 +319,170 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 1.35;
+}
+
+.settings-feedback-form {
+  display: grid;
+  gap: 15px;
+  padding: 16px;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-feedback-categories {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.settings-feedback-categories legend {
+  margin-bottom: 7px;
+  color: var(--settings-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.settings-feedback-categories > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.settings-feedback-categories label {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.settings-feedback-categories input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-feedback-categories label > span {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 8px;
+  border: 1px solid rgba(25, 26, 29, 0.11);
+  border-radius: 10px;
+  background: #f7f7f5;
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+
+.settings-feedback-categories input:checked + span {
+  border-color: rgba(20, 120, 255, 0.38);
+  background: #eef5ff;
+  color: #075fc4;
+}
+
+.settings-feedback-textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 132px;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 1px solid rgba(25, 26, 29, 0.13);
+  border-radius: 11px;
+  background: var(--settings-surface);
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.settings-feedback-textarea::placeholder {
+  color: #96999f;
+  opacity: 1;
+}
+
+.settings-feedback-textarea[aria-invalid='true'],
+.settings-editorial-page .fresh-input[aria-invalid='true'] {
+  border-color: rgba(179, 38, 46, 0.58);
+}
+
+.settings-feedback-field-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.settings-feedback-warning {
+  margin: -1px 2px 0;
+  color: var(--settings-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.settings-editorial-page .settings-feedback-submit {
+  width: 100%;
+  min-height: 48px;
+}
+
+.settings-feedback-result {
+  min-height: 0;
+}
+
+.settings-feedback-result:not(:empty) {
+  min-height: 21px;
+}
+
+.settings-feedback-success {
+  padding: 20px 16px;
+  border: 1px solid rgba(25, 26, 29, 0.075);
+  border-radius: 16px;
+  background: var(--settings-surface);
+}
+
+.settings-feedback-success > div > p,
+.settings-feedback-success > div > h2,
+.settings-feedback-success > div > span {
+  margin: 0;
+}
+
+.settings-feedback-success > div > p {
+  color: var(--settings-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-feedback-success > div > h2 {
+  margin-top: 5px;
+  color: var(--settings-ink);
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.settings-feedback-success > div > span {
+  display: block;
+  margin-top: 7px;
+  color: var(--settings-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.settings-feedback-success > button {
+  margin-top: 16px;
 }
 
 .settings-editorial-page .fresh-input {
@@ -696,6 +862,7 @@
 @media (hover: hover) and (pointer: fine) {
   .settings-list-row:hover,
   .settings-selection-row:hover,
+  .settings-feedback-categories label > span:hover,
   .settings-account-actions button:hover,
   .settings-developer-actions button:hover {
     background: rgba(25, 26, 29, 0.035);

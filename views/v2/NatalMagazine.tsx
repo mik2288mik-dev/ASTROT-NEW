@@ -44,7 +44,20 @@ type NatalMagazineProps = {
   };
 };
 
-type NatalScreenTab = 'map' | 'reading' | 'questions' | 'matrix';
+export type NatalScreenTab = 'map' | 'reading' | 'questions' | 'matrix';
+
+export function isSavedPersonChartSubject(
+  chartSubject: Pick<ChartListItem, 'subject_type' | 'is_primary'> | null | undefined,
+): boolean {
+  return chartSubject?.subject_type === 'saved_person' || chartSubject?.is_primary === false;
+}
+
+export function normalizeNatalScreenTab(
+  tab: NatalScreenTab,
+  isSavedPerson: boolean,
+): NatalScreenTab {
+  return isSavedPerson && tab === 'questions' ? 'map' : tab;
+}
 
 export function NatalMagazine({
   data,
@@ -71,21 +84,35 @@ export function NatalMagazine({
   const subjectBirthDate = chartSubject ? chartSubject.birth_date : profile.birthDate;
   const subjectBirthTime = chartSubject ? (chartSubject.birth_time ?? '') : profile.birthTime;
   const subjectBirthPlace = chartSubject ? chartSubject.birth_place : profile.birthPlace;
+  const isSavedPerson = isSavedPersonChartSubject(chartSubject);
   const previewConfig = process.env.NODE_ENV === 'development'
     && process.env.NEXT_PUBLIC_UI_PREVIEW === '1'
       ? uiPreview
       : undefined;
   const [activeTab, setActiveTab] = useState<NatalScreenTab>(() => (
-    previewConfig?.openQuestion ? 'questions' : previewConfig?.initialTab || 'map'
+    normalizeNatalScreenTab(
+      previewConfig?.openQuestion ? 'questions' : previewConfig?.initialTab || 'map',
+      isSavedPerson,
+    )
   ));
+  const normalizedActiveTab = normalizeNatalScreenTab(activeTab, isSavedPerson);
   const [matrixMounted, setMatrixMounted] = useState(false);
   const handledExternalQuestionRequestRef = useRef(0);
-  const tabs = useMemo(() => [
-    { id: 'map' as const, label: language === 'ru' ? 'Карта' : 'Chart' },
-    { id: 'reading' as const, label: language === 'ru' ? 'Разбор' : 'Reading' },
-    { id: 'questions' as const, label: language === 'ru' ? 'Спросить о себе' : 'Ask about yourself' },
-    { id: 'matrix' as const, label: language === 'ru' ? 'Матрица судьбы' : 'Matrix' },
-  ], [language]);
+  const tabs = useMemo(() => {
+    const availableTabs = [
+      { id: 'map' as const, label: language === 'ru' ? 'Карта' : 'Chart' },
+      { id: 'reading' as const, label: language === 'ru' ? 'Разбор' : 'Reading' },
+      { id: 'questions' as const, label: language === 'ru' ? 'Спросить о себе' : 'Ask about yourself' },
+      { id: 'matrix' as const, label: language === 'ru' ? 'Матрица судьбы' : 'Matrix' },
+    ];
+    return isSavedPerson
+      ? availableTabs.filter((tab) => tab.id !== 'questions')
+      : availableTabs;
+  }, [isSavedPerson, language]);
+
+  useEffect(() => {
+    if (normalizedActiveTab !== activeTab) setActiveTab(normalizedActiveTab);
+  }, [activeTab, normalizedActiveTab]);
 
   useEffect(() => {
     if (
@@ -98,9 +125,9 @@ export function NatalMagazine({
     }
     if (!data) return;
     handledExternalQuestionRequestRef.current = openQuestionRequest;
-    setActiveTab('questions');
+    if (!isSavedPerson) setActiveTab('questions');
     onQuestionRequestHandled?.();
-  }, [chartLoadState, data, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);
+  }, [chartLoadState, data, isSavedPerson, onCreateChart, onQuestionRequestHandled, openQuestionRequest, profile.isSetup]);
 
   useEffect(() => {
     if (
@@ -108,10 +135,16 @@ export function NatalMagazine({
       || premiumContinuation.featureKey !== 'natal_questions'
       || premiumContinuation.returnAction !== 'open_natal_questions'
     ) return;
+    if (isSavedPerson) {
+      setActiveTab('map');
+      onPremiumContinuationHandled?.(premiumContinuation.paywallInstanceId);
+      return;
+    }
     setActiveTab('questions');
-  }, [premiumContinuation]);
+  }, [isSavedPerson, onPremiumContinuationHandled, premiumContinuation]);
 
   const selectTab = (tab: NatalScreenTab) => {
+    if (isSavedPerson && tab === 'questions') return;
     if (tab === 'matrix') setMatrixMounted(true);
     setActiveTab(tab);
   };
@@ -131,7 +164,7 @@ export function NatalMagazine({
         <EditorialTabs
           label={language === 'ru' ? 'Разделы натальной карты' : 'Natal chart sections'}
           tabs={tabs}
-          activeTab={activeTab}
+          activeTab={normalizedActiveTab}
           onTabChange={selectTab}
           className="natal-editorial-tabs"
         />
@@ -198,7 +231,7 @@ export function NatalMagazine({
     <div className="fresh-page natal-editorial-page natal-mvp-page">
       {header}
 
-      {activeTab === 'map' ? (
+      {normalizedActiveTab === 'map' ? (
         <section className="natal-map-stage" aria-labelledby="natal-map-title">
           <header className="natal-map-heading">
             <p>{language === 'ru' ? 'Карта рождения' : 'Birth chart'}</p>
@@ -236,24 +269,24 @@ export function NatalMagazine({
         </section>
       ) : null}
 
-      {activeTab === 'reading' || activeTab === 'questions' ? (
+      {normalizedActiveTab === 'reading' || normalizedActiveTab === 'questions' ? (
         <section
-          className={`natal-reading-stage${activeTab === 'questions' ? ' natal-question-stage' : ''}`}
-          aria-labelledby={activeTab === 'questions' ? 'natal-question-page-title' : 'natal-reading-page-title'}
+          className={`natal-reading-stage${normalizedActiveTab === 'questions' ? ' natal-question-stage' : ''}`}
+          aria-labelledby={normalizedActiveTab === 'questions' ? 'natal-question-page-title' : 'natal-reading-page-title'}
         >
           <header className="natal-magazine-heading">
             <p>{subjectName} · {formatDisplayDate(subjectBirthDate, language)}</p>
             <h1
-              id={activeTab === 'questions' ? 'natal-question-page-title' : 'natal-reading-page-title'}
-              className={activeTab === 'reading' ? 'natal-reading-page-title' : undefined}
+              id={normalizedActiveTab === 'questions' ? 'natal-question-page-title' : 'natal-reading-page-title'}
+              className={normalizedActiveTab === 'reading' ? 'natal-reading-page-title' : undefined}
             >
-              {activeTab === 'questions' ? (
+              {normalizedActiveTab === 'questions' ? (
                 language === 'ru' ? 'Спросить о себе' : 'Ask about yourself'
               ) : (
                 language === 'ru' ? 'Натальная карта' : 'Natal chart'
               )}
             </h1>
-            {activeTab === 'questions' ? (
+            {normalizedActiveTab === 'questions' ? (
               <p className="natal-question-intro">
                 {language === 'ru'
                   ? 'Задай один конкретный вопрос. Ответ будет опираться только на уже рассчитанную карту.'
@@ -261,7 +294,7 @@ export function NatalMagazine({
               </p>
             ) : null}
           </header>
-          <EditorialCurve className={`natal-reading-curve${activeTab === 'questions' ? ' natal-question-curve' : ''}`} />
+          <EditorialCurve className={`natal-reading-curve${normalizedActiveTab === 'questions' ? ' natal-question-curve' : ''}`} />
           <HumanReport
             key={reportSubjectKey}
             profile={profile}
@@ -272,11 +305,11 @@ export function NatalMagazine({
             onUpdateProfile={onUpdateProfile}
             preloadedReport={preloadedReport}
             hideIntro
-            surface={activeTab === 'questions' ? 'questions' : 'reading'}
+            surface={normalizedActiveTab === 'questions' ? 'questions' : 'reading'}
             premiumContinuation={premiumContinuation}
             onPremiumContinuationHandled={onPremiumContinuationHandled}
             canPromotePremium={canPromotePremium}
-            onOpenQuestions={() => {
+            onOpenQuestions={isSavedPerson ? undefined : () => {
               selectTab('questions');
               requestAnimationFrame(() => {
                 window.scrollTo({ top: 0, behavior: 'auto' });
@@ -291,7 +324,7 @@ export function NatalMagazine({
       ) : null}
 
       {matrixMounted ? (
-        <div className="natal-matrix-stage" hidden={activeTab !== 'matrix'}>
+        <div className="natal-matrix-stage" hidden={normalizedActiveTab !== 'matrix'}>
           <MatrixRoom
             profile={profile}
             onBack={() => setActiveTab('map')}

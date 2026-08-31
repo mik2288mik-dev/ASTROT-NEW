@@ -167,7 +167,7 @@ public class NativeIdentityAuthPlugin extends Plugin {
         markAuth("sdk_launch", "start", null, "INFO");
         YandexAuthSdk sdk = getYandexAuthSdk();
         YandexAuthLoginOptions loginOptions = new YandexAuthLoginOptions(
-            LoginType.CHROME_TAB,
+            LoginType.NATIVE,
             configuredClientId
         );
         startActivityForResult(

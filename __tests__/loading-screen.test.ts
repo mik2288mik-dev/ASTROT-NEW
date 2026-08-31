@@ -8,6 +8,7 @@ describe('loading screen', () => {
     const source = fs.readFileSync(path.join(ROOT, 'components/ui/Loading.tsx'), 'utf8');
     expect(source).toContain('NEBO гороскоп натальная карта');
     expect(source).toContain("var(--app-canvas, #FFFFFF)");
+    expect(source).toContain('data-nebo-startup-loading="true"');
     expect(source).not.toContain('#FBFAF6');
     expect(source).toContain('min-h-[100dvh]');
     expect(source).not.toContain('/lumiastart.webp');

@@ -2,6 +2,7 @@ const mockGetById = jest.fn();
 const mockArchive = jest.fn();
 const mockRequireAppUser = jest.fn();
 const mockGetPremiumEntitlementState = jest.fn();
+const mockRepairCanonicalChartRecord = jest.fn();
 
 jest.mock('../lib/db', () => ({
   db: {
@@ -18,7 +19,7 @@ jest.mock('../lib/contentArchitecture', () => ({
   getPremiumEntitlementState: (...args: unknown[]) => mockGetPremiumEntitlementState(...args),
 }));
 jest.mock('../lib/natalChartPersistence', () => ({
-  createOrReuseCanonicalChart: jest.fn(),
+  repairCanonicalChartRecord: (...args: unknown[]) => mockRepairCanonicalChartRecord(...args),
 }));
 
 import handler from '../pages/api/charts/chart/[chartId]';
@@ -67,6 +68,54 @@ describe('chart by id access', () => {
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'PREMIUM_REQUIRED' }));
     expect(mockArchive).not.toHaveBeenCalled();
+  });
+
+  it('repairs the same saved-chart record without dropping approximate-time metadata', async () => {
+    mockGetPremiumEntitlementState.mockResolvedValue({ isPremium: true, entitlement: null });
+    mockGetById.mockResolvedValue({
+      id: 9,
+      user_id: 'owner-1',
+      name: 'Марина',
+      subject_type: 'saved_person',
+      is_primary: false,
+      birth_date: '1991-06-10',
+      birth_time: '12:20',
+      birth_time_mode: 'approximate',
+      birth_time_uncertainty_minutes: 30,
+      birth_time_range_start: null,
+      birth_time_range_end: null,
+      birth_place: 'Казань',
+      chart_data: {},
+    });
+    mockRepairCanonicalChartRecord.mockResolvedValue({
+      source: 'repaired',
+      chart: {
+        id: 9,
+        user_id: 'owner-1',
+        name: 'Марина',
+        subject_type: 'saved_person',
+        is_primary: false,
+        birth_date: '1991-06-10',
+        birth_time: '12:20',
+        birth_time_mode: 'approximate',
+        birth_time_uncertainty_minutes: 30,
+        birth_time_range_start: null,
+        birth_time_range_end: null,
+        birth_place: 'Казань',
+        chart_data: { schemaVersion: 'natal-chart-v2' },
+      },
+    });
+    const res = response();
+
+    await handler({ method: 'GET', query: { chartId: '9' }, headers: {} } as any, res);
+
+    expect(mockRepairCanonicalChartRecord).toHaveBeenCalledWith('owner-1', 9);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 9,
+      birth_time_mode: 'approximate',
+      birth_time_uncertainty_minutes: 30,
+    }));
   });
 
   it('refuses to archive the self chart', async () => {

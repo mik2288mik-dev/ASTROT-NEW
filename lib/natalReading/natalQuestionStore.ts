@@ -1,9 +1,9 @@
 import { getPool } from '../db';
-import { PERSONAL_FORECAST_CUSTOM_QUESTION_DAILY_LIMIT } from '../personalForecastQuestionModeration';
 
 export const NATAL_QUESTION_THREAD_KIND = 'natal-question-v1';
 export const NATAL_QUESTION_THREAD_SCHEMA_VERSION = 'natal-question-thread-v1';
 export const NATAL_QUESTION_MESSAGE_SCHEMA_VERSION = 'natal-question-message-v1';
+export const NATAL_QUESTION_DAILY_LIMIT = 5;
 
 export type NatalQuestionStoredMessage = {
   id: number;
@@ -22,6 +22,22 @@ export type NatalQuestionUsage = {
   limit: number;
   remaining: number;
 };
+
+export function answeredNatalQuestionTexts(
+  messages: readonly NatalQuestionStoredMessage[],
+): string[] {
+  const answeredQuestionIds = new Set<number>();
+  messages.forEach((message) => {
+    if (message.role !== 'assistant') return;
+    const questionMessageId = Number(message.payload?.questionMessageId);
+    if (Number.isSafeInteger(questionMessageId) && questionMessageId > 0) {
+      answeredQuestionIds.add(questionMessageId);
+    }
+  });
+  return messages
+    .filter((message) => message.role === 'user' && answeredQuestionIds.has(message.id))
+    .map((message) => message.text);
+}
 
 export class NatalQuestionLimitError extends Error {
   readonly code = 'NATAL_QUESTION_DAILY_LIMIT';
@@ -151,7 +167,7 @@ export async function listNatalQuestionMessages(input: {
               question.created_at AS question_created_at
        FROM astrology_messages AS question
        JOIN astrology_threads AS thread ON thread.id = question.thread_id
-       JOIN LATERAL (
+       LEFT JOIN LATERAL (
          SELECT candidate.id
          FROM astrology_messages AS candidate
          WHERE candidate.thread_id = question.thread_id
@@ -234,33 +250,24 @@ async function questionUsageWith(
   },
 ): Promise<NatalQuestionUsage> {
   const result = await queryable.query(
-    `SELECT (
-       SELECT COUNT(*)::int
-       FROM astrology_messages AS message
-       JOIN astrology_threads AS thread ON thread.id = message.thread_id
-       WHERE message.user_id = $1
-         AND message.role = 'user'
-         AND thread.thread_kind = $2
-         AND COALESCE(
-           NULLIF(message.content_payload ->> 'usageDate', ''),
-           (message.created_at AT TIME ZONE $4)::date::text
-         ) = $3
-     ) + (
-       SELECT COUNT(*)::int
-       FROM personal_forecast_questions
-       WHERE user_id = $1
-         AND usage_date = $3::date
-         AND source = 'custom'
-         AND status <> 'rejected'
-     ) AS used`,
+    `SELECT COUNT(*)::int AS used
+     FROM astrology_messages AS message
+     JOIN astrology_threads AS thread ON thread.id = message.thread_id
+     WHERE message.user_id = $1
+       AND message.role = 'user'
+       AND thread.thread_kind = $2
+       AND COALESCE(
+         NULLIF(message.content_payload ->> 'usageDate', ''),
+         (message.created_at AT TIME ZONE $4)::date::text
+       ) = $3`,
     [input.userId, NATAL_QUESTION_THREAD_KIND, input.usageDate, input.timezone],
   );
   const used = Math.max(0, Number(result.rows[0]?.used || 0));
   return {
     usageDate: input.usageDate,
     used,
-    limit: PERSONAL_FORECAST_CUSTOM_QUESTION_DAILY_LIMIT,
-    remaining: Math.max(0, PERSONAL_FORECAST_CUSTOM_QUESTION_DAILY_LIMIT - used),
+    limit: NATAL_QUESTION_DAILY_LIMIT,
+    remaining: Math.max(0, NATAL_QUESTION_DAILY_LIMIT - used),
   };
 }
 
@@ -286,7 +293,7 @@ export async function reserveNatalQuestionMessage(input: {
   try {
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-      `personal-forecast-question:${input.userId}:${input.usageDate}`,
+      `natal-question:${input.userId}:${input.usageDate}`,
     ]);
     const existing = await client.query(
       `SELECT message.*

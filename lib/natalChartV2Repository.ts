@@ -45,4 +45,17 @@ export const natalChartV2Repository={
     const p=payload(data);const values=[p.name,JSON.stringify(p.chart),p.chart.latitude,p.chart.longitude,p.chart.timezone,p.inputHash,p.chart.calculationVersion,p.birthDate,p.birthTime,p.birthTimeMode,p.uncertainty,p.rangeStart,p.rangeEnd,p.birthPlace];
     const result=await getPool().query(`INSERT INTO natal_charts (user_id,name,chart_data,latitude,longitude,timezone,input_hash,calculation_version,birth_date,birth_time,birth_time_mode,birth_time_uncertainty_minutes,birth_time_range_start,birth_time_range_end,birth_place,is_primary,subject_type,relation_label) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,FALSE,'saved_person',NULL) RETURNING *`,[userId,...values]);return mapRow(result.rows[0]);
   },
+  async repairSaved(userId:string,chartId:number,data:any){
+    const p=payload(data);const client=await getPool().connect();
+    try{
+      await client.query('BEGIN');
+      const existing=await client.query(`SELECT id,subject_type,is_primary FROM natal_charts WHERE id=$1 AND user_id=$2 AND archived_at IS NULL FOR UPDATE`,[chartId,userId]);
+      if(!existing.rows[0])throw new Error('Chart not found');
+      if(existing.rows[0].subject_type!=='saved_person'||existing.rows[0].is_primary===true)throw new Error('Only a saved-person chart can be repaired in place');
+      const values=[p.name,JSON.stringify(p.chart),p.chart.latitude,p.chart.longitude,p.chart.timezone,p.inputHash,p.chart.calculationVersion,p.birthDate,p.birthTime,p.birthTimeMode,p.uncertainty,p.rangeStart,p.rangeEnd,p.birthPlace,chartId,userId];
+      const result=await client.query(`UPDATE natal_charts SET name=$1,chart_data=$2,latitude=$3,longitude=$4,timezone=$5,input_hash=$6,calculation_version=$7,birth_date=$8,birth_time=$9,birth_time_mode=$10,birth_time_uncertainty_minutes=$11,birth_time_range_start=$12,birth_time_range_end=$13,birth_place=$14,is_primary=FALSE,subject_type='saved_person',sun=NULL,moon=NULL,ascendant=NULL,mercury=NULL,venus=NULL,mars=NULL,jupiter=NULL,saturn=NULL,houses=NULL,aspects=NULL,sun_sign=NULL,moon_sign=NULL,ascendant_sign=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=$15 AND user_id=$16 AND archived_at IS NULL RETURNING *`,values);
+      if(!result.rows[0])throw new Error('Chart not found');
+      await client.query('COMMIT');return mapRow(result.rows[0]);
+    }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error;}finally{client.release();}
+  },
 };

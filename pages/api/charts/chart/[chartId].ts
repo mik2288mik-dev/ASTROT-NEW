@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../../../lib/db';
-import { createOrReuseCanonicalChart } from '../../../../lib/natalChartPersistence';
+import { repairCanonicalChartRecord } from '../../../../lib/natalChartPersistence';
 import { isCanonicalNatalChartDataComplete } from '../../../../lib/natalChartCanonical';
 import { AdminAuthError, handleAdminError } from '../../../../lib/adminAuth';
 import { requireAppUser } from '../../../../lib/auth/appAuth';
@@ -36,14 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       assertChartReadable(chart, entitlement.isPremium);
 
       if (!isCanonicalNatalChartDataComplete(chart.chart_data) && chart.birth_date && chart.birth_place) {
-        const repaired = await createOrReuseCanonicalChart({
-          userId,
-          name: chart.name || 'Saved person',
-          birthDate: chart.birth_date,
-          birthTime: chart.birth_time || '',
-          birthPlace: chart.birth_place,
-        });
-        chart = repaired.chart || chart;
+        const repaired = await repairCanonicalChartRecord(userId, id);
+        chart = repaired?.chart || chart;
       }
 
       return res.status(200).json(exposeChartAccess(chart!, entitlement.isPremium));

@@ -9,6 +9,7 @@ export const STORE_RELEASE_CONFIG = {
   publicationDate: process.env.NEXT_PUBLIC_LEGAL_PUBLICATION_DATE || '[УКАЖИТЕ_ДАТУ_ПУБЛИКАЦИИ]',
   privacyUrl: process.env.NEXT_PUBLIC_PRIVACY_POLICY_URL || fallback('/privacy'),
   termsUrl: process.env.NEXT_PUBLIC_TERMS_URL || fallback('/terms'),
+  consentUrl: process.env.NEXT_PUBLIC_PERSONAL_DATA_CONSENT_URL || fallback('/personal-data-consent'),
   deleteAccountUrl: process.env.NEXT_PUBLIC_ACCOUNT_DELETION_URL || fallback('/delete-account'),
 } as const;
 

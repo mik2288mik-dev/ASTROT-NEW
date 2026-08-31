@@ -30,9 +30,9 @@ import type {
 const MAX_ANSWER_ATTEMPTS = 2;
 
 export const NATAL_QUESTION_PROMPT_VERSION = withAppVoiceVersion(
-  'natal-question.v3.responses-strict-schema-repair',
+  'natal-question.v4.scope-gate.responses-strict-schema-repair',
 );
-export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v3';
+export const NATAL_QUESTION_CONTRACT_VERSION = 'natal-question-v4';
 
 const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
   type: 'object',
@@ -46,7 +46,15 @@ const NATAL_QUESTION_RESPONSE_SCHEMA: StrictJsonSchema = {
 
 export type NatalQuestionModeration = {
   status: 'approved' | 'rejected';
-  reason: PersonalForecastQuestionModerationReason | 'relevant_natal_question';
+  reason:
+    | PersonalForecastQuestionModerationReason
+    | 'relevant_natal_question'
+    | 'not_natal_question'
+    | 'needs_specificity'
+    | 'professional_prescription'
+    | 'sensitive_personal_data'
+    | 'third_party_inference'
+    | 'compatibility_requires_two_charts';
   normalizedQuestion: string;
 };
 
@@ -127,6 +135,227 @@ function evidenceIdsFromPayload(payload: Record<string, unknown> | null): string
     : [];
 }
 
+const NATAL_SCOPE_PATTERNS = [
+  /(?:натальн[\p{L}-]*\s+карт|карт[\p{L}-]*\s+рождени|гороскоп|астролог|зодиак|асцендент|десцендент|планет|солнц|лун|меркур|венер|марс|юпитер|сатурн|уран|нептун|плутон|аспект|транзит|ретроград|знак[\p{L}-]*\s+зодиак|дом[\p{L}-]*\s+(?:карт|гороскоп))/iu,
+  /(?:natal\s+chart|birth\s+chart|horoscope|astrolog|zodiac|ascendant|descendant|planet|sun\s+sign|moon\s+sign|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|aspect|transit|retrograde)/iu,
+] as const;
+
+const EXPLICIT_CHART_SCOPE_PATTERNS = [
+  /(?:натальн[\p{L}-]*\s+карт|карт[\p{L}-]*\s+рождени|личн[\p{L}-]*\s+гороскоп|гороскоп[\p{L}-]*\s+рождени)/iu,
+  /(?:natal\s+chart|birth\s+chart|personal\s+horoscope|birth\s+horoscope)/iu,
+] as const;
+
+const ASTROLOGY_FACTOR_PATTERNS = [
+  /(?:асцендент|десцендент|планет|солнц|лун|меркур|венер|марс|юпитер|сатурн|уран|нептун|плутон|аспект|транзит|ретроград|знак[\p{L}-]*\s+зодиак|дом[\p{L}-]*\s+(?:карт|гороскоп))/iu,
+  /(?:ascendant|descendant|planet|sun\s+sign|moon\s+sign|mercury|venus|mars|jupiter|saturn|uranus|neptune|pluto|aspect|transit|retrograde|zodiac\s+sign|chart\s+house)/iu,
+] as const;
+
+const PERSONAL_SUBJECT_PATTERNS = [
+  /(?:^|[^\p{L}])(?:я|мне|меня|мной|мой|моя|мо[её]|мои|мою|моего|моей|мо[её]м|моим|моими|моих|у\s+меня|обо\s+мне|про\s+меня)(?:$|[^\p{L}])/iu,
+  /(?:^|[^\p{L}])(?:i|me|my|mine|myself|about\s+me)(?:$|[^\p{L}])/iu,
+] as const;
+
+const INTERPRETIVE_INTENT_PATTERNS = [
+  /(?:почему|зачем|как|что|како(?:й|я|е|ие)|когда|где|из-за\s+чего|что\s+(?:значит|означает|говорит|показывает)|разбери|объясни|расскажи|помогает|мешает|проявляется|реагир|веду\s+себя|склон(?:ен|на)|стоит\s+ли|можно\s+ли|будет\s+ли|подходит\s+ли)/iu,
+  /(?:why|how|what|which|when|where|what\s+does|explain|interpret|tell\s+me|describe|helps?|gets?\s+in\s+the\s+way|shows?\s+up|react|behave|tend\s+to|should\s+i|can\s+i|will\s+i|is\s+it)/iu,
+] as const;
+
+const PERSONAL_PATTERN_DOMAIN_PATTERNS = [
+  /(?:характер|черт[\p{L}-]*|сильн[\p{L}-]*\s+сторон|слаб[\p{L}-]*\s+сторон|талант|способност|реакц|реагир|эмоц|чувств|привыч|поведен|решен|выбор|сомнен|риск|общен|разговор|конфликт|спор|границ|довер|помощ|отношен|любов|близост|семь|родител|друз|муж|жен|супруг|работ|карьер|профес|коллег|руковод|деньг|доход|трат|накоп|самооцен|уверен|страх|контрол|ответствен|мотивац|цел[ьи]|темп|инициатив|лидер|партн[её]р|прокраст|откладыв|дисциплин|организ|довож|начина)/iu,
+  /(?:character|trait|strength|weakness|talent|abilit|reaction|react|emotion|feeling|habit|behavio|decision|choice|doubt|risk|communicat|conversation|conflict|argument|boundar|trust|help|relationship|love|intimacy|family|parent|friend|husband|wife|spouse|work|career|profession|colleague|manager|money|income|spend|saving|confidence|fear|control|responsibilit|motivation|goal|pace|initiative|leader|partner|procrastinat|put\w*\s+off|disciplin|organi[sz]|follow\w*\s+through|start\w*)/iu,
+] as const;
+
+const TIMING_QUESTION_PATTERNS = [
+  /(?:сегодня|завтра|на\s+этой\s+недел|на\s+следующей\s+недел|в\s+этом\s+месяц|в\s+следующем\s+месяц|в\s+этом\s+году|когда|какая\s+дат|лучший\s+ли\s+день|подходящ\w*\s+(?:день|момент)|составь\s+(?:мне\s+)?гороскоп|сделай\s+(?:мне\s+)?гороскоп|дай\s+(?:мне\s+)?гороскоп)/iu,
+  /(?:today|tomorrow|this\s+week|next\s+week|this\s+month|next\s+month|this\s+year|when|which\s+date|best\s+day|right\s+time|make\s+(?:me\s+)?a\s+horoscope|give\s+me\s+a\s+horoscope)/iu,
+] as const;
+
+const TIMING_DECISION_PATTERNS = [
+  /(?:стоит\s+ли|можно\s+ли|подходит\s+ли|лучший\s+ли|начин|запуск|публикац|переезд|решен|разговор|встреч|отношен|работ|покуп|подпис|гороскоп)/iu,
+  /(?:should\s+i|can\s+i|is\s+it|best|start|launch|publish|move|decision|conversation|meeting|relationship|work|buy|sign|horoscope)/iu,
+] as const;
+
+const UNIVERSAL_ASSISTANT_TASK_PATTERNS = [
+  /(?:^|[^\p{L}])(?:приготовь|свари|испеки|пожарь|купи|закажи|подбери|посоветуй|выбери|напиши|сочини|переведи|исправь|отладь|запрограммируй|реши|нарисуй|создай|поставь|отправь|забронируй|построй|проложи|спланируй)(?!\p{L})/iu,
+  /(?:^|[^\p{L}])(?:сделай|составь)(?!\s+(?:мне\s+)?гороскоп)(?!\p{L})/iu,
+  /(?:приготов|свари|испек|пожарь|рецепт|составь\s+меню|посчитай\s+калори|борщ|суп(?!\p{L}))/iu,
+  /(?:(?:купи|закажи|подбери|посоветуй|выбери)(?!\p{L})[^.!?]{0,100}(?:телефон|ноутбук|товар|одежд|подарок|отел|ресторан|курс)|какой\s+(?:телефон|ноутбук|товар)\s+(?:купить|выбрать))/iu,
+  /(?:напиши|сочини|расскажи|придумай|переведи|перевод|исправь|отладь|запрограммируй|реши|сделай)(?!\p{L})[^.!?]{0,100}(?:анекдот|шутк|стих|песн|письм|пост|резюме|код|программ|скрипт|домашн|задач|контрольн|экзамен|презентац)/iu,
+  /(?:прогноз\s+погоды|температура\s+на\s+улице|сч[её]т\s+(?:матча|игры)|новост|курс\s+валют|столица\s+какой|кто\s+(?:президент|выиграл))/iu,
+  /(?:нарисуй|создай\s+(?:картин|изображен|видео)|поставь\s+напоминан|отправь\s+(?:письм|сообщен)|забронируй)/iu,
+  /(?:составь|построй|проложи|спланируй)(?!\p{L})[^.!?]{0,100}(?:маршрут|поездк|путешеств|расписан|трениров|диет|бюджет)/iu,
+  /(?:cook|recipe|boil|bake|fry|make\s+(?:me\s+)?(?:dinner|lunch|breakfast)|calories)/iu,
+  /(?:(?:buy|order|pick|recommend|choose)\b[^.!?]{0,100}(?:phone|laptop|product|clothes|gift|hotel|restaurant|course)|which\s+(?:phone|laptop|product)\s+should\s+i\s+buy)/iu,
+  /(?:write|compose|tell|make|translate|fix|debug|program|solve|do)\b[^.!?]{0,100}(?:joke|poem|song|email|post|resume|code|program|script|homework|exam|presentation)/iu,
+  /(?:weather\s+forecast|temperature\s+outside|match\s+score|game\s+score|news|exchange\s+rate|who\s+(?:is\s+the\s+president|won))/iu,
+  /(?:draw|create\s+(?:an?\s+)?(?:image|picture|video)|set\s+(?:a\s+)?reminder|send\s+(?:an?\s+)?(?:email|message)|book\s+(?:a\s+)?(?:hotel|table|flight))/iu,
+  /(?:build|make|plan)\b[^.!?]{0,100}(?:route|trip|travel|schedule|workout|diet|budget)/iu,
+  /(?:^|[^\p{L}])(?:cook|boil|bake|fry|buy|order|pick|recommend|choose|write|compose|translate|fix|debug|program|solve|draw|create|set|send|book)(?!\p{L})/iu,
+  /(?:^|[^\p{L}])make(?!\s+(?:me\s+)?a\s+horoscope)(?!\p{L})/iu,
+] as const;
+
+const PRESCRIPTIVE_ASSISTANT_REQUEST_PATTERNS = [
+  /(?:как|что)\s+мне\s+(?:лучше\s+)?(?:сделать|делать|найти|получить|добиться|заработать|увеличить|выбрать|купить|продать|написать|составить|подготовить|выучить|помириться|вернуть|убедить|заставить|уволиться|устроиться|перейти|переехать|построить|общаться|вести\s+себя|поступить|решить)(?!\p{L})/iu,
+  /(?:дай|составь)\s+(?:мне\s+)?(?:совет|план|инструкц|список|стратег)/iu,
+  /(?:how|what)\s+(?:can|should|do)\s+i\s+(?:make|do|find|get|achieve|earn|increase|choose|buy|sell|write|prepare|learn|reconcile|win\s+back|convince|force|quit|apply|move|build|communicate|behave|decide)(?!\p{L})/iu,
+  /(?:give|make)\s+me\s+(?:advice|a\s+plan|an?\s+instruction|a\s+list|a\s+strategy)/iu,
+] as const;
+
+const PROFESSIONAL_PRESCRIPTION_PATTERNS = [
+  /(?:диагноз|диагност|болезн|заболеван|лечен|лекарств|препарат|таблет|дозировк)/iu,
+  /(?:как\s+выиграть\s+суд|подавать\s+ли\s+в\s+суд|юридическ\w*\s+(?:совет|стратег)|как\s+уйти\s+от\s+налог)/iu,
+  /(?:куда\s+вложить\s+деньги|какие\s+акци\w*\s+купить|инвестировать\s+ли|брать\s+ли\s+кредит|оформлять\s+ли\s+ипотек)/iu,
+  /(?:diagnos|disease|illness|treat(?:ment)?|medicine|medication|pills?|dosage)/iu,
+  /(?:how\s+to\s+win\s+(?:a\s+)?lawsuit|should\s+i\s+sue|legal\s+(?:advice|strategy)|evade\s+tax)/iu,
+  /(?:where\s+should\s+i\s+invest|which\s+stocks?\s+should\s+i\s+buy|should\s+i\s+invest|should\s+i\s+take\s+(?:a\s+)?loan|should\s+i\s+get\s+(?:a\s+)?mortgage)/iu,
+] as const;
+
+const SENSITIVE_INPUT_PATTERNS = [
+  /(?:здоровь|медицин|диагноз|диагност|болезн|заболеван|лечен|лекарств|препарат|таблет|дозировк|после\s+операци|беременн|депресси|паническ[\p{L}-]*\s+атак|психиатр|психотерап|расстройств)/iu,
+  /\b(?:health|medical|diagnos|disease|illness|treat(?:ment)?|medicine|medication|pills?|dosage|surgery|pregnan|depress|panic\s+attack|psychiatr|psychotherap|disorder)\w*\b/iu,
+  /(?:паспорт|снилс|(?<!\p{L})инн(?!\p{L})|водительск[\p{L}-]*\s+удостовер|удостоверен[\p{L}-]*\s+личност|номер\s+документ|серия\s+(?:и\s+)?номер)/iu,
+  /\b(?:passport|social\s+security|ssn|tax\s+id|driver'?s\s+licen[cs]e|identity\s+document|document\s+number)\b/iu,
+  /[\p{L}\d._%+-]+@[\p{L}\d.-]+\.[\p{L}]{2,}/iu,
+  /(?:@[\p{L}\d_]{3,}|(?:телефон|номер\s+телефона|мой\s+номер|phone(?:\s+number)?|contact\s+me)[^.!?\n]{0,32}\+?\d)/iu,
+  /(?<!\d)(?:\+\d[\d\s()-]{8,}\d)(?!\d)/u,
+  /(?:парол|пин[-\s]?код|код\s+из\s+смс|одноразов[\p{L}-]*\s+код|код\s+подтвержден|(?<!\p{L})otp(?!\p{L})|(?<!\p{L})(?:cvv|cvc)(?!\p{L}))/iu,
+  /\b(?:password|passcode|pin\s+code|one[-\s]?time\s+(?:password|code)|verification\s+code|otp|cvv|cvc)\b/iu,
+  /(?:банковск[\p{L}-]*\s+карт|номер\s+карт|плат[её]жн[\p{L}-]*\s+данн|банковск[\p{L}-]*\s+реквизит|номер\s+сч[её]та|(?<!\p{L})(?:бик|iban)(?!\p{L}))/iu,
+  /\b(?:bank\s+card|card\s+number|payment\s+data|bank\s+details|bank\s+account|account\s+number|routing\s+number|iban)\b/iu,
+  /(?<!\d)(?:\d[\s-]*){13,19}(?!\d)/u,
+] as const;
+
+const THIRD_PARTY_INFERENCE_PATTERNS = [
+  /(?:что|как)\s+(?:он|она|они|мо[йя]\s+(?:партн[её]р|муж|жена)|муж|жена)\s+(?:думает|чувствует|скрывает)|(?:любит|обманывает|изменяет)\s+ли\s+(?:он|она|мо[йя]\s+партн[её]р|партн[её]р|муж|жена)|верн[её]тся\s+ли\s+(?:он|она|мо[йя]\s+(?:партн[её]р|муж|жена))/iu,
+  /(?:расскажи\s+(?:мне\s+)?(?:про|о)|како[йя]\s+характер\s+у|какие\s+(?:сильные|слабые)\s+стороны\s+у)\s+мо(?:его|ей|ю|им)\s+(?:партн[её]р|муж|жен|начальник|коллег|друг|подруг|мам|пап|реб[её]н|сын|доч)/iu,
+  /(?:как|почему)\s+мо[йя]\s+(?:партн[её]р|муж|жена|начальник|коллега|друг|подруга)\s+(?:обычно\s+)?(?:реагирует|вед[её]т\s+себя|поступает)/iu,
+  /(?:what|how)\s+(?:(?:does|do)\s+)?(?:he|she|they|my\s+partner|my\s+husband|my\s+wife)\s+(?:thinks?|feels?|hides?)|does\s+(?:he|she|my\s+partner|my\s+husband|my\s+wife)\s+(?:love|cheat|lie)|will\s+(?:he|she|my\s+partner|my\s+husband|my\s+wife)\s+come\s+back/iu,
+  /(?:tell\s+me\s+about|what\s+is\s+the\s+character\s+of|what\s+are\s+the\s+(?:strengths|weaknesses)\s+of)\s+my\s+(?:partner|husband|wife|manager|colleague|friend|mother|father|child|son|daughter)/iu,
+  /(?:how|why)\s+(?:does\s+)?my\s+(?:partner|husband|wife|manager|colleague|friend)\s+(?:usually\s+)?(?:react|behave|act)/iu,
+  /(?:почему|как|зачем)\s+(?:(?:мо[йяи]\s+)?(?:партн[её]р|муж|жена|начальник|коллег[аи]?|коллеги|друг|подруга|друзья|родител[ьи]|дети)|он|она|они)\s+[^.!?]{0,55}?(?:не\s+)?(?:разговарива|говорит|игнорир|избега|отдаля|молчит|ценит|уважает|поддержива|доверя|обижает|критику|контролир|злится|сердится|любит|хочет|решил|решила|вед[её]т\s+себя|поступает|реагирует)/iu,
+  /(?:why|how)\s+(?:(?:does|do)\s+)?(?:my\s+(?:partner|husband|wife|manager|colleague|colleagues|friend|friends|parents?|children)|he|she|they)\s+[^.!?]{0,55}?(?:not\s+)?(?:talk|speak|ignore|avoid|withdraw|stay\s+silent|value|respect|support|trust|hurt|criticize|control|get\s+angry|love|want|decide|behave|act|react)/iu,
+] as const;
+
+const COMPATIBILITY_PATTERNS = [
+  /(?:совместим|подходим\s+ли\s+мы|наша\s+совместимость|что\s+жд[её]т\s+нашу\s+пару)/iu,
+  /(?:compatib|are\s+we\s+(?:a\s+)?(?:match|right\s+for\s+each\s+other)|our\s+relationship\s+future)/iu,
+] as const;
+
+const VAGUE_QUESTION_PATTERNS = [
+  /^(?:что\s+делать|как\s+быть|что\s+дальше|что\s+скажешь|что\s+в\s+(?:моей\s+)?(?:натальной\s+)?карт[еы]|расскажи(?:\s+мне)?|помоги|про\s+меня|обо\s+мне|про\s+отношения|про\s+работу|что[-\s]?нибудь)(?:\s+(?:по|согласно)\s+(?:моей\s+)?(?:натальной\s+)?карт[еы])?[?!.]*$/iu,
+  /^(?:what\s+should\s+i\s+do|what\s+now|what\s+do\s+you\s+think|what(?:'s|\s+is)\s+in\s+my\s+(?:natal\s+|birth\s+)?chart|tell\s+me|help\s+me|about\s+me|about\s+relationships|about\s+work|anything)(?:\s+(?:from|according\s+to)\s+my\s+(?:natal\s+|birth\s+)?chart)?[?!.]*$/iu,
+] as const;
+
+const REQUEST_DIRECTIVE_START_SOURCE = String.raw`(?:(?:пожалуйста\s*,?\s*)?(?:расскажи(?:те)?|объясни(?:те)?|опиши(?:те)?|разбери(?:те)?|покажи(?:те)?|назови(?:те)?|дай(?:те)?|напиши(?:те)?|сочини(?:те)?|переведи(?:те)?|составь(?:те)?|сделай(?:те)?|приготовь(?:те)?|придумай(?:те)?|создай(?:те)?|реши(?:те)?|помоги(?:те)?|подскажи(?:те)?|посоветуй(?:те)?|выбери(?:те)?|купи(?:те)?|закажи(?:те)?|нарисуй(?:те)?|отправь(?:те)?|поставь(?:те)?|забронируй(?:те)?|спланируй(?:те)?|свари(?:те)?|испеки(?:те)?|пожарь(?:те)?)|(?:(?:please\s+)?(?:tell|explain|describe|interpret|show|name|give|write|compose|translate|make|cook|create|solve|help|suggest|recommend|choose|buy|order|draw|send|set|book|plan)))`;
+const REQUEST_PART_START_SOURCE = String.raw`(?:${REQUEST_DIRECTIVE_START_SOURCE}|(?:почему|зачем|как(?:ой|ая|ое|ие)?|что|когда|где|стоит\s+ли|можно\s+ли|будет\s+ли|подходит\s+ли)|(?:why|how|what|which|when|where|should\s+i|can\s+i|will\s+i|is\s+it))`;
+const CONNECTED_CLAUSE_START_SOURCE = String.raw`(?:${REQUEST_PART_START_SOURCE}|(?:я|мне|меня|мой|моя|мо[её]|мои|это|эта|этот|эти)|(?:i|me|my|it|this|that|these))`;
+const REQUEST_PART_START_PATTERN = new RegExp(
+  String.raw`^\s*${REQUEST_PART_START_SOURCE}(?:$|[^\p{L}])`,
+  'iu',
+);
+const SEMANTIC_REQUEST_PART_BOUNDARY = new RegExp(
+  String.raw`(?:[.!?…;]+\s*|\n+|,\s*(?=${REQUEST_DIRECTIVE_START_SOURCE}(?:$|[^\p{L}]))|,\s*(?:(?:и(?:\s+ещ[её])?|а(?:\s+ещ[её])?|но|зато|однако|затем|потом|также|плюс|после\s+этого)|(?:and|but|yet|however|also|then|plus|after\s+that))\s+|\s+(?:(?:и(?:\s+ещ[её])?|а(?:\s+ещ[её])?|но|зато|однако)|(?:and|but|yet|however))\s+(?=${CONNECTED_CLAUSE_START_SOURCE}(?:$|[^\p{L}])))`,
+  'giu',
+);
+
+const CONTEXTUAL_INTERPRETATION_PATTERNS = [
+  /(?:что\s+(?:это|этот|эта|эти|такое|такой|положение|аспект|связь)\s+(?:значит|означает|показывает)|как\s+(?:это|этот|эта|эти|такое|такой|положение|аспект|связь)\s+(?:влияет|проявляется|связано|работает|мешает|помогает)|почему\s+(?:это|этот|эта|эти|такое|такой|положение|аспект|связь)\s+(?:происходит|проявляется|повторяется|мешает|помогает)|(?:объясни|расскажи|опиши|разбери)(?:те)?[^.!?]{0,40}(?:его|е[её]|их|этого|этой|этих)\s+(?:влияни|значени|роль|проявлен))/iu,
+  /(?:what\s+(?:does\s+)?(?:it|this|that|these|the\s+placement|the\s+aspect|the\s+connection)\s+(?:mean|show)|how\s+(?:it|this|that|these|the\s+placement|the\s+aspect|the\s+connection)\s+(?:affects?|shows?\s+up|relates?|works?|helps?|gets?\s+in\s+the\s+way)|why\s+(?:it|this|that|these|the\s+placement|the\s+aspect|the\s+connection)\s+(?:happens?|shows?\s+up|repeats?|helps?|gets?\s+in\s+the\s+way)|(?:explain|tell|describe|interpret)[^.!?]{0,40}(?:its|their|this|that)\s+(?:effect|meaning|role|influence))/iu,
+] as const;
+
+const CONTEXTUAL_PERSONAL_STATEMENT_PATTERNS = [
+  /^(?:и\s+)?(?:это|такое|так|эта|этот|эти|такая\s+реакция|такой\s+сценарий)(?:$|[^\p{L}])[^.!?]{0,180}(?:повторя|проявля|меша|помога|влия|случа|работ|отношен|решен|реакц|чувств|привыч|поведен|конфликт|деньг|самооцен|страх|контрол)/iu,
+  /^(?:and\s+)?(?:it|this|that|these|such\s+a\s+reaction|this\s+pattern)\b[^.!?]{0,180}(?:repeat|show\w*\s+up|affect|help|hinder|get\w*\s+in\s+the\s+way|work|relationship|decision|reaction|feeling|habit|behavio|conflict|money|confidence|fear|control)/iu,
+] as const;
+
+function matchesQuestionPolicy(
+  value: string,
+  patterns: readonly RegExp[],
+): boolean {
+  return patterns.some((pattern) => pattern.test(value));
+}
+
+function hasNatalQuestionContext(value: string): boolean {
+  const hasPersonalSubject = matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
+  return matchesQuestionPolicy(value, NATAL_SCOPE_PATTERNS)
+    || (
+      hasPersonalSubject
+      && (
+        matchesQuestionPolicy(value, PERSONAL_PATTERN_DOMAIN_PATTERNS)
+        || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
+      )
+    );
+}
+
+function isInScopeNatalRequestPart(value: string, hasPriorNatalContext: boolean): boolean {
+  const hasInterpretiveIntent = matchesQuestionPolicy(value, INTERPRETIVE_INTENT_PATTERNS);
+  const hasPersonalPatternDomain = matchesQuestionPolicy(
+    value,
+    PERSONAL_PATTERN_DOMAIN_PATTERNS,
+  );
+  const hasPersonalSubject = matchesQuestionPolicy(value, PERSONAL_SUBJECT_PATTERNS);
+  const hasNatalScope = matchesQuestionPolicy(value, NATAL_SCOPE_PATTERNS);
+  const isExplicitNatalQuestion = hasNatalScope
+    && hasPersonalSubject
+    && hasInterpretiveIntent
+    && (
+      hasPersonalPatternDomain
+      || matchesQuestionPolicy(value, ASTROLOGY_FACTOR_PATTERNS)
+    );
+  const isPersonalPatternQuestion = hasPersonalSubject
+    && hasPersonalPatternDomain
+    && hasInterpretiveIntent;
+  const isTimingQuestion = matchesQuestionPolicy(value, TIMING_QUESTION_PATTERNS)
+    && matchesQuestionPolicy(value, TIMING_DECISION_PATTERNS)
+    && (hasPersonalSubject || hasNatalScope);
+  const isContextualContinuation = hasPriorNatalContext
+    && matchesQuestionPolicy(value, CONTEXTUAL_INTERPRETATION_PATTERNS);
+
+  return isExplicitNatalQuestion
+    || isPersonalPatternQuestion
+    || isTimingQuestion
+    || isContextualContinuation;
+}
+
+function hasOutOfScopeSemanticRequestPart(value: string): boolean {
+  const parts = value
+    .split(SEMANTIC_REQUEST_PART_BOUNDARY)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return false;
+
+  let hasPriorNatalContext = false;
+  for (const part of parts) {
+    const isRequestPart = REQUEST_PART_START_PATTERN.test(part);
+    const isInScopeRequest = isRequestPart
+      && isInScopeNatalRequestPart(part, hasPriorNatalContext);
+    const hasPartNatalContext = hasNatalQuestionContext(part);
+    const isContextualPersonalStatement = hasPriorNatalContext
+      && matchesQuestionPolicy(part, CONTEXTUAL_PERSONAL_STATEMENT_PATTERNS);
+    const isContextualPersonalDomain = hasPriorNatalContext
+      && !isRequestPart
+      && matchesQuestionPolicy(part, PERSONAL_PATTERN_DOMAIN_PATTERNS);
+    if (
+      (isRequestPart && !isInScopeRequest)
+      || (
+        !isRequestPart
+        && !hasPartNatalContext
+        && !isContextualPersonalStatement
+        && !isContextualPersonalDomain
+      )
+    ) return true;
+    if (
+      isInScopeRequest
+      || hasPartNatalContext
+      || isContextualPersonalStatement
+      || isContextualPersonalDomain
+    ) {
+      hasPriorNatalContext = true;
+    }
+  }
+  return false;
+}
+
 export function moderateNatalQuestion(input: {
   question: unknown;
   language: NatalReadingLanguage;
@@ -139,16 +368,110 @@ export function moderateNatalQuestion(input: {
     period: 'month',
     existingCustomQuestions: input.existingQuestions,
   });
-  if (shared.status === 'rejected') {
+  if (matchesQuestionPolicy(question, SENSITIVE_INPUT_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: matchesQuestionPolicy(question, PROFESSIONAL_PRESCRIPTION_PATTERNS)
+        ? 'professional_prescription'
+        : 'sensitive_personal_data',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (shared.status === 'rejected' && shared.reason !== 'duplicate_catalog') {
     return {
       status: 'rejected',
       reason: shared.reason,
       normalizedQuestion: shared.normalizedQuestion,
     };
   }
-  // The shared moderator deliberately leaves non-forecast wording pending.
-  // On this surface that is the expected form: permanent natal questions are
-  // about character and recurring behaviour, not about a forecast window.
+
+  if (hasOutOfScopeSemanticRequestPart(question)) {
+    return {
+      status: 'rejected',
+      reason: 'not_natal_question',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+
+  if (matchesQuestionPolicy(question, UNIVERSAL_ASSISTANT_TASK_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'not_natal_question',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, PRESCRIPTIVE_ASSISTANT_REQUEST_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'not_natal_question',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, PROFESSIONAL_PRESCRIPTION_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'professional_prescription',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, THIRD_PARTY_INFERENCE_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'third_party_inference',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, COMPATIBILITY_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'compatibility_requires_two_charts',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+  if (matchesQuestionPolicy(question, VAGUE_QUESTION_PATTERNS)) {
+    return {
+      status: 'rejected',
+      reason: 'needs_specificity',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+
+  const hasInterpretiveIntent = matchesQuestionPolicy(
+    question,
+    INTERPRETIVE_INTENT_PATTERNS,
+  );
+  const hasPersonalPatternDomain = matchesQuestionPolicy(
+    question,
+    PERSONAL_PATTERN_DOMAIN_PATTERNS,
+  );
+  const hasPersonalSubject = matchesQuestionPolicy(question, PERSONAL_SUBJECT_PATTERNS);
+  const hasExplicitChartScope = matchesQuestionPolicy(question, EXPLICIT_CHART_SCOPE_PATTERNS);
+  const isExplicitNatalQuestion = matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS)
+    && hasInterpretiveIntent
+    && (
+      (hasPersonalSubject && (
+        hasPersonalPatternDomain
+        || matchesQuestionPolicy(question, ASTROLOGY_FACTOR_PATTERNS)
+      ))
+      || (hasExplicitChartScope && hasPersonalPatternDomain)
+    );
+  const isPersonalPatternQuestion = hasPersonalSubject && hasPersonalPatternDomain
+    && hasInterpretiveIntent;
+  const isTimingQuestion = matchesQuestionPolicy(question, TIMING_QUESTION_PATTERNS)
+    && matchesQuestionPolicy(question, TIMING_DECISION_PATTERNS)
+    && (
+      hasPersonalSubject
+      || matchesQuestionPolicy(question, NATAL_SCOPE_PATTERNS)
+    );
+
+  if (!isExplicitNatalQuestion && !isPersonalPatternQuestion && !isTimingQuestion) {
+    return {
+      status: 'rejected',
+      reason: shared.status === 'pending' ? 'needs_specificity' : 'not_natal_question',
+      normalizedQuestion: shared.normalizedQuestion,
+    };
+  }
+
   return {
     status: 'approved',
     reason: 'relevant_natal_question',

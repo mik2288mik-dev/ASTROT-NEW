@@ -92,6 +92,33 @@ const PLANET_LABELS: Array<{ key: string; labelRu: string; labelEn: string; icon
   { key: 'mc', labelRu: 'MC', labelEn: 'MC', icon: 'mc' },
 ];
 
+const NATAL_QUESTION_STARTERS = [
+  {
+    ru: 'Почему мне трудно просить о помощи?',
+    en: 'Why is it hard for me to ask for help?',
+  },
+  {
+    ru: 'Как я обычно принимаю важные решения?',
+    en: 'How do I usually make important decisions?',
+  },
+  {
+    ru: 'Что помогает мне не теряться в конфликте?',
+    en: 'What helps me stay grounded in a conflict?',
+  },
+  {
+    ru: 'Какие мои сильные стороны заметны в работе?',
+    en: 'Which of my strengths show up at work?',
+  },
+  {
+    ru: 'Как я веду себя в близких отношениях?',
+    en: 'How do I tend to behave in close relationships?',
+  },
+  {
+    ru: 'Что моя карта говорит о моём отношении к деньгам?',
+    en: 'What does my chart say about my relationship with money?',
+  },
+] as const;
+
 const ANGLE_NAMES = /^(?:ascendant|asc|rising|mc|midheaven|descendant|desc|dsc|ic)$/iu;
 const ANGLE_ALIAS: Record<string, 'ascendant' | 'mc' | 'descendant' | 'ic'> = {
   ascendant: 'ascendant', asc: 'ascendant', rising: 'ascendant', mc: 'mc',
@@ -144,8 +171,13 @@ function formatQuestionError(error: unknown, language: 'ru' | 'en'): string {
   }
   if (value?.code === 'NATAL_QUESTION_REJECTED') {
     return language === 'ru'
-      ? 'Сформулируй один конкретный вопрос о себе и попробуй ещё раз.'
-      : 'Ask one specific question about yourself and try again.';
+      ? 'Здесь можно задать только конкретный вопрос о себе по сохранённой натальной карте. Выбери пример или уточни вопрос.'
+      : 'Only specific questions about you can be answered from your saved natal chart. Choose an example or make the question more specific.';
+  }
+  if (value?.code === 'NATAL_QUESTION_SELF_CHART_REQUIRED') {
+    return language === 'ru'
+      ? '«Спросить о себе» работает только с твоей основной натальной картой.'
+      : 'Ask about yourself works only with your own primary natal chart.';
   }
   if (
     value?.code === 'NATAL_QUESTION_GENERATION_FAILED'
@@ -1005,8 +1037,8 @@ export const HumanReport: React.FC<Props> = ({
               </h2>
               <p>
                 {language === 'ru'
-                  ? 'Здесь можно задать конкретный вопрос о себе и получить ответ по уже рассчитанной карте.'
-                  : 'Ask a specific question about yourself and get an answer based on the chart already calculated.'}
+                  ? 'Ответ строится по сохранённой натальной карте. До 5 принятых вопросов в день.'
+                  : 'Answers are based on your saved natal chart. Up to 5 accepted questions per day.'}
               </p>
               <button
                 type="button"
@@ -1033,13 +1065,37 @@ export const HumanReport: React.FC<Props> = ({
                 >
                   <div className="natal-question-composer-copy">
                     <label id="natal-question-composer-title" htmlFor="natal-question-input">
-                      {language === 'ru' ? 'Что хочешь понять?' : 'What do you want to understand?'}
+                      {language === 'ru' ? 'Что хочешь понять о себе?' : 'What do you want to understand about yourself?'}
                     </label>
                     <p id="natal-question-input-help">
                       {language === 'ru'
-                        ? 'Опиши ситуацию своими словами. Чем конкретнее вопрос, тем полезнее будет ответ.'
-                        : 'Describe the situation in your own words. A specific question leads to a more useful answer.'}
+                        ? 'Ответ строится по сохранённой натальной карте. Спроси о своей реакции, решении, отношениях, работе, деньгах или сильной стороне. До 5 принятых вопросов в день.'
+                        : 'Answers are based on your saved chart. Ask about your reaction, decision, relationships, work, money, or a strength. Up to 5 accepted questions per day.'}
                     </p>
+                  </div>
+                  <div className="natal-question-suggestions" aria-labelledby="natal-question-suggestions-title">
+                    <p id="natal-question-suggestions-title">
+                      {language === 'ru' ? 'Можно начать так' : 'Try one of these'}
+                    </p>
+                    <ul role="list">
+                      {NATAL_QUESTION_STARTERS.map((starter) => {
+                        const suggestion = starter[language];
+                        return (
+                          <li key={starter.ru}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQuestionText(suggestion);
+                                setQuestionError(null);
+                              }}
+                              disabled={questionInputDisabled || Boolean(unansweredQuestionText)}
+                            >
+                              {suggestion}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                   <textarea
                     id="natal-question-input"
@@ -1052,9 +1108,14 @@ export const HumanReport: React.FC<Props> = ({
                       ? 'Например: почему мне трудно просить о помощи?'
                       : 'For example: why is it hard for me to ask for help?'}
                     className="natal-question-input"
-                    aria-describedby="natal-question-input-help natal-question-status"
+                    aria-describedby="natal-question-input-help natal-question-sensitive-data-warning natal-question-status"
                     disabled={questionInputDisabled}
                   />
+                  <p id="natal-question-sensitive-data-warning" className="natal-question-status">
+                    {language === 'ru'
+                      ? 'Не указывай сведения о здоровье, документы, контакты, пароли или платёжные данные.'
+                      : 'Do not include health information, documents, contact details, passwords, or payment data.'}
+                  </p>
                   <div className="natal-question-form-actions">
                     <p id="natal-question-status" className="natal-question-status" aria-live="polite">
                       {questionStatus}
@@ -1135,8 +1196,8 @@ export const HumanReport: React.FC<Props> = ({
                 ) : (
                   <p className="natal-question-state">
                     {language === 'ru'
-                      ? 'Здесь появятся твои вопросы и ответы. Можно спросить о привычной реакции, решении, работе, отношениях или сильной стороне.'
-                      : 'Your questions and answers will appear here. Ask about a recurring response, a decision, work, relationships, or a strength.'}
+                      ? 'Здесь появятся принятые вопросы и ответы по сохранённой натальной карте.'
+                      : 'Accepted questions and answers based on your saved natal chart will appear here.'}
                   </p>
                 )}
               </section>
@@ -1276,8 +1337,8 @@ export const HumanReport: React.FC<Props> = ({
                 </button>
                 <p id="natal-question-action-description">
                   {language === 'ru'
-                    ? 'Можно спросить о любой важной теме — отношениях, семье, работе или деньгах. Например: «Что по моей карте помогает мне прийти к достатку?»'
-                    : 'Ask about any important area — relationships, family, work, or money. For example: “What in my chart helps me build financial security?”'}
+                    ? 'Получишь ответ по сохранённой натальной карте: о привычных реакциях, решениях, отношениях, работе, деньгах или сильных сторонах.'
+                    : 'Get an answer based on your saved natal chart about recurring reactions, decisions, relationships, work, money, or strengths.'}
                 </p>
               </section>
             ) : null}

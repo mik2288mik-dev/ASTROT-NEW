@@ -1093,6 +1093,14 @@ export function UnionRoom(props: UnionRoomProps) {
       setError(ru ? 'Укажи дату рождения второго человека или выбери знак.' : 'Add the second person\'s birth date or choose a sign.');
       return;
     }
+    if (subjectSource === 'birth' && sTimePrecision !== 'unknown' && !sTime) {
+      setError(ru ? 'Укажи время рождения первого человека или выбери «Не знаю».' : 'Add the first person\'s birth time or choose “Unknown”.');
+      return;
+    }
+    if (partnerSource === 'birth' && fTimePrecision !== 'unknown' && !fTime) {
+      setError(ru ? 'Укажи время рождения второго человека или выбери «Не знаю».' : 'Add the second person\'s birth time or choose “Unknown”.');
+      return;
+    }
     if (subjectResolvedSource === 'sign' && partnerResolvedSource === 'sign') {
       setError(null);
       openResult({

@@ -53,6 +53,32 @@ const validReleaseEnv = (): NodeJS.ProcessEnv => ({
   RUSTORE_PAY_MODE: 'production',
 });
 
+const validMobileEnv = (profile: 'alpha' | 'release'): NodeJS.ProcessEnv => {
+  const env: NodeJS.ProcessEnv = {
+    ...validReleaseEnv(),
+    APP_VERSION_CODE: profile === 'alpha' ? '1' : '2',
+    APP_VERSION_NAME: profile === 'alpha' ? '1.0.0-rc.1' : '1.0.0',
+    RUSTORE_PAY_MODE: profile === 'alpha' ? 'sandbox' : 'production',
+  };
+  for (const name of [
+    'PUBLIC_APP_ORIGIN',
+    'VK_AUTH_CLIENT_ID',
+    'VK_AUTH_CLIENT_SECRET',
+    'YANDEX_AUTH_CLIENT_ID',
+    'YANDEX_AUTH_CLIENT_SECRET',
+    'EMAIL_OTP_DELIVERY_URL',
+    'EMAIL_OTP_DELIVERY_SECRET',
+    'EMAIL_OTP_HASH_SECRET',
+    'AUTH_RATE_LIMIT_SECRET',
+    'APP_SESSION_SECRET',
+    'CRON_SECRET',
+    'RUSTORE_KEY_ID',
+    'RUSTORE_PRIVATE_KEY_BASE64',
+    'RUSTORE_NOTIFICATION_AES_KEY',
+  ]) delete env[name];
+  return env;
+};
+
 function validate(env: NodeJS.ProcessEnv) {
   return spawnSync(process.execPath, [path.join('scripts', 'validate-store-release.mjs'), '--release'], {
     cwd: process.cwd(),
@@ -61,7 +87,47 @@ function validate(env: NodeJS.ProcessEnv) {
   });
 }
 
+function validateMobile(profile: 'alpha' | 'release', env = validMobileEnv(profile)) {
+  return spawnSync(
+    process.execPath,
+    [path.join('scripts', 'validate-store-release.mjs'), '--mobile-artifact', `--profile=${profile}`],
+    {
+      cwd: process.cwd(),
+      env,
+      encoding: 'utf8',
+    },
+  );
+}
+
 describe('store release validator', () => {
+  it('accepts a signed RuStore alpha artifact in sandbox mode without backend secrets', () => {
+    const result = validateMobile('alpha');
+    expect(result.status).toBe(0);
+  });
+
+  it('rejects production payment mode for a RuStore alpha artifact', () => {
+    const result = validateMobile('alpha', {
+      ...validMobileEnv('alpha'),
+      RUSTORE_PAY_MODE: 'production',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('RUSTORE_PAY_MODE must be sandbox for an alpha mobile artifact');
+  });
+
+  it('accepts a stable public RuStore artifact without copying backend secrets into the build shell', () => {
+    const result = validateMobile('release');
+    expect(result.status).toBe(0);
+  });
+
+  it('rejects a prerelease version name for the public RuStore artifact', () => {
+    const result = validateMobile('release', {
+      ...validMobileEnv('release'),
+      APP_VERSION_NAME: '1.0.0-rc.2',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('A public mobile artifact requires a stable APP_VERSION_NAME');
+  });
+
   it('accepts a production RuStore release with exact catalog IDs and an AES-256 key', () => {
     const result = validate(validReleaseEnv());
     expect(result.status).toBe(0);

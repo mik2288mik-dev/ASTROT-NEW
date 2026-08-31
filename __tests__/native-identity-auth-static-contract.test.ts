@@ -75,7 +75,8 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     expect(googleHandler).toContain('GoogleIdTokenCredential.createFrom');
     expect(googleHandler).toContain('callback.onSuccess(googleCredential.getIdToken())');
     expect(plugin).toContain('YandexAuthSdk.create');
-    expect(plugin).toContain('LoginType.CHROME_TAB');
+    expect(plugin).toContain('LoginType.NATIVE');
+    expect(plugin).not.toContain('LoginType.CHROME_TAB');
     expect(plugin).toContain('new YandexAuthLoginOptions(');
     expect(plugin).toContain('YandexAuthResult.Cancelled');
     expect(plugin).toContain('"yandex_" + errorKind');
@@ -146,13 +147,20 @@ describe('Android NativeIdentityAuth bridge contract', () => {
     const releaseHelper = read('scripts/android-release.mjs');
     const debugHelper = read('scripts/android-debug.mjs');
     const targetStart = releaseHelper.indexOf('const target = process.argv[2]');
-    const channelStart = releaseHelper.indexOf('const channel =', targetStart);
-    const channelAwareLoad = releaseHelper.indexOf('loadAndroidAuthEnv(channel)', channelStart);
+    const googlePlayStart = releaseHelper.indexOf("if (target === 'google-play-aab')", targetStart);
+    const rustoreTaskStart = releaseHelper.indexOf('const task = rustoreTasks[target]', googlePlayStart);
+    const sharedAndroidLoad = releaseHelper.indexOf(
+      'loadEnvFiles(sharedAndroidAuthEnvNames)',
+      rustoreTaskStart,
+    );
 
     expect(targetStart).toBeGreaterThan(-1);
-    expect(channelStart).toBeGreaterThan(targetStart);
-    expect(channelAwareLoad).toBeGreaterThan(channelStart);
-    expect(releaseHelper).toContain("channel === 'google_play'");
+    expect(googlePlayStart).toBeGreaterThan(targetStart);
+    expect(rustoreTaskStart).toBeGreaterThan(googlePlayStart);
+    expect(sharedAndroidLoad).toBeGreaterThan(rustoreTaskStart);
+    expect(releaseHelper).toContain(
+      "loadEnvFiles(['GOOGLE_AUTH_CLIENT_ID', ...sharedAndroidAuthEnvNames])",
+    );
     expect(debugHelper).toContain('Refusing to create an APK with broken native sign-in');
     expect(debugHelper).toContain("'YANDEX_ANDROID_CLIENT_ID'");
     expect(debugHelper).toContain("'VK_ANDROID_CLIENT_ID'");

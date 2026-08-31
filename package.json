@@ -28,8 +28,13 @@
     "android:validate": "node scripts/validate-store-release.mjs",
     "android:validate:release": "node scripts/validate-store-release.mjs --release",
     "test:postgres": "node scripts/run-account-auth-postgres-tests.mjs",
-    "android:rustore:apk": "node scripts/android-release.mjs rustore-apk",
-    "android:rustore:aab": "node scripts/android-release.mjs rustore-aab",
+    "android:rustore:inspect": "node scripts/android-release.mjs inspect",
+    "android:rustore:alpha:apk": "node scripts/android-release.mjs rustore-alpha-apk",
+    "android:rustore:alpha:aab": "node scripts/android-release.mjs rustore-alpha-aab",
+    "android:rustore:release:apk": "node scripts/android-release.mjs rustore-release-apk",
+    "android:rustore:release:aab": "node scripts/android-release.mjs rustore-release-aab",
+    "android:rustore:apk": "npm run android:rustore:release:apk",
+    "android:rustore:aab": "npm run android:rustore:release:aab",
     "android:google-play:aab": "node scripts/android-release.mjs google-play-aab"
   },
   "dependencies": {

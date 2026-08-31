@@ -38,6 +38,13 @@ describe('RuStore Pay integration contract', () => {
     expect(native).not.toContain('RUSTORE_NOTIFICATION_AES_KEY');
   });
 
+  it('allows current Pay SDK checkout without requiring the RuStore app', () => {
+    const native = read('android/app/src/rustore/java/ru/tvoygoroskop/app/rustore/RuStorePayPlugin.java');
+    expect(native).toContain('getPurchaseAvailability()');
+    expect(native).not.toContain('isRuStoreInstalled');
+    expect(native).not.toContain('RUSTORE_NOT_INSTALLED');
+  });
+
   it('does not treat a client success or duplicate purchase as Premium', () => {
     const client = read('services/rustorePayService.ts');
     const server = read('lib/rustorePayments.ts');

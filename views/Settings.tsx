@@ -107,9 +107,25 @@ type SettingsScreen =
     | 'language'
     | 'auth'
     | 'subscription'
+    | 'feedback'
     | 'legal'
     | 'account'
     | 'developer';
+
+type FeedbackCategory = 'problem' | 'idea' | 'payment' | 'question' | 'other';
+type FeedbackStatus = 'idle' | 'submitting' | 'success' | 'error';
+
+const FEEDBACK_CATEGORIES: Array<{ value: FeedbackCategory; ru: string; en: string }> = [
+    { value: 'problem', ru: 'Ошибка', en: 'Problem' },
+    { value: 'idea', ru: 'Пожелание', en: 'Idea' },
+    { value: 'payment', ru: 'Оплата', en: 'Payment' },
+    { value: 'question', ru: 'Вопрос', en: 'Question' },
+    { value: 'other', ru: 'Другое', en: 'Other' },
+];
+
+const FEEDBACK_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+class FeedbackSubmissionError extends Error {}
 
 type SettingsRowProps = {
     label: string;
@@ -291,20 +307,37 @@ export const Settings: React.FC<SettingsProps> = ({
     const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
     const [previewNotice, setPreviewNotice] = useState('');
     const [settingsScreen, setSettingsScreen] = useState<SettingsScreen>('root');
+    const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('problem');
+    const [feedbackMessage, setFeedbackMessage] = useState('');
+    const [feedbackReplyEmail, setFeedbackReplyEmail] = useState('');
+    const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus>('idle');
+    const [feedbackTicketId, setFeedbackTicketId] = useState<number | null>(null);
+    const [feedbackSubmitError, setFeedbackSubmitError] = useState('');
+    const [feedbackErrors, setFeedbackErrors] = useState<{ message?: string; email?: string }>({});
     const settingsContentRef = useRef<HTMLDivElement | null>(null);
+    const feedbackMessageRef = useRef<HTMLTextAreaElement | null>(null);
+    const feedbackEmailRef = useRef<HTMLInputElement | null>(null);
+    const feedbackReplyEmailTouchedRef = useRef(false);
     const lastRootTargetRef = useRef<Exclude<SettingsScreen, 'root'> | null>(null);
     const settingsDetailBusy = savingProfile
         || identityBusy
         || restoreState === 'running'
+        || feedbackStatus === 'submitting'
         || loggingOut
         || deletingAccount;
 
     useEffect(() => {
         const frame = window.requestAnimationFrame(() => {
-            settingsContentRef.current?.focus({ preventScroll: true });
+            const content = settingsContentRef.current;
+            if (settingsScreen !== 'root') {
+                const scrollRoot = content?.closest<HTMLElement>('.lumia-main-scroll');
+                scrollRoot?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            }
+            content?.focus({ preventScroll: true });
         });
         return () => window.cancelAnimationFrame(frame);
-    }, []);
+    }, [settingsScreen]);
 
     const updateLinkedIdentitiesAfterAuth = async (fresh: UserProfile): Promise<void> => {
         onUpdate(fresh);
@@ -397,6 +430,12 @@ export const Settings: React.FC<SettingsProps> = ({
             });
         return () => { alive = false; };
     }, [identityReload, profile.id, previewFixture]);
+
+    useEffect(() => {
+        if (feedbackReplyEmailTouchedRef.current || feedbackReplyEmail) return;
+        const linkedEmail = identities.find((identity) => identity.provider === 'email')?.email?.trim();
+        if (linkedEmail) setFeedbackReplyEmail(linkedEmail);
+    }, [feedbackReplyEmail, identities]);
 
     const linkOAuth = (provider: 'vk' | 'yandex' | 'google') => {
         if (previewFixture) {
@@ -614,6 +653,89 @@ export const Settings: React.FC<SettingsProps> = ({
         void onManageSubscription?.();
     };
 
+    const submitFeedback = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (feedbackStatus === 'submitting') return;
+
+        const normalizedMessage = feedbackMessage.trim();
+        const normalizedReplyEmail = feedbackReplyEmail.trim().toLowerCase();
+        const errors: { message?: string; email?: string } = {};
+        if (normalizedMessage.length < 10 || normalizedMessage.length > 4000) {
+            errors.message = profile.language === 'en'
+                ? 'Write between 10 and 4,000 characters.'
+                : 'Напиши от 10 до 4000 символов.';
+        }
+        if (normalizedReplyEmail && !FEEDBACK_EMAIL_PATTERN.test(normalizedReplyEmail)) {
+            errors.email = profile.language === 'en'
+                ? 'Enter a valid email address.'
+                : 'Укажи корректный email.';
+        }
+        setFeedbackErrors(errors);
+        setFeedbackSubmitError('');
+        if (errors.message || errors.email) {
+            window.requestAnimationFrame(() => {
+                if (errors.message) feedbackMessageRef.current?.focus();
+                else feedbackEmailRef.current?.focus();
+            });
+            return;
+        }
+
+        if (previewFixture) {
+            setFeedbackTicketId(1042);
+            setFeedbackStatus('success');
+            setPreviewNotice('Обращение показано локально и не отправлено из Preview.');
+            return;
+        }
+
+        setFeedbackStatus('submitting');
+        try {
+            const response = await apiFetch('/api/support/ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    category: feedbackCategory,
+                    message: normalizedMessage,
+                    replyEmail: normalizedReplyEmail || null,
+                }),
+            });
+            const result = await response.json().catch(() => ({})) as { ticketId?: unknown };
+            const ticketId = Number(result.ticketId);
+            if (!response.ok || !Number.isSafeInteger(ticketId) || ticketId < 1) {
+                const responseMessage = response.status === 429
+                    ? (profile.language === 'en'
+                        ? 'Too many requests. Wait a little and try again.'
+                        : 'Слишком много обращений. Подожди немного и попробуй снова.')
+                    : response.status === 401 || response.status === 403
+                        ? (profile.language === 'en'
+                            ? 'Sign in again, then retry.'
+                            : 'Войди в аккаунт заново и повтори отправку.')
+                        : (profile.language === 'en'
+                            ? 'Could not send the request. Check your connection and try again.'
+                            : 'Не удалось отправить обращение. Проверь интернет и попробуй снова.');
+                throw new FeedbackSubmissionError(responseMessage);
+            }
+            setFeedbackTicketId(ticketId);
+            setFeedbackStatus('success');
+        } catch (error) {
+            setFeedbackStatus('error');
+            setFeedbackSubmitError(error instanceof FeedbackSubmissionError
+                ? error.message
+                : (profile.language === 'en'
+                    ? 'Could not send the request. Check your connection and try again.'
+                    : 'Не удалось отправить обращение. Проверь интернет и попробуй снова.'));
+        }
+    };
+
+    const startNewFeedback = () => {
+        setFeedbackCategory('problem');
+        setFeedbackMessage('');
+        setFeedbackStatus('idle');
+        setFeedbackTicketId(null);
+        setFeedbackSubmitError('');
+        setFeedbackErrors({});
+        window.requestAnimationFrame(() => feedbackMessageRef.current?.focus());
+    };
+
     const blockPreviewLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
         if (!previewFixture) return;
         event.preventDefault();
@@ -798,9 +920,6 @@ export const Settings: React.FC<SettingsProps> = ({
         lastRootTargetRef.current = screen;
         setPreviewNotice('');
         setSettingsScreen(screen);
-        window.requestAnimationFrame(() => {
-            settingsContentRef.current?.focus({ preventScroll: true });
-        });
     };
 
     const settingsTitle: Record<SettingsScreen, string> = profile.language === 'en'
@@ -813,6 +932,7 @@ export const Settings: React.FC<SettingsProps> = ({
             language: 'Language',
             auth: 'Sign-in methods',
             subscription: 'Subscription',
+            feedback: 'Support',
             legal: 'Legal information',
             account: 'Account and data',
             developer: 'For developers',
@@ -826,6 +946,7 @@ export const Settings: React.FC<SettingsProps> = ({
             language: 'Язык',
             auth: 'Способы входа',
             subscription: 'Подписка',
+            feedback: 'Обратная связь',
             legal: 'Правовая информация',
             account: 'Аккаунт и данные',
             developer: 'Для разработчика',
@@ -1290,6 +1411,141 @@ export const Settings: React.FC<SettingsProps> = ({
                     </section>
                 );
 
+            case 'feedback':
+                return (
+                    <section className="settings-detail-panel" aria-label={settingsTitle.feedback}>
+                        {feedbackStatus === 'success' && feedbackTicketId ? (
+                            <div className="settings-feedback-success">
+                                <div role="status" aria-live="polite">
+                                    <p>{profile.language === 'en' ? `Request #${feedbackTicketId}` : `Обращение №${feedbackTicketId}`}</p>
+                                    <h2>{profile.language === 'en' ? 'Request saved' : 'Обращение сохранено'}</h2>
+                                    <span>
+                                        {profile.language === 'en'
+                                            ? 'We will reply by email if you provided one.'
+                                            : 'Если указан email, ответ придёт туда.'}
+                                    </span>
+                                </div>
+                                <button type="button" className="fresh-btn-primary" onClick={startNewFeedback}>
+                                    {profile.language === 'en' ? 'New request' : 'Новое обращение'}
+                                </button>
+                            </div>
+                        ) : (
+                            <form className="settings-feedback-form" noValidate onSubmit={submitFeedback}>
+                                <fieldset className="settings-feedback-categories">
+                                    <legend>{profile.language === 'en' ? 'Topic' : 'Тема'}</legend>
+                                    <div>
+                                        {FEEDBACK_CATEGORIES.map((category) => (
+                                            <label
+                                                key={category.value}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="supportCategory"
+                                                    value={category.value}
+                                                    checked={feedbackCategory === category.value}
+                                                    onChange={() => {
+                                                        setFeedbackCategory(category.value);
+                                                        if (feedbackStatus === 'error') setFeedbackStatus('idle');
+                                                    }}
+                                                />
+                                                <span>{profile.language === 'en' ? category.en : category.ru}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </fieldset>
+
+                                <div className="settings-form-field">
+                                    <label htmlFor="settings-feedback-message">
+                                        {profile.language === 'en' ? 'Message' : 'Сообщение'}
+                                    </label>
+                                    <textarea
+                                        ref={feedbackMessageRef}
+                                        id="settings-feedback-message"
+                                        name="supportMessage"
+                                        className="settings-feedback-textarea"
+                                        value={feedbackMessage}
+                                        minLength={10}
+                                        maxLength={4000}
+                                        rows={6}
+                                        required
+                                        aria-invalid={!!feedbackErrors.message}
+                                        aria-describedby={`settings-feedback-message-hint${feedbackErrors.message ? ' settings-feedback-message-error' : ''}`}
+                                        placeholder={profile.language === 'en'
+                                            ? 'Tell us what happened or what could be improved'
+                                            : 'Расскажи, что случилось или что можно улучшить'}
+                                        onChange={(event) => {
+                                            setFeedbackMessage(event.target.value);
+                                            if (feedbackErrors.message) setFeedbackErrors((current) => ({ ...current, message: undefined }));
+                                            if (feedbackStatus === 'error') setFeedbackStatus('idle');
+                                            setFeedbackSubmitError('');
+                                        }}
+                                    />
+                                    <div id="settings-feedback-message-hint" className="settings-feedback-field-meta">
+                                        <span>{profile.language === 'en' ? 'At least 10 characters' : 'Минимум 10 символов'}</span>
+                                        <span>{feedbackMessage.length}/4000</span>
+                                    </div>
+                                    {feedbackErrors.message ? (
+                                        <p id="settings-feedback-message-error" className="settings-error-text" role="alert">
+                                            {feedbackErrors.message}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="settings-form-field">
+                                    <label htmlFor="settings-feedback-email">
+                                        {profile.language === 'en' ? 'Email for a reply (optional)' : 'Email для ответа (необязательно)'}
+                                    </label>
+                                    <input
+                                        ref={feedbackEmailRef}
+                                        id="settings-feedback-email"
+                                        name="replyEmail"
+                                        type="email"
+                                        inputMode="email"
+                                        autoComplete="email"
+                                        className="fresh-input"
+                                        value={feedbackReplyEmail}
+                                        maxLength={254}
+                                        aria-invalid={!!feedbackErrors.email}
+                                        aria-describedby={feedbackErrors.email ? 'settings-feedback-email-error' : undefined}
+                                        onChange={(event) => {
+                                            feedbackReplyEmailTouchedRef.current = true;
+                                            setFeedbackReplyEmail(event.target.value);
+                                            if (feedbackErrors.email) setFeedbackErrors((current) => ({ ...current, email: undefined }));
+                                            if (feedbackStatus === 'error') setFeedbackStatus('idle');
+                                            setFeedbackSubmitError('');
+                                        }}
+                                    />
+                                    {feedbackErrors.email ? (
+                                        <p id="settings-feedback-email-error" className="settings-error-text" role="alert">
+                                            {feedbackErrors.email}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <p className="settings-feedback-warning">
+                                    {profile.language === 'en'
+                                        ? 'The NEBO team will receive this message. Do not include passwords, codes, payment details, birth data or health information.'
+                                        : 'Сообщение получит команда NEBO. Не указывай пароли, коды, платёжные данные, данные рождения или сведения о здоровье.'}
+                                </p>
+
+                                <button
+                                    type="submit"
+                                    className="fresh-btn-primary settings-feedback-submit"
+                                    disabled={feedbackStatus === 'submitting'}
+                                    aria-busy={feedbackStatus === 'submitting'}
+                                >
+                                    {feedbackStatus === 'submitting'
+                                        ? (profile.language === 'en' ? 'Sending…' : 'Отправляем…')
+                                        : (profile.language === 'en' ? 'Send' : 'Отправить')}
+                                </button>
+                                <div className="settings-feedback-result" aria-live="polite">
+                                    {feedbackSubmitError ? <p className="settings-error-text" role="alert">{feedbackSubmitError}</p> : null}
+                                </div>
+                            </form>
+                        )}
+                    </section>
+                );
+
             case 'legal':
                 return (
                     <section className="settings-detail-panel" aria-label={settingsTitle.legal}>
@@ -1303,6 +1559,12 @@ export const Settings: React.FC<SettingsProps> = ({
                             <a className="settings-list-row" href={releaseConfig.termsUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
                                 <span className="settings-list-row-main">
                                     <span className="settings-list-row-label">{profile.language === 'en' ? 'User Agreement' : 'Пользовательское соглашение'}</span>
+                                </span>
+                                <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
+                            </a>
+                            <a className="settings-list-row" href={releaseConfig.consentUrl} target="_blank" rel="noreferrer" onClick={blockPreviewLink}>
+                                <span className="settings-list-row-main">
+                                    <span className="settings-list-row-label">{profile.language === 'en' ? 'Personal data consent' : 'Согласие на обработку данных'}</span>
                                 </span>
                                 <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
                             </a>
@@ -1457,13 +1719,12 @@ export const Settings: React.FC<SettingsProps> = ({
                         <section className="settings-group" aria-labelledby="settings-help-heading">
                             <h2 id="settings-help-heading">{profile.language === 'en' ? 'Help' : 'Помощь'}</h2>
                             <div className="settings-list">
-                                <a className="settings-list-row" href={'mailto:' + releaseConfig.supportEmail} onClick={blockPreviewLink}>
-                                    <span className="settings-list-row-main">
-                                        <span className="settings-list-row-icon" aria-hidden><LifeBuoy size={16} strokeWidth={1.8} /></span>
-                                        <span className="settings-list-row-label">{profile.language === 'en' ? 'Support' : 'Поддержка'}</span>
-                                    </span>
-                                    <span className="settings-list-row-end"><ChevronRight aria-hidden size={16} strokeWidth={1.8} /></span>
-                                </a>
+                                <SettingsRow
+                                    icon={<LifeBuoy size={16} strokeWidth={1.8} />}
+                                    label={profile.language === 'en' ? 'Support' : 'Обратная связь'}
+                                    target="feedback"
+                                    onClick={() => openSettingsScreen('feedback')}
+                                />
                                 <SettingsRow
                                     icon={<Scale size={16} strokeWidth={1.8} />}
                                     label={profile.language === 'en' ? 'Legal information' : 'Правовая информация'}

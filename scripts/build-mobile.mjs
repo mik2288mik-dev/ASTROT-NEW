@@ -9,6 +9,9 @@ const BUILD_ENV_NAMES = [
   'NEXT_PUBLIC_API_URL',
   'NEXT_PUBLIC_DISTRIBUTION_CHANNEL',
   'NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED',
+  'STORE_BUILD_PROFILE',
+  'STORE_SOURCE_DIRTY',
+  'STORE_RELEASE',
 ];
 const CHANNELS = new Set(['telegram', 'rustore', 'google_play', 'development']);
 
@@ -27,6 +30,10 @@ function loadBuildEnv() {
 function fail(message) {
   console.error(`[build:mobile] ${message}`);
   process.exit(1);
+}
+
+function enabled(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
 }
 
 function validateApiUrl(value) {
@@ -59,6 +66,17 @@ const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || '').trim();
 if (!apiUrl) fail('Set NEXT_PUBLIC_API_URL before building; a mobile APK cannot use a relative /api URL.');
 validateApiUrl(apiUrl);
 
+const storeProfile = String(process.env.STORE_BUILD_PROFILE || '').trim().toLowerCase();
+const storeRelease = enabled(process.env.STORE_RELEASE);
+if (storeProfile) {
+  if (!['alpha', 'release'].includes(storeProfile)) fail('STORE_BUILD_PROFILE must be alpha or release.');
+  if (channel !== 'rustore') fail('STORE_BUILD_PROFILE may only be used with the rustore channel.');
+  if (!storeRelease) fail('STORE_RELEASE must be enabled for a RuStore artifact profile.');
+  if (!enabled(process.env.NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED)) {
+    fail('RuStore artifact profiles require NEXT_PUBLIC_RUSTORE_PAYMENTS_ENABLED=1.');
+  }
+}
+
 process.env.MOBILE_BUILD = '1';
 process.env.NEXT_PUBLIC_MOBILE_BUILD = '1';
 process.env.NEXT_PUBLIC_ANDROID_BUILD = '1';
@@ -87,10 +105,16 @@ if (sourceRevision.error || sourceRevision.status !== 0) {
 const sourceCommit = String(sourceRevision.stdout || '').trim().toLowerCase();
 if (!/^[0-9a-f]{40}$/.test(sourceCommit)) fail('The resolved source commit is invalid.');
 
-const versionCode = String(process.env.APP_VERSION_CODE || '1').trim();
-const versionName = String(process.env.APP_VERSION_NAME || '1.0.0').trim();
+const versionCode = String(process.env.APP_VERSION_CODE || (storeProfile ? '' : '1')).trim();
+const versionName = String(process.env.APP_VERSION_NAME || (storeProfile ? '' : '1.0.0')).trim();
 if (!/^[1-9]\d*$/.test(versionCode)) fail('APP_VERSION_CODE must be a positive integer.');
 if (!versionName) fail('APP_VERSION_NAME must not be empty.');
+if (storeProfile === 'alpha' && !/^\d+\.\d+\.\d+-rc\.\d+$/.test(versionName)) {
+  fail('An alpha RuStore artifact requires APP_VERSION_NAME such as 1.0.0-rc.1.');
+}
+if (storeProfile === 'release' && !/^\d+\.\d+\.\d+$/.test(versionName)) {
+  fail('A public RuStore artifact requires a stable APP_VERSION_NAME such as 1.0.0.');
+}
 
 // This is deliberately public and contains no credential: it lets Gradle
 // reject stale Capacitor assets that were built for another distribution.
@@ -100,6 +124,8 @@ const buildMarker = {
   channel,
   apiOrigin: new URL(apiUrl).origin,
   sourceCommit,
+  profile: storeProfile || null,
+  sourceDirty: enabled(process.env.STORE_SOURCE_DIRTY),
   versionCode,
   versionName,
 };

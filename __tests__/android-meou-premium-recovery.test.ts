@@ -31,8 +31,13 @@ describe('NEBO Android release controls', () => {
   it('uses MEOU launcher resources for legacy and Android 12 launch screens', () => {
     const styles = read('android/app/src/main/res/values/styles.xml');
     const launchScreen = read('android/app/src/main/res/drawable/meou_launch_screen.xml');
+    const appTheme = styles.match(/<style name="AppTheme\.NoActionBar"[\s\S]*?<\/style>/)?.[0] || '';
+    const launchTheme = styles.match(/<style name="AppTheme\.NoActionBarLaunch"[\s\S]*?<\/style>/)?.[0] || '';
 
-    expect(styles).toContain('<item name="android:background">@drawable/meou_launch_screen</item>');
+    expect(appTheme).toContain('<item name="android:background">@null</item>');
+    expect(appTheme).toContain('<item name="android:windowBackground">#FFFFFF</item>');
+    expect(appTheme).not.toContain('@drawable/meou_launch_screen');
+    expect(launchTheme).toContain('<item name="android:background">@drawable/meou_launch_screen</item>');
     expect(styles).toContain(
       '<item name="windowSplashScreenBackground">@color/ic_launcher_background</item>',
     );
@@ -52,9 +57,8 @@ describe('NEBO Android release controls', () => {
   it('runs the release validator when the Windows Node path contains spaces', () => {
     const releaseScript = read('scripts/android-release.mjs');
 
-    expect(releaseScript).toContain(
-      "run(process.execPath, ['scripts/validate-store-release.mjs', '--release'], process.cwd(), false)",
-    );
+    expect(releaseScript).toContain("'--mobile-artifact', `--profile=${task.profile}`");
+    expect(releaseScript).toContain("['scripts/validate-store-release.mjs'");
     expect(releaseScript).toContain('shell: useShell');
   });
 
@@ -89,7 +93,7 @@ describe('NEBO Android release controls', () => {
     const settings = read('views/Settings.tsx');
     const complete = read('pages/auth/complete.tsx');
 
-    expect(gate).toContain("import { Eye, EyeOff } from 'lucide-react'");
+    expect(gate).toContain('Eye, EyeOff');
     expect(gate).toContain("type={passwordVisible ? 'text' : 'password'}");
     expect(gate).toContain("type={passwordConfirmationVisible ? 'text' : 'password'}");
     expect(gate).toContain("aria-label={passwordVisible ? 'Скрыть пароль' : 'Показать пароль'}");
@@ -100,6 +104,6 @@ describe('NEBO Android release controls', () => {
     expect(settings).toContain('aria-pressed={emailPasswordConfirmationVisible}');
     expect(gate).toContain('NEBO');
     expect(complete).toContain('Вход в NEBO');
-    expect(`${gate}\n${complete}`).not.toMatch(/Твой Гороскоп|Твой гороскоп/);
+    expect(`${gate}\n${complete}`).not.toMatch(/aria-label="Твой Гороскоп"|Вход в Твой Гороскоп/);
   });
 });

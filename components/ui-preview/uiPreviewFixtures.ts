@@ -605,8 +605,8 @@ export const UI_PREVIEW_SETTINGS: {
   identities: [
     {
       provider: 'email',
-      email: 'alina.preview@example.test',
-      displayName: 'Алина',
+      email: 'preview@example.test',
+      displayName: 'Тестовый профиль',
       verifiedAt: '2026-08-22T09:00:00.000Z',
       lastUsedAt: '2026-08-22T09:00:00.000Z',
     },

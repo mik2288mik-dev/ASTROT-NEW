@@ -261,6 +261,40 @@ describe('extended synastry delivery resilience', () => {
     expect(result.payload.result.evidence.some((item: any) => item.type === 'house_overlay')).toBe(false);
   });
 
+  it('uses a 30-minute uncertainty for an approximate manually entered time', async () => {
+    mockCreateLunaStructuredResponse.mockRejectedValueOnce(new Error('model unavailable'));
+
+    const result = await post({
+      subjectSource: 'birth',
+      subjectName: 'Анна',
+      subjectDate: '1992-03-14',
+      subjectTime: '09:30',
+      subjectPlace: 'Москва',
+      subjectBirthTimeQuality: 'approximate',
+      partnerSource: 'birth',
+      partnerName: 'Максим',
+      partnerDate: '1990-08-22',
+      partnerTime: '18:15',
+      partnerPlace: 'Казань',
+      partnerBirthTimeQuality: 'exact',
+      relationshipContext: 'relationship',
+      relationshipType: 'существующие отношения в паре',
+      language: 'ru',
+    });
+
+    expect(result.status).toBe(200);
+    expect(mockCalculateNatalChart).toHaveBeenCalledWith(
+      'Анна',
+      '1992-03-14',
+      '09:30',
+      'Москва',
+      expect.objectContaining({
+        birthTimeMode: 'approximate',
+        birthTimeUncertaintyMinutes: 30,
+      }),
+    );
+  });
+
   it('still rejects comparing the same saved chart with itself', async () => {
     mockGetById
       .mockResolvedValueOnce(chart(1))

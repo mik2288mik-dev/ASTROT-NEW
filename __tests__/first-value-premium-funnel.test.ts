@@ -9,7 +9,8 @@ describe('first value before Premium', () => {
     const onboarding = read('views/Onboarding.tsx');
 
     expect(onboarding).toContain("initialStep = 'stories'");
-    expect(onboarding).toContain("setScreen(currentIndex === introScreens.length - 1 ? 'choice'");
+    expect(onboarding).toContain('const nextScreen = welcomeScreens[currentIndex + direction]');
+    expect(onboarding).toContain('if (nextScreen) setScreen(nextScreen)');
     expect(onboarding).toContain('Создать личный прогноз');
     expect(onboarding).not.toContain('onb-notify');
     expect(onboarding).not.toContain('Присылать уведомления');
@@ -57,6 +58,17 @@ describe('first value before Premium', () => {
     );
     expect(app).not.toContain('canPromotePremium={firstValueReached}');
     expect(app).not.toContain('canPromotePremium: firstValueReached');
+  });
+
+  it('does not render a dead Premium CTA in Zodiac before the first value', () => {
+    const app = read('App.tsx');
+    const horoscope = app.slice(
+      app.indexOf('<HoroscopeReader'),
+      app.indexOf('/>', app.indexOf('<HoroscopeReader')),
+    );
+
+    expect(horoscope).toContain('onRequestPremium={premiumPromotionAllowed ?');
+    expect(horoscope).toContain(': undefined}');
   });
 
   it('removes every active 14-day and trial promise from the first-value surfaces', () => {

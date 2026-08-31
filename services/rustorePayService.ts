@@ -46,7 +46,11 @@ type RuStorePayBridge = {
 const PURCHASE_RECONCILIATION_DELAY_MS = 1_000;
 const PURCHASE_RECONCILIATION_WINDOW_MS = 30_000;
 const PURCHASE_VALIDATION_TIMEOUT_MS = 10_000;
-const inFlightPayments = new Map<string, Promise<PaymentResult>>();
+const CHECKOUT_ATTEMPT_TTL_MS = 10 * 60_000;
+const inFlightPayments = new Map<string, {
+  source: Promise<PaymentResult>;
+  startedAt: number;
+}>();
 
 const TERMINAL_BACKEND_VALIDATION_REASONS = new Set([
   'RECOVERY_IDENTITY_REQUIRED',
@@ -65,6 +69,12 @@ const SDK_TERMINAL_PURCHASE_FAILURE_REASONS = new Set([
 
 type PendingRuStorePurchase = Required<Pick<RuStorePurchase, 'productId' | 'purchaseId'>>
   & Pick<RuStorePurchase, 'orderId' | 'productType' | 'status'>;
+
+type PendingRuStoreCheckoutAttempt = {
+  orderId: string;
+  productId: string;
+  startedAt: number;
+};
 
 const delay = (milliseconds: number) => new Promise<void>((resolve) => {
   globalThis.setTimeout(resolve, milliseconds);
@@ -237,6 +247,52 @@ function pendingPurchaseStorageKey(userId: string, productId: string): string {
   return `lumia:rustore:pending:${encodeURIComponent(userId)}:${encodeURIComponent(productId)}`;
 }
 
+function pendingCheckoutStorageKey(userId: string): string {
+  return `lumia:rustore:checkout:${encodeURIComponent(userId)}:premium`;
+}
+
+function readPendingCheckoutAttempt(userId: string): PendingRuStoreCheckoutAttempt | null {
+  if (typeof window === 'undefined') return null;
+  const key = pendingCheckoutStorageKey(userId);
+  try {
+    const raw = window.localStorage.getItem(key);
+    const value = raw ? JSON.parse(raw) as PendingRuStoreCheckoutAttempt : null;
+    const ageMs = Date.now() - Number(value?.startedAt);
+    if (!value?.orderId || !value.productId
+      || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > CHECKOUT_ATTEMPT_TTL_MS) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingCheckoutAttempt(
+  userId: string,
+  attempt: PendingRuStoreCheckoutAttempt,
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      pendingCheckoutStorageKey(userId),
+      JSON.stringify(attempt),
+    );
+  } catch {
+    // The in-memory request still blocks a duplicate checkout in this session.
+  }
+}
+
+function clearPendingCheckoutAttempt(userId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(pendingCheckoutStorageKey(userId));
+  } catch {
+    // A recovered or terminal SDK result remains authoritative.
+  }
+}
+
 function readPendingPurchase(userId: string, productId: string): PendingRuStorePurchase | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -313,6 +369,9 @@ export function getRuStoreProductId(planId: PremiumPlanId): string | null {
 }
 
 export const RUSTORE_CATALOG_TIMEOUT_MS = 9_000;
+export const RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS = 10_000;
+export const RUSTORE_PURCHASE_RESULT_TIMEOUT_MS = 60_000;
+export const RUSTORE_RESTORE_TIMEOUT_MS = 10_000;
 
 async function withBoundedTimeout<T>(
   promise: Promise<T>,
@@ -417,24 +476,44 @@ async function validateWithBackend(
 /** The native SDK returns an identifier only; Premium is granted exclusively by the backend. */
 async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId): Promise<PaymentResult> {
   const nativeBridge = bridge();
-  const productId = getRuStoreProductId(planId);
+  const requestedProductId = getRuStoreProductId(planId);
   if (!nativeBridge) return { status: 'unavailable', reason: 'RUSTORE_PAY_NOT_AVAILABLE' };
-  if (!productId) return { status: 'unavailable', reason: 'RUSTORE_PRODUCT_NOT_CONFIGURED' };
+  if (!requestedProductId) return { status: 'unavailable', reason: 'RUSTORE_PRODUCT_NOT_CONFIGURED' };
   if (!isValidUserId(profile.id)) {
     return { status: 'unavailable', reason: 'RUSTORE_ACCOUNT_ID_REQUIRED' };
   }
 
   try {
-    const recoveryIdentity = await hasRecoveryIdentity();
+    const recoveryIdentity = await withBoundedTimeout(
+      hasRecoveryIdentity(),
+      RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS,
+      'RUSTORE_IDENTITY_CHECK_TIMEOUT',
+    );
     if (recoveryIdentity === false) {
       return { status: 'unavailable', reason: 'RECOVERY_IDENTITY_REQUIRED' };
     }
     if (recoveryIdentity === null) {
       return { status: 'unavailable', reason: 'RECOVERY_IDENTITY_CHECK_FAILED' };
     }
-    const availability = await nativeBridge.getAvailability();
+    const availability = await withBoundedTimeout(
+      nativeBridge.getAvailability(),
+      RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS,
+      'RUSTORE_AVAILABILITY_TIMEOUT',
+    );
     if (!availability.available) return { status: 'unavailable', reason: availability.reason || 'RUSTORE_NOT_AVAILABLE' };
-    const products = await nativeBridge.getProducts({ productIds: [productId] });
+    const canonicalUserId = String(profile.id);
+    const configuredProductIds = new Set(configuredPlanEntries().map(([, configuredId]) => configuredId));
+    let pendingAttempt = readPendingCheckoutAttempt(canonicalUserId);
+    if (pendingAttempt && !configuredProductIds.has(pendingAttempt.productId)) {
+      clearPendingCheckoutAttempt(canonicalUserId);
+      pendingAttempt = null;
+    }
+    const productId = pendingAttempt?.productId || requestedProductId;
+    const products = await withBoundedTimeout(
+      nativeBridge.getProducts({ productIds: [productId] }),
+      RUSTORE_CHECKOUT_PREFLIGHT_TIMEOUT_MS,
+      'RUSTORE_PRODUCT_LOOKUP_TIMEOUT',
+    );
     const product = products.products.find((candidate) => candidate.productId === productId);
     if (!product) {
       return { status: 'unavailable', reason: 'RUSTORE_PRODUCT_NOT_PUBLISHED' };
@@ -451,13 +530,45 @@ async function performRuStorePayment(profile: UserProfile, planId: PremiumPlanId
     if (!hasMainSubscriptionPeriod(product)) {
       return { status: 'unavailable', reason: 'RUSTORE_SUBSCRIPTION_INFO_MISSING' };
     }
-    const canonicalUserId = String(profile.id);
-    const purchase = readPendingPurchase(canonicalUserId, productId)
-      || await nativeBridge.purchase({
-        productId,
-        appUserId: canonicalUserId,
-        orderId: crypto.randomUUID(),
-      });
+    let purchase: RuStorePurchase | null | undefined = readPendingPurchase(canonicalUserId, productId);
+    if (!purchase) {
+      if (pendingAttempt) {
+        try {
+          const recovered = await withBoundedTimeout(
+            nativeBridge.getPurchases(),
+            RUSTORE_RESTORE_TIMEOUT_MS,
+            'RUSTORE_RESTORE_TIMEOUT',
+          );
+          purchase = recovered.purchases.find((candidate) => (
+            candidate.productId === productId
+            && candidate.productType === 'SUBSCRIPTION'
+          ));
+        } catch {
+          return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
+        }
+        if (!purchase) {
+          return { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' };
+        }
+        clearPendingCheckoutAttempt(canonicalUserId);
+      } else {
+        const orderId = crypto.randomUUID();
+        writePendingCheckoutAttempt(canonicalUserId, {
+          orderId,
+          productId,
+          startedAt: Date.now(),
+        });
+        try {
+          purchase = await nativeBridge.purchase({ productId, appUserId: canonicalUserId, orderId });
+        } catch (error) {
+          clearPendingCheckoutAttempt(canonicalUserId);
+          throw error;
+        }
+        clearPendingCheckoutAttempt(canonicalUserId);
+      }
+    }
+    if (!purchase) {
+      return { status: 'failed', reason: 'RUSTORE_PURCHASE_STATUS_UNKNOWN' };
+    }
     if (purchase.productId !== productId || purchase.productType !== 'SUBSCRIPTION') {
       return { status: 'failed', reason: 'RUSTORE_PURCHASE_PRODUCT_TYPE_INVALID' };
     }
@@ -479,7 +590,11 @@ export async function restoreRuStorePurchases(): Promise<PaymentResult[]> {
   const nativeBridge = bridge();
   if (!nativeBridge) return [{ status: 'unavailable', reason: 'RUSTORE_PAY_NOT_AVAILABLE' }];
   try {
-    const result = await nativeBridge.getPurchases();
+    const result = await withBoundedTimeout(
+      nativeBridge.getPurchases(),
+      RUSTORE_RESTORE_TIMEOUT_MS,
+      'RUSTORE_RESTORE_TIMEOUT',
+    );
     const configuredProductIds = new Set(configuredPlanEntries().map(([, productId]) => productId));
     const subscriptions = result.purchases.filter(
       (purchase) => purchase.productType === 'SUBSCRIPTION' && configuredProductIds.has(purchase.productId),
@@ -490,21 +605,46 @@ export async function restoreRuStorePurchases(): Promise<PaymentResult[]> {
     return settled.map((entry) => entry.status === 'fulfilled'
       ? entry.value
       : { status: 'failed', reason: 'RUSTORE_SERVER_VALIDATION_FAILED' });
-  } catch {
-    return [{ status: 'failed', reason: 'RUSTORE_RESTORE_FAILED' }];
+  } catch (error: any) {
+    const reason = String(error?.message || error?.code || 'RUSTORE_RESTORE_FAILED');
+    return [{
+      status: 'failed',
+      reason: reason === 'RUSTORE_RESTORE_TIMEOUT' ? reason : 'RUSTORE_RESTORE_FAILED',
+    }];
   }
 }
 
 export function requestRuStorePayment(profile: UserProfile, planId: PremiumPlanId): Promise<PaymentResult> {
-  const productId = getRuStoreProductId(planId) || planId;
-  const key = `${String(profile.id || '')}:${productId}`;
+  const key = `rustore:${String(profile.id || '')}:premium`;
   const current = inFlightPayments.get(key);
-  if (current) return current;
-  const request = performRuStorePayment(profile, planId).finally(() => {
-    if (inFlightPayments.get(key) === request) inFlightPayments.delete(key);
+  const observe = (entry: { source: Promise<PaymentResult>; startedAt: number }) => {
+    const remainingMs = RUSTORE_PURCHASE_RESULT_TIMEOUT_MS - (Date.now() - entry.startedAt);
+    if (remainingMs <= 0) {
+      return Promise.resolve<PaymentResult>({
+        status: 'pending',
+        reason: 'RUSTORE_PURCHASE_RESULT_PENDING',
+      });
+    }
+    return withBoundedTimeout(
+      entry.source,
+      remainingMs,
+      'RUSTORE_PURCHASE_RESULT_TIMEOUT',
+    ).catch((error: any): PaymentResult => {
+      const reason = String(error?.message || error?.code || 'RUSTORE_PURCHASE_FAILED');
+      return reason === 'RUSTORE_PURCHASE_RESULT_TIMEOUT'
+        ? { status: 'pending', reason: 'RUSTORE_PURCHASE_RESULT_PENDING' }
+        : { status: 'failed', reason };
+    });
+  };
+  if (current) return observe(current);
+
+  const startedAt = Date.now();
+  const source = performRuStorePayment(profile, planId).finally(() => {
+    if (inFlightPayments.get(key)?.source === source) inFlightPayments.delete(key);
   });
-  inFlightPayments.set(key, request);
-  return request;
+  const entry = { source, startedAt };
+  inFlightPayments.set(key, entry);
+  return observe(entry);
 }
 
 export async function openRuStoreSubscriptionManagement(): Promise<boolean> {
