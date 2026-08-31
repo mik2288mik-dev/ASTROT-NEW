@@ -5,6 +5,10 @@ import { db } from '../../../lib/db';
 import { birthProfileRepository } from '../../../lib/birthProfileRepository';
 import { handleAdminError } from '../../../lib/adminAuth';
 import { getPremiumEntitlementState, publicPremiumEntitlementSnapshot } from '../../../lib/contentArchitecture';
+import {
+  CURRENT_LEGAL_DOCUMENT_VERSIONS,
+  getLegalDocumentStatusesForUser,
+} from '../../../lib/legalAcknowledgement';
 
 export default async function handler(req:NextApiRequest,res:NextApiResponse){
   if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
@@ -13,9 +17,10 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
     const user=await db.users.get(auth.userId,{hydratePrimaryChart:false});
     if(!user)return res.status(404).json({error:'User not found'});
     if((user as {is_blocked?:boolean}).is_blocked)return res.status(403).json({error:'ACCOUNT_BLOCKED',code:'ACCOUNT_BLOCKED',message:'Аккаунт заблокирован.'});
-    const [birthSettings,premiumEntitlement]=await Promise.all([
+    const [birthSettings,premiumEntitlement,legalDocuments]=await Promise.all([
       birthProfileRepository.get(auth.userId),
       getPremiumEntitlementState(auth.userId),
+      getLegalDocumentStatusesForUser(auth.userId),
     ]);
     const profile=toPublicAppProfile({...user,...birthSettings},auth);
     const publicEntitlement=publicPremiumEntitlementSnapshot(premiumEntitlement);
@@ -24,6 +29,10 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
       isPremium:publicEntitlement.isPremium,
       premiumUntil:publicEntitlement.endsAt,
       premiumEntitlement:publicEntitlement,
+      legalAcknowledgements:{
+        requiredVersions:CURRENT_LEGAL_DOCUMENT_VERSIONS,
+        documents:legalDocuments,
+      },
     });
   }catch(error){return handleAdminError(res,error);}
 }

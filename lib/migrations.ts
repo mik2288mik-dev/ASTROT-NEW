@@ -1957,6 +1957,8 @@ async function verifyTablesExist(pool: Pool): Promise<void> {
     'notification_delivery_log',
     'horoscope_reactions',
     'content_reactions',
+    'user_legal_acknowledgements',
+    'support_delivery_outbox',
     'daily_checkins',
     'personal_pattern_insights',
     'notification_scenarios',
@@ -3628,6 +3630,115 @@ async function mvp049ContentReactions(pool: Pool): Promise<void> {
   log.info(`Migration ${migrationName} applied`);
 }
 
+async function mvp050LegalAcknowledgements(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_050_legal_acknowledgements';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_legal_acknowledgements (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      document_type TEXT NOT NULL,
+      document_version TEXT NOT NULL,
+      action TEXT NOT NULL,
+      source TEXT NOT NULL,
+      language TEXT,
+      app_version_name TEXT,
+      app_version_code INTEGER,
+      distribution_channel TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT user_legal_acknowledgements_document_type_check
+        CHECK (document_type IN ('personal_data', 'terms', 'entertainment_notice')),
+      CONSTRAINT user_legal_acknowledgements_document_version_check
+        CHECK (length(document_version) BETWEEN 1 AND 64),
+      CONSTRAINT user_legal_acknowledgements_action_check
+        CHECK (action IN ('accepted', 'withdrawn')),
+      CONSTRAINT user_legal_acknowledgements_withdrawal_check
+        CHECK (action <> 'withdrawn' OR document_type = 'personal_data'),
+      CONSTRAINT user_legal_acknowledgements_source_check
+        CHECK (source ~ '^[a-z0-9][a-z0-9._:-]{0,63}$'),
+      CONSTRAINT user_legal_acknowledgements_language_check
+        CHECK (language IS NULL OR language IN ('ru', 'en')),
+      CONSTRAINT user_legal_acknowledgements_app_version_name_check
+        CHECK (
+          app_version_name IS NULL
+          OR app_version_name ~ '^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$'
+        ),
+      CONSTRAINT user_legal_acknowledgements_app_version_code_check
+        CHECK (app_version_code IS NULL OR app_version_code BETWEEN 1 AND 2100000000),
+      CONSTRAINT user_legal_acknowledgements_distribution_channel_check
+        CHECK (
+          distribution_channel IS NULL
+          OR distribution_channel ~ '^[a-z0-9][a-z0-9._:-]{0,31}$'
+        )
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_user_legal_acknowledgements_latest
+      ON user_legal_acknowledgements(user_id, document_type, created_at DESC, id DESC)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_user_legal_acknowledgements_document_audit
+      ON user_legal_acknowledgements(document_type, document_version, action, created_at DESC)
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
+async function mvp051SupportDeliveryOutbox(pool: Pool): Promise<void> {
+  const migrationName = 'mvp_051_support_delivery_outbox';
+  if (await isMigrationApplied(pool, migrationName)) {
+    log.info(`Migration ${migrationName} already applied, skipping`);
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_delivery_outbox (
+      id BIGSERIAL PRIMARY KEY,
+      ticket_id BIGINT NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+      channel TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processing_started_at TIMESTAMPTZ,
+      delivered_at TIMESTAMPTZ,
+      last_error_code TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (ticket_id, channel),
+      CONSTRAINT support_delivery_outbox_channel_check
+        CHECK (channel IN ('email', 'telegram')),
+      CONSTRAINT support_delivery_outbox_status_check
+        CHECK (status IN ('pending', 'processing', 'failed', 'sent', 'dead')),
+      CONSTRAINT support_delivery_outbox_attempts_check
+        CHECK (attempts BETWEEN 0 AND 10),
+      CONSTRAINT support_delivery_outbox_processing_lease_check
+        CHECK ((status = 'processing') = (processing_started_at IS NOT NULL)),
+      CONSTRAINT support_delivery_outbox_delivery_check
+        CHECK ((status = 'sent') = (delivered_at IS NOT NULL)),
+      CONSTRAINT support_delivery_outbox_dead_attempts_check
+        CHECK (status <> 'dead' OR attempts = 10),
+      CONSTRAINT support_delivery_outbox_error_code_check
+        CHECK (
+          last_error_code IS NULL
+          OR last_error_code ~ '^[A-Z0-9_]{1,64}$'
+        )
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_support_delivery_outbox_due
+      ON support_delivery_outbox(next_attempt_at, id)
+      WHERE status IN ('pending', 'failed')
+  `);
+
+  await markMigrationApplied(pool, migrationName);
+  log.info(`Migration ${migrationName} applied`);
+}
+
 export async function runMigrations(): Promise<void> {
   if (!DATABASE_URL) {
     log.warn('DATABASE_URL not set. Skipping migrations.');
@@ -3710,6 +3821,8 @@ export async function runMigrations(): Promise<void> {
     await mvp045AuthExpiryTimezone(migrationDb);
     await mvp048AppSessionRefresh(migrationDb);
     await mvp049ContentReactions(migrationDb);
+    await mvp050LegalAcknowledgements(migrationDb);
+    await mvp051SupportDeliveryOutbox(migrationDb);
     await mvp044PremiumEntitlementLifecycle(migrationDb);
     await mvp045RuStoreCallbackOrdering(migrationDb);
     await mvp046RuStoreProviderOverlay(migrationDb);

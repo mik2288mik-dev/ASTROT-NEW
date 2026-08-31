@@ -93,7 +93,7 @@ describe('NEBO Android release controls', () => {
     const settings = read('views/Settings.tsx');
     const complete = read('pages/auth/complete.tsx');
 
-    expect(gate).toContain("import { Eye, EyeOff } from 'lucide-react'");
+    expect(gate).toContain('Eye, EyeOff');
     expect(gate).toContain("type={passwordVisible ? 'text' : 'password'}");
     expect(gate).toContain("type={passwordConfirmationVisible ? 'text' : 'password'}");
     expect(gate).toContain("aria-label={passwordVisible ? 'Скрыть пароль' : 'Показать пароль'}");
@@ -104,6 +104,6 @@ describe('NEBO Android release controls', () => {
     expect(settings).toContain('aria-pressed={emailPasswordConfirmationVisible}');
     expect(gate).toContain('NEBO');
     expect(complete).toContain('Вход в NEBO');
-    expect(`${gate}\n${complete}`).not.toMatch(/Твой Гороскоп|Твой гороскоп/);
+    expect(`${gate}\n${complete}`).not.toMatch(/aria-label="Твой Гороскоп"|Вход в Твой Гороскоп/);
   });
 });

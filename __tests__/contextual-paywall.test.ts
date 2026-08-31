@@ -99,8 +99,8 @@ describe('contextual paywall return contract', () => {
     expect(paywall).toContain('Персональный прогноз, натальная карта и совместимость');
     expect(paywall).toContain('Характер, сильные стороны, зоны роста, общение, решения, отношения и работа.');
     expect(paywall).toContain('Сравнение двух натальных карт: в чём вы похожи, чем различаетесь');
-    expect(paywall).toContain("import { MeouLogo } from '../components/onboarding/MeouLogo';");
-    expect(paywall).toContain('<MeouLogo className="pw2-brand-logo" />');
+    expect(paywall).toContain("import { NeboLogo } from '../components/brand/NeboLogo';");
+    expect(paywall).toContain('className="pw2-selection-logo"');
     expect(paywall).toContain('<dl className="pw2-plan-features">');
     expect(paywall).not.toContain('planRailRef');
     expect(paywall).toContain('className="pw2-benefits"');

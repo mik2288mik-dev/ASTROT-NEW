@@ -9,6 +9,10 @@ import { ServiceScreen, type ServiceTab } from './views/v2/ServiceScreen';
 import { Settings } from './views/Settings';
 import { MyCharts } from './views/MyCharts';
 import {
+    LegalAcknowledgementGate,
+    legalAcknowledgementGateContract,
+} from './views/LegalAcknowledgementGate';
+import {
     getProfile,
     saveProfile,
     runReferralFromStartParam,
@@ -1107,6 +1111,7 @@ const App: React.FC = () => {
             refCode: profile?.refCode ?? newProfile.refCode,
             referralApplied: profile?.referralApplied ?? newProfile.referralApplied,
             notificationFrequency: newProfile.notificationFrequency ?? profile?.notificationFrequency,
+            legalAcknowledgements: profile?.legalAcknowledgements ?? newProfile.legalAcknowledgements ?? null,
         };
         const fullProfile = { ...pendingProfile, isSetup: true };
         setLoadingProgress(10);
@@ -1259,25 +1264,30 @@ const App: React.FC = () => {
     };
 
     const handleProfileUpdate = useCallback((updatedProfile: UserProfile) => {
-        if (profile && String(profile.id) !== String(updatedProfile.id)) {
+        const nextProfile = profile
+            && String(profile.id) === String(updatedProfile.id)
+            && !updatedProfile.legalAcknowledgements
+            ? { ...updatedProfile, legalAcknowledgements: profile.legalAcknowledgements }
+            : updatedProfile;
+        if (profile && String(profile.id) !== String(nextProfile.id)) {
             clearLocalNatalChart(profile);
             clearLocalHumanBaseReport(profile);
             clearHumanReadingSessionCache(String(profile.id));
             clearPersonalForecastSessionCache();
             resetPrimaryChartState();
-            const nextMode: AuthSessionMode = updatedProfile.isGuest ? 'guest' : 'account';
+            const nextMode: AuthSessionMode = nextProfile.isGuest ? 'guest' : 'account';
             setAuthSessionMode(nextMode);
             setAuthSessionModeState(nextMode);
-            setProfile(updatedProfile);
+            setProfile(nextProfile);
             setLoadingProgress(0);
             setLoading(true);
             setStartupRetryNonce((value) => value + 1);
             return;
         }
-        if (profile && buildNatalChartCacheKey(profile) !== buildNatalChartCacheKey(updatedProfile)) {
+        if (profile && buildNatalChartCacheKey(profile) !== buildNatalChartCacheKey(nextProfile)) {
             clearLocalHumanBaseReport(profile);
         }
-        setProfile(updatedProfile);
+        setProfile(nextProfile);
     }, [profile, resetPrimaryChartState]);
 
     const resetLocalAccountState = useCallback(async (
@@ -2125,6 +2135,10 @@ const App: React.FC = () => {
         setStartupRetryNonce((value) => value + 1);
     };
 
+    const handleLegalAcknowledgementsAccepted = useCallback((legalAcknowledgements: NonNullable<UserProfile['legalAcknowledgements']>) => {
+        setProfile((current) => current ? { ...current, legalAcknowledgements } : current);
+    }, []);
+
     if (!loading && requiresExplicitAuthentication(authSessionMode)) {
         return (
             <AuthGate
@@ -2170,6 +2184,18 @@ const App: React.FC = () => {
                 message="Сессия не найдена. Продолжи без аккаунта или войди в существующий."
                 onAccountLogin={handleAccountLogin}
                 onGuestStart={handleGuestStart}
+            />
+        );
+    }
+
+    if (!legalAcknowledgementGateContract.hasAcceptedEveryDocument(
+        profile.legalAcknowledgements || null,
+    )) {
+        return (
+            <LegalAcknowledgementGate
+                language={profile.language || 'ru'}
+                initialSummary={profile.legalAcknowledgements}
+                onAccepted={handleLegalAcknowledgementsAccepted}
             />
         );
     }

@@ -22,27 +22,34 @@ export function validateDate(dateString: string): { isValid: boolean; error?: st
   }
 
   // Проверяем формат YYYY-MM-DD
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(dateString)) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  if (!dateMatch) {
     return { isValid: false, error: 'Date must be in format YYYY-MM-DD' };
   }
 
-  // Проверяем, что дата валидна
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
+  // Date parses impossible calendar days by rolling them into the next month.
+  // Compare the UTC components after parsing so values like 2023-02-29 fail.
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) {
     return { isValid: false, error: 'Invalid date' };
   }
 
   // Проверяем, что дата не в будущем (для даты рождения)
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  if (date > today) {
+  const now = new Date();
+  const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  if (date.getTime() > todayUtc) {
     return { isValid: false, error: 'Date cannot be in the future' };
   }
 
   // Проверяем разумный диапазон (не раньше 1900 года)
-  const minDate = new Date('1900-01-01');
-  if (date < minDate) {
+  if (date.getTime() < Date.UTC(1900, 0, 1)) {
     return { isValid: false, error: 'Date cannot be before 1900' };
   }
 

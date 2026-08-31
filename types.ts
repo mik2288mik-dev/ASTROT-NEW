@@ -44,6 +44,22 @@ export interface UserContext {
   mood?: string; // e.g. "Anxious", "Excited" (detected from chat)
 }
 
+export type LegalDocumentType = 'personal_data' | 'terms' | 'entertainment_notice';
+
+export interface LegalDocumentStatus {
+  documentType: LegalDocumentType;
+  requiredVersion: string;
+  accepted: boolean;
+  latestAction: 'accepted' | 'withdrawn' | null;
+  latestDocumentVersion: string | null;
+  latestCreatedAt: string | null;
+}
+
+export interface LegalAcknowledgementSummary {
+  requiredVersions: Record<LegalDocumentType, string>;
+  documents: LegalDocumentStatus[];
+}
+
 export interface UserProfile {
   id?: string; // Authenticated Telegram/native ID or reserved web guest ID
   authProvider?: 'telegram' | 'web_guest' | 'native';
@@ -80,6 +96,7 @@ export interface UserProfile {
   /** User already linked to an inviter (one-time referral) */
   referralApplied?: boolean;
   notificationFrequency?: NotificationFrequency;
+  legalAcknowledgements?: LegalAcknowledgementSummary | null;
 
   // Все генерации пользователя (кэшируются)
   /** @deprecated legacy_compat input only; current client flows do not read or synchronize it. */

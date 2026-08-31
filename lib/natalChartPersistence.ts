@@ -155,8 +155,9 @@ export async function repairCanonicalChartRecord(userId:string, chartId?:number|
   if (!chartId) return repairCanonicalChartForUser(userId);
   const chart = await natalChartV2Repository.getById(chartId);
   if (!chart) return null;
-  if (chart.is_primary) return repairCanonicalChartForUser(userId);
-  const result = await createOrReuseCanonicalChart({
+  if (String(chart.user_id) !== String(userId)) return null;
+  if (chart.is_primary || chart.subject_type === 'self') return repairCanonicalChartForUser(userId);
+  const args: ChartInput = {
     userId,
     name:chart.name || 'Моя карта',
     birthDate:normalizeBirthDateInput(chart.birth_date),
@@ -166,6 +167,19 @@ export async function repairCanonicalChartRecord(userId:string, chartId?:number|
     birthTimeRangeStart:chart.birth_time_range_start || null,
     birthTimeRangeEnd:chart.birth_time_range_end || null,
     birthPlace:normalizeBirthPlaceInput(chart.birth_place),
+  };
+  const normalized = normalizeInput(args);
+  const coordinates = await resolveBirthCoordinates(normalized.birthPlace);
+  const inputHash = hashInput(normalized, coordinates);
+  await ensureMinimalUser(args, normalized, false);
+  const chartData = await calculateNatalChart(args.name, normalized.birthDate, normalized.birthTime, normalized.birthPlace, {
+    coordinates,
+    birthTime: normalized.time,
   });
-  return { chart:result.chart, source:result.reused ? 'repaired' : 'calculated' } as const;
+  const repaired = await natalChartV2Repository.repairSaved(
+    userId,
+    chartId,
+    persistencePayload(args, normalized, inputHash, chartData),
+  );
+  return { chart:repaired, source:'repaired' } as const;
 }

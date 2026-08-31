@@ -16,6 +16,7 @@ import {
   generateDailyCards,
 } from '../services/notificationRetentionService';
 import { processPendingRuStoreEvents } from './rustorePayments';
+import { processSupportDeliveryOutbox } from './supportOutbox';
 
 const MSK_TZ = 'Europe/Moscow';
 const DISPATCH_INTERVAL_MS = 3 * 60 * 1000; // отправка очереди каждые 3 минуты
@@ -115,6 +116,15 @@ async function dispatchTick() {
       '[cron] RuStore payment queue failed:',
       error instanceof Error ? error.message : error,
     );
+  }
+
+  // Support notifications use a durable outbox. Processing them on every
+  // dispatch tick makes provider/config outages recover after restarts.
+  try {
+    await processSupportDeliveryOutbox(20);
+  } catch {
+    // Do not log provider messages here: a third-party error may contain ticket PII.
+    console.warn('[cron] support delivery queue failed');
   } finally {
     dispatching = false;
   }

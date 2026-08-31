@@ -101,6 +101,50 @@ describe('saved natal-chart question policy', () => {
     expect(moderation(question, 'en')).toMatchObject({ status: 'rejected', reason });
   });
 
+  it.each([
+    'Почему мне трудно принимать решения из-за депрессии?',
+    'Почему я закрываюсь в отношениях после панической атаки?',
+    'Как я принимаю решения по карте, паспорт 1234 567890?',
+    'Что карта говорит о моём общении, мой телефон +7 999 123-45-67?',
+    'Почему мне трудно принимать решения, пароль qwerty123?',
+    'Что карта говорит о моих тратах, карта 2200 1234 5678 9010?',
+  ])('rejects sensitive personal data before persistence: %s', (question) => {
+    expect(moderation(question)).toMatchObject({
+      status: 'rejected',
+      reason: 'sensitive_personal_data',
+    });
+  });
+
+  it.each([
+    'What does my natal chart say about my decisions? My SSN is 123-45-6789.',
+    'What does my natal chart say about communication? My email is test@example.com.',
+    'What does my natal chart say about money? My card number is 4111 1111 1111 1111.',
+    'What does my natal chart say about decisions? My password is qwerty123.',
+  ])('rejects sensitive personal data in English before persistence: %s', (question) => {
+    expect(moderation(question, 'en')).toMatchObject({
+      status: 'rejected',
+      reason: 'sensitive_personal_data',
+    });
+  });
+
+  it.each([
+    'Почему мне трудно выражать эмоции?',
+    'Как я обычно принимаю решения?',
+    'Что моя карта говорит о моём отношении к деньгам?',
+    'Почему я закрываюсь в отношениях?',
+    'Какие сильные стороны помогут мне стать врачом?',
+    'Почему мне сложно работать врачом?',
+  ])('does not block an ordinary in-scope personal question: %s', (question) => {
+    expect(moderation(question)).toMatchObject({ status: 'approved' });
+  });
+
+  it.each([
+    'What strengths could support me in becoming a doctor?',
+    'Why is it hard for me to work as a doctor?',
+  ])('does not treat a profession as sensitive health data: %s', (question) => {
+    expect(moderation(question, 'en')).toMatchObject({ status: 'approved' });
+  });
+
   it('uses a dedicated five-question daily limit for this surface', () => {
     expect(NATAL_QUESTION_DAILY_LIMIT).toBe(5);
     const store = read('lib/natalReading/natalQuestionStore.ts');
@@ -143,13 +187,17 @@ describe('saved natal-chart question policy', () => {
     expect(endpoint).toContain('NATAL_QUESTION_SELF_CHART_REQUIRED');
   });
 
-  it('keeps Ask about yourself in the existing natal-chart tab', () => {
+  it('keeps Ask about yourself in the natal chart only for the self chart', () => {
     const magazine = read('views/v2/NatalMagazine.tsx');
 
     expect(magazine).toContain("type NatalScreenTab = 'map' | 'reading' | 'questions' | 'matrix'");
     expect(magazine).toContain("{ id: 'questions' as const");
+    expect(magazine).toContain("availableTabs.filter((tab) => tab.id !== 'questions')");
+    expect(magazine).toContain("return isSavedPerson && tab === 'questions' ? 'map' : tab");
+    expect(magazine).toContain("if (isSavedPerson && tab === 'questions') return");
+    expect(magazine).toContain('onOpenQuestions={isSavedPerson ? undefined');
     expect(magazine).toContain("setActiveTab('questions')");
-    expect(magazine).toContain('surface={activeTab === \'questions\' ? \'questions\' : \'reading\'}');
+    expect(magazine).toContain('surface={normalizedActiveTab === \'questions\' ? \'questions\' : \'reading\'}');
     expect(magazine).not.toContain('<CosmicSheet');
   });
 
@@ -165,5 +213,7 @@ describe('saved natal-chart question policy', () => {
     expect(report).toContain('setQuestionText(suggestion);');
     expect(report).toContain('Ответ строится по сохранённой натальной карте');
     expect(report).toMatch(/до 5 принятых вопросов в день/iu);
+    expect(report).toContain('Не указывай сведения о здоровье, документы, контакты, пароли или платёжные данные.');
+    expect(report).toContain('natal-question-sensitive-data-warning');
   });
 });

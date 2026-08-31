@@ -9,7 +9,8 @@ describe('first value before Premium', () => {
     const onboarding = read('views/Onboarding.tsx');
 
     expect(onboarding).toContain("initialStep = 'stories'");
-    expect(onboarding).toContain("setScreen(currentIndex === introScreens.length - 1 ? 'choice'");
+    expect(onboarding).toContain('const nextScreen = welcomeScreens[currentIndex + direction]');
+    expect(onboarding).toContain('if (nextScreen) setScreen(nextScreen)');
     expect(onboarding).toContain('Создать личный прогноз');
     expect(onboarding).not.toContain('onb-notify');
     expect(onboarding).not.toContain('Присылать уведомления');

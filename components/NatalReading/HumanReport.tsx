@@ -1069,7 +1069,7 @@ export const HumanReport: React.FC<Props> = ({
                     </label>
                     <p id="natal-question-input-help">
                       {language === 'ru'
-                        ? 'Ответ строится по сохранённой натальной карте. Спроси о свой реакции, решении, отношениях, работе, деньгах или сильной стороне. До 5 принятых вопросов в день.'
+                        ? 'Ответ строится по сохранённой натальной карте. Спроси о своей реакции, решении, отношениях, работе, деньгах или сильной стороне. До 5 принятых вопросов в день.'
                         : 'Answers are based on your saved chart. Ask about your reaction, decision, relationships, work, money, or a strength. Up to 5 accepted questions per day.'}
                     </p>
                   </div>
@@ -1108,9 +1108,14 @@ export const HumanReport: React.FC<Props> = ({
                       ? 'Например: почему мне трудно просить о помощи?'
                       : 'For example: why is it hard for me to ask for help?'}
                     className="natal-question-input"
-                    aria-describedby="natal-question-input-help natal-question-status"
+                    aria-describedby="natal-question-input-help natal-question-sensitive-data-warning natal-question-status"
                     disabled={questionInputDisabled}
                   />
+                  <p id="natal-question-sensitive-data-warning" className="natal-question-status">
+                    {language === 'ru'
+                      ? 'Не указывай сведения о здоровье, документы, контакты, пароли или платёжные данные.'
+                      : 'Do not include health information, documents, contact details, passwords, or payment data.'}
+                  </p>
                   <div className="natal-question-form-actions">
                     <p id="natal-question-status" className="natal-question-status" aria-live="polite">
                       {questionStatus}

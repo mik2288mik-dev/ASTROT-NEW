@@ -106,6 +106,71 @@ export const Onboarding: React.FC<OnboardingProps> = ({
     };
   }, [screen]);
 
+  useEffect(() => {
+    if (screen !== 'birth') return;
+    const page = pageRef.current;
+    if (!page) return;
+
+    const visualViewport = window.visualViewport;
+    let previousViewportHeight = visualViewport?.height ?? window.innerHeight;
+    let scrollFrame = 0;
+    let scrollTimer = 0;
+    let viewportWatchFrame = 0;
+    let viewportWatchDeadline = 0;
+
+    const activeBirthInput = () => {
+      const active = document.activeElement;
+      return active instanceof HTMLInputElement
+        && page.contains(active)
+        && active.closest('.meou-birth-form')
+        ? active
+        : null;
+    };
+    const keepActiveInputVisible = () => {
+      window.cancelAnimationFrame(scrollFrame);
+      window.clearTimeout(scrollTimer);
+      scrollFrame = window.requestAnimationFrame(() => {
+        scrollTimer = window.setTimeout(() => {
+          activeBirthInput()?.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+        }, 80);
+      });
+    };
+    const handleViewportResize = () => {
+      const nextViewportHeight = visualViewport?.height ?? window.innerHeight;
+      const viewportShrank = nextViewportHeight < previousViewportHeight - 1;
+      previousViewportHeight = nextViewportHeight;
+      if (viewportShrank) keepActiveInputVisible();
+    };
+    const watchViewportWhileKeyboardOpens = () => {
+      handleViewportResize();
+      if (window.performance.now() < viewportWatchDeadline) {
+        viewportWatchFrame = window.requestAnimationFrame(watchViewportWhileKeyboardOpens);
+      }
+    };
+    const handleFocusIn = (event: FocusEvent) => {
+      if (event.target instanceof HTMLInputElement && event.target.closest('.meou-birth-form')) {
+        previousViewportHeight = visualViewport?.height ?? window.innerHeight;
+        viewportWatchDeadline = window.performance.now() + 1000;
+        window.cancelAnimationFrame(viewportWatchFrame);
+        keepActiveInputVisible();
+        viewportWatchFrame = window.requestAnimationFrame(watchViewportWhileKeyboardOpens);
+      }
+    };
+
+    page.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('resize', handleViewportResize);
+    if (visualViewport) visualViewport.addEventListener('resize', handleViewportResize);
+
+    return () => {
+      page.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('resize', handleViewportResize);
+      if (visualViewport) visualViewport.removeEventListener('resize', handleViewportResize);
+      window.cancelAnimationFrame(scrollFrame);
+      window.cancelAnimationFrame(viewportWatchFrame);
+      window.clearTimeout(scrollTimer);
+    };
+  }, [screen]);
+
   const clearError = () => {
     setError('');
     setErrorField(null);
@@ -232,8 +297,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({
   return (
     <main
       ref={pageRef}
-      className="meou-onboarding fresh-page lumia-main-scroll antialiased"
+      className="meou-onboarding antialiased"
       data-onboarding-phase={isWelcome ? 'welcome' : 'setup'}
+      data-onboarding-screen={screen}
     >
       <div
         className="meou-onboarding-shell"
@@ -338,15 +404,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({
             <form className="meou-birth-form" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
               <label className="meou-field" htmlFor="onboarding-name">
                 <span>Имя</span>
-                <input id="onboarding-name" ref={nameRef} name="name" type="text" value={name} placeholder="Ваше имя" onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} />
+                <input id="onboarding-name" ref={nameRef} name="name" type="text" value={name} placeholder="Ваше имя" onChange={(event) => { setName(event.target.value); clearError(); }} aria-invalid={errorField === 'name' || undefined} aria-describedby={errorField === 'name' ? 'onboarding-error' : undefined} />
               </label>
               <label className="meou-field" htmlFor="onboarding-birth-date">
                 <span>Дата рождения</span>
-                <input id="onboarding-birth-date" ref={dateRef} name="birth-date" type="date" value={date} onChange={(event) => { setDate(event.target.value); clearError(); }} aria-invalid={errorField === 'date' || undefined} />
+                <input id="onboarding-birth-date" ref={dateRef} name="birth-date" type="date" value={date} onChange={(event) => { setDate(event.target.value); clearError(); }} aria-invalid={errorField === 'date' || undefined} aria-describedby={errorField === 'date' ? 'onboarding-error' : undefined} />
               </label>
               <label className={`meou-field meou-time-field${time ? '' : ' is-empty'}`} htmlFor="onboarding-birth-time">
                 <span>Время рождения</span>
-                <input id="onboarding-birth-time" ref={timeRef} name="birth-time" type="time" step={60} value={time} disabled={timeMode === 'unknown'} onChange={(event) => { setTime(event.target.value); clearError(); }} aria-invalid={errorField === 'time' || undefined} />
+                <input id="onboarding-birth-time" ref={timeRef} name="birth-time" type="time" step={60} value={time} disabled={timeMode === 'unknown'} onChange={(event) => { setTime(event.target.value); clearError(); }} aria-invalid={errorField === 'time' || undefined} aria-describedby={errorField === 'time' ? 'onboarding-error' : undefined} />
                 <span className="meou-time-placeholder" aria-hidden="true">чч:мм</span>
               </label>
               <fieldset className="meou-time-mode">
@@ -357,20 +423,22 @@ export const Onboarding: React.FC<OnboardingProps> = ({
                     ['approximate', 'Примерно'],
                     ['unknown', 'Не знаю'],
                   ] as const).map(([value, label]) => (
-                    <button key={value} type="button" className={timeMode === value ? 'is-active' : ''} aria-pressed={timeMode === value} onClick={() => chooseTimeMode(value)}>{label}</button>
+                    <button key={value} type="button" className={timeMode === value ? 'is-active' : ''} aria-pressed={timeMode === value} onClick={() => chooseTimeMode(value)}><span>{label}</span></button>
                   ))}
                 </div>
               </fieldset>
               <div className="meou-field meou-city-field">
                 <label htmlFor="onboarding-birth-place">Место рождения</label>
-                <CityAutocomplete id="onboarding-birth-place" value={place} inputRef={placeRef} placeholder="Город, страна" ariaInvalid={errorField === 'place'} onChange={(value, coords) => { setPlace(value); setPlaceCoords(coords ?? null); clearError(); }} />
+                <CityAutocomplete id="onboarding-birth-place" value={place} inputRef={placeRef} placeholder="Город, страна" ariaInvalid={errorField === 'place'} ariaDescribedBy={errorField === 'place' ? 'onboarding-error' : undefined} onChange={(value, coords) => { setPlace(value); setPlaceCoords(coords ?? null); clearError(); }} />
               </div>
               {error ? <p id="onboarding-error" className="meou-form-error" role="alert">{error}</p> : null}
-              <button type="submit" className="meou-button meou-button--primary meou-calculate-button" disabled={isSubmitting}>Рассчитать вашу карту</button>
-              <p className="meou-privacy">
-                <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="8.5" width="11" height="8" rx="1.5" /><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2" /></svg>
-                Ваши данные защищены
-              </p>
+              <div className="meou-birth-submit">
+                <button type="submit" className="meou-button meou-button--primary meou-calculate-button" disabled={isSubmitting}>Рассчитать вашу карту</button>
+                <p className="meou-privacy">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="8.5" width="11" height="8" rx="1.5" /><path d="M7 8.5V6.5a3 3 0 0 1 6 0v2" /></svg>
+                  Ваши данные защищены
+                </p>
+              </div>
             </form>
           </section>
         ) : null}

@@ -15,6 +15,7 @@ import { hasActivePremium, PREMIUM_SAVED_PERSON_LIMIT } from '../lib/accessMatri
 import { clearLocalHumanBaseReport } from '../lib/localHumanBaseReportCache';
 import { getChartSubjectType, isSelfChart } from '../lib/chartAccessPolicy';
 import type { PaywallContext } from '../lib/paywallContext';
+import type { BirthTimeMode } from '../lib/birthTime';
 import {
   MonoButton,
   MonoFadeIn,
@@ -37,6 +38,8 @@ interface MyChartsProps {
   uiPreview?: ChartsResponse;
   embedded?: boolean;
 }
+
+type SavedChartBirthTimeMode = Extract<BirthTimeMode, 'exact' | 'approximate' | 'unknown'>;
 
 function MyChartsInlineLoading({
   lang,
@@ -90,10 +93,11 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   const [addName, setAddName] = useState('');
   const [addDate, setAddDate] = useState('');
   const [addTime, setAddTime] = useState('');
+  const [addTimeMode, setAddTimeMode] = useState<SavedChartBirthTimeMode>('exact');
   const [addPlace, setAddPlace] = useState('');
   const [addRelation, setAddRelation] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
-  const [addInvalidFields, setAddInvalidFields] = useState<Array<'date' | 'place'>>([]);
+  const [addInvalidFields, setAddInvalidFields] = useState<Array<'date' | 'time' | 'place'>>([]);
   const [entitlementNow, setEntitlementNow] = useState(() => Date.now());
 
   const lang = profile.language || 'ru';
@@ -103,6 +107,7 @@ export const MyCharts: React.FC<MyChartsProps> = ({
     setAddName('');
     setAddDate('');
     setAddTime('');
+    setAddTimeMode('exact');
     setAddPlace('');
     setAddRelation('');
     setAddError(null);
@@ -240,8 +245,9 @@ export const MyCharts: React.FC<MyChartsProps> = ({
   ]);
 
   const handleAddChart = async () => {
-    const missingFields: Array<'date' | 'place'> = [];
+    const missingFields: Array<'date' | 'time' | 'place'> = [];
     if (!addDate) missingFields.push('date');
+    if (addTimeMode !== 'unknown' && !addTime) missingFields.push('time');
     if (!addPlace.trim()) missingFields.push('place');
     if (!profile.id || missingFields.length) {
       setAddInvalidFields(missingFields);
@@ -263,6 +269,8 @@ export const MyCharts: React.FC<MyChartsProps> = ({
         name: addName.trim() || getText(lang, 'charts.default_chart_name'),
         birthDate: addDate,
         birthTime: addTime,
+        birthTimeMode: addTimeMode,
+        birthTimeUncertaintyMinutes: addTimeMode === 'approximate' ? 30 : null,
         birthPlace: addPlace.trim(),
         language: lang,
         relationLabel: addRelation.trim() || null,
@@ -516,11 +524,59 @@ export const MyCharts: React.FC<MyChartsProps> = ({
             <h2 id="new-chart-heading" className="text-[18px] font-bold text-mono-ink">{getText(lang, 'charts.add_form_title')}</h2>
             <MonoInput id="chart-person-name" label={getText(lang, 'charts.field_name')} value={addName} onChange={(e) => setAddName(e.target.value)} placeholder={getText(lang, 'charts.default_chart_name')} />
             <MonoInput id="chart-birth-date" label={getText(lang, 'charts.field_birth_date')} type="date" value={addDate} onChange={(e) => { setAddDate(e.target.value); setAddInvalidFields((fields) => fields.filter((field) => field !== 'date')); }} aria-invalid={addInvalidFields.includes('date') || undefined} aria-describedby={addInvalidFields.includes('date') ? 'charts-add-error' : undefined} />
-            <MonoInput label={getText(lang, 'charts.field_birth_time')} type="time" value={addTime} onChange={(e) => setAddTime(e.target.value)} />
+            <div className="space-y-2">
+              <span id="chart-birth-time-mode-label" className="block text-[13px] font-semibold text-mono-ink">
+                {lang === 'ru' ? 'Точность времени рождения' : 'Birth time accuracy'}
+              </span>
+              <div
+                className="grid grid-cols-3 overflow-hidden rounded-[8px] border border-black/15"
+                role="radiogroup"
+                aria-labelledby="chart-birth-time-mode-label"
+              >
+                {([
+                  { value: 'exact', ru: 'Знаю', en: 'Exact' },
+                  { value: 'approximate', ru: 'Примерно', en: 'Approximate' },
+                  { value: 'unknown', ru: 'Не знаю', en: 'Unknown' },
+                ] as const).map((option, index) => {
+                  const active = addTimeMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`min-h-[44px] px-2 text-[13px] font-semibold ${index > 0 ? 'border-l border-black/15' : ''} ${active ? 'bg-mono-ink text-white' : 'bg-white text-mono-ink'}`}
+                      onClick={() => {
+                        setAddTimeMode(option.value);
+                        if (option.value === 'unknown') setAddTime('');
+                        setAddInvalidFields((fields) => fields.filter((field) => field !== 'time'));
+                      }}
+                    >
+                      {lang === 'ru' ? option.ru : option.en}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <MonoInput
+              id="chart-birth-time"
+              label={getText(lang, 'charts.field_birth_time')}
+              type="time"
+              value={addTime}
+              disabled={addTimeMode === 'unknown'}
+              onChange={(e) => {
+                setAddTime(e.target.value);
+                setAddInvalidFields((fields) => fields.filter((field) => field !== 'time'));
+              }}
+              aria-invalid={addInvalidFields.includes('time') || undefined}
+              aria-describedby={addInvalidFields.includes('time') ? 'charts-add-error' : undefined}
+            />
             <p className="-mt-2 text-[12px] leading-relaxed text-mono-muted">
-              {lang === 'ru'
-                ? 'Не знаешь точное время — оставь поле пустым. Дома и Асцендент не будут выдаваться за точные.'
-                : 'Leave this blank if the exact time is unknown. Houses and Ascendant will not be presented as exact.'}
+              {addTimeMode === 'approximate'
+                ? (lang === 'ru' ? 'Учтём погрешность ±30 минут.' : 'We will use a ±30 minute uncertainty.')
+                : addTimeMode === 'unknown'
+                  ? (lang === 'ru' ? 'Дома и Асцендент не будут выдаваться за точные.' : 'Houses and Ascendant will not be presented as exact.')
+                  : (lang === 'ru' ? 'Укажи точное время из документов или со слов близких.' : 'Enter the exact time from records or family.')}
             </p>
             <MonoInput id="chart-birth-place" label={getText(lang, 'charts.field_birth_place')} value={addPlace} onChange={(e) => { setAddPlace(e.target.value); setAddInvalidFields((fields) => fields.filter((field) => field !== 'place')); }} placeholder={getText(lang, 'charts.field_birth_place_placeholder')} aria-invalid={addInvalidFields.includes('place') || undefined} aria-describedby={addInvalidFields.includes('place') ? 'charts-add-error' : undefined} />
             <MonoInput

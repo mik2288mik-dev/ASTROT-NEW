@@ -27,6 +27,14 @@ describe('Validation', () => {
       expect(validateDate('invalid').isValid).toBe(false);
     });
 
+    it('должен отклонять невозможные календарные даты и учитывать високосный год', () => {
+      expect(validateDate('2024-02-29').isValid).toBe(true);
+      expect(validateDate('2023-02-29').isValid).toBe(false);
+      expect(validateDate('2024-02-30').isValid).toBe(false);
+      expect(validateDate('2024-04-31').isValid).toBe(false);
+      expect(validateDate('2024-13-01').isValid).toBe(false);
+    });
+
     it('должен отклонять даты в будущем', () => {
       const futureDate = new Date();
       futureDate.setFullYear(futureDate.getFullYear() + 1);

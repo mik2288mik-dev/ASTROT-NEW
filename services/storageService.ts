@@ -7,6 +7,7 @@ import { isValidUserId } from "../lib/userId";
 import { ensureWebGuestSession, getTelegramInitDataHeaders } from "./sessionService";
 import { apiFetch, clearNativeSession, isNativeAppRuntime } from "./apiClient";
 import { clearNativeProviderCredentialState } from './accountAuthService';
+import type { BirthTimeMode } from '../lib/birthTime';
 
 export class ProfileLoadError extends Error {
   status: number;
@@ -515,6 +516,8 @@ export const createChart = async (
     name: string;
     birthDate: string;
     birthTime?: string;
+    birthTimeMode?: BirthTimeMode;
+    birthTimeUncertaintyMinutes?: number | null;
     birthPlace: string;
     chartData?: any;
     language?: string;
