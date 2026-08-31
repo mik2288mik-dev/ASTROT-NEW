@@ -2506,6 +2506,7 @@ const App: React.FC = () => {
                 <div
                     ref={paywallHostRef}
                     className="fixed inset-0 z-[150] h-[100dvh] overflow-hidden bg-white"
+                    style={{ zIndex: 150 }}
                     role="dialog"
                     aria-modal="true"
                     aria-label={profile.language === 'en' ? 'Premium' : 'Premium'}

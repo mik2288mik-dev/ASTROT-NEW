@@ -81,6 +81,7 @@ describe('contextual paywall return contract', () => {
 
     expect(requestPremium).toContain('setPaywallContext(context)');
     expect(app).toContain('className="fixed inset-0 z-[150] h-[100dvh]');
+    expect(app).toContain('style={{ zIndex: 150 }}');
     expect(app).toContain('aria-modal="true"');
     expect(app).toContain('onClose={() => returnFromPaywall(paywallContext, \'close\')}');
   });
